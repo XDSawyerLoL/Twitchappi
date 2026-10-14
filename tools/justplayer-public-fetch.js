@@ -1,5 +1,6 @@
 'use strict';
 const {contentToPlainText,decodeEntities}=require('./justplayer-import-core');
+const {extractRichPostBlock}=require('./justplayer-rich-extract');
 
 function attr(html, selector, value) {
   const elements=String(html).match(/<meta\b[^>]*>/gi)||[];
@@ -23,14 +24,22 @@ function extractPublicPost(html,item) {
   const header=attr(html,'property','og:title')||String(html.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i)?.[1]||'').replace(/<[^>]*>/g,'');
   // A confident article/container is required: do not silently ingest the whole page, login prompts or menus.
   const articleBlock=String(html).match(/<article\b[^>]*>([\s\S]*?)<\/article>/i)?.[1] || '';
-  const rawBody=fromLd?.body || articleBlock;
+  const rawBody=fromLd?.body || (contentToPlainText(articleBlock).length>220?articleBlock:'') || extractRichPostBlock(html);
   const body=contentToPlainText(rawBody);
-  if(body.length<80) return {ok:false,reason:'full_article_body_not_detected',url:item.url};
+  if(body.length<220 || body.split(/\s+/).length<42) return {ok:false,reason:'full_article_body_not_detected',url:item.url};
   const title=decodeEntities(String(fromLd?.title||header||item.title||'').replace(/<[^>]*>/g,'')).trim();
   const publishedAt=fromLd?.publishedAt || attr(html,'property','article:published_time')||item.publishedAt;
+  const imageRaw=attr(html,'property','og:image')||attr(html,'name','twitter:image')||'';
+  const imageUrl=(()=>{try{
+    const u=new URL(imageRaw);
+    if(u.protocol!=='https:'||u.username||u.password||/favicon|\/logo[-_.]/i.test(u.pathname))return null;
+    return u.href;
+  }catch(_){return null;}})();
   return {ok:true,article:{title,body,legacyUrl:item.url,originalPublishedAt:publishedAt,
     author:fromLd?.author||'Rédaction JustPlayer',category:'JustPlayer',
-    summary:body.slice(0,320),sources:[{url:item.url,label:'Article original JustPlayer'}]}};
+    summary:body.split('\n').find(p=>p.trim().length>85)?.slice(0,320)||body.slice(0,320),
+    imageUrl,image:imageUrl?{url:imageUrl,credit:'JustPlayer (image de la publication originale)',rights:'À vérifier avant réutilisation ou copie'}:null,
+    sources:[{url:item.url,label:'Article original JustPlayer'}]}};
 }
 function publicPostUrl(input) {
   try {
