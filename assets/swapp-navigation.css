@@ -21,10 +21,11 @@
 .swappSiteHeader .swappGlobalNavLink:focus-visible,.swappSiteHeader .userBtn:focus-visible,.swappGlobalMobileNav a:focus-visible{outline:2px solid #63e8e5;outline-offset:3px}
 .swappGlobalMobileNav{display:none}
 @media(max-width:720px){
+  body{padding-bottom:63px}
   .swappSiteHeader .topbar{height:62px;padding:0 12px}
   .swappSiteHeader .brandMark{width:32px;height:32px;border-radius:12px}
   .swappSiteHeader .mainNav{display:none}
-  .swappGlobalMobileNav{display:flex;position:sticky;bottom:0;z-index:84;overflow-x:auto;gap:7px;padding:8px 12px;background:rgba(8,11,18,.97);border-top:1px solid var(--swapp-nav-line);scrollbar-width:none}
+  .swappGlobalMobileNav{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:84;overflow-x:auto;gap:7px;padding:8px 12px;background:rgba(8,11,18,.97);border-top:1px solid var(--swapp-nav-line);scrollbar-width:none}
   .swappGlobalMobileNav .swappGlobalNavLink{flex:1;min-width:max-content;font-size:12px;padding:9px 8px}
   .swappGlobalMobileNav .swappGlobalNavLink.active{background:rgba(255,255,255,.14);color:white}
   .swappGlobalMobileNav .swappIntegratedNewsNav.active{background:linear-gradient(115deg,#bd4ce5,#e85ef0)}
