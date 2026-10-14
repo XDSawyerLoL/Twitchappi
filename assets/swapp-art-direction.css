@@ -201,7 +201,7 @@
 #actus .swapp-actus-games-more{
  flex:0 0 auto;min-height:40px;padding:9px 15px;border:1px solid #35475a;
  border-radius:10px;background:transparent;color:#a7eae6;cursor:pointer;
- font:750 13px/1.4 inherit;text-decoration:none;white-space:nowrap
+ font-family:inherit;font-weight:750;font-size:13px;line-height:1.4;text-decoration:none;white-space:nowrap
 }
 #actus .swapp-actus-games-more:hover{border-color:#70e2df;background:#1b3142;color:#fff}
 #actus :is(.swapp-actus-games-more,.swapp-actus-game-chip):focus-visible{outline:2px solid #86efee!important;outline-offset:3px!important}
@@ -257,3 +257,12 @@
  #home .swapp-home-hero-feature,#home .swapp-home-hero-feature img{transition:none!important}
  #home .swapp-home-hero-feature:hover,#home .swapp-home-hero-feature:hover img{transform:none!important}
 }
+
+/* Stable art placeholder: same footprint as the editorial lead image. */
+#home .swapp-home-hero-placeholder{
+ min-width:0;min-height:clamp(300px,31vw,465px);border-radius:19px;
+ border:1px solid rgba(171,195,213,.1);
+ background:linear-gradient(130deg,#142337,#182e3e 50%,#151e2e);
+}
+@media(max-width:1080px){#home .swapp-home-hero-placeholder{min-height:360px}}
+@media(max-width:600px){#home .swapp-home-hero-placeholder{min-height:285px;border-radius:15px}}
