@@ -7,7 +7,10 @@
   "scripts": {
     "start": "node app.js",
     "check": "node --check server.js && node --check index_script.js && node --check app.js",
-    "test": "node --test test/*.test.js"
+    "test": "node --test test/*.test.js",
+    "preflight": "node scripts/hostinger-preflight.js",
+    "verify": "npm run preflight && npm test",
+    "build": "npm run verify"
   },
   "engines": {
     "node": ">=20"
