@@ -6,7 +6,7 @@ const {collectPublicCatalog,fetchPublicPost,publicPostUrl}=require('../tools/jus
 const old='https://justplayer.fr/supporters/posts/266628';
 const canon='https://justplayer.fr/supporters/posts/007-first-light-james-bond-reussit-son-retour';
 const html='<html><head><meta property="og:title" content="007 First Light : James Bond réussit son retour"></head>'+
- '<article><h2>Un espion dans un monde ouvert</h2><p>Une exploration détaillée du jeu, des environnements, des armes et des mécaniques d’infiltration.</p>'+
+ '<article><h2>Un espion dans un monde ouvert</h2>'+('<p>Une exploration détaillée du jeu, des environnements, des armes et des mécaniques d’infiltration.</p>'.repeat(5)) +
  '<p>L’expérience du studio nous permet de comprendre ce qui fonctionne et ce qui mérite une analyse approfondie.</p></article></html>';
 function response(status,{location,body=html}={}){
  return {status,ok:status===200,headers:{get:key=>key==='location'?location:null},text:async()=>body};
