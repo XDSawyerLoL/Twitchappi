@@ -2,7 +2,8 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const {archiveUrlKey,getPublicArchives}=require('../modules/swapp-news/archive');
-const {renderListing,isLegacyJustPlayerUrl}=require('../modules/swapp-news/article-core');
+const {isLegacyJustPlayerUrl}=require('../modules/swapp-news/article-core');
+const {renderNewsHome}=require('../modules/swapp-news/native-pages');
 const old={type:'post',url:'https://justplayer.fr/supporters/posts/266628',title:'007 First Light : James Bond réussit son retour',publishedAt:'2026-09-05'};
 const fresh={type:'post',url:'https://justplayer.fr/supporters/posts/planet-zoo-2-est-disponible-aquariums-volieres-et-reserves-naturelles',title:'Planet Zoo 2 est disponible : aquariums, volières et réserves naturelles',publishedAt:'2026-10-13'};
 test('accepte les nouveaux permaliens avec slug Fourthwall',()=>{
@@ -20,18 +21,12 @@ test('trie les archives et supprime les doublons de permalink ou de titre',()=>{
   assert.equal(a.length,2);assert.equal(a[0].title,fresh.title);
   assert.equal(getPublicArchives({items:[old,fresh]},[{title:fresh.title,legacyUrl:fresh.url}]).length,1);
 });
-test('échappe HTML et ne présente pas le lien comme article hébergé sur SWAPP',()=>{
-  const catalog={items:[{...old,title:'Un <script>alert(1)</script> véritable article'}]};
-  const a=getPublicArchives(catalog,[]);
-  const html=renderListing([],{archives:a});
-  assert.match(html,/Archives JustPlayer/);assert.match(html,/Lire sur JustPlayer/);
-  assert.doesNotMatch(html,/<script>alert\(1\)<\/script>/);
-  assert.match(html,/&lt;script&gt;/);
-  assert.match(html,/target="\_blank" rel="noopener noreferrer"/);
+test('le média public ne simule pas la migration des archives',()=>{
+  const html=renderNewsHome([]);
+  assert.doesNotMatch(html,/Archives JustPlayer|Lire sur JustPlayer|supporters\/posts/);
+  assert.match(html,/ACTUS/);
+  assert.match(html,/en-direct/);
 });
-test('sans archive le vrai état vide reste explicite',()=>assert.match(renderListing([],{archives:[]}),/Aucun article encore publié/));
-
-
 test('le catalogue connu comporte les nouveaux articles et un média sans doublons',()=>{
   const catalog=require('../data/justplayer-public-catalog.json');
   const entries=getPublicArchives(catalog);
