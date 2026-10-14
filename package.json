@@ -7,7 +7,8 @@
   "scripts": {
     "start": "node app.js",
     "check": "node --check server.js && node --check index_script.js && node --check app.js",
-    "test:news": "node --test test/news*.test.js"
+    "test:news": "node --test test/news*.test.js test/justplayer-import.test.js",
+    "justplayer:prepare": "node tools/justplayer-import.js"
   },
   "engines": {
     "node": ">=20"
