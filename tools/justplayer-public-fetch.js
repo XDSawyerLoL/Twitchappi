@@ -40,7 +40,7 @@ async function collectPublicCatalog(catalog,{fetchImpl=global.fetch,timeoutMs=90
       failures.push({url:item.url,reason:'unexpected_url'});continue;
     }
     try{
-      const res=await fetchImpl(item.url,{method:'GET',redirect:'follow',signal:AbortSignal.timeout(timeoutMs),headers:{'Accept':'text/html'}});
+      const res=await fetchImpl(item.url,{method:'GET',redirect:'error',signal:AbortSignal.timeout(timeoutMs),headers:{'Accept':'text/html'}});
       if(!res.ok)throw Error(`HTTP ${res.status}`);
       if(!String(res.headers?.get('content-type')||'text/html').includes('html'))throw Error('unexpected_content_type');
       const html=await res.text();
