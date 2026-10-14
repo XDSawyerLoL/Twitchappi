@@ -1,6 +1,7 @@
 'use strict';
 
 const {escapeHtml} = require('./article-core');
+const {serverHeader,serverMobile}=require('../../assets/swapp-navigation');
 
 const STYLES = `
 :root{color-scheme:dark;--bg:#0b101b;--layer:#111a2a;--layer2:#182238;--border:#34415b;--type:#f8f9ff;--dim:#a9b7cb;--cyan:#36e5ec;--pink:#e95df4;--purple:#a489ff;--shadow:0 26px 65px #05091070}
@@ -14,9 +15,9 @@ a{color:inherit;text-decoration:none}button,input,textarea,select{font:inherit}b
 `;
 
 function layout({title='ACTUS', description='Actualités jeux vidéo et streaming', content='', metadata='', extraCss='', scripts=''}) {
- return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b101b"><title>${escapeHtml(title)} · SWAPP</title><meta name="description" content="${escapeHtml(description)}">${metadata}<style>${STYLES}\n${extraCss}</style><link rel="stylesheet" href="/assets/swapp-media.css">${scripts}</head><body>
- <header class="site-header"><div class="site-bar"><a class="logo" href="/" aria-label="SWAPP accueil"><span class="logo-mark" aria-hidden="true"></span>SWAPP</a><nav class="site-links" aria-label="Navigation principale"><a href="/">Accueil</a><a href="/decouvrir">Découvrir</a><a href="/categories">Catégories</a><a href="/equipes">Équipes</a><a class="active-media" href="/actus" aria-current="page">ACTUS</a><a href="/compte">Compte</a><a class="site-action editor-only-nav" href="/actus/studio" hidden>Rédaction</a></nav></div></header>
+ return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b101b"><title>${escapeHtml(title)} · SWAPP</title><meta name="description" content="${escapeHtml(description)}">${metadata}<style>${STYLES}\n${extraCss}</style><link rel="stylesheet" href="/assets/swapp-media.css"><link rel="stylesheet" href="/assets/swapp-unified-nav.css">${scripts}</head><body>
+ ${serverHeader('actus')}
  ${content}
- <footer class="site-footer"><div class="container footer-inner"><span>SWAPP · Jeux vidéo, créateurs et communauté.</span><span><a href="/">SWAPP</a> · <a href="/actus">Actualités</a> · <a href="/decouvrir">Lives</a></span></div></footer><script src="/assets/swapp-media-live.js" defer></script><script src="/assets/swapp-editor-nav.js" defer></script></body></html>`;
+ <footer class="site-footer"><div class="container footer-inner"><span>SWAPP · Jeux vidéo, créateurs et communauté.</span><span><a href="/">SWAPP</a> · <a href="/actus">Actualités</a> · <a href="/decouvrir">Lives</a></span></div></footer>${serverMobile('actus')}<script src="/assets/swapp-media-live.js" defer></script><script src="/assets/swapp-editor-nav.js" defer></script><script src="/assets/swapp-nav-session.js" defer></script></body></html>`;
 }
 module.exports={STYLES,layout};
