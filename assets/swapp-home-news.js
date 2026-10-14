@@ -67,7 +67,7 @@
    all.onclick=e=>{if(e.button||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey||typeof window.setView!=='function')return;e.preventDefault();window.setView('actus');window.SwappActus?.home()};
    const actions=el('div','swapp-home-hero-actions');const browseLive=el('a','swapp-media-button swapp-home-watch-cta','Explorer les lives →');browseLive.href='/decouvrir';browseLive.onclick=e=>{if(e.button||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey||typeof window.setView!=='function')return;e.preventDefault();window.setView('discover')};actions.append(all,browseLive);top.append(title,actions);section.append(top);
    const grid=el('div','swapp-home-story-grid');
-   for(let i=0;i<5;i++){const skeleton=el('div','swapp-home-story swapp-home-story-skeleton'+(i===0?' swapp-home-story-featured':''));skeleton.setAttribute('aria-hidden','true');skeleton.append(el('div','swapp-home-story-image'),el('div','swapp-home-story-body'));grid.append(skeleton)}section.setAttribute('aria-busy','true');section.append(grid);
+   for(let i=0;i<(modern?4:5);i++){const skeleton=el('div','swapp-home-story swapp-home-story-skeleton'+(!modern&&i===0?' swapp-home-story-featured':''));skeleton.setAttribute('aria-hidden','true');skeleton.append(el('div','swapp-home-story-image'),el('div','swapp-home-story-body'));grid.append(skeleton)}section.setAttribute('aria-busy','true');section.append(grid);
    // Reserve the visual column before fetching articles to avoid a layout jump.
    const hero=modern?.querySelector('.homeHeroInner1014');
    if(hero&&!hero.querySelector('.swapp-home-hero-feature,.swapp-home-hero-placeholder')){
