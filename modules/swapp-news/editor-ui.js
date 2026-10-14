@@ -28,8 +28,8 @@ function setEditor(a){
  for(const [id,v] of Object.entries({title:a?.title,summary:a?.summary,body:a?.body,category:a?.category||'Actualités JV',game:a?.game,author:a?.author||'Rédaction SWAPP',image:image.url,credit:image.credit,rights:image.rights,legacy:a?.legacyUrl,date:a?.originalPublishedAt?.slice(0,10)}))text(id,v);
  $('edit-head').textContent=a?'Modifier : '+a.title:'Nouvel article';
  $('edit-status').textContent=a?status(a.status):'Non enregistré';
- $('ed-save').disabled=!a;
- $('ed-publish').disabled=!a||a.status==='published';
+ $('ed-save').disabled=!a?.slug;
+ $('ed-publish').disabled=!a?.slug||a.status==='published';
  $('ed-unpublish').disabled=!a||a.status!=='published';
  $('ed-view').style.display=a?.status==='published'?'inline-flex':'none';
  $('ed-view').href=a?'/actus/'+encodeURIComponent(a.slug):'#';
