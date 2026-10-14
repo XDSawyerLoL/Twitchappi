@@ -21,6 +21,10 @@ header.top .mainNav :is(a,button).active:not(.swappIntegratedNewsNav),header.top
 header.top .userBtn{min-height:40px;transition:border-color .18s ease,background-color .18s ease}
 header.top .userBtn:hover,header.top .userBtn[aria-expanded="true"]{background:#202b40;border-color:#648094}
 header.top .userBtn:focus-visible{outline:2px solid var(--swapp-focus);outline-offset:2px}
+/* No broken image glyph in the account button before a user photo exists. */
+header.top #userAvatar:not([src]),header.top #userAvatar[src=""]{display:none!important}
+header.top .userBtn:not(:has(#userAvatar[src]:not([src=""])))::before{content:"S";display:grid;place-items:center;width:27px;height:27px;flex:0 0 27px;border-radius:50%;background:linear-gradient(135deg,#29d7cd,#668ef4);color:#071320;font-size:13px;font-weight:950;letter-spacing:-.04em}
+
 .swapp-home-editorial{background:linear-gradient(135deg,#172438,#101725 64%,#22182c);border-color:#414a60;box-shadow:0 20px 50px #03071333}
 .swapp-home-editorial-top h2{letter-spacing:-.05em;text-wrap:balance}
 .swapp-home-story{position:relative;outline-offset:3px;box-shadow:0 5px 22px #00000015}
