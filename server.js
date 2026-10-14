@@ -8821,8 +8821,14 @@ app.get('/api/discovery/game-lives', heavyLimiter, async (req,res)=>{
         const games=await twitchAPI('games?name='+encodeURIComponent(game));
         const matches=(games.data||[]).filter(g=>same(game,g.name)).slice(0,3);
         for(const g of matches){
-          const streams=await twitchAPI('streams?first=100&game_id='+encodeURIComponent(g.id));
-          for(const item of streams.data||[])add(item,'twitch');
+          let cursor='',pages=0;
+          do{
+            const endpoint='streams?first=100&game_id='+encodeURIComponent(g.id)+(cursor?'&after='+encodeURIComponent(cursor):'');
+            const streams=await twitchAPI(endpoint);
+            for(const item of streams.data||[])add(item,'twitch');
+            cursor=String(streams.pagination?.cursor||'');
+            pages++;
+          }while(cursor&&pages<5&&items.length<Math.max(limit*4,80));
         }
       }catch(e){twitchError=true;console.warn('[GAME DISCOVERY] Twitch lookup:',e.message)}
     }
