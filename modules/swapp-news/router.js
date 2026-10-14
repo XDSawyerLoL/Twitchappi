@@ -8,7 +8,7 @@ const {collectPublicCatalog}=require('../../tools/justplayer-public-fetch');
 const {makePublicCatalog}=require('./public-catalog');
 const catalog=require('../../data/justplayer-public-catalog.json');
 
-function createNewsRouter({express, firestore, requireEditor, isReady = () => true, baseUrl = 'https://swapp.tv', publicFetch = globalThis.fetch, publicCatalog = catalog, canEdit = () => false}) {
+function createNewsRouter({express, firestore, requireEditor, isReady = () => true, baseUrl = 'https://swapp.tv', publicFetch = globalThis.fetch, publicCatalog = catalog, canEdit = () => false, sendApp = null}) {
   if (typeof express?.Router !== 'function' || typeof firestore?.collection !== 'function' ||
       typeof firestore?.runTransaction !== 'function' || typeof requireEditor !== 'function') {
     throw new Error('Express, Firestore et authentification éditoriale obligatoires');
@@ -54,12 +54,11 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
       return res.json(snap.data());
     }catch(e){next(e);}
   });
-  router.get('/actus',available,async(req,res,next)=>{
-    try {
-      const list=await published();
-      res.set('Cache-Control','public, max-age=60');
-      res.type('html').send(renderNewsHome(list,{baseUrl,category:req.query?.categorie,query:req.query?.q}));
-    }catch(e){next(e);}
+  // One canonical UI for direct navigation and SPA navigation.
+  router.get('/actus',(req,res,next)=>{
+    res.set('Cache-Control','no-store');
+    if(typeof sendApp==='function')return sendApp(res);
+    return next(new Error('SWAPP app renderer unavailable'));
   });
   router.get('/api/editor/actus/access',(req,res)=> {
     res.set('Cache-Control','no-store');
