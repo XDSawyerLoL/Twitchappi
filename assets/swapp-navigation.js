@@ -27,9 +27,9 @@
     return '<header class="top"><div class="topbar">'+
       '<a class="brand" href="/" aria-label="Accueil SWAPP"><span class="brandMark" aria-hidden="true"></span><span>Swapp</span></a>'+
       '<nav id="nav" class="mainNav" aria-label="Navigation principale"><div class="navGroup">'+navigation+'</div></nav>'+
-      '<div class="userArea"><a class="userBtn" href="/compte" data-swapp-account aria-label="Mon compte SWAPP">'+
-      '<span class="avatarMini" aria-hidden="true"></span><span data-swapp-account-label>Compte</span></a>'+
-      '<a class="editor-only-nav" href="/actus/studio" hidden>Rédaction</a></div>'+
+      '<div class="userArea"><button type="button" id="userBtn" class="userBtn" aria-haspopup="true" aria-expanded="false">'+
+      '<img id="userAvatar" class="avatarMini" alt=""><span id="userLabel">Compte</span></button>'+
+      '<div id="userMenu" class="menu"><a href="/compte">Mon compte SWAPP</a></div></div>'+
       '</div></header>';
   }
   function serverMobile(active='actus'){
