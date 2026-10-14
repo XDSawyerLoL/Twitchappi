@@ -157,3 +157,7 @@ main.swapp-media-main{max-width:1390px;padding:36px 20px 90px}
 .swapp-footer a:focus-visible{outline:2px solid #7ce8e6;outline-offset:4px}
 @media(max-width:900px){.swapp-footer-top{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:540px){.swapp-footer-top{grid-template-columns:1fr 1fr;gap:28px 18px}.swapp-footer-brand{grid-column:1/-1}.swapp-footer-inner{padding-bottom:105px}.swapp-footer-bottom{margin-top:28px}}
+
+/* Image failures stay visually intentional, never browser broken-image icons. */
+#home .swapp-home-image-fallback{background:linear-gradient(125deg,#183345,#251d3c 60%,#132638)}
+#home .swapp-home-match-image-missing .swapp-home-match-details{padding:5px 0}
