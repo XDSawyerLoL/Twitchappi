@@ -27,6 +27,14 @@ header.top .userBtn:not(:has(#userAvatar[src]:not([src=""])))::before{content:"S
 
 .swapp-home-editorial{background:linear-gradient(135deg,#172438,#101725 64%,#22182c);border-color:#414a60;box-shadow:0 20px 50px #03071333}
 .swapp-home-editorial-top h2{letter-spacing:-.05em;text-wrap:balance}
+.swapp-home-hero-actions{display:flex;align-items:center;flex-wrap:wrap;gap:9px}
+.swapp-home-hero-actions .swapp-media-button{min-height:44px;transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease}
+.swapp-home-hero-actions .swapp-media-button:hover{transform:translateY(-2px);box-shadow:0 10px 22px #02061055}
+.swapp-home-hero-actions .swapp-media-button:focus-visible{outline:2px solid var(--swapp-focus);outline-offset:3px}
+.swapp-home-watch-cta{background:#ffffff0a;border:1px solid #526b84;color:#deeff7}
+.swapp-home-watch-cta:hover{background:#27354a;border-color:#78ddd9}
+@media(max-width:650px){.swapp-home-hero-actions{width:100%}.swapp-home-hero-actions .swapp-media-button{width:100%}}
+
 .swapp-home-story{position:relative;outline-offset:3px;box-shadow:0 5px 22px #00000015}
 .swapp-home-story-image{isolation:isolate}
 .swapp-home-story-image::after{content:"";pointer-events:none;position:absolute;inset:0;background:linear-gradient(to bottom,transparent 55%,#05091344);z-index:0}
@@ -44,4 +52,4 @@ header.top .userBtn:not(:has(#userAvatar[src]:not([src=""])))::before{content:"S
 @media(max-width:1080px){header.top a.brand{font-size:25px;min-height:42px}}
 @media(max-width:490px){header.top a.brand{font-size:24px}header.top .topbar{gap:8px}}
 @media(hover:none){.swapp-home-story:hover,.swapp-actus-card:hover{transform:none}}
-@media(prefers-reduced-motion:reduce){header.top a.brand::after,header.top .mainNav :is(a,button),header.top .userBtn,.swapp-home-match-item,.swapp-actus-card{transition:none!important}}
+@media(prefers-reduced-motion:reduce){header.top a.brand::after,header.top .mainNav :is(a,button),header.top .userBtn,.swapp-home-match-item,.swapp-actus-card,.swapp-home-hero-actions .swapp-media-button{transition:none!important}}
