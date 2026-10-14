@@ -14,7 +14,7 @@ test('le magazine n’affiche aucun lien Fourthwall et garde le menu principal',
 test('affiche les véritables références JustPlayer sans inventer de contenu complet',()=>{
  const html=renderNewsHome([]);
  assert.match(html,/Les publications JustPlayer/);
- assert.match(html,/href="\\/actus\\/justplayer\\/266628"/);
+ assert.ok(html.includes('href="/actus/justplayer/266628"'));
  assert.doesNotMatch(html,/Lire sur JustPlayer|Archives JustPlayer/);
  assert.match(html,/editor-only-nav/);
 });
