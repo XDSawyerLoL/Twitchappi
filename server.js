@@ -933,8 +933,16 @@ if (String(process.env.SWAPP_NEWS_ENABLED || 'true').toLowerCase() === 'true') {
       isProduction: IS_PROD,
       allowedOrigins: allowedNewsOrigins
     });
+    // Recover the existing trusted SWAPP remember-me session before editor authorization.
+    // This never grants admin privileges: isOryonAdmin still checks ORYON_ADMIN_LOGINS.
+    app.use(['/actus/studio','/api/editor/actus'], async (req, res, next) => {
+      try { await restoreOryonSessionFromRememberCookie(req, res); }
+      catch (err) { console.warn('[SWAPP EDITOR] session restore failed:', err?.message); }
+      next();
+    });
     app.use(createNewsRouter({
       express, firestore: db, requireEditor: requireNewsEditor,
+      canEdit: isOryonAdmin,
       isReady: () => firestoreOk,
       baseUrl: 'https://swapp.tv'
     }));
