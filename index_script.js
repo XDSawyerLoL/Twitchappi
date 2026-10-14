@@ -121,7 +121,27 @@ async function swappOpenRoute(opts={}){
 async function api(url,opt={}){const r=await fetch(url,{credentials:'include',headers:{'Content-Type':'application/json',...(opt.headers||{})},...opt});let j;try{j=await r.json()}catch{j={success:false,error:await r.text()}} if(!r.ok&&j.success!==false)j.success=false; return j}
 function toast(t){const el=$('#toast'); if(!el)return; el.textContent=t||''; el.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(()=>el.classList.remove('show'),3200)}
 function isAdmin(){return !!state.session?.local?.is_admin}
-function renderNav(){const nav=$('#nav'), mob=$('#mobileNav'); if(!nav||!mob)return; nav.innerHTML=''; mob.innerHTML=''; const items=[['home','Accueil'],['discover','Découvrir'],['categories','Catégories'],['teams','Équipes']]; const wrap=document.createElement('div'); wrap.className='navGroup'; items.forEach(([id,label])=>{const b=document.createElement('button'); b.textContent=label; b.className=state.view===id?'active':''; b.onclick=()=>setView(id); wrap.appendChild(b)}); nav.appendChild(wrap); const actus=document.createElement('a'); actus.href='/actus'; actus.textContent='ACTUS'; actus.className='swappIntegratedNewsNav'; actus.setAttribute('aria-label','Actualités jeu vidéo SWAPP'); wrap.appendChild(actus); [['home','Accueil'],['discover','Découvrir'],['categories','Catégories'],['settings','Compte']].forEach(([id,label])=>{const b=document.createElement('button'); b.textContent=label; b.className=state.view===id?'active':''; b.onclick=()=>setView(id); mob.appendChild(b)}); const mobileActus=document.createElement('a');mobileActus.href='/actus';mobileActus.textContent='ACTUS';mobileActus.className='swappIntegratedNewsNav';mob.appendChild(mobileActus);}
+function renderNav(){
+ const nav=$('#nav'), mob=$('#mobileNav');
+ if(!nav||!mob)return;
+ if(window.SWAPPNavigation){
+   const selected=['home','discover','categories','teams'].includes(state.view)?state.view:'';
+   window.SWAPPNavigation.render(nav,mob,{active:selected,navigate:id=>setView(id)});
+   return;
+ }
+ // Safe fallback while assets load or the shared component is unavailable.
+ nav.replaceChildren();mob.replaceChildren();
+ const fallback=[['home','Accueil','/'],['discover','Découvrir','/decouvrir'],['categories','Catégories','/categories'],['teams','Équipes','/equipes'],['actus','ACTUS','/actus']];
+ const group=document.createElement('div');group.className='navGroup';
+ for(const [id,label,href] of fallback){
+   const a=document.createElement('a');a.textContent=label;a.href=href;
+   a.className='swappGlobalNavLink'+(id==='actus'?' swappIntegratedNewsNav':'');
+   if(state.view===id){a.classList.add('active');a.setAttribute('aria-current','page');}
+   if(id!=='actus')a.onclick=e=>{if(e.button===0&&!e.metaKey&&!e.ctrlKey&&!e.shiftKey&&!e.altKey){e.preventDefault();setView(id)}};
+   group.appendChild(a);mob.appendChild(a.cloneNode(true));
+ }
+ nav.appendChild(group);
+}
 function renderUserMenu(){const u=state.session.local, t=state.session.twitch; $('#userAvatar').src=u?.avatar_url||t?.profile_image_url||''; $('#userLabel').textContent=u?.display_name||u?.login||t?.display_name||'Compte'; const parts=[]; if(u){parts.push(`<div class="small" style="padding:8px 12px">Compte Swapp<br><b>${esc(u.display_name||u.login)}</b></div>`); parts.push(`<button onclick="swappOpenOwnChannel()">Ma chaîne</button>`); parts.push(`<button onclick="setView('manager')">Gestionnaire de stream</button>`); parts.push(`<button onclick="setView('dashboard')">Tableau de bord créateur</button>`); parts.push(`<button onclick="setView('studio')">Outils créateur</button>`); parts.push(`<div class="sep"></div>`)} parts.push(`<button onclick="setView('settings')">Connexion et créer un compte</button>`); parts.push(t?`<button onclick="logoutTwitch()">Déconnecter Twitch</button>`:`<button onclick="connectTwitch()">Connecter Twitch</button>`); if(u)parts.push(`<button onclick="logoutOryon()">Déconnecter Swapp</button>`); if(isAdmin())parts.push(`<div class="sep"></div><button onclick="setView('admin')">Administration</button>`); $('#userMenu').innerHTML=parts.join('')}
 async function loadSession(){const s=await api('/api/oryon/session'); if(s.success){state.session.local=s.local||null; state.session.twitch=s.twitch||null} renderNav(); renderUserMenu()}
 function authRequired(){return `<div class="protectedHint panel"><h2>Compte Swapp requis</h2><p class="muted">Cette section concerne ta chaîne ou tes outils créateur. Connecte-toi d’abord.</p><div class="row" style="justify-content:center"><button class="btn" onclick="setView('settings')">Connexion / inscription</button><button class="btn secondary" onclick="setView('home')">Retour accueil</button></div></div>`}
