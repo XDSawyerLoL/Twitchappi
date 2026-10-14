@@ -37,7 +37,7 @@
  }
  function mount(){
    const home=document.getElementById('home');if(!home||home.querySelector('[data-swapp-home-editorial]'))return;
-   const base=home.querySelector('.homeOnlyMain');if(!base||!base.children.length||home.querySelector('.swappBoot'))return;
+   const base=home.querySelector('.homeOnlyMain')||home;if(!base.children.length)return;
    const section=el('section','swapp-home-editorial');section.dataset.swappHomeEditorial='1';
    const top=el('div','swapp-home-editorial-top'),title=el('div');
    title.append(el('small','','SWAPP · LE GAMING EN DIRECT'),el('h2','','À la une sur SWAPP'),el('p','','L’actualité des jeux et les créateurs qui y jouent, au même endroit.'));
@@ -52,7 +52,7 @@
      section.setAttribute('aria-busy','false');
      const valid=articles.filter(x=>slugOk(x.slug)&&String(x.title||'').trim()).slice(0,5);
      grid.replaceChildren();
-     if(!valid.length){section.remove();return}
+     if(!valid.length){grid.append(el('p','swapp-home-empty','Les actualités sont temporairement indisponibles.'));return}
      valid.forEach((item,i)=>grid.append(story(item,i)));
      const featuredGames=[...new Set(valid.map(a=>String(a.game||'').trim()).filter(Boolean))].slice(0,3);
      const gameResults=await Promise.allSettled(featuredGames.map(game=>fetchItems('/api/discovery/game-lives?limit=8&game='+encodeURIComponent(game),9000)));
