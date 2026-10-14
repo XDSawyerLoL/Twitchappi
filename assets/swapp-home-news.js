@@ -55,7 +55,7 @@
      valid.forEach((item,i)=>grid.append(story(item,i)));
      const liveItems=await lives();if(!section.isConnected)return;
      const seen=new Set(),pairs=[];
-     for(const article of valid){if(!article.game)continue;const stream=liveItems.find(l=>match(article.game,l.game_name||l.game||l.category)&&!seen.has(String(l.platform)+':'+String(l.login)));if(stream){seen.add(String(stream.platform)+':'+String(stream.login));pairs.push({article,stream})}if(pairs.length>=3)break}
+     for(const article of valid){if(!article.game)continue;const stream=liveItems.filter(l=>match(article.game,l.game_name||l.game||l.category)&&/^[a-z0-9_]{2,25}$/.test(String(l.login||'').toLowerCase())&&!seen.has(String(l.platform)+':'+String(l.login))).sort((a,b)=>Number(['swapp','oryon'].includes(String(b.platform||'').toLowerCase()))-Number(['swapp','oryon'].includes(String(a.platform||'').toLowerCase()))||Number(b.viewer_count||0)-Number(a.viewer_count||0))[0];if(stream){seen.add(String(stream.platform)+':'+String(stream.login));pairs.push({article,stream})}if(pairs.length>=3)break}
      related.replaceChildren();
      if(!pairs.length)return;
      const heading=el('div','swapp-home-match-heading');heading.append(el('span','','ACTUS × LIVE'),el('h3','','L’actualité prend vie'));
