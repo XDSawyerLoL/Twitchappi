@@ -17,9 +17,8 @@ async function mount(){
  shelf.append(node('h2','','Dans l’actualité du jeu'));const status=node('p','swapp-live-articles-status','Recherche du jeu diffusé…'),grid=node('div','swapp-live-articles-grid');shelf.append(status,grid);
  const placement=document.querySelector('.channelPage')||host.parentElement||host;placement.append(shelf);
  try{
-  const live=await json('/api/discovery/home-lives?limit=40&lang=fr');if(ticket!==request||!shelf.isConnected)return;
-  const streamer=(live.items||[]).find(x=>String(x.login||'').toLowerCase()===login&&['swapp','oryon'].includes(String(x.platform||'').toLowerCase()));
-  const game=String(streamer?.game_name||streamer?.game||streamer?.category||'').trim();if(!game){status.textContent='Le jeu de ce live n’est pas disponible dans les suggestions reçues.';return}
+  const status=await json('/api/oryon/channel/'+encodeURIComponent(login)+'/status');if(ticket!==request||!shelf.isConnected)return;
+  const game=String(status.live?.category||status.live?.game_name||'').trim();if(!game){status.textContent='Le jeu de ce live n’est pas disponible dans les suggestions reçues.';return}
   shelf.querySelector('h2').textContent='À lire sur '+game;status.textContent='Recherche des articles liés…';
   const data=await json('/api/actus');if(ticket!==request||!shelf.isConnected)return;
   const articles=(data.articles||[]).filter(a=>gameMatch(game,a.game)&&/^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/.test(String(a.slug||''))).slice(0,3);
