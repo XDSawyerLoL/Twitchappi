@@ -963,8 +963,8 @@ app.get('/index_script.js', (_req,res)=>{
   return sendPublicFile(res, 'index_script.js', 'application/javascript');
 });
 // SWAPP ACTUS / JUSTPLAYER — module éditorial isolé du streaming.
-// Activer uniquement après sauvegarde et validation Firestore : SWAPP_NEWS_ENABLED=true.
-if (String(process.env.SWAPP_NEWS_ENABLED || '').toLowerCase() === 'true') {
+// Rubrique visible dès que Firestore est disponible ; SWAPP_NEWS_ENABLED=false la désactive.
+if (String(process.env.SWAPP_NEWS_ENABLED || 'true').toLowerCase() === 'true') {
   if (firestoreOk && typeof db.runTransaction === 'function') {
     const {createNewsRouter} = require('./modules/swapp-news/router');
     const {makeNewsEditorGuard} = require('./modules/swapp-news/editor-auth');
