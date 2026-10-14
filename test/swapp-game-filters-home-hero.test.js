@@ -22,7 +22,7 @@ test('ACTUS game filters expand rather than rendering a native horizontal scroll
 test('homepage hero uses actual article imagery with reserved loading dimensions',()=>{
  const script=read('assets/swapp-home-news.js');
  const css=read('assets/swapp-art-direction.css');
- assert.match(script,/function decorateHero\(modern,articles\)/);
+ assert.match(script,/function decorateHero\(modern,articles,onImageError\)/);
  assert.match(script,/feature=articles\.find\(item=>slugOk\(item\.slug\)/);
  assert.match(script,/swapp-home-hero-placeholder/);
  assert.match(script,/hero\.classList\.add\('swapp-hero-has-story'\)/);
@@ -35,7 +35,7 @@ test('homepage hero uses actual article imagery with reserved loading dimensions
 test('latest ACTUS and homepage assets load after design CSS in the canonical app',()=>{
  const app=read('index.html');
  const shell=read('modules/swapp-news/site-shell.js');
- assert.match(app,/swapp-actus-app\.js\?v=20261015-editorial-28/);
+ assert.match(app,/swapp-actus-app\.js\?v=20261015-curated-26/);
  assert.match(app,/swapp-home-news\.js\?v=20261015-editorial-28/);
  assert.match(app,/swapp-art-direction\.css\?v=20261015-editorial-28/);
  assert.match(shell,/swapp-art-direction\.css\?v=20261015-editorial-28/);
