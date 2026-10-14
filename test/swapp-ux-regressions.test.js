@@ -23,7 +23,7 @@ test('home article cards and navigation remain wired up',()=>{
  const shell=read('index.html');
  assert.match(home,/fetchItems\('\/api\/actus'/);
  assert.match(home,/grid\.append\(story\(item,i\)\)/);
- assert.match(home,/const base=home\.querySelector\('\.homeOnlyMain'\)\|\|home/);
+ assert.match(home,/const base=modern\|\|legacy\|\|home/);
  assert.match(home,/window\.setView\('actus'\)/);
  assert.match(home,/window\.setView\('discover'\)/);
  assert.match(article,/window\.SwappActus=Object\.freeze\(\{render,open,home\}\)/);
