@@ -66,7 +66,18 @@
      section.setAttribute('aria-busy','false');
      const valid=articles.filter(x=>slugOk(x.slug)&&String(x.title||'').trim()).slice(0,5);
      grid.replaceChildren();
-     if(!valid.length){grid.append(el('p','swapp-home-empty','Les actualités sont temporairement indisponibles.'));return}
+     if(!valid.length){
+       const retryState=el('div','swapp-home-empty');
+       retryState.append(el('p','','Les actualités sont momentanément indisponibles.'));
+       const retry=el('button','swapp-home-retry','Réessayer');
+       retry.type='button';
+       retry.onclick=()=>{
+         newsPromise=null;newsFetchedAt=0;
+         section.remove();
+         queue();
+       };
+       retryState.append(retry);grid.append(retryState);return;
+     }
      valid.forEach((item,i)=>grid.append(story(item,i)));
      const featuredGames=[...new Set(valid.map(a=>String(a.game||'').trim()).filter(Boolean))].slice(0,3);
      const gameResults=await Promise.allSettled(featuredGames.map(game=>fetchItems('/api/discovery/game-lives?limit=8&game='+encodeURIComponent(game),9000)));
