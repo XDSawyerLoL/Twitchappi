@@ -946,7 +946,8 @@ if (String(process.env.SWAPP_NEWS_ENABLED || 'true').toLowerCase() === 'true') {
       express, firestore: db, requireEditor: requireNewsEditor,
       canEdit: isNewsEditor,
       isReady: () => firestoreOk,
-      baseUrl: 'https://swapp.tv'
+      baseUrl: 'https://swapp.tv',
+      sendApp: sendSwappUi
     }));
     console.log('[SWAPP NEWS] Rédaction activée, diffusion sociale désactivée.');
   } else {
