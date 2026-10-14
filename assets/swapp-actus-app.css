@@ -125,3 +125,9 @@
 @media(max-width:760px){.swapp-reader-live-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:550px){.swapp-reader-live-grid{grid-template-columns:1fr}.swapp-actus-article .swapp-reader-source-panel{align-items:stretch}.swapp-reader-source-links{width:100%}.swapp-reader-source-link{width:100%}}
 @media(prefers-reduced-motion:reduce){.swapp-reader-live-card,.swapp-reader-source-link,.swapp-reader-live-cover img{transition:none}}
+
+/* Expand relevant lives without adding another route or menu. */
+.swapp-reader-live-card[hidden]{display:none!important}
+.swapp-reader-live-more{justify-self:start;background:#2b2450;border:1px solid #816bb5;border-radius:999px;color:#f7edff;padding:11px 17px;font:inherit;font-size:13px;font-weight:750;cursor:pointer;margin-top:9px}
+.swapp-reader-live-more:hover{background:#403270;border-color:#b6a0fa}
+.swapp-reader-live-more:focus-visible{outline:3px solid #80ebf8;outline-offset:3px}
