@@ -50,15 +50,12 @@ html,body{overflow-x:hidden}.watchShell.channelWatch{grid-template-columns:minma
 </style>
 
 
-<style id="swapp-unified-nav-css">
-#nav .swappIntegratedNewsNav,#mobileNav .swappIntegratedNewsNav{display:inline-flex;align-items:center;justify-content:center;padding:9px 15px;border-radius:999px;background:linear-gradient(115deg,#ab49db,#d951e3);color:#fff!important;text-decoration:none;font-size:13px;font-weight:850;white-space:nowrap}
-#nav .swappIntegratedNewsNav:hover,#mobileNav .swappIntegratedNewsNav:hover{filter:brightness(1.13)}
-</style>
+<link rel="stylesheet" href="/assets/swapp-navigation.css">
 </head>
 <body>
-<header class="top">
+<header class="top swappSiteHeader">
   <div class="topbar">
-    <div class="brand"><div class="brandMark"></div><span>Swapp</span></div>
+    <a class="brand" href="/" aria-label="SWAPP accueil"><span class="brandMark" aria-hidden="true"></span><span>Swapp</span></a>
     <nav id="nav" class="mainNav"></nav>
     <div class="userArea">
       <button id="userBtn" class="userBtn"><img id="userAvatar" class="avatarMini" alt=""><span id="userLabel">Compte</span></button>
@@ -79,8 +76,9 @@ html,body{overflow-x:hidden}.watchShell.channelWatch{grid-template-columns:minma
   <section id="settings" class="view"></section>
   <section id="admin" class="view"></section>
 </main>
-<nav id="mobileNav" class="mobileNav"></nav>
+<nav id="mobileNav" class="mobileNav swappGlobalMobileNav" aria-label="Navigation principale sur mobile"></nav>
 <div id="toast" class="toast"></div>
+<script src="/assets/swapp-navigation.js"></script>
 <script src="/index_script.js?v=1.0.14"></script>
 </body>
 </html>
