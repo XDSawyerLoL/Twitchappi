@@ -40,15 +40,16 @@ function makePublicCatalog({catalog,fetchImpl=globalThis.fetch,clock=Date.now,tt
    inflight.set(key,promise);
    return promise;
  }
- let background=null;
+ let scanInFlight=null;
  async function scanBatch(){
-   const first=refs.slice(0,limit);
-   await Promise.all(first.map(load));
-   if(!background){
-     background=(async()=>{for(let i=limit;i<refs.length;i+=2){
-       await Promise.all(refs.slice(i,i+2).map(load));
-     }})().catch(()=>{}).finally(()=>{background=null;});
+   // All known verified posts must settle before serving /api/actus.
+   // Formerly only the first three were awaited, so initial requests
+   // exposed 3 stories and later requests 13 despite identical URLs.
+   // load() deduplicates in-flight fetches and caches successes/failures.
+   if(!scanInFlight){
+     scanInFlight=Promise.all(refs.map(load)).finally(()=>{scanInFlight=null;});
    }
+   await scanInFlight;
    return articles();
  }
  function articles(){
