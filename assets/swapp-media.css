@@ -1,12 +1,12 @@
 /* SWAPP ACTUS — unified editorial + live experience, loaded after the legacy page rules. */
 :root{--sw-live:#43eeee;--sw-accent:#e65bea}
 body{background:radial-gradient(ellipse at 10% 4%,#154f6770,transparent 42%),radial-gradient(ellipse at 95% 4%,#4b2d704a,transparent 40%),#0c111d}
-body>header:not(.site-header){padding:12px max(22px,calc((100vw - 1390px)/2))!important;background:#10151fef!important;box-shadow:0 12px 35px #03071333;z-index:40}
-body>header:not(.site-header) a[href="/"]{display:flex;align-items:center;gap:11px;font-size:20px;letter-spacing:-.045em}
-body>header:not(.site-header) a[href="/"]::before{content:"";display:block;width:38px;height:38px;border-radius:13px;background:linear-gradient(140deg,#26edf2,#64f7dd);box-shadow:0 0 24px #4df8e45c}
-body>header:not(.site-header) nav{align-items:center;gap:8px!important}
-body>header:not(.site-header) nav a{display:inline-flex;padding:9px 14px;border-radius:999px;font-size:13px;font-weight:800}
-body>header:not(.site-header) nav a[href="/actus"]{background:linear-gradient(110deg,#cd48ec,#eb68e5);color:white}
+body>header:not(.site-header):not(.top){padding:12px max(22px,calc((100vw - 1390px)/2))!important;background:#10151fef!important;box-shadow:0 12px 35px #03071333;z-index:40}
+body>header:not(.site-header):not(.top) a[href="/"]{display:flex;align-items:center;gap:11px;font-size:20px;letter-spacing:-.045em}
+body>header:not(.site-header):not(.top) a[href="/"]::before{content:"";display:block;width:38px;height:38px;border-radius:13px;background:linear-gradient(140deg,#26edf2,#64f7dd);box-shadow:0 0 24px #4df8e45c}
+body>header:not(.site-header):not(.top) nav{align-items:center;gap:8px!important}
+body>header:not(.site-header):not(.top) nav a{display:inline-flex;padding:9px 14px;border-radius:999px;font-size:13px;font-weight:800}
+body>header:not(.site-header):not(.top) nav a[href="/actus"]{background:linear-gradient(110deg,#cd48ec,#eb68e5);color:white}
 main.swapp-media-main{max-width:1390px;padding:36px 20px 90px}
 .swapp-media-hero{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(300px,.8fr);gap:18px;margin:0 0 32px}
 .swapp-media-stage{border:1px solid #3b4760;border-radius:26px;padding:clamp(24px,4vw,56px);min-height:340px;background:radial-gradient(ellipse at 0% 0%,#276b8460,transparent 55%),linear-gradient(135deg,#1d3049,#181d31 70%,#352448);display:flex;flex-direction:column;justify-content:center}
@@ -46,7 +46,7 @@ main.swapp-media-main{max-width:1390px;padding:36px 20px 90px}
 .swapp-watch-player iframe,.swapp-watch-chat iframe{display:block;border:0;width:100%;height:100%}
 .swapp-watch-chat{border-radius:20px;overflow:hidden;border:1px solid #44546b;min-height:360px;background:#0c111d}
 @media(max-width:1000px){.swapp-media-hero,.swapp-watch-layout{grid-template-columns:1fr}.swapp-live-grid,.swapp-media-stories{grid-template-columns:repeat(2,minmax(0,1fr))}.swapp-watch-chat{height:440px}}
-@media(max-width:660px){body>header:not(.site-header){padding:10px 15px!important}body>header:not(.site-header) nav a{padding:8px 10px!important;font-size:12px!important}.swapp-media-hero,.swapp-live-grid,.swapp-media-stories{grid-template-columns:1fr}.swapp-media-stage,.swapp-media-feature{min-height:unset}.swapp-media-stage h1{font-size:44px}main.swapp-media-main{padding:25px 15px 65px}.swapp-watch-chat{display:none}}
+@media(max-width:660px){body>header:not(.site-header):not(.top){padding:10px 15px!important}body>header:not(.site-header):not(.top) nav a{padding:8px 10px!important;font-size:12px!important}.swapp-media-hero,.swapp-live-grid,.swapp-media-stories{grid-template-columns:1fr}.swapp-media-stage,.swapp-media-feature{min-height:unset}.swapp-media-stage h1{font-size:44px}main.swapp-media-main{padding:25px 15px 65px}.swapp-watch-chat{display:none}}
 
 /* SWAPP home: a native editorial lane within the existing live dashboard. */
 .swapp-home-editorial{margin:18px 0 28px;padding:clamp(20px,3vw,30px);border:1px solid #54607c;border-radius:22px;background:radial-gradient(ellipse at 0 0,#206e8661,transparent 58%),linear-gradient(110deg,#16263e,#231935);box-shadow:0 20px 40px #040a142c;color:#fff}
