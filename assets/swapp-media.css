@@ -139,3 +139,21 @@ main.swapp-media-main{max-width:1390px;padding:36px 20px 90px}
 @media(max-width:1050px){#home .swapp-home-story-featured{grid-row:auto}}
 @media(max-width:650px){#home .swapp-home-editorial{border-radius:18px}#home .swapp-home-story-grid{grid-template-columns:minmax(0,1fr)}}
 @media(prefers-reduced-motion:reduce){#home .swapp-home-story:hover{transform:none}#home .swapp-home-story-image img{transition:none}}
+
+/* SWAPP institutional footer. Shared between the SPA and public media pages. */
+.swapp-footer{position:relative;clear:both;isolation:isolate;background:#0b101b;color:#d8e3f1;border-top:1px solid #344058;margin-top:36px;font:inherit}
+.swapp-footer *{box-sizing:border-box}
+.swapp-footer-inner{max-width:1390px;margin:0 auto;padding:43px clamp(18px,3vw,38px) 24px}
+.swapp-footer-top{display:grid;grid-template-columns:minmax(240px,1.6fr) repeat(3,minmax(140px,1fr));gap:clamp(22px,3vw,48px)}
+.swapp-footer-brand>a{font-weight:950;font-size:28px;letter-spacing:-.07em;text-decoration:none;color:#fff}
+.swapp-footer-brand-dot{color:#70eae8}
+.swapp-footer-brand p{color:#98abc2;font-size:13px;line-height:1.75;max-width:310px;margin:12px 0 0}
+.swapp-footer-col{display:flex;flex-direction:column;gap:11px;min-width:0}
+.swapp-footer-col h2{margin:0 0 6px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#7ce8e6}
+.swapp-footer-col a{color:#d3e0ef;font-size:13px;text-decoration:none;line-height:1.45}
+.swapp-footer-col a:hover{text-decoration:underline;color:#fff}
+.swapp-footer-pending{margin:0;color:#92a3bb;font-size:12px;line-height:1.6;max-width:245px}
+.swapp-footer-bottom{border-top:1px solid #ffffff1a;margin-top:36px;padding-top:19px;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;color:#8399b2;font-size:12px}
+.swapp-footer a:focus-visible{outline:2px solid #7ce8e6;outline-offset:4px}
+@media(max-width:900px){.swapp-footer-top{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:540px){.swapp-footer-top{grid-template-columns:1fr 1fr;gap:28px 18px}.swapp-footer-brand{grid-column:1/-1}.swapp-footer-inner{padding-bottom:105px}.swapp-footer-bottom{margin-top:28px}}
