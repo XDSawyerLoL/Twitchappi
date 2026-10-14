@@ -77,16 +77,16 @@ function prepareBatches(raw, {batchSize=20}={}) {
   for(let i=0;i<articles.length;i+=batchSize) batches.push({articles:articles.slice(i,i+batchSize),dryRun:true,publish:false});
   return {total:rawRecords.length,accepted:articles.length,duplicates,rejected,warnings,batches};
 }
-function recordNumericId(record) {
+function recordPostKey(record) {
   try {
-    const url = new URL(record.url || record.legacyUrl || record.permalink);
-    if (!['justplayer.fr','www.justplayer.fr'].includes(url.hostname.toLowerCase())) return '';
-    return url.pathname.match(/\/(\d+)\/?$/)?.[1] || '';
-  } catch (_) { return ''; }
+    const source=record.legacyUrl || record.url || record.permalink;
+    if(!isLegacyJustPlayerUrl(source))return '';
+    return new URL(source).pathname.match(/\/supporters\/posts\/([a-z0-9]+(?:-[a-z0-9]+)*)\/?$/)?.[1] || '';
+  }catch(_){return '';}
 }
 function mergeMetadataAndContent(catalog, exportData) {
   const records=recordsFromExport(exportData);
-  const details=new Map(records.map(r=>[recordNumericId(r),r]).filter(([key])=>key));
+  const details=new Map(records.map(r=>[recordPostKey(r),r]).filter(([key])=>key));
   const combined=[],missing=[];
   for (const item of catalog.items || []) {
     if (item.type !== 'post') {missing.push({...item,reason:'requires_video_import_adapter'});continue;}
@@ -98,7 +98,7 @@ function mergeMetadataAndContent(catalog, exportData) {
   }
   const knownIds=new Set((catalog.items || []).map(x=>String(x.id)));
   for (const record of records) {
-    const id=recordNumericId(record);
+    const id=recordPostKey(record);
     if (!knownIds.has(id)) combined.push(record);
   }
   return {combined,missing};
