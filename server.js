@@ -962,6 +962,32 @@ app.get('/index_script.js', (_req,res)=>{
   res.setHeader('Expires','0');
   return sendPublicFile(res, 'index_script.js', 'application/javascript');
 });
+// SWAPP ACTUS / JUSTPLAYER — module éditorial isolé du streaming.
+// Rubrique visible dès que Firestore est disponible ; SWAPP_NEWS_ENABLED=false la désactive.
+if (String(process.env.SWAPP_NEWS_ENABLED || 'true').toLowerCase() === 'true') {
+  if (firestoreOk && typeof db.runTransaction === 'function') {
+    const {createNewsRouter} = require('./modules/swapp-news/router');
+    const {makeNewsEditorGuard} = require('./modules/swapp-news/editor-auth');
+    const allowedNewsOrigins = ['https://swapp.tv','https://www.swapp.tv',
+      safeOrigin(process.env.APP_BASE_URL), safeOrigin(process.env.PUBLIC_APP_URL)].filter(Boolean);
+    const requireNewsEditor = makeNewsEditorGuard({
+      isSessionAdmin: isOryonAdmin,
+      adminKey: getSwappAdminKey(),
+      isProduction: IS_PROD,
+      allowedOrigins: allowedNewsOrigins
+    });
+    app.use(createNewsRouter({
+      express, firestore: db, requireEditor: requireNewsEditor,
+      isReady: () => firestoreOk,
+      baseUrl: 'https://swapp.tv'
+    }));
+    console.log('[SWAPP NEWS] Rédaction activée, diffusion sociale désactivée.');
+  } else {
+    console.warn('[SWAPP NEWS] Firestore indisponible : module non activé.');
+    app.get('/actus', (_req,res) => res.status(503).send('SWAPP Actualités : stockage temporairement indisponible.'));
+  }
+}
+
 app.get('/favicon.ico', (_req,res)=>sendPublicFile(res, 'favicon.ico', 'image/x-icon'));
 
 // Page principale (UI)

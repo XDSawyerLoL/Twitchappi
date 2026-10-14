@@ -1,0 +1,11 @@
+'use strict';
+const test=require('node:test');
+const assert=require('node:assert/strict');
+const {slugify,assertArticle,renderArticle}=require('../modules/swapp-news/article-core');
+const article={title:'Un nouveau jeu annoncé en octobre',body:'Un contenu original relativement long pour démontrer que cet article peut être mis en ligne sans erreur.',summary:'Un exemple de résumé',sources:[{url:'https://example.com/annonce',label:'Annonce officielle'}]};
+test('slugs français stables',()=>assert.equal(slugify('Été à Paris : une annonce !'),'ete-a-paris-une-annonce'));
+test('brouillon valide avec source',()=>assert.equal(assertArticle(article).slug,'un-nouveau-jeu-annonce-en-octobre'));
+test('source exigée pour publier',()=>assert.throws(()=>assertArticle({...article,sources:[]},{publish:true}),/source/));
+test('image doit avoir des droits explicites pour publier',()=>assert.throws(()=>assertArticle({...article,image:{url:'https://example.com/img.jpg'}},{publish:true}),/droits/));
+test('html script échappé',()=>{const html=renderArticle({...assertArticle({...article,body:article.body+' <script>alert(1)</script>'}),status:'published'});assert.ok(!html.includes('<script>alert(1)</script>'));assert.ok(html.includes('&lt;script&gt;'));});
+test('URL javascript interdite',()=>assert.throws(()=>assertArticle({...article,sources:[{url:'javascript:alert(1)'}]},{publish:true}),/URL/));
