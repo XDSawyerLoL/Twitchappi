@@ -25,7 +25,7 @@
   function serverHeader(active='actus'){
     const navigation=items.map(item=>link(item,active)).join('');
     return '<header class="top"><div class="topbar">'+
-      '<a class="brand" href="/" aria-label="Accueil SWAPP"><span class="brandMark" aria-hidden="true"></span><span>Swapp</span></a>'+
+      '<a class="brand swapp-wordmark" href="/" aria-label="SWAPP — Accueil"><span class="swapp-wordmark-text">SWAPP<span class="swapp-wordmark-dot" aria-hidden="true">.</span></span></a>'+
       '<nav id="nav" class="mainNav" aria-label="Navigation principale"><div class="navGroup">'+navigation+'</div></nav>'+
       '<div class="userArea"><button type="button" id="userBtn" class="userBtn" aria-haspopup="true" aria-expanded="false">'+
       '<img id="userAvatar" class="avatarMini" alt=""><span id="userLabel">Compte</span></button>'+
