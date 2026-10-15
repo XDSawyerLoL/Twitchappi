@@ -38,10 +38,10 @@ test('le serveur utilise la barre et les identifiants exacts du site de lives',(
 test('le site client charge le même contrat avant le script SPA',()=>{
  const html=fs.readFileSync(path.join(ROOT,'index.html'),'utf8');
  const script=fs.readFileSync(path.join(ROOT,'index_script.js'),'utf8');
- assert.ok(html.indexOf('src="/assets/swapp-navigation.js"') < html.indexOf('src="/index_script.js'));
+ assert.ok(html.indexOf('src="/assets/swapp-navigation.js?v=20261015-livegrid-32"') < html.indexOf('src="/index_script.js'));
  assert.match(script,/window\.SwappNavigation/);
- assert.match(html,/href="\/assets\/swapp-unified-nav\.css"/);
- assert.match(layout({content:''}),/href="\/assets\/swapp-unified-nav\.css"/);
+ assert.match(html,/href="\/assets\/swapp-unified-nav\.css\?v=20261015-livegrid-32"/);
+ assert.match(layout({content:''}),/href="\/assets\/swapp-unified-nav\.css\?v=20261015-livegrid-32"/);
 });
 test('pages article, actualités et live partagent le même menu et SWAPP reste SWAPP',()=>{
  const story={slug:'jeu-2026',title:'Un jeu annoncé',body:'Une analyse assez complète pour découvrir cette actualité.',summary:'Un résumé de l’article',category:'ACTUS',author:'SWAPP',game:'Fortnite',sources:[],publishedAt:'2026-10-14T20:00:00Z'};
