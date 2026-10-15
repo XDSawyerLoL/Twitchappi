@@ -23,6 +23,16 @@
   return Number(width)>=430&&Number(height)>=500;
  }
  let panel=null,article=null,opener=null;
+ function openFull({login,name,game}={}){
+  if(!validLogin(login)||typeof root?.swappOpenLive1014!=='function')return false;
+  close(false);
+  root.swappOpenLive1014(encodeURIComponent(JSON.stringify({
+   platform:'twitch',login:String(login).toLowerCase(),
+   display_name:String(name||login).slice(0,65),
+   game_name:String(game||'').slice(0,90)
+  })));
+  return true;
+ }
  function close(restoreFocus=true){
   if(!panel)return;
   panel.remove();
@@ -58,11 +68,15 @@
   const actions=d.createElement('div');
   actions.className='swapp-article-mini-actions';
   const link=d.createElement('a');
-  link.href='/live/twitch/'+encodeURIComponent(String(login).toLowerCase());
+  link.href='https://www.twitch.tv/'+encodeURIComponent(String(login).toLowerCase());
   link.target='_blank';
   link.rel='noopener noreferrer';
   link.textContent='Ouvrir le live ↗';
   link.setAttribute('aria-label','Ouvrir le direct complet de '+String(name||login));
+  link.onclick=event=>{
+   if(event.button||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
+   if(openFull({login,name,game}))event.preventDefault();
+  };
   const button=d.createElement('button');
   button.type='button';
   button.textContent='×';
@@ -102,5 +116,5 @@
   if(root.document?.readyState==='loading')root.document.addEventListener('DOMContentLoaded',boot,{once:true});
   else boot();
  }
- return Object.freeze({open,close,playerUrl,validLogin,canEmbed});
+ return Object.freeze({open,openFull,close,playerUrl,validLogin,canEmbed});
 });
