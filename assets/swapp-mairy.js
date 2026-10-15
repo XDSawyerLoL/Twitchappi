@@ -157,7 +157,7 @@
     addReply('Tu peux suivre les directs et les actualités en activant les catégories dans Événements. Rien n’est activé automatiquement.');
     show('events',false);
    }else if(/(?:\bcommunaute\b|\bsocial\b|\bdiscussion\b|\bmessage\b)/.test(query)){
-    addReply('Un aperçu des publications publiques du prototype SOCIAL est accessible dans Communauté. La publication et la connexion des comptes ne sont pas encore intégrées à SWAPP.');
+    addReply('Un aperçu des publications publiques du prototype SOCIAL est accessible dans Communauté. Tu peux aussi accéder au fil complet et te connecter directement dans SWAPP.');
     show('community',false);
    }else{
     addReply('Je peux te montrer les directs disponibles, les dernières actualités, les réglages de couleurs et les événements. Quelle partie veux-tu explorer ?');
@@ -184,6 +184,7 @@ let loadingCommunity=false;
     card.append(node('p','',String(post.body).slice(0,420)));
     communityList.append(card);
    }
+   const openAll=node('a','swapp-companion-reload','Explorer toute la communauté →');openAll.href='/communaute';communityList.append(openAll);
    if(!communityList.children.length){
     communityList.append(node('p','swapp-companion-empty','Aucune publication publique disponible actuellement.'));
    }
