@@ -5217,7 +5217,7 @@ function isOryonAdmin(req){
  // Optional hard binding: once ORYON_ADMIN_USER_IDS is set, a matching login
  // alone cannot grant administrator privileges to a different account.
  const pinnedRaw=String(process.env.ORYON_ADMIN_USER_IDS||'').trim();
- if(!pinnedRaw)return true; // backwards compatible only when no pin is configured
+ if(!pinnedRaw)return !IS_PROD; // In production, a username alone must NEVER grant administrator rights
  const pinned=pinnedRaw.split(',').map(s=>s.trim())
   .filter(s=>/^[a-f0-9]{24,64}$/i.test(s));
  // A typo or an invalid value MUST fail closed, never silently disable the pin.
