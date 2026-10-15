@@ -73,7 +73,7 @@ test('one user click opens a contained video with a visible close and full-chann
  assert.equal(iframe.referrerPolicy,'strict-origin-when-cross-origin');
  const links=app.created.filter(x=>x.tagName==='A');
  assert.equal(links.length,1);
- assert.equal(links[0].href,'/live/twitch/creator_name');
+ assert.equal(links[0].href,'https://www.twitch.tv/creator_name');
  assert.equal(links[0].target,'_blank');
  assert.equal(links[0].rel,'noopener noreferrer');
  const close=app.created.find(x=>x.tagName==='BUTTON');
@@ -118,22 +118,43 @@ test('mobile uses an accessible direct-watch alternative and embed viewport is a
  assert.match(css,/width:min\(500px,calc\(100vw - 24px\)\)/);
  assert.match(css,/\.swapp-article-mini-video\{height:300px;min-height:300px/);
 });
+
+test('full view opens the integrated SWAPP player; modified clicks use official Twitch fallback',()=>{
+ const app=mockBrowser(),opened=[];
+ app.browser.swappOpenLive1014=payload=>opened.push(JSON.parse(decodeURIComponent(payload)));
+ assert.equal(app.api.open({login:'creator_name',name:'Créateur',game:'Fortnite'}),true);
+ const link=app.created.find(x=>x.tagName==='A');
+ let prevented=false;
+ link.onclick({button:0,preventDefault(){prevented=true}});
+ assert.equal(prevented,true);
+ assert.equal(opened.length,1);
+ assert.equal(opened[0].platform,'twitch');
+ assert.equal(opened[0].login,'creator_name');
+ assert.equal(opened[0].game_name,'Fortnite');
+ assert.ok(app.doc.body.children[0].removed);
+ prevented=false;
+ link.onclick({button:0,ctrlKey:true,preventDefault(){prevented=true}});
+ assert.equal(prevented,false);
+ assert.equal(opened.length,1);
+});
 test('the existing articles and stream cards expose accessible inline play without more sections',()=>{
  const app=read('assets/swapp-actus-app.js');
  const html=read('index.html');
  const css=read('assets/swapp-art-direction.css');
  const main=read('index_script.js');
- assert.ok(html.indexOf('/assets/swapp-article-player.js?v=20261015-player-39') <
-   html.indexOf('/assets/swapp-actus-app.js?v=20261015-player-39'));
+ assert.ok(html.indexOf('/assets/swapp-article-player.js?v=20261015-player-40') <
+   html.indexOf('/assets/swapp-actus-app.js?v=20261015-player-40'));
  assert.match(app,/swapp-reader-live-inline/);
  assert.match(app,/SwappArticlePlayer\?\.open/);
  assert.match(app,/SwappArticlePlayer\?\.close\(\)/);
  assert.match(app,/link=el\(native\?'a':'div','swapp-reader-live-card'\)/);
+ assert.match(app,/SwappArticlePlayer\?\.openFull/);
+ assert.match(app,/https:\/\/www\.twitch\.tv\//);
  assert.match(css,/\.swapp-article-mini-player/);
  assert.match(css,/\.swapp-live-pip1014/);
  assert.match(main,/swapp-live-pip1014/);
  assert.match(css,/prefers-reduced-motion:reduce/);
  assert.match(css,/swapp-view-arrive/);
- assert.match(html,/swapp-art-direction\.css\?v=20261015-player-39/);
+ assert.match(html,/swapp-art-direction\.css\?v=20261015-player-40/);
  assert.doesNotMatch(app,/swapp-actus-mini-sidebar-duplicated/);
 });
