@@ -6,7 +6,7 @@ const path=require('node:path');
 const {assertArticle}=require('../modules/swapp-news/article-core');
 const {detectGames,recommend,cleanTags}=require('../modules/swapp-news/content-metadata');
 const {renderStudio,js}=require('../modules/swapp-news/editor-ui');
-const {renderNewsStory}=require('../modules/swapp-news/native-pages');
+const {renderNewsStory,renderNewsHome}=require('../modules/swapp-news/native-pages');
 const {trailers}=require('../modules/swapp-hubs');
 const root=path.resolve(__dirname,'..');
 const input={
@@ -57,7 +57,7 @@ test('full editor has create edit publish actions and the new SEO / game control
  for(const term of ['contentType','seoTitle','seoDescription','tags','games','trailerUrl','ed-detect-games','ed-create','ed-save','ed-publish','ed-unpublish']){
   assert.ok(html.includes('id="'+term+'"'),term);
  }
- assert.match(html,/Rédaction|Studio éditorial/);
+ assert.match(html,/SWAPP Studio/);
  assert.doesNotThrow(()=>new Function(js));
  assert.match(js,/\/api\/editor\/actus\/suggest/);
  assert.match(js,/games:\$\('games'\)\.value\.split/);
@@ -86,4 +86,34 @@ test('media persistence is protected by the same existing admin account guard',(
  assert.match(router,/router\.post\('\/api\/editor\/actus\/suggest',\.\.\.editor/);
  const guard=fs.readFileSync(path.join(root,'modules/swapp-news/editor-auth.js'),'utf8');
  assert.match(guard,/editor_csrf_header_required/);
+});
+
+test('video articles without manually uploaded covers get playable YouTube poster and sharing image',()=>{
+ const article={...assertArticle(input,{publish:true}),status:'published',publishedAt:'2026-10-15T10:00:00.000Z'};
+ const page=renderNewsStory(article);
+ const thumbnail='https://i.ytimg.com/vi/VQRLujxTm3c/hqdefault.jpg';
+ assert.ok(page.includes('<meta property="og:image" content="'+thumbnail+'">'));
+ assert.ok(page.includes('<meta name="twitter:card" content="summary_large_image">'));
+ assert.ok(page.includes('<img class="swapp-trailer-thumb" src="'+thumbnail+'"'));
+ assert.ok(page.includes('data-swapp-trailer-id="VQRLujxTm3c"'));
+ assert.ok(page.includes('https://www.youtube.com/watch?v=VQRLujxTm3c'));
+ assert.doesNotMatch(page,/<iframe/);
+ const listing=renderNewsHome([article]);
+ assert.ok(listing.includes('<img class="story-image" src="'+thumbnail+'"'));
+ assert.ok(listing.includes('<img src="'+thumbnail+'"'));
+});
+test('an uploaded licensed cover takes priority over the official YouTube thumbnail for sharing',()=>{
+ const article={...assertArticle({...input,image:{url:'https://example.org/licensed-wow.jpg',credit:'Éditeur',rights:'Autorisé'}},{publish:true}),
+ status:'published',publishedAt:'2026-10-15T10:00:00.000Z'};
+ const page=renderNewsStory(article);
+ assert.match(page,/<meta property="og:image" content="https:\/\/example.org\/licensed-wow.jpg">/);
+ assert.match(page,/class="swapp-trailer-thumb"/);
+ assert.match(page,/src="https:\/\/i.ytimg.com\/vi\/VQRLujxTm3c\/hqdefault.jpg"/);
+});
+test('an article without a verified video URL never invents a video player',()=>{
+ const article={...assertArticle({...input,contentType:'article',trailerUrl:null},{publish:true}),
+ status:'published',publishedAt:'2026-10-15T10:00:00.000Z'};
+ const page=renderNewsStory(article);
+ assert.doesNotMatch(page,/swapp-trailer-stage|swapp-trailer-thumb/);
+ assert.doesNotMatch(page,/i\.ytimg\.com/);
 });
