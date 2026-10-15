@@ -68,7 +68,7 @@ header.top .mainNav::-webkit-scrollbar{display:none}
  * Match both the SPA buttons and the SSR anchors; never style one set smaller.
  */
 @media(min-width:1081px){
- header.top #nav.swapp-nav-consistent :is(a,button){
+ header.top #nav.mainNav :is(a,button){
   display:inline-flex!important;
   align-items:center!important;
   justify-content:center!important;
@@ -84,10 +84,62 @@ header.top .mainNav::-webkit-scrollbar{display:none}
   letter-spacing:normal!important;
   text-decoration:none!important;
  }
- header.top #nav.swapp-nav-consistent .navGroup{
+ header.top #nav.mainNav .navGroup{
   display:flex;
   flex-wrap:nowrap;
   align-items:center;
   gap:4px;
  }
+}
+
+
+/* Canonical geometry, independent of SPA vs server rendering.
+   The final three destinations are native pages; keep the wordmark and every
+   navigation control identical on both page shells from FIRST PAINT. */
+header.top{
+  height:68px!important;min-height:68px!important;
+  box-sizing:border-box;
+}
+header.top .topbar{
+  height:68px!important;min-height:68px!important;
+  width:100%!important;max-width:none!important;
+  padding:0 18px!important;box-sizing:border-box;
+  display:flex!important;align-items:center!important;
+  gap:14px!important;
+}
+header.top a.brand{
+  flex:0 0 auto!important;
+  box-sizing:border-box;
+  height:48px!important;min-height:48px!important;
+  display:inline-flex!important;align-items:center!important;
+  padding:0!important;margin:0!important;
+  font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif!important;
+  font-size:25px!important;font-weight:950!important;
+  line-height:1!important;letter-spacing:-.078em!important;
+  text-transform:uppercase!important;white-space:nowrap!important;
+}
+header.top a.brand .swapp-wordmark-text{font-size:inherit!important;line-height:1!important}
+header.top .mainNav{
+  align-items:center!important;min-width:0!important;
+}
+header.top #nav.mainNav :is(a,button){
+  font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif!important;
+  font-size:13px!important;font-weight:850!important;letter-spacing:0!important;
+  line-height:1.4!important;min-height:36px!important;
+  box-sizing:border-box!important;
+}
+header.top .userArea{align-items:center!important;flex:none!important}
+header.top .userBtn{
+  box-sizing:border-box;
+  min-height:42px!important;
+  font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif!important;
+  font-size:13px!important;font-weight:900!important;
+  line-height:1.3!important;
+}
+@media(max-width:1080px){
+  header.top .topbar{padding:0 12px!important;gap:10px!important}
+  header.top a.brand{font-size:24px!important}
+}
+@media(max-width:490px){
+  header.top .topbar{gap:8px!important}
 }
