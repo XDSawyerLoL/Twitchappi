@@ -37,11 +37,22 @@ body.swapp-editorial-route .article-wrap > :not(.swapp-article-scene){
   object-fit:contain;object-position:right top;
   filter:brightness(.83) saturate(.98) contrast(1.03);
   transform:none!important;
+  /* Fade the real IMAGE edge, not just a transparent veil over it.
+     Its right-aligned, natural-ratio layout is unchanged. */
+  -webkit-mask-image:linear-gradient(90deg,
+    transparent 0%,rgba(0,0,0,.18) 10%,rgba(0,0,0,.45) 18%,
+    rgba(0,0,0,.78) 28%,#000 42%,#000 100%);
+  mask-image:linear-gradient(90deg,
+    transparent 0%,rgba(0,0,0,.18) 10%,rgba(0,0,0,.45) 18%,
+    rgba(0,0,0,.78) 28%,#000 42%,#000 100%);
 }
 .swapp-article-scene::before{
   content:"";position:absolute;inset:0;z-index:1;
-  background:linear-gradient(90deg,#0b111b 0%,rgba(11,17,27,.94) 24%,
-   rgba(11,17,27,.67) 46%,rgba(11,17,27,.14) 78%,rgba(11,17,27,.07) 100%);
+  background:linear-gradient(90deg,
+    #0b111b 0%,rgba(11,17,27,.97) 16%,
+    rgba(11,17,27,.90) 28%,rgba(11,17,27,.72) 40%,
+    rgba(11,17,27,.44) 54%,rgba(11,17,27,.18) 68%,
+    rgba(11,17,27,.06) 82%,transparent 100%);
 }
 .swapp-article-scene::after{display:none!important;content:none!important}
 .swapp-article-scene:not(.has-art) img{display:none!important}
@@ -230,7 +241,11 @@ body.swapp-editorial-route .article-wrap > figure:has(img.cover-img){display:non
 }
 @media(max-width:700px){
   .swapp-article-scene{height:clamp(280px,70vw,430px)}
-  .swapp-article-scene img{width:100%;height:auto;max-width:100%;top:0;left:0;right:auto}
+  .swapp-article-scene img{
+    width:100%;height:auto;max-width:100%;top:0;left:0;right:auto;
+    /* On mobile, keep the full-width image visible; its fade is vertical. */
+    -webkit-mask-image:none;mask-image:none;
+  }
   .swapp-article-scene::before{
     background:linear-gradient(0deg,#0b111b 0%,rgba(11,17,27,.86) 29%,rgba(11,17,27,.37) 80%,rgba(11,17,27,.3))
   }
