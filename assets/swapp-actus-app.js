@@ -52,10 +52,29 @@ if(games.length){
 }update()}catch(e){if(node.isConnected){const message=el('p','swapp-actus-state',e.message),retry=el('button','swapp-actus-go-live','Réessayer');retry.onclick=()=>{node.replaceChildren();showList(node)};feed.replaceChildren(message,retry)}}}
 async function showArticle(node,slug){node.append(el('p','swapp-actus-state','Chargement de l’article…'));try{const a=await fetchJson('/api/actus/'+encodeURIComponent(slug));if(!node.isConnected)return;node.replaceChildren();node.classList.add('swapp-actus-reading');
 const back=el('button','swapp-actus-go-back','← Toutes les actualités');back.type='button';back.onclick=home;const nav=el('nav','swapp-actus-reader-nav');nav.setAttribute('aria-label','Retour à la rubrique Actualités');nav.append(back);node.append(nav);
-const article=el('article','swapp-actus-article');const heading=el('header','swapp-reader-hero');const kicker=el('div','swapp-reader-kicker');kicker.append(el('span','swapp-reader-kicker-main',a.category||'Actualité'));if(a.game)kicker.append(el('span','swapp-reader-kicker-game',a.game));heading.append(kicker,el('h1','',a.title));if(a.summary)heading.append(el('p','swapp-actus-summary',a.summary));heading.append(el('p','swapp-actus-author',[a.author,date(a.publishedAt||a.originalPublishedAt)].filter(Boolean).join(' · ')));article.append(heading);
+const article=el('article','swapp-actus-article');
+const heading=el('header','swapp-reader-hero swapp-immersive-hero');
+const heroCopy=el('div','swapp-immersive-content');
+const heroImage=url(a.image?.url||a.imageUrl);
+if(heroImage){
+ const backdrop=el('div','swapp-immersive-bg');
+ const image=el('img');
+ image.src=heroImage;image.alt='';image.decoding='async';image.fetchPriority='high';
+ image.setAttribute('aria-hidden','true');
+ image.onerror=()=>{backdrop.remove();heading.classList.remove('has-cover')};
+ backdrop.append(image);heading.append(backdrop);heading.classList.add('has-cover');
+}
+const kicker=el('div','swapp-reader-kicker');
+kicker.append(el('span','swapp-reader-kicker-main',a.category||'Actualité'));
+if(a.game)kicker.append(el('span','swapp-reader-kicker-game',a.game));
+heroCopy.append(kicker,el('h1','',a.title));
+if(a.summary)heroCopy.append(el('p','swapp-actus-summary',a.summary));
+heroCopy.append(el('p','swapp-actus-author',[a.author,date(a.publishedAt||a.originalPublishedAt)].filter(Boolean).join(' · ')));
+heading.append(heroCopy);article.append(heading);
+if(heroImage&&a.image?.credit)article.append(el('p','swapp-immersive-credit',a.image.credit));
 const controls=el('div','swapp-reader-controls');const words=String(a.body||'').trim().split(/\s+/).filter(Boolean).length;controls.append(el('span','swapp-read-time',Math.max(1,Math.ceil(words/220))+' min de lecture'));
 const share=el('button','swapp-reader-share','Partager l’article');share.type='button';share.onclick=async()=>{const address=location.origin+'/actus/'+encodeURIComponent(slug);try{if(navigator.share){await navigator.share({title:a.title,url:address});return}if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(address);share.textContent='Lien copié';return}}catch(e){if(e.name==='AbortError')return}share.textContent='Copier le lien : '+address};controls.append(share);if(a.game){const jump=el('a','swapp-reader-live-jump','Voir les lives du jeu ↓');jump.href='#swapp-article-lives';jump.onclick=e=>{const target=article.querySelector('#swapp-article-lives');if(!target)return;e.preventDefault();target.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'})};controls.append(jump)}article.append(controls);
-if(url(a.image?.url||a.imageUrl)){const figure=el('figure','swapp-reader-hero-figure');figure.append(cover(a));if(a.image?.credit)figure.append(el('figcaption','',a.image.credit));article.append(figure);}
+// Cover already displayed as immersive backdrop; no duplicate image.
 const progress=el('div','swapp-reading-progress');progress.setAttribute('aria-hidden','true');const progressFill=el('span');progress.append(progressFill);node.prepend(progress);
 const updateProgress=()=>{if(!article.isConnected){window.removeEventListener('scroll',updateProgress);window.removeEventListener('resize',updateProgress);return;}const rect=article.getBoundingClientRect();const total=Math.max(1,article.offsetHeight-window.innerHeight);const travelled=Math.min(total,Math.max(0,-rect.top));progressFill.style.width=(travelled/total*100)+'%';};
 window.addEventListener('scroll',updateProgress,{passive:true});window.addEventListener('resize',updateProgress);requestAnimationFrame(updateProgress);
