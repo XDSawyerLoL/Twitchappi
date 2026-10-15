@@ -866,8 +866,13 @@ const staticOptions = {
   // Versioned assets are safe to reuse between route changes and reloads.
   // A short bound avoids serving stale assets if a revision key is omitted.
   maxAge: '30m',
-  setHeaders(res){
+  setHeaders(res, staticPath){
     res.setHeader('X-Content-Type-Options', 'nosniff');
+    // ACTUS is actively iterated: these small files must not leave readers
+    // on the old hero while the main HTML has already been deployed.
+    if(/(?:^|[\\/])(?:swapp-actus-app\\.(?:js|css)|swapp-article-immersive(?:-compat)?\\.(?:js|css))$/.test(staticPath)){
+      res.setHeader('Cache-Control','no-store, no-cache, must-revalidate');
+    }
   }
 };
 // SOCIAL write actions use a dedicated origin-pinned, no-cookie bridge.
