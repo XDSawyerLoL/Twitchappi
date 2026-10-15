@@ -116,7 +116,22 @@
   },{once:true});
   host.append(poster);
  }
- function render(){meta();video()}
+ function render(){
+  const type=$('contentType').value;
+  const isVideo=type==='video'||type==='trailer';
+  const videoBox=$('ed-video-field'),sourceBox=$('ed-source-field');
+  // Hide optional complexity while retaining saved values and allowing editing.
+  if(videoBox)videoBox.hidden=!isVideo&&!$('trailerUrl').value.trim();
+  if(sourceBox)sourceBox.hidden=isVideo&&!$('sources').value.trim();
+  const videoHeading=videoBox?.querySelector('h3');
+  if(videoHeading)videoHeading.textContent=isVideo?'Vidéo YouTube (obligatoire)':'Vidéo YouTube facultative';
+  const message=$('ed-publish-hint');
+  if(message&&!$('ed-publish').disabled&&message.textContent.includes('brouillon')){
+   message.textContent=isVideo?'Ajoute une URL YouTube valide, puis clique sur Publier. SWAPP enregistre automatiquement le brouillon.':
+    'Complète le contenu et les sources, puis clique sur Publier. SWAPP enregistre automatiquement le brouillon.';
+  }
+  meta();video();
+ }
  function fullPreview(){
   const section=$('ed-preview');
   section.replaceChildren();
