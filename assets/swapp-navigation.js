@@ -13,7 +13,10 @@
     Object.freeze({id:'discover',label:'Découvrir',href:'/decouvrir'}),
     Object.freeze({id:'categories',label:'Catégories',href:'/categories'}),
     Object.freeze({id:'teams',label:'Équipes',href:'/equipes'}),
-    Object.freeze({id:'actus',label:'Actualité',href:'/actus'})
+    Object.freeze({id:'actus',label:'Actualité',href:'/actus'}),
+    Object.freeze({id:'community',label:'Communauté',href:'/communaute'}),
+    Object.freeze({id:'trailers',label:'Vidéos',href:'/bandes-annonces'}),
+    Object.freeze({id:'shop',label:'Boutique',href:'/boutique'})
   ]);
   const account=Object.freeze({id:'settings',label:'Compte',href:'/compte'});
   const htmlEscape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -32,8 +35,11 @@
       '</div></header>';
   }
   function serverMobile(active='actus'){
+    const main=items.filter(item=>['home','discover','actus','community'].includes(item.id));
+    const other=items.filter(item=>!main.includes(item));
     return '<nav id="mobileNav" class="mobileNav" aria-label="Navigation mobile">'+
-      items.map(item=>link(item,active,true)).join('')+link(account,active,true)+'</nav>';
+      main.map(item=>link(item,active,true)).join('')+
+      '<details class="swapp-mobile-more"'+(other.some(item=>item.id===active)||active===account.id?' open':'')+'><summary'+(other.some(item=>item.id===active)||active===account.id?' class="active"':'')+'>Plus</summary><div class="swapp-mobile-more-links">'+other.map(item=>link(item,active,true)).join('')+link(account,active,true)+'</div></details></nav>';
   }
   return Object.freeze({items,account,serverHeader,serverMobile});
 });
