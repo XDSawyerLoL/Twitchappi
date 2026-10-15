@@ -12,6 +12,10 @@ function publicArticle(article){
  if(isOldBrand(next.contentSource))next.contentSource='SWAPP';
  return next;
 }
+function recoveredArticle(article){
+ if(!article)return article;
+ return {...publicArticle(article),slug:nativeSlug(article)};
+}
 function nativeSlug(legacy){
  const raw=String(legacy?.slug||'').replace(/^justplayer-/,'');
  return slugify(raw||legacy?.title||'');
@@ -24,4 +28,4 @@ function legacyDraft(source){
   sourceAuthor:originalAuthor,sourceSlug:source.slug,provenance:'legacy-editorial-copy',
   status:'draft'};
 }
-module.exports={publicArticle,nativeSlug,legacyDraft,isOldBrand};
+module.exports={publicArticle,recoveredArticle,nativeSlug,legacyDraft,isOldBrand};
