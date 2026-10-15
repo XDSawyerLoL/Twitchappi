@@ -3,7 +3,7 @@
  const menu=document.getElementById('userMenu');
  const trigger=document.getElementById('userBtn');
  if(!menu||!trigger)return;
- let scheduled=false,appearanceOpened=false;
+ let scheduled=false,appearanceOpened=false,tastesOpened=false;
  function enhance(){
   scheduled=false;
   // renderUserMenu() replaces innerHTML repeatedly: enhance each fresh render.
@@ -19,6 +19,46 @@
   details.append(summary,panel);
   details.addEventListener('toggle',()=>{appearanceOpened=details.open});
   menu.append(details);
+  // A collapsed control inside the existing account menu, never a new page block.
+  const tastes=window.SwappLocalTastes;
+  if(tastes){
+   const local=document.createElement('details');
+   local.className='swapp-account-tastes';
+   local.open=tastesOpened;
+   const label=document.createElement('summary');
+   label.textContent='Recommandations locales';
+   const help=document.createElement('p');
+   help.textContent='Seuls les jeux que tu choisis sont conservés sur cet appareil, 30 jours maximum. Aucun historique envoyé au serveur.';
+   const controls=document.createElement('div');
+   controls.className='swapp-account-tastes-actions';
+   const toggle=document.createElement('button'),clear=document.createElement('button');
+   for(const btn of [toggle,clear])btn.type='button';
+   const refresh=()=>{
+    const enabled=tastes.isEnabled();
+    toggle.textContent=enabled?'Désactiver':'Activer';
+    toggle.setAttribute('aria-pressed',String(enabled));
+    toggle.setAttribute('aria-label',enabled?'Désactiver la personnalisation locale':'Activer la personnalisation locale');
+    clear.disabled=!enabled;
+   };
+   toggle.addEventListener('click',event=>{
+    event.stopPropagation();
+    tastes.setEnabled(!tastes.isEnabled());
+    refresh();
+    window.dispatchEvent(new Event('swapp:local-tastes-changed'));
+   });
+   clear.textContent='Effacer mes préférences';
+   clear.addEventListener('click',event=>{
+    event.stopPropagation();
+    tastes.clear();
+    clear.textContent='Préférences effacées';
+    window.dispatchEvent(new Event('swapp:local-tastes-changed'));
+   });
+   refresh();
+   controls.append(toggle,clear);
+   local.append(label,help,controls);
+   local.addEventListener('toggle',()=>{tastesOpened=local.open});
+   menu.append(local);
+  }
   for(const color of panel.querySelectorAll('.topThemeColors button,.themeMenuRow button')){
    const value=color.style.backgroundColor||color.getAttribute('style')||'';
    color.type='button';
