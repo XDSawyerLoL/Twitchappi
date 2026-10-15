@@ -52,7 +52,7 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
     const snapshot=await articles.where('status','==','published').limit(80).get();
     const candidates=[...snapshot.docs.map(d=>publicArticle(d.data())),
       ...publicNews.articles().map(recoveredArticle)];
-    const norm=value=>String(value||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'')
+    const norm=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
       .toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
     const game=norm(current.game),category=norm(current.category);
     const words=new Set(norm(current.title).split(' ').filter(x=>x.length>=5));
