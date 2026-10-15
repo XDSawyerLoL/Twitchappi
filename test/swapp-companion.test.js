@@ -86,8 +86,8 @@ test('Mairy knows when to avoid interruptions during video playback',()=>{
 test('living polish and social community ship in both SWAPP shells',()=>{
  const home=read('index.html');
  const article=layout({content:'<main>Article</main>'});
- for(const html of [home,article])assert.match(html,/swapp-living\\.css\\?v=20261015-living-1/);
+ for(const html of [home,article])assert.match(html,/swapp-living\.css\?v=20261015-living-1/);
  const living=read('assets/swapp-living.css');
- assert.match(living,/@media\\(hover:hover\\) and \\(pointer:fine\\)/);
- assert.match(living,/@media\\(prefers-reduced-motion:reduce\\)/);
+ assert.match(living,/@media\s*\(hover:hover\) and \(pointer:fine\)/);
+ assert.match(living,/@media\(prefers-reduced-motion:reduce\)/);
 });
