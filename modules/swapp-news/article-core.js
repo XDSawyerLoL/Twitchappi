@@ -59,14 +59,14 @@ function assertArticle(value, {publish = false, legacyRequired = false} = {}) {
   const requestedGames=Array.isArray(value.games)?value.games:[];
   const games=[...new Set([String(value.game||'').trim(),...requestedGames,...editorial.games]
     .map(x=>String(x).trim().slice(0,120)).filter(Boolean))].slice(0,8);
-  const tags=cleanTags(value.tags);
+  const tags=cleanTags(value.tags && (Array.isArray(value.tags)?value.tags.length:String(value.tags).trim()) ? value.tags : editorial.tags);
   const seo=cleanSEO(value.seo,{title,summary});
 
   return {
     title, slug, body, summary, contentType:kind,
     games,tags,seo,
     category: String(value.category || 'actualites').trim().slice(0, 60),
-    game: String(value.game || '').trim().slice(0, 120),
+    game: String(value.game || editorial.primaryGame || '').trim().slice(0, 120),
     author: String(value.author || 'Rédaction JustPlayer / SWAPP').trim().slice(0, 120),
     sources: sources.map(s => ({url:s.url, label:String(s.label || '').trim().slice(0, 180)})),
     image: image ? {url:image.url,credit:String(image.credit||'').trim().slice(0,180),rights:String(image.rights||'').trim().slice(0,180)} : null,
