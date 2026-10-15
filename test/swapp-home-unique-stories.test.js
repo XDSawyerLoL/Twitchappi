@@ -13,7 +13,8 @@ class Element {
   this.children=[];this.parentNode=null;this.attributes={};
   this.classList={
    add:name=>{this.className=[...new Set([...this.className.split(' ').filter(Boolean),name])].join(' ')},
-   remove:name=>{this.className=this.className.split(' ').filter(s=>s!==name).join(' ')}
+   remove:name=>{this.className=this.className.split(' ').filter(s=>s!==name).join(' ')},
+   contains:name=>this.className.split(' ').includes(name)
   };
  }
  get firstChild(){return this.children[0]||null}
@@ -33,14 +34,14 @@ class Element {
 }
 
 async function render(articles){
- const root=new Element('div');root.root=true;
+ const root=new Element('div');root.root=true;root.className='active';
  const main=new Element('main');main.className='swappHome1014';root.append(main);
  const hero=new Element('div');hero.className='homeHeroInner1014';
  const live=new Element('section');live.className='homeLiveSection1014';main.append(hero,live);
  const timers=[];const calls=[];
  const document={getElementById:id=>id==='home'?root:null,createElement:tag=>new Element(tag)};
  const fetch=async url=>{calls.push(url);return {ok:true,json:async()=>url==='/api/actus'?{articles}:{items:[]}}};
- const context={document,window:{addEventListener(){}},MutationObserver:class{observe(){}},
+ const context={document,window:{addEventListener(){},dispatchEvent(){}},CustomEvent:class{constructor(type,options){this.type=type;this.detail=options?.detail}},MutationObserver:class{observe(){}},
   setTimeout:cb=>timers.push(cb),fetch,AbortSignal,URL};
  vm.runInNewContext(script,context,{timeout:2000});
  for(let i=0;i<30;i++){while(timers.length)timers.shift()();await Promise.resolve()}
@@ -64,6 +65,7 @@ test('large hero and article grid contain five unique stories, without duplicate
  assert.equal(view.main.children[2],view.shelf,'supporting news follows live discovery');
  assert.equal(view.calls.filter(x=>x==='/api/actus').length,1);
  assert.equal(view.calls.some(x=>x.includes('game-lives')),false);
+ assert.ok(view.shelf.querySelector('.swapp-home-video-feature'),'one playable trailer appears alongside the editorial title');
 });
 test('a missing image picks the next valid lead, or falls back to full story grid',async()=>{
  const next=await render([make(0,false),...([1,2,3,4].map(i=>make(i)))]);
