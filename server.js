@@ -870,7 +870,7 @@ const staticOptions = {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     // ACTUS is actively iterated: these small files must not leave readers
     // on the old hero while the main HTML has already been deployed.
-    if(/(?:^|[\\/])(?:swapp-actus-app\\.(?:js|css)|swapp-article-immersive(?:-compat)?\\.(?:js|css))$/.test(staticPath)){
+    if(/(?:^|[\\/])(?:swapp-actus-app\.(?:js|css)|swapp-article-immersive(?:-compat)?\.(?:js|css))$/.test(staticPath)){
       res.setHeader('Cache-Control','no-store, no-cache, must-revalidate');
     }
   }
