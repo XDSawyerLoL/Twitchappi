@@ -415,8 +415,10 @@ async function init(){
   bindStaticEvents();
   applyIncomingShare();
   bindDelegatedEvents();
-  // A slow SOCIAL backend must not leave an empty, unresponsive network page.
-  await Promise.allSettled([health(),restoreSession()]);
+  // Public content must not wait for separate health / identity requests.
+  // On a cold backend these used to block first content for several seconds.
+  void health();
+  void restoreSession();
   await Promise.allSettled([loadHome(),loadCirclePreview()]);
 }
 
