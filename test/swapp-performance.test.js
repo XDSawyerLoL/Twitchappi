@@ -76,7 +76,7 @@ test('AdSense library is not loaded globally before CMP consent',()=>{
  const ads=read('assets/swapp-adsense-inarticle.js');
  for(const html of [site,pages]){
   assert.ok(!html.includes('pagead2.googlesyndication.com/pagead/js/adsbygoogle.js'));
-  assert.ok(html.includes('/assets/swapp-adsense-inarticle.js?v=20261016-inarticle-1'));
+  assert.ok(html.includes('/assets/swapp-adsense-inarticle.js?v=20261016-inarticle-2'));
   assert.ok(!html.includes('<ins class="adsbygoogle"'));
  }
  assert.ok(ads.includes('ca-pub-6082969821681414'));
