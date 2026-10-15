@@ -11005,14 +11005,20 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
     ));
     if(revision!==liveDiscoveryRevision||state?.view!=='home'||!lastLiveCandidates)return;
     const nativeMatches=[],twitchMatches=[];
-    found.forEach(result=>{
+    found.forEach((result,index)=>{
       if(!result?.success||!Array.isArray(result.items))return;
+      const story=window.SwappLiveCuration?.matchLiveToArticle(
+        {game_name:games[index]},latestArticleMatches
+      );
+      // This API has already verified the live's game identity server-side.
+      const articleLink=story?{slug:story.slug,title:story.title,game:games[index]}:null;
       for(const live of result.items){
         if(!live||typeof live!=='object')continue;
+        const enriched={...live,...(articleLink?{swappNewsMatch:articleLink}:{})};
         if(['swapp','oryon','native'].includes(String(live.platform||'').toLowerCase())){
-          nativeMatches.push({...live,platform:'swapp'});
+          nativeMatches.push({...enriched,platform:'swapp'});
         }else if(String(live.platform||'').toLowerCase()==='twitch'){
-          twitchMatches.push({...live,platform:'twitch'});
+          twitchMatches.push({...enriched,platform:'twitch'});
         }
       }
     });
