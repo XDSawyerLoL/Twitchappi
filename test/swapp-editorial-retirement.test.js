@@ -92,6 +92,10 @@ test('editor adopts recoverable article in a protected and editable native draft
  const pre=await request('GET','/api/actus');
  assert.equal(pre.payload.articles.length,1);
  assert.equal(pre.payload.articles[0].category,'Actualités JV');
+ assert.equal(pre.payload.articles[0].slug,'266628');
+ const alreadyPublic=await request('GET','/api/actus/:slug',{params:{slug:'266628'}});
+ assert.equal(alreadyPublic.statusCode,200);
+ assert.equal(alreadyPublic.payload.slug,'266628');
  const status=await request('GET','/api/editor/actus/legacy-status');
  assert.equal(status.payload.pending.length,1);
  assert.equal(status.payload.readyToClose,false);
