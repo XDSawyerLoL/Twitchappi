@@ -68,3 +68,12 @@ test('SPA and native reader have the same affiliate disclosure and no tracking s
  assert.match(read('assets/swapp-article-immersive.css'),/swapp-affiliate-offer/);
  assert.doesNotMatch(read('assets/swapp-instant-gaming.js'),/fetch\(|sendBeacon\(|localStorage\./);
 });
+
+
+test('a game article with an existing commercial partner is not overloaded with another ad',()=>{
+ const article={slug:'valor-mortis-with-partner',title:'Valor Mortis',game:'Valor Mortis',
+  body:'## Test\n\nLecture du jeu',commercialLinks:[{title:'Voir le jeu',merchant:'Partenaire',url:'https://example.com/item',kind:'affiliate'}]};
+ const html=renderNewsStory(article);
+ assert.doesNotMatch(html,/swapp-affiliate-offer/);
+ assert.match(read('assets/swapp-actus-app.js'),/a\.commercialLinks\?\.length\?null/);
+});
