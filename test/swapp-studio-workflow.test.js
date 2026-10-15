@@ -100,3 +100,25 @@ test('in-tab recovery is optional and does not transmit drafts to external servi
  assert.doesNotMatch(enhance,/localStorage|indexedDB/);
  assert.doesNotMatch(enhance,/fetch\('https:\/\//);
 });
+
+test('administrator permissions require an immutable identity pin on production',()=>{
+ const server=read('server.js');
+ assert.match(server,/ORYON_ADMIN_USER_IDS/);
+ assert.match(server,/if\(!pinnedRaw\)return !IS_PROD/);
+ assert.match(server,/pinned\.includes\(String\(cur\.id\)\)/);
+ const auth=read('modules/swapp-news/editor-auth.js');
+ assert.match(auth,/ORYON_ADMIN_LOGINS/);
+ assert.match(auth,/ORYON_ADMIN_USER_IDS/);
+});
+test('diagnostic tool measures actual network requests on demand, without tracking',()=>{
+ const html=renderStudio();
+ assert.match(html,/id="ed-studio-diagnose"/);
+ assert.match(html,/id="ed-studio-diagnostics"/);
+ const enhance=read('assets/swapp-editor-enhance.js');
+ for(const route of ['/api/editor/actus/access','/api/actus','/bandes-annonces','/api/pulse/health']){
+  assert.ok(enhance.includes(route),route);
+ }
+ assert.match(enhance,/performance\.now\(\)/);
+ assert.match(enhance,/addEventListener\('click',diagnostics\)/);
+ assert.doesNotMatch(enhance,/sendBeacon|gtag\(|analytics/);
+});
