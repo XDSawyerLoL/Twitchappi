@@ -12,8 +12,8 @@ const base={slug:'spider-man-article-test',title:'Spider-Man et le futur du jeu 
  publishedAt:'2026-10-15T18:00:00Z',author:'Rédaction SWAPP'};
 
 test('SPA and direct article routes share the ratio-preserving article background stylesheet',()=>{
- assert.match(read('index.html'),/swapp-article-immersive\.css\?v=20261015-editorial-reset-5/);
- assert.match(read('modules/swapp-news/site-shell.js'),/swapp-article-immersive\.css\?v=20261015-editorial-reset-5/);
+ assert.match(read('index.html'),/swapp-article-immersive\.css\?v=20261015-soft-edge-6/);
+ assert.match(read('modules/swapp-news/site-shell.js'),/swapp-article-immersive\.css\?v=20261015-soft-edge-6/);
 });
 
 test('SPA uses article image as a page scene, not a banner',()=>{
@@ -92,4 +92,21 @@ test('reading content and TOC are structurally grouped, not layered over the ima
  assert.match(css,/prefers-reduced-motion:reduce/);
  assert.match(css,/prefers-contrast:more/);
  assert.doesNotMatch(css,/@keyframes/);
+});
+
+
+test('left edge of article image dissolves smoothly into the site background without cropping',()=>{
+ const css=read('assets/swapp-article-immersive.css');
+ const image=css.match(/\.swapp-article-scene img\{([\s\S]*?)\}/)?.[1]||'';
+ const overlay=css.match(/\.swapp-article-scene::before\{([\s\S]*?)\}/)?.[1]||'';
+ assert.match(image,/width:auto;max-width:none/);
+ assert.match(image,/object-fit:contain/);
+ assert.match(image,/-webkit-mask-image:linear-gradient\(90deg/);
+ assert.match(image,/mask-image:linear-gradient\(90deg/);
+ assert.match(image,/transparent 0%,rgba\(0,0,0,\.18\) 10%/);
+ assert.match(image,/#000 42%,#000 100%/);
+ assert.match(overlay,/rgba\(11,17,27,\.72\) 40%/);
+ assert.match(overlay,/transparent 100%/);
+ assert.match(css,/-webkit-mask-image:none;mask-image:none/);
+ assert.match(css, /@media\(max-width:700px\)/);
 });
