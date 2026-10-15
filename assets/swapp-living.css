@@ -1,0 +1,46 @@
+/* SWAPP living polish — interaction, not additional blocks or sections.
+ * No autoplay, network requests, tracking or motion for reduced-motion users.
+ */
+:root{--swapp-living-accent:var(--swapp-side-light,var(--brand,#8b5cf6))}
+@media (hover:hover) and (pointer:fine){
+ :is(.swapp-home-story,.swapp-actus-card,.swapp-discover-stream,.swapp-live-card,.liveCard,.swapp-reader-live-card){
+  transition:transform .24s cubic-bezier(.2,.7,.2,1),border-color .2s ease,
+   box-shadow .26s ease,background-color .2s ease;
+  will-change:auto;
+ }
+ :is(.swapp-home-story,.swapp-actus-card,.swapp-discover-stream,.swapp-live-card,.liveCard,.swapp-reader-live-card):hover{
+  border-color:color-mix(in srgb,var(--swapp-living-accent) 44%,#8e96ad)!important;
+  box-shadow:0 16px 44px #03061079,0 0 0 1px color-mix(in srgb,var(--swapp-living-accent) 23%,transparent);
+  transform:translateY(-3px);
+ }
+ :is(.swapp-home-story,.swapp-actus-card,.swapp-discover-stream,.swapp-live-card,.liveCard) img{
+  transition:transform .43s cubic-bezier(.2,.7,.2,1),filter .3s ease;
+ }
+ :is(.swapp-home-story,.swapp-actus-card,.swapp-discover-stream,.swapp-live-card,.liveCard):hover img{
+  transform:scale(1.035);
+  filter:saturate(1.09) brightness(1.06);
+ }
+ :is(.swapp-home-story,.swapp-actus-card,.swapp-discover-stream,.swapp-live-card,.liveCard):focus-within{
+  border-color:var(--swapp-living-accent)!important;
+ }
+}
+.swapp-companion-heading .swapp-companion-small-face{
+ box-shadow:inset -6px -9px 14px #4a2c864d,0 0 16px color-mix(in srgb,var(--swapp-living-accent) 22%,transparent);
+}
+@media(prefers-reduced-motion:no-preference){
+ /* Apply only on page transitions, not every card or while watching a video. */
+ .view.active:not(#watch){
+  animation:swapp-living-reveal .22s ease-out both;
+ }
+ @keyframes swapp-living-reveal{
+  from{opacity:.90;transform:translateY(3px)}
+  to{opacity:1;transform:none}
+ }
+}
+@media(prefers-reduced-motion:reduce){
+ :is(.swapp-home-story,.swapp-actus-card,.swapp-discover-stream,.swapp-live-card,.liveCard,.swapp-reader-live-card),
+ :is(.swapp-home-story,.swapp-actus-card,.swapp-discover-stream,.swapp-live-card,.liveCard) img{
+  transition:none!important;animation:none!important;transform:none!important;
+ }
+ .view.active{animation:none!important}
+}
