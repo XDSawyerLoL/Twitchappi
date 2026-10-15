@@ -77,7 +77,7 @@ test('wide cinematic image retains aspect ratio and article reads without an ove
  assert.match(css,/max-width:1190px!important/);
  assert.match(css,/border:0!important;border-radius:0!important;box-shadow:none!important/);
  assert.match(css,/max-width:86ch/);
- assert.match(css,/font-size:clamp\(36px,3\.65vw,62px\)/);
+ assert.match(css,/font-size:clamp\(34px,3\.05vw,52px\)/);
  assert.match(css,/line-clamp:unset!important/);
  assert.match(css,/mask-image:linear-gradient/);
  assert.match(css,/grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
