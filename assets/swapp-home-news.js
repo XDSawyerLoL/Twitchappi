@@ -39,6 +39,25 @@
    body.append(el('small','swapp-home-story-cta','Lire l’article →'));
    a.append(image,body);return a;
  }
+ // One verified video inside the existing editorial grid, not a new homepage section.
+ function videoTeaser(){
+   const wrap=el('article','swapp-home-video-feature swapp-video-item');
+   const trigger=el('button','swapp-video-open');trigger.type='button';
+   trigger.dataset.swappVideoPlay='1';
+   trigger.dataset.videoSource='https://justplayer.fr/supporters/video_embeds/trailer-code-vein-2-story-trailer';
+   trigger.dataset.videoYoutube='Z9SaRLSibak'; // verified official Bandai Namco trailer
+   trigger.dataset.videoTitle='CODE VEIN II — Story Trailer';
+   trigger.setAttribute('aria-label','Regarder la bande-annonce CODE VEIN II');
+   const image=el('img');image.src='https://storage.googleapis.com/popshopprod-membership-assets-single-b5px4371/c0guw748anp9vi4crwdjcg19kils';
+   image.alt='';image.loading='lazy';image.decoding='async';
+   const overlay=el('span','swapp-video-shade');
+   overlay.append(el('span','swapp-video-play-icon','▶'),el('span','swapp-video-action','Lancer la bande-annonce'));
+   trigger.append(image,overlay);
+   const caption=el('div','swapp-video-caption');
+   caption.append(el('small','','SWAPP · VIDÉOS'),el('h3','','CODE VEIN II — Story Trailer'));
+   const all=el('a','','Toutes les bandes-annonces →');all.href='/bandes-annonces';caption.append(all);
+   wrap.append(trigger,caption);return wrap;
+ }
  function decorateHero(modern,articles,onImageError){
    const hero=modern?.querySelector('.homeHeroInner1014');
    if(!hero)return null;
@@ -119,7 +138,10 @@
        valid.forEach((item,i)=>grid.append(story(item,i)));
      });
      const visible=featuredSlug?valid.filter(item=>item.slug!==featuredSlug):valid;
-     visible.forEach((item,i)=>grid.append(story(item,featuredSlug?i+1:i)));
+     visible.slice(0,modern?3:4).forEach((item,i)=>{
+       grid.append(story(item,featuredSlug?i+1:i));
+       if(i===0)grid.append(videoTeaser());
+     });
 
    });
  }
