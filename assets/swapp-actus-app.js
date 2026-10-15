@@ -134,7 +134,22 @@ grid.append(link)}if(grid.children.length){games.append(el('p','swapp-actus-live
 const recommend=el('details','swapp-reader-next');recommend.open=true;
 const recommendHeading=el('summary','','À découvrir ensuite');
 const recommendations=el('div','swapp-reader-next-list');
-recommend.append(recommendHeading,recommendations);reading.append(recommend);
+recommend.append(recommendHeading,recommendations);
+const commercial=window.SwappInstantGaming?.forArticle?.(a);
+if(commercial){
+ const partner=el('aside','swapp-affiliate-offer');
+ partner.setAttribute('aria-label','Lien affilié Instant Gaming');
+ partner.append(el('span','swapp-affiliate-kicker','PARTENAIRE · LIEN AFFILIÉ'));
+ partner.append(el('strong','swapp-affiliate-game',commercial.game));
+ partner.append(el('span','swapp-affiliate-platform',commercial.platform));
+ const shopLink=el('a','swapp-affiliate-link','Voir le jeu sur Instant Gaming ↗');
+ shopLink.href=commercial.url;shopLink.target='_blank';
+ shopLink.rel='sponsored nofollow noopener noreferrer';
+ partner.append(shopLink);
+ partner.append(el('small','swapp-affiliate-disclosure','SWAPP peut toucher une commission. Prix, stock et région à vérifier chez le marchand.'));
+ recommend.append(partner);
+}
+reading.append(recommend);
 const fillRecommendations=list=>{if(!recommend.isConnected)return;recommendations.replaceChildren();const base=String(a.game||'').toLocaleLowerCase('fr');const baseTokens=new Set(String(a.title||'').toLocaleLowerCase('fr').split(/[^\\p{L}\\p{N}]+/u).filter(w=>w.length>=5));const candidates=list.filter(x=>x.slug!==slug&&x.slug!==a.slug&&slugOk(x.slug)).sort((x,y)=>{const score=z=>{const game=Number(!!base&&String(z.game||'').toLocaleLowerCase('fr')===base)*10;const category=Number(!!a.category&&z.category===a.category)*2;const common=String(z.title||'').toLocaleLowerCase('fr').split(/[^\\p{L}\\p{N}]+/u).filter(w=>baseTokens.has(w)).length;const time=Number(new Date(z.publishedAt||z.originalPublishedAt||0))||0;return [game+category+Math.min(common,3),time]};const sy=score(y),sx=score(x);return sy[0]-sx[0]||sy[1]-sx[1]}).slice(0,3);candidates.forEach(x=>{
  const link=el('a','swapp-reader-next-item');link.href='/actus/'+encodeURIComponent(x.slug);
  const imgUrl=url(x.image?.url||x.imageUrl);
