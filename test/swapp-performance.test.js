@@ -85,5 +85,5 @@ test('video feature is in the existing editorial header, preserving all article 
  assert.ok(home.includes('function videoTeaser()'));
  assert.ok(home.includes('actions.append(videoTeaser(),all)'));
  assert.ok(home.includes('swappVideoPlay'));
- assert.ok(html.includes('swapp-video-player.js?v=20261015-gallery-1'));
+ assert.ok(html.includes('swapp-video-player.js?v=20261015-gallery-4'));
 });
