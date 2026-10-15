@@ -33,6 +33,7 @@
   <div class="swapp-companion-tabs" role="tablist" aria-label="Mairy et événements">
    <button type="button" data-swapp-tab="mairy" role="tab" aria-selected="true" aria-controls="swappCompanionGuide" id="swappCompanionGuideTab">Discuter</button>
    <button type="button" data-swapp-tab="events" role="tab" aria-selected="false" aria-controls="swappCompanionEvents" id="swappCompanionEventsTab">Événements <span class="swapp-companion-tab-count" hidden></span></button>
+   <button type="button" data-swapp-tab="community" role="tab" aria-selected="false" aria-controls="swappCompanionCommunity" id="swappCompanionCommunityTab">Communauté</button>
   </div>
   <div class="swapp-companion-pane" id="swappCompanionGuide" role="tabpanel" aria-labelledby="swappCompanionGuideTab">
    <p class="swapp-companion-intro">Je t'aide à trouver un direct, une actualité ou une fonctionnalité de SWAPP.</p>
@@ -52,6 +53,12 @@
    <div class="swapp-companion-events-list" aria-live="polite"></div>
    <p class="swapp-companion-disclaimer">Contrôles effectués lorsque l'onglet est visible. Réglages enregistrés uniquement sur ton appareil. Aucune notification système.</p>
   </div>
+  <div class="swapp-companion-pane" id="swappCompanionCommunity" role="tabpanel" aria-labelledby="swappCompanionCommunityTab" hidden>
+   <p class="swapp-companion-intro">SOCIAL, le prototype communautaire de Quantic Sillage, en aperçu dans SWAPP.</p>
+   <p class="swapp-companion-disclaimer">Publications réelles et publiques seulement. Lecture seule : aucun compte ni message SWAPP n'est transmis à SOCIAL.</p>
+   <div class="swapp-companion-community-list" aria-live="polite"></div>
+   <button type="button" class="swapp-companion-reload">Actualiser les publications</button>
+  </div>
  </section>
  <div class="swapp-companion-dock">
   <button type="button" class="swapp-companion-bell" aria-controls="swappCompanionPanel" aria-expanded="false" aria-label="Consulter les événements SWAPP"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 8-3 9h18c0-1-3-2-3-9ZM10 21h4" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="swapp-companion-unread" hidden></span></button>
@@ -62,11 +69,12 @@
  const panel=root.querySelector('.swapp-companion-panel');
  const closeButton=root.querySelector('.swapp-companion-close');
  const tabs=[...root.querySelectorAll('[data-swapp-tab]')];
- const panes={mairy:root.querySelector('#swappCompanionGuide'),events:root.querySelector('#swappCompanionEvents')};
+ const panes={mairy:root.querySelector('#swappCompanionGuide'),events:root.querySelector('#swappCompanionEvents'),community:root.querySelector('#swappCompanionCommunity')};
  const question=root.querySelector('#swappCompanionQuestion');
  const form=root.querySelector('.swapp-companion-form');
  const conversation=root.querySelector('.swapp-companion-conversation');
  const list=root.querySelector('.swapp-companion-events-list');
+ const communityList=root.querySelector('.swapp-companion-community-list');
  const badge=root.querySelector('.swapp-companion-unread');
  const tabCount=root.querySelector('.swapp-companion-tab-count');
  const toast=root.querySelector('.swapp-companion-toast');
@@ -93,7 +101,8 @@
  function show(tab,fromButton){
   state.tab=tab;state.open=true;sync();
   if(tab==='events')renderEvents();
-  if(fromButton)requestAnimationFrame(()=>{(tab==='mairy'?question:tabs[1])?.focus()});
+  if(tab==='community')loadCommunity();
+  if(fromButton)requestAnimationFrame(()=>{(tab==='mairy'?question:tabs.find(x=>x.dataset.swappTab===tab))?.focus()});
  }
  function dismiss(){
   state.open=false;sync();
@@ -148,7 +157,8 @@
     addReply('Tu peux suivre les directs et les actualités en activant les catégories dans Événements. Rien n’est activé automatiquement.');
     show('events',false);
    }else if(/(?:\bcommunaute\b|\bsocial\b|\bdiscussion\b|\bmessage\b)/.test(query)){
-    addReply('Le prototype SOCIAL est envisagé comme moteur communautaire. Sa connexion à SWAPP n’est pas encore activée : je ne peux pas publier ni afficher de conversations à sa place.');
+    addReply('Un aperçu des publications publiques du prototype SOCIAL est accessible dans Communauté. La publication et la connexion des comptes ne sont pas encore intégrées à SWAPP.');
+    show('community',false);
    }else{
     addReply('Je peux te montrer les directs disponibles, les dernières actualités, les réglages de couleurs et les événements. Quelle partie veux-tu explorer ?');
    }
@@ -156,6 +166,30 @@
    addReply('Je n’arrive pas à consulter les données en direct. Tu peux toujours parcourir SWAPP.',[
     {href:'/decouvrir',label:'Découvrir les lives'},{href:'/actus',label:'Lire les actualités'}]);
   }finally{state.busy=false;question.disabled=false}
+ }
+let loadingCommunity=false;
+ async function loadCommunity(){
+  if(loadingCommunity)return;
+  loadingCommunity=true;
+  communityList.replaceChildren(node('p','swapp-companion-empty','Chargement des publications publiques…'));
+  try{
+   const data=await readJson('/api/swapp/social-preview');
+   if(data.success!==true||!Array.isArray(data.posts))throw Error('unavailable');
+   communityList.replaceChildren();
+   for(const post of data.posts.slice(0,5)){
+    if(!post||typeof post.body!=='string')continue;
+    const card=node('article','swapp-companion-post');
+    card.append(node('strong','',core.clean(post.author||'Membre SOCIAL')));
+    if(post.handle)card.append(node('small','', '@'+core.clean(post.handle)));
+    card.append(node('p','',String(post.body).slice(0,420)));
+    communityList.append(card);
+   }
+   if(!communityList.children.length){
+    communityList.append(node('p','swapp-companion-empty','Aucune publication publique disponible actuellement.'));
+   }
+  }catch(_){
+   communityList.replaceChildren(node('p','swapp-companion-empty','SOCIAL ne répond pas actuellement. Aucun contenu fictif n’est affiché.'));
+  }finally{loadingCommunity=false}
  }
  function renderEvents(){
   list.replaceChildren();
@@ -224,6 +258,7 @@
   (state.tab==='events'?bell:launcher).focus();
  });
  tabs.forEach(tab=>tab.addEventListener('click',()=>show(tab.dataset.swappTab,false)));
+ root.querySelector('.swapp-companion-reload').addEventListener('click',loadCommunity);
  root.querySelectorAll('[data-swapp-ask]').forEach(button=>button.addEventListener('click',()=>answer(button.dataset.swappAsk)));
  form.addEventListener('submit',event=>{
   event.preventDefault();const value=question.value;question.value='';answer(value);
