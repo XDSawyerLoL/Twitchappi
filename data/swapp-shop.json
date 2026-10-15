@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Produits vérifiés seulement. Chaque produit doit avoir title, url HTTPS, merchant et affiliate (true/false). Aucun prix sans contrôle.",
+  "products": []
+}
