@@ -144,7 +144,7 @@
  .swapp-companion-panel{max-height:min(600px,calc(100dvh - 160px))}
 }
 @media(max-width:389px){
- .swapp-companion{bottom:calc(113px + env(safe-area-inset-bottom));right:9px}
+ .swapp-companion{bottom:calc(76px + env(safe-area-inset-bottom));right:9px}
  .swapp-companion-panel{width:calc(100vw - 18px);max-height:calc(100dvh - 195px);bottom:64px}
  .swapp-companion-dock{gap:6px}
  .swapp-companion-launch{min-height:50px;padding:5px 12px 5px 5px}
