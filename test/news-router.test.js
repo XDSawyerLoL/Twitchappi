@@ -156,3 +156,56 @@ test('un véritable texte JustPlayer devient un article lisible avec son image d
  assert.match(article.payload.body,/James Bond retrouve/);
  assert.equal(firestore.all.size,0);
 });
+
+test('première vidéo de vérification : autorisation, brouillon, prévol, publication, galerie et retrait',async()=>{
+ const {trailers}=require('../modules/swapp-hubs');
+ const video={
+  contentType:'trailer',
+  title:'CODE VEIN II — bande-annonce officielle (vérification SWAPP)',
+  summary:'Bande-annonce Story Trailer de CODE VEIN II — source Bandai Namco Entertainment.',
+  body:'Vérification du lecteur vidéo SWAPP avec la bande-annonce officielle Story Trailer de CODE VEIN II.',
+  category:'Actualités JV',
+  game:'CODE VEIN II',tags:['code vein ii','bande-annonce','jeu vidéo'],
+  author:'Sansahd',
+  sources:[{url:'https://www.youtube.com/watch?v=Z9SaRLSibak',label:'Bandai Namco Entertainment'}],
+  trailerUrl:'https://www.youtube.com/watch?v=Z9SaRLSibak'
+ };
+ const {request,firestore}=setup();
+ const denied=await request('POST','/api/editor/actus/validate',{authorized:false,body:video});
+ assert.equal(denied.statusCode,403);
+ assert.equal(firestore.all.size,0);
+ const incomplete=await request('POST','/api/editor/actus/validate',{
+  body:{...video,trailerUrl:null}});
+ assert.equal(incomplete.statusCode,422);
+ assert.equal(incomplete.payload.valid,false);
+ assert.equal(firestore.all.size,0);
+ const checked=await request('POST','/api/editor/actus/validate',{body:video});
+ assert.equal(checked.statusCode,200);
+ assert.equal(checked.payload.valid,true);
+ assert.equal(checked.payload.contentType,'trailer');
+ assert.equal(firestore.all.size,0);
+ const created=await request('POST','/api/editor/actus',{body:video});
+ assert.equal(created.statusCode,201);
+ const slug=created.payload.slug;
+ const stored=firestore.all.get('swapp_news_articles/'+slug);
+ assert.equal(stored.status,'draft');
+ assert.equal(stored.trailerUrl,video.trailerUrl);
+ assert.deepEqual(stored.games,['CODE VEIN II']);
+ const before=await request('GET','/api/actus');
+ assert.ok(before.payload.articles.every(a=>a.slug!==slug));
+ const live=await request('POST','/api/editor/actus/:slug/publish',{params:{slug}});
+ assert.equal(live.statusCode,200);
+ const published=firestore.all.get('swapp_news_articles/'+slug);
+ assert.equal(published.status,'published');
+ const publicFeed=await request('GET','/api/actus');
+ assert.ok(publicFeed.payload.articles.some(a=>a.slug===slug));
+ const card=trailers([published]);
+ assert.match(card,/CODE VEIN II/);
+ assert.match(card,/data-video-youtube="Z9SaRLSibak"/);
+ assert.match(card,/i\.ytimg\.com\/vi\/Z9SaRLSibak/);
+ const withdrawn=await request('POST','/api/editor/actus/:slug/unpublish',{params:{slug}});
+ assert.equal(withdrawn.statusCode,200);
+ assert.equal(firestore.all.get('swapp_news_articles/'+slug).status,'draft');
+ const after=await request('GET','/api/actus');
+ assert.ok(after.payload.articles.every(a=>a.slug!==slug));
+});
