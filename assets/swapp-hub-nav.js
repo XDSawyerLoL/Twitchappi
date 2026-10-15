@@ -1,17 +1,24 @@
-/* SWAPP: one visible navigation item per destination.
- * SPA can render buttons, editorial shell can render anchors. Never add desktop
- * links over the SPA navigation; only deduplicate by destination AND label.
+/* SWAPP: canonical navigation. Native destinations must be real anchors.
+ * The live SPA's historical tabs can be <button>; only existing SPA views
+ * remain buttons. Community, video, and shop are full server pages, so a
+ * retained SPA button must NEVER shadow an <a href> to that route.
  */
 (()=>{'use strict';
+ const HUBS=[
+  {href:'/communaute',label:'Communauté'},
+  {href:'/bandes-annonces',label:'Vidéos'},
+  {href:'/boutique',label:'Boutique'}
+ ];
  const NAV=[
   ['/', 'Accueil'],['/decouvrir','Découvrir'],['/categories','Catégories'],
-  ['/equipes','Équipes'],['/actus','Actualité'],['/communaute','Communauté'],
-  ['/bandes-annonces','Vidéos'],['/boutique','Boutique']
+  ['/equipes','Équipes'],['/actus','Actualité'],
+  ...HUBS.map(x=>[x.href,x.label])
  ];
- const normalize=s=>String(s||'').replace(/\s+/g,' ').trim().toLocaleLowerCase('fr');
- const byLabel=new Map(NAV.map(([href,label])=>[normalize(label),href]));
+ const norm=s=>String(s||'').replace(/\s+/g,' ').trim().toLocaleLowerCase('fr');
+ const byLabel=new Map(NAV.map(([href,label])=>[norm(label),href]));
  const byHref=new Set(NAV.map(([href])=>href));
- function destination(el){
+ const isHub=href=>HUBS.some(x=>x.href===href);
+ function dest(el){
   const href=el.getAttribute('href');
   if(href){
    try{
@@ -19,78 +26,113 @@
     if(url.origin===location.origin&&byHref.has(url.pathname))return url.pathname;
    }catch(_){}
   }
-  return byLabel.get(normalize(el.textContent))||null;
+  return byLabel.get(norm(el.textContent))||null;
  }
- const create=(href,label)=>{
+ function anchor(href,label,original){
   const a=document.createElement('a');
-  a.href=href;a.textContent=label;
-  if(location.pathname===href){a.classList.add('active');a.setAttribute('aria-current','page')}
+  a.href=href;
+  a.textContent=label;
+  a.dataset.swappNativeRoute='1';
+  if(original){
+   a.className=original.className||'';
+   if(original.classList.contains('active'))a.classList.add('active');
+  }
+  if((location.pathname||'/').replace(/\/$/,'')===href){
+   a.classList.add('active');
+   a.setAttribute('aria-current','page');
+  }
   return a;
- };
- let mutating=false,queued=false;
- function normalizeDesktop(){
+ }
+ function upgrade(el,href){
+  if(el.tagName==='A'){
+   if(el.getAttribute('href')!==href)el.setAttribute('href',href);
+   el.dataset.swappNativeRoute='1';
+   return el;
+  }
+  if(!isHub(href))return el;
+  const label=HUBS.find(x=>x.href===href).label;
+  const link=anchor(href,label,el);
+  el.replaceWith(link);
+  return link;
+ }
+ let reconciling=false,queued=false;
+ function dedupe(parent){
+  const seen=new Map();
+  for(const el of [...parent.querySelectorAll('a,button')]){
+   if(el.closest('#nav')!==parent&&el.closest('#mobileNav')!==parent)continue;
+   const href=dest(el);
+   if(!href)continue;
+   if(seen.has(href)){
+    // Prefer a native anchor over an SPA button for these three real routes.
+    const earlier=seen.get(href);
+    if(isHub(href)&&earlier.tagName!=='A'&&el.tagName==='A'){
+     earlier.remove();
+     seen.set(href,upgrade(el,href));
+    }else{
+     el.remove();
+    }
+   }else{
+    seen.set(href,upgrade(el,href));
+   }
+  }
+  return seen;
+ }
+ function desktop(){
   const nav=document.getElementById('nav');
   if(!nav)return;
   nav.classList.add('swapp-nav-consistent');
-  const controls=[...nav.querySelectorAll('a,button')]
-   .filter(el=>el.closest('#nav')===nav);
-  const seen=new Map();
-  for(const el of controls){
-   const href=destination(el);
-   if(!href)continue;
-   if(seen.has(href)){
-    el.remove();
-   }else{
-    seen.set(href,el);
-   }
+  const found=dedupe(nav);
+  // A real page link is required even if the SPA did not create this tab.
+  const list=nav.querySelector('.navGroup')||nav;
+  for(const {href,label} of HUBS){
+   if(!found.has(href))list.append(anchor(href,label));
   }
-  // Deliberately do not append desktop links: the primary SPA already renders
-  // all destinations. Appending here caused the second, smaller trio.
  }
- function normalizeMobile(){
+ function mobile(){
   const nav=document.getElementById('mobileNav');
   if(!nav)return;
-  const expected=['/','/decouvrir','/actus','/communaute'];
+  const pinned=['/','/decouvrir','/actus','/communaute'];
   let more=nav.querySelector(':scope > .swapp-mobile-more');
   if(!more){
-   more=document.createElement('details');more.className='swapp-mobile-more';
-   const summary=document.createElement('summary');summary.textContent='Plus';
-   const items=document.createElement('div');items.className='swapp-mobile-more-links';
-   more.append(summary,items);nav.append(more);
+   more=document.createElement('details');
+   more.className='swapp-mobile-more';
+   const summary=document.createElement('summary');
+   summary.textContent='Plus';
+   const inner=document.createElement('div');
+   inner.className='swapp-mobile-more-links';
+   more.append(summary,inner);
+   nav.append(more);
   }
-  const pane=more.querySelector('.swapp-mobile-more-links');
-  if(!pane)return;
-  for(const control of [...nav.children]){
-   if(control===more||!control.matches('a,button'))continue;
-   const href=destination(control);
-   if(!href||!expected.includes(href))pane.append(control);
+  const inner=more.querySelector('.swapp-mobile-more-links');
+  if(!inner)return;
+  // Correct legacy SPA mobile controls before deduplication.
+  for(const el of [...nav.querySelectorAll('a,button')]){
+   const href=dest(el);
+   if(href&&isHub(href))upgrade(el,href);
   }
-  const seen=new Set();
-  for(const control of [...nav.querySelectorAll('a,button')]){
-   const href=destination(control);
-   if(!href)continue;
-   if(seen.has(href))control.remove();
-   else seen.add(href);
+  for(const el of [...nav.children]){
+   if(el===more||!el.matches('a,button'))continue;
+   const href=dest(el);
+   if(!href||!pinned.includes(href))inner.append(el);
   }
-  const top=[...nav.children].filter(el=>el!==more&&el.matches('a,button'));
-  const current=new Set(top.map(destination));
-  // Add only destinations absent from the actual mobile SPA menu.
-  for(const href of expected){
-   if(current.has(href))continue;
-   const label=NAV.find(item=>item[0]===href)[1];
-   nav.insertBefore(create(href,label),more);
+  dedupe(nav);
+  const top=new Set([...nav.children].filter(el=>el!==more&&el.matches('a,button')).map(dest));
+  for(const href of pinned){
+   if(top.has(href))continue;
+   const label=NAV.find(x=>x[0]===href)[1];
+   nav.insertBefore(anchor(href,label),more);
   }
-  for(const [href,label] of [...NAV.filter(item=>!expected.includes(item[0])),['/compte','Compte']]){
-   if([...nav.querySelectorAll('a,button')].some(el=>destination(el)===href||
-      (href==='/compte'&&normalize(el.textContent)==='compte')))continue;
-   pane.append(create(href,label));
+  const existing=new Set([...nav.querySelectorAll('a,button')].map(dest));
+  for(const [href,label] of [...NAV.filter(x=>!pinned.includes(x[0])),['/compte','Compte']]){
+   if(existing.has(href))continue;
+   inner.append(anchor(href,label));
   }
   if(more!==nav.lastElementChild)nav.append(more);
  }
  function reconcile(){
-  if(mutating)return;
-  mutating=true;
-  try{normalizeDesktop();normalizeMobile()}finally{mutating=false}
+  if(reconciling)return;
+  reconciling=true;
+  try{desktop();mobile()}finally{reconciling=false}
  }
  function queue(){
   if(queued)return;
@@ -99,9 +141,9 @@
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',queue,{once:true});
  else queue();
- const observer=new MutationObserver(queue);
+ const obs=new MutationObserver(queue);
  for(const id of ['nav','mobileNav']){
   const el=document.getElementById(id);
-  if(el)observer.observe(el,{childList:true,subtree:true});
+  if(el)obs.observe(el,{childList:true,subtree:true});
  }
 })();
