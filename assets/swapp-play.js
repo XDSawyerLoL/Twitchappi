@@ -86,7 +86,7 @@ function focusItem(el){
 }
 function firstFocus(){
  const list=navigable();
- return focusItem((location.pathname==='/'&&liveCards()[0])||list[0]);
+ return focusItem((!modal()&&location.pathname==='/'&&liveCards()[0])||list[0]);
 }
 function move(dx,dy){
  const list=navigable(),prior=current();
@@ -104,6 +104,7 @@ function move(dx,dy){
  if(best)focusItem(best);
 }
 function jumpNav(direction){
+ if(modal()){focusItem(navigable()[0]);return}
  const local=location.pathname==='/communaute'?$$('.pulse-nav-item,.pulse-mobile-nav button').filter(visible):[];
  const list=local.length?local:navNodes();
  if(!list.length)return;
@@ -145,7 +146,7 @@ function insertControls(){
   if(account)bar.insertBefore(btn,account);else bar.appendChild(btn);
  }
  toggle=$('#swappPlayToggle');
- if(toggle){toggle.dataset.connected=String(connected);toggle.setAttribute('aria-pressed',String(active))}
+ if(toggle){toggle.dataset.connected=String(connected);toggle.setAttribute('aria-pressed',String(active));toggle.setAttribute('aria-label',active?'Désactiver la navigation manette':'Activer la navigation manette (Alt+G)')}
  const action=$('#home.view.active .homeHeroCopy1014 .homeActions1014');
  if(action&&!$('#swappPlaySurf')){
   const btn=document.createElement('button');
