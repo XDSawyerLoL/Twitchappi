@@ -863,6 +863,9 @@ const staticOptions = {
   dotfiles: 'deny',
   index: false,
   fallthrough: false,
+  // Versioned assets are safe to reuse between route changes and reloads.
+  // A short bound avoids serving stale assets if a revision key is omitted.
+  maxAge: '30m',
   setHeaders(res){
     res.setHeader('X-Content-Type-Options', 'nosniff');
   }
@@ -930,11 +933,15 @@ function isSwappCleanChannelSlug(slug){
   const clean = String(slug || '').trim().toLowerCase();
   return /^[a-z0-9_][a-z0-9_-]{1,39}$/.test(clean) && !SWAPP_RESERVED_ROOT_PATHS.has(clean);
 }
-app.get('/index_script.js', (_req,res)=>{
-  // Avoid browsers keeping an old SPA router after a password-reset fix.
-  res.setHeader('Cache-Control','no-store, no-cache, must-revalidate, proxy-revalidate');
-  res.setHeader('Pragma','no-cache');
-  res.setHeader('Expires','0');
+app.get('/index_script.js', (req,res)=>{
+  // This 1MB+ SPA bundle was downloaded again on every navigation/reload.
+  // Cache the explicitly versioned URL briefly, but never cache unversioned
+  // script requests (which are used by older deployment entrypoints).
+  if(typeof req.query?.v==='string'&&/^[a-zA-Z0-9_-]{4,85}$/.test(req.query.v)){
+    res.setHeader('Cache-Control','public, max-age=1800');
+  }else{
+    res.setHeader('Cache-Control','no-store, no-cache, must-revalidate');
+  }
   return sendPublicFile(res, 'index_script.js', 'application/javascript');
 });
 // SWAPP ACTUS / JUSTPLAYER — module éditorial isolé du streaming.
