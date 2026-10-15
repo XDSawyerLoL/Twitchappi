@@ -47,7 +47,7 @@
   const normalized=normalize(question);
   const filtered=items.filter(item=>{
    const game=normalize(item.game);
-   return game.length>=3&&(normalized.includes(game)||normalized.includes(game.split(' ').slice(0,2).join(' '))&&game.split(' ').length>2);
+   return game.length>=3&&normalized.includes(game);
   });
   if(filtered.length)return filtered.slice(0,limit);
   // Explicit game requests must not silently fall back to unrelated streams.
