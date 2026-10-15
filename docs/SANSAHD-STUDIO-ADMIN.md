@@ -35,3 +35,26 @@ Sans les étapes 1 à 4, les droits administrateur ORYON sont volontairement dé
 - Un pseudo seul ne donne pas les droits : la liste administrateur configurée et l'identifiant interne épinglé doivent concorder.
 - Une suggestion automatique de jeu n'écrase pas un choix manuel de l'éditeur.
 - La création d'un média n'effectue pas de publication automatique sur SOCIAL ou sur un réseau externe.
+
+## Première vidéo de vérification (aucune publication automatique)
+
+Après déploiement effectif du commit et activation du compte :
+
+1. Se connecter à SWAPP avec le compte Sansahd.
+2. Ouvrir [SWAPP Studio](https://swapp.tv/actus/studio).
+3. Cliquer **Tester les services SWAPP**. Vérifier « Accès rédaction · Administrateur autorisé », puis les réponses Actualité, Vidéos et SOCIAL. Une erreur de l'un de ces services est une mesure réelle et doit être corrigée avant la suite.
+4. Dans **Médiathèque**, choisir **Préparer la vidéo de vérification**. Le formulaire est prérempli avec une bande-annonce officielle CODE VEIN II (Bandai Namco Entertainment, YouTube `Z9SaRLSibak`). Il n'est pas sauvegardé automatiquement.
+5. Vérifier les informations et les droits du média. Utiliser **Vérifier avant publication** pour tester la validation sans écritures.
+6. Cliquer **Créer le brouillon**. Vérifier sa présence dans la Médiathèque avec l'état « Brouillon ». Actualité et Vidéos publiques ne doivent pas encore l'afficher.
+7. Cliquer **Publier sur SWAPP**, confirmer, puis ouvrir `/actus/<slug>` et `/bandes-annonces`. Lancer le lecteur explicitement et vérifier qu'il lit la vidéo YouTube et non une page Fourthwall.
+8. Dans le Studio, cliquer **Retirer de la publication** pour revenir au brouillon. Vérifier la disparition des pages publiques.
+
+La publication et le retrait doivent être déclenchés par le propriétaire depuis sa session authentifiée. Les tests GitHub ne remplacent pas cette validation en production.
+
+## Si le Studio n'apparaît pas
+
+- `403 /actus/studio` : compte SWAPP non connecté ou rôle absent. Contrôler `/api/editor/actus/identity` et `/api/editor/actus/access`, ainsi que `ORYON_ADMIN_LOGINS` et `ORYON_ADMIN_USER_IDS`.
+- `404 /actus/studio` : déploiement incomplet ou `SWAPP_NEWS_ENABLED` non activé.
+- `503 news_storage_unavailable` : Firestore/persistance de la rédaction indisponible ; ne pas essayer de publier.
+- `422 /api/editor/actus/validate` : contenu insuffisant ou source manquante. Corriger le champ indiqué sans perdre le brouillon.
+- Page vide ou JS ancien : contrôler le commit réellement déployé, redémarrer l'application Node.js et purger uniquement le cache du site si nécessaire.
