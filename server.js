@@ -871,6 +871,9 @@ const staticOptions = {
 const {createSocialRouter}=require('./modules/swapp-social-actions');
 app.use('/api/swapp/social',authLimiter,createSocialRouter({express,fetchImpl:fetchWithTimeout,isProd:IS_PROD}));
 
+// Complete SOCIAL transport. The browser never contacts QuanticMinds directly.
+const {createSocialNativeProxy}=require('./modules/swapp-social-native-proxy');
+app.use('/api/pulse',authLimiter,createSocialNativeProxy(fetchWithTimeout,{production:IS_PROD}));
 app.use('/assets', express.static(path.join(__dirname, 'assets'), staticOptions));
 function sendPublicFile(res, file, type){
   const full = path.join(__dirname, file);
