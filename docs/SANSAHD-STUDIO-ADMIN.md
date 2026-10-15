@@ -11,11 +11,11 @@ La rédaction SWAPP utilise **les comptes SWAPP existants**. Il n'y a aucun mot 
    - `ORYON_ADMIN_USER_IDS=<userId obtenu à l'étape 2>`
    - `SWAPP_NEWS_ENABLED=true`
    - conserver la configuration **Firestore/FIREBASE_SERVICE_KEY** qui assure la persistance du compte et du CMS.
-4. Redémarrer/déployer l'application Node.js. La variable de liaison par identifiant protège contre un autre compte portant le même pseudo.
+4. Redémarrer/déployer l'application Node.js. La liaison par identifiant est obligatoire en production : en son absence, aucun compte ORYON ne peut recevoir des droits administrateur simplement parce que son pseudo est sur la liste.
 5. Vérifier `https://swapp.tv/api/editor/actus/access` depuis la session connectée : `authenticated: true` et `canEdit: true`.
 6. Ouvrir **https://swapp.tv/actus/studio** ou, dans le menu du compte, **Studio administrateur · Posts & vidéos**.
 
-Sans les étapes 1 à 4, GitHub seul ne crée **pas** de compte actif et ne confère pas les permissions en production. Il n'existe aucune raison de publier des identifiants, une clé administrateur ou un mot de passe dans les fichiers du projet.
+Sans les étapes 1 à 4, les droits administrateur ORYON sont volontairement désactivés en production. GitHub seul ne crée **pas** de compte actif et ne confère pas les permissions en production. Il n'existe aucune raison de publier des identifiants, une clé administrateur ou un mot de passe dans les fichiers du projet.
 
 ## Fonctionnalités du Studio
 
