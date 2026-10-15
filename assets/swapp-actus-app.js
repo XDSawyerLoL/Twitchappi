@@ -132,9 +132,28 @@ if(!native){
   link.append(actions);
 }
 grid.append(link)}if(grid.children.length){games.append(el('p','swapp-actus-live-status',streams.length+' créateur'+(streams.length>1?'s':'')+' en direct sur ce jeu'));const cards=[...grid.children];const visible=3;cards.forEach((card,i)=>{if(i>=visible)card.hidden=true});games.append(grid);if(cards.length>visible){const more=el('button','swapp-reader-live-more','Voir les '+(cards.length-visible)+' autres lives');more.type='button';more.setAttribute('aria-expanded','false');more.onclick=()=>{const expanded=more.getAttribute('aria-expanded')==='true';cards.forEach((card,i)=>{card.hidden=expanded&&i>=visible});more.setAttribute('aria-expanded',String(!expanded));more.textContent=expanded?'Voir les '+(cards.length-visible)+' autres lives':'Voir moins de lives';};games.append(more)}}}).catch(()=>{if(games.isConnected){games.replaceChildren(el('h2','','En direct sur '+a.game),el('p','swapp-actus-live-status','Lives momentanément indisponibles.'))}});
-}const recommend=el('section','swapp-actus-recommend');recommend.append(el('h2','','À découvrir ensuite'));const recommendations=el('div','swapp-actus-recommend-grid');recommend.append(recommendations);article.append(recommend);
-const fillRecommendations=list=>{if(!recommend.isConnected)return;recommendations.replaceChildren();const base=String(a.game||'').toLocaleLowerCase('fr');const baseTokens=new Set(String(a.title||'').toLocaleLowerCase('fr').split(/[^\\p{L}\\p{N}]+/u).filter(w=>w.length>=5));const candidates=list.filter(x=>x.slug!==slug&&slugOk(x.slug)).sort((x,y)=>{const score=z=>{const game=Number(!!base&&String(z.game||'').toLocaleLowerCase('fr')===base)*10;const category=Number(!!a.category&&z.category===a.category)*2;const common=String(z.title||'').toLocaleLowerCase('fr').split(/[^\\p{L}\\p{N}]+/u).filter(w=>baseTokens.has(w)).length;const time=Number(new Date(z.publishedAt||z.originalPublishedAt||0))||0;return [game+category+Math.min(common,3),time]};const sy=score(y),sx=score(x);return sy[0]-sx[0]||sy[1]-sx[1]}).slice(0,3);candidates.forEach(x=>{const card=makeCard(x);if(card)recommendations.append(card)});if(!recommendations.children.length)recommend.remove();};
-node.append(article);if(items.length)fillRecommendations(items);else fetchJson('/api/actus').then(data=>{items=Array.isArray(data.articles)?data.articles:[];fillRecommendations(items)}).catch(()=>recommend.remove());
+}
+const recommend=el('details','swapp-reader-next');recommend.open=true;
+const recommendHeading=el('summary','','À découvrir ensuite');
+const recommendations=el('div','swapp-reader-next-list');
+recommend.append(recommendHeading,recommendations);reading.append(recommend);
+const fillRecommendations=list=>{if(!recommend.isConnected)return;recommendations.replaceChildren();const base=String(a.game||'').toLocaleLowerCase('fr');const baseTokens=new Set(String(a.title||'').toLocaleLowerCase('fr').split(/[^\\p{L}\\p{N}]+/u).filter(w=>w.length>=5));const candidates=list.filter(x=>x.slug!==slug&&x.slug!==a.slug&&slugOk(x.slug)).sort((x,y)=>{const score=z=>{const game=Number(!!base&&String(z.game||'').toLocaleLowerCase('fr')===base)*10;const category=Number(!!a.category&&z.category===a.category)*2;const common=String(z.title||'').toLocaleLowerCase('fr').split(/[^\\p{L}\\p{N}]+/u).filter(w=>baseTokens.has(w)).length;const time=Number(new Date(z.publishedAt||z.originalPublishedAt||0))||0;return [game+category+Math.min(common,3),time]};const sy=score(y),sx=score(x);return sy[0]-sx[0]||sy[1]-sx[1]}).slice(0,3);candidates.forEach(x=>{
+ const link=el('a','swapp-reader-next-item');link.href='/actus/'+encodeURIComponent(x.slug);
+ const imgUrl=url(x.image?.url||x.imageUrl);
+ if(imgUrl){const img=el('img','swapp-reader-next-thumb');img.src=imgUrl;img.alt='';img.loading='lazy';link.append(img);}
+ const content=el('span','swapp-reader-next-copy');
+ content.append(el('small','',x.game||x.category||'Actualité'),el('strong','',x.title));
+ link.append(content);
+ link.onclick=event=>{if(event.button||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
+  event.preventDefault();window.SwappLocalTastes?.record?.(x.game);open(x.slug)};
+ recommendations.append(link);
+});
+if(!recommendations.children.length){
+ const all=el('a','swapp-reader-next-all','Explorer toute l’actualité →');
+ all.href='/actus';all.onclick=event=>{if(event.button||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
+  event.preventDefault();home()};recommendations.append(all);
+}};
+node.append(article);if(items.length)fillRecommendations(items);else fetchJson('/api/actus').then(data=>{items=Array.isArray(data.articles)?data.articles:[];fillRecommendations(items)}).catch(()=>fillRecommendations([]));
 }catch(e){node.replaceChildren(el('p','swapp-actus-state',e.message));}}
 function render(target){if(!target)return;window.SwappArticlePlayer?.close();target.replaceChildren();const node=el('div','swapp-actus-native');target.append(node);const parts=location.pathname.split('/').filter(Boolean);return parts.length===2&&parts[0]==='actus'&&slugOk(parts[1])?showArticle(node,parts[1]):showList(node);}
 function open(slug){if(!slugOk(slug))return;history.pushState({view:'actus'},'','/actus/'+encodeURIComponent(slug));render(document.getElementById('actus'));window.scrollTo(0,0);}

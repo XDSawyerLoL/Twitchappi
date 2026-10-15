@@ -46,6 +46,30 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
       &&!withdrawnTitles.has(String(x.title||'').toLowerCase()));
     return [...original.map(publicArticle),...recovered.map(recoveredArticle)].sort((a,b)=>String(b.publishedAt||'').localeCompare(String(a.publishedAt||'')));
   };
+  // Recommendations from published SWAPP records and recovered articles already cached.
+  // Does not initiate any remote fetch of the retired publishing platform.
+  const relatedTo=async current=>{
+    const snapshot=await articles.where('status','==','published').limit(80).get();
+    const candidates=[...snapshot.docs.map(d=>publicArticle(d.data())),
+      ...publicNews.articles().map(recoveredArticle)];
+    const norm=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+      .toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+    const game=norm(current.game),category=norm(current.category);
+    const words=new Set(norm(current.title).split(' ').filter(x=>x.length>=5));
+    const seen=new Set(),filtered=[];
+    for(const item of candidates){
+      if(!item||item.slug===current.slug||item.legacyUrl&&item.legacyUrl===current.legacyUrl)continue;
+      if(!/^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/.test(String(item.slug||'')))continue;
+      const key=norm(item.title);if(!key||seen.has(key))continue;seen.add(key);
+      filtered.push(item);
+    }
+    const score=x=>(game&&norm(x.game)===game?12:0)
+      +(category&&norm(x.category)===category?2:0)
+      +Math.min(3,norm(x.title).split(' ').filter(t=>words.has(t)).length);
+    return filtered.sort((a,b)=>score(b)-score(a)
+      ||String(b.publishedAt||b.originalPublishedAt||'').localeCompare(String(a.publishedAt||a.originalPublishedAt||''))).slice(0,3);
+  };
+  const storyHtml=async item=>renderNewsStory(item,{baseUrl,relatedArticles:await relatedTo(item)});
   const noStore=(_req,res,next)=>{res.set('Cache-Control','no-store');next();};
   const editor=[available,requireEditor,noStore];
 
@@ -119,7 +143,7 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
           justPlayerCache.set(key,{article,expires:Date.now()+(article?20:4)*60000});
         }
       }
-      return article && article.body?.length>=220 ? res.type('html').send(renderNewsStory(recoveredArticle({...article,slug:'justplayer-'+key,publishedAt:item.publishedAt}),{baseUrl})) : res.type('html').send(renderJustPlayerPreview(item,null));
+      return article && article.body?.length>=220 ? res.type('html').send(await storyHtml(recoveredArticle({...article,slug:'justplayer-'+key,publishedAt:item.publishedAt}))) : res.type('html').send(renderJustPlayerPreview(item,null));
     }catch(e){
       // An unavailable Fourthwall page should not make the SWAPP article route fail.
       const key=String(req.params.key||'');
@@ -144,20 +168,20 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
       const exact=await articles.doc(slug).get();
       if(exact.exists&&exact.data().status==='published'){
         res.set('Cache-Control','public, max-age=60');
-        return res.type('html').send(renderNewsStory(publicArticle(exact.data()),{baseUrl}));
+        return res.type('html').send(await storyHtml(publicArticle(exact.data())));
       }
       const snap=canonical!==slug?await articles.doc(canonical).get():exact;
       if(snap.exists&&snap.data().status==='published'){
         if(canonical!==slug)return res.redirect(301,'/actus/'+encodeURIComponent(canonical));
         res.set('Cache-Control','public, max-age=60');
-        return res.type('html').send(renderNewsStory(publicArticle(snap.data()),{baseUrl}));
+        return res.type('html').send(await storyHtml(publicArticle(snap.data())));
       }
       if((exact.exists&&exact.data().legacySuppressRecovery)
         ||(snap.exists&&snap.data().legacySuppressRecovery))
         return res.status(404).send('Article retiré du magazine');
       const historicalSlug=slug.startsWith('justplayer-')?slug:'justplayer-'+slug;
       const original=await publicNews.get(historicalSlug);
-      return original?res.type('html').send(renderNewsStory(recoveredArticle(original),{baseUrl})):
+      return original?res.type('html').send(await storyHtml(recoveredArticle(original))):
         res.status(404).send('Article introuvable');
     }catch(e){next(e);}
   });
