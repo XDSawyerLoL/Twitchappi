@@ -6,6 +6,7 @@ const {renderNewsHome,renderNewsStory,renderJustPlayerPreview}=require('./native
 const {renderTwitchWatch,isTwitchLogin}=require('./watch');
 const {collectPublicCatalog}=require('../../tools/justplayer-public-fetch');
 const {makePublicCatalog}=require('./public-catalog');
+const {recommend}=require('./content-metadata');
 const catalog=require('../../data/justplayer-public-catalog.json');
 
 function createNewsRouter({express, firestore, requireEditor, isReady = () => true, baseUrl = 'https://swapp.tv', publicFetch = globalThis.fetch, publicCatalog = catalog, canEdit = () => false, sendApp = null}) {
@@ -115,6 +116,19 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
       res.set('Cache-Control','public, max-age=60');
       return res.type('html').send(renderNewsStory(snap.data(),{baseUrl}));
     }catch(e){next(e);}
+  });
+  // Suggest games and tags without external APIs or tracking.
+  // Only authenticated editors may submit unpublished text for analysis.
+  router.post('/api/editor/actus/suggest',...editor,(req,res)=>{
+    const input=req.body||{};
+    const suggestion=recommend({
+      title:String(input.title||'').slice(0,180),
+      summary:String(input.summary||'').slice(0,420),
+      body:String(input.body||'').slice(0,4000),
+      game:String(input.game||'').slice(0,120),
+      tags:Array.isArray(input.tags)?input.tags:[]
+    });
+    return res.json({suggestion});
   });
   router.get('/api/editor/actus',...editor,async(req,res,next)=>{
     try{
