@@ -47,9 +47,12 @@
   const normalized=normalize(question);
   const filtered=items.filter(item=>{
    const game=normalize(item.game);
-   return game.length>=3&&normalized.includes(game);
+   return game.length>=3&&(normalized.includes(game)||normalized.includes(game.split(' ').slice(0,2).join(' '))&&game.split(' ').length>2);
   });
-  return (filtered.length?filtered:items).slice(0,limit);
+  if(filtered.length)return filtered.slice(0,limit);
+  // Explicit game requests must not silently fall back to unrelated streams.
+  const specific=/(?:^| )(?:sur|concernant|joue a|jouent a|pour le jeu) ([a-z0-9][a-z0-9 ]{2,})$/.test(normalized);
+  return specific?[]:items.slice(0,limit);
  }
  function isWatching(path,activeView){
   return /^\/(?:live\/twitch\/|watch\/)/.test(path||'')||
