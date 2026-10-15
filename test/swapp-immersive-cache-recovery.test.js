@@ -32,9 +32,12 @@ test('old article cover moves into the global scene without duplicating media',(
  assert.match(compat,/const existing=\$\(':scope > \.swapp-article-scene',root\)/);
 });
 
-test('single photo renders as a fixed page wallpaper, not a clipped hero',()=>{
+test('single photo preserves proportions in a bounded scene instead of filling the screen',()=>{
  assert.match(css,/\.swapp-article-scene/);
- assert.match(css,/position:fixed;inset:0/);
+ assert.match(css,/position:absolute;top:0/);
+ assert.match(css,/aspect-ratio:16\/9/);
+ assert.match(css,/object-fit:contain/);
+ assert.doesNotMatch(css,/position:fixed;inset:0;z-index:0/);
  assert.match(css,/pointer-events:none/);
  assert.match(css,/\.swapp-immersive-hero \.swapp-immersive-bg\{display:none!important\}/);
  assert.match(css,/\.swapp-immersive-hero::before,\.swapp-immersive-hero::after/);
@@ -42,7 +45,7 @@ test('single photo renders as a fixed page wallpaper, not a clipped hero',()=>{
 
 test('page shells load versioned SPA, compat and CSS files',()=>{
  for(const text of [spa,layout]){
-  assert.match(text,/swapp-article-immersive\.css\?v=20261015-wallpaper-v1/);
+  assert.match(text,/swapp-article-immersive\.css\?v=20261015-ratio-2/);
   assert.match(text,/swapp-article-immersive-compat\.js\?v=20261015-wallpaper-v1/);
  }
  assert.match(spa,/swapp-actus-app\.js\?v=20261015-wallpaper-v1/);

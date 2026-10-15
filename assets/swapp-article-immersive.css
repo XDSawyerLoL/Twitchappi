@@ -11,21 +11,28 @@ body.swapp-editorial-route main.article-wrap{
 body.swapp-editorial-route main.article-wrap > :not(.swapp-article-scene){
   position:relative;z-index:1
 }
-/* Full-viewport art persists while the article scrolls, never blocks controls. */
+/* The artwork is an editorial backdrop, not a stretched full-screen wallpaper.
+   A bounded 16:9 scene with 'contain' keeps the ORIGINAL proportions and
+   complete composition visible; soft edges blend into the page. */
 .swapp-article-scene{
-  position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;
-  background:radial-gradient(ellipse at 78% 17%,color-mix(in srgb,var(--brand,#9064e7) 24%,transparent),transparent 65%),#090e17
+  position:absolute;top:0;left:50%;right:auto;bottom:auto;
+  transform:translateX(-50%);z-index:0;pointer-events:none;
+  width:min(1360px,calc(100vw - 28px));height:auto;aspect-ratio:16/9;
+  max-height:760px;overflow:hidden;
+  background:radial-gradient(ellipse at 68% 21%,color-mix(in srgb,var(--brand,#9064e7) 16%,transparent),transparent 70%);
+  mask-image:linear-gradient(to bottom,#000 0%,#000 37%,rgba(0,0,0,.87) 60%,transparent 100%);
+  -webkit-mask-image:linear-gradient(to bottom,#000 0%,#000 37%,rgba(0,0,0,.87) 60%,transparent 100%);
 }
 .swapp-article-scene img{
   position:absolute;inset:0;width:100%;height:100%;
-  object-fit:cover;object-position:60% 33%;
-  filter:brightness(.82) saturate(1.08) contrast(1.04);
-  pointer-events:none;
+  object-fit:contain;object-position:center top;
+  filter:brightness(.77) saturate(1.07) contrast(1.03);
+  transform:none!important;pointer-events:none;
 }
 .swapp-article-scene::before{
   content:"";position:absolute;inset:0;z-index:1;
   background:
-    linear-gradient(90deg,rgba(5,9,17,.88) 0%,rgba(5,9,17,.69) 35%,rgba(5,9,17,.24) 77%,rgba(5,9,17,.22) 100%),
+    linear-gradient(90deg,rgba(5,9,17,.88) 0%,rgba(5,9,17,.69) 35%,rgba(5,9,17,.13) 77%,rgba(5,9,17,.10) 100%),
     linear-gradient(0deg,#080c16 0%,rgba(8,12,22,.58) 27%,rgba(6,10,18,.08) 65%,rgba(7,11,20,.22) 100%);
 }
 .swapp-article-scene::after{
@@ -45,7 +52,7 @@ body.swapp-editorial-route .article-wrap > .swapp-immersive-hero{
   position:relative;box-sizing:border-box;isolation:auto;overflow:visible;
   width:100%!important;max-width:1080px!important;
   margin:0 auto!important;padding:0!important;
-  min-height:clamp(380px,65svh,750px);
+  min-height:clamp(360px,44vw,575px);
   background:none!important;border:0!important;border-radius:0!important;
   box-shadow:none!important;transform:none!important;text-align:left!important
 }
@@ -54,7 +61,7 @@ body.swapp-editorial-route .article-wrap > .swapp-immersive-hero{
 .swapp-immersive-content{
   min-height:inherit;max-width:820px;
   display:flex;flex-direction:column;align-items:flex-start;justify-content:center;
-  box-sizing:border-box;padding:clamp(48px,8svh,120px) clamp(16px,3.3vw,45px) clamp(55px,10svh,130px)!important;
+  box-sizing:border-box;padding:clamp(45px,6svh,90px) clamp(16px,3.3vw,45px) clamp(42px,6svh,92px)!important;
 }
 .swapp-immersive-hero :is(h1,.article-title,.swapp-actus-summary,.article-deck){
   text-align:left!important;margin-left:0!important;margin-right:0!important;
@@ -129,12 +136,13 @@ body.swapp-editorial-route .article-wrap>.story-actions{max-width:920px;margin-l
 #actus .swapp-actus-article>.swapp-reader-hero-figure,
 body.swapp-editorial-route .article-wrap>figure:has(img.cover-img){display:none!important}
 @media(min-width:1650px){
- .swapp-immersive-hero{min-height:min(73svh,840px)}
+ .swapp-immersive-hero{min-height:min(48vw,600px)}
 }
 @media(max-width:700px){
- .swapp-article-scene img{object-position:64% center;filter:brightness(.64) saturate(1.04)}
+ .swapp-article-scene{width:calc(100vw - 16px);height:auto;aspect-ratio:16/9;max-height:none;top:0}
+ .swapp-article-scene img{object-position:center top;object-fit:contain;filter:brightness(.68) saturate(1.04)}
  .swapp-article-scene::before{background:linear-gradient(0deg,#080c16 0%,rgba(5,9,17,.87) 28%,rgba(5,9,17,.43) 72%,rgba(5,9,17,.38) 100%)}
- .swapp-immersive-hero{min-height:clamp(460px,72svh,700px)}
+ .swapp-immersive-hero{min-height:clamp(370px,57svh,530px)}
  .swapp-immersive-content{justify-content:flex-end;padding:clamp(38px,8vw,56px) 10px clamp(43px,9svh,82px)!important;max-width:100%}
  .swapp-immersive-hero :is(h1,.article-title){font-size:clamp(34px,8.4vw,49px)!important;line-height:1.055!important}
  .swapp-immersive-hero :is(.article-deck,.swapp-actus-summary){font-size:16px!important}
