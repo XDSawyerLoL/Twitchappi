@@ -867,6 +867,10 @@ const staticOptions = {
     res.setHeader('X-Content-Type-Options', 'nosniff');
   }
 };
+// SOCIAL write actions use a dedicated origin-pinned, no-cookie bridge.
+const {createSocialRouter}=require('./modules/swapp-social-actions');
+app.use('/api/swapp/social',authLimiter,createSocialRouter({express,fetchImpl:fetchWithTimeout,isProd:IS_PROD}));
+
 app.use('/assets', express.static(path.join(__dirname, 'assets'), staticOptions));
 function sendPublicFile(res, file, type){
   const full = path.join(__dirname, file);
@@ -911,8 +915,14 @@ function sendSwappPublicChannelUi(req, res, login){
     return sendSwappUi(res);
   }
 }
+// Additional discovery areas keep the same navigation and SWAPP visual system.
+const swappHubs=require('./modules/swapp-hubs');
+app.get('/communaute',(_req,res)=>{res.set('Cache-Control','no-store');res.type('html').send(swappHubs.community())});
+app.get('/bandes-annonces',(_req,res)=>{res.set('Cache-Control','no-store');res.type('html').send(swappHubs.trailers())});
+app.get('/boutique',(_req,res)=>{res.set('Cache-Control','no-store');res.type('html').send(swappHubs.shop(require('./data/swapp-shop.json').products))});
+
 const SWAPP_CLEAN_VIEW_PATHS = new Set(['/actus','/decouvrir','/discover','/categories','/equipes','/teams','/compte','/connexion','/settings','/chaine','/channel','/gestionnaire','/manager','/dashboard','/studio','/admin','/reset-password']);
-const SWAPP_RESERVED_ROOT_PATHS = new Set(['index_script.js','favicon.ico','pricing','twitch_auth_start','twitch_auth_callback','twitch_user_status','twitch_logout','firebase_status','followed_streams','get_default_stream','boost_queue','stream_info','cycle_stream','stream_boost','scan_target','critique_ia','start_raid','analyze_schedule','api','assets','actus','reset-password','contact','moderation','mentions-legales','confidentialite','cgu','cookies']);
+const SWAPP_RESERVED_ROOT_PATHS = new Set(['index_script.js','favicon.ico','pricing','twitch_auth_start','twitch_auth_callback','twitch_user_status','twitch_logout','firebase_status','followed_streams','get_default_stream','boost_queue','stream_info','cycle_stream','stream_boost','scan_target','critique_ia','start_raid','analyze_schedule','api','assets','actus','communaute','bandes-annonces','boutique','reset-password','contact','moderation','mentions-legales','confidentialite','cgu','cookies']);
 function isSwappCleanChannelSlug(slug){
   const clean = String(slug || '').trim().toLowerCase();
   return /^[a-z0-9_][a-z0-9_-]{1,39}$/.test(clean) && !SWAPP_RESERVED_ROOT_PATHS.has(clean);
