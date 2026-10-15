@@ -5216,9 +5216,12 @@ function isOryonAdmin(req){
  if(!cur?.id||!cur?.login||!adminLogins().includes(normalizeOryonLogin(cur.login)))return false;
  // Optional hard binding: once ORYON_ADMIN_USER_IDS is set, a matching login
  // alone cannot grant administrator privileges to a different account.
- const pinned=String(process.env.ORYON_ADMIN_USER_IDS||'').split(',')
-  .map(s=>s.trim()).filter(s=>/^[a-f0-9]{24,64}$/i.test(s));
- return !pinned.length||pinned.includes(String(cur.id));
+ const pinnedRaw=String(process.env.ORYON_ADMIN_USER_IDS||'').trim();
+ if(!pinnedRaw)return true; // backwards compatible only when no pin is configured
+ const pinned=pinnedRaw.split(',').map(s=>s.trim())
+  .filter(s=>/^[a-f0-9]{24,64}$/i.test(s));
+ // A typo or an invalid value MUST fail closed, never silently disable the pin.
+ return pinned.includes(String(cur.id));
 }
 function slugifyOryon(v){ return String(v||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,48) || crypto.randomBytes(4).toString('hex'); }
 function safeTags(v){ if(Array.isArray(v)) return v.map(x=>String(x).trim().toLowerCase()).filter(Boolean).slice(0,12); return String(v||'').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean).slice(0,12); }
