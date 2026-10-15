@@ -3,7 +3,7 @@
  */
 (()=>{'use strict';
  const entry=(location.pathname||'/').replace(/\/+$/,'')||'/';
- if(entry!=='/actus')return;
+ if(entry!=='/actus'&&window.__SWAPP_DIRECT_ACTUS_ENTRY__!==true)return;
  const home=document.getElementById('home');
  const actus=document.getElementById('actus');
  if(!home||!actus)return;
