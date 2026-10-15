@@ -44,7 +44,7 @@ test('accessibility and reduced motion protect text entry and users sensitive to
 });
 test('no fake lives and no content sections added to the homepage',()=>{
  assert.match(js,/homeLiveBadge1014/);
- assert.match(js,/classList\.toggle\('swapp-pulse-live',verified\)/);
+ assert.match(js,/classList\.toggle\('swapp-pulse-live',!!el\.querySelector\(badgeSelector\)\)/);
  assert.match(js,/function pickLive\(\)/);
  assert.doesNotMatch(js,/createElement\('section'\)/);
  assert.doesNotMatch(js,/autoplay\s*=/i);
