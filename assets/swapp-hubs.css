@@ -63,3 +63,14 @@
 @media(max-width:1100px){.swapp-hub-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.swapp-community-layout{grid-template-columns:minmax(0,1fr) 260px}}
 @media(max-width:760px){.swapp-hub{width:calc(100% - 30px);padding:28px 0 155px}.swapp-community-layout{grid-template-columns:1fr}.swapp-community-side{position:static;order:-1;padding:13px 0 8px}.swapp-hub-grid{grid-template-columns:1fr}.swapp-hub-tile-art{min-height:145px}.swapp-hub-head{margin-bottom:24px}.swapp-hub-toolbar{margin-bottom:12px}}
 @media(prefers-reduced-motion:reduce){.swapp-hub-tile{transition:none}.swapp-hub-tile:hover{transform:none}}
+
+.swapp-community-auth-box [hidden]{display:none!important}
+.swapp-community-switch{padding:7px 0;border:0;border-bottom:1px solid #b8a9e4;background:transparent;color:#eadbff;font-size:13px;font-weight:850;cursor:pointer;text-align:left}
+.swapp-community-switch:hover{color:#fff}
+.swapp-trailers-native[hidden]{display:none!important}
+.swapp-trailers-native{margin:0 0 42px}
+.swapp-trailers-native>h2{font-size:clamp(23px,2.5vw,31px);font-weight:850;letter-spacing:-.045em;margin:0 0 17px}
+.swapp-trailer-card-art{width:100%;aspect-ratio:16/9;display:grid;place-items:center;background:#080e19}
+.swapp-trailer-card-art .swapp-trailer-launch{min-height:0;max-height:none;height:100%;border:0;border-radius:0;font-size:15px}
+.swapp-trailer-card-art .swapp-trailer-player{border:0;border-radius:0}
+.swapp-hub-tile-copy h3{font-size:17px;line-height:1.35;margin:0;letter-spacing:-.03em}
