@@ -40,7 +40,8 @@ test('single photo preserves proportions in a bounded scene instead of filling t
  assert.match(css,/object-fit:contain/);
  assert.doesNotMatch(css,/position:fixed;inset:0;z-index:0/);
  assert.match(css,/pointer-events:none/);
- assert.match(css,/\.swapp-immersive-hero \.swapp-immersive-bg\{display:none!important\}/);
+ assert.match(css,/\.swapp-immersive-hero \.swapp-immersive-bg/);
+ assert.match(css,/content:none!important;display:none!important/);
  assert.match(css,/\.swapp-immersive-hero::before,\.swapp-immersive-hero::after/);
 });
 
