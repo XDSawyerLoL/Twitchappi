@@ -45,3 +45,17 @@
 @media(max-width:900px){.swapp-video-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.swapp-featured-video .swapp-video-item{grid-template-columns:1fr}.swapp-featured-video .swapp-video-open{aspect-ratio:16/9}.swapp-featured-video .swapp-video-caption{padding:20px}}
 @media(max-width:600px){.swapp-video-grid{grid-template-columns:1fr;gap:22px}.swapp-video-section-title span{font-size:11px}.swapp-video-dialog{border-radius:14px}.swapp-video-dialog-head strong{font-size:13px}.swapp-video-shade .swapp-video-play-icon{width:56px;height:56px}.swapp-video-stage-fallback{align-items:stretch}.swapp-video-stage-fallback a{width:100%;text-align:center}}
 @media(prefers-reduced-motion:reduce){.swapp-video-open img,.swapp-video-play-icon{transition:none!important}.swapp-video-open:hover img,.swapp-video-open:hover .swapp-video-play-icon{transform:none!important}}
+
+/* The homepage teaser lives inside the existing editorial heading.
+ * Original article-card count is unchanged. */
+#home .swapp-home-editorial-top .swapp-home-hero-actions{display:flex;align-items:center;gap:15px;flex-wrap:wrap;justify-content:flex-end}
+#home .swapp-home-editorial-top .swapp-home-video-feature{width:clamp(190px,19vw,290px);max-width:100%;flex:none}
+#home .swapp-home-editorial-top .swapp-home-video-feature .swapp-video-open{aspect-ratio:16/8.5;border-radius:13px}
+#home .swapp-home-editorial-top .swapp-home-video-feature .swapp-video-play-icon{width:46px;height:46px;font-size:15px}
+#home .swapp-home-editorial-top .swapp-home-video-feature .swapp-video-action{left:11px;bottom:9px;font-size:9px}
+#home .swapp-home-editorial-top .swapp-home-video-feature .swapp-video-caption h3{font-size:13px;margin:5px 0}
+#home .swapp-home-editorial-top .swapp-home-video-feature .swapp-video-caption a{font-size:11px}
+@media(max-width:760px){
+ #home .swapp-home-editorial-top .swapp-home-hero-actions{width:100%;justify-content:space-between;align-items:flex-start}
+ #home .swapp-home-editorial-top .swapp-home-video-feature{width:min(290px,100%)}
+}
