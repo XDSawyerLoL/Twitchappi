@@ -13,6 +13,12 @@
      .catch(()=>{newsPromise=null;return []});
    return newsPromise;
  };
+ let latestArticles=[];
+ // Shared article cache for the existing live grid; do not request ACTUS twice.
+ window.SwappHomeEditorial=Object.freeze({
+  getArticles:news,
+  getCachedArticles:()=>latestArticles.slice()
+ });
  
  function navigateArticle(event,slug){
    if(event.button||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
@@ -85,6 +91,9 @@
      if(!section.isConnected)return;
      section.setAttribute('aria-busy','false');
      const valid=articles.filter(x=>slugOk(x.slug)&&String(x.title||'').trim()).slice(0,5);
+     latestArticles=valid;
+     // Matching reorders the existing live cards, not the article shelf.
+     window.dispatchEvent(new CustomEvent('swapp:home-news-ready',{detail:{articles:valid}}));
      grid.replaceChildren();
      if(!valid.length){
        decorateHero(modern,[]);
