@@ -12,9 +12,9 @@ test('Mairy and events exist in SPA and editorial pages without another top menu
  const home=read('index.html');
  const article=layout({content:'<main>Article</main>'});
  for(const html of [home,article]){
-  assert.match(html,/swapp-mairy\.css\?v=20261015-companion-1/);
-  assert.match(html,/swapp-companion-core\.js\?v=20261015-companion-1/);
-  assert.match(html,/swapp-mairy\.js\?v=20261015-companion-1/);
+  assert.match(html,/swapp-mairy\.css\?v=20261015-companion-3/);
+  assert.match(html,/swapp-companion-core\.js\?v=20261015-companion-3/);
+  assert.match(html,/swapp-mairy\.js\?v=20261015-companion-3/);
   assert.ok(html.indexOf('swapp-companion-core.js')<html.indexOf('swapp-mairy.js'));
  }
  assert.doesNotMatch(article,/class="swapp-companion-panel"/);
@@ -80,6 +80,7 @@ test('Mairy knows when to avoid interruptions during video playback',()=>{
  assert.equal(core.isWatching('/live/twitch/alice'),true);
  assert.equal(core.isWatching('/', 'watch'),true);
  assert.equal(core.isWatching('/actus', 'actus'),false);
+ assert.deepEqual(core.suggest('Qui joue sur Starfield ?',core.lives({items:[{login:'s1',game_name:'Hades',platform:'twitch'}]})),[]);
 });
 
 
