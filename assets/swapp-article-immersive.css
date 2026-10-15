@@ -1,96 +1,152 @@
-/* SWAPP / Actualité — cinematic covers for individual full articles only.
-   Works for /actus/:slug both in the SPA and the server-rendered fallback. */
-:root{--swapp-hero-glow:var(--brand,#8e65ed)}
-#actus .swapp-actus-native.swapp-actus-reading .swapp-actus-article,
-body.swapp-editorial-route .article-wrap{overflow:visible}
-
-.swapp-immersive-hero{
-  isolation:isolate;position:relative;box-sizing:border-box;overflow:hidden;
-  width:min(1560px,calc(100vw - 44px));max-width:none;
-  margin:14px 0 0 50%!important;transform:translateX(-50%);
-  min-height:clamp(420px,49vw,640px);
-  border:1px solid rgba(195,206,230,.12);
-  border-radius:clamp(18px,2.5vw,32px);
-  background:radial-gradient(ellipse at 77% 29%,color-mix(in srgb,var(--swapp-hero-glow) 24%,transparent),transparent 45%),
-             linear-gradient(130deg,#1a2036 0%,#111827 55%,#090e1a 100%);
-  color:#fff;text-align:left!important;box-shadow:0 25px 78px rgba(0,0,0,.26);
+/* SWAPP Article Wallpaper — the game is the page environment, not a card.
+   Shared by /actus/:slug in the SPA and in the server-rendered article shell. */
+#actus .swapp-actus-native.swapp-actus-reading,
+body.swapp-editorial-route main.article-wrap{
+  position:relative;isolation:isolate;overflow:visible;
+  background:transparent!important;
 }
-.swapp-immersive-hero.has-cover{background:#0b101b}
-.swapp-immersive-bg{position:absolute;z-index:-2;inset:0;overflow:hidden;pointer-events:none}
-.swapp-immersive-bg img{display:block;width:100%;height:100%;object-fit:cover;object-position:center 36%;
-  transform:scale(1.055);filter:saturate(1.16) contrast(1.065) blur(3px)}
-.swapp-immersive-hero:before{
-  content:"";position:absolute;z-index:-1;inset:0;pointer-events:none;
+/* An ancestor transform makes position:fixed behave as an absolute child. */
+#actus .swapp-actus-native.swapp-actus-reading{animation:none!important;transform:none!important}
+#actus .swapp-actus-native.swapp-actus-reading > :not(.swapp-article-scene),
+body.swapp-editorial-route main.article-wrap > :not(.swapp-article-scene){
+  position:relative;z-index:1
+}
+/* Full-viewport art persists while the article scrolls, never blocks controls. */
+.swapp-article-scene{
+  position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;
+  background:radial-gradient(ellipse at 78% 17%,color-mix(in srgb,var(--brand,#9064e7) 24%,transparent),transparent 65%),#090e17
+}
+.swapp-article-scene img{
+  position:absolute;inset:0;width:100%;height:100%;
+  object-fit:cover;object-position:60% 33%;
+  filter:brightness(.82) saturate(1.08) contrast(1.04);
+  pointer-events:none;
+}
+.swapp-article-scene::before{
+  content:"";position:absolute;inset:0;z-index:1;
   background:
-    linear-gradient(90deg,rgba(5,9,17,.91) 0%,rgba(5,9,17,.82) 28%,rgba(5,9,17,.55) 62%,rgba(5,9,17,.27) 100%),
-    linear-gradient(0deg,rgba(7,11,20,.94) 0%,rgba(7,11,20,.19) 44%,rgba(7,11,20,.13) 100%);
+    linear-gradient(90deg,rgba(5,9,17,.88) 0%,rgba(5,9,17,.69) 35%,rgba(5,9,17,.24) 77%,rgba(5,9,17,.22) 100%),
+    linear-gradient(0deg,#080c16 0%,rgba(8,12,22,.58) 27%,rgba(6,10,18,.08) 65%,rgba(7,11,20,.22) 100%);
 }
-.swapp-immersive-hero:after{content:"";position:absolute;z-index:-1;inset:auto 0 0;height:42%;pointer-events:none;
- background:radial-gradient(ellipse at 70% 125%,color-mix(in srgb,var(--swapp-hero-glow) 17%,transparent),transparent 70%)}
-.swapp-immersive-content{min-height:inherit;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-end;
-  padding:clamp(28px,6vw,90px);box-sizing:border-box;max-width:1050px}
+.swapp-article-scene::after{
+  content:"";position:absolute;inset:0;z-index:2;
+  background:radial-gradient(ellipse at 82% 63%,color-mix(in srgb,var(--brand,#9064e7) 17%,transparent),transparent 65%);
+  opacity:.5;
+}
+.swapp-article-scene:not(.has-art) img{display:none}
+#actus .swapp-actus-native.swapp-actus-reading .swapp-actus-reader-nav{
+  width:min(1080px,100%);margin:0 auto!important;
+  padding-top:clamp(4px,1vw,12px)!important;padding-bottom:0!important;
+}
+/* The editorial introduction floats freely; no border, radius, shadow or box. */
+.swapp-immersive-hero,
+#actus .swapp-actus-native.swapp-actus-reading .swapp-immersive-hero,
+body.swapp-editorial-route .article-wrap > .swapp-immersive-hero{
+  position:relative;box-sizing:border-box;isolation:auto;overflow:visible;
+  width:100%!important;max-width:1080px!important;
+  margin:0 auto!important;padding:0!important;
+  min-height:clamp(380px,65svh,750px);
+  background:none!important;border:0!important;border-radius:0!important;
+  box-shadow:none!important;transform:none!important;text-align:left!important
+}
+.swapp-immersive-hero::before,.swapp-immersive-hero::after{content:none!important;display:none!important}
+.swapp-immersive-hero .swapp-immersive-bg{display:none!important}
+.swapp-immersive-content{
+  min-height:inherit;max-width:820px;
+  display:flex;flex-direction:column;align-items:flex-start;justify-content:center;
+  box-sizing:border-box;padding:clamp(48px,8svh,120px) clamp(16px,3.3vw,45px) clamp(55px,10svh,130px)!important;
+}
 .swapp-immersive-hero :is(h1,.article-title,.swapp-actus-summary,.article-deck){
   text-align:left!important;margin-left:0!important;margin-right:0!important;
-  max-width:920px!important;color:#fff!important;text-shadow:0 3px 28px rgba(0,0,0,.34)
+  max-width:820px!important;color:#fff!important;
+  text-shadow:0 3px 20px rgba(0,0,0,.46);
 }
-.swapp-immersive-hero :is(h1,.article-title){font-size:clamp(36px,5.15vw,76px);line-height:1.035;letter-spacing:-.065em;
-  margin-top:18px!important;margin-bottom:20px!important;font-weight:900;text-wrap:balance}
-.swapp-immersive-hero :is(.article-deck,.swapp-actus-summary){font-size:clamp(16px,1.65vw,21px)!important;
-  line-height:1.5!important;color:#e4eaf4!important;margin-bottom:20px!important;max-width:760px!important;
-  text-wrap:pretty}
-.swapp-immersive-hero :is(.article-byline,.swapp-actus-author){color:#d2dce9!important;
-  margin:0!important;text-shadow:0 2px 13px rgba(0,0,0,.7)}
-.swapp-immersive-hero :is(.eyebrow,.swapp-reader-kicker){color:#e8fbff!important;justify-content:flex-start!important}
-.swapp-immersive-hero .swapp-reader-kicker{margin:0!important;gap:8px}
+.swapp-immersive-hero :is(h1,.article-title){
+  max-width:800px!important;font-size:clamp(40px,5.6vw,84px)!important;
+  line-height:1.015!important;letter-spacing:-.063em!important;
+  font-weight:900!important;margin:22px 0 20px!important;text-wrap:balance
+}
+.swapp-immersive-hero :is(.article-deck,.swapp-actus-summary){
+  max-width:650px!important;font-size:clamp(16px,1.55vw,21px)!important;
+  line-height:1.55!important;margin:0 0 20px!important;color:#e5edfa!important;
+}
+.swapp-immersive-hero :is(.article-byline,.swapp-actus-author){
+  color:#c3cfdf!important;font-size:13px;line-height:1.6;
+  margin:0!important;text-shadow:0 2px 15px rgba(0,0,0,.65);
+}
+.swapp-immersive-hero .swapp-reader-kicker{justify-content:flex-start!important;gap:8px!important;margin:0!important}
 .swapp-immersive-hero :is(.swapp-reader-kicker-main,.swapp-reader-kicker-game){
-  color:#f6f8ff!important;border:1px solid rgba(232,240,255,.32)!important;
-  background:rgba(17,24,39,.42)!important;backdrop-filter:blur(12px)
+  border:1px solid rgba(223,230,245,.27)!important;
+  border-radius:999px;background:rgba(8,14,26,.34)!important;
+  color:#f4f7ff!important;padding:6px 12px;font-size:11px;
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)
 }
-.swapp-immersive-credit{color:#aebbd1;font-size:11px;line-height:1.35;
-  margin:10px 0 0;text-align:right!important}
-#actus .swapp-actus-native.swapp-actus-reading .swapp-actus-article>.swapp-immersive-hero{
-  max-width:none!important;margin-top:12px!important
+.swapp-immersive-hero .eyebrow{color:#b9eefa!important}
+.swapp-immersive-hero .swapp-reader-controls{
+  margin:clamp(18px,3vw,30px) 0 0!important;display:flex;
+  width:100%;max-width:700px;gap:11px;align-items:center;justify-content:flex-start;
+  flex-wrap:wrap;color:#dbe6f6!important;font-size:13px
 }
-#actus .swapp-actus-native.swapp-actus-reading .swapp-actus-article>.swapp-immersive-credit{
-  max-width:1120px;margin-left:auto;margin-right:auto
+.swapp-immersive-hero .swapp-read-time{margin-right:auto}
+.swapp-immersive-hero :is(.swapp-reader-share,.swapp-reader-live-jump,.button-link){
+  border:1px solid rgba(218,230,248,.27)!important;
+  border-radius:11px;background:rgba(8,16,30,.50)!important;
+  color:#fff!important;box-shadow:none!important;
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)
 }
-#actus .swapp-actus-article .swapp-actus-body{margin-top:clamp(34px,4vw,56px)}
-body.swapp-editorial-route .swapp-immersive-hero{margin-top:22px!important}
-body.swapp-editorial-route .article-wrap>.article-body{margin-top:clamp(30px,4vw,55px)}
-body.swapp-editorial-route .article-wrap>.swapp-immersive-credit{margin:10px 0 0}
-body.swapp-editorial-route .article-wrap>.article-body,
-body.swapp-editorial-route .article-wrap>.sources-panel{position:relative}
-@media(min-width:1600px){.swapp-immersive-hero{width:min(1560px,calc(100vw - 70px))}}
+.swapp-immersive-hero :is(.swapp-reader-share,.swapp-reader-live-jump,.button-link):hover{
+  background:rgba(21,33,53,.83)!important;border-color:var(--brand,#9064e7)!important
+}
+.swapp-immersive-credit{
+  margin:12px 0 0!important;color:#b8c6d8!important;
+  font-size:11px!important;line-height:1.35;text-align:left!important;
+}
+.swapp-immersive-hero .swapp-immersive-credit{opacity:.74;margin-top:17px!important}
+/* Reading is the only frosted surface. No extra unrelated decorative panels. */
+#actus .swapp-actus-native.swapp-actus-reading .swapp-actus-article{
+  width:min(1100px,100%);max-width:1100px;margin:0 auto 70px
+}
+#actus .swapp-actus-article .swapp-actus-body,
+body.swapp-editorial-route .article-wrap > .article-body{
+  max-width:920px!important;width:100%;box-sizing:border-box;
+  margin:0 auto!important;padding:clamp(26px,4.2vw,68px)!important;
+  background:rgba(8,13,24,.88)!important;color:#ecf1fa!important;
+  border:1px solid rgba(204,220,248,.10);
+  border-radius:20px;box-shadow:0 20px 65px rgba(0,0,0,.18);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  line-height:1.8;
+}
+#actus .swapp-actus-article .swapp-actus-body :is(p,li),
+body.swapp-editorial-route .article-body :is(p,li){color:#e4ebf7}
+#actus .swapp-actus-article :is(.swapp-reader-toc,.swapp-actus-sources,.swapp-actus-related,.swapp-actus-recommend),
+body.swapp-editorial-route .article-wrap > :is(.sources-panel,.swapp-article-related){
+  max-width:920px;margin-left:auto;margin-right:auto
+}
+body.swapp-editorial-route .article-wrap{width:min(1160px,calc(100% - 30px));max-width:1160px}
+body.swapp-editorial-route .article-wrap>.breadcrumb{max-width:1080px;margin-left:auto;margin-right:auto}
+body.swapp-editorial-route .article-wrap>.story-actions{max-width:920px;margin-left:auto;margin-right:auto}
+/* Keep old article-cover elements hidden if an early cached renderer emitted one. */
+#actus .swapp-actus-article>.swapp-reader-hero-figure,
+body.swapp-editorial-route .article-wrap>figure:has(img.cover-img){display:none!important}
+@media(min-width:1650px){
+ .swapp-immersive-hero{min-height:min(73svh,840px)}
+}
 @media(max-width:700px){
- .swapp-immersive-hero{width:calc(100vw - 22px);min-height:clamp(450px,78vh,640px);
-   margin-top:10px!important;border-radius:18px}
- .swapp-immersive-bg img{object-position:center;filter:saturate(1.06) contrast(1.08) blur(2px)}
- .swapp-immersive-hero:before{background:linear-gradient(0deg,rgba(5,9,17,.97) 0%,rgba(5,9,17,.83) 41%,rgba(5,9,17,.48) 82%,rgba(5,9,17,.29) 100%)}
- .swapp-immersive-content{padding:clamp(22px,5.6vw,34px);justify-content:flex-end;max-width:100%}
- .swapp-immersive-hero :is(h1,.article-title){font-size:clamp(32px,8.2vw,48px)!important;
-   line-height:1.075!important;margin-top:13px!important;margin-bottom:16px!important}
- .swapp-immersive-hero :is(.article-deck,.swapp-actus-summary){font-size:16px!important;line-height:1.45!important}
- .swapp-immersive-credit{text-align:left!important;margin-top:9px}
+ .swapp-article-scene img{object-position:64% center;filter:brightness(.64) saturate(1.04)}
+ .swapp-article-scene::before{background:linear-gradient(0deg,#080c16 0%,rgba(5,9,17,.87) 28%,rgba(5,9,17,.43) 72%,rgba(5,9,17,.38) 100%)}
+ .swapp-immersive-hero{min-height:clamp(460px,72svh,700px)}
+ .swapp-immersive-content{justify-content:flex-end;padding:clamp(38px,8vw,56px) 10px clamp(43px,9svh,82px)!important;max-width:100%}
+ .swapp-immersive-hero :is(h1,.article-title){font-size:clamp(34px,8.4vw,49px)!important;line-height:1.055!important}
+ .swapp-immersive-hero :is(.article-deck,.swapp-actus-summary){font-size:16px!important}
+ .swapp-immersive-hero .swapp-reader-controls{justify-content:flex-start;gap:9px}
+ .swapp-immersive-hero .swapp-read-time{width:100%;margin-right:0}
+ #actus .swapp-actus-article .swapp-actus-body,body.swapp-editorial-route .article-wrap>.article-body{
+   padding:26px 19px!important;border-radius:16px;backdrop-filter:none;-webkit-backdrop-filter:none;background:rgba(8,13,24,.94)!important
+ }
 }
-@media(prefers-reduced-motion:reduce){.swapp-immersive-bg img{transform:none}}
-@media(prefers-contrast:more){.swapp-immersive-hero:before{background:rgba(2,5,11,.86)}}
-
-/* The cover also casts a soft ambient reflection across the entire article.
-   It is always decorative: article text retains solid surfaces and contrast. */
-#actus .swapp-actus-native.swapp-actus-reading,
-body.swapp-editorial-route .article-wrap{position:relative;isolation:isolate}
-.swapp-immersive-atmosphere{position:absolute;z-index:-1;top:-100px;left:50%;
- transform:translateX(-50%);height:min(980px,110vh);width:100vw;max-width:none;
- opacity:.31;overflow:hidden;pointer-events:none;
- mask-image:linear-gradient(180deg,transparent 0%,#000 13%,#000 56%,transparent 100%);
- -webkit-mask-image:linear-gradient(180deg,transparent 0%,#000 13%,#000 56%,transparent 100%)}
-.swapp-immersive-atmosphere img{width:100%;height:100%;object-fit:cover;
- filter:blur(64px) brightness(.52) saturate(1.45);transform:scale(1.15)}
-#actus .swapp-actus-native.swapp-actus-reading .swapp-actus-reader-nav,
-body.swapp-editorial-route .article-wrap > .breadcrumb{position:relative;z-index:1}
-#actus .swapp-actus-native.swapp-actus-reading .swapp-immersive-hero{margin-bottom:12px!important}
-@media(max-width:700px){
- .swapp-immersive-atmosphere{top:-45px;height:min(760px,100vh);opacity:.23}
- .swapp-immersive-atmosphere img{filter:blur(46px) brightness(.43) saturate(1.25)}
+@media(prefers-reduced-motion:reduce){.swapp-article-scene img{transform:none}}
+@media(prefers-contrast:more){
+ .swapp-article-scene::before{background:rgba(4,8,16,.77)}
+ #actus .swapp-actus-article .swapp-actus-body,body.swapp-editorial-route .article-wrap>.article-body{background:#080d19!important;border-color:#e1ecff}
+ .swapp-immersive-hero .swapp-reader-kicker span{backdrop-filter:none}
 }
-@media(prefers-contrast:more){.swapp-immersive-atmosphere{display:none}}
