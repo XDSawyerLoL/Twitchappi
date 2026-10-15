@@ -71,7 +71,9 @@ test('artwork is confined to the intro, preserving image aspect ratio and avoidi
  assert.match(css,/object-fit:contain/);
  assert.match(css,/mask-image:linear-gradient/);
  assert.doesNotMatch(css,/position:fixed;inset:0/);
- assert.doesNotMatch(css.match(/\\.swapp-article-scene img\\{([\\s\\S]*?)\\}/)?.[1]||'',/object-fit:cover/);
+ const sceneImage=css.match(/\.swapp-article-scene img\{([\s\S]*?)\}/)?.[1];
+ assert.ok(sceneImage,'missing artwork CSS');
+ assert.doesNotMatch(sceneImage,/object-fit:cover/);
  assert.match(css,/\.swapp-article-scene::after\{display:none/);
  assert.match(css,/#0b111b 0%/);
 });
