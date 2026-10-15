@@ -29,7 +29,7 @@ function createSocialRouter({express,fetchImpl,isProd=false}){
     {method,headers,redirect:'error',size:131072,...(body===undefined?{}:{body:JSON.stringify(body)})},6500);
    const payload=await response.json();
    if(!response.ok){
-    const supported=['invalid_credentials','unauthorized','rate_limited','invalid_handle','weak_password','empty_post','forbidden','not_found'];
+    const supported=['invalid_credentials','unauthorized','rate_limited','invalid_handle','invalid_display_name','handle_taken','weak_password','empty_post','forbidden','not_found'];
     return res.status([400,401,403,404,409,429].includes(response.status)?response.status:502)
      .json({error:supported.includes(payload?.error)?payload.error:'social_unavailable'});
    }
@@ -37,6 +37,15 @@ function createSocialRouter({express,fetchImpl,isProd=false}){
   }catch(_){return res.status(503).json({error:'social_unavailable'})}
  }
  const bearer=req=>{const m=String(req.headers.authorization||'').match(/^Bearer ([A-Za-z0-9_-]{20,256})$/);return m?m[1]:null};
+ router.post('/register',(req,res)=>{
+  const handle=String(req.body?.handle||'').trim().toLowerCase();
+  const displayName=String(req.body?.displayName||'').trim().slice(0,51);
+  const password=String(req.body?.password||'');
+  if(!HANDLE.test(handle)||displayName.length<2||displayName.length>50||password.length<10||password.length>128){
+   return res.status(400).json({error:'invalid_registration'});
+  }
+  return forward(res,{endpoint:'/api/pulse/auth/register',method:'POST',body:{handle,displayName,password}});
+ });
  router.post('/login',(req,res)=>{
   const handle=String(req.body?.handle||'').trim().toLowerCase();
   const password=String(req.body?.password||'');
