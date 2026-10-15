@@ -53,6 +53,13 @@ function markdown(body){
  }
  flushPara();flushList();return chunks.join('\n');
 }
+function immersiveCoverUrl(article){
+ const source=String(article?.image?.url||'').trim();
+ try{
+  const u=new URL(source);
+  return u.protocol==='https:'&&!u.username&&!u.password?u.href:'';
+ }catch{return ''}
+}
 function renderNewsStory(article,{baseUrl='https://swapp.tv'}={}){
  const url=baseUrl+'/actus/'+encodeURIComponent(article.slug);
  const summary=plainSummary(article);
@@ -71,10 +78,13 @@ function renderNewsStory(article,{baseUrl='https://swapp.tv'}={}){
  const jsonLd=JSON.stringify(schema).replace(/</g,'\\u003c');
  const shareImage=editorialCover(article);
  const metadata=`<link rel="canonical" href="${escapeHtml(url)}"><meta name="keywords" content="${escapeHtml(tags.join(', '))}"><meta property="og:type" content="${isVideo?'video.other':'article'}"><meta property="og:url" content="${escapeHtml(url)}"><meta property="og:title" content="${escapeHtml(seoTitle)}"><meta property="og:description" content="${escapeHtml(seoDescription)}">${shareImage?`<meta property="og:image" content="${escapeHtml(shareImage)}"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="${escapeHtml(shareImage)}">`:''}<script type="application/ld+json">${jsonLd}</script>`;
- const cover=article.image?.url?`<figure><img class="cover-img" src="${escapeHtml(article.image.url)}" alt="${escapeHtml(article.title)}"><figcaption class="image-credit">${escapeHtml(article.image.credit||'')}</figcaption></figure>`:'';
+ const coverUrl=immersiveCoverUrl(article);
+ const heroBackdrop=coverUrl?`<div class="swapp-immersive-bg" aria-hidden="true"><img src="${escapeHtml(coverUrl)}" alt="" decoding="async" fetchpriority="high"></div>`:'';
+ const heroCredit=coverUrl&&article.image?.credit?`<p class="swapp-immersive-credit">${escapeHtml(article.image.credit)}</p>`:'';
+ const hero=`<header class="swapp-native-immersive-hero swapp-immersive-hero${coverUrl?' has-cover':''}">${heroBackdrop}<div class="swapp-immersive-content"><span class="eyebrow">${escapeHtml(article.category||'Actualités')} ${article.game?'· '+escapeHtml(article.game):''}</span><h1 class="article-title">${escapeHtml(article.title)}</h1><p class="article-deck">${escapeHtml(summary)}</p><div class="article-byline"><span>Par <strong>${escapeHtml(article.author||'Rédaction SWAPP')}</strong></span><span>·</span><time datetime="${escapeHtml(published||'')}">${escapeHtml(dateLabel(published))}</time></div></div></header>`;
  const sources=(article.sources||[]).map(s=>`<li><a href="${escapeHtml(s.url)}" rel="nofollow noopener noreferrer" target="_blank">${escapeHtml(s.label||s.url)}</a></li>`).join('');
  const liveSection=`<aside class="swapp-article-related swapp-media-section" data-swapp-live-shelf data-game="${escapeHtml(article.game||'')}"><div class="swapp-media-heading"><div><span class="swapp-media-kicker">Actualités & lives</span><h2>${article.game?'En direct sur '+escapeHtml(article.game):'Les créateurs en direct'}</h2><p>Un article peut mener à un live. Les suggestions suivent le jeu de l’article lorsqu’il est renseigné.</p></div><a class="swapp-media-button" href="/decouvrir">Tous les lives →</a></div><div class="swapp-live-grid" data-live-results><p class="swapp-live-notice">Recherche des lives…</p></div></aside>`;
- const content=`<main class="article-wrap"><p class="breadcrumb"><a href="/actus">SWAPP · Actualité</a> / ${escapeHtml(article.category||'Actualités')}</p><span class="eyebrow">${escapeHtml(article.category||'Actualités')} ${article.game?'· '+escapeHtml(article.game):''}</span><h1 class="article-title">${escapeHtml(article.title)}</h1><p class="article-deck">${escapeHtml(summary)}</p><div class="article-byline"><span>Par <strong>${escapeHtml(article.author||'Rédaction SWAPP')}</strong></span><span>·</span><time datetime="${escapeHtml(published||'')}">${escapeHtml(dateLabel(published))}</time></div>${cover}<div class="article-body">${markdown(article.body)}</div>${articleExtras.renderServer(article)}${sources?`<aside class="sources-panel"><h2>Sources et références</h2><ul>${sources}</ul></aside>`:''}<div class="story-actions"><a class="button-link primary" href="/actus">← Toutes les actualités</a><a class="button-link" href="/decouvrir">Découvrir les lives</a></div>${liveSection}</main>`;
+ const content=`<main class="article-wrap"><p class="breadcrumb"><a href="/actus">SWAPP · Actualité</a> / ${escapeHtml(article.category||'Actualités')}</p>${hero}${heroCredit}<div class="article-body">${markdown(article.body)}</div>${articleExtras.renderServer(article)}${sources?`<aside class="sources-panel"><h2>Sources et références</h2><ul>${sources}</ul></aside>`:''}<div class="story-actions"><a class="button-link primary" href="/actus">← Toutes les actualités</a><a class="button-link" href="/decouvrir">Découvrir les lives</a></div>${liveSection}</main>`;
  return layout({title:seoTitle,description:seoDescription,metadata,content});
 }
 
