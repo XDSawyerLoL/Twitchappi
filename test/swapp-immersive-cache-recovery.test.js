@@ -47,11 +47,11 @@ test('single photo preserves proportions in a bounded scene instead of filling t
 
 test('page shells load versioned SPA, compat and CSS files',()=>{
  for(const text of [spa,layout]){
-  assert.match(text,/swapp-article-immersive\.css\?v=20261016-side-discovery-8/);
+  assert.match(text,/swapp-article-immersive\.css\?v=20261016-clean-header-9/);
   assert.match(text,/swapp-article-immersive-compat\.js\?v=20261015-wallpaper-v1/);
  }
- assert.match(spa,/swapp-actus-app\.js\?v=20261016-side-discovery-8/);
- for(const content of [spa,layout])assert.match(content,/swapp-reader-experience\.js\?v=20261016-reader-1/);
+ assert.match(spa,/swapp-actus-app\.js\?v=20261016-clean-header-9/);
+ for(const content of [spa,layout])assert.match(content,/swapp-reader-experience\.js\?v=20261016-reader-2/);
 });
 
 test('only targeted article assets bypass caching',()=>{

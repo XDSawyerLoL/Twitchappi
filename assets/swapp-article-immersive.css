@@ -411,3 +411,33 @@ body.swapp-editorial-route .article-wrap > figure:has(img.cover-img){display:non
  .swapp-reader-next-copy strong,.swapp-reader-next > summary,
  .swapp-reader-type-tools span{color:#fff!important}
 }
+
+
+/* SWAPP article header cleanup: remove leftover horizontal framing.
+   The brand header remains intact; these selectors apply only to full articles. */
+#actus .swapp-actus-native.swapp-actus-reading,
+#actus .swapp-actus-native.swapp-actus-reading > .swapp-actus-reader-nav,
+body.swapp-editorial-route .article-wrap > .breadcrumb{
+  border-top:0!important;border-bottom:0!important;
+  background-image:none!important;box-shadow:none!important;
+}
+#actus .swapp-actus-native.swapp-actus-reading > .swapp-actus-reader-nav::before,
+#actus .swapp-actus-native.swapp-actus-reading > .swapp-actus-reader-nav::after{
+  content:none!important;display:none!important;
+}
+/* Older cached templates can still insert a progress stripe: hide it too. */
+#actus .swapp-actus-native.swapp-actus-reading > .swapp-reading-progress,
+#actus .swapp-actus-article > .swapp-reading-progress,
+body.swapp-editorial-route .article-wrap > .swapp-reading-progress{
+  display:none!important;
+}
+:is(#actus,body.swapp-editorial-route) .swapp-article-reading .swapp-reader-percent{
+  display:block;width:max-content;color:#86cdd6;font-size:11px;font-weight:700;
+  letter-spacing:.025em;margin:0 0 7px;line-height:1.3;
+}
+/* Where the TOC is a grid, the small progress caption takes a full row. */
+@media(max-width:880px){
+  :is(#actus,body.swapp-editorial-route) .swapp-article-reading .swapp-reader-percent{
+    grid-column:1/-1;
+  }
+}

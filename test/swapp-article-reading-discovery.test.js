@@ -60,15 +60,31 @@ test('reading preferences, headings, and progress work without tracking or anima
  assert.doesNotThrow(()=>new Function(js));
  assert.match(js,/sessionStorage\.setItem\('swapp-reader-font-v1'/);
  assert.match(js,/aria-current','location'/);
- assert.match(js,/ownProgress/);
+ assert.match(js,/swapp-reader-percent/);
+ assert.match(js,/Math.round\(100\*travelled\/distance\)/);
+ assert.doesNotMatch(js,/className='swapp-reading-progress/);
  assert.match(js,/prefers-reduced-motion/);
  assert.doesNotMatch(js,/localStorage|sendBeacon|analytics|setInterval/);
 });
 test('SPA and native page load the same reader and versioned new styling',()=>{
  const spa=read('index.html'),native=read('modules/swapp-news/site-shell.js');
  for(const text of [spa,native]){
-  assert.match(text,/swapp-article-immersive\.css\?v=20261016-side-discovery-8/);
-  assert.match(text,/swapp-reader-experience\.js\?v=20261016-reader-1/);
+  assert.match(text,/swapp-article-immersive\.css\?v=20261016-clean-header-9/);
+  assert.match(text,/swapp-reader-experience\.js\?v=20261016-reader-2/);
  }
- assert.match(spa,/swapp-actus-app\.js\?v=20261016-side-discovery-8/);
+ assert.match(spa,/swapp-actus-app\.js\?v=20261016-clean-header-9/);
+});
+
+test('article starts without old horizontal rails and keeps navigation intact',()=>{
+ const spa=read('assets/swapp-actus-app.js');
+ const css=read('assets/swapp-article-immersive.css');
+ assert.doesNotMatch(spa,/const progress=el\('div','swapp-reading-progress'\)/);
+ assert.doesNotMatch(spa,/window\.addEventListener\('scroll',updateProgress/);
+ assert.match(css,/SWAPP article header cleanup/);
+ assert.match(css,/\.swapp-actus-reader-nav::before/);
+ assert.match(css,/\.swapp-actus-reader-nav::after/);
+ assert.match(css,/\.swapp-actus-reading > \.swapp-reading-progress/);
+ assert.match(css,/display:none!important/);
+ assert.match(css,/\.swapp-reader-percent/);
+ assert.match(spa,/const back=el\('button','swapp-actus-go-back'/);
 });
