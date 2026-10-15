@@ -77,7 +77,7 @@ html,body{overflow-x:hidden}.watchShell.channelWatch{grid-template-columns:minma
 <link rel="stylesheet" href="/assets/swapp-unified-nav.css">
 <link rel="stylesheet" href="/assets/swapp-media.css?v=20261015-home-clean-27">
 <link rel="stylesheet" href="/assets/swapp-actus-app.css?v=20261015-home-restore-21">
-<link rel="stylesheet" href="/assets/swapp-visual-polish.css?v=20261015-ux-qa-24"><link rel="stylesheet" href="/assets/swapp-art-direction.css?v=20261015-actus-theme-30">
+<link rel="stylesheet" href="/assets/swapp-visual-polish.css?v=20261015-ux-qa-24"><link rel="stylesheet" href="/assets/swapp-art-direction.css?v=20261015-actus-route-31">
 </head>
 <body>
 <header class="top">
@@ -106,11 +106,19 @@ html,body{overflow-x:hidden}.watchShell.channelWatch{grid-template-columns:minma
 </main>
 <nav id="mobileNav" class="mobileNav"></nav>
 <div id="toast" class="toast"></div>
+<script>
+/* Direct ACTUS reload: show its container before the session request. */
+if((location.pathname||'/').replace(/\/+$/,'')==='/actus'){
+ document.getElementById('home')?.classList.remove('active');
+ document.getElementById('actus')?.classList.add('active');
+}
+</script>
 <script src="/assets/swapp-navigation.js"></script>
 <script src="/assets/swapp-actus-app.js?v=20261015-balanced-29"></script>
 <script defer src="/assets/swapp-home-news.js?v=20261015-balanced-29"></script>
 <script defer src="/assets/swapp-live-articles.js?v=20261015-home-restore-21"></script>
 <script src="/index_script.js?v=20261015-balanced-29.0.14"></script>
+<script defer src="/assets/swapp-route-bootstrap.js?v=20261015-route-31"></script>
 <script defer src="/assets/swapp-footer.js?v=20261015-home-restore-21"></script>
 <script defer src="/assets/swapp-editor-nav.js"></script>
 <script defer src="/assets/swapp-account-menu.js?v=20261015-ux-qa-24"></script>
