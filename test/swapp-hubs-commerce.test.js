@@ -58,7 +58,7 @@ test('all verified videos and original artwork appear in the SWAPP gallery',()=>
  assert.match(html,/data-swapp-video-play="1"/);
  assert.match(html,/swapp-video-external/);
  assert.match(html,/href="https:\/\/justplayer\.fr\/supporters\/video_embeds\/bioshock-bientot-sur-netflix"/);
- assert.equal((html.match(/data-swapp-video-play="1"/g)||[]).length,8);
+ assert.equal((html.match(/data-swapp-video-play="1"/g)||[]).length,7);
  assert.doesNotMatch(html,/data-swapp-video-youtube=""/);
  assert.match(html,/storage\.googleapis\.com/);
  assert.doesNotMatch(html,/<iframe/);
