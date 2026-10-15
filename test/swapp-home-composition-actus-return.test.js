@@ -51,9 +51,9 @@ test('home live grid shows eight cards on desktop and four on mobile and safely 
 test('fresh assets are referenced by both the SPA and editorial shell',()=>{
  const main=read('index.html'),shell=read('modules/swapp-news/site-shell.js');
  for(const asset of ['swapp-actus-app.js']){
-  assert.match(main,new RegExp(asset.replace(/\./g,'\\.')+'\\?v=20261015-livegrid-32'));
+  assert.match(main,new RegExp(asset.replace(/\./g,'\\.')+'\\?v=20261015-private-36'));
  }
  assert.match(main,/swapp-art-direction\.css\?v=20261015-discovery-34/);
- assert.match(main,/index_script\.js\?v=20261015-discovery-35/);
+ assert.match(main,/index_script\.js\?v=20261015-private-36/);
  assert.match(shell,/swapp-art-direction\.css\?v=20261015-discovery-34/);
 });
