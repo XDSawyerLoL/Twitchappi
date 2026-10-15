@@ -39,7 +39,7 @@ function assertArticle(value, {publish = false, legacyRequired = false} = {}) {
   const slug = slugify(value.slug || title);
   if (title.length < 8 || title.length > MAX_TITLE) throw new Error('Titre entre 8 et 180 caractères requis');
   if (slug.length < 4) throw new Error('Slug invalide');
-  if (body.length < (kind==='trailer'||kind==='video'?15:40) || body.length > MAX_BODY) throw new Error('Contenu trop court ou trop long');
+  if (body.length < (kind==='post'?8:kind==='trailer'||kind==='video'?15:40) || body.length > MAX_BODY) throw new Error('Contenu trop court ou trop long');
   if (summary.length > MAX_SUMMARY) throw new Error('Résumé trop long');
   const sources = Array.isArray(value.sources) ? value.sources : [];
   if (sources.length > 20 || (publish && sources.length === 0 && !(kind==='trailer'||kind==='video'))) throw new Error('Au moins une source requise pour publier (20 max)');
