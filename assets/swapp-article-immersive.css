@@ -1,0 +1,76 @@
+/* SWAPP / Actualité — cinematic covers for individual full articles only.
+   Works for /actus/:slug both in the SPA and the server-rendered fallback. */
+:root{--swapp-hero-glow:var(--brand,#8e65ed)}
+#actus .swapp-actus-native.swapp-actus-reading .swapp-actus-article,
+body.swapp-editorial-route .article-wrap{overflow:visible}
+
+.swapp-immersive-hero{
+  isolation:isolate;position:relative;box-sizing:border-box;overflow:hidden;
+  width:min(1560px,calc(100vw - 44px));max-width:none;
+  margin:14px 0 0 50%!important;transform:translateX(-50%);
+  min-height:clamp(420px,49vw,640px);
+  border:1px solid rgba(195,206,230,.12);
+  border-radius:clamp(18px,2.5vw,32px);
+  background:radial-gradient(ellipse at 77% 29%,color-mix(in srgb,var(--swapp-hero-glow) 24%,transparent),transparent 45%),
+             linear-gradient(130deg,#1a2036 0%,#111827 55%,#090e1a 100%);
+  color:#fff;text-align:left!important;box-shadow:0 25px 78px rgba(0,0,0,.26);
+}
+.swapp-immersive-hero.has-cover{background:#0b101b}
+.swapp-immersive-bg{position:absolute;z-index:-2;inset:0;overflow:hidden;pointer-events:none}
+.swapp-immersive-bg img{display:block;width:100%;height:100%;object-fit:cover;object-position:center 36%;
+  transform:scale(1.055);filter:saturate(1.16) contrast(1.065) blur(3px)}
+.swapp-immersive-hero:before{
+  content:"";position:absolute;z-index:-1;inset:0;pointer-events:none;
+  background:
+    linear-gradient(90deg,rgba(5,9,17,.91) 0%,rgba(5,9,17,.82) 28%,rgba(5,9,17,.55) 62%,rgba(5,9,17,.27) 100%),
+    linear-gradient(0deg,rgba(7,11,20,.94) 0%,rgba(7,11,20,.19) 44%,rgba(7,11,20,.13) 100%);
+}
+.swapp-immersive-hero:after{content:"";position:absolute;z-index:-1;inset:auto 0 0;height:42%;pointer-events:none;
+ background:radial-gradient(ellipse at 70% 125%,color-mix(in srgb,var(--swapp-hero-glow) 17%,transparent),transparent 70%)}
+.swapp-immersive-content{min-height:inherit;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-end;
+  padding:clamp(28px,6vw,90px);box-sizing:border-box;max-width:1050px}
+.swapp-immersive-hero :is(h1,.article-title,.swapp-actus-summary,.article-deck){
+  text-align:left!important;margin-left:0!important;margin-right:0!important;
+  max-width:920px!important;color:#fff!important;text-shadow:0 3px 28px rgba(0,0,0,.34)
+}
+.swapp-immersive-hero :is(h1,.article-title){font-size:clamp(36px,5.15vw,76px);line-height:1.035;letter-spacing:-.065em;
+  margin-top:18px!important;margin-bottom:20px!important;font-weight:900;text-wrap:balance}
+.swapp-immersive-hero :is(.article-deck,.swapp-actus-summary){font-size:clamp(16px,1.65vw,21px)!important;
+  line-height:1.5!important;color:#e4eaf4!important;margin-bottom:20px!important;max-width:760px!important;
+  text-wrap:pretty}
+.swapp-immersive-hero :is(.article-byline,.swapp-actus-author){color:#d2dce9!important;
+  margin:0!important;text-shadow:0 2px 13px rgba(0,0,0,.7)}
+.swapp-immersive-hero :is(.eyebrow,.swapp-reader-kicker){color:#e8fbff!important;justify-content:flex-start!important}
+.swapp-immersive-hero .swapp-reader-kicker{margin:0!important;gap:8px}
+.swapp-immersive-hero :is(.swapp-reader-kicker-main,.swapp-reader-kicker-game){
+  color:#f6f8ff!important;border:1px solid rgba(232,240,255,.32)!important;
+  background:rgba(17,24,39,.42)!important;backdrop-filter:blur(12px)
+}
+.swapp-immersive-credit{color:#aebbd1;font-size:11px;line-height:1.35;
+  margin:10px 0 0;text-align:right!important}
+#actus .swapp-actus-native.swapp-actus-reading .swapp-actus-article>.swapp-immersive-hero{
+  max-width:none!important;margin-top:12px!important
+}
+#actus .swapp-actus-native.swapp-actus-reading .swapp-actus-article>.swapp-immersive-credit{
+  max-width:1120px;margin-left:auto;margin-right:auto
+}
+#actus .swapp-actus-article .swapp-actus-body{margin-top:clamp(34px,4vw,56px)}
+body.swapp-editorial-route .swapp-immersive-hero{margin-top:22px!important}
+body.swapp-editorial-route .article-wrap>.article-body{margin-top:clamp(30px,4vw,55px)}
+body.swapp-editorial-route .article-wrap>.swapp-immersive-credit{margin:10px 0 0}
+body.swapp-editorial-route .article-wrap>.article-body,
+body.swapp-editorial-route .article-wrap>.sources-panel{position:relative}
+@media(min-width:1600px){.swapp-immersive-hero{width:min(1560px,calc(100vw - 70px))}}
+@media(max-width:700px){
+ .swapp-immersive-hero{width:calc(100vw - 22px);min-height:clamp(450px,78vh,640px);
+   margin-top:10px!important;border-radius:18px}
+ .swapp-immersive-bg img{object-position:center;filter:saturate(1.06) contrast(1.08) blur(2px)}
+ .swapp-immersive-hero:before{background:linear-gradient(0deg,rgba(5,9,17,.97) 0%,rgba(5,9,17,.83) 41%,rgba(5,9,17,.48) 82%,rgba(5,9,17,.29) 100%)}
+ .swapp-immersive-content{padding:clamp(22px,5.6vw,34px);justify-content:flex-end;max-width:100%}
+ .swapp-immersive-hero :is(h1,.article-title){font-size:clamp(32px,8.2vw,48px)!important;
+   line-height:1.075!important;margin-top:13px!important;margin-bottom:16px!important}
+ .swapp-immersive-hero :is(.article-deck,.swapp-actus-summary){font-size:16px!important;line-height:1.45!important}
+ .swapp-immersive-credit{text-align:left!important;margin-top:9px}
+}
+@media(prefers-reduced-motion:reduce){.swapp-immersive-bg img{transform:none}}
+@media(prefers-contrast:more){.swapp-immersive-hero:before{background:rgba(2,5,11,.86)}}
