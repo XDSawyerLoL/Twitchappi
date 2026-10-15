@@ -108,8 +108,8 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
     res.set('Cache-Control','no-store');
     return res.type('html').send(renderTwitchWatch(login,{game:req.query?.game}));
   });
-  router.get('/actus/studio',...editor,(req,res)=>res.type('html').send(renderStudio()));
-  router.get('/actus/studio.js',...editor,(req,res)=>res.type('application/javascript').send(studioJs));
+  router.get('/actus/studio',...editor,(req,res)=>res.set('Cache-Control','private, no-store').type('html').send(renderStudio()));
+  router.get('/actus/studio.js',...editor,(req,res)=>res.set('Cache-Control','private, no-store').type('application/javascript').send(studioJs));
   router.get('/actus/:slug',available,async(req,res,next)=>{
     try{
       if(!slugOk(req.params.slug)) return res.status(404).send('Article introuvable');
