@@ -40,8 +40,8 @@ test('le site client charge le même contrat avant le script SPA',()=>{
  const script=fs.readFileSync(path.join(ROOT,'index_script.js'),'utf8');
  assert.ok(html.indexOf('src="/assets/swapp-navigation.js?v=20261015-hubs-3"') < html.indexOf('src="/index_script.js'));
  assert.match(script,/window\.SwappNavigation/);
- assert.match(html,/href="\/assets\/swapp-unified-nav\.css\?v=20261015-hubs-2"/);
- assert.match(layout({content:''}),/href="\/assets\/swapp-unified-nav\.css\?v=20261015-hubs-2"/);
+ assert.match(html,/href="\/assets\/swapp-unified-nav\.css\?v=20261015-nav-dedup-9"/);
+ assert.match(layout({content:''}),/href="\/assets\/swapp-unified-nav\.css\?v=20261015-nav-dedup-9"/);
 });
 test('pages article, actualités et live partagent le même menu et SWAPP reste SWAPP',()=>{
  const story={slug:'jeu-2026',title:'Un jeu annoncé',body:'Une analyse assez complète pour découvrir cette actualité.',summary:'Un résumé de l’article',category:'ACTUS',author:'SWAPP',game:'Fortnite',sources:[],publishedAt:'2026-10-14T20:00:00Z'};
@@ -63,14 +63,14 @@ test('l’ancien CSS éditorial n’altère plus la nouvelle barre commune',()=>
  assert.match(shared,/#mobileNav/);
 });
 
-// Small phone viewports must not clip the end of the public navigation.
+// All public routes stay reachable in one mobile row, with a More menu.
 test('navigation mobile compacte sans défilement horizontal',()=>{
  const shared=fs.readFileSync(path.join(ROOT,'assets/swapp-unified-nav.css'),'utf8');
  assert.match(shared,/@media\(max-width:389px\)/);
- assert.match(shared,/grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
- assert.match(shared,/overflow-x:hidden/);
- assert.match(shared,/min-height:40px/);
+ assert.match(shared,/grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
+ assert.match(shared,/min-height:44px/);
  assert.match(shared,/env\(safe-area-inset-bottom\)/);
+ assert.match(shared,/swapp-mobile-more-links/);
 });
 
 test('SOCIAL, videos and shop remain in the shared mobile menu',()=>{
