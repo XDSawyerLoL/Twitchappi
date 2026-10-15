@@ -6,7 +6,7 @@
  if(!core||document.getElementById('swappCompanion'))return;
  const KEY='swapp_companion_preferences_v1';
  const state={open:false,tab:'mairy',live:false,news:false,unread:0,events:[],
-  snapshots:{live:null,news:null},busy:false,polling:false,timer:null};
+  snapshots:{live:null,news:null},seen:{live:new Set(),news:new Set()},busy:false,polling:false,timer:null};
  try{
   const saved=JSON.parse(localStorage.getItem(KEY)||'{}');
   state.live=saved.live===true;state.news=saved.news===true;
@@ -145,12 +145,15 @@
     const results=core.lives(await readJson('/api/discovery/home-lives?limit=30&lang=fr'));
     if(!results.length)return addReply('Aucun direct disponible dans les données SWAPP pour le moment.',[{href:'/decouvrir',label:'Explorer les créateurs'}]);
     const choices=core.suggest(q,results);
+    if(!choices.length)return addReply('Aucun direct confirmé pour ce jeu parmi les données SWAPP actuellement disponibles.',[{href:'/decouvrir',label:'Explorer les créateurs'}]);
     addReply(choices.length+' créateur'+(choices.length>1?'s':'')+' à découvrir parmi les directs disponibles :',
      choices.map(item=>({href:item.href,label:item.title+(item.game?' · '+item.game:'')})));
    }else if(/(?:\bactu(?:alite|alites|s)?\b|\barticles?\b|\bnouvelles?\b|\binfos?\b|\bnews\b)/.test(query)){
     const results=core.news(await readJson('/api/actus'));
     if(!results.length)return addReply('Aucun article disponible actuellement.',[{href:'/actus',label:'Ouvrir Actualité'}]);
-    addReply('Voici des articles disponibles dans SWAPP :',core.suggest(q,results).map(item=>({href:item.href,label:item.title})));
+    const matches=core.suggest(q,results);
+    if(!matches.length)return addReply('Aucune actualité confirmée pour ce jeu dans le catalogue SWAPP.',[{href:'/actus',label:'Toutes les actualités'}]);
+    addReply('Voici des articles disponibles dans SWAPP :',matches.map(item=>({href:item.href,label:item.title})));
    }else if(/(?:\bcouleur\b|\btheme\b|\bapparence\b|\bpersonnalis)/.test(query)){
     addReply('Pour changer les couleurs, ouvre Compte, puis Apparence. Ton choix est appliqué dans SWAPP, y compris Actualité.',[{href:'/compte',label:'Mon compte'}]);
    }else if(/(?:\bnotification\b|\bevenement\b|\balerte\b|\bprevenir\b)/.test(query)){
@@ -238,8 +241,9 @@ let loadingCommunity=false;
      const data=await readJson(kind==='live'?'/api/discovery/home-lives?limit=35&lang=fr':'/api/actus');
      const current=kind==='live'?core.lives(data):core.news(data);
      const before=state.snapshots[kind];
-     const fresh=core.newlySeen(before,current);
+     const fresh=core.newlySeen(before,current).filter(item=>!state.seen[kind].has(item.id));
      state.snapshots[kind]=current;
+     for(const item of current)state.seen[kind].add(item.id);
      for(const item of fresh)if(state[kind])publish(item);
     }catch(_){
      // Failure does not establish a baseline or manufacture a new event.
@@ -250,8 +254,7 @@ let loadingCommunity=false;
  }
  function startChecks(){
   if(state.timer)clearInterval(state.timer);
-  state.timer=setInterval(refresh,120000);
-  if(state.live||state.news)refresh();
+  if(state.live||state.news){state.timer=setInterval(refresh,120000);refresh()};
  }
  launcher.addEventListener('click',()=>state.open&&state.tab==='mairy'?dismiss():show('mairy',true));
  bell.addEventListener('click',()=>state.open&&state.tab==='events'?dismiss():show('events',true));
@@ -277,6 +280,7 @@ let loadingCommunity=false;
   const kind=toggle.dataset.swappWatch;
   state[kind]=toggle.checked;
   state.snapshots[kind]=null;
+  state.seen[kind].clear();
   save();renderEvents();startChecks();
  }));
  root.querySelector('.swapp-companion-toast button').addEventListener('click',()=>{toast.hidden=true});
