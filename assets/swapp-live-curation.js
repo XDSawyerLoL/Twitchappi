@@ -75,11 +75,20 @@
   }
   return games;
  }
- function curateHomeLives(swappItems,twitchItems,limit=12,articles=[]){
+ function curateHomeLives(swappItems,twitchItems,limit=12,articles=[],privateScores={}){
   const out=[],seen=new Set();
   let nativeCount=0,twitchCount=0,skippedReplay=0;
-  const sorted=(items)=>items.map((item,index)=>({item,index,match:matchLiveToArticle(item,articles)}))
-   .sort((a,b)=>(b.match?.score||0)-(a.match?.score||0)||a.index-b.index);
+  // Personalisation is a small, bounded tie-breaker below verified editorial
+  // relevance. SWAPP natives are always ordered before any Twitch stream.
+  const tasteScore=item=>{
+   const game=normalizeGame(streamGame(item));
+   const raw=privateScores&&Object.prototype.hasOwnProperty.call(privateScores,game)?Number(privateScores[game]):0;
+   return genericGames.has(game)||!Number.isFinite(raw)?0:Math.min(40,Math.max(0,raw)*8);
+  };
+  const sorted=items=>items.map((item,index)=>({
+    item,index,match:matchLiveToArticle(item,articles),preference:tasteScore(item)
+   })).sort((a,b)=>(b.match?.score||0)-(a.match?.score||0)
+    ||b.preference-a.preference||a.index-b.index);
   const add=(item,platform,match)=>{
    const login=loginOf(item);
    if(!login||seen.has(login)||out.length>=limit)return;
