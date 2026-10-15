@@ -12,8 +12,8 @@ const base={slug:'spider-man-article-test',title:'Spider-Man et le futur du jeu 
  publishedAt:'2026-10-15T18:00:00Z',author:'Rédaction SWAPP'};
 
 test('SPA and direct article routes share the ratio-preserving article background stylesheet',()=>{
- assert.match(read('index.html'),/swapp-article-immersive\.css\?v=20261015-wide-editorial-3/);
- assert.match(read('modules/swapp-news/site-shell.js'),/swapp-article-immersive\.css\?v=20261015-wide-editorial-3/);
+ assert.match(read('index.html'),/swapp-article-immersive\.css\?v=20261015-balanced-4/);
+ assert.match(read('modules/swapp-news/site-shell.js'),/swapp-article-immersive\.css\?v=20261015-balanced-4/);
 });
 
 test('SPA uses article image as a page scene, not a banner',()=>{
@@ -77,9 +77,14 @@ test('wide cinematic image retains aspect ratio and article reads without an ove
  assert.match(css,/max-width:1190px!important/);
  assert.match(css,/border:0!important;border-radius:0!important;box-shadow:none!important/);
  assert.match(css,/max-width:86ch/);
- assert.match(css,/font-size:clamp\(36px,3\.65vw,62px\)/);
+ assert.match(css,/font-size:clamp\(34px,3\.05vw,52px\)/);
  assert.match(css,/line-clamp:unset!important/);
  assert.match(css,/mask-image:linear-gradient/);
+ assert.match(css,/grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
+ assert.match(css,/background:transparent!important;background-image:none!important/);
+ assert.match(css,/max-width:770px!important/);
+ assert.match(css,/font-size:clamp\(34px,3\.05vw,52px\)/);
+ assert.match(css,/linear-gradient\(180deg,rgba\(7,12,21,\.06\)/);
  assert.match(css,/@media\(max-width:700px\)/);
  assert.match(css,/prefers-reduced-motion:reduce/);
  assert.match(css,/prefers-contrast:more/);
