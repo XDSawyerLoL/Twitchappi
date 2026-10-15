@@ -67,8 +67,8 @@ async function editorVideoId(raw){
   let value='';
   if(['youtube.com','www.youtube.com','m.youtube.com'].includes(host)){
    if(url.pathname==='/watch')value=url.searchParams.get('v')||'';
-   else if(/^\/(embed|shorts)\/[A-Za-z0-9_-]{11}$/.test(url.pathname))value=url.pathname.split('/')[2];
-  }else if(host==='youtu.be'&&/^\/[A-Za-z0-9_-]{11}$/.test(url.pathname))value=url.pathname.slice(1);
+   else if(url.pathname.startsWith('/embed/')||url.pathname.startsWith('/shorts/'))value=url.pathname.split('/')[2];
+  }else if(host==='youtu.be')value=url.pathname.slice(1);
   return /^[A-Za-z0-9_-]{11}$/.test(value)?value:null;
  }catch{return null}
 }
@@ -87,7 +87,7 @@ function populateMedia(){
   const id=editorVideoId(item.trailerUrl);
   let src=item.image?.url;
   if(!src&&id)src='https://i.ytimg.com/vi/'+id+'/hqdefault.jpg';
-  if(src&&/^https:\/\//.test(src)){
+  if(typeof src==='string'&&src.startsWith('https://')){
    const img=document.createElement('img');img.src=src;img.alt='';img.loading='lazy';
    img.referrerPolicy='no-referrer';trigger.append(img);
   }else{const placeholder=document.createElement('span');placeholder.textContent='Vidéo SWAPP';trigger.append(placeholder)}
@@ -114,7 +114,7 @@ function populateMedia(){
  }
 }
 
-function refresh(){const data=await call('/api/editor/actus');state.articles=data.articles||[];populateList();}
+async function refresh(){const data=await call('/api/editor/actus');state.articles=data.articles||[];populateList();}
 async function action(fn){try{await fn();}catch(error){notify(error.message,true);}}
 async function saveNew(){await action(async()=>{let r=await call('/api/editor/actus','POST',articleData());notify('Brouillon créé. Il apparaît désormais dans tes articles.');await refresh();const a=state.articles.find(x=>x.slug===r.slug);setEditor(a||{...articleData(),slug:r.slug,status:'draft'});window.dispatchEvent(new CustomEvent('swapp:studio:saved',{detail:{slug:r.slug,fromNew:true}}));});}
 async function saveCurrent(){if(!state.selected)return;await action(async()=>{const r=await call('/api/editor/actus/'+encodeURIComponent(state.selected),'PATCH',articleData());await refresh();let a=state.articles.find(x=>x.slug===state.selected);setEditor(a);window.dispatchEvent(new CustomEvent('swapp:studio:saved',{detail:{slug:state.selected}}));notify('Modifications enregistrées (révision '+r.revision+').');});}
