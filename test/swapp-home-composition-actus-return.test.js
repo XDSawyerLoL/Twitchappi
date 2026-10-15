@@ -49,7 +49,7 @@ test('fresh assets are referenced by both the SPA and editorial shell',()=>{
  for(const asset of ['swapp-home-news.js','swapp-actus-app.js']){
   assert.match(main,new RegExp(asset.replace(/\./g,'\\.')+'\\?v=20261015-balanced-29'));
  }
- assert.match(main,/swapp-art-direction\\.css\\?v=20261015-actus-route-31/);
+ assert.match(main,/swapp-art-direction\.css\?v=20261015-actus-route-31/);
  assert.match(main,/index_script\.js\?v=20261015-balanced-29/);
  assert.match(shell,/swapp-art-direction\.css\?v=20261015-actus-route-31/);
 });
