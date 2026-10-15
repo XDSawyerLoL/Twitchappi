@@ -126,6 +126,19 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
   });
   // Suggest games and tags without external APIs or tracking.
   // Only authenticated editors may submit unpublished text for analysis.
+  // Read-only preflight: use the EXACT publication validator, no DB writes.
+  // Editors can see missing sources, images, rights or media URLs before saving.
+  router.post('/api/editor/actus/validate',...editor,(req,res)=>{
+    try{
+      const validated=assertArticle(req.body,{publish:true});
+      return res.json({valid:true,slug:validated.slug,contentType:validated.contentType,
+        games:validated.games,tags:validated.tags,seo:validated.seo,
+        mediaReady:!['video','trailer'].includes(validated.contentType)||!!validated.trailerUrl});
+    }catch(error){
+      if(isValidation(error))return res.status(422).json({valid:false,error:String(error.message)});
+      return res.status(400).json({valid:false,error:'Contenu invalide'});
+    }
+  });
   router.post('/api/editor/actus/suggest',...editor,(req,res)=>{
     const input=req.body||{};
     const suggestion=recommend({
