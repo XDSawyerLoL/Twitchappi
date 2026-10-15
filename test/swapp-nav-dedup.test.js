@@ -75,13 +75,13 @@ test('a later SPA or widget re-render cannot reintroduce duplicated destinations
 });
 test('uniform desktop styling covers both buttons and links, and assets are cache-busted',()=>{
  const css=fs.readFileSync(path.join(ROOT,'assets/swapp-unified-nav.css'),'utf8');
- assert.match(css,/header\.top #nav\.swapp-nav-consistent :is\(a,button\)/);
+ assert.match(css,/header\.top #nav\.mainNav :is\(a,button\)/);
  assert.match(css,/font-size:13px!important/);
  assert.match(css,/font-weight:850!important/);
  const home=fs.readFileSync(path.join(ROOT,'index.html'),'utf8');
  const shell=fs.readFileSync(path.join(ROOT,'modules/swapp-news/site-shell.js'),'utf8');
  for(const source of [home,shell]){
   assert.match(source,/swapp-hub-nav\.js\?v=20261015-perf-1/);
-  assert.match(source,/swapp-unified-nav\.css\?v=20261015-nav-dedup-9/);
+  assert.match(source,/swapp-unified-nav\.css\?v=20261016-header-parity-10/);
  }
 });
