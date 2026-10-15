@@ -30,29 +30,6 @@ header.top .userBtn:focus-visible,header.top .menu a:focus-visible{outline:2px s
 @media(max-width:490px){#mobileNav a,#mobileNav button{font-size:11px;padding:7px 6px}}
 
 
-/* Narrow screens: keep all six navigation actions reachable without sideways scrolling. */
-@media(max-width:389px){
-  #mobileNav{
-    display:grid;
-    grid-template-columns:repeat(3,minmax(0,1fr));
-    justify-content:stretch;
-    gap:3px 5px;
-    padding:5px 8px calc(5px + env(safe-area-inset-bottom));
-    overflow-x:hidden;
-  }
-  #mobileNav :is(a,button){
-    display:flex;
-    width:100%;
-    min-width:0;
-    min-height:40px;
-    flex:none;
-    padding:8px 3px;
-    font-size:11px;
-    line-height:1.2;
-  }
-  body{padding-bottom:calc(104px + env(safe-area-inset-bottom));}
-}
-
 /* One compact mobile navigation. Secondary SWAPP destinations stay in the same menu. */
 header.top .mainNav{scrollbar-width:none}
 header.top .mainNav::-webkit-scrollbar{display:none}
