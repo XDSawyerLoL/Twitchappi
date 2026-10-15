@@ -82,3 +82,33 @@ test('failed lead image restores its article to the grid instead of hiding it',a
  assert.equal(new Set(afterFailure).size,5);
  assert.equal(view.hero.querySelector('.swapp-home-hero-feature'),null);
 });
+
+
+test('large editorial video has its own column and the news CTA stays beside the headline',async()=>{
+ const view=await render([0,1,2,3,4].map(i=>make(i)));
+ const top=view.shelf.querySelector('.swapp-home-editorial-top');
+ const intro=top.querySelector('.swapp-home-editorial-intro');
+ const videoColumn=top.querySelector('.swapp-home-hero-actions');
+ assert.ok(intro,'editorial introduction remains visible');
+ assert.ok(intro.querySelector('.swapp-media-button'),'Actualité CTA stays with headline');
+ assert.equal(videoColumn.querySelector('.swapp-media-button'),null,'CTA must not squeeze the trailer');
+ const trailer=videoColumn.querySelector('.swapp-home-video-feature');
+ assert.ok(trailer,'trailer remains in the current editorial section');
+ const launch=trailer.querySelector('.swapp-video-open');
+ assert.equal(launch.dataset.videoYoutube,'Z9SaRLSibak','existing verified trailer remains playable');
+ assert.equal(launch.dataset.swappVideoPlay,'1');
+ assert.equal(view.main.children.length,3,'no new homepage sections');
+});
+test('trailer is full-width cinematic 16:9 and responsive rather than 290px wide',()=>{
+ const css=fs.readFileSync(path.resolve(__dirname,'../assets/swapp-video-gallery.css'),'utf8');
+ const html=fs.readFileSync(path.resolve(__dirname,'../index.html'),'utf8');
+ assert.match(css,/#home \.swapp-home-editorial-top\{\s*display:grid!important/);
+ assert.match(css,/grid-template-columns:minmax\(0,\.84fr\) minmax\(0,1\.16fr\)/);
+ assert.match(css,/\.swapp-home-video-feature\{\s*width:100%!important/);
+ assert.match(css,/aspect-ratio:16\/9!important/);
+ assert.match(css,/@media\(max-width:980px\)/);
+ assert.match(css,/@media\(max-width:600px\)/);
+ assert.doesNotMatch(css,/width:clamp\(190px,19vw,290px\)/);
+ assert.match(html,/swapp-home-news\.js\?v=20261016-cinematic-trailer-3/);
+ assert.match(html,/swapp-video-gallery\.css\?v=20261016-cinematic-trailer-5/);
+});
