@@ -54,8 +54,8 @@
    <p class="swapp-companion-disclaimer">Contrôles effectués lorsque l'onglet est visible. Réglages enregistrés uniquement sur ton appareil. Aucune notification système.</p>
   </div>
   <div class="swapp-companion-pane" id="swappCompanionCommunity" role="tabpanel" aria-labelledby="swappCompanionCommunityTab" hidden>
-   <p class="swapp-companion-intro">SOCIAL, le prototype communautaire de Quantic Sillage, en aperçu dans SWAPP.</p>
-   <p class="swapp-companion-disclaimer">Publications réelles et publiques seulement. Lecture seule : aucun compte ni message SWAPP n'est transmis à SOCIAL.</p>
+   <p class="swapp-companion-intro">Découvre les dernières publications de SOCIAL, le réseau communautaire intégré à SWAPP.</p>
+   <p class="swapp-companion-disclaimer">Aperçu des publications publiques. Ouvre Communauté pour accéder aux profils, messages, abonnements et discussions.</p>
    <div class="swapp-companion-community-list" aria-live="polite"></div>
    <button type="button" class="swapp-companion-reload">Actualiser les publications</button>
   </div>
@@ -160,7 +160,7 @@
     addReply('Tu peux suivre les directs et les actualités en activant les catégories dans Événements. Rien n’est activé automatiquement.');
     show('events',false);
    }else if(/(?:\bcommunaute\b|\bsocial\b|\bdiscussion\b|\bmessage\b)/.test(query)){
-    addReply('Un aperçu des publications publiques du prototype SOCIAL est accessible dans Communauté. Tu peux aussi accéder au fil complet et te connecter directement dans SWAPP.');
+    addReply('SOCIAL est accessible dans la rubrique Communauté : publications, profils, messages privés et groupes. Le compte SOCIAL reste distinct de ton compte SWAPP.');
     show('community',false);
    }else{
     addReply('Je peux te montrer les directs disponibles, les dernières actualités, les réglages de couleurs et les événements. Quelle partie veux-tu explorer ?');
@@ -190,7 +190,7 @@ let loadingCommunity=false;
    if(!communityList.children.length){
     communityList.append(node('p','swapp-companion-empty','Aucune publication publique disponible actuellement.'));
    }
-   const openAll=node('a','swapp-companion-reload','Explorer toute la communauté →');openAll.href='/communaute';communityList.append(openAll);
+   const openAll=node('a','swapp-companion-reload','Ouvrir le réseau SOCIAL →');openAll.href='/communaute';communityList.append(openAll);
   }catch(_){
    communityList.replaceChildren(node('p','swapp-companion-empty','SOCIAL ne répond pas actuellement. Aucun contenu fictif n’est affiché.'));
   }finally{loadingCommunity=false}
