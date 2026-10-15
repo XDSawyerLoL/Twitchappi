@@ -49,7 +49,10 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
       if(!slugOk(req.params.slug)) return res.status(404).json({error:'Article introuvable'});
       const slug=String(req.params.slug);
       const canonical=slug.startsWith('justplayer-')?nativeSlug({slug}):slug;
-      const snap=await articles.doc(canonical).get();
+      const exact=await articles.doc(slug).get();
+      if(exact.exists&&exact.data().status==='published')
+        return res.json(publicArticle(exact.data()));
+      const snap=canonical!==slug?await articles.doc(canonical).get():exact;
       if(snap.exists&&snap.data().status==='published')
         return res.json(publicArticle(snap.data()));
       if(slug.startsWith('justplayer-')){
@@ -119,7 +122,12 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
       if(!slugOk(req.params.slug)) return res.status(404).send('Article introuvable');
       const slug=String(req.params.slug);
       const canonical=slug.startsWith('justplayer-')?nativeSlug({slug}):slug;
-      const snap=await articles.doc(canonical).get();
+      const exact=await articles.doc(slug).get();
+      if(exact.exists&&exact.data().status==='published'){
+        res.set('Cache-Control','public, max-age=60');
+        return res.type('html').send(renderNewsStory(publicArticle(exact.data()),{baseUrl}));
+      }
+      const snap=canonical!==slug?await articles.doc(canonical).get():exact;
       if(snap.exists&&snap.data().status==='published'){
         if(canonical!==slug)return res.redirect(301,'/actus/'+encodeURIComponent(canonical));
         res.set('Cache-Control','public, max-age=60');
