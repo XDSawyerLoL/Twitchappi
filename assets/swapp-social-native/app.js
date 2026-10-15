@@ -235,8 +235,8 @@ function bindStaticEvents(){
     button.addEventListener('click',function(){
       const view=button.dataset.view;
       if(view==='home'){
-        state.feed='following';
-        document.querySelectorAll('.pulse-tab').forEach(tab=>tab.classList.toggle('active',tab.dataset.feed==='following'));
+        state.feed=state.user?'following':'discover';
+        document.querySelectorAll('.pulse-tab').forEach(tab=>tab.classList.toggle('active',tab.dataset.feed===state.feed));
         loadHome();
       }
       else if(view==='explore')loadExplore(document.getElementById('pulse-search').value);
@@ -266,7 +266,7 @@ function bindDelegatedEvents(){
       const title=String(newsRepost.dataset.newsTitle||'Actualité').trim();
       const url=safeHttpsUrl(newsRepost.dataset.newsUrl);
       const image=safeHttpsUrl(newsRepost.dataset.newsImage);
-      const source=String(newsRepost.dataset.newsSource||'Quantic News').trim();
+      const source=String(newsRepost.dataset.newsSource||'SWAPP Actualité').trim();
       const body=(title+(source?'\n\nSource : '+source:'')).slice(0,420);
       const previous=newsRepost.textContent;
       newsRepost.disabled=true;
