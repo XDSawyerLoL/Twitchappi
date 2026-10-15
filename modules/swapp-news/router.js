@@ -34,7 +34,16 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
     const remainingKnown=(publicCatalog.items||[]).filter(x=>x.type==='post'&&!oldUrls.has(x.url));
     if(remainingKnown.length)await publicNews.scanBatch();
     const oldTitles=new Set(original.map(x=>String(x.title||'').toLowerCase()));
-    const recovered=publicNews.articles().filter(x=>!oldUrls.has(x.legacyUrl)&&!oldTitles.has(String(x.title||'').toLowerCase()));
+    // Removing a previously published native article must not resurrect
+    // the old read-through copy from the historical source.
+    const all=await articles.limit(500).get();
+    const withdrawn=all.docs.map(d=>d.data()).filter(a=>a.legacySuppressRecovery===true);
+    const withdrawnUrls=new Set(withdrawn.map(a=>a.legacyUrl).filter(Boolean));
+    const withdrawnTitles=new Set(withdrawn.map(a=>String(a.title||'').toLowerCase()));
+    const recovered=publicNews.articles().filter(x=>!oldUrls.has(x.legacyUrl)
+      &&!oldTitles.has(String(x.title||'').toLowerCase())
+      &&!withdrawnUrls.has(x.legacyUrl)
+      &&!withdrawnTitles.has(String(x.title||'').toLowerCase()));
     return [...original,...recovered].map(publicArticle).sort((a,b)=>String(b.publishedAt||'').localeCompare(String(a.publishedAt||'')));
   };
   const noStore=(_req,res,next)=>{res.set('Cache-Control','no-store');next();};
@@ -58,6 +67,12 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
       const snap=canonical!==slug?await articles.doc(canonical).get():exact;
       if(snap.exists&&snap.data().status==='published')
         return res.json(publicArticle(snap.data()));
+      if((exact.exists&&exact.data().legacySuppressRecovery)
+        ||(snap.exists&&snap.data().legacySuppressRecovery))
+        return res.status(404).json({error:'Article retiré du magazine'});
+      if((exact.exists&&exact.data().legacySuppressRecovery)
+        ||(snap.exists&&snap.data().legacySuppressRecovery))
+        return res.status(404).send('Article retiré du magazine');
       if(slug.startsWith('justplayer-')){
         const original=await publicNews.get(slug);
         return original?res.json(publicArticle(original)):res.status(404).json({error:'Contenu complet indisponible'});
@@ -286,7 +301,7 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
         assertArticle(old,{publish:true});
         const now=new Date().toISOString(),revision=Number(old.revision||1);
         const eventId=`article_${slug}_r${revision}`;
-        tx.update(ref,{status:'published',publishedAt:old.originalPublishedAt||now,updatedAt:now});
+        tx.update(ref,{status:'published',publishedAt:old.originalPublishedAt||now,updatedAt:now,legacySuppressRecovery:false});
         tx.create(outbox.doc(eventId),{type:'article.published',articleSlug:slug,revision,
           createdAt:now,status:'paused',channels:[],attempts:0});
         return {code:200,slug,status:'published',eventId,social:'paused'};
@@ -303,7 +318,7 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
         if(!snap.exists)return {code:404,error:'Article introuvable'};
         if(snap.data().status!=='published')return {code:409,error:'Article non publié'};
         const revision=Number(snap.data().revision||1)+1;
-        tx.update(ref,{status:'draft',revision,updatedAt:new Date().toISOString()});
+        tx.update(ref,{status:'draft',revision,updatedAt:new Date().toISOString(),legacySuppressRecovery:!!snap.data().legacyUrl});
         return {code:200,slug,status:'draft',revision};
       });
       return res.status(result.code).json(result);
