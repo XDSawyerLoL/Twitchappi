@@ -11,7 +11,7 @@
     link=document.createElement('a');
     link.href='/actus/studio';
     link.dataset.swappEditorLink='1';
-    link.textContent='Rédaction d’articles';
+    link.textContent='Studio administrateur · Posts & vidéos';
     menu.appendChild(link);
   }
   async function check(force=false){
