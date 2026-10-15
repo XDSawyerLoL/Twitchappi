@@ -61,3 +61,12 @@ test('SOCIAL remains mounted on its full native page and uses an independent bac
  assert.match(server,/app\.get\('\/communaute'/);
  assert.match(server,/app\.use\('\/api\/pulse'/);
 });
+
+test('SOCIAL front page does not wait for independent health/session requests',()=>{
+ const app=read('assets/swapp-social-native/app.js');
+ assert.match(app,/void health\(\)/);
+ assert.match(app,/void restoreSession\(\)/);
+ assert.match(app,/await Promise\.allSettled\(\[loadHome\(\),loadCirclePreview\(\)\]\)/);
+ assert.doesNotMatch(app,/await Promise\.allSettled\(\[health\(\),restoreSession\(\)\]\)/);
+ assert.match(read('modules/swapp-hubs.js'),/app\.js\?v=20261015-full-social-5/);
+});
