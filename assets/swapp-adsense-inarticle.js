@@ -24,6 +24,7 @@
  };
  const placementPoint=body=>{
   if(!body||requestedBodies.has(body)||body.querySelector(':scope > .swapp-ad-placement'))return null;
+  if(body.closest?.('.swapp-article-reading')?.querySelector('.swapp-affiliate-offer'))return null;
   const paras=[...body.children].filter(x=>x.tagName==='P'&&(x.textContent||'').trim().length>=50);
   const total=(body.textContent||'').trim().length;
   // One ad at most. Short articles remain ad-free instead of interrupting reading.
