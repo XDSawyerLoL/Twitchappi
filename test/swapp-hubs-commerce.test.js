@@ -3,7 +3,7 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
-const {community,trailers,shop,verifiedTrailers,safeProducts}=require('../modules/swapp-hubs');
+const {community,trailers,shop,verifiedTrailers,curatedVideos,safeProducts}=require('../modules/swapp-hubs');
 const {assertArticle}=require('../modules/swapp-news/article-core');
 const extras=require('../assets/swapp-article-extras');
 
@@ -42,14 +42,19 @@ test('SOCIAL is the complete Quantic network inside SWAPP, not an article previe
  assert.match(client,/sessionStorage\.getItem/);
  assert.doesNotMatch(client,/https:\/\/quanticminds\.onrender\.com/);
 });
-test('trailer archive only uses the verified original domain and explicit video entries',()=>{
- assert.ok(verifiedTrailers().length>0);
- assert.deepEqual(verifiedTrailers([{type:'video_embed',url:'https://evil.example/video_embeds/1234'}]),[]);
- assert.deepEqual(verifiedTrailers([{type:'post',url:'https://justplayer.fr/supporters/video_embeds/valid'}]),[]);
+test('all verified videos and original artwork appear in the SWAPP gallery',()=>{
+ const videos=curatedVideos();
+ assert.equal(videos.length,8);
+ assert.equal(videos.filter(v=>v.series).length,5);
+ assert.ok(videos.every(v=>v.source.startsWith('https://justplayer.fr/supporters/video_embeds/')));
  const html=trailers();
- assert.match(html,/Voir la vidéo originale/);
- assert.match(html,/id="swappTrailersNative"/);
- assert.match(html,/swapp-trailers-page\.js/);
+ assert.match(html,/LES TRAILERS/);
+ assert.match(html,/swapp-video-gallery\\.css/);
+ assert.match(html,/swapp-video-player\\.js/);
+ assert.match(html,/CODE VEIN II/);
+ assert.match(html,/PLANET ZOO 2/);
+ assert.match(html,/data-swapp-video-play="1"/);
+ assert.match(html,/storage\\.googleapis\\.com/);
  assert.doesNotMatch(html,/<iframe/);
 });
 
