@@ -10988,9 +10988,47 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
       };
     }
   }
+  // Game-specific API checks Twitch by its real game ID. Limit to two
+  // editorial games per render: no guessing and no continuous polling.
+  let liveDiscoveryRevision=0;
+  let lastGameSearchKey='';
+  async function supplementNewsGames(){
+    if(state?.view!=='home'||!lastLiveCandidates)return;
+    const games=window.SwappLiveCuration?.featuredGames(latestArticleMatches,2)||[];
+    if(!games.length)return;
+    const key=games.join('|');
+    if(key===lastGameSearchKey)return;
+    lastGameSearchKey=key;
+    const revision=liveDiscoveryRevision;
+    const found=await Promise.all(games.map(game=>
+      apiSafe('/api/discovery/game-lives?limit=4&game='+encodeURIComponent(game))
+    ));
+    if(revision!==liveDiscoveryRevision||state?.view!=='home'||!lastLiveCandidates)return;
+    const nativeMatches=[],twitchMatches=[];
+    found.forEach(result=>{
+      if(!result?.success||!Array.isArray(result.items))return;
+      for(const live of result.items){
+        if(!live||typeof live!=='object')continue;
+        if(['swapp','oryon','native'].includes(String(live.platform||'').toLowerCase())){
+          nativeMatches.push({...live,platform:'swapp'});
+        }else if(String(live.platform||'').toLowerCase()==='twitch'){
+          twitchMatches.push({...live,platform:'twitch'});
+        }
+      }
+    });
+    if(!nativeMatches.length&&!twitchMatches.length)return;
+    lastLiveCandidates={
+      swappItems:[...nativeMatches,...lastLiveCandidates.swappItems],
+      twitchItems:[...twitchMatches,...lastLiveCandidates.twitchItems]
+    };
+    paintLiveGrid(true);
+  }
   window.addEventListener('swapp:home-news-ready',event=>{
     latestArticleMatches=Array.isArray(event.detail?.articles)?event.detail.articles:[];
-    if(!homeBusy&&state?.view==='home')paintLiveGrid(true);
+    if(!homeBusy&&state?.view==='home'){
+      paintLiveGrid(true);
+      void supplementNewsGames();
+    }
   });
 
   async function loadLives(force=false){
@@ -11003,6 +11041,8 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
     const grid=$id('homeLiveGrid1014');
     if(!grid){homeBusy=false;return;}
     lastLiveCandidates=null;
+    liveDiscoveryRevision++;
+    lastGameSearchKey='';
     grid.innerHTML=`<div class="homeEmpty1014">Chargement des lives…</div>`;
     try{
       const swappItems=await getSwappLives();
@@ -11014,6 +11054,7 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
       paintLiveGrid(false);
     }finally{
       homeBusy=false;
+      if(lastLiveCandidates&&state?.view==='home')void supplementNewsGames();
     }
   }
 
