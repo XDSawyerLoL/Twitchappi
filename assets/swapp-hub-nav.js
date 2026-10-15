@@ -20,26 +20,29 @@
   }
   const mobile=document.getElementById('mobileNav');
   if(!mobile)return;
-  const existingMore=mobile.querySelector('.swapp-mobile-more');
-  if(existingMore)return; // SSR already carries all destinations.
   const primaryLabels=['Accueil','Découvrir','Actualité','Communauté'];
-  const rest=[];
+  let details=mobile.querySelector('.swapp-mobile-more');
+  if(!details){
+   details=document.createElement('details');details.className='swapp-mobile-more';
+   const summary=document.createElement('summary');summary.textContent='Plus';
+   const links=document.createElement('div');links.className='swapp-mobile-more-links';
+   details.append(summary,links);
+  }
+  const links=details.querySelector('.swapp-mobile-more-links');
   for(const child of [...mobile.children]){
-   if(!child.matches('a,button'))continue;
-   const label=(child.textContent||'').trim();
-   if(!primaryLabels.includes(label))rest.push(child);
+   if(child===details||!child.matches('a,button'))continue;
+   if(!primaryLabels.includes((child.textContent||'').trim()))links.append(child);
   }
-  const hasCommunity=[...mobile.children].some(child=>(child.textContent||'').trim()==='Communauté');
-  if(!hasCommunity)mobile.append(anchor(additions[0]));
-  const details=document.createElement('details');details.className='swapp-mobile-more';
-  const summary=document.createElement('summary');summary.textContent='Plus';
-  const list=document.createElement('div');list.className='swapp-mobile-more-links';
-  for(const child of rest)list.append(child);
-  for(const item of additions.slice(1))list.append(anchor(item));
-  if(!list.querySelector('a[href="/compte"]')&&![...list.children].some(el=>(el.textContent||'').trim()==='Compte')){
-   list.append(anchor({href:'/compte',label:'Compte'}));
+  if(![...mobile.children].some(child=>child!==details&&(child.textContent||'').trim()==='Communauté')){
+   mobile.insertBefore(anchor(additions[0]),details.isConnected?details:null);
   }
-  details.append(summary,list);mobile.append(details);
+  for(const item of additions.slice(1)){
+   if(!links.querySelector('a[href="'+item.href+'"]'))links.append(anchor(item));
+  }
+  if(!links.querySelector('a[href="/compte"]')&&![...links.children].some(el=>(el.textContent||'').trim()==='Compte')){
+   links.append(anchor({href:'/compte',label:'Compte'}));
+  }
+  if(details.parentElement!==mobile||details!==mobile.lastElementChild)mobile.append(details);
  }
  let scheduled=false;
  function schedule(){if(scheduled)return;scheduled=true;queueMicrotask(()=>{scheduled=false;ensure()})}
