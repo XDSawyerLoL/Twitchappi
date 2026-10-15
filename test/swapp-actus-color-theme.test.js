@@ -14,7 +14,7 @@ test('ACTUS follows the existing user colour variable, without a parallel palett
  assert.match(css,/#actus \.swapp-reading-progress span\s*\{/);
  assert.match(css,/#actus \.swapp-actus-go-live\s*\{/);
  assert.match(css,/#actus \.swapp-reader-source-link/);
- assert.match(app,/swapp-art-direction\.css\?v=20261015-cinematic-38/);
+ assert.match(app,/swapp-art-direction\.css\?v=20261015-player-39/);
  const script=read('index_script.js');
  assert.match(script,/document\.documentElement\.style\.setProperty\('--brand',c\)/);
  assert.match(script,/oryon_viewer_accent/);
