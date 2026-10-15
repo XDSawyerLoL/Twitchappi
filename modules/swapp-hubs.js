@@ -35,8 +35,8 @@ function trailers(){
  ).join('');
  const main='<main class="swapp-hub">'+heading('SWAPP · Vidéos','Les jeux prennent vie.','Bandes-annonces et vidéos sélectionnées, sans lecture automatique.')+
  '<p class="swapp-hub-small swapp-hub-caption">Les archives déjà disponibles sur JustPlayer sont conservées. Une bande-annonce n’est intégrée au lecteur SWAPP que si une URL vidéo vérifiée a été fournie.</p>'+
- '<section class="swapp-hub-grid" aria-label="Bandes-annonces">'+(cards||'<p class="swapp-hub-empty">Aucune bande-annonce authentifiée pour le moment.</p>')+'</section></main>';
- return layout({title:'Bandes-annonces',description:'Bandes-annonces et vidéos de jeux sur SWAPP.',content:main,active:'trailers',scripts:assets});
+ '<section id="swappTrailersNative" class="swapp-trailers-native" hidden aria-label="Bandes-annonces SWAPP"><h2>Bandes-annonces à regarder ici</h2><div id="swappTrailersNativeGrid" class="swapp-hub-grid"></div></section><section class="swapp-hub-grid" aria-label="Archives vidéo JustPlayer">'+(cards||'<p class="swapp-hub-empty">Aucune bande-annonce authentifiée pour le moment.</p>')+'</section></main>';
+ return layout({title:'Bandes-annonces',description:'Bandes-annonces et vidéos de jeux sur SWAPP.',content:main,active:'trailers',scripts:assets+'<script defer src="/assets/swapp-trailers-page.js?v=20261015-hubs-1"></script>'});
 }
 function safeProducts(items){
  const out=[];
