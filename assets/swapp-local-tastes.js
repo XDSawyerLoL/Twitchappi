@@ -60,10 +60,11 @@
    const day=today();
    const entries=load();
    const existing=entries.find(e=>e.g===game);
-   if(existing){existing.p=Math.min(5,existing.p+1);existing.d=day}
-   else entries.push({g:game,p:1,d:day});
-   entries.sort((a,b)=>b.d-a.d||b.p-a.p);
-   return setKey(KEY,JSON.stringify(entries.slice(0,MAX)));
+   // The latest explicit choice always takes the first place, even when the
+   // existing eight interests were recorded earlier on the same day.
+   const refreshed={g:game,p:Math.min(5,(existing?.p||0)+1),d:day};
+   const next=[refreshed,...entries.filter(e=>e.g!==game)];
+   return setKey(KEY,JSON.stringify(next.slice(0,MAX)));
   }
   function clear(){dropKey(KEY)}
   function setEnabled(enabled){
