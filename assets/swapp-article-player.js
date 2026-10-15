@@ -18,18 +18,28 @@
   url.searchParams.set('muted','true');
   return url.href;
  }
- let panel=null,article=null;
- function close(){
-  if(panel){panel.remove();panel=null;article=null}
+ // Twitch requires at least 400x300 pixels; narrow screens use the full player.
+ function canEmbed(width,height){
+  return Number(width)>=430&&Number(height)>=500;
  }
- function open({login,name,game}={}){
+ let panel=null,article=null,opener=null;
+ function close(restoreFocus=true){
+  if(!panel)return;
+  panel.remove();
+  panel=null;article=null;
+  const source=opener;opener=null;
+  if(restoreFocus&&source?.isConnected)source.focus?.({preventScroll:true});
+ }
+ function open({login,name,game,source}={}){
   if(!root||!root.document||!validLogin(login))return false;
+  if(!canEmbed(root.innerWidth,root.innerHeight))return false;
   const current=root.document.querySelector('#actus.view.active .swapp-actus-reading');
   if(!current)return false;
   const url=playerUrl(login,root.location.hostname);
   if(!url)return false;
-  close();
+  close(false);
   article=current;
+  opener=source||null;
   const d=root.document;
   const shell=d.createElement('aside');
   shell.className='swapp-article-mini-player';
@@ -57,7 +67,7 @@
   button.type='button';
   button.textContent='×';
   button.setAttribute('aria-label','Fermer le mini-lecteur');
-  button.onclick=()=>close();
+  button.onclick=()=>close(true);
   actions.append(link,button);
   head.append(copy,actions);
   const video=d.createElement('div');
@@ -72,22 +82,25 @@
   shell.append(head,video);
   d.body.append(shell);
   panel=shell;
+  // Keep the user's scroll position; Esc/Close returns focus to the source button.
+  button.focus?.({preventScroll:true});
   // A deliberate opening has priority over any previous embed. Sound starts muted.
   return true;
  }
  if(root?.addEventListener){
-  root.addEventListener('popstate',close);
-  root.addEventListener('pagehide',close);
-  root.addEventListener('keydown',event=>{if(event.key==='Escape'&&panel)close()});
+  root.addEventListener('popstate',()=>close(false));
+  root.addEventListener('pagehide',()=>close(false));
+  root.addEventListener('resize',()=>{if(panel&&!canEmbed(root.innerWidth,root.innerHeight))close(false)});
+  root.addEventListener('keydown',event=>{if(event.key==='Escape'&&panel){event.preventDefault?.();close(true)}});
   const boot=()=>{
    const target=root.document?.getElementById('actus');
    if(!target||typeof MutationObserver==='undefined')return;
    new MutationObserver(()=>{
-    if(panel&&(!article?.isConnected||!target.classList.contains('active')))close();
+    if(panel&&(!article?.isConnected||!target.classList.contains('active')))close(false);
    }).observe(target,{subtree:true,childList:true,attributes:true,attributeFilter:['class']});
   };
   if(root.document?.readyState==='loading')root.document.addEventListener('DOMContentLoaded',boot,{once:true});
   else boot();
  }
- return Object.freeze({open,close,playerUrl,validLogin});
+ return Object.freeze({open,close,playerUrl,validLogin,canEmbed});
 });
