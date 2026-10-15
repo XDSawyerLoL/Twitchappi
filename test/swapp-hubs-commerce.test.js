@@ -24,19 +24,24 @@ test('all three SWAPP hubs preserve the original navigation and design',()=>{
  assert.match(routes[2][1],/aria-current="page">Boutique<\/a>/);
 });
 
-test('public SOCIAL has real posts, separate sign-in and safe same-origin actions',()=>{
+test('SOCIAL is the complete Quantic network inside SWAPP, not an article preview',()=>{
  const html=community();
- assert.match(html,/id="swappCommunityFeed"/);
- assert.match(html,/id="swappSocialAuthForm"/);
- assert.match(html,/swapp-community-page\.js/);
- const client=fs.readFileSync(path.resolve(__dirname,'../assets/swapp-community-page.js'),'utf8');
- assert.match(client,/\/api\/swapp\/social-preview/);
- assert.match(client,/\/api\/swapp\/social\/login/);
- assert.match(client,/\/api\/swapp\/social\/post/);
- assert.doesNotMatch(client,/localStorage\.setItem|sessionStorage\.setItem/);
- assert.doesNotMatch(client,/innerHTML\s*=/);
+ assert.match(html,/id="swappSocialNative"/);
+ assert.match(html,/id="pulse-feed"/);
+ assert.match(html,/id="pulse-text"/);
+ assert.match(html,/id="auth-modal"/);
+ assert.match(html,/data-view="circles"/);
+ assert.match(html,/data-view="messages"/);
+ assert.match(html,/data-view="notifications"/);
+ assert.match(html,/data-view="profile"/);
+ assert.match(html,/swapp-social-native\/social-swapp\.css/);
+ assert.match(html,/swapp-social-native\/app\.js/);
+ assert.doesNotMatch(html,/id="swappCommunityFeed"/);
+ const client=fs.readFileSync(path.resolve(__dirname,'../assets/swapp-social-native/core.js'),'utf8');
+ assert.match(client,/API_BASE=''/);
+ assert.match(client,/sessionStorage\.getItem/);
+ assert.doesNotMatch(client,/https:\/\/quanticminds\.onrender\.com/);
 });
-
 test('trailer archive only uses the verified original domain and explicit video entries',()=>{
  assert.ok(verifiedTrailers().length>0);
  assert.deepEqual(verifiedTrailers([{type:'video_embed',url:'https://evil.example/video_embeds/1234'}]),[]);
