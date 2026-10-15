@@ -18,7 +18,7 @@ function makePublicCatalog({catalog,fetchImpl=globalThis.fetch,clock=Date.now,tt
       slug:key,title,body:article.body,summary:article.summary||article.body.slice(0,300),
       author:/just\\s*player/i.test(String(article.author||''))?'Rédaction SWAPP':(article.author||'Rédaction SWAPP'),
       sourceAuthor:article.author||'Rédaction JustPlayer',category:'Actualités JV',
-      game:article.game||item.game||'',image,sources:article.sources||[{url:item.url,label:'Publication d’origine'}],
+      game:article.game||item.game||'',image,sources:article.sources?.length?article.sources:[{url:item.url,label:'Publication d’origine'}],
       legacyUrl:item.url,canonicalSourceUrl:article.canonicalSourceUrl||item.url,
       publishedAt:item.publishedAt,originalPublishedAt:item.publishedAt,
       provenance:'justplayer-public-verified',status:'published',contentSource:'SWAPP'
