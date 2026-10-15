@@ -69,16 +69,20 @@ const matches=(x,y)=>{x=normal(x);y=normal(y);return !!(x&&y&&(x===y||(x.length>
 fetchJson('/api/discovery/game-lives?limit=12&game='+encodeURIComponent(a.game)).then(data=>{if(!games.isConnected)return;const seen=new Set();const streams=(Array.isArray(data.items)?data.items:[]).filter(x=>{const login=String(x.login||'').toLowerCase(),platform=String(x.platform||'').toLowerCase(),key=platform+':'+login;if(!/^[a-z0-9_]{2,25}$/.test(login)||seen.has(key)||!matches(a.game,x.game_name||x.game||x.category))return false;seen.add(key);return true}).sort((x,y)=>Number(['swapp','oryon'].includes(String(y.platform||'').toLowerCase()))-Number(['swapp','oryon'].includes(String(x.platform||'').toLowerCase()))||Number(y.viewer_count||0)-Number(x.viewer_count||0));games.replaceChildren(el('h2','','En direct sur '+a.game));if(!streams.length){games.append(el('p','swapp-actus-live-status','Aucun live correspondant trouvé pour le moment.'));return;}const grid=el('div','swapp-reader-live-grid');for(const stream of streams){const login=String(stream.login||'').toLowerCase();if(!/^[a-z0-9_]{2,25}$/.test(login))continue;const native=['swapp','oryon'].includes(String(stream.platform||'').toLowerCase());const link=el(native?'a':'div','swapp-reader-live-card');const streamHref=native?'/'+encodeURIComponent(login):'/live/twitch/'+encodeURIComponent(login)+'?game='+encodeURIComponent(String(a.game).slice(0,90));if(native)link.href=streamHref;const imgSrc=url(stream.thumbnail_url);const coverBox=el('div','swapp-reader-live-cover');if(imgSrc){const img=el('img');img.src=imgSrc;img.alt='';img.loading='lazy';coverBox.append(img)}coverBox.append(el('span','swapp-reader-live-badge','● EN DIRECT'));const info=el('div','swapp-reader-live-info');info.append(el('b','',stream.display_name||login),el('small','',stream.title||'Regarder ce live'));link.append(coverBox,info);
 if(!native){
   const actions=el('div','swapp-reader-live-actions');
-  const mini=el('button','swapp-reader-live-inline','▶ Regarder ici');
-  mini.type='button';
-  mini.setAttribute('aria-label','Regarder '+(stream.display_name||login)+' dans un mini-lecteur');
-  mini.onclick=()=>{
-    const opened=window.SwappArticlePlayer?.open({login,name:stream.display_name||login,game:a.game});
-    if(!opened)window.open(streamHref,'_blank','noopener');
-  };
-  const full=el('a','swapp-reader-live-full','Voir la chaîne ↗');
+  const canEmbed=!!window.SwappArticlePlayer?.canEmbed?.(window.innerWidth,window.innerHeight);
+  if(canEmbed){
+    const mini=el('button','swapp-reader-live-inline','▶ Regarder ici');
+    mini.type='button';
+    mini.setAttribute('aria-label','Regarder '+(stream.display_name||login)+' dans un mini-lecteur');
+    mini.onclick=()=>{
+      const opened=window.SwappArticlePlayer?.open({login,name:stream.display_name||login,game:a.game,source:mini});
+      if(!opened)window.open(streamHref,'_blank','noopener');
+    };
+    actions.append(mini);
+  }
+  const full=el('a','swapp-reader-live-full',canEmbed?'Voir la chaîne ↗':'Voir le live ↗');
   full.href=streamHref;full.target='_blank';full.rel='noopener noreferrer';
-  actions.append(mini,full);
+  actions.append(full);
   link.append(actions);
 }
 grid.append(link)}if(grid.children.length){games.append(el('p','swapp-actus-live-status',streams.length+' créateur'+(streams.length>1?'s':'')+' en direct sur ce jeu'));const cards=[...grid.children];const visible=3;cards.forEach((card,i)=>{if(i>=visible)card.hidden=true});games.append(grid);if(cards.length>visible){const more=el('button','swapp-reader-live-more','Voir les '+(cards.length-visible)+' autres lives');more.type='button';more.setAttribute('aria-expanded','false');more.onclick=()=>{const expanded=more.getAttribute('aria-expanded')==='true';cards.forEach((card,i)=>{card.hidden=expanded&&i>=visible});more.setAttribute('aria-expanded',String(!expanded));more.textContent=expanded?'Voir les '+(cards.length-visible)+' autres lives':'Voir moins de lives';};games.append(more)}}}).catch(()=>{if(games.isConnected){games.replaceChildren(el('h2','','En direct sur '+a.game),el('p','swapp-actus-live-status','Lives momentanément indisponibles.'))}});
