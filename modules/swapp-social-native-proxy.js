@@ -59,17 +59,32 @@ function createSocialNativeProxy(fetchImpl,{production=true}={}){
    headers['Content-Type']='application/json';
   }
   const endpoint=SOCIAL_ORIGIN+'/api/pulse'+path+safeQuery(path,req.originalUrl?.split('?').slice(1).join('?'));
-  try{
-   const result=await fetchImpl(endpoint,{
-    method,headers,redirect:'error',
-    ...(body===undefined?{}:{body})
-   },8000);
-   if(!result||!Number.isInteger(result.status))throw Error('bad_upstream');
-   const raw=await result.text();
-   if(raw.length>1250000)throw Error('response_too_large');
-   let data;try{data=JSON.parse(raw)}catch{throw Error('non_json_upstream')}
-   return res.status(result.status).json(data);
-  }catch(_){return res.status(503).json({error:'social_temporarily_unavailable'})}
+  // Read-only requests may retry once if Render wakes a cold instance.
+  // Never retry a write: a timeout must not publish a post or send a DM twice.
+  const attempts=method==='GET'?2:1;
+  for(let attempt=0;attempt<attempts;attempt++){
+   try{
+    const result=await fetchImpl(endpoint,{
+     method,headers,redirect:'error',
+     ...(body===undefined?{}:{body})
+    },method==='GET'?16000:12000);
+    if(!result||!Number.isInteger(result.status))throw Error('bad_upstream');
+    const raw=await result.text();
+    if(raw.length>1250000)throw Error('response_too_large');
+    let data;try{data=JSON.parse(raw)}catch{throw Error('non_json_upstream')}
+    if(result.status>=500){
+     if(attempt+1<attempts)continue;
+     return res.status(503).json({error:'social_upstream_unavailable'});
+    }
+    return res.status(result.status).json(data);
+   }catch(error){
+    if(attempt+1<attempts)continue;
+    const timedOut=error?.name==='AbortError'||error?.name==='TimeoutError';
+    // No Authorization header, session, URL or personal data is logged.
+    console.warn('[SWAPP SOCIAL] Backend inaccessible:',timedOut?'timeout': 'network_or_invalid_response');
+    return res.status(503).json({error:timedOut?'social_upstream_timeout':'social_upstream_unreachable'});
+   }
+  }
  };
 }
 module.exports={SOCIAL_ORIGIN,permitted,safeQuery,createSocialNativeProxy};
