@@ -133,13 +133,13 @@ function renderNav(){
     {id:'discover',label:'Découvrir',href:'/decouvrir'},
     {id:'categories',label:'Catégories',href:'/categories'},
     {id:'teams',label:'Équipes',href:'/equipes'},
-    {id:'actus',label:'ACTUS',href:'/actus'}
+    {id:'actus',label:'Actualité',href:'/actus'}
   ];
   const account=contract?.account||{id:'settings',label:'Compte',href:'/compte'};
   const linkOrButton=(item)=>{
     const b=document.createElement('button');
     b.type='button';b.textContent=item.label;
-    b.className=(state.view===item.id?'active ':'')+(item.id==='actus'?'swappIntegratedNewsNav':'');
+    b.className=state.view===item.id?'active':'';
     if(state.view===item.id)b.setAttribute('aria-current','page');
     b.onclick=()=>setView(item.id);
     return b;
@@ -10968,7 +10968,7 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
       const more=$id('homeLiveMore1014');
       if(more){
         const cards=Array.from(grid.querySelectorAll('.homeLiveCard1014'));
-        const initiallyVisible=4;
+        const initiallyVisible=window.matchMedia('(max-width:900px)').matches?4:8;
         cards.forEach((el,i)=>{el.hidden=i>=initiallyVisible});
         const extras=Math.max(0,cards.length-initiallyVisible);
         more.hidden=!extras;
