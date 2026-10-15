@@ -454,7 +454,7 @@
  --swapp-news-tint:color-mix(in srgb,var(--swapp-news-accent) 18%,#142135);
  --swapp-news-button:color-mix(in srgb,var(--swapp-news-accent) 64%,white);
 }
-body:has(#actus.view.active){
+body:not(.swappSideLightOnly):has(#actus.view.active){
  background:radial-gradient(ellipse at 83% 3%,color-mix(in srgb,var(--brand,#22d3ee) 17%,transparent),transparent 40%),radial-gradient(ellipse at 6% 28%,color-mix(in srgb,var(--brand,#22d3ee) 8%,transparent),transparent 38%),var(--bg,#080b12)!important;
 }
 #actus :is(.swapp-actus-head small,.swapp-actus-article>small,.swapp-actus-info small,.swapp-reader-kicker-main,.swapp-reader-kicker-game,.swapp-actus-cover-empty){
@@ -532,10 +532,11 @@ body:has(#actus.view.active){
    SWAPP --brand remains the only colour palette source. */
 #actus.view.active{
  min-height:calc(100svh - 160px);
+ /* The visitor's chosen hue powers the page ambience, not the fixed brand buttons. */
  background:
-  radial-gradient(ellipse 72% 42% at 2% 2%,color-mix(in srgb,var(--brand,#22d3ee) 35%,transparent),transparent 80%),
-  radial-gradient(ellipse 60% 54% at 101% 76%,color-mix(in srgb,var(--brand,#22d3ee) 21%,transparent),transparent 84%),
-  linear-gradient(175deg,color-mix(in srgb,var(--brand,#22d3ee) 9%,#101823),#0c111b 75%);
+  radial-gradient(ellipse 78% 70% at -8% 30%,color-mix(in srgb,var(--swapp-side-light,var(--brand,#22d3ee)) 38%,transparent),transparent 72%),
+  radial-gradient(ellipse 64% 55% at 102% 88%,color-mix(in srgb,var(--swapp-side-light,var(--brand,#22d3ee)) 15%,transparent),transparent 82%),
+  linear-gradient(112deg,color-mix(in srgb,var(--swapp-side-light,var(--brand,#22d3ee)) 8%,#101421),#05070d 78%);
 }
 #actus .swapp-actus-head{background:transparent!important}
 #actus .swapp-actus-tools :is(input,select){
