@@ -10861,7 +10861,7 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
   function normalise(raw){
     const x = raw || {};
     const rawPlatform = String(x.platform || x.type || x.source || '').toLowerCase();
-    const platform = rawPlatform.includes('twitch') || x.user_login || x.broadcaster_login ? 'twitch' : 'swapp';
+    const platform = ['swapp','oryon','native'].includes(rawPlatform) ? 'swapp' : (rawPlatform.includes('twitch') || x.user_login || x.broadcaster_login ? 'twitch' : 'swapp');
     const login = clean(platform === 'twitch' ? (x.login || x.user_login || x.broadcaster_login || x.user_name) : (x.host_login || x.login || x.room || x.channel || x.user_login));
     const name = String(platform === 'twitch' ? (x.display_name || x.user_name || x.name || login) : (x.host_name || x.display_name || x.user_name || x.name || login));
     let thumb = String(x.thumbnail_url || x.thumbnail || x.preview || x.offline_image_url || x.banner_url || '');
@@ -10899,7 +10899,7 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
     const payload = encodePayload(raw);
     const kind = n.platform === 'swapp' ? 'swapp' : 'twitch';
     const badge = n.platform === 'swapp' ? 'LIVE SWAPP' : 'LIVE TWITCH';
-    return `<article class="homeLiveCard1014" onclick="swappOpenLive1014('${payload}')" tabindex="0" onkeydown="if(event.key==='Enter')swappOpenLive1014('${payload}')"><div class="homeThumb1014">${n.thumb?`<img src="${safe(n.thumb)}" alt="">`:`<div style="height:100%;display:grid;place-items:center;color:#64748b;font-weight:900">LIVE</div>`}<span class="homeLiveBadge1014 ${kind}">● ${badge}</span><span class="homeViewers1014">${n.viewers || 0} spectateurs</span></div><div class="homeLiveBody1014"><h3>${safe(n.title)}</h3><div class="homeMeta1014">${safe(n.name)} · ${safe(n.game)}</div><button class="btn" type="button" onclick="event.stopPropagation();swappOpenLive1014('${payload}')">Regarder</button></div></article>`;
+    return `<article class="homeLiveCard1014" onclick="swappOpenLive1014('${payload}')" tabindex="0" aria-label="Regarder le live de ${safe(n.name)}" onkeydown="if(event.target===this&&(event.key==='Enter'||event.key===' ')){event.preventDefault();swappOpenLive1014('${payload}')}"><div class="homeThumb1014">${n.thumb?`<img src="${safe(n.thumb)}" alt="" loading="lazy" decoding="async">`:`<div style="height:100%;display:grid;place-items:center;color:#64748b;font-weight:900">LIVE</div>`}<span class="homeLiveBadge1014 ${kind}">● ${badge}</span><span class="homeViewers1014">${n.viewers || 0} spectateurs</span></div><div class="homeLiveBody1014"><h3>${safe(n.title)}</h3><div class="homeMeta1014">${safe(n.name)} · ${safe(n.game)}</div><button class="btn" type="button" onclick="event.stopPropagation();swappOpenLive1014('${payload}')">Regarder</button></div></article>`;
   }
 
   async function apiSafe(url){ try{ return await api(url); }catch(e){ console.warn('Swapp home API', url, e); return null; } }
@@ -10932,7 +10932,7 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
         out.push(raw);
         if(out.length >= 12) break;
       }
-      if(out.length >= 8) break;
+      if(out.length >= 12) break;
     }
     return out;
   }
@@ -10951,14 +10951,22 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
     if(!grid){ homeBusy = false; return; }
     grid.innerHTML = `<div class="homeEmpty1014">Chargement des lives…</div>`;
     try{
-      let items = await getSwappLives();
-      let mode = 'swapp';
-      if(!items.length){ items = await getTwitchLives(); mode = 'twitch'; }
+      const swappItems = await getSwappLives();
+      // Fill the real, visible live grid; never hide Twitch just because one SWAPP stream exists.
+      const twitchItems = swappItems.length < 8 ? await getTwitchLives() : [];
+      const curated = window.SwappLiveCuration?.curateHomeLives(swappItems,twitchItems,12)
+        || {items:[...swappItems,...twitchItems].slice(0,12),nativeCount:swappItems.length,twitchCount:twitchItems.length};
+      const items = curated.items;
+      const mode = curated.nativeCount && curated.twitchCount ? 'mixed' : (curated.nativeCount ? 'swapp' : 'twitch');
       lastHomeMode = mode;
       if(mode === 'swapp'){
-        if(title) title.textContent = 'Lives Swapp en direct';
+        if(title) title.textContent = 'Lives SWAPP en direct';
         if(sub) sub.textContent = 'Découvrez les créateurs qui diffusent en ce moment sur SWAPP.';
         if(status) status.textContent = 'SWAPP en direct';
+      }else if(mode === 'mixed'){
+        if(title) title.textContent = 'Lives en direct';
+        if(sub) sub.textContent = 'Les créateurs SWAPP d’abord, puis des lives Twitch pour prolonger la découverte.';
+        if(status) status.textContent = 'SWAPP et Twitch en direct';
       }else{
         if(title) title.textContent = 'Lives Twitch en direct';
         if(sub) sub.textContent = 'Des créateurs en direct, sélectionnés pour prolonger votre découverte.';
