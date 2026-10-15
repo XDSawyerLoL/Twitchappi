@@ -69,7 +69,7 @@ test('CSS contains background in a natural-ratio zone with borderless title and 
  assert.match(css,/object-fit:contain/);
  assert.doesNotMatch(css,/position:fixed;inset:0;z-index:0/);
  assert.match(css,/\.swapp-article-scene img/);
- assert.match(css,/object-fit:cover/);
+ assert.doesNotMatch(css,/object-fit:cover/);
  assert.match(css,/\.swapp-immersive-hero::before,\.swapp-immersive-hero::after/);
  assert.match(css,/border:0!important;border-radius:0!important/);
  assert.match(css,/\.swapp-actus-body/);
