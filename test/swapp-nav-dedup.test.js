@@ -19,7 +19,7 @@ class Element {
  append(child){if(child.parentElement)child.remove();child.parentElement=this;this.children.push(child)}
  insertBefore(child,before){if(child.parentElement)child.remove();const index=this.children.indexOf(before);child.parentElement=this;this.children.splice(index<0?this.children.length:index,0,child)}
  remove(){if(this.parentElement){const parent=this.parentElement;parent.children.splice(parent.children.indexOf(this),1);this.parentElement=null}}
- closest(selector){if(selector==='#nav'){let el=this;while(el){if(el===this.rootNav)return el;el=el.parentElement}}return null}
+ closest(selector){if(selector==='#nav'){let el=this;while(el){if(el.tagName==='NAV')return el;el=el.parentElement}}return null}
  querySelectorAll(selector){const nodes=[];function walk(el){for(const child of el.children){if(child.matches(selector))nodes.push(child);walk(child)}}walk(this);return nodes}
  querySelector(){return null}
  get lastElementChild(){return this.children.at(-1)||null}
