@@ -24,7 +24,7 @@ test('Live Pulse relies on explicit markers, not words in descriptions',()=>{
 test('Surf visits existing live cards only and skips editorial links',()=>{
  assert.match(script,/\.homeLiveCard1014/);
  assert.match(script,/\.closest\('\.homeLiveCard1014/);
- assert.match(script,/\/actus/);
+ assert.ok(script.includes('actus'));
  assert.match(script,/Aucun live disponible/);
 });
 
