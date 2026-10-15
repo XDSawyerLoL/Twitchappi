@@ -348,6 +348,10 @@ const apiLimiter = rateLimit({
   legacyHeaders: false
 });
 app.use('/api', apiLimiter);
+// Read-only proof of concept: only public SOCIAL posts, no SWAPP credentials passed.
+const {createPreviewHandler}=require('./modules/swapp-social-preview');
+app.get('/api/swapp/social-preview',createPreviewHandler(fetchWithTimeout));
+
 
 // Limites plus strictes pour routes co\u00FBteuses (YouTube/Twitch search)
 const heavyLimiter = rateLimit({
