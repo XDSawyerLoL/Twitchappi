@@ -13,13 +13,12 @@
     Object.freeze({id:'discover',label:'Découvrir',href:'/decouvrir'}),
     Object.freeze({id:'categories',label:'Catégories',href:'/categories'}),
     Object.freeze({id:'teams',label:'Équipes',href:'/equipes'}),
-    Object.freeze({id:'actus',label:'ACTUS',href:'/actus'})
+    Object.freeze({id:'actus',label:'Actualité',href:'/actus'})
   ]);
   const account=Object.freeze({id:'settings',label:'Compte',href:'/compte'});
   const htmlEscape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   function link(item,active,mobile=false){
-    return '<a href="'+htmlEscape(item.href)+'" class="'+(item.id==='actus'?'swappIntegratedNewsNav ':'')+
-      (active===item.id?'active':'')+'"'+(active===item.id?' aria-current="page"':'')+
+    return '<a href="'+htmlEscape(item.href)+'" class="'+(active===item.id?'active':'')+'"'+(active===item.id?' aria-current="page"':'')+
       '>'+htmlEscape(item.label)+'</a>';
   }
   function serverHeader(active='actus'){
