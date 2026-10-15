@@ -59,3 +59,10 @@
  #home .swapp-home-editorial-top .swapp-home-hero-actions{width:100%;justify-content:space-between;align-items:flex-start}
  #home .swapp-home-editorial-top .swapp-home-video-feature{width:min(290px,100%)}
 }
+
+/* A JustPlayer article without an embeddable publisher video is an external
+   publication, not a pretend local player. */
+.swapp-video-external{display:block;text-decoration:none!important}
+.swapp-video-external .swapp-video-play-icon{font-size:25px;border-color:#a9b9cc70;background:#0c1524a8}
+.swapp-video-unavailable{color:#f4cbd9!important;font-size:12px!important;line-height:1.55!important;margin:0 0 12px!important}
+.swapp-video-stage-fallback a:first-of-type{border-color:color-mix(in srgb,var(--brand,#8b5cf6) 55%,#65758b);background:color-mix(in srgb,var(--brand,#8b5cf6) 18%,#162033)}
