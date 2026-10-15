@@ -134,10 +134,14 @@
   reconciling=true;
   try{desktop();mobile()}finally{reconciling=false}
  }
+ // Multiple SPA updates can mutate the menu in one frame. Reconcile once
+ // per frame, not once per DOM mutation/microtask, to avoid main-thread churn.
+ const nextFrame=typeof requestAnimationFrame==='function'
+   ?requestAnimationFrame:callback=>queueMicrotask(callback);
  function queue(){
   if(queued)return;
   queued=true;
-  queueMicrotask(()=>{queued=false;reconcile()});
+  nextFrame(()=>{queued=false;reconcile()});
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',queue,{once:true});
  else queue();
