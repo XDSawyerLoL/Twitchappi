@@ -14,7 +14,7 @@ const input={
  summary:'Une bande-annonce du jeu Grand Theft Auto VI présentée par Rockstar.',
  body:'Découvrez les nouvelles images officielles de Grand Theft Auto VI.',
  contentType:'trailer',trailerUrl:'https://www.youtube.com/watch?v=VQRLujxTm3c',
- author:'Sansahd'
+ author:'Sansahd',sources:[{url:'https://www.youtube.com/watch?v=VQRLujxTm3c',label:'Trailer officiel'}]
 };
 test('editor can create posts, videos and trailers without allowing arbitrary iframe HTML',()=>{
  for(const type of ['article','post','video','trailer']){
