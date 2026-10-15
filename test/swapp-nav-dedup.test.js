@@ -14,8 +14,8 @@ class Element {
   this.children=[];this.parentElement=null;this.dataset={};this.className='';
   this.classList={add:name=>{this.className=(this.className+' '+name).trim()},contains:name=>this.className.split(' ').includes(name)};
  }
- getAttribute(name){return this.attrs[name]??null}
- setAttribute(name,value){this.attrs[name]=value}
+ getAttribute(name){return name==='href'&&this.href?this.href:(this.attrs[name]??null)}
+ setAttribute(name,value){this.attrs[name]=value;if(name==='href')this.href=value}
  matches(selector){return selector.split(',').some(x=>x.trim().toUpperCase()===this.tagName)}
  append(child){if(child.parentElement)child.remove();child.parentElement=this;this.children.push(child)}
  insertBefore(child,before){if(child.parentElement)child.remove();const index=this.children.indexOf(before);child.parentElement=this;this.children.splice(index<0?this.children.length:index,0,child)}
