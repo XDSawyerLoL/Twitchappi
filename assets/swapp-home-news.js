@@ -24,7 +24,7 @@
    a.addEventListener('click',e=>navigateArticle(e,item.slug));
    const image=el('div','swapp-home-story-image'),src=safeUrl(item.image?.url||item.imageUrl);
    if(src){const img=el('img');img.src=src;img.alt='';img.loading=index===0?'eager':'lazy';img.decoding='async';img.onerror=()=>{img.remove();image.classList.add('swapp-home-image-fallback')};image.append(img)}else{image.classList.add('swapp-home-image-fallback')}
-   image.append(el('span','swapp-home-story-category',item.game||item.category||'ACTUS'));
+   image.append(el('span','swapp-home-story-category',item.game||item.category||'Actualité'));
    const body=el('div','swapp-home-story-body');
    body.append(el('span','swapp-home-story-eyebrow',index===0?'À LA UNE':'ACTUALITÉ'),el('strong','',item.title||'Article SWAPP'));
    if(item.summary)body.append(el('p','',item.summary));
@@ -63,7 +63,7 @@
    const section=el('section','swapp-home-editorial');section.dataset.swappHomeEditorial='1';
    const top=el('div','swapp-home-editorial-top'),title=el('div');
    title.append(el('small','','SWAPP · LE GAMING EN DIRECT'),el('h2','','À la une sur SWAPP'),el('p','','L’actualité des jeux et les créateurs qui y jouent, au même endroit.'));
-   const all=el('a','swapp-media-button primary','Voir toutes les actus →');all.href='/actus';
+   const all=el('a','swapp-media-button primary','Toute l’actualité →');all.href='/actus';
    all.onclick=e=>{if(e.button||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey||typeof window.setView!=='function')return;e.preventDefault();window.setView('actus');window.SwappActus?.home()};
    const actions=el('div','swapp-home-hero-actions');actions.append(all);top.append(title,actions);section.append(top);
    const grid=el('div','swapp-home-story-grid');
