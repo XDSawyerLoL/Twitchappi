@@ -8,7 +8,7 @@ const {collectPublicCatalog}=require('../../tools/justplayer-public-fetch');
 const {makePublicCatalog}=require('./public-catalog');
 const {recommend}=require('./content-metadata');
 const catalog=require('../../data/justplayer-public-catalog.json');
-const {publicArticle,nativeSlug,legacyDraft}=require('./editorial-identity');
+const {publicArticle,recoveredArticle,nativeSlug,legacyDraft}=require('./editorial-identity');
 
 function createNewsRouter({express, firestore, requireEditor, isReady = () => true, baseUrl = 'https://swapp.tv', publicFetch = globalThis.fetch, publicCatalog = catalog, canEdit = () => false, sendApp = null}) {
   if (typeof express?.Router !== 'function' || typeof firestore?.collection !== 'function' ||
@@ -44,7 +44,7 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
       &&!oldTitles.has(String(x.title||'').toLowerCase())
       &&!withdrawnUrls.has(x.legacyUrl)
       &&!withdrawnTitles.has(String(x.title||'').toLowerCase()));
-    return [...original,...recovered].map(publicArticle).sort((a,b)=>String(b.publishedAt||'').localeCompare(String(a.publishedAt||'')));
+    return [...original.map(publicArticle),...recovered.map(recoveredArticle)].sort((a,b)=>String(b.publishedAt||'').localeCompare(String(a.publishedAt||'')));
   };
   const noStore=(_req,res,next)=>{res.set('Cache-Control','no-store');next();};
   const editor=[available,requireEditor,noStore];
@@ -70,14 +70,9 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
       if((exact.exists&&exact.data().legacySuppressRecovery)
         ||(snap.exists&&snap.data().legacySuppressRecovery))
         return res.status(404).json({error:'Article retiré du magazine'});
-      if((exact.exists&&exact.data().legacySuppressRecovery)
-        ||(snap.exists&&snap.data().legacySuppressRecovery))
-        return res.status(404).send('Article retiré du magazine');
-      if(slug.startsWith('justplayer-')){
-        const original=await publicNews.get(slug);
-        return original?res.json(publicArticle(original)):res.status(404).json({error:'Contenu complet indisponible'});
-      }
-      return res.status(404).json({error:'Article introuvable'});
+      const historicalSlug=slug.startsWith('justplayer-')?slug:'justplayer-'+slug;
+      const original=await publicNews.get(historicalSlug);
+      return original?res.json(recoveredArticle(original)):res.status(404).json({error:'Article introuvable'});
     }catch(e){next(e);}
   });
   // One canonical UI for direct navigation and SPA navigation.
@@ -124,7 +119,7 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
           justPlayerCache.set(key,{article,expires:Date.now()+(article?20:4)*60000});
         }
       }
-      return article && article.body?.length>=220 ? res.type('html').send(renderNewsStory(publicArticle({...article,slug:'justplayer-'+key,publishedAt:item.publishedAt}),{baseUrl})) : res.type('html').send(renderJustPlayerPreview(item,null));
+      return article && article.body?.length>=220 ? res.type('html').send(renderNewsStory(recoveredArticle({...article,slug:'justplayer-'+key,publishedAt:item.publishedAt}),{baseUrl})) : res.type('html').send(renderJustPlayerPreview(item,null));
     }catch(e){
       // An unavailable Fourthwall page should not make the SWAPP article route fail.
       const key=String(req.params.key||'');
@@ -157,12 +152,13 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
         res.set('Cache-Control','public, max-age=60');
         return res.type('html').send(renderNewsStory(publicArticle(snap.data()),{baseUrl}));
       }
-      if(slug.startsWith('justplayer-')){
-        const original=await publicNews.get(slug);
-        return original?res.type('html').send(renderNewsStory(publicArticle(original),{baseUrl})):
-          res.status(404).send('Article complet non récupéré.');
-      }
-      return res.status(404).send('Article introuvable');
+      if((exact.exists&&exact.data().legacySuppressRecovery)
+        ||(snap.exists&&snap.data().legacySuppressRecovery))
+        return res.status(404).send('Article retiré du magazine');
+      const historicalSlug=slug.startsWith('justplayer-')?slug:'justplayer-'+slug;
+      const original=await publicNews.get(historicalSlug);
+      return original?res.type('html').send(renderNewsStory(recoveredArticle(original),{baseUrl})):
+        res.status(404).send('Article introuvable');
     }catch(e){next(e);}
   });
   // Suggest games and tags without external APIs or tracking.
