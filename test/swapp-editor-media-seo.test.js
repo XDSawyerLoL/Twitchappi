@@ -98,9 +98,10 @@ test('video articles without manually uploaded covers get playable YouTube poste
  assert.ok(page.includes('data-swapp-trailer-id="VQRLujxTm3c"'));
  assert.ok(page.includes('https://www.youtube.com/watch?v=VQRLujxTm3c'));
  assert.doesNotMatch(page,/<iframe/);
- const listing=renderNewsHome([article]);
+ const featured=renderNewsHome([article]);
+ assert.ok(featured.includes('<img src="'+thumbnail+'"'));
+ const listing=renderNewsHome([{...article,slug:'another-video',title:'Une autre vidéo',image:{url:'https://example.org/other.jpg',credit:'Test',rights:'Test'}},article]);
  assert.ok(listing.includes('<img class="story-image" src="'+thumbnail+'"'));
- assert.ok(listing.includes('<img src="'+thumbnail+'"'));
 });
 test('an uploaded licensed cover takes priority over the official YouTube thumbnail for sharing',()=>{
  const article={...assertArticle({...input,image:{url:'https://example.org/licensed-wow.jpg',credit:'Éditeur',rights:'Autorisé'}},{publish:true}),
