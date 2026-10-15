@@ -6,7 +6,7 @@
  if(!core||document.getElementById('swappCompanion'))return;
  const KEY='swapp_companion_preferences_v1';
  const state={open:false,tab:'mairy',live:false,news:false,unread:0,events:[],
-  snapshots:{live:null,news:null},busy:false,timer:null};
+  snapshots:{live:null,news:null},busy:false,polling:false,timer:null};
  try{
   const saved=JSON.parse(localStorage.getItem(KEY)||'{}');
   state.live=saved.live===true;state.news=saved.news===true;
@@ -213,7 +213,7 @@ let loadingCommunity=false;
    !!document.fullscreenElement;
  }
  function notify(event){
-  if(document.visibilityState!=='visible'||watching())return;
+  if(document.visibilityState!=='visible'||watching()||(state.open&&state.tab==='events'))return;
   toastText.textContent=event.title;
   toast.hidden=false;
   clearTimeout(toastTimer);
@@ -227,7 +227,8 @@ let loadingCommunity=false;
  }
  async function refresh(){
   if(!state.live&&!state.news)return;
-  if(document.visibilityState!=='visible'||state.busy)return;
+  if(document.visibilityState!=='visible'||state.busy||state.polling)return;
+  state.polling=true;
   const jobs=[];
   for(const kind of ['live','news']){
    if(!state[kind])continue;
@@ -244,7 +245,7 @@ let loadingCommunity=false;
     }
    })());
   }
-  await Promise.allSettled(jobs);
+  try{await Promise.allSettled(jobs)}finally{state.polling=false}
  }
  function startChecks(){
   if(state.timer)clearInterval(state.timer);
@@ -258,6 +259,14 @@ let loadingCommunity=false;
   (state.tab==='events'?bell:launcher).focus();
  });
  tabs.forEach(tab=>tab.addEventListener('click',()=>show(tab.dataset.swappTab,false)));
+ tabs.forEach((tab,index)=>tab.addEventListener('keydown',event=>{
+  if(!['ArrowRight','ArrowLeft','Home','End'].includes(event.key))return;
+  event.preventDefault();
+  const next=event.key==='Home'?0:event.key==='End'?tabs.length-1:
+   (index+(event.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length;
+  show(tabs[next].dataset.swappTab,false);
+  tabs[next].focus();
+ }));
  root.querySelector('.swapp-companion-reload').addEventListener('click',loadCommunity);
  root.querySelectorAll('[data-swapp-ask]').forEach(button=>button.addEventListener('click',()=>answer(button.dataset.swappAsk)));
  form.addEventListener('submit',event=>{
