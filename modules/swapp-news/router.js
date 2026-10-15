@@ -101,6 +101,12 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
     try{
       const key=String(req.params.key||'');
       if(!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(key) || key.length>150)return res.status(404).send('Publication introuvable');
+      const canonical=nativeSlug({slug:'justplayer-'+key});
+      const saved=await articles.doc(canonical).get();
+      if(saved.exists&&saved.data().status==='published')
+        return res.redirect(301,'/actus/'+encodeURIComponent(canonical));
+      if(saved.exists&&saved.data().legacySuppressRecovery)
+        return res.status(404).send('Article retiré du magazine');
       const item=(publicCatalog.items||[]).find(x=>
         ['post','video_embed'].includes(x?.type) &&
         String(x.url||'').split('/').filter(Boolean).at(-1)===key);
