@@ -12,8 +12,8 @@ const base={slug:'spider-man-article-test',title:'Spider-Man et le futur du jeu 
  publishedAt:'2026-10-15T18:00:00Z',author:'Rédaction SWAPP'};
 
 test('SPA and direct article routes share the ratio-preserving article background stylesheet',()=>{
- assert.match(read('index.html'),/swapp-article-immersive\.css\?v=20261015-balanced-4/);
- assert.match(read('modules/swapp-news/site-shell.js'),/swapp-article-immersive\.css\?v=20261015-balanced-4/);
+ assert.match(read('index.html'),/swapp-article-immersive\.css\?v=20261015-editorial-reset-5/);
+ assert.match(read('modules/swapp-news/site-shell.js'),/swapp-article-immersive\.css\?v=20261015-editorial-reset-5/);
 });
 
 test('SPA uses article image as a page scene, not a banner',()=>{
@@ -62,29 +62,32 @@ test('headline, summary and image credit are escaped',()=>{
  assert.match(html,/Image &lt;b&gt;test&lt;\/b&gt;/);
 });
 
-test('wide cinematic image retains aspect ratio and article reads without an oversized card',()=>{
+test('artwork is confined to the intro, preserving image aspect ratio and avoiding fog',()=>{
  const css=read('assets/swapp-article-immersive.css');
- assert.match(css,/\.swapp-article-scene\{[\s\S]*?position:absolute;top:0/);
- assert.match(css,/aspect-ratio:16\/9/);
+ assert.match(css,/\.swapp-article-scene\{/);
+ assert.match(css,/position:absolute;z-index:0/);
+ assert.match(css,/height:clamp\(390px,35vw,570px\)/);
+ assert.match(css,/height:100%;width:auto;max-width:none/);
  assert.match(css,/object-fit:contain/);
- assert.doesNotMatch(css,/position:fixed;inset:0;z-index:0/);
- assert.match(css,/\.swapp-article-scene img/);
- assert.doesNotMatch(css,/object-fit:cover/);
- assert.match(css,/\.swapp-immersive-hero::before,\.swapp-immersive-hero::after/);
- assert.match(css,/border:0!important;border-radius:0!important/);
- assert.match(css,/\.swapp-actus-body/);
- assert.match(css,/width:100vw;height:auto;aspect-ratio:16\/9/);
- assert.match(css,/max-width:1190px!important/);
- assert.match(css,/border:0!important;border-radius:0!important;box-shadow:none!important/);
- assert.match(css,/max-width:86ch/);
- assert.match(css,/font-size:clamp\(34px,3\.05vw,52px\)/);
- assert.match(css,/line-clamp:unset!important/);
  assert.match(css,/mask-image:linear-gradient/);
- assert.match(css,/grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
- assert.match(css,/background:transparent!important;background-image:none!important/);
- assert.match(css,/max-width:770px!important/);
- assert.match(css,/font-size:clamp\(34px,3\.05vw,52px\)/);
- assert.match(css,/linear-gradient\(180deg,rgba\(7,12,21,\.06\)/);
+ assert.doesNotMatch(css,/position:fixed;inset:0/);
+ assert.doesNotMatch(css,/object-fit:cover/);
+ assert.match(css,/\.swapp-article-scene::after\{display:none/);
+ assert.match(css,/#0b111b 0%/);
+});
+
+test('reading content and TOC are structurally grouped, not layered over the image',()=>{
+ const spa=read('assets/swapp-actus-app.js');
+ const css=read('assets/swapp-article-immersive.css');
+ assert.match(spa,/const reading=el\('div','swapp-article-reading'\)/);
+ assert.match(spa,/reading\.append\(toc\)/);
+ assert.match(spa,/reading\.append\(body\);article\.append\(reading\)/);
+ assert.match(css,/\.swapp-article-reading:has\(\.swapp-reader-toc\)/);
+ assert.match(css,/position:sticky;top:92px/);
+ assert.match(css,/background:none!important;background-image:none!important/);
+ assert.match(css,/border:0!important;border-radius:0!important;box-shadow:none!important/);
+ assert.match(css,/max-width:830px!important/);
+ assert.match(css,/@media\(max-width:880px\)/);
  assert.match(css,/@media\(max-width:700px\)/);
  assert.match(css,/prefers-reduced-motion:reduce/);
  assert.match(css,/prefers-contrast:more/);
