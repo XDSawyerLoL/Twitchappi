@@ -66,3 +66,29 @@ test('matches are shown inside existing live cards, with no extra homepage secti
  assert.doesNotMatch(spa,/swapp-news-lives-extra-section|homeGameMatchPanel/);
  assert.match(spa,/id="homeLiveGrid1014"/);
 });
+
+test('only explicitly identified editorial games trigger game-ID discovery requests',()=>{
+ const articles=[
+  {slug:'fortnite-details',game:'Fortnite',title:'Fortnite : mise à jour'},
+  {slug:'news-generic',game:'Actualités',title:'Quelques nouvelles'},
+  {slug:'fortnite-today',game:'fortnite',title:'Le jeu cette semaine'},
+  {slug:'elden-ring-update',game:'Elden Ring',title:'Elden Ring : le DLC'},
+  {slug:'hades-announced',game:'Hades II',title:'Hades II arrive'}
+ ];
+ assert.deepEqual(curation.featuredGames(articles,2),['Fortnite','Elden Ring']);
+ assert.deepEqual(curation.featuredGames([{slug:'short',title:'Fortnite dévoile ses nouveautés'}],2),[]);
+ assert.deepEqual(curation.featuredGames([],2),[]);
+});
+
+test('game-specific discovery uses the existing verified API with strict request limits',()=>{
+ const spa=read('index_script.js');
+ const server=read('server.js');
+ assert.match(spa,/featuredGames\(latestArticleMatches,2\)/);
+ assert.match(spa,/api\/discovery\/game-lives\?limit=4&game=/);
+ assert.match(spa,/lastGameSearchKey/);
+ assert.match(spa,/liveDiscoveryRevision/);
+ assert.match(server,/app\.get\('\/api\/discovery\/game-lives'/);
+ assert.match(server,/games\?name=/);
+ assert.match(server,/game_id=/);
+ assert.doesNotMatch(read('assets/swapp-home-news.js'),/api\/discovery\/game-lives/);
+});
