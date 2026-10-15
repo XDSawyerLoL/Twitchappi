@@ -29,9 +29,12 @@
    const list=more.querySelector('.swapp-mobile-more-links');
    // Only the four principal links remain at the bottom of the screen.
    const primary=new Set(['/','/decouvrir','/actus','/communaute']);
+   const primaryLabels=new Set(['Accueil','Découvrir','Actualité','Communauté']);
    for(const a of [...mobile.children]){
-    if(a===more||!a.matches('a'))continue;
-    if(!primary.has(a.getAttribute('href')))list.append(a);
+    if(a===more||!a.matches('a,button'))continue;
+    const href=a.getAttribute('href');
+    const label=(a.textContent||'').trim();
+    if(!primary.has(href)&&!primaryLabels.has(label))list.append(a);
    }
    const community=[...mobile.children].filter(x=>x.matches('a[href="/communaute"]'));
    if(!community.length)mobile.insertBefore(mk('/communaute','Communauté'),more);
