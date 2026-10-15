@@ -45,7 +45,7 @@ test('single photo preserves proportions in a bounded scene instead of filling t
 
 test('page shells load versioned SPA, compat and CSS files',()=>{
  for(const text of [spa,layout]){
-  assert.match(text,/swapp-article-immersive\.css\?v=20261015-ratio-2/);
+  assert.match(text,/swapp-article-immersive\.css\?v=20261015-wide-editorial-3/);
   assert.match(text,/swapp-article-immersive-compat\.js\?v=20261015-wallpaper-v1/);
  }
  assert.match(spa,/swapp-actus-app\.js\?v=20261015-wallpaper-v1/);

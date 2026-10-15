@@ -17,11 +17,11 @@ body.swapp-editorial-route main.article-wrap > :not(.swapp-article-scene){
 .swapp-article-scene{
   position:absolute;top:0;left:50%;right:auto;bottom:auto;
   transform:translateX(-50%);z-index:0;pointer-events:none;
-  width:min(1360px,calc(100vw - 28px));height:auto;aspect-ratio:16/9;
-  max-height:760px;overflow:hidden;
+  width:100vw;height:auto;aspect-ratio:16/9;
+  max-height:none;overflow:hidden;
   background:radial-gradient(ellipse at 68% 21%,color-mix(in srgb,var(--brand,#9064e7) 16%,transparent),transparent 70%);
-  mask-image:linear-gradient(to bottom,#000 0%,#000 37%,rgba(0,0,0,.87) 60%,transparent 100%);
-  -webkit-mask-image:linear-gradient(to bottom,#000 0%,#000 37%,rgba(0,0,0,.87) 60%,transparent 100%);
+  mask-image:linear-gradient(to bottom,#000 0%,#000 39%,rgba(0,0,0,.5) 55%,transparent 73%);
+  -webkit-mask-image:linear-gradient(to bottom,#000 0%,#000 39%,rgba(0,0,0,.5) 55%,transparent 73%);
 }
 .swapp-article-scene img{
   position:absolute;inset:0;width:100%;height:100%;
@@ -50,31 +50,32 @@ body.swapp-editorial-route main.article-wrap > :not(.swapp-article-scene){
 #actus .swapp-actus-native.swapp-actus-reading .swapp-immersive-hero,
 body.swapp-editorial-route .article-wrap > .swapp-immersive-hero{
   position:relative;box-sizing:border-box;isolation:auto;overflow:visible;
-  width:100%!important;max-width:1080px!important;
+  width:calc(100% - clamp(28px,5vw,110px))!important;max-width:1360px!important;
   margin:0 auto!important;padding:0!important;
-  min-height:clamp(360px,44vw,575px);
+  min-height:clamp(360px,43vw,610px);
   background:none!important;border:0!important;border-radius:0!important;
   box-shadow:none!important;transform:none!important;text-align:left!important
 }
 .swapp-immersive-hero::before,.swapp-immersive-hero::after{content:none!important;display:none!important}
 .swapp-immersive-hero .swapp-immersive-bg{display:none!important}
 .swapp-immersive-content{
-  min-height:inherit;max-width:820px;
+  min-height:inherit;max-width:1040px;
   display:flex;flex-direction:column;align-items:flex-start;justify-content:center;
-  box-sizing:border-box;padding:clamp(45px,6svh,90px) clamp(16px,3.3vw,45px) clamp(42px,6svh,92px)!important;
+  box-sizing:border-box;padding:clamp(40px,5svh,80px) clamp(8px,1.5vw,20px) clamp(32px,5svh,76px)!important;
 }
 .swapp-immersive-hero :is(h1,.article-title,.swapp-actus-summary,.article-deck){
   text-align:left!important;margin-left:0!important;margin-right:0!important;
-  max-width:820px!important;color:#fff!important;
+  max-width:1000px!important;color:#fff!important;
   text-shadow:0 3px 20px rgba(0,0,0,.46);
 }
 .swapp-immersive-hero :is(h1,.article-title){
-  max-width:800px!important;font-size:clamp(40px,5.6vw,84px)!important;
-  line-height:1.015!important;letter-spacing:-.063em!important;
-  font-weight:900!important;margin:22px 0 20px!important;text-wrap:balance
+  max-width:970px!important;font-size:clamp(36px,3.65vw,62px)!important;
+  line-height:1.095!important;letter-spacing:-.048em!important;
+  font-weight:850!important;margin:19px 0 18px!important;text-wrap:balance;
+  display:block!important;overflow:visible!important;-webkit-line-clamp:unset!important;line-clamp:unset!important;
 }
 .swapp-immersive-hero :is(.article-deck,.swapp-actus-summary){
-  max-width:650px!important;font-size:clamp(16px,1.55vw,21px)!important;
+  max-width:830px!important;font-size:clamp(16px,1.36vw,19px)!important;
   line-height:1.55!important;margin:0 0 20px!important;color:#e5edfa!important;
 }
 .swapp-immersive-hero :is(.article-byline,.swapp-actus-author){
@@ -109,19 +110,23 @@ body.swapp-editorial-route .article-wrap > .swapp-immersive-hero{
   font-size:11px!important;line-height:1.35;text-align:left!important;
 }
 .swapp-immersive-hero .swapp-immersive-credit{opacity:.74;margin-top:17px!important}
-/* Reading is the only frosted surface. No extra unrelated decorative panels. */
+/* Open magazine-style reading: no dark floating card or excessive framing. */
 #actus .swapp-actus-native.swapp-actus-reading .swapp-actus-article{
-  width:min(1100px,100%);max-width:1100px;margin:0 auto 70px
+  width:min(1420px,100%);max-width:1420px;margin:0 auto 70px
 }
 #actus .swapp-actus-article .swapp-actus-body,
 body.swapp-editorial-route .article-wrap > .article-body{
-  max-width:920px!important;width:100%;box-sizing:border-box;
-  margin:0 auto!important;padding:clamp(26px,4.2vw,68px)!important;
-  background:rgba(8,13,24,.88)!important;color:#ecf1fa!important;
-  border:1px solid rgba(204,220,248,.10);
-  border-radius:20px;box-shadow:0 20px 65px rgba(0,0,0,.18);
-  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
-  line-height:1.8;
+  max-width:1190px!important;width:calc(100% - clamp(20px,5vw,100px));box-sizing:border-box;
+  margin:0 auto!important;padding:clamp(34px,4vw,56px) clamp(22px,3.8vw,64px)!important;
+  background:linear-gradient(90deg,transparent,rgba(8,13,24,.69) 7%,rgba(8,13,24,.80) 50%,rgba(8,13,24,.69) 93%,transparent)!important;
+  color:#ecf1fa!important;
+  border:0!important;border-radius:0!important;box-shadow:none!important;
+  backdrop-filter:none!important;-webkit-backdrop-filter:none!important;
+  line-height:1.78;
+}
+#actus .swapp-actus-article .swapp-actus-body > :is(p,h2,h3,h4,ul,ol,blockquote,pre),
+body.swapp-editorial-route .article-wrap > .article-body > :is(p,h2,h3,h4,ul,ol,blockquote,pre){
+  max-width:86ch;margin-left:auto;margin-right:auto;
 }
 #actus .swapp-actus-article .swapp-actus-body :is(p,li),
 body.swapp-editorial-route .article-body :is(p,li){color:#e4ebf7}
@@ -129,32 +134,36 @@ body.swapp-editorial-route .article-body :is(p,li){color:#e4ebf7}
 body.swapp-editorial-route .article-wrap > :is(.sources-panel,.swapp-article-related){
   max-width:920px;margin-left:auto;margin-right:auto
 }
-body.swapp-editorial-route .article-wrap{width:min(1160px,calc(100% - 30px));max-width:1160px}
-body.swapp-editorial-route .article-wrap>.breadcrumb{max-width:1080px;margin-left:auto;margin-right:auto}
-body.swapp-editorial-route .article-wrap>.story-actions{max-width:920px;margin-left:auto;margin-right:auto}
+body.swapp-editorial-route .article-wrap{width:min(1550px,100%);max-width:1550px;padding:0 clamp(12px,2vw,28px)}
+body.swapp-editorial-route .article-wrap>.breadcrumb{max-width:1300px;margin-left:auto;margin-right:auto}
+body.swapp-editorial-route .article-wrap>.story-actions{max-width:1100px;margin-left:auto;margin-right:auto}
 /* Keep old article-cover elements hidden if an early cached renderer emitted one. */
 #actus .swapp-actus-article>.swapp-reader-hero-figure,
 body.swapp-editorial-route .article-wrap>figure:has(img.cover-img){display:none!important}
 @media(min-width:1650px){
- .swapp-immersive-hero{min-height:min(48vw,600px)}
+ .swapp-immersive-hero{min-height:min(44vw,660px)}
 }
 @media(max-width:700px){
- .swapp-article-scene{width:calc(100vw - 16px);height:auto;aspect-ratio:16/9;max-height:none;top:0}
+ .swapp-article-scene{width:100vw;height:auto;aspect-ratio:16/9;max-height:none;top:0}
  .swapp-article-scene img{object-position:center top;object-fit:contain;filter:brightness(.68) saturate(1.04)}
  .swapp-article-scene::before{background:linear-gradient(0deg,#080c16 0%,rgba(5,9,17,.87) 28%,rgba(5,9,17,.43) 72%,rgba(5,9,17,.38) 100%)}
- .swapp-immersive-hero{min-height:clamp(370px,57svh,530px)}
- .swapp-immersive-content{justify-content:flex-end;padding:clamp(38px,8vw,56px) 10px clamp(43px,9svh,82px)!important;max-width:100%}
- .swapp-immersive-hero :is(h1,.article-title){font-size:clamp(34px,8.4vw,49px)!important;line-height:1.055!important}
+ .swapp-immersive-hero{width:calc(100% - 18px)!important;min-height:clamp(360px,53svh,540px)}
+ .swapp-immersive-content{justify-content:flex-end;padding:clamp(32px,7vw,50px) 6px clamp(34px,7svh,74px)!important;max-width:100%}
+ .swapp-immersive-hero :is(h1,.article-title){font-size:clamp(29px,7.25vw,45px)!important;line-height:1.1!important}
  .swapp-immersive-hero :is(.article-deck,.swapp-actus-summary){font-size:16px!important}
  .swapp-immersive-hero .swapp-reader-controls{justify-content:flex-start;gap:9px}
  .swapp-immersive-hero .swapp-read-time{width:100%;margin-right:0}
  #actus .swapp-actus-article .swapp-actus-body,body.swapp-editorial-route .article-wrap>.article-body{
-   padding:26px 19px!important;border-radius:16px;backdrop-filter:none;-webkit-backdrop-filter:none;background:rgba(8,13,24,.94)!important
+   width:100%;padding:24px 13px!important;border:0!important;border-radius:0!important;
+   backdrop-filter:none;-webkit-backdrop-filter:none;
+   background:linear-gradient(180deg,rgba(8,13,24,.92),rgba(8,13,24,.96))!important
  }
+ #actus .swapp-actus-article .swapp-actus-body > :is(p,h2,h3,h4,ul,ol,blockquote,pre),
+ body.swapp-editorial-route .article-wrap>.article-body > :is(p,h2,h3,h4,ul,ol,blockquote,pre){max-width:100%}
 }
 @media(prefers-reduced-motion:reduce){.swapp-article-scene img{transform:none}}
 @media(prefers-contrast:more){
  .swapp-article-scene::before{background:rgba(4,8,16,.77)}
- #actus .swapp-actus-article .swapp-actus-body,body.swapp-editorial-route .article-wrap>.article-body{background:#080d19!important;border-color:#e1ecff}
+ #actus .swapp-actus-article .swapp-actus-body,body.swapp-editorial-route .article-wrap>.article-body{background:#080d19!important;border:0!important}
  .swapp-immersive-hero .swapp-reader-kicker span{backdrop-filter:none}
 }
