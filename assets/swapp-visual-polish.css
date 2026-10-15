@@ -75,3 +75,13 @@ header.top #userMenu .topThemeColors button:hover,header.top #userMenu .themeMen
 header.top #userMenu .topThemeColors :is(input,button):focus-visible,header.top #userMenu .themeMenuRow :is(input,button):focus-visible{outline:2px solid var(--swapp-focus);outline-offset:2px}
 @media(max-width:550px){header.top #userMenu.swapp-account-enhanced{top:75px;max-height:calc(100dvh - 94px)}}
 @media(prefers-reduced-motion:reduce){header.top #userMenu .topThemeColors button:hover,header.top #userMenu .themeMenuRow button:hover{transform:none}}
+
+/* Privacy controls live inside the account dropdown, not on the homepage. */
+header.top #userMenu .swapp-account-tastes{margin-top:5px;padding:5px 10px 9px;border-top:1px solid #344158}
+header.top #userMenu .swapp-account-tastes>summary{cursor:pointer;padding:9px 3px;font-size:12px;font-weight:800;color:#b8d5e6}
+header.top #userMenu .swapp-account-tastes>summary:focus-visible{outline:2px solid var(--swapp-focus);outline-offset:2px}
+header.top #userMenu .swapp-account-tastes>p{margin:4px 2px 11px;color:#aabacf;font-size:12px;line-height:1.5}
+header.top #userMenu .swapp-account-tastes-actions{display:flex;flex-wrap:wrap;gap:7px}
+header.top #userMenu .swapp-account-tastes-actions button{width:auto;min-height:34px;padding:8px 10px;background:#18283a;border:1px solid #354b64;font-size:11px;font-weight:750;color:#dfecf5}
+header.top #userMenu .swapp-account-tastes-actions button:hover{border-color:#779aaa;background:#23384c}
+header.top #userMenu .swapp-account-tastes-actions button:disabled{opacity:.45;cursor:default}
