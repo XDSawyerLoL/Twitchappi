@@ -23,7 +23,7 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
   const slugOk = s => /^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/.test(String(s||''));
   const available=(req,res,next)=>isReady() ? next() : res.status(503).json({error:'news_storage_unavailable'});
   const sendError=(res,e)=>res.status(400).json({error:e.message || 'Article invalide'});
-  const isValidation=e=>/Article|Titre|Slug|source|URL|Résumé|Crédit|droits|Date|JustPlayer/.test(String(e?.message||''));
+  const isValidation=e=>/Article|Titre|Slug|source|URL|Résumé|Crédit|droits|Date|JustPlayer|Contenu|Type de publication|vidéo|commercial|liens|Lien/.test(String(e?.message||''));
   const published=async()=>{
     const snap=await articles.where('status','==','published').limit(60).get();
     const original=snap.docs.map(x=>x.data());
