@@ -58,7 +58,12 @@
     '<strong>'+escape(link.title)+'</strong><small>'+escape(link.merchant)+' ↗</small></a>'
    ).join('')+'</div></aside>';
  }
- function renderServer(article){return trailerHtml(article)+linkHtml(article)}
+ function discussionHtml(article){
+  const slug=String(article?.slug||'');
+  if(!/^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/.test(slug))return '';
+  return '<p class="swapp-article-discuss"><a href="/communaute?article='+encodeURIComponent(slug)+'">En discuter avec la communauté SWAPP →</a></p>';
+ }
+ function renderServer(article){return trailerHtml(article)+linkHtml(article)+discussionHtml(article)}
  function mount(node,article){
   if(typeof document==='undefined'||!node)return;
   const parser=document.createElement('div');
