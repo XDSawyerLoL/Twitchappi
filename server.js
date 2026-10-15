@@ -308,7 +308,7 @@ app.use(helmet({
       styleSrc: ["'self'", "'unsafe-inline'", "https:"],
       scriptSrc: ["'self'", "'unsafe-inline'", "https:"],
       connectSrc: ["'self'", "https:", "wss:", "ws:"],
-      frameSrc: ["'self'", "https://player.twitch.tv", "https://www.twitch.tv", "https://embed.twitch.tv", "https://www.youtube.com", "https://www.youtube-nocookie.com", "https://www.youtube.com/embed", "https://www.youtube-nocookie.com/embed"],
+      frameSrc: ["'self'", "https://player.twitch.tv", "https://www.twitch.tv", "https://embed.twitch.tv", "https://www.youtube.com", "https://www.youtube-nocookie.com", "https://www.youtube.com/embed", "https://www.youtube-nocookie.com/embed", "https://justplayer.fr", "https://www.justplayer.fr", "https://googleads.g.doubleclick.net", "https://tpc.googlesyndication.com"],
     }
   } : false
 }));
@@ -877,6 +877,8 @@ app.use('/api/swapp/social',authLimiter,createSocialRouter({express,fetchImpl:fe
 // Complete SOCIAL transport. The browser never contacts QuanticMinds directly.
 const {createSocialNativeProxy}=require('./modules/swapp-social-native-proxy');
 app.use('/api/pulse',authLimiter,createSocialNativeProxy(fetchWithTimeout,{production:IS_PROD}));
+// Social client changes must propagate rapidly; its ES imports do not carry cache query tags.
+app.use('/assets/swapp-social-native', express.static(path.join(__dirname, 'assets/swapp-social-native'), {...staticOptions,maxAge:'1m'}));
 app.use('/assets', express.static(path.join(__dirname, 'assets'), staticOptions));
 function sendPublicFile(res, file, type){
   const full = path.join(__dirname, file);
