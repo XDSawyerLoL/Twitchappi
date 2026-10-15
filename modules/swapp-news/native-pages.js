@@ -53,8 +53,19 @@ function renderNewsStory(article,{baseUrl='https://swapp.tv'}={}){
  const url=baseUrl+'/actus/'+encodeURIComponent(article.slug);
  const summary=plainSummary(article);
  const published=article.publishedAt||article.originalPublishedAt;
- const jsonLd=JSON.stringify({'@context':'https://schema.org','@type':'NewsArticle',headline:article.title,description:summary,datePublished:published,dateModified:article.updatedAt,mainEntityOfPage:url,author:{'@type':'Person',name:article.author||'Rédaction SWAPP'}}).replace(/</g,'\\u003c');
- const metadata=`<link rel="canonical" href="${escapeHtml(url)}"><meta property="og:type" content="article"><meta property="og:url" content="${escapeHtml(url)}"><meta property="og:title" content="${escapeHtml(article.title)}"><meta property="og:description" content="${escapeHtml(summary)}">${article.image?.url?`<meta property="og:image" content="${escapeHtml(article.image.url)}">`:''}<script type="application/ld+json">${jsonLd}</script>`;
+ const seoTitle=String(article.seo?.title||article.title).slice(0,70);
+ const seoDescription=String(article.seo?.description||summary).slice(0,160);
+ const tags=Array.isArray(article.tags)?article.tags.filter(v=>typeof v==='string').slice(0,12):[];
+ const isVideo=['video','trailer'].includes(article.contentType);
+ const videoId=isVideo?require('../../assets/swapp-article-extras').trailerId(article.trailerUrl):null;
+ const schema={'@context':'https://schema.org','@type':isVideo?'VideoObject':'NewsArticle',
+   name:seoTitle,headline:seoTitle,description:seoDescription,
+   datePublished:published,dateModified:article.updatedAt,mainEntityOfPage:url,
+   author:{'@type':'Person',name:article.author||'Rédaction SWAPP'},
+   keywords:tags.join(', '),...(videoId?{embedUrl:'https://www.youtube-nocookie.com/embed/'+videoId,
+      thumbnailUrl:article.image?.url||'https://i.ytimg.com/vi/'+videoId+'/hqdefault.jpg'}:{})};
+ const jsonLd=JSON.stringify(schema).replace(/</g,'\\u003c');
+ const metadata=`<link rel="canonical" href="${escapeHtml(url)}"><meta name="keywords" content="${escapeHtml(tags.join(', '))}"><meta property="og:type" content="${isVideo?'video.other':'article'}"><meta property="og:url" content="${escapeHtml(url)}"><meta property="og:title" content="${escapeHtml(seoTitle)}"><meta property="og:description" content="${escapeHtml(seoDescription)}">${article.image?.url?`<meta property="og:image" content="${escapeHtml(article.image.url)}">`:''}<script type="application/ld+json">${jsonLd}</script>`;
  const cover=article.image?.url?`<figure><img class="cover-img" src="${escapeHtml(article.image.url)}" alt="${escapeHtml(article.title)}"><figcaption class="image-credit">${escapeHtml(article.image.credit||'')}</figcaption></figure>`:'';
  const sources=(article.sources||[]).map(s=>`<li><a href="${escapeHtml(s.url)}" rel="nofollow noopener noreferrer" target="_blank">${escapeHtml(s.label||s.url)}</a></li>`).join('');
  const liveSection=`<aside class="swapp-article-related swapp-media-section" data-swapp-live-shelf data-game="${escapeHtml(article.game||'')}"><div class="swapp-media-heading"><div><span class="swapp-media-kicker">Actualités & lives</span><h2>${article.game?'En direct sur '+escapeHtml(article.game):'Les créateurs en direct'}</h2><p>Un article peut mener à un live. Les suggestions suivent le jeu de l’article lorsqu’il est renseigné.</p></div><a class="swapp-media-button" href="/decouvrir">Tous les lives →</a></div><div class="swapp-live-grid" data-live-results><p class="swapp-live-notice">Recherche des lives…</p></div></aside>`;
