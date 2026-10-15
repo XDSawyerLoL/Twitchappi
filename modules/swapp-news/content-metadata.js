@@ -12,7 +12,7 @@ const TITLES=[
  'World of Warcraft','Genshin Impact','The Legend of Zelda','Call of Duty'
 ];
 const extraAliases={
- 'BioShock':['Bioshock','Rapture'],
+ 'BioShock':['Bioshock'],
  'CODE VEIN II':['CODE VEIN 2','Code Vein II'],
  'Solasta II':['Solasta 2'],
  'Planet Zoo 2':['Planet Zoo II'],
