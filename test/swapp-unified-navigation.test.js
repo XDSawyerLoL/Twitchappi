@@ -8,7 +8,7 @@ const {layout}=require('../modules/swapp-news/site-shell');
 const {renderNewsHome,renderNewsStory}=require('../modules/swapp-news/native-pages');
 const {renderTwitchWatch}=require('../modules/swapp-news/watch');
 const ROOT=path.resolve(__dirname,'..');
-const expected=['Accueil','Découvrir','Catégories','Équipes','Actualité'];
+const expected=['Accueil','Découvrir','Catégories','Équipes','Actualité','Communauté','Vidéos','Boutique'];
 test('même contrat de menu pour toutes les pages SWAPP',()=>{
  assert.deepEqual(items.map(x=>x.label),expected);
  assert.equal(account.label,'Compte');
@@ -38,10 +38,10 @@ test('le serveur utilise la barre et les identifiants exacts du site de lives',(
 test('le site client charge le même contrat avant le script SPA',()=>{
  const html=fs.readFileSync(path.join(ROOT,'index.html'),'utf8');
  const script=fs.readFileSync(path.join(ROOT,'index_script.js'),'utf8');
- assert.ok(html.indexOf('src="/assets/swapp-navigation.js?v=20261015-livegrid-32"') < html.indexOf('src="/index_script.js'));
+ assert.ok(html.indexOf('src="/assets/swapp-navigation.js?v=20261015-hubs-2"') < html.indexOf('src="/index_script.js'));
  assert.match(script,/window\.SwappNavigation/);
- assert.match(html,/href="\/assets\/swapp-unified-nav\.css\?v=20261015-mobile-audit-42"/);
- assert.match(layout({content:''}),/href="\/assets\/swapp-unified-nav\.css\?v=20261015-mobile-audit-42"/);
+ assert.match(html,/href="\/assets\/swapp-unified-nav\.css\?v=20261015-hubs-2"/);
+ assert.match(layout({content:''}),/href="\/assets\/swapp-unified-nav\.css\?v=20261015-hubs-2"/);
 });
 test('pages article, actualités et live partagent le même menu et SWAPP reste SWAPP',()=>{
  const story={slug:'jeu-2026',title:'Un jeu annoncé',body:'Une analyse assez complète pour découvrir cette actualité.',summary:'Un résumé de l’article',category:'ACTUS',author:'SWAPP',game:'Fortnite',sources:[],publishedAt:'2026-10-14T20:00:00Z'};
@@ -71,4 +71,14 @@ test('navigation mobile compacte sans défilement horizontal',()=>{
  assert.match(shared,/overflow-x:hidden/);
  assert.match(shared,/min-height:40px/);
  assert.match(shared,/env\(safe-area-inset-bottom\)/);
+});
+
+test('SOCIAL, videos and shop remain in the shared mobile menu',()=>{
+ const menu=serverMobile('community');
+ assert.match(menu,/class="swapp-mobile-more"/);
+ assert.match(menu,/href="\/communaute"[^>]*aria-current="page"/);
+ assert.match(menu,/href="\/bandes-annonces"/);
+ assert.match(menu,/href="\/boutique"/);
+ const home=require('../assets/swapp-navigation').serverHeader('shop');
+ assert.match(home,/href="\/boutique"[^>]*aria-current="page"/);
 });
