@@ -1,6 +1,6 @@
 export const API_BASE=''; // same-origin SWAPP proxy: no third-party requests from the browser
 export const TOKEN_KEY='swapp_social_session_v1';
-export const state={token:sessionStorage.getItem(TOKEN_KEY)||'',user:null,feed:'following',view:'home',replyTo:null,authMode:'login',attachment:null};
+export const state={token:(()=>{try{return sessionStorage.getItem(TOKEN_KEY)||''}catch{return ''}})(),user:null,feed:'discover',view:'home',replyTo:null,authMode:'login',attachment:null};
 
 export const dom={
   feed:document.getElementById('pulse-feed'),
