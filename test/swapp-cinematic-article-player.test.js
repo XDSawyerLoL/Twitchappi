@@ -142,8 +142,8 @@ test('the existing articles and stream cards expose accessible inline play witho
  const html=read('index.html');
  const css=read('assets/swapp-art-direction.css');
  const main=read('index_script.js');
- assert.ok(html.indexOf('/assets/swapp-article-player.js?v=20261015-player-40') <
-   html.indexOf('/assets/swapp-actus-app.js?v=20261015-player-40'));
+ assert.ok(html.indexOf('/assets/swapp-article-player.js?v=20261015-player-41') <
+   html.indexOf('/assets/swapp-actus-app.js?v=20261015-player-41'));
  assert.match(app,/swapp-reader-live-inline/);
  assert.match(app,/SwappArticlePlayer\?\.open/);
  assert.match(app,/SwappArticlePlayer\?\.close\(\)/);
