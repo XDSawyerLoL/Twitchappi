@@ -62,6 +62,19 @@
   }
   return best;
  }
+ function featuredGames(articles,limit=2){
+  const games=[],seen=new Set();
+  for(const article of Array.isArray(articles)?articles.slice(0,8):[]){
+   const game=articleGame(article);
+   const normalized=normalizeGame(game);
+   if(normalized.length<4||genericGames.has(normalized)||seen.has(normalized))continue;
+   if(!/^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/.test(String(article?.slug||'')))continue;
+   seen.add(normalized);
+   games.push(game);
+   if(games.length>=limit)break;
+  }
+  return games;
+ }
  function curateHomeLives(swappItems,twitchItems,limit=12,articles=[]){
   const out=[],seen=new Set();
   let nativeCount=0,twitchCount=0,skippedReplay=0;
@@ -82,5 +95,5 @@
   })))add(item,'twitch',match);
   return {items:out,nativeCount,twitchCount,skippedReplay,matchedCount:out.filter(item=>item.swappNewsMatch).length};
  }
- return Object.freeze({curateHomeLives,isLoopReplay,loginOf,matchLiveToArticle,normalizeGame});
+ return Object.freeze({curateHomeLives,isLoopReplay,loginOf,matchLiveToArticle,normalizeGame,featuredGames});
 });
