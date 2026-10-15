@@ -47,10 +47,10 @@ test('single photo preserves proportions in a bounded scene instead of filling t
 
 test('page shells load versioned SPA, compat and CSS files',()=>{
  for(const text of [spa,layout]){
-  assert.match(text,/swapp-article-immersive\.css\?v=20261015-editorial-reset-5/);
+  assert.match(text,/swapp-article-immersive\.css\?v=20261015-soft-edge-6/);
   assert.match(text,/swapp-article-immersive-compat\.js\?v=20261015-wallpaper-v1/);
  }
- assert.match(spa,/swapp-actus-app\.js\?v=20261015-editorial-reset-5/);
+ assert.match(spa,/swapp-actus-app\.js\?v=20261015-soft-edge-6/);
 });
 
 test('only targeted article assets bypass caching',()=>{
