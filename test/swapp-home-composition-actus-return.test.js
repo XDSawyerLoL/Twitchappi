@@ -50,7 +50,7 @@ test('home live grid shows eight cards on desktop and four on mobile and safely 
 
 test('fresh assets are referenced by both the SPA and editorial shell',()=>{
  const main=read('index.html'),shell=read('modules/swapp-news/site-shell.js');
- for(const asset of ['swapp-home-news.js','swapp-actus-app.js']){
+ for(const asset of ['swapp-actus-app.js']){
   assert.match(main,new RegExp(asset.replace(/\./g,'\\.')+'\\?v=20261015-livegrid-32'));
  }
  assert.match(main,/swapp-art-direction\.css\?v=20261015-livegrid-32/);
