@@ -15,7 +15,7 @@ function community(){
  const content=fs.readFileSync(path.join(__dirname,'../assets/swapp-social-native/social-body.html'),'utf8');
  const scripts=assets+
   '<link rel="stylesheet" href="/assets/swapp-social-native/social-swapp.css?v=20261015-full-social-3">'+
-  '<script type="module" src="/assets/swapp-social-native/app.js?v=20261015-full-social-3"></script>';
+  '<script type="module" src="/assets/swapp-social-native/app.js?v=20261015-full-social-4"></script>';
  return layout({title:'Communauté',description:'Le réseau SOCIAL complet intégré dans SWAPP : profils, publications, communautés et messagerie.',content,active:'community',scripts});
 }
 function verifiedTrailers(items=catalog.items){
