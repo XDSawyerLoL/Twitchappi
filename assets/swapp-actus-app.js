@@ -98,7 +98,7 @@ for(const [i,heading] of sections.entries()){
  addTocLink(heading.textContent,heading.id,heading.tagName==='H3');
 }
 if(!sections.length){
- if(a.sources?.length)addTocLink('Sources et références','swapp-article-sources');
+ if(a.sources?.some(source=>url(source.url)))addTocLink('Sources et références','swapp-article-sources');
  if(a.game)addTocLink('Créateurs en direct','swapp-article-lives');
 }
 reading.append(toc);
