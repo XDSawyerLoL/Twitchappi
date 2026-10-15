@@ -1,6 +1,6 @@
 /* SWAPP video viewer: external players load only after explicit click.
- * YouTube official embeds are direct. Fourthwall's playback may be restricted
- * by membership permissions or by frame-ancestors; never bypass access rules.
+ * The SWAPP player must NEVER embed a Fourthwall web page: those pages
+ * reject third-party frames. Only publisher-hosted YouTube videos are playable.
  */
 (()=>{'use strict';
  if(window.SwappVideoViewer)return;
@@ -22,7 +22,11 @@
   const title=String(trigger.dataset.videoTitle||'Vidéo SWAPP').slice(0,180);
   const source=validSource(trigger.dataset.videoSource);
   const youtube=/^[A-Za-z0-9_-]{11}$/.test(trigger.dataset.videoYoutube||'')?trigger.dataset.videoYoutube:null;
-  if(!source&&!youtube)return;
+  if(!youtube){
+   // Legacy cards can survive in browser cache. Do not open a broken iframe.
+   if(source)window.open(source,'_blank','noopener,noreferrer');
+   return;
+  }
   close();previousFocus=trigger;
   const el=(tag,cls,text)=>{
    const n=document.createElement(tag);
@@ -47,12 +51,15 @@
   frame.referrerPolicy='strict-origin-when-cross-origin';
   frame.allow='autoplay; encrypted-media; picture-in-picture; fullscreen';
   frame.allowFullscreen=true;
-  frame.src=youtube?'https://www.youtube-nocookie.com/embed/'+youtube+'?autoplay=1&rel=0':source;
+  frame.src='https://www.youtube-nocookie.com/embed/'+youtube+'?autoplay=1&rel=0&playsinline=1';
   stage.append(frame);
   const bottom=el('div','swapp-video-stage-fallback');
-  bottom.append(el('span','',youtube?
-   'Bande-annonce hébergée sur YouTube, lancée uniquement après ton clic.':
-   'Vidéo JustPlayer : sa lecture intégrée dépend des autorisations Fourthwall et peut nécessiter un compte.'));
+  bottom.append(el('span','',
+   'Si le lecteur est désactivé par l’éditeur, ouvre la bande-annonce sur YouTube.'));
+  const watch=el('a','','Regarder sur YouTube ↗');
+  watch.href='https://www.youtube.com/watch?v='+youtube;
+  watch.target='_blank';watch.rel='noopener noreferrer';
+  bottom.append(watch);
   if(source){
    const link=el('a','','Voir la publication originale ↗');
    link.href=source;link.target='_blank';link.rel='noopener noreferrer';
