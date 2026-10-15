@@ -441,3 +441,28 @@ body.swapp-editorial-route .article-wrap > .swapp-reading-progress{
     grid-column:1/-1;
   }
 }
+
+
+/* Native Google AdSense 'in-article' ad: clean, clearly labelled and never
+   passed off as editorial content or inserted beside controller navigation. */
+:is(#actus,body.swapp-editorial-route) .swapp-article-reading .swapp-ad-placement{
+  display:block;min-width:0;width:100%;max-width:100%;
+  box-sizing:border-box;overflow:hidden;
+  margin:36px auto;padding:12px 0 16px;
+  border-top:1px solid rgba(197,213,235,.15);
+  border-bottom:1px solid rgba(197,213,235,.15);
+  background:transparent;color:#c4d2e1;
+}
+:is(#actus,body.swapp-editorial-route) .swapp-ad-placement .swapp-ad-label{
+  display:block;text-align:center;margin:0 0 12px;
+  color:#a9b8c9;font-size:10px;font-weight:650;
+  letter-spacing:.10em;text-transform:uppercase;
+}
+:is(#actus,body.swapp-editorial-route) .swapp-ad-placement > .adsbygoogle{
+  display:block;text-align:center;min-width:250px;max-width:100%;
+}
+@media(max-width:700px){
+  :is(#actus,body.swapp-editorial-route) .swapp-article-reading .swapp-ad-placement{
+    margin:26px auto;padding:10px 0 14px;
+  }
+}
