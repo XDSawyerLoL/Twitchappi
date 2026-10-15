@@ -39,7 +39,7 @@ async function render(articles){
  const hero=new Element('div');hero.className='homeHeroInner1014';
  const live=new Element('section');live.className='homeLiveSection1014';main.append(hero,live);
  const timers=[];const calls=[];
- const document={getElementById:id=>id==='home'?root:null,createElement:tag=>new Element(tag)};
+ const document={getElementById:id=>id==='home'?root:null,createElement:tag=>new Element(tag),addEventListener(){},visibilityState:'visible'};
  const fetch=async url=>{calls.push(url);return {ok:true,json:async()=>url==='/api/actus'?{articles}:{items:[]}}};
  const context={document,window:{addEventListener(){},dispatchEvent(){}},CustomEvent:class{constructor(type,options){this.type=type;this.detail=options?.detail}},MutationObserver:class{observe(){}},
   setTimeout:cb=>timers.push(cb),fetch,AbortSignal,URL};
