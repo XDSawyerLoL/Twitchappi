@@ -32,7 +32,7 @@ test('Actualité shares its responsive background on both the list and article v
 test('new CSS and runtime versions are loaded by the SPA and the editorial shell',()=>{
  const html=read('index.html');
  const shell=read('modules/swapp-news/site-shell.js');
- assert.match(html,/swapp-art-direction\.css\?v=20261015-cinematic-38/);
+ assert.match(html,/swapp-art-direction\.css\?v=20261015-player-39/);
  assert.match(html,/index_script\.js\?v=20261015-cinematic-38/);
- assert.match(shell,/swapp-art-direction\.css\?v=20261015-cinematic-38/);
+ assert.match(shell,/swapp-art-direction\.css\?v=20261015-player-39/);
 });
