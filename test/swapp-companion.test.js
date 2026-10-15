@@ -12,9 +12,9 @@ test('Mairy and events exist in SPA and editorial pages without another top menu
  const home=read('index.html');
  const article=layout({content:'<main>Article</main>'});
  for(const html of [home,article]){
-  assert.match(html,/swapp-mairy\.css\?v=20261015-companion-3/);
-  assert.match(html,/swapp-companion-core\.js\?v=20261015-companion-3/);
-  assert.match(html,/swapp-mairy\.js\?v=20261015-companion-3/);
+  assert.match(html,/swapp-mairy\.css\?v=20261015-companion-4/);
+  assert.match(html,/swapp-companion-core\.js\?v=20261015-companion-4/);
+  assert.match(html,/swapp-mairy\.js\?v=20261015-companion-4/);
   assert.ok(html.indexOf('swapp-companion-core.js')<html.indexOf('swapp-mairy.js'));
  }
  assert.doesNotMatch(article,/class="swapp-companion-panel"/);
@@ -63,7 +63,7 @@ test('events require explicit opt in, prompt data is not sent to external servic
  assert.match(app,/Pas de voix ni d'IA conversationnelle simulées/);
  assert.doesNotMatch(app,/Notification\.requestPermission|speechSynthesis|SpeechRecognition/);
  assert.doesNotMatch(app,/fetch\(['"]https?:\/\//);
- assert.match(app,/Prototype SOCIAL|prototype SOCIAL|prototype communautaire/);
+ assert.match(app,/SOCIAL est accessible dans la rubrique Communauté/);
  assert.match(app,/\/api\/swapp\/social-preview/);
 });
 
