@@ -81,7 +81,7 @@ test('uniform desktop styling covers both buttons and links, and assets are cach
  const home=fs.readFileSync(path.join(ROOT,'index.html'),'utf8');
  const shell=fs.readFileSync(path.join(ROOT,'modules/swapp-news/site-shell.js'),'utf8');
  for(const source of [home,shell]){
-  assert.match(source,/swapp-hub-nav\.js\?v=20261015-community-restore-10/);
-  assert.match(source,/swapp-unified-nav\.css\?v=20261015-community-restore-10/);
+  assert.match(source,/swapp-hub-nav\.js\?v=20261015-perf-1/);
+  assert.match(source,/swapp-unified-nav\.css\?v=20261015-nav-dedup-9/);
  }
 });
