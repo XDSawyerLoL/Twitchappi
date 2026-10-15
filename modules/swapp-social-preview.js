@@ -22,7 +22,7 @@ function normalizePublicPosts(raw){
    handle:clean(author.handle,30),
    createdAt:Number.isNaN(created.getTime())?null:created.toISOString()
   });
-  if(out.length>=5)break;
+  if(out.length>=24)break;
  }
  return out;
 }
@@ -31,7 +31,7 @@ function createPreviewHandler(fetchImpl){
  return async function preview(_req,res){
   res.set('Cache-Control','no-store');
   try{
-   const response=await fetchImpl(SOCIAL_ORIGIN+'/api/pulse/feed?mode=discover&limit=5',
+   const response=await fetchImpl(SOCIAL_ORIGIN+'/api/pulse/feed?mode=following&limit=24',
     {headers:{Accept:'application/json'},redirect:'error',size:160000},4500);
    if(!response.ok)throw Error('social_http_'+response.status);
    const posts=normalizePublicPosts(await response.json());
