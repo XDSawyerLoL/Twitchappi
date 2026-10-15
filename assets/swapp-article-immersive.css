@@ -74,3 +74,23 @@ body.swapp-editorial-route .article-wrap>.sources-panel{position:relative}
 }
 @media(prefers-reduced-motion:reduce){.swapp-immersive-bg img{transform:none}}
 @media(prefers-contrast:more){.swapp-immersive-hero:before{background:rgba(2,5,11,.86)}}
+
+/* The cover also casts a soft ambient reflection across the entire article.
+   It is always decorative: article text retains solid surfaces and contrast. */
+#actus .swapp-actus-native.swapp-actus-reading,
+body.swapp-editorial-route .article-wrap{position:relative;isolation:isolate}
+.swapp-immersive-atmosphere{position:absolute;z-index:-1;top:-100px;left:50%;
+ transform:translateX(-50%);height:min(980px,110vh);width:100vw;max-width:none;
+ opacity:.31;overflow:hidden;pointer-events:none;
+ mask-image:linear-gradient(180deg,transparent 0%,#000 13%,#000 56%,transparent 100%);
+ -webkit-mask-image:linear-gradient(180deg,transparent 0%,#000 13%,#000 56%,transparent 100%)}
+.swapp-immersive-atmosphere img{width:100%;height:100%;object-fit:cover;
+ filter:blur(64px) brightness(.52) saturate(1.45);transform:scale(1.15)}
+#actus .swapp-actus-native.swapp-actus-reading .swapp-actus-reader-nav,
+body.swapp-editorial-route .article-wrap > .breadcrumb{position:relative;z-index:1}
+#actus .swapp-actus-native.swapp-actus-reading .swapp-immersive-hero{margin-bottom:12px!important}
+@media(max-width:700px){
+ .swapp-immersive-atmosphere{top:-45px;height:min(760px,100vh);opacity:.23}
+ .swapp-immersive-atmosphere img{filter:blur(46px) brightness(.43) saturate(1.25)}
+}
+@media(prefers-contrast:more){.swapp-immersive-atmosphere{display:none}}
