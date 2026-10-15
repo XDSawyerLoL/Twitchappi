@@ -6,8 +6,8 @@ body.swapp-editorial-route main.article-wrap{
   background:transparent!important;
 }
 /* An ancestor transform makes position:fixed behave as an absolute child. */
-#actus .swapp-actus-native.swapp-actus-reading{animation:none!important;transform:none!important}
-#actus .swapp-actus-native.swapp-actus-reading > :not(.swapp-article-scene),
+#actus .swapp-actus-native.swapp-actus-reading{animation:none!important;transform:none!important;padding-top:clamp(10px,1.5vw,18px)!important}
+#actus .swapp-actus-native.swapp-actus-reading > :is(.swapp-actus-article,.swapp-actus-reader-nav),
 body.swapp-editorial-route main.article-wrap > :not(.swapp-article-scene){
   position:relative;z-index:1
 }
