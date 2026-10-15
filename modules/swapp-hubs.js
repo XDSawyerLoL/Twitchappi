@@ -63,7 +63,7 @@ function trailers(){
  (recent.length>1?'<div class="swapp-video-section-title"><h2>Dernières vidéos</h2></div><section class="swapp-video-grid" aria-label="Dernières vidéos">'+recent.filter(x=>x!==featured).map(x=>videoCard(x)).join('')+'</section>':'')+
  '<p class="swapp-hub-small">La lecture des vidéos YouTube officielles s’effectue ici. Certaines publications Fourthwall peuvent exiger une connexion ou refuser un lecteur intégré ; leur accès original reste disponible, sans contournement.</p></main>';
  return layout({title:'Vidéos',description:'Les vidéos et bandes-annonces JustPlayer réunies dans SWAPP.',content:main,active:'trailers',
-  scripts:assets+'<link rel="stylesheet" href="/assets/swapp-video-gallery.css?v=20261015-gallery-1">'+
+  scripts:assets+'<link rel="stylesheet" href="/assets/swapp-video-gallery.css?v=20261015-gallery-2">'+
    '<script defer src="/assets/swapp-video-player.js?v=20261015-gallery-1"></script>'});
 }
 function safeProducts(items){
