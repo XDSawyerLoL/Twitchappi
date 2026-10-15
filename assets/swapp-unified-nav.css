@@ -86,3 +86,31 @@ header.top .mainNav::-webkit-scrollbar{display:none}
  #mobileNav>a,#mobileNav>button,#mobileNav>.swapp-mobile-more>summary{font-size:10px;min-height:44px;padding:6px 1px}
  body{padding-bottom:calc(72px + env(safe-area-inset-bottom))}
 }
+
+/* Desktop: the same typography and geometry for every navigation destination.
+ * Match both the SPA buttons and the SSR anchors; never style one set smaller.
+ */
+@media(min-width:1081px){
+ header.top #nav.swapp-nav-consistent :is(a,button){
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  flex:none!important;
+  font-family:inherit!important;
+  font-size:13px!important;
+  font-weight:850!important;
+  line-height:1.4!important;
+  padding:9px 12px!important;
+  min-height:36px;
+  border-radius:999px!important;
+  white-space:nowrap!important;
+  letter-spacing:normal!important;
+  text-decoration:none!important;
+ }
+ header.top #nav.swapp-nav-consistent .navGroup{
+  display:flex;
+  flex-wrap:nowrap;
+  align-items:center;
+  gap:4px;
+ }
+}
