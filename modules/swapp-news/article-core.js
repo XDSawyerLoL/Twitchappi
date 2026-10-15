@@ -1,5 +1,7 @@
 'use strict';
 
+const {trailerId,commercialLinks}=require('../../assets/swapp-article-extras');
+
 const MAX_TITLE = 180;
 const MAX_BODY = 120000;
 const MAX_SUMMARY = 420;
@@ -47,6 +49,9 @@ function assertArticle(value, {publish = false, legacyRequired = false} = {}) {
   if (publish && image && (!String(image.credit || '').trim() || !String(image.rights || '').trim())) throw new Error('Crédit et droits requis pour l’image');
   if (legacyRequired && !isLegacyJustPlayerUrl(value.legacyUrl)) throw new Error('URL JustPlayer requise');
   if (value.legacyUrl && !isHttpUrl(value.legacyUrl)) throw new Error('URL ancienne invalide');
+  const trailerUrl=String(value.trailerUrl||'').trim();
+  if(trailerUrl&&!trailerId(trailerUrl))throw new Error('URL bande-annonce YouTube HTTPS invalide');
+  const links=commercialLinks(value.commercialLinks,true);
   return {
     title, slug, body, summary,
     category: String(value.category || 'actualites').trim().slice(0, 60),
@@ -54,6 +59,8 @@ function assertArticle(value, {publish = false, legacyRequired = false} = {}) {
     author: String(value.author || 'Rédaction JustPlayer / SWAPP').trim().slice(0, 120),
     sources: sources.map(s => ({url:s.url, label:String(s.label || '').trim().slice(0, 180)})),
     image: image ? {url:image.url,credit:String(image.credit||'').trim().slice(0,180),rights:String(image.rights||'').trim().slice(0,180)} : null,
+    trailerUrl:trailerUrl||null,
+    commercialLinks:links,
     legacyUrl: value.legacyUrl || null,
     originalPublishedAt: toIsoDate(value.originalPublishedAt || null)
   };
