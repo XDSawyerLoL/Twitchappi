@@ -563,3 +563,30 @@ body:has(#actus.view.active){
  box-shadow:0 14px 32px #0004,0 0 0 1px color-mix(in srgb,var(--brand,#22d3ee) 29%,transparent)!important;
 }
 @media(prefers-reduced-motion:reduce){#actus .swapp-actus-card{transition:none!important}}
+
+/* Home discovery: a subtle editorial bridge inside existing live cards. */
+#home .homeLiveCard1014 .homeNewsLink1014{
+ display:inline-flex;
+ align-self:flex-start;
+ align-items:center;
+ max-width:100%;
+ padding:1px 0;
+ color:color-mix(in srgb,var(--brand,#22d3ee) 55%,#e4f6ff);
+ font-size:12px;
+ font-weight:750;
+ line-height:1.35;
+ text-decoration:none;
+ text-overflow:ellipsis;
+ overflow:hidden;
+ white-space:nowrap;
+}
+#home .homeLiveCard1014 .homeNewsLink1014:hover{
+ color:#fff;
+ text-decoration:underline;
+ text-underline-offset:3px;
+}
+#home .homeLiveCard1014 .homeNewsLink1014:focus-visible{
+ outline:2px solid var(--swapp-interactive);
+ outline-offset:3px;
+ border-radius:3px;
+}
