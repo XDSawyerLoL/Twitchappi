@@ -9217,11 +9217,22 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
     body.swappSideLightOnly #dashboard.view.active,
     body.swappSideLightOnly #studio.view.active,
     body.swappSideLightOnly #twitch.view.active,
-    body.swappSideLightOnly #admin.view.active{
+    body.swappSideLightOnly #admin.view.active,
+    body.swappSideLightOnly #actus.view.active{
       background:
         radial-gradient(ellipse at -7% 28%, color-mix(in srgb,var(--swapp-side-light,#22d3ee) 28%, transparent), transparent 42%),
         radial-gradient(ellipse at 82% 6%, rgba(34,211,238,.06), transparent 36%),
         #05070d!important;
+    }
+
+    /* Actualité and article reading: continuous customised side-light,
+       just like the other tabs, with no extra panel or brand recolouring. */
+    body.swappSideLightOnly #actus.view.active{
+      min-height:calc(100svh - 160px);
+      background:
+        radial-gradient(ellipse at -12% 34%, color-mix(in srgb,var(--swapp-side-light,#22d3ee) 43%, transparent), transparent 58%),
+        radial-gradient(ellipse at 105% 80%, color-mix(in srgb,var(--swapp-side-light,#22d3ee) 13%, transparent), transparent 62%),
+        linear-gradient(112deg,color-mix(in srgb,var(--swapp-side-light,#22d3ee) 9%,#101421),#05070d 76%)!important;
     }
 
     /* Accueil : on garde le fondu premium, avec la lumière sur le côté. */
