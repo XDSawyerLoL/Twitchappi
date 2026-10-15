@@ -101,7 +101,7 @@ test('CMP opt-out removes the placement and prevents a new request',async()=>{
 });
 test('ad slot is loaded from both article shells, not on every homepage load',()=>{
  for(const html of [read('index.html'),read('modules/swapp-news/site-shell.js')]){
-  assert.match(html,/swapp-adsense-inarticle\.js\?v=20261016-inarticle-1/);
+  assert.match(html,/swapp-adsense-inarticle\.js\?v=20261016-inarticle-2/);
   assert.doesNotMatch(html,/src="https:\/\/pagead2\.googlesyndication\.com\/pagead\/js\/adsbygoogle\.js/);
  }
  const css=read('assets/swapp-article-immersive.css');
