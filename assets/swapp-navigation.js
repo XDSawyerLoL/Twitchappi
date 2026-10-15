@@ -39,7 +39,7 @@
     const other=items.filter(item=>!main.includes(item));
     return '<nav id="mobileNav" class="mobileNav" aria-label="Navigation mobile">'+
       main.map(item=>link(item,active,true)).join('')+
-      '<details class="swapp-mobile-more"'+(other.some(item=>item.id===active)||active===account.id?' open':'')+'><summary'+(other.some(item=>item.id===active)||active===account.id?' class="active"':'')+'>Plus</summary><div class="swapp-mobile-more-links">'+other.map(item=>link(item,active,true)).join('')+link(account,active,true)+'</div></details></nav>';
+      '<details class="swapp-mobile-more"><summary'+(other.some(item=>item.id===active)||active===account.id?' class="active"':'')+'>Plus</summary><div class="swapp-mobile-more-links">'+other.map(item=>link(item,active,true)).join('')+link(account,active,true)+'</div></details></nav>';
   }
   return Object.freeze({items,account,serverHeader,serverMobile});
 });
