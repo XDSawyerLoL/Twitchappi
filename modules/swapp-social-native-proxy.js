@@ -61,13 +61,13 @@ function createSocialNativeProxy(fetchImpl,{production=true}={}){
   const endpoint=SOCIAL_ORIGIN+'/api/pulse'+path+safeQuery(path,req.originalUrl?.split('?').slice(1).join('?'));
   // Read-only requests may retry once if Render wakes a cold instance.
   // Never retry a write: a timeout must not publish a post or send a DM twice.
-  const attempts=method==='GET'?2:1;
+  const attempts=method==='GET'&&path==='/feed'?2:1;
   for(let attempt=0;attempt<attempts;attempt++){
    try{
     const result=await fetchImpl(endpoint,{
      method,headers,redirect:'error',
      ...(body===undefined?{}:{body})
-    },method==='GET'?16000:12000);
+    },path==='/health'?5000:method==='GET'?(attempt===0?10000:13000):12000);
     if(!result||!Number.isInteger(result.status))throw Error('bad_upstream');
     const raw=await result.text();
     if(raw.length>1250000)throw Error('response_too_large');
