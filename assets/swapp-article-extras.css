@@ -1,0 +1,17 @@
+/* SWAPP magazine: contextual trailer and restrained sponsored link disclosures. */
+.swapp-article-extra{--extra-accent:var(--swapp-side-light,var(--brand,#8b5cf6));margin:32px 0 28px;padding:22px 0;border-top:1px solid #ffffff25;border-bottom:1px solid #ffffff1a;max-width:100%;color:#f3f5ff}
+.swapp-article-extra h2{font-size:clamp(21px,2.5vw,29px)!important;letter-spacing:-.045em;line-height:1.2;margin:0 0 8px!important}
+.swapp-article-extra>p{max-width:690px;margin:0 0 15px!important;color:#b7c3d8!important;font-size:13px!important;line-height:1.6!important}
+.swapp-trailer-launch{width:100%;aspect-ratio:16/9;max-height:540px;min-height:210px;display:flex;align-items:center;justify-content:center;gap:14px;background:radial-gradient(ellipse at 63% 18%,color-mix(in srgb,var(--extra-accent) 27%,transparent),transparent 55%),linear-gradient(120deg,#1f2b45,#101626);color:#fff;border:1px solid #ffffff38;border-radius:18px;font-weight:900;font-size:clamp(15px,1.8vw,20px);cursor:pointer;transition:border-color .18s ease,filter .18s ease}
+.swapp-trailer-launch span{display:grid;place-items:center;width:58px;height:58px;border-radius:50%;padding-left:3px;background:#ffffff20;border:1px solid #ffffff60;font-size:19px}
+.swapp-trailer-launch:hover{border-color:var(--extra-accent);filter:brightness(1.1)}
+.swapp-trailer-player{display:block;width:100%;aspect-ratio:16/9;min-height:200px;border:0;border-radius:18px;background:#060a13}
+.swapp-article-deals{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.swapp-article-deals a{display:flex;flex-direction:column;gap:6px;padding:16px;border:1px solid #ffffff27;border-radius:13px;background:#ffffff09;text-decoration:none!important;color:#f5f5ff!important;min-width:0}
+.swapp-article-deals a:hover{background:#ffffff15;border-color:var(--extra-accent)}
+.swapp-article-deals strong{font-size:14px;line-height:1.45;overflow-wrap:anywhere}
+.swapp-article-deals small{font-size:11px;color:#bccbe1}
+.swapp-deal-type{font-size:10px;color:#e9bbd5;letter-spacing:.07em;font-weight:900}
+.swapp-article-extra :is(button,a):focus-visible{outline:2px solid #fff;outline-offset:3px}
+@media(max-width:640px){.swapp-article-deals{grid-template-columns:1fr}.swapp-article-extra{padding:18px 0;margin:24px 0}.swapp-trailer-launch{min-height:180px;border-radius:14px;flex-direction:column;gap:8px}}
+@media(prefers-reduced-motion:reduce){.swapp-trailer-launch{transition:none}}
