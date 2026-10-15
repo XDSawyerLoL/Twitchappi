@@ -1,0 +1,115 @@
+'use strict';
+const test=require('node:test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
+const vm=require('node:vm');
+const root=path.join(__dirname,'..');
+const read=p=>fs.readFileSync(path.join(root,p),'utf8');
+const code=read('assets/swapp-article-player.js');
+const player=require('../assets/swapp-article-player');
+
+function mockBrowser(){
+ const listeners={},created=[];
+ function element(tag){
+  const node={
+   tagName:tag.toUpperCase(),children:[],attributes:{},removed:false,
+   append(...nodes){this.children.push(...nodes)},
+   setAttribute(name,value){this.attributes[name]=value},
+   remove(){this.removed=true},
+   className:'',textContent:'',href:'',title:''
+  };
+  created.push(node);
+  return node;
+ }
+ const article={isConnected:true};
+ const actus={classList:{contains:()=>true}};
+ const doc={
+  readyState:'complete',
+  createElement:element,
+  body:{children:[],append(node){this.children.push(node)}},
+  querySelector:()=>article,
+  getElementById:()=>actus
+ };
+ const browser={
+  document:doc,
+  location:{hostname:'swapp.tv'},
+  addEventListener:(event,fn)=>{listeners[event]=fn}
+ };
+ const context={window:browser,URL,console};
+ vm.runInNewContext(code,context);
+ return {browser,doc,created,listeners,article,api:browser.SwappArticlePlayer};
+}
+
+test('the Twitch player URL is constrained to a real channel and current site parent',()=>{
+ const u=new URL(player.playerUrl('Creator_123','swapp.tv'));
+ assert.equal(u.protocol,'https:');
+ assert.equal(u.hostname,'player.twitch.tv');
+ assert.equal(u.searchParams.get('channel'),'creator_123');
+ assert.equal(u.searchParams.get('parent'),'swapp.tv');
+ assert.equal(u.searchParams.get('autoplay'),'true');
+ assert.equal(u.searchParams.get('muted'),'true');
+ assert.equal(player.playerUrl('bad/login','swapp.tv'),null);
+ assert.equal(player.playerUrl('valid','evil.com/anything'),null);
+});
+
+test('no video iframe or third party request is created before the user action',()=>{
+ const app=mockBrowser();
+ assert.ok(app.api);
+ assert.equal(app.created.length,0);
+ assert.equal(app.doc.body.children.length,0);
+ assert.equal(app.api.open({login:'a'}),false);
+ assert.equal(app.created.length,0);
+});
+
+test('one user click opens a contained video with a visible close and full-channel link',()=>{
+ const app=mockBrowser();
+ assert.equal(app.api.open({login:'creator_name',name:'Créateur',game:'Fortnite'}),true);
+ const iframe=app.created.find(x=>x.tagName==='IFRAME');
+ assert.ok(iframe);
+ assert.match(iframe.src,/player\.twitch\.tv/);
+ assert.match(iframe.allow,/fullscreen/);
+ assert.equal(iframe.referrerPolicy,'strict-origin-when-cross-origin');
+ const links=app.created.filter(x=>x.tagName==='A');
+ assert.equal(links.length,1);
+ assert.equal(links[0].href,'/live/twitch/creator_name');
+ assert.equal(links[0].target,'_blank');
+ assert.equal(links[0].rel,'noopener noreferrer');
+ const close=app.created.find(x=>x.tagName==='BUTTON');
+ assert.equal(close.attributes['aria-label'],'Fermer le mini-lecteur');
+ close.onclick();
+ assert.ok(app.doc.body.children[0].removed);
+});
+
+test('the mini-player is cleaned up on back navigation, Escape and replacement',()=>{
+ const app=mockBrowser();
+ assert.equal(app.api.open({login:'first_live'}),true);
+ const first=app.doc.body.children[0];
+ assert.equal(app.api.open({login:'second_live'}),true);
+ assert.equal(first.removed,true);
+ app.listeners.keydown({key:'Escape'});
+ assert.ok(app.doc.body.children[1].removed);
+ assert.equal(app.api.open({login:'third_live'}),true);
+ app.listeners.popstate();
+ assert.ok(app.doc.body.children[2].removed);
+});
+
+test('the existing articles and stream cards expose accessible inline play without more sections',()=>{
+ const app=read('assets/swapp-actus-app.js');
+ const html=read('index.html');
+ const css=read('assets/swapp-art-direction.css');
+ const main=read('index_script.js');
+ assert.ok(html.indexOf('/assets/swapp-article-player.js?v=20261015-cinematic-38') <
+   html.indexOf('/assets/swapp-actus-app.js?v=20261015-cinematic-38'));
+ assert.match(app,/swapp-reader-live-inline/);
+ assert.match(app,/SwappArticlePlayer\?\.open/);
+ assert.match(app,/SwappArticlePlayer\?\.close\(\)/);
+ assert.match(app,/link=el\(native\?'a':'div','swapp-reader-live-card'\)/);
+ assert.match(css,/\.swapp-article-mini-player/);
+ assert.match(css,/\.swapp-live-pip1014/);
+ assert.match(main,/swapp-live-pip1014/);
+ assert.match(css,/prefers-reduced-motion:reduce/);
+ assert.match(css,/swapp-view-arrive/);
+ assert.match(html,/swapp-art-direction\.css\?v=20261015-cinematic-38/);
+ assert.doesNotMatch(app,/swapp-actus-mini-sidebar-duplicated/);
+});
