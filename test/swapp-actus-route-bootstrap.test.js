@@ -84,5 +84,5 @@ test('ACTUS initial document selects the correct view before loading the SPA',()
  assert.match(shell,/href="\/assets\/swapp-art-direction\.css\?v=[^"]+"/);
  const css=fs.readFileSync(path.join(root,'assets/swapp-art-direction.css'),'utf8');
  assert.match(css,/#actus\.view\.active\s*\{/);
- assert.match(css,/color-mix\(in srgb,var\(--brand,#22d3ee\) 35%,transparent\)/);
+ assert.match(css,/#actus\.view\.active[\s\S]*?var\(--swapp-side-light,var\(--brand,#22d3ee\)\)/);
 });
