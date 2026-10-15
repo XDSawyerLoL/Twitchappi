@@ -63,7 +63,8 @@
    return feature.slug;
  }
  function mount(){
-   const home=document.getElementById('home');if(!home||home.querySelector('[data-swapp-home-editorial]'))return;
+   const home=document.getElementById('home');
+   if(!home||!home.classList.contains('active')||home.querySelector('[data-swapp-home-editorial]'))return;
    const modern=home.querySelector('.swappHome1014');
    const legacy=home.querySelector('.homeOnlyMain');
    const base=modern||legacy||home;
@@ -122,7 +123,28 @@
 
    });
  }
- function queue(){if(queued)return;queued=true;setTimeout(()=>{queued=false;mount()},160)}
- const home=document.getElementById('home');if(home){new MutationObserver(queue).observe(home,{childList:true,subtree:true});queue()}
+ // The SPA replaces #home's direct children when its view is rebuilt.
+ // Watching every descendant catches every live thumbnail/card mutation and
+ // schedules costly subtree searches across the whole homepage indefinitely.
+ function queue(){
+   if(queued)return;
+   queued=true;
+   setTimeout(()=>{
+     queued=false;
+     if(document.visibilityState==='hidden')return;
+     mount();
+   },220);
+ }
+ const home=document.getElementById('home');
+ if(home){
+   new MutationObserver(queue).observe(home,{
+     childList:true,subtree:false,attributes:true,attributeFilter:['class']
+   });
+   queue();
+ }
  window.addEventListener('pageshow',queue);
+ window.addEventListener('popstate',queue);
+ document.addEventListener('visibilitychange',()=>{
+   if(document.visibilityState==='visible')queue();
+ });
 })();
