@@ -70,7 +70,23 @@
   }
   figure.remove();return true;
  }
- function run(){enhanceSPA();enhanceNative()}
+ function decorateAtmosphere(){
+  const hero=document.querySelector('#actus .swapp-actus-reading .swapp-immersive-hero,body.swapp-editorial-route .article-wrap > .swapp-immersive-hero');
+  if(!hero||!hero.isConnected)return;
+  const root=hero.closest('.swapp-actus-reading')||hero.closest('.article-wrap');
+  if(!root||root.querySelector(':scope > .swapp-immersive-atmosphere'))return;
+  const image=hero.querySelector('.swapp-immersive-bg img');
+  if(!image||!safeSource(image.currentSrc||image.src))return;
+  const ambiance=document.createElement('div');
+  ambiance.className='swapp-immersive-atmosphere';
+  ambiance.setAttribute('aria-hidden','true');
+  const atmosphericImage=document.createElement('img');
+  atmosphericImage.src=image.currentSrc||image.src;
+  atmosphericImage.alt='';atmosphericImage.decoding='async';
+  ambiance.appendChild(atmosphericImage);
+  root.prepend(ambiance);
+ }
+ function run(){enhanceSPA();enhanceNative();decorateAtmosphere()}
  let queued=false;
  const watch=new MutationObserver(()=>{
   if(queued)return;
