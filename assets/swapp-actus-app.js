@@ -55,15 +55,17 @@ const back=el('button','swapp-actus-go-back','← Toutes les actualités');back.
 const article=el('article','swapp-actus-article');
 const heading=el('header','swapp-reader-hero swapp-immersive-hero');
 const heroCopy=el('div','swapp-immersive-content');
+// The image belongs to the article environment, not to the header.
 const heroImage=url(a.image?.url||a.imageUrl);
+const scene=el('div','swapp-article-scene');
+scene.setAttribute('aria-hidden','true');
 if(heroImage){
- const backdrop=el('div','swapp-immersive-bg');
- const image=el('img');
- image.src=heroImage;image.alt='';image.decoding='async';image.fetchPriority='high';
- image.setAttribute('aria-hidden','true');
- image.onerror=()=>{backdrop.remove();heading.classList.remove('has-cover')};
- backdrop.append(image);heading.append(backdrop);heading.classList.add('has-cover');
+ const sceneImage=el('img');
+ sceneImage.src=heroImage;sceneImage.alt='';sceneImage.decoding='async';sceneImage.fetchPriority='high';
+ sceneImage.onerror=()=>{scene.classList.remove('has-art');sceneImage.remove()};
+ scene.append(sceneImage);scene.classList.add('has-art');
 }
+node.prepend(scene);
 const kicker=el('div','swapp-reader-kicker');
 kicker.append(el('span','swapp-reader-kicker-main',a.category||'Actualité'));
 if(a.game)kicker.append(el('span','swapp-reader-kicker-game',a.game));
@@ -71,9 +73,9 @@ heroCopy.append(kicker,el('h1','',a.title));
 if(a.summary)heroCopy.append(el('p','swapp-actus-summary',a.summary));
 heroCopy.append(el('p','swapp-actus-author',[a.author,date(a.publishedAt||a.originalPublishedAt)].filter(Boolean).join(' · ')));
 heading.append(heroCopy);article.append(heading);
-if(heroImage&&a.image?.credit)article.append(el('p','swapp-immersive-credit',a.image.credit));
+if(heroImage&&a.image?.credit)heroCopy.append(el('p','swapp-immersive-credit',a.image.credit));
 const controls=el('div','swapp-reader-controls');const words=String(a.body||'').trim().split(/\s+/).filter(Boolean).length;controls.append(el('span','swapp-read-time',Math.max(1,Math.ceil(words/220))+' min de lecture'));
-const share=el('button','swapp-reader-share','Partager l’article');share.type='button';share.onclick=async()=>{const address=location.origin+'/actus/'+encodeURIComponent(slug);try{if(navigator.share){await navigator.share({title:a.title,url:address});return}if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(address);share.textContent='Lien copié';return}}catch(e){if(e.name==='AbortError')return}share.textContent='Copier le lien : '+address};controls.append(share);if(a.game){const jump=el('a','swapp-reader-live-jump','Voir les lives du jeu ↓');jump.href='#swapp-article-lives';jump.onclick=e=>{const target=article.querySelector('#swapp-article-lives');if(!target)return;e.preventDefault();target.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'})};controls.append(jump)}article.append(controls);
+const share=el('button','swapp-reader-share','Partager l’article');share.type='button';share.onclick=async()=>{const address=location.origin+'/actus/'+encodeURIComponent(slug);try{if(navigator.share){await navigator.share({title:a.title,url:address});return}if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(address);share.textContent='Lien copié';return}}catch(e){if(e.name==='AbortError')return}share.textContent='Copier le lien : '+address};controls.append(share);if(a.game){const jump=el('a','swapp-reader-live-jump','Voir les lives du jeu ↓');jump.href='#swapp-article-lives';jump.onclick=e=>{const target=article.querySelector('#swapp-article-lives');if(!target)return;e.preventDefault();target.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'})};controls.append(jump)}heroCopy.append(controls);
 // Cover already displayed as immersive backdrop; no duplicate image.
 const progress=el('div','swapp-reading-progress');progress.setAttribute('aria-hidden','true');const progressFill=el('span');progress.append(progressFill);node.prepend(progress);
 const updateProgress=()=>{if(!article.isConnected){window.removeEventListener('scroll',updateProgress);window.removeEventListener('resize',updateProgress);return;}const rect=article.getBoundingClientRect();const total=Math.max(1,article.offsetHeight-window.innerHeight);const travelled=Math.min(total,Math.max(0,-rect.top));progressFill.style.width=(travelled/total*100)+'%';};
