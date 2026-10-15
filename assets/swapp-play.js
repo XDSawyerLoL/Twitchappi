@@ -90,7 +90,15 @@ function focusItem(el){
 }
 function firstFocus(){
  const list=navigable();
- return focusItem((!modal()&&location.pathname==='/'&&liveCards()[0])||list[0]);
+ if(modal())return focusItem(list[0]);
+ const path=location.pathname;
+ const specific=path==='/communaute'
+  ?$('.pulse-sidebar .pulse-nav-item.active,.pulse-mobile-nav button.active,.pulse-tab.active,#pulse-feed button')
+  :path==='/twitch'
+   ?$('#twitch.view.active button,#twitch.view.active a[href],#twitch.view.active [tabindex="0"]')
+   :path==='/'?liveCards()[0]
+   :$('main a[href],main button,.view.active a[href],.view.active button');
+ return focusItem((specific&&list.includes(specific)&&visible(specific)?specific:null)||list[0]);
 }
 function move(dx,dy){
  const list=navigable(),prior=current();
