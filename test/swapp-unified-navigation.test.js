@@ -8,7 +8,7 @@ const {layout}=require('../modules/swapp-news/site-shell');
 const {renderNewsHome,renderNewsStory}=require('../modules/swapp-news/native-pages');
 const {renderTwitchWatch}=require('../modules/swapp-news/watch');
 const ROOT=path.resolve(__dirname,'..');
-const expected=['Accueil','Découvrir','Catégories','Équipes','ACTUS'];
+const expected=['Accueil','Découvrir','Catégories','Équipes','Actualité'];
 test('même contrat de menu pour toutes les pages SWAPP',()=>{
  assert.deepEqual(items.map(x=>x.label),expected);
  assert.equal(account.label,'Compte');
@@ -20,6 +20,8 @@ test('même contrat de menu pour toutes les pages SWAPP',()=>{
  }
  assert.ok(header.includes('id="userBtn" class="userBtn"'));assert.ok(header.includes('id="userMenu"'));
  assert.match(header,/href="\/actus"[^>]*aria-current="page"/);
+ assert.doesNotMatch(header,/swappIntegratedNewsNav/);
+ assert.doesNotMatch(mobile,/swappIntegratedNewsNav/);
  assert.match(mobile,/href="\/compte"/);
 });
 test('le serveur utilise la barre et les identifiants exacts du site de lives',()=>{
@@ -45,7 +47,7 @@ test('pages article, actualités et live partagent le même menu et SWAPP reste 
  const story={slug:'jeu-2026',title:'Un jeu annoncé',body:'Une analyse assez complète pour découvrir cette actualité.',summary:'Un résumé de l’article',category:'ACTUS',author:'SWAPP',game:'Fortnite',sources:[],publishedAt:'2026-10-14T20:00:00Z'};
  for(const html of [renderNewsHome([]),renderNewsStory(story)]){
    assert.match(html,/class="top"/);
-   assert.match(html,/aria-current="page">ACTUS<\/a>/);
+   assert.match(html,/aria-current="page">Actualité<\/a>/);
    assert.match(html,/id="mobileNav"/);
    assert.match(html,/href="\/decouvrir"/);
    assert.doesNotMatch(html,/<header class="site-header">/);
