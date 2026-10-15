@@ -1,0 +1,76 @@
+{
+  "version": 1,
+  "sourceSeries": "https://justplayer.fr/supporters/videos/series/5796",
+  "discoveredAt": "2026-10-15",
+  "notes": "Public entries and artwork verified from JustPlayer pages. youtubeId only from separately verified official sources; other video sources may require Fourthwall access. Do not claim unverified direct playback.",
+  "items": [
+    {
+      "id": "teenage-mutant-ninja-turtles-the-last-ronin-les-tortues-ninja-ont-enfin-le-jeu",
+      "title": "Teenage Mutant Ninja Turtles: The Last Ronin",
+      "date": "2026-06-06",
+      "series": true,
+      "image": "https://storage.googleapis.com/popshopprod-membership-assets-single-b5px4371/i5b2s9xww59vv5hnsdmmmlzanyho",
+      "source": "https://justplayer.fr/supporters/video_embeds/teenage-mutant-ninja-turtles-the-last-ronin-les-tortues-ninja-ont-enfin-le-jeu"
+    },
+    {
+      "id": "trailer-code-vein-2-story-trailer",
+      "title": "CODE VEIN II — Story Trailer",
+      "date": "2026-01-11",
+      "series": true,
+      "image": "https://storage.googleapis.com/popshopprod-membership-assets-single-b5px4371/c0guw748anp9vi4crwdjcg19kils",
+      "youtubeId": "Z9SaRLSibak",
+      "youtubeAttribution": "Bandai Namco Entertainment (bande-annonce officielle)",
+      "source": "https://justplayer.fr/supporters/video_embeds/trailer-code-vein-2-story-trailer"
+    },
+    {
+      "id": "bioshock-bientot-sur-netflix",
+      "title": "BioShock — teaser Netflix",
+      "date": "2025-11-18",
+      "series": true,
+      "image": "https://storage.googleapis.com/popshopprod-membership-assets-single-b5px4371/ewr69kiwvnro5huw82zb0td7m0d4",
+      "source": "https://justplayer.fr/supporters/video_embeds/bioshock-bientot-sur-netflix"
+    },
+    {
+      "id": "solasta-ii-le-trailer",
+      "title": "Solasta II — Le trailer",
+      "date": "2025-11-18",
+      "series": true,
+      "image": "https://storage.googleapis.com/popshopprod-membership-assets-single-b5px4371/0si1ker5jbopybmhugpzbbnvhl3a",
+      "source": "https://justplayer.fr/supporters/video_embeds/solasta-ii-le-trailer"
+    },
+    {
+      "id": "nouveau-trailer-de-gta-6",
+      "title": "Grand Theft Auto VI — Nouveau trailer",
+      "date": "2025-11-18",
+      "series": true,
+      "image": "https://storage.googleapis.com/popshopprod-membership-assets-single-b5px4371/nsjlzxedqwjtgqbplllukxoc2tna",
+      "youtubeId": "VQRLujxTm3c",
+      "youtubeAttribution": "Rockstar Games (bande-annonce officielle associée)",
+      "source": "https://justplayer.fr/supporters/video_embeds/nouveau-trailer-de-gta-6"
+    },
+    {
+      "id": "planet-zoo-2",
+      "title": "PLANET ZOO 2",
+      "date": "2026-10-13",
+      "series": false,
+      "image": "https://storage.googleapis.com/popshopprod-membership-assets-single-b5px4371/lqj0hnmpwqowwionruztjxn2o3a7",
+      "source": "https://justplayer.fr/supporters/video_embeds/planet-zoo-2"
+    },
+    {
+      "id": "crimson-desert",
+      "title": "Crimson Desert — Gameplay trailer",
+      "date": "2026-03-22",
+      "series": false,
+      "image": "https://storage.googleapis.com/popshopprod-membership-assets-single-b5px4371/ur3qgramcf5k3etnldmgsltnekcg",
+      "source": "https://justplayer.fr/supporters/video_embeds/crimson-desert"
+    },
+    {
+      "id": "battlestar-galactica-scattered-hopes-roguelite-paranoia-et-gestion-de-crise-le",
+      "title": "Battlestar Galactica: Scattered Hopes",
+      "date": "2026-01-27",
+      "series": false,
+      "image": "https://storage.googleapis.com/popshopprod-membership-assets-single-b5px4371/hg5xmy17mx8xajl1p7vz3j86z0q5",
+      "source": "https://justplayer.fr/supporters/video_embeds/battlestar-galactica-scattered-hopes-roguelite-paranoia-et-gestion-de-crise-le"
+    }
+  ]
+}
