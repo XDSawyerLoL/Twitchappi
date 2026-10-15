@@ -499,3 +499,39 @@ body:has(#actus.view.active){
 #actus :is(.swapp-actus-card,.swapp-actus-go-back,.swapp-actus-game-chip,.swapp-actus-games-more,.swapp-reader-live-card,.swapp-reader-live-more,.swapp-reader-source-link,.swapp-reader-share):focus-visible{
  outline:2px solid var(--swapp-news-bright)!important;outline-offset:3px!important;
 }
+
+/* 14 — Visible, restrained account-colour ambience across the ACTUS page.
+   SWAPP --brand remains the only colour palette source. */
+#actus.view.active{
+ min-height:calc(100svh - 160px);
+ background:
+  radial-gradient(ellipse 72% 42% at 2% 2%,color-mix(in srgb,var(--brand,#22d3ee) 35%,transparent),transparent 80%),
+  radial-gradient(ellipse 60% 54% at 101% 76%,color-mix(in srgb,var(--brand,#22d3ee) 21%,transparent),transparent 84%),
+  linear-gradient(175deg,color-mix(in srgb,var(--brand,#22d3ee) 9%,#101823),#0c111b 75%);
+}
+#actus .swapp-actus-head{background:transparent!important}
+#actus .swapp-actus-tools :is(input,select){
+ background:color-mix(in srgb,var(--brand,#22d3ee) 9%,#111b2a)!important;
+ border-color:color-mix(in srgb,var(--brand,#22d3ee) 30%,#35455c)!important;
+}
+#actus .swapp-actus-card{
+ background:linear-gradient(155deg,color-mix(in srgb,var(--brand,#22d3ee) 17%,#141d2a),#111a27 85%)!important;
+ border-color:color-mix(in srgb,var(--brand,#22d3ee) 26%,#34445c)!important;
+}
+#actus .swapp-actus-game-chip:not(.active){background:color-mix(in srgb,var(--brand,#22d3ee) 9%,#131f30)!important}
+#actus .swapp-discover-live{
+ background:linear-gradient(125deg,color-mix(in srgb,var(--brand,#22d3ee) 14%,#131d2b),#121b2b)!important;
+ border-color:color-mix(in srgb,var(--brand,#22d3ee) 30%,#344760)!important;
+}
+#actus .swapp-actus-article :is(.swapp-actus-sources,.swapp-actus-related,.swapp-reader-toc,.swapp-reader-live-panel){
+ background:linear-gradient(140deg,color-mix(in srgb,var(--brand,#22d3ee) 13%,#172235),#111b2a)!important;
+ border-color:color-mix(in srgb,var(--brand,#22d3ee) 27%,#35445c)!important;
+}
+#actus .swapp-actus-article .swapp-reader-source-panel{
+ background:linear-gradient(115deg,color-mix(in srgb,var(--brand,#22d3ee) 17%,#172235),#101b29)!important;
+}
+#actus .swapp-actus-card:hover,#actus .swapp-actus-card:focus-visible{
+ border-color:var(--swapp-news-bright)!important;
+ box-shadow:0 14px 32px #0004,0 0 0 1px color-mix(in srgb,var(--brand,#22d3ee) 29%,transparent)!important;
+}
+@media(prefers-reduced-motion:reduce){#actus .swapp-actus-card{transition:none!important}}
