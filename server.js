@@ -1003,6 +1003,11 @@ if (String(process.env.SWAPP_NEWS_ENABLED || 'true').toLowerCase() === 'true') {
   }
 }
 
+// Authorized Google AdSense inventory must be discoverable at swapp.tv/ads.txt.
+app.get('/ads.txt', (_req,res)=>{
+  res.set('Cache-Control','public, max-age=300');
+  return sendPublicFile(res, 'ads.txt', 'text/plain; charset=utf-8');
+});
 app.get('/favicon.ico', (_req,res)=>sendPublicFile(res, 'favicon.ico', 'image/x-icon'));
 
 // Page principale (UI)
