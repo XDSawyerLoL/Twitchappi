@@ -58,6 +58,10 @@ export function errorText(e){
     rate_limited:'Trop de requêtes. Réessaie plus tard.',
     not_found:'Élément introuvable.',
     blocked:'Cette conversation est bloquée.',
+    social_upstream_timeout:'SOCIAL met trop longtemps à répondre. Le serveur peut être en cours de redémarrage. Réessaie dans quelques instants.',
+    social_upstream_unavailable:'Le serveur SOCIAL est indisponible actuellement. Vérifie sa disponibilité puis réessaie.',
+    social_upstream_unreachable:'SWAPP ne parvient pas à joindre le serveur SOCIAL. La connexion réseau côté serveur doit être vérifiée.',
+    social_temporarily_unavailable:'Le serveur SOCIAL est temporairement indisponible. Un ancien serveur SWAPP peut encore renvoyer ce message.',
     network_error:'Connexion au service SOCIAL impossible. Recharge la page puis réessaie.',
     request_failed:'La requête SOCIAL a échoué. Réessaie dans un instant.'
   };
@@ -69,7 +73,8 @@ export async function api(path,options={}){
   if(state.token)headers.authorization='Bearer '+state.token;
   let response;
   try{
-    response=await fetch(API_BASE+path,{...options,headers});
+    response=await fetch(API_BASE+path,{...options,headers,signal:options.signal||
+      (typeof AbortSignal?.timeout==='function'?AbortSignal.timeout(options.method&&options.method!=='GET'?20000:35000):undefined)});
   }catch(cause){
     const err=new Error('network_error');
     err.cause=cause;
