@@ -174,11 +174,11 @@ async function refreshLegacy(){
  const data=await call('/api/editor/actus/legacy-status');
  state.legacyPending=data.pending||[];
  const summary=$('ed-legacy-progress');
- summary.textContent=data.native+' repris / '+data.verified+' contenus vérifiés · '+data.known+' publications connues · '+(data.unavailable?.length||0)+' indisponibles';
+ summary.textContent=data.native+' repris, dont '+(data.nativePublished||0)+' publiés dans SWAPP / '+data.verified+' textes vérifiés · '+data.known+' publications publiques connues · '+(data.unavailable?.length||0)+' indisponibles';
  results.replaceChildren();
  if(!state.legacyPending.length){
   const note=document.createElement('p');note.className='editor-note';
-  note.textContent='Aucun article public vérifié en attente de reprise. Vérifie les anciennes publications manquantes avant toute fermeture du service d’origine.';
+  note.textContent='Aucun texte public vérifié en attente de copie. La fermeture reste conditionnée à la publication des brouillons, à la vérification des médias et à un inventaire complet du compte d’origine.';
   results.append(note);return;
  }
  for(const item of state.legacyPending){
