@@ -38,7 +38,7 @@ test('le serveur utilise la barre et les identifiants exacts du site de lives',(
 test('le site client charge le même contrat avant le script SPA',()=>{
  const html=fs.readFileSync(path.join(ROOT,'index.html'),'utf8');
  const script=fs.readFileSync(path.join(ROOT,'index_script.js'),'utf8');
- assert.ok(html.indexOf('src="/assets/swapp-navigation.js?v=20261015-hubs-2"') < html.indexOf('src="/index_script.js'));
+ assert.ok(html.indexOf('src="/assets/swapp-navigation.js?v=20261015-hubs-3"') < html.indexOf('src="/index_script.js'));
  assert.match(script,/window\.SwappNavigation/);
  assert.match(html,/href="\/assets\/swapp-unified-nav\.css\?v=20261015-hubs-2"/);
  assert.match(layout({content:''}),/href="\/assets\/swapp-unified-nav\.css\?v=20261015-hubs-2"/);
