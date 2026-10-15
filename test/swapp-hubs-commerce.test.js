@@ -46,15 +46,21 @@ test('all verified videos and original artwork appear in the SWAPP gallery',()=>
  const videos=curatedVideos();
  assert.equal(videos.length,8);
  assert.equal(videos.filter(v=>v.series).length,5);
+ assert.equal(videos.filter(v=>/^[A-Za-z0-9_-]{11}$/.test(v.youtubeId||'')).length,7);
+ assert.equal(videos.filter(v=>!v.youtubeId).length,1);
  assert.ok(videos.every(v=>v.source.startsWith('https://justplayer.fr/supporters/video_embeds/')));
  const html=trailers();
  assert.match(html,/LES TRAILERS/);
- assert.match(html,/swapp-video-gallery\\.css/);
- assert.match(html,/swapp-video-player\\.js/);
+ assert.match(html,/swapp-video-gallery\.css/);
+ assert.match(html,/swapp-video-player\.js/);
  assert.match(html,/CODE VEIN II/);
  assert.match(html,/PLANET ZOO 2/);
  assert.match(html,/data-swapp-video-play="1"/);
- assert.match(html,/storage\\.googleapis\\.com/);
+ assert.match(html,/swapp-video-external/);
+ assert.match(html,/href="https:\/\/justplayer\.fr\/supporters\/video_embeds\/bioshock-bientot-sur-netflix"/);
+ assert.equal((html.match(/data-swapp-video-play="1"/g)||[]).length,8);
+ assert.doesNotMatch(html,/data-swapp-video-youtube=""/);
+ assert.match(html,/storage\.googleapis\.com/);
  assert.doesNotMatch(html,/<iframe/);
 });
 
