@@ -61,6 +61,13 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
     if(typeof sendApp==='function')return sendApp(res);
     return next(new Error('SWAPP app renderer unavailable'));
   });
+  // Shows only the connected user's own identity for secure, pinned admin setup.
+  // This route never grants any permission and never returns a password or token.
+  router.get('/api/editor/actus/identity',(req,res)=>{
+    res.set('Cache-Control','no-store');
+    const user=req.session?.oryonUser;
+    return res.json({authenticated:!!user?.id,login:user?.login||null,userId:user?.id||null});
+  });
   router.get('/api/editor/actus/access',(req,res)=> {
     res.set('Cache-Control','no-store');
     return res.json({authenticated: Boolean(req.session?.oryonUser?.login),canEdit:Boolean(canEdit(req))});
