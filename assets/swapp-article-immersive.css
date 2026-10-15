@@ -466,3 +466,40 @@ body.swapp-editorial-route .article-wrap > .swapp-reading-progress{
     margin:26px auto;padding:10px 0 14px;
   }
 }
+
+
+/* One discreet partner recommendation, distinct from editorial discovery. */
+:is(#actus,body.swapp-editorial-route) .swapp-article-reading .swapp-affiliate-offer{
+  box-sizing:border-box;margin-top:26px;padding:16px 0 6px;
+  border:0;border-top:1px solid rgba(156,179,211,.3);
+  background:none;display:flex;flex-direction:column;align-items:flex-start;gap:8px;
+  max-width:100%;min-width:0;
+}
+:is(#actus,body.swapp-editorial-route) .swapp-affiliate-kicker{
+  font-size:10px;color:#b2c5d6;font-weight:800;letter-spacing:.07em;
+}
+:is(#actus,body.swapp-editorial-route) .swapp-affiliate-game{
+  color:#f0f6ff;font-size:14px;line-height:1.35;font-weight:850;overflow-wrap:anywhere;
+}
+:is(#actus,body.swapp-editorial-route) .swapp-affiliate-platform{
+  color:#9ab0c7;font-size:11px;line-height:1.35;
+}
+:is(#actus,body.swapp-editorial-route) .swapp-affiliate-link{
+  display:inline-flex;align-items:center;justify-content:center;text-align:center;
+  max-width:100%;box-sizing:border-box;border:1px solid #5b7088;
+  border-radius:10px;background:rgba(37,58,77,.45);color:#e4f5ff!important;
+  padding:10px 11px;font-size:12px;font-weight:800;line-height:1.35;
+  text-decoration:none!important;transition:background-color .16s ease,border-color .16s ease;
+}
+:is(#actus,body.swapp-editorial-route) .swapp-affiliate-link:hover{
+  background:rgba(42,81,91,.73);border-color:#87d8df;
+}
+:is(#actus,body.swapp-editorial-route) .swapp-affiliate-link:focus-visible{
+  outline:2px solid #83e9ed;outline-offset:3px;
+}
+:is(#actus,body.swapp-editorial-route) .swapp-affiliate-disclosure{
+  color:#9baebe;font-size:10px;line-height:1.55;
+}
+@media(prefers-reduced-motion:reduce){
+ .swapp-affiliate-link{transition:none!important}
+}
