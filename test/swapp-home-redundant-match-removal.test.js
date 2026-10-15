@@ -26,7 +26,7 @@ test('orphan home match styles are removed, while design and caches remain',()=>
  }
  const main=read('index.html'),publicPage=read('modules/swapp-news/site-shell.js');
  for(const html of [main,publicPage]){
-  assert.match(html,/swapp-art-direction\.css\?v=20261015-actus-glow-37/);
+  assert.match(html,/swapp-art-direction\.css\?v=20261015-cinematic-38/);
   assert.match(html,/swapp-media\.css\?v=20261015-home-clean-27/);
  }
  assert.match(main,/swapp-home-news\.js\?v=20261015-private-36/);
