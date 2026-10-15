@@ -76,10 +76,8 @@ heading.append(heroCopy);article.append(heading);
 if(heroImage&&a.image?.credit)heroCopy.append(el('p','swapp-immersive-credit',a.image.credit));
 const controls=el('div','swapp-reader-controls');const words=String(a.body||'').trim().split(/\s+/).filter(Boolean).length;controls.append(el('span','swapp-read-time',Math.max(1,Math.ceil(words/220))+' min de lecture'));
 const share=el('button','swapp-reader-share','Partager l’article');share.type='button';share.onclick=async()=>{const address=location.origin+'/actus/'+encodeURIComponent(slug);try{if(navigator.share){await navigator.share({title:a.title,url:address});return}if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(address);share.textContent='Lien copié';return}}catch(e){if(e.name==='AbortError')return}share.textContent='Copier le lien : '+address};controls.append(share);if(a.game){const jump=el('a','swapp-reader-live-jump','Voir les lives du jeu ↓');jump.href='#swapp-article-lives';jump.onclick=e=>{const target=article.querySelector('#swapp-article-lives');if(!target)return;e.preventDefault();target.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'})};controls.append(jump)}heroCopy.append(controls);
-// Cover already displayed as immersive backdrop; no duplicate image.
-const progress=el('div','swapp-reading-progress');progress.setAttribute('aria-hidden','true');const progressFill=el('span');progress.append(progressFill);node.prepend(progress);
-const updateProgress=()=>{if(!article.isConnected){window.removeEventListener('scroll',updateProgress);window.removeEventListener('resize',updateProgress);return;}const rect=article.getBoundingClientRect();const total=Math.max(1,article.offsetHeight-window.innerHeight);const travelled=Math.min(total,Math.max(0,-rect.top));progressFill.style.width=(travelled/total*100)+'%';};
-window.addEventListener('scroll',updateProgress,{passive:true});window.addEventListener('resize',updateProgress);requestAnimationFrame(updateProgress);
+// Artwork remains behind the heading. Reading progress is now a small TOC label,
+// not a second horizontal line underneath the SWAPP navigation.
 const reading=el('div','swapp-article-reading');
 const body=el('div','swapp-actus-body');body.id='article-content';paragraphContent(body,a.body);
 const sections=[...body.querySelectorAll('h2,h3')];
