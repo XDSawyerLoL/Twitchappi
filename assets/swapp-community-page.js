@@ -8,9 +8,18 @@
  const refresh=shell.querySelector('#swappCommunityRefresh'),join=shell.querySelector('#swappCommunityJoin');
  const auth=shell.querySelector('#swappSocialAuth'),form=shell.querySelector('#swappSocialAuthForm');
  const error=shell.querySelector('#swappSocialAuthError'),close=shell.querySelector('.swapp-community-auth-close');
- let token=null,user=null,loading=false;
+ const switchMode=shell.querySelector('#swappSocialSwitch'),displayField=form.querySelector('[data-swapp-register]');
+ let token=null,user=null,loading=false,registering=false;
  const el=(tag,cls,text)=>{const x=document.createElement(tag);if(cls)x.className=cls;if(text!==undefined)x.textContent=String(text);return x};
- function openLogin(){auth.hidden=false;error.textContent='';form.elements.handle.focus()}
+ function updateMode(){
+  displayField.hidden=!registering;
+  form.elements.displayName.required=registering;
+  form.elements.password.autocomplete=registering?'new-password':'current-password';
+  auth.querySelector('h2').textContent=registering?'Créer un compte SOCIAL':'Compte SOCIAL';
+  form.querySelector('[type=submit]').textContent=registering?'Créer mon compte':'Se connecter';
+  switchMode.textContent=registering?'J’ai déjà un compte':'Créer un compte SOCIAL';
+ }
+ function openLogin(){auth.hidden=false;error.textContent='';updateMode();form.elements.handle.focus()}
  function closeLogin(){auth.hidden=true;form.elements.password.value='';join.focus()}
  const changeJoin=()=>{
   join.textContent=user?'Se déconnecter de SOCIAL':'Connexion SOCIAL';
@@ -25,7 +34,7 @@
   const response=await fetch(url,{method,headers,credentials:'same-origin',cache:'no-store',
    ...(body===undefined?{}:{body:JSON.stringify(body)}),signal:AbortSignal.timeout(12000)});
   let data;try{data=await response.json()}catch{throw Error('Réponse du serveur SOCIAL indisponible')}
-  if(!response.ok)throw Error(({unauthorized:'Connexion SOCIAL nécessaire',invalid_credentials:'Identifiant ou mot de passe incorrect',rate_limited:'Trop de tentatives : réessaie ultérieurement',social_unavailable:'SOCIAL est temporairement indisponible',invalid_post:'Texte trop long ou vide'})[data.error]||'SOCIAL est actuellement indisponible');
+  if(!response.ok)throw Error(({unauthorized:'Connexion SOCIAL nécessaire',invalid_credentials:'Identifiant ou mot de passe incorrect',rate_limited:'Trop de tentatives : réessaie ultérieurement',handle_taken:'Cet identifiant est déjà utilisé',invalid_registration:'Vérifie les informations de ton nouveau compte',invalid_display_name:'Le nom public est invalide',social_unavailable:'SOCIAL est temporairement indisponible',invalid_post:'Texte trop long ou vide'})[data.error]||'SOCIAL est actuellement indisponible');
   return data;
  }
  function composer(){
@@ -97,6 +106,7 @@
   else openLogin();
  });
  close.addEventListener('click',closeLogin);
+ switchMode.addEventListener('click',()=>{registering=!registering;updateMode();error.textContent=''});
  auth.addEventListener('click',event=>{if(event.target===auth)closeLogin()});
  document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!auth.hidden)closeLogin()});
  refresh.addEventListener('click',loadFeed);
@@ -106,11 +116,13 @@
   const password=form.elements.password.value;
   const submit=form.querySelector('[type=submit]');submit.disabled=true;
   try{
-   const data=await request('/api/swapp/social/login','POST',{handle,password});
+   const payload={handle,password};
+   if(registering)payload.displayName=form.elements.displayName.value.trim();
+   const data=await request('/api/swapp/social/'+(registering?'register':'login'),'POST',payload);
    if(typeof data.token!=='string'||!data.token||!data.user)throw Error('Session SOCIAL invalide');
    token=data.token;user=data.user;changeJoin();closeLogin();await loadFeed();
   }catch(err){error.textContent=err.message}
   finally{submit.disabled=false;form.elements.password.value=''}
  });
- changeJoin();loadFeed();
+ updateMode();changeJoin();loadFeed();
 })();
