@@ -26,7 +26,7 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
   const sendError=(res,e)=>res.status(400).json({error:e.message || 'Article invalide'});
   const isValidation=e=>/Article|Titre|Slug|source|URL|Résumé|Crédit|droits|Date|JustPlayer|Contenu|Type de publication|vidéo|commercial|liens|Lien/.test(String(e?.message||''));
   const published=async()=>{
-    const snap=await articles.where('status','==','published').limit(60).get();
+    const snap=await articles.where('status','==','published').limit(500).get();
     const original=snap.docs.map(x=>x.data());
     await publicNews.scanBatch(); // Only complete, verified Fourthwall articles enter the feed.
     const oldUrls=new Set(original.map(x=>x.legacyUrl).filter(Boolean));
@@ -161,8 +161,8 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
   });
   router.get('/api/editor/actus',...editor,async(req,res,next)=>{
     try{
-      const snap=await articles.limit(60).get();
-      const list=snap.docs.map(d=>d.data()).sort((a,b)=>String(b.updatedAt||'').localeCompare(String(a.updatedAt||'')));
+      const snap=await articles.limit(500).get();
+      const list=snap.docs.map(d=>publicArticle(d.data())).sort((a,b)=>String(b.updatedAt||'').localeCompare(String(a.updatedAt||'')));
       return res.json({articles:list});
     }catch(e){next(e);}
   });
