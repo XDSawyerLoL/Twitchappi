@@ -46,7 +46,7 @@ test('both page shells use latest batched menu script with no stale assets',()=>
   assert.match(source,/swapp-hub-nav\.js\?v=20261015-perf-1/);
   assert.doesNotMatch(source,/swapp-hub-nav\.js\?v=20261015-community-restore-10/);
  }
- assert.match(spa,/swapp-home-news\.js\?v=20261015-perf-1/);
+ assert.match(spa,/swapp-home-news\.js\?v=20261015-video-home-1/);
 });
 
 test('SOCIAL remains mounted on its full native page and uses an independent backend',()=>{
@@ -68,5 +68,22 @@ test('SOCIAL front page does not wait for independent health/session requests',(
  assert.match(app,/void restoreSession\(\)/);
  assert.match(app,/await Promise\.allSettled\(\[loadHome\(\),loadCirclePreview\(\)\]\)/);
  assert.doesNotMatch(app,/await Promise\.allSettled\(\[health\(\),restoreSession\(\)\]\)/);
- assert.match(read('modules/swapp-hubs.js'),/app\.js\?v=20261015-full-social-5/);
+ assert.match(read('modules/swapp-hubs.js'),/app\.js\?v=20261015-full-social-6/);
+});
+
+test('AdSense code appears exactly once in each SWAPP HTML shell',()=>{
+ const site=read('index.html'),pages=read('modules/swapp-news/site-shell.js');
+ for(const html of [site,pages]){
+  assert.equal(html.split('pagead2.googlesyndication.com/pagead/js/adsbygoogle.js').length-1,1);
+  assert.ok(html.includes('ca-pub-6082969821681414'));
+  assert.ok(!html.includes('<ins class="adsbygoogle"'));
+ }
+});
+test('video feature is part of existing news grid, not another homepage module',()=>{
+ const home=read('assets/swapp-home-news.js');
+ const html=read('index.html');
+ assert.ok(home.includes('function videoTeaser()'));
+ assert.ok(home.includes('grid.append(videoTeaser())'));
+ assert.ok(home.includes('swappVideoPlay'));
+ assert.ok(html.includes('swapp-video-player.js?v=20261015-gallery-1'));
 });
