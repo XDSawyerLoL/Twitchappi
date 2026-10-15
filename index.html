@@ -109,6 +109,7 @@ html,body{overflow-x:hidden}.watchShell.channelWatch{grid-template-columns:minma
 <script>
 /* Direct ACTUS reload: show its container before the session request. */
 if((location.pathname||'/').replace(/\/+$/,'')==='/actus'){
+ window.__SWAPP_DIRECT_ACTUS_ENTRY__=true;
  document.getElementById('home')?.classList.remove('active');
  document.getElementById('actus')?.classList.add('active');
 }
