@@ -5211,7 +5211,15 @@ function requireOryonOwner(req,res, login){
   return cur;
 }
 function adminLogins(){ const raw = String(process.env.ORYON_ADMIN_LOGINS || process.env.ADMIN_LOGINS || ''); return raw.split(',').map(normalizeOryonLogin).filter(Boolean); }
-function isOryonAdmin(req){ const cur=req.session?.oryonUser; return !!(cur?.login && adminLogins().includes(normalizeOryonLogin(cur.login))); }
+function isOryonAdmin(req){
+ const cur=req.session?.oryonUser;
+ if(!cur?.id||!cur?.login||!adminLogins().includes(normalizeOryonLogin(cur.login)))return false;
+ // Optional hard binding: once ORYON_ADMIN_USER_IDS is set, a matching login
+ // alone cannot grant administrator privileges to a different account.
+ const pinned=String(process.env.ORYON_ADMIN_USER_IDS||'').split(',')
+  .map(s=>s.trim()).filter(s=>/^[a-f0-9]{24,64}$/i.test(s));
+ return !pinned.length||pinned.includes(String(cur.id));
+}
 function slugifyOryon(v){ return String(v||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,48) || crypto.randomBytes(4).toString('hex'); }
 function safeTags(v){ if(Array.isArray(v)) return v.map(x=>String(x).trim().toLowerCase()).filter(Boolean).slice(0,12); return String(v||'').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean).slice(0,12); }
 function pushOryonEvent(type, actor, payload={}){ const data=oryonRead(ORYON_EVENTS_FILE,{events:[]}); data.events=Array.isArray(data.events)?data.events:[]; data.events.unshift({id:crypto.randomBytes(8).toString('hex'),type,actor:actor||'system',payload,ts:Date.now()}); data.events=data.events.slice(0,1000); oryonWrite(ORYON_EVENTS_FILE,data); }
