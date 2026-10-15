@@ -13,10 +13,7 @@ export function setView(view,title){
   dom.welcome.hidden=view!=='home'||!!state.user;
 }
 
-const NEWS_FEEDS=[
-  'https://raw.githubusercontent.com/XDSawyerLoL/LEFILLIBRE/main/feed.json',
-  'https://xdsawyerlol.github.io/LEFILLIBRE/feed.json'
-];
+const NEWS_FEEDS=['/api/actus'];
 
 function safeNewsUrl(value){
   try{const url=new URL(String(value||''));return url.protocol==='https:'?url.href:''}catch{return''}
@@ -37,8 +34,14 @@ async function fetchNewsFeed(){
       const response=await fetch(endpoint+(endpoint.includes('?')?'&':'?')+'v='+Date.now(),{cache:'no-store'});
       if(!response.ok)throw new Error('HTTP '+response.status);
       const data=await response.json();
-      if(!Array.isArray(data.items))throw new Error('invalid_news_feed');
-      return data;
+      if(Array.isArray(data.articles)){
+       const items=data.articles.filter(a=>a&&/^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/.test(String(a.slug||'')))
+        .map(a=>({title:String(a.title||''),source:'SWAPP',url:location.origin+'/actus/'+encodeURIComponent(a.slug),
+         image:typeof a.image==='object'?a.image?.url:String(a.imageUrl||''),summary:String(a.summary||''),
+         publishedAt:a.publishedAt||a.originalPublishedAt}));
+       return {items};
+      }
+      throw new Error('invalid_swapp_news_feed');
     }catch(error){lastError=error}
   }
   throw lastError||new Error('news_feed_unavailable');
@@ -46,7 +49,7 @@ async function fetchNewsFeed(){
 
 function renderNewsCard(item){
   const title=String(item.title||'Actualité');
-  const source=String(item.source||'Quantic News');
+  const source=String(item.source||'SWAPP Actualité');
   const url=safeNewsUrl(item.url||item.articleUrl);
   const image=safeNewsUrl(item.image);
   const summary=String(item.summary||'').slice(0,280);
@@ -63,18 +66,18 @@ function renderNewsCard(item){
 
 export async function loadNewsRss(){
   state.feed='news';
-  setView('home','Quantic News');
+  setView('home','SWAPP Actualité');
   document.querySelectorAll('.pulse-tab').forEach(tab=>tab.classList.toggle('active',tab.dataset.feed==='news'));
   dom.composer.hidden=true;
-  setStatus('Connexion à Quantic News','Lecture du flux…');
+  setStatus('Connexion à SWAPP Actualité','Lecture du flux…');
   try{
     const data=await fetchNewsFeed();
     const items=(data.items||[]).filter(item=>item&&item.title).sort((a,b)=>Date.parse(b.publishedAt||0)-Date.parse(a.publishedAt||0)).slice(0,50);
     dom.feed.innerHTML=items.length
-      ? '<section class="pulse-news-view"><div class="pulse-news-intro"><span>QUANTIC NEWS · FLUX</span><h2>Actualités à lire et à reposter</h2><p>Le flux Quantic News est intégré à SOCIAL. Un repost crée une publication avec le titre, la source, le lien et l’image.</p></div><div class="pulse-news-grid">'+items.map(renderNewsCard).join('')+'</div></section>'
+      ? '<section class="pulse-news-view"><div class="pulse-news-intro"><span>SWAPP ACTUALITÉ · FLUX</span><h2>Actualités à lire et à reposter</h2><p>Le flux SWAPP Actualité est intégré à SOCIAL. Un repost crée une publication avec le titre, la source, le lien et l’image.</p></div><div class="pulse-news-grid">'+items.map(renderNewsCard).join('')+'</div></section>'
       : '<div class="pulse-status"><strong>Flux vide</strong>Aucune actualité disponible pour le moment.</div>';
   }catch(error){
-    setStatus('Quantic News indisponible','Impossible de lire le flux pour le moment.');
+    setStatus('SWAPP Actualité indisponible','Impossible de lire le flux pour le moment.');
   }
 }
 
