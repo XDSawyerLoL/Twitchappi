@@ -3,7 +3,7 @@
 const {layout}=require('./swapp-news/site-shell');
 const {escapeHtml:e}=require('./swapp-news/article-core');
 const catalog=require('../data/justplayer-public-catalog.json');
-const assets='<link rel="stylesheet" href="/assets/swapp-hubs.css?v=20261015-hubs-1">';
+const assets='<link rel="stylesheet" href="/assets/swapp-hubs.css?v=20261015-hubs-3">';
 function heading(kicker,title,subtitle){
  return '<header class="swapp-hub-head"><span class="swapp-hub-eyebrow">'+e(kicker)+'</span><h1>'+e(title)+'</h1><p>'+e(subtitle)+'</p></header>';
 }
@@ -15,7 +15,7 @@ function community(){
  '<section class="swapp-community-auth" id="swappSocialAuth" hidden aria-label="Connexion à SOCIAL"><div class="swapp-community-auth-box"><button type="button" class="swapp-community-auth-close" aria-label="Fermer">×</button><h2>Compte SOCIAL</h2><p>Connecte-toi avec ton compte SOCIAL. Les identités SWAPP ne sont pas automatiquement associées.</p>'+
  '<button type="button" id="swappSocialSwitch" class="swapp-community-switch">Créer un compte SOCIAL</button><form id="swappSocialAuthForm"><label data-swapp-register hidden>Nom public<input name="displayName" autocomplete="nickname" minlength="2" maxlength="50"></label><label>Identifiant SOCIAL<input name="handle" autocomplete="username" required minlength="3" maxlength="24"></label><label>Mot de passe<input name="password" type="password" autocomplete="current-password" minlength="10" maxlength="128" required></label><button class="swapp-hub-action" type="submit">Se connecter</button><p id="swappSocialAuthError" class="swapp-hub-error" role="alert"></p></form>'+
  '<p class="swapp-hub-small">La connexion est transmise au serveur SOCIAL officiel via SWAPP. Aucun mot de passe n’est enregistré dans SWAPP ; la session ne survit pas au rechargement.</p></div></section></main>';
- return layout({title:'Communauté',description:'Discussions de joueurs et de créateurs reliées au prototype SOCIAL.',content:main,active:'community',scripts:assets+'<script defer src="/assets/swapp-community-page.js?v=20261015-hubs-1"></script>'});
+ return layout({title:'Communauté',description:'Discussions de joueurs et de créateurs reliées au prototype SOCIAL.',content:main,active:'community',scripts:assets+'<script defer src="/assets/swapp-community-page.js?v=20261015-hubs-3"></script>'});
 }
 function verifiedTrailers(items=catalog.items){
  const out=[],seen=new Set();
