@@ -1,6 +1,6 @@
 /* SWAPP Studio enhancements: safe native previews, preflight, in-tab draft recovery.
    Runs only on an authenticated editorial page; never uploads files or drafts
-   to third parties, never uses localStorage, and never auto-publishes. */
+   to third parties, never uses persistent browser storage, and never auto-publishes. */
 (()=>{'use strict';
  const ready=()=>document.getElementById('ed-studio-live')&&document.getElementById('ed-view');
  if(!ready())return;
