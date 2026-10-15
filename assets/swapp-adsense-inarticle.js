@@ -10,6 +10,7 @@
  const SLOT='4776091558';
  const SCRIPT='https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client='+CLIENT;
  let consent=false,registered=false,scriptPromise=null,observer=null,queued=false;
+ const requestedBodies=new WeakSet(); // Never retry blank/unfilled ad inventory on the same article.
  const allowed=tc=>{
   if(!tc||tc.cmpStatus==='error')return false;
   if(tc.gdprApplies===false)return true;
@@ -22,7 +23,7 @@
   return document.querySelector('body.swapp-editorial-route main.article-wrap .swapp-article-reading > #article-content');
  };
  const placementPoint=body=>{
-  if(!body||body.querySelector(':scope > .swapp-ad-placement'))return null;
+  if(!body||requestedBodies.has(body)||body.querySelector(':scope > .swapp-ad-placement'))return null;
   const paras=[...body.children].filter(x=>x.tagName==='P'&&(x.textContent||'').trim().length>=50);
   const total=(body.textContent||'').trim().length;
   // One ad at most. Short articles remain ad-free instead of interrupting reading.
@@ -60,6 +61,7 @@
   ad.setAttribute('data-full-width-responsive','false');
   section.append(title,ad);
   point.after(section);
+  requestedBodies.add(body);
   const statusObserver=new MutationObserver(()=>{
    if(ad.getAttribute('data-ad-status')==='unfilled'){section.remove();statusObserver.disconnect()}
    else if(ad.getAttribute('data-ad-status')==='filled')statusObserver.disconnect();
