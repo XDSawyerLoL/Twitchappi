@@ -8,7 +8,7 @@ const root=path.resolve(__dirname,'..');
 const read=p=>fs.readFileSync(path.join(root,p),'utf8');
 const client=read('assets/swapp-adsense-inarticle.js');
 
-function harness({paragraphs=[260,300,300,260],cmp=true}={}){
+function harness({paragraphs=[260,300,300,260],cmp=true,partner=false}={}){
  let callback=null;
  const scripts=[];
  class Node{
@@ -38,6 +38,7 @@ function harness({paragraphs=[260,300,300,260],cmp=true}={}){
   }
  }
  const content=new Node('div');content.className='swapp-actus-body';
+ content.closest=selector=>selector==='.swapp-article-reading'?{querySelector:key=>key==='.swapp-affiliate-offer'&&partner?{}:null}:null;
  content.children=paragraphs.map(n=>{const p=new Node('p');p.textContent='A'.repeat(n);p.parent=content;return p});
  Object.defineProperty(content,'textContent',{get(){return this.children.map(x=>x.textContent).join(' ')}});
  const head=new Node('head'),body=new Node('body');
@@ -120,4 +121,10 @@ test('a recovered empty ad is not repeatedly inserted on the same reading page',
  assert.match(client,/requestedBodies\.has\(body\)/);
  assert.match(client,/requestedBodies\.add\(body\)/);
  assert.match(client,/data-ad-status'\)==='unfilled'/);
+});
+
+test('relevant affiliate partner takes priority over a second in-article Google ad',async()=>{
+ const h=harness({partner:true});h.consent();await settle();
+ assert.equal(h.scripts.length,0);
+ assert.equal(h.content.children.length,4);
 });
