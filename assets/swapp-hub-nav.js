@@ -1,57 +1,107 @@
-/* Correct duplicate menu links when SPA and editorial navigation coexist.
- * The canonical link contract is SwappNavigation: no second set of menu entries.
+/* SWAPP: one visible navigation item per destination.
+ * SPA can render buttons, editorial shell can render anchors. Never add desktop
+ * links over the SPA navigation; only deduplicate by destination AND label.
  */
 (()=>{'use strict';
- const extras=[['/communaute','Communauté'],['/bandes-annonces','Vidéos'],['/boutique','Boutique']];
- const mk=(href,label)=>{const a=document.createElement('a');a.href=href;a.textContent=label;return a};
- let busy=false;
- function reconcile(){
-  if(busy)return;busy=true;
-  try{
-   const desktop=document.querySelector('#nav');
-   if(desktop){
-    const group=desktop.querySelector('.navGroup')||desktop;
-    for(const [href,label] of extras){
-     const matches=[...desktop.querySelectorAll('a[href="'+href+'"]')];
-     if(!matches.length)group.append(mk(href,label));
-     else for(const extra of matches.slice(1))extra.remove();
-    }
-   }
-   const mobile=document.getElementById('mobileNav');
-   if(!mobile)return;
-   let more=mobile.querySelector(':scope > .swapp-mobile-more');
-   if(!more){
-    more=document.createElement('details');more.className='swapp-mobile-more';
-    const summary=document.createElement('summary');summary.textContent='Plus';
-    const list=document.createElement('div');list.className='swapp-mobile-more-links';
-    more.append(summary,list);mobile.append(more);
-   }
-   const list=more.querySelector('.swapp-mobile-more-links');
-   // Only the four principal links remain at the bottom of the screen.
-   const primary=new Set(['/','/decouvrir','/actus','/communaute']);
-   const primaryLabels=new Set(['Accueil','Découvrir','Actualité','Communauté']);
-   for(const a of [...mobile.children]){
-    if(a===more||!a.matches('a,button'))continue;
-    const href=a.getAttribute('href');
-    const label=(a.textContent||'').trim();
-    if(!primary.has(href)&&!primaryLabels.has(label))list.append(a);
-   }
-   const community=[...mobile.children].filter(x=>x.matches('a[href="/communaute"]'));
-   if(!community.length)mobile.insertBefore(mk('/communaute','Communauté'),more);
-   else for(const a of community.slice(1))a.remove();
-   for(const [href,label] of [...extras.slice(1),['/compte','Compte']]){
-    const found=[...list.querySelectorAll('a[href="'+href+'"]')];
-    if(!found.length)list.append(mk(href,label));
-    else for(const dupe of found.slice(1))dupe.remove();
-   }
-   if(more.nextElementSibling)mobile.append(more);
-  }finally{busy=false}
+ const NAV=[
+  ['/', 'Accueil'],['/decouvrir','Découvrir'],['/categories','Catégories'],
+  ['/equipes','Équipes'],['/actus','Actualité'],['/communaute','Communauté'],
+  ['/bandes-annonces','Vidéos'],['/boutique','Boutique']
+ ];
+ const normalize=s=>String(s||'').replace(/\s+/g,' ').trim().toLocaleLowerCase('fr');
+ const byLabel=new Map(NAV.map(([href,label])=>[normalize(label),href]));
+ const byHref=new Set(NAV.map(([href])=>href));
+ function destination(el){
+  const href=el.getAttribute('href');
+  if(href){
+   try{
+    const url=new URL(href,location.origin);
+    if(url.origin===location.origin&&byHref.has(url.pathname))return url.pathname;
+   }catch(_){}
+  }
+  return byLabel.get(normalize(el.textContent))||null;
  }
- let scheduled=false;
- function schedule(){if(scheduled)return;scheduled=true;queueMicrotask(()=>{scheduled=false;reconcile()})}
- if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
- const nav=document.getElementById('nav'),mobile=document.getElementById('mobileNav');
- const observer=new MutationObserver(schedule);
- if(nav)observer.observe(nav,{childList:true,subtree:true});
- if(mobile)observer.observe(mobile,{childList:true,subtree:true});
+ const create=(href,label)=>{
+  const a=document.createElement('a');
+  a.href=href;a.textContent=label;
+  if(location.pathname===href){a.classList.add('active');a.setAttribute('aria-current','page')}
+  return a;
+ };
+ let mutating=false,queued=false;
+ function normalizeDesktop(){
+  const nav=document.getElementById('nav');
+  if(!nav)return;
+  nav.classList.add('swapp-nav-consistent');
+  const controls=[...nav.querySelectorAll('a,button')]
+   .filter(el=>el.closest('#nav')===nav);
+  const seen=new Map();
+  for(const el of controls){
+   const href=destination(el);
+   if(!href)continue;
+   if(seen.has(href)){
+    el.remove();
+   }else{
+    seen.set(href,el);
+   }
+  }
+  // Deliberately do not append desktop links: the primary SPA already renders
+  // all destinations. Appending here caused the second, smaller trio.
+ }
+ function normalizeMobile(){
+  const nav=document.getElementById('mobileNav');
+  if(!nav)return;
+  const expected=['/','/decouvrir','/actus','/communaute'];
+  let more=nav.querySelector(':scope > .swapp-mobile-more');
+  if(!more){
+   more=document.createElement('details');more.className='swapp-mobile-more';
+   const summary=document.createElement('summary');summary.textContent='Plus';
+   const items=document.createElement('div');items.className='swapp-mobile-more-links';
+   more.append(summary,items);nav.append(more);
+  }
+  const pane=more.querySelector('.swapp-mobile-more-links');
+  if(!pane)return;
+  for(const control of [...nav.children]){
+   if(control===more||!control.matches('a,button'))continue;
+   const href=destination(control);
+   if(!href||!expected.includes(href))pane.append(control);
+  }
+  const seen=new Set();
+  for(const control of [...nav.querySelectorAll('a,button')]){
+   const href=destination(control);
+   if(!href)continue;
+   if(seen.has(href))control.remove();
+   else seen.add(href);
+  }
+  const top=[...nav.children].filter(el=>el!==more&&el.matches('a,button'));
+  const current=new Set(top.map(destination));
+  // Add only destinations absent from the actual mobile SPA menu.
+  for(const href of expected){
+   if(current.has(href))continue;
+   const label=NAV.find(item=>item[0]===href)[1];
+   nav.insertBefore(create(href,label),more);
+  }
+  for(const [href,label] of [...NAV.filter(item=>!expected.includes(item[0])),['/compte','Compte']]){
+   if([...nav.querySelectorAll('a,button')].some(el=>destination(el)===href||
+      (href==='/compte'&&normalize(el.textContent)==='compte')))continue;
+   pane.append(create(href,label));
+  }
+  if(more!==nav.lastElementChild)nav.append(more);
+ }
+ function reconcile(){
+  if(mutating)return;
+  mutating=true;
+  try{normalizeDesktop();normalizeMobile()}finally{mutating=false}
+ }
+ function queue(){
+  if(queued)return;
+  queued=true;
+  queueMicrotask(()=>{queued=false;reconcile()});
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',queue,{once:true});
+ else queue();
+ const observer=new MutationObserver(queue);
+ for(const id of ['nav','mobileNav']){
+  const el=document.getElementById(id);
+  if(el)observer.observe(el,{childList:true,subtree:true});
+ }
 })();
