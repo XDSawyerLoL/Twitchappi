@@ -67,7 +67,7 @@ function assertArticle(value, {publish = false, legacyRequired = false} = {}) {
     games,tags,seo,
     category: String(value.category || 'actualites').trim().slice(0, 60),
     game: String(value.game || editorial.primaryGame || '').trim().slice(0, 120),
-    author: String(value.author || 'Rédaction JustPlayer / SWAPP').trim().slice(0, 120),
+    author: String(value.author || 'Rédaction SWAPP').trim().slice(0, 120),
     sources: sources.map(s => ({url:s.url, label:String(s.label || '').trim().slice(0, 180)})),
     image: image ? {url:image.url,credit:String(image.credit||'').trim().slice(0,180),rights:String(image.rights||'').trim().slice(0,180)} : null,
     trailerUrl:trailerUrl||null,
