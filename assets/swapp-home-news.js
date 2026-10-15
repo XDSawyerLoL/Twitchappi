@@ -93,7 +93,7 @@
    title.append(el('small','','SWAPP · LE GAMING EN DIRECT'),el('h2','','À la une sur SWAPP'),el('p','','L’actualité des jeux et les créateurs qui y jouent, au même endroit.'));
    const all=el('a','swapp-media-button primary','Toute l’actualité →');all.href='/actus';
    all.onclick=e=>{if(e.button||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey||typeof window.setView!=='function')return;e.preventDefault();window.setView('actus');window.SwappActus?.home()};
-   const actions=el('div','swapp-home-hero-actions');actions.append(all);top.append(title,actions);section.append(top);
+   const actions=el('div','swapp-home-hero-actions');actions.append(videoTeaser(),all);top.append(title,actions);section.append(top);
    const grid=el('div','swapp-home-story-grid');
    for(let i=0;i<(modern?4:5);i++){const skeleton=el('div','swapp-home-story swapp-home-story-skeleton'+(!modern&&i===0?' swapp-home-story-featured':''));skeleton.setAttribute('aria-hidden','true');skeleton.append(el('div','swapp-home-story-image'),el('div','swapp-home-story-body'));grid.append(skeleton)}section.setAttribute('aria-busy','true');section.append(grid);
    // Reserve the visual column before fetching articles to avoid a layout jump.
@@ -138,10 +138,7 @@
        valid.forEach((item,i)=>grid.append(story(item,i)));
      });
      const visible=featuredSlug?valid.filter(item=>item.slug!==featuredSlug):valid;
-     visible.slice(0,modern?3:4).forEach((item,i)=>{
-       grid.append(story(item,featuredSlug?i+1:i));
-       if(i===0)grid.append(videoTeaser());
-     });
+     visible.forEach((item,i)=>grid.append(story(item,featuredSlug?i+1:i)));
 
    });
  }
