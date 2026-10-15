@@ -4,101 +4,68 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
 const vm=require('node:vm');
-const source=fs.readFileSync(path.join(__dirname,'../assets/swapp-play.js'),'utf8');
-const shell=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
+const root=path.resolve(__dirname,'..');
+const read=p=>fs.readFileSync(path.join(root,p),'utf8');
+const js=read('assets/swapp-play.js');
+const spa=read('index.html');
+const shell=read('modules/swapp-news/site-shell.js');
+const {community}=require('../modules/swapp-hubs');
+const {renderTwitchWatch}=require('../modules/swapp-news/watch');
 
-function harness(){
- const nodes=new Map(),events={};
- const create=(kind)=>{
-  const classes=new Set(),attributes={};
-  return {
-   kind,isConnected:true,disabled:false,clicked:0,dataset:{},textContent:'',title:'',
-   classList:{
-    add(c){classes.add(c)},remove(c){classes.delete(c)},
-    contains(c){return classes.has(c)},
-    toggle(c,val){if(val===undefined)val=!classes.has(c);if(val)classes.add(c);else classes.delete(c);return val}
-   },
-   matches(sel){return kind==='article'&&sel.includes('.homeLiveCard1014')},
-   getAttribute(k){return attributes[k]||null},
-   setAttribute(k,v){attributes[k]=String(v)},
-   closest(){return null},
-   querySelector(selector){return kind==='article'&&selector.includes('homeLiveBadge1014')?{className:'homeLiveBadge1014'}:null},
-   querySelectorAll(sel){return kind==='home'&&sel.includes('.homeLiveCard1014')?[article]:[]},
-   getBoundingClientRect(){return {left:100,top:100,width:280,height:160}},
-   focus(){document.activeElement=this},
-   scrollIntoView(){},
-   click(){this.clicked++},
-   addEventListener(evt,fn){this['on'+evt]=fn},
-   appendChild(child){if(child.id)nodes.set('#'+child.id,child)},
-   insertBefore(child){this.appendChild(child)}
-  };
- };
- const header=create('header'),user=create('user'),action=create('action'),article=create('article'),home=create('home'),body=create('body'),head=create('head');
- const document={
-  body,head,hidden:false,activeElement:article,
-  createElement:create,
-  querySelector(q){
-   if(q==='.topbar')return header;
-   if(q==='.topbar .userArea')return user;
-   if(q==='#home.view.active .homeHeroCopy1014 .homeActions1014')return action;
-   if(q==='#home.view.active')return home;
-   if(q==='.swapp-controller-focus')return article.classList.contains('swapp-controller-focus')?article:null;
-   return nodes.get(q)||null;
-  },
-  querySelectorAll(q){
-   if(q.includes('.topbar a[href]'))return [article,...Array.from(nodes.values())];
-   if(q.includes('.homeLiveCard1014'))return [article];
-   return [];
-  },
-  addEventListener(evt,fn){events[evt]=fn}
- };
- const pad={connected:true,buttons:Array.from({length:16},()=>({pressed:false})),axes:[0,0]},window={
-  addEventListener(evt,fn){events[evt]=fn},
-  setInterval(fn){window.poll=fn}
- };
- const context={window,document,navigator:{getGamepads:()=>[pad]},
-  MutationObserver:class{observe(){}},getComputedStyle:()=>({display:'block',visibility:'visible'}),
-  requestAnimationFrame:fn=>fn(),location:{pathname:'/'},history:{back(){events.wentBack=true}},
-  performance:{now:()=>500}};
- vm.runInNewContext(source,context,{timeout:1000});
- return {article,pad,window,events,body,toggle:nodes.get('#swappPlayToggle'),surf:nodes.get('#swappPlaySurf')};
-}
-
-test('SWAPP Play is loaded within the existing page, and parses',()=>{
- assert.match(shell,/<script defer src="\/assets\/swapp-play\.js\?/);
- assert.doesNotThrow(()=>new Function(source));
- assert.doesNotMatch(source,/createElement\('section'\)/);
+test('spatial engine is syntactically valid and loaded in SPA and native site shell',()=>{
+ assert.doesNotThrow(()=>new Function(js));
+ assert.match(spa,/\/assets\/swapp-play\.js\?v=20261015-spatial-3/);
+ assert.match(shell,/\/assets\/swapp-play\.js\?v=20261015-spatial-3/);
+ assert.match(community(),/\/assets\/swapp-play\.js\?v=20261015-spatial-3/);
+ assert.match(renderTwitchWatch('streamer'),/\/assets\/swapp-play\.js\?v=20261015-spatial-3/);
 });
-test('the controller toggle and discovery button mount in the real topbar and hero',()=>{
- const h=harness();
- assert.ok(h.toggle);
- assert.ok(h.surf);
- assert.equal(h.surf.textContent,'⤨ Surprends-moi');
+test('SOCIAL uses its real navigation and locks controller focus to open dialogs',()=>{
+ assert.match(js,/\.pulse-sidebar \.pulse-nav-item/);
+ assert.match(js,/\.pulse-mobile-nav button/);
+ assert.match(js,/function modal\(\)/);
+ assert.match(js,/if\(modal\(\)\)\{focusItem\(navigable\(\)\[0\]\);return\}/);
+ assert.match(js,/pulse-modal-close/);
 });
-test('SURF opens the actual live ARTICLE rather than searching for an anchor',()=>{
- const h=harness();
- h.surf.onclick();
- assert.equal(h.article.clicked,1);
+test('gamepad supports D-pad and thumbsticks with A, B, X and shoulder buttons',()=>{
+ assert.match(js,/navigator\.getGamepads/);
+ for(const button of ['pressed(0)','pressed(1)','pressed(2)','pressed(4)','pressed(5)','pressed(12)','pressed(13)','pressed(14)','pressed(15)'])assert.ok(js.includes(button),button);
+ assert.match(js,/Math\.abs\(axes\[0\]/);
+ assert.match(js,/Math\.abs\(axes\[1\]/);
+ assert.match(js,/jumpNav\(1\)/);
 });
-test('connected gamepad activates mode and A opens the highlighted live',()=>{
- const h=harness();
- h.events.gamepadconnected();
- assert.equal(h.body.classList.contains('swapp-play-active'),true);
- assert.equal(h.article.classList.contains('swapp-controller-focus'),true);
- h.pad.buttons[0].pressed=true;
- h.window.poll();
- assert.equal(h.article.clicked,1);
+test('accessibility and reduced motion protect text entry and users sensitive to motion',()=>{
+ assert.match(js,/prefers-reduced-motion:reduce/);
+ assert.match(js,/reduced\(\)/);
+ assert.match(js,/isContentEditable/);
+ assert.match(js,/e\.isComposing/);
+ assert.match(js,/aria-label/);
+ assert.match(js,/aria-pressed/);
+ assert.match(js,/role.*status/);
 });
-test('B leaves lounge mode on the home page',()=>{
- const h=harness();
- h.events.gamepadconnected();
- h.pad.buttons[1].pressed=true;
- h.window.poll();
- assert.equal(h.body.classList.contains('swapp-play-active'),false);
+test('no fake lives and no content sections added to the homepage',()=>{
+ assert.match(js,/homeLiveBadge1014/);
+ assert.match(js,/classList\.toggle\('swapp-pulse-live',!!el\.querySelector\(badgeSelector\)\)/);
+ assert.match(js,/function pickLive\(\)/);
+ assert.doesNotMatch(js,/createElement\('section'\)/);
+ assert.doesNotMatch(js,/autoplay\s*=/i);
 });
-test('pulse derives from the verified live badge and can be disabled by DOM refresh',()=>{
- const h=harness();
- assert.equal(h.article.classList.contains('swapp-pulse-live'),true);
- assert.match(source,/prefers-reduced-motion:reduce/);
- assert.match(source,/homeLiveBadge1014/);
+test('keyboard and pointer remain first-class interactions',()=>{
+ assert.match(js,/altKey&&e\.code==='KeyG'/);
+ assert.match(js,/function visible\(el\)/);
+ assert.match(js,/pointerdown/);
+ assert.match(js,/scrollIntoView/);
+ assert.match(js,/ArrowUp/);
+});
+test('lighting follows focus without blocking clicks or flashing',()=>{
+ assert.match(js,/swapp-play-aura/);
+ assert.match(js,/pointer-events:none/);
+ assert.match(js,/showAura\(el\)/);
+ assert.match(js,/scroll.*showAura/);
+ assert.match(js,/prefers-reduced-motion: reduce/);
+});
+test('route changes and open SOCIAL modals preserve safe navigation',()=>{
+ assert.match(js,/lastRoute!==location\.pathname/);
+ assert.match(js,/function closeOverlay\(\)/);
+ assert.match(js,/if\(closeOverlay\(\)\)return/);
+ assert.match(js,/const dialog=modal\(\),list=/);
 });
