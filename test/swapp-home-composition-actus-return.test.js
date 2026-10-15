@@ -31,9 +31,9 @@ test('above-the-fold layout shows featured article, then live channels, then the
  assert.match(css,/#home \.swappHome1014>\.homeLiveSection1014/);
 });
 
-test('home live grid starts with four cards and safely expands or collapses the rest',()=>{
+test('home live grid shows eight cards on desktop and four on mobile and safely expands or collapses the rest',()=>{
  const runtime=read('index_script.js'),css=read('assets/swapp-art-direction.css');
- assert.match(runtime,/const initiallyVisible=window\\.matchMedia\\('\\(max-width:900px\\)'\\)\\.matches\\?4:8/);
+ assert.ok(runtime.includes("const initiallyVisible=window.matchMedia('(max-width:900px)').matches?4:8;"));
  assert.match(runtime,/cards\.forEach\(\(el,i\)=>\{el\.hidden=i>=initiallyVisible\}\)/);
  assert.match(runtime,/more\.setAttribute\('aria-expanded','false'\)/);
  assert.match(runtime,/more\.setAttribute\('aria-expanded',String\(!expanded\)\)/);
