@@ -942,7 +942,10 @@ app.get('/index_script.js', (req,res)=>{
   }else{
     res.setHeader('Cache-Control','no-store, no-cache, must-revalidate');
   }
-  return sendPublicFile(res, 'index_script.js', 'application/javascript');
+  res.type('application/javascript');
+  // sendFile normally emits Cache-Control itself. Do not overwrite our
+  // version-aware caching rule with its default max-age=0 header.
+  return res.sendFile(path.join(__dirname,'index_script.js'),{cacheControl:false});
 });
 // SWAPP ACTUS / JUSTPLAYER — module éditorial isolé du streaming.
 // Rubrique visible dès que Firestore est disponible ; SWAPP_NEWS_ENABLED=false la désactive.
