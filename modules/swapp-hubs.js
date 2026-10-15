@@ -45,7 +45,7 @@ function curatedVideos(){
 function videoCard(item,{featured=false}={}){
  const youtube=typeof item.youtubeId==='string'&&/^[A-Za-z0-9_-]{11}$/.test(item.youtubeId)?item.youtubeId:'';
  const playable=!!youtube;
- const meta=playable?'Bande-annonce officielle · Lecture SWAPP':'Publication JustPlayer · Vidéo non intégrable';
+ const meta=item.native?(item.series?'Trailer · SWAPP':'Vidéo · SWAPP'):(playable?'Bande-annonce officielle · Lecture SWAPP':'Publication JustPlayer · Vidéo non intégrable');
  const original=e(item.source),name=e(item.title),thumbnail=e(item.image);
  const visual='<img src="'+thumbnail+'" alt="" loading="'+(featured?'eager':'lazy')+'" decoding="async" referrerpolicy="no-referrer">'+
   '<span class="swapp-video-shade"><span class="swapp-video-play-icon" aria-hidden="true">'+(playable?'▶':'↗')+'</span>'+
@@ -56,11 +56,24 @@ function videoCard(item,{featured=false}={}){
  return '<article class="swapp-video-item'+(featured?' swapp-video-featured':'')+'">'+launch+
   '<div class="swapp-video-caption"><small>'+e(meta)+'</small><h3>'+name+'</h3>'+
   (item.playbackNote?'<p class="swapp-video-unavailable">'+e(item.playbackNote)+'</p>':'')+
-  '<a href="'+original+'" target="_blank" rel="noopener noreferrer">Publication originale JustPlayer ↗</a></div></article>';
+  '<a href="'+original+'"'+(item.native?'':' target="_blank" rel="noopener noreferrer"')+'>'+(item.native?'Voir la publication SWAPP →':'Publication originale JustPlayer ↗')+'</a></div></article>';
 }
-function trailers(){
- const data=curatedVideos(),inSeries=data.filter(v=>v.series),recent=data.filter(v=>!v.series);
- const featured=recent[0]||inSeries[0];
+function trailers(published=[]){
+ // Editorially approved Firestore videos precede the historical JustPlayer set.
+ const studio=(Array.isArray(published)?published:[]).filter(a=>
+  a&&a.status==='published'&&['video','trailer'].includes(a.contentType)&&
+  /^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/.test(String(a.slug||''))&&
+  /^https:\/\/(?:www\.)?(?:youtube\.com|youtu\.be)\//.test(String(a.trailerUrl||''))&&
+  a.image?.url
+ ).slice(0,36).map(a=>{
+  const videoId=require('../assets/swapp-article-extras').trailerId(a.trailerUrl);
+  return {id:a.slug,title:a.title,date:a.publishedAt,image:a.image.url,
+   source:'/actus/'+encodeURIComponent(a.slug),youtubeId:videoId,
+   series:a.contentType==='trailer',native:true};
+ }).filter(a=>a.youtubeId);
+ const data=[...studio,...curatedVideos()];
+ const inSeries=data.filter(v=>v.series),recent=data.filter(v=>!v.series);
+ const featured=studio[0]||recent[0]||inSeries[0];
  const main='<main class="swapp-hub swapp-hub-videos">'+heading('SWAPP · Vidéos','Place aux bandes-annonces.','Les vidéos de JustPlayer et leurs bandes-annonces officielles, lisibles dans SWAPP lorsque l’éditeur autorise leur intégration.')+
  (featured?'<div class="swapp-featured-video">'+videoCard(featured,{featured:true})+'</div>':'')+
  '<div class="swapp-video-section-title"><h2>LES TRAILERS</h2><span>'+inSeries.length+' vidéos de la série JustPlayer</span></div>'+
