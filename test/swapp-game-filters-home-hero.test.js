@@ -35,8 +35,8 @@ test('homepage hero uses actual article imagery with reserved loading dimensions
 test('latest ACTUS and homepage assets load after design CSS in the canonical app',()=>{
  const app=read('index.html');
  const shell=read('modules/swapp-news/site-shell.js');
- assert.match(app,/swapp-actus-app\.js\?v=20261015-livegrid-32/);
- assert.match(app,/swapp-home-news\.js\?v=20261015-discovery-34/);
+ assert.match(app,/swapp-actus-app\.js\?v=20261015-private-36/);
+ assert.match(app,/swapp-home-news\.js\?v=20261015-private-36/);
  assert.match(app,/swapp-art-direction\.css\?v=20261015-discovery-34/);
  assert.match(shell,/swapp-art-direction\.css\?v=20261015-discovery-34/);
 });
