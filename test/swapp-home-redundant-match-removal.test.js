@@ -29,5 +29,5 @@ test('orphan home match styles are removed, while design and caches remain',()=>
   assert.match(html,/swapp-art-direction\.css\?v=20261015-discovery-34/);
   assert.match(html,/swapp-media\.css\?v=20261015-home-clean-27/);
  }
- assert.match(main,/swapp-home-news\.js\?v=20261015-discovery-34/);
+ assert.match(main,/swapp-home-news\.js\?v=20261015-private-36/);
 });
