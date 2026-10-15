@@ -135,7 +135,7 @@ const recommend=el('details','swapp-reader-next');recommend.open=true;
 const recommendHeading=el('summary','','À découvrir ensuite');
 const recommendations=el('div','swapp-reader-next-list');
 recommend.append(recommendHeading,recommendations);
-const commercial=window.SwappInstantGaming?.forArticle?.(a);
+const commercial=(a.commercialLinks?.length?null:window.SwappInstantGaming?.forArticle?.(a));
 if(commercial){
  const partner=el('aside','swapp-affiliate-offer');
  partner.setAttribute('aria-label','Lien affilié Instant Gaming');
