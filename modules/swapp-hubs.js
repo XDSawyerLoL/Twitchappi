@@ -63,11 +63,10 @@ function trailers(published=[]){
  const studio=(Array.isArray(published)?published:[]).filter(a=>
   a&&a.status==='published'&&['video','trailer'].includes(a.contentType)&&
   /^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/.test(String(a.slug||''))&&
-  /^https:\/\/(?:www\.)?(?:youtube\.com|youtu\.be)\//.test(String(a.trailerUrl||''))&&
-  a.image?.url
+  /^https:\/\/(?:www\.)?(?:youtube\.com|youtu\.be)\//.test(String(a.trailerUrl||''))
  ).slice(0,36).map(a=>{
   const videoId=require('../assets/swapp-article-extras').trailerId(a.trailerUrl);
-  return {id:a.slug,title:a.title,date:a.publishedAt,image:a.image.url,
+  return {id:a.slug,title:a.title,date:a.publishedAt,image:a.image?.url||('https://i.ytimg.com/vi/'+videoId+'/hqdefault.jpg'),
    source:'/actus/'+encodeURIComponent(a.slug),youtubeId:videoId,
    series:a.contentType==='trailer',native:true};
  }).filter(a=>a.youtubeId);
