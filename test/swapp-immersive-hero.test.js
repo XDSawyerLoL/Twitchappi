@@ -12,8 +12,8 @@ const base={slug:'spider-man-article-test',title:'Spider-Man et le futur du jeu 
  publishedAt:'2026-10-15T18:00:00Z',author:'Rédaction SWAPP'};
 
 test('SPA and direct article routes share the ratio-preserving article background stylesheet',()=>{
- assert.match(read('index.html'),/swapp-article-immersive\.css\?v=20261015-ratio-2/);
- assert.match(read('modules/swapp-news/site-shell.js'),/swapp-article-immersive\.css\?v=20261015-ratio-2/);
+ assert.match(read('index.html'),/swapp-article-immersive\.css\?v=20261015-wide-editorial-3/);
+ assert.match(read('modules/swapp-news/site-shell.js'),/swapp-article-immersive\.css\?v=20261015-wide-editorial-3/);
 });
 
 test('SPA uses article image as a page scene, not a banner',()=>{
@@ -62,7 +62,7 @@ test('headline, summary and image credit are escaped',()=>{
  assert.match(html,/Image &lt;b&gt;test&lt;\/b&gt;/);
 });
 
-test('CSS contains background in a natural-ratio zone with borderless title and readable glass surface',()=>{
+test('wide cinematic image retains aspect ratio and article reads without an oversized card',()=>{
  const css=read('assets/swapp-article-immersive.css');
  assert.match(css,/\.swapp-article-scene\{[\s\S]*?position:absolute;top:0/);
  assert.match(css,/aspect-ratio:16\/9/);
@@ -73,7 +73,13 @@ test('CSS contains background in a natural-ratio zone with borderless title and 
  assert.match(css,/\.swapp-immersive-hero::before,\.swapp-immersive-hero::after/);
  assert.match(css,/border:0!important;border-radius:0!important/);
  assert.match(css,/\.swapp-actus-body/);
- assert.match(css,/background:rgba\(8,13,24,.88\)/);
+ assert.match(css,/width:100vw;height:auto;aspect-ratio:16\/9/);
+ assert.match(css,/max-width:1190px!important/);
+ assert.match(css,/border:0!important;border-radius:0!important;box-shadow:none!important/);
+ assert.match(css,/max-width:86ch/);
+ assert.match(css,/font-size:clamp\(36px,3\.65vw,62px\)/);
+ assert.match(css,/line-clamp:unset!important/);
+ assert.match(css,/mask-image:linear-gradient/);
  assert.match(css,/@media\(max-width:700px\)/);
  assert.match(css,/prefers-reduced-motion:reduce/);
  assert.match(css,/prefers-contrast:more/);
