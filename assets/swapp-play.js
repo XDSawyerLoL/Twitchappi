@@ -8,6 +8,8 @@ css.id='swapp-play-style';
 css.textContent=[
   '.swapp-play-toggle{border:1px solid var(--line,#344156);border-radius:12px;min-width:43px;min-height:41px;padding:7px 10px;background:var(--surface,#121826);color:var(--text,#fff);font-size:19px;line-height:1;white-space:nowrap;transition:border-color .15s,background .15s}',
   '.swapp-play-toggle:hover,.swapp-play-toggle[aria-pressed=true]{border-color:var(--brand,#8b5cf6);background:color-mix(in srgb,var(--brand,#8b5cf6) 16%,var(--surface,#121826))}',
+  '.swapp-play-toggle-label{font-size:12px;font-weight:850;vertical-align:middle;margin-left:4px}',
+  '@media(max-width:1100px){.swapp-play-toggle-label{display:none}}',
   '.swapp-play-toggle[data-connected=true]:after{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;margin-left:5px;background:#34d399;vertical-align:middle}',
   '.swapp-play-surf{display:inline-flex;align-items:center;justify-content:center;gap:7px;border:1px solid var(--line,#344156);border-radius:12px;min-height:45px;padding:9px 14px;font-weight:750;background:var(--surface,#121826);color:var(--text,#fff)}',
   '.swapp-play-surf:hover,.swapp-play-surf:focus-visible{border-color:var(--brand,#8b5cf6)}',
@@ -99,7 +101,7 @@ function insertControls(){
  if(bar&&!$('#swappPlayToggle')){
   const btn=document.createElement('button');
   btn.id='swappPlayToggle';btn.type='button';btn.className='swapp-play-toggle';
-  btn.textContent='🎮';
+  btn.innerHTML='🎮 <span class="swapp-play-toggle-label">Manette</span>';
   btn.addEventListener('click',()=>setMode(!active));
   if(user)bar.insertBefore(btn,user);else bar.appendChild(btn);
  }
@@ -134,7 +136,7 @@ function poll(){
  const pads=typeof navigator.getGamepads==='function'?navigator.getGamepads():[];
  const pad=Array.from(pads||[]).find(p=>p&&p.connected);
  const nextConnected=!!pad;
- if(nextConnected!==connected){connected=nextConnected;paintStatus()}
+ if(nextConnected!==connected){connected=nextConnected;if(connected&&!active)setMode(true);paintStatus()}
  if(!pad||!active){prev=[];return}
  const b=pad.buttons||[],a=pad.axes||[];
  const pressed=n=>!!b[n]?.pressed;
