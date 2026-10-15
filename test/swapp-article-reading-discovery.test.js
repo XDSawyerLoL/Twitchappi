@@ -69,7 +69,7 @@ test('reading preferences, headings, and progress work without tracking or anima
 test('SPA and native page load the same reader and versioned new styling',()=>{
  const spa=read('index.html'),native=read('modules/swapp-news/site-shell.js');
  for(const text of [spa,native]){
-  assert.match(text,/swapp-article-immersive\.css\?v=20261016-ig-offers-10/);
+  assert.match(text,/swapp-article-immersive\.css\?v=20261016-ig-offers-11/);
   assert.match(text,/swapp-reader-experience\.js\?v=20261016-reader-2/);
  }
  assert.match(spa,/swapp-actus-app\.js\?v=20261016-ig-offers-10/);
