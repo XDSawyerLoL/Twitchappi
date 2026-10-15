@@ -34,8 +34,8 @@ test('above-the-fold layout shows featured article, then live channels, then the
 test('home live grid shows eight cards on desktop and four on mobile and safely expands or collapses the rest',()=>{
  const runtime=read('index_script.js'),css=read('assets/swapp-art-direction.css');
  assert.ok(runtime.includes("const initiallyVisible=window.matchMedia('(max-width:900px)').matches?4:8;"));
- assert.match(runtime,/cards\.forEach\(\(el,i\)=>\{el\.hidden=i>=initiallyVisible\}\)/);
- assert.match(runtime,/more\.setAttribute\('aria-expanded','false'\)/);
+ assert.match(runtime,/cards\.forEach\(\(el,i\)=>\{el\.hidden=!wasExpanded&&i>=initiallyVisible\}\)/);
+ assert.match(runtime,/more\.setAttribute\('aria-expanded',String\(wasExpanded&&extras>0\)\)/);
  assert.match(runtime,/more\.setAttribute\('aria-expanded',String\(!expanded\)\)/);
  assert.match(runtime,/cards\.forEach\(\(el,i\)=>\{el\.hidden=expanded&&i>=initiallyVisible\}\)/);
  assert.match(runtime,/id="homeLiveMore1014"/);
