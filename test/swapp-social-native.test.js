@@ -91,8 +91,11 @@ test('SOCIAL writes require the correct origin and independent bearer credential
 });
 test('duplicate menu links are actively removed after a racing SPA render',()=>{
  const src=read('assets/swapp-hub-nav.js');
- assert.match(src,/matches\.slice\(1\)/);
- assert.match(src,/MutationObserver\(schedule\)/);
+ assert.match(src,/nav\.querySelectorAll\('a,button'\)/);
+ assert.match(src,/if\(seen\.has\(href\)\)/);
+ assert.match(src,/el\.remove\(\)/);
+ assert.doesNotMatch(src,/group\.append\(mk\(/);
+ assert.match(src,/MutationObserver\(queue\)/);
  const spa=read('index.html');
  assert.match(spa,/swapp-hub-nav\.js/);
  const native=read('modules/swapp-news/site-shell.js');
