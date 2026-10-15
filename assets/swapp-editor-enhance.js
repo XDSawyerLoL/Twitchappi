@@ -170,10 +170,49 @@
    status.dataset.valid='false';
   }finally{button.disabled=false}
  }
+ async function diagnostics(){
+  const button=$('ed-studio-diagnose');
+  const output=$('ed-studio-diagnostics');
+  if(!button||!output)return;
+  button.disabled=true;output.hidden=false;output.replaceChildren();
+  const heading=document.createElement('strong');
+  heading.textContent='Diagnostic ponctuel · depuis ce navigateur';
+  output.append(heading);
+  const endpoints=[
+   {name:'Accès rédaction',url:'/api/editor/actus/access',limit:6000},
+   {name:'Flux Actualité',url:'/api/actus',limit:12000},
+   {name:'Catalogue vidéos',url:'/bandes-annonces',limit:10000},
+   {name:'Serveur SOCIAL',url:'/api/pulse/health',limit:8000}
+  ];
+  const results=await Promise.all(endpoints.map(async item=>{
+   const started=performance.now();
+   try{
+    const res=await fetch(item.url,{credentials:'same-origin',cache:'no-store',
+     signal:AbortSignal.timeout(item.limit)});
+    const ms=Math.round(performance.now()-started);
+    if(item.url.endsWith('/access')&&res.ok){
+     const data=await res.json();
+     return item.name+' · '+(data.canEdit?'Administrateur autorisé':'Accès administrateur non activé')+' · '+ms+' ms';
+    }
+    return item.name+' · '+(res.ok?'HTTP '+res.status+' OK':'Erreur HTTP '+res.status)+
+     ' · '+ms+' ms'+(ms>2500?' (lent)':'');
+   }catch(err){
+    return item.name+' · '+(err?.name==='TimeoutError'?'Délai dépassé':'Connexion impossible')+
+     ' · '+Math.round(performance.now()-started)+' ms';
+   }
+  }));
+  for(const line of results){
+   const p=document.createElement('p');p.textContent=line;output.append(p);
+  }
+  const note=document.createElement('small');
+  note.textContent='Aucune mesure envoyée à un service tiers. Les résultats décrivent uniquement ce test.';
+  output.append(note);button.disabled=false;
+ }
  function init(){
   if(!edit)return;
   $('ed-studio-recover').addEventListener('click',restore);
   $('ed-studio-check').addEventListener('click',checkBeforePublish);
+  $('ed-studio-diagnose')?.addEventListener('click',diagnostics);
   $('ed-preview-button').addEventListener('click',event=>{
    event.stopImmediatePropagation();event.preventDefault();fullPreview();
   },true);
