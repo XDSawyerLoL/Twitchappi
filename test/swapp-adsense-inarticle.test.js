@@ -23,7 +23,7 @@ function harness({paragraphs=[260,300,300,260],cmp=true}={}){
   }
   after(el){const siblings=this.parent?.children;
    if(!siblings)throw Error('missing paragraph parent');
-   siblings.splice(siblings.indexOf(this)+1,0,el);el.parent=this;
+   siblings.splice(siblings.indexOf(this)+1,0,el);el.parent=this.parent;
   }
   setAttribute(key,value){this.attrs[key]=String(value)}
   getAttribute(key){return this.attrs[key]||null}
