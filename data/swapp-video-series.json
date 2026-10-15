@@ -1,8 +1,8 @@
 {
-  "version": 1,
+  "version": 2,
   "sourceSeries": "https://justplayer.fr/supporters/videos/series/5796",
   "discoveredAt": "2026-10-15",
-  "notes": "Public entries and artwork verified from JustPlayer pages. youtubeId only from separately verified official sources; other video sources may require Fourthwall access. Do not claim unverified direct playback.",
+  "notes": "Vidéo YouTube officielle de l'éditeur pour sept fiches ; les fiches JustPlayer sont conservées comme source éditoriale. Aucune page Fourthwall n'est chargée en iframe. BioShock : aucune vidéo Netflix officielle vérifiée.",
   "items": [
     {
       "id": "teenage-mutant-ninja-turtles-the-last-ronin-les-tortues-ninja-ont-enfin-le-jeu",
@@ -10,7 +10,9 @@
       "date": "2026-06-06",
       "series": true,
       "image": "https://storage.googleapis.com/popshopprod-membership-assets-single-b5px4371/i5b2s9xww59vv5hnsdmmmlzanyho",
-      "source": "https://justplayer.fr/supporters/video_embeds/teenage-mutant-ninja-turtles-the-last-ronin-les-tortues-ninja-ont-enfin-le-jeu"
+      "source": "https://justplayer.fr/supporters/video_embeds/teenage-mutant-ninja-turtles-the-last-ronin-les-tortues-ninja-ont-enfin-le-jeu",
+      "youtubeId": "nx2ixJFWXcg",
+      "youtubeAttribution": "THQ Nordic · reveal trailer officiel (2023)"
     },
     {
       "id": "trailer-code-vein-2-story-trailer",
@@ -24,11 +26,12 @@
     },
     {
       "id": "bioshock-bientot-sur-netflix",
-      "title": "BioShock — teaser Netflix",
+      "title": "BioShock — adaptation Netflix (publication JustPlayer)",
       "date": "2025-11-18",
       "series": true,
       "image": "https://storage.googleapis.com/popshopprod-membership-assets-single-b5px4371/ewr69kiwvnro5huw82zb0td7m0d4",
-      "source": "https://justplayer.fr/supporters/video_embeds/bioshock-bientot-sur-netflix"
+      "source": "https://justplayer.fr/supporters/video_embeds/bioshock-bientot-sur-netflix",
+      "playbackNote": "Aucune bande-annonce officielle Netflix vérifiée : lecture intégrée indisponible."
     },
     {
       "id": "solasta-ii-le-trailer",
@@ -36,7 +39,9 @@
       "date": "2025-11-18",
       "series": true,
       "image": "https://storage.googleapis.com/popshopprod-membership-assets-single-b5px4371/0si1ker5jbopybmhugpzbbnvhl3a",
-      "source": "https://justplayer.fr/supporters/video_embeds/solasta-ii-le-trailer"
+      "source": "https://justplayer.fr/supporters/video_embeds/solasta-ii-le-trailer",
+      "youtubeId": "ecp8AtdDdSg",
+      "youtubeAttribution": "Tactical Adventures · bande-annonce gameplay officielle (2025)"
     },
     {
       "id": "nouveau-trailer-de-gta-6",
@@ -54,7 +59,9 @@
       "date": "2026-10-13",
       "series": false,
       "image": "https://storage.googleapis.com/popshopprod-membership-assets-single-b5px4371/lqj0hnmpwqowwionruztjxn2o3a7",
-      "source": "https://justplayer.fr/supporters/video_embeds/planet-zoo-2"
+      "source": "https://justplayer.fr/supporters/video_embeds/planet-zoo-2",
+      "youtubeId": "fnw_niw9nzQ",
+      "youtubeAttribution": "Frontier Developments · gameplay trailer officiel (2026)"
     },
     {
       "id": "crimson-desert",
@@ -62,7 +69,9 @@
       "date": "2026-03-22",
       "series": false,
       "image": "https://storage.googleapis.com/popshopprod-membership-assets-single-b5px4371/ur3qgramcf5k3etnldmgsltnekcg",
-      "source": "https://justplayer.fr/supporters/video_embeds/crimson-desert"
+      "source": "https://justplayer.fr/supporters/video_embeds/crimson-desert",
+      "youtubeId": "VWIw_f8e9Pg",
+      "youtubeAttribution": "Pearl Abyss · launch trailer officiel (2026)"
     },
     {
       "id": "battlestar-galactica-scattered-hopes-roguelite-paranoia-et-gestion-de-crise-le",
@@ -70,7 +79,9 @@
       "date": "2026-01-27",
       "series": false,
       "image": "https://storage.googleapis.com/popshopprod-membership-assets-single-b5px4371/hg5xmy17mx8xajl1p7vz3j86z0q5",
-      "source": "https://justplayer.fr/supporters/video_embeds/battlestar-galactica-scattered-hopes-roguelite-paranoia-et-gestion-de-crise-le"
+      "source": "https://justplayer.fr/supporters/video_embeds/battlestar-galactica-scattered-hopes-roguelite-paranoia-et-gestion-de-crise-le",
+      "youtubeId": "9p6_YTYA7F0",
+      "youtubeAttribution": "Dotemu · gameplay overview officiel (2026)"
     }
   ]
 }
