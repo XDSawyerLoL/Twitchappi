@@ -9,7 +9,7 @@
  const auth=shell.querySelector('#swappSocialAuth'),form=shell.querySelector('#swappSocialAuthForm');
  const error=shell.querySelector('#swappSocialAuthError'),close=shell.querySelector('.swapp-community-auth-close');
  const switchMode=shell.querySelector('#swappSocialSwitch'),displayField=form.querySelector('[data-swapp-register]');
- let token=null,user=null,loading=false,registering=false;
+ let token=null,user=null,loading=false,registering=false,articleContext='';
  const el=(tag,cls,text)=>{const x=document.createElement(tag);if(cls)x.className=cls;if(text!==undefined)x.textContent=String(text);return x};
  function updateMode(){
   displayField.hidden=!registering;
@@ -42,8 +42,9 @@
   area.classList.add('visible');
   const text=el('textarea');text.placeholder='Partager quelque chose avec la communauté…';text.maxLength=420;
   text.setAttribute('aria-label','Nouvelle publication SOCIAL');text.required=true;
+  if(articleContext){text.value=articleContext.slice(0,420)}
   const controls=el('div','swapp-community-composer-footer');
-  const count=el('small','', '420 caractères maximum');const submit=el('button','swapp-hub-action','Publier');
+  const count=el('small','',(420-text.value.length)+' caractères restants');const submit=el('button','swapp-hub-action','Publier');
   submit.type='submit';controls.append(count,submit);area.append(text,controls);
   text.addEventListener('input',()=>count.textContent=(420-text.value.length)+' caractères restants');
   area.addEventListener('submit',async event=>{
@@ -124,5 +125,18 @@
   }catch(err){error.textContent=err.message}
   finally{submit.disabled=false;form.elements.password.value=''}
  });
- updateMode();changeJoin();loadFeed();
+ async function prepareArticle(){
+  const slug=new URLSearchParams(location.search).get('article');
+  if(!slug||!/^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/.test(slug))return;
+  try{
+   const response=await fetch('/api/actus/'+encodeURIComponent(slug),{credentials:'same-origin',headers:{Accept:'application/json'},signal:AbortSignal.timeout(9000)});
+   if(!response.ok)return;
+   const item=await response.json();
+   if(item.slug!==slug||!item.title)return;
+   articleContext=(String(item.title).slice(0,160)+' — '+location.origin+'/actus/'+encodeURIComponent(slug)).slice(0,420);
+   const field=feed.querySelector('.swapp-community-composer textarea');
+   if(field&&!field.value.trim()){field.value=articleContext;field.dispatchEvent(new Event('input'))}
+  }catch(_){}
+ }
+ updateMode();changeJoin();loadFeed();prepareArticle();
 })();
