@@ -50,7 +50,12 @@
    // If a game field is not provided, only use an explicit, whole-title
    // mention of the actual Twitch/SWAPP game (never category-only guessing).
    const titleNorm=' '+normalizeGame(title)+' ';
-   const inTitle=!articleGame(article)&&titleNorm.includes(' '+normalized+' ');
+   const token=' '+normalized+' ';
+   const at=titleNorm.indexOf(token);
+   const after=at<0?'':titleNorm.slice(at+token.length).trim().split(' ')[0];
+   // Do not confuse a current game's title with a differently numbered sequel.
+   const sequel=new Set(['2','3','4','5','ii','iii','iv','v']);
+   const inTitle=!articleGame(article)&&at>=0&&!sequel.has(after);
    if(!direct&&!inTitle)continue;
    const score=(direct?200:100)+(Math.max(0,12-i));
    if(!best||score>best.score)best={slug,title,game,score};
