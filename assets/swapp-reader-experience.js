@@ -16,14 +16,12 @@
   if(!reading||!toc)return;
   const body=$(reading,'#article-content');
   if(!body)return;
-  let size=storedSize,progress=$(article,'.swapp-reading-progress');
-  const ownProgress=!progress;
-  if(!progress){
-   progress=document.createElement('div');progress.className='swapp-reading-progress swapp-reader-progress-shared';
-   progress.setAttribute('aria-hidden','true');progress.append(document.createElement('span'));
-   article.prepend(progress);
-  }
-  const fill=$(progress,'span');
+  let size=storedSize;
+  const percent=document.createElement('span');
+  percent.className='swapp-reader-percent';
+  percent.setAttribute('aria-label','Progression de la lecture');
+  percent.textContent='0 % lu';
+  toc.insertBefore(percent,toc.firstChild);
   const toolbar=document.createElement('div');toolbar.className='swapp-reader-type-tools';
   const label=document.createElement('span');label.textContent='Confort de lecture';
   const smaller=document.createElement('button'),larger=document.createElement('button');
@@ -54,7 +52,7 @@
    const view=body.getBoundingClientRect();
    const distance=Math.max(1,body.offsetHeight-window.innerHeight*.65);
    const travelled=Math.min(distance,Math.max(0,-view.top+window.innerHeight*.25));
-   if(fill&&ownProgress)fill.style.width=(100*travelled/distance).toFixed(1)+'%';
+   percent.textContent=Math.round(100*travelled/distance)+' % lu';
    let chosen=targets[0];
    for(const entry of targets){if(entry.el.getBoundingClientRect().top<=180)chosen=entry;}
    for(const entry of targets){
