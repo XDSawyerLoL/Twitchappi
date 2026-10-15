@@ -43,28 +43,34 @@ function curatedVideos(){
  });
 }
 function videoCard(item,{featured=false}={}){
- const youtube=typeof item.youtubeId==='string'&&/^[a-zA-Z0-9_-]{11}$/.test(item.youtubeId)?item.youtubeId:'';
- const meta=youtube?'Lecteur vidéo intégré · Source officielle':'Vidéo hébergée sur JustPlayer';
- return '<article class="swapp-video-item'+(featured?' swapp-video-featured':'')+'">'+
-  '<button type="button" class="swapp-video-open" data-swapp-video-play="1" data-video-source="'+e(item.source)+'" data-video-youtube="'+e(youtube)+'" data-video-title="'+e(item.title)+'" aria-label="Regarder '+e(item.title)+'">'+
-  '<img src="'+e(item.image)+'" alt="" loading="'+(featured?'eager':'lazy')+'" decoding="async" referrerpolicy="no-referrer">'+
-  '<span class="swapp-video-shade"><span class="swapp-video-play-icon" aria-hidden="true">▶</span><span class="swapp-video-action">Voir la vidéo</span></span>'+
-  '</button><div class="swapp-video-caption"><small>'+e(meta)+'</small><h3>'+e(item.title)+'</h3>'+
-  '<a href="'+e(item.source)+'" target="_blank" rel="noopener noreferrer">Publication originale JustPlayer ↗</a></div></article>';
+ const youtube=typeof item.youtubeId==='string'&&/^[A-Za-z0-9_-]{11}$/.test(item.youtubeId)?item.youtubeId:'';
+ const playable=!!youtube;
+ const meta=playable?'Bande-annonce officielle · Lecture SWAPP':'Publication JustPlayer · Vidéo non intégrable';
+ const original=e(item.source),name=e(item.title),thumbnail=e(item.image);
+ const visual='<img src="'+thumbnail+'" alt="" loading="'+(featured?'eager':'lazy')+'" decoding="async" referrerpolicy="no-referrer">'+
+  '<span class="swapp-video-shade"><span class="swapp-video-play-icon" aria-hidden="true">'+(playable?'▶':'↗')+'</span>'+
+  '<span class="swapp-video-action">'+(playable?'Lire dans SWAPP':'Voir sur JustPlayer')+'</span></span>';
+ const launch=playable
+  ?'<button type="button" class="swapp-video-open" data-swapp-video-play="1" data-video-source="'+original+'" data-video-youtube="'+e(youtube)+'" data-video-title="'+name+'" aria-label="Lire la bande-annonce officielle de '+name+'">'+visual+'</button>'
+  :'<a class="swapp-video-open swapp-video-external" href="'+original+'" target="_blank" rel="noopener noreferrer" aria-label="Ouvrir la publication JustPlayer : '+name+'">'+visual+'</a>';
+ return '<article class="swapp-video-item'+(featured?' swapp-video-featured':'')+'">'+launch+
+  '<div class="swapp-video-caption"><small>'+e(meta)+'</small><h3>'+name+'</h3>'+
+  (item.playbackNote?'<p class="swapp-video-unavailable">'+e(item.playbackNote)+'</p>':'')+
+  '<a href="'+original+'" target="_blank" rel="noopener noreferrer">Publication originale JustPlayer ↗</a></div></article>';
 }
 function trailers(){
  const data=curatedVideos(),inSeries=data.filter(v=>v.series),recent=data.filter(v=>!v.series);
  const featured=recent[0]||inSeries[0];
- const main='<main class="swapp-hub swapp-hub-videos">'+heading('SWAPP · Vidéos','Place aux bandes-annonces.','Les vraies vidéos de JustPlayer, leur visuel original et un lecteur déclenché seulement à la demande.')+
+ const main='<main class="swapp-hub swapp-hub-videos">'+heading('SWAPP · Vidéos','Place aux bandes-annonces.','Les vidéos de JustPlayer et leurs bandes-annonces officielles, lisibles dans SWAPP lorsque l’éditeur autorise leur intégration.')+
  (featured?'<div class="swapp-featured-video">'+videoCard(featured,{featured:true})+'</div>':'')+
  '<div class="swapp-video-section-title"><h2>LES TRAILERS</h2><span>'+inSeries.length+' vidéos de la série JustPlayer</span></div>'+
  '<section class="swapp-video-grid" aria-label="Série LES TRAILERS">'+
  (inSeries.map(x=>videoCard(x)).join('')||'<p>Aucune bande-annonce vérifiée.</p>')+'</section>'+
  (recent.length>1?'<div class="swapp-video-section-title"><h2>Dernières vidéos</h2></div><section class="swapp-video-grid" aria-label="Dernières vidéos">'+recent.filter(x=>x!==featured).map(x=>videoCard(x)).join('')+'</section>':'')+
- '<p class="swapp-hub-small">La lecture des vidéos YouTube officielles s’effectue ici. Certaines publications Fourthwall peuvent exiger une connexion ou refuser un lecteur intégré ; leur accès original reste disponible, sans contournement.</p></main>';
+ '<p class="swapp-hub-small">Les lecteurs SWAPP utilisent exclusivement des vidéos officielles intégrables. Les publications JustPlayer sans source compatible restent accessibles à leur adresse originale.</p></main>';
  return layout({title:'Vidéos',description:'Les vidéos et bandes-annonces JustPlayer réunies dans SWAPP.',content:main,active:'trailers',
-  scripts:assets+'<link rel="stylesheet" href="/assets/swapp-video-gallery.css?v=20261015-gallery-2">'+
-   '<script defer src="/assets/swapp-video-player.js?v=20261015-gallery-1"></script>'});
+  scripts:assets+'<link rel="stylesheet" href="/assets/swapp-video-gallery.css?v=20261015-gallery-3">'+
+   '<script defer src="/assets/swapp-video-player.js?v=20261015-gallery-3"></script>'});
 }
 function safeProducts(items){
  const out=[];
