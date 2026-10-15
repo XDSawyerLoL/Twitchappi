@@ -28,8 +28,11 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
   const published=async()=>{
     const snap=await articles.where('status','==','published').limit(500).get();
     const original=snap.docs.map(x=>x.data());
-    await publicNews.scanBatch(); // Only complete, verified Fourthwall articles enter the feed.
     const oldUrls=new Set(original.map(x=>x.legacyUrl).filter(Boolean));
+    // Once every known historical post has a native, published SWAPP copy,
+    // avoid requesting the retired external site on every magazine load.
+    const remainingKnown=(publicCatalog.items||[]).filter(x=>x.type==='post'&&!oldUrls.has(x.url));
+    if(remainingKnown.length)await publicNews.scanBatch();
     const oldTitles=new Set(original.map(x=>String(x.title||'').toLowerCase()));
     const recovered=publicNews.articles().filter(x=>!oldUrls.has(x.legacyUrl)&&!oldTitles.has(String(x.title||'').toLowerCase()));
     return [...original,...recovered].map(publicArticle).sort((a,b)=>String(b.publishedAt||'').localeCompare(String(a.publishedAt||'')));
@@ -185,14 +188,18 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
       const storedUrls=new Set(stored.map(a=>a.legacyUrl).filter(Boolean));
       const recovered=publicNews.articles();
       const pending=recovered.filter(a=>!storedUrls.has(a.legacyUrl)&&!storedSlugs.has(nativeSlug(a)));
+      const recoveredPublished=recovered.filter(a=>stored.some(item=>
+        item.status==='published'&&(item.legacyUrl===a.legacyUrl||item.slug===nativeSlug(a)))).length;
       return res.json({
         known:publicNews.allKnown,verified:recovered.length,
-        native:recovered.length-pending.length,pending:pending.map(a=>({
+        native:recovered.length-pending.length,nativePublished:recoveredPublished,
+        pending:pending.map(a=>({
           slug:a.slug,title:a.title,legacyUrl:a.legacyUrl,publishedAt:a.publishedAt,
           nativeSlug:nativeSlug(a)
         })),
         unavailable:publicNews.status().errors,
-        complete:false, // Cannot prove completeness from the partial historical catalog.
+        readyToClose:false, // Partial public catalog != verified full Fourthwall export.
+        complete:false,
         note:'La fermeture externe nécessite un contrôle exhaustif du compte d’origine.'
       });
     }catch(e){next(e)}
