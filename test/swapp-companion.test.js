@@ -63,7 +63,8 @@ test('events require explicit opt in, prompt data is not sent to external servic
  assert.match(app,/Pas de voix ni d'IA conversationnelle simulées/);
  assert.doesNotMatch(app,/Notification\.requestPermission|speechSynthesis|SpeechRecognition/);
  assert.doesNotMatch(app,/fetch\(['"]https?:\/\//);
- assert.match(app,/Le prototype SOCIAL est envisagé/);
+ assert.match(app,/Prototype SOCIAL|prototype SOCIAL|prototype communautaire/);
+ assert.match(app,/\/api\/swapp\/social-preview/);
 });
 
 test('Mairy floats clear of the bottom mobile navigation and respects reduced motion',()=>{
@@ -79,4 +80,14 @@ test('Mairy knows when to avoid interruptions during video playback',()=>{
  assert.equal(core.isWatching('/live/twitch/alice'),true);
  assert.equal(core.isWatching('/', 'watch'),true);
  assert.equal(core.isWatching('/actus', 'actus'),false);
+});
+
+
+test('living polish and social community ship in both SWAPP shells',()=>{
+ const home=read('index.html');
+ const article=layout({content:'<main>Article</main>'});
+ for(const html of [home,article])assert.match(html,/swapp-living\\.css\\?v=20261015-living-1/);
+ const living=read('assets/swapp-living.css');
+ assert.match(living,/@media\\(hover:hover\\) and \\(pointer:fine\\)/);
+ assert.match(living,/@media\\(prefers-reduced-motion:reduce\\)/);
 });
