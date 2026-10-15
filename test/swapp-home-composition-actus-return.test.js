@@ -54,6 +54,6 @@ test('fresh assets are referenced by both the SPA and editorial shell',()=>{
   assert.match(main,new RegExp(asset.replace(/\./g,'\\.')+'\\?v=20261015-livegrid-32'));
  }
  assert.match(main,/swapp-art-direction\.css\?v=20261015-livegrid-32/);
- assert.match(main,/index_script\.js\?v=20261015-livegrid-32/);
+ assert.match(main,/index_script\.js\?v=20261015-discovery-33/);
  assert.match(shell,/swapp-art-direction\.css\?v=20261015-livegrid-32/);
 });
