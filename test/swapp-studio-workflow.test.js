@@ -122,3 +122,64 @@ test('diagnostic tool measures actual network requests on demand, without tracki
  assert.match(enhance,/addEventListener\('click',diagnostics\)/);
  assert.doesNotMatch(enhance,/sendBeacon|gtag\(|analytics/);
 });
+
+test('new publication can publish directly with SEO, media and affiliation tucked away',()=>{
+ const html=renderStudio();
+ assert.match(html, /id="ed-publish">Publier sur SWAPP/);
+ assert.doesNotMatch(html, /id="ed-publish" disabled/);
+ assert.match(html, /<details class="editor-advanced editor-seo">/);
+ assert.match(html, /<details class="panel editor-advanced editor-illustrations">/);
+ assert.match(html, /<details class="panel editor-advanced editor-commerce">/);
+ assert.ok(html.indexOf('id="trailerUrl"') < html.indexOf('id="body"'),'video field should be visible before long body');
+ assert.ok(html.indexOf('id="sources"') < html.indexOf('id="ed-preview-button"'));
+});
+test('new publication validates, creates a draft once, then publishes in one click',async()=>{
+ const begin=js.indexOf('async function publish(){');
+ const end=js.indexOf('async function unpublish()',begin);
+ assert.ok(begin>=0&&end>begin);
+ const commands=[],status={selected:null,articles:[]},events=[];
+ const draft={contentType:'trailer',title:'Test vidéo',body:'Une véritable bande-annonce',trailerUrl:'https://www.youtube.com/watch?v=Z9SaRLSibak'};
+ const publishFn=new Function('state','action','articleData','call','confirm','refresh','setEditor','window','CustomEvent','notify',
+  js.slice(begin,end)+'; return publish;')(
+  status,async fn=>fn(),()=>draft,async(url,method,data)=>{
+   commands.push({url,method,body:data});
+   if(url==='/api/editor/actus/validate')return {valid:true};
+   if(url==='/api/editor/actus'&&method==='POST')return {slug:'test-video'};
+   if(url==='/api/editor/actus/test-video/publish'){
+    status.articles=[{slug:'test-video',status:'published',title:'Test vidéo'}];
+    return {status:'published'};
+   }
+   throw Error('Unexpected call '+url);
+  },()=>true,async()=>{},()=>{}, {dispatchEvent:e=>events.push(e)},
+  class {constructor(type,props){this.type=type;this.detail=props.detail;}},()=>{}
+ );
+ await publishFn();
+ assert.deepEqual(commands.map(x=>x.url),[
+  '/api/editor/actus/validate','/api/editor/actus','/api/editor/actus/test-video/publish']);
+ assert.equal(commands[0].method,'POST');
+ assert.equal(commands[1].method,'POST');
+ assert.equal(commands[2].method,'POST');
+ assert.equal(status.selected,'test-video');
+ assert.equal(events.at(-1).detail.slug,'test-video');
+});
+test('failed publish keeps the created draft instead of recreating it',async()=>{
+ const start=js.indexOf('async function publish(){'),end=js.indexOf('async function unpublish()',start);
+ const state={selected:null,articles:[]},routes=[];
+ const fn=new Function('state','action','articleData','call','confirm','refresh','setEditor','window','CustomEvent','notify',
+  js.slice(start,end)+'return publish;')(
+  state,async action=>{try{await action()}catch(error){/* UI reports error */}},
+  ()=>({title:'Une vidéo de démonstration'}),async(url,method)=>{
+   routes.push(url);
+   if(url==='/api/editor/actus/validate')return {valid:true};
+   if(url==='/api/editor/actus')return {slug:'test-video'};
+   if(url==='/api/editor/actus/test-video/publish')throw Error('Storage offline');
+   if(url==='/api/editor/actus/test-video')return {};
+   throw Error('Unexpected '+url);
+  },()=>true,async()=>{},()=>{},{dispatchEvent(){}},
+  class{constructor(type,props){this.detail=props.detail}},()=>{}
+ );
+ await fn();assert.equal(state.selected,'test-video');
+ await fn();
+ assert.equal(routes.filter(x=>x==='/api/editor/actus').length,1);
+ assert.equal(routes.filter(x=>x.endsWith('/publish')).length,2);
+});
