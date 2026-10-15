@@ -415,9 +415,22 @@ async function init(){
   bindStaticEvents();
   applyIncomingShare();
   bindDelegatedEvents();
-  await health();
-  await restoreSession();
-  await Promise.all([loadHome(),loadCirclePreview()]);
+  // A slow SOCIAL backend must not leave an empty, unresponsive network page.
+  await Promise.allSettled([health(),restoreSession()]);
+  await Promise.allSettled([loadHome(),loadCirclePreview()]);
 }
 
-init();
+init().catch(error=>{
+  const feed=document.getElementById('pulse-feed');
+  if(feed){
+    const fallback=document.createElement('div');
+    fallback.className='pulse-status';
+    const heading=document.createElement('strong');
+    heading.textContent='SOCIAL ne peut pas démarrer';
+    const message=document.createElement('p');
+    message.textContent='Le réseau SOCIAL est temporairement indisponible. Actualise la page pour réessayer.';
+    fallback.append(heading,message);
+    feed.replaceChildren(fallback);
+  }
+  console.error('[SWAPP SOCIAL] Initialisation interrompue',error);
+});
