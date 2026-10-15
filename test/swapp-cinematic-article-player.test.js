@@ -34,6 +34,7 @@ function mockBrowser(){
  const browser={
   document:doc,
   location:{hostname:'swapp.tv'},
+  innerWidth:1280,innerHeight:800,
   addEventListener:(event,fn)=>{listeners[event]=fn}
  };
  const context={window:browser,URL,console};
@@ -94,13 +95,36 @@ test('the mini-player is cleaned up on back navigation, Escape and replacement',
  assert.ok(app.doc.body.children[2].removed);
 });
 
+
+test('player respects Twitch minimum viewport and never starts an undersized iframe',()=>{
+ const app=mockBrowser();
+ assert.equal(app.api.canEmbed(430,500),true);
+ assert.equal(app.api.canEmbed(429,500),false);
+ assert.equal(app.api.canEmbed(800,499),false);
+ app.browser.innerWidth=390;
+ assert.equal(app.api.open({login:'creator'}),false);
+ assert.equal(app.created.length,0);
+ app.browser.innerWidth=1280;
+ assert.equal(app.api.open({login:'creator'}),true);
+ app.browser.innerWidth=375;
+ app.listeners.resize();
+ assert.equal(app.doc.body.children[0].removed,true);
+});
+test('mobile uses an accessible direct-watch alternative and embed viewport is at least 400×300',()=>{
+ const app=read('assets/swapp-actus-app.js');
+ const css=read('assets/swapp-art-direction.css');
+ assert.match(app,/SwappArticlePlayer\?\.canEmbed\?\.\(window\.innerWidth,window\.innerHeight\)/);
+ assert.match(app,/canEmbed\?'Voir la chaîne ↗':'Voir le live ↗'/);
+ assert.match(css,/width:min\(500px,calc\(100vw - 24px\)\)/);
+ assert.match(css,/\.swapp-article-mini-video\{height:300px;min-height:300px/);
+});
 test('the existing articles and stream cards expose accessible inline play without more sections',()=>{
  const app=read('assets/swapp-actus-app.js');
  const html=read('index.html');
  const css=read('assets/swapp-art-direction.css');
  const main=read('index_script.js');
- assert.ok(html.indexOf('/assets/swapp-article-player.js?v=20261015-cinematic-38') <
-   html.indexOf('/assets/swapp-actus-app.js?v=20261015-cinematic-38'));
+ assert.ok(html.indexOf('/assets/swapp-article-player.js?v=20261015-player-39') <
+   html.indexOf('/assets/swapp-actus-app.js?v=20261015-player-39'));
  assert.match(app,/swapp-reader-live-inline/);
  assert.match(app,/SwappArticlePlayer\?\.open/);
  assert.match(app,/SwappArticlePlayer\?\.close\(\)/);
@@ -110,6 +134,6 @@ test('the existing articles and stream cards expose accessible inline play witho
  assert.match(main,/swapp-live-pip1014/);
  assert.match(css,/prefers-reduced-motion:reduce/);
  assert.match(css,/swapp-view-arrive/);
- assert.match(html,/swapp-art-direction\.css\?v=20261015-cinematic-38/);
+ assert.match(html,/swapp-art-direction\.css\?v=20261015-player-39/);
  assert.doesNotMatch(app,/swapp-actus-mini-sidebar-duplicated/);
 });
