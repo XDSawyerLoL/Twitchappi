@@ -33,13 +33,17 @@ test('above-the-fold layout shows featured article, then live channels, then the
 
 test('home live grid starts with four cards and safely expands or collapses the rest',()=>{
  const runtime=read('index_script.js'),css=read('assets/swapp-art-direction.css');
- assert.match(runtime,/const initiallyVisible=4/);
+ assert.match(runtime,/const initiallyVisible=window\\.matchMedia\\('\\(max-width:900px\\)'\\)\\.matches\\?4:8/);
  assert.match(runtime,/cards\.forEach\(\(el,i\)=>\{el\.hidden=i>=initiallyVisible\}\)/);
  assert.match(runtime,/more\.setAttribute\('aria-expanded','false'\)/);
  assert.match(runtime,/more\.setAttribute\('aria-expanded',String\(!expanded\)\)/);
  assert.match(runtime,/cards\.forEach\(\(el,i\)=>\{el\.hidden=expanded&&i>=initiallyVisible\}\)/);
  assert.match(runtime,/id="homeLiveMore1014"/);
  assert.match(css,/#home \.homeLiveCard1014\[hidden\]\{display:none!important\}/);
+ assert.match(css,/#home \.homeLiveGrid1014>\.homeLiveCard1014\s*\{/);
+ assert.match(css,/grid-column:auto!important/);
+ assert.match(css,/grid-row:auto!important/);
+ assert.doesNotMatch(css,/grid-column:span 2;grid-row:span 2/);
  assert.match(css,/#home \.homeLiveMore1014\[hidden\]\{display:none!important\}/);
  assert.doesNotMatch(runtime,/Fallback Twitch/);
 });
