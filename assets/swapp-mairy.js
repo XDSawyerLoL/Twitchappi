@@ -184,10 +184,10 @@ let loadingCommunity=false;
     card.append(node('p','',String(post.body).slice(0,420)));
     communityList.append(card);
    }
-   const openAll=node('a','swapp-companion-reload','Explorer toute la communauté →');openAll.href='/communaute';communityList.append(openAll);
    if(!communityList.children.length){
     communityList.append(node('p','swapp-companion-empty','Aucune publication publique disponible actuellement.'));
    }
+   const openAll=node('a','swapp-companion-reload','Explorer toute la communauté →');openAll.href='/communaute';communityList.append(openAll);
   }catch(_){
    communityList.replaceChildren(node('p','swapp-companion-empty','SOCIAL ne répond pas actuellement. Aucun contenu fictif n’est affiché.'));
   }finally{loadingCommunity=false}
