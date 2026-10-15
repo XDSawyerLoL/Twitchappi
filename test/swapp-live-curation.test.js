@@ -42,6 +42,6 @@ test('the runtime uses the shared curation logic and loads it before the SPA',()
  assert.match(spa,/SwappLiveCuration\?\.curateHomeLives\(swappItems,twitchItems,12\)/);
  assert.match(spa,/if\(swappItems\.length\s*<\s*8\)/);
  assert.match(spa,/const platform = \['swapp','oryon','native'\]\.includes\(rawPlatform\)/);
- assert.ok(html.indexOf('/assets/swapp-live-curation.js?v=20261015-discovery-33')<html.indexOf('/index_script.js?v='));
+ assert.ok(html.indexOf('/assets/swapp-live-curation.js?v=20261015-discovery-34')<html.indexOf('/index_script.js?v='));
  assert.match(css,/#home \.homeLiveGrid1014/);
 });
