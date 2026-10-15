@@ -16,8 +16,8 @@ header.top .brand:focus-visible{outline:2px solid var(--swapp-focus);outline-off
 .swapp-footer-brand-dot{color:var(--swapp-brand-dot)}
 header.top .mainNav :is(a,button){position:relative;transition:background-color .16s ease,color .16s ease,border-color .16s ease,transform .16s ease}
 header.top .mainNav :is(a,button):focus-visible,#mobileNav :is(a,button):focus-visible{outline:2px solid var(--swapp-focus);outline-offset:2px}
-header.top .mainNav :is(a,button):not(.swappIntegratedNewsNav):hover{background:#243146;color:#fff}
-header.top .mainNav :is(a,button).active:not(.swappIntegratedNewsNav),header.top .mainNav :is(a,button)[aria-current="page"]:not(.swappIntegratedNewsNav){background:linear-gradient(120deg,#29344a,#2b2547);color:#fff;box-shadow:inset 0 0 0 1px #7784b855}
+header.top .mainNav :is(a,button):hover{background:#243146;color:#fff}
+header.top .mainNav :is(a,button).active,header.top .mainNav :is(a,button)[aria-current="page"]{background:linear-gradient(120deg,#29344a,#2b2547);color:#fff;box-shadow:inset 0 0 0 1px #7784b855}
 header.top .userBtn{min-height:40px;transition:border-color .18s ease,background-color .18s ease}
 header.top .userBtn:hover,header.top .userBtn[aria-expanded="true"]{background:#202b40;border-color:#648094}
 header.top .userBtn:focus-visible{outline:2px solid var(--swapp-focus);outline-offset:2px}
