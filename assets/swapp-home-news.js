@@ -20,14 +20,16 @@
   getCachedArticles:()=>latestArticles.slice()
  });
  
- function navigateArticle(event,slug){
+ function navigateArticle(event,slug,game){
    if(event.button||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
+   // Only intentional article openings, never impressions or scrolls.
+   window.SwappLocalTastes?.record?.(game);
    if(typeof window.setView!=='function'||!window.SwappActus)return;
    event.preventDefault();window.setView('actus');window.SwappActus.open(slug);
  }
  function story(item,index){
    const a=el('a','swapp-home-story'+(index===0?' swapp-home-story-featured':''));a.href='/actus/'+encodeURIComponent(item.slug);
-   a.addEventListener('click',e=>navigateArticle(e,item.slug));
+   a.addEventListener('click',e=>navigateArticle(e,item.slug,item.game));
    const image=el('div','swapp-home-story-image'),src=safeUrl(item.image?.url||item.imageUrl);
    if(src){const img=el('img');img.src=src;img.alt='';img.loading=index===0?'eager':'lazy';img.decoding='async';img.onerror=()=>{img.remove();image.classList.add('swapp-home-image-fallback')};image.append(img)}else{image.classList.add('swapp-home-image-fallback')}
    image.append(el('span','swapp-home-story-category',item.game||item.category||'Actualité'));
@@ -49,7 +51,7 @@
    const tile=el('a','swapp-home-hero-feature');tile.href='/actus/'+encodeURIComponent(feature.slug);
    tile.dataset.articleSlug=feature.slug;
    tile.setAttribute('aria-label','Lire : '+feature.title);
-   tile.addEventListener('click',event=>navigateArticle(event,feature.slug));
+   tile.addEventListener('click',event=>navigateArticle(event,feature.slug,feature.game));
    const image=el('img');image.src=safeUrl(feature.image?.url||feature.imageUrl);image.alt='';
    image.decoding='async';image.loading='eager';
    image.onerror=()=>{tile.remove();hero.classList.remove('swapp-hero-has-story');onImageError?.()};
