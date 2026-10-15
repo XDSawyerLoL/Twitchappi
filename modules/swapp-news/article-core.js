@@ -48,7 +48,7 @@ function assertArticle(value, {publish = false, legacyRequired = false} = {}) {
   }
   const image = value.image && typeof value.image === 'object' ? value.image : null;
   if (image && !isHttpUrl(image.url)) throw new Error('URL image invalide');
-  if (publish && image && (!String(image.credit || '').trim() || !String(image.rights || '').trim())) throw new Error('Crédit et droits requis pour l’image');
+  if (publish && image && (!String(image.credit || '').trim() || !String(image.rights || '').trim() || /(?:à|a)\s*vérifier/i.test(String(image.rights)))) throw new Error('Crédit et droits vérifiés requis pour l’image');
   if (legacyRequired && !isLegacyJustPlayerUrl(value.legacyUrl)) throw new Error('URL JustPlayer requise');
   if (value.legacyUrl && !isHttpUrl(value.legacyUrl)) throw new Error('URL ancienne invalide');
   const trailerUrl=String(value.trailerUrl||'').trim();
