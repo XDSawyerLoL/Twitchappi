@@ -140,16 +140,16 @@ body.swapp-editorial-route .article-wrap > .swapp-immersive-hero{
 #actus .swapp-actus-native.swapp-actus-reading .swapp-actus-article{
   width:min(1360px,100%);max-width:1360px;margin:0 auto 80px;
 }
-#actus .swapp-article-reading{
+:is(#actus,body.swapp-editorial-route) .swapp-article-reading{
   display:block;width:min(1140px,calc(100% - 36px));margin:0 auto;
   padding:34px 0 24px;border-top:1px solid rgba(199,216,235,.15);
 }
-#actus .swapp-article-reading:has(.swapp-reader-toc){
+:is(#actus,body.swapp-editorial-route) .swapp-article-reading:has(.swapp-reader-toc){
   display:grid;grid-template-columns:minmax(175px,235px) minmax(0,1fr);
   gap:clamp(32px,5vw,75px);align-items:start
 }
 /* Unboxed sticky contents sidebar. No color panels. */
-#actus .swapp-article-reading .swapp-reader-toc{
+:is(#actus,body.swapp-editorial-route) .swapp-article-reading .swapp-reader-toc{
   position:sticky;top:92px;display:flex!important;flex-direction:column!important;
   gap:12px!important;align-items:stretch!important;
   width:100%!important;max-width:none!important;
@@ -158,27 +158,27 @@ body.swapp-editorial-route .article-wrap > .swapp-immersive-hero{
   border:0!important;border-radius:0!important;box-shadow:none!important;
   grid-column:1;grid-row:1;
 }
-#actus .swapp-article-reading .swapp-reader-toc strong{
+:is(#actus,body.swapp-editorial-route) .swapp-article-reading .swapp-reader-toc strong{
   margin:0 0 4px!important;letter-spacing:.09em;
   color:#adbed2!important;font-size:11px!important;text-transform:uppercase;
 }
-#actus .swapp-article-reading .swapp-reader-toc a{
+:is(#actus,body.swapp-editorial-route) .swapp-article-reading .swapp-reader-toc a{
   display:block;padding:0 0 0 11px!important;
   border-left:2px solid rgba(183,204,228,.24);
   text-decoration:none!important;color:#abbdd1!important;
   font-size:12px!important;line-height:1.55!important;
   overflow-wrap:anywhere;
 }
-#actus .swapp-article-reading .swapp-reader-toc a:hover,
-#actus .swapp-article-reading .swapp-reader-toc a:focus-visible{
+:is(#actus,body.swapp-editorial-route) .swapp-article-reading .swapp-reader-toc a:hover,
+:is(#actus,body.swapp-editorial-route) .swapp-article-reading .swapp-reader-toc a:focus-visible{
   color:#fff!important;border-left-color:#79d6e9!important;
   text-decoration:none!important;
 }
-#actus .swapp-article-reading .swapp-reader-toc a.subsection{padding-left:22px!important}
+:is(#actus,body.swapp-editorial-route) .swapp-article-reading .swapp-reader-toc a.subsection{padding-left:22px!important}
 
 /* Same text rules in SPA and SSR. */
 #actus .swapp-actus-article .swapp-actus-body,
-body.swapp-editorial-route .article-wrap > .article-body{
+body.swapp-editorial-route .swapp-article-reading > .article-body{
   box-sizing:border-box;min-width:0;width:100%!important;max-width:830px!important;
   padding:0!important;margin:0 auto!important;
   background:none!important;background-image:none!important;
@@ -186,11 +186,11 @@ body.swapp-editorial-route .article-wrap > .article-body{
   backdrop-filter:none!important;-webkit-backdrop-filter:none!important;
   color:#dce7f3!important;font-size:17px!important;line-height:1.82!important;
 }
-#actus .swapp-article-reading:has(.swapp-reader-toc) .swapp-actus-body{
+:is(#actus,body.swapp-editorial-route) .swapp-article-reading:has(.swapp-reader-toc) .swapp-actus-body{
   grid-column:2;grid-row:1;
 }
 #actus .swapp-actus-article .swapp-actus-body > :is(p,h2,h3,h4,ul,ol,blockquote,pre),
-body.swapp-editorial-route .article-wrap > .article-body > :is(p,h2,h3,h4,ul,ol,blockquote,pre){
+body.swapp-editorial-route .swapp-article-reading > .article-body > :is(p,h2,h3,h4,ul,ol,blockquote,pre){
   max-width:100%;margin-left:0;margin-right:0
 }
 #actus .swapp-actus-article .swapp-actus-body :is(p,li),
@@ -215,7 +215,7 @@ body.swapp-editorial-route .article-wrap{
   box-sizing:border-box;width:100%;max-width:1440px;
   padding:clamp(14px,2vw,28px)!important;margin:0 auto 80px!important
 }
-body.swapp-editorial-route .article-wrap > .article-body{
+body.swapp-editorial-route .swapp-article-reading > .article-body{
   padding-top:35px!important;border-top:1px solid rgba(199,216,235,.15)!important
 }
 /* Keep secondary article modules aligned with the reading system. */
@@ -227,17 +227,17 @@ body.swapp-editorial-route .article-wrap > :is(.sources-panel,.swapp-article-rel
 body.swapp-editorial-route .article-wrap > figure:has(img.cover-img){display:none!important}
 
 @media(max-width:880px){
-  #actus .swapp-article-reading:has(.swapp-reader-toc){
+  :is(#actus,body.swapp-editorial-route) .swapp-article-reading:has(.swapp-reader-toc){
     grid-template-columns:1fr;gap:24px
   }
-  #actus .swapp-article-reading .swapp-reader-toc{
+  :is(#actus,body.swapp-editorial-route) .swapp-article-reading .swapp-reader-toc{
     position:static;grid-column:1;grid-row:auto;
     display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));
     gap:9px 18px!important;padding:0 0 16px!important;
     border-bottom:1px solid rgba(199,216,235,.15)!important;
   }
-  #actus .swapp-article-reading .swapp-reader-toc strong{grid-column:1/-1}
-  #actus .swapp-article-reading:has(.swapp-reader-toc) .swapp-actus-body{grid-column:1;grid-row:auto}
+  :is(#actus,body.swapp-editorial-route) .swapp-article-reading .swapp-reader-toc strong{grid-column:1/-1}
+  :is(#actus,body.swapp-editorial-route) .swapp-article-reading:has(.swapp-reader-toc) .swapp-actus-body{grid-column:1;grid-row:auto}
 }
 @media(max-width:700px){
   .swapp-article-scene{height:clamp(280px,70vw,430px)}
@@ -256,16 +256,27 @@ body.swapp-editorial-route .article-wrap > figure:has(img.cover-img){display:non
   }
   .swapp-immersive-hero :is(.swapp-actus-summary,.article-deck){font-size:15px!important}
   .swapp-immersive-hero .swapp-reader-controls{gap:8px!important}
-  #actus .swapp-article-reading{width:calc(100% - 22px);padding-top:20px}
-  #actus .swapp-article-reading .swapp-reader-toc{grid-template-columns:1fr;row-gap:8px!important}
+  :is(#actus,body.swapp-editorial-route) .swapp-article-reading{width:calc(100% - 22px);padding-top:20px}
+  :is(#actus,body.swapp-editorial-route) .swapp-article-reading .swapp-reader-toc{grid-template-columns:1fr;row-gap:8px!important}
   #actus .swapp-actus-article .swapp-actus-body,
-  body.swapp-editorial-route .article-wrap > .article-body{font-size:16px!important}
+  body.swapp-editorial-route .swapp-article-reading > .article-body{font-size:16px!important}
 }
 @media(prefers-contrast:more){
   .swapp-article-scene::before{background:rgba(11,17,27,.77)!important}
   #actus .swapp-actus-article .swapp-actus-body,
-  body.swapp-editorial-route .article-wrap > .article-body{color:#fff!important}
+  body.swapp-editorial-route .swapp-article-reading > .article-body{color:#fff!important}
 }
 @media(prefers-reduced-motion:reduce){
   .swapp-article-scene img{transform:none!important}
+}
+/* Universally visible navigational contents, including server-rendered articles. */
+:is(#actus,body.swapp-editorial-route) .swapp-article-reading .swapp-reader-toc a[aria-current="location"]{
+  color:#fff!important;border-left-color:#79d6e9!important;font-weight:700;
+}
+:is(#actus,body.swapp-editorial-route) .swapp-article-reading .swapp-reader-toc a:focus-visible{
+  outline:2px solid #8de1f1;outline-offset:3px;border-radius:3px;
+}
+:is(#actus,body.swapp-editorial-route) .swapp-article-reading #article-content,
+:is(#actus,body.swapp-editorial-route) .swapp-article-reading [id^="section-"]{
+  scroll-margin-top:100px;
 }

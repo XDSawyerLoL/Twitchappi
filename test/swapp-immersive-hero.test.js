@@ -12,8 +12,8 @@ const base={slug:'spider-man-article-test',title:'Spider-Man et le futur du jeu 
  publishedAt:'2026-10-15T18:00:00Z',author:'Rédaction SWAPP'};
 
 test('SPA and direct article routes share the ratio-preserving article background stylesheet',()=>{
- assert.match(read('index.html'),/swapp-article-immersive\.css\?v=20261015-soft-edge-6/);
- assert.match(read('modules/swapp-news/site-shell.js'),/swapp-article-immersive\.css\?v=20261015-soft-edge-6/);
+ assert.match(read('index.html'),/swapp-article-immersive\.css\?v=20261016-toc-universal-7/);
+ assert.match(read('modules/swapp-news/site-shell.js'),/swapp-article-immersive\.css\?v=20261016-toc-universal-7/);
 });
 
 test('SPA uses article image as a page scene, not a banner',()=>{
@@ -109,4 +109,43 @@ test('left edge of article image dissolves smoothly into the site background wit
  assert.match(overlay,/transparent 100%/);
  assert.match(css,/-webkit-mask-image:none;mask-image:none/);
  assert.match(css, /@media\(max-width:700px\)/);
+});
+
+test('all articles get the matching sidebar even with no editorial headings',()=>{
+ const html=renderNewsStory({...base,game:'007 First Light',sources:[]});
+ assert.match(html,/<nav class="swapp-reader-toc" aria-label="Sommaire de l’article">/);
+ assert.match(html,/Dans cet article/);
+ assert.match(html,/href="#article-content">Introduction<\/a>/);
+ assert.match(html,/href="#swapp-article-lives">Créateurs en direct<\/a>/);
+ assert.match(html,/class="swapp-article-reading"/);
+ assert.match(html,/id="article-content" class="article-body"/);
+});
+
+test('SSR generates authentic H2/H3 contents links and matching unique anchors',()=>{
+ const markdownBody='Intro\n\n## Un vrai James Bond jouable\n\nDes détails.\n\n### Entre Hitman et jeu d’action\n\nSuite.\n\n## Verdict : 8/10\n\nConclusion.';
+ const html=renderNewsStory({...base,body:markdownBody});
+ assert.match(html,/href="#section-1">Un vrai James Bond jouable<\/a>/);
+ assert.match(html,/href="#section-2" class="subsection">Entre Hitman et jeu d’action<\/a>/);
+ assert.match(html,/href="#section-3">Verdict : 8\/10<\/a>/);
+ assert.match(html,/<h2 id="section-1">Un vrai James Bond jouable<\/h2>/);
+ assert.match(html,/<h3 id="section-2">Entre Hitman et jeu d’action<\/h3>/);
+ assert.match(html,/<h2 id="section-3">Verdict : 8\/10<\/h2>/);
+ assert.doesNotMatch(html,/href="#article-content">Introduction<\/a>/);
+});
+
+test('single-heading articles retain a useful introduction and article-section sidebar',()=>{
+ const html=renderNewsStory({...base,body:'Intro\n\n## Ce qu’il faut retenir\n\nTexte de l’article.'});
+ assert.match(html,/href="#article-content">Introduction<\/a>/);
+ assert.match(html,/href="#section-1">Ce qu’il faut retenir<\/a>/);
+});
+
+test('SPA always generates TOC using existing article headings and real article targets',()=>{
+ const spa=read('assets/swapp-actus-app.js'),css=read('assets/swapp-article-immersive.css');
+ assert.match(spa,/toc=el\('nav','swapp-reader-toc'\)/);
+ assert.match(spa,/body\.id='article-content'/);
+ assert.match(spa,/if\(sections\.length<2\)addTocLink\('Introduction','article-content'\)/);
+ assert.match(spa,/reading\.append\(toc\)/);
+ assert.match(css,/:is\(#actus,body\.swapp-editorial-route\) \.swapp-article-reading \.swapp-reader-toc/);
+ assert.match(css,/position:sticky;top:92px/);
+ assert.match(css,/@media\(max-width:880px\)/);
 });
