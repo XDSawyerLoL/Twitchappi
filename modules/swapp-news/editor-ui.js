@@ -59,7 +59,31 @@ function populateList(){const list=$('ed-list');list.replaceChildren();const q=$
  populateMedia();
  $('ed-count').textContent=String(state.articles.length);$('ed-published').textContent=String(state.articles.filter(x=>x.status==='published').length);$('ed-drafts').textContent=String(state.articles.filter(x=>x.status!=='published').length);
 }
-async function editorVideoId(raw){
+async function prepareStudioSmokeVideo(){
+ // This pre-fills the Studio only. Never creates content or publishes without
+ // an explicitly authorized editor clicking Create and then Publish.
+ setEditor(null);
+ const sample={
+  contentType:'trailer',
+  title:'CODE VEIN II — bande-annonce officielle (vérification SWAPP)',
+  summary:'Bande-annonce Story Trailer de CODE VEIN II — source Bandai Namco Entertainment.',
+  body:'Vérification de la lecture vidéo dans SWAPP avec la bande-annonce officielle Story Trailer de CODE VEIN II, publiée par Bandai Namco Entertainment. Cette publication sert à valider le lecteur et le parcours éditorial.',
+  category:'Actualités JV',
+  game:'CODE VEIN II',
+  games:'CODE VEIN II',
+  tags:'code vein ii, bande-annonce, jeu vidéo, gaming',
+  seoTitle:'CODE VEIN II : bande-annonce officielle',
+  seoDescription:'Regarder la bande-annonce Story Trailer de CODE VEIN II sur SWAPP.',
+  author:'Sansahd',
+  sources:'https://www.youtube.com/watch?v=Z9SaRLSibak',
+  trailerUrl:'https://www.youtube.com/watch?v=Z9SaRLSibak'
+ };
+ for(const [id,value] of Object.entries(sample))if($(id))$(id).value=value;
+ window.dispatchEvent(new CustomEvent('input',{bubbles:true}));
+ view('edit');
+ notify('Vidéo de vérification préparée, sans publication. Contrôle le contenu avant de créer le brouillon.');
+}
+function editorVideoId(raw){
  try{
   const url=new URL(String(raw||''));
   if(url.protocol!=='https:')return null;
@@ -138,7 +162,7 @@ async function unpublish(){if(!state.selected||!confirm('Retirer cet article du 
 function showScan(){const area=$('scan-items');area.replaceChildren();for(const a of state.imported){const row=document.createElement('div'),box=document.createElement('input'),desc=document.createElement('div'),title=document.createElement('b'),small=document.createElement('small'),review=document.createElement('button');row.className='editor-import-card';box.type='checkbox';box.checked=true;box.dataset.slug=a.title;title.textContent=a.title;small.textContent=(a.legacyUrl||'')+' · '+a.body.length+' caractères';desc.append(title,small);review.type='button';review.className='editor-button neutral';review.textContent='Relire';review.addEventListener('click',()=>setEditor({...a,status:'draft'}));row.append(box,desc,review);area.append(row);} $('scan-result').textContent=state.imported.length+' publication(s) récupérée(s) · '+state.failures.length+' échec(s). Les textes doivent être relus avant validation.';$('ed-import').disabled=!state.imported.length;}
 async function scan(){await action(async()=>{const btn=$('ed-scan');btn.disabled=true;state.imported=[];state.failures=[];try{let offset=0;for(let i=0;i<100;i++){let batch=await call('/api/editor/actus/scan-public','POST',{offset,limit:2});state.imported.push(...(batch.articles||[]));state.failures.push(...(batch.failures||[]));$('scan-result').textContent='Recherche : '+batch.nextOffset+'/'+batch.total+' pages vérifiées';if(batch.done)break;if(batch.nextOffset<=offset)throw Error('Le scan ne progresse plus');offset=batch.nextOffset;}showScan();}finally{btn.disabled=false;}});}
 async function importSelected(){await action(async()=>{const checked=[...document.querySelectorAll('#scan-items input:checked')];const selected=checked.map(x=>state.imported.find(a=>a.title===x.dataset.slug)).filter(Boolean);if(!selected.length)throw Error('Sélectionne au moins un article');if(!confirm('Importer '+selected.length+' publication(s) JustPlayer comme BROUILLONS ? Tu pourras les relire et les publier séparément.'))return;const batches=[];for(let i=0;i<selected.length;i+=20)batches.push(selected.slice(i,i+20));let created=0,skipped=0,failed=0;for(const batch of batches){await call('/api/editor/actus/import','POST',{articles:batch,dryRun:true,publish:false});const r=await call('/api/editor/actus/import','POST',{articles:batch,dryRun:false,publish:false});for(const x of r.results||[]){if(x.status==='draft')created++;else if(x.status==='skipped_existing')skipped++;else failed++;}}await refresh();view('list');notify(created+' brouillon(s) importé(s), '+skipped+' doublon(s), '+failed+' échec(s). Aucun article publié automatiquement.',failed>0);});}
-function init(){document.querySelectorAll('[data-go]').forEach(el=>el.addEventListener('click',()=>{const v=el.dataset.go;if(v==='edit')setEditor(null);else view(v);}));$('ed-search').addEventListener('input',populateList);$('ed-media-status').addEventListener('change',populateMedia);$('ed-media-new').addEventListener('click',()=>{setEditor(null);$('contentType').value='video';});$('ed-new').addEventListener('click',()=>setEditor(null));$('ed-create').addEventListener('click',saveNew);$('ed-save').addEventListener('click',saveCurrent);$('ed-publish').addEventListener('click',publish);$('ed-unpublish').addEventListener('click',unpublish);$('image').addEventListener('input',previewImage);$('ed-preview-button').addEventListener('click',()=>{const a=articleData();$('ed-preview').textContent=a.title+'\\n\\n'+a.summary+'\\n\\n'+a.body;});$('ed-scan').addEventListener('click',scan);$('ed-import').addEventListener('click',importSelected);refresh().catch(e=>notify('Connexion à la rédaction impossible : '+e.message,true));}
+function init(){document.querySelectorAll('[data-go]').forEach(el=>el.addEventListener('click',()=>{const v=el.dataset.go;if(v==='edit')setEditor(null);else view(v);}));$('ed-search').addEventListener('input',populateList);$('ed-media-status').addEventListener('change',populateMedia);$('ed-media-new').addEventListener('click',()=>{setEditor(null);$('contentType').value='video';});$('ed-media-smoketest').addEventListener('click',prepareStudioSmokeVideo);$('ed-new').addEventListener('click',()=>setEditor(null));$('ed-create').addEventListener('click',saveNew);$('ed-save').addEventListener('click',saveCurrent);$('ed-publish').addEventListener('click',publish);$('ed-unpublish').addEventListener('click',unpublish);$('image').addEventListener('input',previewImage);$('ed-preview-button').addEventListener('click',()=>{const a=articleData();$('ed-preview').textContent=a.title+'\\n\\n'+a.summary+'\\n\\n'+a.body;});$('ed-scan').addEventListener('click',scan);$('ed-import').addEventListener('click',importSelected);refresh().catch(e=>notify('Connexion à la rédaction impossible : '+e.message,true));}
 
 // Conservative local game extraction: no third-party service receives draft text.
 $('ed-detect-games').addEventListener('click',async()=>{
@@ -169,7 +193,7 @@ const content=`<main class="editor-shell"><aside class="editor-side"><a href="/a
 <section class="editor-view active" data-view="list"><div class="editor-metrics"><div class="metric"><strong id="ed-count">—</strong><span>Publications</span></div><div class="metric"><strong id="ed-published">—</strong><span>En ligne</span></div><div class="metric"><strong id="ed-drafts">—</strong><span>Brouillons</span></div></div><div class="panel"><div class="section-title"><div><h2>Toutes les publications</h2><p>Choisis un article pour le modifier, y compris après publication.</p></div><button id="ed-new" class="editor-button primary">+ Nouvel article</button></div><input id="ed-search" class="editor-search" type="search" placeholder="Rechercher par titre ou jeu…" aria-label="Rechercher dans les articles"><table class="editor-article-table"><thead><tr><th>Publication</th><th>État</th><th>Modifié</th></tr></thead><tbody id="ed-list"></tbody></table></div></section>
 <section class="editor-view" data-view="media"><div class="panel"><div class="section-title">
 <div><h2>Bibliothèque vidéo</h2><p>Retrouve tes vidéos et trailers SWAPP, leurs miniatures et leur statut. Clique pour reprendre l'édition.</p></div>
-<button class="editor-button primary" id="ed-media-new" type="button">+ Nouvelle vidéo</button></div>
+<button class="editor-button primary" id="ed-media-new" type="button">+ Nouvelle vidéo</button><button class="editor-button neutral" id="ed-media-smoketest" type="button">Préparer la vidéo de vérification</button></div>
 <div class="editor-media-controls"><label for="ed-media-status">Afficher</label>
 <select id="ed-media-status"><option value="all">Toutes les vidéos</option><option value="published">Publiées</option><option value="draft">Brouillons</option></select>
 <span id="ed-media-count" role="status"></span></div>
