@@ -10899,7 +10899,10 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
     const payload = encodePayload(raw);
     const kind = n.platform === 'swapp' ? 'swapp' : 'twitch';
     const badge = n.platform === 'swapp' ? 'LIVE SWAPP' : 'LIVE TWITCH';
-    return `<article class="homeLiveCard1014" onclick="swappOpenLive1014('${payload}')" tabindex="0" aria-label="Regarder le live de ${safe(n.name)}" onkeydown="if(event.target===this&&(event.key==='Enter'||event.key===' ')){event.preventDefault();swappOpenLive1014('${payload}')}"><div class="homeThumb1014">${n.thumb?`<img src="${safe(n.thumb)}" alt="" loading="lazy" decoding="async">`:`<div style="height:100%;display:grid;place-items:center;color:#64748b;font-weight:900">LIVE</div>`}<span class="homeLiveBadge1014 ${kind}">● ${badge}</span><span class="homeViewers1014">${n.viewers || 0} spectateurs</span></div><div class="homeLiveBody1014"><h3>${safe(n.title)}</h3><div class="homeMeta1014">${safe(n.name)} · ${safe(n.game)}</div><button class="btn" type="button" onclick="event.stopPropagation();swappOpenLive1014('${payload}')">Regarder</button></div></article>`;
+    const match=n.raw?.swappNewsMatch;
+    const linked=match&&/^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/.test(String(match.slug||''))
+      ? `<a class="homeNewsLink1014" href="/actus/${match.slug}" title="${safe(match.title||'Lire cette actualité')}" onclick="event.stopPropagation()">Dans l’actualité · ${safe(match.game||n.game)} ↗</a>` : '';
+    return `<article class="homeLiveCard1014" onclick="swappOpenLive1014('${payload}')" tabindex="0" aria-label="Regarder le live de ${safe(n.name)}" onkeydown="if(event.target===this&&(event.key==='Enter'||event.key===' ')){event.preventDefault();swappOpenLive1014('${payload}')}"><div class="homeThumb1014">${n.thumb?`<img src="${safe(n.thumb)}" alt="" loading="lazy" decoding="async">`:`<div style="height:100%;display:grid;place-items:center;color:#64748b;font-weight:900">LIVE</div>`}<span class="homeLiveBadge1014 ${kind}">● ${badge}</span><span class="homeViewers1014">${n.viewers || 0} spectateurs</span></div><div class="homeLiveBody1014"><h3>${safe(n.title)}</h3><div class="homeMeta1014">${safe(n.name)} · ${safe(n.game)}</div>${linked}<button class="btn" type="button" onclick="event.stopPropagation();swappOpenLive1014('${payload}')">Regarder</button></div></article>`;
   }
 
   async function apiSafe(url){ try{ return await api(url); }catch(e){ console.warn('Swapp home API', url, e); return null; } }
@@ -10937,60 +10940,80 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
     return out;
   }
 
+  // Editorial updates change only the order and an inline article link on
+  // existing stream cards. Never add a matching dashboard or extra shelf.
+  let lastLiveCandidates=null;
+  let latestArticleMatches=[];
+  function paintLiveGrid(preserveExpanded=false){
+    if(state?.view!=='home'||!lastLiveCandidates)return;
+    const grid=$id('homeLiveGrid1014');
+    if(!grid)return;
+    const {swappItems,twitchItems}=lastLiveCandidates;
+    const curated=window.SwappLiveCuration?.curateHomeLives(swappItems,twitchItems,12,latestArticleMatches)
+      || {items:[...swappItems,...twitchItems].slice(0,12),nativeCount:swappItems.length,twitchCount:twitchItems.length};
+    const items=curated.items;
+    const mode=curated.nativeCount&&curated.twitchCount?'mixed':(curated.nativeCount?'swapp':'twitch');
+    lastHomeMode=mode;
+    const title=$id('homeLiveTitle1014'),sub=$id('homeLiveSub1014'),status=$id('homeHeroStatus1014');
+    if(mode==='swapp'){
+      if(title)title.textContent='Lives SWAPP en direct';
+      if(sub)sub.textContent='Découvrez les créateurs qui diffusent en ce moment sur SWAPP.';
+      if(status)status.textContent='SWAPP en direct';
+    }else if(mode==='mixed'){
+      if(title)title.textContent='Lives en direct';
+      if(sub)sub.textContent='Les créateurs SWAPP d’abord, puis des lives Twitch pour prolonger la découverte.';
+      if(status)status.textContent='SWAPP et Twitch en direct';
+    }else{
+      if(title)title.textContent='Lives Twitch en direct';
+      if(sub)sub.textContent='Des créateurs en direct, sélectionnés pour prolonger votre découverte.';
+      if(status)status.textContent='Twitch en direct';
+    }
+    const more=$id('homeLiveMore1014');
+    const wasExpanded=!!(preserveExpanded&&more?.getAttribute('aria-expanded')==='true');
+    grid.innerHTML=items.length?items.slice(0,12).map(card).join('')
+      :`<div class="homeEmpty1014">Aucun live disponible pour le moment. Essaie à nouveau dans quelques instants.</div>`;
+    if(more){
+      const cards=Array.from(grid.querySelectorAll('.homeLiveCard1014'));
+      const initiallyVisible=window.matchMedia('(max-width:900px)').matches?4:8;
+      cards.forEach((el,i)=>{el.hidden=!wasExpanded&&i>=initiallyVisible});
+      const extras=Math.max(0,cards.length-initiallyVisible);
+      more.hidden=!extras;
+      more.setAttribute('aria-expanded',String(wasExpanded&&extras>0));
+      more.textContent=wasExpanded?'Voir moins de lives':'Afficher '+extras+' autre'+(extras>1?'s':'')+' live'+(extras>1?'s':'');
+      more.onclick=()=>{
+        const expanded=more.getAttribute('aria-expanded')==='true';
+        cards.forEach((el,i)=>{el.hidden=expanded&&i>=initiallyVisible});
+        more.setAttribute('aria-expanded',String(!expanded));
+        more.textContent=expanded?'Afficher '+extras+' autre'+(extras>1?'s':'')+' live'+(extras>1?'s':''):'Voir moins de lives';
+      };
+    }
+  }
+  window.addEventListener('swapp:home-news-ready',event=>{
+    latestArticleMatches=Array.isArray(event.detail?.articles)?event.detail.articles:[];
+    if(!homeBusy&&state?.view==='home')paintLiveGrid(true);
+  });
+
   async function loadLives(force=false){
-    if(state?.view !== 'home') return;
-    const now = Date.now();
-    if(!force && now - homeStamp < 45000) return;
-    if(homeBusy) return;
-    homeBusy = true;
-    homeStamp = now;
-    const grid = $id('homeLiveGrid1014');
-    const title = $id('homeLiveTitle1014');
-    const sub = $id('homeLiveSub1014');
-    const status = $id('homeHeroStatus1014');
-    if(!grid){ homeBusy = false; return; }
-    grid.innerHTML = `<div class="homeEmpty1014">Chargement des lives…</div>`;
+    if(state?.view!=='home')return;
+    const now=Date.now();
+    if(!force&&now-homeStamp<45000)return;
+    if(homeBusy)return;
+    homeBusy=true;
+    homeStamp=now;
+    const grid=$id('homeLiveGrid1014');
+    if(!grid){homeBusy=false;return;}
+    lastLiveCandidates=null;
+    grid.innerHTML=`<div class="homeEmpty1014">Chargement des lives…</div>`;
     try{
-      const swappItems = await getSwappLives();
-      // Fill the real, visible live grid; never hide Twitch just because one SWAPP stream exists.
-      const twitchItems = swappItems.length < 8 ? await getTwitchLives() : [];
-      const curated = window.SwappLiveCuration?.curateHomeLives(swappItems,twitchItems,12)
-        || {items:[...swappItems,...twitchItems].slice(0,12),nativeCount:swappItems.length,twitchCount:twitchItems.length};
-      const items = curated.items;
-      const mode = curated.nativeCount && curated.twitchCount ? 'mixed' : (curated.nativeCount ? 'swapp' : 'twitch');
-      lastHomeMode = mode;
-      if(mode === 'swapp'){
-        if(title) title.textContent = 'Lives SWAPP en direct';
-        if(sub) sub.textContent = 'Découvrez les créateurs qui diffusent en ce moment sur SWAPP.';
-        if(status) status.textContent = 'SWAPP en direct';
-      }else if(mode === 'mixed'){
-        if(title) title.textContent = 'Lives en direct';
-        if(sub) sub.textContent = 'Les créateurs SWAPP d’abord, puis des lives Twitch pour prolonger la découverte.';
-        if(status) status.textContent = 'SWAPP et Twitch en direct';
-      }else{
-        if(title) title.textContent = 'Lives Twitch en direct';
-        if(sub) sub.textContent = 'Des créateurs en direct, sélectionnés pour prolonger votre découverte.';
-        if(status) status.textContent = 'Twitch en direct';
-      }
-      grid.innerHTML = items.length ? items.slice(0,12).map(card).join('') : `<div class="homeEmpty1014">Aucun live disponible pour le moment. Essaie à nouveau dans quelques instants.</div>`;
-      const more=$id('homeLiveMore1014');
-      if(more){
-        const cards=Array.from(grid.querySelectorAll('.homeLiveCard1014'));
-        const initiallyVisible=window.matchMedia('(max-width:900px)').matches?4:8;
-        cards.forEach((el,i)=>{el.hidden=i>=initiallyVisible});
-        const extras=Math.max(0,cards.length-initiallyVisible);
-        more.hidden=!extras;
-        more.setAttribute('aria-expanded','false');
-        more.textContent='Afficher '+extras+' autre'+(extras>1?'s':'')+' live'+(extras>1?'s':'');
-        more.onclick=()=>{
-          const expanded=more.getAttribute('aria-expanded')==='true';
-          cards.forEach((el,i)=>{el.hidden=expanded&&i>=initiallyVisible});
-          more.setAttribute('aria-expanded',String(!expanded));
-          more.textContent=expanded?'Afficher '+extras+' autre'+(extras>1?'s':'')+' live'+(extras>1?'s':''):'Voir moins de lives';
-        };
-      }
+      const swappItems=await getSwappLives();
+      // Fill remaining slots with genuinely live Twitch creators, but never
+      // displace the SWAPP-first ordering.
+      const twitchItems=swappItems.length<8?await getTwitchLives():[];
+      lastLiveCandidates={swappItems,twitchItems};
+      latestArticleMatches=window.SwappHomeEditorial?.getCachedArticles?.()||latestArticleMatches;
+      paintLiveGrid(false);
     }finally{
-      homeBusy = false;
+      homeBusy=false;
     }
   }
 
