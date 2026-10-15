@@ -16,11 +16,12 @@ function makePublicCatalog({catalog,fetchImpl=globalThis.fetch,clock=Date.now,tt
    const image=article.image?.url?{url:article.image.url,credit:article.image.credit||'',rights:article.image.rights||''}:null;
    return {
       slug:key,title,body:article.body,summary:article.summary||article.body.slice(0,300),
-      author:article.author||'Rédaction JustPlayer',category:'JustPlayer',
-      game:article.game||item.game||'',image,sources:article.sources||[{url:item.url,label:'JustPlayer'}],
+      author:/just\\s*player/i.test(String(article.author||''))?'Rédaction SWAPP':(article.author||'Rédaction SWAPP'),
+      sourceAuthor:article.author||'Rédaction JustPlayer',category:'Actualités JV',
+      game:article.game||item.game||'',image,sources:article.sources?.length?article.sources:[{url:item.url,label:'Publication d’origine'}],
       legacyUrl:item.url,canonicalSourceUrl:article.canonicalSourceUrl||item.url,
       publishedAt:item.publishedAt,originalPublishedAt:item.publishedAt,
-      provenance:'justplayer-public-verified',status:'published',contentSource:'JustPlayer'
+      provenance:'justplayer-public-verified',status:'published',contentSource:'SWAPP'
    };
  }
  async function load(item){

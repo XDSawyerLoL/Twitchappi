@@ -8,6 +8,7 @@ const {collectPublicCatalog}=require('../../tools/justplayer-public-fetch');
 const {makePublicCatalog}=require('./public-catalog');
 const {recommend}=require('./content-metadata');
 const catalog=require('../../data/justplayer-public-catalog.json');
+const {publicArticle,recoveredArticle,nativeSlug,legacyDraft}=require('./editorial-identity');
 
 function createNewsRouter({express, firestore, requireEditor, isReady = () => true, baseUrl = 'https://swapp.tv', publicFetch = globalThis.fetch, publicCatalog = catalog, canEdit = () => false, sendApp = null}) {
   if (typeof express?.Router !== 'function' || typeof firestore?.collection !== 'function' ||
@@ -25,13 +26,25 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
   const sendError=(res,e)=>res.status(400).json({error:e.message || 'Article invalide'});
   const isValidation=e=>/Article|Titre|Slug|source|URL|Résumé|Crédit|droits|Date|JustPlayer|Contenu|Type de publication|vidéo|commercial|liens|Lien/.test(String(e?.message||''));
   const published=async()=>{
-    const snap=await articles.where('status','==','published').limit(60).get();
+    const snap=await articles.where('status','==','published').limit(500).get();
     const original=snap.docs.map(x=>x.data());
-    await publicNews.scanBatch(); // Only complete, verified Fourthwall articles enter the feed.
     const oldUrls=new Set(original.map(x=>x.legacyUrl).filter(Boolean));
+    // Once every known historical post has a native, published SWAPP copy,
+    // avoid requesting the retired external site on every magazine load.
+    const remainingKnown=(publicCatalog.items||[]).filter(x=>x.type==='post'&&!oldUrls.has(x.url));
+    if(remainingKnown.length)await publicNews.scanBatch();
     const oldTitles=new Set(original.map(x=>String(x.title||'').toLowerCase()));
-    const recovered=publicNews.articles().filter(x=>!oldUrls.has(x.legacyUrl)&&!oldTitles.has(String(x.title||'').toLowerCase()));
-    return [...original,...recovered].sort((a,b)=>String(b.publishedAt||'').localeCompare(String(a.publishedAt||'')));
+    // Removing a previously published native article must not resurrect
+    // the old read-through copy from the historical source.
+    const all=await articles.limit(500).get();
+    const withdrawn=all.docs.map(d=>d.data()).filter(a=>a.legacySuppressRecovery===true);
+    const withdrawnUrls=new Set(withdrawn.map(a=>a.legacyUrl).filter(Boolean));
+    const withdrawnTitles=new Set(withdrawn.map(a=>String(a.title||'').toLowerCase()));
+    const recovered=publicNews.articles().filter(x=>!oldUrls.has(x.legacyUrl)
+      &&!oldTitles.has(String(x.title||'').toLowerCase())
+      &&!withdrawnUrls.has(x.legacyUrl)
+      &&!withdrawnTitles.has(String(x.title||'').toLowerCase()));
+    return [...original.map(publicArticle),...recovered.map(recoveredArticle)].sort((a,b)=>String(b.publishedAt||'').localeCompare(String(a.publishedAt||'')));
   };
   const noStore=(_req,res,next)=>{res.set('Cache-Control','no-store');next();};
   const editor=[available,requireEditor,noStore];
@@ -46,13 +59,20 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
   router.get('/api/actus/:slug',available,async(req,res,next)=>{
     try{
       if(!slugOk(req.params.slug)) return res.status(404).json({error:'Article introuvable'});
-      if(String(req.params.slug).startsWith('justplayer-')){
-        const found=await publicNews.get(req.params.slug);
-        return found?res.json(found):res.status(404).json({error:'Contenu complet indisponible'});
-      }
-      const snap=await articles.doc(req.params.slug).get();
-      if(!snap.exists || snap.data().status !== 'published') return res.status(404).json({error:'Article introuvable'});
-      return res.json(snap.data());
+      const slug=String(req.params.slug);
+      const canonical=slug.startsWith('justplayer-')?nativeSlug({slug}):slug;
+      const exact=await articles.doc(slug).get();
+      if(exact.exists&&exact.data().status==='published')
+        return res.json(publicArticle(exact.data()));
+      const snap=canonical!==slug?await articles.doc(canonical).get():exact;
+      if(snap.exists&&snap.data().status==='published')
+        return res.json(publicArticle(snap.data()));
+      if((exact.exists&&exact.data().legacySuppressRecovery)
+        ||(snap.exists&&snap.data().legacySuppressRecovery))
+        return res.status(404).json({error:'Article retiré du magazine'});
+      const historicalSlug=slug.startsWith('justplayer-')?slug:'justplayer-'+slug;
+      const original=await publicNews.get(historicalSlug);
+      return original?res.json(recoveredArticle(original)):res.status(404).json({error:'Article introuvable'});
     }catch(e){next(e);}
   });
   // One canonical UI for direct navigation and SPA navigation.
@@ -76,6 +96,12 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
     try{
       const key=String(req.params.key||'');
       if(!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(key) || key.length>150)return res.status(404).send('Publication introuvable');
+      const canonical=nativeSlug({slug:'justplayer-'+key});
+      const saved=await articles.doc(canonical).get();
+      if(saved.exists&&saved.data().status==='published')
+        return res.redirect(301,'/actus/'+encodeURIComponent(canonical));
+      if(saved.exists&&saved.data().legacySuppressRecovery)
+        return res.status(404).send('Article retiré du magazine');
       const item=(publicCatalog.items||[]).find(x=>
         ['post','video_embed'].includes(x?.type) &&
         String(x.url||'').split('/').filter(Boolean).at(-1)===key);
@@ -93,7 +119,7 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
           justPlayerCache.set(key,{article,expires:Date.now()+(article?20:4)*60000});
         }
       }
-      return article && article.body?.length>=220 ? res.type('html').send(renderNewsStory({...article,slug:'justplayer-'+key,publishedAt:item.publishedAt},{baseUrl})) : res.type('html').send(renderJustPlayerPreview(item,null));
+      return article && article.body?.length>=220 ? res.type('html').send(renderNewsStory(recoveredArticle({...article,slug:'justplayer-'+key,publishedAt:item.publishedAt}),{baseUrl})) : res.type('html').send(renderJustPlayerPreview(item,null));
     }catch(e){
       // An unavailable Fourthwall page should not make the SWAPP article route fail.
       const key=String(req.params.key||'');
@@ -113,15 +139,26 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
   router.get('/actus/:slug',available,async(req,res,next)=>{
     try{
       if(!slugOk(req.params.slug)) return res.status(404).send('Article introuvable');
-      if(String(req.params.slug).startsWith('justplayer-')){
-        const found=await publicNews.get(req.params.slug);
-        return found?res.type('html').send(renderNewsStory(found,{baseUrl})):
-          res.status(404).send('Article complet non récupéré.');
+      const slug=String(req.params.slug);
+      const canonical=slug.startsWith('justplayer-')?nativeSlug({slug}):slug;
+      const exact=await articles.doc(slug).get();
+      if(exact.exists&&exact.data().status==='published'){
+        res.set('Cache-Control','public, max-age=60');
+        return res.type('html').send(renderNewsStory(publicArticle(exact.data()),{baseUrl}));
       }
-      const snap=await articles.doc(req.params.slug).get();
-      if(!snap.exists || snap.data().status !== 'published') return res.status(404).send('Article introuvable');
-      res.set('Cache-Control','public, max-age=60');
-      return res.type('html').send(renderNewsStory(snap.data(),{baseUrl}));
+      const snap=canonical!==slug?await articles.doc(canonical).get():exact;
+      if(snap.exists&&snap.data().status==='published'){
+        if(canonical!==slug)return res.redirect(301,'/actus/'+encodeURIComponent(canonical));
+        res.set('Cache-Control','public, max-age=60');
+        return res.type('html').send(renderNewsStory(publicArticle(snap.data()),{baseUrl}));
+      }
+      if((exact.exists&&exact.data().legacySuppressRecovery)
+        ||(snap.exists&&snap.data().legacySuppressRecovery))
+        return res.status(404).send('Article retiré du magazine');
+      const historicalSlug=slug.startsWith('justplayer-')?slug:'justplayer-'+slug;
+      const original=await publicNews.get(historicalSlug);
+      return original?res.type('html').send(renderNewsStory(recoveredArticle(original),{baseUrl})):
+        res.status(404).send('Article introuvable');
     }catch(e){next(e);}
   });
   // Suggest games and tags without external APIs or tracking.
@@ -152,10 +189,60 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
   });
   router.get('/api/editor/actus',...editor,async(req,res,next)=>{
     try{
-      const snap=await articles.limit(60).get();
-      const list=snap.docs.map(d=>d.data()).sort((a,b)=>String(b.updatedAt||'').localeCompare(String(a.updatedAt||'')));
+      const snap=await articles.limit(500).get();
+      const list=snap.docs.map(d=>publicArticle(d.data())).sort((a,b)=>String(b.updatedAt||'').localeCompare(String(a.updatedAt||'')));
       return res.json({articles:list});
     }catch(e){next(e);}
+  });
+  // Historical sources remain read-only until explicitly copied to SWAPP Firestore.
+  // No automatic account closure, deletion or publishing occurs here.
+  router.get('/api/editor/actus/legacy-status',...editor,async(req,res,next)=>{
+    try{
+      await publicNews.scanBatch();
+      const snap=await articles.limit(500).get();
+      const stored=snap.docs.map(doc=>doc.data());
+      const storedSlugs=new Set(stored.map(a=>a.slug));
+      const storedUrls=new Set(stored.map(a=>a.legacyUrl).filter(Boolean));
+      const recovered=publicNews.articles();
+      const pending=recovered.filter(a=>!storedUrls.has(a.legacyUrl)&&!storedSlugs.has(nativeSlug(a)));
+      const recoveredPublished=recovered.filter(a=>stored.some(item=>
+        item.status==='published'&&(item.legacyUrl===a.legacyUrl||item.slug===nativeSlug(a)))).length;
+      return res.json({
+        known:publicNews.allKnown,verified:recovered.length,
+        native:recovered.length-pending.length,nativePublished:recoveredPublished,
+        pending:pending.map(a=>({
+          slug:a.slug,title:a.title,legacyUrl:a.legacyUrl,publishedAt:a.publishedAt,
+          nativeSlug:nativeSlug(a)
+        })),
+        unavailable:publicNews.status().errors,
+        readyToClose:false, // Partial public catalog != verified full Fourthwall export.
+        complete:false,
+        note:'La fermeture externe nécessite un contrôle exhaustif du compte d’origine.'
+      });
+    }catch(e){next(e)}
+  });
+  router.post('/api/editor/actus/adopt',...editor,async(req,res,next)=>{
+    try{
+      const legacySlug=String(req.body?.slug||'');
+      if(!/^justplayer-[a-z0-9-]{4,140}$/.test(legacySlug))
+        return res.status(400).json({error:'Publication historique inconnue'});
+      // Resolve the exact known, verified source server-side (not user-supplied article text).
+      const recovered=await publicNews.get(legacySlug);
+      if(!recovered||!recovered.body||recovered.body.length<220)
+        return res.status(404).json({error:'Texte intégral non récupéré'});
+      const original=legacyDraft(recovered);
+      const draft=assertArticle(original);
+      const now=new Date().toISOString();
+      const result=await firestore.runTransaction(async tx=>{
+        const ref=articles.doc(draft.slug),snap=await tx.get(ref);
+        if(snap.exists)return {slug:draft.slug,status:'already_exists'};
+        tx.create(ref,{...draft,sourceAuthor:original.sourceAuthor,sourceSlug:legacySlug,
+          provenance:'legacy-editorial-copy',status:'draft',revision:1,
+          createdAt:now,updatedAt:now,publishedAt:null});
+        return {slug:draft.slug,status:'draft'};
+      });
+      return res.status(result.status==='draft'?201:200).json(result);
+    }catch(e){if(isValidation(e))return sendError(res,e);next(e)}
   });
   // Explicit, authenticated, read-only scan of known Fourthwall public posts.
   router.post('/api/editor/actus/scan-public',...editor,async(req,res,next)=>{
@@ -216,7 +303,7 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
         assertArticle(old,{publish:true});
         const now=new Date().toISOString(),revision=Number(old.revision||1);
         const eventId=`article_${slug}_r${revision}`;
-        tx.update(ref,{status:'published',publishedAt:old.originalPublishedAt||now,updatedAt:now});
+        tx.update(ref,{status:'published',publishedAt:old.originalPublishedAt||now,updatedAt:now,legacySuppressRecovery:false});
         tx.create(outbox.doc(eventId),{type:'article.published',articleSlug:slug,revision,
           createdAt:now,status:'paused',channels:[],attempts:0});
         return {code:200,slug,status:'published',eventId,social:'paused'};
@@ -233,7 +320,7 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
         if(!snap.exists)return {code:404,error:'Article introuvable'};
         if(snap.data().status!=='published')return {code:409,error:'Article non publié'};
         const revision=Number(snap.data().revision||1)+1;
-        tx.update(ref,{status:'draft',revision,updatedAt:new Date().toISOString()});
+        tx.update(ref,{status:'draft',revision,updatedAt:new Date().toISOString(),legacySuppressRecovery:!!snap.data().legacyUrl});
         return {code:200,slug,status:'draft',revision};
       });
       return res.status(result.code).json(result);

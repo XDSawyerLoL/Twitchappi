@@ -8,7 +8,7 @@ Cette version remplace la page d'archives par des **articles natifs** servis sur
 2. Ouvrez `https://swapp.tv/actus/studio`.
 3. Cliquez **+ Nouvel article** : titre, chapô, texte complet, catégorie, jeu, couverture (URL), crédits, signature et sources. Enregistrez en brouillon.
 4. Dans **Tous les articles**, ouvrez un brouillon puis cliquez sur **Publier sur SWAPP**. Vous pouvez ensuite **corriger un article publié** sans modifier sa date initiale, ou **retirer de la publication** pour conserver un brouillon.
-5. Dans **Importer JustPlayer**, cliquez sur **Analyser JustPlayer**. Les pages publiques sont lues par petits lots. Sélectionnez les textes récupérés et cliquez sur **Importer la sélection en brouillons**. Relisez et publiez depuis **Tous les articles**.
+5. Dans **Finaliser la reprise**, consultez les textes historiques vérifiés qui dépendent encore de Fourthwall. Cliquez **Rendre modifiable** pour créer leur brouillon dans SWAPP, puis relisez et publiez depuis **Toutes les publications**. Le scan manuel reste disponible dans les options avancées.
 
 Les pages nécessitant une connexion, les vidéos et les contenus dont le texte n'est pas identifiable ne sont **pas** présentés comme importés. Aucune transcription ou source n'est inventée. Le scan public n'écrit jamais dans Firestore ; seul le clic d'import explicite crée des brouillons.
 
@@ -36,3 +36,8 @@ Les pages nécessitant une connexion, les vidéos et les contenus dont le texte 
 - Recherche et filtres par catégorie.
 - Test du scan JustPlayer réel, puis import d'un article test avant import massif.
 - Vérifier les autres parcours SWAPP : accueil, découverte Twitch, sessions, chat.
+
+
+## Retrait de l’ancienne marque
+
+Les mentions publiques des articles appartiennent à **SWAPP**. Les anciennes URL et les crédits de source restent conservés pour les redirections et les droits. Voir [SWAPP_RETRAIT_JUSTPLAYER.md](SWAPP_RETRAIT_JUSTPLAYER.md) pour les conditions de fermeture, l'inventaire complet du compte historique, les vidéos et les sauvegardes. Le catalogue actuel n'est pas exhaustif.

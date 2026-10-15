@@ -149,7 +149,9 @@ test('un véritable texte JustPlayer devient un article lisible avec son image d
  const list=await request('GET','/api/actus');
  assert.equal(list.statusCode,200);
  assert.equal(list.payload.articles.length,1);
- assert.equal(list.payload.articles[0].slug,'justplayer-266628');
+ assert.equal(list.payload.articles[0].slug,'266628');
+ assert.equal(list.payload.articles[0].category,'Actualités JV');
+ assert.equal(list.payload.articles[0].author,'Rédaction SWAPP');
  assert.equal(list.payload.articles[0].image.url,'https://cdn.fourthwall.com/007-cover.jpg');
  const article=await request('GET','/api/actus/:slug',{params:{slug:'justplayer-266628'}});
  assert.equal(article.statusCode,200);
