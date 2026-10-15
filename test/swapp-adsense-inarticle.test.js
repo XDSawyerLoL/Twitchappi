@@ -44,7 +44,7 @@ function harness({paragraphs=[260,300,300,260],cmp=true}={}){
  const document={readyState:'complete',head,body,scripts,
   createElement:tag=>new Node(tag),
   querySelector:selector=>selector.includes('.swapp-actus-body')?content:null,
-  querySelectorAll:()=>[],
+  querySelectorAll:selector=>selector==='.swapp-ad-placement'?content.children.filter(x=>x.className==='swapp-ad-placement'):[],
  };
  const window={};
  if(cmp)window.__tcfapi=(cmd,version,fn)=>{
