@@ -107,3 +107,17 @@ test('ad slot is loaded from both article shells, not on every homepage load',()
  assert.match(css,/\.swapp-ad-placement/);
  assert.match(css,/\.swapp-ad-label/);
 });
+
+test('AdSense ads.txt is exactly the supplied declaration and served from the domain root',()=>{
+ const declaration=read('ads.txt');
+ assert.equal(declaration,'google.com, pub-6082969821681414, DIRECT, f08c47fec0942fa0\n');
+ const server=read('server.js');
+ assert.match(server,/app\.get\('\/ads\.txt'/);
+ assert.match(server,/sendPublicFile\(res, 'ads\.txt', 'text\/plain; charset=utf-8'\)/);
+});
+test('a recovered empty ad is not repeatedly inserted on the same reading page',()=>{
+ assert.match(client,/requestedBodies=new WeakSet\(\)/);
+ assert.match(client,/requestedBodies\.has\(body\)/);
+ assert.match(client,/requestedBodies\.add\(body\)/);
+ assert.match(client,/data-ad-status'\)==='unfilled'/);
+});
