@@ -926,7 +926,19 @@ function sendSwappPublicChannelUi(req, res, login){
 // Additional discovery areas keep the same navigation and SWAPP visual system.
 const swappHubs=require('./modules/swapp-hubs');
 app.get('/communaute',(_req,res)=>{res.set('Cache-Control','no-store');res.type('html').send(swappHubs.community())});
-app.get('/bandes-annonces',(_req,res)=>{res.set('Cache-Control','no-store');res.type('html').send(swappHubs.trailers())});
+app.get('/bandes-annonces',async(_req,res)=>{
+ res.set('Cache-Control','no-store');
+ let videos=[];
+ if(firestoreOk){
+  try{
+   const snapshot=await db.collection('swapp_news_articles').where('status','==','published').limit(80).get();
+   videos=snapshot.docs.map(doc=>doc.data())
+    .filter(x=>['trailer','video'].includes(x.contentType))
+    .sort((a,b)=>String(b.publishedAt||'').localeCompare(String(a.publishedAt||'')));
+  }catch(error){console.warn('[SWAPP VIDEOS] Studio videos temporarily unavailable:',error?.message)}
+ }
+ return res.type('html').send(swappHubs.trailers(videos));
+});
 app.get('/boutique',(_req,res)=>{res.set('Cache-Control','no-store');res.type('html').send(swappHubs.shop(require('./data/swapp-shop.json').products))});
 
 const SWAPP_CLEAN_VIEW_PATHS = new Set(['/actus','/decouvrir','/discover','/categories','/equipes','/teams','/compte','/connexion','/settings','/chaine','/channel','/gestionnaire','/manager','/dashboard','/studio','/admin','/reset-password']);
