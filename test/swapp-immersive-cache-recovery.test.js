@@ -35,7 +35,8 @@ test('old article cover moves into the global scene without duplicating media',(
 test('single photo preserves proportions in a bounded scene instead of filling the screen',()=>{
  assert.match(css,/\.swapp-article-scene/);
  assert.match(css,/position:absolute;top:0/);
- assert.match(css,/aspect-ratio:16\/9/);
+ assert.match(css,/height:clamp\(390px,35vw,570px\)/);
+ assert.match(css,/height:100%;width:auto;max-width:none/);
  assert.match(css,/object-fit:contain/);
  assert.doesNotMatch(css,/position:fixed;inset:0;z-index:0/);
  assert.match(css,/pointer-events:none/);
@@ -45,7 +46,7 @@ test('single photo preserves proportions in a bounded scene instead of filling t
 
 test('page shells load versioned SPA, compat and CSS files',()=>{
  for(const text of [spa,layout]){
-  assert.match(text,/swapp-article-immersive\.css\?v=20261015-balanced-4/);
+  assert.match(text,/swapp-article-immersive\.css\?v=20261015-editorial-reset-5/);
   assert.match(text,/swapp-article-immersive-compat\.js\?v=20261015-wallpaper-v1/);
  }
  assert.match(spa,/swapp-actus-app\.js\?v=20261015-wallpaper-v1/);
