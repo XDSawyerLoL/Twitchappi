@@ -113,7 +113,7 @@ function renderNewsStory(article,{baseUrl='https://swapp.tv',relatedArticles=[]}
   const art=immersiveCoverUrl(x);
   return `<a class="swapp-reader-next-item" href="/actus/${encodeURIComponent(x.slug)}">${art?`<img class="swapp-reader-next-thumb" src="${escapeHtml(art)}" alt="" loading="lazy">`:''}<span class="swapp-reader-next-copy"><small>${escapeHtml(x.game||x.category||'Actualité')}</small><strong>${escapeHtml(x.title||'Article SWAPP')}</strong></span></a>`;
  }).join('');
- const sponsor=instantGaming.forArticle(article);
+ const sponsor=(article.commercialLinks?.length?null:instantGaming.forArticle(article));
  const sponsorHtml=sponsor?
   `<aside class="swapp-affiliate-offer" aria-label="Lien affilié Instant Gaming"><span class="swapp-affiliate-kicker">PARTENAIRE · LIEN AFFILIÉ</span><strong class="swapp-affiliate-game">${escapeHtml(sponsor.game)}</strong><span class="swapp-affiliate-platform">${escapeHtml(sponsor.platform)}</span><a class="swapp-affiliate-link" href="${escapeHtml(sponsor.url)}" target="_blank" rel="sponsored nofollow noopener noreferrer">Voir le jeu sur Instant Gaming ↗</a><small class="swapp-affiliate-disclosure">SWAPP peut toucher une commission. Prix, stock et région à vérifier chez le marchand.</small></aside>`:'';
  const nextReading=`<details class="swapp-reader-next" open><summary>À découvrir ensuite</summary><div class="swapp-reader-next-list">${nextLinks||'<a class="swapp-reader-next-all" href="/actus">Explorer toute l’actualité →</a>'}</div>${sponsorHtml}</details>`;
