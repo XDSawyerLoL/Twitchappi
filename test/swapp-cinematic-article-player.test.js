@@ -155,6 +155,6 @@ test('the existing articles and stream cards expose accessible inline play witho
  assert.match(main,/swapp-live-pip1014/);
  assert.match(css,/prefers-reduced-motion:reduce/);
  assert.match(css,/swapp-view-arrive/);
- assert.match(html,/swapp-art-direction\.css\?v=20261015-player-40/);
+ assert.match(html,/swapp-art-direction\.css\?v=20261015-player-39/);
  assert.doesNotMatch(app,/swapp-actus-mini-sidebar-duplicated/);
 });
