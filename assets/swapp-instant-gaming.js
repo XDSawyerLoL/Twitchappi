@@ -34,12 +34,5 @@
   const matches=catalog.filter(p=>p.aliases.some(a=>title.includes(' '+a+' ')));
   return matches.length===1?offer(matches[0]):null;
  }
- function shopProducts(){
-  return catalog.map(offer).filter(Boolean).map(a=>({
-   ...a,title:a.game+' — '+a.platform,category:'Jeu vidéo',
-   description:'Consultez le prix, la région et la disponibilité sur la fiche du jeu avant achat.',
-   image:null
-  }));
- }
- return Object.freeze({forArticle,findByGame,shopProducts,catalog,referralHome:BASE+'?igr='+REF});
+ return Object.freeze({forArticle,findByGame,catalog,referralHome:BASE+'?igr='+REF});
 });
