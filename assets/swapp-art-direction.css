@@ -143,16 +143,44 @@
 #home .swapp-home-editorial .swapp-home-retry:hover{background:#1c404b;border-color:#7fe5e1}
 #home .swapp-home-editorial .swapp-home-retry:focus-visible{outline:2px solid var(--swapp-interactive);outline-offset:3px}
 
-/* 07 — An editorial lead when there are several actual live broadcasts.
-   Never enlarge a single stream into an oversized empty feature. */
-@media(min-width:1201px){
- #home .homeLiveGrid1014:has(>.homeLiveCard1014:nth-child(6))>.homeLiveCard1014:first-child{
-  grid-column:span 2;grid-row:span 2
- }
- #home .homeLiveGrid1014:has(>.homeLiveCard1014:nth-child(6))>.homeLiveCard1014:first-child .homeLiveBody1014{padding:20px 23px!important}
- #home .homeLiveGrid1014:has(>.homeLiveCard1014:nth-child(6))>.homeLiveCard1014:first-child .homeLiveBody1014 h3{font-size:clamp(19px,2vw,28px)!important}
- #home .homeLiveGrid1014:has(>.homeLiveCard1014:nth-child(6))>.homeLiveCard1014:first-child .homeThumb1014{aspect-ratio:16/8.5}
+/* 07 — Balanced live mosaic: each stream takes exactly one card.
+   Hidden cards must never trigger an oversized 2x2 feature. */
+#home .homeLiveGrid1014{
+ grid-auto-flow:row!important;
+ align-items:stretch;
+ grid-auto-rows:auto!important;
 }
+#home .homeLiveGrid1014>.homeLiveCard1014{
+ grid-column:auto!important;
+ grid-row:auto!important;
+ min-width:0!important;
+ display:flex;
+ flex-direction:column;
+}
+#home .homeLiveGrid1014>.homeLiveCard1014[hidden]{display:none!important}
+#home .homeLiveGrid1014 .homeThumb1014{
+ width:100%;
+ flex:0 0 auto;
+ aspect-ratio:16/9!important;
+}
+#home .homeLiveGrid1014 .homeLiveBody1014{
+ flex:1;
+ display:flex!important;
+ flex-direction:column;
+ min-width:0;
+ gap:9px!important;
+}
+#home .homeLiveGrid1014 .homeLiveBody1014 h3{
+ display:-webkit-box;
+ -webkit-box-orient:vertical;
+ -webkit-line-clamp:2;
+ overflow:hidden;
+ min-height:0!important;
+ max-height:2.7em;
+ overflow-wrap:anywhere;
+}
+#home .homeLiveGrid1014 .homeMeta1014{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#home .homeLiveGrid1014 .homeLiveBody1014 .btn{margin-top:auto;align-self:start}
 
 /* 08 — Stream and article imagery should read as content, not UI chrome. */
 #home .homeLiveBadge1014{font-weight:850!important;letter-spacing:.035em!important;box-shadow:0 3px 12px #0007!important}
