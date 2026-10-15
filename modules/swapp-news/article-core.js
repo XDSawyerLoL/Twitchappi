@@ -1,6 +1,7 @@
 'use strict';
 
 const {trailerId,commercialLinks}=require('../../assets/swapp-article-extras');
+const {recommend,cleanTags,cleanSEO,contentType,detectGames}=require('./content-metadata');
 
 const MAX_TITLE = 180;
 const MAX_BODY = 120000;
@@ -33,14 +34,15 @@ function assertArticle(value, {publish = false, legacyRequired = false} = {}) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Article invalide');
   const title = String(value.title || '').trim();
   const body = String(value.body || '').trim();
+  const kind=contentType(value.contentType);
   const summary = String(value.summary || '').trim();
   const slug = slugify(value.slug || title);
   if (title.length < 8 || title.length > MAX_TITLE) throw new Error('Titre entre 8 et 180 caractères requis');
   if (slug.length < 4) throw new Error('Slug invalide');
-  if (body.length < 40 || body.length > MAX_BODY) throw new Error('Article : 40 à 120000 caractères requis');
+  if (body.length < (kind==='trailer'||kind==='video'?15:40) || body.length > MAX_BODY) throw new Error('Contenu trop court ou trop long');
   if (summary.length > MAX_SUMMARY) throw new Error('Résumé trop long');
   const sources = Array.isArray(value.sources) ? value.sources : [];
-  if (sources.length > 20 || (publish && sources.length === 0)) throw new Error('Au moins une source requise pour publier (20 max)');
+  if (sources.length > 20 || (publish && sources.length === 0 && !(kind==='trailer'||kind==='video'))) throw new Error('Au moins une source requise pour publier (20 max)');
   for (const source of sources) {
     if (!source || !isHttpUrl(source.url)) throw new Error('URL de source invalide');
   }
@@ -51,9 +53,18 @@ function assertArticle(value, {publish = false, legacyRequired = false} = {}) {
   if (value.legacyUrl && !isHttpUrl(value.legacyUrl)) throw new Error('URL ancienne invalide');
   const trailerUrl=String(value.trailerUrl||'').trim();
   if(trailerUrl&&!trailerId(trailerUrl))throw new Error('URL bande-annonce YouTube HTTPS invalide');
+  if(publish&&(kind==='trailer'||kind==='video')&&!trailerUrl)throw new Error('Une vidéo YouTube officielle est requise pour publier une vidéo intégrée');
   const links=commercialLinks(value.commercialLinks,true);
+  const editorial=recommend({title,summary,body,game:value.game,tags:value.tags});
+  const requestedGames=Array.isArray(value.games)?value.games:[];
+  const games=[...new Set([String(value.game||'').trim(),...requestedGames,...editorial.games]
+    .map(x=>String(x).trim().slice(0,120)).filter(Boolean))].slice(0,8);
+  const tags=cleanTags(value.tags);
+  const seo=cleanSEO(value.seo,{title,summary});
+
   return {
-    title, slug, body, summary,
+    title, slug, body, summary, contentType:kind,
+    games,tags,seo,
     category: String(value.category || 'actualites').trim().slice(0, 60),
     game: String(value.game || '').trim().slice(0, 120),
     author: String(value.author || 'Rédaction JustPlayer / SWAPP').trim().slice(0, 120),
