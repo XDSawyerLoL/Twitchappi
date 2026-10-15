@@ -78,7 +78,7 @@ test('an authenticated message is proxied to the pinned server, not a user suppl
  assert.equal(forwarded[0].url,SOCIAL_ORIGIN+'/api/pulse/messages');
  assert.deepEqual(JSON.parse(forwarded[0].opts.body),{handle:'sansa',body:'Salut'});
  assert.deepEqual(Object.keys(forwarded[0].opts.headers).sort(),['Accept','Authorization','Content-Type'].sort());
- assert.equal(forwarded[0].timeout,8000);
+ assert.equal(forwarded[0].timeout,12000);
 });
 test('SOCIAL writes require the correct origin and independent bearer credentials',async()=>{
  const handler=createSocialNativeProxy(async()=>{throw Error('Must not call upstream')},{production:true});
@@ -100,4 +100,26 @@ test('duplicate menu links are actively removed after a racing SPA render',()=>{
  assert.match(spa,/swapp-hub-nav\.js/);
  const native=read('modules/swapp-news/site-shell.js');
  assert.match(native,/swapp-hub-nav\.js/);
+});
+
+test('SOCIAL retries a slow public feed but never repeats writes',async()=>{
+ let reads=0,writes=0;
+ const handler=createSocialNativeProxy(async(_url,options)=>{
+  if(options.method==='GET'){
+   reads++;
+   if(reads===1){const error=new Error('cold_start');error.name='AbortError';throw error}
+   return {status:200,text:async()=>JSON.stringify({posts:[{id:'real'}]})};
+  }
+  writes++;
+  throw Error('upstream unavailable');
+ },{production:true});
+ const first=mockResponse();
+ await handler({method:'GET',path:'/feed',headers:{},originalUrl:'/api/pulse/feed?mode=discover'},first);
+ assert.equal(first.statusCode,200);
+ assert.equal(reads,2);
+ const second=mockResponse();
+ await handler({method:'POST',path:'/messages',headers:{origin:'https://swapp.tv',authorization:'Bearer '+'a'.repeat(43)},body:{handle:'joueur',body:'Bonjour'},originalUrl:'/api/pulse/messages'},second);
+ assert.equal(second.statusCode,503);
+ assert.equal(second.value.error,'social_upstream_unreachable');
+ assert.equal(writes,1);
 });
