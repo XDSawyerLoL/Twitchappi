@@ -141,13 +141,13 @@
   appendQuestion(q);
   const query=core.normalize(q);
   try{
-   if(/(?:\blive\b|\bdirect\b|\bstream\b|\bjoue\b|\bjouent\b|\bcreateur\b|\bregarder\b)/.test(query)){
+   if(/(?:\blives?\b|\bdirects?\b|\bstreams?\b|\bjoue(?:nt)?\b|\bcreateurs?\b|\bregarder\b)/.test(query)){
     const results=core.lives(await readJson('/api/discovery/home-lives?limit=30&lang=fr'));
     if(!results.length)return addReply('Aucun direct disponible dans les données SWAPP pour le moment.',[{href:'/decouvrir',label:'Explorer les créateurs'}]);
     const choices=core.suggest(q,results);
     addReply(choices.length+' créateur'+(choices.length>1?'s':'')+' à découvrir parmi les directs disponibles :',
      choices.map(item=>({href:item.href,label:item.title+(item.game?' · '+item.game:'')})));
-   }else if(/(?:\bactu\b|\barticle\b|\bnouvelle\b|\binfo\b|\bnews\b)/.test(query)){
+   }else if(/(?:\bactu(?:alite|alites|s)?\b|\barticles?\b|\bnouvelles?\b|\binfos?\b|\bnews\b)/.test(query)){
     const results=core.news(await readJson('/api/actus'));
     if(!results.length)return addReply('Aucun article disponible actuellement.',[{href:'/actus',label:'Ouvrir Actualité'}]);
     addReply('Voici des articles disponibles dans SWAPP :',core.suggest(q,results).map(item=>({href:item.href,label:item.title})));
