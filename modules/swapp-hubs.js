@@ -69,8 +69,8 @@ function trailers(){
  (recent.length>1?'<div class="swapp-video-section-title"><h2>Dernières vidéos</h2></div><section class="swapp-video-grid" aria-label="Dernières vidéos">'+recent.filter(x=>x!==featured).map(x=>videoCard(x)).join('')+'</section>':'')+
  '<p class="swapp-hub-small">Les lecteurs SWAPP utilisent exclusivement des vidéos officielles intégrables. Les publications JustPlayer sans source compatible restent accessibles à leur adresse originale.</p></main>';
  return layout({title:'Vidéos',description:'Les vidéos et bandes-annonces JustPlayer réunies dans SWAPP.',content:main,active:'trailers',
-  scripts:assets+'<link rel="stylesheet" href="/assets/swapp-video-gallery.css?v=20261015-gallery-3">'+
-   '<script defer src="/assets/swapp-video-player.js?v=20261015-gallery-3"></script>'});
+  scripts:assets+'<link rel="stylesheet" href="/assets/swapp-video-gallery.css?v=20261015-gallery-4">'+
+   '<script defer src="/assets/swapp-video-player.js?v=20261015-gallery-4"></script>'});
 }
 function safeProducts(items){
  const out=[];
