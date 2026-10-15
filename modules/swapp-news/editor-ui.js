@@ -79,7 +79,7 @@ async function prepareStudioSmokeVideo(){
   trailerUrl:'https://www.youtube.com/watch?v=Z9SaRLSibak'
  };
  for(const [id,value] of Object.entries(sample))if($(id))$(id).value=value;
- window.dispatchEvent(new CustomEvent('input',{bubbles:true}));
+ $('title').dispatchEvent(new Event('input',{bubbles:true}));
  view('edit');
  notify('Vidéo de vérification préparée, sans publication. Contrôle le contenu avant de créer le brouillon.');
 }
