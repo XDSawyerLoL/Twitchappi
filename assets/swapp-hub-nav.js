@@ -39,7 +39,6 @@
   if(!list.querySelector('a[href="/compte"]')&&![...list.children].some(el=>(el.textContent||'').trim()==='Compte')){
    list.append(anchor({href:'/compte',label:'Compte'}));
   }
-  if(['/categories','/equipes','/bandes-annonces','/boutique','/compte'].includes(location.pathname))details.open=true;
   details.append(summary,list);mobile.append(details);
  }
  let scheduled=false;
