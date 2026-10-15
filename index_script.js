@@ -10881,6 +10881,8 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
     try{ raw = JSON.parse(decodeURIComponent(payload || '')); }catch(_e){ raw = {}; }
     const n = normalise(raw);
     if(!n.login) return;
+    // Explicit selection only; no passive view or watch-time tracking.
+    window.SwappLocalTastes?.record?.(n.game);
     if(n.platform === 'swapp'){
       window.location.href = '/' + encodeURIComponent(n.login);
       return;
@@ -10901,7 +10903,7 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
     const badge = n.platform === 'swapp' ? 'LIVE SWAPP' : 'LIVE TWITCH';
     const match=n.raw?.swappNewsMatch;
     const linked=match&&/^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/.test(String(match.slug||''))
-      ? `<a class="homeNewsLink1014" href="/actus/${match.slug}" title="${safe(match.title||'Lire cette actualité')}" onclick="event.stopPropagation()">Dans l’actualité · ${safe(match.game||n.game)} ↗</a>` : '';
+      ? `<a class="homeNewsLink1014" href="/actus/${match.slug}" title="${safe(match.title||'Lire cette actualité')}" data-game="${safe(match.game||n.game)}" onclick="event.stopPropagation();window.SwappLocalTastes?.record?.(this.dataset.game)">Dans l’actualité · ${safe(match.game||n.game)} ↗</a>` : '';
     return `<article class="homeLiveCard1014" onclick="swappOpenLive1014('${payload}')" tabindex="0" aria-label="Regarder le live de ${safe(n.name)}" onkeydown="if(event.target===this&&(event.key==='Enter'||event.key===' ')){event.preventDefault();swappOpenLive1014('${payload}')}"><div class="homeThumb1014">${n.thumb?`<img src="${safe(n.thumb)}" alt="" loading="lazy" decoding="async">`:`<div style="height:100%;display:grid;place-items:center;color:#64748b;font-weight:900">LIVE</div>`}<span class="homeLiveBadge1014 ${kind}">● ${badge}</span><span class="homeViewers1014">${n.viewers || 0} spectateurs</span></div><div class="homeLiveBody1014"><h3>${safe(n.title)}</h3><div class="homeMeta1014">${safe(n.name)} · ${safe(n.game)}</div>${linked}<button class="btn" type="button" onclick="event.stopPropagation();swappOpenLive1014('${payload}')">Regarder</button></div></article>`;
   }
 
@@ -10949,7 +10951,9 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
     const grid=$id('homeLiveGrid1014');
     if(!grid)return;
     const {swappItems,twitchItems}=lastLiveCandidates;
-    const curated=window.SwappLiveCuration?.curateHomeLives(swappItems,twitchItems,12,latestArticleMatches)
+    const curated=window.SwappLiveCuration?.curateHomeLives(
+      swappItems,twitchItems,12,latestArticleMatches,window.SwappLocalTastes?.getScores?.()||{}
+    )
       || {items:[...swappItems,...twitchItems].slice(0,12),nativeCount:swappItems.length,twitchCount:twitchItems.length};
     const items=curated.items;
     const mode=curated.nativeCount&&curated.twitchCount?'mixed':(curated.nativeCount?'swapp':'twitch');
@@ -11029,6 +11033,9 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
     };
     paintLiveGrid(true);
   }
+  window.addEventListener('swapp:local-tastes-changed',()=>{
+    if(!homeBusy&&state?.view==='home')paintLiveGrid(true);
+  });
   window.addEventListener('swapp:home-news-ready',event=>{
     latestArticleMatches=Array.isArray(event.detail?.articles)?event.detail.articles:[];
     if(!homeBusy&&state?.view==='home'){
