@@ -9,12 +9,12 @@ test('ACTUS follows the existing user colour variable, without a parallel palett
  const css=read('assets/swapp-art-direction.css');
  const app=read('index.html');
  assert.match(css,/#actus\s*\{\s*--swapp-news-accent:var\(--brand,#22d3ee\)/);
- assert.match(css,/body:has\(#actus\.view\.active\)/);
+ assert.match(css,/body:not\(\.swappSideLightOnly\):has\(#actus\.view\.active\)/);
  assert.match(css,/#actus \.swapp-actus-game-chip\.active\s*\{/);
  assert.match(css,/#actus \.swapp-reading-progress span\s*\{/);
  assert.match(css,/#actus \.swapp-actus-go-live\s*\{/);
  assert.match(css,/#actus \.swapp-reader-source-link/);
- assert.match(app,/swapp-art-direction\.css\?v=20261015-discovery-34/);
+ assert.match(app,/swapp-art-direction\.css\?v=20261015-actus-glow-37/);
  const script=read('index_script.js');
  assert.match(script,/document\.documentElement\.style\.setProperty\('--brand',c\)/);
  assert.match(script,/oryon_viewer_accent/);
