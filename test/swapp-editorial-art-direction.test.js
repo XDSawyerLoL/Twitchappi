@@ -8,7 +8,7 @@ const read=relative=>fs.readFileSync(path.join(ROOT,relative),'utf8');
 
 test('one new editorial stylesheet applies consistently to SPA and public media routes',()=>{
   const main=read('index.html'),publicPage=read('modules/swapp-news/site-shell.js');
-  const stylesheet='/assets/swapp-art-direction.css?v=20261015-balanced-29';
+  const stylesheet='/assets/swapp-art-direction.css?v=20261015-actus-route-31';
   for(const page of [main,publicPage]){
     assert.ok(page.includes(stylesheet));
     assert.ok(page.indexOf(stylesheet)>page.indexOf('/assets/swapp-visual-polish.css'));
