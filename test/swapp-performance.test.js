@@ -71,13 +71,17 @@ test('SOCIAL front page does not wait for independent health/session requests',(
  assert.match(read('modules/swapp-hubs.js'),/app\.js\?v=20261015-full-social-6/);
 });
 
-test('AdSense code appears exactly once in each SWAPP HTML shell',()=>{
+test('AdSense library is not loaded globally before CMP consent',()=>{
  const site=read('index.html'),pages=read('modules/swapp-news/site-shell.js');
+ const ads=read('assets/swapp-adsense-inarticle.js');
  for(const html of [site,pages]){
-  assert.equal(html.split('pagead2.googlesyndication.com/pagead/js/adsbygoogle.js').length-1,1);
-  assert.ok(html.includes('ca-pub-6082969821681414'));
+  assert.ok(!html.includes('pagead2.googlesyndication.com/pagead/js/adsbygoogle.js'));
+  assert.ok(html.includes('/assets/swapp-adsense-inarticle.js?v=20261016-inarticle-1'));
   assert.ok(!html.includes('<ins class="adsbygoogle"'));
  }
+ assert.ok(ads.includes('ca-pub-6082969821681414'));
+ assert.ok(ads.includes('4776091558'));
+ assert.ok(ads.includes("window.__tcfapi('addEventListener',2,onConsent)"));
 });
 test('video feature is in the existing editorial header, preserving all article cards',()=>{
  const home=read('assets/swapp-home-news.js');
