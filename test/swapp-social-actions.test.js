@@ -51,3 +51,12 @@ test('SOCIAL rejects cross-origin mutation requests',()=>{
  middleware({method:'POST',headers:{origin:'https://untrusted.example'}},res,()=>{next=true});
  assert.equal(res.statusCode,403);assert.equal(next,false);
 });
+
+test('SOCIAL registration is confined to Quantic and requires explicit credentials',async()=>{
+ const router=mockRouter();let target='';
+ createSocialRouter({express:{Router:()=>router},fetchImpl:async(url,options)=>{target=url;return {ok:true,json:async()=>({token:'a'.repeat(42),user:{handle:'joueur'}})}}});
+ const register=router.routes.find(x=>x.path==='/register').fn;
+ const res=response();await register({body:{handle:'Joueur',displayName:'Joueur public',password:'motdepasse-assez-long'},headers:{}},res);
+ assert.equal(res.statusCode,200);
+ assert.equal(target,ORIGIN+'/api/pulse/auth/register');
+});
