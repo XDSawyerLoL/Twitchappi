@@ -3,19 +3,20 @@
 const {layout}=require('./swapp-news/site-shell');
 const {escapeHtml:e}=require('./swapp-news/article-core');
 const catalog=require('../data/justplayer-public-catalog.json');
+const fs=require('node:fs');
+const path=require('node:path');
 const assets='<link rel="stylesheet" href="/assets/swapp-hubs.css?v=20261015-hubs-3">';
 function heading(kicker,title,subtitle){
  return '<header class="swapp-hub-head"><span class="swapp-hub-eyebrow">'+e(kicker)+'</span><h1>'+e(title)+'</h1><p>'+e(subtitle)+'</p></header>';
 }
 function community(){
- const main='<main class="swapp-hub" id="swappCommunity">'+heading('SWAPP · Communauté','On ne joue jamais vraiment seul.','Discussions publiques issues du prototype SOCIAL, au cœur de SWAPP.')+
- '<div class="swapp-hub-toolbar"><span id="swappSocialStatus" class="swapp-hub-status" role="status">Chargement des discussions publiques…</span><button id="swappCommunityRefresh" class="swapp-hub-action" type="button">Actualiser</button></div>'+
- '<div class="swapp-community-layout"><section id="swappCommunityFeed" class="swapp-community-feed" aria-label="Publications"><p class="swapp-hub-empty">Chargement des publications…</p></section>'+
- '<aside class="swapp-community-side"><h2>Rejoindre la conversation</h2><p>Le prototype SOCIAL dispose de sa propre identité. SWAPP ne mélange pas les comptes ni les messages privés.</p><button class="swapp-hub-action" id="swappCommunityJoin" type="button">Connexion SOCIAL</button><p class="swapp-hub-small">Publications authentiques. Aucun faux compte, aucun faux message.</p></aside></div>'+
- '<section class="swapp-community-auth" id="swappSocialAuth" hidden aria-label="Connexion à SOCIAL"><div class="swapp-community-auth-box"><button type="button" class="swapp-community-auth-close" aria-label="Fermer">×</button><h2>Compte SOCIAL</h2><p>Connecte-toi avec ton compte SOCIAL. Les identités SWAPP ne sont pas automatiquement associées.</p>'+
- '<button type="button" id="swappSocialSwitch" class="swapp-community-switch">Créer un compte SOCIAL</button><form id="swappSocialAuthForm"><label data-swapp-register hidden>Nom public<input name="displayName" autocomplete="nickname" minlength="2" maxlength="50"></label><label>Identifiant SOCIAL<input name="handle" autocomplete="username" required minlength="3" maxlength="24"></label><label>Mot de passe<input name="password" type="password" autocomplete="current-password" minlength="10" maxlength="128" required></label><button class="swapp-hub-action" type="submit">Se connecter</button><p id="swappSocialAuthError" class="swapp-hub-error" role="alert"></p></form>'+
- '<p class="swapp-hub-small">La connexion est transmise au serveur SOCIAL officiel via SWAPP. Aucun mot de passe n’est enregistré dans SWAPP ; la session ne survit pas au rechargement.</p></div></section></main>';
- return layout({title:'Communauté',description:'Discussions de joueurs et de créateurs reliées au prototype SOCIAL.',content:main,active:'community',scripts:assets+'<script defer src="/assets/swapp-community-page.js?v=20261015-hubs-5"></script>'});
+ // The actual SOCIAL user interface is vendored from Quantic Sillage.
+ // SWAPP renders it directly inside the canonical site shell, not as an iframe.
+ const content=fs.readFileSync(path.join(__dirname,'../assets/swapp-social-native/social-body.html'),'utf8');
+ const scripts=assets+
+  '<link rel="stylesheet" href="/assets/swapp-social-native/social-swapp.css?v=20261015-full-social-1">'+
+  '<script type="module" src="/assets/swapp-social-native/app.js?v=20261015-full-social-1"></script>';
+ return layout({title:'Communauté',description:'Le réseau SOCIAL complet intégré dans SWAPP : profils, publications, communautés et messagerie.',content,active:'community',scripts});
 }
 function verifiedTrailers(items=catalog.items){
  const out=[],seen=new Set();
