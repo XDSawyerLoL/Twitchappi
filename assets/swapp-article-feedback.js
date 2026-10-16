@@ -11,7 +11,8 @@
  // Ten distinct article votes and a mean of at least 4.5/5 are required.
  const featuredScore=score=>{
   const count=score?.count,average=score?.average;
-  return Number.isSafeInteger(count)&&count>=10
+  return score?.readerRecognition===true
+   &&Number.isSafeInteger(count)&&count>=10
    &&typeof average==='number'&&Number.isFinite(average)
    &&average>=4.5&&average<=5;
  };
