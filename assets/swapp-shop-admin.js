@@ -51,6 +51,50 @@
    row.append(art,copy,actions);list.append(row);
   });
  }
+ function amazonLink(raw){
+  let url;try{url=new URL(String(raw||'').trim())}catch{return ''}
+  if(url.protocol!=='https:'||url.username||url.password)return '';
+  const host=url.hostname.toLowerCase();
+  if(!(/^(?:www\.)?amazon\.(?:fr|com|co\.uk|de|es|it|nl|be|se|pl)$/.test(host)||
+   ['link.amazon','amzn.to','amzn.eu'].includes(host)))return '';
+  return url.href;
+ }
+ function updatePreview(){
+  const root=$('shop-admin-preview');
+  if(!root)return;
+  root.replaceChildren();
+  const name=String(field('title').value||'').trim();
+  const art=document.createElement('div');art.className='swapp-shop-preview-art';
+  const raw=String(field('image').value||'').trim();
+  let url;
+  try{
+   const parsed=new URL(raw);
+   if(parsed.protocol==='https:'&&!parsed.username&&!parsed.password)url=parsed.href;
+  }catch(_){}
+  const fallback=document.createElement('span');
+  fallback.textContent='Visuel produit non renseigné';
+  art.append(fallback);
+  if(url){
+   const picture=document.createElement('img');
+   picture.alt=name?'Aperçu du produit : '+name:'Aperçu du produit';
+   picture.loading='lazy';picture.decoding='async';picture.referrerPolicy='no-referrer';
+   picture.addEventListener('load',()=>{fallback.hidden=true});
+   picture.addEventListener('error',()=>{picture.remove();fallback.hidden=false});
+   picture.src=url;art.append(picture);
+  }
+  const info=document.createElement('div');info.className='swapp-shop-preview-info';
+  const heading=document.createElement('strong');
+  heading.textContent=name||'Nom du produit à renseigner';
+  const detail=document.createElement('p');
+  const partner=field('affiliate').checked;
+  const brand=String(field('merchant').value||'Marchand à préciser').trim();
+  detail.textContent=(field('visible').checked?'Visible après sauvegarde':'Brouillon masqué')+
+   ' · '+brand+(partner?' · Lien affilié':'');
+  const note=document.createElement('small');
+  note.textContent='Prévisualisation locale : rien n’est publié avant « Enregistrer sur SWAPP ».';
+  info.append(heading,detail,note);
+  root.append(art,info);
+ }
  function saveForm(){
   const input={};
   for(const key of ['id','kind','title','description','badge','merchant','url','image'])
@@ -73,14 +117,15 @@
   message('Fiche appliquée. Clique sur « Enregistrer sur SWAPP » pour publier le catalogue.');
  }
  function select(index,scroll=false){
-  if(dirty&&!confirm('Les changements du formulaire ne sont pas appliqués. Les abandonner ?'))return;
+  if(dirty&&!confirm('Les changements du formulaire ne sont pas appliqués. Les abandonner ?'))return false;
   selected=index;dirty=false;
   const p=products[index]||{id:'',kind:'games',title:'',description:'',badge:'',merchant:'',url:'',image:'',demo:true,affiliate:false,visible:true};
   for(const key of ['id','kind','title','description','badge','merchant','url','image'])
    field(key).value=p[key]||'';
   for(const key of ['demo','affiliate','visible'])field(key).checked=p[key]===true;
-  render();
+  render();updatePreview();
   if(scroll)$('shop-admin-form').scrollIntoView({block:'start',behavior:'smooth'});
+  return true;
  }
  function move(index,delta){
   if(dirty&&!confirm('Appliquer ou abandonner les modifications du formulaire avant de réordonner ?'))return;
@@ -104,7 +149,7 @@
     :'Base indisponible : aperçu en lecture seule. Aucun changement ne sera perdu silencieusement.',!writable);
   }catch(error){writable=false;$('shop-admin-save').disabled=true;message(error.message,true)}
  }
- form.addEventListener('input',()=>{dirty=true});
+ form.addEventListener('input',()=>{dirty=true;updatePreview()});
  field('title').addEventListener('input',()=>{
   if(field('id').value)return;
   field('id').value=field('title').value.normalize('NFD').replace(/[\u0300-\u036f]/g,'')
@@ -114,6 +159,21 @@
   event.preventDefault();try{saveForm()}catch(error){message(error.message,true)}
  });
  $('shop-admin-new').addEventListener('click',()=>select(-1,true));
+ $('shop-admin-amazon-start')?.addEventListener('click',()=>{
+  const link=amazonLink($('shop-admin-amazon-url')?.value);
+  if(!link){message('Lien Amazon HTTPS invalide. Vérifie l’adresse issue de ton compte Partenaires.',true);return}
+  if(select(-1,true)===false)return;
+  // A partner URL alone does not prove product identity, stock, price or image rights.
+  // Keep unpublished until the editor has verified and completed the fields.
+  field('url').value=link;
+  field('merchant').value='Amazon';
+  field('demo').checked=false;
+  field('affiliate').checked=true;
+  field('visible').checked=false;
+  dirty=true;
+  updatePreview();
+  message('Brouillon Amazon préparé (non publié). Identifie le produit, choisis le rayon et renseigne une image autorisée, puis applique et enregistre.');
+ });
  $('shop-admin-remove').addEventListener('click',()=>{
   if(selected<0||!products[selected])return;
   if(!confirm('Supprimer ce produit du catalogue ? La suppression sera effective après enregistrement.'))return;
