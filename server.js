@@ -926,12 +926,17 @@ function sendSwappUi(res){
     return res.sendFile(found);
   }
 }
-function sendSwappPublicChannelUi(req, res, login){
+async function sendSwappPublicChannelUi(req, res, login){
   const found = swappUiFilePath();
   if (!found) return res.status(500).send('UI introuvable sur le serveur.');
   try{
     const clean = normalizeOryonLogin(login);
+    // Reuse the already loaded creator cache; do not query the database per crawler.
+    try{await ORYON_USERS_READY}catch(_){}
+    const creator=getOryonUserByLogin(clean);
     let html = fs.readFileSync(found, 'utf8');
+    html=require('./modules/swapp-seo').injectCreatorMetadata(html,
+      creator&&creator.channel_public!==false?creator:null,clean);
     const inject = `<script>window.__SWAPP_INITIAL_PUBLIC_CHANNEL__=${JSON.stringify(clean)};window.__SWAPP_PUBLIC_CHANNEL_URL_LOCK__='/${clean}';try{if(location.pathname!=='/${clean}')history.replaceState({swappPublicChannel:true},'',('/${clean}')+(location.search||'')+(location.hash||''));}catch(_){}</script>`;
     if(html.includes('<script src="/index_script.js"></script>')) html = html.replace('<script src="/index_script.js"></script>', inject + '\n<script src="/index_script.js"></script>');
     else html = html.replace('</body>', inject + '\n</body>');
@@ -1035,6 +1040,12 @@ require('./modules/swapp-seo').registerSeoRoutes(app,{
   const result=await db.collection('swapp_news_articles')
    .where('status','==','published').limit(500).get();
   return result.docs.map(doc=>({...doc.data(),slug:doc.id}));
+ },
+ // The existing startup-loaded user cache is sufficient to discover public
+ // creator pages: zero additional Firestore queries or third-party calls.
+ getCreators:async()=>{
+  try{await ORYON_USERS_READY}catch(_){}
+  return readOryonUsers().users||[];
  }
 });
 
