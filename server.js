@@ -1019,6 +1019,16 @@ app.get('/ads.txt', (_req,res)=>{
   res.set('X-Content-Type-Options','nosniff');
   return res.status(200).type('text/plain; charset=utf-8').send(SWAPP_ADS_TXT);
 });
+// Deployment identity: stable digest of actual files served by this Node
+// process. A GitHub commit is not proof that Hostinger deployed those files.
+const SWAPP_DEPLOY_RELEASE=require('./tools/swapp-release').releaseInfo(__dirname);
+app.get('/api/release',(_req,res)=>{
+  res.set('Cache-Control','no-store');
+  res.set('X-Content-Type-Options','nosniff');
+  return res.status(SWAPP_DEPLOY_RELEASE.complete?200:503).json({
+    service:'swapp',...SWAPP_DEPLOY_RELEASE
+  });
+});
 app.get('/favicon.ico', (_req,res)=>sendPublicFile(res, 'favicon.ico', 'image/x-icon'));
 
 // Page principale (UI)
