@@ -921,8 +921,15 @@ app.get('/api/swapp/interactions/status',async(_req,res)=>{
   if(!socialInteractionsHealth.pending){
    socialInteractionsHealth.pending=(async()=>{
     try{
-     await socialInteractionsPool.execute('SELECT id FROM swapp_social_rooms LIMIT 0');
-     socialInteractionsHealth.payload={enabled:true,state:'ready'};
+     const checks=[
+      'SELECT id FROM swapp_social_matches LIMIT 0',
+      'SELECT id FROM swapp_social_polls LIMIT 0',
+      'SELECT poll_id FROM swapp_social_votes LIMIT 0',
+      'SELECT id FROM swapp_social_rooms LIMIT 0',
+      'SELECT id FROM swapp_social_room_messages LIMIT 0'
+     ];
+     await Promise.all(checks.map(sql=>socialInteractionsPool.execute(sql)));
+     socialInteractionsHealth.payload={enabled:true,state:'database_read_ready'};
     }catch(error){
      socialInteractionsHealth.payload={enabled:true,state:'unavailable',reason:safeSocialMysqlError(error)};
     }finally{
