@@ -286,3 +286,107 @@ body.oryonDiscoverV4 #discover .v4Meta{
   max-width:100%;height:auto;
  }
 }
+
+
+/* Compact five-destination mobile bar, including Safari/iPhone.
+ * Earlier legacy styles set flex + horizontal scroll and accidentally clipped
+ * the native <details> menu. Keep the four primary destinations AND Plus
+ * visible in a single row; never create a second navigation surface. */
+@media(max-width:1080px){
+ #mobileNav.mobileNav{
+  display:grid!important;
+  grid-template-columns:repeat(5,minmax(0,1fr))!important;
+  align-items:stretch!important;
+  justify-content:stretch!important;
+  gap:clamp(2px,.6vw,5px)!important;
+  width:100%!important;
+  max-width:100%!important;
+  box-sizing:border-box!important;
+  overflow:visible!important;
+  overflow-x:visible!important;
+  overflow-y:visible!important;
+  scroll-snap-type:none!important;
+  -webkit-overflow-scrolling:auto!important;
+  touch-action:manipulation;
+ }
+ #mobileNav.mobileNav > :is(a,button,.swapp-mobile-more){
+  flex:0 1 auto!important;
+  display:flex!important;
+  align-items:stretch!important;
+  justify-content:stretch!important;
+  min-width:0!important;
+  width:100%!important;
+  max-width:100%!important;
+  margin:0!important;
+ }
+ #mobileNav.mobileNav > :is(a,button),
+ #mobileNav.mobileNav > .swapp-mobile-more > summary{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  box-sizing:border-box!important;
+  min-width:0!important;
+  width:100%!important;
+  min-height:46px!important;
+  padding:9px 1px!important;
+  font-size:clamp(10px,2.7vw,12px)!important;
+  font-weight:800;
+  letter-spacing:-.025em;
+  line-height:1.2;
+  text-align:center;
+  white-space:nowrap!important;
+ }
+ #mobileNav.mobileNav .swapp-mobile-more{
+  position:relative;
+  z-index:1;
+ }
+ #mobileNav.mobileNav .swapp-mobile-more[open]{
+  z-index:120;
+ }
+ #mobileNav.mobileNav .swapp-mobile-more > summary{
+  cursor:pointer;
+  list-style:none;
+ }
+ #mobileNav.mobileNav .swapp-mobile-more > summary::-webkit-details-marker{
+  display:none;
+ }
+ #mobileNav.mobileNav .swapp-mobile-more > .swapp-mobile-more-links{
+  right:0;
+  left:auto;
+  bottom:calc(100% + 9px);
+  width:min(270px,calc(100vw - 22px));
+  min-width:0;
+  max-width:calc(100vw - 22px);
+  box-sizing:border-box;
+  overflow-x:hidden;
+  overflow-y:auto;
+  max-height:62vh;
+  max-height:min(62dvh,480px);
+  -webkit-overflow-scrolling:touch;
+ }
+ #mobileNav.mobileNav .swapp-mobile-more:not([open]) > .swapp-mobile-more-links{
+  display:none!important;
+ }
+ #mobileNav.mobileNav .swapp-mobile-more[open] > .swapp-mobile-more-links{
+  display:grid!important;
+ }
+ #mobileNav.mobileNav .swapp-mobile-more-links :is(a,button){
+  min-height:44px!important;
+  padding:10px 13px!important;
+  font-size:14px!important;
+  justify-content:flex-start!important;
+  text-align:left!important;
+ }
+}
+@media(max-width:360px){
+ #mobileNav.mobileNav{
+  padding-left:max(5px,env(safe-area-inset-left,0px))!important;
+  padding-right:max(5px,env(safe-area-inset-right,0px))!important;
+  gap:2px!important;
+ }
+ #mobileNav.mobileNav > :is(a,button),
+ #mobileNav.mobileNav > .swapp-mobile-more > summary{
+  font-size:10px!important;
+  letter-spacing:-.045em;
+ }
+}
