@@ -7,7 +7,7 @@ const vm=require('node:vm');
 const root=path.resolve(__dirname,'..');
 const read=p=>fs.readFileSync(path.join(root,p),'utf8');
 
-function harness({missing=false}={}){
+function harness({missing=false,saved=false}={}){
  const source=read('assets/swapp-discover-comfort.js');
  const styles=[],listeners={},calls={watch:0},attrs={};
  const hero={textContent:'Elden Ring en direct'};
@@ -24,9 +24,16 @@ function harness({missing=false}={}){
    remove(name){this.added=this.added.filter(x=>x!==name)},contains(name){return this.added.includes(name)}}
  };
  card.closest=s=>s==='#v4SwipeCard'?card:null;
+ const savedHolder={classList:{names:new Set(),add(name){this.names.add(name)},remove(name){this.names.delete(name)},contains(name){return this.names.has(name)}}};
+ const savedImage={
+  src:'https://img.example/saved-live.jpg',complete:false,naturalWidth:640,
+  hidden:false,loading:'',decoding:'',getAttribute:()=>null,
+  closest:()=>savedHolder,
+  addEventListener(name,cb){listeners['saved:'+name]=cb}
+ };
  const discover={
   querySelector(s){return s==='.v4Page'?{}:s==='#v4SwipeCard'?card:null},
-  querySelectorAll(s){return s==='.v4DeckSlot img,.v4FollowCard img'?[]:[]},
+  querySelectorAll(s){return s==='.v4DeckSlot img,.v4FollowCard img'&&saved?[savedImage]:[]},
   addEventListener(name,cb){listeners[name]=cb}
  };
  const doc={
@@ -45,7 +52,7 @@ function harness({missing=false}={}){
   }
  };
  vm.runInNewContext(source,{window:win,document:doc,console});
- return {win,doc,styles,discover,card,image,observer:()=>observer,listeners,calls};
+ return {win,doc,styles,discover,card,image,savedImage,savedHolder,observer:()=>observer,listeners,calls};
 }
 test('current Discover V4 script loads after its legacy JS in the SPA',()=>{
  const html=read('index.html');
@@ -180,4 +187,28 @@ test('observer sees changed thumbnails and text without an interval or network c
  assert.match(source,/characterData:true/);
  assert.match(source,/attributeFilter:\['src'\]/);
  assert.doesNotMatch(source,/setInterval|fetch\(|sendBeacon|localStorage/);
+});
+
+test('DeckLurker and followed-creator images fall back without removing saved cards',()=>{
+ const h=harness({saved:true});
+ assert.equal(h.savedImage.hidden,false);
+ h.savedImage.src='https://static-cdn.jtvnw.net/ttv-static/404_preview-1280x720.jpg';
+ h.observer().callback();
+ assert.equal(h.savedImage.hidden,true);
+ assert.equal(h.savedHolder.classList.contains('swapp-discover-no-image'),true);
+ assert.match(h.styles[0].textContent,/\.v4FollowCard\)\.swapp-discover-no-image/);
+ h.savedImage.src='https://img.example/recovered-live.jpg';
+ h.observer().callback();
+ assert.equal(h.savedImage.hidden,false);
+ assert.equal(h.savedHolder.classList.contains('swapp-discover-no-image'),false);
+});
+test('stale saved-card image errors cannot damage a newly loaded preview',()=>{
+ const h=harness({saved:true});
+ const oldFail=h.listeners['saved:error'];
+ assert.equal(typeof oldFail,'function');
+ h.savedImage.src='https://img.example/new.jpg';
+ h.observer().callback();
+ oldFail();
+ assert.equal(h.savedImage.hidden,false);
+ assert.equal(h.savedHolder.classList.contains('swapp-discover-no-image'),false);
 });
