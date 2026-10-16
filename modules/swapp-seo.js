@@ -2,6 +2,9 @@
 // Public SEO routes for SWAPP. No cron, no paid API, no user tracking.
 // Only published Firestore articles may appear in the optional news section.
 const ORIGIN='https://swapp.tv';
+// IndexNow's public domain-ownership proof, not a secret credential.
+const INDEXNOW_KEY='b700e3b876341559d245b13c5a25d369';
+const INDEXNOW_KEY_PATH='/'+INDEXNOW_KEY+'.txt';
 const CORE_PATHS=Object.freeze([
  '/', '/decouvrir', '/categories', '/equipes', '/actus',
  '/communaute', '/bandes-annonces', '/boutique', '/plan-du-site'
@@ -137,6 +140,26 @@ function sitemapHtml(articles=[]){
   '</section></main></body></html>';
 }
 
+
+async function notifyIndexNow(slugs=[],{fetchImpl=globalThis.fetch,enabled=process.env.NODE_ENV==='production'&&process.env.SWAPP_INDEXNOW_ENABLED!=='false'}={}){
+ // Only published editorials are passed by the trusted editor router.
+ // One free outbound request per batch, no recurring service or crawler.
+ if(!enabled)return {attempted:false,reason:'disabled'};
+ const unique=[...new Set((Array.isArray(slugs)?slugs:[]).map(String).filter(s=>SLUG.test(s)))].slice(0,50);
+ if(!unique.length||typeof fetchImpl!=='function')return {attempted:false,reason:'no_valid_urls'};
+ const payload={host:'swapp.tv',key:INDEXNOW_KEY,keyLocation:ORIGIN+INDEXNOW_KEY_PATH,
+  urlList:unique.map(slug=>ORIGIN+'/actus/'+encodeURIComponent(slug))};
+ try{
+  const response=await fetchImpl('https://api.indexnow.org/indexnow',{
+   method:'POST',signal:AbortSignal.timeout(4000),
+   headers:{'content-type':'application/json; charset=utf-8'},body:JSON.stringify(payload)
+  });
+  return {attempted:true,accepted:response.status===200||response.status===202,status:response.status,count:unique.length};
+ }catch(error){
+  return {attempted:true,accepted:false,reason:String(error?.name||'network_error').slice(0,40)};
+ }
+}
+
 function registerSeoRoutes(app,{getPublished=async()=>[],now=()=>Date.now()}={}){
  if(!app||typeof app.get!=='function')throw Error('Express app required');
  let cached=null,articles=[],expires=0,inflight=null;
@@ -162,6 +185,10 @@ function registerSeoRoutes(app,{getPublished=async()=>[],now=()=>Date.now()}={})
   })();
   try{await inflight}finally{inflight=null}
  }
+ app.get(INDEXNOW_KEY_PATH,(_req,res)=>{
+  res.set('Cache-Control','public, max-age=3600');
+  return res.status(200).type('text/plain; charset=utf-8').send(INDEXNOW_KEY+'\n');
+ });
  app.get('/robots.txt',(_req,res)=>{
   res.set('Cache-Control','public, max-age=3600');
   res.type('text/plain; charset=utf-8').status(200).send(robotsText());
@@ -262,4 +289,4 @@ function injectSpaMetadata(html,pathname='/'){
  }
  return result.replace('</head>','<meta name="robots" content="noindex,nofollow"></head>');
 }
-module.exports={ORIGIN,CORE_PATHS,sitemapEntries,sitemapXml,newsSitemapXml,sitemapHtml,rssXml,robotsText,registerSeoRoutes,injectSpaMetadata};
+module.exports={ORIGIN,CORE_PATHS,INDEXNOW_KEY,INDEXNOW_KEY_PATH,sitemapEntries,sitemapXml,newsSitemapXml,sitemapHtml,rssXml,robotsText,registerSeoRoutes,notifyIndexNow,injectSpaMetadata};
