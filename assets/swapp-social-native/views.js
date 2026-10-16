@@ -269,6 +269,19 @@ export async function loadProfile(handle){
   }
 }
 
+async function socialAuthRecovery(error,section){
+  if(!['swapp_account_required','unauthorized'].includes(error?.message))return false;
+  try{
+    const response=await fetch('/api/oryon/session',{credentials:'same-origin',cache:'no-store'});
+    const data=await response.json();
+    if(data?.success&&data?.local?.id){
+      setStatus(section+' temporairement indisponibles','Ton compte SWAPP est connecté. La liaison avec SOCIAL a échoué. Aucun nouveau compte n’est nécessaire. Recharge la page ou réessaie après le redémarrage du service.');
+      return true;
+    }
+  }catch{}
+  return false;
+}
+
 export async function loadMessages(){
   if(!requireAuth())return;
   setView('messages','Messages');
@@ -283,7 +296,7 @@ export async function loadMessages(){
     });
     dom.feed.innerHTML=html+'</div></section>';
   }catch(error){
-    setStatus('Messages indisponibles',errorText(error));
+    if(!(await socialAuthRecovery(error,'Messages')))setStatus('Messages indisponibles',errorText(error));
   }
 }
 
@@ -300,7 +313,7 @@ export async function loadConversation(handle){
     html+='</div><form class="pulse-message-form" id="conversation-form" data-handle="'+esc(handle)+'"><input name="body" maxlength="2000" placeholder="Écrire un message…" required><button class="pulse-mini-button primary">Envoyer</button></form></section>';
     dom.feed.innerHTML=html;
   }catch(error){
-    setStatus('Conversation indisponible',errorText(error));
+    if(!(await socialAuthRecovery(error,'Conversation')))setStatus('Conversation indisponible',errorText(error));
   }
 }
 
