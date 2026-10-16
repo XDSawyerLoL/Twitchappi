@@ -1,6 +1,6 @@
 import { TOKEN_KEY, state, dom, api, errorText } from './core.js?v=20261016-sso-v2';
 import { openAuth, closeAuth, updateAuthModal, updateAccount, requireAuth, applySession, clearSession, restoreSession } from './session.js?v=20261016-sso-v2';
-import { setView, loadHome, loadExplore, loadCircles, loadNotifications, loadSaved, loadProfile, loadMessages, loadConversation, loadCirclePreview, loadNewsRss } from './views.js?v=20261016-social-shell-v2';
+import { setView, loadHome, loadExplore, loadCircles, loadNotifications, loadSaved, loadProfile, loadMessages, loadConversation, loadCirclePreview, loadNewsRss } from './views.js?v=20261016-nav-stability-v3';
 
 /* Keep the SOCIAL sticky stack exactly beneath the real SWAPP header.
    Hostinger's server shell has different heights across phone sizes; a
@@ -329,25 +329,9 @@ function bindStaticEvents(){
     // this can move the other two controls out of the user's visible area.
   });
 
-  document.querySelectorAll('[data-view]').forEach(function(button){
-    button.addEventListener('click',function(){
-      const view=button.dataset.view;
-      if(view==='home'){
-        state.feed=state.user?'following':'discover';
-        document.querySelectorAll('.pulse-tab').forEach(tab=>tab.classList.toggle('active',tab.dataset.feed===state.feed));
-        loadHome();
-      }
-      else if(view==='explore')loadExplore(document.getElementById('pulse-search').value);
-      else if(view==='circles')loadCircles();
-      else if(view==='notifications')loadNotifications();
-      else if(view==='messages')loadMessages();
-      else if(view==='play')setView('play','Jouer ensemble');
-      else if(view==='rooms')setView('rooms','Salons & discussion');
-      else if(view==='saved')loadSaved();
-      else if(view==='profile')loadProfile();
-      revealSocialContent();
-    });
-  });
+  // All view buttons, including those rendered AFTER initialization, are handled
+  // by the delegated click handler below. Binding only at startup broke the
+  // sidebar's dynamic community preview and other newly rendered controls.
 
   let searchTimer;
   const sidebarSearch=document.getElementById('pulse-search');
@@ -380,6 +364,25 @@ function bindStaticEvents(){
 
 function bindDelegatedEvents(){
   document.addEventListener('click',async function(event){
+    const navigate=event.target.closest('button[data-view]');
+    if(navigate){
+      // Do not hijack links, but accept dynamically inserted sidebar buttons.
+      const view=navigate.dataset.view;
+      event.preventDefault();
+      if(view==='home'){
+        state.feed=state.user?'following':'discover';
+        void loadHome();
+      }else if(view==='explore')void loadExplore(document.getElementById('pulse-search')?.value||'');
+      else if(view==='circles')void loadCircles();
+      else if(view==='notifications')void loadNotifications();
+      else if(view==='messages')void loadMessages();
+      else if(view==='play')setView('play','Jouer ensemble');
+      else if(view==='rooms')setView('rooms','Salons & discussion');
+      else if(view==='saved')void loadSaved();
+      else if(view==='profile')void loadProfile();
+      revealSocialContent();
+      return;
+    }
     if(event.target.closest('[data-social-create-circle]')){
       loadCircles();
       return;
