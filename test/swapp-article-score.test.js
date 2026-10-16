@@ -128,27 +128,27 @@ test('reader recognition uses exact totals, not rounded public average',async()=
  const high=fixture();
  let result;
  for(let i=0;i<10;i++){
-  result=await high.request('POST','a-good-review',{
+  result=(await high.request('POST','a-good-review',{
    body:{rating:i<5?5:4},user:'high-'+i
-  });
+  })).body;
  }
  assert.equal(result.count,10);
  assert.equal(result.average,4.5);
  assert.equal(result.readerRecognition,true);
  const rounded=fixture();
  for(let i=0;i<11;i++){
-  result=await rounded.request('POST','a-good-review',{
+  result=(await rounded.request('POST','a-good-review',{
    body:{rating:i<5?5:4},user:'rounded-'+i
-  });
+  })).body;
  }
  assert.equal(result.count,11);
  assert.equal(result.average,4.5); // 49 / 11 is only 4.4545...
  assert.equal(result.readerRecognition,false);
  const few=fixture();
  for(let i=0;i<9;i++){
-  result=await few.request('POST','a-good-review',{
+  result=(await few.request('POST','a-good-review',{
    body:{rating:5},user:'few-'+i
-  });
+  })).body;
  }
  assert.equal(result.readerRecognition,false);
 });
