@@ -13,7 +13,7 @@ test('release packaging rejects committed secrets and untracked inputs are not a
  assert.equal(secretLike('.env.example'),false);
  assert.equal(secretLike('migrations/mysql/001_news_pilot.sql'),false);
  const mandatory=['app.js','server.js','package.json','package-lock.json','index.html',
-  'modules/swapp-hubs.js','tools/swapp-release.js','assets/swapp-social-native/social-body.html'];
+  'modules/swapp-hubs.js','modules/swapp-seo.js','modules/swapp-game-pages.js','tools/swapp-release.js','assets/swapp-social-native/social-body.html'];
  assert.throws(()=>getTracked(()=>mandatory.concat('.env').join('\n')),/secrets/);
  assert.deepEqual(getTracked(()=>mandatory.join('\n')),mandatory);
 });
@@ -22,7 +22,7 @@ test('release package is generated outside repo and never uploads or modifies pr
  const output=path.join(dir,'release.zip');
  let archived=0;
  const mandatory=['app.js','server.js','package.json','package-lock.json','index.html',
-  'modules/swapp-hubs.js','tools/swapp-release.js','assets/swapp-social-native/social-body.html'];
+  'modules/swapp-hubs.js','modules/swapp-seo.js','modules/swapp-game-pages.js','tools/swapp-release.js','assets/swapp-social-native/social-body.html'];
  const run=(_bin,args)=>{
   if(args[0]==='ls-tree')return mandatory.join('\n');
   if(args[0]==='status')return '';
@@ -48,7 +48,7 @@ test('release package is generated outside repo and never uploads or modifies pr
 });
 test('release package refuses dirty tracked code',()=>{
  const mandatory=['app.js','server.js','package.json','package-lock.json','index.html',
-  'modules/swapp-hubs.js','tools/swapp-release.js','assets/swapp-social-native/social-body.html'];
+  'modules/swapp-hubs.js','modules/swapp-seo.js','modules/swapp-game-pages.js','tools/swapp-release.js','assets/swapp-social-native/social-body.html'];
  const run=(_bin,args)=>{
   if(args[0]==='ls-tree')return mandatory.join('\n');
   if(args[0]==='status')return ' M server.js\n';
