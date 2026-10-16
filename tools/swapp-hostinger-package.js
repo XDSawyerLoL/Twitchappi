@@ -8,7 +8,7 @@ const crypto=require('node:crypto');
 const {execFileSync}=require('node:child_process');
 const root=path.resolve(__dirname,'..');
 const mandatory=['app.js','server.js','package.json','package-lock.json','index.html',
- 'modules/swapp-hubs.js','tools/swapp-release.js','assets/swapp-social-native/social-body.html'];
+ 'modules/swapp-hubs.js','modules/swapp-seo.js','modules/swapp-game-pages.js','tools/swapp-release.js','assets/swapp-social-native/social-body.html'];
 function secretLike(name){
  const p=String(name).replace(/\\/g,'/');
  const segments=p.split('/');
