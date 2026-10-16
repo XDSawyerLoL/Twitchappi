@@ -2,7 +2,9 @@ import { state, dom, api, esc, icon, initials, timeAgo, setStatus, errorText } f
 import { requireAuth } from './session.js';
 import { renderPost, renderPosts, notificationLabel } from './render.js?v=20261016-compact-card-1';
 
+let viewRevision=0;
 export function setView(view,title){
+  const revision=++viewRevision;
   state.view=view;
   const social=document.getElementById('swappSocialNative');
   if(social)social.dataset.socialView=view;
@@ -24,7 +26,9 @@ export function setView(view,title){
   const stories=document.getElementById('swapp-social-stories');
   if(stories)stories.hidden=view!=='home'||state.feed==='news'||
     !document.getElementById('swapp-social-stories-track')?.children.length;
+  return revision;
 }
+const isCurrent=(revision,view)=>revision===viewRevision&&state.view===view;
 
 const NEWS_FEEDS=['/api/actus'];
 
@@ -91,28 +95,28 @@ function renderNewsCard(item){
 
 export async function loadNewsRss(){
   state.feed='news';
-  setView('home','SWAPP Actualité');
+  const revision=setView('home','SWAPP Actualité');
   document.querySelectorAll('.pulse-tab').forEach(tab=>tab.classList.toggle('active',tab.dataset.feed==='news'));
   dom.composer.hidden=true;
   setStatus('Connexion à SWAPP Actualité','Lecture du flux…');
   try{
     const data=await fetchNewsFeed();
-    if(state.view!=='home'||state.feed!=='news')return;
+    if(!isCurrent(revision,'home')||state.feed!=='news')return;
     const items=(data.items||[]).filter(item=>item&&item.title).sort((a,b)=>Date.parse(b.publishedAt||0)-Date.parse(a.publishedAt||0)).slice(0,50);
     dom.feed.innerHTML=items.length
       ? '<section class="pulse-news-view"><div class="pulse-news-intro"><span>SWAPP ACTUALITÉ · FLUX</span><h2>Actualités à lire et à reposter</h2><p>Le flux SWAPP Actualité est intégré à SOCIAL. Un repost crée une publication avec le titre, la source, le lien et l’image.</p></div><div class="pulse-news-grid">'+items.map(renderNewsCard).join('')+'</div></section>'
       : '<div class="pulse-status"><strong>Flux vide</strong>Aucune actualité disponible pour le moment.</div>';
   }catch(error){
-    if(state.view==='home'&&state.feed==='news')
+    if(isCurrent(revision,'home')&&state.feed==='news')
       setStatus('SWAPP Actualité indisponible','Impossible de lire le flux pour le moment.');
   }
 }
 
-async function showRealNewsWhenEmpty(){
+async function showRealNewsWhenEmpty(revision){
  const feed=dom.feed;
  try{
   const response=await fetchNewsFeed();
-  if(state.view!=='home'||state.feed==='news'||!feed)return;
+  if(!isCurrent(revision,'home')||state.feed==='news'||!feed)return;
   const items=(response.items||[]).filter(x=>x&&x.title).sort((a,b)=>Date.parse(b.publishedAt||0)-Date.parse(a.publishedAt||0)).slice(0,4);
   if(!items.length)return;
   feed.innerHTML='<section class="pulse-starter-news" aria-label="Découvrir les dernières actualités SWAPP">'+
@@ -127,16 +131,16 @@ async function showRealNewsWhenEmpty(){
 export async function loadHome(){
   if(state.feed==='news')return loadNewsRss();
   const feedMode=state.feed;
-  setView('home','Le fil');
+  const revision=setView('home','Le fil');
   setStatus('Chargement du fil','');
   try{
     const data=await api('/api/pulse/feed?mode='+feedMode+'&limit=40');
-    if(state.view!=='home'||state.feed!==feedMode)return;
+    if(!isCurrent(revision,'home')||state.feed!==feedMode)return;
     const posts=Array.isArray(data.posts)?data.posts:[];
     renderPosts(posts,state.user&&state.feed==='following'?'Suis des comptes ou publie le premier message de ton fil.':'Aucune publication publique.');
-    if(posts.length===0&&state.feed==='discover')await showRealNewsWhenEmpty();
+    if(posts.length===0&&state.feed==='discover')await showRealNewsWhenEmpty(revision);
   }catch(error){
-    if(state.view==='home'&&state.feed===feedMode)
+    if(isCurrent(revision,'home')&&state.feed===feedMode)
       setStatus('SOCIAL indisponible',errorText(error));
   }
 }
@@ -146,7 +150,7 @@ let latestExploreRequest=0;
 export async function loadExplore(query=''){
   const requestId=++latestExploreRequest;
   query=String(query||'').trim().slice(0,100);
-  setView('explore','Explorer');
+  const revision=setView('explore','Explorer');
   const form='<form id="social-mobile-search-form" class="pulse-mobile-search" role="search">'+
     '<label for="social-mobile-query">Rechercher dans SOCIAL et les actualités SWAPP</label>'+
     '<div class="pulse-mobile-search-row"><input id="social-mobile-query" type="search" name="query" minlength="2" maxlength="100" autocomplete="off" placeholder="Jeu, article, pseudo ou discussion…" value="'+esc(query)+'" required>'+
@@ -162,7 +166,7 @@ export async function loadExplore(query=''){
     :Promise.resolve({users:[],posts:[]});
   const results=await Promise.allSettled([socialTask,newsTask]);
   // Ignore delayed responses when the visitor has navigated or entered a newer query.
-  if(requestId!==latestExploreRequest||state.view!=='explore')return;
+  if(requestId!==latestExploreRequest||!isCurrent(revision,'explore'))return;
   const social=results[0].status==='fulfilled'?results[0].value:{users:[],posts:[]};
   const news=results[1].status==='fulfilled'&&Array.isArray(results[1].value.items)
     ?results[1].value.items:[];
@@ -213,10 +217,11 @@ export async function loadExplore(query=''){
 }
 
 export async function loadCircles(){
-  setView('circles','Communautés');
+  const revision=setView('circles','Communautés');
   setStatus('Chargement des communautés','');
   try{
     const data=await api('/api/pulse/circles');
+    if(!isCurrent(revision,'circles'))return;
     let html='<section class="pulse-view"><div class="pulse-view-head"><h2>Communautés</h2><p>Rejoignez des espaces autour d’un sujet, d’un projet ou d’un intérêt commun.</p></div>';
     if(state.user)html+='<form class="pulse-inline-form two" id="circle-create"><input name="name" minlength="3" maxlength="60" placeholder="Nom du cercle" required><input name="description" maxlength="240" placeholder="Description"><button class="pulse-mini-button primary">Créer</button></form>';
     html+='<div class="pulse-card-list">';
@@ -226,16 +231,17 @@ export async function loadCircles(){
     });
     dom.feed.innerHTML=html+'</div></section>';
   }catch(error){
-    setStatus('Communautés indisponibles',errorText(error));
+    if(isCurrent(revision,'circles'))setStatus('Communautés indisponibles',errorText(error));
   }
 }
 
 export async function loadNotifications(){
   if(!requireAuth())return;
-  setView('notifications','Notifications');
+  const revision=setView('notifications','Notifications');
   setStatus('Chargement','');
   try{
     const data=await api('/api/pulse/notifications');
+    if(!isCurrent(revision,'notifications'))return;
     let html='<section class="pulse-view"><div class="pulse-view-head"><h2>Notifications</h2><p>Les interactions importantes, sans fabriquer une boucle d’attention.</p></div><div class="pulse-card-list">';
     if(!data.notifications.length)html+='<div class="pulse-card"><p>Aucune notification.</p></div>';
     data.notifications.forEach(function(notification){
@@ -243,21 +249,22 @@ export async function loadNotifications(){
       html+='<div class="pulse-card pulse-notification '+(notification.read?'':'unread')+'"><strong>'+esc(actor.displayName||'Quelqu’un')+'</strong> '+esc(notificationLabel(notification.type))+'<div class="pulse-card-meta">'+esc(timeAgo(notification.createdAt))+'</div></div>';
     });
     dom.feed.innerHTML=html+'</div></section>';
-    await api('/api/pulse/notifications/read',{method:'POST',body:'{}'});
+    try{await api('/api/pulse/notifications/read',{method:'POST',body:'{}'})}catch{}
   }catch(error){
-    setStatus('Notifications indisponibles',errorText(error));
+    if(isCurrent(revision,'notifications'))setStatus('Notifications indisponibles',errorText(error));
   }
 }
 
 export async function loadSaved(){
   if(!requireAuth())return;
-  setView('saved','Enregistrés');
+  const revision=setView('saved','Enregistrés');
   setStatus('Chargement','');
   try{
     const data=await api('/api/pulse/me/bookmarks');
+    if(!isCurrent(revision,'saved'))return;
     renderPosts(data.posts,'Tu n’as encore enregistré aucune publication.');
   }catch(error){
-    setStatus('Enregistrés indisponibles',errorText(error));
+    if(isCurrent(revision,'saved'))setStatus('Enregistrés indisponibles',errorText(error));
   }
 }
 
@@ -266,10 +273,11 @@ export async function loadProfile(handle){
     if(!requireAuth())return;
     handle=state.user.handle;
   }
-  setView('profile','Profil');
+  const revision=setView('profile','Profil');
   setStatus('Chargement du profil','');
   try{
     const data=await api('/api/pulse/users/'+encodeURIComponent(handle));
+    if(!isCurrent(revision,'profile'))return;
     const user=data.user;
     const self=state.user&&state.user.id===user.id;
     let actions='';
@@ -294,7 +302,7 @@ export async function loadProfile(handle){
       '</section>';
     dom.feed.innerHTML=passport+'<section class="pulse-profile-hero"><div class="pulse-avatar">'+esc(initials(user))+'</div><h2>'+esc(user.displayName)+'</h2><div class="handle">@'+esc(user.handle)+'</div><p>'+esc(user.bio||'Aucune bio pour le moment.')+'</p><div class="pulse-profile-stats"><span><strong>'+user.followers+'</strong> abonnés</span><span><strong>'+user.following+'</strong> abonnements</span></div><div class="pulse-profile-actions">'+actions+'</div></section>'+((data.posts||[]).map(renderPost).join('')||'<div class="pulse-status"><strong>Aucune publication</strong></div>');
   }catch(error){
-    setStatus('Profil indisponible',errorText(error));
+    if(isCurrent(revision,'profile'))setStatus('Profil indisponible',errorText(error));
   }
 }
 
@@ -313,10 +321,11 @@ async function socialAuthRecovery(error,section){
 
 export async function loadMessages(){
   if(!requireAuth())return;
-  setView('messages','Messages');
+  const revision=setView('messages','Messages');
   setStatus('Chargement','');
   try{
     const data=await api('/api/pulse/conversations');
+    if(!isCurrent(revision,'messages'))return;
     let html='<section class="pulse-view"><div class="pulse-view-head"><h2>Messages privés</h2><p>Échange directement avec les membres de SWAPP, sans second compte.</p></div><form class="pulse-inline-form two" id="new-message"><input name="handle" placeholder="Pseudo SWAPP du destinataire" autocomplete="off" aria-label="Pseudo du destinataire SWAPP" required><input name="body" maxlength="2000" placeholder="Ton message…" aria-label="Nouveau message" required><button class="pulse-mini-button primary">Envoyer</button></form><div class="pulse-card-list">';
     if(!data.conversations.length)html+='<div class="pulse-card"><h3>Tout commence par un message.</h3><p>Entre le pseudo SWAPP d’un membre pour lui écrire.</p></div>';
     data.conversations.forEach(function(conversation){
@@ -325,16 +334,17 @@ export async function loadMessages(){
     });
     dom.feed.innerHTML=html+'</div></section>';
   }catch(error){
-    if(!(await socialAuthRecovery(error,'Messages')))setStatus('Messages indisponibles',errorText(error));
+    if(isCurrent(revision,'messages')&&!(await socialAuthRecovery(error,'Messages'))&&isCurrent(revision,'messages'))setStatus('Messages indisponibles',errorText(error));
   }
 }
 
 export async function loadConversation(handle){
   if(!requireAuth())return;
-  setView('messages','@'+handle);
+  const revision=setView('messages','@'+handle);
   setStatus('Chargement','');
   try{
     const data=await api('/api/pulse/messages/'+encodeURIComponent(handle));
+    if(!isCurrent(revision,'messages'))return;
     let html='<section class="pulse-view social-dm-view"><div class="pulse-view-head social-dm-head"><button type="button" class="social-dm-back" data-social-back-messages aria-label="Retour aux messages">←</button><div class="social-dm-identity"><div class="social-dm-avatar" aria-hidden="true">'+esc(initials(data.user))+'</div><div><h2>'+esc(data.user.displayName)+'</h2><p>@'+esc(data.user.handle)+'</p></div></div></div><div class="pulse-message-list">';
     data.messages.forEach(function(message){
       html+='<div class="pulse-message '+(message.senderId===state.user.id?'mine':'')+'">'+esc(message.body)+'<small>'+esc(timeAgo(message.createdAt))+'</small></div>';
@@ -342,7 +352,7 @@ export async function loadConversation(handle){
     html+='</div><form class="pulse-message-form" id="conversation-form" data-handle="'+esc(handle)+'"><input name="body" maxlength="2000" placeholder="Écrire un message…" required><button class="pulse-mini-button primary">Envoyer</button></form></section>';
     dom.feed.innerHTML=html;
   }catch(error){
-    if(!(await socialAuthRecovery(error,'Conversation')))setStatus('Conversation indisponible',errorText(error));
+    if(isCurrent(revision,'messages')&&!(await socialAuthRecovery(error,'Conversation'))&&isCurrent(revision,'messages'))setStatus('Conversation indisponible',errorText(error));
   }
 }
 
