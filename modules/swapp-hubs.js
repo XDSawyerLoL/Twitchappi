@@ -171,7 +171,7 @@ function shop(products=demoProducts,{source='demo'}={}){
   '</main>';
  return layout({title:'Boutique',description:'La boutique SWAPP : jeux vidéo, casquettes, accessoires et tapis de souris.',content,active:'shop',
   scripts:assets+'<link rel="stylesheet" href="/assets/swapp-shop.css?v=20261016-store-v5"><link rel="stylesheet" href="/assets/swapp-editorial-top.css?v=20261016-top10-v5">'+
-   '<script defer src="/assets/swapp-steam-art.js?v=20261016-static-official-v2"></script>'});
+   ''});
 }
 function shopProduct(product,products=demoProducts){
  const all=normalizeAll(products).filter(p=>p.visible&&p.image);
