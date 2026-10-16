@@ -1,6 +1,6 @@
 import { TOKEN_KEY, state, dom, api, errorText } from './core.js';
 import { openAuth, closeAuth, updateAuthModal, updateAccount, requireAuth, applySession, clearSession, restoreSession } from './session.js';
-import { setView, loadHome, loadExplore, loadCircles, loadNotifications, loadSaved, loadProfile, loadMessages, loadConversation, loadCirclePreview, loadNewsRss } from './views.js?v=20261016-social-stable-v6';
+import { setView, loadHome, loadExplore, loadCircles, loadNotifications, loadSaved, loadProfile, loadMessages, loadConversation, loadCirclePreview, loadNewsRss } from './views.js?v=20261016-social-writefix-v7';
 
 /* Keep the SOCIAL sticky stack exactly beneath the real SWAPP header.
    Hostinger's server shell has different heights across phone sizes; a
