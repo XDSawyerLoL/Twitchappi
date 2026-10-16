@@ -97,6 +97,8 @@ async function verify(){
    'Public store product detail route is absent or outdated');
  }
  process.stdout.write('PASS SWAPP storefront catalogue, filters and product detail route\n');
+ // Home markup is also inspected by the Boutique editor check below.
+ const home=await request(origin,'/');
  const shopAdminScript=await request(origin,'/assets/swapp-shop-admin.js');
  check(shopAdminScript.body.includes("'/api/editor/boutique'")&&
    shopAdminScript.body.includes("options.headers['x-swapp-editor']='1'"),
@@ -125,7 +127,6 @@ async function verify(){
  check(mainScript.body.includes('already ranked these lives by mood, relevance and diversity'),
   'Discover V4 unexpectedly overrides API relevance ranking');
  process.stdout.write('PASS Discover mobile layout and relevance ordering\n');
- const home=await request(origin,'/');
  check(home.body.includes('SWAPP'),'Home returned an unexpected document');
  process.stdout.write('PASS / home\n');
  const news=await request(origin,'/actus');
