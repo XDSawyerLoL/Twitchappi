@@ -36,3 +36,12 @@ test('new CSS and runtime versions are loaded by the SPA and the editorial shell
  assert.match(html,/index_script\.js\?v=20261015-cinematic-38/);
  assert.match(shell,/swapp-art-direction\.css\?v=20261015-player-39/);
 });
+
+test('ACTUS bootstrap stops restoring when the visitor follows navigation links',()=>{
+ const bootstrap=read('assets/swapp-route-bootstrap.js');
+ assert.match(bootstrap,/header\\.top a/);
+ assert.match(bootstrap,/#mobileNav a/);
+ assert.match(bootstrap,/#home a/);
+ assert.match(bootstrap,/\\[data-view\\]/);
+ assert.match(bootstrap,/if\\(leftEntry\\|\\|rendering\\)return/);
+});
