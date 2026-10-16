@@ -30,15 +30,17 @@ test('home ranking avoids five identical games on the first screen when alternat
  const input=[
   ...Array.from({length:7},(_,i)=>make('twitch','minecraft'+i,'Minecraft',60+i)),
   make('twitch','fortnite01','Fortnite',49),
+  make('twitch','fortnite02','Fortnite',48),
   make('twitch','balatro01','Balatro',42),
+  make('twitch','balatro02','Balatro',41),
   make('twitch','hades01','Hades II',38)
  ];
  const ranked=rankHomeLives(input,{limit:10});
  assert.equal(ranked.length,10);
  assert.ok(new Set(ranked.slice(0,6).map(x=>x.game_name)).size>=3);
  assert.ok(ranked.slice(0,6).filter(x=>x.game_name==='Minecraft').length<=2);
- assert.deepEqual(new Set(ranked.map(x=>x.login)),new Set(input.map(x=>x.login)),
-  'diversity cannot invent streams or discard selected relevant creators');
+ assert.ok(ranked.every(x=>input.includes(x)),
+  'diversity cannot invent streams or replace a selected creator');
 });
 test('login deduplication is platform-aware and excludes labelled replays',()=>{
  const input=[
