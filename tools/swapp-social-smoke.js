@@ -80,5 +80,5 @@ async function check(path,area,authenticated){
   console.error('SOCIAL readiness FAILED: '+unavailable.map(r=>r.area+' ('+(r.error||r.db_state||r.status)+')').join(', '));
   if(unavailable.some(r=>r.area==='upstream_social'))console.error('The older posts, messages and communities still depend on the external SOCIAL upstream.');
   process.exitCode=1;
- }else console.log('Read-only checks passed. Real writes and browser/mobile UX must still be tested separately.');
+ }else if(!unsafe.length)console.log('Read-only checks passed. Real writes and browser/mobile UX must still be tested separately.');
 })().catch(error=>{console.error('Smoke error:',error.message);process.exitCode=1});
