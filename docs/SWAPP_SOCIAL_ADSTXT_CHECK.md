@@ -1,16 +1,42 @@
-# SWAPP — Vérification SOCIAL mobile et AdSense ads.txt
+# SWAPP — Validation de SOCIAL mobile et AdSense ads.txt
 
-## SOCIAL (mobile)
+## SOCIAL : nouvelle architecture de navigation (16/10/2026)
 
-Les écrans de la communauté doivent conserver, dans cet ordre :
-1. En-tête SWAPP collé en haut (68 px).
-2. En-tête SOCIAL collé sous SWAPP (60 px).
-3. Barre des cinq icônes SOCIAL fixée à 128 px du haut (55 px).
-4. Onglets du fil « Récent / Pour vous / Actualité SWAPP » collés sous les icônes (183 px).
+Le précédent assemblage d'un en-tête `sticky`, d'un menu d'icônes `fixed` et d'onglets `sticky` n'est plus utilisé sur téléphone. Les trois éléments sont regroupés dans `.swapp-social-sticky-stack` : **un seul bloc sticky sous l'en-tête SWAPP**, sans positionnement fixe isolé ni espace compensatoire.
 
-Un élément `swapp-social-mobile-spacer` occupe les 55 px de la barre d'icônes dans le flux HTML : lorsque le bandeau d'accueil est masqué, les onglets et les posts ne doivent pas se trouver sous la barre fixe.
+La nouvelle disposition mobile est :
+1. Barre générale SWAPP : 68 px.
+2. Bandeau SOCIAL compact : 48 px.
+3. Navigation des cinq icônes : 54 px, toujours visible avec le bandeau.
+4. Choix du fil : 48 px lorsqu'on est sur l'accueil SOCIAL. Masqué dans les autres rubriques.
 
-Contrôle visuel sur téléphone : défiler de 3 écrans, changer de fil, ouvrir les messages et revenir. L'en-tête et les icônes doivent rester visibles et aucun texte ne doit être recouvert. Refaire le contrôle en mode paysage et dans une fenêtre de plus de 920 px pour exclure les régressions bureau.
+La pile est située avant le bandeau de bienvenue. Le fil dispose d'une marge de défilement qui évite de masquer les premiers messages après une sélection de rubrique.
+
+### Améliorations UX
+
+- Bandeau de bienvenue plus court pour accéder plus vite aux messages.
+- État actif de la navigation davantage visible.
+- Actions des publications adaptées au doigt, typographie plus lisible.
+- Recherche accessible sur mobile depuis **Explorer** avec saisie et bouton, même si le panneau latéral desktop est masqué.
+- Si le service de recherche échoue, le formulaire reste présent et le lecteur peut réessayer.
+- Lors d'un clic sur une rubrique/un fil, SWAPP replace volontairement le contenu sous la navigation ; aucun défilement automatique durant la lecture ordinaire.
+
+### Vérifications à effectuer sur téléphone réel
+
+Sur `https://swapp.tv/communaute` :
+- Défiler lentement puis rapidement sur plusieurs écrans. Le bandeau SOCIAL et ses cinq icônes doivent rester visibles sous le header SWAPP.
+- Passer de « Pour vous » à « Actualité SWAPP » puis « Explorer » et « Messages ». Aucun recouvrement des cartes, aucun retour de la barre mobile en bas de page.
+- Effectuer une recherche en mode portrait, puis en paysage. Vérifier que l'entrée reste disponible après erreur réseau.
+- Vérifier que le menu SWAPP inférieur conserve son propre défilement et que SOCIAL ne le remplace pas.
+- Vérifier ordinateur/tablette : les zones latérales doivent rester intactes hors du mode mobile.
+
+### Condition préalable : vérifier le déploiement réel
+
+Le site repose sur `app.js` (serveur Node démarré avec `npm start` sur Hostinger). Un commit GitHub **ne prouve pas** que Hostinger a chargé la nouvelle version. Il faut confirmer la synchronisation de la branche, redémarrer le processus Node si la méthode d'hébergement l'exige, puis s'assurer que la page renvoie les nouvelles références :
+- `social-swapp.css?v=20261016-social-sticky-ux-7`
+- `app.js?v=20261016-social-search-ux-8`
+
+Si ces références manquent, le problème immédiat est le déploiement ou le cache, **pas** la nouvelle règle CSS. Vérifier aussi l'URL sans proxy/service worker avant de conclure à une régression.
 
 ## AdSense ads.txt
 
