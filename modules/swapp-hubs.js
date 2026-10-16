@@ -6,6 +6,7 @@ const catalog=require('../data/justplayer-public-catalog.json');
 const fs=require('node:fs');
 const path=require('node:path');
 const {CATEGORIES,demoProducts,normalizeAll}=require('./swapp-shop-catalog');
+const {isAmazonLink,amazonDisclosure}=require('../assets/swapp-article-extras');
 const assets='<link rel="stylesheet" href="/assets/swapp-hubs.css?v=20261015-hubs-3">';
 function heading(kicker,title,subtitle){
  return '<header class="swapp-hub-head"><span class="swapp-hub-eyebrow">'+e(kicker)+'</span><h1>'+e(title)+'</h1><p>'+e(subtitle)+'</p></header>';
@@ -110,6 +111,7 @@ function shopArt(p){
   e(p.kind==='games'?'PLAY':'SWAPP')+'</span></div>';
 }
 function shopCard(p,i){
+ const amazonPartner=!p.demo&&p.affiliate&&isAmazonLink(p.url);
  const action=p.demo?'<span class="swapp-shop-coming">Produit de démonstration · Non commercialisé</span>':
  '<a class="swapp-shop-buy" href="'+e(p.url)+'" target="_blank" rel="'+(p.affiliate?'sponsored nofollow noopener noreferrer':'noopener noreferrer')+'">Découvrir chez '+e(p.merchant)+' <span aria-hidden="true">↗</span></a>';
  return '<article class="swapp-shop-card'+(i===0?' swapp-shop-card-featured':'')+'">'+
@@ -117,12 +119,13 @@ function shopCard(p,i){
  '<div class="swapp-shop-card-copy">'+
  '<span class="swapp-shop-kicker">'+e(p.badge||((p.kind==='games')?'Jeu vidéo':'Accessoire'))+'</span>'+
  '<h3>'+e(p.title)+'</h3><p>'+e(p.description||'Une sélection SWAPP à découvrir.')+'</p>'+
- (p.affiliate?'<small class="swapp-shop-disclosure">Lien affilié · commission possible</small>':'')+
+ (p.affiliate?'<small class="swapp-shop-disclosure">'+(amazonPartner?'Lien rémunéré par Amazon':'Lien affilié · commission possible')+'</small>':'')+
  '<div class="swapp-shop-card-foot">'+action+'</div></div></article>';
 }
 function shop(products=demoProducts,{source='demo'}={}){
  const clean=normalizeAll(products).filter(x=>x.visible);
  const count=clean.length;
+ const hasAmazonPartner=clean.some(p=>!p.demo&&p.affiliate&&isAmazonLink(p.url));
  const sections=CATEGORIES.map(cat=>{
   const selection=clean.filter(x=>x.kind===cat.id);
   return '<section class="swapp-shop-aisle" id="rayon-'+cat.id+'" aria-labelledby="shop-title-'+cat.id+'">'+
@@ -150,7 +153,8 @@ function shop(products=demoProducts,{source='demo'}={}){
   '<p>'+count+' référence'+(count>1?'s':'')+' à découvrir · Trois univers, un même esprit SWAPP.</p></div>'+
   '<div class="swapp-shop-aisles">'+sections+'</div>'+
   '<aside class="swapp-shop-trust" id="shop-transparence"><span class="swapp-shop-trust-icon" aria-hidden="true">✳</span>'+
-  '<div><h2>Une vitrine transparente.</h2><p>Les exemples ne sont pas achetables. Quand un produit réel sera publié, le bouton dirigera vers son marchand identifié, sans paiement ni collecte bancaire sur SWAPP. Les liens affiliés seront signalés.</p></div>'+
+  '<div><h2>Une vitrine transparente.</h2><p>Les exemples ne sont pas achetables. Quand un produit réel sera publié, le bouton dirigera vers son marchand identifié, sans paiement ni collecte bancaire sur SWAPP. Les liens affiliés seront signalés.</p>'+
+  (hasAmazonPartner?'<p class="swapp-shop-amazon-disclosure">'+e(amazonDisclosure)+'</p>':'')+'</div>'+
   '<a href="/actus">Retour à l’actualité <span aria-hidden="true">→</span></a></aside>'+
   '</main>';
  return layout({title:'Boutique',description:'Boutique gaming SWAPP : jeux vidéo, casquettes et tapis de souris sélectionnés.',content:main,active:'shop',
@@ -181,6 +185,7 @@ function shopAdmin(){
   '</div><div class="swapp-shop-admin-options"><label><input name="demo" type="checkbox" checked> Démonstration · pas de vente</label>'+
   '<label><input name="visible" type="checkbox" checked> Visible sur la Boutique</label>'+
   '<label><input name="affiliate" type="checkbox"> Lien affilié · commission possible</label></div>'+
+  '<p class="swapp-shop-admin-affiliate-note">Pour un lien Amazon Partenaires, coche « Lien affilié ». SWAPP affichera la mention Amazon obligatoire à côté du produit et dans la rubrique Transparence. Ne publie que des liens créés dans ton compte partenaire.</p>'+
   '<div class="swapp-shop-admin-actions"><button type="submit" id="shop-admin-apply">Appliquer à la liste</button>'+
   '<button type="button" id="shop-admin-remove">Supprimer ce produit</button></div></form></section>'+
   '<section class="swapp-shop-admin-panel swapp-shop-admin-publish"><h3>Publier les modifications</h3>'+
