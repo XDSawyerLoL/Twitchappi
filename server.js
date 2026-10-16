@@ -890,7 +890,7 @@ app.use('/api/swapp/social',authLimiter,createSocialRouter({express,fetchImpl:fe
 const {createSocialNativeProxy}=require('./modules/swapp-social-native-proxy');
 app.use('/api/pulse',authLimiter,createSocialNativeProxy(fetchWithTimeout,{production:IS_PROD,
   restoreLocalSession:restoreOryonSessionFromRememberCookie,
-  ssoSecret:String(process.env.SWAPP_SOCIAL_SSO_SECRET||configuredSessionSecret||''),
+  ssoSecret:String(process.env.SWAPP_SOCIAL_SSO_SECRET||process.env.SWAPP_ACCOUNT_RECOVERY_SECRET||configuredSessionSecret||''),
   lookupLocalUser:getOryonUserByLogin,
   listLocalUsers:()=>readOryonUsers().users
 }));
