@@ -33,8 +33,8 @@ Sur `https://swapp.tv/communaute` :
 ### Condition préalable : vérifier le déploiement réel
 
 Le site repose sur `app.js` (serveur Node démarré avec `npm start` sur Hostinger). Un commit GitHub **ne prouve pas** que Hostinger a chargé la nouvelle version. Il faut confirmer la synchronisation de la branche, redémarrer le processus Node si la méthode d'hébergement l'exige, puis s'assurer que la page renvoie les nouvelles références :
-- `social-swapp.css?v=20261016-social-sticky-ux-7`
-- `app.js?v=20261016-social-search-ux-8`
+- `social-swapp.css?v=20261016-social-sticky-ux-8`
+- `app.js?v=20261016-social-search-ux-9`
 
 Si ces références manquent, le problème immédiat est le déploiement ou le cache, **pas** la nouvelle règle CSS. Vérifier aussi l'URL sans proxy/service worker avant de conclure à une régression.
 
