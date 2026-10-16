@@ -85,20 +85,27 @@ function immersiveCoverUrl(article){
 function renderNewsStory(article,{baseUrl='https://swapp.tv',relatedArticles=[]}={}){
  const url=baseUrl+'/actus/'+encodeURIComponent(article.slug);
  const summary=plainSummary(article);
- const published=article.publishedAt||article.originalPublishedAt;
+ const published=article.originalPublishedAt||article.publishedAt;
  const seoTitle=String(article.seo?.title||article.title).slice(0,70);
  const seoDescription=String(article.seo?.description||summary).slice(0,160);
  const tags=Array.isArray(article.tags)?article.tags.filter(v=>typeof v==='string').slice(0,12):[];
  const isVideo=['video','trailer'].includes(article.contentType);
  const videoId=isVideo?require('../../assets/swapp-article-extras').trailerId(article.trailerUrl):null;
+ const shareImage=editorialCover(article);
+ // Google's video rich results require uploadDate, name and thumbnailUrl.
+ // Keep actual origin dates on imported editorials; never invent publish times.
+ const author={'@type':'Person',name:article.author||'Rédaction SWAPP'};
+ const publisher={'@type':'Organization',name:'SWAPP',url:'https://swapp.tv'};
  const schema={'@context':'https://schema.org','@type':isVideo?'VideoObject':'NewsArticle',
    name:seoTitle,headline:seoTitle,description:seoDescription,
-   datePublished:published,dateModified:article.updatedAt,mainEntityOfPage:url,
-   author:{'@type':'Person',name:article.author||'Rédaction SWAPP'},
-   keywords:tags.join(', '),...(videoId?{embedUrl:'https://www.youtube-nocookie.com/embed/'+videoId,
-      thumbnailUrl:article.image?.url||'https://i.ytimg.com/vi/'+videoId+'/hqdefault.jpg'}:{})};
+   ...(published?{datePublished:published}:{}),
+   ...(article.updatedAt?{dateModified:article.updatedAt}:{}),
+   mainEntityOfPage:url,author,publisher,keywords:tags.join(', '),
+   ...(shareImage?{image:[shareImage]}:{}),
+   ...(videoId?{embedUrl:'https://www.youtube-nocookie.com/embed/'+videoId,
+      thumbnailUrl:shareImage||'https://i.ytimg.com/vi/'+videoId+'/hqdefault.jpg',
+      ...(published?{uploadDate:published}:{})}:{})};
  const jsonLd=JSON.stringify(schema).replace(/</g,'\\u003c');
- const shareImage=editorialCover(article);
  const metadata=`<link rel="canonical" href="${escapeHtml(url)}"><meta name="keywords" content="${escapeHtml(tags.join(', '))}"><meta property="og:type" content="${isVideo?'video.other':'article'}"><meta property="og:url" content="${escapeHtml(url)}"><meta property="og:title" content="${escapeHtml(seoTitle)}"><meta property="og:description" content="${escapeHtml(seoDescription)}">${shareImage?`<meta property="og:image" content="${escapeHtml(shareImage)}"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="${escapeHtml(shareImage)}">`:''}<script type="application/ld+json">${jsonLd}</script>`;
  const coverUrl=immersiveCoverUrl(article);
  const scene=`<div class="swapp-article-scene${coverUrl?' has-art':''}" aria-hidden="true">${coverUrl?`<img src="${escapeHtml(coverUrl)}" alt="" decoding="async" fetchpriority="high">`:''}</div>`;
