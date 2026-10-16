@@ -57,6 +57,7 @@ test('unpublished, empty, duplicate, invalid and malicious stories do not create
  assert.match(html,/&lt;script&gt;test&lt;\/script&gt;/);
  assert.match(html,/Also &amp; useful/);
  assert.equal(gameHubs(input.slice(0,1)).length,0);
+ assert.equal(gameHubs([{...input[0],slug:'article-a'}, {...input[0],slug:'article-b'}]).length,0, 'same title across different slugs is not independent coverage');
 });
 test('game HTTP routes reuse SEO cache, return real 404 for thin or missing topics',async()=>{
  const handlers=new Map();
