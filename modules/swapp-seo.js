@@ -244,7 +244,7 @@ async function notifyIndexNow(slugs=[],{fetchImpl=globalThis.fetch,enabled=proce
 
 function registerSeoRoutes(app,{getPublished=async()=>[],getCreators=async()=>[],now=()=>Date.now()}={}){
  if(!app||typeof app.get!=='function')throw Error('Express app required');
- let cached=null,articles=[],expires=0,inflight=null,revision=0,loadedRevision=-1,gameHubLinks=new Map();
+ let cached=null,articles=[],expires=0,inflight=null,revision=0,loadedRevision=-1,gameHubLinks=new Map(),hasVerifiedArticles=false;
  const TTL=6*60*60*1000;
  invalidateRegisteredSeoCache=()=>{revision++;expires=0};
  // Only serve links to pages actually present in the cached sitemap. Direct
@@ -277,6 +277,7 @@ function registerSeoRoutes(app,{getPublished=async()=>[],getCreators=async()=>[]
       nextLinks.set(String(item.slug),'/jeux/'+encodeURIComponent(hub.slug));
     articles=current;
     cached=sitemapXml(current);
+    hasVerifiedArticles=true;
     gameHubLinks=nextLinks;
     loadedRevision=fetchRevision;
     expires=now()+TTL;
@@ -343,9 +344,17 @@ function registerSeoRoutes(app,{getPublished=async()=>[],getCreators=async()=>[]
   }
  });
  app.get('/news-sitemap.xml',async(_req,res)=>{
+  await ensureCache();
+  // Never describe an unavailable database as an empty, successfully read
+  // news sitemap. Google may otherwise report a missing required <url> tag.
+  // No fictitious articles or publication dates are introduced.
+  if(!hasVerifiedArticles){
+   res.set('Cache-Control','no-store');
+   res.set('Retry-After','60');
+   return res.status(503).type('text/plain; charset=utf-8').send('Sitemap Actualités temporairement indisponible');
+  }
   res.set('Content-Type','application/xml; charset=utf-8');
   res.set('Cache-Control','public, max-age=900');
-  await ensureCache();
   return res.status(200).send(newsSitemapXml(articles,now()));
  });
  app.get('/feed.xml',async(_req,res)=>{
