@@ -41,7 +41,7 @@ function summarizeArticleInsights({published=[],scores=[],limit=500}={}){
  };
 }
 
-function registerEditorInsights({router,firestore,articles,publicNews,recoveredArticle,editor}){
+function registerEditorInsights({router,firestore,articles,editor}){
  if(!Array.isArray(editor)||!editor.length)throw Error('Editor guard required');
  const LIMIT=500;
  router.get('/api/editor/actus/insights',...editor,async(req,res,next)=>{
@@ -54,19 +54,14 @@ function registerEditorInsights({router,firestore,articles,publicNews,recoveredA
     firestore.collection('swapp_article_scores').limit(LIMIT).get()
    ]);
    const published=publicSnap.docs.map(d=>d.data());
-   const occupied=new Set(published.map(x=>x.slug));
-   const publicRecovered=typeof publicNews?.articles==='function'
-    ?publicNews.articles().map(x=>recoveredArticle(x)).filter(x=>valid(x?.slug)&&!occupied.has(x.slug))
-    :[];
-   // An explicitly withdrawn native record must never be revived from a recovered copy.
-   // Keep this endpoint conservative: only the native published catalogue is authoritative.
+   // Native published catalogue only; recovered legacy articles are excluded until migrated.
    const summary=summarizeArticleInsights({
     published,
     scores:scoreSnap.docs.map(d=>({slug:d.id,...d.data()})),
     limit:LIMIT
    });
-   return res.json({...summary,partial:publicSnap.size>=LIMIT||scoreSnap.size>=LIMIT,
-    scope:'published-native',recoveredExcluded:publicRecovered.length});
+   return res.json({...summary,partial:publicSnap.docs.length>=LIMIT||scoreSnap.docs.length>=LIMIT,
+    scope:'published-native'});
   }catch(error){next(error)}
  });
 }
