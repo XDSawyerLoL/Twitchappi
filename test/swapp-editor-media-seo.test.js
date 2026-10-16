@@ -140,3 +140,16 @@ test('Google-compatible video and article JSON-LD use real publication dates and
  assert.deepEqual(article.image,['https://example.org/actual-cover.jpg']);
  assert.equal(article.publisher.name,'SWAPP');
 });
+
+test('article sharing uses canonical SWAPP URL without a paid SDK or user tracking',()=>{
+ const article={...assertArticle(input,{publish:true}),status:'published',publishedAt:'2026-10-15T10:00:00.000Z'};
+ const page=renderNewsStory(article);
+ const client=fs.readFileSync(path.join(root,'assets/swapp-article-extras.js'),'utf8');
+ assert.match(page,/data-swapp-article-share/);
+ assert.match(client,/navigator\.share/);
+ assert.match(client,/navigator\.clipboard\?\.writeText/);
+ assert.match(client,/https:\/\/swapp\.tv\/actus\//);
+ assert.match(client,/data-swapp-article-slug/);
+ assert.doesNotMatch(client,/google-analytics|gtag\(|trackEvent\(|sendBeacon\(/);
+ assert.doesNotThrow(()=>new Function(client));
+});
