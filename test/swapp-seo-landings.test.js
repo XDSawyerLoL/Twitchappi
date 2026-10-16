@@ -165,3 +165,43 @@ test('IndexNow runs only on trusted editorial commits and is optional in product
  assert.match(router,/newlyPublished\.length/);
  assert.doesNotMatch(router,/setInterval\(/);
 });
+
+test('public streamer pages get a unique self-canonical, social preview and true ProfilePage schema',()=>{
+ const {injectCreatorMetadata,creatorSitemapXml,robotsText}=require('../modules/swapp-seo');
+ const sample={login:'stream_fr',display_name:'Le & créateur <b>',bio:'Je diffuse mes jeux préférés.',avatar_url:'https://cdn.example.test/avatar.png',channel_public:true};
+ const output=injectCreatorMetadata(html,sample,'stream_fr');
+ assert.match(output,/<title>Le &amp; créateur &lt;b&gt; — Chaîne SWAPP<\/title>/);
+ assert.match(output,/<link rel="canonical" href="https:\/\/swapp.tv\/stream_fr">/);
+ assert.equal((output.match(/rel="canonical"/g)||[]).length,1);
+ assert.match(output,/"@type":"ProfilePage"/);
+ assert.match(output,/property="og:image"/);
+ assert.doesNotMatch(output,/<b>/);
+ assert.doesNotMatch(output,/noindex/);
+ const xml=creatorSitemapXml([sample,{...sample,channel_public:false,login:'private_account'},{...sample,login:'stream_fr'}]);
+ assert.match(xml,/https:\/\/swapp.tv\/stream_fr/);
+ assert.doesNotMatch(xml,/private_account/);
+ assert.equal((xml.match(/<url>/g)||[]).length,1);
+ assert.match(robotsText(),/creators-sitemap\.xml/);
+});
+
+test('unknown and opt-out creator pages remain noindex, never revealing account secrets',()=>{
+ const {injectCreatorMetadata}=require('../modules/swapp-seo');
+ const user={login:'private_account',channel_public:false,display_name:'Privé',email:'private@example.test',password_hash:'secret'};
+ const unseen=injectCreatorMetadata(html,null,'unknown');
+ const privateHtml=injectCreatorMetadata(html,user,'private_account');
+ for(const page of [unseen,privateHtml]){
+  assert.match(page,/name="robots" content="noindex,follow"/);
+  assert.doesNotMatch(page,/rel="canonical"/);
+  assert.doesNotMatch(page,/private@example\.test|password_hash|secret/);
+ }
+ const mismatched=injectCreatorMetadata(html,{...user,channel_public:true},'other_account');
+ assert.match(mismatched,/noindex,follow/);
+});
+
+test('creator SEO reuses loaded server cache, does not fetch external identities',()=>{
+ const server=fs.readFileSync(path.join(__dirname,'../server.js'),'utf8');
+ assert.match(server,/async function sendSwappPublicChannelUi/);
+ assert.match(server,/injectCreatorMetadata\(html,/);
+ assert.match(server,/getCreators:async=>\{/);
+ assert.match(server,/return readOryonUsers\(\)\.users\|\|\[\];/);
+});
