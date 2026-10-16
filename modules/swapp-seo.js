@@ -387,8 +387,20 @@ function enhanceLandingHtml(html,path){
 }
 
 const NOINDEX_PATHS=new Set(['/compte','/connexion','/settings','/gestionnaire','/manager','/dashboard','/studio','/admin','/reset-password']);
-function injectSpaMetadata(html,pathname='/'){
+// Search Console HTML-tag ownership is checked on the public homepage's
+// server-rendered <head>. Some hosts override index.html via UI_FILE.
+// Keep the existing owner tags, and avoid duplicates when index.html carries it.
+const SEARCH_CONSOLE_TOKEN='G7mGoV76GdKsvAMEGkyKILyzsiW4U-GXIfuWza9G4N4';
+function ensureSearchConsoleMeta(html){
  const raw=String(html||'');
+ if(!/<head(?:\s[^>]*)?>/i.test(raw)||!/<\/head\s*>/i.test(raw))return raw;
+ const tag='<meta name="google-site-verification" content="'+SEARCH_CONSOLE_TOKEN+'">';
+ if(raw.includes(SEARCH_CONSOLE_TOKEN))return raw;
+ return raw.replace(/<head(?:\s[^>]*)?>/i,head=>head+'\n'+tag);
+}
+function injectSpaMetadata(html,pathname='/'){
+ const urlPath=String(pathname||'/').split('?')[0];
+ const raw=urlPath==='/'?ensureSearchConsoleMeta(html):String(html||'');
  if(!raw.includes('</head>'))return raw;
  const path=String(pathname||'/').split('?')[0];
  const info=SPA_INFO[path];
@@ -414,4 +426,4 @@ function injectSpaMetadata(html,pathname='/'){
  }
  return result.replace('</head>','<meta name="robots" content="noindex,nofollow"></head>');
 }
-module.exports={ORIGIN,CORE_PATHS,INDEXNOW_KEY,INDEXNOW_KEY_PATH,sitemapEntries,sitemapXml,newsSitemapXml,creatorSitemapXml,sitemapHtml,rssXml,robotsText,registerSeoRoutes,invalidateSeoCache,cachedGameHubForArticle,notifyIndexNow,injectSpaMetadata,injectCreatorMetadata};
+module.exports={ORIGIN,CORE_PATHS,INDEXNOW_KEY,INDEXNOW_KEY_PATH,sitemapEntries,sitemapXml,newsSitemapXml,creatorSitemapXml,sitemapHtml,rssXml,robotsText,registerSeoRoutes,invalidateSeoCache,cachedGameHubForArticle,notifyIndexNow,ensureSearchConsoleMeta,injectSpaMetadata,injectCreatorMetadata};
