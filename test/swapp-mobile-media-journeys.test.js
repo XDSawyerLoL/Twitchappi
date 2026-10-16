@@ -132,3 +132,28 @@ test('native video route and SPA load the same mobile video assets',()=>{
   assert.ok(release.includes("'"+name+"'"));
  }
 });
+
+
+test('mobile Découvrir preserves intentional swipe before opening a live',()=>{
+ const discover=read('assets/swapp-discover-comfort.js');
+ assert.match(discover,/addEventListener\('pointerdown'/);
+ assert.match(discover,/addEventListener\('pointermove'/);
+ assert.match(discover,/movement\?\.swiped/);
+ assert.match(discover,/if\(canWatch\(\)\)root\.v4Watch\(\)/);
+ assert.match(discover,/event\.target\?\.id!=='v4SwipeCard'/);
+ assert.match(discover,/event\.preventDefault\(\)/);
+});
+test('the shared mobile menu and SOCIAL page preserve the same complete journey',()=>{
+ const navigation=require('../assets/swapp-navigation');
+ const mobile=navigation.serverMobile('community');
+ const main=read('modules/swapp-hubs.js');
+ const social=read('assets/swapp-social-native/app.js');
+ assert.match(mobile,/href="\/decouvrir"/);
+ assert.match(mobile,/href="\/actus"/);
+ assert.match(mobile,/href="\/communaute"[^>]*aria-current="page"/);
+ assert.match(mobile,/href="\/bandes-annonces"/);
+ assert.match(main,/active:'community'/);
+ assert.match(main,/active:'trailers'/);
+ assert.match(social,/function revealSocialContent\(\)/);
+ assert.match(social,/scrollIntoView\(\{block:'start',behavior:'auto'\}\)/);
+});
