@@ -1,5 +1,5 @@
 import { TOKEN_KEY, state, dom, api, errorText } from './core.js';
-import { openAuth, closeAuth, updateAuthModal, updateAccount, requireAuth, applySession, clearSession, restoreSession } from './session.js';
+import { openAuth, closeAuth, updateAuthModal, updateAccount, requireAuth, applySession, clearSession, restoreSession } from './session.js?v=20261016-swapp-account-clean-1';
 import { setView, loadHome, loadExplore, loadCircles, loadNotifications, loadSaved, loadProfile, loadMessages, loadConversation, loadCirclePreview, loadNewsRss } from './views.js?v=20261016-discovery-news-1';
 
 /* Keep the SOCIAL sticky stack exactly beneath the real SWAPP header.
