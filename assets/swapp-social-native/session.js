@@ -1,13 +1,51 @@
-import { TOKEN_KEY, state, dom, initials, api } from './core.js';
+import { TOKEN_KEY, state, dom, initials, api, errorText } from './core.js';
+
+let lastSocialSessionError=null;
+let sessionRetryPromise=null;
+
+function showConnectionNotice(message,{recovered=false}={}){
+ const target=dom.feed;
+ if(!target?.parentNode)return;
+ let banner=document.getElementById('swapp-social-connection-notice');
+ if(!banner){
+  banner=document.createElement('div');
+  banner.id='swapp-social-connection-notice';
+  banner.className='swapp-social-connection-notice';
+  banner.setAttribute('role','status');
+  banner.setAttribute('aria-live','polite');
+  const copy=document.createElement('p');
+  const button=document.createElement('button');
+  button.type='button';
+  button.textContent='Réessayer la liaison';
+  button.addEventListener('click',()=>openAuth());
+  banner.append(copy,button);
+  target.parentNode.insertBefore(banner,target);
+ }
+ banner.querySelector('p').textContent=message;
+ banner.querySelector('button').hidden=recovered;
+ banner.hidden=false;
+}
+function clearConnectionNotice(){
+ const banner=document.getElementById('swapp-social-connection-notice');
+ if(banner)banner.hidden=true;
+}
 
 export function openAuth(){
- // SOCIAL is authenticated through the SWAPP local account, never a second modal.
+ // The gate is the only real login authority. Do not show a duplicate login
+ // dialog when SOCIAL upstream fails while the SWAPP account is valid.
  const gate=document.getElementById('swapp-social-access');
  if(gate?.classList.contains('is-locked')){
   document.getElementById('swapp-social-login')?.focus();
   return;
  }
- alert('Le compte SWAPP est connecté, mais le service SOCIAL ne répond pas encore. Réessaie dans quelques instants.');
+ if(sessionRetryPromise)return;
+ showConnectionNotice('Vérification de la liaison avec SOCIAL en cours…');
+ sessionRetryPromise=restoreSession().then(ok=>{
+  if(ok)showConnectionNotice('Connexion SOCIAL rétablie. Tu peux reprendre ton action.',{recovered:true});
+  else showConnectionNotice(
+   lastSocialSessionError?errorText(lastSocialSessionError):'La liaison SOCIAL ne répond pas. Réessaie.'
+  );
+ }).finally(()=>{sessionRetryPromise=null});
 }
 
 export function closeAuth(){
@@ -69,6 +107,8 @@ export function applySession(data){
   state.token='';
   state.user=data.user||null;
   try{sessionStorage.removeItem(TOKEN_KEY)}catch{}
+  lastSocialSessionError=null;
+  clearConnectionNotice();
   updateAccount();
 }
 
@@ -85,8 +125,14 @@ export async function restoreSession(){
   try{
     const data=await api('/api/pulse/me');
     state.user=data.user||null;
-  }catch{
+    lastSocialSessionError=null;
+    if(state.user)clearConnectionNotice();
+  }catch(error){
+    // Keep the explicit failure reason; an authenticated SWAPP account is not
+    // equivalent to a successful SOCIAL upstream session.
+    lastSocialSessionError=error;
     state.user=null;
   }
   updateAccount();
+  return Boolean(state.user);
 }
