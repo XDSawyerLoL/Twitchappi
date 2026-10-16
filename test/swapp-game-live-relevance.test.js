@@ -22,7 +22,7 @@ function fixture(games,reply,{observer=true}={}){
  const shelves=games.map(game=>{
   const target=element('div');targets.push(target);
   const shelf=element('section');shelf.dataset.game=game;
-  shelf.querySelector=sel=>sel==='[data-live-results]'?target:null;
+  shelf.querySelector=sel=>sel.includes('[data-live-results]')?target:null;
   return shelf;
  });
  const document={
