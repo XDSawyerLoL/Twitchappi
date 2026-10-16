@@ -44,7 +44,7 @@ test('SOCIAL hides desktop rail and uses one readable feed column on phones',()=
  assert.match(css,/\.swapp-social-viewport \.pulse-shell\{\s*display:block!important/);
  assert.match(css,/\.swapp-social-viewport \.pulse-mobile-nav\{/);
  assert.match(css,/\.swapp-social-viewport \.pulse-post p,/);
- assert.match(hubs,/social-swapp\.css\?v=20261016-social-sticky-ux-7/);
+ assert.match(hubs,/social-swapp\.css\?v=20261016-social-sticky-ux-8/);
 });
 
 test('mobile stylesheets have balanced blocks',()=>{
