@@ -11,7 +11,7 @@ function createShopRouter({express,store,requireEditor,shop,shopProduct,shopAdmi
   if(old&&old.expires>Date.now())return old.url;
   if(!/^[0-9]{3,9}$/.test(id)||!ids.has(id))return null;
   try{
-   const response=await fetch('https://store.steampowered.com/api/appdetails?appids='+id+'&filters=basic&cc=fr&l=french',{
+   const response=await fetch('https://store.steampowered.com/api/appdetails?appids='+id+'&cc=fr&l=french',{
     signal:AbortSignal.timeout(5500),headers:{Accept:'application/json'}
    });
    if(!response.ok)throw Error('Steam HTTP '+response.status);
