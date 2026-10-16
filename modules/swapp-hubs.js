@@ -158,7 +158,7 @@ function shop(products=demoProducts,{source='demo'}={}){
   '<a href="/actus">Retour à l’actualité <span aria-hidden="true">→</span></a></aside>'+
   '</main>';
  return layout({title:'Boutique',description:'Boutique gaming SWAPP : jeux vidéo, casquettes et tapis de souris sélectionnés.',content:main,active:'shop',
-  scripts:assets+'<link rel="stylesheet" href="/assets/swapp-shop.css?v=20261016-shop-v1">'});
+  scripts:assets+'<link rel="stylesheet" href="/assets/swapp-shop.css?v=20261016-shop-v2-partners">'});
 }
 function shopAdmin(){
  const content='<main class="swapp-shop-admin"><aside class="swapp-shop-admin-menu"><a href="/boutique">← Voir la Boutique</a>'+
@@ -194,8 +194,8 @@ function shopAdmin(){
   '<a href="/boutique" target="_blank" rel="noopener">Ouvrir la vitrine ↗</a></section></section></main>';
  return layout({title:'Gestion Boutique',description:'Gestion privée de la vitrine SWAPP',content,active:'shop',
   metadata:'<meta name="robots" content="noindex,nofollow">',
-  scripts:'<link rel="stylesheet" href="/assets/swapp-shop.css?v=20261016-shop-v1">'+
-   '<link rel="stylesheet" href="/assets/swapp-shop-admin.css?v=20261016-shop-v1">'+
-   '<script defer src="/assets/swapp-shop-admin.js?v=20261016-shop-v1"></script>'});
+  scripts:'<link rel="stylesheet" href="/assets/swapp-shop.css?v=20261016-shop-v2-partners">'+
+   '<link rel="stylesheet" href="/assets/swapp-shop-admin.css?v=20261016-shop-v2-partners">'+
+   '<script defer src="/assets/swapp-shop-admin.js?v=20261016-shop-v2-partners"></script>'});
 }
 module.exports={community,trailers,shop,shopAdmin,verifiedTrailers,curatedVideos,videoCard,safeProducts};
