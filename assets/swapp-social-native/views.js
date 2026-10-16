@@ -118,7 +118,9 @@ export async function loadExplore(query=''){
     if(!data.users?.length&&!data.posts?.length)html+='<div class="pulse-status"><strong>Aucun résultat</strong>Essaie une autre recherche.</div>';
     dom.feed.innerHTML=html;
   }catch(error){
-    setStatus('Recherche impossible',errorText(error));
+    // Keep the search field visible, including when the SOCIAL API is offline.
+    // A user must be able to retry without leaving Explore.
+    dom.feed.innerHTML='<section class="pulse-view"><div class="pulse-view-head"><h2>Recherche momentanément indisponible</h2><p>'+esc(errorText(error))+'</p></div>'+form+'</section>';
   }
 }
 
