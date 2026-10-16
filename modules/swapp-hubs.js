@@ -145,8 +145,6 @@ function steamTopSection(){
   '<h2 id="swapp-editorial-top-title">LES 10 JEUX <em>DU MOMENT.</em></h2>'+
   '<p>Les meilleures ventes Steam France, sélectionnées au 16 octobre 2026. Une vitrine gaming, des univers à explorer.</p></div>'+
   '<a href="https://store.steampowered.com/charts/topselling/FR" target="_blank" rel="noopener noreferrer">Classement Steam ↗</a></div>'+
-  '<div class="swapp-editorial-top-feature"><div class="swapp-editorial-top-feature-art"><img src="https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/3393110/library_hero.jpg" alt="" loading="lazy" onerror="this.onerror=null;this.hidden=true"></div>'+
-  '<div class="swapp-editorial-top-feature-copy"><span>EN TÊTE DES VENTES · #01</span><h3>AION 2</h3><p>Prends de la hauteur. Explore Atreia, choisis ta faction et lance-toi dans des batailles épiques.</p><strong>Free to play</strong><a href="https://store.steampowered.com/app/3393110/" target="_blank" rel="noopener noreferrer">Découvrir le jeu ↗</a></div></div>'+
   '<div class="swapp-editorial-top-grid">'+cards+'</div>'+
   '<p class="swapp-editorial-top-disclaimer">Source : classement public Steam France consulté le 16/10/2026. Classement susceptible de changer. Prix en euros relevés auprès de sources publiques lorsqu’ils étaient disponibles, non synchronisés en direct ; vérifier le prix, l’édition, la région et la disponibilité chez Steam. Liens marchands externes non affiliés. Les images promotionnelles appartiennent aux ayants droit.</p>'+
  '</section>';
@@ -171,8 +169,8 @@ function shop(products=demoProducts,{source='demo'}={}){
    '</div><a href="/actus">Explorer l’actualité <span aria-hidden="true">↗</span></a></footer>'+
   '</main>';
  return layout({title:'Boutique',description:'La boutique SWAPP : jeux vidéo, casquettes, accessoires et tapis de souris.',content,active:'shop',
-  scripts:assets+'<link rel="stylesheet" href="/assets/swapp-shop.css?v=20261016-store-v5"><link rel="stylesheet" href="/assets/swapp-editorial-top.css?v=20261016-top10-v4">'+
-   '<script defer src="/assets/swapp-steam-art.js?v=20261016-fallback-v3"></script>'});
+  scripts:assets+'<link rel="stylesheet" href="/assets/swapp-shop.css?v=20261016-store-v5"><link rel="stylesheet" href="/assets/swapp-editorial-top.css?v=20261016-top10-v5">'+
+   '<script defer src="/assets/swapp-steam-art.js?v=20261016-fallback-v4"></script>'});
 }
 function shopProduct(product,products=demoProducts){
  const all=normalizeAll(products).filter(p=>p.visible&&p.image);
