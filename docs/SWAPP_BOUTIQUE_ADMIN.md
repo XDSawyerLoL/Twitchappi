@@ -4,9 +4,11 @@ La Boutique est désormais une vitrine native de SWAPP à l'adresse **https://sw
 
 ## Structure
 
-- **Jeux vidéo** : trois fiches de démonstration (Clair Obscur: Expedition 33, Hades II, Ghost of Yōtei).
+- **Jeux vidéo** : trois fiches de démonstration (Clair Obscur: Expedition 33, Hades II, Kingdom Come: Deliverance II).
 - **Casquettes** : deux modèles conceptuels.
 - **Tapis de souris** : deux deskmat conceptuels.
+
+La présentation utilise désormais une **véritable structure de catalogue** : grande sélection en vedette, trois rayons illustrés, grille de cartes produits (jusqu'à 4 colonnes sur ordinateur, 2 sur mobile), recherche par nom, filtres par catégorie, tri alphabétique, et URL individuelle pour chaque fiche à `/boutique/produit/:id`. La galerie permet deux vues lorsqu'elles sont renseignées.
 
 Toutes les fiches d'exemple sont **non vendables**, sans prix ni lien de paiement. La galerie utilise désormais **de vrais visuels** : images promotionnelles officielles via le CDN Steam pour les jeux et photographies Unsplash pour les accessoires. Les photos de casquettes et de bureaux sont **des inspirations photographiques**, jamais des photographies de produits SWAPP déjà fabriqués. Aucun élément CSS ne simule plus les objets.
 
@@ -14,21 +16,21 @@ Toutes les fiches d'exemple sont **non vendables**, sans prix ni lien de paiemen
 
 1. Se connecter au compte SWAPP administrateur déjà autorisé pour la rédaction.
 2. Ouvrir le menu du compte → **Gestion Boutique · Produits & vitrine**, ou depuis SWAPP Studio → **Gestion Boutique · Produits**.
-3. Sur **/boutique/admin**, choisir une fiche, corriger son nom, sa description, son rayon, son image principale (obligatoire pour toute fiche visible), sa deuxième photo facultative et son statut. L'aperçu doit montrer la photo attendue, sans erreur de chargement. Le bouton **Appliquer à la liste** prépare le changement, mais ne le publie pas.
+3. Sur **/boutique/admin**, choisir une fiche, corriger son nom, sa description, son rayon, son image principale (obligatoire pour toute fiche visible), sa deuxième photo facultative et son statut, et éventuellement un prix EUR indicatif pour un produit réel. L'aperçu doit montrer la photo attendue, sans erreur de chargement. Le bouton **Appliquer à la liste** prépare le changement, mais ne le publie pas.
 4. Cliquer **Enregistrer sur SWAPP** pour publier les fiches visibles. **Ouvrir la vitrine** permet de contrôler le rendu.
 5. Les flèches permettent de changer l'ordre des produits dans un rayon. La case **Visible sur la Boutique** masque une fiche sans la supprimer.
 
-Pour une **vraie référence**, désactiver la case Démonstration, renseigner le nom du marchand, une vraie image utilisable et son URL HTTPS. Le lien extérieur sera alors affiché. Cocher « Lien affilié » uniquement pour un lien réellement rémunéré. La Boutique ne réalise aucun achat ni traitement de carte bancaire.
+Pour une **vraie référence**, désactiver la case Démonstration, renseigner le nom du marchand, une vraie image utilisable et son URL HTTPS. Le lien extérieur sera alors affiché sur la fiche produit ; un prix facultatif saisi par l'administrateur apparaîtra avec la mention « prix indicatif, à confirmer chez le marchand ». Les démos ne reçoivent jamais de prix par défaut. Cocher « Lien affilié » uniquement pour un lien réellement rémunéré. La Boutique ne réalise aucun achat ni traitement de carte bancaire.
 
 ## Stockage et sécurité
 
 - Le catalogue partagé utilise une seule fiche `swapp_shop/catalog_v1` dans **la base Firestore déjà connectée au site** : aucune nouvelle infrastructure ni tâche GitHub Actions.
 - Les sept démos sont dans `data/swapp-shop.json`. Tant qu'aucun catalogue n'a été enregistré, le serveur les montre par défaut. Une fois un catalogue publié, seules les fiches sauvegardées sont affichées.
 - Les écritures exigent **la session administrateur SWAPP**, ou une clé autorisée par le système rédactionnel existant ; l'en-tête `x-swapp-editor: 1` et l'origine sont vérifiés. Aucun rôle basé uniquement sur un pseudo.
-- Les sauvegardes utilisent une **révision transactionnelle** ; deux administrateurs ne peuvent pas écraser sans avertissement la même version. Les valeurs sont validées côté serveur (catégorie, longueur, identifiants uniques, URL HTTPS).
+- Les sauvegardes utilisent une **révision transactionnelle** ; deux administrateurs ne peuvent pas écraser sans avertissement la même version. Les valeurs sont validées côté serveur (catégorie, longueur, identifiants uniques, URL HTTPS, prix EUR positif facultatif).
 - En cas d'indisponibilité de Firestore : la vitrine reste disponible avec les exemples, mais l'éditeur refuse de prétendre avoir enregistré. L'utilisateur reçoit une erreur.
 - Le futur passage éventuel à MySQL Hostinger nécessite une migration explicite de `swapp_shop/catalog_v1` ; ne pas désactiver l'ancien stockage avant vérification.
-- Le chemin `/boutique/admin` est protégé et exclu des robots.
+- Le chemin `/boutique/admin` est protégé et exclu des robots. Les fiches de démonstration comportent également une instruction noindex. Aucun paiement, panier, stock ou livraison n'est simulé.
 
 
 ## Provenance des images de démonstration
