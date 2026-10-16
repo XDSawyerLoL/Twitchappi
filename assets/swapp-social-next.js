@@ -88,7 +88,7 @@
  function cards(game,data){
   const rooms=Array.isArray(data.rooms)?data.rooms:[],matches=Array.isArray(data.matches)?data.matches:[];
   const roomHtml=rooms.length?rooms.map(r=>'<button type="button" class="ssn-room" data-ssn-room="'+esc(r.id)+'" data-ssn-name="'+esc(r.name)+'" data-ssn-game="'+esc(r.game)+'"># '+esc(r.name)+' <span>Entrer ↗</span></button>').join(''):'<p>Pas encore de salon pour ce jeu.</p>';
-  const players=matches.length?matches.slice(0,8).map(m=>'<div class="ssn-player"><strong>@'+esc(m.handle)+'</strong><span>'+esc(m.platform)+' · '+esc(m.availability)+'</span></div>').join(''):'<p>Pas encore de recherche d’équipe pour ce jeu.</p>';
+  const players=matches.length?matches.slice(0,8).map(m=>'<div class="ssn-player"><strong>@'+esc(m.handle)+'</strong><span>'+esc(m.platform)+' · '+esc(m.availability)+'</span><button class="ssi-ghost" type="button" data-message-user="'+esc(m.handle)+'">Contacter ↗</button></div>').join(''):'<p>Pas encore de recherche d’équipe pour ce jeu.</p>';
   return '<div class="ssn-universe-title"><strong>'+esc(game)+'</strong><span>'+rooms.length+' salon'+(rooms.length>1?'s':'')+' · '+matches.length+' annonce'+(matches.length>1?'s':'')+'</span></div>'+
   '<div class="ssn-game-columns"><section><h4>Discussions</h4>'+roomHtml+'</section><section><h4>Joueurs en recherche</h4>'+players+'</section></div>'+
   '<section class="ssn-live-section"><div class="ssn-universe-title"><strong>Créateurs en direct</strong><span>Pour '+esc(game)+'</span></div><div id="ssn-live-results" aria-live="polite">Recherche de lives en cours…</div></section>'+
