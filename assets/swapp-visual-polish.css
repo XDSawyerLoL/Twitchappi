@@ -100,3 +100,25 @@ header.top .mainNav :is(a,button) :is(img,svg),
 @media(prefers-reduced-motion:reduce){
  header.top .mainNav :is(a,button),#mobileNav :is(a,button){transition:none!important}
 }
+
+/* Bottom navigation: swipe horizontally instead of shrinking/hiding tabs. */
+@media(max-width:1080px){
+ #mobileNav.mobileNav{
+  justify-content:flex-start!important;
+  flex-wrap:nowrap!important;
+  gap:4px;
+  overflow-x:auto!important;overflow-y:hidden!important;
+  overscroll-behavior-x:contain;
+  -webkit-overflow-scrolling:touch;
+  scroll-snap-type:x proximity;
+  scrollbar-width:none;
+  padding:8px max(12px,env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left));
+  touch-action:pan-x;
+ }
+ #mobileNav.mobileNav::-webkit-scrollbar{display:none}
+ #mobileNav.mobileNav > :is(a,button){
+  flex:0 0 auto!important;
+  width:auto!important;max-width:none!important;
+  white-space:nowrap;scroll-snap-align:start;
+ }
+}
