@@ -1084,3 +1084,23 @@ body:has(#swapp-social-access)>header.top{
 @media(prefers-reduced-motion:reduce){
  .swapp-social-viewport .pulse-news-media img{transition:none!important}
 }
+
+/* RSS tab recovery: keep the three feed controls clickable above every feed card. */
+.swapp-social-viewport .swapp-social-sticky-stack .pulse-tabs{
+  isolation:isolate;
+}
+.swapp-social-viewport .swapp-social-sticky-stack .pulse-tab{
+  position:relative;
+  z-index:1;
+  pointer-events:auto!important;
+  touch-action:manipulation;
+}
+.swapp-social-viewport .swapp-social-sticky-stack .pulse-tab::before,
+.swapp-social-viewport .swapp-social-sticky-stack .pulse-tab::after{
+  pointer-events:none;
+}
+/* Older display:block!important rules must never override semantic hidden state. */
+.swapp-social-viewport .pulse-welcome[hidden],
+.swapp-social-viewport .swapp-social-stories[hidden]{
+  display:none!important;
+}
