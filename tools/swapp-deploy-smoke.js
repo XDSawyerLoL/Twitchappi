@@ -61,7 +61,7 @@ async function verify(){
   'Article live discovery client is outdated: targeted game lookup missing');
  process.stdout.write('PASS game-specific article live discovery\n');
  const discover=await request(origin,'/decouvrir');
- check(discover.body.includes('swapp-discover-comfort.js?v=20261016-v4-mobile-1'),
+ check(discover.body.includes('swapp-discover-comfort.js?v=20261016-v4-mobile-2'),
   'Discover has an old mobile UI release');
  check(discover.body.includes('index_script.js?v=20261016-discover-v4-39'),
   'Discover still references an old V4 player script');
