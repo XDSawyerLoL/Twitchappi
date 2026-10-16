@@ -71,7 +71,7 @@ test('SOCIAL messenger back navigation, production CSS order and no new auth flo
  assert.match(views,/data-social-back-messages/);
  assert.match(app,/if\(event.target.closest\('\[data-social-back-messages\]'\)\)\{loadMessages\(\);return;\}/);
  assert.match(hub,/swapp-social-product-v3\.css\?v=20261016-social-product-v6/);
- assert.match(hub,/app\.js\?v=20261016-social-stable-v6/);
+ assert.match(hub,/app\.js\?v=20261016-social-writefix-v7/);
  assert.ok(hub.indexOf('swapp-social-product-v3.css')>hub.indexOf('swapp-social-next.css'),'newest design loaded last');
  assert.ok(!htmlRegexNewAuth(hub),'No added SOCIAL login form or separate authentication');
 });
