@@ -8,19 +8,31 @@ import { setView, loadHome, loadExplore, loadCircles, loadNotifications, loadSav
    ResizeObserver runs only when the header changes size, not on page scroll. */
 function installSocialHeaderOffset(){
  const header=document.querySelector('.site-header')||document.querySelector('header.top');
- if(!header)return;
+ const stack=document.querySelector('.swapp-social-sticky-stack');
+ if(!header||!stack)return;
  const update=()=>{
-  const height=Math.ceil(header.getBoundingClientRect().height);
-  if(!Number.isFinite(height)||height<40||height>220)return;
-  document.documentElement.style.setProperty('--swapp-social-header-height',height+'px');
+  const top=Math.ceil(header.getBoundingClientRect().height);
+  const height=Math.ceil(stack.getBoundingClientRect().height);
+  const root=document.documentElement.style;
+  if(Number.isFinite(top)&&top>=40&&top<=220)
+   root.setProperty('--swapp-social-header-height',top+'px');
+  if(Number.isFinite(height)&&height>=45&&height<=350)
+   root.setProperty('--swapp-social-stack-height',height+'px');
  };
  update();
  if(typeof ResizeObserver==='function'){
   const observer=new ResizeObserver(update);
   observer.observe(header);
- }else{
-  window.addEventListener('resize',update,{passive:true});
+  observer.observe(stack);
  }
+ // A feed switch can hide its tabs without resizing the overall document.
+ // This also handles devices that lack ResizeObserver.
+ const tabs=document.getElementById('feed-tabs');
+ if(tabs&&typeof MutationObserver==='function'){
+  const observer=new MutationObserver(update);
+  observer.observe(tabs,{attributes:true,attributeFilter:['hidden']});
+ }
+ window.addEventListener('resize',update,{passive:true});
  window.addEventListener('pageshow',update,{passive:true});
 }
 installSocialHeaderOffset();
