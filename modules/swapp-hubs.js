@@ -21,9 +21,28 @@ function community(){
   '<div class="swapp-social-access-gate" role="region" aria-label="Connexion requise">'+
   '<div class="swapp-social-access-copy"><span>SWAPP / SOCIAL</span><h2>Rejoins la conversation.</h2>'+
   '<p>Connecte-toi avec ton compte SWAPP pour découvrir la communauté.</p>'+
-  '<div class="swapp-social-access-actions"><a href="/compte">Se connecter à SWAPP</a></div>'+
+  '<form id="swapp-social-login-form" class="swapp-social-access-form" autocomplete="on">'+
+   '<label for="swapp-social-login">Identifiant SWAPP</label>'+
+   '<input id="swapp-social-login" name="username" autocomplete="username" minlength="3" maxlength="40" required placeholder="Ton identifiant">'+
+   '<label for="swapp-social-password">Mot de passe</label>'+
+   '<input id="swapp-social-password" name="password" type="password" autocomplete="current-password" required placeholder="Ton mot de passe">'+
+   '<button type="submit" class="swapp-social-submit">Se connecter à SWAPP</button>'+
+   '<p id="swapp-social-auth-error" class="swapp-social-auth-error" role="alert" aria-live="polite" hidden></p>'+
+   '</form>'+
+   '<div class="swapp-social-access-other"><button type="button" id="swapp-social-show-register">Créer un compte SWAPP</button></div>'+
+   '<form id="swapp-social-register-form" class="swapp-social-access-form" autocomplete="on" hidden>'+
+   '<label for="swapp-social-reg-login">Identifiant SWAPP</label>'+
+   '<input id="swapp-social-reg-login" name="username" autocomplete="username" minlength="3" maxlength="40" required placeholder="Choisir un identifiant">'+
+   '<label for="swapp-social-reg-email">Adresse e-mail</label>'+
+   '<input id="swapp-social-reg-email" name="email" type="email" autocomplete="email" required placeholder="Adresse e-mail">'+
+   '<label for="swapp-social-reg-pass">Mot de passe</label>'+
+   '<input id="swapp-social-reg-pass" name="new-password" type="password" autocomplete="new-password" minlength="6" required placeholder="Au moins 6 caractères">'+
+   '<button type="submit" class="swapp-social-submit">Créer mon compte SWAPP</button>'+
+   '<p id="swapp-social-register-error" class="swapp-social-auth-error" role="alert" aria-live="polite" hidden></p>'+
+   '<button type="button" id="swapp-social-show-login" class="swapp-social-return-login">Déjà inscrit ? Se connecter</button>'+
+   '</form>'+
   '<small>Connexion sécurisée sur SWAPP. Seul un compte SWAPP connecté permet l’accès.</small></div></div></div>';
- const scripts=assets+pageColors+'<link rel="stylesheet" href="/assets/swapp-social-access.css?v=20261016-1"><script defer src="/assets/swapp-social-access.js?v=20261016-2"></script>'+
+ const scripts=assets+pageColors+'<link rel="stylesheet" href="/assets/swapp-social-access.css?v=20261016-3"><script defer src="/assets/swapp-social-access.js?v=20261016-3"></script>'+
   '<link rel="stylesheet" href="/assets/swapp-social-native/social-swapp.css?v=20261016-masthead-fix-v3">'+
   '<script type="module" src="/assets/swapp-social-native/app.js?v=20261016-masthead-fix-v3"></script>';
  return layout({title:'Communauté',description:'Le réseau SOCIAL complet intégré dans SWAPP : profils, publications, communautés et messagerie.',content,active:'community',scripts});
