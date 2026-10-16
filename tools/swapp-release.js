@@ -15,6 +15,7 @@ const RELEASE_FILES=Object.freeze([
  'modules/swapp-shop-router.js',
  'data/swapp-shop.json',
  'assets/swapp-shop.css',
+ 'assets/swapp-storefront.js',
  'assets/swapp-shop-admin.css',
  'assets/swapp-shop-admin.js',
  'assets/swapp-editor-nav.js',
