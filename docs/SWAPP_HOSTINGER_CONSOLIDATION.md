@@ -2,7 +2,7 @@
 
 Statut : **plan de migration préparatoire, aucune donnée transférée**.
 
-## But et contraintes
+> Mise à jour : la priorité est d'abord de déployer sans casse le code SWAPP via Hostinger (ZIP ou FTP/SFTP dans un emplacement de préparation). Les historiques d'événements et anciennes statistiques ne sont **pas** à reprendre. Les comptes, articles, posts et données utiles restent indispensables. Voir [SWAPP_HOSTINGER_SAFE_DEPLOY.md](SWAPP_HOSTINGER_SAFE_DEPLOY.md).\n\n## But et contraintes
 
 - Hostinger héberge déjà SWAPP (application Express/Node démarrée par `app.js`).
 - Réutiliser une base MySQL existante sur le **même hébergement Hostinger**, si sa capacité, ses accès et sa structure sont confirmés.
