@@ -449,9 +449,12 @@ function bindDelegatedEvents(){
       if(submit?.disabled)return;
       if(submit)submit.disabled=true;
       const form=new FormData(event.target);
+      const handle=String(form.get('handle')||'').trim().replace(/^@/,'');
       try{
-        await api('/api/pulse/messages',{method:'POST',body:JSON.stringify({handle:String(form.get('handle')||'').replace(/^@/,''),body:form.get('body')})});
-        await loadMessages();
+        await api('/api/pulse/messages',{method:'POST',body:JSON.stringify({handle,body:form.get('body')})});
+        // Open the thread after a first DM, rather than sending the user
+        // back to the empty conversation directory.
+        await loadConversation(handle);
       }catch(error){alert(errorText(error))}
       finally{if(submit)submit.disabled=false}
     }
