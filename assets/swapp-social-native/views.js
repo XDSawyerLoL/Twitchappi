@@ -81,13 +81,31 @@ export async function loadNewsRss(){
   }
 }
 
+async function showRealNewsWhenEmpty(){
+ const feed=dom.feed;
+ try{
+  const response=await fetchNewsFeed();
+  if(state.view!=='home'||state.feed==='news'||!feed)return;
+  const items=(response.items||[]).filter(x=>x&&x.title).sort((a,b)=>Date.parse(b.publishedAt||0)-Date.parse(a.publishedAt||0)).slice(0,4);
+  if(!items.length)return;
+  feed.innerHTML='<section class="pulse-starter-news" aria-label="Découvrir les dernières actualités SWAPP">'+
+   '<header class="pulse-starter-news-head"><span>POUR COMMENCER</span><h2>Des jeux dont on parle.</h2>'+
+   '<p>Les derniers articles publiés par SWAPP. Lis, partage et lance la discussion.</p></header>'+
+   '<div class="pulse-news-grid">'+items.map(renderNewsCard).join('')+'</div></section>';
+ }catch{
+  // A failing news API must never hide existing SOCIAL content or break navigation.
+ }
+}
+
 export async function loadHome(){
   if(state.feed==='news')return loadNewsRss();
   setView('home','Accueil');
   setStatus('Chargement du fil','');
   try{
     const data=await api('/api/pulse/feed?mode='+state.feed+'&limit=40');
-    renderPosts(data.posts,state.user&&state.feed==='following'?'Suis des comptes ou publie le premier message de ton fil.':'Aucune publication publique.');
+    const posts=Array.isArray(data.posts)?data.posts:[];
+    renderPosts(posts,state.user&&state.feed==='following'?'Suis des comptes ou publie le premier message de ton fil.':'Aucune publication publique.');
+    if(posts.length===0&&state.feed==='discover')await showRealNewsWhenEmpty();
   }catch(error){
     setStatus('SOCIAL indisponible',errorText(error));
   }
