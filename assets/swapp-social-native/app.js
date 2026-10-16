@@ -229,14 +229,7 @@ function bindStaticEvents(){
       window.scrollTo({top:0,behavior:'smooth'});
     }
   });
-  document.getElementById('auth-button').addEventListener('click',function(){
-    state.user?loadProfile(state.user.handle):openAuth('login');
-  });
-  document.getElementById('welcome-register').addEventListener('click',function(){openAuth('register')});
-  document.getElementById('welcome-login').addEventListener('click',function(){openAuth('login')});
-  document.getElementById('account-button').addEventListener('click',function(){
-    state.user?loadProfile(state.user.handle):openAuth('register');
-  });
+  // SWAPP is the visible account authority. The duplicate SOCIAL entrypoints were removed.
   document.getElementById('auth-close').addEventListener('click',closeAuth);
   document.getElementById('auth-switch').addEventListener('click',function(){
     state.authMode=state.authMode==='login'?'register':'login';
