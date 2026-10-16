@@ -19,7 +19,7 @@
 .swapp-editorial-top-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:17px}
 .swapp-editorial-game{background:linear-gradient(180deg,#1b2b3a,#101923);border:1px solid var(--st-line);border-radius:13px;overflow:hidden;min-width:0;display:flex;flex-direction:column;transition:transform .2s,border-color .2s}
 .swapp-editorial-game:hover{transform:translateY(-4px);border-color:#73ddc4}
-.swapp-editorial-game-art{display:block;aspect-ratio:1.25;position:relative;background:#203044;overflow:hidden}
+.swapp-editorial-game-art{display:block;aspect-ratio:2/3;position:relative;background:#203044;overflow:hidden}
 .swapp-editorial-game-art img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s}
 .swapp-editorial-game:hover img{transform:scale(1.045)}
 .swapp-editorial-game-rank{position:absolute;z-index:1;top:10px;left:10px;background:rgba(6,13,25,.85);backdrop-filter:blur(8px);border:1px solid #ffffff55;border-radius:7px;padding:7px 10px;font-size:14px;font-weight:950}
