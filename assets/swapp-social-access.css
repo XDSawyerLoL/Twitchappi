@@ -1,0 +1,15 @@
+/* SOCIAL authentication entry, applies to /communaute only. */
+.swapp-social-access{position:relative;min-height:calc(100dvh - 78px)}
+.swapp-social-access-content{min-height:inherit}
+.swapp-social-access.is-pending .swapp-social-access-content,.swapp-social-access.is-locked .swapp-social-access-content{filter:blur(12px);opacity:.45;pointer-events:none;user-select:none}
+.swapp-social-access.is-pending .swapp-social-access-content,.swapp-social-access.is-locked .swapp-social-access-content{max-height:calc(100dvh - 78px);overflow:hidden}
+.swapp-social-access-gate{position:absolute;inset:0;z-index:80;display:grid;place-items:center;padding:25px;background:linear-gradient(180deg,#070b14a8,#070b14ca);text-align:center}
+.swapp-social-access.is-unlocked .swapp-social-access-gate{display:none}
+.swapp-social-access-copy{width:min(600px,100%);padding:30px 22px;background:#0e1724;border-top:3px solid var(--swapp-page-accent,#22d3ee);box-shadow:0 30px 100px #000a}
+.swapp-social-access-copy>span{font-size:12px;letter-spacing:.18em;font-weight:850;color:var(--swapp-page-accent,#22d3ee)}
+.swapp-social-access-copy h2{font-size:clamp(29px,4vw,52px);letter-spacing:-.05em;margin:15px 0 10px;line-height:1.08}
+.swapp-social-access-copy p{color:#d1dae5;line-height:1.55}
+.swapp-social-access-actions a{display:inline-block;background:var(--swapp-page-accent,#22d3ee);color:#08121c;font-weight:850;text-decoration:none;padding:13px 26px;margin:15px 0}
+.swapp-social-access-copy small{display:block;color:#a4b3c3;line-height:1.5}
+.swapp-social-access.is-pending .swapp-social-access-actions{opacity:.6}
+@media(max-width:650px){.swapp-social-access-gate{padding:15px}.swapp-social-access-copy{padding:24px 17px}}
