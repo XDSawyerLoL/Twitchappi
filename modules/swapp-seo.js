@@ -4,7 +4,7 @@
 const ORIGIN='https://swapp.tv';
 const CORE_PATHS=Object.freeze([
  '/', '/decouvrir', '/categories', '/equipes', '/actus',
- '/communaute', '/bandes-annonces', '/boutique'
+ '/communaute', '/bandes-annonces', '/boutique', '/plan-du-site'
 ]);
 const SLUG=/^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/;
 const XML_CHARS=/[&<>"']/g;
@@ -26,7 +26,7 @@ function sitemapEntries(articles=[]){
   const path='/actus/'+encodeURIComponent(slug);
   if(seen.has(path))continue;seen.add(path);
   entries.push({loc:ORIGIN+path,lastmod:isoDate(article.updatedAt||article.publishedAt)});
-  if(entries.length>=508)break;
+  if(entries.length>=CORE_PATHS.length+500)break;
  }
  return entries;
 }
@@ -62,6 +62,43 @@ function rssXml(articles=[]){
   '<link>'+ORIGIN+'/actus</link><description>Les articles gaming publiés sur SWAPP.</description>'+
   '<language>fr-FR</language>\n'+items+'\n</channel></rss>\n';
 }
+function sitemapHtml(articles=[]){
+ const indexLinks=[
+  ['/','Accueil'],['/actus','Actualité jeux vidéo'],['/decouvrir','Découvrir des streamers'],
+  ['/categories','Jeux et catégories'],['/equipes','Équipes'],['/bandes-annonces','Bandes-annonces'],
+  ['/communaute','Communauté'],['/boutique','Boutique']
+ ];
+ const index=indexLinks.map(([url,name])=>
+  '<li><a href="'+url+'">'+encodeXml(name)+'</a></li>').join('');
+ const valid=(Array.isArray(articles)?articles:[]).filter(a=>
+  a?.status==='published'&&SLUG.test(String(a.slug||''))).sort((a,b)=>
+  String(b.publishedAt||'').localeCompare(String(a.publishedAt||''))).slice(0,500);
+ const seen=new Set();
+ const items=valid.filter(a=>{if(seen.has(a.slug))return false;seen.add(a.slug);return true})
+  .map(a=>{
+   const name=String(a.title||a.slug).trim().slice(0,180)||a.slug;
+   const date=isoDate(a.publishedAt||a.updatedAt);
+   return '<li><a href="/actus/'+encodeURIComponent(a.slug)+'">'+encodeXml(name)+'</a>'+
+    (date?' <time datetime="'+date+'">'+date+'</time>':'')+'</li>';
+  }).join('');
+ return '<!doctype html><html lang="fr"><head><meta charset="utf-8">'+
+  '<meta name="viewport" content="width=device-width,initial-scale=1">'+
+  '<title>Plan du site — SWAPP</title>'+
+  '<meta name="description" content="Les rubriques et articles publiés sur SWAPP : actualités jeux vidéo, lives, créateurs et communautés.">'+
+  '<link rel="canonical" href="'+ORIGIN+'/plan-du-site">'+
+  '<style>body{margin:0;background:#0b101b;color:#f7f8fe;font:16px/1.6 system-ui,sans-serif}'+
+  'main{max-width:850px;margin:auto;padding:30px 22px 70px}header{border-bottom:1px solid #ffffff29;padding:18px 24px}'+
+  'a{color:#a4e4f2}header a{font-weight:900;font-size:23px;text-decoration:none}'+
+  'h1{font-size:clamp(32px,5vw,52px)}h2{margin-top:34px}li{margin:9px 0}time{color:#a6b5cd;font-size:13px}'+
+  'p{color:#c3cee1}ul{padding-left:25px}</style></head><body>'+
+  '<header><a href="/">SWAPP.</a></header><main><h1>Plan du site</h1>'+
+  '<p>Accède aux principales rubriques de SWAPP et aux articles vérifiés publiés par la rédaction.</p>'+
+  '<section><h2>Explorer SWAPP</h2><ul>'+index+'</ul></section>'+
+  '<section><h2>Articles publiés</h2>'+
+  (items?'<ul>'+items+'</ul>':'<p>Les publications seront listées ici dès qu’elles seront accessibles.</p>')+
+  '</section></main></body></html>';
+}
+
 function registerSeoRoutes(app,{getPublished=async()=>[],now=()=>Date.now()}={}){
  if(!app||typeof app.get!=='function')throw Error('Express app required');
  let cached=null,articles=[],expires=0;
@@ -91,6 +128,12 @@ function registerSeoRoutes(app,{getPublished=async()=>[],now=()=>Date.now()}={})
   await ensureCache();
   return res.status(200).send(cached);
  });
+ app.get('/plan-du-site',async(_req,res)=>{
+  res.set('Cache-Control','public, max-age=900');
+  res.type('text/html; charset=utf-8');
+  await ensureCache();
+  return res.status(200).send(sitemapHtml(articles));
+ });
  app.get('/feed.xml',async(_req,res)=>{
   res.set('Cache-Control','public, max-age=900');
   res.type('application/rss+xml; charset=utf-8');
@@ -113,7 +156,7 @@ const LANDING_CONTENT=Object.freeze({
  '/equipes':{heading:'Équipes de streamers et communautés gaming',intro:'Parcours les équipes et découvre les créateurs réunis autour des mêmes jeux et centres d’intérêt.',detail:'SWAPP relie la découverte des créateurs à celle des communautés.'},
  '/actus':{heading:'Actualité du jeu vidéo et du streaming',intro:'Lis les dernières informations sur les jeux vidéo, les annonces, les sorties et les bandes-annonces publiées sur SWAPP.',detail:'Chaque article disponible possède son adresse dédiée, pour retrouver les informations et découvrir les créateurs en direct.'}
 });
-const LANDING_LINKS=Object.freeze([['/actus','Actualité'],['/decouvrir','Lives et créateurs'],['/categories','Jeux et catégories'],['/equipes','Équipes'],['/bandes-annonces','Bandes-annonces'],['/communaute','Communauté']]);
+const LANDING_LINKS=Object.freeze([['/actus','Actualité'],['/decouvrir','Lives et créateurs'],['/categories','Jeux et catégories'],['/equipes','Équipes'],['/bandes-annonces','Bandes-annonces'],['/communaute','Communauté'],['/plan-du-site','Plan du site']]);
 function landingMarkup(path){
  const item=LANDING_CONTENT[path];
  if(!item)return '';
@@ -169,4 +212,4 @@ function injectSpaMetadata(html,pathname='/'){
  }
  return result.replace('</head>','<meta name="robots" content="noindex,nofollow"></head>');
 }
-module.exports={ORIGIN,CORE_PATHS,sitemapEntries,sitemapXml,rssXml,robotsText,registerSeoRoutes,injectSpaMetadata};
+module.exports={ORIGIN,CORE_PATHS,sitemapEntries,sitemapXml,sitemapHtml,rssXml,robotsText,registerSeoRoutes,injectSpaMetadata};
