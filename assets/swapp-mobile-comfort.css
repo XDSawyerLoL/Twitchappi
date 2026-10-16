@@ -107,3 +107,24 @@
  #actus .swapp-actus-native{padding-left:14px!important;padding-right:14px!important}
  #mobileNav.mobileNav > :is(a,button,.swapp-mobile-more){min-width:86px!important}
 }
+
+/* Discovery forms and live details should remain readable on touch devices. */
+@media (max-width:920px) and (orientation:portrait), (max-width:650px){
+ #discover :is(input,select,textarea){
+  box-sizing:border-box;max-width:100%;min-height:46px;font-size:16px!important;
+ }
+ #discover button:not([aria-label="Fermer"]){
+  min-height:44px;font-size:14px;
+ }
+ #discover :is(p,li){font-size:max(15px,1em);line-height:1.55}
+ #discover small{font-size:13px;line-height:1.4}
+ #discover :is(.liveCard,.streamCard,.live-card,.stream-card){
+  min-width:0;max-width:100%;overflow-wrap:anywhere;
+ }
+ #discover :is(.liveBody,.streamBody,.live-body,.stream-body){
+  padding:15px;min-width:0;
+ }
+ #discover :is(.liveBody,.streamBody,.live-body,.stream-body) :is(h2,h3,strong){
+  font-size:clamp(18px,4.5vw,23px);line-height:1.35;
+ }
+}
