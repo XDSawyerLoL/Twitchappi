@@ -140,6 +140,24 @@ test('unprovisioned recipients show a specific error and no DM is written',async
  assert.equal(t.messages.length,0);
 });
 
+test('a cross-origin write is rejected before reaching the SOCIAL backend',async()=>{
+ const t=makeTransport();
+ const client=t.createClient(USER_A);
+ const originalClient=client;
+ // The transport contract requires a strict SWAPP Origin on every write.
+ const {createSocialNativeProxy}=require('../modules/swapp-social-native-proxy');
+ const proxy=createSocialNativeProxy(async()=>{throw Error('unexpected upstream call')},{
+  production:true,ssoSecret:SSO,restoreLocalSession:async()=>USER_A
+ });
+ let status=200,payload=null;
+ const res={set(){return this},status(v){status=v;return this},json(v){payload=v;return this}};
+ await proxy({path:'/posts',method:'POST',headers:{origin:'https://untrusted.example'},
+  originalUrl:'/api/pulse/posts',body:{body:'Unauthorised request'},session:{}},res);
+ assert.equal(status,403);
+ assert.deepEqual(payload,{error:'social_origin_required'});
+ assert.equal(t.posts.length,0);
+});
+
 test('unauthenticated requests cannot write to another member account',async()=>{
  const t=makeTransport(),alice=t.createClient(USER_A);
  const result=await alice('/posts','POST',{body:'Post SWAPP'});
