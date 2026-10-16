@@ -47,7 +47,7 @@ function community(){
   '<link rel="stylesheet" href="/assets/swapp-social-native/social-swapp.css?v=20261016-feedtabs-fix-2">'+
   '<link rel="stylesheet" href="/assets/swapp-social-refinement.css?v=20261016-stories-search-v5">'+
   '<script defer src="/assets/swapp-social-reading.js?v=20261016-stories-search-v6"></script>'+
-  '<script type="module" src="/assets/swapp-social-native/app.js?v=20261016-social-stable-v6"></script>'+
+  '<script type="module" src="/assets/swapp-social-native/app.js?v=20261016-social-writefix-v7"></script>'+
   '<link rel="stylesheet" href="/assets/swapp-social-interactions.css?v=20261016-match2-v1">'+
   '<script defer src="/assets/swapp-social-interactions.js?v=20261016-recovery-v6"></script>'+
   '<link rel="stylesheet" href="/assets/swapp-social-next.css?v=20261016-passport-game-v2">'+
