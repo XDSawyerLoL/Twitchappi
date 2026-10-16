@@ -3,7 +3,7 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
-const {community,trailers,shop,shopAdmin,verifiedTrailers,curatedVideos,safeProducts}=require('../modules/swapp-hubs');
+const {community,trailers,shop,shopProduct,shopAdmin,verifiedTrailers,curatedVideos,safeProducts}=require('../modules/swapp-hubs');
 const {assertArticle}=require('../modules/swapp-news/article-core');
 const extras=require('../assets/swapp-article-extras');
 
@@ -68,18 +68,18 @@ test('commercial catalog never invents products or follows unsafe merchant links
  assert.deepEqual(safeProducts([{title:'Surprise',url:'javascript:alert(1)'}]),[]);
  const product={id:'casquette-test',kind:'caps',title:'Accessoire',description:'Produit réel',
   merchant:'Vendeur',url:'https://merchant.example/produit',image:'https://cdn.example/photo.jpg',affiliate:true,demo:false,visible:true};
- const html=shop([product],{source:'managed'});
+ const html=shopProduct(product,[product]);
  assert.match(html,/Lien affilié/);
  assert.match(html,/rel="sponsored nofollow noopener noreferrer"/);
  assert.match(html,/merchant\.example\/produit/);
  const examples=shop();
- assert.match(examples,/Boutique en préparation/);
+ assert.match(examples,/La Boutique prend forme/);
  assert.match(examples,/Clair Obscur/);
  assert.match(examples,/Casquettes/);
  assert.match(examples,/Tapis de souris/);
  assert.doesNotMatch(examples,/instant-gaming\.com|igr=SANSAHD/);
  assert.doesNotMatch(examples,/Prix barré|Acheter maintenant/);
- assert.equal((examples.match(/class="swapp-shop-product-image"/g)||[]).length,7);
+ assert.equal((examples.match(/class="swapp-store-product-img"/g)||[]).length,7);
 });
 
 test('editorial YouTube trailer is click-to-play only and labels every commercial link',()=>{
