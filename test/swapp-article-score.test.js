@@ -80,8 +80,8 @@ test('SWAPP Score: validate CSRF origin, article publication and range',async()=
 test('SWAPP Score and favorites load in native and SPA article layouts',()=>{
  const root=path.join(__dirname,'..');
  const read=p=>fs.readFileSync(path.join(root,p),'utf8');
- assert.match(read('index.html'),/swapp-article-feedback\.js\?v=20261016-score-v1/);
- assert.match(read('modules/swapp-news/site-shell.js'),/swapp-article-feedback\.js\?v=20261016-score-v1/);
+ assert.match(read('index.html'),/swapp-article-feedback\.js\?v=20261016-score-v2/);
+ assert.match(read('modules/swapp-news/site-shell.js'),/swapp-article-feedback\.js\?v=20261016-score-v2/);
  assert.match(read('modules/swapp-news/native-pages.js'),/data-swapp-article-slug/);
  assert.match(read('assets/swapp-actus-app.js'),/SwappArticleFeedback\?\.mountArticle/);
  assert.match(read('assets/swapp-actus-app.js'),/SwappArticleFeedback\?\.mountList/);
