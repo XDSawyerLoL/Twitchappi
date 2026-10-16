@@ -92,6 +92,21 @@ test('catalog persists with revision-safe Firestore transactions, without alteri
  await assert.rejects(store.save({revision:0,products:[real()]}),e=>e.status===409);
  assert.deepEqual([...database.state.keys()],['catalog']);
 });
+test('saved legacy demo images are upgraded without overwriting custom product photos',async()=>{
+ const database=db();
+ database.state.set('catalog',{revision:7,updatedAt:'2026-10-01',products:[
+  {id:'clair-obscur',kind:'games',title:'Clair Obscur: Expedition 33',demo:true,visible:true,image:'',url:''},
+  {id:'cap-nocturne',kind:'caps',title:'Ma casquette',demo:true,visible:true,image:'https://cdn.example/owner-photo.jpg',url:''},
+  real({id:'real-photo',image:'https://cdn.example/real.jpg'})
+ ]});
+ const store=createCatalogStore({firestore:database}),catalog=await store.load();
+ assert.equal(catalog.revision,7);
+ assert.ok(catalog.products[0].image.startsWith('https://shared.fastly.steamstatic.com/'));
+ assert.equal(catalog.products[1].image,'https://cdn.example/owner-photo.jpg');
+ assert.equal(catalog.products[2].image,'https://cdn.example/real.jpg');
+ const persisted=database.state.get('catalog');
+ assert.equal(persisted.products[0].image,'','the migration is read-time only, never a database write');
+});
 test('read-only fallback does not claim an admin edit was persisted',async()=>{
  const store=createCatalogStore({});
  const fallback=await store.load();
