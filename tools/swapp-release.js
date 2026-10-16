@@ -10,6 +10,7 @@ const RELEASE_FILES=Object.freeze([
  'app.js',
  'index.html',
  'modules/swapp-hubs.js',
+ 'modules/swapp-seo.js',
  'modules/swapp-news/site-shell.js',
  'assets/swapp-unified-nav.css',
  'assets/swapp-mobile-comfort.css',
