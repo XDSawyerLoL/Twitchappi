@@ -129,12 +129,12 @@ function steamTopSection(){
  const cards=SWAPP_STEAM_TOP_20261016.map((g,i)=>{
   const [name,id,price,genre,description]=g;
   const url='https://store.steampowered.com/app/'+id+'/';
-  const art='https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/'+id+'/header.jpg';
+  const art='';
   return '<article class="swapp-editorial-game" aria-label="Rang '+(i+1)+' : '+esc(name)+'">'+
     '<a class="swapp-editorial-game-art" href="'+url+'" target="_blank" rel="noopener noreferrer">'+
       '<span class="swapp-editorial-game-rank">'+String(i+1).padStart(2,'0')+'</span>'+
       '<span class="swapp-editorial-game-fallback" aria-hidden="true"><span>SWAPP / GAME LIBRARY</span><strong>'+esc(name)+'</strong><small>'+esc(genre)+'</small></span>'+
-      '<img data-steam-app="'+id+'" data-steam-stage="0" src="'+art+'" alt="Jaquette du jeu '+esc(name)+'" loading="lazy" decoding="async" referrerpolicy="no-referrer">'+
+      '<img data-steam-app="'+id+'" data-steam-stage="0" alt="Jaquette du jeu '+esc(name)+'" loading="lazy" decoding="async" referrerpolicy="no-referrer">'+
     '</a><div class="swapp-editorial-game-body"><span class="swapp-editorial-game-genre">'+esc(genre)+'</span>'+
     '<h3>'+esc(name)+'</h3><p>'+esc(description)+'</p><div class="swapp-editorial-game-foot">'+
     '<strong>'+esc(price||'Prix à vérifier')+'</strong><a href="'+url+'" target="_blank" rel="noopener noreferrer">Voir sur Steam ↗</a>'+
@@ -170,7 +170,7 @@ function shop(products=demoProducts,{source='demo'}={}){
   '</main>';
  return layout({title:'Boutique',description:'La boutique SWAPP : jeux vidéo, casquettes, accessoires et tapis de souris.',content,active:'shop',
   scripts:assets+'<link rel="stylesheet" href="/assets/swapp-shop.css?v=20261016-store-v5"><link rel="stylesheet" href="/assets/swapp-editorial-top.css?v=20261016-top10-v5">'+
-   '<script defer src="/assets/swapp-steam-art.js?v=20261016-fallback-v4"></script>'});
+   '<script defer src="/assets/swapp-steam-art.js?v=20261016-steam-canonical-v1"></script>'});
 }
 function shopProduct(product,products=demoProducts){
  const all=normalizeAll(products).filter(p=>p.visible&&p.image);
