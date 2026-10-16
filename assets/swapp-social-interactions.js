@@ -128,7 +128,7 @@
   const visible=roomsExpanded?rooms:rooms.slice(0,6);
   el.innerHTML=visible.map(r=>`<button class="ssi-room" type="button" data-room="${escape(r.id)}" aria-pressed="${r.id===activeRoom}"><span class="ssi-room-info"><span class="ssi-room-name"># ${escape(r.name)}</span><span class="ssi-room-game">${escape(r.game)}</span></span><span class="ssi-room-meta">${Math.max(0,Number(r.messageCount)||0)} msg ↗</span></button>`).join('')+(count>6?'<button type="button" class="ssi-ghost" data-action="toggle-rooms">'+(roomsExpanded?'Voir moins':'Voir tous les salons ('+count+')')+'</button>':'');
  }
- async function loadMatches(){try{const data=await req('matches/compatible');matches=Array.isArray(data.matches)?data.matches:[];renderMatches()}catch(e){$('#ssi-match-results').innerHTML=empty('! ',escape(e.message));}}
+ async function loadMatches(){try{const data=await req('match2/compatible');matches=Array.isArray(data.matches)?data.matches:[];renderMatches()}catch(e){$('#ssi-match-results').innerHTML=empty('! ',escape(e.message));}}
  async function loadPolls(){try{const data=await req('polls');polls=Array.isArray(data.polls)?data.polls:[];renderPolls()}catch(e){$('#ssi-poll-results').innerHTML=empty('! ',escape(e.message));}}
  async function loadRooms(){
   const data=await req('rooms');rooms=Array.isArray(data.rooms)?data.rooms:[];
@@ -196,6 +196,22 @@
   }catch(e){notice(e.message,'error')}
   finally{button.disabled=false}
  }
+ // Game context cards can open genuine MySQL rooms not yet shown in the recent list.
+ area.addEventListener('ssi:open-room',async event=>{
+  const room=event.detail;
+  if(!room||typeof room.id!=='string'||typeof room.name!=='string')return;
+  if(!rooms.some(r=>r.id===room.id))rooms.push({id:room.id,name:room.name,game:room.game||'',messageCount:0});
+  roomsExpanded=true;renderRooms();
+  await selectRoom(room.id);
+  $('#ssi-chat-title')?.scrollIntoView?.({behavior:'smooth',block:'center'});
+ });
+ area.addEventListener('ssi:match-game',event=>{
+  const game=String(event.detail?.game||'').slice(0,65);
+  if(!game)return;
+  toggleForm('match',true);
+  const field=$('#ssi-form-match [name="game"]');
+  if(field){field.value=game;field.focus()}
+ });
  area.addEventListener('click',async event=>{
   const open=event.target.closest('[data-open-form]');if(open){toggleForm(open.dataset.openForm,!$('#ssi-form-'+open.dataset.openForm).hidden);return}
   const close=event.target.closest('[data-close-form]');if(close){toggleForm(close.dataset.closeForm,false);return}
