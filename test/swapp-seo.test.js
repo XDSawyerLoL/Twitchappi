@@ -26,7 +26,8 @@ test('robots excludes private and API routes and names the canonical sitemap',()
  const text=robotsText();
  assert.match(text,/User-agent: \*/);
  assert.match(text,/Disallow: \/api\//);
- assert.match(text,/Disallow: \/compte/);
+ // Account routes are crawlable so the server's noindex tag can be honored.
+ assert.doesNotMatch(text,/Disallow: \/compte/);
  assert.match(text,/Disallow: \/actus\/studio/);
  assert.match(text,/Sitemap: https:\/\/swapp\.tv\/sitemap\.xml/);
  const h=appHarness(),res=h.response();
