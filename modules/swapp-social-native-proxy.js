@@ -3,6 +3,7 @@
  * Exact allowlist, pinned upstream, strict method/origin checks, no SWAPP cookies.
  */
 const SOCIAL_ORIGIN='https://quanticminds.onrender.com';
+const crypto=require('node:crypto');
 const simple={
  GET:new Set(['/health','/feed','/search','/circles','/notifications','/me','/me/bookmarks','/conversations','/export']),
  POST:new Set(['/auth/login','/auth/register','/auth/logout','/posts','/circles','/notifications/read','/report','/messages']),
@@ -27,8 +28,52 @@ function safeQuery(path,raw){
  }
  return q.size?'?'+q.toString():'';
 }
-function createSocialNativeProxy(fetchImpl,{production=true}={}){
+function swappSocialCredentials(user,secret){
+ const id=String(user?.id||'').trim();
+ if(!id||!secret)throw Error('social_sso_unconfigured');
+ const stem=String(user?.login||'member').toLowerCase().replace(/[^a-z0-9_]/g,'').slice(0,10)||'member';
+ const suffix=crypto.createHmac('sha256',secret).update('social-handle-v1:'+id).digest('hex').slice(0,10);
+ return {handle:'s_'+stem+'_'+suffix,password:crypto.createHmac('sha256',secret).update('social-password-v1:'+id).digest('base64url'),
+  displayName:String(user?.display_name||user?.login||'Membre SWAPP').trim().slice(0,50)};
+}
+function createSocialNativeProxy(fetchImpl,{production=true,restoreLocalSession=null,ssoSecret=''}={}){
+
  if(typeof fetchImpl!=='function')throw Error('fetch implementation is required');
+ const sessionSso=typeof restoreLocalSession==='function';
+ // Collapse parallel feed/me/circles requests into one backend sign-in.
+ const signingIn=new Map();
+ async function issueSocialToken(req,user){
+  const cached=req.session?.swappSocialAuth;
+  if(cached?.userId===user.id&&typeof cached.token==='string'&&cached.token.length>=20)return cached.token;
+  const key=String(req.sessionID||'')+':'+String(user.id);
+  if(signingIn.has(key))return signingIn.get(key);
+  const task=(async()=>{
+   const creds=swappSocialCredentials(user,ssoSecret);
+   const authCall=async(kind)=>{
+    const endpoint=SOCIAL_ORIGIN+'/api/pulse/auth/'+kind;
+    const response=await fetchImpl(endpoint,{method:'POST',redirect:'error',
+     headers:{Accept:'application/json','Content-Type':'application/json'},
+     body:JSON.stringify(kind==='login'?{handle:creds.handle,password:creds.password}:creds)},10000);
+    const payload=await response.json().catch(()=>({}));
+    return {status:response.status,payload};
+   };
+   let result=await authCall('login');
+   if(result.status===401||result.status===404){
+    const created=await authCall('register');
+    if(created.status===409)throw Object.assign(new Error('social_identity_conflict'),{status:409});
+    if(created.status<200||created.status>=300)throw Object.assign(new Error('social_sso_unavailable'),{status:503});
+    result=created;
+   }
+   if(result.status<200||result.status>=300)throw Object.assign(new Error('social_sso_unavailable'),{status:503});
+   const token=result.payload?.token;
+   if(typeof token!=='string'||!/^[A-Za-z0-9._-]{20,768}$/.test(token))
+    throw Object.assign(new Error('social_sso_unavailable'),{status:503});
+   if(req.session)req.session.swappSocialAuth={userId:user.id,token};
+   return token;
+  })();
+  signingIn.set(key,task);
+  try{return await task}finally{signingIn.delete(key)}
+ }
  return async function proxy(req,res){
   res.set('Cache-Control','private, no-store');
   res.set('X-Content-Type-Options','nosniff');
@@ -46,10 +91,22 @@ function createSocialNativeProxy(fetchImpl,{production=true}={}){
    }
   }
   const headers={Accept:'application/json'};
-  const bearer=String(req.headers?.authorization||'').match(/^Bearer ([A-Za-z0-9_-]{20,256})$/);
-  if(bearer)headers.Authorization='Bearer '+bearer[1];
-  else if(!['GET'].includes(method)&&!['/auth/login','/auth/register'].includes(path)){
-   return res.status(401).json({error:'unauthorized'});
+  let swappUser=null;
+  if(sessionSso){
+   if(path.startsWith('/auth/'))return res.status(403).json({error:'swapp_account_required'});
+   if(!ssoSecret||ssoSecret.length<24)return res.status(503).json({error:'social_sso_unconfigured'});
+   try{await restoreLocalSession(req,res)}
+   catch{return res.status(503).json({error:'swapp_session_unavailable'})}
+   swappUser=req.session?.oryonUser;
+   if(!swappUser?.id||!swappUser?.login)return res.status(401).json({error:'swapp_account_required'});
+   try{headers.Authorization='Bearer '+await issueSocialToken(req,swappUser)}
+   catch(error){return res.status(error.status||503).json({error:error.message==='social_identity_conflict'?'social_identity_conflict':'social_sso_unavailable'})}
+  }else{
+   const bearer=String(req.headers?.authorization||'').match(/^Bearer ([A-Za-z0-9_-]{20,256})$/);
+   if(bearer)headers.Authorization='Bearer '+bearer[1];
+   else if(!['GET'].includes(method)&&!['/auth/login','/auth/register'].includes(path)){
+    return res.status(401).json({error:'unauthorized'});
+   }
   }
   let body;
   if(method!=='GET'){
@@ -76,6 +133,13 @@ function createSocialNativeProxy(fetchImpl,{production=true}={}){
      if(attempt+1<attempts)continue;
      return res.status(503).json({error:'social_upstream_unavailable'});
     }
+    if(sessionSso&&result.status===401&&req.session?.swappSocialAuth){
+     // A revoked remote token cannot be reused on subsequent requests.
+     delete req.session.swappSocialAuth;
+    }
+    if(sessionSso&&path==='/me'&&result.status===200&&data?.user&&swappUser){
+     data.user.displayName=String(swappUser.display_name||swappUser.login).slice(0,50);
+    }
     return res.status(result.status).json(data);
    }catch(error){
     if(attempt+1<attempts)continue;
@@ -87,4 +151,4 @@ function createSocialNativeProxy(fetchImpl,{production=true}={}){
   }
  };
 }
-module.exports={SOCIAL_ORIGIN,permitted,safeQuery,createSocialNativeProxy};
+module.exports={SOCIAL_ORIGIN,permitted,safeQuery,swappSocialCredentials,createSocialNativeProxy};
