@@ -11,6 +11,9 @@ export function setView(view,title){
   dom.feedTabs.hidden=view!=='home';
   dom.composer.hidden=view!=='home'||!state.user;
   dom.welcome.hidden=view!=='home'||state.feed==='news'||!!state.user;
+  const stories=document.getElementById('swapp-social-stories');
+  if(stories)stories.hidden=view!=='home'||state.feed==='news'||
+    !document.getElementById('swapp-social-stories-track')?.children.length;
 }
 
 const NEWS_FEEDS=['/api/actus'];
@@ -37,7 +40,7 @@ async function fetchNewsFeed(){
       if(Array.isArray(data.articles)){
        const items=data.articles.filter(a=>a&&/^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/.test(String(a.slug||'')))
         .map(a=>({title:String(a.title||''),source:'SWAPP',url:location.origin+'/actus/'+encodeURIComponent(a.slug),
-         image:typeof a.image==='object'?a.image?.url:String(a.imageUrl||''),summary:String(a.summary||''),
+         image:typeof a.image==='object'?a.image?.url:String(typeof a.image==='string'?a.image:a.imageUrl||''),summary:String(a.summary||''),
          publishedAt:a.publishedAt||a.originalPublishedAt}));
        return {items};
       }
@@ -111,35 +114,75 @@ export async function loadHome(){
   }
 }
 
-export async function loadExplore(query=''){
-  setView('explore','Explorer');
-  // On mobile, the sidebar search is hidden. Keep a real search control inside
-  // the Explore view instead of routing users to an unusable empty screen.
-  const form='<form id="social-mobile-search-form" class="pulse-mobile-search" role="search">'+
-    '<label for="social-mobile-query">Rechercher dans SOCIAL</label>'+
-    '<div class="pulse-mobile-search-row"><input id="social-mobile-query" type="search" name="query" minlength="2" maxlength="100" autocomplete="off" placeholder="Personne, sujet, publication…" value="'+esc(query)+'" required>'+
-    '<button type="submit">Rechercher</button></div></form>';
-  if(query.trim().length<2){
-    dom.feed.innerHTML='<section class="pulse-view"><div class="pulse-view-head"><h2>Explorer SOCIAL</h2><p>Recherche des personnes, des sujets et des publications.</p></div>'+form+'</section>';
-    return;
-  }
+let latestExploreRequest=0;
 
-  setStatus('Recherche','');
-  try{
-    const data=await api('/api/pulse/search?q='+encodeURIComponent(query.trim()));
-    let html='<section class="pulse-view"><div class="pulse-view-head"><h2>Résultats</h2><p>'+esc(query)+'</p></div>'+form+'<div class="pulse-card-list">';
-    data.users.forEach(function(user){
-      html+='<div class="pulse-card pulse-user-card"><div class="pulse-avatar">'+esc(initials(user))+'</div><div><strong>'+esc(user.displayName)+'</strong><small>@'+esc(user.handle)+' · '+user.followers+' abonnés</small></div><button class="pulse-mini-button" data-profile="'+esc(user.handle)+'">Voir</button></div>';
-    });
-    html+='</div></section>';
-    if(data.posts?.length)html+=data.posts.map(renderPost).join('');
-    if(!data.users?.length&&!data.posts?.length)html+='<div class="pulse-status"><strong>Aucun résultat</strong>Essaie une autre recherche.</div>';
-    dom.feed.innerHTML=html;
-  }catch(error){
-    // Keep the search field visible, including when the SOCIAL API is offline.
-    // A user must be able to retry without leaving Explore.
-    dom.feed.innerHTML='<section class="pulse-view"><div class="pulse-view-head"><h2>Recherche momentanément indisponible</h2><p>'+esc(errorText(error))+'</p></div>'+form+'</section>';
+export async function loadExplore(query=''){
+  const requestId=++latestExploreRequest;
+  query=String(query||'').trim().slice(0,100);
+  setView('explore','Explorer');
+  const form='<form id="social-mobile-search-form" class="pulse-mobile-search" role="search">'+
+    '<label for="social-mobile-query">Rechercher dans SOCIAL et les actualités SWAPP</label>'+
+    '<div class="pulse-mobile-search-row"><input id="social-mobile-query" type="search" name="query" minlength="2" maxlength="100" autocomplete="off" placeholder="Jeu, article, pseudo ou discussion…" value="'+esc(query)+'" required>'+
+    '<button type="submit">Rechercher</button></div></form>';
+  const intro='<section class="pulse-view pulse-explore-view"><div class="pulse-view-head">'+
+    '<h2>'+(query?'Résultats de recherche':'Tout commence par une découverte.')+'</h2>'+
+    '<p>'+(query?'Membres, publications et actualités correspondant à ta recherche.':
+        'Retrouve un membre SWAPP, un jeu ou une conversation dans un seul espace.')+'</p></div>'+form;
+  dom.feed.innerHTML=intro+'</section>';
+  const newsTask=fetchNewsFeed();
+  const socialTask=query.length>=2
+    ?api('/api/pulse/search?q='+encodeURIComponent(query))
+    :Promise.resolve({users:[],posts:[]});
+  const results=await Promise.allSettled([socialTask,newsTask]);
+  // Ignore delayed responses when the visitor has navigated or entered a newer query.
+  if(requestId!==latestExploreRequest||state.view!=='explore')return;
+  const social=results[0].status==='fulfilled'?results[0].value:{users:[],posts:[]};
+  const news=results[1].status==='fulfilled'&&Array.isArray(results[1].value.items)
+    ?results[1].value.items:[];
+  const matches=items=>items.filter(item=>{
+    if(!item||!item.title)return false;
+    if(query.length<2)return true;
+    const words=(String(item.title)+' '+String(item.summary||'')).toLocaleLowerCase('fr-FR');
+    return words.includes(query.toLocaleLowerCase('fr-FR'));
+  });
+  const articles=matches(news).sort((a,b)=>Date.parse(b.publishedAt||0)-Date.parse(a.publishedAt||0))
+    .slice(0,query.length>=2?8:4);
+  const users=Array.isArray(social.users)?social.users:[];
+  const posts=Array.isArray(social.posts)?social.posts:[];
+  let html=intro;
+  if(query.length>=2){
+    if(users.length){
+      html+='<div class="pulse-explore-results-head"><h3>Membres</h3><small>'+users.length+' résultat'+(users.length===1?'':'s')+'</small></div>'+
+        '<div class="pulse-card-list">';
+      users.forEach(user=>{
+        html+='<div class="pulse-card pulse-user-card"><div class="pulse-avatar">'+esc(initials(user))+'</div>'+
+          '<div><strong>'+esc(user.displayName||user.handle)+'</strong><small>@'+esc(user.handle||'')+'</small></div>'+
+          '<button class="pulse-mini-button" data-profile="'+esc(user.handle)+'">Voir le profil</button></div>';
+      });
+      html+='</div>';
+    }
+    if(posts.length){
+      html+='<div class="pulse-explore-results-head"><h3>Publications</h3><small>'+posts.length+
+        ' résultat'+(posts.length===1?'':'s')+'</small></div>'+posts.map(renderPost).join('');
+    }
+    if(results[0].status==='rejected')
+      html+='<p class="pulse-explore-help">Les profils et publications sont momentanément indisponibles. Les articles SWAPP restent accessibles.</p>';
+  }else{
+    html+='<p class="pulse-explore-help">Recherche un pseudo, un titre de jeu ou un sujet. Voici aussi les dernières actualités publiées.</p>';
   }
+  if(articles.length){
+    html+='<section class="pulse-explore-results-news"><div class="pulse-explore-results-head"><h3>'+
+      (query.length>=2?'Actualités SWAPP':'À lire en ce moment')+'</h3>'+
+      '<small>'+articles.length+' article'+(articles.length===1?'':'s')+'</small></div>'+
+      '<div class="pulse-news-grid">'+articles.map(renderNewsCard).join('')+'</div></section>';
+  }
+  if(query.length>=2&&!users.length&&!posts.length&&!articles.length){
+    html+='<div class="pulse-explore-nothing"><strong>Aucun résultat pour « '+esc(query)+' ».</strong>'+
+     '<p>Essaie un autre titre ou un pseudo SWAPP, ou <a href="/actus">parcours les actualités</a>.</p></div>';
+  }else if(query.length<2&&!articles.length){
+    html+='<div class="pulse-explore-nothing">Aucune actualité disponible pour le moment. Saisis au moins deux caractères pour chercher un membre ou une publication.</div>';
+  }
+  dom.feed.innerHTML=html+'</section>';
 }
 
 export async function loadCircles(){
