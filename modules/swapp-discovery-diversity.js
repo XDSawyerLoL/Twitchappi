@@ -29,6 +29,8 @@ function diversifyDiscovery(scored,{limit=60,query='',firstScreen=12,perGame=2}=
  const first=Math.min(max,Math.max(1,Math.min(12,Number(firstScreen)||12)));
  const cap=Math.max(1,Math.min(4,Number(perGame)||2));
  const pool=candidates.slice(0,Math.max(first*3,first));
+ const baseline=Number(candidates[Math.min(first-1,candidates.length-1)]?.score);
+ const relevanceFloor=Number.isFinite(baseline)?baseline-30:-Infinity;
  const distinct=new Set(pool.map(gameKey)).size;
  if(distinct<3)return candidates.slice(0,max);
  const used=new Set(),counts=new Map(),result=[];
@@ -39,6 +41,9 @@ function diversifyDiscovery(scored,{limit=60,query='',firstScreen=12,perGame=2}=
  };
  // Honor the existing score order whenever the diversity cap permits.
  for(let i=0;i<pool.length&&result.length<first;i++){
+  // Do not promote markedly irrelevant/disliked streams from the long tail.
+  const score=Number(pool[i].score);
+  if(Number.isFinite(score)&&score<relevanceFloor)continue;
   const key=gameKey(pool[i]);
   if((counts.get(key)||0)>=cap)continue;
   add(pool[i],i);
