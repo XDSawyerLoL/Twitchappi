@@ -123,6 +123,10 @@ body.oryonDiscoverV4 #discover .v4Deck:not(:has(.v4DeckSlot:not(.empty))):after{
 }
 body.oryonDiscoverV4 #discover .v4DeckSlot:not(.empty){min-height:122px!important;overflow:hidden}
 body.oryonDiscoverV4 #discover .v4DeckSlot:not(.empty) img{object-fit:cover}
+body.oryonDiscoverV4 #discover :is(.v4DeckSlot:not(.empty),.v4FollowCard).swapp-discover-no-image{
+ background:linear-gradient(135deg,#193346,#281d40 68%,#131d30)!important;
+}
+body.oryonDiscoverV4 #discover :is(.v4DeckSlot,.v4FollowCard) img[hidden]{display:none!important}
 body.oryonDiscoverV4 #discover .v4FollowRail{
  max-width:100%!important;overflow-x:auto!important;
  scrollbar-width:none!important;overscroll-behavior-x:contain;
@@ -214,6 +218,7 @@ body.oryonDiscoverV4 #discover .v4FollowRail::-webkit-scrollbar{display:none!imp
   return (card.querySelector('.v4LiveTitle')?.textContent||'').trim().slice(0,100);
  }
  const lastHeroImage=new WeakMap();
+ const lastSavedImage=new WeakMap();
  function decorate(){
   const area=doc.getElementById('discover');
   if(!area||!area.querySelector('.v4Page'))return;
@@ -256,10 +261,24 @@ body.oryonDiscoverV4 #discover .v4FollowRail::-webkit-scrollbar{display:none!imp
     card.classList.add('swapp-discover-no-image');
    }
   }
-  // Saved deck images should not all compete with the hero thumbnail.
+  // DeckLurker and followed creators reuse image nodes too. A stale Twitch
+  // preview should never leave a broken-image icon or blank grey rectangle.
   for(const image of area.querySelectorAll('.v4DeckSlot img,.v4FollowCard img')){
    if(!image.getAttribute('loading'))image.loading='lazy';
    image.decoding='async';
+   const src=String(image.getAttribute?.('src')||image.src||'').trim();
+   if(lastSavedImage.get(image)===src)continue;
+   lastSavedImage.set(image,src);
+   const holder=image.closest?.('.v4DeckSlot,.v4FollowCard');
+   holder?.classList.remove('swapp-discover-no-image');
+   image.hidden=false;
+   const fail=()=>{
+    if(lastSavedImage.get(image)!==src)return;
+    holder?.classList.add('swapp-discover-no-image');
+    image.hidden=true;
+   };
+   if(!src||src.includes('404_preview')||(image.complete&&image.naturalWidth===0))fail();
+   else image.addEventListener('error',fail,{once:true});
   }
  }
  function canWatch(){
