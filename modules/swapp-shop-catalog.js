@@ -36,12 +36,20 @@ function normalize(item,{strict=false}={}){
  const url=https(item.url,!demo&&visible);
  const image=https(item.image,strict&&visible);
  const image2=https(item.image2,false);
+ const rawPrice=String(item.priceEur==null?'':item.priceEur).trim().replace(',','.');
+ let priceEur='';
+ if(!demo&&rawPrice){
+  if(!/^(?:0|[1-9][0-9]{0,4})(?:\.[0-9]{1,2})?$/.test(rawPrice)||
+    Number(rawPrice)<=0||Number(rawPrice)>99999)
+   throw new CatalogError('Prix EUR invalide : indique un montant positif avec deux décimales au maximum.');
+  priceEur=Number(rawPrice).toFixed(2);
+ }
  if(!demo&&visible&&!merchant)throw new CatalogError('Le marchand est obligatoire pour publier un produit réel.');
  const description=clean(item.description,260);
  if(strict&&item.title&&String(item.title).length>110)throw new CatalogError('Titre trop long (110 caractères).');
  if(strict&&item.description&&String(item.description).length>260)throw new CatalogError('Description trop longue (260 caractères).');
  return {id,kind,title,description,badge:clean(item.badge,48),
-  merchant,url,image,image2,affiliate:!demo&&item.affiliate===true,demo,visible};
+  merchant,url,image,image2,priceEur,affiliate:!demo&&item.affiliate===true,demo,visible};
 }
 function normalizeAll(items,{strict=false}={}){
  if(!Array.isArray(items)||items.length>36)throw new CatalogError('Maximum 36 produits.');
