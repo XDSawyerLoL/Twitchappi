@@ -1,33 +1,75 @@
 'use strict';
-// Safe read-only production checks. Does not send credentials or write data.
+// SWAPP SOCIAL read-only acceptance smoke. No posts, votes, messages or session changes.
+// Usage: node tools/swapp-social-smoke.js
+// Optional SWAPP_SMOKE_COOKIE must be set locally; never paste it into a ticket.
 const https=require('node:https');
-const base=process.env.SWAPP_SMOKE_ORIGIN||'https://swapp.tv';
-const paths=['/communaute','/api/pulse/health','/api/oryon/session','/api/swapp/interactions/status','/api/swapp/interactions/rooms'];
-async function check(path){
+const origin=process.env.SWAPP_SMOKE_ORIGIN||'https://swapp.tv';
+const cookie=process.env.SWAPP_SMOKE_COOKIE||'';
+const base=new URL(origin);
+if(base.protocol!=='https:'||!['swapp.tv','www.swapp.tv'].includes(base.hostname))
+ throw Error('The production smoke only permits swapp.tv HTTPS URLs');
+const publicChecks=[
+ ['/communaute','social_page'],
+ ['/api/oryon/session','swapp_account_session'],
+ ['/api/actus','swapp_editorial'],
+ ['/api/swapp/interactions/status','mysql_status'],
+ ['/api/pulse/health','upstream_social'],
+];
+const authenticatedChecks=[
+ ['/api/swapp/interactions/rooms','rooms'],
+ ['/api/swapp/interactions/polls','polls'],
+ ['/api/swapp/interactions/match2/compatible','matchmaking'],
+ ['/api/swapp/interactions/passport/me','player_passport'],
+ ['/api/swapp/interactions/game/context?game=PUBG','game_universe'],
+ ['/api/pulse/me','social_identity'],
+ ['/api/pulse/feed?mode=discover&limit=5','posts'],
+ ['/api/pulse/circles','communities'],
+ ['/api/pulse/conversations','direct_messages'],
+ ['/api/pulse/notifications','notifications'],
+ ['/api/pulse/search?q=PUBG','search']
+];
+async function check(path,area,authenticated){
+ const started=Date.now();
  return new Promise(resolve=>{
-  const req=https.get(new URL(path,base),{timeout:8000,headers:{accept:'application/json, text/html;q=0.8','user-agent':'SWAPP-Social-Smoke/1.1'}},res=>{
-   let size=0,raw='';
-   res.on('data',c=>{size+=c.length;if(raw.length<2000)raw+=c.toString('utf8').slice(0,2000-raw.length)});
+  const request=https.get(new URL(path,base),{
+   timeout:13500,
+   headers:{accept:'application/json, text/html;q=0.8','user-agent':'SWAPP-Social-Smoke/2.0',
+    ...(cookie?{cookie}:{})}
+  },res=>{
+   let received=0,raw='';
+   res.on('data',chunk=>{
+    received+=chunk.length;
+    if(received<6000)raw+=chunk.toString('utf8').slice(0,6000-raw.length);
+   });
    res.on('end',()=>{
-    let state;
-    if(path.endsWith('/status')){try{const body=JSON.parse(raw);state=body.state}catch{}}
-    resolve({path,status:res.statusCode,bytes:size,...(state?{state}:{})});
+    let payload={};try{payload=JSON.parse(raw)}catch{}
+    const status=res.statusCode,elapsed=Date.now()-started;
+    const authenticatedAllowed=authenticated?status===200:status===200;
+    const expectedGuest=authenticated&&!cookie&&status===401;
+    let state=authenticatedAllowed?'ok':expectedGuest?'requires_login':'unavailable';
+    if(area==='mysql_status'&&!(payload.enabled===true&&payload.state==='database_read_ready'))state='unavailable';
+    if(area==='upstream_social'&&status===200&&payload.success===false)state='unavailable';
+    resolve({area,status,ms:elapsed,state,
+      ...(area==='mysql_status'?{db_state:payload.state||'unknown',reason:payload.reason||null}:{}),
+      ...((status!==200&&!expectedGuest)?{error:payload.error||'http_'+status}:{})});
    });
   });
-  req.on('timeout',()=>req.destroy(Error('timeout')));
-  req.on('error',e=>resolve({path,error:e.message}));
+  request.on('timeout',()=>request.destroy(Error('request_timeout')));
+  request.on('error',e=>resolve({area,status:0,ms:Date.now()-started,state:'unavailable',error:e.message==='request_timeout'?'timeout':'network_error'}));
  });
 }
 (async()=>{
- const results=[];for(const path of paths)results.push(await check(path));
+ const checks=[...publicChecks.map(([url,name])=>check(url,name,false)),
+  ...authenticatedChecks.map(([url,name])=>check(url,name,true))];
+ const results=await Promise.all(checks);
  console.table(results);
- const [community,,session,status,rooms]=results;
- const ready=status.status===200&&status.state==='configured_not_verified'&&rooms.status===401;
- const disabled=status.status===200&&status.state==='disabled'&&rooms.status===503;
- const basic=community.status===200&&[200,401,403].includes(session.status);
- if(!basic||(!ready&&!disabled)){
-  console.error('Production smoke incomplete: verify Hostinger deployment, flags and MySQL connection.');
+ const unavailable=results.filter(r=>r.state==='unavailable');
+ const gated=results.filter(r=>r.state==='requires_login');
+ if(!cookie)console.log('Authenticated routes require a local SWAPP browser session: '+gated.length+' expected 401 statuses; their actual functionality remains untested.');
+ else console.log('Authenticated routes exercised using the local environment session.');
+ if(unavailable.length){
+  console.error('SOCIAL readiness FAILED: '+unavailable.map(r=>r.area+' ('+(r.error||r.db_state||r.status)+')').join(', '));
+  if(unavailable.some(r=>r.area==='upstream_social'))console.error('The older posts, messages and communities still depend on the external SOCIAL upstream.');
   process.exitCode=1;
- }else if(disabled)console.warn('Interactive SOCIAL disabled by feature flag. No MySQL functionality verified.');
- else console.log('Routes registered. MySQL connection and schema still require authenticated tests.');
-})().catch(e=>{console.error(e.message);process.exitCode=1});
+ }else console.log('Read-only checks passed. Real writes and browser/mobile UX must still be tested separately.');
+})().catch(error=>{console.error('Smoke error:',error.message);process.exitCode=1});
