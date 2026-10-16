@@ -344,10 +344,7 @@ async function socialAuthRecovery(error,section){
   try{
     const response=await fetch('/api/oryon/session',{credentials:'same-origin',cache:'no-store'});
     const data=await response.json();
-    if(data?.success&&data?.local?.id){
-      setStatus(section+' temporairement indisponibles','Ton compte SWAPP est connecté. La liaison avec SOCIAL a échoué. Aucun nouveau compte n’est nécessaire. Recharge la page ou réessaie après le redémarrage du service.');
-      return true;
-    }
+    if(data?.success&&data?.local?.id)return true;
   }catch{}
   return false;
 }
@@ -367,7 +364,10 @@ export async function loadMessages(){
     });
     dom.feed.innerHTML=html+'</div></section>';
   }catch(error){
-    if(isCurrent(revision,'messages')&&!(await socialAuthRecovery(error,'Messages'))&&isCurrent(revision,'messages'))setStatus('Messages indisponibles',errorText(error));
+    if(!isCurrent(revision,'messages'))return;
+    const accountIsValid=await socialAuthRecovery(error,'Messages');
+    if(isCurrent(revision,'messages'))setStatus('Messages indisponibles',
+      accountIsValid?'Ton compte SWAPP est reconnu, mais le serveur SOCIAL externe ne répond pas. Tes autres espaces SWAPP restent disponibles.':errorText(error));
   }
 }
 
@@ -384,7 +384,10 @@ export async function loadConversation(handle){
     dom.feed.innerHTML=html;
     startDMRefresh(handle,revision,state.user.id,data.messages);
   }catch(error){
-    if(isCurrent(revision,'messages')&&!(await socialAuthRecovery(error,'Conversation'))&&isCurrent(revision,'messages'))setStatus('Conversation indisponible',errorText(error));
+    if(!isCurrent(revision,'messages'))return;
+    const accountIsValid=await socialAuthRecovery(error,'Conversation');
+    if(isCurrent(revision,'messages'))setStatus('Conversation indisponible',
+      accountIsValid?'Ton compte SWAPP est reconnu, mais le serveur SOCIAL externe ne répond pas. Tes autres espaces SWAPP restent disponibles.':errorText(error));
   }
 }
 
