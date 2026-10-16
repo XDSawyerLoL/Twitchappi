@@ -115,7 +115,7 @@ async function verify(){
    const editorialCards=(game.body.match(/<a class="card" href="\/actus\/[a-z0-9-]+">/g)||[]).length;
    check(editorialCards>=2,gamePath+': indexed hub lacks two published article links');
   }
-  process.stdout.write('PASS verified game index and '+advertisedGames.length+' linked editorial hubs\\n');
+  process.stdout.write('PASS verified game index and '+advertisedGames.length+' linked editorial hubs\n');
  }
  const landing=await request(origin,'/plan-du-site');
  check(landing.body.includes('<h1>Plan du site</h1>'),'HTML sitemap route missing');
