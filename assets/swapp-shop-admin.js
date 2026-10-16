@@ -33,7 +33,12 @@
   products.forEach((p,index)=>{
    const row=document.createElement('article');row.className='swapp-shop-admin-item'+(selected===index?' active':'');
    const art=document.createElement('span');art.className='swapp-shop-admin-art';
-   art.textContent=kindIcons[p.kind]||'✦';art.setAttribute('aria-hidden','true');
+   if(p.image){
+    const thumb=document.createElement('img');
+    thumb.src=p.image;thumb.alt='';thumb.loading='lazy';thumb.decoding='async';thumb.referrerPolicy='no-referrer';
+    art.append(thumb);
+   }else{art.textContent='Sans photo'}
+   art.setAttribute('aria-hidden','true');
    const copy=document.createElement('span');copy.className='swapp-shop-admin-item-copy';
    const title=document.createElement('b');title.textContent=p.title;
    const details=document.createElement('small');details.textContent=[kindLabels[p.kind]||p.kind,p.visible?'Visible':'Masqué',p.demo?'Exemple':'Produit réel'].join(' · ');
@@ -94,14 +99,25 @@
   note.textContent='Prévisualisation locale : rien n’est publié avant « Enregistrer sur SWAPP ».';
   info.append(heading,detail,note);
   root.append(art,info);
+  const secondary=String(field('image2').value||'').trim();
+  if(/^https:\/\//i.test(secondary)){
+   const side=document.createElement('img');
+   side.className='swapp-shop-preview-secondary';
+   side.alt='Seconde vue du produit';
+   side.loading='lazy';side.decoding='async';side.referrerPolicy='no-referrer';
+   side.addEventListener('error',()=>side.remove());
+   side.src=secondary;root.append(side);
+  }
  }
  function saveForm(){
   const input={};
-  for(const key of ['id','kind','title','description','badge','merchant','url','image'])
+  for(const key of ['id','kind','title','description','badge','merchant','url','image','image2'])
    input[key]=String(field(key).value||'').trim();
   for(const key of ['demo','affiliate','visible'])input[key]=field(key).checked;
   if(!/^[a-z0-9][a-z0-9-]{1,49}$/.test(input.id))throw Error('Identifiant : 2 à 50 caractères minuscules, chiffres ou tirets.');
   if(!input.title)throw Error('Renseigne le nom du produit.');
+  if(input.visible&&!/^https:\/\//i.test(input.image))throw Error('Une photo principale HTTPS est obligatoire pour afficher un produit.');
+  if(input.image2&&!/^https:\/\//i.test(input.image2))throw Error('La deuxième photo doit être une URL HTTPS.');
   if(!input.demo&&input.visible&&(!input.merchant||!/^https:\/\//i.test(input.url)))
    throw Error('Un produit réel visible exige un marchand et un lien HTTPS.');
   if(selected>=0&&selected<products.length){
@@ -119,8 +135,8 @@
  function select(index,scroll=false){
   if(dirty&&!confirm('Les changements du formulaire ne sont pas appliqués. Les abandonner ?'))return false;
   selected=index;dirty=false;
-  const p=products[index]||{id:'',kind:'games',title:'',description:'',badge:'',merchant:'',url:'',image:'',demo:true,affiliate:false,visible:true};
-  for(const key of ['id','kind','title','description','badge','merchant','url','image'])
+  const p=products[index]||{id:'',kind:'games',title:'',description:'',badge:'',merchant:'',url:'',image:'',image2:'',demo:true,affiliate:false,visible:true};
+  for(const key of ['id','kind','title','description','badge','merchant','url','image','image2'])
    field(key).value=p[key]||'';
   for(const key of ['demo','affiliate','visible'])field(key).checked=p[key]===true;
   render();updatePreview();
