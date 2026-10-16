@@ -150,3 +150,46 @@ test('admin menu, editor scripts and CSS are wired on every SWAPP page without c
  assert.match(styles,/@media\(max-width:700px\)/);
  assert.match(styles,/safe-area|swapp-shop-hero/);
 });
+
+
+test('Amazon draft link is prepared as an unpublished product without guessing details',()=>{
+ const html=shopAdmin();
+ assert.match(html,/shop-admin-amazon-start/);
+ assert.match(html,/value="https:\/\/link\.amazon\/B01fj5Alw"/);
+ assert.match(html,/shop-admin-preview/);
+ assert.match(html,/Le lien a été fourni par l’administrateur/);
+ assert.match(html,/v=20261016-shop-v3-amazon-drafts/);
+ const src=read('assets/swapp-shop-admin.js');
+ const start=src.indexOf(' function amazonLink(raw){');
+ const end=src.indexOf(' function updatePreview(){',start);
+ assert.ok(start>0&&end>start);
+ const accept=new Function('URL',src.slice(start,end)+'\nreturn amazonLink;')(URL);
+ for(const url of ['https://link.amazon/B01fj5Alw','https://amzn.to/my-link','https://www.amazon.fr/dp/B012345678'])
+  assert.equal(accept(url),url);
+ for(const url of ['https://amazon.fr.bad.example/any','http://amazon.fr/p','javascript:alert(1)','https://evil.example/x'])
+  assert.equal(accept(url),'');
+ assert.match(src,/field\('visible'\)\.checked=false/);
+ assert.match(src,/field\('affiliate'\)\.checked=true/);
+ assert.match(src,/field\('demo'\)\.checked=false/);
+ assert.match(src,/field\('merchant'\)\.value='Amazon'/);
+ assert.match(src,/field\('url'\)\.value=link/);
+ assert.match(src,/if\(select\(-1,true\)===false\)return/);
+ assert.match(src,/if\(!input\.title\)throw Error/);
+ assert.match(src,/if\(!writable\)return/);
+ assert.doesNotMatch(src,/fetch\(['"]https:\/\/|sendBeacon|gtag\(/);
+});
+
+test('draft product preview stays local, keyboard-accessible, and does not publish or invent a price',()=>{
+ const html=shopAdmin(),source=read('assets/swapp-shop-admin.js');
+ const css=read('assets/swapp-shop-admin.css');
+ assert.match(html,/role="status" aria-live="polite"/);
+ assert.match(source,/function updatePreview\(\)/);
+ assert.match(source,/root\.replaceChildren\(\)/);
+ assert.match(source,/picture\.addEventListener\('error'/);
+ assert.match(source,/picture\.decoding='async'/);
+ assert.match(source,/Prévisualisation locale/);
+ assert.doesNotMatch(source,/Math\.random|Prix garanti|en stock/i);
+ assert.match(css,/swapp-shop-amazon-row/);
+ assert.match(css,/@media\(max-width:700px\)/);
+ assert.match(css,/swapp-shop-editor-preview/);
+});
