@@ -10,7 +10,7 @@ test('SWAPP SPA and native pages opt in to iPhone display cutout safe areas',()=
  const spa=read('index.html'),native=read('modules/swapp-news/site-shell.js');
  for(const html of [spa,native]){
   assert.match(html,/<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/);
-  assert.match(html,/swapp-presentation-polish\.css\?v=20261016-ios-layer-v6/);
+  assert.match(html,/swapp-presentation-polish\.css\?v=20261016-ios-account-front-v7/);
  }
 });
 
@@ -47,7 +47,7 @@ test('article trailers remain click-to-play and request inline video on iOS',()=
 
 test('Hostinger smoke test expects iPhone CSS release, no added cost or tracking',()=>{
  const smoke=read('tools/swapp-deploy-smoke.js'),css=read('assets/swapp-presentation-polish.css');
- assert.match(smoke,/swapp-presentation-polish\.css\?v=20261016-ios-layer-v6/);
+ assert.match(smoke,/swapp-presentation-polish\.css\?v=20261016-ios-account-front-v7/);
  assert.match(read('tools/swapp-release.js'),/'assets\/swapp-presentation-polish\.css'/);
  assert.doesNotMatch(css,/navigator\.userAgent|localStorage|fetch\(|@import/i);
  let depth=0;
@@ -57,4 +57,19 @@ test('Hostinger smoke test expects iPhone CSS release, no added cost or tracking
   assert.ok(depth>=0,'unmatched CSS closing brace');
  }
  assert.equal(depth,0,'unmatched CSS opening brace');
+});
+
+
+test('iPhone S account menu is a solid foreground popover without changing Plus',()=>{
+ const css=read('assets/swapp-presentation-polish.css');
+ const patch=css.slice(css.indexOf('Mobile account popover: the avatar'));
+ assert.ok(patch.length>500,'foreground popover rules must be present');
+ assert.match(patch,/header\.top:has\(\.userArea #userMenu\.open\)/);
+ assert.match(patch,/z-index:8000!important/);
+ assert.match(patch,/header\.top \.userArea #userMenu\.menu\.open/);
+ assert.match(patch,/position:absolute!important/);
+ assert.match(patch,/background:#111827!important/);
+ assert.match(patch,/opacity:1!important/);
+ assert.match(patch,/max-height:min\(72dvh/);
+ assert.doesNotMatch(patch,/#mobileNav/,'the fix must not alter the bottom Plus navigation');
 });

@@ -92,3 +92,30 @@ test('Découvrir keeps the live cover readable and the Watch action easy to tap'
  expect(layout.heroWidth).toBeLessThanOrEqual(layout.viewportWidth+2);
  await page.screenshot({path:testInfo.outputPath('discover-mobile-actions.png')});
 });
+
+
+test('iPhone account S popup stays above the homepage hero',async({page},testInfo)=>{
+ await page.goto(ORIGIN+'/',{waitUntil:'domcontentloaded'});
+ const trigger=page.locator('#userBtn');
+ await expect(trigger).toBeVisible();
+ await trigger.click();
+ const menu=page.locator('#userMenu.open');
+ await expect(menu).toBeVisible();
+ await expect(menu).toContainText(/Connexion|compte|Twitch/i);
+ const geom=await page.evaluate(()=>{
+  const panel=document.getElementById('userMenu');
+  const rect=panel.getBoundingClientRect();
+  const x=rect.left+Math.min(rect.width-15,40);
+  const y=rect.top+Math.min(rect.height-15,65);
+  const painted=document.elementFromPoint(x,y);
+  const style=getComputedStyle(panel);
+  return {foreground:painted===panel||panel.contains(painted),
+   background:style.backgroundColor,position:style.position,top:rect.top,height:rect.height};
+ });
+ expect(geom.foreground).toBe(true);
+ expect(geom.background).toBe('rgb(17, 24, 39)');
+ expect(geom.position).toBe('absolute');
+ expect(geom.top).toBeGreaterThan(50);
+ expect(geom.height).toBeGreaterThan(140);
+ await page.screenshot({path:testInfo.outputPath('account-s-menu-foreground.png')});
+});

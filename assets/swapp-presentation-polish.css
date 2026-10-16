@@ -428,3 +428,46 @@ body.oryonDiscoverV4 #discover .v4Meta{
   }
  }
 }
+
+/* Mobile account popover: the avatar "S" menu must paint in front of the home
+ * hero. The sticky glass header is a Safari compositing/stacking context.
+ * These rules apply only while that menu is actually open; the bottom "Plus"
+ * navigation and the closed header remain unchanged. */
+@media(max-width:1080px){
+ header.top:has(.userArea #userMenu.open){
+  z-index:8000!important;
+  overflow:visible!important;
+  -webkit-backdrop-filter:none!important;
+  backdrop-filter:none!important;
+  background:#090d16!important;
+ }
+ header.top:has(.userArea #userMenu.open) .topbar,
+ header.top:has(.userArea #userMenu.open) .userArea{
+  overflow:visible!important;
+ }
+ header.top .userArea #userMenu.menu.open{
+  display:block!important;
+  position:absolute!important;
+  top:calc(100% + 9px)!important;
+  bottom:auto!important;
+  right:0!important;
+  left:auto!important;
+  z-index:2!important;
+  box-sizing:border-box!important;
+  width:min(350px,calc(100vw - 24px))!important;
+  max-width:calc(100vw - 24px)!important;
+  max-height:min(72dvh,calc(100dvh - 140px - env(safe-area-inset-bottom,0px)))!important;
+  overflow-x:hidden!important;
+  overflow-y:auto!important;
+  overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
+  opacity:1!important;
+  visibility:visible!important;
+  transform:none!important;
+  -webkit-backdrop-filter:none!important;
+  backdrop-filter:none!important;
+  background:#111827!important;
+  border:1px solid #40516b!important;
+  box-shadow:0 24px 70px rgba(0,0,0,.78)!important;
+ }
+}
