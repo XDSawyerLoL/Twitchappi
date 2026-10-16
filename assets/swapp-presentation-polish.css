@@ -1,0 +1,222 @@
+/* SWAPP presentation pass — October 2026.
+ * One low-risk finishing layer shared by the SPA and server-rendered pages.
+ * No sections, layout relocation, analytics, tracking or new scripts.
+ * Preserve the existing visitor theme through the site accent variables. */
+:root{
+ --swapp-finish-focus:var(--swapp-side-light,var(--swapp-interactive,#89e8e5));
+ --swapp-finish-line:rgba(175,203,225,.18);
+ --swapp-finish-ease:cubic-bezier(.2,.7,.2,1);
+}
+:where(#home,#actus,#discover,.swapp-editorial-route) :is(h1,h2,h3){
+ text-wrap:balance;
+}
+:where(#home,#actus,#discover,.swapp-editorial-route) :is(p,li){
+ overflow-wrap:break-word;
+}
+:where(#home,#actus,#discover,.swapp-editorial-route) :is(a,button,input,select,textarea):focus-visible,
+.swapp-social-viewport :is(a,button,input,textarea):focus-visible{
+ outline:2px solid var(--swapp-finish-focus);
+ outline-offset:3px;
+}
+
+/* Navigation: active location should stay visible on every public page.
+ * Keep the existing 68px header, logo dimensions and mobile overflow mode. */
+header.top .mainNav :is(a,button)[aria-current="page"],
+header.top .mainNav :is(a,button).active{
+ color:#fff;
+ box-shadow:inset 0 0 0 1px rgba(150,213,221,.26);
+}
+header.top .mainNav :is(a,button)[aria-current="page"]::after,
+header.top .mainNav :is(a,button).active::after{
+ content:"";position:absolute;left:24%;right:24%;bottom:2px;height:2px;
+ border-radius:2px;background:var(--swapp-finish-focus);
+ pointer-events:none;
+}
+header.top .menu :is(a,button):focus-visible,
+#mobileNav .swapp-mobile-more>summary:focus-visible{
+ outline:2px solid var(--swapp-finish-focus);
+ outline-offset:2px;
+}
+@media(max-width:1080px){
+ #mobileNav.mobileNav :is(a,button,.swapp-mobile-more>summary){
+  transition:background-color .18s ease,color .18s ease,box-shadow .18s ease;
+ }
+ #mobileNav.mobileNav :is(a,button)[aria-current="page"],
+ #mobileNav.mobileNav :is(a,button).active,
+ #mobileNav.mobileNav .swapp-mobile-more>summary.active{
+  color:#fff;
+  background:rgba(108,192,196,.14);
+  box-shadow:inset 0 0 0 1px rgba(130,214,221,.31);
+ }
+ /* Keep the existing menu popup visible when 'Plus' is open. */
+ #mobileNav .swapp-mobile-more[open]>.swapp-mobile-more-links{
+  border-color:var(--swapp-finish-line);
+ }
+}
+
+/* Home — align card rhythm without reintroducing dashboard panels. */
+#home .swappHome1014 .homeHeroCopy1014 h1{
+ max-width:16ch;
+}
+#home .swappHome1014 :is(.homeLiveHead1014,.swapp-home-editorial-top) h2{
+ line-height:1.14;
+ letter-spacing:-.043em;
+}
+#home :is(.homeLiveGrid1014,.swapp-home-story-grid) > *{
+ min-width:0;
+}
+#home :is(.homeLiveCard1014,.swapp-home-story){
+ overflow:hidden;
+ border-radius:clamp(14px,1.55vw,19px);
+}
+#home :is(.homeLiveBody1014,.swapp-home-story-body) :is(h3,strong){
+ text-wrap:pretty;
+ line-height:1.35;
+}
+#home :is(.homeLiveBody1014,.swapp-home-story-body) :is(p,small){
+ line-height:1.55;
+}
+#home :is(.homeLiveCard1014,.swapp-home-story) :is(a,button):focus-visible{
+ outline:2px solid var(--swapp-finish-focus);
+ outline-offset:2px;
+}
+
+/* Actualité — same content density on article lists and the SPA. */
+#actus .swapp-actus-native{min-width:0;}
+#actus .swapp-actus-tools :is(input,select,button){
+ min-height:44px;
+}
+#actus .swapp-actus-tools :is(input,select):focus-visible{
+ border-color:var(--swapp-finish-focus);
+}
+#actus .swapp-actus-info h2{line-height:1.28;}
+#actus .swapp-actus-info p{line-height:1.6;}
+#actus .swapp-actus-card .swapp-actus-cover{overflow:hidden;}
+#actus :is(.swapp-actus-game-chip,.swapp-actus-games-more):focus-visible{
+ outline:2px solid var(--swapp-finish-focus);
+ outline-offset:2px;
+}
+/* The native /actus route uses .story-card rather than the SPA card markup. */
+.swapp-editorial-route .story-grid{align-items:stretch;}
+.swapp-editorial-route .story-card{
+ min-width:0;
+ border-radius:19px;
+ transition:border-color .2s ease,box-shadow .22s var(--swapp-finish-ease),transform .22s var(--swapp-finish-ease);
+}
+.swapp-editorial-route .story-image,
+.swapp-editorial-route .story-fallback{
+ display:block;width:100%;height:auto;aspect-ratio:16/10;object-fit:cover;
+}
+.swapp-editorial-route .story-info{
+ padding:clamp(17px,1.8vw,23px);
+}
+.swapp-editorial-route .story-info h3{
+ font-size:clamp(19px,1.65vw,23px);
+ line-height:1.29;letter-spacing:-.035em;
+}
+.swapp-editorial-route .story-info p{line-height:1.6;}
+.swapp-editorial-route .searchbar :is(input,button){min-height:46px;}
+.swapp-editorial-route .searchbar input:focus-visible{
+ outline:2px solid var(--swapp-finish-focus);outline-offset:2px;
+}
+.swapp-editorial-route .category-list a{
+ min-height:39px;display:inline-flex;align-items:center;
+}
+.swapp-editorial-route .category-list a[aria-current="page"]{
+ border-color:var(--swapp-finish-focus);
+}
+@media(hover:hover) and (pointer:fine){
+ .swapp-editorial-route .story-card:hover{
+  border-color:var(--swapp-finish-focus);
+  box-shadow:0 16px 36px rgba(0,0,0,.26);
+ }
+}
+
+/* Découvrir — regular touch targets; do not change discovery/ranking/player. */
+body.oryonDiscoverV4 #discover .v4Search :is(input,select){
+ min-height:46px;
+}
+body.oryonDiscoverV4 #discover :is(.v4Mood,.v4Btn){
+ min-height:44px;
+}
+body.oryonDiscoverV4 #discover :is(.v4Mood,.v4Btn,.v4Card):focus-visible{
+ outline:2px solid var(--swapp-finish-focus);
+ outline-offset:3px;
+}
+body.oryonDiscoverV4 #discover .v4LiveTitle{
+ text-wrap:pretty;line-height:1.3;
+}
+body.oryonDiscoverV4 #discover .v4Meta{
+ line-height:1.5;
+}
+
+/* Communauté — easier reading, without modifying the SOCIAL side rails,
+ * publishing tools, messages or existing mobile navigation. */
+.swapp-social-viewport .pulse-post-main{min-width:0;}
+.swapp-social-viewport .pulse-post-main>p{
+ line-height:1.68;
+ overflow-wrap:anywhere;
+}
+.swapp-social-viewport .pulse-post-head{row-gap:4px;flex-wrap:wrap;}
+.swapp-social-viewport .pulse-post :is(button,a):focus-visible{
+ outline:2px solid var(--swapp-finish-focus);outline-offset:3px;
+}
+.swapp-social-viewport :is(.pulse-search,.pulse-composer textarea):focus-visible{
+ border-color:var(--swapp-finish-focus);
+}
+
+/* Article — readable column and predictable anchor positioning. */
+.swapp-editorial-route .article-wrap{
+ width:min(100%,960px);
+}
+.swapp-editorial-route .article-body{
+ max-width:72ch;
+ line-height:1.8;
+ overflow-wrap:anywhere;
+}
+.swapp-editorial-route .article-body :is(h2,h3){
+ line-height:1.2;
+ scroll-margin-top:105px;
+}
+.swapp-editorial-route .article-body p{margin-bottom:1.35em;}
+.swapp-editorial-route .article-body a,
+.swapp-editorial-route .sources-panel a{
+ text-decoration-thickness:1px;
+ text-underline-offset:3px;
+}
+.swapp-editorial-route .swapp-reader-toc a{
+ scroll-margin-top:100px;
+}
+.swapp-editorial-route :is(.swapp-reader-toc,.swapp-reader-next,.sources-panel){
+ min-width:0;
+}
+
+/* Small screens: ample touch areas, no tiny desktop columns or animations. */
+@media(max-width:650px){
+ .swapp-editorial-route .hero-layout{gap:16px;}
+ .swapp-editorial-route .story-grid{gap:15px;}
+ .swapp-editorial-route .searchbar{
+  display:grid;grid-template-columns:minmax(0,1fr);gap:9px;
+ }
+ .swapp-editorial-route .searchbar :is(input,button){
+  width:100%;min-width:0;
+ }
+ .swapp-editorial-route .article-body{font-size:17px;line-height:1.75;}
+ .swapp-editorial-route .category-list{
+  flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;
+  overscroll-behavior-x:contain;
+  -webkit-overflow-scrolling:touch;
+  padding-bottom:5px;
+ }
+ .swapp-editorial-route .category-list::-webkit-scrollbar{display:none;}
+ .swapp-editorial-route .category-list a{flex:0 0 auto;white-space:nowrap;min-height:44px;}
+}
+@media(hover:none){
+ .swapp-editorial-route .story-card:hover{transform:none;box-shadow:none;}
+}
+@media(prefers-reduced-motion:reduce){
+ header.top .mainNav :is(a,button),
+ #mobileNav.mobileNav :is(a,button),
+ .swapp-editorial-route .story-card{transition:none!important;}
+ .swapp-editorial-route .story-card:hover{transform:none!important;}
+}
