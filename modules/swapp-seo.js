@@ -159,7 +159,7 @@ function robotsText(){
  return 'User-agent: *\nAllow: /\n'+
   // Account pages carry noindex metadata: crawlers must be allowed to read it.
   // Disallow only machine endpoints and editorial administration.
-  'Disallow: /api/\nDisallow: /actus/studio\n'+
+  'Disallow: /api/\nDisallow: /actus/studio\nDisallow: /boutique/admin\n'+
   'Sitemap: '+ORIGIN+'/sitemap.xml\n'+
   'Sitemap: '+ORIGIN+'/news-sitemap.xml\n'+
   'Sitemap: '+ORIGIN+'/creators-sitemap.xml\n';
@@ -407,7 +407,7 @@ function enhanceLandingHtml(html,path){
  return result.slice(0,end)+content+result.slice(end);
 }
 
-const NOINDEX_PATHS=new Set(['/compte','/connexion','/settings','/gestionnaire','/manager','/dashboard','/studio','/admin','/reset-password']);
+const NOINDEX_PATHS=new Set(['/compte','/connexion','/settings','/gestionnaire','/manager','/dashboard','/studio','/admin','/boutique/admin','/reset-password']);
 // Search Console HTML-tag ownership is checked on the public homepage's
 // server-rendered <head>. Some hosts override index.html via UI_FILE.
 // Keep the existing owner tags, and avoid duplicates when index.html carries it.
