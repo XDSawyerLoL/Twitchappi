@@ -890,7 +890,9 @@ app.use('/api/swapp/social',authLimiter,createSocialRouter({express,fetchImpl:fe
 const {createSocialNativeProxy}=require('./modules/swapp-social-native-proxy');
 app.use('/api/pulse',authLimiter,createSocialNativeProxy(fetchWithTimeout,{production:IS_PROD,
   restoreLocalSession:restoreOryonSessionFromRememberCookie,
-  ssoSecret:String(process.env.SWAPP_SOCIAL_SSO_SECRET||configuredSessionSecret||'')
+  ssoSecret:String(process.env.SWAPP_SOCIAL_SSO_SECRET||configuredSessionSecret||''),
+  lookupLocalUser:getOryonUserByLogin,
+  listLocalUsers:()=>readOryonUsers().users
 }));
 // Social client changes must propagate rapidly; its ES imports do not carry cache query tags.
 app.use('/assets/swapp-social-native', express.static(path.join(__dirname, 'assets/swapp-social-native'), {...staticOptions,maxAge:'1m'}));
