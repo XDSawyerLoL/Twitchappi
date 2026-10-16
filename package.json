@@ -11,7 +11,8 @@
     "justplayer:prepare": "node tools/justplayer-import.js",
     "test": "node --test test/*.test.js",
     "release:info": "node tools/swapp-release.js",
-    "verify:production": "node tools/swapp-deploy-smoke.js"
+    "verify:production": "node tools/swapp-deploy-smoke.js",
+    "cost:audit": "node tools/swapp-cost-audit.js"
   },
   "engines": {
     "node": ">=20"
