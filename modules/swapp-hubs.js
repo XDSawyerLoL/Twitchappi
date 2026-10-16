@@ -111,7 +111,7 @@ function shopCard(p,index=0){
  const target='/boutique/produit/'+encodeURIComponent(p.id);
  const label=p.demo?'À découvrir prochainement':price?'Prix indicatif':'Voir chez le marchand';
  const image='<img class="swapp-store-product-img" src="'+e(p.image)+'" alt="'+e(p.title)+'" loading="'+(index<3?'eager':'lazy')+'" decoding="async" referrerpolicy="no-referrer">';
- const badge=p.demo?'<span class="swapp-store-tag">Aperçu</span>':'';
+ const badge=''; // The single storefront notice identifies all noncommercial examples.
  return '<article class="swapp-store-card" data-shop-product data-shop-kind="'+e(p.kind)+'" data-shop-title="'+e(p.title.toLocaleLowerCase('fr'))+'">'+
   '<a class="swapp-store-card-media" href="'+target+'" aria-label="Voir la fiche : '+e(p.title)+'">'+image+badge+'</a>'+
   '<div class="swapp-store-card-body"><span class="swapp-store-card-kind">'+
