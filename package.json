@@ -12,7 +12,8 @@
     "test": "node --test test/*.test.js",
     "release:info": "node tools/swapp-release.js",
     "verify:production": "node tools/swapp-deploy-smoke.js",
-    "cost:audit": "node tools/swapp-cost-audit.js"
+    "cost:audit": "node tools/swapp-cost-audit.js",
+    "deploy:zip": "node tools/swapp-hostinger-package.js"
   },
   "engines": {
     "node": ">=20"
