@@ -787,3 +787,44 @@ button.pulse-account{width:100%;border:0;background:transparent;text-align:left;
   outline-offset:-3px;
  }
 }
+
+/* SOCIAL acquisition pass — editorial typographic hierarchy, no decorative bubbles. */
+.swapp-social-viewport .pulse-welcome{
+ position:relative;
+ display:block!important;
+ border:0!important;
+ border-bottom:1px solid color-mix(in srgb,var(--social-accent) 32%,#5b6779)!important;
+ border-radius:0!important;
+ padding:clamp(25px,4vw,52px) clamp(18px,3.5vw,44px)!important;
+ background:linear-gradient(115deg,color-mix(in srgb,var(--social-accent) 13%,#101827),#101827 62%)!important;
+ box-shadow:none!important;
+}
+.swapp-social-viewport .pulse-welcome-copy{max-width:900px}
+.swapp-social-viewport .pulse-welcome-copy h2{
+ font-size:clamp(30px,4vw,54px)!important;
+ line-height:1.06!important;
+ letter-spacing:-.055em!important;
+ max-width:750px;
+ margin:12px 0 17px!important;
+}
+.swapp-social-viewport .pulse-welcome-copy>p{max-width:650px;font-size:clamp(14px,1.3vw,17px)!important;line-height:1.65!important}
+.swapp-social-viewport .swapp-social-discovery{
+ display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+ gap:0;margin:27px 0 19px;border-top:1px solid #ffffff30;border-bottom:1px solid #ffffff30;
+}
+.swapp-social-viewport .swapp-social-discovery>div{display:grid;align-content:start;gap:5px;min-width:0;padding:15px 14px 16px 0}
+.swapp-social-viewport .swapp-social-discovery>div+div{padding-left:15px;border-left:1px solid #ffffff24}
+.swapp-social-viewport .swapp-social-discovery strong{font-size:13px;color:#f4f7fb}
+.swapp-social-viewport .swapp-social-discovery span{font-size:11px;line-height:1.4;color:#aebdce}
+.swapp-social-viewport .pulse-welcome-actions{gap:14px!important;margin-top:19px}
+.swapp-social-viewport .pulse-welcome-primary{border-radius:2px!important;padding:13px 22px!important;font-weight:850!important;background:var(--social-accent)!important;color:#0b1420!important}
+.swapp-social-viewport .pulse-welcome-secondary{border-radius:2px!important;padding:12px 20px!important;background:transparent!important;border:1px solid #ffffff50!important;color:#e7eaf2!important}
+@media(max-width:670px){
+ .swapp-social-viewport .pulse-welcome{padding:24px 16px!important}
+ .swapp-social-viewport .pulse-welcome-copy h2{font-size:clamp(29px,8vw,42px)!important}
+ .swapp-social-viewport .swapp-social-discovery{grid-template-columns:1fr}
+ .swapp-social-viewport .swapp-social-discovery>div{padding:9px 0!important;border-left:0!important}
+ .swapp-social-viewport .swapp-social-discovery>div+div{border-top:1px solid #ffffff16}
+ .swapp-social-viewport .pulse-welcome-actions{flex-direction:column}
+ .swapp-social-viewport .pulse-welcome-actions>button{width:100%}
+}
