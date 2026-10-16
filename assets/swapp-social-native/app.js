@@ -262,12 +262,31 @@ function bindStaticEvents(){
   });
 
   let searchTimer;
-  document.getElementById('pulse-search').addEventListener('input',function(event){
+  const sidebarSearch=document.getElementById('pulse-search');
+  const searchForm=document.getElementById('swapp-social-search-form');
+  const doSearch=()=>{
+    const query=String(sidebarSearch?.value||'').trim();
+    void loadExplore(query);
+    revealSocialContent();
+  };
+  searchForm?.addEventListener('submit',event=>{
+    event.preventDefault();
     clearTimeout(searchTimer);
-    const query=event.target.value;
-    searchTimer=setTimeout(function(){
-      if(query.trim().length>=2)loadExplore(query);
-    },250);
+    doSearch();
+  });
+  sidebarSearch?.addEventListener('input',event=>{
+    clearTimeout(searchTimer);
+    const query=String(event.target.value||'').trim();
+    if(!query){
+      if(state.view==='explore')void loadExplore('');
+      return;
+    }
+    if(query.length>=2){
+      searchTimer=setTimeout(()=>void loadExplore(query),360);
+    }
+  });
+  sidebarSearch?.addEventListener('keydown',event=>{
+    if(event.key==='Escape'&&!sidebarSearch.value&&state.view==='explore')void loadExplore('');
   });
 }
 
