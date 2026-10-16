@@ -117,6 +117,25 @@ async function verify(){
  process.stdout.write('PASS compact mobile tabs, Plus popup and dismissal behaviors\n');
  process.stdout.write('PASS shared navigation, news and SOCIAL presentation asset\n');
  process.stdout.write('PASS /actus\n');
+ // Verify the actual mobile reading and video assets, not just HTML shell CSS.
+ const articleClient='/assets/swapp-actus-app.js?v=20261016-ios-journey-1';
+ const videoClient='/assets/swapp-video-player.js?v=20261016-ios-journey-1';
+ const videoStyle='/assets/swapp-video-gallery.css?v=20261016-ios-journey-1';
+ for(const name of [articleClient,videoClient,videoStyle])
+  check(home.body.includes(name),'Home has an outdated mobile media asset: '+name);
+ const newsClient=await request(origin,'/assets/swapp-actus-app.js');
+ check(newsClient.body.includes('new AbortController()')&&newsClient.body.includes('Chargement trop long. Réessayez.')&&
+  newsClient.body.includes('swapp-actus-recovery'),
+  'Article reader lacks older-iPhone timeout compatibility or retry controls');
+ const videoScript=await request(origin,'/assets/swapp-video-player.js');
+ check(videoScript.body.includes('previousOverflow')&&videoScript.body.includes("window.addEventListener('popstate',close)")&&
+  videoScript.body.includes("e.key!=='Tab'"),
+  'Video player lacks focus, scroll-lock restoration or back-navigation cleanup');
+ const videoCss=await request(origin,'/assets/swapp-video-gallery.css');
+ check(videoCss.body.includes('iPhone cutouts and comfortable controls')&&videoCss.body.includes('safe-area-inset-bottom'),
+  'Video player iOS safe-area stylesheet is outdated');
+ process.stdout.write('PASS mobile article recovery and iOS video viewer\n');
+
  // Free, one-shot SEO checks. No scheduling or paid crawlers.
  const robots=await request(origin,'/robots.txt');
  check(robots.body.includes('Sitemap: https://swapp.tv/sitemap.xml'),'Robots sitemap declaration missing');
