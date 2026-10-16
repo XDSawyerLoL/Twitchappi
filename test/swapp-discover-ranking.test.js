@@ -100,3 +100,32 @@ test('production Discover integrates diversity without extra APIs, telemetry or 
  assert.doesNotMatch(sorter,/fetch\(|axios|XMLHttpRequest|sendBeacon|localStorage|firebase|gemini/i);
  assert.equal(fs.existsSync(path.join(root,'.github/workflows/swapp-quality.yml')),false);
 });
+
+
+test('public Twitch discovery shares identical short-lived game pools, not viewer profiles',async()=>{
+ const server=read('server.js');
+ const start=server.indexOf('const __swappGameDiscoveryCache=new Map()');
+ const end=server.indexOf('async function twitchBroadStreams',start);
+ assert.ok(start>=0&&end>start);
+ let requests=0;
+ const cacheGet=(map,key,ttl)=>{
+  assert.equal(ttl,45000);
+  const entry=map.get(key);
+  return entry&&Date.now()-entry.ts<ttl?entry.items:null;
+ };
+ const cacheSet=(map,key,items)=>map.set(key,{ts:Date.now(),items});
+ const select=new Function('__oryonCacheGet','__oryonCacheSet','twitchCategoryIdByName','twitchAPI',
+  server.slice(start,end)+'\nreturn twitchStreamsForGameName;')(
+  cacheGet,cacheSet,async()=> 'game-id',async()=>{
+   requests++;
+   return {data:[{user_login:'creator',game_name:'Elden Ring',viewer_count:24}]};
+  }
+ );
+ const first=await select('Elden Ring',{lang:'fr',max:150,first:1});
+ const second=await select('Elden Ring',{lang:'fr',max:150,first:1});
+ assert.deepEqual(second,first);
+ assert.equal(requests,1);
+ await select('Elden Ring',{lang:'fr',max:60,first:1});
+ assert.equal(requests,2);
+ assert.doesNotMatch(server.slice(start,end),/viewerProfile|req\.session|res\.cookie|localStorage/);
+});
