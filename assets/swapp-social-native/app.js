@@ -1,5 +1,5 @@
-import { TOKEN_KEY, state, dom, api, errorText } from './core.js';
-import { openAuth, closeAuth, updateAuthModal, updateAccount, requireAuth, applySession, clearSession, restoreSession } from './session.js?v=20261016-swapp-account-clean-1';
+import { TOKEN_KEY, state, dom, api, errorText } from './core.js?v=20261016-sso-v1';
+import { openAuth, closeAuth, updateAuthModal, updateAccount, requireAuth, applySession, clearSession, restoreSession } from './session.js?v=20261016-sso-v1';
 import { setView, loadHome, loadExplore, loadCircles, loadNotifications, loadSaved, loadProfile, loadMessages, loadConversation, loadCirclePreview, loadNewsRss } from './views.js?v=20261016-discovery-news-1';
 
 /* Keep the SOCIAL sticky stack exactly beneath the real SWAPP header.
@@ -126,9 +126,8 @@ async function reportPost(postId){
 }
 
 async function doLogout(){
-  try{await api('/api/pulse/auth/logout',{method:'POST',body:'{}'})}catch{}
-  clearSession();
-  await loadHome();
+  // SWAPP manages sign-out; SOCIAL does not maintain a separate login.
+  window.location.assign('/compte');
 }
 
 async function exportData(){
@@ -230,35 +229,7 @@ function bindStaticEvents(){
     }
   });
   // SWAPP is the visible account authority. The duplicate SOCIAL entrypoints were removed.
-  document.getElementById('auth-close').addEventListener('click',closeAuth);
-  document.getElementById('auth-switch').addEventListener('click',function(){
-    state.authMode=state.authMode==='login'?'register':'login';
-    updateAuthModal();
-  });
-
-  dom.authModal.addEventListener('click',function(event){
-    if(event.target===dom.authModal)closeAuth();
-  });
-
-  dom.authForm.addEventListener('submit',async function(event){
-    event.preventDefault();
-    dom.authError.textContent='';
-    const handle=document.getElementById('auth-handle').value.trim().replace(/^@/,'').toLowerCase();
-    const password=document.getElementById('auth-password').value;
-    const displayName=document.getElementById('auth-display-name').value.trim();
-    try{
-      const path=state.authMode==='register'?'/api/pulse/auth/register':'/api/pulse/auth/login';
-      const body=state.authMode==='register'?{handle,password,displayName}:{handle,password};
-      const data=await api(path,{method:'POST',body:JSON.stringify(body)});
-      applySession(data);
-      closeAuth();
-      dom.authForm.reset();
-      await loadHome();
-      await loadCirclePreview();
-    }catch(error){
-      dom.authError.textContent=errorText(error);
-    }
-  });
+  // Legacy SOCIAL credentials removed: SWAPP session is the only login.
 
   document.querySelectorAll('.pulse-tab').forEach(function(button){
     button.addEventListener('click',function(){
@@ -465,8 +436,8 @@ async function init(){
   bindDelegatedEvents();
   // Public content must not wait for separate health / identity requests.
   // On a cold backend these used to block first content for several seconds.
+  await restoreSession();
   void health();
-  void restoreSession();
   await Promise.allSettled([loadHome(),loadCirclePreview()]);
 }
 
