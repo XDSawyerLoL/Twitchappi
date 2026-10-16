@@ -76,13 +76,67 @@ function newsSitemapXml(articles=[],currentTime=Date.now()){
   'xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">\n'+entries+'\n</urlset>\n';
 }
 
+
+const CREATOR_LOGIN=/^[a-z0-9_][a-z0-9_-]{1,31}$/;
+function creatorSitemapXml(creators=[]){
+ const seen=new Set(),rows=[];
+ for(const creator of Array.isArray(creators)?creators:[]){
+  const login=String(creator?.login||'').toLowerCase();
+  if(!CREATOR_LOGIN.test(login)||creator?.channel_public===false||seen.has(login))continue;
+  seen.add(login);
+  rows.push({loc:ORIGIN+'/'+encodeURIComponent(login),
+   lastmod:isoDate(creator.channel_updatedAt||creator.updatedAt)});
+  if(rows.length>=5000)break;
+ }
+ const entries=rows.map(({loc,lastmod})=>
+  '  <url><loc>'+encodeXml(loc)+'</loc>'+(lastmod?'<lastmod>'+lastmod+'</lastmod>':'')+'</url>').join('\n');
+ return '<?xml version="1.0" encoding="UTF-8"?>\n'+
+  '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'+entries+'\n</urlset>\n';
+}
+function injectCreatorMetadata(html,creator,login){
+ let result=String(html||'');
+ if(!result.includes('</head>'))return result;
+ const slug=String(login||'').toLowerCase();
+ if(!CREATOR_LOGIN.test(slug)||!creator||creator.channel_public===false||
+    String(creator.login||'').toLowerCase()!==slug)
+  return result.replace('</head>','<meta name="robots" content="noindex,follow"></head>');
+ const title=String(creator.display_name||slug).trim().slice(0,80)||slug;
+ const about=String(creator.bio||'').trim().slice(0,180);
+ const description=about||'Découvre la chaîne et les contenus du créateur '+title+' sur SWAPP.';
+ const url=ORIGIN+'/'+encodeURIComponent(slug);
+ let image='';
+ try{
+  const src=String(creator.avatar_url||'').trim();
+  if(src.length<=2000){
+   const u=new URL(src);
+   if(u.protocol==='https:'&&!u.username&&!u.password)image=u.href;
+  }
+ }catch(_){}
+ const mainEntity={'@type':'Person',name:title,alternateName:slug,url,...(about?{description:about}:{}),
+  ...(image?{image}: {})};
+ const schema={'@context':'https://schema.org','@type':'ProfilePage',url,mainEntity};
+ const tags='<meta name="description" content="'+encodeXml(description)+'">'+
+  '<link rel="canonical" href="'+url+'">'+
+  '<meta property="og:type" content="profile">'+
+  '<meta property="og:site_name" content="SWAPP">'+
+  '<meta property="og:title" content="'+encodeXml(title+' · SWAPP')+'">'+
+  '<meta property="og:description" content="'+encodeXml(description)+'">'+
+  '<meta property="og:url" content="'+url+'">'+
+  '<meta name="twitter:card" content="'+(image?'summary_large_image':'summary')+'">'+
+  (image?'<meta property="og:image" content="'+encodeXml(image)+'">':'')+
+  '<script type="application/ld+json">'+JSON.stringify(schema).replace(/</g,'\\u003c')+'</script>';
+ result=result.replace(/<title>[\s\S]*?<\/title>/i,'<title>'+encodeXml(title+' — Chaîne SWAPP')+'</title>');
+ return result.replace('</head>',tags+'</head>');
+}
+
 function robotsText(){
  return 'User-agent: *\nAllow: /\n'+
   // Account pages carry noindex metadata: crawlers must be allowed to read it.
   // Disallow only machine endpoints and editorial administration.
   'Disallow: /api/\nDisallow: /actus/studio\n'+
   'Sitemap: '+ORIGIN+'/sitemap.xml\n'+
-  'Sitemap: '+ORIGIN+'/news-sitemap.xml\n';
+  'Sitemap: '+ORIGIN+'/news-sitemap.xml\n'+
+  'Sitemap: '+ORIGIN+'/creators-sitemap.xml\n';
 }
 function rssXml(articles=[]){
  const valid=(Array.isArray(articles)?articles:[]).filter(article=>
@@ -160,7 +214,7 @@ async function notifyIndexNow(slugs=[],{fetchImpl=globalThis.fetch,enabled=proce
  }
 }
 
-function registerSeoRoutes(app,{getPublished=async()=>[],now=()=>Date.now()}={}){
+function registerSeoRoutes(app,{getPublished=async()=>[],getCreators=async()=>[],now=()=>Date.now()}={}){
  if(!app||typeof app.get!=='function')throw Error('Express app required');
  let cached=null,articles=[],expires=0,inflight=null;
  const TTL=6*60*60*1000;
@@ -204,6 +258,17 @@ function registerSeoRoutes(app,{getPublished=async()=>[],now=()=>Date.now()}={})
   res.type('text/html; charset=utf-8');
   await ensureCache();
   return res.status(200).send(sitemapHtml(articles));
+ });
+ app.get('/creators-sitemap.xml',async(_req,res)=>{
+  res.set('Content-Type','application/xml; charset=utf-8');
+  res.set('Cache-Control','public, max-age=900');
+  try{
+   const creators=await getCreators();
+   return res.status(200).send(creatorSitemapXml(creators));
+  }catch(error){
+   console.warn('[SWAPP SEO] Creator sitemap temporarily unavailable:',error?.message);
+   return res.status(200).send(creatorSitemapXml());
+  }
  });
  app.get('/news-sitemap.xml',async(_req,res)=>{
   res.set('Content-Type','application/xml; charset=utf-8');
@@ -289,4 +354,4 @@ function injectSpaMetadata(html,pathname='/'){
  }
  return result.replace('</head>','<meta name="robots" content="noindex,nofollow"></head>');
 }
-module.exports={ORIGIN,CORE_PATHS,INDEXNOW_KEY,INDEXNOW_KEY_PATH,sitemapEntries,sitemapXml,newsSitemapXml,sitemapHtml,rssXml,robotsText,registerSeoRoutes,notifyIndexNow,injectSpaMetadata};
+module.exports={ORIGIN,CORE_PATHS,INDEXNOW_KEY,INDEXNOW_KEY_PATH,sitemapEntries,sitemapXml,newsSitemapXml,creatorSitemapXml,sitemapHtml,rssXml,robotsText,registerSeoRoutes,notifyIndexNow,injectSpaMetadata,injectCreatorMetadata};
