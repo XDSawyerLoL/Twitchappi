@@ -55,14 +55,20 @@ function normalizeAll(items,{strict=false}={}){
 const demoProducts=Object.freeze(normalizeAll(seed.products).map(x=>Object.freeze(x)));
 function createCatalogStore({firestore}={}){
  const ref=firestore?.collection?.('swapp_shop')?.doc('catalog_v1');
+ // One shared, short public cache instead of a paid database read for every
+ // visitor. Explicit editor saves refresh it immediately.
+ let cache=null,until=0;
  async function load(){
+  if(cache&&Date.now()<until)return {...cache,products:cache.products.slice()};
   if(!ref)return {revision:0,products:demoProducts.slice(),source:'demo',writable:false};
   try{
    const snap=await ref.get();
-   if(!snap.exists)return {revision:0,products:demoProducts.slice(),source:'demo',writable:true};
-   const data=snap.data()||{};
-   return {revision:Number(data.revision)||0,products:normalizeAll(data.products||[]),
-    source:'managed',writable:true,updatedAt:data.updatedAt||null};
+   const result=!snap.exists
+    ?{revision:0,products:demoProducts.slice(),source:'demo',writable:true}
+    :{revision:Number(snap.data()?.revision)||0,products:normalizeAll(snap.data()?.products||[]),
+      source:'managed',writable:true,updatedAt:snap.data()?.updatedAt||null};
+   cache=result;until=Date.now()+30000;
+   return {...result,products:result.products.slice()};
   }catch(error){
    return {revision:0,products:demoProducts.slice(),source:'fallback',writable:false};
   }
@@ -82,7 +88,9 @@ function createCatalogStore({firestore}={}){
    else tx.create(ref,next);
    return next;
   });
-  return {revision:written.revision,products:cleaned,source:'managed',writable:true,updatedAt:written.updatedAt};
+  cache={revision:written.revision,products:cleaned,source:'managed',writable:true,updatedAt:written.updatedAt};
+  until=Date.now()+30000;
+  return {...cache,products:cache.products.slice()};
  }
  return {load,save};
 }
