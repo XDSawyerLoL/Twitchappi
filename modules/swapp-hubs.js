@@ -123,6 +123,34 @@ function shopCard(p,index=0){
       '<strong>'+label+'</strong><small>'+(p.demo?'Présentation non commerciale':'Consulter l’offre externe')+'</small>')+
      '</div><a class="swapp-store-card-cta" href="'+target+'" aria-label="Détails de '+e(p.title)+'">Voir la fiche <span aria-hidden="true">↗</span></a></div></div></article>';
 }
+const SWAPP_STEAM_TOP_20261016=[["AION 2","3393110","Gratuit","MMORPG · Fantasy","Prends ton envol dans un immense univers fantastique où les combats aériens redéfinissent l'exploration."],["Call of Duty: Modern Warfare 4","4435490","69,99 €","FPS · Précommande","Un nouvel épisode de la série militaire, avec une campagne située autour d'un conflit sur la péninsule coréenne."],["Enshrouded","1203620","35,99 €","Survie · Coopération","Explore un royaume mystérieux, bâtis ton refuge et affronte les dangers de la Brume."],["DayZ","221100","47,99 €","Survie · Monde ouvert","Survis dans un monde post-apocalyptique où chaque rencontre peut bouleverser ton aventure."],["DayZ Badlands","3816030",null,"Extension · Survie","Une nouvelle expérience de survie pour l'univers DayZ, dans des terres hostiles."],["Castlevania: Belmont's Curse","4231820","29,99 €","Action · Plateforme","Retrouve l'univers gothique de Castlevania dans une nouvelle aventure de la famille Belmont."],["Planet Zoo 2","3219030","49,99 €","Gestion · Simulation","Crée ton parc zoologique, aménage les habitats et prends soin d'une faune fascinante."],["SPAM","2902720","Gratuit","Multijoueur · Indépendant","Un titre indépendant gratuit qui s'est hissé parmi les jeux les plus populaires du moment."],["Torchlight: Infinite","1974050","Gratuit","Action-RPG · Loot","Construis ton héros, collecte des équipements et parcours un monde rempli de combats."],["EA SPORTS FC 27","4080220","69,99 €","Football · Sport","Retrouve les clubs et les compétitions dans une nouvelle saison de football virtuel."]];
+function steamTopSection(){
+ const esc=e;
+ const cards=SWAPP_STEAM_TOP_20261016.map((g,i)=>{
+  const [name,id,price,genre,description]=g;
+  const url='https://store.steampowered.com/app/'+id+'/';
+  const art='https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/'+id+'/header.jpg';
+  return '<article class="swapp-editorial-game" aria-label="Rang '+(i+1)+' : '+esc(name)+'">'+
+    '<a class="swapp-editorial-game-art" href="'+url+'" target="_blank" rel="noopener noreferrer">'+
+      '<span class="swapp-editorial-game-rank">'+String(i+1).padStart(2,'0')+'</span>'+
+      '<img src="'+art+'" alt="Illustration du jeu '+esc(name)+'" loading="lazy" decoding="async" referrerpolicy="no-referrer">'+
+    '</a><div class="swapp-editorial-game-body"><span class="swapp-editorial-game-genre">'+esc(genre)+'</span>'+
+    '<h3>'+esc(name)+'</h3><p>'+esc(description)+'</p><div class="swapp-editorial-game-foot">'+
+    '<strong>'+esc(price||'Prix à vérifier')+'</strong><a href="'+url+'" target="_blank" rel="noopener noreferrer">Voir sur Steam ↗</a>'+
+    '</div></div></article>';
+ }).join('');
+ return '<section class="swapp-editorial-top" aria-labelledby="swapp-editorial-top-title">'+
+  '<div class="swapp-editorial-top-masthead"><div><small>SWAPP / GAME STORE · FRANCE</small>'+
+  '<h2 id="swapp-editorial-top-title">LES 10 JEUX <em>DU MOMENT.</em></h2>'+
+  '<p>Les meilleures ventes Steam France, sélectionnées au 16 octobre 2026. Une vitrine gaming, des univers à explorer.</p></div>'+
+  '<a href="https://store.steampowered.com/charts/topselling/FR" target="_blank" rel="noopener noreferrer">Classement Steam ↗</a></div>'+
+  '<div class="swapp-editorial-top-feature"><div class="swapp-editorial-top-feature-art"><img src="https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/3393110/library_hero.jpg" alt="" loading="lazy" onerror="this.src=\'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/3393110/header.jpg\'"></div>'+
+  '<div class="swapp-editorial-top-feature-copy"><span>EN TÊTE DES VENTES · #01</span><h3>AION 2</h3><p>Prends de la hauteur. Explore Atreia, choisis ta faction et lance-toi dans des batailles épiques.</p><strong>Free to play</strong><a href="https://store.steampowered.com/app/3393110/" target="_blank" rel="noopener noreferrer">Découvrir le jeu ↗</a></div></div>'+
+  '<div class="swapp-editorial-top-grid">'+cards+'</div>'+
+  '<p class="swapp-editorial-top-disclaimer">Source : classement public Steam France consulté le 16/10/2026. Classement susceptible de changer. Prix en euros relevés auprès de sources publiques lorsqu’ils étaient disponibles, non synchronisés en direct ; vérifier le prix, l’édition, la région et la disponibilité chez Steam. Liens marchands externes non affiliés. Les images promotionnelles appartiennent aux ayants droit.</p>'+
+ '</section>';
+}
+
 function shop(products=demoProducts,{source='demo'}={}){
  const cleaned=normalizeAll(products).filter(p=>p.visible&&p.image);
  const hero=cleaned.find(p=>p.kind==='games')||cleaned[0]||null;
@@ -154,6 +182,7 @@ function shop(products=demoProducts,{source='demo'}={}){
     '<span>SÉLECTION EN VEDETTE</span><strong>'+e(hero.title)+'</strong>'+
     '<span class="swapp-store-campaign-link">Voir la fiche <span aria-hidden="true">↗</span></span></span></a>':'')+
   note+
+  steamTopSection()+
   '<section class="swapp-store-departments" aria-labelledby="store-departments-title">'+
    '<div class="swapp-store-section-title"><div><small>NOS UNIVERS</small><h2 id="store-departments-title">Choisis ton rayon.</h2></div></div>'+
    '<div class="swapp-store-departments-grid">'+tiles+'</div></section>'+
@@ -175,7 +204,7 @@ function shop(products=demoProducts,{source='demo'}={}){
    '</div><a href="/actus">Explorer l’actualité <span aria-hidden="true">↗</span></a></footer>'+
   '</main>';
  return layout({title:'Boutique',description:'La boutique SWAPP : jeux vidéo, casquettes, accessoires et tapis de souris.',content,active:'shop',
-  scripts:assets+'<link rel="stylesheet" href="/assets/swapp-shop.css?v=20261016-store-v5">'+
+  scripts:assets+'<link rel="stylesheet" href="/assets/swapp-shop.css?v=20261016-store-v5"><link rel="stylesheet" href="/assets/swapp-editorial-top.css?v=20261016-top10-v1">'+
    '<script defer src="/assets/swapp-storefront.js?v=20261016-store-v5"></script>'});
 }
 function shopProduct(product,products=demoProducts){
@@ -213,7 +242,7 @@ function shopProduct(product,products=demoProducts){
   '</main>';
  return layout({title:p.title+' · Boutique',description:p.description||'Produit présenté sur SWAPP',content,active:'shop',
   metadata:p.demo?'<meta name="robots" content="noindex,follow">':'',
-  scripts:assets+'<link rel="stylesheet" href="/assets/swapp-shop.css?v=20261016-store-v5">'+
+  scripts:assets+'<link rel="stylesheet" href="/assets/swapp-shop.css?v=20261016-store-v5"><link rel="stylesheet" href="/assets/swapp-editorial-top.css?v=20261016-top10-v1">'+
    '<script defer src="/assets/swapp-storefront.js?v=20261016-store-v5"></script>'});
 }
 
