@@ -131,3 +131,29 @@ test('article game links only appear for real indexed hubs already cached, with 
  assert.equal(cachedGameHubForArticle(articles[0]),null);
  assert.equal(reads,1);
 });
+
+test('game hubs expose true JSON-LD lists and an editorial sharing image where provided',()=>{
+ const rows=[
+  {slug:'news-one',title:'GTA VI : <nouvelles> annonces',summary:'Couverture originale',status:'published',game:'GTA VI',
+   image:{url:'https://example.org/official.jpg',credit:'Éditeur',rights:'Autorisé'}},
+  {slug:'news-two',title:'GTA 6 : notre analyse',summary:'Une autre analyse',status:'published',game:'Grand Theft Auto VI'}
+ ];
+ const hubs=gameHubs(rows);
+ const page=renderGamePage(hubs[0]);
+ const list=renderGameIndex(hubs);
+ const extract=html=>{
+  const match=html.match(/<script type="application\/ld\+json">([^<]+)<\/script>/);
+  assert.ok(match,'Schema JSON-LD missing');
+  return JSON.parse(match[1]);
+ };
+ const schema=extract(page);
+ assert.equal(schema['@type'],'CollectionPage');
+ assert.equal(schema.mainEntity['@type'],'ItemList');
+ assert.equal(schema.mainEntity.itemListElement.length,2);
+ assert.equal(schema.mainEntity.itemListElement[0].url,'https://swapp.tv/actus/news-one');
+ assert.equal(extract(list).mainEntity.itemListElement[0].url,'https://swapp.tv/jeux/grand-theft-auto-vi');
+ assert.match(page,/property="og:image" content="https:\/\/example\.org\/official\.jpg"/);
+ assert.match(page,/name="twitter:card" content="summary_large_image"/);
+ assert.doesNotMatch(page,/<nouvelles>|<script>.+<nouvelles>/);
+ assert.equal((page.match(/rel="canonical"/g)||[]).length,1);
+});
