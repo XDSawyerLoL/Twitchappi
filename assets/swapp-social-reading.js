@@ -104,7 +104,8 @@
    track.replaceChildren(storyFragment);
    if(track.children.length<1)return;
    // Stories are editorial previews, NOT expiring user stories.
-   stories.hidden=false;
+   const tabs=document.getElementById('feed-tabs');
+   stories.hidden=Boolean(tabs?.hidden||tabs?.querySelector('[data-feed="news"].active'));
    window.requestAnimationFrame?.(updateArrows);
   }catch{
    // Empty, unavailable or invalid feeds must never block the SOCIAL app.
