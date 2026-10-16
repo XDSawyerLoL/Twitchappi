@@ -8,6 +8,7 @@ const path=require('node:path');
 const {CATEGORIES,demoProducts,normalizeAll}=require('./swapp-shop-catalog');
 const {isAmazonLink,amazonDisclosure}=require('../assets/swapp-article-extras');
 const assets='<link rel="stylesheet" href="/assets/swapp-hubs.css?v=20261015-hubs-3">';
+const pageColors='<link rel="stylesheet" href="/assets/swapp-page-colors.css?v=20261016-colors-1"><script defer src="/assets/swapp-page-colors.js?v=20261016-colors-1"></script>';
 function heading(kicker,title,subtitle){
  return '<header class="swapp-hub-head"><span class="swapp-hub-eyebrow">'+e(kicker)+'</span><h1>'+e(title)+'</h1><p>'+e(subtitle)+'</p></header>';
 }
@@ -15,7 +16,7 @@ function community(){
  // The actual SOCIAL user interface is vendored from Quantic Sillage.
  // SWAPP renders it directly inside the canonical site shell, not as an iframe.
  const content=fs.readFileSync(path.join(__dirname,'../assets/swapp-social-native/social-body.html'),'utf8');
- const scripts=assets+
+ const scripts=assets+pageColors+
   '<link rel="stylesheet" href="/assets/swapp-social-native/social-swapp.css?v=20261016-social-fixed-10">'+
   '<script type="module" src="/assets/swapp-social-native/app.js?v=20261016-social-fixed-js-10"></script>';
  return layout({title:'Communauté',description:'Le réseau SOCIAL complet intégré dans SWAPP : profils, publications, communautés et messagerie.',content,active:'community',scripts});
@@ -168,7 +169,7 @@ function shop(products=demoProducts,{source='demo'}={}){
    '</div><a href="/actus">Explorer l’actualité <span aria-hidden="true">↗</span></a></footer>'+
   '</main>';
  return layout({title:'Boutique',description:'La boutique SWAPP : jeux vidéo, casquettes, accessoires et tapis de souris.',content,active:'shop',
-  scripts:assets+'<link rel="stylesheet" href="/assets/swapp-shop.css?v=20261016-store-v5"><link rel="stylesheet" href="/assets/swapp-editorial-top.css?v=20261016-top10-v5">'+
+  scripts:assets+pageColors+'<link rel="stylesheet" href="/assets/swapp-shop.css?v=20261016-store-v5"><link rel="stylesheet" href="/assets/swapp-editorial-top.css?v=20261016-top10-v5">'+
    ''});
 }
 function shopProduct(product,products=demoProducts){
