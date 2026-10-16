@@ -85,3 +85,18 @@ header.top #userMenu .swapp-account-tastes-actions{display:flex;flex-wrap:wrap;g
 header.top #userMenu .swapp-account-tastes-actions button{width:auto;min-height:34px;padding:8px 10px;background:#18283a;border:1px solid #354b64;font-size:11px;font-weight:750;color:#dfecf5}
 header.top #userMenu .swapp-account-tastes-actions button:hover{border-color:#779aaa;background:#23384c}
 header.top #userMenu .swapp-account-tastes-actions button:disabled{opacity:.45;cursor:default}
+
+/* Shared menu rhythm: identical typography and hit targets for every entry. */
+header.top .mainNav :is(a,button),
+#mobileNav :is(a,button){
+ font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;
+ font-size:13px;font-weight:750;letter-spacing:0;line-height:1.2;
+ text-transform:none;box-sizing:border-box;
+}
+header.top .mainNav :is(a,button){min-height:40px;align-items:center;justify-content:center;white-space:nowrap}
+#mobileNav :is(a,button){min-height:44px;align-items:center}
+header.top .mainNav :is(a,button) :is(img,svg),
+#mobileNav :is(a,button) :is(img,svg){width:18px;height:18px;max-width:18px;max-height:18px;object-fit:contain;flex:0 0 18px}
+@media(prefers-reduced-motion:reduce){
+ header.top .mainNav :is(a,button),#mobileNav :is(a,button){transition:none!important}
+}
