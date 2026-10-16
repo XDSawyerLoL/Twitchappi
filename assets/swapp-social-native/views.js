@@ -335,7 +335,7 @@ export async function loadConversation(handle){
   setStatus('Chargement','');
   try{
     const data=await api('/api/pulse/messages/'+encodeURIComponent(handle));
-    let html='<section class="pulse-view"><div class="pulse-view-head"><h2>'+esc(data.user.displayName)+'</h2><p>@'+esc(data.user.handle)+'</p></div><div class="pulse-message-list">';
+    let html='<section class="pulse-view social-dm-view"><div class="pulse-view-head social-dm-head"><button type="button" class="social-dm-back" data-social-back-messages aria-label="Retour aux messages">←</button><div class="social-dm-identity"><div class="social-dm-avatar" aria-hidden="true">'+esc(initials(data.user))+'</div><div><h2>'+esc(data.user.displayName)+'</h2><p>@'+esc(data.user.handle)+'</p></div></div></div><div class="pulse-message-list">';
     data.messages.forEach(function(message){
       html+='<div class="pulse-message '+(message.senderId===state.user.id?'mine':'')+'">'+esc(message.body)+'<small>'+esc(timeAgo(message.createdAt))+'</small></div>';
     });
