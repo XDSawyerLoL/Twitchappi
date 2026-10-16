@@ -17,10 +17,10 @@ test('SOCIAL navigation stays beneath SWAPP when the page scrolls',async({page},
  await page.goto(ORIGIN+'/communaute',{waitUntil:'domcontentloaded'});
  const shell=page.locator('.swapp-social-sticky-stack');
  await expect(shell).toBeVisible();
- const header=page.locator('.site-header');
+ const header=page.locator('header.top');
  await expect(header).toBeVisible();
  const position=await shell.evaluate(el=>getComputedStyle(el).position);
- expect(position).toBe('sticky');
+ expect(position).toBe('fixed');
  await page.evaluate(()=>{
   // Ensure a measurable long-scroll scenario even when the live feed is empty.
   const filler=document.createElement('div');
@@ -39,6 +39,13 @@ test('SOCIAL navigation stays beneath SWAPP when the page scrolls',async({page},
  expect(geometry.stackTop).toBeGreaterThanOrEqual(0);
  expect(geometry.stackBottom).toBeLessThan(geometry.screenHeight*0.6);
  await expect(page.locator('.pulse-mobile-nav')).toBeVisible();
+ const reserved=await page.locator('.swapp-social-mobile-offset').evaluate(el=>el.getBoundingClientRect().height);
+ expect(reserved).toBeGreaterThan(48);
+ expect(reserved).toBeLessThan(280);
+ await page.locator('.pulse-mobile-nav button[data-view="explore"]').click();
+ await expect(page.locator('#feed-tabs')).toBeHidden();
+ const newReserved=await page.locator('.swapp-social-mobile-offset').evaluate(el=>el.getBoundingClientRect().height);
+ expect(newReserved).toBeLessThan(reserved);
  await page.screenshot({path:testInfo.outputPath('social-scroll.png')});
 });
 
