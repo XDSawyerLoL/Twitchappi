@@ -132,12 +132,46 @@ test('a write that times out is not replayed by the proxy',async()=>{
  assert.equal(t.calls.filter(x=>x.pathname==='/api/pulse/posts').length,1);
 });
 
-test('unprovisioned recipients show a specific error and no DM is written',async()=>{
+test('a SWAPP member can receive their first DM before opening SOCIAL',async()=>{
  const t=makeTransport(),alice=t.createClient(USER_A);
  const result=await alice('/messages','POST',{handle:'bob',body:'Première invitation'});
+ assert.equal(result.status,201);
+ assert.equal(t.messages.length,1);
+ assert.equal(t.messages[0].recipient,t.aliasHandle('bob'));
+ const thread=await alice('/messages/bob');
+ assert.equal(thread.status,200);
+ assert.equal(thread.data.messages.length,1);
+ const bob=t.createClient(USER_B);
+ const received=await bob('/messages/alice');
+ assert.equal(received.status,200);
+ assert.equal(received.data.messages[0].body,'Première invitation');
+});
+
+test('opening a new DM composer does not silently register the recipient',async()=>{
+ const t=makeTransport(),alice=t.createClient(USER_A);
+ const empty=await alice('/messages/bob');
+ assert.equal(empty.status,200);
+ assert.equal(empty.data.user.handle,'bob');
+ assert.deepEqual(empty.data.messages,[]);
+ assert.equal(t.calls.filter(x=>x.pathname==='/api/pulse/auth/register').length,1,
+  'only the authenticated sender is provisioned on read');
+});
+
+test('a second DM does not repeat recipient provisioning',async()=>{
+ const t=makeTransport(),alice=t.createClient(USER_A);
+ await alice('/messages','POST',{handle:'bob',body:'Premier'});
+ await alice('/messages','POST',{handle:'bob',body:'Deuxième'});
+ assert.equal(t.messages.length,2);
+ const registrations=t.calls.filter(x=>x.pathname==='/api/pulse/auth/register');
+ assert.equal(registrations.length,2,'sender and recipient register once each');
+});
+
+test('unknown SWAPP recipients are never auto-provisioned',async()=>{
+ const t=makeTransport(),alice=t.createClient(USER_A);
+ const result=await alice('/messages','POST',{handle:'nobody',body:'Message'});
  assert.equal(result.status,404);
- assert.equal(result.data.error,'social_recipient_not_ready');
  assert.equal(t.messages.length,0);
+ assert.equal(t.calls.filter(x=>x.pathname==='/api/pulse/auth/register').length,1);
 });
 
 test('a cross-origin write is rejected before reaching the SOCIAL backend',async()=>{
