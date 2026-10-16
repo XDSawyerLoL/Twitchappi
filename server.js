@@ -19,6 +19,7 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const session = require('express-session');
 const MemoryStore = require('memorystore')(session);
+const { TWITCH_OAUTH_COOKIE_NAME, TWITCH_OAUTH_TTL_MS, newTwitchOAuthState, verifyTwitchOAuthState } = require('./lib/twitch-oauth-state');
 const http = require('http');
 const { Server } = require('socket.io');
 let openid;
@@ -440,10 +441,11 @@ if (!configuredSessionSecret) {
 if (IS_PROD && configuredSessionSecret === DEV_SESSION_SECRET) {
   throw new Error('SESSION_SECRET de développement interdit en production.');
 }
+const oauthSigningSecret = configuredSessionSecret || generatedSessionSecret || DEV_SESSION_SECRET;
 const sessionMiddleware = session({
   name: 'streamerhub.sid',
   store: new MemoryStore({ checkPeriod: 24 * 60 * 60 * 1000 }),
-  secret: configuredSessionSecret || generatedSessionSecret || DEV_SESSION_SECRET,
+  secret: oauthSigningSecret,
   resave: false,
   saveUninitialized: false,
   cookie: {
@@ -2777,30 +2779,54 @@ if (ENABLE_TRACKED_CRON) {
 // 3. AUTH (MULTI-USER SAFE)
 // =========================================================
 app.get('/twitch_auth_start', authLimiter, (req, res) => {
+  res.set('Cache-Control', 'no-store');
   const cfg = validateTwitchOAuthConfig(req);
   if(!cfg.ok){
     recordSwappError('twitch_oauth_config', req, cfg.publicError || 'Configuration Twitch invalide', { expected:cfg.expected, configured:cfg.configured ? 'configured' : 'missing' });
     return res.status(500).send(cfg.publicError || 'Configuration Twitch invalide.');
   }
-  const state = crypto.randomBytes(16).toString('hex');
 
-  // Stockage du state en session (anti-CSRF) \u2014 pas en variable globale
+  // The authorization request and its callback must use the same first-party host.
+  // iOS Safari isolates cookies between swapp.tv, www.swapp.tv and standalone web apps.
+  const callbackUrl = new URL(REDIRECT_URI);
+  if((req.get('host') || '').toLowerCase() !== callbackUrl.host.toLowerCase()){
+    const canonicalStart = new URL('/twitch_auth_start', callbackUrl.origin);
+    if(req.query.returnTo) canonicalStart.searchParams.set('returnTo', safeNextRedirect(req.query.returnTo, '/decouvrir'));
+    return res.redirect(302, canonicalStart.href);
+  }
+
+  const { state, cookieValue } = newTwitchOAuthState(oauthSigningSecret);
   req.session.twitch_oauth_state = state;
   req.session.twitch_return_to = safeNextRedirect(req.query.returnTo, '/decouvrir');
+  // A short-lived first-party proof protects callbacks when the in-memory
+  // Express session is lost during the external OAuth round-trip.
+  res.cookie(TWITCH_OAUTH_COOKIE_NAME, cookieValue, {
+    httpOnly: true, sameSite: 'lax', secure: IS_PROD, path: '/', maxAge: TWITCH_OAUTH_TTL_MS
+  });
 
-  const url =
-    `https://id.twitch.tv/oauth2/authorize` +
-    `?client_id=${TWITCH_CLIENT_ID}` +
-    `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
-    `&response_type=code` +
-    `&scope=${encodeURIComponent('user:read:follows')}` +
-    `&state=${encodeURIComponent(state)}`;
+  const url = new URL('https://id.twitch.tv/oauth2/authorize');
+  url.searchParams.set('client_id', TWITCH_CLIENT_ID);
+  url.searchParams.set('redirect_uri', REDIRECT_URI);
+  url.searchParams.set('response_type', 'code');
+  url.searchParams.set('scope', 'user:read:follows');
+  url.searchParams.set('state', state);
 
-  res.redirect(url);
+  // Finish writing the session before Safari leaves SWAPP.
+  req.session.save((err) => {
+    if(err){
+      recordSwappError('twitch_oauth_session_save', req, err);
+      return res.status(503).send('Session Twitch indisponible. Réessaie la connexion.');
+    }
+    res.redirect(url.href);
+  });
 });
 
 app.get('/twitch_auth_callback', authLimiter, async (req, res) => {
+  res.set('Cache-Control', 'no-store');
   const { code, state } = req.query;
+  const stateCookie = req.cookies?.[TWITCH_OAUTH_COOKIE_NAME];
+  // Consume the one-use proof, including on a failed or cancelled callback.
+  res.clearCookie(TWITCH_OAUTH_COOKIE_NAME, { sameSite:'lax', secure:IS_PROD, path:'/' });
   if(req.query?.error){
     recordSwappError('twitch_oauth_denied', req, req.query.error_description || req.query.error);
     return res.status(401).send('Connexion Twitch refusée ou annulée.');
@@ -2810,11 +2836,21 @@ app.get('/twitch_auth_callback', authLimiter, async (req, res) => {
     return res.status(400).send('Code Twitch manquant. Relance la connexion.');
   }
 
-  if (!state || !req.session.twitch_oauth_state || state !== req.session.twitch_oauth_state) {
-    recordSwappError('twitch_oauth_state', req, 'State OAuth Twitch invalide');
-    return res.status(403).send('Erreur Auth (state).');
+  const proof = verifyTwitchOAuthState({
+    state,
+    sessionState: req.session?.twitch_oauth_state,
+    cookieValue: stateCookie,
+    secret: oauthSigningSecret
+  });
+  if(!proof){
+    recordSwappError('twitch_oauth_state', req, 'State OAuth Twitch invalide', {
+      sessionStatePresent: Boolean(req.session?.twitch_oauth_state),
+      stateCookiePresent: Boolean(stateCookie),
+      host: req.get('host') || ''
+    });
+    return res.status(403).send('Connexion Twitch expirée ou interrompue. Retourne sur SWAPP et relance la connexion.');
   }
-  // one-time use
+  // State validated against the existing session or a signed short-lived first-party cookie.
   req.session.twitch_oauth_state = null;
 
   try {
