@@ -53,7 +53,7 @@ test('Boutique stays independent and never adds Instant Gaming products automati
 });
 test('editor-provided Boutique products remain visible without editorial affiliate spillover',()=>{
  const html=shop([{id:'creation-swapp',kind:'caps',title:'Création SWAPP',
-  url:'https://merchant.example/item',merchant:'Partenaire',affiliate:false,demo:false,visible:true}],{source:'managed'});
+  url:'https://merchant.example/item',image:'https://cdn.example/item.jpg',merchant:'Partenaire',affiliate:false,demo:false,visible:true}],{source:'managed'});
  assert.match(html,/Création SWAPP/);
  assert.doesNotMatch(html,/igr=SANSAHD/);
 });
