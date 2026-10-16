@@ -50,8 +50,8 @@ async function verify(){
  const social=await request(origin,'/communaute');
  check(social.body.includes('class="swapp-social-sticky-stack"'),'SOCIAL HTML does not contain the unified sticky stack');
  check(social.body.includes('id="feed-tabs"'),'SOCIAL feed controls missing');
- check(social.body.includes('social-sticky-ux-8'),'SOCIAL HTML uses an older CSS release');
- check(social.body.includes('social-search-ux-9'),'SOCIAL HTML uses an older JS release');
+ check(social.body.includes('social-fixed-10'),'SOCIAL HTML uses an older CSS release');
+ check(social.body.includes('social-fixed-js-10'),'SOCIAL HTML uses an older JS release');
  process.stdout.write('PASS /communaute HTML\n');
  const stylesheet=await request(origin,'/assets/swapp-social-native/social-swapp.css');
  check(stylesheet.body.includes('SOCIAL sticky stack v2'),'SOCIAL CSS is stale at the public asset path');
