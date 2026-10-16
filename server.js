@@ -900,10 +900,12 @@ app.use('/api/pulse',authLimiter,createSocialNativeProxy(fetchWithTimeout,{produ
 let socialInteractionsState='disabled';
 let socialInteractionsReason=null;
 let socialInteractionsPool=null;
+let socialInteractionsInit=null;
 let socialInteractionsHealth={checkedAt:0,payload:null,pending:null};
 const safeSocialMysqlError=error=>{
  const code=String(error?.code||'');
  if(code==='ER_NO_SUCH_TABLE')return 'schema_missing';
+ if(['ER_TABLEACCESS_DENIED_ERROR','ER_DBACCESS_DENIED_ERROR','ER_SPECIFIC_ACCESS_DENIED_ERROR','ER_ACCESS_DENIED_ERROR'].includes(code))return 'mysql_permissions_insufficient';
  if(code==='ER_ACCESS_DENIED_ERROR')return 'mysql_access_denied';
  if(code==='ER_BAD_DB_ERROR')return 'mysql_database_missing';
  if(code==='ENOTFOUND'||code==='EAI_AGAIN')return 'mysql_host_unreachable';
@@ -913,6 +915,8 @@ const safeSocialMysqlError=error=>{
 app.get('/api/swapp/interactions/status',async(_req,res)=>{
  res.set('Cache-Control','no-store');
  const enabled=process.env.SWAPP_SOCIAL_FEATURES==='1';
+ if(socialInteractionsInit)await socialInteractionsInit;
+ if(socialInteractionsState==='unavailable'&&socialInteractionsReason)return res.json({enabled,state:'unavailable',reason:socialInteractionsReason});
  if(!enabled||!socialInteractionsPool)
   return res.json({enabled,state:socialInteractionsState,...(socialInteractionsReason?{reason:socialInteractionsReason}:{})});
  // Cached public probe: never disclose credentials, hostname, SQL or raw errors.
@@ -957,8 +961,24 @@ if(process.env.SWAPP_SOCIAL_FEATURES==='1'){
   const mysql=require('mysql2/promise');
   const socialDbPool=mysql.createPool({uri:dbUrl,connectionLimit:5,waitForConnections:true,queueLimit:50,connectTimeout:5000,enableKeepAlive:true});
   socialInteractionsPool=socialDbPool;
-  app.use('/api/swapp/interactions',authLimiter,createSocialMysqlInteractions({express,restoreSession:restoreOryonSessionFromRememberCookie,pool:socialDbPool}));
-  socialInteractionsState='configured_not_verified';
+  const {ensureSocialMysqlSchema}=require('./modules/swapp-social-mysql-schema');
+  socialInteractionsState='initializing';
+  socialInteractionsInit=ensureSocialMysqlSchema(socialDbPool).then(()=>{
+   socialInteractionsState='configured_not_verified';
+   socialInteractionsReason=null;
+   socialInteractionsHealth.payload=null;
+  }).catch(error=>{
+   socialInteractionsState='unavailable';
+   socialInteractionsReason=error?.code==='ENOENT'?'schema_migration_file_missing':
+    error?.message==='social_schema_invalid'?'schema_migration_invalid':safeSocialMysqlError(error);
+   console.error('[SWAPP SOCIAL] Schema initialization:',socialInteractionsReason);
+  });
+  app.use('/api/swapp/interactions',async(_req,res,next)=>{
+   await socialInteractionsInit;
+   if(socialInteractionsState==='unavailable')
+    return res.status(503).json({error:'social_storage_unavailable',reason:socialInteractionsReason});
+   next();
+  },authLimiter,createSocialMysqlInteractions({express,restoreSession:restoreOryonSessionFromRememberCookie,pool:socialDbPool}));
  }catch(error){
   socialInteractionsState='unavailable';
   socialInteractionsPool=null;
