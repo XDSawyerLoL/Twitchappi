@@ -56,6 +56,12 @@
   const el=area.querySelector('#ssi-notice');if(!el)return;
   el.textContent=message;el.dataset.type=type;
  };
+ const navigateTo=view=>{
+  // Reuse SWAPP's existing navigation controller and session, never a parallel router.
+  const button=host.querySelector('.pulse-sidebar button[data-view="'+view+'"]')||
+   host.querySelector('.pulse-mobile-nav button[data-view="'+view+'"]');
+  button?.click();
+ };
  let passport=null;
  const selectedGame=new URLSearchParams(location.search).get('game');
  let gameRequest=0;
@@ -157,8 +163,9 @@
  area.addEventListener('click',e=>{
   const game=e.target.closest('[data-ssn-game]');if(game){void openGame(game.dataset.ssnGame);return}
   const match=e.target.closest('[data-ssn-match]');if(match){area.dispatchEvent(new CustomEvent('ssi:match-game',{detail:{game:match.dataset.ssnMatch}}));return}
-  const create=e.target.closest('[data-ssn-create-room]');if(create){area.dispatchEvent(new CustomEvent('ssi:room-game',{detail:{game:create.dataset.ssnCreateRoom}}));return}
+  const create=e.target.closest('[data-ssn-create-room]');if(create){navigateTo('rooms');area.dispatchEvent(new CustomEvent('ssi:room-game',{detail:{game:create.dataset.ssnCreateRoom}}));return}
   const room=e.target.closest('[data-ssn-room]');if(room){
+   navigateTo('rooms');
    area.dispatchEvent(new CustomEvent('ssi:open-room',{detail:{id:room.dataset.ssnRoom,name:room.dataset.ssnName,game:room.dataset.ssnGame}}));
   }
  });
@@ -166,9 +173,14 @@
   const button=event.target.closest('[data-next-game]');
   if(!button)return;
   event.preventDefault();
+  navigateTo('play');
   void openGame(button.dataset.nextGame);
   area.scrollIntoView?.({behavior:'smooth',block:'start'});
  });
- if(selectedGame&&selectedGame.length<=65)void openGame(selectedGame);
+ if(selectedGame&&selectedGame.length<=65){
+  const init=()=>{navigateTo('play');void openGame(selectedGame)};
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});
+  else init();
+ }
  void getPassport();
 })();
