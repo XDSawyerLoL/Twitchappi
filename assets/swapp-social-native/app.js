@@ -363,6 +363,12 @@ function bindDelegatedEvents(){
   });
 
   document.addEventListener('submit',async function(event){
+    if(event.target.id==='social-mobile-search-form'){
+      event.preventDefault();
+      const query=String(event.target.elements?.query?.value||'').trim().slice(0,100);
+      if(query.length>=2)await loadExplore(query);
+      return;
+    }
     if(event.target.id==='circle-create'){
       event.preventDefault();
       if(!requireAuth())return;
