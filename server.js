@@ -914,7 +914,17 @@ function swappUiFilePath(){
 function sendSwappUi(res){
   const found = swappUiFilePath();
   if (!found) return res.status(500).send('UI introuvable sur le serveur.');
-  return res.sendFile(found);
+  // Route-specific metadata makes SWAPP shareable and indexable without
+  // a JavaScript crawler, and keeps account/admin routes out of search.
+  try {
+    const html=fs.readFileSync(found,'utf8');
+    const output=require('./modules/swapp-seo').injectSpaMetadata(html,res.req?.path||'/');
+    res.set('Cache-Control','no-store');
+    return res.type('html').send(output);
+  }catch(error){
+    console.warn('[SWAPP SEO] HTML metadata fallback:',error?.message);
+    return res.sendFile(found);
+  }
 }
 function sendSwappPublicChannelUi(req, res, login){
   const found = swappUiFilePath();
@@ -1074,7 +1084,7 @@ app.get('/', (req, res) => {
 
   const found = candidates.find(f => fs.existsSync(path.join(__dirname, f)));
   if (!found) return res.status(500).send('UI introuvable sur le serveur.');
-  return res.sendFile(path.join(__dirname, found));
+  return sendSwappUi(res);
 });
 
 // Pricing page (credits + premium)
