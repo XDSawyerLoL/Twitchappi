@@ -485,6 +485,16 @@ async function init(){
   // On a cold backend these used to block first content for several seconds.
   await restoreSession();
   void health();
+  // Recover a temporarily sleeping upstream without asking the member to refresh.
+  setInterval(()=>{
+    if(document.visibilityState==='hidden')return;
+    void health();
+    if(!state.user&&document.getElementById('swapp-social-access')?.classList.contains('is-unlocked')){
+      void restoreSession().then(()=>{
+        if(state.user&&state.view==='home')void loadHome();
+      }).catch(()=>{});
+    }
+  },60000);
   await Promise.allSettled([loadHome(),loadCirclePreview()]);
 }
 
