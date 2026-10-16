@@ -123,8 +123,8 @@ test('Amazon partner disclosure only on genuine affiliate commerce links',()=>{
  assert.equal(isAmazonLink('https://amazon.fr.evil.example/dp/item'),false);
  assert.equal(isAmazonLink('http://amazon.fr/dp/item'),false);
  const amazon={id:'casquette-amazon',kind:'caps',title:'Casquette vérifiée',
-  merchant:'Amazon',url:'https://link.amazon/test-short',affiliate:true,demo:false,visible:true};
- const storefront=shop([amazon],{source:'managed'});
+  merchant:'Amazon',url:'https://link.amazon/test-short',image:'https://cdn.example/amazon-photo.jpg',affiliate:true,demo:false,visible:true};
+ const storefront=shopProduct(amazon,[amazon]);
  assert.match(storefront,/Lien rémunéré par Amazon/);
  assert.match(storefront,/En tant que Partenaire Amazon, je réalise un bénéfice sur les achats remplissant les conditions requises/);
  assert.match(storefront,/rel="sponsored nofollow noopener noreferrer"/);
