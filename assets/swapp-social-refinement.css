@@ -395,3 +395,47 @@ body:has(#swapp-social-access){
 @media(prefers-reduced-motion:reduce){
  .swapp-social-viewport .pulse-rich-link-preview *{transition:none!important}
 }
+
+/* Empty-community state offers a real action instead of invented popularity. */
+.swapp-social-viewport .pulse-circle-empty{
+ display:grid!important;
+ gap:9px!important;
+ padding:16px 0 18px!important;
+ border-top:1px solid var(--social-divider)!important;
+}
+.swapp-social-viewport .pulse-circle-empty>span{
+ color:var(--social-accent)!important;
+ font-size:10px!important;
+ letter-spacing:.12em!important;
+ font-weight:850!important;
+}
+.swapp-social-viewport .pulse-circle-empty strong{
+ color:#eef4fc!important;
+ font-size:16px!important;
+ font-weight:860!important;
+ line-height:1.23!important;
+}
+.swapp-social-viewport .pulse-circle-empty p{
+ color:#b5c4d8!important;
+ font-size:12px!important;
+ line-height:1.5!important;
+ margin:0!important;
+}
+.swapp-social-viewport .pulse-circle-create-cta{
+ justify-self:start!important;
+ width:auto!important;
+ padding:9px 0!important;
+ margin-top:3px!important;
+ border:0!important;
+ border-bottom:1px solid var(--social-accent)!important;
+ border-radius:0!important;
+ background:none!important;
+ color:#eaf2fd!important;
+ font-size:12px!important;
+ font-weight:800!important;
+}
+.swapp-social-viewport .pulse-toolset .pulse-tool-close{
+ min-width:35px!important;
+ width:35px!important;
+ padding:7px!important;
+}
