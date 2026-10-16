@@ -1,5 +1,97 @@
 {
-  "version": 1,
-  "description": "Produits vérifiés seulement. Chaque produit doit avoir title, url HTTPS, merchant et affiliate (true/false). Aucun prix sans contrôle.",
-  "products": []
+  "version": 2,
+  "description": "Vitrine de démonstration : exemples explicitement signalés, aucun produit vendable, aucun prix ni checkout. Remplacer depuis /boutique/admin après connexion.",
+  "products": [
+    {
+      "id": "clair-obscur",
+      "kind": "games",
+      "title": "Clair Obscur: Expedition 33",
+      "description": "Une aventure narrative marquante, entre exploration et combats. Sélection de démonstration.",
+      "badge": "Jeu du moment",
+      "merchant": "",
+      "image": "",
+      "url": "",
+      "affiliate": false,
+      "demo": true,
+      "visible": true
+    },
+    {
+      "id": "hades-2",
+      "kind": "games",
+      "title": "Hades II",
+      "description": "Action intense, univers mythologique et parties qui donnent envie d'y revenir.",
+      "badge": "Action & aventure",
+      "merchant": "",
+      "image": "",
+      "url": "",
+      "affiliate": false,
+      "demo": true,
+      "visible": true
+    },
+    {
+      "id": "ghost-of-yotei",
+      "kind": "games",
+      "title": "Ghost of Yōtei",
+      "description": "Un voyage épique dans un Japon ouvert et saisissant.",
+      "badge": "À découvrir",
+      "merchant": "",
+      "image": "",
+      "url": "",
+      "affiliate": false,
+      "demo": true,
+      "visible": true
+    },
+    {
+      "id": "cap-nocturne",
+      "kind": "caps",
+      "title": "Casquette Nocturne",
+      "description": "Silhouette noire, broderie graphique minimaliste et esprit streetwear.",
+      "badge": "Collection SWAPP · concept",
+      "merchant": "",
+      "image": "",
+      "url": "",
+      "affiliate": false,
+      "demo": true,
+      "visible": true
+    },
+    {
+      "id": "cap-arcade",
+      "kind": "caps",
+      "title": "Casquette Arcade",
+      "description": "Visière courbe, détails néon et look inspiré des salles d'arcade.",
+      "badge": "Collection SWAPP · concept",
+      "merchant": "",
+      "image": "",
+      "url": "",
+      "affiliate": false,
+      "demo": true,
+      "visible": true
+    },
+    {
+      "id": "pad-nebula",
+      "kind": "pads",
+      "title": "Tapis Nebula XXL",
+      "description": "Un grand deskmat aux reflets cosmiques pour une installation immersive.",
+      "badge": "Setup · concept",
+      "merchant": "",
+      "image": "",
+      "url": "",
+      "affiliate": false,
+      "demo": true,
+      "visible": true
+    },
+    {
+      "id": "pad-grid",
+      "kind": "pads",
+      "title": "Tapis Grid Control",
+      "description": "Surface graphique, lignes précises et esthétique gaming affirmée.",
+      "badge": "Setup · concept",
+      "merchant": "",
+      "image": "",
+      "url": "",
+      "affiliate": false,
+      "demo": true,
+      "visible": true
+    }
+  ]
 }
