@@ -84,7 +84,7 @@
   button.dataset.swappLoaded='1';
   const iframe=document.createElement('iframe');
   iframe.className='swapp-trailer-player';
-  iframe.src='https://www.youtube-nocookie.com/embed/'+id+'?autoplay=1&rel=0';
+  iframe.src='https://www.youtube-nocookie.com/embed/'+id+'?autoplay=1&rel=0&playsinline=1';
   iframe.title='Bande-annonce vidéo';iframe.loading='lazy';
   iframe.allow='accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; web-share';
   iframe.allowFullscreen=true;iframe.referrerPolicy='strict-origin-when-cross-origin';
