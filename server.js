@@ -895,20 +895,33 @@ app.use('/api/pulse',authLimiter,createSocialNativeProxy(fetchWithTimeout,{produ
   listLocalUsers:()=>readOryonUsers().users
 }));
 // Experimental SOCIAL interactions stay disabled until durable storage is configured.
+// Dedicated health metadata avoids confusing "Cannot GET" for a disabled feature.
+// Do not expose DB addresses, passwords, or account/session information.
+let socialInteractionsState='disabled';
+app.get('/api/swapp/interactions/status',(_req,res)=>{
+ res.set('Cache-Control','no-store');
+ res.json({enabled:process.env.SWAPP_SOCIAL_FEATURES==='1',state:socialInteractionsState});
+});
 if(process.env.SWAPP_SOCIAL_FEATURES==='1'){
- // An optional SOCIAL feature must never stop the main SWAPP site from booting.
- // A missing MySQL driver or credentials disables only its dedicated endpoints.
+ // An optional feature must not stop the main SWAPP site from starting.
  try{
   const {createSocialMysqlInteractions}=require('./modules/swapp-social-mysql');
   const dbUrl=process.env.SWAPP_MYSQL_URL||process.env.DATABASE_URL;
   if(!dbUrl)throw new Error('missing_social_mysql_url');
+  const parsed=new URL(dbUrl);
+  if(parsed.protocol!=='mysql:'||!parsed.hostname||['host','hostname','your-host'].includes(parsed.hostname.toLowerCase())||!parsed.pathname||parsed.pathname==='/')
+   throw new Error('invalid_social_mysql_url');
   const mysql=require('mysql2/promise');
   const socialDbPool=mysql.createPool({uri:dbUrl,connectionLimit:5,waitForConnections:true,queueLimit:50,enableKeepAlive:true});
   app.use('/api/swapp/interactions',authLimiter,createSocialMysqlInteractions({express,restoreSession:restoreOryonSessionFromRememberCookie,pool:socialDbPool}));
+  socialInteractionsState='configured_not_verified';
  }catch(error){
+  socialInteractionsState='unavailable';
   console.error('[SWAPP SOCIAL] MySQL interactions unavailable:',error?.code||error?.message||'initialization_failed');
   app.use('/api/swapp/interactions',(_req,res)=>res.status(503).json({error:'social_storage_unavailable'}));
  }
+}else{
+ app.use('/api/swapp/interactions',(_req,res)=>res.status(503).json({error:'social_features_disabled'}));
 }
 // Social client changes must propagate rapidly; its ES imports do not carry cache query tags.
 app.use('/assets/swapp-social-native', express.static(path.join(__dirname, 'assets/swapp-social-native'), {...staticOptions,maxAge:'1m'}));
