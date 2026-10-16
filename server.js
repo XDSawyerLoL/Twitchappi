@@ -1103,6 +1103,13 @@ app.get(['/reset-password', '/reset-password/:token'], (_req, res) => sendSwappU
 // Clean SPA URLs. /c/:login remains a compatibility alias, but public channel URLs are /pseudo.
 // Institutional documents must precede the /:creator catch-all.
 require('./modules/swapp-news/legal-pages').register(app);
+// Legacy route names redirect to one canonical, indexable URL.
+// Keep the same UI and preserve query parameters without creating duplicate pages.
+app.get(['/discover','/teams'],(req,res)=>{
+ const destination=req.path==='/discover'?'/decouvrir':'/equipes';
+ const query=req.originalUrl.includes('?')?req.originalUrl.slice(req.originalUrl.indexOf('?')):'';
+ return res.redirect(301,destination+query);
+});
 app.get(Array.from(SWAPP_CLEAN_VIEW_PATHS), (req, res) => { if(req.path==='/actus')res.set('Cache-Control','no-store'); return sendSwappUi(res); });
 app.get(/^\/([a-zA-Z0-9_][a-zA-Z0-9_-]{1,39})$/, (req, res, next) => {
   const slug = String(req.params[0] || '').toLowerCase();
