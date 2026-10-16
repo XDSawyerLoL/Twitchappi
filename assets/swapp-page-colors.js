@@ -54,10 +54,12 @@ const refresh=()=>buttons.forEach(({button,hex})=>{
  button.setAttribute('aria-pressed',String(selected));
  button.classList.toggle('is-active',selected);
 });
+let shouldCloseOnSelection=()=>false;
 const choose=hex=>{
  apply(hex);
  try{localStorage.setItem(KEY,hex)}catch{}
  refresh();
+ if(shouldCloseOnSelection())details.open=false;
 };
 if(social){
  const auto=document.createElement('button');auto.type='button';auto.className='swapp-appearance-auto';
@@ -84,13 +86,15 @@ if(social){
  if(!sidebar||!topbar)return;
  const mobile=window.matchMedia('(max-width: 650px), (max-width: 920px) and (orientation: portrait)');
  const collapsed=window.matchMedia('(min-width: 651px) and (max-width: 1200px)');
+ let lastMode=null;
+ shouldCloseOnSelection=()=>mobile.matches||collapsed.matches;
  const mount=()=>{
-  const target=mobile.matches?topbar:sidebar;
-  if(host.parentElement!==target){
-   target.append(host);
-   details.open=!mobile.matches&&!collapsed.matches;
-  }
-  host.classList.toggle('is-compact',!mobile.matches&&collapsed.matches);
+  const mode=mobile.matches?'mobile':collapsed.matches?'compact':'desktop';
+  const target=mode==='mobile'?topbar:sidebar;
+  if(host.parentElement!==target)target.append(host);
+  if(mode!==lastMode)details.open=mode==='desktop';
+  lastMode=mode;
+  host.classList.toggle('is-compact',mode==='compact');
  };
  mount();
  if(mobile.addEventListener)mobile.addEventListener('change',mount);
@@ -98,7 +102,7 @@ if(social){
  if(collapsed.addEventListener)collapsed.addEventListener('change',mount);
  else if(collapsed.addListener)collapsed.addListener(mount);
  document.addEventListener('pointerdown',event=>{
-  if(!host.contains(event.target)&&mobile.matches)details.open=false;
+  if(!host.contains(event.target)&&(mobile.matches||collapsed.matches))details.open=false;
  });
 }else{
  store.insertAdjacentElement('afterend',host);
