@@ -18,13 +18,13 @@
   try{
    if(mode==='matches'){
     const data=await req('matches/compatible');
-    out.innerHTML='<h3>Mes compatibilités</h3>'+(data.reason?'<p>Crée d’abord une annonce avec SWAPP Match.</p>':'')+
+    out.innerHTML='<h3>Mes compatibilités</h3><form id="s-match-create" class="s-row"><input name="game" maxlength="65" required placeholder="Jeu"><select name="platform" required><option>PC</option><option>PlayStation</option><option>Xbox</option><option>Switch</option><option>Multiplateforme</option></select><input name="availability" maxlength="65" required placeholder="Disponibilités"><button>Rechercher une équipe</button></form>'+(data.reason?'<p>Crée d’abord une annonce avec SWAPP Match.</p>':'')+
      (data.matches||[]).map(x=>'<div class="s-card"><strong>'+escape(x.game)+'</strong> · '+escape(x.platform)+'<p>'+escape(x.handle)+' · '+escape(x.availability)+'</p><small>Compatibilité '+x.score+' / 100</small></div>').join('')+
      (!(data.matches||[]).length?'<p>Aucun coéquipier compatible pour le moment.</p>':'');
    }
    if(mode==='polls'){
     const data=await req('polls');
-    out.innerHTML='<h3>Votes de la communauté</h3>'+(data.polls||[]).map(p=>'<div class="s-card"><strong>'+escape(p.question)+'</strong>'+
+    out.innerHTML='<h3>Votes de la communauté</h3><form id="s-poll-create" class="s-row"><input name="question" maxlength="120" required placeholder="Question du sondage"><input name="a" maxlength="80" required placeholder="Choix A"><input name="b" maxlength="80" required placeholder="Choix B"><button>Créer un sondage</button></form>'+(data.polls||[]).map(p=>'<div class="s-card"><strong>'+escape(p.question)+'</strong>'+
       p.choices.map((c,i)=>'<div class="s-row"><button data-vote="'+escape(p.id)+'" data-choice="'+i+'">'+escape(c)+'</button> <small>'+Number(p.counts[i]||0)+' vote(s)</small></div>').join('')+'</div>').join('')+
       (!(data.polls||[]).length?'<p>Aucun sondage pour le moment.</p>':'');
    }
@@ -53,6 +53,14 @@
   const room=e.target.closest('[data-room]');if(room){await chat(room.dataset.room);refresh=setInterval(()=>{if(document.visibilityState==='visible')void chat(roomId)},5000)}
  });
  area.addEventListener('submit',async e=>{
+  if(e.target.id==='s-match-create'){
+   e.preventDefault();const f=new FormData(e.target);
+   try{await req('matches','POST',{game:f.get('game'),platform:f.get('platform'),availability:f.get('availability'),style:'Coopération'});await load('matches')}catch(err){out.insertAdjacentText('afterbegin',err.message+' · ')}
+  }
+  if(e.target.id==='s-poll-create'){
+   e.preventDefault();const f=new FormData(e.target);
+   try{await req('polls','POST',{question:f.get('question'),choices:[f.get('a'),f.get('b')]});await load('polls')}catch(err){out.insertAdjacentText('afterbegin',err.message+' · ')}
+  }
   if(e.target.id==='s-room-create'){
    e.preventDefault();const f=new FormData(e.target);
    try{await req('rooms','POST',{name:f.get('name'),game:f.get('game')});await load('rooms')}catch(err){out.insertAdjacentText('afterbegin',err.message+' · ')}
