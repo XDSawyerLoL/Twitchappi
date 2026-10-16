@@ -3,7 +3,7 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
-const {community,trailers,shop,verifiedTrailers,curatedVideos,safeProducts}=require('../modules/swapp-hubs');
+const {community,trailers,shop,shopAdmin,verifiedTrailers,curatedVideos,safeProducts}=require('../modules/swapp-hubs');
 const {assertArticle}=require('../modules/swapp-news/article-core');
 const extras=require('../assets/swapp-article-extras');
 
