@@ -281,8 +281,8 @@ body.oryonDiscoverV4 #discover .v4Meta{
 @media(max-width:650px){
  :is(#home,#discover,#actus,.swapp-editorial-route,.swapp-social-viewport)
  :is(input,textarea,select){scroll-margin-bottom:calc(110px + env(safe-area-inset-bottom,0px));}
- .swapp-editorial-route .article-body :is(img,video,iframe),
- #actus :is(.swapp-actus-body,.swapp-article-reading) :is(img,video,iframe){
+ .swapp-editorial-route .article-body img,
+ #actus :is(.swapp-actus-body,.swapp-article-reading) img{
   max-width:100%;height:auto;
  }
 }
