@@ -41,10 +41,22 @@
     const action=document.createElement('span');action.className='swapp-live-action';text(action,'Regarder sur SWAPP →');body.appendChild(action);
     el.append(cover,body);return el;
   }
-  function message(shelf,message){
+  function message(shelf,message,{retry=false}={}){
     const target=shelf.querySelector('[data-live-results], [data-related-results]');if(!target)return;
     target.replaceChildren();
     const p=document.createElement('p');p.className='swapp-live-notice';text(p,message);target.appendChild(p);
+    if(retry){
+      const button=document.createElement('button');
+      button.type='button';
+      button.className='swapp-media-button';
+      text(button,'Réessayer');
+      button.onclick=()=>{
+        button.disabled=true;
+        message(shelf,'Nouvelle tentative…');
+        renderShelf(shelf);
+      };
+      target.appendChild(button);
+    }
   }
   // Request relevant lives from SWAPP's EXISTING server endpoint, not from
   // the first 12 global streams. At most one request per game per page.
@@ -60,7 +72,7 @@
          const payload=await response.json();
          if(!payload.success||!Array.isArray(payload.items)||!gameMatch(payload.game,game))throw Error('invalid_game_results');
          return payload.items.filter(item=>gameMatch(game,item.game_name||item.category||item.game));
-       }));
+       }).catch(error=>{requests.delete(key);throw error;}));
     }
     return requests.get(key);
   }
@@ -74,7 +86,7 @@
         const result=await response.json();
         if(!result.success||!Array.isArray(result.items))throw Error('unavailable');
         return result.items;
-      });
+      }).catch(error=>{generalPromise=null;throw error;});
     }
     return generalPromise;
   }
@@ -106,7 +118,7 @@
     }catch{
       if(shelf.isConnected)message(shelf,game?
        'Les lives de '+game+' sont momentanément indisponibles. Les articles restent accessibles.':
-       'Impossible de charger les lives actuellement. La lecture des articles reste disponible.');
+       'Impossible de charger les lives actuellement. La lecture des articles reste disponible.',{retry:true});
     }
   }
   function loadShelves(){
