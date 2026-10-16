@@ -96,13 +96,25 @@ async function verify(){
  const news=await request(origin,'/actus');
  check(news.body.includes('SWAPP')||news.body.includes('Swapp'),'Actualité returned an unexpected document');
  // A successful GitHub commit is not proof the final visual layer reached Hostinger.
- const presentation='/assets/swapp-presentation-polish.css?v=20261016-iphone-v2';
+ const presentation='/assets/swapp-presentation-polish.css?v=20261016-mobile-nav-v3';
  check(home.body.includes(presentation),'Home uses an outdated presentation stylesheet');
  check(news.body.includes(presentation),'Actualité uses an outdated presentation stylesheet');
  const finish=await request(origin,'/assets/swapp-presentation-polish.css');
  check(finish.body.includes('--swapp-finish-focus')&&finish.body.includes('.swapp-social-viewport .pulse-post-main')
   &&finish.body.includes('.swapp-editorial-route .article-body'),
   'Shared presentation finish is stale or incomplete');
+ const navScript='/assets/swapp-mobile-nav-follow.js?v=20261016-follow-v2';
+ check(home.body.includes(navScript),'Home has outdated mobile navigation behavior');
+ check(news.body.includes(navScript),'Actualité has outdated mobile navigation behavior');
+ check(finish.body.includes('grid-template-columns:repeat(5,minmax(0,1fr))!important')&&
+  finish.body.includes('overflow-x:visible!important')&&
+  finish.body.includes('.swapp-mobile-more[open]'),
+  'Final mobile navigation layout still clips the Plus menu');
+ const navClient=await request(origin,'/assets/swapp-mobile-nav-follow.js');
+ check(navClient.body.includes('The Plus menu must not cover the page after tapping outside it')&&
+  navClient.body.includes("event.key!=='Escape'"),
+  'Mobile navigation close controls are stale');
+ process.stdout.write('PASS compact mobile tabs, Plus popup and dismissal behaviors\n');
  process.stdout.write('PASS shared navigation, news and SOCIAL presentation asset\n');
  process.stdout.write('PASS /actus\n');
  // Free, one-shot SEO checks. No scheduling or paid crawlers.
