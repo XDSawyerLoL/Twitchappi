@@ -161,9 +161,7 @@ function shop(products=demoProducts,{source='demo'}={}){
  const content='<main class="swapp-hub swapp-store" id="swapp-store">'+
   '<div class="swapp-store-topline"><span>SWAPP <span aria-hidden="true">/</span> BOUTIQUE</span>'+
    '<span>LE STORE GAMING</span></div>'+
-  '<header class="swapp-store-head"><div><span class="swapp-store-eyebrow">LA BOUTIQUE SWAPP</span>'+
-   '<h1>Les jeux qui font l’actualité.</h1><p>Une sélection de titres qui font parler d’eux.</p></div>'+
-   '</header>'+
+
   steamTopSection()+
   '<footer class="swapp-store-footer"><div><strong>Une sélection transparente.</strong>'+
    '<p>SWAPP présente les produits, mais n’encaisse aucun paiement. Les achats éventuels s’effectuent chez le marchand externe. Les exemples ne sont pas achetables, et les prix renseignés sont à confirmer auprès du vendeur.</p>'+disclosure+
