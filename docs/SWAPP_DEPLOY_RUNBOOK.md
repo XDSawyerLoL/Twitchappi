@@ -50,3 +50,31 @@ Le fichier `e2e/swapp-mobile.spec.cjs` fournit une recette pour lancer un test C
 Les routes `/api/release`, `/ads.txt` et les commandes ci-dessus ne créent pas de tâche récurrente, d'appel IA ou de service Google supplémentaire.
 
 **État de validation** : tant que la parité Hostinger n'est pas vérifiée et le site testé sur mobile, les commits GitHub ne prouvent pas la présence du correctif en production.
+
+## Mesure SEO gratuite (sans cookies, sans cron)
+
+**L'empreinte des fichiers en ligne est déjà vérifiée par** `npm run verify:production`, à lancer une seule fois depuis un checkout identique à celui qui doit tourner sur Hostinger. La commande **ne déploie rien** et échoue en cas de différence ; elle ne remplace pas un test navigateur.
+
+**Visites (approximation par journaux d'accès) :**
+
+```sh
+node tools/swapp-traffic-report.js /chemin/vers/access.log --days=30
+```
+
+- Ne nécessite **aucune API, aucun compte analytics, aucune installation npm supplémentaire**.
+- Lit uniquement les journaux d'accès Apache/Nginx **déjà disponibles** (si Hostinger permet d'y accéder ou de les exporter).
+- Donne les requêtes de pages par jour, rubrique et moteur de recherche référent, en écartant les ressources statiques et les robots reconnaissables.
+- N'écrit pas les adresses IP, navigateurs, chemins de chaînes, paramètres d'URL ou recherches dans le rapport agrégé.
+- Ce n'est **pas** un nombre de visiteurs uniques : une même personne peut provoquer plusieurs chargements. Un bloqueur, un cache, un proxy ou un journal incomplet peuvent fausser les chiffres.
+- **Ne jamais transmettre ni enregistrer les journaux bruts dans GitHub ou dans un dossier public.** Les logs originaux peuvent contenir des données personnelles et restent soumis aux règles de confidentialité et de conservation.
+- S'il n'existe pas de fichier de logs accessible, ce rapport **ne peut pas être produit**. Ne pas inventer des visites.
+
+**Impressions Google/Bing :**
+
+- Google Search Console : https://search.google.com/search-console/
+- Bing Webmaster Tools : https://www.bing.com/webmasters
+- Ces outils gratuits nécessitent la preuve de propriété du domaine (ou l'accès déjà accordé). Ils mesurent notamment les impressions, les clics et les requêtes de recherche. **Une lecture des logs serveur ne permet pas d'obtenir ces impressions.**
+- Déclarer `https://swapp.tv/sitemap.xml`, puis contrôler séparément `/news-sitemap.xml` et `/creators-sitemap.xml`. Le sitemap ne garantit pas l'indexation.
+- Ne pas activer de solution payante ou d'abonnement pour réaliser ces contrôles.
+
+**Limite actuelle de l'automatisation :** l'accès FTP/Node hPanel de swapp.tv et les comptes Search Console/Bing ne sont pas connectés à cette conversation. Les modifications GitHub restent **non confirmées en production** tant que l'empreinte ne correspond pas.
