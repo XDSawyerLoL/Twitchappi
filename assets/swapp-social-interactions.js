@@ -266,9 +266,14 @@
    await Promise.all([loadMatches(),loadPolls()]);
   }catch(e){
    if(retry<3){setTimeout(()=>void initialize(retry+1),1000*(retry+1));return}
-   // The existing SWAPP social UI remains usable if the optional API is down.
-   area.remove();host.classList.remove('ssi-enhanced');
+   // Keep a retryable hidden module instead of permanently removing the interface.
+   area.hidden=true;host.classList.remove('ssi-enhanced');
   }
  }
+ document.getElementById('swapp-social-retry-modules')?.addEventListener('click',()=>{
+  area.hidden=true;
+  host.classList.remove('ssi-enhanced');
+  void initialize(0);
+ });
  void initialize();
 })();
