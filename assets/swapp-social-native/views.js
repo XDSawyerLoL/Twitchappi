@@ -9,7 +9,15 @@ export function setView(view,title){
     button.classList.toggle('active',button.dataset.view===view);
   });
   dom.feedTabs.hidden=view!=='home';
-  dom.composer.hidden=view!=='home'||!state.user;
+  // Tabs stay mounted and actionable while RSS and ordinary feeds are loading.
+  if(view==='home'){
+    document.querySelectorAll('.pulse-tab').forEach(tab=>{
+      const active=tab.dataset.feed===state.feed;
+      tab.classList.toggle('active',active);
+      tab.setAttribute('aria-pressed',String(active));
+    });
+  }
+  dom.composer.hidden=view!=='home'||state.feed==='news'||!state.user;
   dom.welcome.hidden=view!=='home'||state.feed==='news'||!!state.user;
   const stories=document.getElementById('swapp-social-stories');
   if(stories)stories.hidden=view!=='home'||state.feed==='news'||
