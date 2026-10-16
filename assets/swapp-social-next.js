@@ -14,12 +14,12 @@
   if(!res.ok)throw Error(({swapp_account_required:'Compte SWAPP requis.',invalid_passport:'Vérifie les champs du profil.',invalid_games:'Cinq jeux au maximum.',storage_unavailable:'Base de données indisponible.'})[result.error]||'Service indisponible ('+res.status+').');
   return result;
  };
- const intro=area.querySelector('.ssi-intro'),grid=area.querySelector('.ssi-grid');
+ const intro=area.querySelector('.ssi-intro'),grid=area.querySelector('.ssi-sections');
  if(!intro||!grid)return;
  const layout=document.createElement('div');
  layout.className='ssn-space';
  layout.innerHTML=`
- <section class="ssn-passport" aria-labelledby="ssn-passport-title">
+ <section class="ssn-passport" id="ssn-passport" aria-labelledby="ssn-passport-title">
   <div class="ssn-head"><span class="ssn-avatar" aria-hidden="true">◈</span><div class="ssn-copy">
    <span class="ssi-kicker">IDENTITÉ JOUEUR</span><h3 id="ssn-passport-title">Ton passeport gaming</h3>
    <p>Un seul compte SWAPP. Tes jeux et disponibilités, sous ton contrôle.</p></div>
@@ -40,7 +40,7 @@
    <div class="ssn-actions"><button class="ssi-button" type="submit">Enregistrer mon passeport</button><button class="ssi-ghost" type="button" id="ssn-passport-cancel">Annuler</button></div>
   </form>
  </section>
- <section class="ssn-universe" aria-labelledby="ssn-universe-title">
+ <section class="ssn-universe" id="ssn-universe" aria-labelledby="ssn-universe-title">
   <div class="ssn-head"><span class="ssn-orbit" aria-hidden="true">✦</span><div class="ssn-copy"><span class="ssi-kicker">UNIVERS VIVANTS</span>
    <h3 id="ssn-universe-title">De l'actu au jeu.</h3><p>Un même jeu, ses coéquipiers, ses discussions et les lives SWAPP.</p></div>
   </div>
