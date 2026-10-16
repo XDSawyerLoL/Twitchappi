@@ -11,6 +11,7 @@ const catalog=require('../../data/justplayer-public-catalog.json');
 const {publicArticle,recoveredArticle,nativeSlug,legacyDraft}=require('./editorial-identity');
 const {registerArticleScores}=require('./article-scores');
 const {registerEditorInsights}=require('./editor-insights');
+const {notifyIndexNow}=require('../swapp-seo');
 
 function createNewsRouter({express, firestore, requireEditor, isReady = () => true, baseUrl = 'https://swapp.tv', publicFetch = globalThis.fetch, publicCatalog = catalog, canEdit = () => false, sendApp = null}) {
   if (typeof express?.Router !== 'function' || typeof firestore?.collection !== 'function' ||
@@ -19,6 +20,15 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
   }
   const router=express.Router();
   const justPlayerCache = new Map();
+  // No scheduler: signal free IndexNow only after an editor's committed publication.
+  // Never block an editorial action if the external indexing service is unreachable.
+  const signalIndexing=slugs=>{
+    if(process.env.NODE_ENV!=='production'||process.env.SWAPP_INDEXNOW_ENABLED==='false')return;
+    notifyIndexNow(slugs).then(status=>{
+      if(status.attempted&&!status.accepted)
+        console.warn('[SWAPP INDEXNOW] Search-engine notification not accepted:',status.status||status.reason);
+    }).catch(error=>console.warn('[SWAPP INDEXNOW] Notification unavailable:',error?.message));
+  };
   const articles=firestore.collection('swapp_news_articles');
   const outbox=firestore.collection('swapp_news_outbox');
   const importKeys=firestore.collection('swapp_news_import_keys');
@@ -315,6 +325,7 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
         tx.update(ref,{...a,revision,updatedAt,status:old.status,publishedAt:old.publishedAt||null});
         return {code:200,slug,status:old.status,revision};
       });
+      if(result.code===200&&result.status==='published')signalIndexing([slug]);
       return res.status(result.code).json(result);
     }catch(e){if(isValidation(e)) return sendError(res,e);next(e);}
   });
@@ -336,6 +347,7 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
           createdAt:now,status:'paused',channels:[],attempts:0});
         return {code:200,slug,status:'published',eventId,social:'paused'};
       });
+      if(result.code===200&&!result.alreadyPublished&&result.status==='published')signalIndexing([slug]);
       return res.status(result.code).json(result);
     }catch(e){if(isValidation(e)) return sendError(res,e);next(e);}
   });
@@ -351,6 +363,7 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
         tx.update(ref,{status:'draft',revision,updatedAt:new Date().toISOString(),legacySuppressRecovery:!!snap.data().legacyUrl});
         return {code:200,slug,status:'draft',revision};
       });
+      if(result.code===200&&result.status==='draft')signalIndexing([slug]);
       return res.status(result.code).json(result);
     }catch(e){next(e);}
   });
@@ -394,6 +407,8 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
           results.push({slug:a.slug,status:'failed',error:'Erreur de stockage, consulter les journaux'});
         }
       }
+      const newlyPublished=results.filter(r=>r.status==='published').map(r=>r.slug);
+      if(newlyPublished.length)signalIndexing(newlyPublished);
       return res.status(201).json({dryRun:false,results});
     }catch(e){if(isValidation(e))return sendError(res,e);next(e);}
   });
