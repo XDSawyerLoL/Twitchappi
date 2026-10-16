@@ -157,6 +157,10 @@ function createSocialNativeProxy(fetchImpl,{production=true,restoreLocalSession=
      if(method==='GET'&&path==='/feed'&&attempt+1<attempts)continue;
      return res.status(503).json({error:'social_upstream_unavailable'});
     }
+    if(sessionSso&&result.status===404&&path==='/messages'&&typeof lookupLocalUser==='function'&&
+       lookupLocalUser(String(req.body?.handle||'').toLowerCase().replace(/^@/,''))){
+     return res.status(404).json({error:'social_recipient_not_ready'});
+    }
     if(sessionSso&&result.status>=200&&result.status<300&&typeof listLocalUsers==='function'){
      // Translate backend-only shadow handles back to public SWAPP account names.
      const aliases=new Map();
