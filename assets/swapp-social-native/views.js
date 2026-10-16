@@ -400,6 +400,9 @@ export async function loadConversation(handle){
     html+=renderDMMessages(data.messages,state.user.id);
     html+='</div><form class="pulse-message-form" id="conversation-form" data-handle="'+esc(handle)+'"><input name="body" maxlength="2000" placeholder="Écrire un message…" required><button class="pulse-mini-button primary">Envoyer</button></form></section>';
     dom.feed.innerHTML=html;
+    // Conversation windows start at the newest message, including after send.
+    const thread=dom.feed.querySelector('.pulse-message-list');
+    if(thread)thread.scrollTop=thread.scrollHeight;
     startDMRefresh(handle,revision,state.user.id,data.messages);
   }catch(error){
     if(!isCurrent(revision,'messages'))return;
