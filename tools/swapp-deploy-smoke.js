@@ -28,6 +28,20 @@ async function request(origin,pathname){
 function check(test,reason){
  if(!test)throw Error(reason);
 }
+// Only cross-check public game hubs that the sitemap actually advertises.
+// Strict paths prevent a production check from requesting arbitrary URLs.
+function publicGamePaths(xml){
+ const found=new Set(),result=[];
+ for(const match of String(xml||'').matchAll(/<loc>https:\/\/swapp\.tv\/jeux\/([a-z0-9]+(?:-[a-z0-9]+)*)<\/loc>/g)){
+  if(match[1].length>90)continue;
+  const path='/jeux/'+match[1];
+  if(found.has(path))continue;
+  found.add(path);
+  result.push(path);
+  if(result.length===2)break; // Three extra requests maximum, no paid crawler.
+ }
+ return result;
+}
 async function verify(){
  const expected=releaseInfo();
  check(expected.complete,'The local checkout is missing release files: '+expected.missing.join(', '));
@@ -88,6 +102,21 @@ async function verify(){
  check((robots.response.headers.get('content-type')||'').includes('text/plain'),'robots.txt is not plain text');
  const xml=await request(origin,'/sitemap.xml');
  check(xml.body.includes('<urlset')&&xml.body.includes('https://swapp.tv/plan-du-site'),'Sitemap XML missing canonical public sitemap page');
+ const advertisedGames=publicGamePaths(xml.body);
+ if(advertisedGames.length){
+  check(xml.body.includes('<loc>https://swapp.tv/jeux</loc>'),'Indexed game hubs lack the /jeux parent');
+  const gameIndex=await request(origin,'/jeux');
+  check(gameIndex.body.includes('<h1>Jeux vidéo : actualités et créateurs</h1>'),
+   'Game index is stale or does not contain its public editorial heading');
+  for(const gamePath of advertisedGames){
+   const game=await request(origin,gamePath);
+   check(game.body.includes('<link rel="canonical" href="https://swapp.tv'+gamePath+'">'),
+    gamePath+': missing canonical URL');
+   const editorialCards=(game.body.match(/<a class="card" href="\/actus\/[a-z0-9-]+">/g)||[]).length;
+   check(editorialCards>=2,gamePath+': indexed hub lacks two published article links');
+  }
+  process.stdout.write('PASS verified game index and '+advertisedGames.length+' linked editorial hubs\\n');
+ }
  const landing=await request(origin,'/plan-du-site');
  check(landing.body.includes('<h1>Plan du site</h1>'),'HTML sitemap route missing');
  check(landing.body.includes('<link rel="canonical" href="https://swapp.tv/plan-du-site">'),'HTML sitemap lacks self-canonical');
@@ -116,4 +145,4 @@ if(require.main===module){
   process.exitCode=1;
  });
 }
-module.exports={baseUrl,verify};
+module.exports={baseUrl,verify,publicGamePaths};
