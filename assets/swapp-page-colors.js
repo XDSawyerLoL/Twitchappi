@@ -40,7 +40,7 @@ if(social){
  const dot=document.createElement('span');dot.className='swapp-appearance-indicator';dot.setAttribute('aria-hidden','true');
  heading.append(dot);
 }
-heading.append(document.createTextNode(social?'Ambiance':'Couleur de la page'));
+const title=document.createElement('span');title.className='swapp-appearance-title';title.textContent=social?'Ambiance':'Couleur de la page';heading.append(title);
 summary.append(heading);
 summary.setAttribute('aria-label',social?'Personnaliser la couleur de SOCIAL':'Couleur de la page');
 details.append(summary);
