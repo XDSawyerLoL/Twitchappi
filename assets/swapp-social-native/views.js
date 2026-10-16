@@ -50,9 +50,15 @@ async function fetchNewsFeed(){
       const data=await response.json();
       if(Array.isArray(data.articles)){
        const items=data.articles.filter(a=>a&&/^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/.test(String(a.slug||'')))
-        .map(a=>({title:String(a.title||''),source:'SWAPP',url:location.origin+'/actus/'+encodeURIComponent(a.slug),
+        .map(a=>{
+         // Only use an explicit game field. Never guess game identity from headlines.
+         const rawGame=a.gameName||a.primaryGame||a.game?.name||a.game||
+          (Array.isArray(a.games)?(a.games[0]?.name||a.games[0]):'');
+         return {title:String(a.title||''),source:'SWAPP',url:location.origin+'/actus/'+encodeURIComponent(a.slug),
          image:typeof a.image==='object'?a.image?.url:String(typeof a.image==='string'?a.image:a.imageUrl||''),summary:String(a.summary||''),
-         publishedAt:a.publishedAt||a.originalPublishedAt}));
+         game:typeof rawGame==='string'?rawGame.trim().slice(0,65):'',
+         publishedAt:a.publishedAt||a.originalPublishedAt};
+        });
        cachedNewsFeed={items};
        cachedNewsFeedAt=Date.now();
        return cachedNewsFeed;
@@ -77,6 +83,7 @@ function renderNewsCard(item){
     '<div class="pulse-news-actions">'+
       (url?'<a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">Lire la source ↗</a>':'')+
       '<button type="button" data-news-repost data-news-title="'+esc(title)+'" data-news-source="'+esc(source)+'" data-news-url="'+esc(url)+'" data-news-image="'+esc(image)+'">Reposter sur SOCIAL</button>'+
+      (item.game?'<button type="button" data-next-game="'+esc(item.game)+'">Discuter du jeu ↗</button>':'')+
     '</div></div></article>';
 }
 
