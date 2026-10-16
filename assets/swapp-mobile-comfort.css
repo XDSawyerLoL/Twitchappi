@@ -1,0 +1,109 @@
+/* SWAPP MOBILE COMFORT 2026-10-16
+   Corrects phone screenshots with a desktop-density layout at 700–900 CSS px.
+   Deliberately preserves desktop composition and all existing sections. */
+@media (max-width:920px) and (orientation:portrait), (max-width:650px){
+ html,body{max-width:100%;overflow-x:clip}
+ body{font-size:16px;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+ :is(#home,#discover,#actus){min-width:0}
+ :is(#home,#discover,#actus) :is(p,small,a,button){text-wrap:pretty}
+ /* Full-width editorial cards instead of two miniature columns. */
+ #actus .swapp-actus-native{
+  padding:24px 17px calc(110px + env(safe-area-inset-bottom))!important;
+  width:100%;box-sizing:border-box;
+ }
+ #actus .swapp-actus-head{padding:22px 0 18px}
+ #actus .swapp-actus-head h1{font-size:clamp(32px,7vw,44px)!important;line-height:1.12!important}
+ #actus .swapp-actus-head p{font-size:16px!important;line-height:1.55}
+ #actus .swapp-actus-grid,
+ #actus .swapp-actus-recommend-grid,
+ #actus .swapp-discover-live-grid,
+ #actus .swapp-reader-live-grid{
+  display:grid;grid-template-columns:minmax(0,1fr)!important;gap:18px!important;
+ }
+ #actus .swapp-actus-card{width:100%;border-radius:18px!important}
+ #actus .swapp-actus-cover{aspect-ratio:16/9;min-height:0}
+ #actus .swapp-actus-cover img{width:100%;height:100%;object-fit:cover}
+ #actus .swapp-actus-info{padding:17px 18px 20px!important;gap:9px}
+ #actus .swapp-actus-info h2{
+  font-size:clamp(20px,4.9vw,26px)!important;line-height:1.3!important;
+  overflow-wrap:anywhere;letter-spacing:-.02em;
+ }
+ #actus .swapp-actus-info p{font-size:15.5px!important;line-height:1.58!important}
+ #actus .swapp-actus-info small{font-size:12px!important}
+ #actus .swapp-actus-info span,.swapp-actus-count{font-size:13px!important}
+ #actus .swapp-actus-tools{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
+ #actus .swapp-actus-tools :is(input,select,button){
+  box-sizing:border-box;max-width:100%;width:100%;min-width:0;
+  min-height:46px;font-size:15px!important;
+ }
+ #actus .swapp-actus-game-filters{
+  width:100%;max-width:100%;overflow-x:auto;overscroll-behavior-x:contain;
+  -webkit-overflow-scrolling:touch;scrollbar-width:none;
+ }
+ #actus .swapp-actus-game-filters::-webkit-scrollbar{display:none}
+ #actus .swapp-actus-game-chip{min-height:42px!important;font-size:13px!important;white-space:nowrap!important}
+ #actus .swapp-reader-hero h1{font-size:clamp(32px,7vw,46px)!important}
+ #actus :is(.swapp-actus-body,.swapp-article-reading .article-body){font-size:17px;line-height:1.75}
+ /* Home: recognizable game imagery and readable headlines. */
+ #home .swapp-home-editorial .swapp-home-story-grid,
+ #home .swappHome1014>.swapp-home-editorial .swapp-home-story-grid,
+ #home .homeLiveGrid1014{grid-template-columns:minmax(0,1fr)!important;gap:17px!important}
+ #home .swapp-home-editorial .swapp-home-story,
+ #home .homeLiveCard1014{min-width:0;width:100%}
+ #home .swapp-home-editorial .swapp-home-story-body{
+  min-height:0!important;padding:17px!important;
+ }
+ #home .swapp-home-story-body strong,
+ #home .swapp-home-story strong{font-size:20px!important;line-height:1.3!important}
+ #home .swapp-home-story-body p,
+ #home .swapp-home-story small{font-size:14px!important;line-height:1.55!important}
+ #home .homeLiveBody1014 h3{font-size:19px!important;line-height:1.35!important}
+ #home .homeLiveHead1014 p{font-size:15px!important}
+ #home .swapp-home-hero-feature strong{font-size:clamp(22px,5.5vw,30px)!important}
+ /* Lives: image-first, never three unreadable cards side by side. */
+ .swapp-live-grid,.swapp-media-stories{grid-template-columns:minmax(0,1fr)!important;gap:16px}
+ .swapp-live-card{min-width:0}
+ .swapp-live-cover{aspect-ratio:16/9;min-height:0}
+ .swapp-live-content{padding:17px}
+ .swapp-live-content strong{font-size:19px!important;line-height:1.35}
+ .swapp-live-content p{font-size:15px!important;line-height:1.55}
+ .swapp-live-action{font-size:14px}
+ /* Footer: two clear columns, no tiny four-column directory. */
+ .swapp-footer-inner{padding:32px 20px calc(105px + env(safe-area-inset-bottom))!important}
+ .swapp-footer-top{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:29px 17px!important;
+ }
+ .swapp-footer-brand{grid-column:1/-1}
+ .swapp-footer-col :is(a,p){font-size:14px!important;line-height:1.6}
+ .swapp-footer-col h2{font-size:12px}
+ .swapp-footer-bottom{font-size:12px}
+ /* Consistent tap targets in the global fixed bottom navigation. */
+ #mobileNav.mobileNav{
+  display:flex!important;flex-wrap:nowrap!important;
+  justify-content:flex-start!important;align-items:stretch!important;
+  overflow-x:auto!important;overflow-y:visible;
+  gap:5px!important;scrollbar-width:none;
+  overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;
+  padding:8px max(9px,env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) max(9px,env(safe-area-inset-left))!important;
+ }
+ #mobileNav.mobileNav::-webkit-scrollbar{display:none}
+ #mobileNav.mobileNav > :is(a,button,.swapp-mobile-more){
+  flex:0 0 auto!important;min-width:88px!important;max-width:none!important;
+  width:auto!important;
+ }
+ #mobileNav.mobileNav > :is(a,button),
+ #mobileNav.mobileNav > .swapp-mobile-more > summary{
+  display:flex;align-items:center;justify-content:center;
+  min-height:46px!important;padding:9px 12px!important;
+  font-size:13px!important;font-weight:800;line-height:1.2;
+  white-space:nowrap;box-sizing:border-box;
+ }
+ /* Avoid floating assistant obscuring the last line or fixed navigation. */
+ .swapp-mairy-launcher,.swapp-companion-launcher{bottom:calc(82px + env(safe-area-inset-bottom))}
+}
+@media (max-width:400px){
+ .swapp-footer-top{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #actus .swapp-actus-native{padding-left:14px!important;padding-right:14px!important}
+ #mobileNav.mobileNav > :is(a,button,.swapp-mobile-more){min-width:86px!important}
+}
