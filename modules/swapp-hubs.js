@@ -44,8 +44,9 @@ function community(){
   '<small>Connexion sécurisée sur SWAPP. Seul un compte SWAPP connecté permet l’accès.</small></div></div></div>';
  const scripts=assets+pageColors+'<link rel="stylesheet" href="/assets/swapp-social-access.css?v=20261016-3"><script defer src="/assets/swapp-social-access.js?v=20261016-3"></script>'+
   '<link rel="stylesheet" href="/assets/swapp-social-native/social-swapp.css?v=20261016-sso-editorial-2">'+
-  '<link rel="stylesheet" href="/assets/swapp-social-refinement.css?v=20261016-composer-preview-2">'+
-  '<script type="module" src="/assets/swapp-social-native/app.js?v=20261016-composer-preview-2"></script>';
+  '<link rel="stylesheet" href="/assets/swapp-social-refinement.css?v=20261016-editorial-rail-v3">'+
+  '<script defer src="/assets/swapp-social-reading.js?v=20261016-editorial-rail-v1"></script>'+
+  '<script type="module" src="/assets/swapp-social-native/app.js?v=20261016-editorial-rail-v3"></script>';
  return layout({title:'Communauté',description:'Le réseau SOCIAL complet intégré dans SWAPP : profils, publications, communautés et messagerie.',content,active:'community',scripts});
 }
 function verifiedTrailers(items=catalog.items){
