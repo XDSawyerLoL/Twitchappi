@@ -990,7 +990,7 @@ if (String(process.env.SWAPP_NEWS_ENABLED || 'true').toLowerCase() === 'true') {
     });
     // Restore an existing signed remember-me session for article ratings only.
     // Never create a new account through a rating request.
-    app.use(/^\\/api\\/actus\\/[a-z0-9][a-z0-9-]{2,109}[a-z0-9]\\/score\\/?$/, async (req,res,next) => {
+    app.use(/^\/api\/actus\/[a-z0-9][a-z0-9-]{2,109}[a-z0-9]\/score\/?$/, async (req,res,next) => {
       try { await restoreOryonSessionFromRememberCookie(req,res,{allowUserRecovery:false}); }
       catch (err) { console.warn('[SWAPP SCORE] session restore failed:',err?.message); }
       next();
