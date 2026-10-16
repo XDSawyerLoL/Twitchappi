@@ -195,6 +195,33 @@ function bindStaticEvents(){
   });
 
   dom.publish.addEventListener('click',publishPost);
+  const matchForm=document.getElementById('swapp-match-form');
+  document.getElementById('swapp-match-open')?.addEventListener('click',()=>{
+    if(!requireAuth())return;
+    matchForm.hidden=false;
+    matchForm.querySelector('[name="game"]')?.focus();
+    matchForm.scrollIntoView({block:'center',behavior:'smooth'});
+  });
+  document.getElementById('swapp-match-cancel')?.addEventListener('click',()=>{matchForm.hidden=true});
+  matchForm?.addEventListener('submit',event=>{
+    event.preventDefault();
+    if(!requireAuth())return;
+    if(!matchForm.reportValidity())return;
+    const data=new FormData(matchForm);
+    const game=String(data.get('game')||'').trim().slice(0,65);
+    const platform=String(data.get('platform')||'').trim();
+    const availability=String(data.get('availability')||'').trim().slice(0,65);
+    const style=String(data.get('style')||'').trim();
+    if(!game||!platform||!availability)return;
+    const message=['🎮 SWAPP Match · Je cherche des coéquipiers !','Jeu : '+game,'Plateforme : '+platform,'Disponibilités : '+availability,'Ambiance : '+style,'Répondez à cette publication pour jouer ensemble.'].join('\\n').replace(/\\n/g,'\n');
+    dom.textarea.value=message.slice(0,420);
+    dom.count.textContent=dom.textarea.value.length+' / 420';
+    dom.publish.disabled=false;
+    matchForm.hidden=true;
+    dom.textarea.focus();
+    document.getElementById('composer')?.scrollIntoView({block:'center',behavior:'smooth'});
+  });
+
   document.querySelector('[data-tool="news"]')?.addEventListener('click',function(){loadNewsRss();});
   document.querySelector('[data-tool="image"]')?.addEventListener('click',function(){
     const raw=prompt('Adresse HTTPS de l’image');
