@@ -323,7 +323,8 @@ function bindStaticEvents(){
       if(state.view==='home'&&state.feed===next)
         console.warn('[SWAPP SOCIAL] Impossible de charger le fil :',error?.message||'indisponible');
     });
-    revealSocialContent();
+    // Do not auto-scroll the document on a feed-tab change: on narrow screens
+    // this can move the other two controls out of the user's visible area.
   });
 
   document.querySelectorAll('[data-view]').forEach(function(button){
