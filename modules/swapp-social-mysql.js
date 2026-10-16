@@ -4,6 +4,13 @@ function createSocialMysqlInteractions({express,restoreSession,pool,clock=()=>Da
  const router=express.Router(),bad=(res,msg,status=400)=>res.status(status).json({error:msg});
  const trim=(v,n)=>String(v??'').trim().slice(0,n);
  const query=(sql,args=[])=>pool.execute(sql,args).then(([rows])=>rows);
+ router.use((req,res,next)=>{
+  if(['GET','HEAD','OPTIONS'].includes(req.method))return next();
+  const origin=String(req.get('origin')||'');
+  const allowed=process.env.NODE_ENV==='production'?['https://swapp.tv','https://www.swapp.tv']:['https://swapp.tv','https://www.swapp.tv','http://localhost:3000','http://127.0.0.1:3000'];
+  if(!allowed.includes(origin))return bad(res,'invalid_origin',403);
+  next();
+ });
  router.use(async(req,res,next)=>{
   try{const u=await restoreSession(req,res);const member=req.session?.oryonUser?.id?req.session.oryonUser:u;if(!member?.id||!member?.login)return bad(res,'swapp_account_required',401);req.member={id:String(member.id),handle:trim(member.login,40)};next()}
   catch{return bad(res,'swapp_session_unavailable',503)}
