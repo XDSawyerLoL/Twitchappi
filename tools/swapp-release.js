@@ -30,7 +30,8 @@ const RELEASE_FILES=Object.freeze([
  'assets/swapp-social-native/core.js',
  'assets/swapp-social-native/session.js',
  'assets/swapp-social-native/views.js',
- 'ads.txt'
+ 'ads.txt',
+ 'robots.txt'
 ]);
 function releaseInfo(base=path.resolve(__dirname,'..'),env=process.env){
  const hash=crypto.createHash('sha256');
