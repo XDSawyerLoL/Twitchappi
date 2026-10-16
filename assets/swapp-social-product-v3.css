@@ -154,10 +154,12 @@
  #swappSocialNative[data-social-view="play"] .swapp-interactive :is(.ssn-universe,.ssn-passport){grid-column:1;grid-row:auto}
 }
 @media(max-width:920px){
+ #swappSocialNative[data-social-view="rooms"] .swapp-interactive .ssi-sections{grid-template-columns: minmax(180px,.44fr) minmax(0,1fr)}
+}
+@media (max-width:920px) and (orientation:portrait), (max-width:650px){
  #swappSocialNative .pulse-mobile-nav{display:grid!important;grid-template-columns:repeat(7,minmax(0,1fr))!important;width:100%!important}
  #swappSocialNative .pulse-mobile-nav button{min-width:0!important;width:100%!important;padding:5px!important;display:grid!important;place-items:center!important;border-radius:0!important}
  #swappSocialNative .pulse-mobile-nav .pi{width:19px!important;height:19px!important}
- #swappSocialNative[data-social-view="rooms"] .swapp-interactive .ssi-sections{grid-template-columns: minmax(180px,.44fr) minmax(0,1fr)}
 }
 @media(max-width:650px){
  #swappSocialNative .pulse-topbar{padding:11px 15px!important}
