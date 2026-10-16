@@ -4,7 +4,7 @@
  const base='https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/';
  function fail(img){
   const id=img.dataset.steamApp;
-  if(!/^\\d{3,9}$/.test(id||''))return;
+  if(!/^[0-9]{3,9}$/.test(id||''))return;
   const stage=Number(img.dataset.steamStage||0);
   if(stage===0){
    img.dataset.steamStage='1';
