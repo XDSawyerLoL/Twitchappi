@@ -24,6 +24,15 @@ Ouvrir `https://swapp.tv/api/swapp/social/release`.
 La propriété `release` doit valoir `social-writefix-v8`. Un 404, une autre valeur ou une erreur indiquent que Hostinger n'a pas encore servi cette version du serveur Node.js. Cette route ne lit aucun mot de passe ni jeton. Le marqueur confirme seulement le **code serveur**, pas l'intégrité des fonctionnalités ni la version du navigateur.
 Après chaque redéploiement, faire un rechargement sans cache sur `/communaute`.
 
+## Garde-fou obligatoire : comptes SWAPP persistants
+**Avant de demander un nouveau déploiement Hostinger**, ouvrir `https://swapp.tv/api/oryon/persistence-status`.
+- `github_deploy_safe:true` : persistance Firestore reconnue par le diagnostic existant.
+- `github_deploy_safe:false` : **ne pas redéployer sans sauvegarde et migration des comptes**. Les comptes Oryon/SWAPP peuvent résider dans `.oryon-users.json`, potentiellement dans un dossier de build remplacé au prochain déploiement. La connexion MySQL de SOCIAL n'implique **pas** que ces comptes soient stockés dans MySQL.
+- Vérifier aussi le nombre de comptes affiché par `users`, et conserver une sauvegarde complète (hashs et métadonnées) en lieu sûr ; ne jamais coller cette sauvegarde dans une conversation.
+- Une valeur `render-disk-json` ne prouve pas, à elle seule, que le chemin cible est réellement un volume persistent Hostinger.
+- Si `firestore:false`, privilégier **une migration vérifiable, avec sauvegarde, restauration et rollback** vers un stockage durable (p. ex. MySQL Hostinger) avant le redéploiement. Ne pas initialiser une base vide ni remplacer les fichiers utilisateurs pour faire passer le contrôle.
+La validation `npm run verify:social` échoue volontairement avec `unsafe_deploy` si cette sécurité n'est pas confirmée.
+
 ## Étape A : test read-only sans aucun identifiant
 Dans un terminal ayant accès à Internet : `node tools/swapp-social-smoke.js`.
 - `/api/swapp/interactions/status` doit être `database_read_ready`.
