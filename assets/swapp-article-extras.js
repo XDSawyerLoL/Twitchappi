@@ -90,9 +90,40 @@
   iframe.allowFullscreen=true;iframe.referrerPolicy='strict-origin-when-cross-origin';
   button.replaceWith(iframe);
  }
+ async function shareEditorial(button){
+  if(!button||button.disabled||typeof document==='undefined')return;
+  const article=button.closest('[data-swapp-article-slug]');
+  const slug=String(article?.dataset?.swappArticleSlug||'');
+  if(!/^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/.test(slug))return;
+  const url='https://swapp.tv/actus/'+encodeURIComponent(slug);
+  const title=String(document.querySelector('h1.article-title')?.textContent||document.title||'SWAPP');
+  button.disabled=true;
+  try{
+   if(typeof navigator!=='undefined'&&typeof navigator.share==='function'){
+    try{await navigator.share({title,url});return;}
+    catch(error){if(error?.name==='AbortError')return;}
+   }
+   if(typeof navigator!=='undefined'&&navigator.clipboard?.writeText){
+    await navigator.clipboard.writeText(url);
+    button.textContent='Lien copié ✓';
+    // Repeated sharing is optional; no analytics or background activity.
+    return;
+   }
+   // Browsers without clipboard APIs: reveal a safe, selectable URL.
+   const link=document.createElement('input');
+   link.type='text';link.readOnly=true;link.value=url;link.className='swapp-share-fallback';
+   link.setAttribute('aria-label',"Adresse de l’article à copier");
+   button.after(link);link.focus();link.select();
+  }catch(_){
+   button.textContent='Partage indisponible';
+  }finally{button.disabled=false}
+ }
  if(typeof document!=='undefined'){
   document.addEventListener('click',event=>{
-   const button=event.target.closest?.('.swapp-trailer-launch');
+   const target=event.target;
+   const share=target.closest?.('[data-swapp-article-share]');
+   if(share){shareEditorial(share);return;}
+   const button=target.closest?.('.swapp-trailer-launch');
    if(button)activate(button);
   });
  }
