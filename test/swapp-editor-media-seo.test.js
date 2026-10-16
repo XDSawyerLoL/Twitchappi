@@ -118,3 +118,25 @@ test('an article without a verified video URL never invents a video player',()=>
  assert.doesNotMatch(page,/swapp-trailer-stage|swapp-trailer-thumb/);
  assert.doesNotMatch(page,/i\.ytimg\.com/);
 });
+
+test('Google-compatible video and article JSON-LD use real publication dates and images',()=>{
+ const base=assertArticle({...input,image:{url:'https://example.org/actual-cover.jpg',credit:'Éditeur',rights:'Autorisé'}},{publish:true});
+ const publishedAt='2026-10-15T10:00:00.000Z';
+ const extract=html=>{
+  const match=html.match(/<script type="application\/ld\+json">([^<]+)<\/script>/);
+  assert.ok(match,'structured data script missing');
+  return JSON.parse(match[1]);
+ };
+ const video=extract(renderNewsStory({...base,status:'published',publishedAt,originalPublishedAt:'2026-10-14T09:00:00.000Z'}));
+ assert.equal(video['@type'],'VideoObject');
+ assert.equal(video.uploadDate,'2026-10-14T09:00:00.000Z');
+ assert.equal(video.thumbnailUrl,'https://example.org/actual-cover.jpg');
+ assert.equal(video.publisher.name,'SWAPP');
+ assert.ok(video.embedUrl.includes('youtube-nocookie.com'));
+ const plain=assertArticle({...input,contentType:'article',trailerUrl:null},{publish:true});
+ const article=extract(renderNewsStory({...plain,status:'published',publishedAt,image:{url:'https://example.org/actual-cover.jpg'}}));
+ assert.equal(article['@type'],'NewsArticle');
+ assert.equal(article.datePublished,publishedAt);
+ assert.deepEqual(article.image,['https://example.org/actual-cover.jpg']);
+ assert.equal(article.publisher.name,'SWAPP');
+});
