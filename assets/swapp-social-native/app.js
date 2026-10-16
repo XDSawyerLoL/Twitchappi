@@ -273,6 +273,10 @@ function bindStaticEvents(){
 
 function bindDelegatedEvents(){
   document.addEventListener('click',async function(event){
+    if(event.target.closest('[data-social-create-circle]')){
+      loadCircles();
+      return;
+    }
     const newsRepost=event.target.closest('[data-news-repost]');
     if(newsRepost){
       if(!requireAuth())return;
