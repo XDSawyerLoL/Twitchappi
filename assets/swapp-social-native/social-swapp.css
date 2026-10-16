@@ -709,7 +709,7 @@ button.pulse-account{width:100%;border:0;background:transparent;text-align:left;
  .swapp-social-viewport .pulse-rich-card{max-width:100%;overflow:hidden}
  .swapp-social-viewport .pulse-rich-card img{width:100%;max-width:100%;object-fit:cover}
  .swapp-social-viewport :is(.pulse-post,.pulse-composer,.pulse-status,.pulse-view){
-  scroll-margin-top:calc(var(--social-site-top) + var(--social-topbar) + var(--social-nav) + var(--social-tabs) + 12px);
+  scroll-margin-top:calc(var(--social-site-top) + var(--swapp-social-stack-height,150px) + 12px);
  }
  .swapp-social-viewport :is(button,a,input,textarea):focus-visible{
   outline:2px solid var(--social-accent,#b87afa);outline-offset:2px;
@@ -763,10 +763,10 @@ button.pulse-account{width:100%;border:0;background:transparent;text-align:left;
    SWAPP header + SOCIAL stack, not just an individual sticky sub-bar. */
 @media (max-width:920px) and (orientation:portrait), (max-width:650px){
  .swapp-social-viewport #pulse-feed{
-  scroll-margin-top:calc(var(--social-site-top,68px) + var(--social-topbar,48px) + var(--social-nav,54px) + var(--social-tabs,48px) + 10px);
+  scroll-margin-top:calc(var(--social-site-top,72px) + var(--swapp-social-stack-height,150px) + 10px);
  }
  .swapp-social-viewport .pulse-main:has(#feed-tabs[hidden]) #pulse-feed{
-  scroll-margin-top:calc(var(--social-site-top,68px) + var(--social-topbar,48px) + var(--social-nav,54px) + 10px);
+  scroll-margin-top:calc(var(--social-site-top,72px) + var(--swapp-social-stack-height,150px) + 10px);
  }
 }
 
