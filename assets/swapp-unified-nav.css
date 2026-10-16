@@ -56,6 +56,21 @@ header.top .mainNav::-webkit-scrollbar{display:none}
   backdrop-filter:blur(20px);
  }
  #mobileNav .swapp-mobile-more-links a{justify-content:flex-start;border-radius:10px;padding:11px 12px;min-height:40px;white-space:nowrap}
+ /* UA details hiding can be overridden by the authored display:grid above.
+    Never show the secondary menu until Plus is explicitly opened. */
+ #mobileNav .swapp-mobile-more:not([open]) > .swapp-mobile-more-links{
+  display:none!important;
+ }
+ #mobileNav .swapp-mobile-more[open] > .swapp-mobile-more-links{
+  max-height:min(62dvh,480px);
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  z-index:110;
+ }
+ #mobileNav .swapp-mobile-more > summary:focus-visible{
+  outline:2px solid #78e9e7;outline-offset:2px;
+ }
+
  body{padding-bottom:calc(72px + env(safe-area-inset-bottom))}
 }
 @media(max-width:389px){
