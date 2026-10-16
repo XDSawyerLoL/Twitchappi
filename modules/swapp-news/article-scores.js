@@ -42,6 +42,7 @@ function registerArticleScores({router,firestore,articles,publicNews,available,b
   const count=Number.isSafeInteger(data.count)&&data.count>=0?data.count:0;
   const sum=Number.isSafeInteger(data.sum)&&data.sum>=0?data.sum:0;
   return {count,average:count?Math.round(sum/count*10)/10:null,
+   readerRecognition:count>=10&&sum>=count*4.5&&sum<=count*5,
    reasons:reasonTotals(data.reasons),
    myRating:personal?.exists?personal.data()?.rating||null:null,
    myReasons:personal?.exists?storedReasons(personal.data()?.reasons):[],canRate};
@@ -105,7 +106,9 @@ function registerArticleScores({router,firestore,articles,publicNews,available,b
     const updatedAt=new Date().toISOString();
     tx.set(summary,{count,sum,reasons,updatedAt});
     tx.set(personal,{rating,reasons:after,updatedAt});
-    return {count,average:Math.round(sum/count*10)/10,reasons,myRating:rating,myReasons:after,canRate:true};
+    return {count,average:Math.round(sum/count*10)/10,
+     readerRecognition:count>=10&&sum>=count*4.5&&sum<=count*5,
+     reasons,myRating:rating,myReasons:after,canRate:true};
    });
    return res.json(result);
   }catch(e){next(e)}
