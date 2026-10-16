@@ -85,7 +85,7 @@ function updateMediaPreview(){
 }
 
 async function publishPost(){
-  if(!requireAuth())return;
+  if(!requireAuth()||dom.publish.disabled)return;
   const body=dom.textarea.value.trim();
   if(!body)return;
   dom.publish.disabled=true;
@@ -96,11 +96,14 @@ async function publishPost(){
     clearReply();
     state.attachment=null;
     updateMediaPreview();
-    state.feed='following';
-    document.querySelectorAll('.pulse-tab').forEach(tab=>tab.classList.toggle('active',tab.dataset.feed==='following'));
+    // Preserve the visitor's selected feed. News has no composer, so land
+    // on discovery after a successful publication from a shared article.
+    if(state.feed==='news')state.feed='discover';
     await loadHome();
   }catch(error){
     alert(errorText(error));
+  }finally{
+    // A successful post previously left Publier permanently disabled.
     dom.publish.disabled=false;
   }
 }
@@ -442,21 +445,29 @@ function bindDelegatedEvents(){
 
     if(event.target.id==='new-message'){
       event.preventDefault();
+      const submit=event.target.querySelector('[type="submit"]');
+      if(submit?.disabled)return;
+      if(submit)submit.disabled=true;
       const form=new FormData(event.target);
       try{
         await api('/api/pulse/messages',{method:'POST',body:JSON.stringify({handle:String(form.get('handle')||'').replace(/^@/,''),body:form.get('body')})});
         await loadMessages();
       }catch(error){alert(errorText(error))}
+      finally{if(submit)submit.disabled=false}
     }
 
     if(event.target.id==='conversation-form'){
       event.preventDefault();
+      const submit=event.target.querySelector('[type="submit"]');
+      if(submit?.disabled)return;
+      if(submit)submit.disabled=true;
       const form=new FormData(event.target);
       const handle=event.target.dataset.handle;
       try{
         await api('/api/pulse/messages',{method:'POST',body:JSON.stringify({handle,body:form.get('body')})});
         await loadConversation(handle);
       }catch(error){alert(errorText(error))}
+      finally{if(submit)submit.disabled=false}
     }
   });
 }
