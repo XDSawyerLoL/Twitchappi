@@ -107,6 +107,7 @@ header.top .menu :is(a,button):focus-visible,
 .swapp-editorial-route .story-fallback{
  display:block;width:100%;height:auto;aspect-ratio:16/10;object-fit:cover;
 }
+.swapp-editorial-route .story-fallback{display:grid;place-items:center;}
 .swapp-editorial-route .story-info{
  padding:clamp(17px,1.8vw,23px);
 }
