@@ -104,7 +104,7 @@
   const count=asCount(matches);metric('matches',count);$('#ssi-match-badge').textContent=count;
   const list=$('#ssi-match-results');
   if(!count){list.innerHTML=empty('✦','Pas encore de joueur compatible. Publie une recherche pour trouver ta première équipe.');return}
-  list.innerHTML=matches.slice(0,6).map(m=>`<div class="ssi-item"><div class="ssi-item-head"><strong>${escape(m.game)}</strong><span class="ssi-chip ssi-match-score">${Math.max(0,Math.min(100,Number(m.score)||0))}% match</span></div><p class="ssi-item-meta"><b>${escape(m.handle)}</b> · ${escape(m.platform)}<br>${escape(m.availability)}${m.style?' · '+escape(m.style):''}</p></div>`).join('');
+  list.innerHTML=matches.slice(0,6).map(m=>`<div class="ssi-item"><div class="ssi-item-head"><strong>${escape(m.game)}</strong><span class="ssi-chip ssi-match-score">${Math.max(0,Math.min(100,Number(m.score)||0))}% match</span></div><p class="ssi-item-meta"><b>@${escape(m.handle)}</b> · ${escape(m.platform)}<br>${escape(m.availability)}${m.style?' · '+escape(m.style):''}</p><button class="ssi-ghost" type="button" data-message-user="${escape(m.handle)}">Envoyer un message ↗</button></div>`).join('');
  }
  function renderPolls(){
   const count=asCount(polls);metric('polls',count);$('#ssi-poll-badge').textContent=count;
