@@ -254,3 +254,10 @@
 #swappSocialNative .pulse-profile-game-list a{color:#d6ebff;text-decoration:none;border:1px solid var(--s3-border);
  background:#1b2a41;border-radius:7px;padding:8px 12px;font-size:12px;font-weight:730}
 #swappSocialNative .pulse-profile-game-list a:hover{border-color:var(--s3-accent)}
+
+#swappSocialNative .social-space-fallback button{
+ display:inline-flex;align-items:center;margin-top:15px;padding:10px 14px;
+ color:#071c22;background:var(--s3-accent);border:0;border-radius:7px;
+ font:inherit;font-size:12px;font-weight:800;cursor:pointer;
+}
+#swappSocialNative .social-space-fallback button:hover{filter:brightness(1.08)}
