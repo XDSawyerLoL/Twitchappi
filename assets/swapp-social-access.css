@@ -13,3 +13,21 @@
 .swapp-social-access-copy small{display:block;color:#a4b3c3;line-height:1.5}
 .swapp-social-access.is-pending .swapp-social-access-actions{opacity:.6}
 @media(max-width:650px){.swapp-social-access-gate{padding:15px}.swapp-social-access-copy{padding:24px 17px}}
+
+/* First-party SWAPP credentials; no homepage redirect or second identity. */
+.swapp-social-access-gate{overflow-y:auto;overscroll-behavior:contain}
+.swapp-social-access-copy{width:min(440px,100%);max-height:calc(100dvh - 110px);overflow-y:auto;text-align:left}
+.swapp-social-access-copy h2{font-size:clamp(26px,3vw,39px)}
+.swapp-social-access-copy>p{font-size:14px}
+.swapp-social-access-form{display:grid;gap:9px;margin-top:20px}
+.swapp-social-access-form[hidden],.swapp-social-access-other[hidden]{display:none!important}
+.swapp-social-access-form label{font-size:12px;font-weight:700;color:#dce7f2;margin-top:5px}
+.swapp-social-access-form input{box-sizing:border-box;width:100%;min-height:44px;border:1px solid #53627b;border-radius:0;background:#0a1220;color:#fff;font-size:16px;padding:10px 12px;outline:none}
+.swapp-social-access-form input:focus{border-color:var(--swapp-page-accent,#22d3ee);outline:1px solid var(--swapp-page-accent,#22d3ee)}
+.swapp-social-access-form .swapp-social-submit{margin-top:8px;width:100%;min-height:46px;border:0;border-radius:0;background:var(--swapp-page-accent,#22d3ee);color:#091521;font-size:14px;font-weight:850;cursor:pointer}
+.swapp-social-access-form .swapp-social-submit:disabled{opacity:.7;cursor:wait}
+.swapp-social-access-other{margin:17px 0 12px;text-align:center}
+.swapp-social-access-other button,.swapp-social-return-login{border:0;border-bottom:1px solid #a6b6c7;border-radius:0;background:transparent;color:#d4e4f3;cursor:pointer;padding:6px 0;font-size:13px;font-weight:650}
+.swapp-social-access .swapp-social-auth-error{color:#ffc1b8;border-left:2px solid #fb8c80;padding-left:10px;font-size:13px;margin:9px 0;line-height:1.5}
+.swapp-social-access .swapp-social-auth-error[hidden]{display:none!important}
+@media(max-width:650px){.swapp-social-access-gate{align-items:start;padding:18px 15px}.swapp-social-access-copy{max-height:calc(100dvh - 120px);width:100%}}
