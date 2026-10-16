@@ -133,7 +133,8 @@ function steamTopSection(){
   return '<article class="swapp-editorial-game" aria-label="Rang '+(i+1)+' : '+esc(name)+'">'+
     '<a class="swapp-editorial-game-art" href="'+url+'" target="_blank" rel="noopener noreferrer">'+
       '<span class="swapp-editorial-game-rank">'+String(i+1).padStart(2,'0')+'</span>'+
-      '<img src="'+art+'" alt="Jaquette du jeu '+esc(name)+'" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src=\'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/'+id+'/header.jpg\'">'+
+      '<span class="swapp-editorial-game-fallback" aria-hidden="true"><span>SWAPP / GAME LIBRARY</span><strong>'+esc(name)+'</strong><small>'+esc(genre)+'</small></span>'+
+      '<img data-steam-app="'+id+'" data-steam-stage="0" src="'+art+'" alt="Jaquette du jeu '+esc(name)+'" loading="lazy" decoding="async" referrerpolicy="no-referrer">'+
     '</a><div class="swapp-editorial-game-body"><span class="swapp-editorial-game-genre">'+esc(genre)+'</span>'+
     '<h3>'+esc(name)+'</h3><p>'+esc(description)+'</p><div class="swapp-editorial-game-foot">'+
     '<strong>'+esc(price||'Prix à vérifier')+'</strong><a href="'+url+'" target="_blank" rel="noopener noreferrer">Voir sur Steam ↗</a>'+
