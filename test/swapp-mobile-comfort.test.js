@@ -7,7 +7,7 @@ const read=name=>fs.readFileSync(path.join(__dirname,'..',name),'utf8');
 
 test('mobile comfort is loaded in both SPA and server-rendered pages',()=>{
  const a=read('index.html'),b=read('modules/swapp-news/site-shell.js');
- const stylesheet='/assets/swapp-mobile-comfort.css?v=20261016-mobile-readability-1';
+ const stylesheet='/assets/swapp-mobile-comfort.css?v=20261016-mobile-readable-2';
  assert.ok(a.includes(stylesheet));
  assert.ok(b.includes(stylesheet));
  assert.ok(a.indexOf(stylesheet)>a.indexOf('swapp-art-direction.css'));
