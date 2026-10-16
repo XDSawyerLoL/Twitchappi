@@ -151,3 +151,54 @@ test('News sitemap keeps HTTP 200 and actual XML after a confirmed published rea
  assert.match(response.body,/<url><loc>https:\/\/swapp\.tv\/actus\/a-genuine-article<\/loc>/);
  assert.equal(h.reads(),1,'the shared sitemap cache makes one storage read');
 });
+
+test('SEO status endpoint diagnoses unavailable storage without exposing details',async()=>{
+ const h=appHarness({fail:true});
+ const response=h.response();
+ response.json=function(obj){this.body=obj;return this};
+ const warn=console.warn;console.warn=()=>{};
+ try{await h.handlers.get('/api/seo/status')({},response)}
+ finally{console.warn=warn}
+ assert.equal(response.statusCode,200);
+ assert.equal(response.body.articleSource,'unavailable');
+ assert.equal(response.body.newsSitemapStatus,'source_unavailable');
+ assert.equal(response.body.sitemapReady,true);
+ assert.equal(response.body.publishedCount,0);
+ assert.equal(h.reads(),1);
+ assert.deepEqual(Object.keys(response.body).sort(),[
+  'articleSource','newsSitemapStatus','publishedCount','service','sitemapReady'
+ ].sort());
+});
+
+test('SEO status endpoint diagnoses an empty published source and does not return a false XML success',async()=>{
+ const h=appHarness({articles:[]});
+ const status=h.response();
+ status.json=function(obj){this.body=obj;return this};
+ await h.handlers.get('/api/seo/status')({},status);
+ assert.equal(status.body.articleSource,'ready');
+ assert.equal(status.body.publishedCount,0);
+ assert.equal(status.body.newsSitemapStatus,'no_published_articles');
+ const news=h.response();
+ await h.handlers.get('/news-sitemap.xml')({},news);
+ assert.equal(news.statusCode,503);
+ assert.equal(news.headers['Retry-After'],'3600');
+ assert.doesNotMatch(news.body,/<urlset/);
+ assert.equal(h.reads(),1);
+});
+
+test('SEO status reuses the cache when a verified editorial sitemap is available',async()=>{
+ const h=appHarness({articles:[{slug:'real-story-today',
+  status:'published',title:'Actualité SWAPP vérifiée',
+  publishedAt:'1970-01-01T00:00:30Z'}]});
+ const status=h.response();
+ status.json=function(obj){this.body=obj;return this};
+ await h.handlers.get('/api/seo/status')({},status);
+ assert.equal(status.body.articleSource,'ready');
+ assert.equal(status.body.publishedCount,1);
+ assert.equal(status.body.newsSitemapStatus,'ready');
+ const news=h.response();
+ await h.handlers.get('/news-sitemap.xml')({},news);
+ assert.equal(news.statusCode,200);
+ assert.match(news.body,/https:\/\/swapp\.tv\/actus\/real-story-today/);
+ assert.equal(h.reads(),1);
+});
