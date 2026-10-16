@@ -66,8 +66,10 @@ async function verify(){
  check(discover.body.includes('index_script.js?v=20261016-discover-v4-39'),
   'Discover still references an old V4 player script');
  const comfort=await request(origin,'/assets/swapp-discover-comfort.js');
- check(comfort.body.includes('swapp-discover-no-image')&&comfort.body.includes('v4SwipeCard'),
-  'Discover mobile comfort JavaScript is missing or outdated');
+ check(comfort.body.includes('swapp-discover-no-image')&&comfort.body.includes('v4SwipeCard')
+  &&comfort.body.includes('lastSavedImage')
+  &&comfort.body.includes('grid-column:1/-1!important;grid-row:1!important'),
+  'Discover mobile card, saved thumbnails or primary Watch action are outdated');
  const mainScript=await request(origin,'/index_script.js');
  check(mainScript.body.includes('already ranked these lives by mood, relevance and diversity'),
   'Discover V4 unexpectedly overrides API relevance ranking');
