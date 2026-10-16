@@ -5,6 +5,10 @@ const ORIGIN='https://swapp.tv';
 // IndexNow's public domain-ownership proof, not a secret credential.
 const INDEXNOW_KEY='b700e3b876341559d245b13c5a25d369';
 const INDEXNOW_KEY_PATH='/'+INDEXNOW_KEY+'.txt';
+// The editor invalidates in-memory SEO lists immediately after a committed
+// publication change. No cron, database poll or third-party service required.
+let invalidateRegisteredSeoCache=()=>{};
+function invalidateSeoCache(){invalidateRegisteredSeoCache()}
 const CORE_PATHS=Object.freeze([
  '/', '/decouvrir', '/categories', '/equipes', '/actus',
  '/communaute', '/bandes-annonces', '/boutique', '/plan-du-site'
@@ -216,28 +220,40 @@ async function notifyIndexNow(slugs=[],{fetchImpl=globalThis.fetch,enabled=proce
 
 function registerSeoRoutes(app,{getPublished=async()=>[],getCreators=async()=>[],now=()=>Date.now()}={}){
  if(!app||typeof app.get!=='function')throw Error('Express app required');
- let cached=null,articles=[],expires=0,inflight=null;
+ let cached=null,articles=[],expires=0,inflight=null,revision=0,loadedRevision=-1;
  const TTL=6*60*60*1000;
+ invalidateRegisteredSeoCache=()=>{revision++;expires=0};
  async function ensureCache(){
-  if(cached&&now()<expires)return;
-  // Share one read across simultaneous requests. Search engine bursts must
-  // never multiply Firestore document reads or create avoidable costs.
-  if(inflight)return inflight;
+  if(cached&&now()<expires&&loadedRevision===revision)return;
+  // All SEO endpoints share a single lookup; a mid-flight editorial update
+  // invalidates its result rather than leaking stale news after publication.
+  if(inflight){
+   await inflight;
+   if(loadedRevision!==revision)return ensureCache();
+   return;
+  }
+  const fetchRevision=revision;
   inflight=(async()=>{
    try{
     const data=await getPublished();
-    articles=(Array.isArray(data)?data:[]).filter(x=>
+    if(fetchRevision!==revision)return;
+    const current=(Array.isArray(data)?data:[]).filter(x=>
      x?.status==='published'&&SLUG.test(String(x.slug||'')));
-    cached=sitemapXml(articles);
+    articles=current;
+    cached=sitemapXml(current);
+    loadedRevision=fetchRevision;
     expires=now()+TTL;
    }catch(err){
+    if(fetchRevision!==revision)return;
     console.warn('[SWAPP SEO] published articles unavailable:',String(err?.message||err));
     if(!cached){cached=sitemapXml();articles=[]}
+    loadedRevision=fetchRevision;
     // Retry soon. Do not replace previously confirmed published URLs.
     expires=now()+60000;
    }
   })();
   try{await inflight}finally{inflight=null}
+  if(loadedRevision!==revision)return ensureCache();
  }
  app.get(INDEXNOW_KEY_PATH,(_req,res)=>{
   res.set('Cache-Control','public, max-age=3600');
@@ -354,4 +370,4 @@ function injectSpaMetadata(html,pathname='/'){
  }
  return result.replace('</head>','<meta name="robots" content="noindex,nofollow"></head>');
 }
-module.exports={ORIGIN,CORE_PATHS,INDEXNOW_KEY,INDEXNOW_KEY_PATH,sitemapEntries,sitemapXml,newsSitemapXml,creatorSitemapXml,sitemapHtml,rssXml,robotsText,registerSeoRoutes,notifyIndexNow,injectSpaMetadata,injectCreatorMetadata};
+module.exports={ORIGIN,CORE_PATHS,INDEXNOW_KEY,INDEXNOW_KEY_PATH,sitemapEntries,sitemapXml,newsSitemapXml,creatorSitemapXml,sitemapHtml,rssXml,robotsText,registerSeoRoutes,invalidateSeoCache,notifyIndexNow,injectSpaMetadata,injectCreatorMetadata};
