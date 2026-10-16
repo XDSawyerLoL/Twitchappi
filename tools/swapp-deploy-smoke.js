@@ -59,6 +59,8 @@ async function verify(){
  const discovery=await request(origin,'/assets/swapp-media-live.js');
  check(discovery.body.includes('/api/discovery/game-lives?limit=6&game='),
   'Article live discovery client is outdated: targeted game lookup missing');
+ check(discovery.body.includes("text(button,'Réessayer')")&&discovery.body.includes('requests.delete(key)'),
+  'Article live discovery retry/recovery is outdated');
  process.stdout.write('PASS game-specific article live discovery\n');
  const discover=await request(origin,'/decouvrir');
  check(discover.body.includes('swapp-discover-comfort.js?v=20261016-v4-mobile-2'),
