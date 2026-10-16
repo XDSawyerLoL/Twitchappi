@@ -263,7 +263,19 @@ export async function loadProfile(handle){
       actions='<button class="pulse-mini-button primary" data-follow="'+esc(user.handle)+'">'+(user.isFollowing?'Se désabonner':'Suivre')+'</button><button class="pulse-mini-button" data-message-user="'+esc(user.handle)+'">Message</button><button class="pulse-mini-button danger" data-block="'+esc(user.handle)+'">Bloquer</button>';
     }
 
-    dom.feed.innerHTML='<section class="pulse-profile-hero"><div class="pulse-avatar">'+esc(initials(user))+'</div><h2>'+esc(user.displayName)+'</h2><div class="handle">@'+esc(user.handle)+'</div><p>'+esc(user.bio||'Aucune bio pour le moment.')+'</p><div class="pulse-profile-stats"><span><strong>'+user.followers+'</strong> abonnés</span><span><strong>'+user.following+'</strong> abonnements</span></div><div class="pulse-profile-actions">'+actions+'</div></section>'+((data.posts||[]).map(renderPost).join('')||'<div class="pulse-status"><strong>Aucune publication</strong></div>');
+    const gameInterests=Array.from(new Set((data.posts||[]).flatMap(post=>{
+      const text=String(post.body||'');
+      const m=text.match(/(?:Jeu|Game)\\s*:\\s*([^\\n]{2,65})/i);
+      return m?[m[1].trim()]:[];
+    }))).slice(0,8);
+    const passport='<section class="pulse-card" aria-label="Passeport joueur" style="margin:14px 0;padding:18px;border-radius:15px">'+
+      '<span class="pulse-kicker">PASSEPORT JOUEUR · SWAPP</span><h3>Mes univers</h3>'+
+      '<p>Jeux mentionnés dans les publications de ce membre. Aucun jeu ajouté automatiquement sans publication.</p>'+
+      (gameInterests.length?'<div style="display:flex;flex-wrap:wrap;gap:8px">'+gameInterests.map(game=>
+        '<span style="border:1px solid #ffffff38;border-radius:99px;padding:7px 10px">'+esc(game)+'</span>').join('')+'</div>':
+        '<p>Les jeux apparaîtront ici après une annonce SWAPP Match.</p>')+
+      '</section>';
+    dom.feed.innerHTML=passport+'<section class="pulse-profile-hero"><div class="pulse-avatar">'+esc(initials(user))+'</div><h2>'+esc(user.displayName)+'</h2><div class="handle">@'+esc(user.handle)+'</div><p>'+esc(user.bio||'Aucune bio pour le moment.')+'</p><div class="pulse-profile-stats"><span><strong>'+user.followers+'</strong> abonnés</span><span><strong>'+user.following+'</strong> abonnements</span></div><div class="pulse-profile-actions">'+actions+'</div></section>'+((data.posts||[]).map(renderPost).join('')||'<div class="pulse-status"><strong>Aucune publication</strong></div>');
   }catch(error){
     setStatus('Profil indisponible',errorText(error));
   }
