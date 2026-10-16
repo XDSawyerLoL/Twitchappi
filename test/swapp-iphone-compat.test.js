@@ -10,7 +10,7 @@ test('SWAPP SPA and native pages opt in to iPhone display cutout safe areas',()=
  const spa=read('index.html'),native=read('modules/swapp-news/site-shell.js');
  for(const html of [spa,native]){
   assert.match(html,/<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/);
-  assert.match(html,/swapp-presentation-polish\.css\?v=20261016-iphone-v2/);
+  assert.match(html,/swapp-presentation-polish\.css\?v=20261016-mobile-nav-v3/);
  }
 });
 
@@ -47,7 +47,7 @@ test('article trailers remain click-to-play and request inline video on iOS',()=
 
 test('Hostinger smoke test expects iPhone CSS release, no added cost or tracking',()=>{
  const smoke=read('tools/swapp-deploy-smoke.js'),css=read('assets/swapp-presentation-polish.css');
- assert.match(smoke,/swapp-presentation-polish\.css\?v=20261016-iphone-v2/);
+ assert.match(smoke,/swapp-presentation-polish\.css\?v=20261016-mobile-nav-v3/);
  assert.match(read('tools/swapp-release.js'),/'assets\/swapp-presentation-polish\.css'/);
  assert.doesNotMatch(css,/navigator\.userAgent|localStorage|fetch\(|@import/i);
  let depth=0;
