@@ -43,8 +43,10 @@ function revealSocialContent(){
   const phone=window.matchMedia?.('(max-width:920px) and (orientation:portrait), (max-width:650px)')?.matches;
   if(!phone)return;
   window.requestAnimationFrame?.(()=>{
-    const feed=document.getElementById('pulse-feed');
-    if(feed?.scrollIntoView)feed.scrollIntoView({block:'start',behavior:'auto'});
+    const target=(state.view==='play'||state.view==='rooms')
+      ?document.querySelector('.swapp-interactive:not([hidden])')
+      :document.getElementById('pulse-feed');
+    if(target?.scrollIntoView)target.scrollIntoView({block:'start',behavior:'auto'});
   });
 }
 
