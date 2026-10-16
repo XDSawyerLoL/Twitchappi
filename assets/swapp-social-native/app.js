@@ -203,6 +203,10 @@ function bindStaticEvents(){
       document.getElementById('swapp-match-open')?.click();
       return;
     }
+    if(action==='search-match'){
+      await loadExplore('SWAPP Match');
+      return;
+    }
     if(action==='poll'){
       panel.hidden=!panel.hidden;
       if(!panel.hidden)panel.querySelector('input')?.focus();
