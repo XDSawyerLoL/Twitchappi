@@ -2,12 +2,21 @@
 // Publish a game page only if at least two different, real published articles exist.
 // The page only aggregates first-party editorial content and the existing live shelf.
 const {layout}=require('./swapp-news/site-shell');
+const {searchNames}=require('./swapp-news/game-identity');
 const ORIGIN='https://swapp.tv';
 const SLUG=/^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/;
 const GAME=/^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const html=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function canonicalGame(value){
+ const raw=String(value||'').trim().slice(0,100);
+ if(!raw)return '';
+ // Reuse the editorial whitelist of established aliases; never infer a
+ // different game from an article headline or a broad keyword match.
+ const aliases=searchNames(raw);
+ return aliases.length>1?aliases[0]:raw;
+}
 function gameSlug(value){
- const slug=String(value||'').trim().slice(0,100).normalize('NFD')
+ const slug=canonicalGame(value).normalize('NFD')
   .replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-')
   .replace(/^-+|-+$/g,'').slice(0,90).replace(/-+$/,'');
  return slug.length>=3&&GAME.test(slug)?slug:'';
@@ -20,7 +29,7 @@ function gameHubs(articles=[],{minArticles=2,maxGames=40}={}){
  for(const a of Array.isArray(articles)?articles:[]){
   if(a?.status!=='published'||!SLUG.test(String(a.slug||'')))continue;
   if(!String(a.title||'').trim()||!String(a.summary||a.body||'').trim())continue;
-  const game=String(a.game||'').trim().slice(0,100),slug=gameSlug(game);
+  const game=canonicalGame(a.game),slug=gameSlug(game);
   if(!slug)continue;
   if(!groups.has(slug))groups.set(slug,{slug,game,articles:[],slugs:new Set(),titles:new Set()});
   const group=groups.get(slug),titleKey=String(a.title).trim().toLocaleLowerCase('fr').replace(/\s+/g,' ');
@@ -82,4 +91,4 @@ function renderGamePage(group){
   '<div class="swapp-live-grid" data-live-results><p class="swapp-live-notice">Recherche des lives actuellement disponibles…</p></div></section></main>';
  return layout({title,description,content:body,metadata:meta,extraCss:CSS,active:'actus'});
 }
-module.exports={gameSlug,gameHubUrl,gameHubs,renderGameIndex,renderGamePage};
+module.exports={canonicalGame,gameSlug,gameHubUrl,gameHubs,renderGameIndex,renderGamePage};
