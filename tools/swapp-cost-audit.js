@@ -7,6 +7,7 @@ const path=require('node:path');
 const root=path.resolve(__dirname,'..');
 const configured=name=>typeof process.env[name]==='string'&&process.env[name].trim().length>0;
 const code=fs.readFileSync(path.join(root,'server.js'),'utf8');
+const pkg=JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8'));
 const protectedGemini=/const SWAPP_PAID_AI_ENABLED = false;/.test(code)
  &&/const GEMINI_API_KEY = SWAPP_PAID_AI_ENABLED \? process\.env\.GEMINI_API_KEY : null;/.test(code);
 const results={
@@ -17,8 +18,9 @@ const results={
   paidGeminiRequestsBlockedByCurrentCode:protectedGemini,
   geminiKeyStillConfigured:configured('GEMINI_API_KEY'),
   possibleBillableServices:{
-   firestoreOrGoogleCloud:configured('GOOGLE_APPLICATION_CREDENTIALS')||configured('FIREBASE_SERVICE_ACCOUNT')||configured('FIREBASE_PRIVATE_KEY'),
-   cloudStorage:code.includes('@google-cloud/storage'),
+   firestoreDependencyPresent:!!pkg.dependencies?.['firebase-admin'],
+   cloudStorageDependencyPresent:!!pkg.dependencies?.['@google-cloud/storage'],
+   googleCredentialsConfigured:configured('GOOGLE_APPLICATION_CREDENTIALS')||configured('FIREBASE_SERVICE_ACCOUNT')||configured('FIREBASE_PRIVATE_KEY'),
    resend:configured('RESEND_API_KEY'),
    sendgrid:configured('SENDGRID_API_KEY'),
    stripePayments:configured('STRIPE_SECRET_KEY'),
