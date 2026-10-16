@@ -11,8 +11,9 @@
 
  const validSlug=value=>/^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/.test(String(value||''));
  const validImage=value=>{
+  if(!String(value||'').trim())return '';
   try{
-   const url=new URL(String(value||''),location.origin);
+   const url=new URL(String(value),location.origin);
    return url.protocol==='https:'&&url.href.length<1600?url.href:'';
   }catch{return ''}
  };
