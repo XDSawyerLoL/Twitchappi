@@ -300,7 +300,8 @@ function bindDelegatedEvents(){
       const view=navigate.dataset.view;
       event.preventDefault();
       if(view==='home'){
-        state.feed=state.user?'following':'discover';
+        // A returning member must not land on an empty following feed by default.
+        if(state.feed==='news')state.feed='discover';
         void loadHome();
       }else if(view==='explore')void loadExplore(document.getElementById('pulse-search')?.value||'');
       else if(view==='circles')void loadCircles();
