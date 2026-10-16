@@ -1,32 +1,26 @@
-/* Boutique-only image recovery: different asset families, not repeated hosts for the same missing file. */
+/* Boutique Steam images: canonical image URL from server-side Steam appdetails. */
 (()=>{
  'use strict';
- const base='https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/';
- const alternate='https://cdn.cloudflare.steamstatic.com/steam/apps/';
- function next(img){
-   const id=img.dataset.steamApp;
-   if(!/^[0-9]{3,9}$/.test(id||''))return;
-   const stage=Number(img.dataset.steamStage||0);
-   const candidates=[
-     base+id+'/capsule_616x353.jpg',
-     alternate+id+'/capsule_616x353.jpg',
-     base+id+'/capsule_467x181.jpg',
-     alternate+id+'/header.jpg'
-   ];
-   if(stage>=candidates.length){
-     img.hidden=true;
-     img.removeAttribute('src');
-     img.closest('.swapp-editorial-game')?.classList.add('artwork-unavailable');
-     return;
-   }
-   img.dataset.steamStage=String(stage+1);
-   img.src=candidates[stage];
- }
- document.addEventListener('error',event=>{
-   const img=event.target;
-   if(img instanceof HTMLImageElement&&img.matches('.swapp-editorial-game-art img[data-steam-app]'))next(img);
- },true);
- document.querySelectorAll('.swapp-editorial-game-art img[data-steam-app]').forEach(img=>{
-   if(img.complete&&img.naturalWidth===0)next(img);
- });
+ const imgs=[...document.querySelectorAll('.swapp-editorial-game-art img[data-steam-app]')];
+ if(!imgs.length)return;
+ // Hide known-broken guessed URLs while authoritative artwork is resolved.
+ imgs.forEach(img=>{img.hidden=true;img.removeAttribute('src')});
+ const safe=url=>{
+  try{
+   const u=new URL(url);
+   return u.protocol==='https:'&&/(^|\.)steamstatic\.com$/.test(u.hostname);
+  }catch{return false}
+ };
+ fetch('/api/boutique/steam-images',{credentials:'same-origin',signal:AbortSignal.timeout(12000)})
+ .then(response=>{if(!response.ok)throw Error('images unavailable');return response.json()})
+ .then(data=>{
+  const mapping=data?.images||{};
+  imgs.forEach(img=>{
+   const url=mapping[img.dataset.steamApp];
+   if(!safe(url))return;
+   img.onerror=()=>{img.hidden=true;img.closest('.swapp-editorial-game')?.classList.add('artwork-unavailable')};
+   img.onload=()=>{img.hidden=false};
+   img.src=url;
+  });
+ }).catch(()=>{});
 })();
