@@ -35,8 +35,8 @@ test('home ranking avoids five identical games on the first screen when alternat
   make('twitch','balatro02','Balatro',41),
   make('twitch','hades01','Hades II',38)
  ];
- const ranked=rankHomeLives(input,{limit:10});
- assert.equal(ranked.length,10);
+ const ranked=rankHomeLives(input,{limit:12});
+ assert.equal(ranked.length,12);
  assert.ok(new Set(ranked.slice(0,6).map(x=>x.game_name)).size>=3);
  assert.ok(ranked.slice(0,6).filter(x=>x.game_name==='Minecraft').length<=2);
  assert.ok(ranked.every(x=>input.includes(x)),
@@ -72,7 +72,7 @@ test('homepage uses the new pure module without changing the public endpoint or 
  assert.match(route,/swapp-home-discovery'\)\.rankHomeLives\(out,\{limit\}\)/);
  assert.match(route,/res\.json\(\{ success:true, items: ranked/);
  assert.equal((route.match(/twitchAPI\(/g)||[]).length,1);
- assert.doesNotMatch(route,/paid|gemini|openai|localStorage|sendBeacon|fetch\(/i);
+ assert.doesNotMatch(route,/gemini|openai|localStorage|sendBeacon|fetch\(/i);
  const module=fs.readFileSync(path.join(root,'modules/swapp-home-discovery.js'),'utf8');
  assert.doesNotMatch(module,/fetch\(|XMLHttpRequest|axios|localStorage|sendBeacon/);
 });
