@@ -4956,6 +4956,9 @@ function discoveryNormCandidate(x){
     display_name: display, user_name: display, host_name: display,
     title: x.title || `Live de ${display}`,
     game_name: game, category: game,
+    // Preserve the verified Twitch language through dedupe and scoring.
+    // Previous normalization dropped it, making the French-language bonus inert.
+    language:String(x.language||x.broadcaster_language||'').trim().toLowerCase().slice(0,8),
     viewer_count: Number(x.viewer_count ?? x.viewers ?? 0) || 0,
     viewers: Number(x.viewer_count ?? x.viewers ?? 0) || 0,
     thumbnail_url: thumb,
@@ -5181,7 +5184,12 @@ app.get('/api/oryon/discover/find-live', heavyLimiter, async (req,res)=>{
       .filter(x => Number(x.viewer_count || 0) <= Math.max(max, Number(profile.hardMax || max)))
       .sort((a,b) => (Number(b.score || 0) - Number(a.score || 0)) || (Math.abs((a.viewer_count||0)-45)-Math.abs((b.viewer_count||0)-45)));
 
-    const top = scored.slice(0, 60);
+    // Keep the existing mood and personal relevance scores; diversify only
+    // the initial broad-discovery screen and skip explicitly labelled reruns.
+    // Searching for a named game/creator always preserves strict score order.
+    const top = require('./modules/swapp-discovery-diversity').diversifyDiscovery(scored,{
+      limit:60,query:q,firstScreen:12,perGame:2
+    });
     res.json({
       success:true,
       items: top,
