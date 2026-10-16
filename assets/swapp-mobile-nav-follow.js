@@ -45,7 +45,7 @@
   if(Math.abs(delta)<1)return true;
   const left=Math.max(0,nav.scrollLeft+delta);
   if(typeof nav.scrollTo==='function'){
-   try{nav.scrollTo({left,behavior:instant||reduceMotion()?'instant':'smooth'});return true}catch(_){}
+   try{nav.scrollTo({left,behavior:instant||reduceMotion()?'auto':'smooth'});return true}catch(_){}
   }
   nav.scrollLeft=left;
   return true;
