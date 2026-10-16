@@ -1,6 +1,6 @@
 export const API_BASE=''; // same-origin SWAPP proxy: no third-party requests from the browser
 export const TOKEN_KEY='swapp_social_session_v1';
-export const state={token:(()=>{try{return sessionStorage.getItem(TOKEN_KEY)||''}catch{return ''}})(),user:null,feed:'discover',view:'home',replyTo:null,authMode:'login',attachment:null};
+export const state={token:'',user:null,feed:'discover',view:'home',replyTo:null,authMode:'login',attachment:null};
 
 export const dom={
   feed:document.getElementById('pulse-feed'),
@@ -50,7 +50,12 @@ export function setStatus(title,text){
 
 export function errorText(e){
   const map={
-    unauthorized:'Connexion requise.',
+    unauthorized:'Compte SWAPP requis.',
+    swapp_account_required:'Connecte-toi avec ton compte SWAPP.',
+    social_sso_unconfigured:'Liaison SWAPP et SOCIAL non configurée côté serveur.',
+    social_sso_unavailable:'Impossible de lier SOCIAL au compte SWAPP pour le moment.',
+    social_identity_conflict:'Identité SOCIAL déjà utilisée. Contacte le support SWAPP.',
+    swapp_session_unavailable:'La session SWAPP ne peut pas être vérifiée.',
     invalid_credentials:'Identifiant ou mot de passe incorrect.',
     handle_taken:'Cet identifiant est déjà pris.',
     invalid_handle:'Identifiant : 3 à 24 caractères, lettres minuscules, chiffres ou _.',
@@ -70,10 +75,10 @@ export function errorText(e){
 
 export async function api(path,options={}){
   const headers={'content-type':'application/json',...(options.headers||{})};
-  if(state.token)headers.authorization='Bearer '+state.token;
+  // Browser never handles upstream SOCIAL tokens; SWAPP session cookie is the authority.
   let response;
   try{
-    response=await fetch(API_BASE+path,{...options,headers,signal:options.signal||
+    response=await fetch(API_BASE+path,{...options,headers,credentials:'same-origin',signal:options.signal||
       (typeof AbortSignal?.timeout==='function'?AbortSignal.timeout(options.method&&options.method!=='GET'?20000:35000):undefined)});
   }catch(cause){
     const err=new Error('network_error');
