@@ -7,7 +7,7 @@ const vm=require('node:vm');
 const root=path.resolve(__dirname,'..');
 const read=p=>fs.readFileSync(path.join(root,p),'utf8');
 
-function harness({missing=false,saved=false}={}){
+function harness({missing=false,saved=false,invite=false}={}){
  const source=read('assets/swapp-discover-comfort.js');
  const styles=[],listeners={},calls={watch:0},attrs={};
  const hero={textContent:'Elden Ring en direct'};
@@ -31,8 +31,13 @@ function harness({missing=false,saved=false}={}){
   closest:()=>savedHolder,
   addEventListener(name,cb){listeners['saved:'+name]=cb}
  };
+ const inviteHost={
+  nodes:[],
+  querySelector(s){return s==='.swapp-discover-creator-join'?this.nodes[0]||null:null},
+  appendChild(node){this.nodes.push(node)}
+ };
  const discover={
-  querySelector(s){return s==='.v4Page'?{}:s==='#v4SwipeCard'?card:null},
+  querySelector(s){return s==='.v4Page'?{}:s==='#v4SwipeCard'?card:s==='.v4Hero > div'&&invite?inviteHost:null},
   querySelectorAll(s){return s==='.v4DeckSlot img,.v4FollowCard img'&&saved?[savedImage]:[]},
   addEventListener(name,cb){listeners[name]=cb}
  };
@@ -46,13 +51,15 @@ function harness({missing=false,saved=false}={}){
  const win={
   requestAnimationFrame:fn=>fn(),
   v4Watch(){calls.watch++},
+  streamTargetView(){return 'manager'},
+  setView(view){calls.view=view},
   MutationObserver:class{
    constructor(cb){this.callback=cb;observer=this}
    observe(){this.observed=true}
   }
  };
  vm.runInNewContext(source,{window:win,document:doc,console});
- return {win,doc,styles,discover,card,image,savedImage,savedHolder,observer:()=>observer,listeners,calls};
+ return {win,doc,styles,discover,card,image,savedImage,savedHolder,inviteHost,observer:()=>observer,listeners,calls};
 }
 test('current Discover V4 script loads after its legacy JS in the SPA',()=>{
  const html=read('index.html');
@@ -211,4 +218,25 @@ test('stale saved-card image errors cannot damage a newly loaded preview',()=>{
  oldFail();
  assert.equal(h.savedImage.hidden,false);
  assert.equal(h.savedHolder.classList.contains('swapp-discover-no-image'),false);
+});
+
+test('Discover invites new creators through the existing account flow without a duplicate banner',()=>{
+ const h=harness({invite:true});
+ assert.equal(h.inviteHost.nodes.length,1);
+ const button=h.inviteHost.nodes[0];
+ assert.equal(button.tag,'button');
+ assert.equal(button.type,'button');
+ assert.match(button.className,/swapp-discover-creator-join/);
+ assert.match(button.textContent,/Créer ta chaîne sur SWAPP/);
+ button.onclick();
+ assert.equal(h.calls.view,'manager');
+ // The decorated Discover view can be re-rendered without duplicate CTA.
+ h.observer().callback();
+ assert.equal(h.inviteHost.nodes.length,1);
+ // Guest visitors are routed to the existing registration/login screen.
+ h.win.streamTargetView=undefined;
+ button.onclick();
+ assert.equal(h.calls.view,'settings');
+ const source=read('assets/swapp-discover-comfort.js');
+ assert.doesNotMatch(source,/fetch\(|sendBeacon|localStorage|XMLHttpRequest/);
 });
