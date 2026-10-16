@@ -66,6 +66,8 @@ test('generic or unspecified games do not suppress unrelated creators',()=>{
  const b={...make('Just Chatting',2),game_name:'Just Chatting'};
  assert.notEqual(gameKey(a),gameKey(b));
  assert.equal(gameKey(make('Baldur’s Gate 3',1)),gameKey(make("Baldur's Gate 3",2)));
+ assert.equal(gameKey(make('GTA 6',1)),gameKey(make('Grand Theft Auto VI',2)));
+ assert.equal(gameKey(make('Planet Zoo II',1)),gameKey(make('Planet Zoo 2',2)));
 });
 
 test('available Twitch language survives normalizing and deduping before scoring',()=>{
