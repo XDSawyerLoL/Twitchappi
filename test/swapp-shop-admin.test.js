@@ -176,6 +176,8 @@ test('Amazon draft link is prepared as an unpublished product without guessing d
  assert.match(src,/if\(select\(-1,true\)===false\)return/);
  assert.match(src,/if\(!input\.title\)throw Error/);
  assert.match(src,/if\(!writable\)return/);
+ const hidden=shop([real({id:'amazon-hidden',url:'https://link.amazon/B01fj5Alw',merchant:'Amazon',visible:false})],{source:'managed'});
+ assert.doesNotMatch(hidden,/amazon-hidden|link\.amazon|Lien rémunéré par Amazon|Casquette test/);
  assert.doesNotMatch(src,/fetch\(['"]https:\/\/|sendBeacon|gtag\(/);
 });
 
