@@ -195,6 +195,45 @@ function bindStaticEvents(){
   });
 
   dom.publish.addEventListener('click',publishPost);
+  document.querySelectorAll('[data-social-tool]').forEach(button=>button.addEventListener('click',async()=>{
+    if(!requireAuth())return;
+    const action=button.dataset.socialTool;
+    const panel=document.getElementById('swapp-poll-form');
+    if(action==='match'){
+      document.getElementById('swapp-match-open')?.click();
+      return;
+    }
+    if(action==='poll'){
+      panel.hidden=!panel.hidden;
+      if(!panel.hidden)panel.querySelector('input')?.focus();
+      return;
+    }
+    if(action==='room'){
+      await loadCircles();
+      document.getElementById('circle-create')?.scrollIntoView({block:'center',behavior:'smooth'});
+      document.getElementById('circle-create')?.querySelector('input')?.focus();
+      return;
+    }
+    if(action==='passport'){await loadProfile();return}
+  }));
+  document.getElementById('swapp-poll-form')?.addEventListener('submit',event=>{
+    event.preventDefault();
+    if(!requireAuth())return;
+    const form=event.currentTarget;
+    if(!form.reportValidity())return;
+    const fields=new FormData(form);
+    const question=String(fields.get('question')||'').trim();
+    const choiceA=String(fields.get('choiceA')||'').trim();
+    const choiceB=String(fields.get('choiceB')||'').trim();
+    if(!question||!choiceA||!choiceB||choiceA===choiceB)return;
+    dom.textarea.value=['SONDAGE SWAPP : '+question,'A — '+choiceA,'B — '+choiceB,'Votez A ou B en commentaire !'].join('\\n').replace(/\\n/g,'\n').slice(0,420);
+    dom.count.textContent=dom.textarea.value.length+' / 420';
+    dom.publish.disabled=false;
+    form.hidden=true;
+    dom.textarea.focus();
+    document.getElementById('composer')?.scrollIntoView({block:'center',behavior:'smooth'});
+  });
+
   const matchForm=document.getElementById('swapp-match-form');
   document.getElementById('swapp-match-open')?.addEventListener('click',()=>{
     if(!requireAuth())return;
