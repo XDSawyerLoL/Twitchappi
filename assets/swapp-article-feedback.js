@@ -1,6 +1,11 @@
 /* SWAPP article score and private saved articles — no third-party tracking. */
 (()=>{'use strict';
  const KEY='swapp:saved-articles:v1';
+ const REASON_OPTIONS=Object.freeze([
+  {key:'useful',label:'Utile'},
+  {key:'sourced',label:'Bien documenté'},
+  {key:'engaging',label:'Intéressant'}
+ ]);
  const ok=s=>/^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/.test(String(s||''));
  const el=(tag,cls,value)=>{const x=document.createElement(tag);if(cls)x.className=cls;if(value!=null)x.textContent=String(value);return x};
  function saved(){
@@ -74,12 +79,18 @@
   const row=el('div','swapp-feedback-stars');
   const status=el('p','swapp-feedback-status','Chargement des évaluations…');
   status.setAttribute('aria-live','polite');
-  const buttons=[];
+  const buttons=[],reasonButtons=[];
   let current=null,busy=false;
   function paint(){
    buttons.forEach((button,i)=>{
     const selected=current?.myRating===i+1;
     button.classList.toggle('is-selected',Number(current?.myRating)>=i+1);
+    button.setAttribute('aria-pressed',String(selected));
+    button.disabled=busy;
+   });
+   reasonButtons.forEach(({key,button})=>{
+    const selected=Array.isArray(current?.myReasons)&&current.myReasons.includes(key);
+    button.classList.toggle('is-selected',selected);
     button.setAttribute('aria-pressed',String(selected));
     button.disabled=busy;
    });
@@ -107,6 +118,40 @@
   }
   const average=el('span','swapp-feedback-average','Aucune note');
   row.append(average);panel.append(row,status);
+  // The qualitative choices are shown only after an article has been rated.
+  const reasonsArea=el('div','swapp-feedback-reasons');
+  reasonsArea.hidden=true;
+  reasonsArea.append(el('strong','swapp-feedback-reasons-title','Qu’as-tu apprécié ?'));
+  const reasonsRow=el('div','swapp-feedback-reason-list');
+  const reasonsHint=el('p','swapp-feedback-reasons-hint','Facultatif · plusieurs réponses possibles.');
+  const insight=el('p','swapp-feedback-insight');
+  insight.hidden=true;
+  async function chooseReason(key){
+   if(busy||!current?.myRating)return;
+   const previous=Array.isArray(current.myReasons)?current.myReasons:[];
+   const next=previous.includes(key)?previous.filter(x=>x!==key):
+    REASON_OPTIONS.map(x=>x.key).filter(x=>x===key||previous.includes(x));
+   busy=true;paint();
+   reasonsHint.textContent='Enregistrement du retour…';
+   try{
+    const response=await fetch(endpoint,{
+     method:'POST',credentials:'same-origin',
+     headers:{'Content-Type':'application/json','Accept':'application/json'},
+     body:JSON.stringify({rating:current.myRating,reasons:next})
+    });
+    if(!response.ok)throw Error('Retour momentanément indisponible.');
+    current=await response.json();
+    show();
+   }catch(error){reasonsHint.textContent=error.message}
+   finally{busy=false;paint()}
+  }
+  for(const option of REASON_OPTIONS){
+   const button=el('button','swapp-feedback-reason',option.label);
+   button.type='button';button.setAttribute('aria-pressed','false');
+   button.onclick=()=>chooseReason(option.key);
+   reasonButtons.push({key:option.key,button});reasonsRow.append(button);
+  }
+  reasonsArea.append(reasonsRow,reasonsHint,insight);panel.append(reasonsArea);
   const savedLink=el('button','swapp-feedback-saved-link','Voir mes articles sauvegardés →');
   savedLink.type='button';savedLink.onclick=openSaved;panel.append(savedLink);
   reading.after(panel);
@@ -120,6 +165,17 @@
     status.textContent=current?.canRate?'Choisissez de 1 à 5 étoiles.':'Connectez-vous pour participer à la note communautaire.';
    }
    buttons.forEach((b,i)=>{b.textContent=current?.myRating>=i+1?'★':'☆'});
+   reasonsArea.hidden=!current?.myRating;
+   if(!reasonsArea.hidden){
+    reasonsHint.textContent='Facultatif · tu peux modifier tes choix.';
+    const countByKey=current?.reasons||{};
+    const leading=REASON_OPTIONS.map(x=>({...x,count:Number(countByKey[x.key])||0}))
+     .sort((a,b)=>b.count-a.count)[0];
+    const enoughVotes=count>=5&&leading?.count>=2;
+    insight.hidden=!enoughVotes;
+    if(enoughVotes)insight.textContent='Qualité la plus citée : '+leading.label.toLowerCase()+
+     ' ('+leading.count+' mention'+(leading.count>1?'s':'')+').';
+   }
    paint();
   }
   fetch(endpoint,{credentials:'same-origin',headers:{Accept:'application/json'}})
