@@ -2,11 +2,11 @@
 
 ## SOCIAL : nouvelle architecture de navigation (16/10/2026)
 
-Le précédent assemblage d'un en-tête `sticky`, d'un menu d'icônes `fixed` et d'onglets `sticky` n'est plus utilisé sur téléphone. Les trois éléments sont regroupés dans `.swapp-social-sticky-stack` : **un seul bloc sticky sous l'en-tête SWAPP**, sans positionnement fixe isolé ni espace compensatoire.
+Le précédent assemblage de plusieurs barres `sticky` / `fixed` n'est plus utilisé sur téléphone. Les trois éléments sont regroupés dans `.swapp-social-sticky-stack` : **un seul bloc fixe sous l'en-tête SWAPP**, avec un espace réservé qui suit automatiquement sa hauteur, y compris quand les onglets sont masqués.
 
 La nouvelle disposition mobile est :
 1. Barre générale SWAPP : 68 px.
-2. Bandeau SOCIAL compact : 48 px.
+2. Bandeau SOCIAL compact : 48 px (hauteur adaptée si nécessaire).
 3. Navigation des cinq icônes : 54 px, toujours visible avec le bandeau.
 4. Choix du fil : 48 px lorsqu'on est sur l'accueil SOCIAL. Masqué dans les autres rubriques.
 
@@ -33,8 +33,8 @@ Sur `https://swapp.tv/communaute` :
 ### Condition préalable : vérifier le déploiement réel
 
 Le site repose sur `app.js` (serveur Node démarré avec `npm start` sur Hostinger). Un commit GitHub **ne prouve pas** que Hostinger a chargé la nouvelle version. Il faut confirmer la synchronisation de la branche, redémarrer le processus Node si la méthode d'hébergement l'exige, puis s'assurer que la page renvoie les nouvelles références :
-- `social-swapp.css?v=20261016-social-sticky-ux-8`
-- `app.js?v=20261016-social-search-ux-9`
+- `social-swapp.css?v=20261016-social-fixed-10`
+- `app.js?v=20261016-social-fixed-js-10`
 
 Si ces références manquent, le problème immédiat est le déploiement ou le cache, **pas** la nouvelle règle CSS. Vérifier aussi l'URL sans proxy/service worker avant de conclure à une régression.
 
