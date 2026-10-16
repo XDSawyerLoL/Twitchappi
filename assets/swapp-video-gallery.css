@@ -123,3 +123,47 @@
 .swapp-video-external .swapp-video-play-icon{font-size:25px;border-color:#a9b9cc70;background:#0c1524a8}
 .swapp-video-unavailable{color:#f4cbd9!important;font-size:12px!important;line-height:1.55!important;margin:0 0 12px!important}
 .swapp-video-stage-fallback a:first-of-type{border-color:color-mix(in srgb,var(--brand,#8b5cf6) 55%,#65758b);background:color-mix(in srgb,var(--brand,#8b5cf6) 18%,#162033)}
+
+
+/* Mobile full-screen browser chrome, iPhone cutouts and comfortable controls.
+ * Do not force videos to autoplay or touch the underlying streaming layout. */
+@media(max-width:650px){
+ .swapp-video-backdrop{
+  box-sizing:border-box;
+  padding:
+   max(12px,env(safe-area-inset-top,0px))
+   max(10px,env(safe-area-inset-right,0px))
+   max(12px,env(safe-area-inset-bottom,0px))
+   max(10px,env(safe-area-inset-left,0px));
+  overflow:hidden;
+ }
+ .swapp-video-dialog{
+  box-sizing:border-box;
+  width:100%;
+  max-height:calc(100vh - 32px);
+  max-height:calc(100dvh - max(12px,env(safe-area-inset-top,0px)) - max(12px,env(safe-area-inset-bottom,0px)));
+  overflow-x:hidden;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
+ }
+ .swapp-video-dialog-head{
+  position:sticky;top:0;z-index:3;
+  background:#101826;
+ }
+ .swapp-video-close{width:44px;height:44px;min-width:44px;min-height:44px;}
+ .swapp-video-stage-fallback a{min-height:44px;display:inline-flex;align-items:center;justify-content:center;}
+}
+@media(max-height:530px) and (orientation:landscape) and (pointer:coarse){
+ .swapp-video-backdrop{align-items:center;}
+ .swapp-video-dialog{
+  max-height:calc(100vh - 20px);
+  max-height:calc(100dvh - max(8px,env(safe-area-inset-top,0px)) - max(8px,env(safe-area-inset-bottom,0px)));
+ }
+ .swapp-video-stage{
+  max-width:min(100%,calc((100dvh - 115px) * 16 / 9));
+  margin-inline:auto;
+ }
+ .swapp-video-dialog-head{padding:8px 12px;}
+ .swapp-video-stage-fallback{padding:11px 13px;}
+}
