@@ -22,10 +22,10 @@ function gameHubs(articles=[],{minArticles=2,maxGames=40}={}){
   if(!String(a.title||'').trim()||!String(a.summary||a.body||'').trim())continue;
   const game=String(a.game||'').trim().slice(0,100),slug=gameSlug(game);
   if(!slug)continue;
-  if(!groups.has(slug))groups.set(slug,{slug,game,articles:[],slugs:new Set()});
-  const group=groups.get(slug);
-  if(group.slugs.has(a.slug))continue;
-  group.slugs.add(a.slug);group.articles.push(a);
+  if(!groups.has(slug))groups.set(slug,{slug,game,articles:[],slugs:new Set(),titles:new Set()});
+  const group=groups.get(slug),titleKey=String(a.title).trim().toLocaleLowerCase('fr').replace(/\s+/g,' ');
+  if(group.slugs.has(a.slug)||group.titles.has(titleKey))continue;
+  group.slugs.add(a.slug);group.titles.add(titleKey);group.articles.push(a);
  }
  const eligible=[];
  for(const g of groups.values()){
