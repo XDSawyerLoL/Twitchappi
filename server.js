@@ -896,12 +896,19 @@ app.use('/api/pulse',authLimiter,createSocialNativeProxy(fetchWithTimeout,{produ
 }));
 // Experimental SOCIAL interactions stay disabled until durable storage is configured.
 if(process.env.SWAPP_SOCIAL_FEATURES==='1'){
- const {createSocialMysqlInteractions}=require('./modules/swapp-social-mysql');
- const mysql=require('mysql2/promise');
- const dbUrl=process.env.SWAPP_MYSQL_URL||process.env.DATABASE_URL;
- if(!dbUrl)throw new Error('SWAPP_SOCIAL_FEATURES requires SWAPP_MYSQL_URL (durable MySQL)');
- const socialDbPool=mysql.createPool({uri:dbUrl,connectionLimit:5,waitForConnections:true,queueLimit:50,enableKeepAlive:true});
- app.use('/api/swapp/interactions',authLimiter,createSocialMysqlInteractions({express,restoreSession:restoreOryonSessionFromRememberCookie,pool:socialDbPool}));
+ // An optional SOCIAL feature must never stop the main SWAPP site from booting.
+ // A missing MySQL driver or credentials disables only its dedicated endpoints.
+ try{
+  const {createSocialMysqlInteractions}=require('./modules/swapp-social-mysql');
+  const dbUrl=process.env.SWAPP_MYSQL_URL||process.env.DATABASE_URL;
+  if(!dbUrl)throw new Error('missing_social_mysql_url');
+  const mysql=require('mysql2/promise');
+  const socialDbPool=mysql.createPool({uri:dbUrl,connectionLimit:5,waitForConnections:true,queueLimit:50,enableKeepAlive:true});
+  app.use('/api/swapp/interactions',authLimiter,createSocialMysqlInteractions({express,restoreSession:restoreOryonSessionFromRememberCookie,pool:socialDbPool}));
+ }catch(error){
+  console.error('[SWAPP SOCIAL] MySQL interactions unavailable:',error?.code||error?.message||'initialization_failed');
+  app.use('/api/swapp/interactions',(_req,res)=>res.status(503).json({error:'social_storage_unavailable'}));
+ }
 }
 // Social client changes must propagate rapidly; its ES imports do not carry cache query tags.
 app.use('/assets/swapp-social-native', express.static(path.join(__dirname, 'assets/swapp-social-native'), {...staticOptions,maxAge:'1m'}));
