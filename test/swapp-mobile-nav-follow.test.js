@@ -81,7 +81,7 @@ test('falls back to current native page when SPA active class is unavailable',()
 });
 
 test('the mobile follower is included in both navigation shells',()=>{
- const script='/assets/swapp-mobile-nav-follow.js?v=20261016-follow-v1';
+ const script='/assets/swapp-mobile-nav-follow.js?v=20261016-follow-v2';
  assert.ok(load('index.html').includes(script));
  assert.ok(load('modules/swapp-news/site-shell.js').includes(script));
  const css=load('assets/swapp-mobile-comfort.css');
