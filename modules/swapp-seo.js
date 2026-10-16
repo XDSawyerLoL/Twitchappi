@@ -89,11 +89,12 @@ function newsSitemapXml(articles=[],currentTime=Date.now()){
 
 
 const CREATOR_LOGIN=/^[a-z0-9_][a-z0-9_-]{1,31}$/;
+const RESERVED_CREATOR_PATHS=new Set(['jeux','actus','api','assets','boutique','communaute','bandes-annonces','pricing','contact','confidentialite','mentions-legales','cgu','cookies','reset-password']);
 function creatorSitemapXml(creators=[]){
  const seen=new Set(),rows=[];
  for(const creator of Array.isArray(creators)?creators:[]){
   const login=String(creator?.login||'').toLowerCase();
-  if(!CREATOR_LOGIN.test(login)||creator?.channel_public===false||seen.has(login))continue;
+  if(!CREATOR_LOGIN.test(login)||RESERVED_CREATOR_PATHS.has(login)||creator?.channel_public===false||seen.has(login))continue;
   seen.add(login);
   rows.push({loc:ORIGIN+'/'+encodeURIComponent(login),
    lastmod:isoDate(creator.channel_updatedAt||creator.updatedAt)});
@@ -108,7 +109,7 @@ function injectCreatorMetadata(html,creator,login){
  let result=String(html||'');
  if(!result.includes('</head>'))return result;
  const slug=String(login||'').toLowerCase();
- if(!CREATOR_LOGIN.test(slug)||!creator||creator.channel_public===false||
+ if(!CREATOR_LOGIN.test(slug)||RESERVED_CREATOR_PATHS.has(slug)||!creator||creator.channel_public===false||
     String(creator.login||'').toLowerCase()!==slug)
   return result.replace('</head>','<meta name="robots" content="noindex,follow"></head>');
  const title=String(creator.display_name||slug).trim().slice(0,80)||slug;
