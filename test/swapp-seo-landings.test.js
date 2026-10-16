@@ -125,9 +125,55 @@ test('Google News sitemap includes only fresh, original, published editorial art
  assert.match(xml,/<news:language>fr<\/news:language>/);
  assert.match(xml,/<news:title>Nouvelle sortie &amp; suite<\/news:title>/);
  assert.match(xml,/2026-10-16T10:00:00.000Z/);
- for(const slug of ['past','imported','private','video','future'])assert.doesNotMatch(xml,new RegExp('/actus/'+slug));
+ // Older published articles can remain as ordinary URLs, but MUST NOT
+ // advertise a fake Google News publication date after migration.
+ for(const slug of ['past','imported']){
+  const match=xml.match(new RegExp('<url><loc>https://swapp\\.tv/actus/'+slug+'<\\/loc>([\\s\\S]*?)<\\/url>'));
+  assert.ok(match,'archived editorial omitted: '+slug);
+  assert.doesNotMatch(match[1],/<news:news>/);
+ }
+ for(const slug of ['private','video','future'])assert.doesNotMatch(xml,new RegExp('/actus/'+slug));
  assert.equal((xml.match(/<news:news>/g)||[]).length,1);
  assert.match(robotsText(),/news-sitemap\.xml/);
+});
+
+
+test('older published editorials keep a valid URL in an otherwise empty Google News sitemap',()=>{
+ const {newsSitemapXml}=require('../modules/swapp-seo');
+ const clock=Date.parse('2026-10-16T12:00:00Z');
+ const archived=[
+  {slug:'old-original',status:'published',title:'Ancien article JustPlayer',contentType:'article',
+   publishedAt:'2026-10-16T10:00:00Z',originalPublishedAt:'2023-06-01T08:00:00Z'},
+  {slug:'old-no-date',status:'published',title:'Ancienne archive',contentType:'article'}
+ ];
+ const xml=newsSitemapXml(archived,clock);
+ assert.match(xml,/<url><loc>https:\/\/swapp\.tv\/actus\/old-original<\/loc><\/url>/);
+ assert.match(xml,/<url><loc>https:\/\/swapp\.tv\/actus\/old-no-date<\/loc><\/url>/);
+ assert.doesNotMatch(xml,/<news:news>|<news:publication_date>/);
+ assert.doesNotMatch(xml,/2026-10-16T10:00:00Z/);
+ assert.equal((xml.match(/<url>/g)||[]).length,2);
+ // No fabricated URLs when a publisher legitimately has no articles.
+ const empty=newsSitemapXml([],clock);
+ assert.doesNotMatch(empty,/<url>|<news:news>/);
+});
+
+test('Google News metadata never leaks into future, private or imported archive URLs',()=>{
+ const {newsSitemapXml}=require('../modules/swapp-seo');
+ const clock=Date.parse('2026-10-16T12:00:00Z');
+ const published=[
+  {slug:'legit-news',status:'published',title:'Actualité & sortie',contentType:'article',publishedAt:'2026-10-16T11:00:00Z'},
+  {slug:'legacy-import',status:'published',title:'Article ancien',contentType:'article',
+   publishedAt:'2026-10-16T11:00:00Z',originalPublishedAt:'2022-01-01T10:00:00Z'},
+  {slug:'draft-hidden',status:'draft',title:'Pas public',contentType:'article',publishedAt:'2026-10-16T11:00:00Z'},
+  {slug:'future-dated',status:'published',title:'Dans le futur',contentType:'article',publishedAt:'2026-10-20T11:00:00Z'}
+ ];
+ const xml=newsSitemapXml(published,clock);
+ assert.match(xml,/<news:title>Actualité &amp; sortie<\/news:title>/);
+ const oldUrl=xml.match(/<url><loc>https:\/\/swapp\.tv\/actus\/legacy-import<\/loc>(.*?)<\/url>/);
+ assert.ok(oldUrl);
+ assert.doesNotMatch(oldUrl[1],/news:news/);
+ assert.doesNotMatch(xml,/draft-hidden|future-dated/);
+ assert.equal((xml.match(/<news:news>/g)||[]).length,1);
 });
 
 test('IndexNow exposes only public key and makes a single safe free request for published URLs',async()=>{
