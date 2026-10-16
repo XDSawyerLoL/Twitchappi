@@ -205,3 +205,25 @@ test('creator SEO reuses loaded server cache, does not fetch external identities
  assert.match(server,/getCreators:async=>\{/);
  assert.match(server,/return readOryonUsers\(\)\.users\|\|\[\];/);
 });
+
+test('an editorial commit refreshes sitemap immediately without paid polling',async()=>{
+ const {invalidateSeoCache}=require('../modules/swapp-seo');
+ const handlers=new Map();
+ let reads=0;
+ registerSeoRoutes({get:(route,fn)=>handlers.set(route,fn)},{
+  getPublished:async()=>[{slug:reads++===0?'before-news':'after-news',status:'published'}]
+ });
+ const response=()=>({body:'',set(){return this},type(){return this},status(){return this},send(text){this.body=text;return this}});
+ const before=response(),same=response(),after=response();
+ await handlers.get('/sitemap.xml')({},before);
+ await handlers.get('/sitemap.xml')({},same);
+ assert.equal(reads,1);
+ assert.equal(before.body,same.body);
+ invalidateSeoCache();
+ await handlers.get('/sitemap.xml')({},after);
+ assert.equal(reads,2);
+ assert.match(after.body,/after-news/);
+ assert.doesNotMatch(after.body,/before-news/);
+ const router=fs.readFileSync(path.join(__dirname,'../modules/swapp-news/router.js'),'utf8');
+ assert.match(router,/invalidateSeoCache\(\)/);
+});
