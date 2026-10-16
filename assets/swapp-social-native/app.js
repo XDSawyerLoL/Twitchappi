@@ -1,6 +1,6 @@
 import { TOKEN_KEY, state, dom, api, errorText } from './core.js?v=20261016-sso-v2';
 import { openAuth, closeAuth, updateAuthModal, updateAccount, requireAuth, applySession, clearSession, restoreSession } from './session.js?v=20261016-sso-v2';
-import { setView, loadHome, loadExplore, loadCircles, loadNotifications, loadSaved, loadProfile, loadMessages, loadConversation, loadCirclePreview, loadNewsRss } from './views.js?v=20261016-social-games-v2';
+import { setView, loadHome, loadExplore, loadCircles, loadNotifications, loadSaved, loadProfile, loadMessages, loadConversation, loadCirclePreview, loadNewsRss } from './views.js?v=20261016-social-shell-v1';
 
 /* Keep the SOCIAL sticky stack exactly beneath the real SWAPP header.
    Hostinger's server shell has different heights across phone sizes; a
@@ -339,6 +339,8 @@ function bindStaticEvents(){
       else if(view==='circles')loadCircles();
       else if(view==='notifications')loadNotifications();
       else if(view==='messages')loadMessages();
+      else if(view==='play')setView('play','Jouer ensemble');
+      else if(view==='rooms')setView('rooms','Salons & discussion');
       else if(view==='saved')loadSaved();
       else if(view==='profile')loadProfile();
       revealSocialContent();
