@@ -138,7 +138,7 @@ function shop(products=demoProducts,{source='demo'}={}){
   '<p>Les jeux qui nous passionnent et les accessoires qui donnent du caractère à un setup. Un univers à explorer, bientôt à adopter.</p>'+
   '<div class="swapp-shop-hero-actions"><a class="swapp-shop-primary" href="#selection">Découvrir la sélection <span aria-hidden="true">↘</span></a>'+
   '<a class="swapp-shop-secondary" href="#shop-transparence">À propos de la boutique</a></div></div>'+
-  '<div class="swapp-shop-hero-visual">'+(clean.length?'<img src="'+e((clean.find(p=>p.kind==='games')||clean[0]).image)+'" alt="" decoding="async" fetchpriority="high" referrerpolicy="no-referrer">':'')+
+  '<div class="swapp-shop-hero-visual">'+(clean.length?'<img src="'+e((clean.find(p=>p.kind==='games')||clean[0]).image2||(clean.find(p=>p.kind==='games')||clean[0]).image)+'" alt="" decoding="async" fetchpriority="high" referrerpolicy="no-referrer">':'')+
   '<span class="swapp-shop-hero-tag">LA SÉLECTION SWAPP / 01</span></div></div>'+
     note+
   '<nav class="swapp-shop-categories" aria-label="Rayons de la boutique"><span>LES RAYONS</span>'+
