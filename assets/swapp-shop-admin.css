@@ -62,3 +62,26 @@
 @media(prefers-reduced-motion:reduce){.swapp-shop-admin *{scroll-behavior:auto!important}}
 
 .swapp-shop-admin-affiliate-note{border-left:2px solid #8de0c5;padding:8px 12px;color:#bfdbd0;font-size:12px;line-height:1.6;margin:0 0 19px}
+
+/* Amazon draft helper is editor-only. No externally hosted product image is
+   requested until an editor enters an HTTPS image URL on the form. */
+.swapp-shop-amazon-prep{margin:17px 0 27px;padding:18px;border-radius:17px;border:1px solid #93b8b34f;background:linear-gradient(120deg,#1c3040,#172237)}
+.swapp-shop-amazon-prep>label{display:block;margin-bottom:10px;font-size:13px;font-weight:800;color:#edf8f4}
+.swapp-shop-amazon-row{display:flex;gap:10px;align-items:center}
+.swapp-shop-admin .swapp-shop-amazon-row input{flex:1;min-width:0}
+.swapp-shop-admin #shop-admin-amazon-start{background:#a0e7ce;color:#0b2c31;border:0;white-space:nowrap}
+.swapp-shop-amazon-prep p{font-size:12px;line-height:1.6;color:#b6cfd0;margin:10px 0 0}
+.swapp-shop-editor-preview{margin-top:19px;display:flex;gap:16px;align-items:center;border:1px solid #ffffff27;background:#101c2b;border-radius:14px;padding:13px}
+.swapp-shop-preview-art{position:relative;flex:0 0 120px;height:96px;display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:10px;border:1px solid #ffffff25;background:linear-gradient(135deg,#223548,#21253f)}
+.swapp-shop-preview-art img{position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:contain}
+.swapp-shop-preview-art span{font-size:11px;text-align:center;padding:8px;color:#aebfce}
+.swapp-shop-preview-info{min-width:0}
+.swapp-shop-preview-info strong{display:block;font-size:15px;color:#f3faf8;overflow-wrap:anywhere}
+.swapp-shop-preview-info p{margin:5px 0;font-size:12px;color:#b5d4cd}
+.swapp-shop-preview-info small{display:block;font-size:11px;line-height:1.45;color:#97adc0}
+@media(max-width:700px){
+ .swapp-shop-amazon-row{flex-direction:column;align-items:stretch}
+ .swapp-shop-admin #shop-admin-amazon-start{white-space:normal;min-height:45px}
+ .swapp-shop-editor-preview{align-items:flex-start}
+ .swapp-shop-preview-art{flex-basis:85px;height:92px}
+}
