@@ -888,7 +888,11 @@ app.use('/api/swapp/social',authLimiter,createSocialRouter({express,fetchImpl:fe
 
 // Complete SOCIAL transport. The browser never contacts QuanticMinds directly.
 const {createSocialNativeProxy}=require('./modules/swapp-social-native-proxy');
-app.use('/api/pulse',authLimiter,createSocialNativeProxy(fetchWithTimeout,{production:IS_PROD,
+// Read navigation, search and inbox refreshes are not login attempts.
+// Previous shared 60/10-minute limiter blocked ordinary SOCIAL use.
+const pulseReadLimiter=rateLimit({windowMs:60*1000,max:120,standardHeaders:true,legacyHeaders:false});
+app.use('/api/pulse',(req,res,next)=>req.method==='GET'?pulseReadLimiter(req,res,next):authLimiter(req,res,next),
+ createSocialNativeProxy(fetchWithTimeout,{production:IS_PROD,
   restoreLocalSession:restoreOryonSessionFromRememberCookie,
   ssoSecret:String(process.env.SWAPP_SOCIAL_SSO_SECRET||process.env.SWAPP_ACCOUNT_RECOVERY_SECRET||configuredSessionSecret||''),
   lookupLocalUser:getOryonUserByLogin,
