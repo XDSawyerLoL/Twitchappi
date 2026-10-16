@@ -30,20 +30,20 @@ export function updateAccount(){
   const button=document.getElementById('auth-button');
 
   if(user){
-    name.textContent=user.displayName;
-    handle.textContent='@'+user.handle;
-    avatar.textContent=initials(user);
-    composerAvatar.textContent=initials(user);
-    button.textContent='@'+user.handle;
+    if(name)name.textContent=user.displayName;
+    if(handle)handle.textContent='@'+user.handle;
+    if(avatar)avatar.textContent=initials(user);
+    if(composerAvatar)composerAvatar.textContent=initials(user);
+    if(button)button.textContent='@'+user.handle;
     dom.textarea.placeholder='Écrivez une publication…';
     dom.followingLabel.textContent='Abonnements';
     dom.followingHelp.textContent='Les comptes que vous suivez';
   }else{
-    name.textContent='Compte SOCIAL';
-    handle.textContent='Identité locale SOCIAL';
-    avatar.textContent='?';
-    composerAvatar.textContent='?';
-    button.textContent='Compte SOCIAL';
+    if(name)name.textContent='Compte SOCIAL';
+    if(handle)handle.textContent='Identité locale SOCIAL';
+    if(avatar)avatar.textContent='?';
+    if(composerAvatar)composerAvatar.textContent='?';
+    if(button)button.textContent='Compte SOCIAL';
     dom.textarea.placeholder='Écrivez une publication…';
     dom.followingLabel.textContent='Récent';
     dom.followingHelp.textContent='Les publications les plus récentes';
