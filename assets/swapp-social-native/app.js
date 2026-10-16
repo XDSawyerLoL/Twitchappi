@@ -301,16 +301,29 @@ function bindStaticEvents(){
   // SWAPP is the visible account authority. The duplicate SOCIAL entrypoints were removed.
   // Legacy SOCIAL credentials removed: SWAPP session is the only login.
 
-  document.querySelectorAll('.pulse-tab').forEach(function(button){
-    button.addEventListener('click',function(){
-      state.feed=button.dataset.feed;
-      document.querySelectorAll('.pulse-tab').forEach(function(candidate){
-        candidate.classList.toggle('active',candidate===button);
-      });
-      if(state.feed==='news')loadNewsRss();
-      else loadHome();
-      revealSocialContent();
+  // Single delegated controller: switching away from an RSS request must always
+  // work, even if the news endpoint is slow or the feed DOM has been replaced.
+  const feedTabs=document.getElementById('feed-tabs');
+  feedTabs?.addEventListener('click',function(event){
+    const button=event.target.closest('button[data-feed]');
+    if(!button||!feedTabs.contains(button))return;
+    const next=button.dataset.feed;
+    if(!['following','discover','news'].includes(next))return;
+    event.preventDefault();
+    state.feed=next;
+    // Keep navigation responsive synchronously; network responses may arrive later.
+    setView('home',next==='news'?'SWAPP Actualité':'Le fil');
+    document.querySelectorAll('.pulse-tab').forEach(function(candidate){
+      const active=candidate===button;
+      candidate.classList.toggle('active',active);
+      candidate.setAttribute('aria-pressed',String(active));
     });
+    const operation=next==='news'?loadNewsRss():loadHome();
+    Promise.resolve(operation).catch(error=>{
+      if(state.view==='home'&&state.feed===next)
+        console.warn('[SWAPP SOCIAL] Impossible de charger le fil :',error?.message||'indisponible');
+    });
+    revealSocialContent();
   });
 
   document.querySelectorAll('[data-view]').forEach(function(button){
