@@ -25,7 +25,7 @@ function fakeMenu(){
  root.querySelectorAll=()=>root.elements.slice();
  const link=(href='/compte',label='Compte')=>{
   const el={
-   tagName:'A',href,textContent:label,
+   tagName:'A',href,textContent:label,dataset:{},
    getAttribute(name){return name==='href'?this.href:null},
    closest(sel){return sel==='#mobileNav'?root:null},
    remove(){root.elements=root.elements.filter(x=>x!==this)}
