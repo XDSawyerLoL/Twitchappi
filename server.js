@@ -392,7 +392,12 @@ const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID || process.env.TWITCH_CLIE
 const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET || process.env.TWITCH_SECRET || process.env.TWITCH_CLIENT_SECRET_KEY || process.env.CLIENT_SECRET || process.env.TWITCH_API_SECRET;
 const PUBLIC_ORIGIN = safeOrigin(process.env.TWITCH_REDIRECT_URI) || safeOrigin(process.env.PUBLIC_BASE_URL) || safeOrigin(process.env.PUBLIC_APP_URL) || safeOrigin(process.env.APP_BASE_URL) || safeOrigin(process.env.RENDER_EXTERNAL_URL);
 const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI || (PUBLIC_ORIGIN ? PUBLIC_ORIGIN + '/twitch_auth_callback' : undefined);
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+// COST SAFETY: SWAPP must not bill a Google AI Studio/Gemini project.
+// Keeping this hard-off prevents background/user traffic from triggering
+// paid Gemini API calls even when an old Hostinger secret remains configured.
+// Enable only after an explicit, separately reviewed budget decision.
+const SWAPP_PAID_AI_ENABLED = false;
+const GEMINI_API_KEY = SWAPP_PAID_AI_ENABLED ? process.env.GEMINI_API_KEY : null;
 const GEMINI_MODEL = "gemini-2.5-flash";
 
 const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
@@ -2212,7 +2217,7 @@ app.get('/api/health', (req, res) => {
   res.json({
     status: 'ok',
     services: {
-      gemini: !!GEMINI_API_KEY,
+      gemini: !!aiClient,
       firebase: !!firestoreOk,
       stripe: !!(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_WEBHOOK_SECRET),
       twitch: !!(TWITCH_CLIENT_ID && TWITCH_CLIENT_SECRET),
@@ -2228,7 +2233,7 @@ app.get('/api/health', (req, res) => {
 // Body: { "message": "..." }
 app.post('/api/chat', heavyLimiter, async (req, res) => {
   try {
-    if (!aiClient) return res.status(500).json({ error: 'Gemini API key not configured.' });
+    if (!aiClient) return res.status(503).json({ error: 'paid_ai_disabled', message: 'Gemini est désactivé sur SWAPP pour éviter toute facturation.' });
     const message = String((req.body && req.body.message) || '').trim();
     if (!message) return res.status(400).json({ error: 'Message is required.' });
 
@@ -9120,7 +9125,7 @@ function buildSwappFeatureStatus(){
       obs_engine:getOryonVideoEngine().obs_ready,
       steam:!!STEAM_API_KEY,
       youtube:!!YOUTUBE_API_KEY,
-      ai:!!GEMINI_API_KEY,
+      ai:!!aiClient,
       billing:!!process.env.STRIPE_SECRET_KEY
     },
     hide_when_false:['steam','youtube','ai','billing'],
