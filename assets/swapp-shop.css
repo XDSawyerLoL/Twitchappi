@@ -117,3 +117,6 @@
 }
 @media(hover:none){.swapp-shop-card:hover{transform:none;box-shadow:none}}
 @media(prefers-reduced-motion:reduce){.swapp-shop-card{transition:none}.swapp-shop-card:hover{transform:none}}
+
+/* Amazon Associates: unobtrusive, readable disclosure inside the existing trust area. */
+.swapp-shop-trust .swapp-shop-amazon-disclosure{margin-top:11px;color:#d4e6da;max-width:840px;font-size:12px;line-height:1.55}
