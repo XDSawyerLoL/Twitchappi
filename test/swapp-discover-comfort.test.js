@@ -74,7 +74,7 @@ test('DeckLurker keeps saved lives and removes empty placeholders without changi
 test('Discover hero card is keyboard accessible and opens the integrated viewer once',()=>{
  const h=harness();
  assert.equal(h.styles.length,1);
- assert.match(h.styles[0].textContent,/SWAPP/);
+ assert.match(h.styles[0].textContent,/\.v4CardText/);
  assert.equal(h.card.attrs.role,'button');
  assert.equal(h.card.attrs.tabindex,'0');
  assert.match(h.card.attrs['aria-label'],/Elden Ring/);
