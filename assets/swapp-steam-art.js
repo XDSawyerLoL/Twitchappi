@@ -1,30 +1,32 @@
-/* Shop-only Steam artwork fallback. No external API, no trackers. */
+/* Boutique-only image recovery: different asset families, not repeated hosts for the same missing file. */
 (()=>{
  'use strict';
  const base='https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/';
- function fail(img){
-  const id=img.dataset.steamApp;
-  if(!/^[0-9]{3,9}$/.test(id||''))return;
-  const stage=Number(img.dataset.steamStage||0);
-  if(stage===0){
-   img.dataset.steamStage='1';
-   img.src='https://cdn.cloudflare.steamstatic.com/steam/apps/'+id+'/header.jpg';
-  }else if(stage===1){
-   img.dataset.steamStage='2';
-   img.src='https://steamcdn-a.akamaihd.net/steam/apps/'+id+'/header.jpg';
-  }else{
-   img.dataset.steamStage='3';
-   img.removeAttribute('src');
-   img.hidden=true;
-   img.parentElement?.classList.add('image-unavailable');
-  }
+ const alternate='https://cdn.cloudflare.steamstatic.com/steam/apps/';
+ function next(img){
+   const id=img.dataset.steamApp;
+   if(!/^[0-9]{3,9}$/.test(id||''))return;
+   const stage=Number(img.dataset.steamStage||0);
+   const candidates=[
+     base+id+'/capsule_616x353.jpg',
+     alternate+id+'/capsule_616x353.jpg',
+     base+id+'/capsule_467x181.jpg',
+     alternate+id+'/header.jpg'
+   ];
+   if(stage>=candidates.length){
+     img.hidden=true;
+     img.removeAttribute('src');
+     img.closest('.swapp-editorial-game')?.classList.add('artwork-unavailable');
+     return;
+   }
+   img.dataset.steamStage=String(stage+1);
+   img.src=candidates[stage];
  }
  document.addEventListener('error',event=>{
-  const img=event.target;
-  if(img instanceof HTMLImageElement&&img.matches('.swapp-editorial-game-art img[data-steam-app]'))fail(img);
+   const img=event.target;
+   if(img instanceof HTMLImageElement&&img.matches('.swapp-editorial-game-art img[data-steam-app]'))next(img);
  },true);
- // Some failed resources may have completed before the module was evaluated.
  document.querySelectorAll('.swapp-editorial-game-art img[data-steam-app]').forEach(img=>{
-  if(img.complete&&img.naturalWidth===0)fail(img);
+   if(img.complete&&img.naturalWidth===0)next(img);
  });
 })();
