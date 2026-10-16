@@ -17,7 +17,8 @@ function articleHarness(){
   setAttribute(k,v){this.attributes[k]=v}
  }
  const win={scrollTo(){actions.push('top')}};
- const document={createElement:tag=>new Elem(tag)};
+ const target=new Elem('section');
+ const document={createElement:tag=>new Elem(tag),getElementById:id=>id==='actus'?target:null};
  const location={pathname:'/actus/jeu-test',origin:'https://swapp.tv'};
  const history={state:null,pushState(_a,_b,p){location.pathname=p;actions.push('push:'+p)}};
  const fetch=async(url,opts)=>{requests.push({url,signal:opts.signal});throw Error('Hors ligne')};
@@ -26,7 +27,7 @@ function articleHarness(){
   window:win,document,location,history,fetch,AbortController,setTimeout,clearTimeout,
   URL,Date,console
  });
- return {win,document,location,history,requests,actions,target:new Elem('section')};
+ return {win,document,location,history,requests,actions,target};
 }
 test('iPhone article reader loads without AbortSignal.timeout and supplies usable recovery',async()=>{
  const h=articleHarness();
