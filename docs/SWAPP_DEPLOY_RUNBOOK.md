@@ -1,74 +1,49 @@
-# SWAPP — Déploiement contrôlé (Hostinger)
+# SWAPP — Exploitation centralisée sur Hostinger, sans CI payante
 
-> Objectif : une modification GitHub ne doit plus être annoncée comme « en ligne » tant que la version réellement servie sur `https://swapp.tv` n'a pas été identifiée et testée.
+## Règle budgétaire
 
-## 1. Contrôle du code (GitHub)
+- **Aucun GitHub Actions automatique.** Le workflow `.github/workflows/swapp-quality.yml` a été supprimé du dépôt.
+- **Aucun appel Gemini depuis le code SWAPP** : l'IA payante est désactivée en dur par `SWAPP_PAID_AI_ENABLED = false`, indépendamment d'une ancienne clé `GEMINI_API_KEY` qui serait encore présente dans Hostinger.
+- Ne pas réintroduire de workflow GitHub, de modèle externe payant, ni de cron qui génère des appels facturables sans consentement préalable et estimation chiffrée.
+- GitHub reste un dépôt de versions ; **Hostinger est le point central de déploiement et de vérification**.
+- Cela ne supprime pas les coûts d'hébergement, de base de données, de stockage, des tiers ou d'une facturation Google passée.
 
-Le workflow `.github/workflows/swapp-quality.yml` tourne sur les pushes et PR de `master` :
-- `npm ci --ignore-scripts`
-- `npm run check`
-- `npm test`
-- `npm run release:info`
+## Installation et vérifications Hostinger
 
-**Un commit sans résultat Actions ne doit pas être déclaré validé.** Attention aux quotas ou droits GitHub Actions : si le workflow ne démarre pas, les tests ne sont pas exécutés.
+L'application Node démarre avec `app.js` (`npm start`). Le code de version et les scripts de tests sont conçus pour fonctionner sur le même répertoire Hostinger, sans GitHub Actions.
 
-Le script `tools/swapp-release.js` calcule une empreinte SHA-256 stable à partir des fichiers essentiels de SWAPP. L'empreinte change dès que le serveur, la navigation, l'interface SOCIAL, les styles mobiles, l'accueil ou `ads.txt` diffère. Elle ne dépend pas de la présence du dossier `.git` sur l'hébergement.
+### Avant ou après déploiement (commande ponctuelle, terminal Hostinger)
 
-## 2. Déploiement Hostinger
-
-Application Node : **`app.js`** (démarrage : `npm start`).
-
-Après chaque push :
-1. Vérifier que Hostinger a effectivement reçu les fichiers du commit voulu et que la branche source correspond à `master`.
-2. Mettre à jour l'application Node ; si le déploiement n'assure pas un redémarrage automatique, **redémarrer le processus Node** depuis Hostinger.
-3. Ouvrir `https://swapp.tv/api/release`. La route doit renvoyer HTTP **200**, `service: swapp`, `complete: true` et une empreinte `fingerprint` de 64 caractères hexadécimaux.
-4. Dans **le même checkout que celui à déployer**, lancer `npm run verify:production`. Le script compare l'empreinte distante à celle du dépôt puis teste `/ads.txt`, `/communaute`, les fichiers CSS SOCIAL, `/` et `/actus`.
-5. Lancer manuellement **GitHub → Actions → SWAPP quality and deployment parity → Run workflow**, option **verify_production** activée. Elle lance d'abord les tests, ensuite le contrôle de version, enfin deux scénarios Chromium en mobile avec captures à télécharger dans les artifacts du workflow.
-
-Les jobs de navigateur sont volontairement manuels et réservés au **post-déploiement** : un push GitHub ne prouve pas que Hostinger a déployé au même instant.
-
-Si le contrôle renvoie `DEPLOYMENT DRIFT`, conserver le correctif GitHub, vérifier le dossier de déploiement Hostinger, la version chargée, le proxy et les éventuelles copies en cache. Ne pas empiler une nouvelle correction CSS sans avoir rétabli la parité.
-
-### Distinguer les erreurs
-
-| Résultat | Interprétation |
-| --- | --- |
-| `/api/release` renvoie du HTML, 404 ou 503 | Le serveur chargé n'est pas complet, la route est absente, ou le frontal intercepte les requêtes |
-| Réponse 200 mais empreintes différentes | Les fichiers Hostinger ne correspondent pas au checkout testé |
-| Empreinte identique, test mobile en échec | Bug réel côté interface/CSS/JS : diagnostiquer le scénario navigateur |
-| Empreinte identique, tous les tests réussissent | Code et tests vérifiés à cet instant (ne prouve pas l'absence de tout défaut) |
-| Pas de résultat GitHub Actions | Aucun succès de CI ne peut être affirmé |
-
-## 3. Critères d'acceptation SOCIAL sur téléphone
-
-Sur largeur 390 CSS px :
-- L'en-tête général SWAPP reste visible ; la pile compacte SOCIAL reste immédiatement dessous.
-- Un long défilement ne déplace pas la pile ni les onglets du fil au-dessus des publications.
-- Le bandeau utilise la hauteur réelle du header SWAPP, mesurée par `ResizeObserver` ; aucune écoute permanente du scroll.
-- Explorer affiche une recherche utilisable (même après une erreur réseau).
-- Le menu principal SWAPP en bas reste visible et distinct de la navigation SOCIAL.
-
-Le scénario est dans `e2e/swapp-mobile.spec.cjs`. Exécution locale facultative :
-
-```bash
-npm install --no-save @playwright/test@1.56.0
-npx playwright install chromium
-npx playwright test e2e/swapp-mobile.spec.cjs --reporter=line
+```sh
+npm run check
+npm test
+npm run release:info
 ```
 
-## 4. AdSense
+Éviter de lancer l'ensemble des tests pendant un pic de trafic sur le serveur de production : privilégier une copie temporaire du dépôt ou les heures creuses. Les tests n'ont pas besoin d'API Gemini. `release:info` lit les fichiers du serveur et calcule une empreinte locale, sans aucun appel sortant.
 
-La route `/ads.txt` doit retourner **exactement** :
+### Vérifier la version en ligne
 
-```text
-google.com, pub-6082969821681414, DIRECT, f08c47fec0942fa0
-```
+Après un redémarrage Node si nécessaire :
 
-Le vérificateur contrôle la ligne et `Content-Type: text/plain`, mais **ne valide pas** l'approbation AdSense ni les délais d'exploration de Google.
+1. Ouvrir `https://swapp.tv/api/release`. Il faut un JSON `service: swapp`, `complete: true` et `fingerprint` (64 caractères).
+2. Dans le répertoire du code déployé, `npm run verify:production` doit comparer les empreintes et vérifier l'accueil, Actualité, SOCIAL, les CSS et `ads.txt`.
+3. Si le résultat est `DEPLOYMENT DRIFT`, contrôler d'abord le déploiement et le cache : ne pas empiler de nouvelles règles CSS.
+4. Contrôler SOCIAL sur un véritable téléphone, particulièrement la navigation pendant un long défilement.
 
-## 5. Sécurité et confidentialité
+Le fichier `e2e/swapp-mobile.spec.cjs` fournit une recette pour lancer un test Chromium manuellement **uniquement si Playwright est déjà installé localement**. Ce test n'est jamais déclenché automatiquement par GitHub. N'installez pas Chromium en production Hostinger sans avoir vérifié les ressources disponibles.
 
-- L'API de version ne divulgue pas de variables d'environnement ni de contenu source, seulement un hash, le nombre de fichiers et le SHA Git optionnel `SWAPP_GIT_SHA` s'il est défini.
-- Les contrôles navigateur sont réalisés en visiteur non connecté.
-- Aucun script tiers de suivi ajouté pour la validation.
-- Les identifiants Hostinger, GitHub et AdSense ne doivent jamais être introduits dans les fichiers versionnés.
+## Vérifications financières manuelles indispensables
+
+- **GitHub → Settings → Billing & licensing → Actions** : vérifier les minutes / dépenses passées et, si nécessaire, désactiver Actions pour ce dépôt ou fixer une limite de dépenses appropriée.
+- **Google AI Studio → Dashboard → Usage et Billing** : identifier les projets et clés payants. Désactiver la facturation des projets concernés ou révoquer les clés inutiles pour interrompre les appels externes ; le garde-fou dans SWAPP ne peut pas arrêter les appels réalisés par un autre service.
+- **Google Cloud Billing → Reports**, avec ventilation par service (API Gemini, Firestore, Cloud Storage). Vérifier aussi les dépenses Render et Hostinger.
+- Les plafonds de dépenses peuvent comporter un délai de prise en compte ; ne pas les considérer comme une garantie absolue de facturation nulle.
+
+## Dépendances externes existantes
+
+**SWAPP n'est pas entièrement hébergé sur Hostinger aujourd'hui.** SOCIAL appelle un service amont sur Render et certaines fonctionnalités utilisent Firestore / Google Cloud Storage. Les déplacer vers Hostinger réclame une migration planifiée avec export, sauvegarde, contrôle des données et maintien des comptes ; ne pas couper ces services brutalement.
+
+Les routes `/api/release`, `/ads.txt` et les commandes ci-dessus ne créent pas de tâche récurrente, d'appel IA ou de service Google supplémentaire.
+
+**État de validation** : tant que la parité Hostinger n'est pas vérifiée et le site testé sur mobile, les commits GitHub ne prouvent pas la présence du correctif en production.
