@@ -244,7 +244,7 @@ async function notifyIndexNow(slugs=[],{fetchImpl=globalThis.fetch,enabled=proce
 
 function registerSeoRoutes(app,{getPublished=async()=>[],getCreators=async()=>[],now=()=>Date.now()}={}){
  if(!app||typeof app.get!=='function')throw Error('Express app required');
- let cached=null,articles=[],expires=0,inflight=null,revision=0,loadedRevision=-1,gameHubLinks=new Map(),hasVerifiedArticles=false;
+ let cached=null,articles=[],expires=0,inflight=null,revision=0,loadedRevision=-1,gameHubLinks=new Map(),hasVerifiedArticles=false,lastReadSuccessful=false;
  const TTL=6*60*60*1000;
  invalidateRegisteredSeoCache=()=>{revision++;expires=0};
  // Only serve links to pages actually present in the cached sitemap. Direct
@@ -278,12 +278,14 @@ function registerSeoRoutes(app,{getPublished=async()=>[],getCreators=async()=>[]
     articles=current;
     cached=sitemapXml(current);
     hasVerifiedArticles=true;
+    lastReadSuccessful=true;
     gameHubLinks=nextLinks;
     loadedRevision=fetchRevision;
     expires=now()+TTL;
    }catch(err){
     if(fetchRevision!==revision)return;
     console.warn('[SWAPP SEO] published articles unavailable:',String(err?.message||err));
+    lastReadSuccessful=false;
     if(!cached){cached=sitemapXml();articles=[]}
     loadedRevision=fetchRevision;
     // Retry soon. Do not replace previously confirmed published URLs.
@@ -300,6 +302,17 @@ function registerSeoRoutes(app,{getPublished=async()=>[],getCreators=async()=>[]
  app.get('/robots.txt',(_req,res)=>{
   res.set('Cache-Control','public, max-age=3600');
   res.type('text/plain; charset=utf-8').status(200).send(robotsText());
+ });
+ app.get('/api/seo/status',async(_req,res)=>{
+  res.set('Cache-Control','no-store');
+  await ensureCache();
+  const source=!hasVerifiedArticles?'unavailable':(lastReadSuccessful?'ready':'stale');
+  const newsHasUrls=hasVerifiedArticles&&newsSitemapXml(articles,now()).includes('<url>');
+  return res.status(200).json({
+   service:'swapp-seo',articleSource:source,publishedCount:articles.length,
+   sitemapReady:true,newsSitemapStatus:source==='unavailable'?'source_unavailable':
+    (newsHasUrls?'ready':'no_published_articles')
+  });
  });
  app.get('/sitemap.xml',async(_req,res)=>{
   res.set('Content-Type','application/xml; charset=utf-8');
@@ -353,9 +366,15 @@ function registerSeoRoutes(app,{getPublished=async()=>[],getCreators=async()=>[]
    res.set('Retry-After','60');
    return res.status(503).type('text/plain; charset=utf-8').send('Sitemap Actualités temporairement indisponible');
   }
+  const newsXml=newsSitemapXml(articles,now());
+  if(!newsXml.includes('<url>')){
+   res.set('Cache-Control','no-store');
+   res.set('Retry-After','3600');
+   return res.status(503).type('text/plain; charset=utf-8').send('Aucun article publié disponible pour le sitemap Actualités.');
+  }
   res.set('Content-Type','application/xml; charset=utf-8');
   res.set('Cache-Control','public, max-age=900');
-  return res.status(200).send(newsSitemapXml(articles,now()));
+  return res.status(200).send(newsXml);
  });
  app.get('/feed.xml',async(_req,res)=>{
   res.set('Cache-Control','public, max-age=900');
