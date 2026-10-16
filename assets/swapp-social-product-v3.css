@@ -191,3 +191,23 @@
 #swappSocialNative[data-social-view="messages"] .social-dm-identity p{margin:2px 0 0!important}
 
 @media(max-width:920px){#swappSocialNative .swapp-interactive{scroll-margin-top:calc(var(--swapp-social-header-height,68px) + var(--swapp-social-stack-height,150px) + 12px)}}
+
+/* A conversation deserves the workspace, not a narrow feed between sidebars. */
+#swappSocialNative[data-social-view="messages"] .pulse-right,
+#swappSocialNative[data-social-view="rooms"] .pulse-right{display:none!important}
+@media(min-width:1121px){
+ #swappSocialNative[data-social-view="messages"] .pulse-shell,
+ #swappSocialNative[data-social-view="rooms"] .pulse-shell{
+  grid-template-columns:220px minmax(0,1fr)!important;
+  max-width:1480px!important;width:100%!important;
+ }
+}
+@media(min-width:921px) and (max-width:1120px){
+ #swappSocialNative[data-social-view="messages"] .pulse-shell,
+ #swappSocialNative[data-social-view="rooms"] .pulse-shell{
+  grid-template-columns:76px minmax(0,1fr)!important;
+ }
+}
+#swappSocialNative[data-social-view="messages"] .pulse-main,
+#swappSocialNative[data-social-view="rooms"] .pulse-main{border-right:0!important}
+#swappSocialNative:not([data-social-view="home"]) :is(.swapp-game-discovery,.swapp-activities,#swapp-match-form){display:none!important}
