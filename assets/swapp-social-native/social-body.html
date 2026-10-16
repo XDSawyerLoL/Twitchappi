@@ -56,6 +56,16 @@
       </section>
       </div>
       <div class="swapp-social-mobile-offset" aria-hidden="true"></div>
+      <section class="swapp-social-stories" id="swapp-social-stories" aria-labelledby="swapp-social-stories-title" hidden>
+        <header class="swapp-social-stories-heading">
+          <div><span class="swapp-social-stories-kicker">ACTUALITÉ EN IMAGES</span><h2 id="swapp-social-stories-title">À la une sur SWAPP</h2></div>
+          <div class="swapp-social-stories-controls">
+            <button type="button" class="swapp-social-story-arrow" id="swapp-social-story-prev" aria-label="Voir les actualités précédentes" disabled>‹</button>
+            <button type="button" class="swapp-social-story-arrow" id="swapp-social-story-next" aria-label="Voir les actualités suivantes" disabled>›</button>
+          </div>
+        </header>
+        <div class="swapp-social-stories-track" id="swapp-social-stories-track" tabindex="0" aria-label="Dernières actualités en images"></div>
+      </section>
 
       <section class="pulse-welcome" id="pulse-welcome">
         <div class="pulse-welcome-mark zoon-welcome-mark"><span class="swapp-social-symbol" aria-hidden="true">S</span></div>
@@ -90,7 +100,7 @@
     </main>
 
     <aside class="pulse-right">
-      <div class="pulse-search"><svg class="pi " aria-hidden="true"><use href="#pi-search"></use></svg><input id="pulse-search" type="search" placeholder="Rechercher des personnes ou des sujets"></div>
+      <form class="pulse-search swapp-social-search" id="swapp-social-search-form" role="search" autocomplete="off"><label class="swapp-social-search-icon" for="pulse-search"><svg class="pi" aria-hidden="true"><use href="#pi-search"></use></svg></label><input id="pulse-search" name="query" type="search" minlength="2" maxlength="100" placeholder="Membre, jeu, actu…" aria-label="Rechercher dans SWAPP SOCIAL"><button type="submit" aria-label="Rechercher" class="swapp-social-search-go">↗</button></form>
       <p class="swapp-social-network-status">SOCIAL <span id="api-state">Connexion…</span></p>
       <section class="pulse-panel">
         <div class="pulse-panel-head"><h2>Communautés à découvrir</h2><button class="pulse-link-button" data-view="circles">Voir tout</button></div>
