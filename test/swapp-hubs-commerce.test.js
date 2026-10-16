@@ -67,13 +67,13 @@ test('all verified videos and original artwork appear in the SWAPP gallery',()=>
 test('commercial catalog never invents products or follows unsafe merchant links',()=>{
  assert.deepEqual(safeProducts([{title:'Surprise',url:'javascript:alert(1)'}]),[]);
  const product={id:'casquette-test',kind:'caps',title:'Accessoire',description:'Produit réel',
-  merchant:'Vendeur',url:'https://merchant.example/produit',affiliate:true,demo:false,visible:true};
+  merchant:'Vendeur',url:'https://merchant.example/produit',image:'https://cdn.example/photo.jpg',affiliate:true,demo:false,visible:true};
  const html=shop([product],{source:'managed'});
  assert.match(html,/Lien affilié/);
  assert.match(html,/rel="sponsored nofollow noopener noreferrer"/);
  assert.match(html,/merchant\.example\/produit/);
  const examples=shop();
- assert.match(examples,/Vitrine de démonstration/);
+ assert.match(examples,/Boutique en préparation/);
  assert.match(examples,/Clair Obscur/);
  assert.match(examples,/Casquettes/);
  assert.match(examples,/Tapis de souris/);
