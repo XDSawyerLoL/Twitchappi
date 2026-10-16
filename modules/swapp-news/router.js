@@ -11,7 +11,7 @@ const catalog=require('../../data/justplayer-public-catalog.json');
 const {publicArticle,recoveredArticle,nativeSlug,legacyDraft}=require('./editorial-identity');
 const {registerArticleScores}=require('./article-scores');
 const {registerEditorInsights}=require('./editor-insights');
-const {notifyIndexNow}=require('../swapp-seo');
+const {notifyIndexNow,invalidateSeoCache}=require('../swapp-seo');
 
 function createNewsRouter({express, firestore, requireEditor, isReady = () => true, baseUrl = 'https://swapp.tv', publicFetch = globalThis.fetch, publicCatalog = catalog, canEdit = () => false, sendApp = null}) {
   if (typeof express?.Router !== 'function' || typeof firestore?.collection !== 'function' ||
@@ -23,6 +23,9 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
   // No scheduler: signal free IndexNow only after an editor's committed publication.
   // Never block an editorial action if the external indexing service is unreachable.
   const signalIndexing=slugs=>{
+    // Locally refresh all public sitemaps, including Google News and RSS,
+    // even when IndexNow outbound notifications are disabled.
+    invalidateSeoCache();
     if(process.env.NODE_ENV!=='production'||process.env.SWAPP_INDEXNOW_ENABLED==='false')return;
     notifyIndexNow(slugs).then(status=>{
       if(status.attempted&&!status.accepted)
