@@ -51,7 +51,7 @@ export function updateAccount(){
 
   if(state.view==='home'){
     dom.composer.hidden=!user;
-    dom.welcome.hidden=!!user;
+    dom.welcome.hidden=state.feed==='news'||!!user;
   }
 }
 
