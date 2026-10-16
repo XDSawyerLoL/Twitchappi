@@ -41,7 +41,8 @@ function community(){
    '<p id="swapp-social-register-error" class="swapp-social-auth-error" role="alert" aria-live="polite" hidden></p>'+
    '<button type="button" id="swapp-social-show-login" class="swapp-social-return-login">Déjà inscrit ? Se connecter</button>'+
    '</form>'+
-  '<small>Connexion sécurisée sur SWAPP. Seul un compte SWAPP connecté permet l’accès.</small></div></div></div>';
+  '<small>Connexion sécurisée sur SWAPP. Seul un compte SWAPP connecté permet l’accès.</small>'+
+  '<button type="button" id="swapp-social-retry-check" class="swapp-social-return-login" hidden>Réessayer la vérification SWAPP</button></div></div></div>';
  const scripts=assets+pageColors+'<link rel="stylesheet" href="/assets/swapp-social-access.css?v=20261016-3"><script defer src="/assets/swapp-social-access.js?v=20261016-3"></script>'+
   '<link rel="stylesheet" href="/assets/swapp-social-native/social-swapp.css?v=20261016-feedtabs-fix-2">'+
   '<link rel="stylesheet" href="/assets/swapp-social-refinement.css?v=20261016-stories-search-v5">'+
