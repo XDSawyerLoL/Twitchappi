@@ -761,7 +761,7 @@ button.pulse-account{width:100%;border:0;background:transparent;text-align:left;
  .swapp-social-viewport #pulse-feed{
   scroll-margin-top:calc(var(--social-site-top,68px) + var(--social-topbar,48px) + var(--social-nav,54px) + var(--social-tabs,48px) + 10px);
  }
- .swapp-social-viewport .pulse-tabs[hidden] ~ #pulse-feed{
+ .swapp-social-viewport .pulse-main:has(#feed-tabs[hidden]) #pulse-feed{
   scroll-margin-top:calc(var(--social-site-top,68px) + var(--social-topbar,48px) + var(--social-nav,54px) + 10px);
  }
 }
