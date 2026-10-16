@@ -107,10 +107,31 @@ test('a game with no verified live does not invent an unrelated streamer',async(
 test('errors preserve article reading and return a clear status rather than random lives',async()=>{
  const h=fixture(['Baldur’s Gate 3'],new Error('Twitch unavailable'));
  await h.reveal();
- assert.equal(h.targets[0].children.length,1);
+ assert.equal(h.targets[0].children.length,2);
  assert.match(h.targets[0].children[0].textContent,/momentanément indisponibles/);
+ assert.equal(h.targets[0].children[1].tagName,'BUTTON');
+ assert.equal(h.targets[0].children[1].textContent,'Réessayer');
  assert.equal(h.calls.length,1);
 });
+test('a temporary Twitch outage can be retried without reloading the article',async()=>{
+ let attempts=0;
+ const h=fixture(['Elden Ring'],()=>{
+  attempts++;
+  return attempts===1?new Error('temporary outage'):{success:true,game:'Elden Ring',items:[
+   {login:'recovered',platform:'twitch',game_name:'Elden Ring',title:'Live retrouvé'}
+  ]};
+ });
+ await h.reveal();
+ assert.equal(h.calls.length,1);
+ const retry=h.targets[0].children[1];
+ assert.equal(retry.tagName,'BUTTON');
+ retry.onclick();
+ await h.flush();
+ assert.equal(h.calls.length,2,'retry must discard failed cached fetch');
+ assert.equal(h.targets[0].children.length,1);
+ assert.match(h.targets[0].children[0].href,/recovered/);
+});
+
 test('no game uses existing general discovery only, without new sections',async()=>{
  const h=fixture([''],{success:true,items:[
   {login:'other',platform:'twitch',game_name:'Valorant',title:'Valorant'}
@@ -122,7 +143,7 @@ test('no game uses existing general discovery only, without new sections',async(
 test('release uses the changed client version and never schedules a paid workflow',()=>{
  const shell=fs.readFileSync(path.join(root,'modules/swapp-news/site-shell.js'),'utf8');
  const core=fs.readFileSync(path.join(root,'modules/swapp-news/article-core.js'),'utf8');
- assert.match(shell,/swapp-media-live\.js\?v=20261016-game-lives-9/);
- assert.match(core,/swapp-media-live\.js\?v=20261016-game-lives-9/);
+ assert.match(shell,/swapp-media-live\.js\?v=20261016-game-lives-10/);
+ assert.match(core,/swapp-media-live\.js\?v=20261016-game-lives-10/);
  assert.equal(fs.existsSync(path.join(root,'.github/workflows/swapp-quality.yml')),false);
 });
