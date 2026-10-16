@@ -6,6 +6,24 @@ const crypto=require('node:crypto');
 function registerArticleScores({router,firestore,articles,publicNews,available,baseUrl='https://swapp.tv',nativeSlug}){
  const scores=firestore.collection('swapp_article_scores');
  const votes=firestore.collection('swapp_article_votes');
+ const REASONS=Object.freeze(['useful','sourced','engaging']);
+ const emptyReasons=()=>Object.fromEntries(REASONS.map(key=>[key,0]));
+ // Reject unexpected or repeated codes. Free-text submissions are intentionally excluded.
+ const cleanReasons=value=>{
+  if(!Array.isArray(value)||value.length>REASONS.length
+   ||value.some(x=>typeof x!=='string'||!REASONS.includes(x))
+   ||new Set(value).size!==value.length)return null;
+  return REASONS.filter(key=>value.includes(key));
+ };
+ const storedReasons=value=>cleanReasons(value)||[];
+ const reasonTotals=value=>{
+  const counts=emptyReasons();
+  for(const key of REASONS){
+   const n=value?.[key];
+   if(Number.isSafeInteger(n)&&n>=0)counts[key]=n;
+  }
+  return counts;
+ };
  const valid=s=>/^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/.test(String(s||''));
  const canonical=slug=>{
   const s=String(slug||'');
@@ -24,7 +42,9 @@ function registerArticleScores({router,firestore,articles,publicNews,available,b
   const count=Number.isSafeInteger(data.count)&&data.count>=0?data.count:0;
   const sum=Number.isSafeInteger(data.sum)&&data.sum>=0?data.sum:0;
   return {count,average:count?Math.round(sum/count*10)/10:null,
-   myRating:personal?.exists?personal.data()?.rating||null:null,canRate};
+   reasons:reasonTotals(data.reasons),
+   myRating:personal?.exists?personal.data()?.rating||null:null,
+   myReasons:personal?.exists?storedReasons(personal.data()?.reasons):[],canRate};
  };
  const articleExists=async slug=>{
   const saved=await articles.doc(slug).get();
@@ -63,6 +83,9 @@ function registerArticleScores({router,firestore,articles,publicNews,available,b
    if(!user)return res.status(401).json({error:'Connexion requise pour noter un article'});
    const rating=req.body?.rating;
    if(!Number.isInteger(rating)||rating<1||rating>5)return res.status(400).json({error:'Note comprise entre 1 et 5'});
+   const reasonsSent=Object.prototype.hasOwnProperty.call(req.body||{},'reasons');
+   const submittedReasons=reasonsSent?cleanReasons(req.body.reasons):null;
+   if(reasonsSent&&!submittedReasons)return res.status(400).json({error:'Motifs de vote invalides'});
    if(!valid(req.params.slug))return res.status(404).json({error:'Article introuvable'});
    const slug=canonical(req.params.slug);
    if(!valid(slug)||!await articleExists(slug))return res.status(404).json({error:'Article introuvable'});
@@ -71,12 +94,18 @@ function registerArticleScores({router,firestore,articles,publicNews,available,b
     const [total,own]=await Promise.all([tx.get(summary),tx.get(personal)]);
     const current=snapshot(total,own,true);
     const previous=Number(own?.exists?own.data()?.rating:0)||0;
-    if(previous===rating)return current;
+    const before=storedReasons(own?.exists?own.data()?.reasons:[]);
+    const after=reasonsSent?submittedReasons:before;
+    if(previous===rating&&before.length===after.length&&before.every((key,i)=>key===after[i]))return current;
     const count=current.count+(previous?0:1);
     const sum=(Number(total?.exists?total.data()?.sum:0)||0)+rating-previous;
-    tx.set(summary,{count,sum,updatedAt:new Date().toISOString()});
-    tx.set(personal,{rating,updatedAt:new Date().toISOString()});
-    return {count,average:Math.round(sum/count*10)/10,myRating:rating,canRate:true};
+    const reasons=reasonTotals(total?.exists?total.data()?.reasons:null);
+    for(const key of before)reasons[key]=Math.max(0,reasons[key]-1);
+    for(const key of after)reasons[key]+=1;
+    const updatedAt=new Date().toISOString();
+    tx.set(summary,{count,sum,reasons,updatedAt});
+    tx.set(personal,{rating,reasons:after,updatedAt});
+    return {count,average:Math.round(sum/count*10)/10,reasons,myRating:rating,myReasons:after,canRate:true};
    });
    return res.json(result);
   }catch(e){next(e)}
