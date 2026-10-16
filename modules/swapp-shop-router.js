@@ -1,6 +1,6 @@
 'use strict';
 const {CatalogError}=require('./swapp-shop-catalog');
-function createShopRouter({express,store,requireEditor,shop,shopAdmin}){
+function createShopRouter({express,store,requireEditor,shop,shopProduct,shopAdmin}){
  if(!express?.Router||!store||typeof requireEditor!=='function')throw Error('Shop router dependencies missing');
  const router=express.Router();
  const privateRoute=[requireEditor,(_req,res,next)=>{res.set('Cache-Control','private, no-store');next()}];
@@ -12,6 +12,15 @@ function createShopRouter({express,store,requireEditor,shop,shopAdmin}){
   const catalog=await store.load();
   res.set('Cache-Control','no-store');
   return res.type('html').send(shop(catalog.products,{source:catalog.source}));
+ });
+ router.get('/boutique/produit/:id',async(req,res)=>{
+  const catalog=await store.load();
+  const found=catalog.products.find(p=>p.id===String(req.params?.id||'')&&p.visible&&p.image);
+  if(!found)return res.status(404).type('html').send(shop(catalog.products,{source:catalog.source}));
+  const html=shopProduct(found,catalog.products);
+  if(!html)return res.status(404).type('html').send(shop(catalog.products,{source:catalog.source}));
+  res.set('Cache-Control','no-store');
+  return res.type('html').send(html);
  });
  router.get('/boutique/admin',...privateRoute,(_req,res)=>res.type('html').send(shopAdmin()));
  router.get('/api/editor/boutique',...privateRoute,async(_req,res)=>{
