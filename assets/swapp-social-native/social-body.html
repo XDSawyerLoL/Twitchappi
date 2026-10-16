@@ -1,4 +1,4 @@
-<div class="swapp-social-viewport zoon-body pulse-body" id="swappSocialNative">
+<div class="swapp-social-viewport zoon-body pulse-body" id="swappSocialNative" data-social-view="home">
 
   <svg class="pulse-icon-sprite" aria-hidden="true">
     <symbol id="pi-home" viewBox="0 0 24 24"><path d="M3.5 11.2 12 4l8.5 7.2"/><path d="M6.5 10.5V20h11v-9.5"/><path d="M10 20v-6h4v6"/></symbol>
@@ -28,7 +28,9 @@
         <div><strong>SOCIAL</strong><span>Communauté SWAPP</span></div>
       </div>
       <nav class="pulse-nav" aria-label="Navigation SOCIAL">
-        <button class="pulse-nav-item active" data-view="home"><svg class="pi " aria-hidden="true"><use href="#pi-home"></use></svg><span class="pulse-nav-label">Accueil</span></button>
+        <button class="pulse-nav-item active" data-view="home"><svg class="pi " aria-hidden="true"><use href="#pi-home"></use></svg><span class="pulse-nav-label">Le fil</span></button>
+        <button class="pulse-nav-item" data-view="play"><svg class="pi" aria-hidden="true"><use href="#pi-circles"></use></svg><span class="pulse-nav-label">Jouer</span></button>
+        <button class="pulse-nav-item" data-view="rooms"><svg class="pi" aria-hidden="true"><use href="#pi-message"></use></svg><span class="pulse-nav-label">Salons</span></button>
         <button class="pulse-nav-item" data-view="explore"><svg class="pi " aria-hidden="true"><use href="#pi-search"></use></svg><span class="pulse-nav-label">Explorer</span></button>
         <button class="pulse-nav-item" data-view="circles"><svg class="pi " aria-hidden="true"><use href="#pi-circles"></use></svg><span class="pulse-nav-label">Communautés</span></button>
         <button class="pulse-nav-item" data-view="notifications"><svg class="pi " aria-hidden="true"><use href="#pi-bell"></use></svg><span class="pulse-nav-label">Notifications</span></button>
@@ -46,7 +48,7 @@
         <div><span class="pulse-kicker">SOCIAL</span><h1 id="view-title">Accueil</h1></div><p class="swapp-social-topline-tag">JEUX · COMMUNAUTÉS · CONVERSATIONS</p>
       </header>
 <nav class="pulse-mobile-nav" aria-label="Navigation mobile">
-    <button class="active" data-view="home" aria-label="Accueil"><svg class="pi " aria-hidden="true"><use href="#pi-home"></use></svg></button><button data-view="explore" aria-label="Explorer"><svg class="pi " aria-hidden="true"><use href="#pi-search"></use></svg></button><button id="mobile-compose" aria-label="Publier"><svg class="pi " aria-hidden="true"><use href="#pi-plus"></use></svg></button><button data-view="messages" aria-label="Messages"><svg class="pi " aria-hidden="true"><use href="#pi-message"></use></svg></button><button data-view="profile" aria-label="Profil"><svg class="pi " aria-hidden="true"><use href="#pi-user"></use></svg></button>
+    <button class="active" data-view="home" aria-label="Fil"><svg class="pi " aria-hidden="true"><use href="#pi-home"></use></svg></button><button data-view="play" aria-label="Jouer"><svg class="pi" aria-hidden="true"><use href="#pi-circles"></use></svg></button><button data-view="rooms" aria-label="Salons"><svg class="pi" aria-hidden="true"><use href="#pi-message"></use></svg></button><button data-view="explore" aria-label="Explorer"><svg class="pi " aria-hidden="true"><use href="#pi-search"></use></svg></button><button id="mobile-compose" aria-label="Publier"><svg class="pi " aria-hidden="true"><use href="#pi-plus"></use></svg></button><button data-view="messages" aria-label="Messages"><svg class="pi " aria-hidden="true"><use href="#pi-message"></use></svg></button><button data-view="profile" aria-label="Profil"><svg class="pi " aria-hidden="true"><use href="#pi-user"></use></svg></button>
   </nav>
 
       <section class="pulse-tabs" id="feed-tabs" aria-label="Choisir le fil à afficher">
@@ -56,6 +58,13 @@
       </section>
       </div>
       <div class="swapp-social-mobile-offset" aria-hidden="true"></div>
+      <nav class="social-product-nav" aria-label="Espaces principaux SOCIAL">
+       <button type="button" data-view="home" class="active">Fil</button>
+       <button type="button" data-view="play">Jouer</button>
+       <button type="button" data-view="rooms">Salons</button>
+       <button type="button" data-view="messages">Messages</button>
+      </nav>
+      <div class="social-space-fallback" aria-live="polite"><strong>Les espaces SOCIAL sont momentanément indisponibles.</strong><p>Le fil et les messages restent accessibles. Réessaie dans quelques instants.</p></div>
       <section class="swapp-social-stories" id="swapp-social-stories" aria-labelledby="swapp-social-stories-title" hidden>
         <header class="swapp-social-stories-heading">
           <div><span class="swapp-social-stories-kicker">ACTUALITÉ EN IMAGES</span><h2 id="swapp-social-stories-title">À la une sur SWAPP</h2></div>
