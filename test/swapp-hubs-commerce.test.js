@@ -79,7 +79,7 @@ test('commercial catalog never invents products or follows unsafe merchant links
  assert.match(examples,/Tapis de souris/);
  assert.doesNotMatch(examples,/instant-gaming\.com|igr=SANSAHD/);
  assert.doesNotMatch(examples,/Prix barré|Acheter maintenant/);
- assert.equal((examples.match(/swapp-shop-demo-chip/g)||[]).length,7);
+ assert.equal((examples.match(/class="swapp-shop-product-image"/g)||[]).length,7);
 });
 
 test('editorial YouTube trailer is click-to-play only and labels every commercial link',()=>{
