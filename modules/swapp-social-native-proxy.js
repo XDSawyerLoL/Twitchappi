@@ -95,9 +95,13 @@ function createSocialNativeProxy(fetchImpl,{production=true,restoreLocalSession=
   if(sessionSso){
    if(path.startsWith('/auth/'))return res.status(403).json({error:'swapp_account_required'});
    if(!ssoSecret||ssoSecret.length<24)return res.status(503).json({error:'social_sso_unconfigured'});
-   try{await restoreLocalSession(req,res)}
+   let restoredUser=null;
+   try{restoredUser=await restoreLocalSession(req,res)}
    catch{return res.status(503).json({error:'swapp_session_unavailable'})}
-   swappUser=req.session?.oryonUser;
+   // The session restoration helper returns the validated local account.
+   // Do not depend exclusively on a session object that might not yet have been
+   // persisted when the browser immediately opens SOCIAL after login.
+   swappUser=req.session?.oryonUser?.id?req.session.oryonUser:restoredUser;
    if(!swappUser?.id||!swappUser?.login)return res.status(401).json({error:'swapp_account_required'});
    try{headers.Authorization='Bearer '+await issueSocialToken(req,swappUser)}
    catch(error){return res.status(error.status||503).json({error:error.message==='social_identity_conflict'?'social_identity_conflict':'social_sso_unavailable'})}
