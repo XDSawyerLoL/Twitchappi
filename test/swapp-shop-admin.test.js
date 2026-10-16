@@ -4,7 +4,7 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
 const {CATEGORIES,demoProducts,normalizeAll,createCatalogStore}=require('../modules/swapp-shop-catalog');
-const {shop,shopAdmin}=require('../modules/swapp-hubs');
+const {shop,shopProduct,shopAdmin}=require('../modules/swapp-hubs');
 const {createShopRouter}=require('../modules/swapp-shop-router');
 const {makeNewsEditorGuard}=require('../modules/swapp-news/editor-auth');
 const read=file=>fs.readFileSync(path.join(__dirname,'..',file),'utf8');
@@ -31,21 +31,24 @@ function db(){
 function real(extra={}){return {id:'cap-real',kind:'caps',title:'Casquette test',description:'Marchandise vérifiée',badge:'Sélection',merchant:'Marchand',
  url:'https://merchant.example/casquette',image:'https://cdn.example/img.jpg',affiliate:true,demo:false,visible:true,...extra}}
 
-test('shop has seven honest examples and exactly three editorial columns',()=>{
+test('shop displays three departments and a searchable four-column product catalogue',()=>{
  assert.equal(demoProducts.length,7);
  assert.deepEqual(CATEGORIES.map(x=>x.id),['games','caps','pads']);
  const html=shop();
- assert.match(html,/swapp-shop-hero/);
- assert.match(html,/swapp-shop-categories/);
+ assert.match(html,/swapp-store-campaign/);
+ assert.match(html,/swapp-store-departments-grid/);
  assert.match(html,/Clair Obscur: Expedition 33/);
  assert.match(html,/Hades II/);
  assert.match(html,/Kingdom Come: Deliverance II/);
  for(const label of ['Jeux vidéo','Casquettes','Tapis de souris'])assert.ok(html.includes(label),label);
- assert.equal((html.match(/class="swapp-shop-aisle" id=/g)||[]).length,3);
- assert.equal((html.match(/class="swapp-shop-card swapp-shop-card--featured"/g)||[]).length,3);
- assert.equal((html.match(/class="swapp-shop-product-image"/g)||[]).length,7);
+ assert.equal((html.match(/class="swapp-store-department" href=/g)||[]).length,3);
+ assert.equal((html.match(/class="swapp-store-card" data-shop-product/g)||[]).length,7);
+ assert.equal((html.match(/class="swapp-store-product-img"/g)||[]).length,7);
  assert.doesNotMatch(html,/swapp-shop-buy|Ajouter au panier|Paiement sécurisé|Prix barré/);
- assert.match(html,/Boutique en préparation/);
+ assert.match(html,/La Boutique prend forme/);
+ assert.match(html,/id="swapp-store-search"/);
+ assert.match(html,/id="swapp-store-sort"/);
+ assert.match(html,/data-shop-filter="games"/);
 });
 test('visible products must carry an image; optional second image is safe HTTPS',()=>{
  assert.ok(demoProducts.every(p=>p.image.startsWith('https://')));
@@ -58,7 +61,7 @@ test('visible products must carry an image; optional second image is safe HTTPS'
  assert.doesNotMatch(html,/Casquette test/);
  const stylesheet=read('assets/swapp-shop.css');
  assert.doesNotMatch(stylesheet,/\.swapp-shop-cap-crown|\.swapp-shop-game-orbit|\.swapp-shop-pad-surface/);
- assert.match(stylesheet,/\.swapp-shop-product-image\{/);
+ assert.match(stylesheet,/\.swapp-store-product-img\{/);
 });
 test('normalization prevents unsafe external links, duplicates, excessive content and fake paid demos',()=>{
  assert.throws(()=>normalizeAll([real({url:'javascript:alert(1)'})]),/HTTPS/);
@@ -70,7 +73,7 @@ test('normalization prevents unsafe external links, duplicates, excessive conten
  const demo=normalizeAll([real({demo:true,affiliate:true,url:'',merchant:''})])[0];
  assert.equal(demo.affiliate,false);assert.equal(demo.url,'');
  const unsafeText=real({title:'<img src=x onerror=alert(1)>'});
- const html=shop([unsafeText],{source:'managed'});
+ const html=shopProduct(unsafeText,[unsafeText]);
  assert.doesNotMatch(html,/<img src=x/);
  assert.match(html,/&lt;img/);
  assert.match(html,/rel="sponsored nofollow noopener noreferrer"/);
@@ -121,7 +124,7 @@ function mockExpress(){
 }
 async function send(router,method,name,{authorized=false,origin='https://swapp.tv',headers={},body={}}={}){
  const route=router.routes.find(x=>x.name===name&&x.method===method);assert.ok(route,name);
- const req={method,path:name,headers:{origin,...headers},body,
+ const req={method,path:name,params:name.includes(':id')?{id:body.productId||'cap-real'}:{},headers:{origin,...headers},body,
   session:{oryonUser:authorized?{login:'admin',id:'owner-id'}:null}};
  const res={statusCode:200,headers:{},status(code){this.statusCode=code;return this},
   json(value){this.data=value;return this},type(type){this.headers.type=type;return this},
@@ -140,7 +143,7 @@ test('admin and editor endpoints require pinned admin role, same origin and expl
   isSessionAdmin:req=>!!req.session?.oryonUser?.id,allowedOrigins:['https://swapp.tv'],
   isProduction:true
  });
- const router=createShopRouter({express,store,requireEditor:guard,shop,shopAdmin});
+ const router=createShopRouter({express,store,requireEditor:guard,shop,shopProduct,shopAdmin});
  const denied=await send(router,'PUT','/api/editor/boutique',{body:{revision:0,products:[real()]}});
  assert.equal(denied.statusCode,403);assert.equal(database.state.size,0);
  const noCsrf=await send(router,'PUT','/api/editor/boutique',{authorized:true,body:{revision:0,products:[real()]}});
@@ -174,11 +177,44 @@ test('admin menu, editor scripts and CSS are wired on every SWAPP page without c
  assert.match(client,/revision,products/);
  assert.doesNotMatch(client,/localStorage|Stripe|paypal/i);
  const styles=read('assets/swapp-shop.css');
- assert.match(styles,/grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
- assert.match(styles,/@media\(max-width:700px\)/);
- assert.match(styles,/safe-area|swapp-shop-hero/);
+ assert.match(styles,/\.swapp-store-departments-grid\{display:grid;grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
+ assert.match(styles,/@media\(max-width:650px\)/);
+ assert.match(styles,/safe-area-inset-bottom|swapp-store-campaign/);
 });
 
+
+
+test('real products may carry owner-entered euro prices; demos can never show fabricated prices',()=>{
+ const p=normalizeAll([real({priceEur:'49,90'})],{strict:true})[0];
+ assert.equal(p.priceEur,'49.90');
+ const card=shop([p],{source:'managed'});
+ const detail=shopProduct(p,[p]);
+ assert.match(card,/49/);
+ assert.match(detail,/Prix indicatif renseigné/);
+ assert.match(detail,/Voir l’offre chez Marchand/);
+ assert.match(detail,/rel="sponsored nofollow noopener noreferrer"/);
+ const demo=normalizeAll([real({demo:true,url:'',merchant:'',priceEur:'1000'})],{strict:true})[0];
+ assert.equal(demo.priceEur,'');
+ assert.doesNotMatch(shopProduct(demo,[demo]),/1.000|1000|Voir l’offre chez/);
+ for(const price of ['-10','NaN','1e6','0','999999','12.999'])
+  assert.throws(()=>normalizeAll([real({priceEur:price})],{strict:true}),/prix/i);
+ const nav=read('assets/swapp-storefront.js');
+ assert.match(nav,/data-shop-category-target/);
+ assert.match(nav,/shop-result-count/);
+ assert.match(nav,/data-shop-image/);
+ assert.doesNotMatch(nav,/localStorage|sendBeacon|gtag/);
+});
+test('product detail URL returns the product page or a 404 without exposing drafts',async()=>{
+ const database=db(),store=createCatalogStore({firestore:database});
+ const express=mockExpress();
+ const guard=(req,res,next)=>next();
+ const router=createShopRouter({express,store,requireEditor:guard,shop,shopProduct,shopAdmin});
+ const known=await send(router,'GET','/boutique/produit/:id',{body:{productId:'clair-obscur'}});
+ assert.equal(known.statusCode,200);
+ assert.match(known.data,/swapp-store-detail-gallery/);
+ const missing=await send(router,'GET','/boutique/produit/:id',{body:{productId:'not-found'}});
+ assert.equal(missing.statusCode,404);
+});
 
 test('Amazon draft link is prepared as an unpublished product without guessing details',()=>{
  const html=shopAdmin();
