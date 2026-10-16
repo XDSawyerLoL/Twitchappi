@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /actus/studio
+Sitemap: https://swapp.tv/sitemap.xml
+Sitemap: https://swapp.tv/news-sitemap.xml
+Sitemap: https://swapp.tv/creators-sitemap.xml
