@@ -6,27 +6,38 @@
   let allowed=false,pending=false,last=0;
   function renderEditorAccess(){
     let link=menu.querySelector('[data-swapp-editor-link]');
-    if(!allowed){if(link)link.remove();return;}
-    if(link)return;
-    link=document.createElement('a');
-    link.href='/actus/studio';
-    link.dataset.swappEditorLink='1';
-    link.textContent='Studio administrateur · Posts & vidéos';
-    menu.appendChild(link);
+    let shop=menu.querySelector('[data-swapp-shop-admin-link]');
+    if(!allowed){if(link)link.remove();if(shop)shop.remove();return;}
+    if(!link){
+     link=document.createElement('a');
+     link.href='/actus/studio';
+     link.dataset.swappEditorLink='1';
+     link.textContent='Studio administrateur · Posts & vidéos';
+     menu.appendChild(link);
+    }
+    if(!shop){
+     shop=document.createElement('a');
+     shop.href='/boutique/admin';
+     shop.dataset.swappShopAdminLink='1';
+     shop.textContent='Gestion Boutique · Produits & vitrine';
+     menu.appendChild(shop);
+    }
   }
   async function check(force=false){
     if(pending || (!force&&Date.now()-last<3000))return;
     pending=true;last=Date.now();
+    const controller=new AbortController();
+    const timer=setTimeout(()=>controller.abort(),6500);
     try{
-      const response=await fetch('/api/editor/actus/access',{credentials:'same-origin',headers:{Accept:'application/json'},signal:AbortSignal.timeout(6500)});
+      const response=await fetch('/api/editor/actus/access',{credentials:'same-origin',headers:{Accept:'application/json'},signal:controller.signal});
       const data=response.ok?await response.json():null;
       allowed=Boolean(data?.canEdit);
     }catch(_){allowed=false;}
-    finally{pending=false;renderEditorAccess();}
+    finally{clearTimeout(timer);pending=false;renderEditorAccess();}
   }
   const observer=new MutationObserver(records=>{
     // The link inserted by this script must not trigger another check.
-    if(records.every(r=>[...r.addedNodes].every(n=>n.nodeType===1&&n.dataset?.swappEditorLink)))return;
+    if(records.every(r=>[...r.addedNodes].every(n=>n.nodeType===1&&(n.dataset?.swappEditorLink||n.dataset?.swappShopAdminLink))))return;
     if(allowed)renderEditorAccess();
     else check();
   });
