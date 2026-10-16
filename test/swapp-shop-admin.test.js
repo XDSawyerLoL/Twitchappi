@@ -39,13 +39,26 @@ test('shop has seven honest examples and exactly three editorial columns',()=>{
  assert.match(html,/swapp-shop-categories/);
  assert.match(html,/Clair Obscur: Expedition 33/);
  assert.match(html,/Hades II/);
- assert.match(html,/Ghost of Yōtei/);
+ assert.match(html,/Kingdom Come: Deliverance II/);
  for(const label of ['Jeux vidéo','Casquettes','Tapis de souris'])assert.ok(html.includes(label),label);
  assert.equal((html.match(/class="swapp-shop-aisle" id=/g)||[]).length,3);
- assert.equal((html.match(/class="swapp-shop-card /g)||[]).length,3);
- assert.equal((html.match(/class="swapp-shop-demo-chip"/g)||[]).length,7);
+ assert.equal((html.match(/class="swapp-shop-card swapp-shop-card--featured"/g)||[]).length,3);
+ assert.equal((html.match(/class="swapp-shop-product-image"/g)||[]).length,7);
  assert.doesNotMatch(html,/swapp-shop-buy|Ajouter au panier|Paiement sécurisé|Prix barré/);
- assert.match(html,/Vitrine de démonstration/);
+ assert.match(html,/Boutique en préparation/);
+});
+test('visible products must carry an image; optional second image is safe HTTPS',()=>{
+ assert.ok(demoProducts.every(p=>p.image.startsWith('https://')));
+ assert.throws(()=>normalizeAll([real({image:''})],{strict:true}),/Image|HTTPS|URL|Adresse/i);
+ assert.throws(()=>normalizeAll([real({image2:'http://insecure.example/x.jpg'})],{strict:true}),/HTTPS/);
+ assert.equal(normalizeAll([real({image2:'https://cdn.example/second.jpg'})],{strict:true})[0].image2,'https://cdn.example/second.jpg');
+ const hidden=normalizeAll([real({image:'',visible:false})],{strict:true});
+ assert.equal(hidden[0].visible,false);
+ const html=shop([real({image:''})],{source:'managed'});
+ assert.doesNotMatch(html,/Casquette test/);
+ const stylesheet=read('assets/swapp-shop.css');
+ assert.doesNotMatch(stylesheet,/\.swapp-shop-cap-crown|\.swapp-shop-game-orbit|\.swapp-shop-pad-surface/);
+ assert.match(stylesheet,/\.swapp-shop-product-image\{/);
 });
 test('normalization prevents unsafe external links, duplicates, excessive content and fake paid demos',()=>{
  assert.throws(()=>normalizeAll([real({url:'javascript:alert(1)'})]),/HTTPS/);
