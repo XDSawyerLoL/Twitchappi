@@ -89,14 +89,14 @@
  }
  #mobileNav.mobileNav::-webkit-scrollbar{display:none}
  #mobileNav.mobileNav > :is(a,button,.swapp-mobile-more){
-  flex:0 0 auto!important;min-width:88px!important;max-width:none!important;
+  flex:0 0 auto!important;min-width:max(98px,18vw)!important;max-width:none!important;
   width:auto!important;
  }
  #mobileNav.mobileNav > :is(a,button),
  #mobileNav.mobileNav > .swapp-mobile-more > summary{
   display:flex;align-items:center;justify-content:center;
   min-height:46px!important;padding:9px 12px!important;
-  font-size:13px!important;font-weight:800;line-height:1.2;
+  font-size:14px!important;font-weight:800;line-height:1.2;
   white-space:nowrap;box-sizing:border-box;
  }
  /* Avoid floating assistant obscuring the last line or fixed navigation. */
@@ -105,7 +105,7 @@
 @media (max-width:400px){
  .swapp-footer-top{grid-template-columns:repeat(2,minmax(0,1fr))}
  #actus .swapp-actus-native{padding-left:14px!important;padding-right:14px!important}
- #mobileNav.mobileNav > :is(a,button,.swapp-mobile-more){min-width:86px!important}
+ #mobileNav.mobileNav > :is(a,button,.swapp-mobile-more){min-width:98px!important}
 }
 
 /* Discovery forms and live details should remain readable on touch devices. */
