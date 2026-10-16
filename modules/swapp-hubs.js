@@ -158,7 +158,7 @@ function shop(products=demoProducts,{source='demo'}={}){
   '<a href="/actus">Retour à l’actualité <span aria-hidden="true">→</span></a></aside>'+
   '</main>';
  return layout({title:'Boutique',description:'Boutique gaming SWAPP : jeux vidéo, casquettes et tapis de souris sélectionnés.',content:main,active:'shop',
-  scripts:assets+'<link rel="stylesheet" href="/assets/swapp-shop.css?v=20261016-shop-v2-partners">'});
+  scripts:assets+'<link rel="stylesheet" href="/assets/swapp-shop.css?v=20261016-shop-v3-amazon-drafts">'});
 }
 function shopAdmin(){
  const content='<main class="swapp-shop-admin"><aside class="swapp-shop-admin-menu"><a href="/boutique">← Voir la Boutique</a>'+
@@ -173,6 +173,10 @@ function shopAdmin(){
   '<button id="shop-admin-new" type="button">+ Nouveau produit</button></div>'+
   '<div id="shop-admin-list" class="swapp-shop-admin-list"></div></section>'+
   '<section id="shop-admin-form" class="swapp-shop-admin-panel"><h3>Fiche produit</h3>'+
+  '<div class="swapp-shop-amazon-prep"><label for="shop-admin-amazon-url">Lien Amazon Partenaires à préparer</label>'+
+  '<div class="swapp-shop-amazon-row"><input id="shop-admin-amazon-url" type="url" maxlength="900" inputmode="url" value="https://link.amazon/B01fj5Alw" aria-describedby="shop-admin-amazon-help">'+
+  '<button type="button" id="shop-admin-amazon-start">Préparer un brouillon</button></div>'+
+  '<p id="shop-admin-amazon-help">Le lien a été fourni par l’administrateur, mais le produit n’a pas été identifié automatiquement. Complète son nom, sa catégorie et son image autorisée avant de le rendre visible. Aucun prix n’est inventé.</p></div>'+
   '<form id="shop-admin-editor"><div class="swapp-shop-admin-fields">'+
   '<label>Identifiant unique<input name="id" type="text" maxlength="50" pattern="[a-z0-9][a-z0-9-]{1,49}" required placeholder="casquette-violette"></label>'+
   '<label>Catégorie<select name="kind"><option value="games">Jeux vidéo</option><option value="caps">Casquettes</option><option value="pads">Tapis de souris</option></select></label>'+
@@ -182,7 +186,8 @@ function shopAdmin(){
   '<label>Marchand<input name="merchant" maxlength="65" placeholder="Vendeur réel"></label>'+
   '<label class="wide">URL de l’image HTTPS<input name="image" type="url" placeholder="https://…"></label>'+
   '<label class="wide">Lien marchand HTTPS<input name="url" type="url" placeholder="https://…"></label>'+
-  '</div><div class="swapp-shop-admin-options"><label><input name="demo" type="checkbox" checked> Démonstration · pas de vente</label>'+
+  '</div><div id="shop-admin-preview" class="swapp-shop-editor-preview" role="status" aria-live="polite"></div>'+
+  '<div class="swapp-shop-admin-options"><label><input name="demo" type="checkbox" checked> Démonstration · pas de vente</label>'+
   '<label><input name="visible" type="checkbox" checked> Visible sur la Boutique</label>'+
   '<label><input name="affiliate" type="checkbox"> Lien affilié · commission possible</label></div>'+
   '<p class="swapp-shop-admin-affiliate-note">Pour un lien Amazon Partenaires, coche « Lien affilié ». SWAPP affichera la mention Amazon obligatoire à côté du produit et dans la rubrique Transparence. Ne publie que des liens créés dans ton compte partenaire.</p>'+
@@ -194,8 +199,8 @@ function shopAdmin(){
   '<a href="/boutique" target="_blank" rel="noopener">Ouvrir la vitrine ↗</a></section></section></main>';
  return layout({title:'Gestion Boutique',description:'Gestion privée de la vitrine SWAPP',content,active:'shop',
   metadata:'<meta name="robots" content="noindex,nofollow">',
-  scripts:'<link rel="stylesheet" href="/assets/swapp-shop.css?v=20261016-shop-v2-partners">'+
-   '<link rel="stylesheet" href="/assets/swapp-shop-admin.css?v=20261016-shop-v2-partners">'+
-   '<script defer src="/assets/swapp-shop-admin.js?v=20261016-shop-v2-partners"></script>'});
+  scripts:'<link rel="stylesheet" href="/assets/swapp-shop.css?v=20261016-shop-v3-amazon-drafts">'+
+   '<link rel="stylesheet" href="/assets/swapp-shop-admin.css?v=20261016-shop-v3-amazon-drafts">'+
+   '<script defer src="/assets/swapp-shop-admin.js?v=20261016-shop-v3-amazon-drafts"></script>'});
 }
 module.exports={community,trailers,shop,shopAdmin,verifiedTrailers,curatedVideos,videoCard,safeProducts};
