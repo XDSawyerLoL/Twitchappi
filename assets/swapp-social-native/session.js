@@ -1,10 +1,13 @@
 import { TOKEN_KEY, state, dom, initials, api } from './core.js';
 
-export function openAuth(mode='login'){
-  state.authMode=mode;
-  dom.authModal.hidden=false;
-  updateAuthModal();
-  setTimeout(function(){document.getElementById('auth-handle').focus()},20);
+export function openAuth(){
+ // SOCIAL is authenticated through the SWAPP local account, never a second modal.
+ const gate=document.getElementById('swapp-social-access');
+ if(gate?.classList.contains('is-locked')){
+  document.getElementById('swapp-social-login')?.focus();
+  return;
+ }
+ alert('Le compte SWAPP est connecté, mais le service SOCIAL ne répond pas encore. Réessaie dans quelques instants.');
 }
 
 export function closeAuth(){
@@ -62,30 +65,28 @@ export function requireAuth(){
 }
 
 export function applySession(data){
-  state.token=data.token;
-  state.user=data.user;
-  sessionStorage.setItem(TOKEN_KEY,data.token);
+  // Upstream tokens never reach browser storage.
+  state.token='';
+  state.user=data.user||null;
+  try{sessionStorage.removeItem(TOKEN_KEY)}catch{}
   updateAccount();
 }
 
 export function clearSession(){
   state.token='';
   state.user=null;
-  sessionStorage.removeItem(TOKEN_KEY);
+  try{sessionStorage.removeItem(TOKEN_KEY)}catch{}
   updateAccount();
 }
 
 export async function restoreSession(){
-  if(!state.token){
-    updateAccount();
-    return;
-  }
+  state.token='';
+  try{sessionStorage.removeItem(TOKEN_KEY)}catch{}
   try{
     const data=await api('/api/pulse/me');
-    state.user=data.user;
+    state.user=data.user||null;
   }catch{
-    state.token='';
-    sessionStorage.removeItem(TOKEN_KEY);
+    state.user=null;
   }
   updateAccount();
 }
