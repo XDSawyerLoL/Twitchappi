@@ -212,6 +212,14 @@
   const field=$('#ssi-form-match [name="game"]');
   if(field){field.value=game;field.focus()}
  });
+ area.addEventListener('ssi:room-game',event=>{
+  const game=String(event.detail?.game||'').slice(0,65);
+  if(!game)return;
+  toggleForm('room',true);
+  const field=$('#ssi-form-room [name="game"]');
+  if(field){field.value=game;field.focus()}
+ });
+ area.addEventListener('ssi:passport-saved',()=>void loadMatches());
  area.addEventListener('click',async event=>{
   const open=event.target.closest('[data-open-form]');if(open){toggleForm(open.dataset.openForm,!$('#ssi-form-'+open.dataset.openForm).hidden);return}
   const close=event.target.closest('[data-close-form]');if(close){toggleForm(close.dataset.closeForm,false);return}
