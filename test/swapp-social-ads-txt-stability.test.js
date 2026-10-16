@@ -33,28 +33,40 @@ test('AdSense seller declaration matches the canonical repository ads.txt',()=>{
  assert.equal(response.headers['X-Content-Type-Options'],'nosniff');
 });
 
-test('SOCIAL fixes its primary icon bar and reserves a feed spacer',()=>{
+test('SOCIAL uses one sticky navigation container, not independent fixed bars',()=>{
  const css=read('assets/swapp-social-native/social-swapp.css');
  const html=read('assets/swapp-social-native/social-body.html');
  const hubs=read('modules/swapp-hubs.js');
- assert.match(css,/SOCIAL navigation stability — fixed primary controls/);
- assert.match(css,/\.swapp-social-viewport \.pulse-mobile-nav\{\s*position:fixed!important/);
- assert.match(css,/\.swapp-social-viewport \.swapp-social-mobile-spacer\{\s*display:block/);
- assert.match(css,/top:calc\(var\(--social-site-header-height\) \+ var\(--social-local-header-height\)\)/);
- assert.match(css,/\.swapp-social-viewport \.pulse-tabs\{\s*position:sticky!important/);
- assert.ok(html.indexOf('class="swapp-social-mobile-spacer"')>html.indexOf('class="pulse-mobile-nav"'));
- assert.ok(html.indexOf('class="swapp-social-mobile-spacer"')<html.indexOf('class="pulse-welcome"'));
- assert.match(hubs,/social-swapp\.css\?v=20261016-stable-nav-5/);
+ assert.match(css,/SOCIAL sticky stack v2/);
+ assert.match(css,/\.swapp-social-viewport \.swapp-social-sticky-stack\{\s*display:block!important;\s*position:sticky!important/);
+ assert.match(css,/\.swapp-social-viewport \.pulse-mobile-nav\{\s*position:relative!important/);
+ assert.match(css,/\.swapp-social-viewport \.pulse-tabs\{\s*position:relative!important/);
+ assert.match(css,/overflow:visible!important; \/\* overflow-x:auto creates a second scroll root \*\//);
+ assert.match(css,/--social-site-top:68px/);
+ assert.equal((html.match(/class="swapp-social-sticky-stack"/g)||[]).length,1);
+ assert.equal((html.match(/id="feed-tabs"/g)||[]).length,1);
+ assert.equal((html.match(/class="swapp-social-mobile-spacer"/g)||[]).length,0);
+ const stackStart=html.indexOf('class="swapp-social-sticky-stack"');
+ const stackClose=html.indexOf('</div>\n\n      <section class="pulse-welcome"',stackStart);
+ assert.ok(stackStart>0&&stackClose>stackStart);
+ for(const token of ['class="pulse-topbar"','class="pulse-mobile-nav"','id="feed-tabs"']){
+  const pos=html.indexOf(token);assert.ok(pos>stackStart&&pos<stackClose,token);
+ }
+ assert.match(hubs,/social-swapp\.css\?v=20261016-social-sticky-stack-6/);
 });
 
-test('SOCIAL icon bar stays independent of global SWAPP bottom navigation',()=>{
+test('SOCIAL mobile Explore has a genuine search form and a submit handler',()=>{
  const css=read('assets/swapp-social-native/social-swapp.css');
- assert.match(css,/\.swapp-social-viewport \.pulse-main\{\s*isolation:isolate/);
- assert.match(css,/--social-site-header-height:68px/);
- assert.match(css,/--social-local-header-height:60px/);
- assert.match(css,/--social-iconbar-height:55px/);
- const html=read('assets/swapp-social-native/social-body.html');
- assert.equal((html.match(/class="swapp-social-mobile-spacer"/g)||[]).length,1);
+ const views=read('assets/swapp-social-native/views.js');
+ const app=read('assets/swapp-social-native/app.js');
+ const hubs=read('modules/swapp-hubs.js');
+ assert.match(views,/id="social-mobile-search-form"/);
+ assert.match(views,/id="social-mobile-query"/);
+ assert.match(views,/name="query"/);
+ assert.match(app,/event\.target\.id==='social-mobile-search-form'/);
+ assert.match(app,/await loadExplore\(query\)/);
+ assert.match(css,/\.swapp-social-viewport \.pulse-mobile-search\{\s*display:grid!important/);
+ assert.match(hubs,/app\.js\?v=20261016-social-search-7/);
 });
 
 test('stable CSS remains structurally balanced',()=>{
