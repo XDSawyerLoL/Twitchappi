@@ -7,6 +7,14 @@
   {key:'engaging',label:'Intéressant'}
  ]);
  const ok=s=>/^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/.test(String(s||''));
+ // Reader recognition is evidence-based, never editorially purchased.
+ // Ten distinct article votes and a mean of at least 4.5/5 are required.
+ const featuredScore=score=>{
+  const count=score?.count,average=score?.average;
+  return Number.isSafeInteger(count)&&count>=10
+   &&typeof average==='number'&&Number.isFinite(average)
+   &&average>=4.5&&average<=5;
+ };
  const el=(tag,cls,value)=>{const x=document.createElement(tag);if(cls)x.className=cls;if(value!=null)x.textContent=String(value);return x};
  function saved(){
   try{
@@ -57,7 +65,31 @@
   const reading=node.querySelector('.swapp-article-reading');
   if(!reading)return;
   const panel=el('section','swapp-article-feedback');
+  panel.id='swapp-article-score';
   panel.setAttribute('aria-label','Évaluer et sauvegarder cet article');
+  // A single score summary appears alongside the article metadata. It always
+  // leads to the existing vote form; it never creates a second vote widget.
+  const hero=node.querySelector('.swapp-immersive-content');
+  let teaser=null,scoreLink=null,recognition=null;
+  if(hero){
+   teaser=el('div','swapp-score-teaser');
+   const caption=el('span','swapp-score-teaser-label','AVIS DES LECTEURS');
+   scoreLink=el('a','swapp-score-teaser-link','☆ Donner votre avis');
+   scoreLink.href='#swapp-article-score';
+   scoreLink.addEventListener('click',event=>{
+    if(!panel.isConnected)return;
+    event.preventDefault();
+    panel.scrollIntoView({behavior:window.matchMedia?.('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
+    panel.querySelector('.swapp-feedback-star')?.focus({preventScroll:true});
+   });
+   recognition=el('span','swapp-score-recognition','Apprécié par les lecteurs');
+   recognition.hidden=true;
+   recognition.title='Critère : au moins 10 votes et une moyenne d’au moins 4,5 sur 5. Ce badge ne constitue pas une validation éditoriale.';
+   teaser.append(caption,scoreLink,recognition);
+   const controls=hero.querySelector('.swapp-reader-controls,.swapp-article-hero-actions');
+   if(controls)hero.insertBefore(teaser,controls);
+   else hero.append(teaser);
+  }
   const headline=el('div','swapp-feedback-head');
   const copy=el('div','swapp-feedback-copy');
   copy.append(el('strong','','Votre avis sur cet article'),el('p','','Évaluez sa qualité éditoriale, pas le jeu présenté.'));
@@ -158,6 +190,17 @@
   function show(){
    const count=Number(current?.count)||0;
    const avg=Number(current?.average);
+   if(scoreLink){
+    const reliable=count>0&&Number.isFinite(avg)&&avg>=1&&avg<=5;
+    const formatted=reliable?avg.toLocaleString('fr-FR',{minimumFractionDigits:1,maximumFractionDigits:1}):null;
+    scoreLink.textContent=reliable
+     ?'★ '+formatted+'/5 · '+count+' avis · Noter l’article'
+     :'☆ Donner votre avis';
+    scoreLink.setAttribute('aria-label',reliable
+     ?'Note des lecteurs : '+formatted+' sur 5 pour '+count+' avis. Accéder à l’évaluation.'
+     :'Donner un avis sur la qualité de cet article');
+    recognition.hidden=!featuredScore(current);
+   }
    average.textContent=count&&Number.isFinite(avg)?avg.toLocaleString('fr-FR',{maximumFractionDigits:1})+'/5 · '+count+' vote'+(count>1?'s':''):'Pas encore de note';
    if(current?.myRating){
     status.textContent='Votre note : '+current.myRating+'/5. Modifiable à tout moment.';
@@ -182,7 +225,7 @@
    .then(async r=>{if(!r.ok)throw Error();current=await r.json();show()})
    .catch(()=>{status.textContent='Évaluations momentanément indisponibles.';average.textContent='';});
  }
- window.SwappArticleFeedback=Object.freeze({mountArticle,mountList});
+ window.SwappArticleFeedback=Object.freeze({mountArticle,mountList,featuredScore});
  function initial(){
   const native=document.querySelector('main.article-wrap[data-swapp-article-slug]');
   if(native)mountArticle(native,native.dataset.swappArticleSlug);
