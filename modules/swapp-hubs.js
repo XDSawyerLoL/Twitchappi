@@ -46,9 +46,11 @@ function community(){
   '<link rel="stylesheet" href="/assets/swapp-social-native/social-swapp.css?v=20261016-feedtabs-fix-2">'+
   '<link rel="stylesheet" href="/assets/swapp-social-refinement.css?v=20261016-stories-search-v5">'+
   '<script defer src="/assets/swapp-social-reading.js?v=20261016-stories-search-v6"></script>'+
-  '<script type="module" src="/assets/swapp-social-native/app.js?v=20261016-feedtabs-fix-3"></script>'+
+  '<script type="module" src="/assets/swapp-social-native/app.js?v=20261016-social-games-v1"></script>'+
   '<link rel="stylesheet" href="/assets/swapp-social-interactions.css?v=20261016-social-spaces-v2">'+
-  '<script defer src="/assets/swapp-social-interactions.js?v=20261016-social-spaces-v2"></script>';
+  '<script defer src="/assets/swapp-social-interactions.js?v=20261016-social-match-v3"></script>'+
+  '<link rel="stylesheet" href="/assets/swapp-social-next.css?v=20261016-passport-game-v1">'+
+  '<script defer src="/assets/swapp-social-next.js?v=20261016-passport-game-v1"></script>';
  return layout({title:'Communauté',description:'Le réseau SOCIAL complet intégré dans SWAPP : profils, publications, communautés et messagerie.',content,active:'community',scripts});
 }
 function verifiedTrailers(items=catalog.items){
