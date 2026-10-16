@@ -43,7 +43,7 @@
     <main class="pulse-main">
       <div class="swapp-social-sticky-stack" role="group" aria-label="Navigation SOCIAL">
       <header class="pulse-topbar">
-        <div><span class="pulse-kicker">SOCIAL</span><h1 id="view-title">Accueil</h1></div>
+        <div><span class="pulse-kicker">SOCIAL</span><h1 id="view-title">Accueil</h1></div><p class="swapp-social-topline-tag">JEUX · COMMUNAUTÉS · CONVERSATIONS</p>
       </header>
 <nav class="pulse-mobile-nav" aria-label="Navigation mobile">
     <button class="active" data-view="home" aria-label="Accueil"><svg class="pi " aria-hidden="true"><use href="#pi-home"></use></svg></button><button data-view="explore" aria-label="Explorer"><svg class="pi " aria-hidden="true"><use href="#pi-search"></use></svg></button><button id="mobile-compose" aria-label="Publier"><svg class="pi " aria-hidden="true"><use href="#pi-plus"></use></svg></button><button data-view="messages" aria-label="Messages"><svg class="pi " aria-hidden="true"><use href="#pi-message"></use></svg></button><button data-view="profile" aria-label="Profil"><svg class="pi " aria-hidden="true"><use href="#pi-user"></use></svg></button>
@@ -95,7 +95,12 @@
         <div class="pulse-panel-head"><h2>Communautés à découvrir</h2><button class="pulse-link-button" data-view="circles">Voir tout</button></div>
         <div id="circle-preview"><div class="pulse-panel-loading">Chargement…</div></div>
       </section>
-      <p class="pulse-privacy">Pas de publicité comportementale · pseudonymat autorisé · personnalisation désactivable.</p>
+      <section class="swapp-social-reading" id="swapp-social-reading" aria-label="Derniers articles de SWAPP" hidden>
+        <div class="swapp-social-reading-header"><span>À LIRE SUR SWAPP</span><h2>Le jeu fait l’actualité.</h2></div>
+        <div class="swapp-social-reading-stories" id="swapp-social-reading-stories"></div>
+        <a class="swapp-social-reading-more" href="/actus">Toute l’actualité <span aria-hidden="true">↗</span></a>
+      </section>
+      <p class="pulse-privacy">Sans publicité comportementale · personnalisation désactivable.</p>
     </aside>
   </div>
 
