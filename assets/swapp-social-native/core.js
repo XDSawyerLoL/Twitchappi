@@ -64,6 +64,7 @@ export function errorText(e){
     not_found:'Élément introuvable.',
     social_recipient_not_ready:'Ce membre doit ouvrir SOCIAL au moins une fois avant de pouvoir recevoir des messages.',
     blocked:'Cette conversation est bloquée.',
+    social_upstream_rate_limited:'Trop de tentatives de liaison SOCIAL. Patiente quelques minutes avant de réessayer.',
     social_upstream_timeout:'SOCIAL met trop longtemps à répondre. Le serveur peut être en cours de redémarrage. Réessaie dans quelques instants.',
     social_upstream_unavailable:'Le serveur SOCIAL est indisponible actuellement. Vérifie sa disponibilité puis réessaie.',
     social_upstream_unreachable:'SWAPP ne parvient pas à joindre le serveur SOCIAL. La connexion réseau côté serveur doit être vérifiée.',
