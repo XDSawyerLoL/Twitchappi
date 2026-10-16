@@ -242,3 +242,15 @@
 #swappSocialNative .swapp-interactive .ssi-panel:before{display:none!important}
 #swappSocialNative .swapp-interactive .ssi-panel{transition:none!important}
 #swappSocialNative .swapp-interactive .ssn-search input{border-radius:7px!important}
+
+/* Explicit player passports, visible in the genuine SWAPP profile. */
+#swappSocialNative .pulse-profile-games{
+ border:0!important;border-bottom:1px solid var(--s3-border)!important;border-radius:0!important;
+ background:#172439!important;padding:22px 24px!important;margin:0!important;
+}
+#swappSocialNative .pulse-profile-games h3{font-size:20px!important;color:#f4f8ff!important;margin:8px 0!important}
+#swappSocialNative .pulse-profile-games p{font-size:12px!important;color:#bbccdd!important;line-height:1.5}
+#swappSocialNative .pulse-profile-game-list{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
+#swappSocialNative .pulse-profile-game-list a{color:#d6ebff;text-decoration:none;border:1px solid var(--s3-border);
+ background:#1b2a41;border-radius:7px;padding:8px 12px;font-size:12px;font-weight:730}
+#swappSocialNative .pulse-profile-game-list a:hover{border-color:var(--s3-accent)}
