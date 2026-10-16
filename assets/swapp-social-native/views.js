@@ -257,7 +257,7 @@ export async function loadCirclePreview(){
     const target=document.getElementById('circle-preview');
     target.innerHTML=data.circles.slice(0,3).map(function(circle){
       return '<button class="circle" data-view="circles"><span class="circle-mark">'+esc(circle.name.slice(0,2).toUpperCase())+'</span><span><strong>'+esc(circle.name)+'</strong><small>'+circle.memberCount+' membres</small></span><span class="circle-chevron">'+icon('pi-chevron')+'</span></button>';
-    }).join('')||'<div class="pulse-panel-loading">Aucune communauté publique.</div>';
+    }).join('')||'<div class="pulse-circle-empty"><span>À TOI DE JOUER</span><strong>Lance la première communauté.</strong><p>Un jeu, une passion, une équipe : crée un espace pour en discuter.</p><button type="button" class="pulse-circle-create-cta" data-social-create-circle>Créer une communauté ↗</button></div>';
   }catch{
     document.getElementById('circle-preview').innerHTML='<div class="pulse-panel-loading">Indisponible</div>';
   }
