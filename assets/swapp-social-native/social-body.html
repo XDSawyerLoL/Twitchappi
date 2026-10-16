@@ -108,6 +108,34 @@
           <label>Style de jeu <select name="style"><option>Décontracté</option><option>Coopération</option><option>Compétitif</option><option>Débutant bienvenu</option></select></label>
           <div class="swapp-match-controls"><button type="submit">Préparer ma publication</button><button type="button" id="swapp-match-cancel">Annuler</button></div>
         </form>
+      <section class="swapp-activities" aria-labelledby="swapp-activities-title">
+        <style>
+          .swapp-activities{padding:18px;margin:0 0 18px;border-radius:18px;border:1px solid #ffffff26;background:linear-gradient(145deg,#23283b,#151e30);color:#fff}
+          .swapp-activities h2{font-size:22px;margin:5px 0}.swapp-activities p{font-size:13px;color:#bfcede;margin:5px 0 14px}
+          .swapp-activities-buttons{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+          .swapp-activities-buttons button{border:1px solid #ffffff38;border-radius:11px;padding:13px 8px;background:#ffffff12;color:#fff;font:inherit;font-size:12px;font-weight:650;cursor:pointer}
+          .swapp-activities-buttons button:hover{background:#ffffff24}
+          .swapp-activities-form{margin-top:12px;padding:14px;background:#0e192a;border-radius:12px}
+          .swapp-activities-form[hidden]{display:none!important}.swapp-activities-form label{font-size:12px;display:block;margin-top:9px}
+          .swapp-activities-form input{box-sizing:border-box;width:100%;padding:10px;margin-top:5px;border:1px solid #ffffff35;border-radius:9px;background:#182740;color:white}
+          .swapp-activities-form button{margin-top:12px;padding:10px;border:0;border-radius:8px;background:#667ec5;color:#fff;cursor:pointer}
+          @media(max-width:650px){.swapp-activities-buttons{grid-template-columns:repeat(2,minmax(0,1fr))}}
+        </style>
+        <span class="pulse-kicker">PARTICIPER À SWAPP</span><h2 id="swapp-activities-title">Plus qu'un fil d'actualité.</h2>
+        <p>Retrouve des joueurs, propose un défi, lance une discussion ou enrichis ton profil.</p>
+        <div class="swapp-activities-buttons">
+          <button type="button" data-social-tool="match">Trouver des joueurs</button>
+          <button type="button" data-social-tool="poll">Sondage / défi</button>
+          <button type="button" data-social-tool="room">Créer un salon</button>
+          <button type="button" data-social-tool="passport">Mon passeport</button>
+        </div>
+        <form class="swapp-activities-form" id="swapp-poll-form" hidden>
+          <strong>Créer un sondage participatif</strong><label>Question<input name="question" maxlength="120" required placeholder="Quel jeu devrions-nous lancer ?"></label>
+          <label>Choix A<input name="choiceA" maxlength="80" required></label><label>Choix B<input name="choiceB" maxlength="80" required></label>
+          <button type="submit">Préparer ma publication</button>
+        </form>
+        <p class="swapp-activities-note">Les annonces et sondages utilisent les publications SOCIAL ; les salons utilisent les communautés existantes. Pas de faux utilisateurs ni de faux résultats.</p>
+      </section>
       <section class="pulse-composer" id="composer">
         <div class="pulse-avatar" id="composer-avatar">?</div>
         <div class="pulse-compose-main">
