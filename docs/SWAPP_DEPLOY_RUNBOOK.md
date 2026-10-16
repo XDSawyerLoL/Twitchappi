@@ -78,3 +78,41 @@ node tools/swapp-traffic-report.js /chemin/vers/access.log --days=30
 - Ne pas activer de solution payante ou d'abonnement pour réaliser ces contrôles.
 
 **Limite actuelle de l'automatisation :** l'accès FTP/Node hPanel de swapp.tv et les comptes Search Console/Bing ne sont pas connectés à cette conversation. Les modifications GitHub restent **non confirmées en production** tant que l'empreinte ne correspond pas.
+
+
+## Google Search Console : supprimer les fausses soumissions
+
+Le rapport « Sitemaps envoyés » n'accepte que des **fichiers XML**, pas des pages HTML.
+Ne pas soumettre `/plan-du-site`, `/boutique`, `/actus`, `/equipes`,
+`/categories`, `/decouvrir`, `/communaute` ou `/bandes-annonces`.
+Supprimer manuellement ces entrées du rapport Google Search Console : cela ne supprime
+ni n'empêche l'indexation de ces pages, déjà présentes dans le sitemap principal.
+
+Soumissions attendues : `https://swapp.tv/sitemap.xml` et
+`https://swapp.tv/creators-sitemap.xml`. Le troisième sitemap
+`https://swapp.tv/news-sitemap.xml` ne doit être soumis que lorsqu'il
+contient réellement au moins un article publié.
+
+Après déploiement, ouvrir `https://swapp.tv/api/seo/status` :
+- `articleSource: unavailable` : base d'articles inaccessible ;
+- `articleSource: stale` : cache vérifié précédemment, dernière relecture échouée ;
+- `articleSource: ready` et `publishedCount: 0` : connexion active mais aucun article publié ;
+- `newsSitemapStatus: ready` : un sitemap Actualités non vide est générable.
+
+Le diagnostic public ne divulgue ni secrets, ni brouillons, ni erreurs internes et
+utilise le même cache de six heures que le sitemap. En l'absence de contenu vérifié,
+le sitemap Actualités répond HTTP 503 au lieu de déclarer un XML vide comme réussi.
+
+Les articles publiés dépendent encore de Firestore ; les scripts MySQL
+ne sont pas branchés sur le site. Ne jamais désactiver le stockage existant
+sans migration contrôlée, sauvegarde et tests de lecture sur Hostinger.
+
+## Connexion Twitch mobile : contrôle après déploiement
+
+Ouvrir `https://swapp.tv/api/release` puis utiliser
+`npm run verify:production` sur la version Hostinger pour confirmer la parité
+avec le dépôt. Une modification GitHub seule n'est pas un déploiement.
+La connexion dans le script SWAPP actuel utilise l'onglet courant,
+pas une popup. Si le téléphone affiche encore « Auth (state) », vérifier
+dans les erreurs serveur `twitch_oauth_state` les indicateurs de
+présence du cookie et de la session, sans exporter ni afficher leurs valeurs.
