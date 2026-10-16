@@ -66,6 +66,21 @@ async function verify(){
  const news=await request(origin,'/actus');
  check(news.body.includes('SWAPP')||news.body.includes('Swapp'),'Actualité returned an unexpected document');
  process.stdout.write('PASS /actus\n');
+ // Free, one-shot SEO checks. No scheduling or paid crawlers.
+ const robots=await request(origin,'/robots.txt');
+ check(robots.body.includes('Sitemap: https://swapp.tv/sitemap.xml'),'Robots sitemap declaration missing');
+ check((robots.response.headers.get('content-type')||'').includes('text/plain'),'robots.txt is not plain text');
+ const xml=await request(origin,'/sitemap.xml');
+ check(xml.body.includes('<urlset')&&xml.body.includes('https://swapp.tv/plan-du-site'),'Sitemap XML missing canonical public sitemap page');
+ const landing=await request(origin,'/plan-du-site');
+ check(landing.body.includes('<h1>Plan du site</h1>'),'HTML sitemap route missing');
+ check(landing.body.includes('<link rel="canonical" href="https://swapp.tv/plan-du-site">'),'HTML sitemap lacks self-canonical');
+ const feed=await request(origin,'/feed.xml');
+ check(feed.body.includes('<rss version="2.0">'),'Public editorial RSS unavailable');
+ check(home.body.includes('href="/plan-du-site"'),'Homepage source lacks link to HTML sitemap');
+ const seoMeta='<link rel="canonical" href="https://swapp.tv/';
+ check(home.body.includes(seoMeta),'Homepage canonical unavailable');
+ process.stdout.write('PASS robots.txt + sitemap.xml + feed.xml + /plan-du-site + home canonical\n');
  return remote;
 }
 if(require.main===module){
