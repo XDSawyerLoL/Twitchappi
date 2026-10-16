@@ -27,8 +27,8 @@ function backend(){
  };
  return {calls,fetchImpl,expire(){remoteExpired=true}};
 }
-const gate=fetchImpl=>createSocialNativeProxy(fetchImpl,{
- production:true,ssoSecret:secret,restoreLocalSession:async()=>{}
+const gate=(fetchImpl,extra={})=>createSocialNativeProxy(fetchImpl,{
+ production:true,ssoSecret:secret,restoreLocalSession:async()=>{},...extra
 });
 
 test('SWAPP user receives an upstream account without disclosing credentials to the browser',async()=>{
@@ -74,4 +74,22 @@ test('generated identity is stable and scoped to SWAPP user id',()=>{
  assert.ok(a.password.length>=20);
  assert.equal(a.handle,swappSocialCredentials(account,secret).handle);
  assert.notEqual(a.handle,swappSocialCredentials({...account,id:'another'},secret).handle);
+});
+
+test('DM to a SWAPP username uses only the account-mapped backend handle',async()=>{
+ const b=backend();
+ const recipient={id:'swapp-user-02',login:'recipient_02',display_name:'Recipient'};
+ const proxy=gate(b.fetchImpl,{lookupLocalUser:handle=>handle===recipient.login?recipient:null,
+  listLocalUsers:()=>[account,recipient]});
+ const req=request('/messages','POST'),res=response();
+ req.body={handle:recipient.login,body:'Salut !'};
+ await proxy(req,res);
+ assert.equal(res.statusCode,200);
+ const last=b.calls.at(-1);
+ assert.equal(last.pathname,'/api/pulse/messages');
+ assert.equal(last.authorization,'Bearer '+token);
+ const pathRes=response();
+ await proxy({...req,path:'/messages/'+recipient.login,method:'GET',originalUrl:'/api/pulse/messages/'+recipient.login},pathRes);
+ assert.equal(pathRes.statusCode,200);
+ assert.equal(b.calls.at(-1).pathname,'/api/pulse/messages/'+swappSocialCredentials(recipient,secret).handle);
 });
