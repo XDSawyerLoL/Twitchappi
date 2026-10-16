@@ -61,3 +61,33 @@
 @media(max-width:1100px){.swapp-editorial-top-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media(max-width:740px){.swapp-editorial-top-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.swapp-editorial-game-art{max-height:165px}.swapp-editorial-top-feature{grid-template-columns:1fr}.swapp-editorial-top-feature-art{min-height:180px}}
 @media(max-width:370px){.swapp-editorial-top-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.swapp-editorial-game-art{aspect-ratio:1.1!important}}
+
+/* 2026-10-16 — editorial store, not rounded AI cards */
+.swapp-store .swapp-store-head{padding-block:20px!important}
+.swapp-store .swapp-store-head h1{letter-spacing:-.045em}
+.swapp-editorial-top{margin:18px 0 44px}
+.swapp-editorial-top-masthead{border-bottom:2px solid rgba(255,255,255,.24)}
+.swapp-editorial-top-masthead>a{border:none;border-bottom:1px solid currentColor;border-radius:0;padding:5px 0}
+.swapp-editorial-top-feature{border:0;border-radius:0;min-height:260px;background:#111b25}
+.swapp-editorial-top-feature-art{background:#13202b;overflow:hidden}
+.swapp-editorial-top-feature-art>img{object-fit:cover}
+.swapp-editorial-top-grid{gap:12px 18px}
+.swapp-editorial-game{border:0;border-bottom:1px solid rgba(255,255,255,.22);border-radius:0;background:none;box-shadow:none;overflow:visible;transition:none}
+.swapp-editorial-game:hover{transform:none;border-bottom-color:#8decd4}
+.swapp-editorial-game-art{aspect-ratio:460/215!important;max-height:none;overflow:hidden;background:#14212b;border-radius:0}
+.swapp-editorial-game-art>img{object-fit:cover;transition:none}
+.swapp-editorial-game:hover img{transform:none}
+.swapp-editorial-game-rank{top:0;left:0;border:0;border-radius:0;backdrop-filter:none;background:#101923;padding:6px 10px;font-size:12px}
+.swapp-editorial-game-body{padding:12px 0 16px;gap:6px}
+.swapp-editorial-game-genre{font-size:10px;color:#a0e3d2}
+.swapp-editorial-game h3{font-size:16px}
+.swapp-editorial-game p{font-size:12px;line-height:1.45}
+.swapp-editorial-game-foot{flex-direction:row;justify-content:space-between;align-items:center;gap:8px}
+.swapp-editorial-game-foot a{background:none;border-radius:0;border-bottom:1px solid #83e2cd;padding:3px 0;color:#a2eddc;font-size:12px;text-align:right;white-space:nowrap}
+.swapp-editorial-game-fallback{background:#182533;border-radius:0;justify-content:center;padding:13px 15px}
+.swapp-editorial-game-fallback span{letter-spacing:.08em;color:#839db0}
+.swapp-editorial-game-fallback strong{font-size:clamp(14px,1.65vw,22px)}
+.swapp-editorial-top-feature-copy a{border-radius:0}
+.swapp-store .swapp-store-footer{border-radius:0}
+@media(max-width:1100px){.swapp-editorial-top-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:690px){.swapp-editorial-top-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.swapp-editorial-game-art{aspect-ratio:460/260!important;max-height:none}.swapp-editorial-game-foot{flex-direction:column;align-items:flex-start}.swapp-editorial-game h3{font-size:14px}.swapp-editorial-game p{font-size:11px}.swapp-editorial-top-feature{grid-template-columns:1fr}.swapp-editorial-top-feature-art{min-height:180px}}
