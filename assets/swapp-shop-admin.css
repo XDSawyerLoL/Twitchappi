@@ -60,3 +60,5 @@
  .swapp-shop-admin-publish>a{display:inline-flex;margin:14px 0 0 0}
 }
 @media(prefers-reduced-motion:reduce){.swapp-shop-admin *{scroll-behavior:auto!important}}
+
+.swapp-shop-admin-affiliate-note{border-left:2px solid #8de0c5;padding:8px 12px;color:#bfdbd0;font-size:12px;line-height:1.6;margin:0 0 19px}
