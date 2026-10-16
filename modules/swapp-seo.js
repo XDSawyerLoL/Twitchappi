@@ -2,6 +2,7 @@
 // Public SEO routes for SWAPP. No cron, no paid API, no user tracking.
 // Only published Firestore articles may appear in the optional news section.
 const ORIGIN='https://swapp.tv';
+const {gameHubs,renderGameIndex,renderGamePage}=require('./swapp-game-pages');
 // IndexNow's public domain-ownership proof, not a secret credential.
 const INDEXNOW_KEY='b700e3b876341559d245b13c5a25d369';
 const INDEXNOW_KEY_PATH='/'+INDEXNOW_KEY+'.txt';
@@ -34,6 +35,12 @@ function sitemapEntries(articles=[]){
   if(seen.has(path))continue;seen.add(path);
   entries.push({loc:ORIGIN+path,lastmod:isoDate(article.updatedAt||article.publishedAt)});
   if(entries.length>=CORE_PATHS.length+500)break;
+ }
+ const hubs=gameHubs(articles);
+ if(hubs.length){
+  entries.push({loc:ORIGIN+'/jeux',lastmod:''});
+  for(const game of hubs)
+   entries.push({loc:ORIGIN+'/jeux/'+encodeURIComponent(game.slug),lastmod:isoDate(game.lastmod)});
  }
  return entries;
 }
@@ -167,6 +174,7 @@ function sitemapHtml(articles=[]){
   ['/categories','Jeux et catégories'],['/equipes','Équipes'],['/bandes-annonces','Bandes-annonces'],
   ['/communaute','Communauté'],['/boutique','Boutique']
  ];
+ const hubs=gameHubs(articles);
  const index=indexLinks.map(([url,name])=>
   '<li><a href="'+url+'">'+encodeXml(name)+'</a></li>').join('');
  const valid=(Array.isArray(articles)?articles:[]).filter(a=>
@@ -193,6 +201,7 @@ function sitemapHtml(articles=[]){
   '<header><a href="/">SWAPP.</a></header><main><h1>Plan du site</h1>'+
   '<p>Accède aux principales rubriques de SWAPP et aux articles vérifiés publiés par la rédaction.</p>'+
   '<section><h2>Explorer SWAPP</h2><ul>'+index+'</ul></section>'+
+  (hubs.length?'<section><h2>Jeux suivis</h2><p><a href="/jeux">Tous les jeux</a></p><ul>'+hubs.map(g=>'<li><a href="/jeux/'+encodeURIComponent(g.slug)+'">'+encodeXml(g.game)+'</a> ('+g.count+' publications)</li>').join('')+'</ul></section>':'')+
   '<section><h2>Articles publiés</h2>'+
   (items?'<ul>'+items+'</ul>':'<p>Les publications seront listées ici dès qu’elles seront accessibles.</p>')+
   '</section></main></body></html>';
@@ -274,6 +283,25 @@ function registerSeoRoutes(app,{getPublished=async()=>[],getCreators=async()=>[]
   res.type('text/html; charset=utf-8');
   await ensureCache();
   return res.status(200).send(sitemapHtml(articles));
+ });
+ // Game hubs only exist for topics with at least two distinct published
+ // editorials. Share the existing six-hour cache and immediate invalidation.
+ app.get('/jeux',async(_req,res)=>{
+  await ensureCache();
+  const games=gameHubs(articles);
+  if(!games.length)return res.status(404).send('Aucun dossier jeu publié pour le moment.');
+  res.set('Cache-Control','public, max-age=900');
+  return res.status(200).type('html').send(renderGameIndex(games));
+ });
+ app.get('/jeux/:slug',async(req,res)=>{
+  const slug=String(req.params.slug||'');
+  if(!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)||slug.length>90)
+   return res.status(404).send('Jeu introuvable.');
+  await ensureCache();
+  const game=gameHubs(articles).find(x=>x.slug===slug);
+  if(!game)return res.status(404).send('Jeu introuvable.');
+  res.set('Cache-Control','public, max-age=900');
+  return res.status(200).type('html').send(renderGamePage(game));
  });
  app.get('/creators-sitemap.xml',async(_req,res)=>{
   res.set('Content-Type','application/xml; charset=utf-8');
