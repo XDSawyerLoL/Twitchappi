@@ -95,6 +95,15 @@ async function verify(){
  process.stdout.write('PASS / home\n');
  const news=await request(origin,'/actus');
  check(news.body.includes('SWAPP')||news.body.includes('Swapp'),'Actualité returned an unexpected document');
+ // A successful GitHub commit is not proof the final visual layer reached Hostinger.
+ const presentation='/assets/swapp-presentation-polish.css?v=20261016-presentation-v1';
+ check(home.body.includes(presentation),'Home uses an outdated presentation stylesheet');
+ check(news.body.includes(presentation),'Actualité uses an outdated presentation stylesheet');
+ const finish=await request(origin,'/assets/swapp-presentation-polish.css');
+ check(finish.body.includes('--swapp-finish-focus')&&finish.body.includes('.swapp-social-viewport .pulse-post-main')
+  &&finish.body.includes('.swapp-editorial-route .article-body'),
+  'Shared presentation finish is stale or incomplete');
+ process.stdout.write('PASS shared navigation, news and SOCIAL presentation asset\n');
  process.stdout.write('PASS /actus\n');
  // Free, one-shot SEO checks. No scheduling or paid crawlers.
  const robots=await request(origin,'/robots.txt');
