@@ -35,3 +35,13 @@
 @media(max-width:680px){.swapp-editorial-top{margin:36px auto 46px}.swapp-editorial-top-masthead{align-items:flex-start;flex-direction:column}.swapp-editorial-top-feature{grid-template-columns:1fr}.swapp-editorial-top-feature-art{min-height:190px;max-height:260px}.swapp-editorial-top-feature-art:after{background:linear-gradient(0deg,#101722,transparent 50%)}.swapp-editorial-top-feature-copy{padding:21px}.swapp-editorial-top-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.swapp-editorial-game-body{padding:12px}.swapp-editorial-game h3{font-size:15px}.swapp-editorial-game p{font-size:11px}.swapp-editorial-game-foot strong{font-size:17px}}
 @media(max-width:370px){.swapp-editorial-top-grid{grid-template-columns:1fr}.swapp-editorial-game-art{aspect-ratio:1.7}}
 @media(prefers-reduced-motion:reduce){.swapp-editorial-game,.swapp-editorial-game-art img{transition:none}}
+
+/* Artwork placeholder is part of the cover, never a broken image icon. */
+.swapp-editorial-game-art{isolation:isolate;background:linear-gradient(155deg,#1c3947 0%,#121927 55%,#34455a 100%)}
+.swapp-editorial-game-fallback{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;gap:9px;padding:18px;overflow:hidden;background:radial-gradient(circle at 85% 10%,rgba(118,230,207,.18),transparent 52%),linear-gradient(155deg,#183340,#14212e 60%,#0c1520);color:#eaf8f4}
+.swapp-editorial-game-fallback span{font-size:9px;letter-spacing:.12em;font-weight:800;color:#85e5ce}
+.swapp-editorial-game-fallback strong{font-size:clamp(18px,1.7vw,30px);line-height:1.02;overflow-wrap:anywhere;letter-spacing:-.045em;text-wrap:balance}
+.swapp-editorial-game-fallback small{font-size:10px;color:#bacbd4}
+.swapp-editorial-game-art>img{position:absolute;inset:0;z-index:1;width:100%;height:100%;object-fit:cover}
+.swapp-editorial-game-art .swapp-editorial-game-rank{z-index:2}
+.swapp-editorial-game-art.image-unavailable>img,.swapp-editorial-game-art>img[hidden]{display:none}
