@@ -66,6 +66,17 @@ body.oryonDiscoverV4 #discover .v4Card:before{
 body.oryonDiscoverV4 #discover .v4Card.swapp-discover-no-image:before{
  background:radial-gradient(circle at 23% 23%,rgba(146,108,219,.34),transparent 49%),linear-gradient(125deg,#132738,#251834);
 }
+/* Keep titles and real game badges readable against unpredictable Twitch art. */
+body.oryonDiscoverV4 #discover .v4Card:after{
+ content:"";position:absolute;inset:0;pointer-events:none;
+ background:linear-gradient(180deg,rgba(5,9,16,.06) 9%,transparent 31%,rgba(5,9,16,.58) 63%,rgba(5,9,16,.94) 100%);
+ z-index:1;
+}
+body.oryonDiscoverV4 #discover .v4CardText{z-index:2!important}
+body.oryonDiscoverV4 #discover .v4Tags{z-index:3!important}
+body.oryonDiscoverV4 #discover .v4Card img{
+ display:block;width:100%;height:100%;object-fit:cover;
+}
 body.oryonDiscoverV4 #discover .v4Card img[hidden]{display:none!important}
 body.oryonDiscoverV4 #discover .v4CardText{
  left:clamp(15px,2.1vw,27px)!important;
@@ -163,12 +174,27 @@ body.oryonDiscoverV4 #discover .v4FollowRail::-webkit-scrollbar{display:none!imp
  body.oryonDiscoverV4 #discover .v4Tags{top:10px!important;left:10px!important;right:10px!important;gap:5px!important}
  body.oryonDiscoverV4 #discover .v4Tag{font-size:11px!important;padding:5px 8px!important;max-width:170px!important}
  body.oryonDiscoverV4 #discover .v4Meta{font-size:13px!important;gap:5px!important}
+ /* One unmistakable "Regarder" action, then two compact secondary
+    controls. Avoid 3 cramped buttons on 320-390px phones. */
  body.oryonDiscoverV4 #discover .v4Actions{
-  grid-template-columns:1fr 1.15fr 1fr!important;gap:6px!important;
-  padding:7px!important;border-radius:14px!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:8px!important;padding:8px!important;border-radius:14px!important;
  }
- body.oryonDiscoverV4 #discover .v4Actions .v4Btn{min-height:46px!important;padding:8px 5px!important;font-size:13px!important}
- body.oryonDiscoverV4 #discover .v4Actions .v4Btn.primary{font-size:14px!important}
+ body.oryonDiscoverV4 #discover .v4Actions .v4Btn{
+  min-width:0!important;min-height:46px!important;
+  padding:10px 8px!important;font-size:13px!important;
+  text-align:center!important;white-space:normal!important;
+  line-height:1.2!important;touch-action:manipulation;
+ }
+ body.oryonDiscoverV4 #discover .v4Actions .v4Btn.primary{
+  grid-column:1/-1!important;grid-row:1!important;
+  min-height:51px!important;font-size:16px!important;
+  font-weight:850!important;
+ }
+ body.oryonDiscoverV4 #discover .v4CardText{
+  left:16px!important;right:16px!important;bottom:17px!important;
+  text-shadow:0 2px 12px rgba(0,0,0,.45);
+ }
  body.oryonDiscoverV4 #discover .v4DeckGrid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
  body.oryonDiscoverV4 #discover .v4DeckSlot:not(.empty){min-width:0!important}
  body.oryonDiscoverV4 #discover .v4FollowCard{min-width:min(70vw,260px)!important;height:128px!important}
@@ -187,28 +213,48 @@ body.oryonDiscoverV4 #discover .v4FollowRail::-webkit-scrollbar{display:none!imp
  function safeTitle(card){
   return (card.querySelector('.v4LiveTitle')?.textContent||'').trim().slice(0,100);
  }
- function decorate(rootNode){
+ const lastHeroImage=new WeakMap();
+ function decorate(){
   const area=doc.getElementById('discover');
   if(!area||!area.querySelector('.v4Page'))return;
   const card=area.querySelector('#v4SwipeCard');
-  if(card&&!card.dataset.swappDiscoverComfort){
-   card.dataset.swappDiscoverComfort='1';
-   card.setAttribute('role','button');
-   card.setAttribute('tabindex','0');
-   card.setAttribute('aria-label','Regarder le live : '+(safeTitle(card)||'créateur en direct'));
+  if(card){
+   // The swipe UI REUSES the same card node for successive creators.
+   // Role, label, thumbnail and broken-image fallback must follow each swap.
+   const title=safeTitle(card)||'créateur en direct';
+   if(!card.dataset.swappDiscoverComfort){
+    card.dataset.swappDiscoverComfort='1';
+    card.setAttribute('role','button');
+    card.setAttribute('tabindex','0');
+   }
+   const label='Regarder le live : '+title;
+   if(card.getAttribute?.('aria-label')!==label)
+    card.setAttribute('aria-label',label);
    const image=card.querySelector('img');
    if(image){
-    image.alt='Aperçu : '+(safeTitle(card)||'live en cours');
+    image.alt='Aperçu : '+title;
     image.loading='eager';
     image.decoding='async';
-    const fail=()=>{
-     card.classList.add('swapp-discover-no-image');
-     image.hidden=true;
-    };
-    if((image.currentSrc||image.src||'').includes('404_preview') ||
-      (image.complete&&image.naturalWidth===0))fail();
-    else image.addEventListener('error',fail,{once:true});
-   }else card.classList.add('swapp-discover-no-image');
+    const src=String(image.getAttribute?.('src')||image.src||'').trim();
+    const previous=lastHeroImage.get(card);
+    if(!previous||previous.image!==image||previous.src!==src){
+     lastHeroImage.set(card,{image,src});
+     card.classList.remove('swapp-discover-no-image');
+     image.hidden=false;
+     const fail=()=>{
+      // Old image error callbacks must not corrupt the next creator's image.
+      const current=lastHeroImage.get(card);
+      if(!current||current.image!==image||current.src!==src)return;
+      card.classList.add('swapp-discover-no-image');
+      image.hidden=true;
+     };
+     if(!src||src.includes('404_preview')||(image.complete&&image.naturalWidth===0))fail();
+     else image.addEventListener('error',fail,{once:true});
+    }
+   }else{
+    lastHeroImage.delete(card);
+    card.classList.add('swapp-discover-no-image');
+   }
   }
   // Saved deck images should not all compete with the hero thumbnail.
   for(const image of area.querySelectorAll('.v4DeckSlot img,.v4FollowCard img')){
@@ -259,7 +305,8 @@ body.oryonDiscoverV4 #discover .v4FollowRail::-webkit-scrollbar{display:none!imp
   });
   if(typeof root.MutationObserver==='function'){
    const observer=new root.MutationObserver(request);
-   observer.observe(discover,{childList:true,subtree:true});
+   observer.observe(discover,{childList:true,subtree:true,characterData:true,
+    attributes:true,attributeFilter:['src']});
   }
   request();
  }
