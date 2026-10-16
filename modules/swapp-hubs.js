@@ -133,7 +133,7 @@ function shop(products=demoProducts,{source='demo'}={}){
  const main='<main class="swapp-hub swapp-shop">'+
   '<div class="swapp-shop-hero"><div class="swapp-shop-hero-text"><span class="swapp-shop-overline">SWAPP / Le shop</span>'+
   '<span class="swapp-shop-hero-edition">LE CONCEPT STORE GAMING</span>'+
-  '<h1>Du jeu. Du style. <em>De l'envie.</em></h1>'+
+  '<h1>Du jeu. Du style. <em>De belles découvertes.</em></h1>'+
   '<p>Les jeux qui nous passionnent et les accessoires qui donnent du caractère à un setup. Un univers à explorer, bientôt à adopter.</p>'+
   '<div class="swapp-shop-hero-actions"><a class="swapp-shop-primary" href="#selection">Découvrir la sélection <span aria-hidden="true">↘</span></a>'+
   '<a class="swapp-shop-secondary" href="#shop-transparence">À propos de la boutique</a></div></div>'+
