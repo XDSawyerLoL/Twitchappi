@@ -52,6 +52,14 @@ test('production verifier rejects unsafe origins and accepts canonical SWAPP',()
  }
 });
 
+test('production smoke loads the homepage before checking Boutique editor assets',()=>{
+ const source=fs.readFileSync(path.join(__dirname,'..','tools/swapp-deploy-smoke.js'),'utf8');
+ const fetchHome=source.indexOf("const home=await request(origin,'/');");
+ const inspectHome=source.indexOf("check(home.body.includes('swapp-editor-nav.js");
+ assert.ok(fetchHome>=0,'home page must be requested');
+ assert.ok(inspectHome>fetchHome,'home.body must not be accessed before its declaration');
+});
+
 test('release check verifies SOCIAL, ads.txt, home and Actualité separately',()=>{
  const src=fs.readFileSync(path.join(__dirname,'..','tools/swapp-deploy-smoke.js'),'utf8');
  for(const route of ['/api/release','/ads.txt','/communaute','/actus','/assets/swapp-social-native/social-swapp.css']){
