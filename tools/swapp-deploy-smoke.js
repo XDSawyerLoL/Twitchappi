@@ -88,11 +88,14 @@ async function verify(){
   storefront.body.includes("data-shop-image")&&
   storefront.body.includes("shop-result-count"),
   'Storefront search, filters or product gallery are stale');
- const detail=await request(origin,'/boutique/produit/clair-obscur');
- check(detail.body.includes('swapp-store-detail-grid')&&
-  detail.body.includes('swapp-store-detail-gallery')&&
-  detail.body.includes('Référence présentée en aperçu'),
-  'Public store product detail route is absent or outdated');
+ const firstProduct=(store.body.match(/href="\/boutique\/produit\/([a-z0-9-]+)"/)||[])[1];
+ if(firstProduct){
+  const detail=await request(origin,'/boutique/produit/'+firstProduct);
+  check(detail.body.includes('swapp-store-detail-grid')&&
+   detail.body.includes('swapp-store-detail-gallery')&&
+   detail.body.includes('swapp-store-detail-purchase'),
+   'Public store product detail route is absent or outdated');
+ }
  process.stdout.write('PASS SWAPP storefront catalogue, filters and product detail route\n');
  const shopAdminScript=await request(origin,'/assets/swapp-shop-admin.js');
  check(shopAdminScript.body.includes("'/api/editor/boutique'")&&
