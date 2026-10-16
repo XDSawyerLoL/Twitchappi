@@ -62,8 +62,6 @@ test('release check verifies SOCIAL, ads.txt, home and Actualité separately',()
  const pkg=require('../package.json');
  assert.equal(pkg.scripts['release:info'],'node tools/swapp-release.js');
  assert.equal(pkg.scripts['verify:production'],'node tools/swapp-deploy-smoke.js');
- const ci=fs.readFileSync(path.join(__dirname,'..','.github/workflows/swapp-quality.yml'),'utf8');
- assert.match(ci,/npm test/);
- assert.match(ci,/verify_production/);
- assert.match(ci,/playwright test e2e\/swapp-mobile\.spec\.cjs/);
+ // No GitHub Actions: Hostinger runs these checks on demand.
+ assert.equal(fs.existsSync(path.join(__dirname,'..','.github/workflows/swapp-quality.yml')),false);
 });
