@@ -1021,7 +1021,16 @@ app.get('/ads.txt', (_req,res)=>{
 });
 // Deployment identity: stable digest of actual files served by this Node
 // process. A GitHub commit is not proof that Hostinger deployed those files.
-const SWAPP_DEPLOY_RELEASE=require('./tools/swapp-release').releaseInfo(__dirname);
+let SWAPP_DEPLOY_RELEASE={
+  fingerprint:null,revision:null,complete:false,trackedFiles:0,missing:['release-manifest']
+};
+try{
+  SWAPP_DEPLOY_RELEASE=require('./tools/swapp-release').releaseInfo(__dirname);
+}catch(_){
+  // A partial Hostinger upload must never take down the entire SWAPP server.
+  // The endpoint reports 503 until the deployment is complete.
+  console.warn('[SWAPP RELEASE] fingerprint module unavailable');
+}
 app.get('/api/release',(_req,res)=>{
   res.set('Cache-Control','no-store');
   res.set('X-Content-Type-Options','nosniff');
