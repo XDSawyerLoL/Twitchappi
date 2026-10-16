@@ -30,7 +30,10 @@ function newsTime(iso){
   return new Date(t).toLocaleDateString('fr-FR',{day:'2-digit',month:'short'});
 }
 
+let cachedNewsFeed=null;
+let cachedNewsFeedAt=0;
 async function fetchNewsFeed(){
+  if(cachedNewsFeed&&Date.now()-cachedNewsFeedAt<60000)return cachedNewsFeed;
   let lastError;
   for(const endpoint of NEWS_FEEDS){
     try{
@@ -42,7 +45,9 @@ async function fetchNewsFeed(){
         .map(a=>({title:String(a.title||''),source:'SWAPP',url:location.origin+'/actus/'+encodeURIComponent(a.slug),
          image:typeof a.image==='object'?a.image?.url:String(typeof a.image==='string'?a.image:a.imageUrl||''),summary:String(a.summary||''),
          publishedAt:a.publishedAt||a.originalPublishedAt}));
-       return {items};
+       cachedNewsFeed={items};
+       cachedNewsFeedAt=Date.now();
+       return cachedNewsFeed;
       }
       throw new Error('invalid_swapp_news_feed');
     }catch(error){lastError=error}
