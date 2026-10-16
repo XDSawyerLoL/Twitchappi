@@ -10,7 +10,7 @@ const vm=require('node:vm');
 function harness(){
  const app=fs.readFileSync(path.join(__dirname,'../assets/swapp-social-native/app.js'),'utf8');
  const from=app.indexOf("  const feedTabs=document.getElementById('feed-tabs');");
- const until=app.indexOf("\n  document.querySelectorAll('[data-view]').forEach",from);
+ const until=app.indexOf("\n  // All view buttons, including those rendered AFTER initialization",from);
  assert.ok(from>=0&&until>from,'feed switch controller exists');
  const controller=app.slice(from,until);
  const buttons=['following','discover','news'].map(feed=>({
