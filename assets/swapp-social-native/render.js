@@ -11,7 +11,7 @@ export function renderPost(post){
   const linkUrl=post.linkUrl||'';
   const linkTitle=post.linkTitle||'';
   let hostname='';
-  try{hostname=new URL(linkUrl).hostname.replace(/^www\\./,'')}catch{}
+  try{hostname=new URL(linkUrl).hostname.replace(/^www\./,'')}catch{}
   const localNews=hostname==='swapp.tv';
   const linkLabel=localNews?'ARTICLE SWAPP':'LIEN PARTAGÉ';
   const previewText='<div class="pulse-rich-details"><small class="pulse-rich-kicker">'+linkLabel+'</small>'+
@@ -34,7 +34,7 @@ export function renderPost(post){
     '<div class="pulse-avatar">'+esc(initials(user))+'</div>'+
     '<div class="pulse-post-main">'+
       '<div class="pulse-post-head"><button data-profile="'+esc(user.handle)+'">'+esc(user.displayName||user.handle)+'</button>'+(user.verified?'<span class="pulse-badge" title="Compte vérifié">'+icon('pi-verified')+'</span>':'')+'<span>@'+esc(user.handle)+' · '+esc(timeAgo(post.createdAt))+'</span></div>'+
-      (linkTitle && String(post.body||'').trim().replace(/\\s*Source\\s*:\\s*SWAPP\\s*$/i,'').trim()===String(linkTitle).trim() ? '' : '<p>'+esc(post.body)+'</p>')+media+quote+
+      (linkTitle && String(post.body||'').trim().replace(/\s*Source\s*:\s*SWAPP\s*$/i,'').trim()===String(linkTitle).trim() ? '' : '<p>'+esc(post.body)+'</p>')+media+quote+
       '<div class="pulse-actions">'+
         '<button class="pulse-action" data-action="reply" aria-label="Répondre" title="Répondre">'+icon('pi-reply')+'<span class="pulse-action-name">Répondre</span><span class="pulse-action-count">'+Number(post.counts?.replies||0)+'</span></button>'+
         '<button class="pulse-action '+(reposted?'active':'')+'" data-action="repost" aria-label="Relay" title="Relayer cette publication">'+icon('pi-relay')+'<span class="pulse-action-name">Relayer</span><span class="pulse-action-count">'+Number(post.counts?.reposts||0)+'</span></button>'+
