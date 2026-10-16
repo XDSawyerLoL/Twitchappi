@@ -10,7 +10,7 @@ export function setView(view,title){
   });
   dom.feedTabs.hidden=view!=='home';
   dom.composer.hidden=view!=='home'||!state.user;
-  dom.welcome.hidden=view!=='home'||!!state.user;
+  dom.welcome.hidden=view!=='home'||state.feed==='news'||!!state.user;
 }
 
 const NEWS_FEEDS=['/api/actus'];
