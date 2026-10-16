@@ -28,7 +28,7 @@ function fixture(options={}){
   return {
    classList:{contains:key=>key==='active'&&active},
    getAttribute:key=>key==='href'?href:key==='aria-current'&&active?'page':null,
-   matches:selector=>selector.includes('a')||selector==='a,button',
+   matches:selector=>selector==='a,button',
    getBoundingClientRect:()=>bounds(left,right)
   };
  }
