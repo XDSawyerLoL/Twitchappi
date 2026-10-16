@@ -540,3 +540,73 @@ button.pulse-account{width:100%;border:0;background:transparent;text-align:left;
  .swapp-social-viewport .pulse-composer{padding:17px!important}
  .swapp-social-viewport :is(input,textarea,select){font-size:16px!important}
 }
+
+/* SOCIAL navigation stability — fixed primary controls, offset below SWAPP's
+   68px global header + SOCIAL's 60px header. The in-flow spacer prevents posts
+   and the tab switcher from being covered when the welcome block is hidden. */
+.swapp-social-viewport .swapp-social-mobile-spacer{display:none}
+@media (max-width:920px) and (orientation:portrait), (max-width:650px){
+ .swapp-social-viewport{
+  --social-site-header-height:68px;
+  --social-local-header-height:60px;
+  --social-iconbar-height:55px;
+ }
+ .swapp-social-viewport .pulse-topbar{
+  position:sticky!important;
+  top:var(--social-site-header-height)!important;
+  height:var(--social-local-header-height)!important;
+  min-height:var(--social-local-header-height)!important;
+  box-sizing:border-box;
+  z-index:45!important;
+  background:rgba(10,19,33,.985)!important;
+ }
+ .swapp-social-viewport .pulse-mobile-nav{
+  position:fixed!important;
+  top:calc(var(--social-site-header-height) + var(--social-local-header-height))!important;
+  bottom:auto!important;left:0!important;right:0!important;
+  width:100vw!important;max-width:100vw!important;
+  box-sizing:border-box;
+  height:var(--social-iconbar-height)!important;
+  min-height:var(--social-iconbar-height)!important;
+  margin:0!important;
+  padding:0 max(8px,env(safe-area-inset-right)) 0 max(8px,env(safe-area-inset-left))!important;
+  display:grid!important;
+  grid-template-columns:repeat(5,minmax(0,1fr))!important;
+  align-items:stretch!important;
+  z-index:44!important;
+  background:#0e1828!important;
+  box-shadow:0 4px 18px rgba(0,0,0,.18);
+  border-bottom:1px solid rgba(196,215,237,.18);
+ }
+ .swapp-social-viewport .swapp-social-mobile-spacer{
+  display:block;
+  height:var(--social-iconbar-height);
+  min-height:var(--social-iconbar-height);
+  width:100%;
+  pointer-events:none;
+ }
+ .swapp-social-viewport .pulse-mobile-nav button{
+  display:grid;place-items:center;
+  min-height:var(--social-iconbar-height);
+  min-width:0;padding:8px!important;
+  background:transparent;border-radius:10px;
+  touch-action:manipulation;
+ }
+ .swapp-social-viewport .pulse-mobile-nav button:focus-visible{
+  outline:2px solid var(--social-accent,#b57cff);
+  outline-offset:-4px;
+ }
+ .swapp-social-viewport .pulse-tabs{
+  position:sticky!important;
+  top:calc(var(--social-site-header-height) + var(--social-local-header-height) + var(--social-iconbar-height))!important;
+  z-index:43!important;
+  background:#101827!important;
+ }
+ .swapp-social-viewport .pulse-post,.swapp-social-viewport .pulse-composer{
+  scroll-margin-top:calc(var(--social-site-header-height) + var(--social-local-header-height) + var(--social-iconbar-height) + 72px);
+ }
+ .swapp-social-viewport .pulse-main{
+  isolation:isolate;
+  overflow:visible!important;
+ }
+}
