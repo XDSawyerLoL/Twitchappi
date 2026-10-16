@@ -28,9 +28,18 @@
     <nav class="ssi-links" aria-label="Découvrir SWAPP"><a href="/jeux">Univers de jeux ↗</a><a href="/decouvrir">Lives ↗</a></nav>
    </div>
   </header>
-  <div class="ssi-grid">
-   <div class="ssi-stack">
-    <article class="ssi-panel ssi-panel-match" id="ssi-match-panel" aria-labelledby="ssi-match-title">
+  <nav class="ssi-section-nav" aria-label="Parcourir les espaces SOCIAL">
+   <span class="ssi-nav-label">Explorer SOCIAL</span>
+   <a href="#ssn-passport" data-ssi-target="ssn-passport">01 <span>Passeport</span></a>
+   <a href="#ssn-universe" data-ssi-target="ssn-universe">02 <span>Univers</span></a>
+   <a href="#ssi-match-panel" data-ssi-target="ssi-match-panel">03 <span>Match</span></a>
+   <a href="#ssi-poll-panel" data-ssi-target="ssi-poll-panel">04 <span>Sondages</span></a>
+   <a href="#ssi-room-panel" data-ssi-target="ssi-room-panel">05 <span>Salons</span></a>
+   <a href="#ssi-chat-panel" data-ssi-target="ssi-chat-panel">06 <span>Discussion</span></a>
+  </nav>
+  <div class="ssi-sections" id="ssi-sections">
+   <div class="ssi-section-group">
+    <section class="ssi-panel ssi-panel-match" id="ssi-match-panel" aria-labelledby="ssi-match-title">
      <div class="ssi-panel-inner">
       <div class="ssi-panel-head"><div class="ssi-head-main">${icon('team')}<div><span class="ssi-section-label">SWAPP Match</span><h3 id="ssi-match-title">Trouve ta team</h3><p class="ssi-panel-desc">De vrais joueurs qui cherchent le même jeu.</p></div></div><span class="ssi-count" id="ssi-match-badge" title="Compatibilités trouvées">—</span></div>
       <div id="ssi-match-results" class="ssi-list" aria-live="polite"></div>
@@ -43,8 +52,8 @@
        <div class="ssi-form-actions"><button type="submit" class="ssi-button">Publier ma recherche</button><button type="button" class="ssi-ghost" data-close-form="match">Annuler</button></div>
       </form>
      </div>
-    </article>
-    <article class="ssi-panel ssi-panel-polls" id="ssi-poll-panel" aria-labelledby="ssi-poll-title">
+    </section>
+    <section class="ssi-panel ssi-panel-polls" id="ssi-poll-panel" aria-labelledby="ssi-poll-title">
      <div class="ssi-panel-inner">
       <div class="ssi-panel-head"><div class="ssi-head-main">${icon('poll')}<div><span class="ssi-section-label">La communauté décide</span><h3 id="ssi-poll-title">À vous de voter</h3><p class="ssi-panel-desc">Des questions et des résultats, pas des likes vides.</p></div></div><span class="ssi-count" id="ssi-poll-badge" title="Nombre de sondages">—</span></div>
       <div id="ssi-poll-results" class="ssi-list" aria-live="polite"></div>
@@ -56,10 +65,10 @@
        <div class="ssi-form-actions"><button type="submit" class="ssi-button">Lancer le vote</button><button type="button" class="ssi-ghost" data-close-form="poll">Annuler</button></div>
       </form>
      </div>
-    </article>
+    </section>
    </div>
-   <div class="ssi-stack">
-    <article class="ssi-panel ssi-panel-rooms" id="ssi-room-panel" aria-labelledby="ssi-rooms-title">
+   <div class="ssi-section-group">
+    <section class="ssi-panel ssi-panel-rooms" id="ssi-room-panel" aria-labelledby="ssi-rooms-title">
      <div class="ssi-panel-inner">
       <div class="ssi-panel-head"><div class="ssi-head-main">${icon('rooms')}<div><span class="ssi-section-label">Salons ouverts</span><h3 id="ssi-rooms-title">Rejoins la conversation</h3><p class="ssi-panel-desc">Un jeu, un sujet, un endroit où se retrouver.</p></div></div><span class="ssi-count" id="ssi-room-badge" title="Nombre de salons">—</span></div>
       <div class="ssi-room-list" id="ssi-room-results" aria-live="polite"></div>
@@ -70,13 +79,13 @@
        <div class="ssi-form-actions"><button type="submit" class="ssi-button">Créer le salon</button><button type="button" class="ssi-ghost" data-close-form="room">Annuler</button></div>
       </form>
      </div>
-    </article>
-    <article class="ssi-panel ssi-panel-chat ssi-chat-panel" aria-labelledby="ssi-chat-title">
+    </section>
+    <section class="ssi-panel ssi-panel-chat ssi-chat-panel" id="ssi-chat-panel" aria-labelledby="ssi-chat-title">
      <div class="ssi-panel-inner">
       <div class="ssi-panel-head"><div class="ssi-head-main">${icon('chat')}<div><span class="ssi-section-label">Discussion</span><div class="ssi-chat-heading"><h3 id="ssi-chat-title">Choisis un salon</h3></div><p class="ssi-chat-hint" id="ssi-chat-hint">Actualisation des messages toutes les 5 secondes</p></div></div></div>
       <div id="ssi-chat-body" aria-live="off"><div class="ssi-room-placeholder">Rejoins un salon pour échanger avec la communauté.</div></div>
      </div>
-    </article>
+    </section>
    </div>
   </div>
   <p class="ssi-notice" id="ssi-notice" role="status" aria-live="polite"></p>
