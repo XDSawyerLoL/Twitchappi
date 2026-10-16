@@ -548,7 +548,7 @@ button.pulse-account{width:100%;border:0;background:transparent;text-align:left;
 .swapp-social-viewport .swapp-social-sticky-stack{display:contents}
 @media (max-width:920px) and (orientation:portrait), (max-width:650px){
  .swapp-social-viewport{
-  --social-site-top:68px;
+  --social-site-top:var(--swapp-social-header-height,72px);
   --social-topbar:48px;
   --social-nav:54px;
   --social-tabs:48px;
