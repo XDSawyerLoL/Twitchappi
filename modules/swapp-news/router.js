@@ -11,7 +11,7 @@ const catalog=require('../../data/justplayer-public-catalog.json');
 const {publicArticle,recoveredArticle,nativeSlug,legacyDraft}=require('./editorial-identity');
 const {registerArticleScores}=require('./article-scores');
 const {registerEditorInsights}=require('./editor-insights');
-const {notifyIndexNow,invalidateSeoCache}=require('../swapp-seo');
+const {notifyIndexNow,invalidateSeoCache,cachedGameHubForArticle}=require('../swapp-seo');
 
 function createNewsRouter({express, firestore, requireEditor, isReady = () => true, baseUrl = 'https://swapp.tv', publicFetch = globalThis.fetch, publicCatalog = catalog, canEdit = () => false, sendApp = null}) {
   if (typeof express?.Router !== 'function' || typeof firestore?.collection !== 'function' ||
@@ -84,7 +84,7 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
     return filtered.sort((a,b)=>score(b)-score(a)
       ||String(b.publishedAt||b.originalPublishedAt||'').localeCompare(String(a.publishedAt||a.originalPublishedAt||''))).slice(0,3);
   };
-  const storyHtml=async item=>renderNewsStory(item,{baseUrl,relatedArticles:await relatedTo(item)});
+  const storyHtml=async item=>renderNewsStory(item,{baseUrl,relatedArticles:await relatedTo(item),gameHubUrl:cachedGameHubForArticle(item)});
   const noStore=(_req,res,next)=>{res.set('Cache-Control','no-store');next();};
   const editor=[available,requireEditor,noStore];
 
