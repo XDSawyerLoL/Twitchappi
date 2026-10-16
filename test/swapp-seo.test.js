@@ -113,3 +113,11 @@ test('SEO module is wired to the deployed server without external API',()=>{
  assert.equal(pkg.scripts.test,'node --test test/*.test.js');
  assert.equal(fs.existsSync(path.join(root,'.github/workflows/swapp-quality.yml')),false);
 });
+
+test('physical robots.txt fallback and Express response stay byte-for-byte identical',()=>{
+ const physical=fs.readFileSync(path.join(root,'robots.txt'),'utf8');
+ assert.equal(physical,robotsText());
+ assert.match(physical,/^User-agent: \*\nAllow: \/\n/);
+ assert.match(physical,/Sitemap: https:\/\/swapp\.tv\/sitemap\.xml\n/);
+ assert.doesNotMatch(physical,/google-site-verification|Disallow: \/\s*$/m);
+});
