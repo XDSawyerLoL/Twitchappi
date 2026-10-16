@@ -1,0 +1,181 @@
+/* SWAPP SOCIAL 3 — real destinations, conversation-first UX.
+   Deliberately loaded last. Do not resurrect dashboard on Messages/Fil. */
+#swappSocialNative{--s3-accent:var(--social-accent,#3ccfc0);--s3-bg:#0e1726;--s3-sheet:#121e30;--s3-fg:#f5f8ff;--s3-muted:#a8b9cb;--s3-border:rgba(180,206,241,.16);--s3-hover:rgba(170,209,242,.055);color:var(--s3-fg)}
+#swappSocialNative .swapp-interactive{display:none!important}
+#swappSocialNative[data-social-view="play"] .swapp-interactive:not([hidden]),
+#swappSocialNative[data-social-view="rooms"] .swapp-interactive:not([hidden]){display:block!important}
+#swappSocialNative .social-space-fallback{display:none!important}
+#swappSocialNative[data-social-view="play"]:not(.ssi-enhanced) .social-space-fallback,
+#swappSocialNative[data-social-view="rooms"]:not(.ssi-enhanced) .social-space-fallback{display:block!important;padding:35px 30px;border-bottom:1px solid var(--s3-border);background:var(--s3-sheet);color:var(--s3-muted)}
+#swappSocialNative .social-space-fallback strong{color:var(--s3-fg);font-size:17px}
+#swappSocialNative[data-social-view="play"] #pulse-feed,
+#swappSocialNative[data-social-view="rooms"] #pulse-feed{display:none!important}
+#swappSocialNative[data-social-view="play"] :is(#ssn-passport,#ssn-universe,#ssi-match-panel,#ssi-poll-panel),
+#swappSocialNative[data-social-view="rooms"] :is(#ssi-room-panel,#ssi-chat-panel){visibility:visible}
+/* Hide unrelated functional modules completely, including the old scroll anchors. */
+#swappSocialNative[data-social-view="play"] :is(#ssi-room-panel,#ssi-chat-panel),
+#swappSocialNative[data-social-view="rooms"] :is(#ssn-passport,#ssn-universe,#ssi-match-panel,#ssi-poll-panel){display:none!important}
+#swappSocialNative[data-social-view="rooms"] :is(.ssi-intro,.ssn-space),
+#swappSocialNative :is(.ssi-section-nav,.ssi-intro .ssi-stats){display:none!important}
+/* Stronger masthead; don't imitate a dashboard. */
+#swappSocialNative .pulse-topbar{background:#101b2b!important;border-bottom:1px solid var(--s3-border)!important}
+#swappSocialNative .pulse-topbar h1{font-weight:840!important;letter-spacing:-.045em}
+#swappSocialNative .pulse-nav{gap:2px}
+#swappSocialNative .pulse-nav-item{border-radius:9px!important;font-size:13px!important;padding:12px 13px!important;min-height:44px}
+#swappSocialNative .pulse-nav-item.active{background:color-mix(in srgb,var(--s3-accent) 12%,#121e30)!important;box-shadow:inset 3px 0 0 var(--s3-accent)!important}
+#swappSocialNative .pulse-nav-item .pi{height:20px;width:20px}
+#swappSocialNative .pulse-brand{margin-bottom:23px}
+#swappSocialNative .pulse-primary{border-radius:9px!important;box-shadow:none!important;font-weight:800!important;min-height:46px;background:var(--s3-accent)!important;color:#071b23!important}
+#swappSocialNative .pulse-right{background:linear-gradient(180deg,#0e1726,#101a2c)!important;border-left:1px solid var(--s3-border)}
+#swappSocialNative .pulse-right .pulse-panel{background:none!important;border-radius:0!important;box-shadow:none!important;border-color:var(--s3-border)!important}
+#swappSocialNative .pulse-search{border-radius:10px!important;background:#0b1524!important;border-color:#32415b!important}
+#swappSocialNative .pulse-tabs{background:#101b2b!important;border-bottom:1px solid var(--s3-border)!important}
+#swappSocialNative .pulse-tabs .pulse-tab{border-radius:0!important;background:transparent!important}
+#swappSocialNative .pulse-tabs .pulse-tab.active{background:color-mix(in srgb,var(--s3-accent) 7%,#101b2b)!important}
+#swappSocialNative .pulse-tabs .pulse-tab.active:after{background:var(--s3-accent)!important;height:3px!important}
+#swappSocialNative .pulse-tabs .pulse-tab strong{font-size:13px!important;letter-spacing:-.02em!important}
+#swappSocialNative .pulse-tabs .pulse-tab small{font-size:10px!important;color:#8fa5be!important}
+#swappSocialNative .swapp-social-stories{border-bottom:1px solid var(--s3-border)!important;background:#0d1726!important}
+#swappSocialNative .pulse-main{min-width:0;background:#0f1929!important;border-color:var(--s3-border)!important}
+/* SOCIAL feed should feel like a publication feed, not six boxed form widgets. */
+#swappSocialNative[data-social-view="home"] .pulse-composer{background:#132035!important;border:0!important;border-bottom:1px solid var(--s3-border)!important;padding:24px 25px!important;gap:15px!important}
+#swappSocialNative[data-social-view="home"] .swapp-social-compose-label{font-size:15px!important;font-weight:750!important;letter-spacing:-.02em}
+#swappSocialNative[data-social-view="home"] .pulse-composer textarea{border:0!important;border-radius:0!important;background:transparent!important;color:#eff5ff!important;font-size:14px!important;padding:12px 0!important;min-height:70px!important;resize:vertical}
+#swappSocialNative[data-social-view="home"] .pulse-compose-tools{border-top:1px solid var(--s3-border)!important;padding-top:12px!important}
+#swappSocialNative .pulse-publish{border-radius:6px!important;background:var(--s3-accent)!important;color:#071b23!important;font-weight:850!important}
+#swappSocialNative .pulse-post{border-radius:0!important;background:#111c2e!important;border:0!important;border-bottom:1px solid var(--s3-border)!important;box-shadow:none!important;padding:20px 24px!important}
+#swappSocialNative .pulse-post:hover{background:#152238!important}
+#swappSocialNative .pulse-post-main>p{font-size:14px!important;line-height:1.7!important;color:#dfe8f5!important;overflow-wrap:anywhere}
+#swappSocialNative .pulse-post-head strong{font-weight:800!important;color:#f6f9ff!important}
+#swappSocialNative .pulse-avatar{border-radius:12px!important;background:linear-gradient(135deg,rgba(56,196,202,.28),rgba(128,102,213,.17))!important;border:1px solid rgba(188,207,241,.26)!important}
+#swappSocialNative .pulse-feed{background:#0f1929!important}
+#swappSocialNative :is(.pulse-view,.pulse-status){border-radius:0!important;background:#101b2d!important;box-shadow:none!important}
+/* The play view is a product space in its own right: crisp editorial rails. */
+#swappSocialNative[data-social-view="play"] .swapp-interactive .ssi-intro{padding:28px 30px!important;border:0!important;border-bottom:1px solid var(--s3-border)!important;background:linear-gradient(118deg,color-mix(in srgb,var(--s3-accent) 13%,#132238),#0e1828 73%)!important;min-height:0}
+#swappSocialNative[data-social-view="play"] .swapp-interactive .ssi-intro h2{font-size:clamp(25px,3vw,36px)!important}
+#swappSocialNative[data-social-view="play"] .swapp-interactive .ssi-intro p{max-width:520px}
+#swappSocialNative[data-social-view="play"] .swapp-interactive .ssn-space{display:grid!important;grid-template-columns:minmax(0,1.18fr) minmax(245px,.82fr);gap:1px!important;background:var(--s3-border)!important;border-bottom:1px solid var(--s3-border)}
+#swappSocialNative[data-social-view="play"] .swapp-interactive .ssn-universe{grid-column:1;grid-row:1}
+#swappSocialNative[data-social-view="play"] .swapp-interactive .ssn-passport{grid-column:2;grid-row:1}
+#swappSocialNative[data-social-view="play"] .swapp-interactive .ssi-sections{display:grid!important;grid-template-columns:1fr 1fr;gap:1px!important;background:var(--s3-border)!important}
+#swappSocialNative[data-social-view="play"] .swapp-interactive .ssi-section-group{display:contents!important}
+#swappSocialNative[data-social-view="play"] .swapp-interactive :is(.ssn-universe,.ssn-passport,.ssi-panel-match,.ssi-panel-polls){
+ display:block!important;min-width:0;background:#121f32!important;margin:0!important;
+ border:0!important;border-radius:0!important;box-shadow:none!important;overflow:visible!important;
+ padding:28px clamp(19px,3vw,31px)!important;
+}
+#swappSocialNative[data-social-view="play"] .swapp-interactive :is(.ssn-passport,.ssi-panel-polls){background:#162338!important}
+#swappSocialNative[data-social-view="play"] .swapp-interactive :is(.ssn-head,.ssi-panel-head){display:flex!important;grid-column:auto!important;grid-row:auto!important;align-items:start!important;margin:0 0 20px!important;padding:0!important}
+#swappSocialNative[data-social-view="play"] .swapp-interactive .ssi-panel-inner{display:block!important;padding:0!important}
+#swappSocialNative[data-social-view="play"] .swapp-interactive .ssi-panel-head .ssi-count{position:static!important;margin-left:auto!important;padding:5px 10px!important;border:1px solid var(--s3-border)!important}
+#swappSocialNative[data-social-view="play"] .swapp-interactive :is(.ssn-head>.ssi-ghost){position:static!important;margin-left:auto!important}
+#swappSocialNative[data-social-view="play"] .swapp-interactive :is(.ssn-summary,.ssn-form,.ssn-search,.ssn-game-results,.ssi-list,.ssi-block-action,.ssi-inline-form){grid-column:auto!important;grid-row:auto!important}
+#swappSocialNative[data-social-view="play"] .swapp-interactive :is(.ssn-summary,.ssn-form,.ssn-search,.ssn-game-results,.ssi-list,.ssi-block-action,.ssi-inline-form){margin-top:14px!important}
+#swappSocialNative[data-social-view="play"] .swapp-interactive .ssn-head{gap:10px!important}
+#swappSocialNative[data-social-view="play"] .swapp-interactive .ssn-summary{padding-right:0!important}
+#swappSocialNative[data-social-view="play"] .swapp-interactive .ssi-list{display:grid!important;grid-template-columns:1fr!important;gap:0!important}
+#swappSocialNative[data-social-view="play"] .swapp-interactive .ssi-panel-head .ssi-head-main{display:block!important}
+#swappSocialNative[data-social-view="play"] .swapp-interactive .ssn-copy h3,
+#swappSocialNative[data-social-view="play"] .swapp-interactive .ssi-panel h3{font-size:24px!important;margin:8px 0!important}
+#swappSocialNative[data-social-view="play"] .swapp-interactive .ssi-empty{font-size:12px!important}
+#swappSocialNative[data-social-view="play"] .swapp-interactive .ssn-game-columns{grid-template-columns:1fr!important;gap:4px!important}
+#swappSocialNative[data-social-view="play"] .swapp-interactive .ssn-actions{gap:8px}
+/* Rooms is not a dashboard: it is a two-pane messaging application. */
+#swappSocialNative[data-social-view="rooms"] .swapp-interactive .ssi-sections{
+ display:grid!important;grid-template-columns:minmax(215px,.38fr) minmax(0,1fr);
+ min-height:570px;gap:0!important;background:#111d30!important
+}
+#swappSocialNative[data-social-view="rooms"] .swapp-interactive .ssi-section-group{display:contents!important}
+#swappSocialNative[data-social-view="rooms"] .swapp-interactive :is(#ssi-room-panel,#ssi-chat-panel){
+ display:block!important;background:#111c2f!important;border:0!important;border-radius:0!important;
+ box-shadow:none!important;margin:0!important;padding:0!important;min-width:0;overflow:hidden!important;
+}
+#swappSocialNative[data-social-view="rooms"] .swapp-interactive #ssi-room-panel{border-right:1px solid var(--s3-border)!important}
+#swappSocialNative[data-social-view="rooms"] .swapp-interactive .ssi-panel-inner{display:flex!important;flex-direction:column;min-width:0;min-height:100%;padding:0!important}
+#swappSocialNative[data-social-view="rooms"] .swapp-interactive .ssi-panel-head{
+ display:flex!important;flex:0 0 auto!important;align-items:start!important;justify-content:space-between!important;
+ margin:0!important;padding:24px 20px 16px!important;border-bottom:1px solid var(--s3-border)!important;
+}
+#swappSocialNative[data-social-view="rooms"] .swapp-interactive .ssi-panel-head .ssi-head-main{display:block!important}
+#swappSocialNative[data-social-view="rooms"] .swapp-interactive .ssi-panel-head .ssi-count{position:static!important;align-self:flex-start}
+#swappSocialNative[data-social-view="rooms"] .swapp-interactive .ssi-panel h3{font-size:22px!important}
+#swappSocialNative[data-social-view="rooms"] .swapp-interactive .ssi-room-list{
+ display:block!important;margin:0!important;grid-column:auto!important;grid-row:auto!important;overflow-y:auto;max-height:460px;padding:6px 13px!important
+}
+#swappSocialNative[data-social-view="rooms"] .swapp-interactive .ssi-room{
+ display:flex!important;width:100%;border:0!important;border-bottom:1px solid var(--s3-border)!important;
+ padding:14px 10px!important;border-radius:0!important;background:transparent!important;
+}
+#swappSocialNative[data-social-view="rooms"] .swapp-interactive .ssi-room[aria-pressed="true"]{background:color-mix(in srgb,var(--s3-accent) 10%,#111c2f)!important;border-left:3px solid var(--s3-accent)!important}
+#swappSocialNative[data-social-view="rooms"] .swapp-interactive .ssi-block-action{margin:16px 20px!important;align-self:flex-start;grid-column:auto!important;grid-row:auto!important}
+#swappSocialNative[data-social-view="rooms"] .swapp-interactive .ssi-inline-form{margin:0 16px 16px!important;grid-column:auto!important;grid-row:auto!important}
+#swappSocialNative[data-social-view="rooms"] .swapp-interactive #ssi-chat-body{display:flex!important;flex-direction:column;flex:1;min-height:400px;margin:0!important;padding:0 20px 18px!important;grid-column:auto!important;grid-row:auto!important}
+#swappSocialNative[data-social-view="rooms"] .swapp-interactive .ssi-chat-stream{
+ flex:1!important;height:clamp(270px,48vh,550px)!important;max-height:unset!important;
+ background:#101a2b!important;border:0!important;margin:0!important;padding:20px 8px!important;
+}
+#swappSocialNative[data-social-view="rooms"] .swapp-interactive .ssi-compose{
+ position:sticky;bottom:0;z-index:1;padding:15px 0 0!important;
+ border-top:1px solid var(--s3-border)!important;background:#111c2f!important;
+}
+#swappSocialNative[data-social-view="rooms"] .swapp-interactive .ssi-chat-bubble{border-radius:3px 14px 14px 14px!important}
+#swappSocialNative[data-social-view="rooms"] .swapp-interactive .ssi-chat-heading h3{white-space:normal}
+#swappSocialNative[data-social-view="rooms"] .swapp-interactive .ssi-room-placeholder{margin:25px 0;background:transparent!important}
+#swappSocialNative .swapp-interactive .ssi-notice{padding:0 18px}
+/* The private DM view follows the same visual vocabulary. */
+#swappSocialNative[data-social-view="messages"] .pulse-feed{background:#111b2a!important}
+#swappSocialNative[data-social-view="messages"] .pulse-view{padding:0!important;margin:0!important;max-width:none!important}
+#swappSocialNative[data-social-view="messages"] .pulse-view-head{padding:27px 26px 21px!important;border-bottom:1px solid var(--s3-border)!important;background:#152237!important}
+#swappSocialNative[data-social-view="messages"] .pulse-view-head h2{font-size:25px!important;font-weight:840!important;letter-spacing:-.04em}
+#swappSocialNative[data-social-view="messages"] .pulse-view-head p{font-size:12px!important;color:var(--s3-muted)!important}
+#swappSocialNative[data-social-view="messages"] .pulse-card-list{margin:0!important;display:block!important}
+#swappSocialNative[data-social-view="messages"] .pulse-user-card{display:flex!important;align-items:center;gap:14px!important;background:transparent!important;border:0!important;border-bottom:1px solid var(--s3-border)!important;border-radius:0!important;min-height:79px!important;padding:15px 25px!important;text-align:left}
+#swappSocialNative[data-social-view="messages"] .pulse-user-card:hover{background:var(--s3-hover)!important}
+#swappSocialNative[data-social-view="messages"] .pulse-user-card strong{font-size:14px}
+#swappSocialNative[data-social-view="messages"] .pulse-user-card small{font-size:12px;color:var(--s3-muted);display:block}
+#swappSocialNative[data-social-view="messages"] .pulse-inline-form{display:grid!important;grid-template-columns: minmax(140px,1fr) minmax(180px,1.6fr) auto;align-items:center;gap:8px!important;padding:20px 24px!important;border-bottom:1px solid var(--s3-border)!important;background:#111d30!important}
+#swappSocialNative[data-social-view="messages"] .pulse-inline-form input,
+#swappSocialNative[data-social-view="messages"] .pulse-message-form input{background:#091422!important;border:1px solid #374660!important;border-radius:8px!important;color:#f7faff!important;min-height:43px!important;padding:9px 12px!important;min-width:0}
+#swappSocialNative[data-social-view="messages"] .pulse-message-list{min-height:280px;max-height:min(57vh,640px);overflow:auto;padding:26px!important;display:flex!important;flex-direction:column;gap:11px;background:#0e1827!important}
+#swappSocialNative[data-social-view="messages"] .pulse-message{width:max-content;max-width:min(75%,480px);margin:0 auto 0 0!important;padding:11px 14px!important;border-radius:4px 14px 14px 14px!important;background:#24364c!important;color:#f2f8ff!important;line-height:1.5!important;font-size:13px}
+#swappSocialNative[data-social-view="messages"] .pulse-message.mine{margin:0 0 0 auto!important;border-radius:14px 4px 14px 14px!important;background:color-mix(in srgb,var(--s3-accent) 23%,#1a3241)!important}
+#swappSocialNative[data-social-view="messages"] .pulse-message-form{position:sticky;bottom:0;display:flex!important;align-items:center;gap:10px!important;padding:16px 23px!important;border-top:1px solid var(--s3-border)!important;background:#132135!important}
+#swappSocialNative[data-social-view="messages"] .pulse-message-form input{flex:1}
+#swappSocialNative[data-social-view="messages"] .pulse-mini-button.primary{border-radius:7px!important;background:var(--s3-accent)!important;color:#071820!important;font-weight:800}
+#swappSocialNative .swapp-interactive :is(.ssi-button,.ssi-ghost){border-radius:7px!important}
+#swappSocialNative .swapp-interactive .ssi-button{background:var(--s3-accent)!important;border-color:var(--s3-accent)!important;color:#081923!important;font-weight:790!important}
+#swappSocialNative .swapp-interactive :is(.ssi-empty,.ssn-room,.ssi-item,.ssn-player){border-radius:0!important}
+#swappSocialNative .swapp-interactive :is(.ssn-head,.ssi-panel-head) .ssi-icon{display:none!important}
+#swappSocialNative .swapp-interactive .ssi-ghost{border:1px solid #485670!important}
+/* Full responsiveness: 7 tappable destinations, no iPhone clipping. */
+@media(max-width:1100px){
+ #swappSocialNative[data-social-view="play"] .swapp-interactive .ssn-space,
+ #swappSocialNative[data-social-view="play"] .swapp-interactive .ssi-sections{grid-template-columns:1fr!important}
+ #swappSocialNative[data-social-view="play"] .swapp-interactive :is(.ssn-universe,.ssn-passport){grid-column:1;grid-row:auto}
+}
+@media(max-width:920px){
+ #swappSocialNative .pulse-mobile-nav{display:grid!important;grid-template-columns:repeat(7,minmax(0,1fr))!important;width:100%!important}
+ #swappSocialNative .pulse-mobile-nav button{min-width:0!important;width:100%!important;padding:5px!important;display:grid!important;place-items:center!important;border-radius:0!important}
+ #swappSocialNative .pulse-mobile-nav .pi{width:19px!important;height:19px!important}
+ #swappSocialNative[data-social-view="rooms"] .swapp-interactive .ssi-sections{grid-template-columns: minmax(180px,.44fr) minmax(0,1fr)}
+}
+@media(max-width:650px){
+ #swappSocialNative .pulse-topbar{padding:11px 15px!important}
+ #swappSocialNative .pulse-tabs .pulse-tab{padding:6px 4px!important;min-width:0}
+ #swappSocialNative .pulse-tabs .pulse-tab strong{font-size:11px!important}
+ #swappSocialNative .pulse-tabs .pulse-tab small{display:none!important}
+ #swappSocialNative[data-social-view="home"] .pulse-composer{padding:17px!important}
+ #swappSocialNative .pulse-post{padding:17px 15px!important}
+ #swappSocialNative[data-social-view="rooms"] .swapp-interactive .ssi-sections{display:block!important}
+ #swappSocialNative[data-social-view="rooms"] .swapp-interactive #ssi-room-panel{border-right:0!important;border-bottom:1px solid var(--s3-border)!important}
+ #swappSocialNative[data-social-view="rooms"] .swapp-interactive .ssi-room-list{max-height:205px}
+ #swappSocialNative[data-social-view="rooms"] .swapp-interactive .ssi-chat-stream{height:280px!important}
+ #swappSocialNative[data-social-view="messages"] .pulse-inline-form{grid-template-columns:1fr!important;padding:16px!important}
+ #swappSocialNative[data-social-view="messages"] .pulse-view-head{padding:20px 17px!important}
+ #swappSocialNative[data-social-view="messages"] .pulse-message-list{padding:15px!important;min-height:230px}
+ #swappSocialNative[data-social-view="messages"] .pulse-message{max-width:87%}
+ #swappSocialNative[data-social-view="messages"] .pulse-message-form{padding:12px!important}
+ #swappSocialNative[data-social-view="play"] .swapp-interactive .ssi-intro{padding:21px 17px!important}
+ #swappSocialNative[data-social-view="play"] .swapp-interactive :is(.ssn-universe,.ssn-passport,.ssi-panel-match,.ssi-panel-polls){padding:23px 17px!important}
+}
+@media(prefers-reduced-motion:reduce){#swappSocialNative *{scroll-behavior:auto!important}}
