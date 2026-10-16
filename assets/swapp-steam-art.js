@@ -8,10 +8,10 @@
   const stage=Number(img.dataset.steamStage||0);
   if(stage===0){
    img.dataset.steamStage='1';
-   img.src=base+id+'/library_600x900_2x.jpg';
+   img.src='https://cdn.cloudflare.steamstatic.com/steam/apps/'+id+'/header.jpg';
   }else if(stage===1){
    img.dataset.steamStage='2';
-   img.src=base+id+'/header.jpg';
+   img.src='https://steamcdn-a.akamaihd.net/steam/apps/'+id+'/header.jpg';
   }else{
    img.dataset.steamStage='3';
    img.removeAttribute('src');
