@@ -223,5 +223,34 @@
   if(!dirty)return;
   event.preventDefault();event.returnValue='';
  });
+ // Import optional, unpublished game offers from SWAPP's existing editorial catalogue.
+ // No live price, stock, confirmed affiliate attribution or image licence is inferred.
+ const affiliateOffers=[
+  {id:'valor-mortis',title:'Valor Mortis',url:'https://www.instant-gaming.com/fr/20157-acheter-valor-mortis-pc-steam/?igr=SANSAHD'},
+  {id:'planet-zoo-2',title:'Planet Zoo 2',url:'https://www.instant-gaming.com/fr/21064-acheter-planet-zoo-2-pc-steam/?igr=SANSAHD'},
+  {id:'007-first-light',title:'007 First Light',url:'https://www.instant-gaming.com/fr/22735-acheter-007-first-light-pc-steam/?igr=SANSAHD'},
+  {id:'code-vein-ii',title:'CODE VEIN II',url:'https://www.instant-gaming.com/fr/19500-acheter-code-vein-ii-pc-steam/?igr=SANSAHD'}
+ ];
+ const addOffer=document.createElement('button');
+ addOffer.type='button';addOffer.id='shop-admin-game-offers';
+ addOffer.textContent='Importer 4 offres jeux (brouillons)';
+ addOffer.title='Importe des fiches masquées, sans prix ni image. Vérification avant publication.';
+ $('shop-admin-new')?.insertAdjacentElement('afterend',addOffer);
+ addOffer.addEventListener('click',()=>{
+  if(!writable){message('Le stockage doit être accessible avant de préparer les offres.',true);return}
+  if(dirty&&!confirm('Les modifications du formulaire non appliquées seront abandonnées. Continuer ?'))return;
+  const remaining=36-products.length;
+  const missing=affiliateOffers.filter(o=>!products.some(p=>p.id===o.id));
+  if(!missing.length){message('Ces offres sont déjà présentes dans le catalogue.');return}
+  if(remaining<missing.length){message('Maximum 36 références : libère des emplacements avant import.',true);return}
+  for(const o of missing)products.push({
+   id:o.id,kind:'games',title:o.title,
+   description:'Vérifier plateforme, région, édition et conditions chez le marchand avant tout achat.',
+   badge:'Jeu vidéo · Offre partenaire',merchant:'Instant Gaming',url:o.url,
+   image:'',image2:'',priceEur:'',affiliate:true,demo:false,visible:false
+  });
+  selected=-1;dirty=false;select(products.length-missing.length,true);render();
+  message(missing.length+' brouillon(s) ajouté(s), masqué(s) et sans prix. Vérifie le lien affilié dans ton espace partenaire, ajoute une image autorisée, active la visibilité puis clique sur Enregistrer sur SWAPP. L’import reste local avant sauvegarde.');
+ });
  load();
 })();
