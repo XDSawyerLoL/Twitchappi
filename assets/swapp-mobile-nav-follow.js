@@ -90,9 +90,29 @@
   root.addEventListener?.('pageshow',request);
   root.addEventListener?.('resize',request,{passive:true});
   doc.addEventListener?.('click',event=>{
-   if(!event.target?.closest?.('#mobileNav'))return;
-   // Let the SPA update active classes before adjusting the horizontal position.
+   const target=event.target;
+   const inside=target?.closest?.('#mobileNav');
+   // The Plus menu must not cover the page after tapping outside it.
+   // Do not prevent default navigation for links or buttons.
+   if(!inside){
+    const menu=more(nav);
+    if(menu?.open)menu.open=false;
+    return;
+   }
+   if(target.closest?.('.swapp-mobile-more-links a')){
+    const menu=more(nav);
+    if(menu?.open)menu.open=false;
+   }
+   // Let the SPA update active classes before adjusting the selected tab.
    last=null;request();
+  });
+  doc.addEventListener?.('keydown',event=>{
+   if(event.key!=='Escape')return;
+   const menu=more(nav);
+   if(!menu?.open)return;
+   menu.open=false;
+   menu.querySelector?.(':scope > summary')?.focus?.();
+   event.preventDefault?.();
   });
  };
  root.SwappMobileNavFollow=Object.freeze({current,displacement,follow,attach});
