@@ -428,34 +428,3 @@ body.oryonDiscoverV4 #discover .v4Meta{
   }
  }
 }
-
-/* iPhone 14: keep account actions clear of the fixed navigation, and keep
- * Safari's composited glass surfaces from painting beneath page modules. */
-@media(max-width:1080px){
- header.top:has(#userMenu.open){z-index:230!important}
- header.top #userMenu.open{
-  top:calc(100% + 8px)!important;
-  max-height:calc(100vh - 175px - env(safe-area-inset-bottom,0px))!important;
-  max-height:calc(100dvh - 175px - env(safe-area-inset-bottom,0px))!important;
-  overflow-y:auto!important;
-  overscroll-behavior:contain;
- }
-}
-@supports(-webkit-touch-callout:none){
- @media(max-width:1080px){
-  #mobileNav.mobileNav{
-   -webkit-backdrop-filter:none!important;
-   backdrop-filter:none!important;
-   background:rgba(8,11,18,.99)!important;
-   isolation:auto!important;
-  }
-  header.top:has(#userMenu.open){
-   -webkit-backdrop-filter:none!important;
-   backdrop-filter:none!important;
-  }
-  #mobileNav.mobileNav .swapp-mobile-more[open] > .swapp-mobile-more-links{
-   isolation:auto!important;
-   z-index:130;
-  }
- }
-}

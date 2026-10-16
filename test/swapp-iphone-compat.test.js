@@ -10,7 +10,7 @@ test('SWAPP SPA and native pages opt in to iPhone display cutout safe areas',()=
  const spa=read('index.html'),native=read('modules/swapp-news/site-shell.js');
  for(const html of [spa,native]){
   assert.match(html,/<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/);
-  assert.match(html,/swapp-presentation-polish\.css\?v=20261016-ios-layer-v5/);
+  assert.match(html,/swapp-presentation-polish\.css\?v=20261016-ios-layer-v6/);
  }
 });
 
@@ -47,7 +47,7 @@ test('article trailers remain click-to-play and request inline video on iOS',()=
 
 test('Hostinger smoke test expects iPhone CSS release, no added cost or tracking',()=>{
  const smoke=read('tools/swapp-deploy-smoke.js'),css=read('assets/swapp-presentation-polish.css');
- assert.match(smoke,/swapp-presentation-polish\.css\?v=20261016-ios-layer-v5/);
+ assert.match(smoke,/swapp-presentation-polish\.css\?v=20261016-ios-layer-v6/);
  assert.match(read('tools/swapp-release.js'),/'assets\/swapp-presentation-polish\.css'/);
  assert.doesNotMatch(css,/navigator\.userAgent|localStorage|fetch\(|@import/i);
  let depth=0;
@@ -57,13 +57,4 @@ test('Hostinger smoke test expects iPhone CSS release, no added cost or tracking
   assert.ok(depth>=0,'unmatched CSS closing brace');
  }
  assert.equal(depth,0,'unmatched CSS opening brace');
-});
-
-
-test('iPhone 14 keeps the account popup clear of the mobile bar',()=>{
- const css=read('assets/swapp-presentation-polish.css');
- const correction=css.slice(css.indexOf('iPhone 14: keep account actions'));
- assert.match(correction,/header\.top:has\(#userMenu\.open\)\{z-index:230!important\}/);
- assert.match(correction,/max-height:calc\(100dvh - 175px - env\(safe-area-inset-bottom,0px\)\)!important/);
- assert.match(correction,/#mobileNav\.mobileNav\{[\s\S]*?-webkit-backdrop-filter:none!important/);
 });

@@ -114,7 +114,7 @@ async function verify(){
  const news=await request(origin,'/actus');
  check(news.body.includes('SWAPP')||news.body.includes('Swapp'),'Actualité returned an unexpected document');
  // A successful GitHub commit is not proof the final visual layer reached Hostinger.
- const presentation='/assets/swapp-presentation-polish.css?v=20261016-ios-layer-v5';
+ const presentation='/assets/swapp-presentation-polish.css?v=20261016-ios-layer-v6';
  check(home.body.includes(presentation),'Home uses an outdated presentation stylesheet');
  check(news.body.includes(presentation),'Actualité uses an outdated presentation stylesheet');
  const finish=await request(origin,'/assets/swapp-presentation-polish.css');
@@ -132,10 +132,6 @@ async function verify(){
   finish.body.includes('z-index:210!important')&&
   finish.body.includes('-webkit-backdrop-filter:none!important'),
   'Safari iPhone menu is still below floating modules or blurred clipping');
- check(finish.body.includes('iPhone 14: keep account actions')&&
-  finish.body.includes('100dvh - 175px - env(safe-area-inset-bottom,0px)')&&
-  finish.body.includes('header.top:has(#userMenu.open){z-index:230!important}'),
-  'iPhone account popup clearance and compositing fix not deployed');
  const navClient=await request(origin,'/assets/swapp-mobile-nav-follow.js');
  check(navClient.body.includes('The Plus menu must not cover the page after tapping outside it')&&
   navClient.body.includes("event.key!=='Escape'"),
