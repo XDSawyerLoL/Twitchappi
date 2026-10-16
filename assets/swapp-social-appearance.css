@@ -1,0 +1,142 @@
+/* SOCIAL appearance belongs to its navigation, not a full-width page toolbar. */
+#swappSocialNative .swapp-page-appearance--social{
+ width:calc(100% - 12px);
+ box-sizing:border-box;
+ margin:auto 6px 13px;
+ padding:15px 7px 2px;
+ flex:0 0 auto;
+ min-width:0;
+ border-top:1px solid rgba(174,197,230,.16);
+ background:transparent!important;
+ color:#dce6f5;
+ position:relative;
+ z-index:8;
+ font:inherit;
+}
+#swappSocialNative .swapp-page-appearance--social details{
+ width:100%;
+ position:relative;
+}
+#swappSocialNative .swapp-page-appearance--social summary{
+ display:flex;align-items:center;justify-content:space-between;
+ width:100%;min-height:30px;box-sizing:border-box;
+ padding:3px 1px!important;
+ border:0!important;
+ cursor:pointer;
+ color:#b9cde2!important;
+ font-size:11px;font-weight:800;letter-spacing:.035em;
+ list-style:none;
+ user-select:none;
+}
+#swappSocialNative .swapp-page-appearance--social summary::-webkit-details-marker{display:none}
+#swappSocialNative .swapp-page-appearance--social summary::after{
+ content:"⌄";color:#94a9c3;font-size:15px;
+ line-height:1;
+ transition:transform .18s;
+}
+#swappSocialNative .swapp-page-appearance--social details[open] summary::after{transform:rotate(180deg)}
+#swappSocialNative .swapp-appearance-heading{display:inline-flex;align-items:center;gap:9px}
+#swappSocialNative .swapp-appearance-indicator{
+ display:inline-block;flex:0 0 9px;width:9px;height:9px;
+ border-radius:50%;background:var(--swapp-page-accent,#22d3ee);
+ box-shadow:0 0 0 3px color-mix(in srgb,var(--swapp-page-accent,#22d3ee) 15%,transparent);
+}
+#swappSocialNative .swapp-page-appearance--social .swapp-page-appearance-colors{
+ display:grid;grid-template-columns:repeat(5,minmax(0,1fr));
+ align-items:center;justify-items:center;
+ width:100%;box-sizing:border-box;gap:9px 4px;
+ padding:10px 0 6px;
+}
+#swappSocialNative .swapp-page-appearance--social .swapp-appearance-swatch{
+ width:25px;height:25px;min-width:25px;
+ border-radius:50%;border:2px solid rgba(10,21,35,.75);
+ background:var(--color-chip);
+ box-shadow:0 0 0 1px rgba(255,255,255,.18);
+ cursor:pointer;transition:box-shadow .16s,transform .16s;
+}
+#swappSocialNative .swapp-page-appearance--social .swapp-appearance-swatch:hover{transform:translateY(-1px)}
+#swappSocialNative .swapp-page-appearance--social .swapp-appearance-swatch[aria-pressed="true"]{
+ box-shadow:0 0 0 2px #e5effe,0 0 0 5px color-mix(in srgb,var(--swapp-page-accent,#22d3ee) 16%,transparent);
+}
+#swappSocialNative .swapp-page-appearance--social .swapp-appearance-auto{
+ width:39px;min-height:27px;
+ border:1px solid rgba(176,205,243,.3);border-radius:6px;
+ background:transparent;color:#c3d4e8;
+ font:700 10px system-ui,sans-serif;
+ cursor:pointer;
+}
+#swappSocialNative .swapp-page-appearance--social .swapp-appearance-auto[aria-pressed="true"]{
+ border-color:var(--swapp-page-accent,#22d3ee);color:#fff;
+ background:color-mix(in srgb,var(--swapp-page-accent,#22d3ee) 12%,transparent);
+}
+#swappSocialNative .swapp-page-appearance--social :is(summary,button):focus-visible{
+ outline:2px solid #effaff!important;outline-offset:3px;
+}
+/* Keep content editorial: hue accents the hero instead of painting a slab. */
+#swappSocialNative[data-social-view="play"] .swapp-interactive .ssi-intro{
+ background:
+  radial-gradient(ellipse 70% 120% at 0% 0%,color-mix(in srgb,var(--swapp-page-accent,#22d3ee) 12%,transparent),transparent 78%),
+  linear-gradient(115deg,#142639,#101b2a 70%)!important;
+ border-left:2px solid color-mix(in srgb,var(--swapp-page-accent,#22d3ee) 40%,transparent)!important;
+ border-bottom:1px solid rgba(166,197,230,.17)!important;
+}
+#swappSocialNative .pulse-nav-item.active{
+ background:color-mix(in srgb,var(--swapp-page-accent,#22d3ee) 10%,#111c2e)!important;
+ box-shadow:inset 3px 0 0 var(--swapp-page-accent,#22d3ee)!important;
+}
+#swappSocialNative .pulse-topbar:after{background:var(--swapp-page-accent,#22d3ee)!important}
+/* At intermediate desktop sizes the icon opens a side popover. */
+#swappSocialNative .swapp-page-appearance--social.is-compact{
+ width:48px;margin:18px auto 12px;padding:9px 2px;
+}
+#swappSocialNative .swapp-page-appearance--social.is-compact summary{
+ width:42px;height:42px;min-height:42px;justify-content:center;
+ background:#15253a;border:1px solid rgba(175,206,240,.2)!important;border-radius:11px;
+}
+#swappSocialNative .swapp-page-appearance--social.is-compact .swapp-appearance-title,
+#swappSocialNative .swapp-page-appearance--social.is-compact summary::after{display:none}
+#swappSocialNative .swapp-page-appearance--social.is-compact .swapp-appearance-indicator{
+ width:14px;height:14px;flex-basis:14px;
+}
+#swappSocialNative .swapp-page-appearance--social.is-compact .swapp-page-appearance-colors{
+ position:absolute;top:0;left:calc(100% + 15px);
+ width:213px;z-index:70;padding:14px;
+ border:1px solid rgba(183,210,243,.21);border-radius:12px;
+ background:#102036;box-shadow:0 14px 32px rgba(0,0,0,.42);
+ grid-template-columns:repeat(5,minmax(0,1fr));
+}
+@media(max-width:650px), (max-width:920px) and (orientation:portrait){
+ #swappSocialNative .pulse-topbar{overflow:visible!important}
+ #swappSocialNative .swapp-social-sticky-stack{overflow:visible!important}
+ #swappSocialNative .pulse-topbar>.swapp-page-appearance--social{
+  width:auto;flex:0 0 auto;margin:0 0 0 auto;padding:0!important;
+  border:0!important;z-index:75;
+ }
+ #swappSocialNative .pulse-topbar>.swapp-page-appearance--social details{width:auto}
+ #swappSocialNative .pulse-topbar>.swapp-page-appearance--social summary{
+  display:grid;place-items:center;width:34px;min-height:34px;height:34px;
+  padding:0!important;border:1px solid rgba(173,207,240,.26)!important;
+  border-radius:9px;color:#e7f1fe;background:#17283b;
+ }
+ #swappSocialNative .pulse-topbar>.swapp-page-appearance--social .swapp-appearance-title,
+ #swappSocialNative .pulse-topbar>.swapp-page-appearance--social summary::after{display:none}
+ #swappSocialNative .pulse-topbar>.swapp-page-appearance--social .swapp-appearance-indicator{
+  width:12px;height:12px;flex-basis:12px;
+ }
+ #swappSocialNative .pulse-topbar>.swapp-page-appearance--social .swapp-page-appearance-colors{
+  position:absolute;right:0;top:calc(100% + 9px);
+  width:min(219px,calc(100vw - 30px));padding:14px 12px;
+  border:1px solid rgba(183,210,243,.24);border-radius:11px;
+  background:#111e31;box-shadow:0 17px 36px rgba(0,0,0,.47);
+  z-index:80;grid-template-columns:repeat(5,minmax(0,1fr));
+ }
+}
+/* Colour effects stay understated even when the chosen hue is bright. */
+body:has(#swappSocialNative){
+ background:
+  radial-gradient(ellipse 90% 75% at 0% 14%,color-mix(in srgb,var(--swapp-page-accent,#22d3ee) 11%,transparent),transparent 72%),
+  #0b101b!important;
+}
+@media(prefers-reduced-motion:reduce){
+ #swappSocialNative .swapp-page-appearance--social :is(summary::after,.swapp-appearance-swatch){transition:none}
+}
