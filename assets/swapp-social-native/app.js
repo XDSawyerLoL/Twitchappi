@@ -365,7 +365,7 @@ function bindDelegatedEvents(){
   document.addEventListener('submit',async function(event){
     if(event.target.id==='social-mobile-search-form'){
       event.preventDefault();
-      const query=String(event.target.elements?.query?.value||'').trim().slice(0,100);
+      const query=String(event.target.querySelector('[name="query"]')?.value||'').trim().slice(0,100);
       if(query.length>=2)await loadExplore(query);
       return;
     }
