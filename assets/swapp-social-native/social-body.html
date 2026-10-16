@@ -82,64 +82,6 @@
 
 
 
-      <section class="swapp-game-discovery" aria-label="Univers de jeux SWAPP">
-        <style>
-        .swapp-game-discovery{margin:12px 0 18px;padding:22px;border:1px solid #ffffff24;border-radius:19px;background:linear-gradient(115deg,#202c48,#171c2c);color:#f5f7ff}
-        .swapp-game-discovery h2{font-size:clamp(23px,3vw,32px);margin:7px 0}.swapp-game-discovery p{font-size:13px;color:#bfcde2}
-        .swapp-game-discovery-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:18px}
-        .swapp-game-discovery-grid article{border:1px solid #ffffff28;border-radius:13px;padding:15px;background:#ffffff09}
-        .swapp-game-discovery-grid h3{font-size:19px;margin:8px 0 18px}.swapp-game-discovery-grid small{color:#aecdf3}
-        .swapp-game-discovery-grid a,.swapp-game-discovery-grid button{display:inline-block;padding:9px 12px;border-radius:9px;background:#ffffff20;color:#fff;text-decoration:none;font-size:12px;cursor:pointer;border:1px solid #ffffff32;font-family:inherit}
-        .swapp-match-form{padding:18px;margin:12px 0;border:1px solid #ffffff30;border-radius:16px;background:#1a253a;color:white}
-        .swapp-match-form[hidden]{display:none!important}.swapp-match-form h3{font-size:20px;margin:0 0 8px}.swapp-match-form p{color:#bfcde2;font-size:13px}
-        .swapp-match-form label{display:block;margin-top:12px;font-size:13px}.swapp-match-form input,.swapp-match-form select{box-sizing:border-box;display:block;width:100%;margin-top:5px;padding:11px;border:1px solid #ffffff45;border-radius:10px;background:#101d31;color:white;font:inherit}
-        .swapp-match-controls{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}.swapp-match-controls button{padding:10px 15px;border:1px solid #ffffff35;border-radius:10px;background:#576cbb;color:white;font:inherit;cursor:pointer}
-        @media(max-width:750px){.swapp-game-discovery-grid{grid-template-columns:1fr}.swapp-game-discovery-grid article{padding:12px}}
-        </style>
-        <span class="pulse-kicker">UNIVERS VIVANTS</span><h2>Ton jeu. Ta communauté.</h2>
-        <p>Découvre les jeux couverts par SWAPP, leurs actualités et les créateurs associés. Retrouve ensuite les joueurs dans les discussions SOCIAL.</p>
-        <div class="swapp-game-discovery-grid">
-          <article><small>Jeux & actualités</small><h3>Explorer les univers</h3><a href="/jeux">Découvrir les jeux ↗</a></article>
-          <article><small>Streaming & communauté</small><h3>Créateurs en direct</h3><a href="/decouvrir">Découvrir les lives ↗</a></article>
-          <article><small>SWAPP Match · Recherche de joueurs</small><h3>Trouver une équipe</h3><button type="button" id="swapp-match-open">Créer une annonce ↗</button></article>
-        </div>
-      </section>
-        <form id="swapp-match-form" class="swapp-match-form" hidden>
-          <h3>SWAPP Match · Proposer une partie</h3><p>Ton annonce sera publiée dans le fil SOCIAL. Aucun profil ni joueur fictif.</p>
-          <label>Jeu <input name="game" required maxlength="65" placeholder="Ex. Helldivers 2"></label>
-          <label>Plateforme <select name="platform" required><option value="">Choisir</option><option>PC</option><option>PlayStation</option><option>Xbox</option><option>Switch</option><option>Multiplateforme</option></select></label>
-          <label>Disponibilités <input name="availability" required maxlength="65" placeholder="Ex. ce soir vers 21 h"></label>
-          <label>Style de jeu <select name="style"><option>Décontracté</option><option>Coopération</option><option>Compétitif</option><option>Débutant bienvenu</option></select></label>
-          <div class="swapp-match-controls"><button type="submit">Préparer ma publication</button><button type="button" id="swapp-match-cancel">Annuler</button></div>
-        </form>
-      <section class="swapp-activities" aria-labelledby="swapp-activities-title">
-        <style>
-          .swapp-activities{padding:18px;margin:0 0 18px;border-radius:18px;border:1px solid #ffffff26;background:linear-gradient(145deg,#23283b,#151e30);color:#fff}
-          .swapp-activities h2{font-size:22px;margin:5px 0}.swapp-activities p{font-size:13px;color:#bfcede;margin:5px 0 14px}
-          .swapp-activities-buttons{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
-          .swapp-activities-buttons button{border:1px solid #ffffff38;border-radius:11px;padding:13px 8px;background:#ffffff12;color:#fff;font:inherit;font-size:12px;font-weight:650;cursor:pointer}
-          .swapp-activities-buttons button:hover{background:#ffffff24}
-          .swapp-activities-form{margin-top:12px;padding:14px;background:#0e192a;border-radius:12px}
-          .swapp-activities-form[hidden]{display:none!important}.swapp-activities-form label{font-size:12px;display:block;margin-top:9px}
-          .swapp-activities-form input{box-sizing:border-box;width:100%;padding:10px;margin-top:5px;border:1px solid #ffffff35;border-radius:9px;background:#182740;color:white}
-          .swapp-activities-form button{margin-top:12px;padding:10px;border:0;border-radius:8px;background:#667ec5;color:#fff;cursor:pointer}
-          @media(max-width:650px){.swapp-activities-buttons{grid-template-columns:repeat(2,minmax(0,1fr))}}
-        </style>
-        <span class="pulse-kicker">PARTICIPER À SWAPP</span><h2 id="swapp-activities-title">Plus qu'un fil d'actualité.</h2>
-        <p>Retrouve des joueurs, propose un défi, lance une discussion ou enrichis ton profil.</p>
-        <div class="swapp-activities-buttons">
-          <button type="button" data-social-tool="match">Trouver des joueurs</button>
-          <button type="button" data-social-tool="search-match">Annonces de joueurs</button><button type="button" data-social-tool="poll">Sondage / défi</button>
-          <button type="button" data-social-tool="room">Créer un salon</button>
-          <button type="button" data-social-tool="passport">Mon passeport</button>
-        </div>
-        <form class="swapp-activities-form" id="swapp-poll-form" hidden>
-          <strong>Créer un sondage participatif</strong><label>Question<input name="question" maxlength="120" required placeholder="Quel jeu devrions-nous lancer ?"></label>
-          <label>Choix A<input name="choiceA" maxlength="80" required></label><label>Choix B<input name="choiceB" maxlength="80" required></label>
-          <button type="submit">Préparer ma publication</button>
-        </form>
-        <p class="swapp-activities-note">Les annonces et sondages utilisent les publications SOCIAL ; les salons utilisent les communautés existantes. Pas de faux utilisateurs ni de faux résultats.</p>
-      </section>
       <section class="pulse-composer" id="composer">
         <div class="pulse-avatar" id="composer-avatar">?</div>
         <div class="pulse-compose-main">
