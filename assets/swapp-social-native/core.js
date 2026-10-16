@@ -62,7 +62,7 @@ export function errorText(e){
     weak_password:'Le mot de passe doit contenir au moins 10 caractères.',
     rate_limited:'Trop de requêtes. Réessaie plus tard.',
     not_found:'Élément introuvable.',
-    social_recipient_not_ready:'Ce membre doit ouvrir SOCIAL au moins une fois avant de pouvoir recevoir des messages.',
+    social_recipient_not_ready:'Impossible de préparer la messagerie de ce membre pour le moment. Réessaie plus tard.',
     blocked:'Cette conversation est bloquée.',
     social_upstream_rate_limited:'Trop de tentatives de liaison SOCIAL. Patiente quelques minutes avant de réessayer.',
     social_upstream_timeout:'SOCIAL met trop longtemps à répondre. Le serveur peut être en cours de redémarrage. Réessaie dans quelques instants.',
