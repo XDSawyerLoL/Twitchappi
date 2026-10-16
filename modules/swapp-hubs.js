@@ -191,7 +191,7 @@ function shopProduct(product,products=demoProducts){
  '<button type="button" data-shop-image="'+e(url)+'" aria-label="Afficher la photo '+(i+1)+'" aria-pressed="'+(i===0?'true':'false')+'">'+
  '<img src="'+e(url)+'" alt="" loading="lazy" referrerpolicy="no-referrer"></button>').join('')+'</div>':'';
  const related=all.filter(x=>x.kind===p.kind&&x.id!==p.id).slice(0,3);
- const disclosure=p.affiliate?'<p class="swapp-store-detail-note">'+(isAmazonLink(p.url)?e(amazonDisclosure):'Lien affilié : SWAPP peut recevoir une commission.')+'</p>':'';
+ const disclosure=p.affiliate?'<p class="swapp-store-detail-note">'+(isAmazonLink(p.url)?'Lien rémunéré par Amazon · '+e(amazonDisclosure):'Lien affilié : SWAPP peut recevoir une commission.')+'</p>':'';
  const content='<main class="swapp-hub swapp-store swapp-store-detail">'+
   '<nav class="swapp-store-crumb" aria-label="Fil d’Ariane"><a href="/boutique">Boutique</a><span aria-hidden="true">›</span>'+
    '<a href="/boutique#catalogue">'+e(category?.name||'Catalogue')+'</a><span aria-hidden="true">›</span><span>'+e(p.title)+'</span></nav>'+
