@@ -101,22 +101,28 @@ function sitemapHtml(articles=[]){
 
 function registerSeoRoutes(app,{getPublished=async()=>[],now=()=>Date.now()}={}){
  if(!app||typeof app.get!=='function')throw Error('Express app required');
- let cached=null,articles=[],expires=0;
+ let cached=null,articles=[],expires=0,inflight=null;
  const TTL=6*60*60*1000;
  async function ensureCache(){
   if(cached&&now()<expires)return;
-  try{
-   const data=await getPublished();
-   articles=(Array.isArray(data)?data:[]).filter(x=>
-    x?.status==='published'&&SLUG.test(String(x.slug||'')));
-   cached=sitemapXml(articles);
-   expires=now()+TTL;
-  }catch(err){
-   console.warn('[SWAPP SEO] published articles unavailable:',String(err?.message||err));
-   if(!cached){cached=sitemapXml();articles=[]}
-   // Retry soon. Do not replace previously confirmed published URLs.
-   expires=now()+60000;
-  }
+  // Share one read across simultaneous requests. Search engine bursts must
+  // never multiply Firestore document reads or create avoidable costs.
+  if(inflight)return inflight;
+  inflight=(async()=>{
+   try{
+    const data=await getPublished();
+    articles=(Array.isArray(data)?data:[]).filter(x=>
+     x?.status==='published'&&SLUG.test(String(x.slug||'')));
+    cached=sitemapXml(articles);
+    expires=now()+TTL;
+   }catch(err){
+    console.warn('[SWAPP SEO] published articles unavailable:',String(err?.message||err));
+    if(!cached){cached=sitemapXml();articles=[]}
+    // Retry soon. Do not replace previously confirmed published URLs.
+    expires=now()+60000;
+   }
+  })();
+  try{await inflight}finally{inflight=null}
  }
  app.get('/robots.txt',(_req,res)=>{
   res.set('Cache-Control','public, max-age=3600');
