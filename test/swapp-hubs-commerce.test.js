@@ -113,3 +113,52 @@ test('both native and SPA articles display only validated editorial extras',()=>
   assert.ok(editor.includes('id="'+id+'"'),id+' missing');
  }
 });
+
+
+test('Amazon partner disclosure only on genuine affiliate commerce links',()=>{
+ const {isAmazonLink,amazonDisclosure}=extras;
+ assert.equal(isAmazonLink('https://www.amazon.fr/dp/EXAMPLE'),true);
+ assert.equal(isAmazonLink('https://link.amazon/test-short'),true);
+ assert.equal(isAmazonLink('https://amzn.to/test-short'),true);
+ assert.equal(isAmazonLink('https://amazon.fr.evil.example/dp/item'),false);
+ assert.equal(isAmazonLink('http://amazon.fr/dp/item'),false);
+ const amazon={id:'casquette-amazon',kind:'caps',title:'Casquette vérifiée',
+  merchant:'Amazon',url:'https://link.amazon/test-short',affiliate:true,demo:false,visible:true};
+ const storefront=shop([amazon],{source:'managed'});
+ assert.match(storefront,/Lien rémunéré par Amazon/);
+ assert.match(storefront,/En tant que Partenaire Amazon, je réalise un bénéfice sur les achats remplissant les conditions requises/);
+ assert.match(storefront,/rel="sponsored nofollow noopener noreferrer"/);
+ assert.match(storefront,/https:\/\/link\.amazon\/test-short/);
+ assert.equal((storefront.match(/En tant que Partenaire Amazon/g)||[]).length,1);
+ const unremunerated=shop([{...amazon,affiliate:false}],{source:'managed'});
+ assert.doesNotMatch(unremunerated,/Partenaire Amazon|Lien rémunéré par Amazon/);
+ const others=shop([{...amazon,url:'https://merchant.example/product',merchant:'Autre marchand'}],{source:'managed'});
+ assert.doesNotMatch(others,/Partenaire Amazon|Lien rémunéré par Amazon/);
+ const demo=shop([{...amazon,demo:true}],{source:'managed'});
+ assert.doesNotMatch(demo,/Partenaire Amazon|Lien rémunéré par Amazon/);
+ assert.match(shopAdmin(),/Pour un lien Amazon Partenaires/);
+ assert.ok(amazonDisclosure.startsWith('En tant que Partenaire Amazon'));
+});
+
+test('native and SPA articles identify Amazon commercial links without new third-party scripts',()=>{
+ const article={commercialLinks:[
+  {title:'Casque',merchant:'Amazon',url:'https://amzn.to/example',kind:'affiliate'},
+  {title:'Autre matériel',merchant:'Autre',url:'https://merchant.example/item',kind:'affiliate'}
+ ]};
+ const html=extras.renderServer(article);
+ assert.match(html,/LIEN RÉMUNÉRÉ PAR AMAZON/);
+ assert.match(html,/LIEN AFFILIÉ · COMMISSION POSSIBLE/);
+ assert.match(html,/En tant que Partenaire Amazon/);
+ assert.equal((html.match(/En tant que Partenaire Amazon/g)||[]).length,1);
+ assert.equal((html.match(/rel="sponsored nofollow noopener noreferrer"/g)||[]).length,2);
+ assert.doesNotMatch(extras.renderServer({commercialLinks:[]}),/Partenaire Amazon/);
+ assert.doesNotMatch(extras.renderServer({commercialLinks:[{
+  title:'Casque',merchant:'Autre',url:'https://example.com/item',kind:'affiliate'}]}),/Partenaire Amazon/);
+ const index=fs.readFileSync(path.resolve(__dirname,'../index.html'),'utf8');
+ const shell=fs.readFileSync(path.resolve(__dirname,'../modules/swapp-news/site-shell.js'),'utf8');
+ const version='swapp-article-extras.js?v=20261016-amazon-disclosures-1';
+ assert.match(index,/swapp-article-extras\.js\?v=20261016-amazon-disclosures-1/);
+ assert.ok(shell.includes(version));
+ const shared=fs.readFileSync(path.resolve(__dirname,'../assets/swapp-article-extras.js'),'utf8');
+ assert.doesNotMatch(shared,/fetch\(|sendBeacon|localStorage/);
+});
