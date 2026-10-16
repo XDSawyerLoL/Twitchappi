@@ -91,9 +91,34 @@
   const players=matches.length?matches.slice(0,8).map(m=>'<div class="ssn-player"><strong>@'+esc(m.handle)+'</strong><span>'+esc(m.platform)+' · '+esc(m.availability)+'</span></div>').join(''):'<p>Pas encore de recherche d’équipe pour ce jeu.</p>';
   return '<div class="ssn-universe-title"><strong>'+esc(game)+'</strong><span>'+rooms.length+' salon'+(rooms.length>1?'s':'')+' · '+matches.length+' annonce'+(matches.length>1?'s':'')+'</span></div>'+
   '<div class="ssn-game-columns"><section><h4>Discussions</h4>'+roomHtml+'</section><section><h4>Joueurs en recherche</h4>'+players+'</section></div>'+
+  '<section class="ssn-live-section"><div class="ssn-universe-title"><strong>Créateurs en direct</strong><span>Pour '+esc(game)+'</span></div><div id="ssn-live-results" aria-live="polite">Recherche de lives en cours…</div></section>'+
   '<div class="ssn-actions"><button class="ssi-button" type="button" data-ssn-match="'+esc(game)+'">Chercher une équipe</button>'+
   '<button class="ssi-ghost" type="button" data-ssn-create-room="'+esc(game)+'">Créer un salon</button>'+
   '<a class="ssi-ghost" href="/decouvrir">Voir les lives ↗</a><a class="ssi-ghost" href="/jeux">Actualités & jeux ↗</a></div>';
+ }
+ async function loadGameLives(game,version){
+  const holder=$('#ssn-live-results');if(!holder)return;
+  try{
+   const res=await fetch('/api/discovery/game-lives?game='+encodeURIComponent(game)+'&limit=5',{
+    credentials:'same-origin',headers:{Accept:'application/json'},cache:'no-store'
+   });
+   if(!res.ok)throw Error('live_unavailable');
+   const data=await res.json();
+   if(version!==gameRequest||!$('#ssn-live-results'))return;
+   const items=Array.isArray(data.items)?data.items:[];
+   const safe=items.filter(x=>/^[a-z0-9_]{2,25}$/.test(String(x.login||'')));
+   holder.innerHTML=safe.length?'<div class="ssn-lives">'+safe.map(live=>{
+    const login=String(live.login),name=esc(live.display_name||login);
+    const platform=String(live.platform||'');
+    const href=platform==='twitch'?'https://www.twitch.tv/'+encodeURIComponent(login):'/'+encodeURIComponent(login);
+    const viewerCount=Math.max(0,Number(live.viewer_count)||0);
+    return '<a class="ssn-live" href="'+esc(href)+'" '+(platform==='twitch'?'target="_blank" rel="noopener noreferrer"':'')+'>'+
+     '<span class="ssn-live-dot" aria-hidden="true"></span><strong>'+name+'</strong>'+
+     '<span>'+esc(platform==='twitch'?'Twitch':'SWAPP')+' · '+viewerCount+' spectateur'+(viewerCount>1?'s':'')+'</span></a>';
+   }).join('')+'</div>':'<p>Aucun live confirmé pour ce jeu actuellement.</p>';
+  }catch{
+   if(version===gameRequest&&$('#ssn-live-results'))$('#ssn-live-results').textContent='Lives momentanément indisponibles.';
+  }
  }
  async function openGame(game){
   const name=String(game||'').trim().slice(0,65),version=++gameRequest;
@@ -104,6 +129,7 @@
    const data=await api('game/context?game='+encodeURIComponent(name));
    if(version!==gameRequest)return;
    $('#ssn-game-results').innerHTML=cards(name,data);
+   void loadGameLives(name,version);
    const uri=new URL(location.href);uri.searchParams.set('game',name);
    history.replaceState(history.state,'',uri.pathname+uri.search+uri.hash);
   }catch(error){if(version===gameRequest)$('#ssn-game-results').textContent=error.message}
