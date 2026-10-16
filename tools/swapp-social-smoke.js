@@ -12,6 +12,7 @@ const publicChecks=[
  ['/communaute','social_page'],
  ['/api/oryon/session','swapp_account_session'],
  ['/api/actus','swapp_editorial'],
+ ['/api/swapp/social/release','release_marker'],
  ['/api/swapp/interactions/status','mysql_status'],
  ['/api/pulse/health','upstream_social'],
 ];
@@ -47,6 +48,7 @@ async function check(path,area,authenticated){
     const authenticatedAllowed=authenticated?status===200:status===200;
     const expectedGuest=authenticated&&!cookie&&status===401;
     let state=authenticatedAllowed?'ok':expectedGuest?'requires_login':'unavailable';
+    if(area==='release_marker'&&payload.release!=='social-writefix-v8')state='unavailable';
     if(area==='mysql_status'&&!(payload.enabled===true&&payload.state==='database_read_ready'))state='unavailable';
     if(area==='upstream_social'&&status===200&&payload.success===false)state='unavailable';
     resolve({area,status,ms:elapsed,state,
