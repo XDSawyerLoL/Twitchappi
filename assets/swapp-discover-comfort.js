@@ -203,6 +203,21 @@ body.oryonDiscoverV4 #discover .v4FollowRail::-webkit-scrollbar{display:none!imp
  body.oryonDiscoverV4 #discover .v4DeckSlot:not(.empty){min-width:0!important}
  body.oryonDiscoverV4 #discover .v4FollowCard{min-width:min(70vw,260px)!important;height:128px!important}
 }
+/* A single discreet creator acquisition action; no homepage module,
+   popup, new endpoint or audience tracking. */
+body.oryonDiscoverV4 #discover .swapp-discover-creator-join{
+ display:inline-flex;align-items:center;gap:6px;margin-top:14px;
+ padding:6px 0;background:none;border:0;border-bottom:1px solid #ffffff44;
+ color:#e8f6ee;font:700 13px/1.5 system-ui,sans-serif;
+ text-decoration:none;cursor:pointer;max-width:100%;text-align:left;
+}
+body.oryonDiscoverV4 #discover .swapp-discover-creator-join:hover,
+body.oryonDiscoverV4 #discover .swapp-discover-creator-join:focus-visible{
+ border-bottom-color:#c9f7dc;color:#fff;
+}
+body.oryonDiscoverV4 #discover .swapp-discover-creator-join:focus-visible{
+ outline:2px solid #c9f7dc;outline-offset:4px;
+}
 @media(prefers-reduced-motion:reduce){
  body.oryonDiscoverV4 #discover :is(.v4Card,.v4Btn,.v4Mood,.v4FollowCard){transition:none!important;animation:none!important}
 }
@@ -222,6 +237,18 @@ body.oryonDiscoverV4 #discover .v4FollowRail::-webkit-scrollbar{display:none!imp
  function decorate(){
   const area=doc.getElementById('discover');
   if(!area||!area.querySelector('.v4Page'))return;
+  const inviteHost=area.querySelector('.v4Hero > div');
+  if(inviteHost&&!inviteHost.querySelector('.swapp-discover-creator-join')){
+   const invite=doc.createElement('button');
+   invite.type='button';
+   invite.className='swapp-discover-creator-join';
+   invite.textContent='Tu diffuses ? Créer ta chaîne sur SWAPP →';
+   invite.onclick=()=>{
+    const target=typeof root.streamTargetView==='function'?root.streamTargetView():'settings';
+    if(typeof root.setView==='function')root.setView(target);
+   };
+   inviteHost.appendChild(invite);
+  }
   const card=area.querySelector('#v4SwipeCard');
   if(card){
    // The swipe UI REUSES the same card node for successive creators.
