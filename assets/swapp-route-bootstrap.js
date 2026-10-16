@@ -13,7 +13,7 @@
  const isActusPath=()=>((location.pathname||'/').replace(/\/+$/,'')||'/')==='/actus';
  const leave=()=>{leftEntry=true};
  document.addEventListener('click',event=>{
-  if(event.target?.closest?.('header.top nav button,#mobileNav button,#actus a,.swapp-footer a'))leave();
+  if(event.target?.closest?.('header.top a,header.top nav button,#mobileNav a,#mobileNav button,#home a,#actus a,.swapp-footer a,[data-view]'))leave();
  },true);
  window.addEventListener('popstate',leave);
  window.addEventListener('hashchange',()=>{if(!isActusPath())leave()});
