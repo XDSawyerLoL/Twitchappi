@@ -103,6 +103,19 @@ test('missing Twitch thumbnail gets a premium gradient fallback, no network subs
  assert.ok(h.card.classList.added.includes('swapp-discover-no-image'));
  assert.match(h.image.alt,/Elden Ring/);
 });
+test('Discover V4 respects API score and diversity ordering all the way to the player',()=>{
+ const code=read('index_script.js');
+ const intro=code.indexOf('function renderDiscoverV4()');
+ const search=code.lastIndexOf('async function fetchPool(',intro);
+ assert.ok(search>0&&intro>search);
+ const actual=code.slice(search,intro);
+ assert.match(actual,/setItems\(items\)/);
+ assert.match(actual,/already ranked these lives by mood, relevance and diversity/);
+ assert.doesNotMatch(actual,/items\.sort\(\(a,b\)=>Math\.abs/);
+ const html=read('index.html');
+ assert.match(html,/index_script\.js\?v=20261016-discover-v4-39/);
+});
+
 test('live-card decorations refresh on actual DOM replacements without polling',()=>{
  const h=harness();
  assert.equal(h.observer()?.observed,true);
