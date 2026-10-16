@@ -4,7 +4,20 @@ const el=(tag,cls,text)=>{const x=document.createElement(tag);if(cls)x.className
 const url=v=>{try{const u=new URL(v);return u.protocol==='https:'&&!u.username&&!u.password?u.href:null}catch{return null}};
 const date=v=>{const d=new Date(v);return v&&!Number.isNaN(d.getTime())?d.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'}):'';};
 const slugOk=s=>/^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/.test(s||'');
-const fetchJson=async route=>{const r=await fetch(route,{credentials:'same-origin',headers:{Accept:'application/json'},signal:AbortSignal.timeout(15000)});if(!r.ok)throw Error('Contenu temporairement indisponible ('+r.status+').');return r.json();};
+const fetchJson=async route=>{
+ // AbortSignal.timeout is unavailable on older iPhone Safari releases.
+ // AbortController + a finally-cleaned timer works on those devices too.
+ const controller=new AbortController();
+ const timer=setTimeout(()=>controller.abort(),15000);
+ try{
+  const r=await fetch(route,{credentials:'same-origin',headers:{Accept:'application/json'},signal:controller.signal});
+  if(!r.ok)throw Error('Contenu temporairement indisponible ('+r.status+').');
+  return await r.json();
+ }catch(error){
+  if(error?.name==='AbortError')throw Error('Chargement trop long. Réessayez.');
+  throw error;
+ }finally{clearTimeout(timer)}
+};
 let items=[];
 function cover(article){const p=el('div','swapp-actus-cover'),source=url(article.image?.url||article.imageUrl);if(source){const img=el('img');img.src=source;img.alt=article.title||'Visuel du jeu';img.loading='lazy';img.onerror=()=>{img.remove();if(!p.childElementCount)p.append(el('span','swapp-actus-cover-empty',article.game||article.category||'Jeux vidéo'))};p.append(img)}else p.append(el('span','swapp-actus-cover-empty',article.game||article.category||'Jeux vidéo'));return p;}
 function makeCard(a){if(!slugOk(a.slug))return null;const link=el('a','swapp-actus-card');link.href='/actus/'+encodeURIComponent(a.slug);
@@ -167,7 +180,22 @@ if(!recommendations.children.length){
   event.preventDefault();home()};recommendations.append(all);
 }};
 node.append(article);window.SwappArticleFeedback?.mountArticle(article,a.slug||slug);if(items.length)fillRecommendations(items);else fetchJson('/api/actus').then(data=>{items=Array.isArray(data.articles)?data.articles:[];fillRecommendations(items)}).catch(()=>fillRecommendations([]));
-}catch(e){node.replaceChildren(el('p','swapp-actus-state',e.message));}}
+}catch(e){
+ if(!node.isConnected)return;
+ const status=el('p','swapp-actus-state',e.message||'Article temporairement indisponible.');
+ const actions=el('div','swapp-actus-recovery');
+ const retry=el('button','swapp-actus-go-live','Réessayer');
+ retry.type='button';
+ retry.onclick=()=>{node.replaceChildren();showArticle(node,slug)};
+ const back=el('a','swapp-actus-go-back','← Toutes les actualités');
+ back.href='/actus';
+ back.onclick=event=>{
+  if(event.button||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
+  event.preventDefault();home();
+ };
+ actions.append(retry,back);
+ node.replaceChildren(status,actions);
+}}
 function render(target){if(!target)return;window.SwappArticlePlayer?.close();target.replaceChildren();const node=el('div','swapp-actus-native');target.append(node);const parts=location.pathname.split('/').filter(Boolean);return parts.length===2&&parts[0]==='actus'&&slugOk(parts[1])?showArticle(node,parts[1]):showList(node);}
 function open(slug){if(!slugOk(slug))return;history.pushState({view:'actus'},'','/actus/'+encodeURIComponent(slug));render(document.getElementById('actus'));window.scrollTo(0,0);}
 function home(){history.pushState({view:'actus'},'','/actus');render(document.getElementById('actus'));window.scrollTo(0,0);}
