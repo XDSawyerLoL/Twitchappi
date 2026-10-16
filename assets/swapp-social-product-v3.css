@@ -211,3 +211,34 @@
 #swappSocialNative[data-social-view="messages"] .pulse-main,
 #swappSocialNative[data-social-view="rooms"] .pulse-main{border-right:0!important}
 #swappSocialNative:not([data-social-view="home"]) :is(.swapp-game-discovery,.swapp-activities,#swapp-match-form){display:none!important}
+
+/* Native lists and editors, without vestigial bubble styling. */
+#swappSocialNative .swapp-interactive :is(.ssi-item,.ssi-empty,.ssi-room-placeholder,.ssi-chat-empty,.ssn-game-columns section,.ssn-room,.ssn-live){
+ border-radius:0!important;box-shadow:none!important;background:transparent!important;
+}
+#swappSocialNative .swapp-interactive .ssi-item{
+ border:0!important;border-bottom:1px solid var(--s3-border)!important;padding:15px 0!important;
+}
+#swappSocialNative .swapp-interactive .ssi-item:first-child{padding-top:5px!important}
+#swappSocialNative .swapp-interactive .ssi-item-head strong{font-size:13px!important;color:#f4f8ff!important}
+#swappSocialNative .swapp-interactive .ssi-item-meta{color:var(--s3-muted)!important;line-height:1.6!important}
+#swappSocialNative .swapp-interactive .ssi-empty{
+ border:0!important;border-left:2px solid var(--s3-border)!important;padding:13px 0 13px 15px!important;
+ color:#afc2d8!important;
+}
+#swappSocialNative .swapp-interactive .ssi-empty-glyph{display:none!important}
+#swappSocialNative .swapp-interactive :is(.ssi-inline-form,.ssn-form){
+ border:0!important;border-left:2px solid var(--s3-accent)!important;border-radius:0!important;
+ background:#0e192b!important;padding:17px!important;
+}
+#swappSocialNative .swapp-interactive .ssn-game-columns section{
+ border:0!important;border-top:1px solid var(--s3-border)!important;padding:14px 0!important;
+}
+#swappSocialNative .swapp-interactive :is(.ssn-room,.ssn-live){border:0!important;border-bottom:1px solid var(--s3-border)!important}
+#swappSocialNative .swapp-interactive .ssn-live:hover,
+#swappSocialNative .swapp-interactive .ssn-room:hover{border-color:var(--s3-accent)!important}
+#swappSocialNative .swapp-interactive .ssi-room-placeholder{border:0!important;min-height:120px}
+#swappSocialNative .swapp-interactive .ssi-vote{border-radius:5px!important}
+#swappSocialNative .swapp-interactive .ssi-panel:before{display:none!important}
+#swappSocialNative .swapp-interactive .ssi-panel{transition:none!important}
+#swappSocialNative .swapp-interactive .ssn-search input{border-radius:7px!important}
