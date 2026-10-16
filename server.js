@@ -898,9 +898,42 @@ app.use('/api/pulse',authLimiter,createSocialNativeProxy(fetchWithTimeout,{produ
 // Dedicated health metadata avoids confusing "Cannot GET" for a disabled feature.
 // Do not expose DB addresses, passwords, or account/session information.
 let socialInteractionsState='disabled';
-app.get('/api/swapp/interactions/status',(_req,res)=>{
+let socialInteractionsReason=null;
+let socialInteractionsPool=null;
+let socialInteractionsHealth={checkedAt:0,payload:null,pending:null};
+const safeSocialMysqlError=error=>{
+ const code=String(error?.code||'');
+ if(code==='ER_NO_SUCH_TABLE')return 'schema_missing';
+ if(code==='ER_ACCESS_DENIED_ERROR')return 'mysql_access_denied';
+ if(code==='ER_BAD_DB_ERROR')return 'mysql_database_missing';
+ if(code==='ENOTFOUND'||code==='EAI_AGAIN')return 'mysql_host_unreachable';
+ if(code==='ECONNREFUSED'||code==='ETIMEDOUT'||code==='PROTOCOL_CONNECTION_LOST')return 'mysql_unreachable';
+ return 'mysql_connection_failed';
+};
+app.get('/api/swapp/interactions/status',async(_req,res)=>{
  res.set('Cache-Control','no-store');
- res.json({enabled:process.env.SWAPP_SOCIAL_FEATURES==='1',state:socialInteractionsState});
+ const enabled=process.env.SWAPP_SOCIAL_FEATURES==='1';
+ if(!enabled||!socialInteractionsPool)
+  return res.json({enabled,state:socialInteractionsState,...(socialInteractionsReason?{reason:socialInteractionsReason}:{})});
+ // Cached public probe: never disclose credentials, hostname, SQL or raw errors.
+ const now=Date.now();
+ if(!socialInteractionsHealth.payload||now-socialInteractionsHealth.checkedAt>30000){
+  if(!socialInteractionsHealth.pending){
+   socialInteractionsHealth.pending=(async()=>{
+    try{
+     await socialInteractionsPool.execute('SELECT id FROM swapp_social_rooms LIMIT 0');
+     socialInteractionsHealth.payload={enabled:true,state:'ready'};
+    }catch(error){
+     socialInteractionsHealth.payload={enabled:true,state:'unavailable',reason:safeSocialMysqlError(error)};
+    }finally{
+     socialInteractionsHealth.checkedAt=Date.now();
+     socialInteractionsHealth.pending=null;
+    }
+   })();
+  }
+  await socialInteractionsHealth.pending;
+ }
+ return res.json(socialInteractionsHealth.payload);
 });
 if(process.env.SWAPP_SOCIAL_FEATURES==='1'){
  // An optional feature must not stop the main SWAPP site from starting.
@@ -908,17 +941,28 @@ if(process.env.SWAPP_SOCIAL_FEATURES==='1'){
   const {createSocialMysqlInteractions}=require('./modules/swapp-social-mysql');
   const dbUrl=process.env.SWAPP_MYSQL_URL||process.env.DATABASE_URL;
   if(!dbUrl)throw new Error('missing_social_mysql_url');
-  const parsed=new URL(dbUrl);
-  if(parsed.protocol!=='mysql:'||!parsed.hostname||['host','hostname','your-host'].includes(parsed.hostname.toLowerCase())||!parsed.pathname||parsed.pathname==='/')
+  let parsed;
+  try{parsed=new URL(dbUrl)}catch{throw new Error('invalid_social_mysql_url')}
+  if(parsed.protocol!=='mysql:'||!parsed.hostname||!parsed.username||!parsed.pathname||parsed.pathname==='/')
    throw new Error('invalid_social_mysql_url');
+  if(['host','hostname','your-host','localhost.example'].includes(parsed.hostname.toLowerCase()))
+   throw new Error('placeholder_social_mysql_host');
   const mysql=require('mysql2/promise');
-  const socialDbPool=mysql.createPool({uri:dbUrl,connectionLimit:5,waitForConnections:true,queueLimit:50,enableKeepAlive:true});
+  const socialDbPool=mysql.createPool({uri:dbUrl,connectionLimit:5,waitForConnections:true,queueLimit:50,connectTimeout:5000,enableKeepAlive:true});
+  socialInteractionsPool=socialDbPool;
   app.use('/api/swapp/interactions',authLimiter,createSocialMysqlInteractions({express,restoreSession:restoreOryonSessionFromRememberCookie,pool:socialDbPool}));
   socialInteractionsState='configured_not_verified';
  }catch(error){
   socialInteractionsState='unavailable';
-  console.error('[SWAPP SOCIAL] MySQL interactions unavailable:',error?.code||error?.message||'initialization_failed');
-  app.use('/api/swapp/interactions',(_req,res)=>res.status(503).json({error:'social_storage_unavailable'}));
+  socialInteractionsPool=null;
+  const reason=String(error?.message||'');
+  socialInteractionsReason=reason==='missing_social_mysql_url'?'mysql_url_missing':
+   reason==='placeholder_social_mysql_host'?'mysql_host_placeholder':
+   reason==='invalid_social_mysql_url'?'mysql_url_invalid':
+   error?.code==='MODULE_NOT_FOUND'?'mysql_driver_missing':'initialization_failed';
+  // Never log raw configuration strings, database URLs or passwords.
+  console.error('[SWAPP SOCIAL] Initialization:',socialInteractionsReason);
+  app.use('/api/swapp/interactions',(_req,res)=>res.status(503).json({error:'social_storage_unavailable',reason:socialInteractionsReason}));
  }
 }else{
  app.use('/api/swapp/interactions',(_req,res)=>res.status(503).json({error:'social_features_disabled'}));
