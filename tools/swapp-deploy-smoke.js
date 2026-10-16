@@ -56,6 +56,10 @@ async function verify(){
  const stylesheet=await request(origin,'/assets/swapp-social-native/social-swapp.css');
  check(stylesheet.body.includes('SOCIAL sticky stack v2'),'SOCIAL CSS is stale at the public asset path');
  process.stdout.write('PASS SOCIAL public stylesheet\n');
+ const discovery=await request(origin,'/assets/swapp-media-live.js');
+ check(discovery.body.includes('/api/discovery/game-lives?limit=6&game='),
+  'Article live discovery client is outdated: targeted game lookup missing');
+ process.stdout.write('PASS game-specific article live discovery\n');
  const home=await request(origin,'/');
  check(home.body.includes('SWAPP'),'Home returned an unexpected document');
  process.stdout.write('PASS / home\n');
