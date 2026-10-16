@@ -10,13 +10,20 @@ export function renderPost(post){
   const imageUrl=post.mediaUrl||post.imageUrl||'';
   const linkUrl=post.linkUrl||'';
   const linkTitle=post.linkTitle||'';
+  let hostname='';
+  try{hostname=new URL(linkUrl).hostname.replace(/^www\\./,'')}catch{}
+  const localNews=hostname==='swapp.tv';
+  const linkLabel=localNews?'ARTICLE SWAPP':'LIEN PARTAGÉ';
+  const previewText='<div class="pulse-rich-details"><small class="pulse-rich-kicker">'+linkLabel+'</small>'+
+    '<strong>'+esc(linkTitle||'Découvrir cet article')+'</strong>'+
+    '<span class="pulse-rich-host">'+esc(hostname||'Voir le lien')+'</span></div>';
   if(imageUrl){
-    const image='<img src="'+esc(imageUrl)+'" alt="" loading="lazy" referrerpolicy="no-referrer">';
+    const image='<img src="'+esc(imageUrl)+'" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">';
     media=linkUrl
-      ? '<a class="pulse-rich-card" href="'+esc(linkUrl)+'" target="_blank" rel="noopener noreferrer">'+image+'<div><strong>'+esc(linkTitle||'Ouvrir le lien')+'</strong><span>'+esc(linkUrl)+'</span></div></a>'
+      ? '<a class="pulse-rich-card pulse-rich-link-preview" href="'+esc(linkUrl)+'" target="_blank" rel="noopener noreferrer">'+image+previewText+'</a>'
       : '<div class="pulse-rich-card pulse-rich-media">'+image+(post.mediaType==='gif'?'<div><strong>GIF</strong></div>':'')+'</div>';
   }else if(linkUrl){
-    media='<a class="pulse-rich-card pulse-rich-link" href="'+esc(linkUrl)+'" target="_blank" rel="noopener noreferrer"><div><strong>'+esc(linkTitle||'Ouvrir le lien')+'</strong><span>'+esc(linkUrl)+'</span></div></a>';
+    media='<a class="pulse-rich-card pulse-rich-link-preview pulse-rich-text-preview" href="'+esc(linkUrl)+'" target="_blank" rel="noopener noreferrer">'+previewText+'</a>';
   }
 
   if(post.quote){
@@ -27,7 +34,7 @@ export function renderPost(post){
     '<div class="pulse-avatar">'+esc(initials(user))+'</div>'+
     '<div class="pulse-post-main">'+
       '<div class="pulse-post-head"><button data-profile="'+esc(user.handle)+'">'+esc(user.displayName||user.handle)+'</button>'+(user.verified?'<span class="pulse-badge" title="Compte vérifié">'+icon('pi-verified')+'</span>':'')+'<span>@'+esc(user.handle)+' · '+esc(timeAgo(post.createdAt))+'</span></div>'+
-      '<p>'+esc(post.body)+'</p>'+media+quote+
+      (linkTitle && String(post.body||'').trim().replace(/\\s*Source\\s*:\\s*SWAPP\\s*$/i,'').trim()===String(linkTitle).trim() ? '' : '<p>'+esc(post.body)+'</p>')+media+quote+
       '<div class="pulse-actions">'+
         '<button class="pulse-action" data-action="reply" aria-label="Répondre" title="Répondre">'+icon('pi-reply')+'<span class="pulse-action-name">Répondre</span><span class="pulse-action-count">'+Number(post.counts?.replies||0)+'</span></button>'+
         '<button class="pulse-action '+(reposted?'active':'')+'" data-action="repost" aria-label="Relay" title="Relayer cette publication">'+icon('pi-relay')+'<span class="pulse-action-name">Relayer</span><span class="pulse-action-count">'+Number(post.counts?.reposts||0)+'</span></button>'+
