@@ -70,20 +70,30 @@ async function verify(){
  const stylesheet=await request(origin,'/assets/swapp-social-native/social-swapp.css');
  check(stylesheet.body.includes('SOCIAL sticky stack v2'),'SOCIAL CSS is stale at the public asset path');
  process.stdout.write('PASS SOCIAL public stylesheet\n');
- // Public storefront check: real admin edits may replace every demo product.
+ // Public retail journey: commercial product navigation with no fake checkout.
  const store=await request(origin,'/boutique');
- for(const marker of ['swapp-shop-hero','swapp-shop-categories','id="rayon-games"','id="rayon-caps"','id="rayon-pads"','swapp-shop-trust'])
-  check(store.body.includes(marker),'Boutique missing storefront section: '+marker);
- check(store.body.includes('swapp-shop.css?v=20261016-photographic-shop-v4'),
-  'Boutique references an outdated product showcase stylesheet');
- check(store.body.includes('class="swapp-shop-hero-visual"')&&
-  store.body.includes('class="swapp-shop-product-image"')&&
-  !store.body.includes('swapp-shop-cap-crown'),
-  'Boutique HTML still renders fake CSS objects instead of photographs');
+ for(const marker of ['swapp-store-topline','swapp-store-departments-grid',
+   'id="swapp-store-products"','id="swapp-store-search"','id="swapp-store-sort"',
+   'data-shop-filter="games"','data-shop-filter="caps"','data-shop-filter="pads"'])
+  check(store.body.includes(marker),'Storefront missing shopping control: '+marker);
+ check(store.body.includes('swapp-shop.css?v=20261016-store-v5')&&
+   store.body.includes('swapp-storefront.js?v=20261016-store-v5'),
+   'Storefront still serves old editor-style CSS or missing interactive client');
  const shopStyle=await request(origin,'/assets/swapp-shop.css');
- check(shopStyle.body.includes('.swapp-shop-aisles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))')&&
-   shopStyle.body.includes('.swapp-shop-product-image{')&&shopStyle.body.includes('.swapp-shop-hero-visual{'),
-   'Boutique photographic storefront CSS is missing or outdated');
+ check(shopStyle.body.includes('.swapp-store-products{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))')&&
+   shopStyle.body.includes('.swapp-store-detail-grid{display:grid;grid-template-columns:'),
+   'Retail grid and product gallery styles have not deployed');
+ const storefront=await request(origin,'/assets/swapp-storefront.js');
+ check(storefront.body.includes("data-shop-category-target")&&
+  storefront.body.includes("data-shop-image")&&
+  storefront.body.includes("shop-result-count"),
+  'Storefront search, filters or product gallery are stale');
+ const detail=await request(origin,'/boutique/produit/clair-obscur');
+ check(detail.body.includes('swapp-store-detail-grid')&&
+  detail.body.includes('swapp-store-detail-gallery')&&
+  detail.body.includes('Référence présentée en aperçu'),
+  'Public store product detail route is absent or outdated');
+ process.stdout.write('PASS SWAPP storefront catalogue, filters and product detail route\n');
  const shopAdminScript=await request(origin,'/assets/swapp-shop-admin.js');
  check(shopAdminScript.body.includes("'/api/editor/boutique'")&&
    shopAdminScript.body.includes("options.headers['x-swapp-editor']='1'"),
