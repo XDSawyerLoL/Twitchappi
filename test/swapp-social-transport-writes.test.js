@@ -142,8 +142,6 @@ test('unprovisioned recipients show a specific error and no DM is written',async
 
 test('a cross-origin write is rejected before reaching the SOCIAL backend',async()=>{
  const t=makeTransport();
- const client=t.createClient(USER_A);
- const originalClient=client;
  // The transport contract requires a strict SWAPP Origin on every write.
  const {createSocialNativeProxy}=require('../modules/swapp-social-native-proxy');
  const proxy=createSocialNativeProxy(async()=>{throw Error('unexpected upstream call')},{
@@ -158,7 +156,7 @@ test('a cross-origin write is rejected before reaching the SOCIAL backend',async
  assert.equal(t.posts.length,0);
 });
 
-test('unauthenticated requests cannot write to another member account',async()=>{
+test('writes carry the server-issued bearer and never include the account password',async()=>{
  const t=makeTransport(),alice=t.createClient(USER_A);
  const result=await alice('/posts','POST',{body:'Post SWAPP'});
  assert.equal(result.status,201);
