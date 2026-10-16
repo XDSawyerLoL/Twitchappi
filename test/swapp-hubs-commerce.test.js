@@ -72,10 +72,8 @@ test('commercial catalog never invents products or follows unsafe merchant links
  assert.match(html,/rel="sponsored nofollow noopener noreferrer"/);
  assert.match(html,/merchant\.example\/produit/);
  const empty=shop();
- assert.match(empty,/Valor Mortis/);
- assert.match(empty,/Planet Zoo 2/);
- assert.match(empty,/igr=SANSAHD/);
- assert.match(empty,/Lien affilié/);
+ assert.match(empty,/La sélection commerciale est en préparation/);
+ assert.doesNotMatch(empty,/instant-gaming\.com|igr=SANSAHD/);
  assert.doesNotMatch(empty,/Prix barré|Acheter maintenant/);
 });
 
