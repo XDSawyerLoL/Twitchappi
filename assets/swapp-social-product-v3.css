@@ -187,3 +187,5 @@
 #swappSocialNative[data-social-view="messages"] .social-dm-avatar{display:grid;place-items:center;flex:0 0 38px;height:38px;border-radius:12px;background:color-mix(in srgb,var(--s3-accent) 20%,#16263a);border:1px solid var(--s3-border);font-weight:850}
 #swappSocialNative[data-social-view="messages"] .social-dm-identity h2{font-size:19px!important;margin:0!important}
 #swappSocialNative[data-social-view="messages"] .social-dm-identity p{margin:2px 0 0!important}
+
+@media(max-width:920px){#swappSocialNative .swapp-interactive{scroll-margin-top:calc(var(--swapp-social-header-height,68px) + var(--swapp-social-stack-height,150px) + 12px)}}
