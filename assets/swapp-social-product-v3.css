@@ -179,3 +179,11 @@
  #swappSocialNative[data-social-view="play"] .swapp-interactive :is(.ssn-universe,.ssn-passport,.ssi-panel-match,.ssi-panel-polls){padding:23px 17px!important}
 }
 @media(prefers-reduced-motion:reduce){#swappSocialNative *{scroll-behavior:auto!important}}
+
+#swappSocialNative[data-social-view="messages"] .social-dm-head{display:flex!important;align-items:center;gap:14px}
+#swappSocialNative[data-social-view="messages"] .social-dm-back{display:grid;place-items:center;flex:0 0 38px;height:38px;border:1px solid var(--s3-border);background:#192b41;color:#ddecff;border-radius:9px;font-size:23px;cursor:pointer}
+#swappSocialNative[data-social-view="messages"] .social-dm-back:hover{background:var(--s3-hover)}
+#swappSocialNative[data-social-view="messages"] .social-dm-identity{display:flex;align-items:center;gap:12px}
+#swappSocialNative[data-social-view="messages"] .social-dm-avatar{display:grid;place-items:center;flex:0 0 38px;height:38px;border-radius:12px;background:color-mix(in srgb,var(--s3-accent) 20%,#16263a);border:1px solid var(--s3-border);font-weight:850}
+#swappSocialNative[data-social-view="messages"] .social-dm-identity h2{font-size:19px!important;margin:0!important}
+#swappSocialNative[data-social-view="messages"] .social-dm-identity p{margin:2px 0 0!important}
