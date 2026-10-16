@@ -40,8 +40,8 @@ test('le site client charge le même contrat avant le script SPA',()=>{
  const script=fs.readFileSync(path.join(ROOT,'index_script.js'),'utf8');
  assert.ok(html.indexOf('src="/assets/swapp-navigation.js?v=20261015-hubs-3"') < html.indexOf('src="/index_script.js'));
  assert.match(script,/window\.SwappNavigation/);
- assert.match(html,/href="\/assets\/swapp-unified-nav\.css\?v=20261016-header-parity-10"/);
- assert.match(layout({content:''}),/href="\/assets\/swapp-unified-nav\.css\?v=20261016-header-parity-10"/);
+ assert.match(html,/href="\/assets\/swapp-unified-nav\.css\?v=20261016-account-dedupe-2"/);
+ assert.match(layout({content:''}),/href="\/assets\/swapp-unified-nav\.css\?v=20261016-account-dedupe-2"/);
 });
 test('pages article, actualités et live partagent le même menu et SWAPP reste SWAPP',()=>{
  const story={slug:'jeu-2026',title:'Un jeu annoncé',body:'Une analyse assez complète pour découvrir cette actualité.',summary:'Un résumé de l’article',category:'ACTUS',author:'SWAPP',game:'Fortnite',sources:[],publishedAt:'2026-10-14T20:00:00Z'};
@@ -92,7 +92,7 @@ test('Communauté, Vidéos et Boutique partagent exactement les dimensions du lo
  const brand=/<a class="brand" href="\/"[^>]*><span class="swapp-wordmark-text">SWAPP<span class="swapp-wordmark-dot"/;
  for(const html of [spa,...pages]){
   assert.match(html,brand);
-  assert.match(html,/swapp-unified-nav\.css\?v=20261016-header-parity-10/);
+  assert.match(html,/swapp-unified-nav\.css\?v=20261016-account-dedupe-2/);
   assert.match(html,/class="topbar"/);
   assert.match(html,/id="nav" class="mainNav"/);
   assert.match(html,/id="userBtn" class="userBtn"|id="userBtn" class="userBtn"/);
