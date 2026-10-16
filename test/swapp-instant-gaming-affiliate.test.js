@@ -45,14 +45,15 @@ test('native article displays a single disclosed partner link adjacent to discov
 });
 test('Boutique stays independent and never adds Instant Gaming products automatically',()=>{
  const html=shop();
- assert.match(html,/La sélection commerciale est en préparation/);
- assert.match(html,/La Boutique est indépendante des liens affiliés des articles/);
+ assert.match(html,/Vitrine de démonstration/);
+ assert.match(html,/les produits marqués « Exemple »/);
  assert.doesNotMatch(html,/igr=SANSAHD|instant-gaming\.com/);
  for(const offer of catalog)assert.ok(!html.includes(offer.game));
  assert.doesNotMatch(html,/Lien affilié : SWAPP peut percevoir une commission/);
 });
 test('editor-provided Boutique products remain visible without editorial affiliate spillover',()=>{
- const html=shop([{title:'Création SWAPP',url:'https://merchant.example/item',merchant:'Partenaire',affiliate:false}]);
+ const html=shop([{id:'creation-swapp',kind:'caps',title:'Création SWAPP',
+  url:'https://merchant.example/item',merchant:'Partenaire',affiliate:false,demo:false,visible:true}],{source:'managed'});
  assert.match(html,/Création SWAPP/);
  assert.doesNotMatch(html,/igr=SANSAHD/);
 });
