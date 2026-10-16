@@ -85,3 +85,11 @@
  .swapp-shop-editor-preview{align-items:flex-start}
  .swapp-shop-preview-art{flex-basis:85px;height:92px}
 }
+
+
+/* Authentic imagery in editor: show actual thumbnails and a second-angle preview. */
+.swapp-shop-admin-art{overflow:hidden!important;font-size:11px!important;text-align:center}
+.swapp-shop-admin-art img{display:block;width:100%;height:100%;object-fit:cover;border-radius:9px}
+.swapp-shop-preview-secondary{display:block;width:110px;height:96px;object-fit:cover;border-radius:10px;border:1px solid #a3c5c84a}
+.swapp-shop-image-help{grid-column:1/-1;color:#a3bccb;font-size:12px;line-height:1.55;margin:0}
+@media(max-width:640px){.swapp-shop-preview-secondary{width:68px;height:75px}.swapp-shop-editor-preview{flex-wrap:wrap}}
