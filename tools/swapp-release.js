@@ -7,6 +7,7 @@ const crypto=require('node:crypto');
 
 const RELEASE_FILES=Object.freeze([
  'server.js',
+ 'app.js',
  'index.html',
  'modules/swapp-hubs.js',
  'modules/swapp-news/site-shell.js',
@@ -15,6 +16,8 @@ const RELEASE_FILES=Object.freeze([
  'assets/swapp-social-native/social-body.html',
  'assets/swapp-social-native/social-swapp.css',
  'assets/swapp-social-native/app.js',
+ 'assets/swapp-social-native/core.js',
+ 'assets/swapp-social-native/session.js',
  'assets/swapp-social-native/views.js',
  'ads.txt'
 ]);
