@@ -930,7 +930,8 @@ app.get('/api/swapp/interactions/status',async(_req,res)=>{
       'SELECT id FROM swapp_social_polls LIMIT 0',
       'SELECT poll_id FROM swapp_social_votes LIMIT 0',
       'SELECT id FROM swapp_social_rooms LIMIT 0',
-      'SELECT id FROM swapp_social_room_messages LIMIT 0'
+      'SELECT id FROM swapp_social_room_messages LIMIT 0',
+      'SELECT user_id FROM swapp_social_passports LIMIT 0'
      ];
      await Promise.all(checks.map(sql=>socialInteractionsPool.execute(sql)));
      socialInteractionsHealth.payload={enabled:true,state:'database_read_ready'};
@@ -976,12 +977,14 @@ if(process.env.SWAPP_SOCIAL_FEATURES==='1'){
   // Polling the chat every 5 seconds must not exhaust the 60/10-minute login limiter.
   // Preserve the tighter auth limiter for all SOCIAL write operations.
   const socialReadLimiter=rateLimit({windowMs:60*1000,max:180,standardHeaders:true,legacyHeaders:false});
+  const {createSocialNextRouter}=require('./modules/swapp-social-next');
   app.use('/api/swapp/interactions',async(_req,res,next)=>{
    await socialInteractionsInit;
    if(socialInteractionsState==='unavailable')
     return res.status(503).json({error:'social_storage_unavailable',reason:socialInteractionsReason});
    next();
   },(req,res,next)=>req.method==='GET'?socialReadLimiter(req,res,next):authLimiter(req,res,next),
+   createSocialNextRouter({express,restoreSession:restoreOryonSessionFromRememberCookie,pool:socialDbPool}),
    createSocialMysqlInteractions({express,restoreSession:restoreOryonSessionFromRememberCookie,pool:socialDbPool}));
  }catch(error){
   socialInteractionsState='unavailable';
