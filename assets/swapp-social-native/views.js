@@ -1,6 +1,6 @@
 import { state, dom, api, esc, icon, initials, timeAgo, setStatus, errorText } from './core.js';
 import { requireAuth } from './session.js';
-import { renderPost, renderPosts, notificationLabel } from './render.js';
+import { renderPost, renderPosts, notificationLabel } from './render.js?v=20261016-compact-card-1';
 
 export function setView(view,title){
   state.view=view;
