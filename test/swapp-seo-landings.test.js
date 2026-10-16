@@ -227,3 +227,21 @@ test('an editorial commit refreshes sitemap immediately without paid polling',as
  const router=fs.readFileSync(path.join(__dirname,'../modules/swapp-news/router.js'),'utf8');
  assert.match(router,/invalidateSeoCache\(\)/);
 });
+
+test('Search Console verification survives alternate Hostinger UI_FILE without duplicate tags',()=>{
+ const {injectSpaMetadata,ensureSearchConsoleMeta}=require('../modules/swapp-seo');
+ const token='G7mGoV76GdKsvAMEGkyKILyzsiW4U-GXIfuWza9G4N4';
+ const otherTemplate='<html><head><title>SWAPP alternate UI</title></head><body>SWAPP</body></html>';
+ const homepage=injectSpaMetadata(otherTemplate,'/');
+ assert.match(homepage,new RegExp('google-site-verification" content="'+token+'"'));
+ assert.ok(homepage.indexOf(token)>homepage.indexOf('<head>'));
+ assert.ok(homepage.indexOf(token)<homepage.indexOf('</head>'));
+ assert.equal((injectSpaMetadata(homepage,'/').match(/google-site-verification/g)||[]).length,1);
+ assert.doesNotMatch(injectSpaMetadata(otherTemplate,'/decouvrir'),/google-site-verification/);
+ const existing='<html><head><meta name="google-site-verification" content="another-owner"></head><body></body></html>';
+ const joined=ensureSearchConsoleMeta(existing);
+ assert.match(joined,/content="another-owner"/);
+ assert.match(joined,new RegExp(token));
+ const file=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
+ assert.equal((injectSpaMetadata(file,'/').match(/google-site-verification/g)||[]).length,1);
+});
