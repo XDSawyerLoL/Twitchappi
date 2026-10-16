@@ -1,0 +1,221 @@
+/* SOCIAL SECTION EDITION — full-width editorial sections, not floating bubbles.
+   Loaded last; deliberately overrides the earlier card-based prototype. */
+.swapp-social-viewport .swapp-interactive{
+ --ssi-primary:var(--swapp-page-accent,var(--social-accent,#b0f337));
+ --ssi-paper:#111b2a;--ssi-paper-alt:#152033;--ssi-text:#f4f7ff;--ssi-separator:rgba(183,203,229,.20);
+ margin:0 0 25px;width:100%;min-width:0;color:var(--ssi-text);
+}
+.swapp-social-viewport .swapp-interactive .ssi-intro{
+ background:linear-gradient(105deg,color-mix(in srgb,var(--ssi-primary) 9%,#111b2a),#111a2a 68%)!important;
+ border:0!important;border-top:3px solid var(--ssi-primary)!important;border-bottom:1px solid var(--ssi-separator)!important;
+ border-radius:0!important;box-shadow:none!important;padding:31px clamp(18px,3.5vw,41px)!important;min-height:0!important;
+}
+.swapp-social-viewport .swapp-interactive .ssi-intro:before{display:none!important}
+.swapp-social-viewport .swapp-interactive .ssi-intro h2{
+ font-size:clamp(27px,3.5vw,43px)!important;font-weight:850!important;letter-spacing:-.047em!important;line-height:1.06!important;
+}
+.swapp-social-viewport .swapp-interactive .ssi-intro p{max-width:560px;font-size:13px;color:#c7d3e3}
+.swapp-social-viewport .swapp-interactive .ssi-intro-side{min-width:0}
+.swapp-social-viewport .swapp-interactive .ssi-stats{gap:22px}
+.swapp-social-viewport .swapp-interactive .ssi-stat{min-width:60px}
+.swapp-social-viewport .swapp-interactive .ssi-stat strong{font-size:25px}
+.swapp-social-viewport .swapp-interactive .ssi-stat span{font-size:10px}
+.swapp-social-viewport .swapp-interactive .ssi-links a{border:0;border-radius:0!important;border-bottom:1px solid rgba(205,219,239,.35);background:none;padding:4px 0;margin-left:7px}
+.swapp-social-viewport .swapp-interactive .ssi-links a:hover{background:none;border-color:var(--ssi-primary)}
+/* An actual sub-navigation, never a second top bar or another pill cloud. */
+.swapp-social-viewport .swapp-interactive .ssi-section-nav{
+ display:flex;align-items:center;gap:clamp(12px,2vw,25px);padding:0 clamp(18px,3.5vw,41px);
+ min-height:56px;background:#0e1826;border-bottom:1px solid var(--ssi-separator);
+ overflow-x:auto;overscroll-behavior-inline:contain;scrollbar-width:thin;scrollbar-color:#526079 transparent;
+}
+.swapp-social-viewport .swapp-interactive .ssi-section-nav .ssi-nav-label{
+ flex:0 0 auto;font-size:9px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;color:#839ab2;margin-right:5px;
+}
+.swapp-social-viewport .swapp-interactive .ssi-section-nav a{
+ position:relative;flex:0 0 auto;display:inline-flex;align-items:center;gap:7px;align-self:stretch;
+ padding:0 0 1px;color:#a5b6c9;text-decoration:none!important;border-radius:0!important;
+ font-size:11px;font-weight:700;white-space:nowrap;transition:color .15s;
+}
+.swapp-social-viewport .swapp-interactive .ssi-section-nav a span{color:#e0e8f5;font-size:12px}
+.swapp-social-viewport .swapp-interactive .ssi-section-nav a:hover,
+.swapp-social-viewport .swapp-interactive .ssi-section-nav a:focus-visible{color:var(--ssi-primary)}
+.swapp-social-viewport .swapp-interactive .ssi-section-nav a:after{
+ content:"";height:2px;position:absolute;bottom:0;left:0;right:100%;background:var(--ssi-primary);
+ transition:right .2s;
+}
+.swapp-social-viewport .swapp-interactive .ssi-section-nav a:hover:after,
+.swapp-social-viewport .swapp-interactive .ssi-section-nav a:focus-visible:after{right:0}
+.swapp-social-viewport .swapp-interactive :is(#ssn-passport,#ssn-universe,#ssi-match-panel,#ssi-poll-panel,#ssi-room-panel,#ssi-chat-panel){
+ scroll-margin-top:calc(var(--swapp-social-header-height,72px) + var(--swapp-social-stack-height,0px) + 18px);
+}
+.swapp-social-viewport .swapp-interactive .ssn-space,
+.swapp-social-viewport .swapp-interactive .ssi-sections{display:block!important;margin:0!important;padding:0!important}
+.swapp-social-viewport .swapp-interactive .ssi-section-group{display:contents!important}
+/* These are six true page sections, with restrained editorial separators. */
+.swapp-social-viewport .swapp-interactive :is(.ssn-passport,.ssn-universe,.ssi-panel){
+ position:relative;display:grid!important;
+ grid-template-columns:minmax(165px,.32fr) minmax(0,.68fr);
+ column-gap:clamp(17px,3.5vw,48px);row-gap:15px;
+ width:100%;margin:0!important;padding:clamp(25px,3.5vw,42px) clamp(18px,3.5vw,41px)!important;
+ background:var(--ssi-paper)!important;border:0!important;border-bottom:1px solid var(--ssi-separator)!important;
+ border-radius:0!important;box-shadow:none!important;overflow:visible!important;
+ transition:none!important;
+}
+.swapp-social-viewport .swapp-interactive :is(.ssn-universe,.ssi-panel-polls,.ssi-chat-panel){background:var(--ssi-paper-alt)!important}
+.swapp-social-viewport .swapp-interactive .ssi-panel:before{display:none!important}
+.swapp-social-viewport .swapp-interactive .ssi-panel:hover{box-shadow:none!important;border-color:var(--ssi-separator)!important}
+.swapp-social-viewport .swapp-interactive .ssi-panel-inner{display:contents!important;padding:0!important}
+.swapp-social-viewport .swapp-interactive :is(.ssi-panel-head,.ssn-head){
+ display:flex!important;align-items:flex-start!important;gap:0!important;
+ grid-column:1;grid-row:1/span 5;margin:0!important;padding:0!important;
+ border:0!important;background:transparent!important;min-width:0;
+}
+.swapp-social-viewport .swapp-interactive :is(.ssi-head-main,.ssn-head){align-items:flex-start!important;min-width:0}
+.swapp-social-viewport .swapp-interactive .ssi-head-main{display:block!important}
+.swapp-social-viewport .swapp-interactive :is(.ssi-icon,.ssn-avatar,.ssn-orbit){
+ display:none!important;
+}
+.swapp-social-viewport .swapp-interactive .ssi-panel-head .ssi-count{
+ position:absolute;top:clamp(25px,3.5vw,42px);right:clamp(18px,3.5vw,41px);
+ width:auto;height:auto;min-width:0;border:0;background:none;border-radius:0!important;
+ font-size:13px;color:#b8cbe0;font-weight:750;padding:0;
+}
+.swapp-social-viewport .swapp-interactive :is(.ssi-section-label,.ssn-copy .ssi-kicker){
+ color:var(--ssi-primary)!important;letter-spacing:.12em;font-size:10px!important;font-weight:850;text-transform:uppercase;
+}
+.swapp-social-viewport .swapp-interactive :is(.ssi-panel h3,.ssn-copy h3){
+ color:#f4f8ff!important;font-size:clamp(22px,2.5vw,32px)!important;line-height:1.12!important;
+ font-weight:840!important;letter-spacing:-.04em!important;margin:9px 0!important;max-width:350px;
+}
+.swapp-social-viewport .swapp-interactive :is(.ssi-panel-desc,.ssn-copy p){
+ font-size:12px!important;line-height:1.65!important;color:#aebed2!important;margin:5px 0 0!important;
+ max-width:300px;
+}
+.swapp-social-viewport .swapp-interactive .ssn-head>.ssi-ghost{position:absolute;right:clamp(18px,3.5vw,41px);top:clamp(25px,3.5vw,42px);margin:0!important}
+.swapp-social-viewport .swapp-interactive .ssn-passport .ssn-head{padding-right:8px!important}
+.swapp-social-viewport .swapp-interactive .ssn-summary{grid-column:2;grid-row:1;align-content:start;margin:0!important;padding-right:90px;min-height:60px}
+.swapp-social-viewport .swapp-interactive .ssn-form{grid-column:2;grid-row:2;margin:0!important}
+.swapp-social-viewport .swapp-interactive .ssn-search{grid-column:2;grid-row:1;align-self:start;margin:0!important}
+.swapp-social-viewport .swapp-interactive .ssn-game-results{grid-column:2;grid-row:2;margin:0!important}
+.swapp-social-viewport .swapp-interactive :is(.ssi-list,.ssi-room-list,#ssi-chat-body){grid-column:2;grid-row:1;min-width:0;margin:0!important}
+.swapp-social-viewport .swapp-interactive .ssi-block-action{grid-column:2;grid-row:2;justify-self:start;align-self:start;margin:0!important}
+.swapp-social-viewport .swapp-interactive .ssi-inline-form{grid-column:2;grid-row:3;margin:0!important}
+.swapp-social-viewport .swapp-interactive .ssi-chat-hint{font-size:11px!important}
+.swapp-social-viewport .swapp-interactive .ssi-chat-heading h3{max-width:270px;white-space:normal}
+/* Row-based lists: no card borders or endless rounded boxes. */
+.swapp-social-viewport .swapp-interactive .ssi-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 20px}
+.swapp-social-viewport .swapp-interactive .ssi-item{
+ border:0!important;border-bottom:1px solid var(--ssi-separator)!important;
+ background:none!important;border-radius:0!important;
+ padding:14px 0!important;margin:0!important;box-shadow:none!important;min-width:0;
+}
+.swapp-social-viewport .swapp-interactive .ssi-item:first-child{padding-top:0!important}
+.swapp-social-viewport .swapp-interactive :is(.ssi-match-score,.ssi-chip){
+ border:0!important;border-radius:2px!important;background:color-mix(in srgb,var(--ssi-primary) 13%,transparent)!important;
+ color:#d8ecff!important;font-size:10px!important
+}
+.swapp-social-viewport .swapp-interactive :is(.ssi-item-meta,.ssi-poll-foot){color:#a9bcd1!important;font-size:11px}
+.swapp-social-viewport .swapp-interactive .ssi-item .ssi-ghost{margin-top:9px}
+.swapp-social-viewport .swapp-interactive .ssi-poll{padding-top:0!important;padding-bottom:18px!important}
+.swapp-social-viewport .swapp-interactive .ssi-poll h4{font-size:14px!important;line-height:1.4!important}
+.swapp-social-viewport .swapp-interactive .ssi-vote{
+ border-radius:3px!important;background:rgba(0,0,0,.18)!important;border-color:rgba(188,207,238,.19)!important;
+}
+.swapp-social-viewport .swapp-interactive .ssi-vote-bar{background:color-mix(in srgb,var(--ssi-primary) 20%,transparent)!important}
+.swapp-social-viewport .swapp-interactive .ssi-room-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 20px}
+.swapp-social-viewport .swapp-interactive .ssi-room{
+ border:0!important;border-bottom:1px solid var(--ssi-separator)!important;border-radius:0!important;
+ background:transparent!important;padding:14px 0!important;
+}
+.swapp-social-viewport .swapp-interactive .ssi-room[aria-pressed="true"]{
+ border-bottom-color:var(--ssi-primary)!important;background:none!important;
+}
+.swapp-social-viewport .swapp-interactive .ssi-room:hover{background:rgba(255,255,255,.02)!important}
+.swapp-social-viewport .swapp-interactive .ssi-room-name{font-size:13px;font-weight:820}
+.swapp-social-viewport .swapp-interactive .ssi-room-game{font-size:11px}
+.swapp-social-viewport .swapp-interactive .ssi-chat-stream{
+ height:370px;max-height:45vh;min-height:190px;
+ padding:18px 8px 15px 0!important;background:#101a2b;border:1px solid var(--ssi-separator);
+ margin-bottom:0!important;
+}
+.swapp-social-viewport .swapp-interactive .ssi-chat-bubble{border-radius:4px 12px 12px 12px!important}
+.swapp-social-viewport .swapp-interactive .ssi-compose{
+ padding:13px 0 0!important;background:none;border-top:0!important;position:relative;
+}
+.swapp-social-viewport .swapp-interactive .ssi-room-placeholder,
+.swapp-social-viewport .swapp-interactive .ssi-chat-empty{
+ border:0!important;border-radius:0!important;background:rgba(0,0,0,.12)!important;
+ min-height:130px;
+}
+.swapp-social-viewport .swapp-interactive .ssi-empty{
+ grid-column:1/-1;border:0!important;border-left:2px solid var(--ssi-separator)!important;
+ border-radius:0!important;background:transparent!important;padding:14px 0 14px 15px!important;
+}
+.swapp-social-viewport .swapp-interactive .ssi-empty-glyph{display:none!important}
+/* Primary interactions are rectangular editorial controls, not glossy pills. */
+.swapp-social-viewport .swapp-interactive :is(.ssi-button,.ssi-ghost,.ssn-tags button,.ssn-room){
+ border-radius:4px!important;box-shadow:none!important;
+}
+.swapp-social-viewport .swapp-interactive .ssi-button{
+ padding:10px 17px;background:var(--ssi-primary)!important;color:#0a1421!important;
+ border-color:var(--ssi-primary)!important;font-weight:800;
+}
+.swapp-social-viewport .swapp-interactive .ssi-button:hover{transform:none!important;filter:brightness(1.08)}
+.swapp-social-viewport .swapp-interactive .ssi-ghost{background:transparent!important;border:1px solid rgba(176,197,225,.29)!important}
+.swapp-social-viewport .swapp-interactive .ssi-ghost:hover{background:rgba(255,255,255,.065)!important}
+.swapp-social-viewport .swapp-interactive :is(.ssi-inline-form,.ssn-form){
+ background:rgba(6,13,24,.4)!important;border:0!important;border-left:2px solid var(--ssi-primary)!important;
+ border-radius:0!important;padding:17px!important;
+}
+.swapp-social-viewport .swapp-interactive :is(.ssi-field input,.ssi-field select,.ssn-fields input,.ssn-fields select,.ssn-search input){
+ border-radius:4px!important;background:#0a1424!important
+}
+.swapp-social-viewport .swapp-interactive .ssn-summary .ssn-tags button{background:none!important;border:0!important;border-bottom:1px solid var(--ssi-primary)!important;color:#e0f1ff!important}
+.swapp-social-viewport .swapp-interactive .ssn-summary .ssn-visibility{border-radius:2px!important}
+.swapp-social-viewport .swapp-interactive .ssn-game-columns{grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.swapp-social-viewport .swapp-interactive .ssn-game-columns section{
+ border:0!important;border-top:1px solid var(--ssi-separator)!important;border-radius:0!important;
+ background:none!important;padding:15px 0!important;
+}
+.swapp-social-viewport .swapp-interactive .ssn-game-columns h4{font-size:14px!important}
+.swapp-social-viewport .swapp-interactive .ssn-room{
+ border:0!important;border-bottom:1px solid var(--ssi-separator)!important;background:none!important;
+ border-radius:0!important;padding:10px 0!important;
+}
+.swapp-social-viewport .swapp-interactive .ssn-live{
+ border:0!important;border-bottom:1px solid var(--ssi-separator)!important;border-radius:0!important;
+ background:transparent!important;padding:12px 0!important;
+}
+.swapp-social-viewport .swapp-interactive .ssn-live:hover{background:transparent!important;border-color:var(--ssi-primary)!important}
+.swapp-social-viewport .swapp-interactive .ssn-lives{gap:0 22px}
+.swapp-social-viewport .swapp-interactive .ssn-game-results .ssn-universe-title{border-radius:0!important}
+/* Desktop: full-width section with a clear title rail; narrow screens: stacked. */
+@media(max-width:1100px){
+ .swapp-social-viewport .swapp-interactive :is(.ssn-passport,.ssn-universe,.ssi-panel){grid-template-columns:1fr;gap:15px}
+ .swapp-social-viewport .swapp-interactive :is(.ssi-panel-head,.ssn-head){grid-column:1;grid-row:auto;max-width:100%;padding-right:48px!important}
+ .swapp-social-viewport .swapp-interactive :is(.ssi-list,.ssi-room-list,#ssi-chat-body,.ssn-summary,.ssn-search,.ssn-game-results,.ssn-form,.ssi-block-action,.ssi-inline-form){
+  grid-column:1;grid-row:auto;
+ }
+ .swapp-social-viewport .swapp-interactive .ssn-summary{padding-right:0}
+ .swapp-social-viewport .swapp-interactive .ssn-head>.ssi-ghost{top:24px}
+ .swapp-social-viewport .swapp-interactive .ssi-panel-head .ssi-count{top:24px}
+}
+@media(max-width:610px){
+ .swapp-social-viewport .swapp-interactive .ssi-intro{padding:23px 16px!important}
+ .swapp-social-viewport .swapp-interactive .ssi-intro h2{font-size:29px!important}
+ .swapp-social-viewport .swapp-interactive .ssi-intro-side{flex-direction:column;align-items:flex-start}
+ .swapp-social-viewport .swapp-interactive .ssi-stats{gap:24px}
+ .swapp-social-viewport .swapp-interactive .ssi-section-nav{min-height:50px;padding:0 16px;gap:21px}
+ .swapp-social-viewport .swapp-interactive .ssi-section-nav .ssi-nav-label{display:none}
+ .swapp-social-viewport .swapp-interactive :is(.ssn-passport,.ssn-universe,.ssi-panel){padding:25px 16px!important}
+ .swapp-social-viewport .swapp-interactive :is(.ssi-list,.ssi-room-list,.ssn-game-columns){grid-template-columns:1fr!important}
+ .swapp-social-viewport .swapp-interactive .ssn-head>.ssi-ghost{position:static;margin-top:10px!important}
+ .swapp-social-viewport .swapp-interactive .ssn-head{flex-wrap:wrap}
+ .swapp-social-viewport .swapp-interactive .ssi-panel-head .ssi-count{right:16px}
+ .swapp-social-viewport .swapp-interactive .ssi-panel h3{font-size:26px!important}
+ .swapp-social-viewport .swapp-interactive .ssi-chat-stream{height:280px;max-height:45vh}
+ .swapp-social-viewport .swapp-interactive .ssi-form-row,.swapp-social-viewport .swapp-interactive .ssn-fields{grid-template-columns:1fr}
+}
+@media(prefers-reduced-motion:reduce){
+ .swapp-social-viewport .swapp-interactive .ssi-section-nav a:after{transition:none}
+}
