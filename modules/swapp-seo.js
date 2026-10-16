@@ -68,4 +68,34 @@ function registerSeoRoutes(app,{getPublished=async()=>[],now=()=>Date.now()}={})
   return res.status(200).send(cached);
  });
 }
-module.exports={ORIGIN,CORE_PATHS,sitemapEntries,sitemapXml,robotsText,registerSeoRoutes};
+const SPA_INFO=Object.freeze({
+ '/':{title:'SWAPP — Découvre les jeux, les lives et leurs créateurs',description:'SWAPP réunit actualité du jeu vidéo, découverte de streamers en direct et communauté gaming.'},
+ '/decouvrir':{title:'Découvrir les lives et les créateurs · SWAPP',description:'Trouve des créateurs en direct selon tes envies, les jeux et les communautés, sans te perdre dans les recommandations.'},
+ '/categories':{title:'Catégories gaming et lives · SWAPP',description:'Explore les jeux et catégories en direct sur SWAPP.'},
+ '/equipes':{title:'Équipes et créateurs · SWAPP',description:'Découvre les équipes et créateurs gaming sur SWAPP.'},
+ '/actus':{title:'Actualité jeux vidéo et streaming · SWAPP',description:'Actualités jeux vidéo, annonces et bandes-annonces sélectionnées par SWAPP.'}
+});
+const NOINDEX_PATHS=new Set(['/compte','/connexion','/settings','/gestionnaire','/manager','/dashboard','/studio','/admin','/reset-password']);
+function injectSpaMetadata(html,pathname='/'){
+ const raw=String(html||'');
+ if(!raw.includes('</head>'))return raw;
+ const path=String(pathname||'/').split('?')[0];
+ const info=SPA_INFO[path];
+ const hidden=NOINDEX_PATHS.has(path)||path.startsWith('/reset-password/');
+ if(!info&&!hidden)return raw;
+ let result=raw;
+ if(info){
+  const tags='<meta name="description" content="'+encodeXml(info.description)+'">'+
+   '<link rel="canonical" href="'+ORIGIN+path+'">'+
+   '<meta property="og:type" content="website">'+
+   '<meta property="og:site_name" content="SWAPP">'+
+   '<meta property="og:title" content="'+encodeXml(info.title)+'">'+
+   '<meta property="og:description" content="'+encodeXml(info.description)+'">'+
+   '<meta property="og:url" content="'+ORIGIN+path+'">'+
+   '<meta name="twitter:card" content="summary_large_image">';
+  result=result.replace(/<title>[\s\S]*?<\/title>/i,'<title>'+encodeXml(info.title)+'</title>');
+  return result.replace('</head>',tags+'</head>');
+ }
+ return result.replace('</head>','<meta name="robots" content="noindex,nofollow"></head>');
+}
+module.exports={ORIGIN,CORE_PATHS,sitemapEntries,sitemapXml,robotsText,registerSeoRoutes,injectSpaMetadata};
