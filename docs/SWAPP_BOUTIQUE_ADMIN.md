@@ -8,17 +8,17 @@ La Boutique est désormais une vitrine native de SWAPP à l'adresse **https://sw
 - **Casquettes** : deux modèles conceptuels.
 - **Tapis de souris** : deux deskmat conceptuels.
 
-Toutes les fiches d'exemple sont **non vendables**, sans prix ni lien de paiement. Les illustrations graphiques sont produites localement par CSS jusqu'à la fourniture d'images autorisées. Aucune image du jeu ou photographie de produit n'est présentée comme authentique sans accord.
+Toutes les fiches d'exemple sont **non vendables**, sans prix ni lien de paiement. La galerie utilise désormais **de vrais visuels** : images promotionnelles officielles via le CDN Steam pour les jeux et photographies Unsplash pour les accessoires. Les photos de casquettes et de bureaux sont **des inspirations photographiques**, jamais des photographies de produits SWAPP déjà fabriqués. Aucun élément CSS ne simule plus les objets.
 
 ## Gérer la vitrine
 
 1. Se connecter au compte SWAPP administrateur déjà autorisé pour la rédaction.
 2. Ouvrir le menu du compte → **Gestion Boutique · Produits & vitrine**, ou depuis SWAPP Studio → **Gestion Boutique · Produits**.
-3. Sur **/boutique/admin**, choisir une fiche, corriger son nom, sa description, son rayon, son image et son statut. Le bouton **Appliquer à la liste** prépare le changement, mais ne le publie pas.
+3. Sur **/boutique/admin**, choisir une fiche, corriger son nom, sa description, son rayon, son image principale (obligatoire pour toute fiche visible), sa deuxième photo facultative et son statut. L'aperçu doit montrer la photo attendue, sans erreur de chargement. Le bouton **Appliquer à la liste** prépare le changement, mais ne le publie pas.
 4. Cliquer **Enregistrer sur SWAPP** pour publier les fiches visibles. **Ouvrir la vitrine** permet de contrôler le rendu.
 5. Les flèches permettent de changer l'ordre des produits dans un rayon. La case **Visible sur la Boutique** masque une fiche sans la supprimer.
 
-Pour une **vraie référence**, désactiver la case Démonstration, renseigner le nom du marchand et son URL HTTPS. Le lien extérieur sera alors affiché. Cocher « Lien affilié » uniquement pour un lien réellement rémunéré. La Boutique ne réalise aucun achat ni traitement de carte bancaire.
+Pour une **vraie référence**, désactiver la case Démonstration, renseigner le nom du marchand, une vraie image utilisable et son URL HTTPS. Le lien extérieur sera alors affiché. Cocher « Lien affilié » uniquement pour un lien réellement rémunéré. La Boutique ne réalise aucun achat ni traitement de carte bancaire.
 
 ## Stockage et sécurité
 
@@ -29,6 +29,17 @@ Pour une **vraie référence**, désactiver la case Démonstration, renseigner l
 - En cas d'indisponibilité de Firestore : la vitrine reste disponible avec les exemples, mais l'éditeur refuse de prétendre avoir enregistré. L'utilisateur reçoit une erreur.
 - Le futur passage éventuel à MySQL Hostinger nécessite une migration explicite de `swapp_shop/catalog_v1` ; ne pas désactiver l'ancien stockage avant vérification.
 - Le chemin `/boutique/admin` est protégé et exclu des robots.
+
+
+## Provenance des images de démonstration
+
+- **Clair Obscur: Expedition 33**, **Hades II** et **Kingdom Come: Deliverance II** : visuels des fiches officielles Steam (Steam CDN, respectivement les applications 1903340, 1145350 et 1771300). Ces œuvres promotionnelles appartiennent à leurs ayants droit ; avant une activité commerciale, vérifier les autorisations de réutilisation et remplacer si nécessaire par les médias autorisés fournis par l'éditeur ou le marchand.
+- **Casquette noire, casquette graphique** : photographies Unsplash des contributeurs Julian Faist et 420 FourTwoO.
+- **Deskmat noir, deskmat bureau** : photographies Unsplash de Muhammet SAIN et Kofi Nartey.
+- **Licence photographique** : https://unsplash.com/license (utilisation possible dans une vitrine commerciale selon les conditions ; les marques/produits reconnaissables nécessitent leur propre vérification). Photos sources : https://unsplash.com/photos/IVb43vObfMA , https://unsplash.com/photos/BIr8rxlnD1s , https://unsplash.com/photos/8e9KCdOj29o , https://unsplash.com/photos/X2ZYZZnfm9U .
+- Les URLs actuelles sont **distantes**, pas des fichiers hébergés par SWAPP. Leur affichage dépend de leur disponibilité. Pour la boutique définitive, privilégier des photos de produits réels dont le vendeur autorise l'hébergement sur Hostinger.
+- Un catalogue administrateur déjà sauvegardé avec les anciens sept exemples peut être mis à niveau automatiquement pour ces identifiants **uniquement si la fiche est encore marquée Démonstration et sans image**. Les modifications et photos choisies par l'administrateur ne sont pas remplacées.
+- Une fiche visible sans URL HTTPS d'image est refusée à la sauvegarde. Les anciennes fiches qui n'ont pas de visuel ne sont pas montrées au public. Le navigateur donne un aperçu pour vérifier manuellement que l'image charge.
 
 ## Déploiement
 
