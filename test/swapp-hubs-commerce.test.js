@@ -66,15 +66,20 @@ test('all verified videos and original artwork appear in the SWAPP gallery',()=>
 
 test('commercial catalog never invents products or follows unsafe merchant links',()=>{
  assert.deepEqual(safeProducts([{title:'Surprise',url:'javascript:alert(1)'}]),[]);
- const product={title:'Accessoire',description:'Produit réel',merchant:'Vendeur',url:'https://merchant.example/produit',affiliate:true};
- const html=shop([product]);
+ const product={id:'casquette-test',kind:'caps',title:'Accessoire',description:'Produit réel',
+  merchant:'Vendeur',url:'https://merchant.example/produit',affiliate:true,demo:false,visible:true};
+ const html=shop([product],{source:'managed'});
  assert.match(html,/Lien affilié/);
  assert.match(html,/rel="sponsored nofollow noopener noreferrer"/);
  assert.match(html,/merchant\.example\/produit/);
- const empty=shop();
- assert.match(empty,/La sélection commerciale est en préparation/);
- assert.doesNotMatch(empty,/instant-gaming\.com|igr=SANSAHD/);
- assert.doesNotMatch(empty,/Prix barré|Acheter maintenant/);
+ const examples=shop();
+ assert.match(examples,/Vitrine de démonstration/);
+ assert.match(examples,/Clair Obscur/);
+ assert.match(examples,/Casquettes/);
+ assert.match(examples,/Tapis de souris/);
+ assert.doesNotMatch(examples,/instant-gaming\.com|igr=SANSAHD/);
+ assert.doesNotMatch(examples,/Prix barré|Acheter maintenant/);
+ assert.equal((examples.match(/swapp-shop-demo-chip/g)||[]).length,7);
 });
 
 test('editorial YouTube trailer is click-to-play only and labels every commercial link',()=>{
