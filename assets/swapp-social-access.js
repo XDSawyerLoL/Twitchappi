@@ -11,6 +11,7 @@
  const registerError=document.getElementById('swapp-social-register-error');
  const loginToggle=document.getElementById('swapp-social-show-login');
  const registerToggle=document.getElementById('swapp-social-show-register');
+ const retryCheck=document.getElementById('swapp-social-retry-check');
  if(!gate||!content||!loginForm||!registerForm)return;
 
  function setAccess(unlocked){
@@ -29,10 +30,19 @@
    // Twitch alone does not authorize SOCIAL. Require a SWAPP local account.
    return Boolean(data?.success&&data?.local?.id);
  }
+ let checkNumber=0;
  async function check(){
-   try{return setAccess(await session())}
-   catch{
-     if(note)note.textContent='Connexion non vérifiée. Connecte-toi à ton compte SWAPP pour accéder à SOCIAL.';
+   const id=++checkNumber;
+   if(retryCheck)retryCheck.disabled=true;
+   try{
+     const valid=await session();
+     if(id!==checkNumber)return;
+     if(retryCheck){retryCheck.hidden=true;retryCheck.disabled=false}
+     setAccess(valid);
+   }catch{
+     if(id!==checkNumber)return;
+     if(note)note.textContent='La vérification du compte SWAPP a échoué. Réessaie avant de te reconnecter.';
+     if(retryCheck){retryCheck.hidden=false;retryCheck.disabled=false}
      setAccess(false);
    }
  }
@@ -46,6 +56,7 @@
  }
  registerToggle?.addEventListener('click',()=>showRegister(true));
  loginToggle?.addEventListener('click',()=>showRegister(false));
+ retryCheck?.addEventListener('click',()=>void check());
 
  async function submit(form,url,body,error){
    const button=form.querySelector('button[type="submit"]');
