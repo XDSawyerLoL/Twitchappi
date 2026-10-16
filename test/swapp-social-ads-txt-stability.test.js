@@ -52,7 +52,7 @@ test('SOCIAL uses one sticky navigation container, not independent fixed bars',(
  for(const token of ['class="pulse-topbar"','class="pulse-mobile-nav"','id="feed-tabs"']){
   const pos=html.indexOf(token);assert.ok(pos>stackStart&&pos<stackClose,token);
  }
- assert.match(hubs,/social-swapp\.css\?v=20261016-social-sticky-stack-6/);
+ assert.match(hubs,/social-swapp\.css\?v=20261016-social-sticky-ux-7/);
 });
 
 test('SOCIAL mobile Explore has a genuine search form and a submit handler',()=>{
@@ -66,7 +66,7 @@ test('SOCIAL mobile Explore has a genuine search form and a submit handler',()=>
  assert.match(app,/event\.target\.id==='social-mobile-search-form'/);
  assert.match(app,/await loadExplore\(query\)/);
  assert.match(css,/\.swapp-social-viewport \.pulse-mobile-search\{\s*display:grid!important/);
- assert.match(hubs,/app\.js\?v=20261016-social-search-7/);
+ assert.match(hubs,/app\.js\?v=20261016-social-search-ux-8/);
 });
 
 test('stable CSS remains structurally balanced',()=>{
