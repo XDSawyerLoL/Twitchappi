@@ -3,7 +3,7 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
-const {forArticle,findByGame,shopProducts,catalog,referralHome}=require('../assets/swapp-instant-gaming');
+const {forArticle,findByGame,catalog,referralHome}=require('../assets/swapp-instant-gaming');
 const {renderNewsStory}=require('../modules/swapp-news/native-pages');
 const {shop}=require('../modules/swapp-hubs');
 const read=p=>fs.readFileSync(path.join(__dirname,'..',p),'utf8');
@@ -43,17 +43,15 @@ test('native article displays a single disclosed partner link adjacent to discov
  const other=renderNewsStory({slug:'game-news',title:'World of Warcraft : actualités',game:'World of Warcraft',body:'Texte'});
  assert.doesNotMatch(other,/swapp-affiliate-offer/);
 });
-test('Boutique includes real curated offers and always labels affiliate commissions',()=>{
+test('Boutique stays independent and never adds Instant Gaming products automatically',()=>{
  const html=shop();
- for(const {game,url} of shopProducts()){
-  assert.ok(html.includes(game));
-  assert.ok(html.includes(url.replace(/&/g,'&amp;')));
- }
- assert.equal((html.match(/rel="sponsored nofollow noopener noreferrer"/g)||[]).length,4);
- assert.equal((html.match(/Lien affilié : SWAPP peut percevoir une commission/g)||[]).length,4);
- assert.doesNotMatch(html,/\b(?:29\.99|36\.99|46\.99)\s*€/);
+ assert.match(html,/La sélection commerciale est en préparation/);
+ assert.match(html,/La Boutique est indépendante des liens affiliés des articles/);
+ assert.doesNotMatch(html,/igr=SANSAHD|instant-gaming\.com/);
+ for(const offer of catalog)assert.ok(!html.includes(offer.game));
+ assert.doesNotMatch(html,/Lien affilié : SWAPP peut percevoir une commission/);
 });
-test('editor-provided Boutique products remain prioritized above default affiliate catalogue',()=>{
+test('editor-provided Boutique products remain visible without editorial affiliate spillover',()=>{
  const html=shop([{title:'Création SWAPP',url:'https://merchant.example/item',merchant:'Partenaire',affiliate:false}]);
  assert.match(html,/Création SWAPP/);
  assert.doesNotMatch(html,/igr=SANSAHD/);

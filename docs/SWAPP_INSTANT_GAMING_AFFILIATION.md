@@ -23,7 +23,7 @@ La référence `?igr=SANSAHD` est ajoutée aux URL des fiches. **Le site Instant
 
 ## Boutique
 
-La page Boutique présente les quatre jeux vérifiés lorsqu'aucun produit du catalogue propriétaire SWAPP n'est fourni. Les offres fournies explicitement au module `shop(products)` restent prioritaires. Pas d'API payante ni de scraping de prix côté serveur.
+**L'affiliation Instant Gaming est strictement réservée aux articles d'Actualité.** La page Boutique n'utilise ni les jeux du catalogue affilié ni le paramètre `igr=SANSAHD` automatiquement. Elle affiche uniquement les produits explicitement fournis au module `shop(products)` depuis le catalogue propriétaire SWAPP (`data/swapp-shop.json`). Si aucun produit n'est configuré, elle indique que sa sélection est en préparation. Pas d'API payante ni de récupération de prix côté serveur.
 
 ## Ajouter un jeu
 

@@ -3,7 +3,6 @@
 const {layout}=require('./swapp-news/site-shell');
 const {escapeHtml:e}=require('./swapp-news/article-core');
 const catalog=require('../data/justplayer-public-catalog.json');
-const instantGaming=require('../assets/swapp-instant-gaming');
 const fs=require('node:fs');
 const path=require('node:path');
 const assets='<link rel="stylesheet" href="/assets/swapp-hubs.css?v=20261015-hubs-3">';
@@ -99,10 +98,9 @@ function safeProducts(items){
  return out;
 }
 function shop(products=[]){
- // Keep published partner selections when present; otherwise showcase only
- // verified real game pages with explicit affiliate disclosure.
- const curated=Array.isArray(products)&&products.length?products:instantGaming.shopProducts();
- const cards=safeProducts(curated).map(p=>
+ // Boutique products are managed independently from editorial partner links.
+ // An empty catalog means the selection is genuinely in preparation.
+ const cards=safeProducts(products).map(p=>
  '<article class="swapp-hub-tile">'+(p.image?'<img class="swapp-shop-picture" src="'+e(p.image)+'" alt="" loading="lazy">':'<div class="swapp-hub-tile-art"><span aria-hidden="true">✦</span><small>'+e(p.category)+'</small></div>')+
  '<div class="swapp-hub-tile-copy"><span class="swapp-shop-label">'+e(p.merchant)+'</span><h2>'+e(p.title)+'</h2><p>'+e(p.description)+'</p>'+
  (p.affiliate?'<p class="swapp-hub-disclosure">Lien affilié : SWAPP peut percevoir une commission.</p>':'')+
@@ -111,7 +109,7 @@ function shop(products=[]){
  const main='<main class="swapp-hub">'+heading('SWAPP · Boutique','Une sélection. Pas un supermarché.','Jeux, accessoires et créations pour streamers. Des recommandations choisies, pas des publicités envahissantes.')+
  '<div class="swapp-hub-shop-note"><strong>Le choix de la transparence</strong><p>Les offres n’apparaissent qu’après validation du vendeur et du lien. Aucun faux prix ni fausse promotion. Les achats se font chez le marchand indiqué.</p></div>'+
  '<section class="swapp-hub-grid" aria-label="Produits de la boutique">'+(cards||'<p class="swapp-hub-empty">La sélection commerciale est en préparation. Aucun produit n’est inventé pour remplir cette page.</p>')+'</section>'+
- '<p class="swapp-hub-small">Les liens Instant Gaming utilisent le code SANSAHD. Vérifiez le prix, la plateforme, la région et la disponibilité sur le site marchand. SWAPP ne collecte pas vos achats.</p></main>';
+ '<p class="swapp-hub-small">La Boutique est indépendante des liens affiliés des articles. Les produits seront présentés ici uniquement après sélection et vérification.</p></main>';
  return layout({title:'Boutique',description:'Boutique et sélection gaming avec transparence des liens sur SWAPP.',content:main,active:'shop',scripts:assets});
 }
 module.exports={community,trailers,shop,verifiedTrailers,curatedVideos,videoCard,safeProducts};
