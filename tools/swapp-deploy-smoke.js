@@ -70,6 +70,24 @@ async function verify(){
  const stylesheet=await request(origin,'/assets/swapp-social-native/social-swapp.css');
  check(stylesheet.body.includes('SOCIAL sticky stack v2'),'SOCIAL CSS is stale at the public asset path');
  process.stdout.write('PASS SOCIAL public stylesheet\n');
+ // Public storefront check: real admin edits may replace every demo product.
+ const store=await request(origin,'/boutique');
+ for(const marker of ['swapp-shop-hero','swapp-shop-categories','id="rayon-games"','id="rayon-caps"','id="rayon-pads"','swapp-shop-trust'])
+  check(store.body.includes(marker),'Boutique missing storefront section: '+marker);
+ check(store.body.includes('swapp-shop.css?v=20261016-shop-v1'),
+  'Boutique references an outdated product showcase stylesheet');
+ const shopStyle=await request(origin,'/assets/swapp-shop.css');
+ check(shopStyle.body.includes('.swapp-shop-aisles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))')&&
+   shopStyle.body.includes('.swapp-shop-art--caps')&&shopStyle.body.includes('.swapp-shop-art--pads'),
+   'Boutique CSS did not deploy with the three-column product layout');
+ const shopAdminScript=await request(origin,'/assets/swapp-shop-admin.js');
+ check(shopAdminScript.body.includes("'/api/editor/boutique'")&&
+   shopAdminScript.body.includes("options.headers['x-swapp-editor']='1'"),
+   'Boutique admin UI asset is missing secure API persistence');
+ check(home.body.includes('swapp-editor-nav.js?v=20261016-shop-admin-1'),
+  'Homepage still uses the old account menu without Boutique administration');
+ process.stdout.write('PASS Boutique showcase, editable catalogue assets and unified admin menu\n');
+
  const discovery=await request(origin,'/assets/swapp-media-live.js');
  check(discovery.body.includes('/api/discovery/game-lives?limit=6&game='),
   'Article live discovery client is outdated: targeted game lookup missing');
