@@ -79,7 +79,7 @@
   function paint(){
    buttons.forEach((button,i)=>{
     const selected=current?.myRating===i+1;
-    button.classList.toggle('is-selected',selected);
+    button.classList.toggle('is-selected',Number(current?.myRating)>=i+1);
     button.setAttribute('aria-pressed',String(selected));
     button.disabled=busy;
    });
