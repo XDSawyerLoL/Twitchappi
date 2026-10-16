@@ -49,11 +49,11 @@ function fixture(){
 test('SWAPP Score: authenticated votes are persistent and changeable, not duplicated',async()=>{
  const {request}=fixture();
  const empty=await request('GET','a-good-review');
- assert.deepEqual(empty.body,{count:0,average:null,myRating:null,canRate:false});
+ assert.deepEqual(empty.body,{count:0,average:null,reasons:{useful:0,sourced:0,engaging:0},myRating:null,myReasons:[],canRate:false});
  const denied=await request('POST','a-good-review',{body:{rating:5}});
  assert.equal(denied.statusCode,401);
  const first=await request('POST','a-good-review',{body:{rating:5},user:'alice'});
- assert.deepEqual(first.body,{count:1,average:5,myRating:5,canRate:true});
+ assert.deepEqual(first.body,{count:1,average:5,reasons:{useful:0,sourced:0,engaging:0},myRating:5,myReasons:[],canRate:true});
  const same=await request('POST','a-good-review',{body:{rating:5},user:'alice'});
  assert.equal(same.body.count,1);
  const edited=await request('POST','a-good-review',{body:{rating:3},user:'alice'});
@@ -74,6 +74,42 @@ test('SWAPP Score: validate CSRF origin, article publication and range',async()=
  assert.equal((await request('POST','a-good-review',{user:'alice',body:{rating:2.5}})).statusCode,400);
  assert.equal((await request('POST','draft-review',{user:'alice',body:{rating:5}})).statusCode,404);
  assert.equal((await request('GET','missing-review')).statusCode,404);
+ assert.equal([...rows.keys()].filter(k=>k.startsWith('swapp_article_votes/')).length,0);
+});
+
+test('SWAPP Score: qualitative choices are optional, replaceable and counted once',async()=>{
+ const {request,rows}=fixture();
+ const initial=await request('POST','a-good-review',{body:{rating:5,reasons:['useful','sourced']},user:'alice'});
+ assert.deepEqual(initial.body.myReasons,['useful','sourced']);
+ assert.deepEqual(initial.body.reasons,{useful:1,sourced:1,engaging:0});
+ const repeated=await request('POST','a-good-review',{body:{rating:5,reasons:['sourced','useful']},user:'alice'});
+ assert.equal(repeated.body.count,1);
+ assert.deepEqual(repeated.body.reasons,{useful:1,sourced:1,engaging:0});
+ const second=await request('POST','a-good-review',{body:{rating:4,reasons:['useful','engaging']},user:'bob'});
+ assert.deepEqual(second.body.reasons,{useful:2,sourced:1,engaging:1});
+ const changed=await request('POST','a-good-review',{body:{rating:5,reasons:['sourced']},user:'alice'});
+ assert.equal(changed.body.count,2);
+ assert.deepEqual(changed.body.reasons,{useful:1,sourced:1,engaging:1});
+ assert.deepEqual(changed.body.myReasons,['sourced']);
+ const ratingOnly=await request('POST','a-good-review',{body:{rating:3},user:'alice'});
+ assert.deepEqual(ratingOnly.body.myReasons,['sourced']);
+ assert.equal(ratingOnly.body.average,3.5);
+ const cleared=await request('POST','a-good-review',{body:{rating:3,reasons:[]},user:'alice'});
+ assert.deepEqual(cleared.body.myReasons,[]);
+ assert.deepEqual(cleared.body.reasons,{useful:1,sourced:0,engaging:1});
+ const publicResponse=await request('GET','a-good-review');
+ assert.deepEqual(publicResponse.body.myReasons,[]);
+ assert.deepEqual(publicResponse.body.reasons,{useful:1,sourced:0,engaging:1});
+ assert.equal([...rows.keys()].filter(k=>k.startsWith('swapp_article_votes/')).length,2);
+});
+
+test('SWAPP Score: malformed or unknown feedback reasons are rejected without writes',async()=>{
+ const {request,rows}=fixture();
+ const invalid=[null,'useful',['unknown'],['useful','useful'],['useful',1],['useful','sourced','engaging','extra']];
+ for(const reasons of invalid){
+  const response=await request('POST','a-good-review',{body:{rating:5,reasons},user:'alice'});
+  assert.equal(response.statusCode,400);
+ }
  assert.equal([...rows.keys()].filter(k=>k.startsWith('swapp_article_votes/')).length,0);
 });
 
