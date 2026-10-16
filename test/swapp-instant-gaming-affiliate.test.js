@@ -45,8 +45,8 @@ test('native article displays a single disclosed partner link adjacent to discov
 });
 test('Boutique stays independent and never adds Instant Gaming products automatically',()=>{
  const html=shop();
- assert.match(html,/Vitrine de démonstration/);
- assert.match(html,/les produits marqués « Exemple »/);
+ assert.match(html,/La Boutique prend forme/);
+ assert.match(html,/Aucun des exemples n’est proposé|aperçus non commercialisés/);
  assert.doesNotMatch(html,/igr=SANSAHD|instant-gaming\.com/);
  for(const offer of catalog)assert.ok(!html.includes(offer.game));
  assert.doesNotMatch(html,/Lien affilié : SWAPP peut percevoir une commission/);
