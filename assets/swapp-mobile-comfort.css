@@ -87,6 +87,10 @@
   overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;
   padding:8px max(9px,env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) max(9px,env(safe-area-inset-left))!important;
  }
+ /* The "Plus" popup must not be clipped by the swipe container. */
+ #mobileNav.mobileNav:has(.swapp-mobile-more[open]){
+  overflow-x:visible!important;overflow-y:visible!important;
+ }
  #mobileNav.mobileNav::-webkit-scrollbar{display:none}
  #mobileNav.mobileNav > :is(a,button,.swapp-mobile-more){
   flex:0 0 auto!important;min-width:max(98px,18vw)!important;max-width:none!important;
