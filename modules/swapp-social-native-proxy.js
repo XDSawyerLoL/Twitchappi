@@ -92,7 +92,7 @@ function createSocialNativeProxy(fetchImpl,{production=true,restoreLocalSession=
   }
   const headers={Accept:'application/json'};
   let swappUser=null;
-  if(sessionSso){
+  if(sessionSso&&path!=='/health'){
    if(path.startsWith('/auth/'))return res.status(403).json({error:'swapp_account_required'});
    if(!ssoSecret||ssoSecret.length<24)return res.status(503).json({error:'social_sso_unconfigured'});
    let restoredUser=null;
