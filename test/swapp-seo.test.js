@@ -121,3 +121,33 @@ test('physical robots.txt fallback and Express response stay byte-for-byte ident
  assert.match(physical,/Sitemap: https:\/\/swapp\.tv\/sitemap\.xml\n/);
  assert.doesNotMatch(physical,/google-site-verification|Disallow: \/\s*$/m);
 });
+
+test('News sitemap treats first Firestore outage as temporary failure, never an empty success',async()=>{
+ const h=appHarness({fail:true});
+ const response=h.response();
+ const oldWarn=console.warn;console.warn=()=>{};
+ try{
+  await h.handlers.get('/news-sitemap.xml')({},response);
+ }finally{console.warn=oldWarn}
+ assert.equal(response.statusCode,503);
+ assert.equal(response.headers['Retry-After'],'60');
+ assert.equal(response.headers['Cache-Control'],'no-store');
+ assert.doesNotMatch(response.body,/<urlset|<url>/);
+ const main=h.response();
+ await h.handlers.get('/sitemap.xml')({},main);
+ assert.equal(main.statusCode,200,'core URLs still work during an editorial outage');
+ assert.match(main.body,/<url><loc>https:\/\/swapp\.tv\/<\/loc><\/url>/);
+});
+
+test('News sitemap keeps HTTP 200 and actual XML after a confirmed published read',async()=>{
+ const h=appHarness({articles:[{
+  slug:'a-genuine-article',title:'Un article effectivement publié',contentType:'article',
+  status:'published',publishedAt:'1970-01-01T00:10:00Z'
+ }]});
+ const response=h.response();
+ await h.handlers.get('/news-sitemap.xml')({},response);
+ assert.equal(response.statusCode,200);
+ assert.match(response.headers['Content-Type'],/application\/xml/);
+ assert.match(response.body,/<url><loc>https:\/\/swapp\.tv\/actus\/a-genuine-article<\/loc>/);
+ assert.equal(h.reads(),1,'the shared sitemap cache makes one storage read');
+});
