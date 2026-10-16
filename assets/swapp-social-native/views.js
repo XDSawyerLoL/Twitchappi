@@ -80,12 +80,14 @@ export async function loadNewsRss(){
   setStatus('Connexion à SWAPP Actualité','Lecture du flux…');
   try{
     const data=await fetchNewsFeed();
+    if(state.view!=='home'||state.feed!=='news')return;
     const items=(data.items||[]).filter(item=>item&&item.title).sort((a,b)=>Date.parse(b.publishedAt||0)-Date.parse(a.publishedAt||0)).slice(0,50);
     dom.feed.innerHTML=items.length
       ? '<section class="pulse-news-view"><div class="pulse-news-intro"><span>SWAPP ACTUALITÉ · FLUX</span><h2>Actualités à lire et à reposter</h2><p>Le flux SWAPP Actualité est intégré à SOCIAL. Un repost crée une publication avec le titre, la source, le lien et l’image.</p></div><div class="pulse-news-grid">'+items.map(renderNewsCard).join('')+'</div></section>'
       : '<div class="pulse-status"><strong>Flux vide</strong>Aucune actualité disponible pour le moment.</div>';
   }catch(error){
-    setStatus('SWAPP Actualité indisponible','Impossible de lire le flux pour le moment.');
+    if(state.view==='home'&&state.feed==='news')
+      setStatus('SWAPP Actualité indisponible','Impossible de lire le flux pour le moment.');
   }
 }
 
@@ -107,15 +109,18 @@ async function showRealNewsWhenEmpty(){
 
 export async function loadHome(){
   if(state.feed==='news')return loadNewsRss();
+  const feedMode=state.feed;
   setView('home','Le fil');
   setStatus('Chargement du fil','');
   try{
-    const data=await api('/api/pulse/feed?mode='+state.feed+'&limit=40');
+    const data=await api('/api/pulse/feed?mode='+feedMode+'&limit=40');
+    if(state.view!=='home'||state.feed!==feedMode)return;
     const posts=Array.isArray(data.posts)?data.posts:[];
     renderPosts(posts,state.user&&state.feed==='following'?'Suis des comptes ou publie le premier message de ton fil.':'Aucune publication publique.');
     if(posts.length===0&&state.feed==='discover')await showRealNewsWhenEmpty();
   }catch(error){
-    setStatus('SOCIAL indisponible',errorText(error));
+    if(state.view==='home'&&state.feed===feedMode)
+      setStatus('SOCIAL indisponible',errorText(error));
   }
 }
 
