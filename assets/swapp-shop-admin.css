@@ -1,0 +1,62 @@
+/* SWAPP Boutique admin — isolated from the public page and legacy studio. */
+.swapp-shop-admin{width:min(1500px,calc(100% - 42px));margin:34px auto 120px;display:grid;grid-template-columns:275px minmax(0,1fr);gap:26px;align-items:start}
+.swapp-shop-admin-menu{position:sticky;top:88px;background:linear-gradient(170deg,#162234,#101823);border:1px solid #ffffff22;border-radius:22px;padding:23px;display:grid;gap:15px;max-height:calc(100dvh - 115px);overflow:auto}
+.swapp-shop-admin-menu>a{font-size:13px;color:#aee7d8;text-decoration:none;font-weight:800}
+.swapp-shop-admin-caption{font-size:10px;letter-spacing:.14em;color:#9bb4c9}
+.swapp-shop-admin-menu h1{font-size:28px;letter-spacing:-.06em;margin:0;line-height:1.12}
+.swapp-shop-admin-menu nav{display:grid;gap:8px}
+.swapp-shop-admin-menu nav a{color:#dceaf2;text-decoration:none;padding:13px;border-radius:12px;border:1px solid #ffffff1c;background:#ffffff07;font-size:13px;font-weight:780}
+.swapp-shop-admin-menu nav a.active,.swapp-shop-admin-menu nav a:hover{border-color:#9bdfd389;background:#8bdfcd18}
+.swapp-shop-admin-menu p{color:#9fb5c9;font-size:12px;line-height:1.65;margin:10px 0 0}
+.swapp-shop-admin-main{min-width:0}
+.swapp-shop-admin-main>header{margin:0 0 26px}
+.swapp-shop-admin-main>header h2{font-size:clamp(34px,4vw,55px);letter-spacing:-.07em;line-height:1.05;margin:0 0 13px}
+.swapp-shop-admin-main>header>p{font-size:15px;line-height:1.6;color:#aec2d5;margin:0}
+#shop-admin-status{margin:19px 0 0;padding:13px 17px;border:1px solid #83b8c454;background:#18313b77;border-radius:12px;color:#c6f1e2;font-size:13px;line-height:1.6}
+#shop-admin-status.is-error{background:#49273588;border-color:#df90ae8c;color:#ffe1e7}
+.swapp-shop-admin-panel{margin:0 0 22px;padding:clamp(20px,2.4vw,30px);border:1px solid #ffffff23;background:#121d2d;border-radius:23px;scroll-margin-top:86px}
+.swapp-shop-admin-panel h3{font-size:22px;letter-spacing:-.05em;margin:0}
+.swapp-shop-admin-bar{display:flex;justify-content:space-between;align-items:center;gap:14px;margin:0 0 21px}
+.swapp-shop-admin button{font:800 13px Inter,system-ui,sans-serif;cursor:pointer;border:1px solid #7894aa65;color:#edf9f5;background:#253a4b;border-radius:11px;padding:11px 16px;min-height:44px}
+.swapp-shop-admin button:hover{background:#35536a}
+.swapp-shop-admin button:disabled{opacity:.5;cursor:wait}
+.swapp-shop-admin button:focus-visible,.swapp-shop-admin a:focus-visible,.swapp-shop-admin :is(input,textarea,select):focus-visible{outline:2px solid #b3f1da;outline-offset:3px}
+.swapp-shop-admin-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+.swapp-shop-admin-item{display:flex;align-items:center;gap:11px;background:#0d1726;border:1px solid #ffffff20;border-radius:14px;padding:12px;min-width:0}
+.swapp-shop-admin-item.active{border-color:#8ce1ce}
+.swapp-shop-admin-item .swapp-shop-admin-art{width:54px;height:54px;flex:0 0 54px;display:grid;place-items:center;border-radius:11px;font-size:23px;background:linear-gradient(135deg,#29445a,#26244a)}
+.swapp-shop-admin-item-copy{min-width:0;flex:1;display:grid;gap:3px}
+.swapp-shop-admin-item-copy b{font-size:13px;line-height:1.3;overflow-wrap:anywhere}
+.swapp-shop-admin-item-copy small{font-size:10px;line-height:1.4;color:#99acc4}
+.swapp-shop-admin-item-actions{display:flex;flex-direction:column;gap:4px}
+.swapp-shop-admin-item-actions button{min-height:29px;padding:4px 7px;font-size:11px;border-radius:7px}
+.swapp-shop-admin-item-actions button:first-child{background:#2a554a}
+.swapp-shop-admin-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:17px;margin-top:22px}
+.swapp-shop-admin-fields label{display:grid;align-content:start;gap:8px;font-size:12px;color:#cfdeeb;font-weight:800}
+.swapp-shop-admin-fields label.wide{grid-column:1/-1}
+.swapp-shop-admin :is(input:not([type=checkbox]),select,textarea){width:100%;box-sizing:border-box;min-width:0;min-height:45px;border:1px solid #63768e;background:#0a1423;color:#f0f8ff;border-radius:11px;padding:12px 13px;font-size:16px;font-family:inherit}
+.swapp-shop-admin textarea{resize:vertical}
+.swapp-shop-admin-options{display:flex;flex-wrap:wrap;gap:17px;margin:22px 0}
+.swapp-shop-admin-options label{display:inline-flex;align-items:center;gap:8px;color:#c3d6e2;font-size:12px;line-height:1.5;cursor:pointer}
+.swapp-shop-admin-options input{accent-color:#89dac7;width:17px;height:17px}
+.swapp-shop-admin-actions{display:flex;gap:12px;flex-wrap:wrap;border-top:1px solid #ffffff19;padding-top:19px}
+#shop-admin-apply,#shop-admin-save{background:linear-gradient(120deg,#8be5cf,#a7edc4);color:#092031;border:0}
+#shop-admin-remove{background:#3b2934;border:1px solid #b37a9066;color:#fedce8}
+.swapp-shop-admin-publish{border-color:#84d1bd59;background:linear-gradient(120deg,#172d35,#19283d)}
+.swapp-shop-admin-publish h3{margin-bottom:8px}
+.swapp-shop-admin-publish p{color:#b0c2d3;font-size:13px;line-height:1.6}
+.swapp-shop-admin-publish>a{margin-left:18px;text-decoration:none;color:#aef0da;font-size:13px;font-weight:800}
+@media(max-width:1150px){.swapp-shop-admin-list{grid-template-columns:1fr}}
+@media(max-width:820px){
+ .swapp-shop-admin{grid-template-columns:1fr;width:calc(100% - 28px);gap:17px;margin:18px auto 130px}
+ .swapp-shop-admin-menu{position:relative;top:auto;max-height:none;padding:19px}
+ .swapp-shop-admin-menu h1{font-size:24px}
+ .swapp-shop-admin-menu nav{display:flex;overflow-x:auto;gap:7px;scrollbar-width:none}
+ .swapp-shop-admin-menu nav a{white-space:nowrap;min-height:44px;display:flex;align-items:center}
+ .swapp-shop-admin-menu p{display:none}
+ .swapp-shop-admin-fields{grid-template-columns:1fr}
+ .swapp-shop-admin-fields label.wide{grid-column:auto}
+ .swapp-shop-admin-panel{padding:18px}
+ .swapp-shop-admin-publish>a{display:inline-flex;margin:14px 0 0 0}
+}
+@media(prefers-reduced-motion:reduce){.swapp-shop-admin *{scroll-behavior:auto!important}}
