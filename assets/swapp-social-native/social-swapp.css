@@ -460,3 +460,83 @@ button.pulse-account{width:100%;border:0;background:transparent;text-align:left;
  .swapp-social-viewport .pulse-composer{padding:15px}
 }
 @media(prefers-reduced-motion:reduce){.swapp-social-viewport *, .swapp-social-viewport *::before, .swapp-social-viewport *::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+/* Mobile community: remove the 80px desktop rail and give posts the screen.
+   These devices previously matched the tablet layout at 701–900 CSS px. */
+@media (max-width:920px) and (orientation:portrait), (max-width:650px){
+ .swapp-social-viewport{width:100%;max-width:100%;overflow-x:clip}
+ .swapp-social-viewport .pulse-shell{
+  display:block!important;width:100%!important;max-width:100%!important;
+  min-height:0!important;grid-template-columns:none!important;
+ }
+ .swapp-social-viewport .pulse-sidebar,
+ .swapp-social-viewport .pulse-right{display:none!important}
+ .swapp-social-viewport .pulse-main{
+  width:100%!important;max-width:100%!important;min-width:0!important;
+  border:0!important;padding-bottom:calc(105px + env(safe-area-inset-bottom));
+ }
+ .swapp-social-viewport .pulse-topbar{
+  position:sticky;top:68px;min-height:60px;padding:11px 17px;z-index:25;
+ }
+ .swapp-social-viewport .pulse-topbar h1{font-size:24px!important;line-height:1.2}
+ .swapp-social-viewport .pulse-mobile-nav{
+  display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr));
+  position:sticky!important;top:128px!important;bottom:auto!important;
+  inset-inline:auto!important;width:100%;height:55px;z-index:24;
+  border-bottom:1px solid #ffffff1c;
+  background:rgba(12,22,38,.97)!important;
+ }
+ .swapp-social-viewport .pulse-mobile-nav button{
+  min-height:48px;min-width:0;display:grid;place-items:center;
+  padding:8px;color:#d7e3ef;
+ }
+ .swapp-social-viewport .pulse-mobile-nav .pi{width:23px;height:23px}
+ .swapp-social-viewport .pulse-welcome{
+  display:grid;grid-template-columns:51px minmax(0,1fr);gap:13px;
+  padding:19px 17px!important;
+ }
+ .swapp-social-viewport .pulse-welcome-mark{width:48px;height:48px}
+ .swapp-social-viewport .pulse-welcome-copy h2{
+  font-size:clamp(22px,5.4vw,29px)!important;
+  line-height:1.2!important;
+ }
+ .swapp-social-viewport .pulse-welcome-copy p{font-size:15px!important;line-height:1.55}
+ .swapp-social-viewport .pulse-welcome-actions{gap:8px}
+ .swapp-social-viewport :is(.pulse-welcome-primary,.pulse-welcome-secondary){
+  min-height:44px;font-size:13px!important;padding:10px 13px;
+ }
+ .swapp-social-viewport .pulse-tabs{
+  position:sticky;top:183px;z-index:23;
+  grid-template-columns:repeat(3,minmax(0,1fr));width:100%;
+ }
+ .swapp-social-viewport .pulse-tab{
+  min-width:0;padding:12px 5px;font-size:14px!important;line-height:1.3;
+ }
+ .swapp-social-viewport .pulse-tab small{
+  display:none!important; /* short labels only at this width */
+ }
+ .swapp-social-viewport .pulse-post{
+  padding:18px 17px!important;grid-template-columns:42px minmax(0,1fr);
+  gap:12px;min-width:0;max-width:100%;
+ }
+ .swapp-social-viewport .pulse-post-main{min-width:0;max-width:100%}
+ .swapp-social-viewport .pulse-post p,
+ .swapp-social-viewport .pulse-post-main>p{
+  font-size:16px!important;line-height:1.65!important;
+  overflow-wrap:anywhere;
+ }
+ .swapp-social-viewport .pulse-post-head strong{font-size:15px}
+ .swapp-social-viewport .pulse-post-head small{font-size:12px!important}
+ .swapp-social-viewport .pulse-post :is(img,video){max-width:100%;height:auto}
+ .swapp-social-viewport .pulse-rich-card{max-width:100%;overflow:hidden}
+ .swapp-social-viewport .pulse-rich-card :is(strong,h2){
+  font-size:16px!important;line-height:1.45!important;
+ }
+ .swapp-social-viewport .pulse-action-name{font-size:12px!important}
+ .swapp-social-viewport .pulse-news-card{
+  width:100%;max-width:100%;min-width:0;
+ }
+ .swapp-social-viewport .pulse-news-body h2{font-size:18px!important}
+ .swapp-social-viewport .pulse-composer{padding:17px!important}
+ .swapp-social-viewport :is(input,textarea,select){font-size:16px!important}
+}
