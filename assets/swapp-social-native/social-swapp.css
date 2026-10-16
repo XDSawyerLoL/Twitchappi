@@ -541,72 +541,181 @@ button.pulse-account{width:100%;border:0;background:transparent;text-align:left;
  .swapp-social-viewport :is(input,textarea,select){font-size:16px!important}
 }
 
-/* SOCIAL navigation stability — fixed primary controls, offset below SWAPP's
-   68px global header + SOCIAL's 60px header. The in-flow spacer prevents posts
-   and the tab switcher from being covered when the welcome block is hidden. */
-.swapp-social-viewport .swapp-social-mobile-spacer{display:none}
+/* SOCIAL sticky stack v2:
+   Make the header, icon navigation and feed filters a single sticky unit.
+   Moving them together in the DOM removes the previous competing sticky /
+   fixed scroll anchors and the stale in-flow spacer. Desktop keeps native flow. */
+.swapp-social-viewport .swapp-social-sticky-stack{display:contents}
 @media (max-width:920px) and (orientation:portrait), (max-width:650px){
  .swapp-social-viewport{
-  --social-site-header-height:68px;
-  --social-local-header-height:60px;
-  --social-iconbar-height:55px;
+  --social-site-top:68px;
+  --social-topbar:48px;
+  --social-nav:54px;
+  --social-tabs:48px;
+  overflow-x:clip;
  }
- .swapp-social-viewport .pulse-topbar{
-  position:sticky!important;
-  top:var(--social-site-header-height)!important;
-  height:var(--social-local-header-height)!important;
-  min-height:var(--social-local-header-height)!important;
-  box-sizing:border-box;
-  z-index:45!important;
-  background:rgba(10,19,33,.985)!important;
- }
- .swapp-social-viewport .pulse-mobile-nav{
-  position:fixed!important;
-  top:calc(var(--social-site-header-height) + var(--social-local-header-height))!important;
-  bottom:auto!important;left:0!important;right:0!important;
-  width:100vw!important;max-width:100vw!important;
-  box-sizing:border-box;
-  height:var(--social-iconbar-height)!important;
-  min-height:var(--social-iconbar-height)!important;
-  margin:0!important;
-  padding:0 max(8px,env(safe-area-inset-right)) 0 max(8px,env(safe-area-inset-left))!important;
-  display:grid!important;
-  grid-template-columns:repeat(5,minmax(0,1fr))!important;
-  align-items:stretch!important;
-  z-index:44!important;
-  background:#0e1828!important;
-  box-shadow:0 4px 18px rgba(0,0,0,.18);
-  border-bottom:1px solid rgba(196,215,237,.18);
- }
- .swapp-social-viewport .swapp-social-mobile-spacer{
-  display:block;
-  height:var(--social-iconbar-height);
-  min-height:var(--social-iconbar-height);
-  width:100%;
-  pointer-events:none;
- }
- .swapp-social-viewport .pulse-mobile-nav button{
-  display:grid;place-items:center;
-  min-height:var(--social-iconbar-height);
-  min-width:0;padding:8px!important;
-  background:transparent;border-radius:10px;
-  touch-action:manipulation;
- }
- .swapp-social-viewport .pulse-mobile-nav button:focus-visible{
-  outline:2px solid var(--social-accent,#b57cff);
-  outline-offset:-4px;
- }
- .swapp-social-viewport .pulse-tabs{
-  position:sticky!important;
-  top:calc(var(--social-site-header-height) + var(--social-local-header-height) + var(--social-iconbar-height))!important;
-  z-index:43!important;
-  background:#101827!important;
- }
- .swapp-social-viewport .pulse-post,.swapp-social-viewport .pulse-composer{
-  scroll-margin-top:calc(var(--social-site-header-height) + var(--social-local-header-height) + var(--social-iconbar-height) + 72px);
+ /* Avoid a nested scroll root: the page is the only vertical scroller. */
+ .swapp-social-viewport .pulse-shell{
+  width:100%!important;max-width:100%!important;
+  grid-template-columns:none!important;
  }
  .swapp-social-viewport .pulse-main{
-  isolation:isolate;
-  overflow:visible!important;
+  position:relative;isolation:isolate;
+  overflow:visible!important;min-height:0;
+  padding-bottom:calc(104px + env(safe-area-inset-bottom));
  }
+ .swapp-social-viewport .swapp-social-sticky-stack{
+  display:block!important;
+  position:sticky!important;
+  top:var(--social-site-top)!important;
+  z-index:60;
+  width:100%;max-width:100%;
+  background:#0d1726;
+  border-bottom:1px solid #ffffff26;
+  box-shadow:0 9px 24px rgba(0,0,0,.17);
+  /* No transform, perspective, contain or overflow scrolling here. */
+ }
+ .swapp-social-viewport .pulse-topbar{
+  position:relative!important;top:auto!important;bottom:auto!important;
+  z-index:auto!important;
+  height:var(--social-topbar)!important;
+  min-height:var(--social-topbar)!important;
+  padding:6px 16px!important;
+  box-sizing:border-box;
+  background:#0d1726!important;
+  backdrop-filter:none!important;
+  border-bottom:1px solid rgba(203,216,240,.12);
+ }
+ .swapp-social-viewport .pulse-topbar>div:first-child{
+  display:flex;align-items:center;gap:8px;min-width:0;
+ }
+ .swapp-social-viewport .pulse-topbar .pulse-kicker{
+  display:inline-block;font-size:10px;letter-spacing:.12em;
+ }
+ .swapp-social-viewport .pulse-topbar h1{
+  min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  font-size:19px!important;font-weight:850;line-height:1.2;
+ }
+ .swapp-social-viewport .pulse-top-actions{display:flex;min-width:0;align-items:center}
+ .swapp-social-viewport .pulse-top-button{
+  height:36px;min-height:36px!important;
+  padding:7px 11px!important;font-size:12px!important;
+ }
+ .swapp-social-viewport .pulse-mobile-nav{
+  position:relative!important;top:auto!important;bottom:auto!important;
+  left:auto!important;right:auto!important;
+  inset-inline:auto!important;
+  width:100%!important;max-width:100%!important;
+  height:var(--social-nav)!important;min-height:var(--social-nav)!important;
+  padding:3px max(8px,env(safe-area-inset-right)) 3px max(8px,env(safe-area-inset-left))!important;
+  margin:0!important;
+  display:grid!important;
+  grid-template-columns:repeat(5,minmax(0,1fr))!important;
+  align-items:center!important;
+  z-index:auto!important;
+  background:#101a2a!important;
+  box-shadow:none!important;
+  border-bottom:1px solid rgba(203,216,240,.14);
+ }
+ .swapp-social-viewport .pulse-mobile-nav button{
+  display:grid!important;place-items:center!important;
+  min-width:0!important;
+  width:100%;min-height:46px!important;height:46px!important;
+  padding:9px!important;margin:0!important;
+  background:transparent;border:0;border-radius:11px;
+  color:#c6d3e5;touch-action:manipulation;
+ }
+ .swapp-social-viewport .pulse-mobile-nav button.active{
+  color:var(--social-accent,#bb78fa)!important;
+  background:color-mix(in srgb,var(--social-accent,#bb78fa) 16%,transparent)!important;
+ }
+ .swapp-social-viewport .pulse-mobile-nav .pi{width:23px;height:23px}
+ .swapp-social-viewport .pulse-mobile-nav #mobile-compose{
+  display:grid!important;place-items:center!important;
+  width:46px!important;height:46px!important;min-height:46px!important;
+  border-radius:16px!important;
+  justify-self:center!important;align-self:center!important;
+  box-shadow:none!important;
+ }
+ .swapp-social-viewport .pulse-tabs{
+  position:relative!important;top:auto!important;bottom:auto!important;
+  z-index:auto!important;
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  width:100%;max-width:100%;
+  height:var(--social-tabs)!important;min-height:var(--social-tabs)!important;
+  overflow:visible!important; /* overflow-x:auto creates a second scroll root */
+  background:#101827!important;
+  border-bottom:0;
+ }
+ .swapp-social-viewport .pulse-tab{
+  display:flex;align-items:center;justify-content:center;
+  padding:8px 3px!important;min-height:44px;
+  font-size:13px!important;line-height:1.2!important;
+  min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+ }
+ .swapp-social-viewport .pulse-tab strong{
+  font-size:inherit;line-height:inherit;overflow:hidden;text-overflow:ellipsis;
+ }
+ .swapp-social-viewport .pulse-tab small{display:none!important}
+ .swapp-social-viewport .pulse-tab.active:after{left:18%;right:18%;bottom:0;height:3px}
+ .swapp-social-viewport .pulse-welcome{
+  display:grid;grid-template-columns:42px minmax(0,1fr)!important;gap:13px;
+  padding:17px 16px!important;
+  background:linear-gradient(115deg,rgba(141,68,201,.12),transparent 75%)!important;
+ }
+ .swapp-social-viewport .pulse-welcome-mark,
+ .swapp-social-viewport .zoon-welcome-mark .swapp-social-symbol{
+  width:42px!important;height:42px!important;border-radius:14px;
+  font-size:22px;
+ }
+ .swapp-social-viewport .pulse-welcome-copy .pulse-kicker{font-size:10px}
+ .swapp-social-viewport .pulse-welcome-copy h2{
+  font-size:clamp(20px,5vw,26px)!important;
+  line-height:1.25!important;margin:4px 0!important;
+ }
+ .swapp-social-viewport .pulse-welcome-copy p{
+  font-size:14px!important;line-height:1.48!important;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+  overflow:hidden;
+ }
+ .swapp-social-viewport .pulse-welcome-actions{
+  display:flex;gap:8px;align-items:stretch;margin-top:11px;
+ }
+ .swapp-social-viewport :is(.pulse-welcome-primary,.pulse-welcome-secondary){
+  flex:1 1 auto;min-width:0;min-height:44px!important;
+  padding:8px 10px!important;font-size:12px!important;
+  white-space:normal;text-wrap:balance;
+ }
+ .swapp-social-viewport .pulse-feed{width:100%;min-width:0}
+ .swapp-social-viewport .pulse-post{
+  padding:17px 15px!important;gap:11px;
+  border-bottom:1px solid rgba(195,208,240,.12);
+ }
+ .swapp-social-viewport .pulse-post p{
+  font-size:15.5px!important;line-height:1.6!important;
+  overflow-wrap:anywhere;
+ }
+ .swapp-social-viewport .pulse-actions{
+  display:flex;flex-wrap:wrap;gap:3px 7px;
+  justify-content:flex-start!important;max-width:none;
+ }
+ .swapp-social-viewport .pulse-action{
+  min-height:40px!important;padding:8px 10px!important;font-size:12px!important;
+ }
+ .swapp-social-viewport .pulse-rich-card{max-width:100%;overflow:hidden}
+ .swapp-social-viewport .pulse-rich-card img{width:100%;max-width:100%;object-fit:cover}
+ .swapp-social-viewport :is(.pulse-post,.pulse-composer,.pulse-status,.pulse-view){
+  scroll-margin-top:calc(var(--social-site-top) + var(--social-topbar) + var(--social-nav) + var(--social-tabs) + 12px);
+ }
+ .swapp-social-viewport :is(button,a,input,textarea):focus-visible{
+  outline:2px solid var(--social-accent,#b87afa);outline-offset:2px;
+ }
+}
+@media (max-width:390px){
+ .swapp-social-viewport .pulse-topbar .pulse-kicker{display:none}
+ .swapp-social-viewport .pulse-tab{font-size:12px!important}
+ .swapp-social-viewport .pulse-welcome{grid-template-columns:minmax(0,1fr)!important}
+ .swapp-social-viewport .pulse-welcome-mark{display:none}
+ .swapp-social-viewport .pulse-welcome-actions{flex-wrap:wrap}
+ .swapp-social-viewport :is(.pulse-welcome-primary,.pulse-welcome-secondary){flex:1 1 100%}
 }
