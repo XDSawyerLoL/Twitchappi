@@ -55,7 +55,7 @@
 .swapp-store-count{color:#96a9ba;font-size:13px;white-space:nowrap;margin-bottom:4px}
 .swapp-store-toolbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:13px;margin-bottom:23px;padding:14px 0;border-top:1px solid var(--store-border);border-bottom:1px solid var(--store-border)}
 .swapp-store-filters{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
-.swapp-store-filter{border:1px solid #ffffff25;background:#ffffff07;border-radius:999px;padding:10px 14px;min-height:42px;cursor:pointer;color:#c4d0dd;font:750 12px/1.3 inherit}
+.swapp-store-filter{border:1px solid #ffffff25;background:#ffffff07;border-radius:999px;padding:10px 14px;min-height:42px;cursor:pointer;color:#c4d0dd;font:750 12px/1.3 system-ui,sans-serif}
 .swapp-store-filter:hover{background:#ffffff14;border-color:#ffffff60}
 .swapp-store-filter.is-active{color:#0d1f29;background:#bee9d7;border-color:#bee9d7}
 .swapp-store-tools{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
