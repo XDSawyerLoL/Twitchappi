@@ -51,3 +51,11 @@
 .swapp-interactive .ssn-player span{color:#aebfda}
 .swapp-social-viewport .pulse-news-actions [data-next-game]{background:rgba(176,243,55,.1)!important;border:1px solid rgba(176,243,55,.3)!important;color:#d4ff9f!important}
 @media(max-width:600px){.swapp-interactive .ssn-passport,.swapp-interactive .ssn-universe{padding:15px}.swapp-interactive .ssn-fields,.swapp-interactive .ssn-game-columns{grid-template-columns:1fr}.swapp-interactive .ssn-head{flex-wrap:wrap}.swapp-interactive .ssn-head>.ssi-ghost{margin-left:0}.swapp-interactive .ssn-copy h3{font-size:16px!important}.swapp-interactive .ssn-search{flex-wrap:wrap}.swapp-interactive .ssn-search button{flex:0 0 auto}}
+
+.swapp-interactive .ssn-live-section{margin:12px 0 0}
+.swapp-interactive .ssn-lives{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:8px}
+.swapp-interactive .ssn-live{display:flex;flex-wrap:wrap;align-items:center;gap:4px 7px;padding:12px;text-decoration:none;color:#f0f6ff;border:1px solid rgba(176,243,55,.22);border-radius:11px;background:linear-gradient(120deg,rgba(176,243,55,.07),rgba(20,30,47,.8));font-size:11px;min-width:0}
+.swapp-interactive .ssn-live:hover{border-color:rgba(176,243,55,.57);background:rgba(176,243,55,.1)}
+.swapp-interactive .ssn-live strong{font-size:12px;overflow-wrap:anywhere;min-width:0}
+.swapp-interactive .ssn-live span:last-child{flex:1 0 100%;color:#afc2d7;font-size:10px}
+.swapp-interactive .ssn-live-dot{width:6px;height:6px;flex:0 0 6px;border-radius:50%;background:#b0f337;box-shadow:0 0 10px rgba(176,243,55,.45)}
