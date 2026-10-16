@@ -36,12 +36,50 @@ function sitemapXml(articles=[]){
  return '<?xml version="1.0" encoding="UTF-8"?>\n'+
   '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'+items+'\n</urlset>\n';
 }
+
+/**
+ * Google News sitemap: only fresh, actually published editorial articles.
+ * Original publication time wins for imported JustPlayer content so old
+ * archives never masquerade as breaking news.
+ * Pure function: no remote requests or database reads.
+ */
+function newsSitemapXml(articles=[],currentTime=Date.now()){
+ const now=Number(currentTime);
+ const cutoff=now-48*60*60*1000;
+ const seen=new Set();
+ const rows=[];
+ for(const article of Array.isArray(articles)?articles:[]){
+  const slug=String(article?.slug||'');
+  if(article?.status!=='published'||!SLUG.test(slug))continue;
+  if(article.contentType && article.contentType!=='article')continue;
+  const published=Date.parse(article.originalPublishedAt||article.publishedAt||'');
+  if(!Number.isFinite(published)||published<cutoff||published>now)continue;
+  const title=String(article.title||'').trim();
+  if(!title||seen.has(slug))continue;
+  seen.add(slug);
+  rows.push({slug,title,published});
+ }
+ rows.sort((a,b)=>b.published-a.published);
+ const entries=rows.slice(0,500).map(article=>{
+  const url=ORIGIN+'/actus/'+encodeURIComponent(article.slug);
+  return '  <url><loc>'+encodeXml(url)+'</loc><news:news>'+
+   '<news:publication><news:name>SWAPP</news:name><news:language>fr</news:language></news:publication>'+
+   '<news:publication_date>'+new Date(article.published).toISOString()+'</news:publication_date>'+
+   '<news:title>'+encodeXml(article.title)+'</news:title>'+
+   '</news:news></url>';
+ }).join('\n');
+ return '<?xml version="1.0" encoding="UTF-8"?>\n'+
+  '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" '+
+  'xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">\n'+entries+'\n</urlset>\n';
+}
+
 function robotsText(){
  return 'User-agent: *\nAllow: /\n'+
   // Account pages carry noindex metadata: crawlers must be allowed to read it.
   // Disallow only machine endpoints and editorial administration.
   'Disallow: /api/\nDisallow: /actus/studio\n'+
-  'Sitemap: '+ORIGIN+'/sitemap.xml\n';
+  'Sitemap: '+ORIGIN+'/sitemap.xml\n'+
+  'Sitemap: '+ORIGIN+'/news-sitemap.xml\n';
 }
 function rssXml(articles=[]){
  const valid=(Array.isArray(articles)?articles:[]).filter(article=>
@@ -140,6 +178,12 @@ function registerSeoRoutes(app,{getPublished=async()=>[],now=()=>Date.now()}={})
   await ensureCache();
   return res.status(200).send(sitemapHtml(articles));
  });
+ app.get('/news-sitemap.xml',async(_req,res)=>{
+  res.set('Content-Type','application/xml; charset=utf-8');
+  res.set('Cache-Control','public, max-age=900');
+  await ensureCache();
+  return res.status(200).send(newsSitemapXml(articles,now()));
+ });
  app.get('/feed.xml',async(_req,res)=>{
   res.set('Cache-Control','public, max-age=900');
   res.type('application/rss+xml; charset=utf-8');
@@ -218,4 +262,4 @@ function injectSpaMetadata(html,pathname='/'){
  }
  return result.replace('</head>','<meta name="robots" content="noindex,nofollow"></head>');
 }
-module.exports={ORIGIN,CORE_PATHS,sitemapEntries,sitemapXml,sitemapHtml,rssXml,robotsText,registerSeoRoutes,injectSpaMetadata};
+module.exports={ORIGIN,CORE_PATHS,sitemapEntries,sitemapXml,newsSitemapXml,sitemapHtml,rssXml,robotsText,registerSeoRoutes,injectSpaMetadata};
