@@ -74,12 +74,16 @@ async function verify(){
  const store=await request(origin,'/boutique');
  for(const marker of ['swapp-shop-hero','swapp-shop-categories','id="rayon-games"','id="rayon-caps"','id="rayon-pads"','swapp-shop-trust'])
   check(store.body.includes(marker),'Boutique missing storefront section: '+marker);
- check(store.body.includes('swapp-shop.css?v=20261016-shop-v1'),
+ check(store.body.includes('swapp-shop.css?v=20261016-photographic-shop-v4'),
   'Boutique references an outdated product showcase stylesheet');
+ check(store.body.includes('class="swapp-shop-hero-visual"')&&
+  store.body.includes('class="swapp-shop-product-image"')&&
+  !store.body.includes('swapp-shop-cap-crown'),
+  'Boutique HTML still renders fake CSS objects instead of photographs');
  const shopStyle=await request(origin,'/assets/swapp-shop.css');
  check(shopStyle.body.includes('.swapp-shop-aisles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))')&&
-   shopStyle.body.includes('.swapp-shop-art--caps')&&shopStyle.body.includes('.swapp-shop-art--pads'),
-   'Boutique CSS did not deploy with the three-column product layout');
+   shopStyle.body.includes('.swapp-shop-product-image{')&&shopStyle.body.includes('.swapp-shop-hero-visual{'),
+   'Boutique photographic storefront CSS is missing or outdated');
  const shopAdminScript=await request(origin,'/assets/swapp-shop-admin.js');
  check(shopAdminScript.body.includes("'/api/editor/boutique'")&&
    shopAdminScript.body.includes("options.headers['x-swapp-editor']='1'"),
