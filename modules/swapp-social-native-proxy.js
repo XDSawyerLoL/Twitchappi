@@ -58,9 +58,13 @@ function createSocialNativeProxy(fetchImpl,{production=true,restoreLocalSession=
     return {status:response.status,payload};
    };
    let result=await authCall('login');
+   if(result.status===429)throw Object.assign(new Error('social_upstream_rate_limited'),{status:503});
+   if(result.status>=500)throw Object.assign(new Error('social_upstream_unavailable'),{status:503});
    if(result.status===401||result.status===404){
     const created=await authCall('register');
     if(created.status===409)throw Object.assign(new Error('social_identity_conflict'),{status:409});
+    if(created.status===429)throw Object.assign(new Error('social_upstream_rate_limited'),{status:503});
+    if(created.status>=500)throw Object.assign(new Error('social_upstream_unavailable'),{status:503});
     if(created.status<200||created.status>=300)throw Object.assign(new Error('social_sso_unavailable'),{status:503});
     result=created;
    }
@@ -104,7 +108,11 @@ function createSocialNativeProxy(fetchImpl,{production=true,restoreLocalSession=
    swappUser=req.session?.oryonUser?.id?req.session.oryonUser:restoredUser;
    if(!swappUser?.id||!swappUser?.login)return res.status(401).json({error:'swapp_account_required'});
    try{headers.Authorization='Bearer '+await issueSocialToken(req,swappUser)}
-   catch(error){return res.status(error.status||503).json({error:error.message==='social_identity_conflict'?'social_identity_conflict':'social_sso_unavailable'})}
+   catch(error){
+    const code=String(error?.message||'');
+    const allowed=['social_identity_conflict','social_sso_unconfigured','social_upstream_rate_limited','social_upstream_unavailable'];
+    return res.status(error.status||503).json({error:allowed.includes(code)?code:'social_sso_unavailable'});
+   }
   }else{
    const bearer=String(req.headers?.authorization||'').match(/^Bearer ([A-Za-z0-9_-]{20,256})$/);
    if(bearer)headers.Authorization='Bearer '+bearer[1];
@@ -152,7 +160,10 @@ function createSocialNativeProxy(fetchImpl,{production=true,restoreLocalSession=
      if(req.session)delete req.session.swappSocialAuth;
      if(attempt+1<attempts){
       try{headers.Authorization='Bearer '+await issueSocialToken(req,swappUser)}
-      catch{return res.status(503).json({error:'social_sso_unavailable'})}
+      catch(error){
+       const code=String(error?.message||'');
+       return res.status(503).json({error:['social_upstream_rate_limited','social_upstream_unavailable','social_sso_unconfigured'].includes(code)?code:'social_sso_unavailable'});
+      }
       continue;
      }
      return res.status(503).json({error:'social_sso_unavailable'});
