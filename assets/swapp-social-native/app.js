@@ -2,6 +2,29 @@ import { TOKEN_KEY, state, dom, api, errorText } from './core.js';
 import { openAuth, closeAuth, updateAuthModal, updateAccount, requireAuth, applySession, clearSession, restoreSession } from './session.js';
 import { setView, loadHome, loadExplore, loadCircles, loadNotifications, loadSaved, loadProfile, loadMessages, loadConversation, loadCirclePreview, loadNewsRss } from './views.js';
 
+/* Keep the SOCIAL sticky stack exactly beneath the real SWAPP header.
+   Hostinger's server shell has different heights across phone sizes; a
+   hard-coded 68px top offset can create a jump or overlap after scrolling.
+   ResizeObserver runs only when the header changes size, not on page scroll. */
+function installSocialHeaderOffset(){
+ const header=document.querySelector('.site-header')||document.querySelector('header.top');
+ if(!header)return;
+ const update=()=>{
+  const height=Math.ceil(header.getBoundingClientRect().height);
+  if(!Number.isFinite(height)||height<40||height>220)return;
+  document.documentElement.style.setProperty('--swapp-social-header-height',height+'px');
+ };
+ update();
+ if(typeof ResizeObserver==='function'){
+  const observer=new ResizeObserver(update);
+  observer.observe(header);
+ }else{
+  window.addEventListener('resize',update,{passive:true});
+ }
+ window.addEventListener('pageshow',update,{passive:true});
+}
+installSocialHeaderOffset();
+
 /* After a deliberate view change, align the first post beneath the sticky
    SOCIAL stack. Never change scroll position during ordinary finger scrolling. */
 function revealSocialContent(){
