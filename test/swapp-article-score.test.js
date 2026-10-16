@@ -3,6 +3,7 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
+const vm=require('node:vm');
 const {registerArticleScores}=require('../modules/swapp-news/article-scores');
 
 function fixture(){
@@ -49,11 +50,11 @@ function fixture(){
 test('SWAPP Score: authenticated votes are persistent and changeable, not duplicated',async()=>{
  const {request}=fixture();
  const empty=await request('GET','a-good-review');
- assert.deepEqual(empty.body,{count:0,average:null,reasons:{useful:0,sourced:0,engaging:0},myRating:null,myReasons:[],canRate:false});
+ assert.deepEqual(empty.body,{count:0,average:null,readerRecognition:false,reasons:{useful:0,sourced:0,engaging:0},myRating:null,myReasons:[],canRate:false});
  const denied=await request('POST','a-good-review',{body:{rating:5}});
  assert.equal(denied.statusCode,401);
  const first=await request('POST','a-good-review',{body:{rating:5},user:'alice'});
- assert.deepEqual(first.body,{count:1,average:5,reasons:{useful:0,sourced:0,engaging:0},myRating:5,myReasons:[],canRate:true});
+ assert.deepEqual(first.body,{count:1,average:5,readerRecognition:false,reasons:{useful:0,sourced:0,engaging:0},myRating:5,myReasons:[],canRate:true});
  const same=await request('POST','a-good-review',{body:{rating:5},user:'alice'});
  assert.equal(same.body.count,1);
  const edited=await request('POST','a-good-review',{body:{rating:3},user:'alice'});
@@ -121,4 +122,56 @@ test('SWAPP Score and favorites load in native and SPA article layouts',()=>{
  assert.match(read('modules/swapp-news/native-pages.js'),/data-swapp-article-slug/);
  assert.match(read('assets/swapp-actus-app.js'),/SwappArticleFeedback\?\.mountArticle/);
  assert.match(read('assets/swapp-actus-app.js'),/SwappArticleFeedback\?\.mountList/);
+});
+
+test('reader recognition uses exact totals, not rounded public average',async()=>{
+ const high=fixture();
+ let result;
+ for(let i=0;i<10;i++){
+  result=await high.request('POST','a-good-review',{
+   body:{rating:i<5?5:4},user:'high-'+i
+  });
+ }
+ assert.equal(result.count,10);
+ assert.equal(result.average,4.5);
+ assert.equal(result.readerRecognition,true);
+ const rounded=fixture();
+ for(let i=0;i<11;i++){
+  result=await rounded.request('POST','a-good-review',{
+   body:{rating:i<5?5:4},user:'rounded-'+i
+  });
+ }
+ assert.equal(result.count,11);
+ assert.equal(result.average,4.5); // 49 / 11 is only 4.4545...
+ assert.equal(result.readerRecognition,false);
+ const few=fixture();
+ for(let i=0;i<9;i++){
+  result=await few.request('POST','a-good-review',{
+   body:{rating:5},user:'few-'+i
+  });
+ }
+ assert.equal(result.readerRecognition,false);
+});
+
+test('article score teaser is shared, linked to real votes and fails closed',()=>{
+ const root=path.join(__dirname,'..');
+ const read=p=>fs.readFileSync(path.join(root,p),'utf8');
+ const src=read('assets/swapp-article-feedback.js');
+ const context={
+  window:{},document:{readyState:'loading',addEventListener(){}}
+ };
+ vm.runInNewContext(src,context);
+ const featured=context.window.SwappArticleFeedback.featuredScore;
+ assert.equal(featured({count:10,average:4.5,readerRecognition:true}),true);
+ assert.equal(featured({count:11,average:4.5,readerRecognition:false}),false);
+ assert.equal(featured({count:9,average:5,readerRecognition:true}),false);
+ assert.equal(featured({count:10,average:4.5}),false);
+ assert.equal(featured({count:10,average:null,readerRecognition:true}),false);
+ assert.match(src,/id='swapp-article-score'/);
+ assert.match(src,/aria-label/);
+ assert.match(src,/scoreLink\.textContent/);
+ assert.match(src,/recognition\.hidden=!featuredScore\(current\)/);
+ const css=read('assets/swapp-article-feedback.css');
+ assert.match(css,/scroll-margin-top/);
+ assert.match(css,/max-width:620px/);
 });
