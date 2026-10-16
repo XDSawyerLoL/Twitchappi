@@ -33,12 +33,12 @@ test('AdSense seller declaration matches the canonical repository ads.txt',()=>{
  assert.equal(response.headers['X-Content-Type-Options'],'nosniff');
 });
 
-test('SOCIAL uses one sticky navigation container, not independent fixed bars',()=>{
+test('SOCIAL uses one fixed navigation container with dynamic in-flow spacing',()=>{
  const css=read('assets/swapp-social-native/social-swapp.css');
  const html=read('assets/swapp-social-native/social-body.html');
  const hubs=read('modules/swapp-hubs.js');
  assert.match(css,/SOCIAL sticky stack v2/);
- assert.match(css,/\.swapp-social-viewport \.swapp-social-sticky-stack\{\s*display:block!important;\s*position:sticky!important/);
+ assert.match(css,/\.swapp-social-viewport \.swapp-social-sticky-stack\{\s*display:block!important;\s*position:fixed!important/);
  assert.match(css,/\.swapp-social-viewport \.pulse-mobile-nav\{\s*position:relative!important/);
  assert.match(css,/\.swapp-social-viewport \.pulse-tabs\{\s*position:relative!important/);
  assert.match(css,/overflow:visible!important; \/\* overflow-x:auto creates a second scroll root \*\//);
@@ -48,17 +48,21 @@ test('SOCIAL uses one sticky navigation container, not independent fixed bars',(
  assert.match(app,/new ResizeObserver\(update\)/);
  assert.match(app,/getBoundingClientRect\(\)\.height/);
  assert.match(app,/--swapp-social-header-height/);
+ assert.match(app,/--swapp-social-stack-height/);
+ assert.match(app,/observer\.observe\(stack\)/);
+ assert.match(css,/\.swapp-social-viewport \[hidden\]\{display:none!important\}/);
  assert.doesNotMatch(app,/addEventListener\(['"]scroll['"]/);
  assert.equal((html.match(/class="swapp-social-sticky-stack"/g)||[]).length,1);
  assert.equal((html.match(/id="feed-tabs"/g)||[]).length,1);
  assert.equal((html.match(/class="swapp-social-mobile-spacer"/g)||[]).length,0);
+ assert.equal((html.match(/class="swapp-social-mobile-offset"/g)||[]).length,1);
  const stackStart=html.indexOf('class="swapp-social-sticky-stack"');
- const stackClose=html.indexOf('</div>\n\n      <section class="pulse-welcome"',stackStart);
+ const stackClose=html.indexOf('</div>\n      <div class="swapp-social-mobile-offset"',stackStart);
  assert.ok(stackStart>0&&stackClose>stackStart);
  for(const token of ['class="pulse-topbar"','class="pulse-mobile-nav"','id="feed-tabs"']){
   const pos=html.indexOf(token);assert.ok(pos>stackStart&&pos<stackClose,token);
  }
- assert.match(hubs,/social-swapp\.css\?v=20261016-social-sticky-ux-8/);
+ assert.match(hubs,/social-swapp\.css\?v=20261016-social-fixed-10/);
 });
 
 test('SOCIAL mobile Explore has a genuine search form and a submit handler',()=>{
@@ -72,7 +76,7 @@ test('SOCIAL mobile Explore has a genuine search form and a submit handler',()=>
  assert.match(app,/event\.target\.id==='social-mobile-search-form'/);
  assert.match(app,/await loadExplore\(query\)/);
  assert.match(css,/\.swapp-social-viewport \.pulse-mobile-search\{\s*display:grid!important/);
- assert.match(hubs,/app\.js\?v=20261016-social-search-ux-9/);
+ assert.match(hubs,/app\.js\?v=20261016-social-fixed-js-10/);
 });
 
 test('stable CSS remains structurally balanced',()=>{
