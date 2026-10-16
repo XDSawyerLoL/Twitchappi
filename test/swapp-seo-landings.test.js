@@ -63,3 +63,49 @@ test('legacy duplicate public paths redirect to one canonical destination',()=>{
  assert.match(server,/app\.get\(\['\/discover','\/teams'\]/);
  assert.match(server,/res\.redirect\(301,destination\+query\)/);
 });
+
+test('html sitemap is linked from home, has valid canonical and omits draft or hostile HTML',()=>{
+ const {sitemapHtml,sitemapEntries}=require('../modules/swapp-seo');
+ const articles=[
+  {slug:'le-nouveau-jeu',status:'published',title:'Les jeux & nouveautés',publishedAt:'2026-10-16T10:00:00Z'},
+  {slug:'brouillon',status:'draft',title:'Texte secret'},
+  {slug:'strange-title',status:'published',title:'<script>alert(1)</script>'},
+  {slug:'bad/slug',status:'published',title:'Invalide'}
+ ];
+ const page=sitemapHtml(articles);
+ assert.match(injectSpaMetadata(html,'/'),/href="\/plan-du-site"/);
+ assert.match(page,/<title>Plan du site — SWAPP<\/title>/);
+ assert.match(page,/rel="canonical" href="https:\/\/swapp.tv\/plan-du-site"/);
+ assert.match(page,/Les jeux &amp; nouveautés/);
+ assert.match(page,/&lt;script&gt;alert\(1\)&lt;\/script&gt;/);
+ assert.doesNotMatch(page,/<script>alert\(1\)<\/script>|Texte secret|bad\/slug/);
+ assert.ok(sitemapEntries(articles).some(x=>x.loc==='https://swapp.tv/plan-du-site'));
+});
+
+test('sitemap, HTML sitemap and RSS share a single concurrent published lookup',async()=>{
+ const handlers=new Map();
+ let reads=0,unlock;
+ const pending=new Promise(resolve=>{unlock=resolve});
+ registerSeoRoutes({get:(url,handler)=>handlers.set(url,handler)},{
+  getPublished:async()=>{
+   reads++;
+   await pending;
+   return [{slug:'publication-visible',title:'Une actualité',status:'published'}];
+  }
+ });
+ const response=()=>({body:'',set(){return this},type(){return this},status(){return this},send(body){this.body=body;return this}});
+ const r1=response(),r2=response(),r3=response();
+ const calls=[
+  handlers.get('/sitemap.xml')({},r1),
+  handlers.get('/feed.xml')({},r2),
+  handlers.get('/plan-du-site')({},r3)
+ ];
+ await Promise.resolve();
+ assert.equal(reads,1);
+ unlock();
+ await Promise.all(calls);
+ assert.match(r1.body,/publication-visible/);
+ assert.match(r2.body,/publication-visible/);
+ assert.match(r3.body,/publication-visible/);
+ assert.equal(reads,1);
+});
