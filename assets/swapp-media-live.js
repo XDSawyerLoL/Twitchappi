@@ -7,10 +7,21 @@
   const text = (el,value) => { el.textContent = String(value ?? ''); };
   const safeImage = value => {try {const url = new URL(value);return url.protocol === 'https:' ? url.href : null;}catch{return null;}};
   const normal = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+  // Exact identity (including known editorial aliases). Substring matching
+  // incorrectly associates sequels: Hades vs Hades II or Planet Zoo vs Zoo 2.
+  const aliases=[
+    ['Grand Theft Auto VI','GTA 6','GTA VI','Grand Theft Auto 6'],
+    ['Planet Zoo 2','Planet Zoo II'],
+    ['007 First Light','James Bond 007 First Light','007: First Light'],
+    ['Assassin’s Creed Black Flag','Assassins Creed IV Black Flag','Assassin’s Creed IV: Black Flag','Assassin\'s Creed Black Flag'],
+    ['Final Fantasy VII','Final Fantasy 7','FF7'],
+    ['MARVEL Tōkon: Fighting Souls','Marvel Tokon Fighting Souls'],
+    ['Divinity: Original Sin 3','Divinity Original Sin III'],
+    ['Road 96','Road96']
+  ].map(group=>group.map(normal));
   const gameMatch = (game, liveGame) => {
-    const a = normal(game), b = normal(liveGame);
-    if(!a || !b) return false;
-    return a === b || (a.length >= 7 && b.includes(a)) || (b.length >= 7 && a.includes(b));
+    const a=normal(game),b=normal(liveGame);
+    return !!a&&!!b&&(a===b||aliases.some(group=>group.includes(a)&&group.includes(b)));
   };
   function card(item) {
     const login=String(item.login || '').trim().toLowerCase();
@@ -35,26 +46,83 @@
     target.replaceChildren();
     const p=document.createElement('p');p.className='swapp-live-notice';text(p,message);target.appendChild(p);
   }
-  async function run(){
-    try{
-      const response=await fetch('/api/discovery/home-lives?limit=12&lang=fr',{credentials:'same-origin',headers:{Accept:'application/json'},signal:AbortSignal.timeout(12000)});
-      if(!response.ok)throw Error('HTTP '+response.status);
-      const data=await response.json();
-      if(!data.success||!Array.isArray(data.items))throw Error('unavailable');
-      for(const shelf of sheets){
-        const game=shelf.dataset.game || '';
-        const candidates=game?data.items.filter(x=>gameMatch(game,x.game_name||x.category||x.game)):data.items;
-        const unique=new Set();
-        const cards=candidates.filter(x=>{
-          const key=String(x.platform||'')+':'+String(x.login||'').toLowerCase();if(unique.has(key))return false;unique.add(key);return true;
-        }).slice(0,game?3:6).map(card).filter(Boolean);
-        const target=shelf.querySelector('[data-live-results]');if(!target)continue;
-        if(cards.length){target.replaceChildren(...cards);}
-        else message(shelf,game?'Aucun live correspondant parmi les suggestions actuelles pour '+game+'. Explore les autres créateurs SWAPP.':'Aucun live public disponible pour le moment. Reviens bientôt.');
-      }
-    }catch{
-      for(const shelf of sheets) message(shelf,'Impossible de charger les lives actuellement. La lecture des articles reste disponible.');
+  // Request relevant lives from SWAPP's EXISTING server endpoint, not from
+  // the first 12 global streams. At most one request per game per page.
+  // Delay network work until the shelf enters view (unless IO is unsupported).
+  const requests=new Map();
+  function gameLives(game){
+    const key=normal(game);
+    if(!requests.has(key)){
+      const url='/api/discovery/game-lives?limit=6&game='+encodeURIComponent(game.slice(0,90));
+      requests.set(key,fetch(url,{credentials:'same-origin',headers:{Accept:'application/json'},signal:AbortSignal.timeout(12000)})
+       .then(async response=>{
+         if(!response.ok)throw Error('HTTP '+response.status);
+         const payload=await response.json();
+         if(!payload.success||!Array.isArray(payload.items)||!gameMatch(payload.game,game))throw Error('invalid_game_results');
+         return payload.items.filter(item=>gameMatch(game,item.game_name||item.category||item.game));
+       }));
     }
+    return requests.get(key);
+  }
+  let generalPromise;
+  async function generalLives(){
+    if(!generalPromise){
+      generalPromise=fetch('/api/discovery/home-lives?limit=12&lang=fr',{
+        credentials:'same-origin',headers:{Accept:'application/json'},signal:AbortSignal.timeout(12000)
+      }).then(async response=>{
+        if(!response.ok)throw Error('HTTP '+response.status);
+        const result=await response.json();
+        if(!result.success||!Array.isArray(result.items))throw Error('unavailable');
+        return result.items;
+      });
+    }
+    return generalPromise;
+  }
+  function validUnique(items,limit){
+    const seen=new Set(),out=[];
+    for(const item of items){
+      if(!item||typeof item!=='object')continue;
+      const key=String(item.platform||'').toLowerCase()+':'+String(item.login||'').trim().toLowerCase();
+      if(seen.has(key))continue;
+      const node=card(item);
+      if(!node)continue;
+      seen.add(key);out.push(node);
+      if(out.length>=limit)break;
+    }
+    return out;
+  }
+  async function renderShelf(shelf){
+    const game=String(shelf.dataset.game||'').trim().slice(0,90);
+    const target=shelf.querySelector('[data-live-results]');
+    if(!target)return;
+    try{
+      const data=game?await gameLives(game):await generalLives();
+      if(!shelf.isConnected)return;
+      const cards=validUnique(data,game?4:6);
+      if(cards.length){target.replaceChildren(...cards);return;}
+      message(shelf,game?
+       'Aucun créateur en direct confirmé sur '+game+' pour le moment. Découvre les autres lives SWAPP.':
+       'Aucun live public disponible pour le moment.');
+    }catch{
+      if(shelf.isConnected)message(shelf,game?
+       'Les lives de '+game+' sont momentanément indisponibles. Les articles restent accessibles.':
+       'Impossible de charger les lives actuellement. La lecture des articles reste disponible.');
+    }
+  }
+  function loadShelves(){
+    if(!sheets.length)return;
+    if(!('IntersectionObserver' in window)){
+      for(const shelf of sheets)renderShelf(shelf);
+      return;
+    }
+    const observer=new IntersectionObserver(entries=>{
+      for(const entry of entries){
+        if(!entry.isIntersecting)continue;
+        observer.unobserve(entry.target);
+        renderShelf(entry.target);
+      }
+    },{rootMargin:'420px 0px'});
+    for(const shelf of sheets)observer.observe(shelf);
   }
   async function relatedNews(){
     if(!related)return;
@@ -81,6 +149,6 @@
       if(!target.children.length)message(related,game?'Pas encore d’article SWAPP consacré à '+game+'.':'Découvre les articles du média SWAPP.');
     }catch{message(related,'Les articles sont momentanément indisponibles.');}
   }
-  if(sheets.length)run();
+  loadShelves();
   if(related)relatedNews();
 })();
