@@ -1,4 +1,4 @@
-/* SWAPP local or Twitch session gate for the community experience. */
+/* SWAPP local account session gate for the community experience. */
 (()=>{'use strict';
  const box=document.getElementById('swapp-social-access');
  if(!box)return;
@@ -16,7 +16,7 @@
    const r=await fetch('/api/oryon/session',{credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(7000),headers:{Accept:'application/json'}});
    if(!r.ok)throw Error('session unavailable');
    const data=await r.json();
-   set(Boolean(data?.success&&(data.local||data.twitch)));
+   set(Boolean(data?.success&&data.local));
   }catch{
    if(note)note.textContent='Connexion non vérifiée. Identifie-toi sur SWAPP pour accéder à SOCIAL.';
    set(false);
