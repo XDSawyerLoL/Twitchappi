@@ -18,7 +18,10 @@ L'application Node démarre avec `app.js` (`npm start`). Le code de version et l
 npm run check
 npm test
 npm run release:info
+npm run cost:audit
 ```
+
+`npm run cost:audit` signale les configurations de services potentiellement facturables, sans envoyer d'informations et sans afficher les clés. Ce n'est pas un relevé des dépenses réelles.
 
 Éviter de lancer l'ensemble des tests pendant un pic de trafic sur le serveur de production : privilégier une copie temporaire du dépôt ou les heures creuses. Les tests n'ont pas besoin d'API Gemini. `release:info` lit les fichiers du serveur et calcule une empreinte locale, sans aucun appel sortant.
 
