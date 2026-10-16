@@ -55,7 +55,7 @@ function renderNewsCard(item){
   const summary=String(item.summary||'').slice(0,280);
   return '<article class="pulse-news-card">'+
     (image?'<a class="pulse-news-media" href="'+esc(url||image)+'" target="_blank" rel="noopener noreferrer"><img src="'+esc(image)+'" alt="" loading="lazy" referrerpolicy="no-referrer"></a>':'')+
-    '<div class="pulse-news-body"><div class="pulse-news-meta"><span>RSS</span><strong>'+esc(source)+'</strong><span>'+esc(newsTime(item.publishedAt))+'</span></div>'+
+    '<div class="pulse-news-body"><div class="pulse-news-meta"><span>SWAPP</span><strong>'+esc(source)+'</strong><span>'+esc(newsTime(item.publishedAt))+'</span></div>'+
     '<h2>'+esc(title)+'</h2>'+
     (summary?'<p>'+esc(summary)+(String(item.summary||'').length>280?'…':'')+'</p>':'')+
     '<div class="pulse-news-actions">'+
@@ -99,7 +99,7 @@ async function showRealNewsWhenEmpty(){
 
 export async function loadHome(){
   if(state.feed==='news')return loadNewsRss();
-  setView('home','Accueil');
+  setView('home','Le fil');
   setStatus('Chargement du fil','');
   try{
     const data=await api('/api/pulse/feed?mode='+state.feed+'&limit=40');
@@ -222,8 +222,8 @@ export async function loadMessages(){
   setStatus('Chargement','');
   try{
     const data=await api('/api/pulse/conversations');
-    let html='<section class="pulse-view"><div class="pulse-view-head"><h2>Messages privés</h2><p>Conversations directes entre comptes SOCIAL.</p></div><form class="pulse-inline-form two" id="new-message"><input name="handle" placeholder="@identifiant" required><input name="body" maxlength="2000" placeholder="Message" required><button class="pulse-mini-button primary">Envoyer</button></form><div class="pulse-card-list">';
-    if(!data.conversations.length)html+='<div class="pulse-card"><p>Aucune conversation.</p></div>';
+    let html='<section class="pulse-view"><div class="pulse-view-head"><h2>Messages privés</h2><p>Échange directement avec les membres de SWAPP, sans second compte.</p></div><form class="pulse-inline-form two" id="new-message"><input name="handle" placeholder="Pseudo SWAPP du destinataire" autocomplete="off" aria-label="Pseudo du destinataire SWAPP" required><input name="body" maxlength="2000" placeholder="Ton message…" aria-label="Nouveau message" required><button class="pulse-mini-button primary">Envoyer</button></form><div class="pulse-card-list">';
+    if(!data.conversations.length)html+='<div class="pulse-card"><h3>Tout commence par un message.</h3><p>Entre le pseudo SWAPP d’un membre pour lui écrire.</p></div>';
     data.conversations.forEach(function(conversation){
       if(!conversation.user)return;
       html+='<button class="pulse-card pulse-user-card" data-conversation="'+esc(conversation.user.handle)+'"><div class="pulse-avatar">'+esc(initials(conversation.user))+'</div><div><strong>'+esc(conversation.user.displayName)+'</strong><small>'+esc(conversation.lastMessage?.body||'Nouvelle conversation')+'</small></div><span class="circle-chevron">'+icon('pi-chevron')+'</span></button>';
