@@ -42,6 +42,36 @@ function createSocialNativeProxy(fetchImpl,{production=true,restoreLocalSession=
  const sessionSso=typeof restoreLocalSession==='function';
  // Collapse parallel feed/me/circles requests into one backend sign-in.
  const signingIn=new Map();
+ // A SWAPP member may receive a first DM before they ever open SOCIAL.
+ // Provision the deterministic SOCIAL shadow account only when a member sends
+ // them a message. Cache in-flight registration attempts for one server process.
+ const recipientProvisioning=new Map();
+ async function ensureRecipient(local){
+  if(!local?.id||!local?.login)return;
+  const key=String(local.id);
+  if(recipientProvisioning.has(key))return recipientProvisioning.get(key);
+  const task=(async()=>{
+   const credentials=swappSocialCredentials(local,ssoSecret);
+   const response=await fetchImpl(SOCIAL_ORIGIN+'/api/pulse/auth/register',{
+    method:'POST',redirect:'error',
+    headers:{Accept:'application/json','Content-Type':'application/json'},
+    body:JSON.stringify(credentials)
+   },10000);
+   // 409 means the expected deterministic handle has already been reserved.
+   // An existing member must not require a second registration.
+   if(response.status===429)throw new Error('social_upstream_rate_limited');
+   if(response.status>=500)throw new Error('social_upstream_unavailable');
+   if(![200,201,409].includes(response.status))
+    throw new Error('social_recipient_not_ready');
+   return true;
+  })();
+  recipientProvisioning.set(key,task);
+  try{return await task}
+  catch(error){
+   recipientProvisioning.delete(key);
+   throw error;
+  }
+ }
  async function issueSocialToken(req,user){
   const cached=req.session?.swappSocialAuth;
   if(cached?.userId===user.id&&typeof cached.token==='string'&&cached.token.length>=20)return cached.token;
@@ -141,6 +171,21 @@ function createSocialNativeProxy(fetchImpl,{production=true,restoreLocalSession=
    if(body.length>8500)return res.status(413).json({error:'body_too_large'});
    headers['Content-Type']='application/json';
   }
+  // The browser supplies only the public SWAPP handle. The server performs
+  // recipient onboarding using an HMAC-derived identity before the first DM.
+  // Never retry a DM after an ambiguous timeout: that risks duplicate messages.
+  if(sessionSso&&method==='POST'&&path==='/messages'&&typeof lookupLocalUser==='function'){
+   const handle=String(req.body?.handle||'').trim().toLowerCase().replace(/^@/,'');
+   const recipient=lookupLocalUser(handle);
+   if(recipient?.id&&recipient?.login){
+    try{await ensureRecipient(recipient)}
+    catch(error){
+     const code=['social_upstream_rate_limited','social_upstream_unavailable'].includes(error?.message)
+      ?error.message:'social_recipient_not_ready';
+     return res.status(503).json({error:code});
+    }
+   }
+  }
   const endpoint=SOCIAL_ORIGIN+'/api/pulse'+upstreamPath+safeQuery(path,req.originalUrl?.split('?').slice(1).join('?'));
   // Read-only requests may retry once if Render wakes a cold instance.
   // Never retry a write: a timeout must not publish a post or send a DM twice.
@@ -175,6 +220,16 @@ function createSocialNativeProxy(fetchImpl,{production=true,restoreLocalSession=
     if(sessionSso&&result.status===404&&path==='/messages'&&typeof lookupLocalUser==='function'&&
        lookupLocalUser(String(req.body?.handle||'').toLowerCase().replace(/^@/,''))){
      return res.status(404).json({error:'social_recipient_not_ready'});
+    }
+    // Opening a new conversation must not show an unavailable screen simply
+    // because the recipient has not activated SOCIAL. No upstream account is
+    // created by merely viewing a SWAPP member's profile or chat composer.
+    if(sessionSso&&method==='GET'&&result.status===404&&path.startsWith('/messages/')&&typeof lookupLocalUser==='function'){
+     const local=lookupLocalUser(path.slice('/messages/'.length).toLowerCase());
+     if(local?.id&&local?.login)return res.status(200).json({
+      user:{handle:local.login,displayName:local.display_name||local.login},
+      messages:[]
+     });
     }
     if(sessionSso&&result.status>=200&&result.status<300&&typeof listLocalUsers==='function'){
      // Translate backend-only shadow handles back to public SWAPP account names.
