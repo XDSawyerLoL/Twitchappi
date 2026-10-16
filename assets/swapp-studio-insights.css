@@ -1,0 +1,28 @@
+/* Studio only: compact, readable editorial aggregates. */
+.swapp-insight-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:18px 0}
+.swapp-insight-metric{background:#162336;border:1px solid #384960;border-radius:14px;padding:17px;min-width:0}
+.swapp-insight-metric strong{display:block;font-size:clamp(23px,3vw,31px);line-height:1.15;color:#f3f8ff;overflow-wrap:anywhere}
+.swapp-insight-metric span{display:block;font-size:12px;color:#b5c9da;margin-top:6px}
+.swapp-insight-reasons{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:15px 0 24px}
+.swapp-insight-reason{min-width:0;border:1px solid #364a5f;border-radius:11px;background:#19273a;padding:12px}
+.swapp-insight-reason strong{font-size:19px;color:#d3f3eb;display:block}
+.swapp-insight-reason span{font-size:12px;color:#b7c9d9;display:block;margin-top:3px}
+.swapp-insight-scroll{width:100%;overflow-x:auto;overscroll-behavior-x:contain}
+.swapp-insight-table{border-collapse:collapse;width:100%;min-width:590px}
+.swapp-insight-table th,.swapp-insight-table td{padding:13px 11px;border-bottom:1px solid #354458;text-align:left;font-size:13px;vertical-align:top}
+.swapp-insight-table th{color:#b9cadb;font-size:12px}
+.swapp-insight-table td small{display:block;margin-top:5px;color:#9facbf}
+.swapp-insight-table td a{color:#b6eef1;text-decoration:none;font-weight:800}
+.swapp-insight-table td a:hover{text-decoration:underline}
+.swapp-insight-table td a:focus-visible{outline:2px solid #90e4ef;outline-offset:3px}
+.swapp-insight-numeric{font-variant-numeric:tabular-nums;white-space:nowrap}
+#ed-insight-status{font-size:12px;color:#b8c8d8;line-height:1.5;min-height:20px}
+@media(max-width:650px){
+ .swapp-insight-metrics{grid-template-columns:1fr 1fr;gap:9px}
+ .swapp-insight-metric{padding:12px}
+ .swapp-insight-metric strong{font-size:22px}
+ .swapp-insight-metrics .swapp-insight-metric:last-child{grid-column:1/-1}
+ .swapp-insight-reasons{gap:6px}
+ .swapp-insight-reason{padding:9px}
+ .swapp-insight-reason span{font-size:11px}
+}
