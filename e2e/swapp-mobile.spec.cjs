@@ -65,3 +65,30 @@ test('SOCIAL Explorer exposes mobile search and keeps global SWAPP navigation',a
  await expect(mobileNav).toBeVisible();
  await page.screenshot({path:testInfo.outputPath('social-explore.png')});
 });
+
+test('Découvrir keeps the live cover readable and the Watch action easy to tap',async({page},testInfo)=>{
+ await page.goto(ORIGIN+'/decouvrir',{waitUntil:'domcontentloaded'});
+ await expect(page.locator('#discover .v4Page')).toBeVisible({timeout:20000});
+ const hero=page.locator('#discover #v4SwipeCard');
+ const actions=page.locator('#discover .v4Actions');
+ const watch=actions.locator('.v4Btn.primary');
+ await expect(hero).toBeVisible();
+ await expect(watch).toBeVisible();
+ const heroRole=await hero.getAttribute('role');
+ expect(heroRole).toBe('button');
+ const cardName=await hero.getAttribute('aria-label');
+ expect(cardName).toMatch(/Regarder le live/);
+ const layout=await page.evaluate(()=>{
+  const actions=document.querySelector('#discover .v4Actions').getBoundingClientRect();
+  const watch=document.querySelector('#discover .v4Actions .v4Btn.primary').getBoundingClientRect();
+  const hero=document.querySelector('#discover #v4SwipeCard').getBoundingClientRect();
+  return {
+   actionsWidth:actions.width,watchWidth:watch.width,watchHeight:watch.height,
+   heroWidth:hero.width,viewportWidth:document.documentElement.clientWidth
+  };
+ });
+ expect(layout.watchWidth).toBeGreaterThan(layout.actionsWidth*0.80);
+ expect(layout.watchHeight).toBeGreaterThanOrEqual(44);
+ expect(layout.heroWidth).toBeLessThanOrEqual(layout.viewportWidth+2);
+ await page.screenshot({path:testInfo.outputPath('discover-mobile-actions.png')});
+});
