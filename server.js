@@ -1010,10 +1010,14 @@ if (String(process.env.SWAPP_NEWS_ENABLED || 'true').toLowerCase() === 'true') {
   }
 }
 
-// Authorized Google AdSense inventory must be discoverable at swapp.tv/ads.txt.
+// Serve the canonical AdSense seller declaration directly, even on hosts that
+// deploy the Node entrypoint but omit standalone root-level text assets.
+// The identical record must also exist in the repository's /ads.txt file.
+const SWAPP_ADS_TXT='google.com, pub-6082969821681414, DIRECT, f08c47fec0942fa0\n';
 app.get('/ads.txt', (_req,res)=>{
   res.set('Cache-Control','public, max-age=300');
-  return sendPublicFile(res, 'ads.txt', 'text/plain; charset=utf-8');
+  res.set('X-Content-Type-Options','nosniff');
+  return res.status(200).type('text/plain; charset=utf-8').send(SWAPP_ADS_TXT);
 });
 app.get('/favicon.ico', (_req,res)=>sendPublicFile(res, 'favicon.ico', 'image/x-icon'));
 
