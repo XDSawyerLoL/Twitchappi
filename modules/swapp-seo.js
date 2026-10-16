@@ -291,7 +291,7 @@ function registerSeoRoutes(app,{getPublished=async()=>[],getCreators=async()=>[]
   await ensureCache();
   const games=gameHubs(articles);
   if(!games.length)return res.status(404).send('Aucun dossier jeu publié pour le moment.');
-  res.set('Cache-Control','public, max-age=900');
+  res.set('Cache-Control','no-store');
   return res.status(200).type('html').send(renderGameIndex(games));
  });
  app.get('/jeux/:slug',async(req,res)=>{
@@ -301,7 +301,7 @@ function registerSeoRoutes(app,{getPublished=async()=>[],getCreators=async()=>[]
   await ensureCache();
   const game=gameHubs(articles).find(x=>x.slug===slug);
   if(!game)return res.status(404).send('Jeu introuvable.');
-  res.set('Cache-Control','public, max-age=900');
+  res.set('Cache-Control','no-store');
   return res.status(200).type('html').send(renderGamePage(game));
  });
  app.get('/creators-sitemap.xml',async(_req,res)=>{
