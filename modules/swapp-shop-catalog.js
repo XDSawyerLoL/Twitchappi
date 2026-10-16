@@ -34,13 +34,14 @@ function normalize(item,{strict=false}={}){
  const visible=item.visible!==false;
  const merchant=clean(item.merchant,65);
  const url=https(item.url,!demo&&visible);
- const image=https(item.image,false);
+ const image=https(item.image,strict&&visible);
+ const image2=https(item.image2,false);
  if(!demo&&visible&&!merchant)throw new CatalogError('Le marchand est obligatoire pour publier un produit réel.');
  const description=clean(item.description,260);
  if(strict&&item.title&&String(item.title).length>110)throw new CatalogError('Titre trop long (110 caractères).');
  if(strict&&item.description&&String(item.description).length>260)throw new CatalogError('Description trop longue (260 caractères).');
  return {id,kind,title,description,badge:clean(item.badge,48),
-  merchant,url,image,affiliate:!demo&&item.affiliate===true,demo,visible};
+  merchant,url,image,image2,affiliate:!demo&&item.affiliate===true,demo,visible};
 }
 function normalizeAll(items,{strict=false}={}){
  if(!Array.isArray(items)||items.length>36)throw new CatalogError('Maximum 36 produits.');
@@ -53,6 +54,16 @@ function normalizeAll(items,{strict=false}={}){
  return out;
 }
 const demoProducts=Object.freeze(normalizeAll(seed.products).map(x=>Object.freeze(x)));
+const defaultDemoImages=new Map(demoProducts.map(p=>[p.id,p.image]));
+function upgradeDemoPhotos(items){
+ // Older admin catalogues may already have been saved without any imagery.
+ // Only fill an empty image for a still-demo item with an identical seed ID;
+ // never overwrite the images or real products chosen by the owner.
+ return (Array.isArray(items)?items:[]).map(p=>{
+  const img=p?.demo===true&&!p?.image&&defaultDemoImages.get(p.id);
+  return img?{...p,image:img}:p;
+ });
+}
 function createCatalogStore({firestore}={}){
  const ref=firestore?.collection?.('swapp_shop')?.doc('catalog_v1');
  // One shared, short public cache instead of a paid database read for every
@@ -65,7 +76,7 @@ function createCatalogStore({firestore}={}){
    const snap=await ref.get();
    const result=!snap.exists
     ?{revision:0,products:demoProducts.slice(),source:'demo',writable:true}
-    :{revision:Number(snap.data()?.revision)||0,products:normalizeAll(snap.data()?.products||[]),
+    :{revision:Number(snap.data()?.revision)||0,products:normalizeAll(upgradeDemoPhotos(snap.data()?.products||[])),
       source:'managed',writable:true,updatedAt:snap.data()?.updatedAt||null};
    cache=result;until=Date.now()+30000;
    return {...result,products:result.products.slice()};
