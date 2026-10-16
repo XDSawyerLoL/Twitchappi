@@ -124,17 +124,18 @@ function shopCard(p,index=0){
      '</div><a class="swapp-store-card-cta" href="'+target+'" aria-label="Détails de '+e(p.title)+'">Voir la fiche <span aria-hidden="true">↗</span></a></div></div></article>';
 }
 const SWAPP_STEAM_TOP_20261016=[["AION 2","3393110","Gratuit","MMORPG · Fantasy","Prends ton envol dans un immense univers fantastique où les combats aériens redéfinissent l'exploration."],["Call of Duty: Modern Warfare 4","4435490","69,99 €","FPS · Précommande","Un nouvel épisode de la série militaire, avec une campagne située autour d'un conflit sur la péninsule coréenne."],["Enshrouded","1203620","35,99 €","Survie · Coopération","Explore un royaume mystérieux, bâtis ton refuge et affronte les dangers de la Brume."],["DayZ","221100","47,99 €","Survie · Monde ouvert","Survis dans un monde post-apocalyptique où chaque rencontre peut bouleverser ton aventure."],["DayZ Badlands","3816030",null,"Extension · Survie","Une nouvelle expérience de survie pour l'univers DayZ, dans des terres hostiles."],["Castlevania: Belmont's Curse","4231820","29,99 €","Action · Plateforme","Retrouve l'univers gothique de Castlevania dans une nouvelle aventure de la famille Belmont."],["Planet Zoo 2","3219030","49,99 €","Gestion · Simulation","Crée ton parc zoologique, aménage les habitats et prends soin d'une faune fascinante."],["SPAM","2902720","Gratuit","Multijoueur · Indépendant","Un titre indépendant gratuit qui s'est hissé parmi les jeux les plus populaires du moment."],["Torchlight: Infinite","1974050","Gratuit","Action-RPG · Loot","Construis ton héros, collecte des équipements et parcours un monde rempli de combats."],["EA SPORTS FC 27","4080220","69,99 €","Football · Sport","Retrouve les clubs et les compétitions dans une nouvelle saison de football virtuel."]];
+const STEAM_CONFIRMED_ART={"1203620":"731368301f231d622bd0b1e34afd2afcd86a1dcf","1974050":"8239fb450914aadc70a6fe79e9583673acc2be5e","2902720":"358f282fbcf43a12e08ad2dc3153d11046e2021f","3219030":"a5131aa4b84d04a55e3b9c561d7c886cc22bbe1c","3393110":"10aa4b096ebe6af0d1dd7882e5ba004271aef6f7","3816030":"a14cce662d9a779789852279c1d2006e48a1cb03","4080220":"ff6a3779f1ca83aae8ad3878454f6c11008ea24d","4231820":"6b65aec2c398006aea8b76e1463cc34d0e4ba68b","4435490":"0c492be3204835d71e8b454b6eb1817f8ff68c0d"};
 function steamTopSection(){
  const esc=e;
  const cards=SWAPP_STEAM_TOP_20261016.map((g,i)=>{
   const [name,id,price,genre,description]=g;
   const url='https://store.steampowered.com/app/'+id+'/';
-  const art='';
+  const art=STEAM_CONFIRMED_ART[id]?'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/'+id+'/'+STEAM_CONFIRMED_ART[id]+'/header.jpg':'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/'+id+'/header.jpg';
   return '<article class="swapp-editorial-game" aria-label="Rang '+(i+1)+' : '+esc(name)+'">'+
     '<a class="swapp-editorial-game-art" href="'+url+'" target="_blank" rel="noopener noreferrer">'+
       '<span class="swapp-editorial-game-rank">'+String(i+1).padStart(2,'0')+'</span>'+
       '<span class="swapp-editorial-game-fallback" aria-hidden="true"><span>SWAPP / GAME LIBRARY</span><strong>'+esc(name)+'</strong><small>'+esc(genre)+'</small></span>'+
-      '<img data-steam-app="'+id+'" data-steam-stage="0" alt="Jaquette du jeu '+esc(name)+'" loading="lazy" decoding="async" referrerpolicy="no-referrer">'+
+      '<img data-steam-app="'+id+'" src="'+art+'" alt="Image officielle du jeu '+esc(name)+'" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.onerror=null;this.hidden=true">'+
     '</a><div class="swapp-editorial-game-body"><span class="swapp-editorial-game-genre">'+esc(genre)+'</span>'+
     '<h3>'+esc(name)+'</h3><p>'+esc(description)+'</p><div class="swapp-editorial-game-foot">'+
     '<strong>'+esc(price||'Prix à vérifier')+'</strong><a href="'+url+'" target="_blank" rel="noopener noreferrer">Voir sur Steam ↗</a>'+
@@ -170,7 +171,7 @@ function shop(products=demoProducts,{source='demo'}={}){
   '</main>';
  return layout({title:'Boutique',description:'La boutique SWAPP : jeux vidéo, casquettes, accessoires et tapis de souris.',content,active:'shop',
   scripts:assets+'<link rel="stylesheet" href="/assets/swapp-shop.css?v=20261016-store-v5"><link rel="stylesheet" href="/assets/swapp-editorial-top.css?v=20261016-top10-v5">'+
-   '<script defer src="/assets/swapp-steam-art.js?v=20261016-steam-canonical-v1"></script>'});
+   '<script defer src="/assets/swapp-steam-art.js?v=20261016-static-official-v2"></script>'});
 }
 function shopProduct(product,products=demoProducts){
  const all=normalizeAll(products).filter(p=>p.visible&&p.image);
