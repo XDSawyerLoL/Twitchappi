@@ -1015,6 +1015,18 @@ if (String(process.env.SWAPP_NEWS_ENABLED || 'true').toLowerCase() === 'true') {
   }
 }
 
+// Search engines need genuine, crawlable URLs. This does not create a cron,
+// analytics tracker, third-party API call or paid workflow. Published records
+// are cached for six hours to limit Firestore read operations.
+require('./modules/swapp-seo').registerSeoRoutes(app,{
+ getPublished: async()=>{
+  if(!firestoreOk||!db||typeof db.collection!=='function')return [];
+  const result=await db.collection('swapp_news_articles')
+   .where('status','==','published').limit(500).get();
+  return result.docs.map(doc=>({slug:doc.id,...doc.data()}));
+ }
+});
+
 // Serve the canonical AdSense seller declaration directly, even on hosts that
 // deploy the Node entrypoint but omit standalone root-level text assets.
 // The identical record must also exist in the repository's /ads.txt file.
