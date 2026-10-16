@@ -82,3 +82,52 @@ test('topic hubs do not add features to homepage or launch paid providers',()=>{
  const module=fs.readFileSync(path.join(__dirname,'../modules/swapp-game-pages.js'),'utf8');
  assert.doesNotMatch(module,/gemini|openrouter|adsbygoogle|setInterval|setTimeout|fetch\(/i);
 });
+
+test('known editorial aliases share one game URL without fragmenting search results',()=>{
+ const {canonicalGame}=require('../modules/swapp-game-pages');
+ assert.equal(canonicalGame('GTA 6'),'Grand Theft Auto VI');
+ assert.equal(gameSlug('GTA VI'),'grand-theft-auto-vi');
+ assert.equal(gameSlug('Grand Theft Auto 6'),'grand-theft-auto-vi');
+ assert.equal(gameSlug('FF7'),'final-fantasy-vii');
+ assert.equal(gameSlug('un jeu inconnu'),'un-jeu-inconnu');
+ const mixed=[
+  {slug:'gta-6-update',title:'GTA 6 : mise à jour',summary:'Des détails officiels',game:'GTA 6',status:'published'},
+  {slug:'gta-vi-preview',title:'GTA VI : présentation',summary:'Les éléments importants',game:'Grand Theft Auto VI',status:'published'},
+  {slug:'gta-not-published',title:'Contenu non publié',summary:'Privé',game:'GTA 6',status:'draft'}
+ ];
+ const hubs=gameHubs(mixed);
+ assert.equal(hubs.length,1);
+ assert.equal(hubs[0].slug,'grand-theft-auto-vi');
+ assert.equal(hubs[0].count,2);
+ assert.equal(hubs[0].game,'Grand Theft Auto VI');
+});
+
+test('article game links only appear for real indexed hubs already cached, with no extra reads',async()=>{
+ const {cachedGameHubForArticle,invalidateSeoCache}=require('../modules/swapp-seo');
+ const articles=[
+  {slug:'gta-first',title:'GTA 6 first',summary:'Preview coverage',game:'GTA 6',status:'published'},
+  {slug:'gta-second',title:'GTA VI next',summary:'More coverage',game:'Grand Theft Auto VI',status:'published'},
+  {slug:'only-hades',title:'Hades II only',summary:'Single publication',game:'Hades II',status:'published'}
+ ];
+ const routes=new Map();
+ let reads=0;
+ registerSeoRoutes({get:(route,handler)=>routes.set(route,handler)},{getPublished:async()=>{reads++;return articles}});
+ assert.equal(cachedGameHubForArticle(articles[0]),null);
+ const response={set(){return this},type(){return this},status(){return this},send(v){this.body=v;return this}};
+ await routes.get('/sitemap.xml')({},response);
+ assert.equal(cachedGameHubForArticle(articles[0]),'/jeux/grand-theft-auto-vi');
+ assert.equal(cachedGameHubForArticle(articles[1]),'/jeux/grand-theft-auto-vi');
+ assert.equal(cachedGameHubForArticle(articles[2]),null);
+ assert.equal(reads,1);
+ const eligibleHtml=require('../modules/swapp-news/native-pages').renderNewsStory(
+  {...articles[0],author:'Rédaction SWAPP',body:'Des détails disponibles auprès des sources officielles.',publishedAt:'2026-10-16T10:00:00Z'},
+  {gameHubUrl:cachedGameHubForArticle(articles[0])});
+ assert.match(eligibleHtml,/href="\/jeux\/grand-theft-auto-vi"/);
+ const thinHtml=require('../modules/swapp-news/native-pages').renderNewsStory(
+  {...articles[2],author:'Rédaction SWAPP',body:'Quelques informations.',publishedAt:'2026-10-16T10:00:00Z'},
+  {gameHubUrl:cachedGameHubForArticle(articles[2])});
+ assert.doesNotMatch(thinHtml,/href="\/jeux\/hades-ii"/);
+ invalidateSeoCache();
+ assert.equal(cachedGameHubForArticle(articles[0]),null);
+ assert.equal(reads,1);
+});
