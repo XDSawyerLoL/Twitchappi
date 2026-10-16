@@ -35,6 +35,9 @@ test('release fingerprint is deterministic, content-sensitive and non-secret',()
 test('release endpoint is public but explicitly uncached and fails closed',()=>{
  const server=fs.readFileSync(path.join(__dirname,'..','server.js'),'utf8');
  assert.match(server,/SWAPP_DEPLOY_RELEASE=require\('\.\/tools\/swapp-release'\)\.releaseInfo\(__dirname\)/);
+ assert.match(server,/let SWAPP_DEPLOY_RELEASE=\{/);
+ assert.match(server,/try\{/);
+ assert.match(server,/fingerprint module unavailable/);
  assert.match(server,/app\.get\('\/api\/release'/);
  assert.match(server,/SWAPP_DEPLOY_RELEASE\.complete\?200:503/);
  assert.match(server,/res\.set\('Cache-Control','no-store'\)/);
