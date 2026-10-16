@@ -45,6 +45,7 @@
     </aside>
 
     <main class="pulse-main">
+      <div class="swapp-social-sticky-stack" role="group" aria-label="Navigation SOCIAL">
       <header class="pulse-topbar">
         <div><span class="pulse-kicker">SOCIAL</span><h1 id="view-title">Accueil</h1></div>
         <div class="pulse-top-actions">
@@ -54,7 +55,13 @@
 <nav class="pulse-mobile-nav" aria-label="Navigation mobile">
     <button class="active" data-view="home" aria-label="Accueil"><svg class="pi " aria-hidden="true"><use href="#pi-home"></use></svg></button><button data-view="explore" aria-label="Explorer"><svg class="pi " aria-hidden="true"><use href="#pi-search"></use></svg></button><button id="mobile-compose" aria-label="Publier"><svg class="pi " aria-hidden="true"><use href="#pi-plus"></use></svg></button><button data-view="messages" aria-label="Messages"><svg class="pi " aria-hidden="true"><use href="#pi-message"></use></svg></button><button data-view="profile" aria-label="Profil"><svg class="pi " aria-hidden="true"><use href="#pi-user"></use></svg></button>
   </nav>
-      <div class="swapp-social-mobile-spacer" aria-hidden="true"></div>
+
+      <section class="pulse-tabs" id="feed-tabs" aria-label="Choisir le fil à afficher">
+        <button class="pulse-tab" data-feed="following"><strong id="feed-following-label">Abonnements</strong><small id="feed-following-help">Les comptes que tu suis</small></button>
+        <button class="pulse-tab active" data-feed="discover"><strong>Pour vous</strong><small>Publications recommandées et tendances</small></button>
+        <button class="pulse-tab pulse-tab-news" data-feed="news"><strong>Actualité SWAPP</strong><small>Articles SWAPP · partager</small></button>
+      </section>
+      </div>
 
       <section class="pulse-welcome" id="pulse-welcome">
         <div class="pulse-welcome-mark zoon-welcome-mark"><span class="swapp-social-symbol" aria-hidden="true">S</span></div>
@@ -69,11 +76,7 @@
         </div>
       </section>
 
-      <section class="pulse-tabs" id="feed-tabs" aria-label="Choisir le fil à afficher">
-        <button class="pulse-tab" data-feed="following"><strong id="feed-following-label">Abonnements</strong><small id="feed-following-help">Les comptes que tu suis</small></button>
-        <button class="pulse-tab active" data-feed="discover"><strong>Pour vous</strong><small>Publications recommandées et tendances</small></button>
-        <button class="pulse-tab pulse-tab-news" data-feed="news"><strong>Actualité SWAPP</strong><small>Articles SWAPP · partager</small></button>
-      </section>
+
 
       <section class="pulse-composer" id="composer">
         <div class="pulse-avatar" id="composer-avatar">?</div>
