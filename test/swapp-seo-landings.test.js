@@ -57,3 +57,9 @@ test('RSS and sitemap share one cached article read',async()=>{
  assert.match(a.body,/Une sortie/);
  assert.match(b.body,/jeux-sorties-2026/);
 });
+
+test('legacy duplicate public paths redirect to one canonical destination',()=>{
+ const server=fs.readFileSync(path.join(__dirname,'../server.js'),'utf8');
+ assert.match(server,/app\.get\(\['\/discover','\/teams'\]/);
+ assert.match(server,/res\.redirect\(301,destination\+query\)/);
+});
