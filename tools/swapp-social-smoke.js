@@ -11,6 +11,7 @@ if(base.protocol!=='https:'||!['swapp.tv','www.swapp.tv'].includes(base.hostname
 const publicChecks=[
  ['/communaute','social_page'],
  ['/api/oryon/session','swapp_account_session'],
+ ['/api/oryon/persistence-status','account_storage'],
  ['/api/actus','swapp_editorial'],
  ['/api/swapp/social/release','release_marker'],
  ['/api/swapp/interactions/status','mysql_status'],
@@ -49,6 +50,7 @@ async function check(path,area,authenticated){
     const expectedGuest=authenticated&&!cookie&&status===401;
     let state=authenticatedAllowed?'ok':expectedGuest?'requires_login':'unavailable';
     if(area==='release_marker'&&payload.release!=='social-writefix-v8')state='unavailable';
+    if(area==='account_storage'&&payload.github_deploy_safe!==true)state='unsafe_deploy';
     if(area==='mysql_status'&&!(payload.enabled===true&&payload.state==='database_read_ready'))state='unavailable';
     if(area==='upstream_social'&&status===200&&payload.success===false)state='unavailable';
     resolve({area,status,ms:elapsed,state,
@@ -65,11 +67,16 @@ async function check(path,area,authenticated){
   ...authenticatedChecks.map(([url,name])=>check(url,name,true))];
  const results=await Promise.all(checks);
  console.table(results);
+ const unsafe=results.filter(r=>r.state==='unsafe_deploy');
  const unavailable=results.filter(r=>r.state==='unavailable');
  const gated=results.filter(r=>r.state==='requires_login');
  if(!cookie)console.log('Authenticated routes require a local SWAPP browser session: '+gated.length+' expected 401 statuses; their actual functionality remains untested.');
  else console.log('Authenticated routes exercised using the local environment session.');
- if(unavailable.length){
+ if(unsafe.length){
+  console.error('BLOCK DEPLOYMENT: SWAPP accounts are not confirmed persistent. Check /api/oryon/persistence-status and back up all user data before deploying.');
+  process.exitCode=2;
+ }
+  if(unavailable.length){
   console.error('SOCIAL readiness FAILED: '+unavailable.map(r=>r.area+' ('+(r.error||r.db_state||r.status)+')').join(', '));
   if(unavailable.some(r=>r.area==='upstream_social'))console.error('The older posts, messages and communities still depend on the external SOCIAL upstream.');
   process.exitCode=1;
