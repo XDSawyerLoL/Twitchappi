@@ -819,3 +819,26 @@ body:has(#swapp-social-access){
  .swapp-social-viewport .pulse-post,
  .swapp-social-viewport .swapp-social-reading-copy strong{transition:none!important}
 }
+
+/* Visible, accessible composer invitation: small editorial hierarchy. */
+.swapp-social-viewport .swapp-social-compose-label{
+ display:block!important;
+ font-size:17px!important;
+ line-height:1.2!important;
+ font-weight:840!important;
+ letter-spacing:-.025em!important;
+ color:#f2f7ff!important;
+ margin:0 0 8px!important;
+ cursor:text;
+}
+.swapp-social-viewport .pulse-composer:focus-within{
+ background:color-mix(in srgb,var(--social-accent) 5%,#0e1726)!important;
+}
+.swapp-social-viewport .pulse-composer:focus-within .swapp-social-compose-label{
+ color:var(--social-accent)!important;
+}
+.swapp-social-viewport .pulse-post .pulse-rich-details strong{overflow-wrap:break-word}
+.swapp-social-viewport .pulse-search input{font-size:13px!important}
+@media(max-width:650px){
+ .swapp-social-viewport .swapp-social-compose-label{font-size:15px!important}
+}
