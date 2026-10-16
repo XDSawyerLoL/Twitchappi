@@ -20,10 +20,10 @@ function community(){
   '<div class="swapp-social-access-content">'+socialBody+'</div>'+
   '<div class="swapp-social-access-gate" role="region" aria-label="Connexion requise">'+
   '<div class="swapp-social-access-copy"><span>SWAPP / SOCIAL</span><h2>Rejoins la conversation.</h2>'+
-  '<p>Connecte-toi avec ton compte SWAPP ou Twitch pour découvrir la communauté.</p>'+
-  '<div class="swapp-social-access-actions"><a href="/compte">Connexion SWAPP ou Twitch</a></div>'+
-  '<small>Connexion sécurisée sur SWAPP. Aucun compte SOCIAL créé automatiquement.</small></div></div></div>';
- const scripts=assets+pageColors+'<link rel="stylesheet" href="/assets/swapp-social-access.css?v=20261016-1"><script defer src="/assets/swapp-social-access.js?v=20261016-1"></script>'+
+  '<p>Connecte-toi avec ton compte SWAPP pour découvrir la communauté.</p>'+
+  '<div class="swapp-social-access-actions"><a href="/compte">Se connecter à SWAPP</a></div>'+
+  '<small>Connexion sécurisée sur SWAPP. Seul un compte SWAPP connecté permet l’accès.</small></div></div></div>';
+ const scripts=assets+pageColors+'<link rel="stylesheet" href="/assets/swapp-social-access.css?v=20261016-1"><script defer src="/assets/swapp-social-access.js?v=20261016-2"></script>'+
   '<link rel="stylesheet" href="/assets/swapp-social-native/social-swapp.css?v=20261016-masthead-fix-v3">'+
   '<script type="module" src="/assets/swapp-social-native/app.js?v=20261016-masthead-fix-v3"></script>';
  return layout({title:'Communauté',description:'Le réseau SOCIAL complet intégré dans SWAPP : profils, publications, communautés et messagerie.',content,active:'community',scripts});
