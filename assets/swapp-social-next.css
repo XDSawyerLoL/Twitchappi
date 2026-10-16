@@ -1,0 +1,53 @@
+/* SWAPP SOCIAL: player passport and contextual game hubs. No new global navigation. */
+.swapp-interactive .ssn-space{display:grid;gap:13px;margin:13px 0 0}
+.swapp-interactive .ssn-passport,.swapp-interactive .ssn-universe{
+ padding:17px 20px;border:1px solid rgba(185,208,245,.16);border-radius:18px;
+ background:radial-gradient(circle at 98% -65%,rgba(173,243,68,.085),transparent 40%),linear-gradient(135deg,#162132,#111a2b);
+ min-width:0;overflow:hidden
+}
+.swapp-interactive .ssn-passport{border-color:rgba(176,243,55,.21)}
+.swapp-interactive .ssn-universe{background:radial-gradient(circle at 100% -50%,rgba(152,147,255,.12),transparent 45%),linear-gradient(120deg,#182033,#141e2c)}
+.swapp-interactive .ssn-head{display:flex;align-items:center;gap:12px;min-width:0}
+.swapp-interactive .ssn-head>.ssi-ghost{margin-left:auto;flex-shrink:0}
+.swapp-interactive .ssn-avatar,.swapp-interactive .ssn-orbit{width:45px;height:45px;flex:0 0 45px;display:grid;place-items:center;border:1px solid rgba(176,243,55,.25);color:#c3ff7b;background:rgba(176,243,55,.08);border-radius:14px;font-size:23px}
+.swapp-interactive .ssn-orbit{color:#c7b9ff;border-color:rgba(175,157,255,.3);background:rgba(140,123,222,.08)}
+.swapp-interactive .ssn-copy{min-width:0;flex:1}
+.swapp-interactive .ssn-copy h3{font-size:18px!important;font-weight:800;letter-spacing:-.03em;line-height:1.2;margin:3px 0;color:#f9fbff}
+.swapp-interactive .ssn-copy p{font-size:11px;line-height:1.5;color:#abbdd3;margin:3px 0 0}
+.swapp-interactive .ssn-summary{display:flex;flex-wrap:wrap;align-items:center;gap:9px;margin-top:13px;color:#b6c7d9;font-size:11px;line-height:1.6}
+.swapp-interactive .ssn-summary>p{flex:1 0 100%;margin:0}
+.swapp-interactive .ssn-handle{font-weight:800;color:#f0f6ff}
+.swapp-interactive .ssn-visibility{color:#c7d5eb;border:1px solid rgba(178,208,245,.18);border-radius:6px;padding:3px 8px;font-size:10px}
+.swapp-interactive .ssn-tags{display:flex;gap:6px;flex-wrap:wrap}
+.swapp-interactive .ssn-tags button{border:1px solid rgba(176,243,55,.25);border-radius:7px;color:#ccff9a;background:rgba(176,243,55,.07);padding:5px 9px;font-size:11px;font-weight:700}
+.swapp-interactive .ssn-tags button:hover{background:rgba(176,243,55,.15)}
+.swapp-interactive .ssn-form{margin-top:14px;padding:15px;border:1px solid rgba(171,195,226,.17);border-radius:13px;background:rgba(4,12,22,.36)}
+.swapp-interactive .ssn-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+.swapp-interactive .ssn-fields label{display:grid;gap:5px;color:#d4e0f0;font-size:11px;font-weight:750;min-width:0}
+.swapp-interactive .ssn-fields input,.swapp-interactive .ssn-fields select,.swapp-interactive .ssn-search input{width:100%;min-width:0;border:1px solid #44546a;background:#101a2b;color:#f3f8ff;border-radius:9px;padding:9px 11px;min-height:38px;font:inherit;font-size:12px;box-sizing:border-box}
+.swapp-interactive .ssn-fields input::placeholder,.swapp-interactive .ssn-search input::placeholder{color:#91a3b8}
+.swapp-interactive .ssn-privacy{display:flex;align-items:center;gap:10px;font-size:11px;color:#e1eafb;margin:12px 0 0;font-weight:700;line-height:1.5}
+.swapp-interactive .ssn-privacy input{width:16px;height:16px;accent-color:#b0f337;flex:0 0 16px}
+.swapp-interactive .ssn-footnote{color:#a4b7d0;font-size:10px;line-height:1.5;margin:9px 0}
+.swapp-interactive .ssn-actions{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:12px}
+.swapp-interactive .ssn-actions a{text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
+.swapp-interactive .ssn-search{display:flex;gap:7px;margin-top:15px}
+.swapp-interactive .ssn-search input{flex:1}
+.swapp-interactive .ssn-game-results{margin-top:10px;font-size:12px;color:#b8c8dd}
+.swapp-interactive .ssn-game-results:empty{display:none}
+.swapp-interactive .ssn-universe-title{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:15px 0 10px;border-bottom:1px solid rgba(180,205,243,.15);padding-bottom:9px}
+.swapp-interactive .ssn-universe-title strong{font-size:17px;color:#f8fbff;overflow-wrap:anywhere}
+.swapp-interactive .ssn-universe-title span{font-size:11px;color:#b2c5df}
+.swapp-interactive .ssn-game-columns{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.swapp-interactive .ssn-game-columns section{min-width:0;padding:12px;border-radius:12px;border:1px solid rgba(166,191,229,.17);background:rgba(7,14,27,.31)}
+.swapp-interactive .ssn-game-columns h4{font-size:12px;font-weight:800;color:#eff5ff;margin:0 0 8px}
+.swapp-interactive .ssn-game-columns p{color:#a6b9d0;font-size:11px;margin:0;line-height:1.5}
+.swapp-interactive .ssn-room{display:flex;align-items:center;justify-content:space-between;text-align:left;gap:9px;width:100%;border:1px solid rgba(166,191,229,.17);background:rgba(34,53,78,.45);border-radius:8px;color:#e1edff;padding:8px 10px;margin-top:6px;font-size:11px}
+.swapp-interactive .ssn-room span{color:#b0f337;white-space:nowrap}
+.swapp-interactive .ssn-room:hover{border-color:rgba(176,243,55,.45)}
+.swapp-interactive .ssn-player{display:grid;gap:3px;padding:8px 0;border-bottom:1px solid rgba(166,191,229,.12);font-size:11px}
+.swapp-interactive .ssn-player:last-child{border:0}
+.swapp-interactive .ssn-player strong{color:#eaf1ff}
+.swapp-interactive .ssn-player span{color:#aebfda}
+.swapp-social-viewport .pulse-news-actions [data-next-game]{background:rgba(176,243,55,.1)!important;border:1px solid rgba(176,243,55,.3)!important;color:#d4ff9f!important}
+@media(max-width:600px){.swapp-interactive .ssn-passport,.swapp-interactive .ssn-universe{padding:15px}.swapp-interactive .ssn-fields,.swapp-interactive .ssn-game-columns{grid-template-columns:1fr}.swapp-interactive .ssn-head{flex-wrap:wrap}.swapp-interactive .ssn-head>.ssi-ghost{margin-left:0}.swapp-interactive .ssn-copy h3{font-size:16px!important}.swapp-interactive .ssn-search{flex-wrap:wrap}.swapp-interactive .ssn-search button{flex:0 0 auto}}
