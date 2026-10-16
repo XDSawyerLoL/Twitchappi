@@ -2,6 +2,18 @@ import { TOKEN_KEY, state, dom, api, errorText } from './core.js';
 import { openAuth, closeAuth, updateAuthModal, updateAccount, requireAuth, applySession, clearSession, restoreSession } from './session.js';
 import { setView, loadHome, loadExplore, loadCircles, loadNotifications, loadSaved, loadProfile, loadMessages, loadConversation, loadCirclePreview, loadNewsRss } from './views.js';
 
+/* After a deliberate view change, align the first post beneath the sticky
+   SOCIAL stack. Never change scroll position during ordinary finger scrolling. */
+function revealSocialContent(){
+  const phone=window.matchMedia?.('(max-width:920px) and (orientation:portrait), (max-width:650px)')?.matches;
+  if(!phone)return;
+  window.requestAnimationFrame?.(()=>{
+    const feed=document.getElementById('pulse-feed');
+    if(feed?.scrollIntoView)feed.scrollIntoView({block:'start',behavior:'auto'});
+  });
+}
+
+
 function setReply(postId,handle){
   state.replyTo=postId;
   const context=document.getElementById('pulse-context');
@@ -228,6 +240,7 @@ function bindStaticEvents(){
       });
       if(state.feed==='news')loadNewsRss();
       else loadHome();
+      revealSocialContent();
     });
   });
 
@@ -245,6 +258,7 @@ function bindStaticEvents(){
       else if(view==='messages')loadMessages();
       else if(view==='saved')loadSaved();
       else if(view==='profile')loadProfile();
+      revealSocialContent();
     });
   });
 
