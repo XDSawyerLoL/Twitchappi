@@ -113,3 +113,23 @@ test('both shells and release verifier use exactly the latest navigation assets'
  assert.match(smoke,/20261016-ios-layer-v4/);
  assert.match(smoke,/20261016-follow-v2/);
 });
+
+
+test('iPhone fixed bar and Plus popup paint above floating companion and SOCIAL sticky stack',()=>{
+ const finish=read('assets/swapp-presentation-polish.css');
+ const social=read('assets/swapp-social-native/social-swapp.css');
+ const companion=read('assets/swapp-mairy.css');
+ const unified=read('assets/swapp-unified-nav.css');
+ assert.match(unified,/#mobileNav\{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:90/);
+ assert.match(companion,/position:fixed;right:clamp[^;]+;bottom:22px;z-index:125/);
+ assert.match(social,/\.swapp-social-viewport \.swapp-social-sticky-stack\{[\s\S]*?z-index:60;/);
+ const mobileFix=finish.slice(finish.indexOf('iPhone layering fix: shared bottom navigation'));
+ assert.match(mobileFix,/@media\(max-width:1080px\)/);
+ assert.match(mobileFix,/#mobileNav\.mobileNav\{[\s\S]*?position:fixed!important/);
+ assert.match(mobileFix,/#mobileNav\.mobileNav\{[\s\S]*?z-index:210!important/);
+ assert.match(mobileFix,/\.swapp-companion\{\s*z-index:125;/);
+ assert.match(mobileFix,/#mobileNav\.mobileNav:has\(\.swapp-mobile-more\[open\]\)\{[\s\S]*?-webkit-backdrop-filter:none!important/);
+ assert.match(mobileFix,/backdrop-filter:none!important/);
+ assert.match(mobileFix,/#mobileNav\.mobileNav \.swapp-mobile-more\[open\] > \.swapp-mobile-more-links/);
+ assert.match(read('assets/swapp-video-gallery.css'),/\.swapp-video-backdrop\{position:fixed;inset:0;z-index:240/);
+});
