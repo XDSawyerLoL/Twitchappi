@@ -7,13 +7,16 @@
  * filling the first screen with creators from one game when alternatives exist.
  * Never invent "live" status, change scores, or replace a user's dislikes.
  */
+const {normalize:normalizeGame,searchNames}=require('./swapp-news/game-identity');
 const generic=new Set(['live','oryon live','swapp live','gaming','jeux video','jeu video','just chatting','discussion','unknown']);
 function gameKey(row){
- const raw=String(row?.game_name||row?.category||'').normalize('NFKD')
-  .replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+ const raw=normalizeGame(row?.game_name||row?.category||'');
  // Unknown games are NOT considered the same game: one generic category must
  // not crowd out unrelated creators lacking precise metadata.
- return !raw||generic.has(raw)?'unknown:'+String(row?.platform||'')+':'+String(row?.login||''):raw;
+ if(!raw||generic.has(raw))return 'unknown:'+String(row?.platform||'')+':'+String(row?.login||'');
+ // Reuse the editorial game's canonical aliases (GTA VI / GTA 6 etc.)
+ // so two names for one game never falsely increase category diversity.
+ return normalizeGame(searchNames(raw)[0]||raw);
 }
 function replayTitle(row){
  const title=String(row?.title||'').normalize('NFKD')
