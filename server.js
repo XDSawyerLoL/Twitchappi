@@ -8960,13 +8960,11 @@ app.get('/api/discovery/home-lives', heavyLimiter, async (req,res)=>{
       }
     }
 
-    out.sort((a,b)=>{
-      const av=Number(a.viewer_count||0), bv=Number(b.viewer_count||0);
-      const as=(av>=30&&av<=100?1000:0)+(av>=15&&av<=300?300:0)-Math.abs(av-60);
-      const bs=(bv>=30&&bv<=100?1000:0)+(bv>=15&&bv<=300?300:0)-Math.abs(bv-60);
-      return bs-as;
-    });
-    res.json({ success:true, items: out.slice(0,limit), source: out.length?'public-discovery':'empty', twitchConfigured:!!(TWITCH_CLIENT_ID&&TWITCH_CLIENT_SECRET), firestore:!!firestoreOk });
+    // The previous global viewer sort could bury every native SWAPP live.
+    // Reserve bounded native visibility and diversify only the existing pool.
+    // No new provider request, viewer tracking or paid recommendation engine.
+    const ranked=require('./modules/swapp-home-discovery').rankHomeLives(out,{limit});
+    res.json({ success:true, items: ranked, source: ranked.length?'public-discovery':'empty', twitchConfigured:!!(TWITCH_CLIENT_ID&&TWITCH_CLIENT_SECRET), firestore:!!firestoreOk });
   }catch(e){ res.json({ success:false, error:e.message, items:[] }); }
 });
 
