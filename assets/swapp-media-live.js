@@ -10,7 +10,7 @@
   // Exact identity (including known editorial aliases). Substring matching
   // incorrectly associates sequels: Hades vs Hades II or Planet Zoo vs Zoo 2.
   const aliases=[
-    ['Grand Theft Auto VI','GTA 6','GTA VI','Grand Theft Auto 6'],
+    ['Grand Theft Auto VI','GTA 6','GTA6','GTA VI','Grand Theft Auto 6'],
     ['Planet Zoo 2','Planet Zoo II'],
     ['007 First Light','James Bond 007 First Light','007: First Light'],
     ['Assassin’s Creed Black Flag','Assassins Creed IV Black Flag','Assassin’s Creed IV: Black Flag','Assassin\'s Creed Black Flag'],
