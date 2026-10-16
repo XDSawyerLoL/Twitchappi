@@ -14,9 +14,12 @@
   ['/equipes','Équipes'],['/actus','Actualité'],
   ...HUBS.map(x=>[x.href,x.label])
  ];
+ // Account lives in the secondary menu but must still be recognized by
+ // reconciliation; otherwise every MutationObserver pass adds another link.
+ const ACCOUNT=['/compte','Compte'];
  const norm=s=>String(s||'').replace(/\s+/g,' ').trim().toLocaleLowerCase('fr');
- const byLabel=new Map(NAV.map(([href,label])=>[norm(label),href]));
- const byHref=new Set(NAV.map(([href])=>href));
+ const byLabel=new Map([...NAV,ACCOUNT].map(([href,label])=>[norm(label),href]));
+ const byHref=new Set([...NAV,ACCOUNT].map(([href])=>href));
  const isHub=href=>HUBS.some(x=>x.href===href);
  function dest(el){
   const href=el.getAttribute('href');
@@ -123,7 +126,7 @@
    nav.insertBefore(anchor(href,label),more);
   }
   const existing=new Set([...nav.querySelectorAll('a,button')].map(dest));
-  for(const [href,label] of [...NAV.filter(x=>!pinned.includes(x[0])),['/compte','Compte']]){
+  for(const [href,label] of [...NAV.filter(x=>!pinned.includes(x[0])),ACCOUNT]){
    if(existing.has(href))continue;
    inner.append(anchor(href,label));
   }
