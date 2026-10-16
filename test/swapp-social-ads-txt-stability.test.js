@@ -43,6 +43,12 @@ test('SOCIAL uses one sticky navigation container, not independent fixed bars',(
  assert.match(css,/\.swapp-social-viewport \.pulse-tabs\{\s*position:relative!important/);
  assert.match(css,/overflow:visible!important; \/\* overflow-x:auto creates a second scroll root \*\//);
  assert.match(css,/--social-site-top:var\(--swapp-social-header-height,72px\)/);
+ const app=read('assets/swapp-social-native/app.js');
+ assert.match(app,/function installSocialHeaderOffset\(\)/);
+ assert.match(app,/new ResizeObserver\(update\)/);
+ assert.match(app,/getBoundingClientRect\(\)\.height/);
+ assert.match(app,/--swapp-social-header-height/);
+ assert.doesNotMatch(app,/addEventListener\(['"]scroll['"]/);
  assert.equal((html.match(/class="swapp-social-sticky-stack"/g)||[]).length,1);
  assert.equal((html.match(/id="feed-tabs"/g)||[]).length,1);
  assert.equal((html.match(/class="swapp-social-mobile-spacer"/g)||[]).length,0);
