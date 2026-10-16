@@ -4,7 +4,7 @@
  */
 (()=>{'use strict';
  if(window.SwappVideoViewer)return;
- let dialog=null,previousFocus=null;
+ let dialog=null,previousFocus=null,previousOverflow=null;
  function validSource(raw){
   try{
    const url=new URL(String(raw),location.origin);
@@ -15,8 +15,15 @@
  function close(){
   if(!dialog)return;
   dialog.remove();dialog=null;
-  document.body.style.removeProperty('overflow');
-  try{previousFocus?.focus()}catch(_){}
+  // Restore the page's exact pre-player inline overflow instead of erasing
+  // a lock that may already belong to another page component.
+  if(previousOverflow){
+   if(previousOverflow.value)document.body.style.setProperty('overflow',previousOverflow.value,previousOverflow.priority);
+   else document.body.style.removeProperty('overflow');
+   previousOverflow=null;
+  }
+  try{if(previousFocus?.isConnected)previousFocus.focus({preventScroll:true})}catch(_){}
+  previousFocus=null;
  }
  function open(trigger){
   const title=String(trigger.dataset.videoTitle||'Vidéo SWAPP').slice(0,180);
@@ -68,16 +75,31 @@
   panel.append(heading,stage,bottom);
   dialog.append(panel);
   dialog.addEventListener('click',e=>{if(e.target===dialog)close()});
+  previousOverflow={
+   value:document.body.style.getPropertyValue('overflow'),
+   priority:document.body.style.getPropertyPriority('overflow')
+  };
   document.body.append(dialog);
-  document.body.style.overflow='hidden';
-  dismiss.focus();
+  document.body.style.setProperty('overflow','hidden');
+  dismiss.focus({preventScroll:true});
  }
  document.addEventListener('click',event=>{
   const trigger=event.target.closest?.('[data-swapp-video-play]');
   if(!trigger)return;
   event.preventDefault();open(trigger);
  });
- document.addEventListener('keydown',e=>{if(e.key==='Escape'&&dialog)close()});
+ // Keep keyboard focus inside the video while the dialog is open.
+ document.addEventListener('keydown',e=>{
+  if(!dialog)return;
+  if(e.key==='Escape'){e.preventDefault();close();return}
+  if(e.key!=='Tab')return;
+  const focusable=[...dialog.querySelectorAll('button:not([disabled]),a[href]')].filter(node=>!node.hidden);
+  if(!focusable.length){e.preventDefault();return}
+  const first=focusable[0],last=focusable[focusable.length-1],active=document.activeElement;
+  if(e.shiftKey&&(active===first||!dialog.contains(active))){e.preventDefault();last.focus()}
+  else if(!e.shiftKey&&(active===last||!dialog.contains(active))){e.preventDefault();first.focus()}
+ });
+ window.addEventListener('popstate',close);
  window.addEventListener('pagehide',close);
  window.SwappVideoViewer=Object.freeze({close,open});
 })();
