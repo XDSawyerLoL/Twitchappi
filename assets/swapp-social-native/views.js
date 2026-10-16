@@ -84,9 +84,16 @@ async function fetchNewsFeed(){
   let lastError;
   for(const endpoint of NEWS_FEEDS){
     try{
-      const response=await fetch(endpoint+(endpoint.includes('?')?'&':'?')+'v='+Date.now(),{cache:'no-store'});
-      if(!response.ok)throw new Error('HTTP '+response.status);
-      const data=await response.json();
+      const controller=new AbortController();
+      const timeout=setTimeout(()=>controller.abort(),8500);
+      let data;
+      try{
+        const response=await fetch(endpoint+(endpoint.includes('?')?'&':'?')+'v='+Date.now(),{
+          credentials:'same-origin',cache:'no-store',signal:controller.signal
+        });
+        if(!response.ok)throw new Error('HTTP '+response.status);
+        data=await response.json();
+      }finally{clearTimeout(timeout)}
       if(Array.isArray(data.articles)){
        const items=data.articles.filter(a=>a&&/^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/.test(String(a.slug||'')))
         .map(a=>{
