@@ -99,62 +99,124 @@ function safeProducts(items){
  }
  return out;
 }
-function shopCard(p,i){
- const amazonPartner=!p.demo&&p.affiliate&&isAmazonLink(p.url);
- const action=p.demo?'<span class="swapp-shop-coming">Sélection à venir</span>':
- '<a class="swapp-shop-buy" href="'+e(p.url)+'" target="_blank" rel="'+(p.affiliate?'sponsored nofollow noopener noreferrer':'noopener noreferrer')+'">Découvrir chez '+e(p.merchant)+' <span aria-hidden="true">↗</span></a>';
- const credit=p.demo?'Visuel de présentation, non contractuel':'';
- const art='<img class="swapp-shop-product-image" src="'+e(p.image)+'" alt="'+e(p.kind==='games'?'Visuel officiel de '+p.title:'Photographie de présentation pour '+p.title)+'" loading="'+(i===0?'eager':'lazy')+'" decoding="async" referrerpolicy="no-referrer">'+
- (p.image2?'<img class="swapp-shop-product-image-alt" src="'+e(p.image2)+'" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">':'');
- return '<article class="swapp-shop-card swapp-shop-card--'+(i===0?'featured':i===1?'standard':'compact')+'">'+
- '<div class="swapp-shop-visual">'+art+'</div>'+
- '<div class="swapp-shop-card-copy">'+
- '<span class="swapp-shop-kicker">'+e(p.badge||((p.kind==='games')?'Jeu vidéo':'Accessoire'))+'</span>'+
- '<h3>'+e(p.title)+'</h3><p>'+e(p.description||'Une sélection SWAPP à découvrir.')+'</p>'+
- (p.affiliate?'<small class="swapp-shop-disclosure">'+(amazonPartner?'Lien rémunéré par Amazon':'Lien affilié · commission possible')+'</small>':'')+
- '<div class="swapp-shop-card-foot">'+action+'</div>'+
- (credit?'<small class="swapp-shop-demo-credit">'+credit+'</small>':'')+
- '</div></article>';
+
+function shopPrice(p){
+ if(p.demo||!p.priceEur)return '';
+ const amount=Number(p.priceEur);
+ if(!Number.isFinite(amount)||amount<=0)return '';
+ return new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(amount);
+}
+function shopCard(p,index=0){
+ const price=shopPrice(p);
+ const target='/boutique/produit/'+encodeURIComponent(p.id);
+ const label=p.demo?'À découvrir prochainement':price?'Prix indicatif':'Voir chez le marchand';
+ const image='<img class="swapp-store-product-img" src="'+e(p.image)+'" alt="'+e(p.title)+'" loading="'+(index<3?'eager':'lazy')+'" decoding="async" referrerpolicy="no-referrer">';
+ const badge=p.demo?'<span class="swapp-store-tag">Aperçu</span>':'';
+ return '<article class="swapp-store-card" data-shop-product data-shop-kind="'+e(p.kind)+'" data-shop-title="'+e(p.title.toLocaleLowerCase('fr'))+'">'+
+  '<a class="swapp-store-card-media" href="'+target+'" aria-label="Voir la fiche : '+e(p.title)+'">'+image+badge+'</a>'+
+  '<div class="swapp-store-card-body"><span class="swapp-store-card-kind">'+
+    e(CATEGORIES.find(c=>c.id===p.kind)?.name||'SWAPP')+'</span>'+
+    '<h3><a href="'+target+'">'+e(p.title)+'</a></h3>'+
+    '<p class="swapp-store-card-description">'+e(p.description||'Découvrir cette référence')+'</p>'+
+    '<div class="swapp-store-card-bottom"><div class="swapp-store-price">'+
+     (price?'<strong>'+e(price)+'</strong><small>Prix à confirmer chez le vendeur</small>':
+      '<strong>'+label+'</strong><small>'+(p.demo?'Présentation non commerciale':'Consulter l’offre externe')+'</small>')+
+     '</div><a class="swapp-store-card-cta" href="'+target+'" aria-label="Détails de '+e(p.title)+'">Voir la fiche <span aria-hidden="true">↗</span></a></div></div></article>';
 }
 function shop(products=demoProducts,{source='demo'}={}){
- const clean=normalizeAll(products).filter(x=>x.visible&&x.image);
- const count=clean.length;
- const hasAmazonPartner=clean.some(p=>!p.demo&&p.affiliate&&isAmazonLink(p.url));
- const sections=CATEGORIES.map(cat=>{
-  const selection=clean.filter(x=>x.kind===cat.id);
-  return '<section class="swapp-shop-aisle" id="rayon-'+cat.id+'" aria-labelledby="shop-title-'+cat.id+'">'+
-   '<header class="swapp-shop-aisle-head"><span class="swapp-shop-aisle-count">'+cat.code+'</span>'+
-   '<div><span class="swapp-shop-aisle-label">'+e(cat.subtitle)+'</span><h2 id="shop-title-'+cat.id+'">'+e(cat.name)+'</h2></div>'+
-   '<span class="swapp-shop-aisle-quantity">'+selection.length+' sélection'+(selection.length>1?'s':'')+'</span></header>'+
-   '<div class="swapp-shop-products">'+(selection.map((p,i)=>shopCard(p,i)).join('')||
-    '<p class="swapp-shop-aisle-empty">Ce rayon attend ses prochains produits.</p>')+'</div></section>';
+ const cleaned=normalizeAll(products).filter(p=>p.visible&&p.image);
+ const hero=cleaned.find(p=>p.kind==='games')||cleaned[0]||null;
+ const count=cleaned.length;
+ const tiles=CATEGORIES.map(c=>{
+  const selection=cleaned.filter(p=>p.kind===c.id);
+  const first=selection[0];
+  return '<a class="swapp-store-department" href="#catalogue" data-shop-category-target="'+c.id+'">'+
+   (first?'<img src="'+e(first.image)+'" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">':'<span class="swapp-store-department-empty" aria-hidden="true"></span>')+
+   '<span class="swapp-store-department-content"><small>RAYON '+e(c.code)+'</small><strong>'+e(c.name)+'</strong>'+
+   '<span>'+selection.length+' référence'+(selection.length>1?'s':'')+' <span aria-hidden="true">→</span></span></span></a>';
  }).join('');
- const note=clean.some(p=>p.demo)||source==='demo'||source==='fallback'
- ?'<p class="swapp-shop-demo-banner" role="note">Boutique en préparation · Jeux : visuels officiels. Accessoires : photographies d’inspiration non contractuelles. Aucun des exemples n’est proposé à la vente.</p>':'';
- const main='<main class="swapp-hub swapp-shop">'+
-  '<div class="swapp-shop-hero"><div class="swapp-shop-hero-text"><span class="swapp-shop-overline">SWAPP / Le shop</span>'+
-  '<span class="swapp-shop-hero-edition">LE CONCEPT STORE GAMING</span>'+
-  '<h1>Du jeu. Du style. <em>De belles découvertes.</em></h1>'+
-  '<p>Les jeux qui nous passionnent et les accessoires qui donnent du caractère à un setup. Un univers à explorer, bientôt à adopter.</p>'+
-  '<div class="swapp-shop-hero-actions"><a class="swapp-shop-primary" href="#selection">Découvrir la sélection <span aria-hidden="true">↘</span></a>'+
-  '<a class="swapp-shop-secondary" href="#shop-transparence">À propos de la boutique</a></div></div>'+
-  '<div class="swapp-shop-hero-visual">'+(clean.length?'<img src="'+e((clean.find(p=>p.kind==='games')||clean[0]).image2||(clean.find(p=>p.kind==='games')||clean[0]).image)+'" alt="" decoding="async" fetchpriority="high" referrerpolicy="no-referrer">':'')+
-  '<span class="swapp-shop-hero-tag">LA SÉLECTION SWAPP / 01</span></div></div>'+
-    note+
-  '<nav class="swapp-shop-categories" aria-label="Rayons de la boutique"><span>LES RAYONS</span>'+
-   CATEGORIES.map(cat=>'<a href="#rayon-'+cat.id+'">'+e(cat.name)+' <span aria-hidden="true">↗</span></a>').join('')+
-  '</nav>'+
-  '<div class="swapp-shop-intro" id="selection"><div><span class="swapp-shop-overline">La sélection</span><h2>À toi de choisir ton univers.</h2></div>'+
-  '<p>'+count+' référence'+(count>1?'s':'')+' à découvrir · Trois univers, un même esprit SWAPP.</p></div>'+
-  '<div class="swapp-shop-aisles">'+sections+'</div>'+
-  '<aside class="swapp-shop-trust" id="shop-transparence"><span class="swapp-shop-trust-icon" aria-hidden="true">✳</span>'+
-  '<div><h2>Une vitrine transparente.</h2><p>Les exemples ne sont pas achetables. Quand un produit réel sera publié, le bouton dirigera vers son marchand identifié, sans paiement ni collecte bancaire sur SWAPP. Les liens affiliés seront signalés.</p>'+
-  (hasAmazonPartner?'<p class="swapp-shop-amazon-disclosure">'+e(amazonDisclosure)+'</p>':'')+'</div>'+
-  '<a href="/actus">Retour à l’actualité <span aria-hidden="true">→</span></a></aside>'+
+ const options=[{id:'all',name:'Tous les produits'},...CATEGORIES.map(c=>({id:c.id,name:c.name}))];
+ const filters=options.map((o,i)=>'<button class="swapp-store-filter'+(i===0?' is-active':'')+'" data-shop-filter="'+o.id+'" type="button" aria-pressed="'+(i===0?'true':'false')+'">'+e(o.name)+'</button>').join('');
+ const note=cleaned.some(p=>p.demo)||source==='demo'||source==='fallback'?
+ '<div class="swapp-store-notice" role="note"><strong>La Boutique prend forme.</strong> Certains produits sont des aperçus non commercialisés. Images des jeux : visuels promotionnels ; accessoires : photos d’inspiration non contractuelles.</div>':'';
+ const disclosure=cleaned.some(p=>!p.demo&&p.affiliate&&isAmazonLink(p.url))?
+ '<p class="swapp-store-disclosure">'+e(amazonDisclosure)+'</p>':'';
+ const cards=cleaned.map(shopCard).join('');
+ const content='<main class="swapp-hub swapp-store" id="swapp-store">'+
+  '<div class="swapp-store-topline"><span>SWAPP <span aria-hidden="true">/</span> BOUTIQUE</span>'+
+   '<span>JEUX VIDÉO · STREETWEAR · SETUP</span></div>'+
+  '<header class="swapp-store-head"><div><span class="swapp-store-eyebrow">LA BOUTIQUE SWAPP</span>'+
+   '<h1>Du gaming à ton quotidien.</h1><p>Des jeux à découvrir. Des accessoires pour affirmer ton style. Une sélection réunie au même endroit.</p></div>'+
+   '<a href="#catalogue" class="swapp-store-jump">Explorer le catalogue <span aria-hidden="true">↓</span></a></header>'+
+  (hero?'<a class="swapp-store-campaign" href="/boutique/produit/'+encodeURIComponent(hero.id)+'">'+
+   '<img src="'+e(hero.image2||hero.image)+'" alt="" fetchpriority="high" decoding="async" referrerpolicy="no-referrer">'+
+   '<span class="swapp-store-campaign-shade"></span><span class="swapp-store-campaign-copy">'+
+    '<span>SÉLECTION EN VEDETTE</span><strong>'+e(hero.title)+'</strong>'+
+    '<span class="swapp-store-campaign-link">Voir la fiche <span aria-hidden="true">↗</span></span></span></a>':'')+
+  note+
+  '<section class="swapp-store-departments" aria-labelledby="store-departments-title">'+
+   '<div class="swapp-store-section-title"><div><small>NOS UNIVERS</small><h2 id="store-departments-title">Choisis ton rayon.</h2></div></div>'+
+   '<div class="swapp-store-departments-grid">'+tiles+'</div></section>'+
+  '<section class="swapp-store-catalogue" id="catalogue" aria-labelledby="store-products-title">'+
+   '<div class="swapp-store-section-title"><div><small>LE CATALOGUE</small><h2 id="store-products-title">Tous les produits.</h2></div>'+
+    '<span class="swapp-store-count" id="shop-result-count" aria-live="polite">'+count+' résultat'+(count>1?'s':'')+'</span></div>'+
+   '<div class="swapp-store-toolbar"><div class="swapp-store-filters" role="group" aria-label="Filtrer les produits">'+filters+'</div>'+
+   '<div class="swapp-store-tools"><label class="swapp-store-search"><span class="swapp-store-sr">Rechercher un produit</span>'+
+    '<input type="search" id="swapp-store-search" placeholder="Rechercher un produit" autocomplete="off"></label>'+
+   '<label class="swapp-store-sort"><span class="swapp-store-sr">Trier</span><select id="swapp-store-sort">'+
+     '<option value="featured">Sélection SWAPP</option><option value="az">Nom A à Z</option>'+
+     '<option value="za">Nom Z à A</option></select></label></div></div>'+
+   '<div class="swapp-store-products" id="swapp-store-products">'+cards+'</div>'+
+   '<div class="swapp-store-no-results" id="swapp-store-no-results" hidden><strong>Aucun produit trouvé.</strong>'+
+   '<p>Essaie une autre recherche ou affiche tous les rayons.</p><button type="button" id="swapp-store-reset">Réinitialiser les filtres</button></div>'+
+  '</section>'+
+  '<footer class="swapp-store-footer"><div><strong>Une sélection transparente.</strong>'+
+   '<p>SWAPP présente les produits, mais n’encaisse aucun paiement. Les achats éventuels s’effectuent chez le marchand externe. Les exemples ne sont pas achetables, et les prix renseignés sont à confirmer auprès du vendeur.</p>'+disclosure+
+   '</div><a href="/actus">Explorer l’actualité <span aria-hidden="true">↗</span></a></footer>'+
   '</main>';
- return layout({title:'Boutique',description:'Boutique gaming SWAPP : jeux vidéo, casquettes et tapis de souris sélectionnés.',content:main,active:'shop',
-  scripts:assets+'<link rel="stylesheet" href="/assets/swapp-shop.css?v=20261016-photographic-shop-v4">'});
+ return layout({title:'Boutique',description:'La boutique SWAPP : jeux vidéo, casquettes, accessoires et tapis de souris.',content,active:'shop',
+  scripts:assets+'<link rel="stylesheet" href="/assets/swapp-shop.css?v=20261016-store-v5">'+
+   '<script defer src="/assets/swapp-storefront.js?v=20261016-store-v5"></script>'});
 }
+function shopProduct(product,products=demoProducts){
+ const all=normalizeAll(products).filter(p=>p.visible&&p.image);
+ const p=all.find(x=>x.id===product?.id);
+ if(!p)return null;
+ const category=CATEGORIES.find(c=>c.id===p.kind);
+ const price=shopPrice(p);
+ const buy=p.demo?'<div class="swapp-store-detail-soon">Référence présentée en aperçu · Pas encore commercialisée</div>':
+ '<a class="swapp-store-detail-buy" href="'+e(p.url)+'" target="_blank" rel="'+(p.affiliate?'sponsored nofollow noopener noreferrer':'noopener noreferrer')+'">Voir l’offre chez '+e(p.merchant)+' <span aria-hidden="true">↗</span></a>';
+ const images=[p.image,p.image2].filter(Boolean);
+ const secondary=images.length>1?'<div class="swapp-store-detail-thumbs">'+images.map((url,i)=>
+ '<button type="button" data-shop-image="'+e(url)+'" aria-label="Afficher la photo '+(i+1)+'" aria-pressed="'+(i===0?'true':'false')+'">'+
+ '<img src="'+e(url)+'" alt="" loading="lazy" referrerpolicy="no-referrer"></button>').join('')+'</div>':'';
+ const related=all.filter(x=>x.kind===p.kind&&x.id!==p.id).slice(0,3);
+ const disclosure=p.affiliate?'<p class="swapp-store-detail-note">'+(isAmazonLink(p.url)?e(amazonDisclosure):'Lien affilié : SWAPP peut recevoir une commission.')+'</p>':'';
+ const content='<main class="swapp-hub swapp-store swapp-store-detail">'+
+  '<nav class="swapp-store-crumb" aria-label="Fil d’Ariane"><a href="/boutique">Boutique</a><span aria-hidden="true">›</span>'+
+   '<a href="/boutique#catalogue">'+e(category?.name||'Catalogue')+'</a><span aria-hidden="true">›</span><span>'+e(p.title)+'</span></nav>'+
+  '<div class="swapp-store-detail-grid"><div class="swapp-store-detail-gallery">'+
+    '<div class="swapp-store-detail-image"><img id="swapp-store-main-image" src="'+e(p.image)+'" alt="'+e(p.title)+'" decoding="async" referrerpolicy="no-referrer"></div>'+secondary+
+   '</div><div class="swapp-store-detail-info">'+
+    '<span class="swapp-store-eyebrow">'+e(category?.name||'SWAPP')+'</span><h1>'+e(p.title)+'</h1>'+
+    '<p class="swapp-store-detail-description">'+e(p.description||'Sélection SWAPP.')+'</p>'+
+    (p.badge?'<span class="swapp-store-detail-tag">'+e(p.badge)+'</span>':'')+
+    '<div class="swapp-store-detail-purchase">'+
+     (price?'<strong class="swapp-store-detail-price">'+e(price)+'</strong><p>Prix indicatif renseigné dans SWAPP. Vérifie le prix définitif chez le marchand.</p>':
+      '<strong class="swapp-store-detail-price">'+(p.demo?'En préparation':'Prix chez le marchand')+'</strong>')+
+     buy+disclosure+'</div>'+
+    '<div class="swapp-store-detail-assurance"><strong>Information importante</strong><p>'+
+     (p.demo?'Photographie de présentation non contractuelle. Aucun achat ni stock n’est annoncé.':
+      'SWAPP ne traite pas le paiement, la livraison ni les retours : consulte les conditions du marchand.')+'</p></div></div></div>'+
+    (related.length?'<section class="swapp-store-related"><div class="swapp-store-section-title"><div><small>À DÉCOUVRIR AUSSI</small><h2>Dans le même rayon.</h2></div></div>'+
+     '<div class="swapp-store-products">'+related.map(shopCard).join('')+'</div></section>':'')+
+  '</main>';
+ return layout({title:p.title+' · Boutique',description:p.description||'Produit présenté sur SWAPP',content,active:'shop',
+  metadata:p.demo?'<meta name="robots" content="noindex,follow">':'',
+  scripts:assets+'<link rel="stylesheet" href="/assets/swapp-shop.css?v=20261016-store-v5">'+
+   '<script defer src="/assets/swapp-storefront.js?v=20261016-store-v5"></script>'});
+}
+
 function shopAdmin(){
  const content='<main class="swapp-shop-admin"><aside class="swapp-shop-admin-menu"><a href="/boutique">← Voir la Boutique</a>'+
   '<span class="swapp-shop-admin-caption">SWAPP · ADMINISTRATION</span><h1>Gestion Boutique</h1>'+
@@ -179,6 +241,7 @@ function shopAdmin(){
   '<label class="wide">Description<textarea name="description" maxlength="260" rows="3" placeholder="Quelques mots pour donner envie…"></textarea></label>'+
   '<label>Badge / mise en avant<input name="badge" maxlength="48" placeholder="Nouveauté, collection…"></label>'+
   '<label>Marchand<input name="merchant" maxlength="65" placeholder="Vendeur réel"></label>'+
+  '<label>Prix indicatif € · facultatif pour les vrais produits<input name="priceEur" type="number" min="0.01" max="99999" step="0.01" inputmode="decimal" placeholder="Ex. 49.90"></label>'+
   '<label class="wide">Photo principale HTTPS · obligatoire pour être visible<input name="image" type="url" placeholder="https://…" aria-describedby="shop-image-help"></label>'+
   '<label class="wide">Deuxième photo HTTPS · facultative<input name="image2" type="url" placeholder="Vue en situation, détail…"></label>'+
   '<p class="swapp-shop-image-help" id="shop-image-help">Utilise des images réelles dont tu as le droit de diffusion. Vérifie leur aperçu avant de publier. Les références sans image restent masquées.</p>'+
@@ -200,4 +263,4 @@ function shopAdmin(){
    '<link rel="stylesheet" href="/assets/swapp-shop-admin.css?v=20261016-photographic-shop-v4">'+
    '<script defer src="/assets/swapp-shop-admin.js?v=20261016-photographic-shop-v4"></script>'});
 }
-module.exports={community,trailers,shop,shopAdmin,verifiedTrailers,curatedVideos,videoCard,safeProducts};
+module.exports={community,trailers,shop,shopProduct,shopAdmin,verifiedTrailers,curatedVideos,videoCard,safeProducts};
