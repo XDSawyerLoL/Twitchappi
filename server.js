@@ -5046,7 +5046,12 @@ async function twitchCategoryIdByName(name){
     return (exact || data[0])?.id || null;
   }catch(e){ return null; }
 }
+// Public Twitch pools only. The personal preference score is never cached.
+const __swappGameDiscoveryCache=new Map();
 async function twitchStreamsForGameName(name, {lang='fr', max=200, first=60}={}){
+  const key=JSON.stringify([String(name||'').trim().toLowerCase(),lang,Number(max),Number(first)]);
+  const cached=__oryonCacheGet(__swappGameDiscoveryCache,key,45_000);
+  if(cached)return cached;
   const gid = await twitchCategoryIdByName(name);
   if(!gid) return [];
   const out = [];
@@ -5063,6 +5068,10 @@ async function twitchStreamsForGameName(name, {lang='fr', max=200, first=60}={})
       if(out.length >= Math.min(18, first)) break;
     }catch(e){}
   }
+  __oryonCacheSet(__swappGameDiscoveryCache,key,out);
+  // Do not keep unbounded search strings in Hostinger Node memory.
+  if(__swappGameDiscoveryCache.size>64)
+    __swappGameDiscoveryCache.delete(__swappGameDiscoveryCache.keys().next().value);
   return out;
 }
 async function twitchBroadStreams({lang='fr', max=200, first=100}={}){
