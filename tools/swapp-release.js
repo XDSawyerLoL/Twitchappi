@@ -14,6 +14,7 @@ const RELEASE_FILES=Object.freeze([
  'modules/swapp-news/site-shell.js',
  'assets/swapp-unified-nav.css',
  'assets/swapp-mobile-comfort.css',
+ 'assets/swapp-media-live.js',
  'assets/swapp-social-native/social-body.html',
  'assets/swapp-social-native/social-swapp.css',
  'assets/swapp-social-native/app.js',
