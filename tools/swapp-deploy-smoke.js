@@ -110,6 +110,10 @@ async function verify(){
   finish.body.includes('overflow-x:visible!important')&&
   finish.body.includes('.swapp-mobile-more[open]'),
   'Final mobile navigation layout still clips the Plus menu');
+ check(finish.body.includes('iPhone layering fix: shared bottom navigation')&&
+  finish.body.includes('z-index:210!important')&&
+  finish.body.includes('-webkit-backdrop-filter:none!important'),
+  'Safari iPhone menu is still below floating modules or blurred clipping');
  const navClient=await request(origin,'/assets/swapp-mobile-nav-follow.js');
  check(navClient.body.includes('The Plus menu must not cover the page after tapping outside it')&&
   navClient.body.includes("event.key!=='Escape'"),
