@@ -104,7 +104,8 @@ function shopCard(p,i){
  const action=p.demo?'<span class="swapp-shop-coming">Sélection à venir</span>':
  '<a class="swapp-shop-buy" href="'+e(p.url)+'" target="_blank" rel="'+(p.affiliate?'sponsored nofollow noopener noreferrer':'noopener noreferrer')+'">Découvrir chez '+e(p.merchant)+' <span aria-hidden="true">↗</span></a>';
  const credit=p.demo?'Visuel de présentation, non contractuel':'';
- const art='<img class="swapp-shop-product-image" src="'+e(p.image)+'" alt="'+e(p.kind==='games'?'Visuel officiel de '+p.title:'Photographie de présentation pour '+p.title)+'" loading="'+(i===0?'eager':'lazy')+'" decoding="async" referrerpolicy="no-referrer">';
+ const art='<img class="swapp-shop-product-image" src="'+e(p.image)+'" alt="'+e(p.kind==='games'?'Visuel officiel de '+p.title:'Photographie de présentation pour '+p.title)+'" loading="'+(i===0?'eager':'lazy')+'" decoding="async" referrerpolicy="no-referrer">'+
+ (p.image2?'<img class="swapp-shop-product-image-alt" src="'+e(p.image2)+'" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">':'');
  return '<article class="swapp-shop-card swapp-shop-card--'+(i===0?'featured':i===1?'standard':'compact')+'">'+
  '<div class="swapp-shop-visual">'+art+'</div>'+
  '<div class="swapp-shop-card-copy">'+
@@ -152,7 +153,7 @@ function shop(products=demoProducts,{source='demo'}={}){
   '<a href="/actus">Retour à l’actualité <span aria-hidden="true">→</span></a></aside>'+
   '</main>';
  return layout({title:'Boutique',description:'Boutique gaming SWAPP : jeux vidéo, casquettes et tapis de souris sélectionnés.',content:main,active:'shop',
-  scripts:assets+'<link rel="stylesheet" href="/assets/swapp-shop.css?v=20261016-shop-v3-amazon-drafts">'});
+  scripts:assets+'<link rel="stylesheet" href="/assets/swapp-shop.css?v=20261016-photographic-shop-v4">'});
 }
 function shopAdmin(){
  const content='<main class="swapp-shop-admin"><aside class="swapp-shop-admin-menu"><a href="/boutique">← Voir la Boutique</a>'+
@@ -178,7 +179,9 @@ function shopAdmin(){
   '<label class="wide">Description<textarea name="description" maxlength="260" rows="3" placeholder="Quelques mots pour donner envie…"></textarea></label>'+
   '<label>Badge / mise en avant<input name="badge" maxlength="48" placeholder="Nouveauté, collection…"></label>'+
   '<label>Marchand<input name="merchant" maxlength="65" placeholder="Vendeur réel"></label>'+
-  '<label class="wide">URL de l’image HTTPS<input name="image" type="url" placeholder="https://…"></label>'+
+  '<label class="wide">Photo principale HTTPS · obligatoire pour être visible<input name="image" type="url" placeholder="https://…" aria-describedby="shop-image-help"></label>'+
+  '<label class="wide">Deuxième photo HTTPS · facultative<input name="image2" type="url" placeholder="Vue en situation, détail…"></label>'+
+  '<p class="swapp-shop-image-help" id="shop-image-help">Utilise des images réelles dont tu as le droit de diffusion. Vérifie leur aperçu avant de publier. Les références sans image restent masquées.</p>'+
   '<label class="wide">Lien marchand HTTPS<input name="url" type="url" placeholder="https://…"></label>'+
   '</div><div id="shop-admin-preview" class="swapp-shop-editor-preview" role="status" aria-live="polite"></div>'+
   '<div class="swapp-shop-admin-options"><label><input name="demo" type="checkbox" checked> Démonstration · pas de vente</label>'+
@@ -193,8 +196,8 @@ function shopAdmin(){
   '<a href="/boutique" target="_blank" rel="noopener">Ouvrir la vitrine ↗</a></section></section></main>';
  return layout({title:'Gestion Boutique',description:'Gestion privée de la vitrine SWAPP',content,active:'shop',
   metadata:'<meta name="robots" content="noindex,nofollow">',
-  scripts:'<link rel="stylesheet" href="/assets/swapp-shop.css?v=20261016-shop-v3-amazon-drafts">'+
-   '<link rel="stylesheet" href="/assets/swapp-shop-admin.css?v=20261016-shop-v3-amazon-drafts">'+
-   '<script defer src="/assets/swapp-shop-admin.js?v=20261016-shop-v3-amazon-drafts"></script>'});
+  scripts:'<link rel="stylesheet" href="/assets/swapp-shop.css?v=20261016-photographic-shop-v4">'+
+   '<link rel="stylesheet" href="/assets/swapp-shop-admin.css?v=20261016-photographic-shop-v4">'+
+   '<script defer src="/assets/swapp-shop-admin.js?v=20261016-photographic-shop-v4"></script>'});
 }
 module.exports={community,trailers,shop,shopAdmin,verifiedTrailers,curatedVideos,videoCard,safeProducts};
