@@ -9,7 +9,9 @@ const INDEXNOW_KEY_PATH='/'+INDEXNOW_KEY+'.txt';
 // The editor invalidates in-memory SEO lists immediately after a committed
 // publication change. No cron, database poll or third-party service required.
 let invalidateRegisteredSeoCache=()=>{};
+let lookupRegisteredGameHub=()=>null;
 function invalidateSeoCache(){invalidateRegisteredSeoCache()}
+function cachedGameHubForArticle(article){return lookupRegisteredGameHub(article)}
 const CORE_PATHS=Object.freeze([
  '/', '/decouvrir', '/categories', '/equipes', '/actus',
  '/communaute', '/bandes-annonces', '/boutique', '/plan-du-site'
@@ -230,9 +232,16 @@ async function notifyIndexNow(slugs=[],{fetchImpl=globalThis.fetch,enabled=proce
 
 function registerSeoRoutes(app,{getPublished=async()=>[],getCreators=async()=>[],now=()=>Date.now()}={}){
  if(!app||typeof app.get!=='function')throw Error('Express app required');
- let cached=null,articles=[],expires=0,inflight=null,revision=0,loadedRevision=-1;
+ let cached=null,articles=[],expires=0,inflight=null,revision=0,loadedRevision=-1,gameHubLinks=new Map();
  const TTL=6*60*60*1000;
  invalidateRegisteredSeoCache=()=>{revision++;expires=0};
+ // Only serve links to pages actually present in the cached sitemap. Direct
+ // visits before the first cache load simply show no optional hub link.
+ lookupRegisteredGameHub=article=>{
+  if(!cached||loadedRevision!==revision||now()>=expires)return null;
+  const slug=String(article?.slug||'');
+  return SLUG.test(slug)?gameHubLinks.get(slug)||null:null;
+ };
  async function ensureCache(){
   if(cached&&now()<expires&&loadedRevision===revision)return;
   // All SEO endpoints share a single lookup; a mid-flight editorial update
@@ -249,8 +258,14 @@ function registerSeoRoutes(app,{getPublished=async()=>[],getCreators=async()=>[]
     if(fetchRevision!==revision)return;
     const current=(Array.isArray(data)?data:[]).filter(x=>
      x?.status==='published'&&SLUG.test(String(x.slug||'')));
+    const hubs=gameHubs(current);
+    const nextLinks=new Map();
+    for(const hub of hubs)
+     for(const item of hub.articles)
+      nextLinks.set(String(item.slug),'/jeux/'+encodeURIComponent(hub.slug));
     articles=current;
     cached=sitemapXml(current);
+    gameHubLinks=nextLinks;
     loadedRevision=fetchRevision;
     expires=now()+TTL;
    }catch(err){
@@ -399,4 +414,4 @@ function injectSpaMetadata(html,pathname='/'){
  }
  return result.replace('</head>','<meta name="robots" content="noindex,nofollow"></head>');
 }
-module.exports={ORIGIN,CORE_PATHS,INDEXNOW_KEY,INDEXNOW_KEY_PATH,sitemapEntries,sitemapXml,newsSitemapXml,creatorSitemapXml,sitemapHtml,rssXml,robotsText,registerSeoRoutes,invalidateSeoCache,notifyIndexNow,injectSpaMetadata,injectCreatorMetadata};
+module.exports={ORIGIN,CORE_PATHS,INDEXNOW_KEY,INDEXNOW_KEY_PATH,sitemapEntries,sitemapXml,newsSitemapXml,creatorSitemapXml,sitemapHtml,rssXml,robotsText,registerSeoRoutes,invalidateSeoCache,cachedGameHubForArticle,notifyIndexNow,injectSpaMetadata,injectCreatorMetadata};
