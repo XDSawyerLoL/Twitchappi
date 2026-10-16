@@ -38,8 +38,9 @@ function sitemapXml(articles=[]){
 }
 function robotsText(){
  return 'User-agent: *\nAllow: /\n'+
-  'Disallow: /api/\nDisallow: /actus/studio\nDisallow: /compte\n'+
-  'Disallow: /connexion\nDisallow: /settings\nDisallow: /gestionnaire\n'+
+  // Account pages carry noindex metadata: crawlers must be allowed to read it.
+  // Disallow only machine endpoints and editorial administration.
+  'Disallow: /api/\nDisallow: /actus/studio\n'+
   'Sitemap: '+ORIGIN+'/sitemap.xml\n';
 }
 function registerSeoRoutes(app,{getPublished=async()=>[],now=()=>Date.now()}={}){
