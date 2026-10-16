@@ -9,6 +9,7 @@ const {makePublicCatalog}=require('./public-catalog');
 const {recommend}=require('./content-metadata');
 const catalog=require('../../data/justplayer-public-catalog.json');
 const {publicArticle,recoveredArticle,nativeSlug,legacyDraft}=require('./editorial-identity');
+const {registerArticleScores}=require('./article-scores');
 
 function createNewsRouter({express, firestore, requireEditor, isReady = () => true, baseUrl = 'https://swapp.tv', publicFetch = globalThis.fetch, publicCatalog = catalog, canEdit = () => false, sendApp = null}) {
   if (typeof express?.Router !== 'function' || typeof firestore?.collection !== 'function' ||
@@ -73,6 +74,7 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
   const noStore=(_req,res,next)=>{res.set('Cache-Control','no-store');next();};
   const editor=[available,requireEditor,noStore];
 
+  registerArticleScores({router,firestore,articles,publicNews,available,baseUrl,nativeSlug});
   router.get('/api/actus/recovery-status',(_req,res)=>res.json(publicNews.status()));
   router.get('/api/actus',available,async(req,res,next)=>{
     try {
