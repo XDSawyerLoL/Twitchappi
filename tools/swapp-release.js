@@ -13,6 +13,7 @@ const RELEASE_FILES=Object.freeze([
  'modules/swapp-hubs.js',
  'modules/swapp-discovery-diversity.js',
  'modules/swapp-seo.js',
+ 'modules/swapp-game-pages.js',
  'modules/swapp-news/site-shell.js',
  'assets/swapp-unified-nav.css',
  'assets/swapp-mobile-comfort.css',
