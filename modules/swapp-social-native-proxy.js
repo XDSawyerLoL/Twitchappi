@@ -10,8 +10,8 @@ const simple={
  PATCH:new Set(['/me'])
 };
 const dynamic={
- GET:[/^\/posts\/[a-zA-Z0-9_-]{3,90}$/, /^\/posts\/[a-zA-Z0-9_-]{3,90}\/replies$/, /^\/users\/[a-z0-9_]{3,24}$/, /^\/messages\/[a-z0-9_]{3,24}$/],
- POST:[/^\/posts\/[a-zA-Z0-9_-]{3,90}\/(like|repost|bookmark)$/, /^\/users\/[a-z0-9_]{3,24}\/(follow|block)$/, /^\/circles\/[a-zA-Z0-9_-]{3,90}\/join$/]
+ GET:[/^\/posts\/[a-zA-Z0-9_-]{3,90}$/, /^\/posts\/[a-zA-Z0-9_-]{3,90}\/replies$/, /^\/users\/[a-z0-9_-]{3,32}$/, /^\/messages\/[a-z0-9_-]{3,32}$/],
+ POST:[/^\/posts\/[a-zA-Z0-9_-]{3,90}\/(like|repost|bookmark)$/, /^\/users\/[a-z0-9_-]{3,32}\/(follow|block)$/, /^\/circles\/[a-zA-Z0-9_-]{3,90}\/join$/]
 };
 function permitted(method,path){
  return (simple[method]?.has(path)||dynamic[method]?.some(pattern=>pattern.test(path)))===true;
