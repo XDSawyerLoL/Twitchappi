@@ -81,6 +81,17 @@ async function verify(){
  const seoMeta='<link rel="canonical" href="https://swapp.tv/';
  check(home.body.includes(seoMeta),'Homepage canonical unavailable');
  process.stdout.write('PASS robots.txt + sitemap.xml + feed.xml + /plan-du-site + home canonical\n');
+ const freshNews=await request(origin,'/news-sitemap.xml');
+ check(freshNews.body.includes('xmlns:news="http://www.google.com/schemas/sitemap-news/0.9"'),
+  'Google News sitemap unavailable');
+ const creators=await request(origin,'/creators-sitemap.xml');
+ check(creators.body.includes('<urlset'),'Public creator sitemap unavailable');
+ const {INDEXNOW_KEY,INDEXNOW_KEY_PATH}=require('../modules/swapp-seo');
+ const proof=await request(origin,INDEXNOW_KEY_PATH);
+ check(proof.body.trim()===INDEXNOW_KEY,'IndexNow proof key missing or stale');
+ check(robots.body.includes('creators-sitemap.xml')&&robots.body.includes('news-sitemap.xml'),
+  'robots.txt is missing editorial or creator sitemap declarations');
+ process.stdout.write('PASS Google News, creator sitemap and IndexNow verification\n');
  return remote;
 }
 if(require.main===module){
