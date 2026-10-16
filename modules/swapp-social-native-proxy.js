@@ -118,7 +118,8 @@ function createSocialNativeProxy(fetchImpl,{production=true,restoreLocalSession=
   const endpoint=SOCIAL_ORIGIN+'/api/pulse'+path+safeQuery(path,req.originalUrl?.split('?').slice(1).join('?'));
   // Read-only requests may retry once if Render wakes a cold instance.
   // Never retry a write: a timeout must not publish a post or send a DM twice.
-  const attempts=method==='GET'&&path==='/feed'?2:1;
+  // Retry writes ONLY after an explicit 401 (not after a timeout or server error).
+  const attempts=method==='GET'&&path==='/feed'?2:sessionSso?2:1;
   for(let attempt=0;attempt<attempts;attempt++){
    try{
     const result=await fetchImpl(endpoint,{
@@ -129,20 +130,25 @@ function createSocialNativeProxy(fetchImpl,{production=true,restoreLocalSession=
     const raw=await result.text();
     if(raw.length>1250000)throw Error('response_too_large');
     let data;try{data=JSON.parse(raw)}catch{throw Error('non_json_upstream')}
-    if(result.status>=500){
-     if(attempt+1<attempts)continue;
-     return res.status(503).json({error:'social_upstream_unavailable'});
+    if(sessionSso&&result.status===401){
+     if(req.session)delete req.session.swappSocialAuth;
+     if(attempt+1<attempts){
+      try{headers.Authorization='Bearer '+await issueSocialToken(req,swappUser)}
+      catch{return res.status(503).json({error:'social_sso_unavailable'})}
+      continue;
+     }
+     return res.status(503).json({error:'social_sso_unavailable'});
     }
-    if(sessionSso&&result.status===401&&req.session?.swappSocialAuth){
-     // A revoked remote token cannot be reused on subsequent requests.
-     delete req.session.swappSocialAuth;
+    if(result.status>=500){
+     if(method==='GET'&&path==='/feed'&&attempt+1<attempts)continue;
+     return res.status(503).json({error:'social_upstream_unavailable'});
     }
     if(sessionSso&&path==='/me'&&result.status===200&&data?.user&&swappUser){
      data.user.displayName=String(swappUser.display_name||swappUser.login).slice(0,50);
     }
     return res.status(result.status).json(data);
    }catch(error){
-    if(attempt+1<attempts)continue;
+    if(method==='GET'&&path==='/feed'&&attempt+1<attempts)continue;
     const timedOut=error?.name==='AbortError'||error?.name==='TimeoutError';
     // No Authorization header, session, URL or personal data is logged.
     console.warn('[SWAPP SOCIAL] Backend inaccessible:',timedOut?'timeout': 'network_or_invalid_response');
