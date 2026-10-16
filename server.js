@@ -1011,7 +1011,7 @@ if(process.env.SWAPP_SOCIAL_FEATURES==='1'){
  app.use('/api/swapp/interactions',(_req,res)=>res.status(503).json({error:'social_features_disabled'}));
 }
 // Social client changes must propagate rapidly; its ES imports do not carry cache query tags.
-app.use('/assets/swapp-social-native', express.static(path.join(__dirname, 'assets/swapp-social-native'), {...staticOptions,maxAge:'1m'}));
+app.use('/assets/swapp-social-native', express.static(path.join(__dirname, 'assets/swapp-social-native'), {...staticOptions,maxAge:0,setHeaders(res,file){staticOptions.setHeaders(res,file);res.setHeader('Cache-Control','no-store')}}));
 app.use('/assets', express.static(path.join(__dirname, 'assets'), staticOptions));
 function sendPublicFile(res, file, type){
   const full = path.join(__dirname, file);
