@@ -2,9 +2,42 @@ import { state, dom, api, esc, icon, initials, timeAgo, setStatus, errorText } f
 import { requireAuth } from './session.js';
 import { renderPost, renderPosts, notificationLabel } from './render.js?v=20261016-compact-card-1';
 
+let dmRefreshTimer=null,dmLastSignature='';
+function stopDMRefresh(){
+ if(dmRefreshTimer!==null){clearInterval(dmRefreshTimer);dmRefreshTimer=null}
+ dmLastSignature='';
+}
+function renderDMMessages(messages,userId){
+ return (Array.isArray(messages)?messages:[]).map(message=>
+  '<div class="pulse-message '+(message.senderId===userId?'mine':'')+'">'+
+  esc(message.body)+'<small>'+esc(timeAgo(message.createdAt))+'</small></div>').join('');
+}
+function startDMRefresh(handle,revision,userId,initialMessages){
+ dmLastSignature=JSON.stringify((initialMessages||[]).map(m=>[m.id,m.createdAt,m.body]));
+ // Reading the thread never replaces the composer or discards an unsent draft.
+ dmRefreshTimer=setInterval(async()=>{
+  if(!isCurrent(revision,'messages')||document.visibilityState==='hidden')return;
+  try{
+   const result=await api('/api/pulse/messages/'+encodeURIComponent(handle));
+   if(!isCurrent(revision,'messages'))return;
+   const messages=Array.isArray(result.messages)?result.messages:[];
+   const signature=JSON.stringify(messages.map(m=>[m.id,m.createdAt,m.body]));
+   if(signature===dmLastSignature)return;
+   const list=document.querySelector('.social-dm-view .pulse-message-list');
+   if(!list)return;
+   const atEnd=list.scrollHeight-list.clientHeight-list.scrollTop<110;
+   dmLastSignature=signature;
+   list.innerHTML=renderDMMessages(messages,userId);
+   if(atEnd)list.scrollTop=list.scrollHeight;
+  }catch{
+   // Keep the last readable messages and any draft when the backend is slow.
+  }
+ },10000);
+}
 let viewRevision=0;
 export function setView(view,title){
   const revision=++viewRevision;
+  stopDMRefresh();
   state.view=view;
   const social=document.getElementById('swappSocialNative');
   if(social)social.dataset.socialView=view;
@@ -346,11 +379,10 @@ export async function loadConversation(handle){
     const data=await api('/api/pulse/messages/'+encodeURIComponent(handle));
     if(!isCurrent(revision,'messages'))return;
     let html='<section class="pulse-view social-dm-view"><div class="pulse-view-head social-dm-head"><button type="button" class="social-dm-back" data-social-back-messages aria-label="Retour aux messages">←</button><div class="social-dm-identity"><div class="social-dm-avatar" aria-hidden="true">'+esc(initials(data.user))+'</div><div><h2>'+esc(data.user.displayName)+'</h2><p>@'+esc(data.user.handle)+'</p></div></div></div><div class="pulse-message-list">';
-    data.messages.forEach(function(message){
-      html+='<div class="pulse-message '+(message.senderId===state.user.id?'mine':'')+'">'+esc(message.body)+'<small>'+esc(timeAgo(message.createdAt))+'</small></div>';
-    });
+    html+=renderDMMessages(data.messages,state.user.id);
     html+='</div><form class="pulse-message-form" id="conversation-form" data-handle="'+esc(handle)+'"><input name="body" maxlength="2000" placeholder="Écrire un message…" required><button class="pulse-mini-button primary">Envoyer</button></form></section>';
     dom.feed.innerHTML=html;
+    startDMRefresh(handle,revision,state.user.id,data.messages);
   }catch(error){
     if(isCurrent(revision,'messages')&&!(await socialAuthRecovery(error,'Conversation'))&&isCurrent(revision,'messages'))setStatus('Conversation indisponible',errorText(error));
   }
