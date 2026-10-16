@@ -138,5 +138,6 @@ body:has(#swappSocialNative){
   #0b101b!important;
 }
 @media(prefers-reduced-motion:reduce){
- #swappSocialNative .swapp-page-appearance--social :is(summary::after,.swapp-appearance-swatch){transition:none}
+ #swappSocialNative .swapp-page-appearance--social summary::after,
+ #swappSocialNative .swapp-page-appearance--social .swapp-appearance-swatch{transition:none}
 }
