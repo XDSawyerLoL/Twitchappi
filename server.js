@@ -1030,10 +1030,11 @@ if (String(process.env.SWAPP_NEWS_ENABLED || 'true').toLowerCase() === 'true') {
 // are cached for six hours to limit Firestore read operations.
 require('./modules/swapp-seo').registerSeoRoutes(app,{
  getPublished: async()=>{
-  if(!firestoreOk||!db||typeof db.collection!=='function')return [];
+  if(!firestoreOk||!db||typeof db.collection!=='function')
+   throw new Error('News storage unavailable');
   const result=await db.collection('swapp_news_articles')
    .where('status','==','published').limit(500).get();
-  return result.docs.map(doc=>({slug:doc.id,...doc.data()}));
+  return result.docs.map(doc=>({...doc.data(),slug:doc.id}));
  }
 });
 
