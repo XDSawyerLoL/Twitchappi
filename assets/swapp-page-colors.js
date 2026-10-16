@@ -5,7 +5,7 @@ const KEY='swapp-page-accent-v1';
 const colors=[['Cyan','#22d3ee'],['Turquoise','#2dd4bf'],['Violet','#a78bfa'],['Rose','#f472b6'],['Orange','#fb923c'],['Bleu','#60a5fa'],['Vert','#a3e635']];
 const valid=v=>colors.some(([,hex])=>hex===v);
 const root=document.documentElement;
-const apply=hex=>{if(!valid(hex))return;root.style.setProperty('--swapp-page-accent',hex);root.style.setProperty('--swapp-side-light',hex);root.dataset.swappPageColor=hex;};
+const apply=hex=>{if(!valid(hex))return;root.style.setProperty('--swapp-page-accent',hex);document.body.style.setProperty('--swapp-page-accent',hex);root.style.setProperty('--swapp-side-light',hex);root.dataset.swappPageColor=hex;};
 try{const old=localStorage.getItem(KEY);if(valid(old))apply(old)}catch{}
 const host=document.createElement('div');host.className='swapp-page-appearance';
 const details=document.createElement('details');
