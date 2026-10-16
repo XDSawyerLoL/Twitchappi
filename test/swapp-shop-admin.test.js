@@ -158,7 +158,7 @@ test('Amazon draft link is prepared as an unpublished product without guessing d
  assert.match(html,/value="https:\/\/link\.amazon\/B01fj5Alw"/);
  assert.match(html,/shop-admin-preview/);
  assert.match(html,/Le lien a été fourni par l’administrateur/);
- assert.match(html,/v=20261016-shop-v3-amazon-drafts/);
+ assert.match(read('modules/swapp-hubs.js'),/swapp-shop-admin\.js\?v=20261016-shop-v3-amazon-drafts/);
  const src=read('assets/swapp-shop-admin.js');
  const start=src.indexOf(' function amazonLink(raw){');
  const end=src.indexOf(' function updatePreview(){',start);
