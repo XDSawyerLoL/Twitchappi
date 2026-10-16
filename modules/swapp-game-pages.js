@@ -67,9 +67,16 @@ function safeCover(a){
  try{const source=String(a?.image?.url||'').slice(0,2000),u=new URL(source);
   return u.protocol==='https:'&&!u.username&&!u.password?u.href:''}catch{return ''}
 }
+function structuredData(object){
+ return '<script type="application/ld+json">'+JSON.stringify(object).replace(/</g,'\\u003c')+'</script>';
+}
 function renderGameIndex(groups){
  const url=ORIGIN+'/jeux',title='Jeux vidéo : articles et lives';
- const meta='<link rel="canonical" href="'+url+'"><meta property="og:type" content="website"><meta property="og:url" content="'+url+'">';
+ const indexSchema={'@context':'https://schema.org','@type':'CollectionPage',name:title,url,
+  mainEntity:{'@type':'ItemList',itemListElement:groups.map((g,i)=>({
+   '@type':'ListItem',position:i+1,name:g.game,url:ORIGIN+'/jeux/'+encodeURIComponent(g.slug)
+  }))}};
+ const meta='<link rel="canonical" href="'+url+'"><meta property="og:type" content="website"><meta property="og:url" content="'+url+'">'+structuredData(indexSchema);
  const links=groups.map(g=>'<a class="card" href="/jeux/'+encodeURIComponent(g.slug)+'"><div><h3>'+html(g.game)+'</h3><span>'+g.count+' publications</span></div></a>').join('');
  const body='<main class="game-portal"><p class="breadcrumb"><a href="/">SWAPP</a> / Jeux</p><header class="hero"><h1>Jeux vidéo : actualités et créateurs</h1><p>Retrouve les jeux couverts par SWAPP, leurs articles et les créateurs en direct.</p></header><section><h2>Explorer les jeux</h2><div class="cards index">'+links+'</div></section></main>';
  return layout({title,description:'Articles et créateurs autour des jeux vidéo couverts par SWAPP.',content:body,metadata:meta,extraCss:CSS,active:'actus'});
@@ -77,7 +84,15 @@ function renderGameIndex(groups){
 function renderGamePage(group){
  const url=ORIGIN+'/jeux/'+encodeURIComponent(group.slug);
  const title=group.game+' : actualités et lives',description='Les '+group.count+' publications SWAPP autour de '+group.game+', et les créateurs en direct.';
- const meta='<link rel="canonical" href="'+url+'"><meta property="og:type" content="website"><meta property="og:url" content="'+url+'"><meta property="og:title" content="'+html(title)+'"><meta property="og:description" content="'+html(description)+'">';
+ const cover=group.articles.map(safeCover).find(Boolean)||'';
+ const pageSchema={'@context':'https://schema.org','@type':'CollectionPage',
+  name:title,url,description,
+  mainEntity:{'@type':'ItemList',itemListElement:group.articles.map((a,i)=>({
+   '@type':'ListItem',position:i+1,name:String(a.title||'').slice(0,180),
+   url:ORIGIN+'/actus/'+encodeURIComponent(a.slug)
+  }))}};
+ const meta='<link rel="canonical" href="'+url+'"><meta property="og:type" content="website"><meta property="og:url" content="'+url+'"><meta property="og:title" content="'+html(title)+'"><meta property="og:description" content="'+html(description)+'">'+
+  (cover?'<meta property="og:image" content="'+html(cover)+'"><meta name="twitter:card" content="summary_large_image">':'<meta name="twitter:card" content="summary">')+structuredData(pageSchema);
  const cards=group.articles.map(a=>{
   const cover=safeCover(a),excerpt=String(a.summary||a.body||'').replace(/\s+/g,' ').slice(0,180);
   return '<a class="card" href="/actus/'+encodeURIComponent(a.slug)+'">'+
