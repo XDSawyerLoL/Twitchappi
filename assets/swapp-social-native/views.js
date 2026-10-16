@@ -52,7 +52,7 @@ async function fetchNewsFeed(){
        const items=data.articles.filter(a=>a&&/^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/.test(String(a.slug||'')))
         .map(a=>{
          // Only use an explicit game field. Never guess game identity from headlines.
-         const rawGame=a.gameName||a.primaryGame||a.game?.name||a.game||
+         const rawGame=a.game?.name||a.game||a.game_name||a.gameName||a.primaryGame||
           (Array.isArray(a.games)?(a.games[0]?.name||a.games[0]):'');
          return {title:String(a.title||''),source:'SWAPP',url:location.origin+'/actus/'+encodeURIComponent(a.slug),
          image:typeof a.image==='object'?a.image?.url:String(typeof a.image==='string'?a.image:a.imageUrl||''),summary:String(a.summary||''),
