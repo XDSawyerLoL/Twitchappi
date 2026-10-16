@@ -43,10 +43,44 @@ function robotsText(){
   'Disallow: /api/\nDisallow: /actus/studio\n'+
   'Sitemap: '+ORIGIN+'/sitemap.xml\n';
 }
+function rssXml(articles=[]){
+ const valid=(Array.isArray(articles)?articles:[]).filter(article=>
+  article?.status==='published'&&SLUG.test(String(article.slug||'')));
+ valid.sort((a,b)=>String(b.publishedAt||'').localeCompare(String(a.publishedAt||'')));
+ const items=valid.slice(0,50).map(article=>{
+  const link=ORIGIN+'/actus/'+encodeURIComponent(article.slug);
+  const title=encodeXml(String(article.title||'Actualité SWAPP').slice(0,180));
+  const summary=encodeXml(String(article.summary||'').slice(0,420));
+  const when=new Date(article.publishedAt||article.updatedAt||'');
+  const pub=Number.isFinite(when.getTime())?'<pubDate>'+when.toUTCString()+'</pubDate>':'';
+  return '  <item><title>'+title+'</title><link>'+encodeXml(link)+
+   '</link><guid isPermaLink="true">'+encodeXml(link)+'</guid><description>'+
+   summary+'</description>'+pub+'</item>';
+ }).join('\n');
+ return '<?xml version="1.0" encoding="UTF-8"?>\n'+
+  '<rss version="2.0"><channel><title>SWAPP — Actualité jeux vidéo</title>'+
+  '<link>'+ORIGIN+'/actus</link><description>Les articles gaming publiés sur SWAPP.</description>'+
+  '<language>fr-FR</language>\n'+items+'\n</channel></rss>\n';
+}
 function registerSeoRoutes(app,{getPublished=async()=>[],now=()=>Date.now()}={}){
  if(!app||typeof app.get!=='function')throw Error('Express app required');
- let cached=null,expires=0;
+ let cached=null,articles=[],expires=0;
  const TTL=6*60*60*1000;
+ async function ensureCache(){
+  if(cached&&now()<expires)return;
+  try{
+   const data=await getPublished();
+   articles=(Array.isArray(data)?data:[]).filter(x=>
+    x?.status==='published'&&SLUG.test(String(x.slug||'')));
+   cached=sitemapXml(articles);
+   expires=now()+TTL;
+  }catch(err){
+   console.warn('[SWAPP SEO] published articles unavailable:',String(err?.message||err));
+   if(!cached){cached=sitemapXml();articles=[]}
+   // Retry soon. Do not replace previously confirmed published URLs.
+   expires=now()+60000;
+  }
+ }
  app.get('/robots.txt',(_req,res)=>{
   res.set('Cache-Control','public, max-age=3600');
   res.type('text/plain; charset=utf-8').status(200).send(robotsText());
@@ -54,19 +88,14 @@ function registerSeoRoutes(app,{getPublished=async()=>[],now=()=>Date.now()}={})
  app.get('/sitemap.xml',async(_req,res)=>{
   res.set('Content-Type','application/xml; charset=utf-8');
   res.set('Cache-Control','public, max-age=900');
-  if(cached&&now()<expires)return res.status(200).send(cached);
-  try{
-   const data=await getPublished();
-   // Cache only confirmed data; transient Firestore errors must not wipe
-   // previously known article URLs from the crawler response.
-   cached=sitemapXml(data);
-   expires=now()+TTL;
-  }catch(err){
-   console.warn('[SWAPP SEO] sitemap articles unavailable:',String(err?.message||err));
-   if(!cached){cached=sitemapXml();expires=now()+60000}
-   else expires=now()+60000;
-  }
+  await ensureCache();
   return res.status(200).send(cached);
+ });
+ app.get('/feed.xml',async(_req,res)=>{
+  res.set('Cache-Control','public, max-age=900');
+  res.type('application/rss+xml; charset=utf-8');
+  await ensureCache();
+  return res.status(200).send(rssXml(articles));
  });
 }
 const SPA_INFO=Object.freeze({
@@ -140,4 +169,4 @@ function injectSpaMetadata(html,pathname='/'){
  }
  return result.replace('</head>','<meta name="robots" content="noindex,nofollow"></head>');
 }
-module.exports={ORIGIN,CORE_PATHS,sitemapEntries,sitemapXml,robotsText,registerSeoRoutes,injectSpaMetadata};
+module.exports={ORIGIN,CORE_PATHS,sitemapEntries,sitemapXml,rssXml,robotsText,registerSeoRoutes,injectSpaMetadata};
