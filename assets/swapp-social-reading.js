@@ -41,7 +41,7 @@
     const link=make('a','swapp-social-reading-item');
     link.href='/actus/'+encodeURIComponent(item.slug);
     const visual=make('span','swapp-social-reading-visual');
-    const url=validImage(typeof item.image==='object'?item.image?.url:item.imageUrl);
+    const url=validImage(typeof item.image==='object'?item.image?.url:(typeof item.image==='string'?item.image:item.imageUrl));
     if(url){
      const img=make('img','');
      img.src=url;img.alt='';img.loading='lazy';img.decoding='async';img.referrerPolicy='no-referrer';
