@@ -2,6 +2,7 @@ User-agent: *
 Allow: /
 Disallow: /api/
 Disallow: /actus/studio
+Disallow: /boutique/admin
 Sitemap: https://swapp.tv/sitemap.xml
 Sitemap: https://swapp.tv/news-sitemap.xml
 Sitemap: https://swapp.tv/creators-sitemap.xml
