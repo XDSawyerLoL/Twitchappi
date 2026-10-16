@@ -9,6 +9,14 @@
 })(typeof window!=='undefined'?window:null,function(){
  const ESC={'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'};
  const escape=s=>String(s??'').replace(/[&<>"']/g,c=>ESC[c]);
+ const amazonDisclosure='En tant que Partenaire Amazon, je réalise un bénéfice sur les achats remplissant les conditions requises.';
+ function isAmazonLink(value){
+  let u;try{u=new URL(String(value||''))}catch{return false}
+  if(u.protocol!=='https:'||u.username||u.password)return false;
+  const host=u.hostname.toLowerCase();
+  return /^(?:www\.)?amazon\.(?:fr|com|co\.uk|de|es|it|nl|be|se|pl)$/.test(host) ||
+   ['amzn.to','amzn.eu','link.amazon'].includes(host);
+ }
  function trailerId(value){
   if(!value)return null;
   let u;try{u=new URL(String(value))}catch{return null}
@@ -61,9 +69,13 @@
   return '<aside class="swapp-article-extra swapp-article-commerce" aria-label="Liens commerciaux sélectionnés"><h2>Pour aller plus loin</h2>'+
    '<p>La rédaction choisit ces liens indépendamment de ses articles. Les liens rémunérés sont identifiés et n’influencent pas les conclusions éditoriales.</p>'+
    '<div class="swapp-article-deals">'+links.map(link=>
-    '<a href="'+escape(link.url)+'" target="_blank" rel="sponsored nofollow noopener noreferrer"><span class="swapp-deal-type">'+(link.kind==='sponsored'?'PUBLICITÉ · PARTENARIAT RÉMUNÉRÉ':'LIEN AFFILIÉ · COMMISSION POSSIBLE')+'</span>'+
+    '<a href="'+escape(link.url)+'" target="_blank" rel="sponsored nofollow noopener noreferrer"><span class="swapp-deal-type">'+
+    (link.kind==='sponsored'?'PUBLICITÉ · PARTENARIAT RÉMUNÉRÉ':
+     isAmazonLink(link.url)?'LIEN RÉMUNÉRÉ PAR AMAZON':'LIEN AFFILIÉ · COMMISSION POSSIBLE')+'</span>'+
     '<strong>'+escape(link.title)+'</strong><small>'+escape(link.merchant)+' ↗</small></a>'
-   ).join('')+'</div></aside>';
+   ).join('')+'</div>'+
+   (links.some(link=>link.kind==='affiliate'&&isAmazonLink(link.url))
+    ?'<p class="swapp-amazon-disclosure">'+escape(amazonDisclosure)+'</p>':'')+'</aside>';
  }
  function discussionHtml(article){
   const slug=String(article?.slug||'');
@@ -127,5 +139,5 @@
    if(button)activate(button);
   });
  }
- return Object.freeze({trailerId,commercialLinks,renderServer,mount});
+ return Object.freeze({trailerId,commercialLinks,isAmazonLink,amazonDisclosure,renderServer,mount});
 });
