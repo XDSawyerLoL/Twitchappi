@@ -109,3 +109,59 @@ test('sitemap, HTML sitemap and RSS share a single concurrent published lookup',
  assert.match(r3.body,/publication-visible/);
  assert.equal(reads,1);
 });
+
+test('Google News sitemap includes only fresh, original, published editorial articles',()=>{
+ const {newsSitemapXml,robotsText}=require('../modules/swapp-seo');
+ const clock=Date.parse('2026-10-16T12:00:00.000Z');
+ const xml=newsSitemapXml([
+  {slug:'fresh-editorial',title:'Nouvelle sortie & suite',contentType:'article',status:'published',publishedAt:'2026-10-16T10:00:00.000Z'},
+  {slug:'past',title:'Too old',contentType:'article',status:'published',publishedAt:'2026-10-10T10:00:00.000Z'},
+  {slug:'imported',title:'Original ancien',contentType:'article',status:'published',publishedAt:'2026-10-16T10:00:00.000Z',originalPublishedAt:'2023-01-01T10:00:00Z'},
+  {slug:'private',title:'Privé',contentType:'article',status:'draft',publishedAt:'2026-10-16T10:00:00.000Z'},
+  {slug:'video',title:'Vidéo officielle',contentType:'video',status:'published',publishedAt:'2026-10-16T10:00:00.000Z'},
+  {slug:'future',title:'Futur',contentType:'article',status:'published',publishedAt:'2026-10-18T10:00:00.000Z'}
+ ],clock);
+ assert.match(xml,/xmlns:news="http:\/\/www.google.com\/schemas\/sitemap-news\/0.9"/);
+ assert.match(xml,/<news:language>fr<\/news:language>/);
+ assert.match(xml,/<news:title>Nouvelle sortie &amp; suite<\/news:title>/);
+ assert.match(xml,/2026-10-16T10:00:00.000Z/);
+ for(const slug of ['past','imported','private','video','future'])assert.doesNotMatch(xml,new RegExp('/actus/'+slug));
+ assert.equal((xml.match(/<news:news>/g)||[]).length,1);
+ assert.match(robotsText(),/news-sitemap\.xml/);
+});
+
+test('IndexNow exposes only public key and makes a single safe free request for published URLs',async()=>{
+ const {INDEXNOW_KEY,INDEXNOW_KEY_PATH,registerSeoRoutes,notifyIndexNow}=require('../modules/swapp-seo');
+ const handlers=new Map();
+ registerSeoRoutes({get:(url,handler)=>handlers.set(url,handler)});
+ const response={set(){return this},status(){return this},type(){return this},send(value){this.body=value;return this}};
+ handlers.get(INDEXNOW_KEY_PATH)({},response);
+ assert.equal(response.body.trim(),INDEXNOW_KEY);
+ const seen=[];
+ const result=await notifyIndexNow(['valid-news','valid-news','../../bad'],{
+  enabled:true,
+  fetchImpl:async(url,options)=>{
+   seen.push({url,payload:JSON.parse(options.body)});
+   return {status:202};
+  }
+ });
+ assert.equal(result.accepted,true);
+ assert.equal(seen.length,1);
+ assert.equal(seen[0].url,'https://api.indexnow.org/indexnow');
+ assert.deepEqual(seen[0].payload.urlList,['https://swapp.tv/actus/valid-news']);
+ assert.equal(seen[0].payload.keyLocation,'https://swapp.tv'+INDEXNOW_KEY_PATH);
+ const disabled=await notifyIndexNow(['valid-news'],{enabled:false,fetchImpl:async()=>{throw Error('Unwanted outbound request')}});
+ assert.equal(disabled.attempted,false);
+ const failed=await notifyIndexNow(['valid-news'],{enabled:true,fetchImpl:async()=>{throw Error('Network down')}});
+ assert.equal(failed.attempted,true);
+ assert.equal(failed.accepted,false);
+});
+
+test('IndexNow runs only on trusted editorial commits and is optional in production',()=>{
+ const router=fs.readFileSync(path.join(__dirname,'../modules/swapp-news/router.js'),'utf8');
+ assert.match(router,/SWAPP_INDEXNOW_ENABLED/);
+ assert.match(router,/process\.env\.NODE_ENV!=='production'/);
+ assert.match(router,/!result\.alreadyPublished&&result\.status==='published'/);
+ assert.match(router,/newlyPublished\.length/);
+ assert.doesNotMatch(router,/setInterval\(/);
+});
