@@ -62,23 +62,35 @@ function sitemapXml(articles=[]){
 function newsSitemapXml(articles=[],currentTime=Date.now()){
  const now=Number(currentTime);
  const cutoff=now-48*60*60*1000;
- const seen=new Set();
- const rows=[];
+ const seen=new Set(),fresh=[],archive=[];
  for(const article of Array.isArray(articles)?articles:[]){
   const slug=String(article?.slug||'');
   if(article?.status!=='published'||!SLUG.test(slug))continue;
   if(article.contentType && article.contentType!=='article')continue;
-  const published=Date.parse(article.originalPublishedAt||article.publishedAt||'');
-  if(!Number.isFinite(published)||published<cutoff||published>now)continue;
   const title=String(article.title||'').trim();
   if(!title||seen.has(slug))continue;
+  const dateSource=article.originalPublishedAt||article.publishedAt||'';
+  const published=Date.parse(dateSource);
+  // Never call an imported article "new" just because SWAPP imported it.
+  // The only News entries must have a genuine publication date within 48h.
+  if(Number.isFinite(published)&&published>now)continue;
   seen.add(slug);
-  rows.push({slug,title,published});
+  const item={slug,title,published};
+  if(Number.isFinite(published)&&published>=cutoff)fresh.push(item);
+  else archive.push(item);
  }
- rows.sort((a,b)=>b.published-a.published);
- const entries=rows.slice(0,500).map(article=>{
+ fresh.sort((a,b)=>b.published-a.published);
+ archive.sort((a,b)=>(Number.isFinite(b.published)?b.published:0)-(Number.isFinite(a.published)?a.published:0));
+ // Google explicitly permits retaining old URLs without news:news metadata.
+ // A few genuine archived editorials prevent missing <url> warnings when
+ // no article was published in the last 48h. No invented publication dates.
+ const rows=[...fresh.slice(0,500),...archive.slice(0,20)];
+ const entries=rows.map(article=>{
   const url=ORIGIN+'/actus/'+encodeURIComponent(article.slug);
-  return '  <url><loc>'+encodeXml(url)+'</loc><news:news>'+
+  const loc='  <url><loc>'+encodeXml(url)+'</loc>';
+  if(!Number.isFinite(article.published)||article.published<cutoff)
+   return loc+'</url>';
+  return loc+'<news:news>'+
    '<news:publication><news:name>SWAPP</news:name><news:language>fr</news:language></news:publication>'+
    '<news:publication_date>'+new Date(article.published).toISOString()+'</news:publication_date>'+
    '<news:title>'+encodeXml(article.title)+'</news:title>'+
