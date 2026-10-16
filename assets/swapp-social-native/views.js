@@ -4,6 +4,8 @@ import { renderPost, renderPosts, notificationLabel } from './render.js?v=202610
 
 export function setView(view,title){
   state.view=view;
+  const social=document.getElementById('swappSocialNative');
+  if(social)social.dataset.socialView=view;
   dom.viewTitle.textContent=title||'SOCIAL';
   document.querySelectorAll('[data-view]').forEach(function(button){
     button.classList.toggle('active',button.dataset.view===view);
