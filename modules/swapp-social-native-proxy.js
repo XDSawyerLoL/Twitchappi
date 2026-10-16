@@ -36,7 +36,7 @@ function swappSocialCredentials(user,secret){
  return {handle:'s_'+stem+'_'+suffix,password:crypto.createHmac('sha256',secret).update('social-password-v1:'+id).digest('base64url'),
   displayName:String(user?.display_name||user?.login||'Membre SWAPP').trim().slice(0,50)};
 }
-function createSocialNativeProxy(fetchImpl,{production=true,restoreLocalSession=null,ssoSecret=''}={}){
+function createSocialNativeProxy(fetchImpl,{production=true,restoreLocalSession=null,ssoSecret='',lookupLocalUser=null,listLocalUsers=null}={}){
 
  if(typeof fetchImpl!=='function')throw Error('fetch implementation is required');
  const sessionSso=typeof restoreLocalSession==='function';
@@ -108,14 +108,28 @@ function createSocialNativeProxy(fetchImpl,{production=true,restoreLocalSession=
     return res.status(401).json({error:'unauthorized'});
    }
   }
+  // Human-facing SWAPP handles are resolved to internal SOCIAL handles only
+  // on the server. Do not expose or trust an arbitrary user-provided account ID.
+  const resolveHandle=input=>{
+   const handle=String(input||'').trim().toLowerCase().replace(/^@/,'');
+   if(!sessionSso||typeof lookupLocalUser!=='function')return handle;
+   if(!/^[a-z0-9_-]{3,32}$/.test(handle))return handle;
+   const local=lookupLocalUser(handle);
+   return local?.id&&local?.login?swappSocialCredentials(local,ssoSecret).handle:handle;
+  };
+  let upstreamPath=path;
+  if(sessionSso){
+   const userPath=path.match(/^\/(users|messages)\/([a-z0-9_-]{3,32})(\/(?:follow|block))?$/);
+   if(userPath)upstreamPath='/'+userPath[1]+'/'+resolveHandle(userPath[2])+(userPath[3]||'');
+  }
   let body;
   if(method!=='GET'){
    if(!req.body||typeof req.body!=='object'||Array.isArray(req.body))return res.status(400).json({error:'invalid_body'});
-   body=JSON.stringify(req.body);
+   body=JSON.stringify(sessionSso&&path==='/messages'?{...req.body,handle:resolveHandle(req.body.handle)}:req.body);
    if(body.length>8500)return res.status(413).json({error:'body_too_large'});
    headers['Content-Type']='application/json';
   }
-  const endpoint=SOCIAL_ORIGIN+'/api/pulse'+path+safeQuery(path,req.originalUrl?.split('?').slice(1).join('?'));
+  const endpoint=SOCIAL_ORIGIN+'/api/pulse'+upstreamPath+safeQuery(path,req.originalUrl?.split('?').slice(1).join('?'));
   // Read-only requests may retry once if Render wakes a cold instance.
   // Never retry a write: a timeout must not publish a post or send a DM twice.
   // Retry writes ONLY after an explicit 401 (not after a timeout or server error).
@@ -143,7 +157,32 @@ function createSocialNativeProxy(fetchImpl,{production=true,restoreLocalSession=
      if(method==='GET'&&path==='/feed'&&attempt+1<attempts)continue;
      return res.status(503).json({error:'social_upstream_unavailable'});
     }
+    if(sessionSso&&result.status>=200&&result.status<300&&typeof listLocalUsers==='function'){
+     // Translate backend-only shadow handles back to public SWAPP account names.
+     const aliases=new Map();
+     try{
+      for(const local of (listLocalUsers()||[])){
+       if(local?.id&&local?.login)aliases.set(swappSocialCredentials(local,ssoSecret).handle,local);
+      }
+     }catch{}
+     const alias=user=>{
+      if(!user||typeof user!=='object')return;
+      const local=aliases.get(user.handle);
+      if(!local)return;
+      user.handle=String(local.login).slice(0,32);
+      user.displayName=String(local.display_name||local.login).slice(0,50);
+     };
+     alias(data?.user);
+     alias(data?.post?.author);
+     alias(data?.post?.quote?.author);
+     for(const item of Array.isArray(data?.posts)?data.posts:[]){
+      alias(item?.author);alias(item?.quote?.author);
+     }
+     for(const item of Array.isArray(data?.users)?data.users:[])alias(item);
+     for(const item of Array.isArray(data?.conversations)?data.conversations:[])alias(item?.user);
+    }
     if(sessionSso&&path==='/me'&&result.status===200&&data?.user&&swappUser){
+     data.user.handle=String(swappUser.login).slice(0,32);
      data.user.displayName=String(swappUser.display_name||swappUser.login).slice(0,50);
     }
     return res.status(result.status).json(data);
