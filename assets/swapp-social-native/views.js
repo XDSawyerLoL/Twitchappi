@@ -95,15 +95,21 @@ export async function loadHome(){
 
 export async function loadExplore(query=''){
   setView('explore','Explorer');
+  // On mobile, the sidebar search is hidden. Keep a real search control inside
+  // the Explore view instead of routing users to an unusable empty screen.
+  const form='<form id="social-mobile-search-form" class="pulse-mobile-search" role="search">'+
+    '<label for="social-mobile-query">Rechercher dans SOCIAL</label>'+
+    '<div class="pulse-mobile-search-row"><input id="social-mobile-query" type="search" name="query" minlength="2" maxlength="100" autocomplete="off" placeholder="Personne, sujet, publication…" value="'+esc(query)+'" required>'+
+    '<button type="submit">Rechercher</button></div></form>';
   if(query.trim().length<2){
-    dom.feed.innerHTML='<section class="pulse-view"><div class="pulse-view-head"><h2>Explorer SOCIAL</h2><p>Recherche des personnes, des sujets et des publications.</p></div></section>';
+    dom.feed.innerHTML='<section class="pulse-view"><div class="pulse-view-head"><h2>Explorer SOCIAL</h2><p>Recherche des personnes, des sujets et des publications.</p></div>'+form+'</section>';
     return;
   }
 
   setStatus('Recherche','');
   try{
     const data=await api('/api/pulse/search?q='+encodeURIComponent(query.trim()));
-    let html='<section class="pulse-view"><div class="pulse-view-head"><h2>Résultats</h2><p>'+esc(query)+'</p></div><div class="pulse-card-list">';
+    let html='<section class="pulse-view"><div class="pulse-view-head"><h2>Résultats</h2><p>'+esc(query)+'</p></div>'+form+'<div class="pulse-card-list">';
     data.users.forEach(function(user){
       html+='<div class="pulse-card pulse-user-card"><div class="pulse-avatar">'+esc(initials(user))+'</div><div><strong>'+esc(user.displayName)+'</strong><small>@'+esc(user.handle)+' · '+user.followers+' abonnés</small></div><button class="pulse-mini-button" data-profile="'+esc(user.handle)+'">Voir</button></div>';
     });
