@@ -60,6 +60,18 @@ async function verify(){
  check(discovery.body.includes('/api/discovery/game-lives?limit=6&game='),
   'Article live discovery client is outdated: targeted game lookup missing');
  process.stdout.write('PASS game-specific article live discovery\n');
+ const discover=await request(origin,'/decouvrir');
+ check(discover.body.includes('swapp-discover-comfort.js?v=20261016-v4-mobile-1'),
+  'Discover has an old mobile UI release');
+ check(discover.body.includes('index_script.js?v=20261016-discover-v4-39'),
+  'Discover still references an old V4 player script');
+ const comfort=await request(origin,'/assets/swapp-discover-comfort.js');
+ check(comfort.body.includes('swapp-discover-no-image')&&comfort.body.includes('v4SwipeCard'),
+  'Discover mobile comfort JavaScript is missing or outdated');
+ const mainScript=await request(origin,'/index_script.js');
+ check(mainScript.body.includes('already ranked these lives by mood, relevance and diversity'),
+  'Discover V4 unexpectedly overrides API relevance ranking');
+ process.stdout.write('PASS Discover mobile layout and relevance ordering\n');
  const home=await request(origin,'/');
  check(home.body.includes('SWAPP'),'Home returned an unexpected document');
  process.stdout.write('PASS / home\n');
