@@ -471,3 +471,139 @@ body.oryonDiscoverV4 #discover .v4Meta{
   box-shadow:0 24px 70px rgba(0,0,0,.78)!important;
  }
 }
+
+
+/* Editorial unity V8 — finish existing content, never inject a new module.
+ * All artwork is provided by article/stream data; no generated placeholders. */
+:root{
+ --swapp-finish-card-line:rgba(174,198,225,.17);
+ --swapp-finish-card-ink:#f2f7fc;
+ --swapp-finish-soft-shadow:0 18px 46px rgba(0,0,0,.28);
+}
+
+/* The existing lead article becomes a legible cinematic poster.
+ * Gradients stay on the image rather than becoming a separate bright panel. */
+#home .swappHome1014 .swapp-home-hero-feature{
+ border-color:var(--swapp-finish-card-line);
+ box-shadow:var(--swapp-finish-soft-shadow);
+}
+#home .swappHome1014 .swapp-home-hero-feature::after{
+ background:linear-gradient(180deg,rgba(5,10,19,.02) 25%,rgba(5,10,19,.38) 61%,rgba(5,10,19,.95) 100%);
+}
+#home .swappHome1014 .swapp-home-hero-feature-overlay{
+ gap:clamp(7px,1.1vw,13px);
+}
+#home .swappHome1014 .swapp-home-hero-feature-overlay strong{
+ max-width:27ch;color:#fff;
+ text-shadow:0 2px 16px rgba(0,0,0,.38);
+}
+#home .swappHome1014 .swapp-home-hero-feature-link{
+ text-underline-offset:3px;
+}
+
+/* Homepage: consistent image crop, information spacing and clear link cues. */
+#home .swapp-home-editorial .swapp-home-story{
+ border-color:var(--swapp-finish-card-line)!important;
+}
+#home .swapp-home-editorial .swapp-home-story-image{
+ position:relative;isolation:isolate;
+}
+#home .swapp-home-editorial .swapp-home-story-image img{
+ display:block;width:100%;height:100%;object-fit:cover;
+ transition:transform .36s cubic-bezier(.22,1,.36,1);
+}
+#home .swapp-home-editorial .swapp-home-story-body strong{
+ color:var(--swapp-finish-card-ink);
+}
+#home .swapp-home-editorial .swapp-home-story-cta{
+ color:var(--swapp-finish-focus);font-weight:800;
+}
+#home .homeLiveCard1014 .homeThumb1014 img{
+ object-fit:cover;object-position:center;
+}
+
+/* Actualité: same reading contrast on SPA and direct server routes. */
+#actus .swapp-actus-card,.swapp-editorial-route .story-card{
+ border-color:var(--swapp-finish-card-line);
+}
+#actus .swapp-actus-card .swapp-actus-cover img,
+.swapp-editorial-route .story-card .story-image{
+ object-fit:cover;object-position:center;
+ transition:transform .36s cubic-bezier(.22,1,.36,1);
+}
+#actus .swapp-actus-info h2,.swapp-editorial-route .story-info h3{
+ color:var(--swapp-finish-card-ink);text-wrap:pretty;
+}
+#actus .swapp-actus-info :is(p,span),
+.swapp-editorial-route .story-info :is(p,small){
+ line-height:1.55;
+}
+.swapp-editorial-route .article-body img,
+#actus .swapp-actus-body img{
+ max-width:100%;height:auto;
+}
+
+/* SOCIAL: editorial stories and normal posts share the same visual weight.
+ * Feed actions, sticky headers, auth and personalized accents stay untouched. */
+.swapp-social-viewport .swapp-social-stories-heading h2{
+ line-height:1.16;letter-spacing:-.045em;text-wrap:balance;
+}
+.swapp-social-viewport .swapp-social-story{
+ border-color:var(--swapp-finish-card-line)!important;
+}
+.swapp-social-viewport .swapp-social-story-info strong{
+ line-height:1.25;text-wrap:pretty;
+ text-shadow:0 2px 12px rgba(0,0,0,.55);
+}
+.swapp-social-viewport .pulse-post-head strong{
+ letter-spacing:-.015em;
+}
+.swapp-social-viewport .pulse-post-main>p{
+ overflow-wrap:anywhere;hyphens:auto;
+}
+.swapp-social-viewport .pulse-post .pulse-rich-link-preview{
+ border-color:var(--swapp-finish-card-line)!important;
+}
+.swapp-social-viewport .social-dm-view .pulse-message-list{
+ min-width:0;
+}
+.swapp-social-viewport .social-dm-view .pulse-message{
+ overflow-wrap:anywhere;
+}
+
+/* Animate editorial photography only for deliberate desktop interactions. */
+@media(hover:hover) and (pointer:fine){
+ #home .swapp-home-editorial .swapp-home-story:hover .swapp-home-story-image img,
+ #home .swapp-home-editorial .swapp-home-story:focus-visible .swapp-home-story-image img,
+ #actus .swapp-actus-card:hover .swapp-actus-cover img,
+ .swapp-editorial-route .story-card:hover .story-image{
+  transform:scale(1.025);
+ }
+}
+
+/* Safari/iPhone: avoid crammed article text and keep every touch target usable. */
+@media(max-width:650px){
+ #home .swappHome1014 .swapp-home-hero-feature-overlay{
+  padding:clamp(17px,4.5vw,24px);
+ }
+ #home .swappHome1014 .swapp-home-hero-feature-overlay strong{
+  max-width:100%;line-height:1.16;
+ }
+ #home .swapp-home-editorial .swapp-home-story-body,
+ #actus .swapp-actus-info{
+  padding:16px!important;
+ }
+ .swapp-social-viewport .swapp-social-stories-heading h2{
+  font-size:clamp(19px,5.2vw,24px);
+ }
+ .swapp-social-viewport .social-dm-view .pulse-message-form :is(input,button){
+  min-height:44px;
+ }
+}
+@media(prefers-reduced-motion:reduce){
+ #home .swapp-home-editorial .swapp-home-story-image img,
+ #actus .swapp-actus-card .swapp-actus-cover img,
+ .swapp-editorial-route .story-card .story-image{
+  transition:none!important;transform:none!important;
+ }
+}
