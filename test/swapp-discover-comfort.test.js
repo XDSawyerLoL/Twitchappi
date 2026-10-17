@@ -130,7 +130,7 @@ test('Discover V4 respects API score and diversity ordering all the way to the p
  assert.match(actual,/already ranked these lives by mood, relevance and diversity/);
  assert.doesNotMatch(actual,/items\.sort\(\(a,b\)=>Math\.abs/);
  const html=read('index.html');
- assert.match(html,/index_script\.js\?v=20261016-discover-v4-39/);
+ assert.match(html,/index_script\.js\?v=20261017-home-no-flash-v21/);
 });
 
 test('live-card decorations refresh on actual DOM replacements without polling',()=>{
