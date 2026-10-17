@@ -4,7 +4,15 @@
  const slugOk=s=>/^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/.test(String(s||''));
  const safeUrl=s=>{try{const u=new URL(s);return u.protocol==='https:'&&!u.username&&!u.password?u.href:null}catch{return null}};
  const el=(tag,cls,content)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(content!=null)n.textContent=String(content);return n};
- const fetchItems=async(path,timeout)=>{const r=await fetch(path,{credentials:'same-origin',headers:{Accept:'application/json'},signal:AbortSignal.timeout(timeout)});if(!r.ok)throw Error('HTTP '+r.status);return r.json()};
+ // AbortController fallback also works on Safari builds without AbortSignal.timeout.
+ const fetchItems=async(path,timeout)=>{
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),timeout);
+  try{
+   const r=await fetch(path,{credentials:'same-origin',headers:{Accept:'application/json'},signal:controller.signal});
+   if(!r.ok)throw Error('HTTP '+r.status);
+   return await r.json();
+  }finally{clearTimeout(timer)}
+ };
  let newsPromise=null,queued=false,newsFetchedAt=0;
  const news=()=>{
    if(newsPromise&&Date.now()-newsFetchedAt<90000)return newsPromise;
