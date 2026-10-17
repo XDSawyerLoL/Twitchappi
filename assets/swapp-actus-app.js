@@ -107,7 +107,7 @@ if(a.summary)heroCopy.append(el('p','swapp-actus-summary',a.summary));
 heroCopy.append(el('p','swapp-actus-author',[a.author,date(a.publishedAt||a.originalPublishedAt)].filter(Boolean).join(' · ')));
 heading.append(heroCopy);article.append(heading);
 if(heroImage&&a.image?.credit)heroCopy.append(el('p','swapp-immersive-credit',a.image.credit));
-const controls=el('div','swapp-reader-controls');const words=String(a.body||'').trim().split(/\\s+/).filter(Boolean).length;
+const controls=el('div','swapp-reader-controls');const words=String(a.body||'').trim().split(/\s+/).filter(Boolean).length;
 controls.append(el('span','swapp-read-time',Math.max(1,Math.ceil(words/220))+' min de lecture'));
 const actions=el('nav','swapp-game-journey-actions');actions.setAttribute('aria-label','Explorer ce jeu sur SWAPP');
 const read=el('a','swapp-game-journey-action primary','Lire l’article ↓');read.href='#article-content';
