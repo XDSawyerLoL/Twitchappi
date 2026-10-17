@@ -137,7 +137,7 @@ async function verify(){
   newsScript.body.includes("action('Voir les lives'")&&
   newsScript.body.includes("action('En discuter'")&&
   newsScript.body.includes('swapp-home-feature-creators')&&
-  newsScript.body.includes('result?.success!==true'),
+  newsScript.body.includes('data?.success!==true'),
   'V17 home game journey or verified-live identity is missing');
  const readerApp=await request(origin,'/assets/swapp-actus-app.js');
  check(readerApp.body.includes('const sameGame=')&&
