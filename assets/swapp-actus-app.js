@@ -4,6 +4,23 @@ const el=(tag,cls,text)=>{const x=document.createElement(tag);if(cls)x.className
 const url=v=>{try{const u=new URL(v);return u.protocol==='https:'&&!u.username&&!u.password?u.href:null}catch{return null}};
 const date=v=>{const d=new Date(v);return v&&!Number.isNaN(d.getTime())?d.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'}):'';};
 const slugOk=s=>/^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/.test(s||'');
+ // One consistent identity rule across the ACTUS list and article reader.
+ // Never confuse numbered sequels, e.g. Hades and Hades II.
+ const gameKey=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+ const gameAliases=[
+  ['Grand Theft Auto VI','GTA 6','GTA6','GTA VI','Grand Theft Auto 6'],
+  ['Planet Zoo 2','Planet Zoo II'],
+  ['007 First Light','James Bond 007 First Light','007: First Light'],
+  ['Assassin’s Creed Black Flag','Assassins Creed IV Black Flag','Assassin’s Creed IV: Black Flag',"Assassin's Creed Black Flag"],
+  ['Final Fantasy VII','Final Fantasy 7','FF7'],
+  ['MARVEL Tōkon: Fighting Souls','Marvel Tokon Fighting Souls'],
+  ['Divinity: Original Sin 3','Divinity Original Sin III'],
+  ['Road 96','Road96']
+ ].map(group=>group.map(gameKey));
+ const sameGame=(first,second)=>{
+  const a=gameKey(first),b=gameKey(second);
+  return !!(a&&b&&(a===b||gameAliases.some(group=>group.includes(a)&&group.includes(b))));
+ };
 const fetchJson=async route=>{
  // AbortSignal.timeout is unavailable on older iPhone Safari releases.
  // AbortController + a finally-cleaned timer works on those devices too.
@@ -29,12 +46,15 @@ const tools=el('div','swapp-actus-tools'),search=el('input');search.type='search
 const liveSection=el('section','swapp-discover-live');liveSection.setAttribute('aria-label','Créateurs en direct pour le jeu sélectionné');const liveHeading=el('div','swapp-discover-live-heading');liveHeading.append(el('h2','','Les créateurs en direct'));const liveStatus=el('p','swapp-discover-live-status');liveSection.append(liveHeading,liveStatus);const liveCards=el('div','swapp-discover-live-grid');liveSection.append(liveCards);node.append(liveSection);
 let liveResults=null,liveLoading=null,liveTicket=0;
 const normalized=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
-const matches=(a,b)=>{a=normalized(a);b=normalized(b);return !!(a&&b&&(a===b||(a.length>=7&&b.includes(a))||(b.length>=7&&a.includes(b))))};
-const loadLives=game=>fetchJson('/api/discovery/game-lives?limit=12&game='+encodeURIComponent(game)).then(data=>Array.isArray(data.items)?data.items:[]);
+const matches=sameGame;
+const loadLives=game=>fetchJson('/api/discovery/game-lives?limit=12&game='+encodeURIComponent(game)).then(data=>{
+  if(data?.success!==true||!sameGame(game,data.game)||!Array.isArray(data.items))throw Error('game_mismatch');
+  return data.items;
+ });
 async function updateLives(){const ticket=++liveTicket;const game=activeGame;if(!game){liveSection.hidden=true;return}liveSection.hidden=false;liveCards.replaceChildren();liveHeading.querySelector('h2').textContent='En direct sur '+game;liveStatus.textContent='Recherche des créateurs en cours…';
 try{const result=await loadLives(game);if(ticket!==liveTicket||!liveSection.isConnected)return;const seen=new Set();const found=result.filter(item=>{const login=String(item.login||'').toLowerCase(),platform=String(item.platform||'').toLowerCase(),key=platform+':'+login;if(!/^[a-z0-9_]{2,25}$/.test(login)||seen.has(key)||!matches(game,item.game_name||item.game||item.category))return false;seen.add(key);return true}).sort((a,b)=>Number(['swapp','oryon'].includes(String(b.platform||'').toLowerCase()))-Number(['swapp','oryon'].includes(String(a.platform||'').toLowerCase()))||Number(b.viewer_count||0)-Number(a.viewer_count||0)).slice(0,4);
 liveStatus.textContent=found.length?found.length+' créateur'+(found.length>1?'s':'')+' repéré'+(found.length>1?'s':'')+' en direct dans les suggestions':'Aucun live correspondant dans les suggestions chargées. D’autres créateurs peuvent être en direct sur ce jeu.';
-for(const item of found){const login=String(item.login).toLowerCase(),native=['swapp','oryon'].includes(String(item.platform||'').toLowerCase());const link=el('a','swapp-discover-stream');link.href=native?'/'+encodeURIComponent(login):'https://www.twitch.tv/'+encodeURIComponent(login);if(!native)link.onclick=event=>{if(event.button||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;const opened=window.SwappArticlePlayer?.openFull({login,name:item.display_name||login,game});if(opened)event.preventDefault()};const image=el('div','swapp-discover-stream-cover'),src=url(item.thumbnail_url);if(src){const img=el('img');img.src=src;img.alt='';img.loading='lazy';img.onerror=()=>img.remove();image.append(img)}image.append(el('span','swapp-discover-stream-badge','EN DIRECT'));const info=el('div','swapp-discover-stream-info');info.append(el('strong','',item.display_name||login),el('small','',item.title||'Regarder ce live'));link.append(image,info);liveCards.append(link)}
+for(const item of found){const login=String(item.login).toLowerCase(),native=['swapp','oryon'].includes(String(item.platform||'').toLowerCase());const link=el('a','swapp-discover-stream');link.href=native?'/'+encodeURIComponent(login):'/live/twitch/'+encodeURIComponent(login)+'?game='+encodeURIComponent(game.slice(0,90));if(!native)link.onclick=event=>{if(event.button||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;const opened=window.SwappArticlePlayer?.openFull({login,name:item.display_name||login,game});if(opened)event.preventDefault()};const image=el('div','swapp-discover-stream-cover'),src=url(item.thumbnail_url);if(src){const img=el('img');img.src=src;img.alt='';img.loading='lazy';img.onerror=()=>img.remove();image.append(img)}image.append(el('span','swapp-discover-stream-badge','EN DIRECT'));const info=el('div','swapp-discover-stream-info');info.append(el('strong','',item.display_name||login),el('small','',item.title||'Regarder ce live'));link.append(image,info);liveCards.append(link)}
 }catch{if(ticket===liveTicket&&liveSection.isConnected)liveStatus.textContent='Lives temporairement indisponibles. Les articles restent accessibles.'}}
 liveSection.hidden=true;
 const gamesBar=el('div','swapp-actus-game-filters');gamesBar.setAttribute('aria-label','Explorer les jeux');node.append(gamesBar);let activeGame='',gamesExpanded=false;const count=el('p','swapp-actus-count');count.setAttribute('aria-live','polite');node.append(count);const feed=el('div','swapp-actus-grid');node.append(feed);
@@ -117,8 +137,8 @@ reading.append(body);article.append(reading);window.SwappArticleExtras?.mount(ar
 if(a.sources?.length){const sources=el('aside','swapp-actus-sources swapp-reader-source-panel');sources.id='swapp-article-sources';const intro=el('div','swapp-reader-source-intro');intro.append(el('span','swapp-reader-source-icon','↗'),el('div','swapp-reader-source-copy'));intro.lastChild.append(el('h2','','Sources'),el('p','','Retrouver les références de cet article'));sources.append(intro);const sourceLinks=el('div','swapp-reader-source-links');sources.append(sourceLinks);for(const source of a.sources){const address=url(source.url);if(!address)continue;const link=el('a','',source.label||'Source originale');link.href=address;link.target='_blank';link.rel='noopener noreferrer';link.className='swapp-reader-source-link';link.append(el('span','',' ↗'));sourceLinks.append(link)}if(sourceLinks.children.length)article.append(sources);}
 if(a.game){const games=el('section','swapp-actus-related swapp-reader-live-panel');games.id='swapp-article-lives';games.append(el('h2','','En direct sur '+a.game),el('p','swapp-actus-live-status','Créateurs qui jouent à ce jeu actuellement'));article.append(games);
 const normal=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
-const matches=(x,y)=>{x=normal(x);y=normal(y);return !!(x&&y&&(x===y||(x.length>=7&&y.includes(x))||(y.length>=7&&x.includes(y))))};
-fetchJson('/api/discovery/game-lives?limit=12&game='+encodeURIComponent(a.game)).then(data=>{if(!games.isConnected)return;const seen=new Set();const streams=(Array.isArray(data.items)?data.items:[]).filter(x=>{const login=String(x.login||'').toLowerCase(),platform=String(x.platform||'').toLowerCase(),key=platform+':'+login;if(!/^[a-z0-9_]{2,25}$/.test(login)||seen.has(key)||!matches(a.game,x.game_name||x.game||x.category))return false;seen.add(key);return true}).sort((x,y)=>Number(['swapp','oryon'].includes(String(y.platform||'').toLowerCase()))-Number(['swapp','oryon'].includes(String(x.platform||'').toLowerCase()))||Number(y.viewer_count||0)-Number(x.viewer_count||0));games.replaceChildren(el('h2','','En direct sur '+a.game));if(!streams.length){games.append(el('p','swapp-actus-live-status','Aucun live correspondant trouvé pour le moment.'));return;}const grid=el('div','swapp-reader-live-grid');for(const stream of streams){const login=String(stream.login||'').toLowerCase();if(!/^[a-z0-9_]{2,25}$/.test(login))continue;const native=['swapp','oryon'].includes(String(stream.platform||'').toLowerCase());const link=el(native?'a':'div','swapp-reader-live-card');const streamHref=native?'/'+encodeURIComponent(login):'https://www.twitch.tv/'+encodeURIComponent(login);if(native)link.href=streamHref;const imgSrc=url(stream.thumbnail_url);const coverBox=el('div','swapp-reader-live-cover');if(imgSrc){const img=el('img');img.src=imgSrc;img.alt='';img.loading='lazy';coverBox.append(img)}coverBox.append(el('span','swapp-reader-live-badge','● EN DIRECT'));const info=el('div','swapp-reader-live-info');info.append(el('b','',stream.display_name||login),el('small','',stream.title||'Regarder ce live'));link.append(coverBox,info);
+const matches=sameGame;
+fetchJson('/api/discovery/game-lives?limit=12&game='+encodeURIComponent(a.game)).then(data=>{if(!games.isConnected)return;if(data?.success!==true||!matches(a.game,data.game)){games.replaceChildren(el('h2','','En direct sur '+a.game),el('p','swapp-actus-live-status','Correspondance du jeu momentanément indisponible.'));return;}const seen=new Set();const streams=(Array.isArray(data.items)?data.items:[]).filter(x=>{const login=String(x.login||'').toLowerCase(),platform=String(x.platform||'').toLowerCase(),key=platform+':'+login;if(!/^[a-z0-9_]{2,25}$/.test(login)||seen.has(key)||!matches(a.game,x.game_name||x.game||x.category))return false;seen.add(key);return true}).sort((x,y)=>Number(['swapp','oryon'].includes(String(y.platform||'').toLowerCase()))-Number(['swapp','oryon'].includes(String(x.platform||'').toLowerCase()))||Number(y.viewer_count||0)-Number(x.viewer_count||0));games.replaceChildren(el('h2','','En direct sur '+a.game));if(!streams.length){games.append(el('p','swapp-actus-live-status','Aucun live correspondant trouvé pour le moment.'));return;}const grid=el('div','swapp-reader-live-grid');for(const stream of streams){const login=String(stream.login||'').toLowerCase();if(!/^[a-z0-9_]{2,25}$/.test(login))continue;const native=['swapp','oryon'].includes(String(stream.platform||'').toLowerCase());const link=el(native?'a':'div','swapp-reader-live-card');const streamHref=native?'/'+encodeURIComponent(login):'/live/twitch/'+encodeURIComponent(login)+'?game='+encodeURIComponent(String(a.game).slice(0,90));if(native)link.href=streamHref;const imgSrc=url(stream.thumbnail_url);const coverBox=el('div','swapp-reader-live-cover');if(imgSrc){const img=el('img');img.src=imgSrc;img.alt='';img.loading='lazy';coverBox.append(img)}coverBox.append(el('span','swapp-reader-live-badge','● EN DIRECT'));const info=el('div','swapp-reader-live-info');info.append(el('b','',stream.display_name||login),el('small','',stream.title||'Regarder ce live'));link.append(coverBox,info);
 if(!native){
   const actions=el('div','swapp-reader-live-actions');
   const canEmbed=!!window.SwappArticlePlayer?.canEmbed?.(window.innerWidth,window.innerHeight);
@@ -128,12 +148,12 @@ if(!native){
     mini.setAttribute('aria-label','Regarder '+(stream.display_name||login)+' dans un mini-lecteur');
     mini.onclick=()=>{
       const opened=window.SwappArticlePlayer?.open({login,name:stream.display_name||login,game:a.game,source:mini});
-      if(!opened)window.open(streamHref,'_blank','noopener');
+      if(!opened)window.location.assign(streamHref);
     };
     actions.append(mini);
   }
-  const full=el('a','swapp-reader-live-full',canEmbed?'Voir la chaîne ↗':'Voir le live ↗');
-  full.href=streamHref;full.target='_blank';full.rel='noopener noreferrer';
+  const full=el('a','swapp-reader-live-full',canEmbed?'Voir le live sur SWAPP →':'Regarder sur SWAPP →');
+  full.href=streamHref;
   full.onclick=event=>{
     if(event.button||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
     const opened=window.SwappArticlePlayer?.openFull({login,name:stream.display_name||login,game:a.game});
