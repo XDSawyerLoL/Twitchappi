@@ -248,14 +248,9 @@ function closeMini(){state.mini=null; $('#oryonMiniPlayer')?.remove()}
 function expandMini(){const m=state.mini; if(!m)return; if(m.type==='twitch')openTwitch(m.login); else if(m.login)openOryon(m.login)}
 function renderMiniPlayer(){let host=$('#oryonMiniPlayer'); const m=state.mini; if(!m){host?.remove();return} if(!host){host=document.createElement('div'); host.id='oryonMiniPlayer'; host.className='miniPlayer'; document.body.appendChild(host)} const title=esc(m.title||m.login||'Live en cours'); const parent=location.hostname; host.innerHTML=`<div class="miniHead"><span>▶ ${title}</span><div class="row"><button class="btn ghost" onclick="expandMini()">Ouvrir</button><button class="btn ghost" onclick="closeMini()">×</button></div></div>${m.type==='twitch'?`<iframe allowfullscreen src="https://player.twitch.tv/?channel=${encodeURIComponent(m.login)}&parent=${encodeURIComponent(parent)}&muted=false"></iframe>`:`<div class="miniBody"><p class="muted">Live Swapp actif. La base mini-player garde le live accessible pendant la navigation.</p><button class="btn" onclick="expandMini()">Revenir au live</button></div>`}`}
 async function renderHome(){
- const el=$('#home');
- el.innerHTML=`<div id="featuredHome" class="section"><div class="empty">Chargement du bandeau des petits lives…</div></div>
- <div class="heroGrid section"><div class="hero"><span class="eyebrow"><i class="dot"></i>Découverte anti-gros</span><h1>Entre dans la bonne ambiance.</h1><p class="lead">Un live proposé, un signal clair, zéro pression.</p><div class="row"><button class="btn" onclick="quickGem()">Propose-moi un live</button><button class="btn secondary" onclick="setView('discover')">Choisir mon ambiance</button>${state.session.local?`<button class="btn ghost" onclick="setView('manager')">Streamer</button>`:`<button class="btn ghost" onclick="setView('settings')">Créer mon compte</button>`}</div></div><div class="panel"><h2>Mode Ambiance</h2><div class="ambianceGrid">${AMBIANCES.map(([id,label,desc,icon])=>`<button class="moodTile" onclick="discoverMood('${id}',${id==='petite-commu'?20:50})"><i>${icon}</i><b>${esc(label)}</b><span class="small">${esc(desc)}</span></button>`).join('')}</div></div></div>
- ${discoveryEventsHtml()}
- <div class="section two"><div class="panel"><h2>Profil viewer avec impact</h2><div id="viewerImpactBox">${viewerImpactCard()}</div></div><div class="panel"><h2>Zapping intelligent</h2><div class="row"><button class="btn good" onclick="quickGem()">Zapper</button><button class="btn secondary" onclick="setView('discover')">Ouvrir Découvrir</button></div></div></div>
- <div class="section"><div class="pageHead"><div><h1>En direct maintenant</h1><p>Swapp d’abord. Si personne n’est live, petits lives Twitch FR 10–50 viewers.</p></div></div><div id="homeLives" class="rail"><div class="empty">Chargement…</div></div></div>
- <div class="section"><h2>Catégories</h2><div id="homeCats" class="grid smallCards"></div></div>`;
- await loadFeaturedHome(); await loadHomeLives(); await loadHomeCats(); renderMiniPlayer();
+ const current=window.renderHome;
+ if(typeof current==='function'&&current!==renderHome)return current();
+ return undefined;
 }
 async function loadHomeLives(){
  const box=$('#homeLives');
@@ -2613,13 +2608,9 @@ async function loadHomeRecommendations(){
   }
 }
 async function renderHome(){
-  const el=$('#home'); if(!el) return;
-  el.innerHTML=`<section class="homeShowcase section"><div class="homeShowcaseInner"><div class="homeShowcaseCopy"><div><span class="eyebrow"><i class="dot"></i>Vitrine Swapp</span><h1>Des lives à taille humaine.</h1><p>Recommandations en haut : petits lives, entrée facile, chat lisible. Tu ne configures rien, tu testes.</p><div class="homeMoodStrip">${AMBIANCES.slice(0,6).map(([id,label])=>`<button onclick="state.moodFirstMood='${esc(id)}';autoProposeLive()">${esc(label)}</button>`).join('')}</div></div><div class="homeShowcaseActions"><button class="btn" onclick="autoProposeLive()">Propose-moi un live</button><button class="btn secondary" onclick="setView('discover')">Choisir mon ambiance</button>${state.session.local?`<button class="btn ghost" onclick="setView('manager')">Streamer</button>`:`<button class="btn ghost" onclick="setView('settings')">Créer mon compte</button>`}</div></div><div id="homeShowcaseLives" class="homeLiveGrid"><div class="proNotice">Chargement des recommandations…</div></div></div></section>
-  <div class="homeSectionHead"><div><h2>Pourquoi ces lives ?</h2><p>Swapp privilégie les créateurs accessibles plutôt que les gros flux déjà saturés.</p></div><button class="btn secondary" onclick="autoProposeLive()">Surprends-moi</button></div>
-  <div class="homeTwoGrid"><section class="homeImpactPanel"><h2>Trace viewer</h2><div id="viewerImpactBox">${viewerImpactCard()}</div></section><section class="homeFollowPanel"><div class="proTwitchHead"><div><h2 style="margin:0">Tes suivis Twitch</h2><p class="small" style="margin:6px 0 0">Logo de chaîne, statut live ou hors ligne.</p></div><div>${state.session.twitch?`<button class="btn secondary" onclick="logoutTwitch()">Déconnecter Twitch</button>`:`<button class="btn" onclick="connectTwitch()">Connecter Twitch</button>`}</div></div><div id="followedWrapCompact"></div></section></div>`;
-  await loadHomeRecommendations();
-  await renderCompactFollowed();
-  closeMini?.();
+ const current=window.renderHome;
+ if(typeof current==='function'&&current!==renderHome)return current();
+ return undefined;
 }
 async function renderCompactFollowed(){
   const box=$('#followedWrapCompact'); if(!box) return;
@@ -2864,13 +2855,9 @@ async function loadHomeRecommendations(){
   }
 }
 async function renderHome(){
-  const el=$('#home'); if(!el) return;
-  el.innerHTML=`<section class="homeShowcase section"><div class="homeShowcaseInner vitrineFinal"><div class="homeVitrineTop"><div class="homeShowcaseCopy final"><div><span class="eyebrow"><i class="dot"></i>Vitrine Swapp</span><h1>Des lives à taille humaine.</h1><p>Des recommandations visuelles, des petits créateurs, et une vraie place pour lancer ton propre live.</p><div class="homeMoodStrip">${AMBIANCES.slice(0,6).map(([id,label])=>`<button onclick="state.moodFirstMood='${esc(id)}';autoProposeLive()">${esc(label)}</button>`).join('')}</div></div><div class="homeShowcaseActions final"><button class="btn" onclick="autoProposeLive()">Propose-moi un live</button><button class="btn streamBtn" onclick="setView('${streamTargetView()}')">${esc(streamTargetLabel())}</button><button class="btn secondary" onclick="setView('discover')">Choisir mon ambiance</button></div></div><div id="homeShowcaseLives" class="homeLiveCarousel">${homeStreamPromoCard()}</div></div></div></section>
-  <section class="oryonLiveBandWrap section"><div class="oryonLiveBandHead"><div><h2>Live sur Swapp</h2><p>Swapp n’est pas seulement un lecteur Twitch : tu peux aussi streamer ici.</p></div><button class="btn streamBtn" onclick="setView('${streamTargetView()}')">${esc(streamTargetLabel())}</button></div><div id="oryonLiveBand" class="oryonLiveBand">${oryonCreateMiniCard()}</div></section>
-  <div class="homeTwoGrid section"><section class="homeImpactPanel"><h2>Trace viewer</h2><div id="viewerImpactBox">${viewerImpactCard()}</div></section><section class="homeFollowPanel"><div class="proTwitchHead"><div><h2 style="margin:0">Tes suivis Twitch</h2><p class="small" style="margin:6px 0 0">Bandeau, miniature, logo et statut live.</p></div><div>${state.session.twitch?`<button class="btn secondary" onclick="logoutTwitch()">Déconnecter Twitch</button>`:`<button class="btn" onclick="connectTwitch()">Connecter Twitch</button>`}</div></div><div id="followedWrapCompact"></div></section></div>`;
-  await loadHomeRecommendations();
-  await renderCompactFollowed();
-  closeMini?.();
+ const current=window.renderHome;
+ if(typeof current==='function'&&current!==renderHome)return current();
+ return undefined;
 }
 async function autoProposeLive(){
   state.moodFirstMood = state.moodFirstMood || 'discussion';
@@ -3137,9 +3124,9 @@ async function loadHomeRecommendations(){
   }catch(e){box.innerHTML='<div class="followEmpty">Impossible de charger la vitrine.</div>';}
 }
 async function renderHome(){
-  const el=$('#home'); if(!el) return;
-  el.innerHTML=`<section class="homeShowcase section"><div class="homeShowcaseInner finalReco"><div class="homeShowcaseCopy final"><div><span class="eyebrow"><i class="dot"></i>Vitrine Swapp</span><h1>Des lives à taille humaine.</h1><p>Un live vitrine entre 30 et 100 viewers, puis une découverte plus fine selon ton mood.</p><div class="homeMoodStrip">${AMBIANCES.slice(0,6).map(([id,label])=>`<button onclick="state.moodFirstMood='${esc(id)}';autoProposeLive()">${esc(label)}</button>`).join('')}</div></div><div class="homeShowcaseActions finalReco"><button class="btn" onclick="autoProposeLive()">Propose-moi un live</button><button class="btn streamBtn" onclick="setView('${streamTargetView?.()||'manager'}')">${esc(streamTargetLabel?.()||'Streamer sur Swapp')}</button><button class="btn secondary" onclick="setView('discover')">Choisir mon ambiance</button></div></div><div id="homeShowcaseLives" class="homeLiveCarousel finalReco"><div class="followEmpty">Chargement…</div></div></div></section><div class="homeTwoGrid section"><section>${viewerProfileCard()}</section><section class="homeFollowPanel"><div class="proTwitchHead"><div><h2 style="margin:0">Tes suivis Twitch en ligne</h2><p class="small" style="margin:6px 0 0">Uniquement les chaînes live, avec miniature et logo.</p></div><div>${state.session.twitch?`<button class="btn secondary" onclick="logoutTwitch()">Déconnecter Twitch</button>`:`<button class="btn" onclick="connectTwitch()">Connecter Twitch</button>`}</div></div><div id="followedWrapCompact"></div></section></div>`;
-  await loadHomeRecommendations(); await renderCompactFollowed(); closeMini?.();
+ const current=window.renderHome;
+ if(typeof current==='function'&&current!==renderHome)return current();
+ return undefined;
 }
 function setViewerThemeColor(color){
   const c=color||'#8b5cf6'; localStorage.setItem('oryon_viewer_accent',c); document.documentElement.style.setProperty('--viewer-accent',c); document.documentElement.style.setProperty('--brand',c); document.documentElement.style.setProperty('--accent',c); document.querySelectorAll('input[type=color]').forEach(i=>{if(i.value!==c)i.value=c});
@@ -3256,9 +3243,9 @@ async function loadHomeRecommendations(){
   }catch(e){box.innerHTML='<div class="followEmpty">Impossible de charger la vitrine.</div>';}
 }
 async function renderHome(){
-  const el=$('#home'); if(!el) return;
-  el.innerHTML=`<section class="homeShowcase fullBleed"><div class="homeFullInner"><div class="homeFullCopy"><span class="eyebrow"><i class="dot"></i>Vitrine Swapp</span><h1>Des lives à taille humaine.</h1><p>Un grand live vitrine entre 30 et 100 viewers, puis une découverte plus fine selon ton mood.</p><div class="homeMoodStrip full">${AMBIANCES.slice(0,6).map(([id,label])=>`<button onclick="state.moodFirstMood='${esc(id)}';autoProposeLive()">${esc(label)}</button>`).join('')}</div><div class="homeFullActions"><button class="btn" onclick="autoProposeLive()">Propose-moi un live</button><button class="btn streamBtn" onclick="setView('${streamTargetView?.()||'manager'}')">${esc(streamTargetLabel?.()||'Streamer sur Swapp')}</button><button class="btn secondary" onclick="setView('discover')">Choisir mon ambiance</button></div></div><div id="homeShowcaseLives" class="homeVitrineStage"><div class="followEmpty">Chargement…</div></div></div></section><div class="homePlatformGrid"><section>${viewerProfileCard()}</section><section class="homeFollowPanel"><div class="proTwitchHead"><div><h2 style="margin:0">Tes suivis Twitch en ligne</h2><p class="small" style="margin:6px 0 0">Uniquement les chaînes live, avec miniature et logo.</p></div><div>${state.session.twitch?`<button class="btn secondary" onclick="logoutTwitch()">Déconnecter Twitch</button>`:`<button class="btn" onclick="connectTwitch()">Connecter Twitch</button>`}</div></div><div id="followedWrapCompact"></div></section></div>`;
-  await loadHomeRecommendations(); await renderCompactFollowed(); closeMini?.();
+ const current=window.renderHome;
+ if(typeof current==='function'&&current!==renderHome)return current();
+ return undefined;
 }
 
 async function renderTeams(){
@@ -3391,11 +3378,9 @@ async function loadHomeRecommendations(){
   box.innerHTML=fallback.length?fallback.slice(0,8).map((x,i)=>hfLiveCardHtml(x,i)).join(''):hfEmptyLiveHtml();
 }
 async function renderHome(){
-  const el=$('#home'); if(!el) return;
-  el.innerHTML=`<div class="hfHome"><section class="hfHero"><div class="hfHeroCopy"><span class="eyebrow"><i class="dot"></i>Vitrine Swapp</span><h1>Des lives à taille humaine.</h1><p>Un live vitrine entre 30 et 100 viewers. Si le créneau est vide, Swapp élargit sans laisser l’accueil mort.</p><div class="hfMoodStrip">${AMBIANCES.slice(0,6).map(([id,label])=>`<button onclick="state.moodFirstMood='${esc(id)}';autoProposeLive()">${esc(label)}</button>`).join('')}</div><div class="hfActions"><button class="btn" onclick="autoProposeLive()">Propose-moi un live</button><button class="btn streamBtn" onclick="setView('${streamTargetView?.()||'manager'}')">${esc(streamTargetLabel?.()||'Streamer sur Swapp')}</button><button class="btn secondary" onclick="setView('discover')">Choisir mon ambiance</button></div></div><div id="homeShowcaseLives" class="hfLiveStage">${hfEmptyLiveHtml()}</div></section><div class="hfBelow"><section class="hfPanel">${viewerProfileCard?.()||'<h2>Profil Viewer</h2>'}</section><section class="hfPanel"><div class="proTwitchHead"><div><h2>Tes suivis Twitch en ligne</h2><p>Uniquement les chaînes live, en bandeau avec miniature.</p></div><div>${state.session.twitch?`<button class="btn secondary" onclick="logoutTwitch()">Déconnecter Twitch</button>`:`<button class="btn" onclick="connectTwitch()">Connecter Twitch</button>`}</div></div><div id="followedWrapCompact" class="hfRail"></div></section></div></div>`;
-  await loadHomeRecommendations();
-  await renderCompactFollowed?.();
-  closeMini?.();
+ const current=window.renderHome;
+ if(typeof current==='function'&&current!==renderHome)return current();
+ return undefined;
 }
 async function renderCompactFollowed(){
   const el=$('#followedWrapCompact'); if(!el) return;
@@ -3541,11 +3526,9 @@ async function loadHomeRecommendations(){
 }
 
 async function renderHome(){
-  const el=$('#home'); if(!el) return;
-  el.innerHTML=`<div class="owHomeFull"><section class="owHeroTheater"><div class="owHeroCopy"><span class="eyebrow"><i class="dot"></i>Vitrine Swapp</span><h1>Des lives à taille humaine.</h1><p>Un grand live vitrine entre 30 et 100 viewers. Swapp élargit si besoin, sans laisser l’accueil vide.</p><div class="owMoodStrip">${AMBIANCES.slice(0,6).map(([id,label])=>`<button onclick="state.moodFirstMood='${esc(id)}';autoProposeLive()">${esc(label)}</button>`).join('')}</div><div class="owActions"><button class="btn" onclick="autoProposeLive()">Propose-moi un live</button><button class="btn streamBtn" onclick="setView('${streamTargetView?.()||'manager'}')">${esc(streamTargetLabel?.()||'Streamer sur Swapp')}</button><button class="btn secondary" onclick="setView('discover')">Choisir mon ambiance</button></div></div><div id="homeShowcaseLives" class="owLiveTheater"></div></section><div class="owBelow"><section class="owPanel">${viewerProfileCard?.()||'<h2>Profil Viewer</h2>'}</section><section class="owPanel"><div class="proTwitchHead"><div><h2>Tes suivis Twitch en ligne</h2><p>Uniquement les chaînes live, en bandeau avec miniature.</p></div><div>${state.session.twitch?`<button class="btn secondary" onclick="logoutTwitch()">Déconnecter Twitch</button>`:`<button class="btn" onclick="connectTwitch()">Connecter Twitch</button>`}</div></div><div id="followedWrapCompact" class="hfRail"></div></section></div></div>`;
-  await loadHomeRecommendations();
-  await renderCompactFollowed?.();
-  closeMini?.();
+ const current=window.renderHome;
+ if(typeof current==='function'&&current!==renderHome)return current();
+ return undefined;
 }
 
 
@@ -3728,11 +3711,9 @@ async function loadHomeRecommendations(){
 }
 
 async function renderHome(){
-  const el=$('#home'); if(!el) return;
-  el.innerHTML=`<div class="owHomeFull"><section class="owHeroTheater userFixHero"><div class="owHeroCopy userFixCopy"><span class="eyebrow"><i class="dot"></i>Vitrine Swapp</span><h1>Des lives à taille humaine.</h1><div class="owMoodStrip">${AMBIANCES.slice(0,6).map(([id,label])=>`<button onclick="state.moodFirstMood='${esc(id)}';autoProposeLive()">${esc(label)}</button>`).join('')}</div><div class="owActions"><button class="btn" onclick="autoProposeLive()">Propose-moi un live</button><button class="btn streamBtn" onclick="setView('${streamTargetView?.()||'manager'}')">${esc(streamTargetLabel?.()||'Streamer sur Swapp')}</button><button class="btn secondary" onclick="setView('discover')">Choisir mon ambiance</button></div></div><div id="homeShowcaseLives" class="owLiveTheater userFix3"></div></section><div class="owBelow"><section class="owPanel">${viewerProfileCard?.()||'<h2>Profil Viewer</h2>'}</section><section class="owPanel"><div class="proTwitchHead"><div><h2>Tes suivis Twitch en ligne</h2><p>Fil de chaînes suivies en miniature.</p></div><div>${state.session.twitch?`<button class="btn secondary" onclick="logoutTwitch()">Déconnecter Twitch</button>`:`<button class="btn" onclick="connectTwitch()">Connecter Twitch</button>`}</div></div><div id="followedWrapCompact" class="hfFollowMiniRail"></div></section></div></div>`;
-  await loadHomeRecommendations();
-  await renderCompactFollowed();
-  closeMini?.();
+ const current=window.renderHome;
+ if(typeof current==='function'&&current!==renderHome)return current();
+ return undefined;
 }
 
 async function renderDiscover(){
@@ -3920,11 +3901,9 @@ async function loadHomeRecommendations(){
 }
 
 async function renderHome(){
-  const el=$('#home'); if(!el) return;
-  el.innerHTML=`<div class="owHomeFull"><section class="owHeroTheater userFixHero"><div class="owHeroCopy userFixCopy"><span class="eyebrow"><i class="dot"></i>Vitrine Swapp</span><h1>Des lives à taille humaine.</h1><div class="owMoodStrip">${AMBIANCES.slice(0,6).map(([id,label])=>`<button onclick="state.moodFirstMood='${esc(id)}';autoProposeLive()">${esc(label)}</button>`).join('')}</div><div class="owActions"><button class="btn" onclick="autoProposeLive()">Propose-moi un live</button><button class="btn streamBtn" onclick="setView('${streamTargetView?.()||'manager'}')">${esc(streamTargetLabel?.()||'Streamer sur Swapp')}</button><button class="btn secondary" onclick="setView('discover')">Choisir mon ambiance</button></div></div><div id="homeShowcaseLives" class="owLiveTheater userFix3"></div></section><div class="owBelow"><section class="owPanel">${viewerProfileCard?.()||'<h2>Profil Viewer</h2>'}</section><section class="owPanel homeDiscoveryPanel"><h2>Découverte, pas suivis.</h2><p>L’accueil sert à découvrir de nouveaux lives Swapp ou Twitch. Tes suivis Twitch restent dans Accès Twitch, pas dans la vitrine.</p><div class="homeDiscoveryGrid"><div class="homeDiscoveryMini"><b>Mood</b><span>Choisis une ambiance et Swapp cherche pour toi.</span></div><div class="homeDiscoveryMini"><b>Swipe</b><span>J’aime / pas ouf remplit ton profil viewer.</span></div><div class="homeDiscoveryMini"><b>Streamer</b><span>Le bouton streamer garde Swapp visible comme plateforme native.</span></div></div></section></div></div>`;
-  await loadHomeRecommendations();
-  applyViewerThemeColor?.();
-  closeMini?.();
+ const current=window.renderHome;
+ if(typeof current==='function'&&current!==renderHome)return current();
+ return undefined;
 }
 
 async function hfFetchLivePool({mood='petite-commu', q='', min=0, max=200, lang='fr'}={}){
@@ -4045,11 +4024,9 @@ async function loadHomeRecommendations(){
 }
 
 async function renderHome(){
-  const el=$('#home'); if(!el) return;
-  el.innerHTML=`<div class="owHomeFull homeClean"><section class="owHeroTheater homeCleanHero"><div class="owHeroCopy homeCleanCopy"><span class="eyebrow"><i class="dot"></i>Vitrine Swapp</span><h1>Des lives à taille humaine.</h1><div class="owMoodStrip">${AMBIANCES.slice(0,6).map(([id,label])=>`<button onclick="state.moodFirstMood='${esc(id)}';autoProposeLive()">${esc(label)}</button>`).join('')}</div><div class="owActions"><button class="btn" onclick="autoProposeLive()">Propose-moi un live</button><button class="btn streamBtn" onclick="setView('${streamTargetView?.()||'manager'}')">${esc(streamTargetLabel?.()||'Streamer sur Swapp')}</button><button class="btn secondary" onclick="setView('discover')">Choisir mon ambiance</button></div></div><div id="homeShowcaseLives" class="owLiveTheater homeCleanLives"></div></section><div class="homeOnlyMain"><section class="homeStreamerStrip"><div><h2>Streamer sur Swapp</h2><p>La plateforme met aussi en avant les créateurs Swapp natifs. Lance ton live depuis le gestionnaire.</p></div><button class="btn streamBtn" onclick="setView('${streamTargetView?.()||'manager'}')">${esc(streamTargetLabel?.()||'Streamer sur Swapp')}</button></section></div></div>`;
-  await loadHomeRecommendations();
-  applyViewerThemeColor?.();
-  closeMini?.();
+ const current=window.renderHome;
+ if(typeof current==='function'&&current!==renderHome)return current();
+ return undefined;
 }
 
 async function hfFetchLivePool({mood='petite-commu', q='', min=0, max=200, lang='fr'}={}){
