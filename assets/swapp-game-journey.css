@@ -515,6 +515,21 @@
 /* SWAPP HOME NO-FLASH V21 — reserve art from first render, no legacy slogan.
  * The headline was previously visible while /api/actus loaded. Pending
  * matches the published image footprint, and failure restores the live grid. */
+#home.view.active .swappHome1014:has(.swapp-hero-pending){
+ grid-template-columns:minmax(0,1fr)!important;
+ min-width:0!important;
+ overflow:visible!important;
+}
+#home.view.active .homeHero1014:has(.swapp-hero-pending){
+ display:block!important;
+ grid-template-columns:minmax(0,1fr)!important;
+ min-width:0!important;
+ width:100%!important;
+ overflow:visible!important;
+ border:0!important;
+ border-radius:0!important;
+ box-shadow:none!important;
+}
 #home .swappHome1014 .homeHeroCopy1014{
  display:none!important;
 }
