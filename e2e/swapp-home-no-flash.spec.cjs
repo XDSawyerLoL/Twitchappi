@@ -9,8 +9,10 @@ for(const [name,width,height,mobile] of [['desktop',1440,900,false],['iPhone',39
  test.describe('SWAPP V21 first paint '+name,()=>{
   test.use({browserName:'chromium',viewport:{width,height},isMobile:mobile,hasTouch:mobile});
   test('legacy slogan never flashes and a slow article API falls back to lives',async({page},info)=>{
+   let allowNews;
+   const newsGate=new Promise(resolve=>{allowNews=resolve});
    await page.route('**/api/actus',async route=>{
-    await new Promise(resolve=>setTimeout(resolve,2000));
+    await newsGate;
     await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({articles:[]})});
    });
    await page.goto(ORIGIN+'/',{waitUntil:'domcontentloaded'});
@@ -31,6 +33,7 @@ for(const [name,width,height,mobile] of [['desktop',1440,900,false],['iPhone',39
    expect(geometry.border).toBe('0px');
    expect(geometry.radius).toBe('0px');
    await page.screenshot({path:info.outputPath('pending-hero-'+name+'.png')});
+   allowNews();
    await expect(hero).toHaveClass(/swapp-hero-unavailable/,{timeout:20000});
    await expect(page.locator('#home .homeLiveSection1014')).toBeVisible();
    await expect(page.getByText('Les bons lives se trouvent ici.')).toHaveCount(0);
