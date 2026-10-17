@@ -91,3 +91,132 @@
 .swapp-store .swapp-store-footer{border-radius:0}
 @media(max-width:1100px){.swapp-editorial-top-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:690px){.swapp-editorial-top-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.swapp-editorial-game-art{aspect-ratio:460/260!important;max-height:none}.swapp-editorial-game-foot{flex-direction:column;align-items:flex-start}.swapp-editorial-game h3{font-size:14px}.swapp-editorial-game p{font-size:11px}.swapp-editorial-top-feature{grid-template-columns:1fr}.swapp-editorial-top-feature-art{min-height:180px}}
+
+
+/* SWAPP GAME STORE V20 — one purpose, ten games, no second shop.
+ * Never render an invented product, checkout, third retail department or ad. */
+.swapp-store-steam-only{
+  box-sizing:border-box;
+  width:min(1530px,calc(100% - clamp(28px,5vw,96px)))!important;
+  max-width:1530px!important;
+  padding:clamp(27px,4vw,59px) 0 calc(88px + env(safe-area-inset-bottom,0px))!important;
+  margin:0 auto!important;
+  background:none!important;
+}
+.swapp-store-steam-only .swapp-editorial-top{
+  width:100%;max-width:none;margin:0!important;padding:0!important;
+}
+.swapp-store-steam-only .swapp-editorial-top-masthead{
+  align-items:end;gap:clamp(20px,3vw,48px);
+  margin-bottom:clamp(24px,3vw,42px)!important;
+  padding-bottom:clamp(23px,3vw,36px)!important;
+  border-bottom:1px solid rgba(193,214,234,.19)!important;
+}
+.swapp-store-steam-only .swapp-editorial-top-masthead small{
+  display:block;font-size:12px;font-weight:850;
+  letter-spacing:.17em;color:var(--swapp-page-accent,var(--swapp-side-light,#82ead9));
+  text-transform:uppercase;
+}
+.swapp-store-steam-only .swapp-editorial-top-masthead h1{
+  font:950 clamp(41px,6vw,94px)/.97 Inter,"Segoe UI",system-ui,sans-serif;
+  letter-spacing:-.075em;text-wrap:balance;
+  margin:clamp(12px,1.5vw,19px) 0 clamp(14px,1.8vw,23px);
+  color:#f6faff;
+}
+.swapp-store-steam-only .swapp-editorial-top-masthead h1 em{
+  font-style:normal;
+  color:var(--swapp-page-accent,var(--swapp-side-light,#80e6d1));
+}
+.swapp-store-steam-only .swapp-editorial-top-masthead p{
+  font-size:clamp(14px,1.2vw,17px);
+  line-height:1.65;max-width:72ch;
+  color:#c2cddd;
+}
+.swapp-store-steam-only .swapp-editorial-top-masthead>a{
+  display:inline-flex;min-height:44px;align-items:center;
+  flex:none;font-size:13px;line-height:1.4;font-weight:750;
+  color:#d6efe9;text-decoration:none;
+  border:0;border-bottom:1px solid currentColor;
+  border-radius:0;padding:8px 0;
+}
+.swapp-store-steam-only .swapp-editorial-top-grid{
+  display:grid;grid-template-columns:repeat(5,minmax(0,1fr));
+  gap:clamp(14px,1.5vw,23px);
+}
+.swapp-store-steam-only .swapp-editorial-game{
+  min-width:0;border-radius:0!important;
+  border:0!important;border-bottom:1px solid rgba(185,212,232,.18)!important;
+  background:transparent!important;box-shadow:none!important;
+}
+.swapp-store-steam-only .swapp-editorial-game-art{
+  aspect-ratio:460/215!important;max-height:none!important;
+  background:#162232;
+}
+.swapp-store-steam-only .swapp-editorial-game-rank{
+  padding:7px 10px;
+  background:rgba(9,18,30,.91);
+}
+.swapp-store-steam-only .swapp-editorial-game-body{
+  padding:clamp(11px,1.1vw,16px) 0 17px;
+  gap:8px;
+}
+.swapp-store-steam-only .swapp-editorial-game h3{
+  font-size:clamp(15px,1.23vw,19px);line-height:1.22;
+  letter-spacing:-.03em;text-wrap:pretty;
+}
+.swapp-store-steam-only .swapp-editorial-game p{
+  color:#b8c9d8;font-size:12px;line-height:1.55;
+}
+.swapp-store-steam-only .swapp-editorial-game-foot a{
+  color:var(--swapp-page-accent,var(--swapp-side-light,#90e9d5));
+  border-bottom:1px solid currentColor;
+  min-height:35px;
+}
+.swapp-store-steam-only .swapp-editorial-top-disclaimer{
+  margin-top:clamp(24px,3vw,42px);
+  padding-top:15px;border-top:1px solid rgba(185,212,232,.13);
+  max-width:105ch;color:#a3b7c7;line-height:1.7;font-size:12px;
+}
+.swapp-store-steam-only :is(a,button):focus-visible{
+  outline:2px solid var(--swapp-page-accent,var(--swapp-side-light,#90e9d5));
+  outline-offset:3px;
+}
+@media(max-width:1150px){
+  .swapp-store-steam-only .swapp-editorial-top-grid{
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  }
+}
+@media(max-width:740px){
+  .swapp-store-steam-only{
+    width:calc(100% - 28px)!important;
+    padding-top:clamp(22px,5vw,37px)!important;
+  }
+  .swapp-store-steam-only .swapp-editorial-top-masthead{
+    align-items:flex-start;flex-direction:column;gap:13px;
+  }
+  .swapp-store-steam-only .swapp-editorial-top-masthead h1{
+    font-size:clamp(38px,9.2vw,67px);
+  }
+  .swapp-store-steam-only .swapp-editorial-top-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:12px!important;
+  }
+  .swapp-store-steam-only .swapp-editorial-game-foot{align-items:flex-start}
+}
+@media(max-width:380px){
+  .swapp-store-steam-only .swapp-editorial-top-grid{
+    grid-template-columns:minmax(0,1fr)!important;
+  }
+  .swapp-store-steam-only .swapp-editorial-game-art{
+    aspect-ratio:460/215!important;
+  }
+  .swapp-store-steam-only .swapp-editorial-top-masthead h1{
+    font-size:39px;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  .swapp-store-steam-only .swapp-editorial-game,
+  .swapp-store-steam-only .swapp-editorial-game img{
+    transition:none!important;transform:none!important;
+  }
+}
