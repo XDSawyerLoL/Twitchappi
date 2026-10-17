@@ -656,7 +656,7 @@ body.oryonDiscoverV4 #discover .v4Meta{
 }
 #home .swapp-home-editorial-top{
  padding-top:clamp(6px,1vw,14px)!important;
- border-top:1px solid var(--swapp-v15-border);
+ border-top:0!important;
 }
 #home .swapp-home-editorial-top h2{
  text-wrap:balance;letter-spacing:-.055em!important;
@@ -686,7 +686,7 @@ body.oryonDiscoverV4 #discover .v4Meta{
  color:var(--swapp-v15-accent)!important;font-weight:790;
 }
 #home .homeLiveSection1014 .homeLiveHead1014{
- border-top:1px solid var(--swapp-v15-border);
+ border-top:0!important;
  padding-top:clamp(16px,2vw,28px);
 }
 #home .homeLiveCard1014{
