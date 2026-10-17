@@ -130,7 +130,7 @@ async function verify(){
  const newsScript=await request(origin,'/assets/swapp-home-news.js');
  check(!newsScript.body.includes('signal:AbortSignal.timeout(')&&
    newsScript.body.includes('new AbortController()')&&
-   home.body.includes('swapp-home-news.js?v=20261017-journey-v17'),
+   home.body.includes('swapp-home-news.js?v=20261017-edgeless-v19'),
    'Homepage editorial script is stale or incompatible with older Safari');
  check(newsScript.body.includes('swapp-home-feature-bridge')&&
   newsScript.body.includes("action('Lire l’article'")&&
@@ -183,12 +183,17 @@ async function verify(){
  const presentation='/assets/swapp-presentation-polish.css?v=20261017-visual-audit-v16';
  check(home.body.includes(presentation),'Home uses an outdated presentation stylesheet');
  check(news.body.includes(presentation),'Actualité uses an outdated presentation stylesheet');
- const journey='/assets/swapp-game-journey.css?v=20261017-fullbleed-v18';
+ const journey='/assets/swapp-game-journey.css?v=20261017-edgeless-v19';
  check(home.body.includes(journey)&&news.body.includes(journey),
   'V17 cinematic journey is missing from homepage or native articles');
  const journeyStyles=await request(origin,'/assets/swapp-game-journey.css');
  check(journeyStyles.body.includes('SWAPP GAME JOURNEY V17')&&
   journeyStyles.body.includes('SWAPP FULL-BLEED HOME V18')&&
+  journeyStyles.body.includes('SWAPP EDGELESS HERO V19')&&
+  journeyStyles.body.includes('grid-template-columns:minmax(0,1fr)!important')&&
+  journeyStyles.body.includes('transform:translateX(-50%)!important')&&
+  journeyStyles.body.includes('-webkit-mask-image:linear-gradient(to bottom')&&
+  journeyStyles.body.includes('.swapp-home-creator-name')&&
   journeyStyles.body.includes('width:100dvw!important')&&
   journeyStyles.body.includes('margin-top:-197px!important')&&
   journeyStyles.body.includes('.swapp-home-feature-bridge')&&
