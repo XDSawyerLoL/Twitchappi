@@ -887,12 +887,57 @@ body.oryonDiscoverV4 #discover .v4Meta{
  .swapp-editorial-route .swapp-store .swapp-store-campaign-copy>strong{
   font-size:clamp(27px,7.6vw,39px);
  }
+ /* iPhone: three photographed departments need legible editorial labels,
+    not three narrow 100px columns with broken titles. */
+ .swapp-editorial-route .swapp-store .swapp-store-departments-grid{
+  grid-template-columns:minmax(0,1fr)!important;
+  gap:11px!important;
+ }
  .swapp-editorial-route .swapp-store .swapp-store-department{
-  min-height:clamp(145px,36vw,205px);
+  min-height:clamp(142px,37vw,180px);
+ }
+ .swapp-editorial-route .swapp-store .swapp-store-department-content{
+  left:clamp(14px,4vw,20px);right:clamp(14px,4vw,20px);
+  bottom:clamp(12px,3.5vw,17px);gap:6px;
+ }
+ .swapp-editorial-route .swapp-store .swapp-store-department-content strong{
+  font-size:clamp(21px,6vw,27px);line-height:1.13;overflow-wrap:normal;
+ }
+ .swapp-editorial-route .swapp-store .swapp-store-department-content>span{
+  font-size:12px;line-height:1.45;
  }
  .swapp-social-viewport .pulse-post-main>p{
   font-size:15px!important;line-height:1.6!important;
  }
+}
+/* Portrait tablets are not small phones: avoid a 780px-wide solitary card. */
+@media(min-width:701px) and (max-width:920px) and (orientation:portrait){
+ #actus .swapp-actus-grid,
+ #actus .swapp-actus-recommend-grid,
+ #actus .swapp-discover-live-grid,
+ #actus .swapp-reader-live-grid{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:clamp(14px,2vw,20px)!important;
+ }
+}
+@media(max-width:390px){
+ /* Avoid truncated search and sort controls on the smallest iPhones. */
+ .swapp-editorial-route .swapp-store .swapp-store-tools{
+  grid-template-columns:minmax(0,1fr)!important;
+  gap:8px!important;
+ }
+ .swapp-editorial-route .swapp-store .swapp-store-tools :is(input,select){
+  min-width:0;width:100%;max-width:100%;
+ }
+}
+/* Avoid horizontal overflow from long real merchant names and content titles. */
+.swapp-editorial-route .swapp-store :is(.swapp-store-card,.swapp-store-card-body,.swapp-store-card-bottom){
+ min-width:0;
+}
+.swapp-editorial-route .swapp-store .swapp-store-card h3,
+.swapp-editorial-route .swapp-store .swapp-store-card-description,
+#actus .swapp-actus-info h2{
+ overflow-wrap:anywhere;
 }
 @media(prefers-reduced-motion:reduce){
  #home .swapp-home-story,
