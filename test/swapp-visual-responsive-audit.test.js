@@ -15,15 +15,18 @@ test('V16 last-loaded visual layer is shared by SPA and native SWAPP pages',()=>
  }
 });
 
-test('iPhone store departments keep their full text instead of three 100px cards',()=>{
- const shop=read('assets/swapp-shop.css');
- const css=read('assets/swapp-presentation-polish.css');
- assert.match(shop,/\.swapp-store-departments-grid\{display:grid;grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
- const fix=css.slice(css.indexOf('iPhone: three photographed departments'));
- assert.ok(fix.length>0);
- assert.match(fix,/\.swapp-store-departments-grid\{[\s\S]*?grid-template-columns:minmax\(0,1fr\)!important/);
- assert.match(fix,/\.swapp-store-department-content strong\{[\s\S]*?font-size:clamp\(21px,6vw,27px\)/);
- assert.match(fix,/\.swapp-store-department-content>span\{[\s\S]*?font-size:12px/);
+test('Steam-only storefront uses two real game columns on mobile, not product departments',()=>{
+ const css=read('assets/swapp-editorial-top.css');
+ const segment=css.slice(css.indexOf('SWAPP GAME STORE V20'));
+ assert.ok(segment.length>3500);
+ assert.match(segment,/\.swapp-store-steam-only/);
+ assert.match(segment,/@media\(max-width:740px\)/);
+ assert.match(segment,/grid-template-columns:repeat\(2,minmax\(0,1fr\)\)!important/);
+ assert.match(segment,/@media\(max-width:380px\)/);
+ assert.match(segment,/grid-template-columns:minmax\(0,1fr\)!important/);
+ const shop=read('modules/swapp-hubs.js');
+ const renderer=shop.slice(shop.indexOf('function shop(_products='),shop.indexOf('function shopProduct('));
+ assert.doesNotMatch(renderer,/swapp-store-departments|swapp-store-products|swapp-store-campaign/);
 });
 
 test('iPhone SE navigation displays five destinations and the full community label',()=>{
