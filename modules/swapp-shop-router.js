@@ -36,10 +36,11 @@ function createShopRouter({express,store,requireEditor,shop,shopProduct,shopAdmi
   const status=error instanceof CatalogError?error.status:503;
   return res.status(status).json({error:status===503?'Stockage boutique indisponible. Rien n’a été enregistré.':error.message});
  };
- router.get('/boutique',async(_req,res)=>{
-  const catalog=await store.load();
-  res.set('Cache-Control','no-store');
-  return res.type('html').send(shop(catalog.products,{source:catalog.source}));
+ router.get('/boutique',(_req,res)=>{
+  // The public Game Store is a dated ten-game editorial snapshot.
+  // Do not load Firestore just to serve a page that shows no saved products.
+  res.set('Cache-Control','public, max-age=180');
+  return res.type('html').send(shop());
  });
  router.get('/boutique/produit/:id',async(req,res)=>{
   const catalog=await store.load();
