@@ -70,37 +70,27 @@ async function verify(){
  const stylesheet=await request(origin,'/assets/swapp-social-native/social-swapp.css');
  check(stylesheet.body.includes('SOCIAL sticky stack v2'),'SOCIAL CSS is stale at the public asset path');
  process.stdout.write('PASS SOCIAL public stylesheet\n');
- // Public retail journey: commercial product navigation with no fake checkout.
+ // Public Game Store intentionally contains only the dated Steam France top ten.
+ // Protected administration and saved product records must remain untouched.
  const store=await request(origin,'/boutique');
- for(const marker of ['swapp-store-topline','swapp-store-departments-grid',
-   'id="swapp-store-products"','id="swapp-store-search"','id="swapp-store-sort"',
-   'data-shop-filter="games"','data-shop-filter="caps"','data-shop-filter="pads"'])
-  check(store.body.includes(marker),'Storefront missing shopping control: '+marker);
- check(store.body.includes('data-shop-product')&&store.body.includes('swapp-store-catalogue')&&
-  store.body.includes('swapp-store-editorial-picks')&&
-  store.body.indexOf('id="swapp-store-products"')<store.body.indexOf('swapp-store-editorial-picks'),
-  'Managed products are not displayed before the optional Steam games list');
- check(store.body.includes('swapp-shop.css?v=20261017-stability-store-v14')&&
-   store.body.includes('swapp-storefront.js?v=20261016-store-v5'),
-   'Storefront still serves old editor-style CSS or missing interactive client');
- const shopStyle=await request(origin,'/assets/swapp-shop.css');
- check(shopStyle.body.includes('.swapp-store-products{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))')&&
-   shopStyle.body.includes('.swapp-store-detail-grid{display:grid;grid-template-columns:'),
-   'Retail grid and product gallery styles have not deployed');
- const storefront=await request(origin,'/assets/swapp-storefront.js');
- check(storefront.body.includes("data-shop-category-target")&&
-  storefront.body.includes("data-shop-image")&&
-  storefront.body.includes("shop-result-count"),
-  'Storefront search, filters or product gallery are stale');
- const firstProduct=(store.body.match(/href="\/boutique\/produit\/([a-z0-9-]+)"/)||[])[1];
- if(firstProduct){
-  const detail=await request(origin,'/boutique/produit/'+firstProduct);
-  check(detail.body.includes('swapp-store-detail-grid')&&
-   detail.body.includes('swapp-store-detail-gallery')&&
-   detail.body.includes('swapp-store-detail-purchase'),
-   'Public store product detail route is absent or outdated');
- }
- process.stdout.write('PASS SWAPP storefront catalogue, filters and product detail route\n');
+ for(const marker of ['SWAPP / GAME STORE · FRANCE','LES 10 JEUX',
+  'DU MOMENT.','16 octobre 2026','swapp-editorial-top-grid',
+  'swapp-store-steam-only'])
+  check(store.body.includes(marker),'Game Store missing headline or ranking: '+marker);
+ check((store.body.match(/class="swapp-editorial-game" aria-label="Rang /g)||[]).length===10,
+   'Game Store must contain exactly ten Steam games');
+ for(const forbidden of ['swapp-store-departments-grid','id="swapp-store-products"',
+   'id="swapp-store-search"','swapp-store-campaign',
+   'swapp-store-footer','La Boutique prend forme','Casquettes','Tapis de souris'])
+  check(!store.body.includes(forbidden),'Old retail product section reappeared: '+forbidden);
+ check(store.body.includes('swapp-editorial-top.css?v=20261017-top10-only-v20')&&
+  !store.body.includes('swapp-storefront.js'),
+  'Store must serve dedicated ten-game stylesheet with no unused retail client');
+ const steamStyle=await request(origin,'/assets/swapp-editorial-top.css');
+ check(steamStyle.body.includes('SWAPP GAME STORE V20')&&
+   steamStyle.body.includes('.swapp-store-steam-only .swapp-editorial-top-grid'),
+   'New Steam-only layout stylesheet has not deployed');
+ process.stdout.write('PASS SWAPP Boutique ten Steam games only; catalog drafts remain private to editor\n');
  // Home markup is also inspected by the Boutique editor check below.
  const home=await request(origin,'/');
  const shopAdminScript=await request(origin,'/assets/swapp-shop-admin.js');
