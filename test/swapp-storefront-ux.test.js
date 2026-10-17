@@ -95,11 +95,14 @@ test('gallery thumbnails update the actual main picture, with HTTPS validation',
  f.images[0].click();
  assert.equal(f.main.src,'https://cdn.example/two.jpg');
 });
-test('no third-party calls, checkout or user tracking are introduced',()=>{
+test('legacy gallery editor stays safe but its retail client is not loaded by Steam-only public store',()=>{
  assert.doesNotMatch(script,/fetch\(|localStorage|sessionStorage|sendBeacon|gtag\(/i);
- const layout=fs.readFileSync(path.join(__dirname,'../modules/swapp-hubs.js'),'utf8');
- assert.match(layout,/id="swapp-store-products"/);
- assert.match(layout,/swapp-storefront\.js\?v=20261016-store-v5/);
- assert.match(layout,/shopProduct\(product,products=demoProducts\)/);
- assert.doesNotMatch(layout,/Ajouter au panier|Paiement sécurisé|Fausse disponibilité/);
+ const source=fs.readFileSync(path.join(__dirname,'../modules/swapp-hubs.js'),'utf8');
+ assert.match(source,/function shopProduct\(product,products=demoProducts\)/);
+ assert.match(source,/SWAPP \/ GAME STORE · FRANCE/);
+ const page=source.slice(source.indexOf('function shop(_products='),source.indexOf('function shopProduct('));
+ assert.doesNotMatch(page,/swapp-storefront\.js|swapp-store-products|swapp-store-departments/);
+ assert.match(page,/swapp-editorial-top\.css\?v=20261017-top10-only-v20/);
+ assert.doesNotMatch(source,/Ajouter au panier|Paiement sécurisé|Fausse disponibilité/);
+
 });
