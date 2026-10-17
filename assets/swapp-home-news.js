@@ -146,6 +146,9 @@
    hero.classList.remove('swapp-hero-pending','swapp-hero-unavailable');
    hero.setAttribute('aria-busy','false');
    void showVerifiedCreators(feature,bridge);
+   // Play only this published article's trailer after its poster is ready.
+   // The image remains intact if the provider blocks or delays autoplay.
+   window.SwappHomeMotion?.attach?.(tile,feature);
    return feature.slug;
  }
  function mount(){
