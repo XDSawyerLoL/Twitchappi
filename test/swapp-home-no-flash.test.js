@@ -62,8 +62,8 @@ test('pending area reserves the final image footprint with no popup, border or r
 
 test('HTML shell and smoke test require the same fresh V21 script and CSS files',()=>{
  const html=read('index.html');
- const cssVersion='swapp-game-journey.css?v=20261017-home-no-flash-v21';
- const newsVersion='swapp-home-news.js?v=20261017-home-no-flash-v21';
+ const cssVersion='swapp-game-journey.css?v=20261018-home-video-v22';
+ const newsVersion='swapp-home-news.js?v=20261018-home-video-v22';
  const scriptVersion='index_script.js?v=20261017-home-no-flash-v21';
  for(const x of [cssVersion,newsVersion,scriptVersion])assert.ok(html.includes(x),x);
  const shell=read('modules/swapp-news/site-shell.js');
