@@ -351,6 +351,10 @@
 }
 
 
+/* SWAPP EDGELESS HERO V19 — robust viewport centering, real transparency.
+ * Hero is nested inside .app and a 1460px .swappHome1014. A viewport-wide
+ * grid item MUST be positioned relative to viewport center, not max width.
+ * Preserve story links, source artwork and personalised page background. */
 /* Keep each ancestor grid track shrinkable. Without minmax(0,1fr),
  * the 100dvw image expands the grid track and defeats viewport centering. */
 #home.view.active .swappHome1014:has(.swapp-feature-ready){
@@ -364,10 +368,7 @@
  width:100%!important;
  max-width:100%!important;
 }
-/* SWAPP EDGELESS HERO V19 — robust viewport centering, real transparency.
- * Hero is nested inside .app and a 1460px .swappHome1014. A viewport-wide
- * grid item MUST be positioned relative to viewport center, not max width.
- * Preserve story links, source artwork and personalised page background. */
+
 #home.view.active:has(.homeHeroInner1014.swapp-feature-ready),
 #home.view.active .swappHome1014:has(.swapp-feature-ready),
 #home.view.active .homeHero1014:has(.swapp-feature-ready),
