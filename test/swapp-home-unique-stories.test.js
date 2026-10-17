@@ -64,7 +64,7 @@ test('large hero and article grid contain five unique stories, without duplicate
  assert.equal(view.main.children[1],view.live,'live discovery follows the featured article');
  assert.equal(view.main.children[2],view.shelf,'supporting news follows live discovery');
  assert.equal(view.calls.filter(x=>x==='/api/actus').length,1);
- assert.equal(view.calls.some(x=>x.includes('game-lives')),false);
+ assert.equal(view.calls.some(x=>x.includes('game-lives')),true,'featured game checked for real creators');
  assert.ok(view.shelf.querySelector('.swapp-home-video-feature'),'one playable trailer appears alongside the editorial title');
 });
 test('a missing image picks the next valid lead, or falls back to full story grid',async()=>{
@@ -109,6 +109,6 @@ test('trailer is full-width cinematic 16:9 and responsive rather than 290px wide
  assert.match(css,/@media\(max-width:980px\)/);
  assert.match(css,/@media\(max-width:600px\)/);
  assert.doesNotMatch(css,/width:clamp\(190px,19vw,290px\)/);
- assert.match(html,/swapp-home-news\.js\?v=20261017-stability-store-v14/);
+ assert.match(html,/swapp-home-news\.js\?v=20261017-journey-v17/);
  assert.match(html,/swapp-video-gallery\.css\?v=20261016-cinematic-trailer-5/);
 });
