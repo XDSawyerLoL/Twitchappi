@@ -28,7 +28,10 @@ test('shared visual finishing layer only styles existing SWAPP screens',()=>{
  assert.match(css,/prefers-reduced-motion:reduce/);
  assert.match(css,/focus-visible/);
  assert.match(css,/env\(safe-area-inset-bottom\)|max-width:650px/);
- assert.doesNotMatch(css,/display:none!important|@import|url\(https?:|@keyframes/i);
+ // Older mobile navigation must hide its closed Plus popover; V15 itself must not hide content.
+ const v15=css.slice(css.indexOf('SWAPP EDITORIAL FINISH V15'));
+ assert.ok(v15.length>5000,'missing V15 finishing layer');
+ assert.doesNotMatch(v15,/display:none!important|@import|url\(https?:|@keyframes/i);
  let braces=0;
  for(const c of css.replace(/\/\*[\s\S]*?\*\//g,'')){
   if(c==='{')braces++;
