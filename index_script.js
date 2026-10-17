@@ -11092,17 +11092,8 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
     const streamLabel = (typeof streamTargetLabel === 'function') ? streamTargetLabel() : (state?.session?.local ? 'Lancer mon live' : 'Créer ma chaîne');
     el.innerHTML = `<main class="swappHome1014">
       <section class="homeHero1014">
-        <div class="homeHeroInner1014">
-          <div class="homeHeroCopy1014">
-            <span class="eyebrow"><i class="dot"></i><span id="homeHeroStatus1014">Accueil live</span></span>
-            <h1>Les bons lives se trouvent ici.</h1>
-            <p>Des créateurs à découvrir en direct. SWAPP met ses propres lives en avant et te permet aussi d'explorer ceux de Twitch.</p>
-            <div class="homeActions1014">
-              <button class="btn" type="button" onclick="setView('discover')">Trouver un live</button>
-              <button class="btn secondary" type="button" onclick="setView('${safe(streamView)}')">${safe(streamLabel)}</button>
-            </div>
-          </div>
-
+        <div class="homeHeroInner1014 swapp-hero-pending" aria-busy="true">
+          <div class="swapp-home-hero-placeholder" aria-hidden="true"></div>
         </div>
       </section>
       <section class="homeLiveSection1014">
