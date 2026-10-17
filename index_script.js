@@ -11028,7 +11028,6 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
     if(!el) return;
     // Mount the home once. Repeated route/load events must not destroy video.
     if(el.querySelector?.(':scope > .swappHome1014')){
-      void loadLives(false);
       return;
     }
     const streamView = (typeof streamTargetView === 'function') ? streamTargetView() : (state?.session?.local ? 'manager' : 'settings');
