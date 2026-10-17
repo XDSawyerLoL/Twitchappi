@@ -62,3 +62,20 @@ test('V16 preserves motion safety, footer space, cache busting and zero extra ro
  for(const c of finish.replace(/\/\*[\s\S]*?\*\//g,'')){if(c==='{')braces++;if(c==='}')braces--;assert.ok(braces>=0)}
  assert.equal(braces,0);
 });
+
+test('legacy article fallback never reintroduces a second ACTUS navigation or clipped iPhone menu',()=>{
+ const {renderArticle}=require('../modules/swapp-news/article-core');
+ const html=renderArticle({
+  slug:'article-test-navigation',title:'SWAPP vérifie sa navigation',
+  summary:'Le parcours reste sur SWAPP',body:'Contenu de vérification éditoriale.',
+  category:'Actualité',game:'Elden Ring',author:'Rédaction SWAPP',sources:[]
+ });
+ assert.match(html,/class="swapp-editorial-route swapp-legacy-news-route"/);
+ assert.match(html,/viewport-fit=cover/);
+ assert.match(html,/aria-label="Navigation principale"/);
+ assert.match(html,/id="mobileNav" class="mobileNav"/);
+ assert.match(html,/href="\/communaute"/);
+ assert.match(html,/href="\/boutique"/);
+ assert.match(html,/swapp-presentation-polish\.css\?v=20261017-visual-audit-v16/);
+ assert.doesNotMatch(html,/>ACTUS × LIVE<\/a>/);
+});
