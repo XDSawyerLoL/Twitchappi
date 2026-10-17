@@ -13,7 +13,7 @@ class Element {
   this.children=[];this.parentNode=null;this.attributes={};
   this.classList={
    add:name=>{this.className=[...new Set([...this.className.split(' ').filter(Boolean),name])].join(' ')},
-   remove:name=>{this.className=this.className.split(' ').filter(s=>s!==name).join(' ')},
+   remove:(...names)=>{this.className=this.className.split(' ').filter(s=>!names.includes(s)).join(' ')},
    contains:name=>this.className.split(' ').includes(name)
   };
  }
@@ -73,6 +73,8 @@ test('a missing image picks the next valid lead, or falls back to full story gri
  assert.equal(new Set([next.feature.href,...next.gridLinks()]).size,5);
  const noImages=await render([0,1,2,3,4].map(i=>make(i,false)));
  assert.equal(noImages.feature,null);
+ assert.ok(noImages.hero.classList.contains('swapp-hero-unavailable'));
+ assert.equal(noImages.hero.attributes['aria-busy'],'false');
  assert.equal(noImages.gridLinks().length,5);
 });
 test('failed lead image restores its article to the grid instead of hiding it',async()=>{
@@ -81,6 +83,8 @@ test('failed lead image restores its article to the grid instead of hiding it',a
  assert.equal(afterFailure.length,5);
  assert.equal(new Set(afterFailure).size,5);
  assert.equal(view.hero.querySelector('.swapp-home-hero-feature'),null);
+ assert.ok(view.hero.classList.contains('swapp-hero-unavailable'));
+ assert.equal(view.hero.attributes['aria-busy'],'false');
 });
 
 
@@ -109,6 +113,6 @@ test('trailer is full-width cinematic 16:9 and responsive rather than 290px wide
  assert.match(css,/@media\(max-width:980px\)/);
  assert.match(css,/@media\(max-width:600px\)/);
  assert.doesNotMatch(css,/width:clamp\(190px,19vw,290px\)/);
- assert.match(html,/swapp-home-news\.js\?v=20261017-edgeless-v19/);
+ assert.match(html,/swapp-home-news\.js\?v=20261017-home-no-flash-v21/);
  assert.match(html,/swapp-video-gallery\.css\?v=20261016-ios-journey-1/);
 });
