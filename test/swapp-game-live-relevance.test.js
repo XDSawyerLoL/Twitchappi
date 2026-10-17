@@ -143,7 +143,7 @@ test('no game uses existing general discovery only, without new sections',async(
 test('release uses the changed client version and never schedules a paid workflow',()=>{
  const shell=fs.readFileSync(path.join(root,'modules/swapp-news/site-shell.js'),'utf8');
  const core=fs.readFileSync(path.join(root,'modules/swapp-news/article-core.js'),'utf8');
- assert.match(shell,/swapp-media-live\.js\?v=20261016-game-lives-10/);
- assert.match(core,/swapp-media-live\.js\?v=20261016-game-lives-10/);
+ assert.match(shell,/swapp-media-live\.js\?v=20261017-game-bridge-v12/);
+ assert.match(core,/swapp-media-live\.js\?v=20261017-game-bridge-v12/);
  assert.equal(fs.existsSync(path.join(root,'.github/workflows/swapp-quality.yml')),false);
 });
