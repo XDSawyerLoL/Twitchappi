@@ -1,0 +1,182 @@
+/* SWAPP GAME JOURNEY V17 — home story ↔ game lives ↔ community.
+   No new homepage rail, no paid assets, no fabricated live avatars. */
+:root{
+ --journey-accent:var(--swapp-page-accent,var(--swapp-side-light,#8ae6df));
+ --journey-line:rgba(193,214,235,.19);
+}
+#home .swappHome1014 .homeHeroInner1014.swapp-hero-has-story{
+ grid-template-columns:minmax(0,1fr)!important;
+ gap:0!important;
+ padding-top:clamp(15px,2vw,28px)!important;
+ padding-bottom:clamp(10px,1.5vw,20px)!important;
+}
+#home .swappHome1014 .homeHeroInner1014:has(> .swapp-home-hero-feature)>.homeHeroCopy1014{
+ display:none!important; /* Existing generic slogan yields to the real featured game. */
+}
+#home .swappHome1014 .swapp-home-hero-feature{
+ order:-3!important;
+ width:100%!important;min-width:0!important;
+ min-height:clamp(355px,43vw,650px)!important;
+ max-height:690px;aspect-ratio:16/8.4;
+ border:1px solid var(--journey-line)!important;
+ border-radius:clamp(17px,1.8vw,25px)!important;
+ box-shadow:0 28px 72px #0005!important;
+}
+#home .swappHome1014 .swapp-home-hero-feature::after{
+ background:linear-gradient(180deg,transparent 22%,rgba(3,9,18,.18) 48%,rgba(3,9,18,.95) 100%)!important;
+}
+#home .swappHome1014 .swapp-home-hero-feature-overlay{
+ padding:clamp(20px,3.9vw,60px)!important;
+ max-width:100%;
+}
+#home .swappHome1014 .swapp-home-hero-feature-overlay strong{
+ max-width:20ch!important;
+ font-size:clamp(30px,4vw,64px)!important;
+ line-height:1.045!important;letter-spacing:-.058em!important;
+ text-wrap:balance;
+}
+#home .swappHome1014 .swapp-home-hero-feature-label{
+ text-transform:none!important;font-size:12px!important;
+ letter-spacing:.04em!important;
+}
+#home .swapp-home-feature-bridge{
+ order:-2!important;
+ display:flex;align-items:center;justify-content:space-between;
+ gap:12px clamp(14px,2vw,28px);flex-wrap:wrap;
+ min-width:0;padding:clamp(12px,1.45vw,20px) 0 5px;
+ border-bottom:1px solid var(--journey-line);
+}
+#home .swapp-home-feature-links{
+ display:flex;flex-wrap:wrap;gap:9px;align-items:center;
+ min-width:0;
+}
+#home .swapp-home-feature-cta,
+.swapp-game-journey-actions .button-link,
+#actus .swapp-game-journey-action{
+ display:inline-flex;justify-content:center;align-items:center;
+ min-height:46px;box-sizing:border-box;gap:7px;
+ padding:10px clamp(13px,1.5vw,20px);
+ border:1px solid rgba(175,208,230,.3);
+ border-radius:11px;background:#182738;color:#e9f4fa;
+ font:750 13px/1.35 Inter,system-ui,sans-serif;
+ text-decoration:none;white-space:nowrap;
+ transition:background-color .2s ease,border-color .2s ease,transform .2s ease;
+}
+#home .swapp-home-feature-cta.primary,
+.swapp-game-journey-actions .button-link.primary,
+#actus .swapp-game-journey-action.primary{
+ color:#091720!important;background:var(--journey-accent)!important;
+ border-color:var(--journey-accent)!important;
+}
+#home .swapp-home-feature-cta:hover,
+.swapp-game-journey-actions .button-link:hover,
+#actus .swapp-game-journey-action:hover{
+ border-color:var(--journey-accent);
+ background:#25384d;color:#fff;transform:translateY(-1px);
+}
+#home .swapp-home-feature-cta:focus-visible,
+.swapp-game-journey-actions :is(a,button):focus-visible,
+#actus .swapp-game-journey-action:focus-visible{
+ outline:2px solid var(--journey-accent);outline-offset:3px;
+}
+#home .swapp-home-feature-creators{
+ display:flex;flex-wrap:wrap;align-items:center;
+ gap:10px 13px;min-width:0;
+}
+#home .swapp-home-feature-live-label{
+ font:700 12px/1.4 Inter,system-ui,sans-serif;
+ color:#d8e9ef;
+}
+#home .swapp-home-feature-faces{
+ display:flex;align-items:center;padding:0 4px;
+}
+#home .swapp-home-feature-face{
+ display:grid;place-items:center;overflow:hidden;
+ width:38px;height:38px;flex:0 0 38px;
+ margin-left:-4px;border:2px solid #0f1b2a;
+ border-radius:50%;background:#263c51;
+ color:#fff;font-size:16px;font-weight:850;
+ box-shadow:0 2px 10px #0006;text-decoration:none;
+}
+#home .swapp-home-feature-face img{display:block;width:100%;height:100%;object-fit:cover}
+#home .swapp-home-feature-face:focus-visible{outline:2px solid var(--journey-accent);outline-offset:3px}
+
+/* One interaction vocabulary for both React-free SPA reader and native articles. */
+.swapp-game-journey-actions{
+ display:flex!important;align-items:center;flex-wrap:wrap;gap:9px!important;
+ margin:clamp(18px,2.2vw,28px) 0 0!important;
+ padding:0!important;border:0!important;background:none!important;
+}
+#actus .swapp-immersive-hero .swapp-game-journey-actions{max-width:100%}
+.swapp-editorial-route .swapp-game-journey-actions .button-link{
+ border-radius:11px!important;min-height:46px!important;
+ padding:10px 17px!important;background:#182738!important;
+}
+.swapp-editorial-route .swapp-game-journey-actions .button-link.primary{
+ background:var(--journey-accent)!important;color:#091720!important;
+}
+.swapp-article-utility{
+ display:flex;flex-wrap:wrap;gap:12px;margin:12px 0 0;
+}
+.swapp-article-utility .button-link{
+ padding:5px 0!important;min-height:30px!important;
+ background:transparent!important;border:0!important;
+ box-shadow:none!important;color:#b8c9da!important;font-size:12px!important;
+}
+#actus .swapp-reader-controls{margin-top:10px!important;gap:14px!important}
+#actus .swapp-reader-controls .swapp-reader-share{
+ padding:7px 0!important;border:0!important;
+ background:transparent!important;box-shadow:none!important;
+ color:#b9cbda!important;font-size:12px!important;
+}
+.swapp-editorial-route #swapp-article-lives,
+#actus #swapp-article-lives,
+#actus #article-content,
+.swapp-editorial-route #article-content{
+ scroll-margin-top:calc(90px + env(safe-area-inset-top,0px));
+}
+@media(max-width:920px){
+ #home .swappHome1014 .swapp-home-hero-feature{
+  min-height:clamp(300px,55vw,510px)!important;aspect-ratio:16/10;
+ }
+ #home .swapp-home-feature-bridge{align-items:flex-start}
+}
+@media(max-width:650px){
+ #home .swappHome1014 .swapp-home-hero-feature{
+  aspect-ratio:4/4.5;min-height:clamp(320px,95vw,490px)!important;
+  border-radius:16px!important;
+ }
+ #home .swappHome1014 .swapp-home-hero-feature-overlay{
+  padding:clamp(17px,5vw,25px)!important;
+ }
+ #home .swappHome1014 .swapp-home-hero-feature-overlay strong{
+  font-size:clamp(27px,7.3vw,37px)!important;
+  max-width:18ch!important;
+ }
+ #home .swapp-home-feature-bridge{
+  display:grid;gap:13px;justify-content:stretch;
+ }
+ #home .swapp-home-feature-links{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;width:100%;
+ }
+ #home .swapp-home-feature-cta{min-width:0;white-space:normal;min-height:44px;font-size:12px;padding:9px 8px}
+ #home .swapp-home-feature-cta.primary{grid-column:1/-1}
+ #home .swapp-home-feature-creators{justify-content:flex-start}
+ .swapp-game-journey-actions{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));width:100%}
+ .swapp-game-journey-actions .button-link,
+ #actus .swapp-game-journey-action{
+  min-width:0;white-space:normal;text-align:center;font-size:12px!important;
+ }
+ .swapp-game-journey-actions :first-child{grid-column:1/-1}
+}
+@media(hover:none){
+ #home .swapp-home-feature-cta:hover,
+ .swapp-game-journey-actions .button-link:hover,
+ #actus .swapp-game-journey-action:hover{transform:none}
+}
+@media(prefers-reduced-motion:reduce){
+ #home .swapp-home-feature-cta,
+ .swapp-game-journey-actions .button-link,
+ #actus .swapp-game-journey-action{transition:none!important;transform:none!important}
+}
