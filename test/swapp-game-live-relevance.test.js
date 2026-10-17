@@ -43,10 +43,10 @@ function fixture(games,reply,{observer=true}={}){
   if(data instanceof Error)throw data;
   return {ok:true,json:async()=>data};
  };
- vm.runInNewContext(script,{document,fetch,window:fakeWindow,IntersectionObserver:StubObserver,URL,AbortSignal,console});
+ vm.runInNewContext(script,{document,fetch,window:fakeWindow,IntersectionObserver:StubObserver,URL,AbortController,setTimeout,clearTimeout,console});
  async function flush(){
   // Resolves the promise chain from fetch + JSON + DOM rendering.
-  for(let i=0;i<8;i++)await Promise.resolve();
+  for(let i=0;i<24;i++)await Promise.resolve();
  }
  async function reveal(index=0){
   const callback=callbacks[0];
@@ -146,4 +146,11 @@ test('release uses the changed client version and never schedules a paid workflo
  assert.match(shell,/swapp-media-live\.js\?v=20261017-stability-store-v14/);
  assert.match(core,/swapp-media-live\.js\?v=20261017-stability-store-v14/);
  assert.equal(fs.existsSync(path.join(root,'.github/workflows/swapp-quality.yml')),false);
+});
+
+test('Safari-compatible loading and the retry callback have no AbortSignal.timeout dependency',()=>{
+ assert.equal(script.includes('AbortSignal.timeout('),false);
+ assert.ok(script.includes('new AbortController()'));
+ assert.ok(script.includes('function message(shelf,notice,'));
+ assert.ok(script.includes("message(shelf,'Nouvelle tentative…')"));
 });
