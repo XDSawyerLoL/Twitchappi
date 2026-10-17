@@ -103,10 +103,10 @@ test('homepage has an early F5 flash guard and cinematic script before editorial
  assert.match(boot,/#home\.view\.active > :not\(\.swappHome1014\):not\(\.swappBoot\)/);
  assert.match(boot,/\.homeHeroCopy1014\{display:none!important\}/);
  assert.match(boot,/\.homeHeroInner1014:not\(\.swapp-feature-ready\)/);
- const helper='swapp-home-motion.js?v=20261018-home-video-v22';
- assert.match(html,/swapp-home-news\.js\?v=20261018-home-video-v22/);
+ const helper='swapp-home-motion.js?v=20261018-home-clean-v23';
+ assert.match(html,/swapp-home-news\.js\?v=20261018-home-clean-v23/);
  assert.ok(html.includes(helper));
- assert.ok(html.indexOf(helper)<html.indexOf('swapp-home-news.js?v=20261018-home-video-v22'));
+ assert.ok(html.indexOf(helper)<html.indexOf('swapp-home-news.js?v=20261018-home-clean-v23'));
  assert.match(read('assets/swapp-home-news.js'),/SwappHomeMotion\?\.attach\?\.\(tile,feature\)/);
 });
 
@@ -123,6 +123,6 @@ test('hero remains image first and never animates for motion-sensitive visitors'
  assert.match(part,/pointer-events:none!important/);
  assert.match(read('tools/swapp-release.js'),/'assets\/swapp-home-motion\.js'/);
  const smoke=read('tools/swapp-deploy-smoke.js');
- assert.match(smoke,/swapp-home-motion\.js\?v=20261018-home-video-v22/);
+ assert.match(smoke,/swapp-home-motion\.js\?v=20261018-home-clean-v23/);
  assert.match(smoke,/youtube-nocookie\.com/);
 });
