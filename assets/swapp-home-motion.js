@@ -56,6 +56,10 @@
   wrap.setAttribute('aria-hidden','true');
   const host=document.createElement('span');
   host.className='swapp-home-motion-host';
+  // The YouTube API replaces its target with an iframe. The sizing
+  // container must be the PARENT of that target, not the target itself.
+  const mount=document.createElement('span');
+  host.append(mount);
   wrap.append(host);
   // The poster stays present for first paint, aria text and video failure.
   poster.after(wrap);
@@ -101,7 +105,7 @@
    try{
     const YT=await loadAPI();
     if(!active())return cleanup();
-    player=new YT.Player(host,{
+    player=new YT.Player(mount,{
      host:'https://www.youtube-nocookie.com',
      videoId:id,width:'100%',height:'100%',
      playerVars:{
