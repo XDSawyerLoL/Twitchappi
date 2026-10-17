@@ -8,7 +8,7 @@ const read=p=>fs.readFileSync(path.join(__dirname,'..',p),'utf8');
 const script=read('assets/swapp-home-motion.js');
 
 function mockedPlayer({valid=true,mobile=false,reduced=false,saveData=false,fail=false}={}){
- const classes=new Set(),requests=[],timers=[],players=[];
+ const classes=new Set(),requests=[],timers=[],players=[],seeks=[];
  const makeNode=name=>({
   tagName:name.toUpperCase(),children:[],style:{},className:'',
   append(node){this.children.push(node)},setAttribute(){},remove(){this.removed=true}
@@ -33,7 +33,7 @@ function mockedPlayer({valid=true,mobile=false,reduced=false,saveData=false,fail
    Player:class{
     constructor(target,options){
      players.push({target,options});
-     const player={mute(){},playVideo(){
+     const player={mute(){},seekTo(seconds,allowSeekAhead){seeks.push([seconds,allowSeekAhead])},playVideo(){
       if(!fail)options.events.onStateChange({data:1,target:player});
      },pauseVideo(){},destroy(){}};
      if(fail)options.events.onError({data:5});
@@ -53,7 +53,7 @@ function mockedPlayer({valid=true,mobile=false,reduced=false,saveData=false,fail
   setTimeout:fn=>{timers.push(fn);return timers.length},clearTimeout(){}};
  vm.runInNewContext(script,ctx,{timeout:2000});
  const attached=window.SwappHomeMotion.attach(tile,{trailerUrl:'https://www.youtube.com/watch?v=Z9SaRLSibak'});
- return {attached,poster,tile,classes,requests,timers,players};
+ return {attached,poster,tile,classes,requests,timers,players,seeks};
 }
 
 test('video never loads for an unverified trailer, mobile device, reduced-motion or Save-Data',()=>{
@@ -83,6 +83,8 @@ test('matching desktop trailer keeps the poster until real muted playback begins
  assert.equal(config.playerVars.mute,1);
  assert.equal(config.playerVars.controls,0);
  assert.equal(config.playerVars.loop,1);
+ assert.equal(config.playerVars.start,10);
+ assert.ok(v.seeks.some(([sec,enabled])=>sec===10&&enabled===true),'player seeks to 0:10 before play');
  assert.equal(v.classes.has('swapp-home-motion-playing'),true);
 });
 
@@ -97,12 +99,12 @@ test('iframe/player errors remove only the video overlay and leave the cover int
  assert.equal(v.poster.naturalWidth,1400);
 });
 
-test('homepage has an early F5 flash guard and cinematic script before editorial mount',()=>{
+test('cleaner homepage has no legacy first-paint masking and mounts cinematic client in order',()=>{
  const html=read('index.html');
  const boot=html.slice(html.indexOf('<style id="swapp-boot-css">'),html.indexOf('</style>',html.indexOf('<style id="swapp-boot-css">')));
- assert.match(boot,/#home\.view\.active > :not\(\.swappHome1014\):not\(\.swappBoot\)/);
- assert.match(boot,/\.homeHeroCopy1014\{display:none!important\}/);
- assert.match(boot,/\.homeHeroInner1014:not\(\.swapp-feature-ready\)/);
+ assert.doesNotMatch(boot,/#home\.view\.active > :not\(\.swappHome1014\)/);
+ assert.doesNotMatch(boot,/\.homeHeroCopy1014\{display:none!important\}/);
+ assert.doesNotMatch(boot,/\.homeHeroInner1014:not\(\.swapp-feature-ready\)/);
  const helper='swapp-home-motion.js?v=20261018-home-clean-v23';
  assert.match(html,/swapp-home-news\.js\?v=20261018-home-clean-v23/);
  assert.ok(html.includes(helper));
@@ -121,6 +123,9 @@ test('hero remains image first and never animates for motion-sensitive visitors'
  assert.match(part,/\(pointer:coarse\)/);
  assert.match(part,/z-index:3!important/);
  assert.match(part,/pointer-events:none!important/);
+ assert.match(part,/width:max\(100cqw,177\.778cqh\)!important/);
+ assert.match(part,/height:max\(100cqh,56\.25cqw\)!important/);
+ assert.doesNotMatch(part,/width:118%!important|height:118%!important/);
  assert.match(read('tools/swapp-release.js'),/'assets\/swapp-home-motion\.js'/);
  const smoke=read('tools/swapp-deploy-smoke.js');
  assert.match(smoke,/swapp-home-motion\.js\?v=20261018-home-clean-v23/);
