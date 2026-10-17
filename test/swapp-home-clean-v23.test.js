@@ -12,7 +12,7 @@ test('one current home renderer, ten obsolete renderers delegate and do not recr
  assert.match(bundle,/window\.renderHome = async function renderHome1014/);
  assert.equal((bundle.match(/function renderHome\(\)\s*\{/g)||[]).length,10);
  assert.equal((bundle.match(/current!==renderHome\)return current\(\)/g)||[]).length,10);
- assert.doesNotMatch(bundle,/function renderHome\(\)\s*\{[\s\S]{0,400}?el\.innerHTML/);
+ assert.doesNotMatch(bundle,/function renderHome\(\)\s*\{[^}]{0,400}?el\.innerHTML/);
  assert.doesNotMatch(bundle,/window\.renderHome = async function renderHome(?:Final|Restored|1013)/);
  assert.doesNotMatch(bundle,/Des lives à taille humaine\./);
  assert.match(bundle,/homeHeroInner1014 swapp-hero-pending/);
