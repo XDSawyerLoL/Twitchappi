@@ -45,12 +45,12 @@ test('real creators without profile art get readable names, not single-letter ci
  assert.match(edgeless,/\.swapp-home-feature-face img \+ \.swapp-home-creator-name\{display:none!important\}/);
 });
 test('V19 loads exactly once and production smoke blocks an outdated Hostinger stylesheet',()=>{
- const version='swapp-game-journey.css?v=20261018-home-video-v22';
+ const version='swapp-game-journey.css?v=20261018-home-clean-v23';
  for(const name of ['index.html','modules/swapp-news/site-shell.js','modules/swapp-news/article-core.js']){
   const s=read(name);
   assert.equal(s.split(version).length-1,1,name);
  }
- assert.match(read('index.html'),/swapp-home-news\.js\?v=20261018-home-video-v22/);
+ assert.match(read('index.html'),/swapp-home-news\.js\?v=20261018-home-clean-v23/);
  const smoke=read('tools/swapp-deploy-smoke.js');
  assert.match(smoke,/SWAPP EDGELESS HERO V19/);
  assert.match(smoke,/journeyStyles\.body\.includes\('grid-template-columns:minmax\(0,1fr\)!important'\)/);
