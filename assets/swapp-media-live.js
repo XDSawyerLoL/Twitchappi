@@ -5,7 +5,7 @@
   const related=document.querySelector('[data-articles-for-game]');
   if (!sheets.length && !related) return;
   const text = (el,value) => { el.textContent = String(value ?? ''); };
-  const safeImage = value => {try {const url = new URL(value);return url.protocol === 'https:' ? url.href : null;}catch{return null;}};
+  const safeImage = value => {try {const url = new URL(value);return url.protocol === 'https:'&&!url.username&&!url.password ? url.href : null;}catch{return null;}};
   const normal = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
   // Exact identity (including known editorial aliases). Substring matching
   // incorrectly associates sequels: Hades vs Hades II or Planet Zoo vs Zoo 2.
@@ -23,7 +23,7 @@
     const a=normal(game),b=normal(liveGame);
     return !!a&&!!b&&(a===b||aliases.some(group=>group.includes(a)&&group.includes(b)));
   };
-  function card(item) {
+  function card(item,matchedGame='') {
     const login=String(item.login || '').trim().toLowerCase();
     if(!/^[a-z0-9_]{2,40}$/.test(login)) return null;
     const platform=String(item.platform || '').toLowerCase();
@@ -37,6 +37,15 @@
     const pill=document.createElement('span');pill.className='swapp-live-badge';text(pill,isNative?'LIVE SWAPP':'LIVE TWITCH');cover.appendChild(pill);
     const body=document.createElement('div');body.className='swapp-live-content';
     const title=document.createElement('strong');text(title,item.title||'Live en cours');body.appendChild(title);
+    // Show the verified relationship on the existing creator card, not in
+    // an additional homepage module or an invented "trending" badge.
+    if(matchedGame&&gameMatch(matchedGame,item.game_name||item.category||item.game)){
+      const connection=document.createElement('span');
+      connection.className='swapp-game-connection';
+      text(connection,'Même jeu · '+matchedGame);
+      body.appendChild(connection);
+      el.classList.add('swapp-game-linked-card');
+    }
     const meta=document.createElement('p');text(meta,[item.display_name||login,item.game_name||'',Number(item.viewer_count||0).toLocaleString('fr-FR')+' spectateurs'].filter(Boolean).join(' · '));body.appendChild(meta);
     const action=document.createElement('span');action.className='swapp-live-action';text(action,'Regarder sur SWAPP →');body.appendChild(action);
     el.append(cover,body);return el;
@@ -90,13 +99,13 @@
     }
     return generalPromise;
   }
-  function validUnique(items,limit){
+  function validUnique(items,limit,game=''){
     const seen=new Set(),out=[];
     for(const item of items){
       if(!item||typeof item!=='object')continue;
       const key=String(item.platform||'').toLowerCase()+':'+String(item.login||'').trim().toLowerCase();
       if(seen.has(key))continue;
-      const node=card(item);
+      const node=card(item,game);
       if(!node)continue;
       seen.add(key);out.push(node);
       if(out.length>=limit)break;
@@ -110,7 +119,7 @@
     try{
       const data=game?await gameLives(game):await generalLives();
       if(!shelf.isConnected)return;
-      const cards=validUnique(data,game?4:6);
+      const cards=validUnique(data,game?4:6,game);
       if(cards.length){target.replaceChildren(...cards);return;}
       message(shelf,game?
        'Aucun créateur en direct confirmé sur '+game+' pour le moment. Découvre les autres lives SWAPP.':
@@ -151,12 +160,23 @@
       for(const a of stories){
         if(!/^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/.test(String(a.slug||'')))continue;
         const link=document.createElement('a');link.href='/actus/'+encodeURIComponent(a.slug);
-        link.className='swapp-live-card swapp-related-card';
+        link.className='swapp-live-card swapp-related-card swapp-game-linked-card';
+        // Reverse journey: the live viewer sees the real editorial artwork
+        // for this exact game. No generic stock image or invented article.
+        const coverSrc=safeImage(a.image?.url||a.imageUrl);
+        if(coverSrc){
+          const cover=document.createElement('div');cover.className='swapp-live-cover swapp-related-cover';
+          const img=document.createElement('img');img.src=coverSrc;img.alt='';
+          img.loading='lazy';img.decoding='async';cover.appendChild(img);
+          link.appendChild(cover);
+        }
         const body=document.createElement('div');body.className='swapp-live-content';
         const title=document.createElement('strong');text(title,a.title);
+        const connection=document.createElement('span');connection.className='swapp-game-connection';
+        text(connection,'À lire · '+game);
         const desc=document.createElement('p');text(desc,a.summary||'Actualité du jeu');
         const action=document.createElement('span');action.className='swapp-live-action';text(action,'Lire cet article →');
-        body.append(title,desc,action);link.appendChild(body);target.appendChild(link);
+        body.append(title,connection,desc,action);link.appendChild(body);target.appendChild(link);
       }
       if(!target.children.length)message(related,game?'Pas encore d’article SWAPP consacré à '+game+'.':'Découvre les articles du média SWAPP.');
     }catch{message(related,'Les articles sont momentanément indisponibles.');}
