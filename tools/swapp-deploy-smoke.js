@@ -76,7 +76,11 @@ async function verify(){
    'id="swapp-store-products"','id="swapp-store-search"','id="swapp-store-sort"',
    'data-shop-filter="games"','data-shop-filter="caps"','data-shop-filter="pads"'])
   check(store.body.includes(marker),'Storefront missing shopping control: '+marker);
- check(store.body.includes('swapp-shop.css?v=20261016-store-v5')&&
+ check(store.body.includes('data-shop-product')&&store.body.includes('swapp-store-catalogue')&&
+  store.body.includes('swapp-store-editorial-picks')&&
+  store.body.indexOf('id="swapp-store-products"')<store.body.indexOf('swapp-store-editorial-picks'),
+  'Managed products are not displayed before the optional Steam games list');
+ check(store.body.includes('swapp-shop.css?v=20261017-stability-store-v14')&&
    store.body.includes('swapp-storefront.js?v=20261016-store-v5'),
    'Storefront still serves old editor-style CSS or missing interactive client');
  const shopStyle=await request(origin,'/assets/swapp-shop.css');
@@ -112,6 +116,10 @@ async function verify(){
   'Article live discovery client is outdated: targeted game lookup missing');
  check(discovery.body.includes("text(button,'Réessayer')")&&discovery.body.includes('requests.delete(key)'),
   'Article live discovery retry/recovery is outdated');
+ check(discovery.body.includes('function message(shelf,notice,')&&
+   !discovery.body.includes('signal:AbortSignal.timeout(')&&
+   discovery.body.includes("message(shelf,'Nouvelle tentative…')"),
+   'Live retry or older Safari compatibility fix has not deployed');
  check(discovery.body.includes('swapp-game-connection')&&
   discovery.body.includes('swapp-related-cover')&&
   discovery.body.includes('gameMatch(game,item.game_name||item.category||item.game)'),
@@ -119,6 +127,11 @@ async function verify(){
  const bridgeCss=await request(origin,'/assets/swapp-media.css');
  check(bridgeCss.body.includes('SWAPP GAME BRIDGE V12')&&bridgeCss.body.includes('.swapp-game-connection')&&bridgeCss.body.includes('.swapp-live-article-game'),
   'Game bridge CSS is stale or not served by Hostinger');
+ const newsScript=await request(origin,'/assets/swapp-home-news.js');
+ check(!newsScript.body.includes('signal:AbortSignal.timeout(')&&
+   newsScript.body.includes('new AbortController()')&&
+   home.body.includes('swapp-home-news.js?v=20261017-stability-store-v14'),
+   'Homepage editorial script is stale or incompatible with older Safari');
  const readerApp=await request(origin,'/assets/swapp-actus-app.js');
  check(readerApp.body.includes('const sameGame=')&&
   readerApp.body.includes('/live/twitch/')&&
