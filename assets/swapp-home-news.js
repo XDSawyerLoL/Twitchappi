@@ -89,8 +89,10 @@
     const a=el('a','swapp-home-feature-face');a.href=native?'/'+encodeURIComponent(login):'/live/twitch/'+encodeURIComponent(login)+'?game='+encodeURIComponent(game);
     a.title='Regarder '+(stream.display_name||login)+' en direct';a.setAttribute('aria-label',a.title);
     const src=safeUrl(stream.profile_image_url||stream.avatar_url||stream.avatar||'');
-    if(src){const img=el('img');img.src=src;img.alt='';img.loading='lazy';img.decoding='async';img.onerror=()=>img.remove();a.append(img)}
-    else a.append(el('span','',String(stream.display_name||login).slice(0,1).toUpperCase()));
+    const name=String(stream.display_name||login).trim().slice(0,22)||login;
+    const fallback=el('span','swapp-home-creator-name',name);
+    a.append(fallback);
+    if(src){const img=el('img');img.src=src;img.alt='';img.loading='lazy';img.decoding='async';img.onerror=()=>img.remove();a.prepend(img)}
     faces.append(a);
    }
    avatars.append(faces);row.append(avatars);
