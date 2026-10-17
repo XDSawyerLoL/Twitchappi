@@ -49,7 +49,7 @@ test('creator links remain inside SWAPP, never turn a live into an external defa
  assert.match(media,/\/live\/twitch\//);
  assert.doesNotMatch(app,/https:\/\/www\.twitch\.tv\//);
  assert.match(media,/\/api\/discovery\/game-lives\?limit=6&game=/);
- assert.doesNotMatch(read('assets/swapp-home-news.js'),/api\/discovery\/game-lives/);
+ assert.match(read('assets/swapp-home-news.js'),/api\/discovery\/game-lives/);
 });
 
 test('deployment fingerprint and public smoke cover the V12 bridge assets',()=>{
