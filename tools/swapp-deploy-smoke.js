@@ -130,7 +130,7 @@ async function verify(){
  const newsScript=await request(origin,'/assets/swapp-home-news.js');
  check(!newsScript.body.includes('signal:AbortSignal.timeout(')&&
    newsScript.body.includes('new AbortController()')&&
-   home.body.includes('swapp-home-news.js?v=20261017-stability-store-v14'),
+   home.body.includes('swapp-home-news.js?v=20261017-journey-v17'),
    'Homepage editorial script is stale or incompatible with older Safari');
  const readerApp=await request(origin,'/assets/swapp-actus-app.js');
  check(readerApp.body.includes('const sameGame=')&&
@@ -138,7 +138,7 @@ async function verify(){
   !readerApp.body.includes('a.length>=7&&b.includes(a)'),
   'Actualité still matches sequels incorrectly or opens external lives');
  check(home.body.includes('/assets/swapp-media.css?v=20261017-channel-news-v13')&&
-  home.body.includes('/assets/swapp-actus-app.js?v=20261017-game-bridge-v12'),
+  home.body.includes('/assets/swapp-actus-app.js?v=20261017-journey-v17'),
   'Homepage is still using the old game bridge');
  // Native creator channel: same editorial game identity, no frozen status text.
  const nativeArticles=await request(origin,'/assets/swapp-live-articles.js');
@@ -150,7 +150,7 @@ async function verify(){
   'Native creator page still ships outdated game matching or broken news status');
  process.stdout.write('PASS game-specific article live discovery\n');
  const discover=await request(origin,'/decouvrir');
- check(discover.body.includes('swapp-discover-comfort.js?v=20261016-v4-mobile-3-creators'),
+ check(discover.body.includes('swapp-discover-comfort.js?v=20261017-journey-v17'),
   'Discover has an old mobile UI release');
  check(discover.body.includes('index_script.js?v=20261016-discover-v4-39'),
   'Discover still references an old V4 player script');
