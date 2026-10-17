@@ -5,7 +5,7 @@ const fs=require('node:fs');
 const path=require('node:path');
 const root=path.resolve(__dirname,'..');
 const read=file=>fs.readFileSync(path.join(root,file),'utf8');
-const style='/assets/swapp-presentation-polish.css?v=20261017-editorial-unity-v8';
+const style='/assets/swapp-presentation-polish.css?v=20261017-editorial-finish-v15';
 
 test('one final presentation stylesheet is loaded after mobile layout in SPA and native pages',()=>{
  const home=read('index.html'),shell=read('modules/swapp-news/site-shell.js');
@@ -38,10 +38,13 @@ test('shared visual finishing layer only styles existing SWAPP screens',()=>{
  assert.equal(braces,0,'unmatched opening brace');
 });
 
-test('V8 cinema finish preserves native images and existing community controls',()=>{
+test('V15 cinema finish preserves native images and existing community controls',()=>{
  const css=read('assets/swapp-presentation-polish.css');
  for(const feature of [
   'Editorial unity V8',
+  'SWAPP EDITORIAL FINISH V15',
+  '#swappSocialNative .pulse-post',
+  '.swapp-store-editorial-picks',
   '#home .swappHome1014 .swapp-home-hero-feature::after',
   '#home .swapp-home-editorial .swapp-home-story-image img',
   '#actus .swapp-actus-card .swapp-actus-cover img',
@@ -60,5 +63,5 @@ test('Hostinger release hash includes finishing asset and smoke check verifies i
  assert.match(verify,/Home uses an outdated presentation stylesheet/);
  assert.match(verify,/Actualité uses an outdated presentation stylesheet/);
  assert.match(verify,/Shared presentation finish is stale or incomplete/);
- assert.ok(verify.includes('Editorial unity V8'),'production smoke must reject older finish assets');
+ assert.ok(verify.includes('SWAPP EDITORIAL FINISH V15'),'production smoke must reject older finish assets');
 });
