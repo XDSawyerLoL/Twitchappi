@@ -82,7 +82,7 @@ test('all three screens share the same lightweight CSS and mobile-safe controls'
  assert.equal(bal,0);
  for(const file of ['index.html','modules/swapp-news/site-shell.js','modules/swapp-news/article-core.js']){
   const html=read(file);
-  assert.match(html,/swapp-game-journey\.css\?v=20261017-fullbleed-v18/);
+  assert.match(html,/swapp-game-journey\.css\?v=20261017-edgeless-v19/);
  }
  const release=read('tools/swapp-release.js');
  const smoke=read('tools/swapp-deploy-smoke.js');
