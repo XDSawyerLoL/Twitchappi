@@ -454,6 +454,7 @@
 }
 /* Real streamers with no profile photograph use readable name chips,
  * rather than circles displaying meaningless isolated letters. */
+#home .swapp-home-feature-face img + .swapp-home-creator-name{display:none!important}
 #home .swapp-home-feature-face:not(:has(img)){
  width:auto;min-width:44px;max-width:140px;
  padding:0 11px;border-radius:999px;
