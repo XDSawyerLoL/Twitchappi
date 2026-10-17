@@ -607,3 +607,299 @@ body.oryonDiscoverV4 #discover .v4Meta{
   transition:none!important;transform:none!important;
  }
 }
+
+
+/* SWAPP EDITORIAL FINISH V15 — visual coherence, no new components.
+ * Images belong to the actual stories, games and creators already rendered.
+ * All layouts remain within their own page and the chosen visitor colour.
+ */
+:root{
+ --swapp-v15-accent:var(--swapp-page-accent,var(--swapp-side-light,var(--swapp-interactive,#92f2ec)));
+ --swapp-v15-border:rgba(181,204,229,.16);
+ --swapp-v15-ease:cubic-bezier(.22,.73,.24,1);
+ --swapp-v15-display:Inter,"Segoe UI",system-ui,-apple-system,sans-serif;
+}
+:where(#home,#actus,.swapp-editorial-route,#swappSocialNative) :is(h1,h2,h3){
+ font-family:var(--swapp-v15-display);text-wrap:balance;font-kerning:normal;
+}
+:where(#home,#actus,.swapp-editorial-route) :is(a,button):focus-visible{
+ outline:2px solid var(--swapp-v15-accent);outline-offset:3px;
+}
+
+/* Home — cinematic hierarchy instead of isolated dashboard boxes. */
+#home .swappHome1014 .homeHeroCopy1014 h1{
+ font-weight:950;line-height:1.01!important;letter-spacing:-.077em!important;
+ max-width:17ch;text-wrap:balance;
+}
+#home .swappHome1014 .homeHeroCopy1014 p{
+ max-width:63ch;line-height:1.65!important;
+}
+#home .swappHome1014 .swapp-home-hero-feature{
+ overflow:hidden;isolation:isolate;
+ border-radius:clamp(17px,2vw,25px)!important;
+ border:1px solid rgba(207,231,252,.18)!important;
+ background:#101b2d;
+ box-shadow:0 30px 70px rgba(0,0,0,.28)!important;
+}
+#home .swappHome1014 .swapp-home-hero-feature::after{
+ background:linear-gradient(180deg,transparent 24%,rgba(5,9,18,.23) 52%,rgba(5,9,18,.94) 100%)!important;
+}
+#home .swappHome1014 .swapp-home-hero-feature-overlay{
+ z-index:2;padding:clamp(21px,3vw,45px)!important;
+ gap:clamp(9px,1.15vw,15px)!important;
+}
+#home .swappHome1014 .swapp-home-hero-feature-overlay strong{
+ letter-spacing:-.05em!important;line-height:1.06!important;
+ font-size:clamp(28px,3.3vw,52px)!important;
+ max-width:19ch;text-wrap:balance;
+ text-shadow:0 3px 22px rgba(0,0,0,.42);
+}
+#home .swapp-home-editorial-top{
+ padding-top:clamp(6px,1vw,14px)!important;
+ border-top:1px solid var(--swapp-v15-border);
+}
+#home .swapp-home-editorial-top h2{
+ text-wrap:balance;letter-spacing:-.055em!important;
+}
+#home .swapp-home-story-grid{
+ gap:clamp(12px,1.45vw,20px)!important;
+}
+#home .swapp-home-story{
+ border:1px solid var(--swapp-v15-border)!important;
+ border-radius:clamp(13px,1.5vw,19px)!important;
+ background:linear-gradient(160deg,#142034,#0e1724)!important;
+}
+#home .swapp-home-story .swapp-home-story-image{
+ position:relative;isolation:isolate;
+}
+#home .swapp-home-story .swapp-home-story-image::after{
+ background:linear-gradient(180deg,transparent 65%,rgba(6,13,23,.26) 100%)!important;
+}
+#home .swapp-home-story .swapp-home-story-body strong{
+ font-size:clamp(17px,1.5vw,21px);line-height:1.29!important;
+ letter-spacing:-.035em!important;
+}
+#home .swapp-home-story .swapp-home-story-body p{
+ color:#b0c1d2!important;line-height:1.55!important;
+}
+#home .swapp-home-story .swapp-home-story-cta{
+ color:var(--swapp-v15-accent)!important;font-weight:790;
+}
+#home .homeLiveSection1014 .homeLiveHead1014{
+ border-top:1px solid var(--swapp-v15-border);
+ padding-top:clamp(16px,2vw,28px);
+}
+#home .homeLiveCard1014{
+ border:1px solid var(--swapp-v15-border)!important;
+ border-radius:clamp(13px,1.5vw,19px)!important;
+ overflow:hidden;
+}
+#home .homeLiveCard1014 :is(img,video){
+ object-fit:cover;
+}
+#home .homeLiveCard1014 .homeLiveBody1014{
+ padding:clamp(12px,1.5vw,18px)!important;
+}
+
+/* Actualité — poster-led cards share the same editorial rhythm as the home. */
+#actus .swapp-actus-head h1{
+ line-height:1.03!important;letter-spacing:-.07em!important;
+ max-width:20ch;
+}
+#actus .swapp-actus-head p{line-height:1.65;max-width:67ch}
+#actus .swapp-actus-grid{
+ gap:clamp(12px,1.55vw,22px)!important;
+}
+#actus .swapp-actus-card{
+ background:linear-gradient(170deg,#151f30,#0e1725)!important;
+ border:1px solid var(--swapp-v15-border)!important;
+ border-radius:clamp(13px,1.45vw,20px)!important;
+ overflow:hidden;box-shadow:none;
+ transition:border-color .22s ease,box-shadow .24s var(--swapp-v15-ease);
+}
+#actus .swapp-actus-card .swapp-actus-cover{
+ position:relative;isolation:isolate;overflow:hidden;
+}
+#actus .swapp-actus-card .swapp-actus-cover::after{
+ content:"";position:absolute;inset:auto 0 0;height:40%;
+ pointer-events:none;background:linear-gradient(0deg,rgba(5,11,19,.16),transparent);
+}
+#actus .swapp-actus-info h2{
+ letter-spacing:-.038em!important;line-height:1.27!important;
+ text-wrap:pretty;
+}
+#actus .swapp-actus-info p{
+ color:#b4c4d7;line-height:1.58;
+}
+#actus .swapp-reader-hero h1,
+.swapp-editorial-route .article-title{
+ line-height:1.08!important;letter-spacing:-.065em!important;
+ text-wrap:balance;
+}
+#actus .swapp-reader-hero-figure,
+.swapp-editorial-route .article-hero{
+ overflow:hidden;border-radius:clamp(15px,2vw,24px);
+}
+.swapp-editorial-route .story-grid{gap:clamp(13px,1.6vw,22px)}
+.swapp-editorial-route .story-card{
+ overflow:hidden;border:1px solid var(--swapp-v15-border);
+ background:linear-gradient(160deg,#141f30,#0d1725);
+}
+
+/* Boutique — real product photography, quieter surfaces, clearer pricing. */
+.swapp-editorial-route .swapp-store .swapp-store-campaign{
+ height:clamp(270px,28vw,375px);border-radius:clamp(16px,2vw,23px);
+ border:1px solid rgba(194,222,230,.25);
+ box-shadow:0 22px 52px rgba(0,0,0,.24);
+}
+.swapp-editorial-route .swapp-store .swapp-store-campaign-shade{
+ background:linear-gradient(90deg,rgba(5,12,21,.88),rgba(5,12,21,.56) 46%,rgba(5,12,21,.04) 90%),
+ linear-gradient(0deg,rgba(5,12,21,.55),transparent 78%);
+}
+.swapp-editorial-route .swapp-store .swapp-store-campaign-copy>strong{
+ font-size:clamp(33px,4.1vw,61px);letter-spacing:-.06em;
+ max-width:18ch;line-height:1.03;
+}
+.swapp-editorial-route .swapp-store .swapp-store-departments{
+ margin:clamp(26px,3.5vw,48px) 0 clamp(32px,4vw,55px);
+}
+.swapp-editorial-route .swapp-store .swapp-store-departments-grid{
+ gap:clamp(10px,1.4vw,19px);
+}
+.swapp-editorial-route .swapp-store .swapp-store-department{
+ min-height:clamp(180px,18vw,240px);
+ border-radius:clamp(13px,1.4vw,19px);
+ border-color:rgba(185,215,231,.23);
+}
+.swapp-editorial-route .swapp-store .swapp-store-department::after{
+ background:linear-gradient(0deg,rgba(5,10,18,.92),rgba(6,12,22,.27) 68%,rgba(6,12,22,.05));
+}
+.swapp-editorial-route .swapp-store .swapp-store-card{
+ background:#121d2b;border-color:var(--swapp-v15-border);
+ border-radius:clamp(13px,1.35vw,18px);
+}
+.swapp-editorial-route .swapp-store .swapp-store-card-kind{
+ color:var(--swapp-v15-accent);font-size:11px;
+}
+.swapp-editorial-route .swapp-store .swapp-store-card h3{
+ line-height:1.27;text-wrap:pretty;
+}
+.swapp-editorial-route .swapp-store .swapp-store-card-media{
+ background:#182536;overflow:hidden;
+}
+.swapp-editorial-route .swapp-store .swapp-store-card-media img{
+ object-fit:cover;
+}
+.swapp-editorial-route .swapp-store .swapp-store-card-cta{
+ text-underline-offset:3px;
+}
+.swapp-editorial-route .swapp-store .swapp-store-catalogue{
+ scroll-margin-top:100px;
+}
+.swapp-editorial-route .swapp-store .swapp-store-editorial-picks{
+ border-top:1px solid var(--swapp-v15-border);
+}
+
+/* SOCIAL — let the feed read as a publication, not a stack of widgets.
+ * Preserve its authenticated actions, sticky positioning and user colours. */
+.swapp-social-viewport .swapp-social-sticky-stack{
+ border-bottom:1px solid var(--swapp-v15-border);
+}
+.swapp-social-viewport .pulse-topbar{
+ background:rgba(12,20,33,.91)!important;
+}
+.swapp-social-viewport .pulse-topbar h1{
+ letter-spacing:-.05em!important;line-height:1.14!important;
+}
+.swapp-social-viewport .pulse-tabs{
+ border-bottom:1px solid var(--swapp-v15-border);
+}
+.swapp-social-viewport .pulse-tab.active{
+ color:#f2f9ff;
+}
+.swapp-social-viewport .swapp-social-story{
+ border-radius:clamp(9px,1vw,13px)!important;
+ border:1px solid rgba(175,209,234,.28)!important;
+}
+.swapp-social-viewport .swapp-social-story-overlay{
+ background:linear-gradient(0deg,rgba(5,11,20,.87),rgba(5,11,20,.16) 76%,transparent)!important;
+}
+.swapp-social-viewport .swapp-social-story-info strong{
+ text-shadow:0 3px 15px rgba(0,0,0,.7);
+}
+.swapp-social-viewport .pulse-composer{
+ background:rgba(13,22,35,.76)!important;
+}
+.swapp-social-viewport .pulse-post{
+ border-bottom:1px solid var(--swapp-v15-border);
+ background:transparent!important;
+}
+.swapp-social-viewport .pulse-post-head strong{
+ letter-spacing:-.025em;font-weight:850;
+}
+.swapp-social-viewport .pulse-post-main>p{
+ line-height:1.65!important;letter-spacing:-.005em;
+}
+.swapp-social-viewport .pulse-post .pulse-rich-link-preview{
+ border-radius:12px!important;overflow:hidden;
+}
+
+/* Desktop interactions: confident, quiet, and tied to real images. */
+@media(hover:hover) and (pointer:fine){
+ #home .swapp-home-story:hover,
+ #home .homeLiveCard1014:hover,
+ #actus .swapp-actus-card:hover,
+ .swapp-editorial-route .swapp-store .swapp-store-card:hover{
+  border-color:color-mix(in srgb,var(--swapp-v15-accent) 48%,rgba(181,204,229,.2))!important;
+  box-shadow:0 18px 42px rgba(0,0,0,.24)!important;
+ }
+ .swapp-social-viewport .swapp-social-story:hover img{
+  transform:scale(1.035)!important;
+ }
+ .swapp-editorial-route .swapp-store .swapp-store-department:hover>img{
+  transform:scale(1.045);
+ }
+}
+/* Touch screens: protect safe areas and avoid hover-only effects. */
+@media(max-width:920px){
+ #home .swappHome1014 .swapp-home-hero-feature-overlay strong{
+  font-size:clamp(25px,5.1vw,44px)!important;
+ }
+ .swapp-editorial-route .swapp-store .swapp-store-departments-grid{
+  gap:12px;
+ }
+}
+@media(max-width:650px){
+ #home .swappHome1014 .swapp-home-hero-feature-overlay{
+  padding:clamp(16px,4vw,25px)!important;
+ }
+ #home .swapp-home-story .swapp-home-story-body strong{
+  font-size:clamp(17px,4.4vw,20px);
+ }
+ #actus .swapp-actus-head h1{max-width:100%}
+ .swapp-editorial-route .swapp-store .swapp-store-campaign{
+  height:clamp(250px,65vw,335px);
+ }
+ .swapp-editorial-route .swapp-store .swapp-store-campaign-copy{
+  left:clamp(16px,4.5vw,25px);right:16px;bottom:22px;
+  max-width:calc(100% - 32px);
+ }
+ .swapp-editorial-route .swapp-store .swapp-store-campaign-copy>strong{
+  font-size:clamp(27px,7.6vw,39px);
+ }
+ .swapp-editorial-route .swapp-store .swapp-store-department{
+  min-height:clamp(145px,36vw,205px);
+ }
+ .swapp-social-viewport .pulse-post-main>p{
+  font-size:15px!important;line-height:1.6!important;
+ }
+}
+@media(prefers-reduced-motion:reduce){
+ #home .swapp-home-story,
+ #home .homeLiveCard1014,
+ #actus .swapp-actus-card,
+ .swapp-editorial-route .swapp-store :is(.swapp-store-card,.swapp-store-department>img),
+ .swapp-social-viewport .swapp-social-story img{
+  transition:none!important;transform:none!important;
+ }
+}
