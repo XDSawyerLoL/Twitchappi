@@ -201,3 +201,18 @@
  .swapp-store :is(a,button,img){scroll-behavior:auto;transition:none!important}
  .swapp-store-card:hover,.swapp-store-card:hover .swapp-store-product-img{transform:none!important}
 }
+
+/* SWAPP STORE STABILITY V14 — managed catalogue ahead of the Steam editorial rail. */
+.swapp-store-catalogue{margin-bottom:clamp(34px,5vw,64px)}
+.swapp-store-editorial-picks{margin-top:clamp(36px,5vw,72px);padding-top:clamp(22px,3vw,36px);border-top:1px solid var(--store-border)}
+.swapp-store-editorial-picks .swapp-editorial-top{margin-top:0}
+.swapp-store-empty{padding:22px;text-align:center;color:var(--store-muted);border:1px solid var(--store-border);border-radius:15px;background:var(--store-surface)}
+.swapp-store-empty[hidden]{display:none!important}
+.swapp-store-campaign:focus-visible,.swapp-store-department:focus-visible{outline:3px solid var(--store-mint);outline-offset:4px}
+@media(max-width:650px){
+ .swapp-store-editorial-picks{margin-top:30px;padding-top:18px}
+ .swapp-store-empty{padding:16px}
+}
+@media(prefers-reduced-motion:reduce){
+ .swapp-store-campaign>img,.swapp-store-department>img{transition:none}
+}
