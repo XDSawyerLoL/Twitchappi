@@ -107,8 +107,17 @@ if(a.summary)heroCopy.append(el('p','swapp-actus-summary',a.summary));
 heroCopy.append(el('p','swapp-actus-author',[a.author,date(a.publishedAt||a.originalPublishedAt)].filter(Boolean).join(' · ')));
 heading.append(heroCopy);article.append(heading);
 if(heroImage&&a.image?.credit)heroCopy.append(el('p','swapp-immersive-credit',a.image.credit));
-const controls=el('div','swapp-reader-controls');const words=String(a.body||'').trim().split(/\s+/).filter(Boolean).length;controls.append(el('span','swapp-read-time',Math.max(1,Math.ceil(words/220))+' min de lecture'));
-const share=el('button','swapp-reader-share','Partager l’article');share.type='button';share.onclick=async()=>{const address=location.origin+'/actus/'+encodeURIComponent(slug);try{if(navigator.share){await navigator.share({title:a.title,url:address});return}if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(address);share.textContent='Lien copié';return}}catch(e){if(e.name==='AbortError')return}share.textContent='Copier le lien : '+address};controls.append(share);if(a.game){const jump=el('a','swapp-reader-live-jump','Voir les lives du jeu ↓');jump.href='#swapp-article-lives';jump.onclick=e=>{const target=article.querySelector('#swapp-article-lives');if(!target)return;e.preventDefault();target.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'})};controls.append(jump)}heroCopy.append(controls);
+const controls=el('div','swapp-reader-controls');const words=String(a.body||'').trim().split(/\\s+/).filter(Boolean).length;
+controls.append(el('span','swapp-read-time',Math.max(1,Math.ceil(words/220))+' min de lecture'));
+const actions=el('nav','swapp-game-journey-actions');actions.setAttribute('aria-label','Explorer ce jeu sur SWAPP');
+const read=el('a','swapp-game-journey-action primary','Lire l’article ↓');read.href='#article-content';
+read.onclick=e=>{const dest=article.querySelector('#article-content');if(!dest)return;e.preventDefault();dest.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'})};
+const watch=el('a','swapp-game-journey-action','Voir les lives →');watch.href=a.game?'#swapp-article-lives':'/decouvrir';
+if(a.game)watch.onclick=e=>{const dest=article.querySelector('#swapp-article-lives');if(!dest)return;e.preventDefault();dest.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'})};
+const discuss=el('a','swapp-game-journey-action','En discuter →');
+discuss.href='/communaute?share=news&title='+encodeURIComponent(a.game?a.game+' — '+a.title:a.title)+'&url='+encodeURIComponent(location.origin+'/actus/'+slug);
+actions.append(read,watch,discuss);heroCopy.append(actions);
+const share=el('button','swapp-reader-share','Partager l’article');share.type='button';share.onclick=async()=>{const address=location.origin+'/actus/'+encodeURIComponent(slug);try{if(navigator.share){await navigator.share({title:a.title,url:address});return}if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(address);share.textContent='Lien copié';return}}catch(e){if(e.name==='AbortError')return}share.textContent='Copier le lien : '+address};controls.append(share);heroCopy.append(controls);
 // Artwork remains behind the heading. Reading progress is now a small TOC label,
 // not a second horizontal line underneath the SWAPP navigation.
 const reading=el('div','swapp-article-reading');
