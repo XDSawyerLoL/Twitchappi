@@ -38,10 +38,27 @@ test('shared visual finishing layer only styles existing SWAPP screens',()=>{
  assert.equal(braces,0,'unmatched opening brace');
 });
 
+test('V8 cinema finish preserves native images and existing community controls',()=>{
+ const css=read('assets/swapp-presentation-polish.css');
+ for(const feature of [
+  'Editorial unity V8',
+  '#home .swappHome1014 .swapp-home-hero-feature::after',
+  '#home .swapp-home-editorial .swapp-home-story-image img',
+  '#actus .swapp-actus-card .swapp-actus-cover img',
+  '.swapp-editorial-route .story-card .story-image',
+  '.swapp-social-viewport .swapp-social-story-info strong',
+  '.swapp-social-viewport .social-dm-view .pulse-message'
+ ])assert.ok(css.includes(feature),'missing shared visual finish: '+feature);
+ assert.match(css,/@media\(hover:hover\) and \(pointer:fine\)/);
+ assert.match(css,/@media\(prefers-reduced-motion:reduce\)/);
+ assert.doesNotMatch(css,/url\(https?:|@import|@keyframes/);
+});
+
 test('Hostinger release hash includes finishing asset and smoke check verifies its delivery',()=>{
  const release=read('tools/swapp-release.js'),verify=read('tools/swapp-deploy-smoke.js');
  assert.match(release,/'assets\/swapp-presentation-polish\.css'/);
  assert.match(verify,/Home uses an outdated presentation stylesheet/);
  assert.match(verify,/Actualité uses an outdated presentation stylesheet/);
  assert.match(verify,/Shared presentation finish is stale or incomplete/);
+ assert.ok(verify.includes('Editorial unity V8'),'production smoke must reject older finish assets');
 });
