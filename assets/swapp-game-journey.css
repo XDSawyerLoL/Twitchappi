@@ -615,8 +615,9 @@
  opacity:1!important;visibility:visible!important;
  transition:none!important;
 }
-#home .swappHome1014 .swapp-home-hero-feature.swapp-home-motion-playing > img{
- visibility:hidden!important; /* Hide the poster, not with another overlay. */
+#home .swappHome1014 .swapp-home-hero-feature.swapp-home-motion-playing > img,
+#home .swappHome1014 .swapp-home-hero-feature.swapp-home-motion-loading > img{
+ visibility:hidden!important; /* Cover never appears beneath loading video. */
 }
 #home .swappHome1014 .swapp-home-motion-host{
  position:absolute;inset:0;display:block;

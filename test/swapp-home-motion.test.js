@@ -66,13 +66,14 @@ test('video never loads for an unverified trailer, mobile device, reduced-motion
  }
 });
 
-test('matching desktop trailer keeps the poster until real muted playback begins',async()=>{
+test('desktop hides poster immediately while muted trailer starts',async()=>{
  const v=mockedPlayer();
  assert.equal(v.attached,true);
  assert.ok(v.poster.next);
  assert.equal(v.poster.next.className,'swapp-home-motion');
  assert.equal(v.classes.has('swapp-home-motion-playing'),false,'no movie before ready');
- assert.equal(v.players.length,0,'no video network until after image and delay');
+ assert.equal(v.classes.has('swapp-home-motion-loading'),true,'poster hidden before video plays');
+ assert.equal(v.players.length,0,'video begins on the next turn, not after poster load');
  assert.equal(v.timers.length,1);
  v.timers.shift()();
  for(let i=0;i<8;i++)await Promise.resolve();
@@ -86,6 +87,7 @@ test('matching desktop trailer keeps the poster until real muted playback begins
  assert.equal(config.playerVars.start,10);
  assert.ok(v.seeks.some(([sec,enabled])=>sec===10&&enabled===true),'player seeks to 0:10 before play');
  assert.equal(v.classes.has('swapp-home-motion-playing'),true);
+ assert.equal(v.classes.has('swapp-home-motion-loading'),false);
 });
 
 test('iframe/player errors remove only the video overlay and leave the cover intact',async()=>{
@@ -96,6 +98,7 @@ test('iframe/player errors remove only the video overlay and leave the cover int
  assert.equal(v.players.length,1);
  assert.equal(v.poster.next.removed,true);
  assert.equal(v.classes.has('swapp-home-motion-playing'),false);
+ assert.equal(v.classes.has('swapp-home-motion-loading'),false);
  assert.equal(v.poster.naturalWidth,1400);
 });
 
@@ -105,10 +108,10 @@ test('cleaner homepage has no legacy first-paint masking and mounts cinematic cl
  assert.doesNotMatch(boot,/#home\.view\.active > :not\(\.swappHome1014\)/);
  assert.doesNotMatch(boot,/\.homeHeroCopy1014\{display:none!important\}/);
  assert.doesNotMatch(boot,/\.homeHeroInner1014:not\(\.swapp-feature-ready\)/);
- const helper='swapp-home-motion.js?v=20261018-hero-single-v24';
- assert.match(html,/swapp-home-news\.js\?v=20261018-hero-single-v24/);
+ const helper='swapp-home-motion.js?v=20261018-hero-lifecycle-v25';
+ assert.match(html,/swapp-home-news\.js\?v=20261018-hero-lifecycle-v25/);
  assert.ok(html.includes(helper));
- assert.ok(html.indexOf(helper)<html.indexOf('swapp-home-news.js?v=20261018-hero-single-v24'));
+ assert.ok(html.indexOf(helper)<html.indexOf('swapp-home-news.js?v=20261018-hero-lifecycle-v25'));
  assert.match(read('assets/swapp-home-news.js'),/SwappHomeMotion\?\.attach\?\.\(tile,feature\)/);
 });
 
@@ -119,7 +122,8 @@ test('hero remains image first and never animates for motion-sensitive visitors'
  assert.match(part,/\.swapp-home-motion-playing/);
  assert.match(part,/opacity:0!important/);
  assert.match(part,/opacity:1!important/);
- assert.ok(part.includes('swapp-home-motion-playing > img{'));
+ assert.doesNotMatch(script,/setTimeout\(begin,1100\)/);
+ assert.ok(part.includes('swapp-home-motion-loading > img{'));
  assert.match(part,/visibility:hidden!important/);
  assert.doesNotMatch(part,/opacity:\.88!important/);
  assert.match(part,/\(prefers-reduced-motion:reduce\)/);
@@ -131,6 +135,6 @@ test('hero remains image first and never animates for motion-sensitive visitors'
  assert.doesNotMatch(part,/width:118%!important|height:118%!important/);
  assert.match(read('tools/swapp-release.js'),/'assets\/swapp-home-motion\.js'/);
  const smoke=read('tools/swapp-deploy-smoke.js');
- assert.match(smoke,/swapp-home-motion\.js\?v=20261018-hero-single-v24/);
+ assert.match(smoke,/swapp-home-motion\.js\?v=20261018-hero-lifecycle-v25/);
  assert.match(smoke,/youtube-nocookie\.com/);
 });

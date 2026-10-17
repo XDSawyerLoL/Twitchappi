@@ -1,7 +1,6 @@
-/* SWAPP V22 — article-matched, muted cinematic hero. Poster first, optional motion.
- * YouTube is requested only on capable desktop when the selected article has
- * its own validated trailer URL. No autoplay on mobile, Save-Data or low-motion.
- * Playback failure, iframe ads/loading, or a missing trailer never hide art.
+/* SWAPP V25 — one hero canvas, no poster flash during trailer startup.
+ * Only eligible desktops autoplay a matched muted trailer from 0:10.
+ * Show the static cover only when video is unavailable or blocked.
  */
 (() => {
  'use strict';
@@ -50,7 +49,7 @@
   if(!id||!tile||!eligible())return false;
   const poster=tile.querySelector('img');
   if(!poster)return false;
-  let removed=false,player=null,observer=null,rootObserver=null,delay=null,watching=false,wasPlaying=false;
+  let removed=false,player=null,observer=null,rootObserver=null,delay=null,watchdog=null,watching=false,wasPlaying=false;
   const wrap=document.createElement('span');
   wrap.className='swapp-home-motion';
   wrap.setAttribute('aria-hidden','true');
@@ -61,12 +60,13 @@
   const mount=document.createElement('span');
   host.append(mount);
   wrap.append(host);
-  // The poster stays present for first paint, aria text and video failure.
+  // Poster stays as fallback, never painted under a loading trailer.
+  tile.classList.add('swapp-home-motion-loading');
   poster.after(wrap);
   function active(){return !removed&&tile.isConnected&&eligible()&&
    !!tile.closest('#home.view.active')}
   function removeMotion(){
-   tile.classList.remove('swapp-home-motion-playing');
+   tile.classList.remove('swapp-home-motion-playing','swapp-home-motion-loading');
    wrap.remove();
    if(player){try{player.destroy()}catch{}player=null}
   }
@@ -74,6 +74,7 @@
    if(removed)return;
    removed=true;
    clearTimeout(delay);
+   clearTimeout(watchdog);
    observer?.disconnect();
    rootObserver?.disconnect();
    document.removeEventListener('visibilitychange',onVisibility);
@@ -91,7 +92,9 @@
   function state(event){
    if(removed)return;
    if(event.data===window.YT?.PlayerState?.PLAYING&&active()){
-    wasPlaying=true;tile.classList.add('swapp-home-motion-playing');
+    wasPlaying=true;clearTimeout(watchdog);
+    tile.classList.add('swapp-home-motion-playing');
+    tile.classList.remove('swapp-home-motion-loading');
     // A loop is silent, so there is no audio or start/stop UI.
     try{event.target.mute()}catch{}
    }else if(event.data===window.YT?.PlayerState?.ENDED){
@@ -115,6 +118,7 @@
      events:{
       onReady(e){
        if(!active()){cleanup();return}
+       watchdog=setTimeout(()=>{if(!wasPlaying)cleanup()},8000);
        try{e.target.mute();e.target.seekTo(TRAILER_START_SECONDS,true);e.target.playVideo()}catch{cleanup()}
       },
       onStateChange:state,
@@ -123,13 +127,11 @@
     });
    }catch{cleanup()}
   }
-  function startAfterPoster(){
+  function startMotion(){
    if(watching)return;
    watching=true;
-   if(poster.complete&&poster.naturalWidth>0){delay=setTimeout(begin,1100);return}
-   if(poster.complete&&!poster.naturalWidth)return cleanup();
-   poster.addEventListener('load',()=>{if(!removed)delay=setTimeout(begin,1100)},{once:true});
-   poster.addEventListener('error',cleanup,{once:true});
+   // The trailer does not wait for image download or artificial delay.
+   delay=setTimeout(begin,0);
   }
   // Never keep a background video playing when its SWAPP page leaves the DOM.
   const home=document.getElementById('home');
@@ -147,7 +149,7 @@
   }
   document.addEventListener('visibilitychange',onVisibility);
   window.addEventListener('pagehide',cleanup,{once:true});
-  startAfterPoster();
+  startMotion();
   return true;
  }
  window.SwappHomeMotion=Object.freeze({attach});

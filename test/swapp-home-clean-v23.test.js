@@ -16,6 +16,8 @@ test('one current home renderer, ten obsolete renderers delegate and do not recr
  assert.doesNotMatch(bundle,/window\.renderHome = async function renderHome(?:Final|Restored|1013)/);
  assert.doesNotMatch(bundle,/Des lives à taille humaine\./);
  assert.match(bundle,/homeHeroInner1014 swapp-hero-pending/);
+ assert.match(bundle,/el\.querySelector\?\.\(':scope > \.swappHome1014'\)/);
+ assert.doesNotMatch(bundle,/setTimeout\(\(\) => window\.renderHome\?\.\(\)/);
 });
 
 test('legacy first-paint hiding rule is gone rather than layering on more masking CSS',()=>{
@@ -59,10 +61,10 @@ test('video iframe uses a stable parent and covers 16:9 with no 118% guess',()=>
 test('fresh V23 assets are loaded in SPA, native shells and production smoke',()=>{
  const html=read('index.html');
  for(const asset of ['index_script.js','swapp-home-news.js','swapp-game-journey.css','swapp-home-motion.js']){
-  assert.match(html,new RegExp(asset.replace(/\./g,'\\.')+'\\?v=20261018-hero-single-v24'));
+  assert.match(html,new RegExp(asset.replace(/\./g,'\\.')+'\\?v=20261018-hero-lifecycle-v25'));
  }
  for(const path of ['modules/swapp-news/site-shell.js','modules/swapp-news/article-core.js'])
-  assert.ok(read(path).includes('swapp-game-journey.css?v=20261018-hero-single-v24'),path);
+  assert.ok(read(path).includes('swapp-game-journey.css?v=20261018-hero-lifecycle-v25'),path);
  const smoke=read('tools/swapp-deploy-smoke.js');
  assert.match(smoke,/Obsolete home renderer still shipped to production/);
  assert.match(smoke,/start:TRAILER_START_SECONDS/);

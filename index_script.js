@@ -11026,6 +11026,11 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
     addStyle1014();
     const el = $id('home');
     if(!el) return;
+    // Mount the home once. Repeated route/load events must not destroy video.
+    if(el.querySelector?.(':scope > .swappHome1014')){
+      void loadLives(false);
+      return;
+    }
     const streamView = (typeof streamTargetView === 'function') ? streamTargetView() : (state?.session?.local ? 'manager' : 'settings');
     const streamLabel = (typeof streamTargetLabel === 'function') ? streamTargetLabel() : (state?.session?.local ? 'Lancer mon live' : 'Créer ma chaîne');
     el.innerHTML = `<main class="swappHome1014">
@@ -11099,7 +11104,6 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
   if(typeof prevSetView === 'function' && !prevSetView.__swappHome1014){
     const wrappedSetView = async function(view){
       const out = await prevSetView.apply(this, arguments);
-      if(view === 'home') setTimeout(() => window.renderHome?.(), 20);
       if(view === 'channel') [60,250,800].forEach(ms => setTimeout(fitChat1014, ms));
       return out;
     };
@@ -11111,7 +11115,7 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
   addStyle1014();
   window.addEventListener('resize', () => { if(state?.view === 'channel') requestAnimationFrame(fitChat1014); });
   window.addEventListener('orientationchange', () => setTimeout(fitChat1014, 160));
-  document.addEventListener('DOMContentLoaded', () => { if(state?.view === 'home') setTimeout(() => window.renderHome?.(), 80); if(state?.view === 'channel') setTimeout(fitChat1014, 160); });
-  window.addEventListener('load', () => { if(state?.view === 'home') setTimeout(() => window.renderHome?.(), 80); if(state?.view === 'channel') setTimeout(fitChat1014, 160); });
+  document.addEventListener('DOMContentLoaded', () => { if(state?.view === 'channel') setTimeout(fitChat1014, 160); });
+  window.addEventListener('load', () => { if(state?.view === 'channel') setTimeout(fitChat1014, 160); });
   setInterval(() => { if(state?.view === 'home') loadLives(false); }, 60000);
 })();

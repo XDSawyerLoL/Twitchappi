@@ -62,9 +62,9 @@ test('pending area reserves the final image footprint with no popup, border or r
 
 test('HTML shell and smoke test require the same fresh V21 script and CSS files',()=>{
  const html=read('index.html');
- const cssVersion='swapp-game-journey.css?v=20261018-hero-single-v24';
- const newsVersion='swapp-home-news.js?v=20261018-hero-single-v24';
- const scriptVersion='index_script.js?v=20261018-hero-single-v24';
+ const cssVersion='swapp-game-journey.css?v=20261018-hero-lifecycle-v25';
+ const newsVersion='swapp-home-news.js?v=20261018-hero-lifecycle-v25';
+ const scriptVersion='index_script.js?v=20261018-hero-lifecycle-v25';
  for(const x of [cssVersion,newsVersion,scriptVersion])assert.ok(html.includes(x),x);
  const shell=read('modules/swapp-news/site-shell.js');
  assert.ok(shell.includes(cssVersion));
@@ -75,4 +75,30 @@ test('HTML shell and smoke test require the same fresh V21 script and CSS files'
  const release=read('tools/swapp-release.js');
  for(const source of ['index_script.js','assets/swapp-home-news.js','assets/swapp-game-journey.css'])
   assert.ok(release.includes("'"+source+"'"),source);
+});
+
+test('repeat render on F5 reuses existing homepage hero DOM',async()=>{
+ const snippet=homeRenderer();
+ const el={innerHTML:'',querySelector(sel){return sel===':scope > .swappHome1014'&&this.innerHTML.includes('swappHome1014')?{}:null}};
+ let liveCalls=0;
+ const build=new Function('window','$id','addStyle1014','state','loadLives',
+  'closeMini','safe','streamTargetView','streamTargetLabel',
+  snippet+'\nreturn window.renderHome;');
+ const render=build({},id=>id==='home'?el:null,()=>{},
+  {view:'home',session:{local:false}},()=>{liveCalls++;return Promise.resolve()},()=>{},String,()=>null,()=>null);
+ await render();
+ const html=el.innerHTML;
+ await render();await render();
+ assert.equal(el.innerHTML,html,'never remount the video and poster');
+ assert.equal(liveCalls,1);
+ assert.doesNotMatch(read('index_script.js'),/setTimeout\(\(\) => window\.renderHome\?\.\(\)/);
+});
+
+test('desktop teaser hides static cover until playback succeeds or fails',()=>{
+ const motion=read('assets/swapp-home-motion.js'),css=read('assets/swapp-game-journey.css');
+ assert.match(motion,/swapp-home-motion-loading/);
+ assert.match(motion,/delay=setTimeout\(begin,0\)/);
+ assert.doesNotMatch(motion,/setTimeout\(begin,1100\)/);
+ assert.match(css,/\.swapp-home-motion-loading > img\{/);
+ assert.match(motion,/if\(!wasPlaying\)cleanup\(\)/);
 });

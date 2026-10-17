@@ -129,11 +129,11 @@ async function verify(){
  const newsScript=await request(origin,'/assets/swapp-home-news.js');
  check(!newsScript.body.includes('signal:AbortSignal.timeout(')&&
    newsScript.body.includes('new AbortController()')&&
-   home.body.includes('swapp-home-news.js?v=20261018-hero-single-v24'),
+   home.body.includes('swapp-home-news.js?v=20261018-hero-lifecycle-v25'),
    'Homepage editorial script is stale or incompatible with older Safari');
- const motionPath='/assets/swapp-home-motion.js?v=20261018-hero-single-v24';
+ const motionPath='/assets/swapp-home-motion.js?v=20261018-hero-lifecycle-v25';
  check(home.body.includes(motionPath)&&
-   home.body.indexOf(motionPath)<home.body.indexOf('swapp-home-news.js?v=20261018-hero-single-v24'),
+   home.body.indexOf(motionPath)<home.body.indexOf('swapp-home-news.js?v=20261018-hero-lifecycle-v25'),
    'No cinematic hero helper before the editorial client');
  const motion=await request(origin,'/assets/swapp-home-motion.js');
  check(motion.body.includes('window.SwappHomeMotion')&&
@@ -142,6 +142,8 @@ async function verify(){
    motion.body.includes('prefers-reduced-motion: reduce')&&
    motion.body.includes('saveData')&&
    motion.body.includes('swapp-home-motion-playing')&&
+   motion.body.includes('swapp-home-motion-loading')&&
+   motion.body.includes('delay=setTimeout(begin,0)')&&
    motion.body.includes('start:TRAILER_START_SECONDS')&&
    motion.body.includes('seekTo(TRAILER_START_SECONDS,true)'),
    'Hero trailer validation, quiet playback or fallback has not deployed');
@@ -174,7 +176,7 @@ async function verify(){
  const discover=await request(origin,'/decouvrir');
  check(discover.body.includes('swapp-discover-comfort.js?v=20261017-journey-v17'),
   'Discover has an old mobile UI release');
- check(discover.body.includes('index_script.js?v=20261018-hero-single-v24'),
+ check(discover.body.includes('index_script.js?v=20261018-hero-lifecycle-v25'),
   'Discover still references an old V4 player script');
  const comfort=await request(origin,'/assets/swapp-discover-comfort.js');
  check(comfort.body.includes('swapp-discover-no-image')&&comfort.body.includes('v4SwipeCard')
@@ -198,7 +200,7 @@ async function verify(){
  const presentation='/assets/swapp-presentation-polish.css?v=20261017-visual-audit-v16';
  check(home.body.includes(presentation),'Home uses an outdated presentation stylesheet');
  check(news.body.includes(presentation),'Actualité uses an outdated presentation stylesheet');
- const journey='/assets/swapp-game-journey.css?v=20261018-hero-single-v24';
+ const journey='/assets/swapp-game-journey.css?v=20261018-hero-lifecycle-v25';
  check(home.body.includes(journey)&&news.body.includes(journey),
   'V17 cinematic journey is missing from homepage or native articles');
  const journeyStyles=await request(origin,'/assets/swapp-game-journey.css');
@@ -216,6 +218,7 @@ async function verify(){
   journeyStyles.body.includes('transform:translateX(-50%)!important')&&
   journeyStyles.body.includes('mask-image:none!important')&&
   journeyStyles.body.includes('visibility:hidden!important')&&
+  journeyStyles.body.includes('.swapp-home-motion-loading > img')&&
   !journeyStyles.body.includes('opacity:.88!important')&&
   journeyStyles.body.includes('.swapp-home-creator-name')&&
   journeyStyles.body.includes('width:100dvw!important')&&
