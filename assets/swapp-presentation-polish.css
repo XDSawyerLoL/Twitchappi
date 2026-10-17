@@ -903,3 +903,35 @@ body.oryonDiscoverV4 #discover .v4Meta{
   transition:none!important;transform:none!important;
  }
 }
+
+
+/* SOCiAL surface specificity: the late-loaded v3 rules use an ID selector. */
+#swappSocialNative .pulse-topbar{
+ background:linear-gradient(105deg,color-mix(in srgb,var(--swapp-v15-accent) 5%,#0d1725),#0e1827 72%)!important;
+}
+#swappSocialNative .pulse-topbar:after{
+ height:2px;width:36px;opacity:.52;
+ background:var(--swapp-v15-accent)!important;
+}
+#swappSocialNative .pulse-tabs{
+ background:#0e1929!important;
+}
+#swappSocialNative[data-social-view="home"] .pulse-composer{
+ background:#121d2d!important;
+ border-bottom:1px solid var(--swapp-v15-border)!important;
+}
+#swappSocialNative .pulse-post{
+ background:transparent!important;
+ border-bottom:1px solid var(--swapp-v15-border)!important;
+}
+#swappSocialNative .swapp-social-story{
+ border-radius:12px!important;
+}
+@media(hover:hover) and (pointer:fine){
+ #swappSocialNative .pulse-post:hover{
+  background:rgba(184,211,237,.026)!important;
+ }
+}
+@media(max-width:650px){
+ #swappSocialNative .swapp-social-story{border-radius:10px!important}
+}
