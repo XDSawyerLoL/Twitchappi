@@ -112,6 +112,21 @@ async function verify(){
   'Article live discovery client is outdated: targeted game lookup missing');
  check(discovery.body.includes("text(button,'Réessayer')")&&discovery.body.includes('requests.delete(key)'),
   'Article live discovery retry/recovery is outdated');
+ check(discovery.body.includes('swapp-game-connection')&&
+  discovery.body.includes('swapp-related-cover')&&
+  discovery.body.includes('gameMatch(game,item.game_name||item.category||item.game)'),
+  'Game bridge is missing exact-game creator and article presentation');
+ const bridgeCss=await request(origin,'/assets/swapp-media.css');
+ check(bridgeCss.body.includes('SWAPP GAME BRIDGE V12')&&bridgeCss.body.includes('.swapp-game-connection'),
+  'Game bridge CSS is stale or not served by Hostinger');
+ const readerApp=await request(origin,'/assets/swapp-actus-app.js');
+ check(readerApp.body.includes('const sameGame=')&&
+  readerApp.body.includes('/live/twitch/')&&
+  !readerApp.body.includes('a.length>=7&&b.includes(a)'),
+  'Actualité still matches sequels incorrectly or opens external lives');
+ check(home.body.includes('/assets/swapp-media.css?v=20261017-game-bridge-v12')&&
+  home.body.includes('/assets/swapp-actus-app.js?v=20261017-game-bridge-v12'),
+  'Homepage is still using the old game bridge');
  process.stdout.write('PASS game-specific article live discovery\n');
  const discover=await request(origin,'/decouvrir');
  check(discover.body.includes('swapp-discover-comfort.js?v=20261016-v4-mobile-3-creators'),
