@@ -163,3 +163,60 @@ main.swapp-media-main{max-width:1390px;padding:36px 20px 90px}
 .swapp-reader-live-jump:focus-visible{outline:3px solid #7de7e9;outline-offset:3px}
 #swapp-article-lives{scroll-margin-top:90px}
 @media(max-width:600px){.swapp-reader-live-jump{width:100%}}
+
+
+/* SWAPP GAME BRIDGE V12 — a real game connects journalism and live creators.
+ * No new homepage shelf, extra analytics or third-party fonts. */
+.swapp-live-card.swapp-game-linked-card{
+ position:relative;
+ border-color:rgba(131,197,215,.36);
+ background:#121f31;
+}
+.swapp-live-card.swapp-game-linked-card:focus-visible{
+ outline:2px solid var(--swapp-finish-focus,#8be9e7);
+ outline-offset:3px;
+}
+.swapp-game-connection{
+ display:inline-flex;
+ align-items:center;
+ max-width:100%;
+ margin:8px 0 3px;
+ padding:5px 10px;
+ border:1px solid rgba(120,230,227,.32);
+ border-radius:999px;
+ background:rgba(78,181,184,.10);
+ color:#b5f4ee;
+ font-size:11px;
+ font-weight:800;
+ letter-spacing:.012em;
+ line-height:1.4;
+ overflow-wrap:anywhere;
+}
+.swapp-related-card .swapp-related-cover{
+ min-height:0;
+ aspect-ratio:16/9;
+ border-bottom:1px solid rgba(180,204,228,.12);
+}
+.swapp-related-card .swapp-related-cover img{
+ display:block;object-fit:cover;width:100%;height:100%;
+ transition:transform .28s ease;
+}
+.swapp-related-card .swapp-live-content{
+ display:flex;flex-direction:column;align-items:flex-start;
+}
+.swapp-related-card .swapp-live-content strong{
+ color:#f4f8ff;
+}
+.swapp-related-card .swapp-live-action{
+ margin-top:auto;padding-top:8px;
+}
+@media(hover:hover) and (pointer:fine){
+ .swapp-related-card:hover .swapp-related-cover img{transform:scale(1.025)}
+}
+@media(max-width:660px){
+ .swapp-live-card.swapp-game-linked-card{min-width:0;}
+ .swapp-game-connection{font-size:11px;white-space:normal}
+}
+@media(prefers-reduced-motion:reduce){
+ .swapp-related-card .swapp-related-cover img{transition:none!important;transform:none!important}
+}
