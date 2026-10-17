@@ -7,6 +7,7 @@
  'use strict';
  let apiPromise;
  const VIDEO_READY_TIMEOUT=10000;
+ const TRAILER_START_SECONDS=10; // 0:10, not the first frame.
  function trailerId(article){
   const validate=window.SwappArticleExtras?.trailerId;
   return typeof validate==='function'?validate(article?.trailerUrl):null;
@@ -90,7 +91,7 @@
     // A loop is silent, so there is no audio or start/stop UI.
     try{event.target.mute()}catch{}
    }else if(event.data===window.YT?.PlayerState?.ENDED){
-    try{event.target.seekTo(0);event.target.playVideo()}catch{}
+    try{event.target.seekTo(TRAILER_START_SECONDS,true);event.target.playVideo()}catch{}
    }else if(event.data===window.YT?.PlayerState?.PAUSED){
     tile.classList.remove('swapp-home-motion-playing');
    }
@@ -105,12 +106,12 @@
      videoId:id,width:'100%',height:'100%',
      playerVars:{
       autoplay:1,controls:0,disablekb:1,fs:0,iv_load_policy:3,
-      loop:1,playlist:id,playsinline:1,rel:0,mute:1,origin:location.origin
+      loop:1,playlist:id,playsinline:1,rel:0,mute:1,start:TRAILER_START_SECONDS,origin:location.origin
      },
      events:{
       onReady(e){
        if(!active()){cleanup();return}
-       try{e.target.mute();e.target.playVideo()}catch{cleanup()}
+       try{e.target.mute();e.target.seekTo(TRAILER_START_SECONDS,true);e.target.playVideo()}catch{cleanup()}
       },
       onStateChange:state,
       onError:()=>cleanup()
