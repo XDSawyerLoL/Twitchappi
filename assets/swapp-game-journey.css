@@ -180,3 +180,172 @@
  .swapp-game-journey-actions .button-link,
  #actus .swapp-game-journey-action{transition:none!important;transform:none!important}
 }
+
+
+/* SWAPP FULL-BLEED HOME V18 — cinema artwork merges into the page, not a card.
+ * Only the published editorial lead spans the viewport. Articles, lives and
+ * the visitor's saved theme retain their normal measured column below it. */
+#home .swappHome1014 .homeHeroInner1014.swapp-feature-ready{
+  grid-template-columns:minmax(0,1fr)!important;
+  gap:0!important;
+  padding:0!important;
+  margin-top:calc(-1 * clamp(8px,1.5vw,22px))!important;
+  overflow:visible!important;
+}
+#home .swappHome1014 .homeHeroInner1014.swapp-feature-ready > .swapp-home-hero-feature{
+  order:-3!important;
+  display:block!important;
+  position:relative!important;
+  justify-self:start!important;
+  width:100vw!important;
+  width:100dvw!important;
+  max-width:none!important;
+  min-width:0!important;
+  height:clamp(490px,72svh,790px)!important;
+  min-height:0!important;
+  max-height:none!important;
+  aspect-ratio:auto!important;
+  margin:0 0 0 calc(50% - 50vw)!important;
+  margin-left:calc(50% - 50dvw)!important;
+  padding:0!important;
+  background:var(--swapp-ink,#080d16)!important;
+  border:0!important;
+  outline-offset:-3px;
+  border-radius:0!important;
+  box-shadow:none!important;
+  transform:none!important;
+  isolation:isolate;
+}
+#home .swappHome1014 .homeHeroInner1014.swapp-feature-ready > .swapp-home-hero-feature img{
+  position:absolute!important;inset:0!important;
+  width:100%!important;height:100%!important;
+  max-width:none!important;
+  object-fit:cover!important;
+  object-position:center 39%!important;
+  transform:none!important;
+}
+/* Soft side edges and a long bottom dissolve into the actual SWAPP background. */
+#home .swappHome1014 .homeHeroInner1014.swapp-feature-ready > .swapp-home-hero-feature::after{
+  content:""!important;display:block!important;
+  position:absolute;inset:0;pointer-events:none;z-index:1;
+  background:
+    linear-gradient(90deg,
+      var(--swapp-ink,#080d16) 0%,
+      rgba(8,13,22,.25) 8%,
+      transparent 19%,
+      transparent 82%,
+      rgba(8,13,22,.28) 93%,
+      var(--swapp-ink,#080d16) 100%),
+    linear-gradient(0deg,
+      var(--swapp-ink,#080d16) 0%,
+      rgba(8,13,22,.96) 9%,
+      rgba(8,13,22,.72) 23%,
+      rgba(8,13,22,.26) 50%,
+      rgba(8,13,22,.07) 73%,
+      transparent 100%)!important;
+}
+#home .swappHome1014 .homeHeroInner1014.swapp-feature-ready
+  .swapp-home-hero-feature-overlay{
+  position:absolute!important;
+  inset:auto 0 clamp(165px,14vw,208px) 0!important;
+  z-index:2!important;
+  padding:0 max(clamp(23px,4.1vw,72px),calc((100vw - 1350px)/2))!important;
+  align-items:flex-start!important;
+  max-width:none!important;
+  background:none!important;
+}
+#home .swappHome1014 .homeHeroInner1014.swapp-feature-ready
+  .swapp-home-hero-feature-overlay strong{
+  font-size:clamp(35px,4.8vw,75px)!important;
+  line-height:1.045!important;
+  max-width:min(19ch,880px)!important;
+  text-shadow:0 3px 22px rgba(0,0,0,.43)!important;
+  letter-spacing:-.059em!important;
+}
+#home .swappHome1014 .homeHeroInner1014.swapp-feature-ready
+  > .swapp-home-feature-bridge{
+  order:-2!important;
+  box-sizing:border-box!important;
+  position:relative!important;
+  z-index:3!important;
+  justify-self:start!important;
+  width:100vw!important;
+  width:100dvw!important;
+  max-width:none!important;
+  margin:-156px 0 0 calc(50% - 50vw)!important;
+  margin-left:calc(50% - 50dvw)!important;
+  padding:10px max(clamp(23px,4.1vw,72px),calc((100vw - 1350px)/2))
+    45px!important;
+  min-height:156px;
+  align-content:start;
+  background:transparent!important;
+  border:0!important;
+  box-shadow:none!important;
+}
+#home .swappHome1014 .homeHeroInner1014.swapp-feature-ready
+  > .swapp-home-hero-feature:hover{
+  transform:none!important;border:0!important;box-shadow:none!important;
+}
+/* Portrait phones: movie framing stays edge-to-edge, copy and actions stay tappable. */
+@media(max-width:650px){
+  #home .swappHome1014 .homeHeroInner1014.swapp-feature-ready{
+    margin-top:0!important;
+  }
+  #home .swappHome1014 .homeHeroInner1014.swapp-feature-ready
+    > .swapp-home-hero-feature{
+    height:clamp(530px,76svh,760px)!important;
+    min-height:0!important;
+    border-radius:0!important;
+  }
+  #home .swappHome1014 .homeHeroInner1014.swapp-feature-ready
+    > .swapp-home-hero-feature img{
+    object-position:center 31%!important;
+  }
+  #home .swappHome1014 .homeHeroInner1014.swapp-feature-ready
+    > .swapp-home-hero-feature::after{
+    background:
+      linear-gradient(0deg,
+        var(--swapp-ink,#080d16) 0%,
+        rgba(8,13,22,.96) 9%,
+        rgba(8,13,22,.72) 32%,
+        rgba(8,13,22,.24) 65%,
+        rgba(8,13,22,.05) 100%)!important;
+  }
+  #home .swappHome1014 .homeHeroInner1014.swapp-feature-ready
+    .swapp-home-hero-feature-overlay{
+    inset:auto 0 207px 0!important;
+    padding:0 20px!important;
+  }
+  #home .swappHome1014 .homeHeroInner1014.swapp-feature-ready
+    .swapp-home-hero-feature-overlay strong{
+    font-size:clamp(28px,7.2vw,39px)!important;
+    max-width:20ch!important;
+    line-height:1.075!important;
+  }
+  #home .swappHome1014 .homeHeroInner1014.swapp-feature-ready
+    > .swapp-home-feature-bridge{
+    display:grid!important;
+    margin-top:-197px!important;
+    padding:5px 20px calc(32px + env(safe-area-inset-bottom,0px))!important;
+    min-height:197px;
+    gap:12px!important;
+  }
+}
+@media(max-width:365px){
+  #home .swappHome1014 .homeHeroInner1014.swapp-feature-ready
+    .swapp-home-hero-feature-overlay{
+    bottom:211px!important;
+  }
+  #home .swappHome1014 .homeHeroInner1014.swapp-feature-ready
+    > .swapp-home-feature-bridge{
+    margin-top:-203px!important;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  #home .swappHome1014 .homeHeroInner1014.swapp-feature-ready
+    > .swapp-home-hero-feature,
+  #home .swappHome1014 .homeHeroInner1014.swapp-feature-ready
+    > .swapp-home-hero-feature img{
+    animation:none!important;transition:none!important;transform:none!important;
+  }
+}
