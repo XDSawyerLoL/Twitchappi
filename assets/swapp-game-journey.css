@@ -404,8 +404,8 @@
 }
 #home .swappHome1014 .homeHeroInner1014.swapp-feature-ready
  > .swapp-home-hero-feature{
- background:transparent!important;
- /* Image mask leaves the visitor's actual homepage background visible. */
+ background:var(--swapp-ink,#080d16)!important;
+ /* An opaque media surface: older page artwork cannot shine through. */
  overflow:hidden!important;
 }
 #home .swappHome1014 .homeHeroInner1014.swapp-feature-ready
@@ -414,14 +414,8 @@
  height:100%!important;
  object-fit:cover!important;
  object-position:center 38%!important;
- -webkit-mask-image:linear-gradient(to bottom,
-   #000 0%,#000 46%,rgba(0,0,0,.98) 53%,
-   rgba(0,0,0,.84) 63%,rgba(0,0,0,.47) 78%,
-   rgba(0,0,0,.13) 92%,transparent 100%)!important;
- mask-image:linear-gradient(to bottom,
-   #000 0%,#000 46%,rgba(0,0,0,.98) 53%,
-   rgba(0,0,0,.84) 63%,rgba(0,0,0,.47) 78%,
-   rgba(0,0,0,.13) 92%,transparent 100%)!important;
+  -webkit-mask-image:none!important;
+  mask-image:none!important;
 }
 /* Side vignetting without a hard background-coloured seam. The overlay
  * becomes transparent at the bottom, matching the masked image fade. */
@@ -432,7 +426,7 @@
    rgba(4,9,18,.38) 0%,rgba(4,9,18,.12) 14%,
    transparent 32%,transparent 79%,rgba(4,9,18,.18) 100%),
   linear-gradient(0deg,
-   transparent 0%,rgba(5,10,19,.55) 24%,
+   var(--swapp-ink,#080d16) 0%,rgba(5,10,19,.55) 24%,
    rgba(5,10,19,.34) 43%,rgba(5,10,19,.05) 74%,
    transparent 100%)!important;
 }
@@ -473,14 +467,8 @@
  #home .swappHome1014 .homeHeroInner1014.swapp-feature-ready
  > .swapp-home-hero-feature img{
   object-position:center 30%!important;
-  -webkit-mask-image:linear-gradient(to bottom,
-    #000 0%,#000 40%,rgba(0,0,0,.98) 48%,
-    rgba(0,0,0,.83) 67%,rgba(0,0,0,.42) 82%,
-    transparent 100%)!important;
-  mask-image:linear-gradient(to bottom,
-    #000 0%,#000 40%,rgba(0,0,0,.98) 48%,
-    rgba(0,0,0,.83) 67%,rgba(0,0,0,.42) 82%,
-    transparent 100%)!important;
+  -webkit-mask-image:none!important;
+  mask-image:none!important;
  }
  #home .swappHome1014 .homeHeroInner1014.swapp-feature-ready
  > .swapp-home-feature-bridge{
@@ -616,15 +604,19 @@
  overflow:hidden!important;
  opacity:0!important;
  visibility:hidden!important;
- background:transparent!important;
+ background:var(--swapp-ink,#080d16)!important;
  pointer-events:none!important;
- /* The same fade as the static poster; a single gradient surface. */
- -webkit-mask-image:linear-gradient(to bottom,#000 0%,#000 46%,rgba(0,0,0,.98) 53%,rgba(0,0,0,.84) 63%,rgba(0,0,0,.47) 78%,rgba(0,0,0,.13) 92%,transparent 100%);
- mask-image:linear-gradient(to bottom,#000 0%,#000 46%,rgba(0,0,0,.98) 53%,rgba(0,0,0,.84) 63%,rgba(0,0,0,.47) 78%,rgba(0,0,0,.13) 92%,transparent 100%);
+ /* Full-frame video, never a translucent layer over the poster. */
+ -webkit-mask-image:none!important;
+ mask-image:none!important;
  transition:opacity .85s ease,visibility .85s ease!important;
 }
 #home .swappHome1014 .swapp-home-hero-feature.swapp-home-motion-playing > .swapp-home-motion{
- opacity:.88!important;visibility:visible!important;
+ opacity:1!important;visibility:visible!important;
+ transition:none!important;
+}
+#home .swappHome1014 .swapp-home-hero-feature.swapp-home-motion-playing > img{
+ visibility:hidden!important; /* Hide the poster, not with another overlay. */
 }
 #home .swappHome1014 .swapp-home-motion-host{
  position:absolute;inset:0;display:block;

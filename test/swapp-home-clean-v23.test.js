@@ -49,16 +49,20 @@ test('video iframe uses a stable parent and covers 16:9 with no 118% guess',()=>
  assert.match(video,/transform:translate\(-50%,-50%\)!important/);
  assert.doesNotMatch(video,/width:118%!important|height:118%!important/);
  assert.match(video,/\.swapp-home-motion-playing/);
+ assert.match(video,/visibility:hidden!important/);
+ assert.match(video,/opacity:1!important/);
+ assert.match(video,/mask-image:none!important/);
+ assert.doesNotMatch(video,/opacity:\.88!important/);
  assert.match(video,/\(prefers-reduced-motion:reduce\)/);
 });
 
 test('fresh V23 assets are loaded in SPA, native shells and production smoke',()=>{
  const html=read('index.html');
  for(const asset of ['index_script.js','swapp-home-news.js','swapp-game-journey.css','swapp-home-motion.js']){
-  assert.match(html,new RegExp(asset.replace(/\./g,'\\.')+'\\?v=20261018-home-clean-v23'));
+  assert.match(html,new RegExp(asset.replace(/\./g,'\\.')+'\\?v=20261018-hero-single-v24'));
  }
  for(const path of ['modules/swapp-news/site-shell.js','modules/swapp-news/article-core.js'])
-  assert.ok(read(path).includes('swapp-game-journey.css?v=20261018-home-clean-v23'),path);
+  assert.ok(read(path).includes('swapp-game-journey.css?v=20261018-hero-single-v24'),path);
  const smoke=read('tools/swapp-deploy-smoke.js');
  assert.match(smoke,/Obsolete home renderer still shipped to production/);
  assert.match(smoke,/start:TRAILER_START_SECONDS/);

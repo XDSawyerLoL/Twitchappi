@@ -105,10 +105,10 @@ test('cleaner homepage has no legacy first-paint masking and mounts cinematic cl
  assert.doesNotMatch(boot,/#home\.view\.active > :not\(\.swappHome1014\)/);
  assert.doesNotMatch(boot,/\.homeHeroCopy1014\{display:none!important\}/);
  assert.doesNotMatch(boot,/\.homeHeroInner1014:not\(\.swapp-feature-ready\)/);
- const helper='swapp-home-motion.js?v=20261018-home-clean-v23';
- assert.match(html,/swapp-home-news\.js\?v=20261018-home-clean-v23/);
+ const helper='swapp-home-motion.js?v=20261018-hero-single-v24';
+ assert.match(html,/swapp-home-news\.js\?v=20261018-hero-single-v24/);
  assert.ok(html.includes(helper));
- assert.ok(html.indexOf(helper)<html.indexOf('swapp-home-news.js?v=20261018-home-clean-v23'));
+ assert.ok(html.indexOf(helper)<html.indexOf('swapp-home-news.js?v=20261018-hero-single-v24'));
  assert.match(read('assets/swapp-home-news.js'),/SwappHomeMotion\?\.attach\?\.\(tile,feature\)/);
 });
 
@@ -118,7 +118,10 @@ test('hero remains image first and never animates for motion-sensitive visitors'
  assert.ok(part.length>1700);
  assert.match(part,/\.swapp-home-motion-playing/);
  assert.match(part,/opacity:0!important/);
- assert.match(part,/opacity:\.88!important/);
+ assert.match(part,/opacity:1!important/);
+ assert.ok(part.includes('swapp-home-motion-playing > img{'));
+ assert.match(part,/visibility:hidden!important/);
+ assert.doesNotMatch(part,/opacity:\.88!important/);
  assert.match(part,/\(prefers-reduced-motion:reduce\)/);
  assert.match(part,/\(pointer:coarse\)/);
  assert.match(part,/z-index:3!important/);
@@ -128,6 +131,6 @@ test('hero remains image first and never animates for motion-sensitive visitors'
  assert.doesNotMatch(part,/width:118%!important|height:118%!important/);
  assert.match(read('tools/swapp-release.js'),/'assets\/swapp-home-motion\.js'/);
  const smoke=read('tools/swapp-deploy-smoke.js');
- assert.match(smoke,/swapp-home-motion\.js\?v=20261018-home-clean-v23/);
+ assert.match(smoke,/swapp-home-motion\.js\?v=20261018-hero-single-v24/);
  assert.match(smoke,/youtube-nocookie\.com/);
 });
