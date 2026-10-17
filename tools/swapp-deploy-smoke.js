@@ -183,11 +183,14 @@ async function verify(){
  const presentation='/assets/swapp-presentation-polish.css?v=20261017-visual-audit-v16';
  check(home.body.includes(presentation),'Home uses an outdated presentation stylesheet');
  check(news.body.includes(presentation),'Actualité uses an outdated presentation stylesheet');
- const journey='/assets/swapp-game-journey.css?v=20261017-journey-v17';
+ const journey='/assets/swapp-game-journey.css?v=20261017-fullbleed-v18';
  check(home.body.includes(journey)&&news.body.includes(journey),
   'V17 cinematic journey is missing from homepage or native articles');
  const journeyStyles=await request(origin,'/assets/swapp-game-journey.css');
  check(journeyStyles.body.includes('SWAPP GAME JOURNEY V17')&&
+  journeyStyles.body.includes('SWAPP FULL-BLEED HOME V18')&&
+  journeyStyles.body.includes('width:100dvw!important')&&
+  journeyStyles.body.includes('margin-top:-197px!important')&&
   journeyStyles.body.includes('.swapp-home-feature-bridge')&&
   journeyStyles.body.includes('.swapp-game-journey-actions')&&
   journeyStyles.body.includes('prefers-reduced-motion:reduce'),
