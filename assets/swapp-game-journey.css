@@ -595,3 +595,64 @@
   animation:none!important;transition:none!important;
  }
 }
+
+
+/* SWAPP V22 — cinematic trailer overlay, never obscuring the first-paint poster.
+ * Only added after matching the featured article's own official trailer.
+ * No movement on mobile, Save-Data or reduced-motion systems. */
+#home .swappHome1014 .swapp-home-hero-feature{
+ isolation:isolate;
+}
+#home .swappHome1014 .swapp-home-hero-feature > img{
+ z-index:0!important;
+}
+#home .swappHome1014 .swapp-home-hero-feature > .swapp-home-motion{
+ position:absolute!important;
+ inset:0!important;
+ z-index:1!important;
+ display:block!important;
+ width:100%!important;
+ height:100%!important;
+ overflow:hidden!important;
+ opacity:0!important;
+ visibility:hidden!important;
+ background:transparent!important;
+ pointer-events:none!important;
+ -webkit-mask-image:linear-gradient(to bottom,#000 0%,#000 43%,rgba(0,0,0,.85) 65%,rgba(0,0,0,.35) 83%,transparent 100%);
+ mask-image:linear-gradient(to bottom,#000 0%,#000 43%,rgba(0,0,0,.85) 65%,rgba(0,0,0,.35) 83%,transparent 100%);
+ transition:opacity .85s ease,visibility .85s ease!important;
+}
+#home .swappHome1014 .swapp-home-hero-feature.swapp-home-motion-playing > .swapp-home-motion{
+ opacity:.88!important;visibility:visible!important;
+}
+#home .swappHome1014 .swapp-home-motion-host{
+ position:absolute;inset:0;display:block;
+ width:100%;height:100%;pointer-events:none!important;
+ overflow:hidden;
+}
+#home .swappHome1014 .swapp-home-motion-host iframe{
+ position:absolute!important;
+ top:50%!important;left:50%!important;
+ width:118%!important;height:118%!important;
+ min-width:100%!important;min-height:100%!important;
+ transform:translate(-50%,-50%)!important;
+ border:0!important;
+ background:transparent!important;
+ pointer-events:none!important;
+}
+#home .swappHome1014 .swapp-home-hero-feature::after{
+ z-index:2!important;pointer-events:none!important;
+}
+#home .swappHome1014 .swapp-home-hero-feature-overlay{
+ z-index:3!important;pointer-events:none!important;
+}
+@media(max-width:979px), (pointer:coarse), (prefers-reduced-motion:reduce){
+ #home .swappHome1014 .swapp-home-hero-feature > .swapp-home-motion{
+  display:none!important;opacity:0!important;transition:none!important;
+ }
+}
+@media(prefers-reduced-motion:reduce){
+ #home .swappHome1014 .swapp-home-hero-feature > img{
+  transition:none!important;
+ }
+}
