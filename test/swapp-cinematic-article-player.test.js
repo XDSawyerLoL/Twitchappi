@@ -114,7 +114,7 @@ test('mobile uses an accessible direct-watch alternative and embed viewport is a
  const app=read('assets/swapp-actus-app.js');
  const css=read('assets/swapp-art-direction.css');
  assert.match(app,/SwappArticlePlayer\?\.canEmbed\?\.\(window\.innerWidth,window\.innerHeight\)/);
- assert.match(app,/canEmbed\?'Voir la chaîne ↗':'Voir le live ↗'/);
+ assert.match(app,/canEmbed\?'Voir le live sur SWAPP →':'Regarder sur SWAPP →'/);
  assert.match(css,/width:min\(500px,calc\(100vw - 24px\)\)/);
  assert.match(css,/\.swapp-article-mini-video\{height:300px;min-height:300px/);
 });
@@ -149,7 +149,8 @@ test('the existing articles and stream cards expose accessible inline play witho
  assert.match(app,/SwappArticlePlayer\?\.close\(\)/);
  assert.match(app,/link=el\(native\?'a':'div','swapp-reader-live-card'\)/);
  assert.match(app,/SwappArticlePlayer\?\.openFull/);
- assert.match(app,/https:\/\/www\.twitch\.tv\//);
+ assert.match(app,/\/live\/twitch\//);
+ assert.doesNotMatch(app,/https:\/\/www\.twitch\.tv\//);
  assert.match(css,/\.swapp-article-mini-player/);
  assert.match(css,/\.swapp-live-pip1014/);
  assert.match(main,/swapp-live-pip1014/);
