@@ -132,6 +132,13 @@ async function verify(){
    newsScript.body.includes('new AbortController()')&&
    home.body.includes('swapp-home-news.js?v=20261017-journey-v17'),
    'Homepage editorial script is stale or incompatible with older Safari');
+ check(newsScript.body.includes('swapp-home-feature-bridge')&&
+  newsScript.body.includes("action('Lire l’article'")&&
+  newsScript.body.includes("action('Voir les lives'")&&
+  newsScript.body.includes("action('En discuter'")&&
+  newsScript.body.includes('swapp-home-feature-creators')&&
+  newsScript.body.includes('result?.success!==true'),
+  'V17 home game journey or verified-live identity is missing');
  const readerApp=await request(origin,'/assets/swapp-actus-app.js');
  check(readerApp.body.includes('const sameGame=')&&
   readerApp.body.includes('/live/twitch/')&&
@@ -159,6 +166,11 @@ async function verify(){
   &&comfort.body.includes('lastSavedImage')
   &&comfort.body.includes('grid-column:1/-1!important;grid-row:1!important'),
   'Discover mobile card, saved thumbnails or primary Watch action are outdated');
+ check(comfort.body.includes('SWAPP V17 DISCOVER')&&
+  comfort.body.includes('swapp-mood-saved-toggle')&&
+  comfort.body.includes('swapp-mood-reason')&&
+  comfort.body.includes("?'Passer'")&&comfort.body.includes("?'Regarder'"),
+  'V17 Discover does not provide creator-first mood, real actions and saved-live drawer');
  const mainScript=await request(origin,'/index_script.js');
  check(mainScript.body.includes('already ranked these lives by mood, relevance and diversity'),
   'Discover V4 unexpectedly overrides API relevance ranking');
@@ -171,6 +183,15 @@ async function verify(){
  const presentation='/assets/swapp-presentation-polish.css?v=20261017-visual-audit-v16';
  check(home.body.includes(presentation),'Home uses an outdated presentation stylesheet');
  check(news.body.includes(presentation),'Actualité uses an outdated presentation stylesheet');
+ const journey='/assets/swapp-game-journey.css?v=20261017-journey-v17';
+ check(home.body.includes(journey)&&news.body.includes(journey),
+  'V17 cinematic journey is missing from homepage or native articles');
+ const journeyStyles=await request(origin,'/assets/swapp-game-journey.css');
+ check(journeyStyles.body.includes('SWAPP GAME JOURNEY V17')&&
+  journeyStyles.body.includes('.swapp-home-feature-bridge')&&
+  journeyStyles.body.includes('.swapp-game-journey-actions')&&
+  journeyStyles.body.includes('prefers-reduced-motion:reduce'),
+  'V17 styles are missing game actions or motion accessibility');
  const finish=await request(origin,'/assets/swapp-presentation-polish.css');
  check(finish.body.includes('--swapp-finish-focus')&&finish.body.includes('.swapp-social-viewport .pulse-post-main')
   &&finish.body.includes('.swapp-editorial-route .article-body')
