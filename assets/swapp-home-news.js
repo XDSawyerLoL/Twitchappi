@@ -122,12 +122,13 @@
    action('Voir les lives',feature.game?'/actus/'+encodeURIComponent(feature.slug)+'#swapp-article-lives':'/decouvrir');
    action('En discuter',discussionHref(feature));
    bridge.append(actions);
-   image.onerror=()=>{tile.remove();bridge.remove();hero.classList.remove('swapp-hero-has-story');onImageError?.()};
+   image.onerror=()=>{tile.remove();bridge.remove();hero.classList.remove('swapp-hero-has-story');hero.classList.remove('swapp-feature-ready');onImageError?.()};
    const overlay=el('span','swapp-home-hero-feature-overlay');
    overlay.append(el('span','swapp-home-hero-feature-label',feature.game||feature.category||'À la une'),
      el('strong','',feature.title));
    tile.append(image,overlay);hero.append(tile,bridge);
    hero.classList.add('swapp-hero-has-story');
+   hero.classList.add('swapp-feature-ready');
    void showVerifiedCreators(feature,bridge);
    return feature.slug;
  }
