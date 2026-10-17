@@ -110,13 +110,13 @@
      events:{
       onReady(e){
        if(!active()){cleanup();return}
-       try{e.target.mute();e.target.playVideo()}catch{removeMotion()}
+       try{e.target.mute();e.target.playVideo()}catch{cleanup()}
       },
       onStateChange:state,
-      onError:()=>removeMotion()
+      onError:()=>cleanup()
      }
     });
-   }catch{removeMotion()}
+   }catch{cleanup()}
   }
   function startAfterPoster(){
    if(watching)return;
