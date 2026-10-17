@@ -117,16 +117,24 @@ async function verify(){
   discovery.body.includes('gameMatch(game,item.game_name||item.category||item.game)'),
   'Game bridge is missing exact-game creator and article presentation');
  const bridgeCss=await request(origin,'/assets/swapp-media.css');
- check(bridgeCss.body.includes('SWAPP GAME BRIDGE V12')&&bridgeCss.body.includes('.swapp-game-connection'),
+ check(bridgeCss.body.includes('SWAPP GAME BRIDGE V12')&&bridgeCss.body.includes('.swapp-game-connection')&&bridgeCss.body.includes('.swapp-live-article-game'),
   'Game bridge CSS is stale or not served by Hostinger');
  const readerApp=await request(origin,'/assets/swapp-actus-app.js');
  check(readerApp.body.includes('const sameGame=')&&
   readerApp.body.includes('/live/twitch/')&&
   !readerApp.body.includes('a.length>=7&&b.includes(a)'),
   'Actualité still matches sequels incorrectly or opens external lives');
- check(home.body.includes('/assets/swapp-media.css?v=20261017-game-bridge-v12')&&
+ check(home.body.includes('/assets/swapp-media.css?v=20261017-channel-news-v13')&&
   home.body.includes('/assets/swapp-actus-app.js?v=20261017-game-bridge-v12'),
   'Homepage is still using the old game bridge');
+ // Native creator channel: same editorial game identity, no frozen status text.
+ const nativeArticles=await request(origin,'/assets/swapp-live-articles.js');
+ check(home.body.includes('/assets/swapp-live-articles.js?v=20261017-channel-news-v13')&&
+  nativeArticles.body.includes('const statusLine=')&&
+  nativeArticles.body.includes('const gameMatch=')&&
+  nativeArticles.body.includes('gameAliases.some')&&
+  !nativeArticles.body.includes('a.length>=7&&b.includes(a)'),
+  'Native creator page still ships outdated game matching or broken news status');
  process.stdout.write('PASS game-specific article live discovery\n');
  const discover=await request(origin,'/decouvrir');
  check(discover.body.includes('swapp-discover-comfort.js?v=20261016-v4-mobile-3-creators'),
