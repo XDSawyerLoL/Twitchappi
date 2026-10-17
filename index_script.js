@@ -5742,15 +5742,7 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
     }
   }
 
-  window.renderHome = async function renderHomeFinal(){
-    const el=$('#home'); if(!el) return;
-    el.innerHTML=`<div class="owHomeFull homeClean"><section class="owHeroTheater homeCleanHero"><div class="owHeroCopy homeCleanCopy"><span class="eyebrow"><i class="dot"></i>Vitrine Swapp</span><h1>Des lives à taille humaine.</h1><p>Accueil = vitrine. Pas de salon de lurk ici. Découvre des lives, ou lance ton propre live Swapp.</p><div class="owMoodStrip">${AMBIANCES.slice(0,6).map(([id,label])=>`<button onclick="state.moodFirstMood='${esc(id)}';autoProposeLive?.()">${esc(label)}</button>`).join('')}</div><div class="owActions"><button class="btn" onclick="autoProposeLive?.()">Propose-moi un live</button><button class="btn streamBtn" onclick="setView('${streamTargetView?.()||'manager'}')">${esc(streamTargetLabel?.()||'Streamer sur Swapp')}</button><button class="btn secondary" onclick="setView('discover')">Swap ton mood</button></div></div><div id="homeShowcaseLives" class="owLiveTheater homeCleanLives"></div></section><div class="homeOnlyMain"><section class="homeStreamerStrip"><div><h2>Créer sur Swapp</h2><p>Page chaîne, chat, vignettes, emotes, planning et résumé AfterLive sont dans les outils créateur.</p></div><button class="btn streamBtn" onclick="setView('${streamTargetView?.()||'manager'}')">${esc(streamTargetLabel?.()||'Streamer sur Swapp')}</button></section></div></div>`;
-    await loadHomeRecommendations?.();
-    applyViewerThemeColor?.();
-    closeMini?.();
-    finalClean();
-  };
-
+  /* Legacy renderHomeFinal renderer retired: V21 owns the only home layout. */
   window.renderDiscover = async function renderDiscoverFinal(){
     const el=$('#discover'); if(!el) return;
     const current=state.moodFirstMood||'petite-commu';
@@ -5897,17 +5889,7 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
   }
   window.oryonHardClean=removeBazar;
 
-  window.renderHome = async function renderHomeRestored(){
-    const el=document.querySelector('#home'); if(!el) return;
-    const streamView=(typeof streamTargetView==='function'?streamTargetView():'manager');
-    const streamLabel=(typeof streamTargetLabel==='function'?streamTargetLabel():'Streamer sur Swapp');
-    const moods=(Array.isArray(window.AMBIANCES)?window.AMBIANCES:AMBIANCES).slice(0,6);
-    el.innerHTML=`<div class="owHomeFull homeClean"><section class="owHeroTheater homeCleanHero"><div class="owHeroCopy homeCleanCopy"><span class="eyebrow"><i class="dot"></i>Vitrine Swapp</span><h1>Des lives à taille humaine.</h1><p>Découvre des lives publics, garde tes favoris ailleurs, et lance ton propre live Swapp.</p><div class="owMoodStrip">${moods.map(([id,label])=>`<button onclick="state.moodFirstMood='${esc(id)}';setView('discover')">${esc(label)}</button>`).join('')}</div><div class="owActions"><button class="btn" onclick="autoProposeLive?.()">Propose-moi un live</button><button class="btn streamBtn" onclick="setView('${streamView}')">${esc(streamLabel)}</button><button class="btn secondary" onclick="setView('discover')">Swap ton mood</button></div></div><div id="homeShowcaseLives" class="owLiveTheater homeCleanLives"></div></section><section class="homeStreamerStrip"><div><h2>Créer sur Swapp</h2><p>Ta chaîne, ton lecteur, ton chat, tes vignettes, tes emotes et ton AfterLive.</p></div><button class="btn streamBtn" onclick="setView('${streamView}')">${esc(streamLabel)}</button></section></div>`;
-    try{ await loadHomeRecommendations?.(); }catch(e){ console.warn(e); }
-    closeMini?.();
-    removeBazar();
-  };
-
+  /* Legacy renderHomeRestored renderer retired: V21 owns the only home layout. */
   window.renderDiscover = async function renderDiscoverRestored(){
     const el=document.querySelector('#discover'); if(!el) return;
     const current=state.moodFirstMood||'petite-commu';
@@ -10649,28 +10631,7 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
   window.loadHomeRecommendations = async function(){ addStyle(); await renderHomeRail(true); };
   try{ loadHomeRecommendations = window.loadHomeRecommendations; }catch(_e){}
 
-  window.renderHome = async function renderHome1013(){
-    addStyle();
-    const el = byId('home');
-    if(!el) return;
-    const moods = (Array.isArray(window.AMBIANCES) ? window.AMBIANCES : (typeof AMBIANCES !== 'undefined' ? AMBIANCES : []));
-    const moodButtons = moods.slice(0,6).map(([id,label]) => `<button type="button" onclick="state.moodFirstMood='${E(id)}';setView('discover')">${E(label)}</button>`).join('');
-    const streamView = (typeof streamTargetView === 'function' ? streamTargetView() : 'manager');
-    const streamLabel = (typeof streamTargetLabel === 'function' ? streamTargetLabel() : 'Streamer sur Swapp');
-    el.innerHTML = `<div class="swappHomeClean1013">
-      <section class="swappHomeRail1013" aria-label="Lives en direct">
-        <div class="swappHomeRailHead1013"><div><h2 id="swappHomeRailTitle1013">Lives en direct</h2><p id="swappHomeRailSub1013">Swapp d’abord, Twitch ensuite si aucun live Swapp n’est actif.</p></div><button class="btn secondary" type="button" onclick="setView('discover')">Découvrir plus</button></div>
-        <div id="swappHomeRailList1013" class="swappHomeRailList1013"><div class="swappHomeEmpty1013">Chargement des lives…</div></div>
-      </section>
-      <section class="swappHomeHero1013">
-        <div class="swappHomePitch1013"><span class="eyebrow"><i class="dot"></i>Vitrine Swapp</span><h1>Des lives à taille humaine.</h1><p>Découvre les lives Swapp quand ils sont actifs. Sinon, l’accueil garde du contenu vivant avec des lives Twitch.</p><div class="swappHomeMoods1013">${moodButtons}</div><div class="swappHomeActions1013"><button class="btn" type="button" onclick="autoProposeLive?.()">Propose-moi un live</button><button class="btn streamBtn" type="button" onclick="setView('${E(streamView)}')">${E(streamLabel)}</button><button class="btn secondary" type="button" onclick="setView('discover')">Swap ton mood</button></div></div>
-        <div class="swappHomePanel1013"><h2 style="margin-top:0">Créer sur Swapp</h2><p class="muted">Ta page publique reste accessible en /pseudo. Le compte sert à gérer ta chaîne et écrire dans les tchats.</p><div class="swappHomePanelGrid1013"><div class="swappHomeInfo1013"><b>Swapp prioritaire</b><span>Un live Swapp actif remonte en premier.</span></div><div class="swappHomeInfo1013"><b>Twitch fallback</b><span>S’il n’y a pas de live Swapp, la home affiche Twitch.</span></div><div class="swappHomeInfo1013"><b>Tchat cadré</b><span>Lecture publique, écriture avec compte.</span></div></div></div>
-      </section>
-    </div>`;
-    await renderHomeRail(true);
-    try{ renderMiniPlayer?.(); }catch(_e){}
-  };
-  try{ renderHome = window.renderHome; }catch(_e){}
+  /* Legacy renderHome1013 renderer retired: V21 owns the only home layout. */
 
   function currentChannelLogin(){ return clean(state?.watchRoom || state?.room || state?.lastChannelLogin || state?.channelProfile?.login || ''); }
   function chatLog(){ return byId('nativeChatLog'); }
