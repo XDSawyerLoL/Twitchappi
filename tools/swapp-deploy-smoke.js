@@ -118,6 +118,10 @@ async function verify(){
  check(bridgeCss.body.includes('SWAPP GAME BRIDGE V12')&&bridgeCss.body.includes('.swapp-game-connection')&&bridgeCss.body.includes('.swapp-live-article-game'),
   'Game bridge CSS is stale or not served by Hostinger');
  const mainBundle=await request(origin,'/index_script.js');
+ check(!mainBundle.body.includes('window.renderHome = async function renderHomeFinal')&&
+  !mainBundle.body.includes('window.renderHome = async function renderHomeRestored')&&
+  !mainBundle.body.includes('window.renderHome = async function renderHome1013'),
+  'Obsolete home renderer still shipped to production');
  check(!mainBundle.body.includes('<h1>Les bons lives se trouvent ici.</h1>')&&
   mainBundle.body.includes('homeHeroInner1014 swapp-hero-pending')&&
   mainBundle.body.includes('swapp-home-hero-placeholder'),
@@ -125,11 +129,11 @@ async function verify(){
  const newsScript=await request(origin,'/assets/swapp-home-news.js');
  check(!newsScript.body.includes('signal:AbortSignal.timeout(')&&
    newsScript.body.includes('new AbortController()')&&
-   home.body.includes('swapp-home-news.js?v=20261018-home-video-v22'),
+   home.body.includes('swapp-home-news.js?v=20261018-home-clean-v23'),
    'Homepage editorial script is stale or incompatible with older Safari');
- const motionPath='/assets/swapp-home-motion.js?v=20261018-home-video-v22';
+ const motionPath='/assets/swapp-home-motion.js?v=20261018-home-clean-v23';
  check(home.body.includes(motionPath)&&
-   home.body.indexOf(motionPath)<home.body.indexOf('swapp-home-news.js?v=20261018-home-video-v22'),
+   home.body.indexOf(motionPath)<home.body.indexOf('swapp-home-news.js?v=20261018-home-clean-v23'),
    'No cinematic hero helper before the editorial client');
  const motion=await request(origin,'/assets/swapp-home-motion.js');
  check(motion.body.includes('window.SwappHomeMotion')&&
@@ -137,7 +141,9 @@ async function verify(){
    motion.body.includes('https://www.youtube-nocookie.com')&&
    motion.body.includes('prefers-reduced-motion: reduce')&&
    motion.body.includes('saveData')&&
-   motion.body.includes('swapp-home-motion-playing'),
+   motion.body.includes('swapp-home-motion-playing')&&
+   motion.body.includes('start:TRAILER_START_SECONDS')&&
+   motion.body.includes('seekTo(TRAILER_START_SECONDS,true)'),
    'Hero trailer validation, quiet playback or fallback has not deployed');
  check(newsScript.body.includes('window.SwappHomeMotion?.attach?.(tile,feature)'),
    'Featured story is not linked to its own trailer');
@@ -192,7 +198,7 @@ async function verify(){
  const presentation='/assets/swapp-presentation-polish.css?v=20261017-visual-audit-v16';
  check(home.body.includes(presentation),'Home uses an outdated presentation stylesheet');
  check(news.body.includes(presentation),'Actualité uses an outdated presentation stylesheet');
- const journey='/assets/swapp-game-journey.css?v=20261018-home-video-v22';
+ const journey='/assets/swapp-game-journey.css?v=20261018-home-clean-v23';
  check(home.body.includes(journey)&&news.body.includes(journey),
   'V17 cinematic journey is missing from homepage or native articles');
  const journeyStyles=await request(origin,'/assets/swapp-game-journey.css');
@@ -201,6 +207,8 @@ async function verify(){
   journeyStyles.body.includes('SWAPP EDGELESS HERO V19')&&
   journeyStyles.body.includes('SWAPP HOME NO-FLASH V21')&&
   journeyStyles.body.includes('SWAPP V22 — cinematic trailer overlay')&&
+  journeyStyles.body.includes('width:max(100cqw,177.778cqh)')&&
+  journeyStyles.body.includes('height:max(100cqh,56.25cqw)')&&
   journeyStyles.body.includes('.swapp-home-motion-playing')&&
   journeyStyles.body.includes('.homeHeroCopy1014')&&
   journeyStyles.body.includes('.swapp-hero-pending')&&
