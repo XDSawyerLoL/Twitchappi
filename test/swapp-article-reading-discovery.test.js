@@ -72,7 +72,7 @@ test('SPA and native page load the same reader and versioned new styling',()=>{
   assert.match(text,/swapp-article-immersive\.css\?v=20261016-ig-offers-11/);
   assert.match(text,/swapp-reader-experience\.js\?v=20261016-reader-2/);
  }
- assert.match(spa,/swapp-actus-app\.js\?v=20261016-ig-offers-10/);
+ assert.match(spa,/swapp-actus-app\.js\?v=20261017-journey-v17/);
  assert.match(spa,/swapp-instant-gaming\.js\?v=20261016-ig-offers-1/);
 });
 
