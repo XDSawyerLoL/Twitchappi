@@ -7,6 +7,12 @@
   const text = (el,value) => { el.textContent = String(value ?? ''); };
   const safeImage = value => {try {const url = new URL(value);return url.protocol === 'https:'&&!url.username&&!url.password ? url.href : null;}catch{return null;}};
   const normal = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+  // Older Safari supports AbortController but not AbortSignal.timeout.
+  async function getWithTimeout(url,ms=12000){
+    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),ms);
+    try{return await fetch(url,{credentials:'same-origin',headers:{Accept:'application/json'},signal:controller.signal})}
+    finally{clearTimeout(timer)}
+  }
   // Exact identity (including known editorial aliases). Substring matching
   // incorrectly associates sequels: Hades vs Hades II or Planet Zoo vs Zoo 2.
   const aliases=[
@@ -50,10 +56,10 @@
     const action=document.createElement('span');action.className='swapp-live-action';text(action,'Regarder sur SWAPP →');body.appendChild(action);
     el.append(cover,body);return el;
   }
-  function message(shelf,message,{retry=false}={}){
+  function message(shelf,notice,{retry=false}={}){
     const target=shelf.querySelector('[data-live-results], [data-related-results]');if(!target)return;
     target.replaceChildren();
-    const p=document.createElement('p');p.className='swapp-live-notice';text(p,message);target.appendChild(p);
+    const p=document.createElement('p');p.className='swapp-live-notice';text(p,notice);target.appendChild(p);
     if(retry){
       const button=document.createElement('button');
       button.type='button';
@@ -75,7 +81,7 @@
     const key=normal(game);
     if(!requests.has(key)){
       const url='/api/discovery/game-lives?limit=6&game='+encodeURIComponent(game.slice(0,90));
-      requests.set(key,fetch(url,{credentials:'same-origin',headers:{Accept:'application/json'},signal:AbortSignal.timeout(12000)})
+      requests.set(key,getWithTimeout(url,12000)
        .then(async response=>{
          if(!response.ok)throw Error('HTTP '+response.status);
          const payload=await response.json();
@@ -88,9 +94,7 @@
   let generalPromise;
   async function generalLives(){
     if(!generalPromise){
-      generalPromise=fetch('/api/discovery/home-lives?limit=12&lang=fr',{
-        credentials:'same-origin',headers:{Accept:'application/json'},signal:AbortSignal.timeout(12000)
-      }).then(async response=>{
+      generalPromise=getWithTimeout('/api/discovery/home-lives?limit=12&lang=fr',12000).then(async response=>{
         if(!response.ok)throw Error('HTTP '+response.status);
         const result=await response.json();
         if(!result.success||!Array.isArray(result.items))throw Error('unavailable');
@@ -149,10 +153,10 @@
     if(!related)return;
     let game=String(related.dataset.articlesForGame||'').slice(0,90);
     const target=related.querySelector('[data-related-results]');if(!target)return;
-    if(!game){try{const login=location.pathname.match(/^\/live\/twitch\/([a-z0-9_]+)\/?$/i)?.[1];if(login){const liveRes=await fetch('/api/discovery/home-lives?limit=40&lang=fr',{credentials:'same-origin'});if(liveRes.ok){const liveData=await liveRes.json();const match=(liveData.items||[]).find(x=>String(x.login||'').toLowerCase()===login.toLowerCase());game=String(match?.game_name||match?.game||'').slice(0,90)}}}catch{}}
+    if(!game){try{const login=location.pathname.match(/^\/live\/twitch\/([a-z0-9_]+)\/?$/i)?.[1];if(login){const liveRes=await getWithTimeout('/api/discovery/home-lives?limit=40&lang=fr',12000);if(liveRes.ok){const liveData=await liveRes.json();const match=(liveData.items||[]).find(x=>String(x.login||'').toLowerCase()===login.toLowerCase());game=String(match?.game_name||match?.game||'').slice(0,90)}}}catch{}}
     if(!game){message(related,'Jeu du live non identifié : impossible de garantir une actualité pertinente.');return;}
     try{
-      const res=await fetch('/api/actus',{credentials:'same-origin',headers:{Accept:'application/json'},signal:AbortSignal.timeout(9000)});
+      const res=await getWithTimeout('/api/actus',9000);
       if(!res.ok)throw Error('unavailable');
       const data=await res.json();
       const stories=(data.articles||[]).filter(a=>game&&gameMatch(game,a.game)).slice(0,4);
