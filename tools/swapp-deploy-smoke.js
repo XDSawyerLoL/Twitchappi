@@ -132,7 +132,7 @@ async function verify(){
  const news=await request(origin,'/actus');
  check(news.body.includes('SWAPP')||news.body.includes('Swapp'),'Actualité returned an unexpected document');
  // A successful GitHub commit is not proof the final visual layer reached Hostinger.
- const presentation='/assets/swapp-presentation-polish.css?v=20261016-ios-account-front-v7';
+ const presentation='/assets/swapp-presentation-polish.css?v=20261017-editorial-unity-v8';
  check(home.body.includes(presentation),'Home uses an outdated presentation stylesheet');
  check(news.body.includes(presentation),'Actualité uses an outdated presentation stylesheet');
  const finish=await request(origin,'/assets/swapp-presentation-polish.css');
