@@ -105,7 +105,13 @@
    if(existing)return existing.dataset.articleSlug||null;
    const feature=articles.find(item=>slugOk(item.slug)&&safeUrl(item.image?.url||item.imageUrl));
    const placeholder=hero.querySelector('.swapp-home-hero-placeholder');
-   if(!feature){placeholder?.remove();hero.classList.remove('swapp-hero-has-story');return null;}
+   if(!feature){
+     placeholder?.remove();
+     hero.classList.remove('swapp-hero-has-story','swapp-hero-pending','swapp-feature-ready');
+     hero.classList.add('swapp-hero-unavailable');
+     hero.setAttribute('aria-busy','false');
+     return null;
+   }
    placeholder?.remove();
    const tile=el('a','swapp-home-hero-feature');tile.href='/actus/'+encodeURIComponent(feature.slug);
    tile.dataset.articleSlug=feature.slug;
@@ -124,13 +130,21 @@
    action('Voir les lives',feature.game?'/actus/'+encodeURIComponent(feature.slug)+'#swapp-article-lives':'/decouvrir');
    action('En discuter',discussionHref(feature));
    bridge.append(actions);
-   image.onerror=()=>{tile.remove();bridge.remove();hero.classList.remove('swapp-hero-has-story');hero.classList.remove('swapp-feature-ready');onImageError?.()};
+   image.onerror=()=>{
+     tile.remove();bridge.remove();
+     hero.classList.remove('swapp-hero-has-story','swapp-feature-ready','swapp-hero-pending');
+     hero.classList.add('swapp-hero-unavailable');
+     hero.setAttribute('aria-busy','false');
+     onImageError?.();
+   };
    const overlay=el('span','swapp-home-hero-feature-overlay');
    overlay.append(el('span','swapp-home-hero-feature-label',feature.game||feature.category||'À la une'),
      el('strong','',feature.title));
    tile.append(image,overlay);hero.append(tile,bridge);
    hero.classList.add('swapp-hero-has-story');
    hero.classList.add('swapp-feature-ready');
+   hero.classList.remove('swapp-hero-pending','swapp-hero-unavailable');
+   hero.setAttribute('aria-busy','false');
    void showVerifiedCreators(feature,bridge);
    return feature.slug;
  }
@@ -151,6 +165,11 @@
    for(let i=0;i<(modern?4:5);i++){const skeleton=el('div','swapp-home-story swapp-home-story-skeleton'+(!modern&&i===0?' swapp-home-story-featured':''));skeleton.setAttribute('aria-hidden','true');skeleton.append(el('div','swapp-home-story-image'),el('div','swapp-home-story-body'));grid.append(skeleton)}section.setAttribute('aria-busy','true');section.append(grid);
    // Reserve the visual column before fetching articles to avoid a layout jump.
    const hero=modern?.querySelector('.homeHeroInner1014');
+   if(hero&&!hero.querySelector('.swapp-home-hero-feature')){
+     hero.classList.add('swapp-hero-pending');
+     hero.classList.remove('swapp-hero-unavailable');
+     hero.setAttribute('aria-busy','true');
+   }
    if(hero&&!hero.querySelector('.swapp-home-hero-feature,.swapp-home-hero-placeholder')){
      const placeholder=el('div','swapp-home-hero-placeholder');
      placeholder.setAttribute('aria-hidden','true');
