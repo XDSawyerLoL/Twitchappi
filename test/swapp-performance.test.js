@@ -43,10 +43,10 @@ test('navigation DOM reconciliation is frame-batched, never one costly pass per 
 test('both page shells use latest batched menu script with no stale assets',()=>{
  const spa=read('index.html'),ssr=read('modules/swapp-news/site-shell.js');
  for(const source of [spa,ssr]){
-  assert.match(source,/swapp-hub-nav\.js\?v=20261015-perf-1/);
+  assert.match(source,/swapp-hub-nav\.js\?v=20261016-account-dedupe-2/);
   assert.doesNotMatch(source,/swapp-hub-nav\.js\?v=20261015-community-restore-10/);
  }
- assert.match(spa,/swapp-home-news\.js\?v=20261015-video-home-2/);
+ assert.match(spa,/swapp-home-news\.js\?v=20261017-stability-store-v14/);
 });
 
 test('SOCIAL remains mounted on its full native page and uses an independent backend',()=>{
@@ -68,7 +68,7 @@ test('SOCIAL front page does not wait for independent health/session requests',(
  assert.match(app,/void restoreSession\(\)/);
  assert.match(app,/await Promise\.allSettled\(\[loadHome\(\),loadCirclePreview\(\)\]\)/);
  assert.doesNotMatch(app,/await Promise\.allSettled\(\[health\(\),restoreSession\(\)\]\)/);
- assert.match(read('modules/swapp-hubs.js'),/app\.js\?v=20261015-full-social-6/);
+ assert.match(read('modules/swapp-hubs.js'),/app\.js\?v=20261017-sso-retry-v9/);
 });
 
 test('AdSense library is not loaded globally before CMP consent',()=>{
@@ -87,7 +87,7 @@ test('video feature is in the existing editorial header, preserving all article 
  const home=read('assets/swapp-home-news.js');
  const html=read('index.html');
  assert.ok(home.includes('function videoTeaser()'));
- assert.ok(home.includes('actions.append(videoTeaser(),all)'));
+ assert.ok(home.includes('actions.append(videoTeaser());title.append(all)'));
  assert.ok(home.includes('swappVideoPlay'));
  assert.ok(html.includes('swapp-video-player.js?v=20261016-ios-journey-1'));
 });
