@@ -90,5 +90,5 @@ test('game-specific discovery uses the existing verified API with strict request
  assert.match(server,/app\.get\('\/api\/discovery\/game-lives'/);
  assert.match(server,/games\?name=/);
  assert.match(server,/game_id=/);
- assert.doesNotMatch(read('assets/swapp-home-news.js'),/api\/discovery\/game-lives/);
+ assert.match(read('assets/swapp-home-news.js'),/api\/discovery\/game-lives/);
 });
