@@ -5,7 +5,7 @@ const fs=require('node:fs');
 const path=require('node:path');
 const root=path.resolve(__dirname,'..');
 const read=file=>fs.readFileSync(path.join(root,file),'utf8');
-const style='/assets/swapp-presentation-polish.css?v=20261017-editorial-finish-v15';
+const style='/assets/swapp-presentation-polish.css?v=20261017-visual-audit-v16';
 
 test('one final presentation stylesheet is loaded after mobile layout in SPA and native pages',()=>{
  const home=read('index.html'),shell=read('modules/swapp-news/site-shell.js');
