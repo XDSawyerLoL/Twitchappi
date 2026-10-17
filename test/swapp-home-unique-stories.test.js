@@ -42,7 +42,7 @@ async function render(articles){
  const document={getElementById:id=>id==='home'?root:null,createElement:tag=>new Element(tag),addEventListener(){},visibilityState:'visible'};
  const fetch=async url=>{calls.push(url);return {ok:true,json:async()=>url==='/api/actus'?{articles}:{items:[]}}};
  const context={document,window:{addEventListener(){},dispatchEvent(){}},CustomEvent:class{constructor(type,options){this.type=type;this.detail=options?.detail}},MutationObserver:class{observe(){}},
-  setTimeout:cb=>timers.push(cb),fetch,AbortSignal,URL};
+  setTimeout:(cb,ms)=>{if(ms===220)timers.push(cb);return 1},clearTimeout(){},fetch,AbortController,URL};
  vm.runInNewContext(script,context,{timeout:2000});
  for(let i=0;i<30;i++){while(timers.length)timers.shift()();await Promise.resolve()}
  const shelf=main.querySelector('.swapp-home-editorial');
@@ -109,6 +109,6 @@ test('trailer is full-width cinematic 16:9 and responsive rather than 290px wide
  assert.match(css,/@media\(max-width:980px\)/);
  assert.match(css,/@media\(max-width:600px\)/);
  assert.doesNotMatch(css,/width:clamp\(190px,19vw,290px\)/);
- assert.match(html,/swapp-home-news\.js\?v=20261016-cinematic-trailer-3/);
+ assert.match(html,/swapp-home-news\.js\?v=20261017-stability-store-v14/);
  assert.match(html,/swapp-video-gallery\.css\?v=20261016-cinematic-trailer-5/);
 });
