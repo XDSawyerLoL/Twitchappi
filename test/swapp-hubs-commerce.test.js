@@ -73,13 +73,17 @@ test('commercial catalog never invents products or follows unsafe merchant links
  assert.match(html,/rel="sponsored nofollow noopener noreferrer"/);
  assert.match(html,/merchant\.example\/produit/);
  const examples=shop();
- assert.match(examples,/La Boutique prend forme/);
- assert.match(examples,/Clair Obscur/);
- assert.match(examples,/Casquettes/);
- assert.match(examples,/Tapis de souris/);
- assert.doesNotMatch(examples,/instant-gaming\.com|igr=SANSAHD/);
- assert.doesNotMatch(examples,/Prix barré|Acheter maintenant/);
- assert.equal((examples.match(/class="swapp-store-product-img"/g)||[]).length,7);
+ assert.match(examples,/SWAPP \/ GAME STORE · FRANCE/);
+ assert.match(examples,/LES 10 JEUX/);
+ assert.match(examples,/DU MOMENT\./);
+ assert.match(examples,/16 octobre 2026/);
+ assert.equal((examples.match(/class="swapp-editorial-game" aria-label="Rang /g)||[]).length,10);
+ for(const forbidden of ['La Boutique prend forme','Casquettes','Tapis de souris',
+  'swapp-store-products','swapp-store-departments','swapp-store-campaign',
+  'swapp-store-search','swapp-store-toolbar','swapp-store-notice','swapp-store-footer'])
+  assert.ok(!examples.includes(forbidden),'Unexpected public shop item: '+forbidden);
+ assert.doesNotMatch(examples,/instant-gaming\.com|igr=SANSAHD|Ajouter au panier|Paiement sécurisé/);
+
 });
 
 test('editorial YouTube trailer is click-to-play only and labels every commercial link',()=>{
