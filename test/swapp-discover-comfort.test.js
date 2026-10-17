@@ -64,7 +64,7 @@ function harness({missing=false,saved=false,invite=false}={}){
 test('current Discover V4 script loads after its legacy JS in the SPA',()=>{
  const html=read('index.html');
  const legacy=html.indexOf('<script src="/index_script.js?');
- const comfort=html.indexOf('<script defer src="/assets/swapp-discover-comfort.js?v=20261016-v4-mobile-3-creators"');
+ const comfort=html.indexOf('<script defer src="/assets/swapp-discover-comfort.js?v=20261017-journey-v17"');
  assert.ok(legacy>=0&&comfort>legacy);
  assert.equal((html.match(/swapp-discover-comfort\.js/g)||[]).length,1);
  assert.equal(fs.existsSync(path.join(root,'.github/workflows/swapp-quality.yml')),false);
