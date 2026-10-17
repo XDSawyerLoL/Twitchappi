@@ -137,7 +137,10 @@ async function verify(){
  check(news.body.includes(presentation),'Actualité uses an outdated presentation stylesheet');
  const finish=await request(origin,'/assets/swapp-presentation-polish.css');
  check(finish.body.includes('--swapp-finish-focus')&&finish.body.includes('.swapp-social-viewport .pulse-post-main')
-  &&finish.body.includes('.swapp-editorial-route .article-body'),
+  &&finish.body.includes('.swapp-editorial-route .article-body')
+  &&finish.body.includes('Editorial unity V8')
+  &&finish.body.includes('#home .swappHome1014 .swapp-home-hero-feature::after')
+  &&finish.body.includes('.swapp-social-viewport .swapp-social-story-info strong'),
   'Shared presentation finish is stale or incomplete');
  const navScript='/assets/swapp-mobile-nav-follow.js?v=20261016-follow-v2';
  check(home.body.includes(navScript),'Home has outdated mobile navigation behavior');
