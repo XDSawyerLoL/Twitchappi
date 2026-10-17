@@ -349,3 +349,149 @@
     animation:none!important;transition:none!important;transform:none!important;
   }
 }
+
+
+/* SWAPP EDGELESS HERO V19 — robust viewport centering, real transparency.
+ * Hero is nested inside .app and a 1460px .swappHome1014. A viewport-wide
+ * grid item MUST be positioned relative to viewport center, not max width.
+ * Preserve story links, source artwork and personalised page background. */
+#home.view.active:has(.homeHeroInner1014.swapp-feature-ready),
+#home.view.active .swappHome1014:has(.swapp-feature-ready),
+#home.view.active .homeHero1014:has(.swapp-feature-ready),
+#home.view.active .homeHeroInner1014.swapp-feature-ready{
+ overflow:visible!important;
+ clip-path:none!important;
+ max-width:none;
+}
+#home.view.active .swappHome1014:has(.swapp-feature-ready){
+ /* Only the hero escapes the grid. Lives and articles stay at reading width. */
+ max-width:1460px;
+}
+#home .swappHome1014 .homeHeroInner1014.swapp-feature-ready
+ > .swapp-home-hero-feature,
+#home .swappHome1014 .homeHeroInner1014.swapp-feature-ready
+ > .swapp-home-feature-bridge{
+ box-sizing:border-box!important;
+ position:relative!important;
+ left:50%!important;
+ right:auto!important;
+ width:100vw!important;
+ width:100dvw!important;
+ min-width:100vw!important;
+ min-width:100dvw!important;
+ max-width:none!important;
+ margin-left:0!important;
+ margin-right:0!important;
+ transform:translateX(-50%)!important;
+ -webkit-transform:translateX(-50%)!important;
+ border:0!important;
+ border-radius:0!important;
+ box-shadow:none!important;
+}
+#home .swappHome1014 .homeHeroInner1014.swapp-feature-ready
+ > .swapp-home-hero-feature{
+ background:transparent!important;
+ /* Image mask leaves the visitor's actual homepage background visible. */
+ overflow:hidden!important;
+}
+#home .swappHome1014 .homeHeroInner1014.swapp-feature-ready
+ > .swapp-home-hero-feature img{
+ width:100%!important;
+ height:100%!important;
+ object-fit:cover!important;
+ object-position:center 38%!important;
+ -webkit-mask-image:linear-gradient(to bottom,
+   #000 0%,#000 46%,rgba(0,0,0,.98) 53%,
+   rgba(0,0,0,.84) 63%,rgba(0,0,0,.47) 78%,
+   rgba(0,0,0,.13) 92%,transparent 100%)!important;
+ mask-image:linear-gradient(to bottom,
+   #000 0%,#000 46%,rgba(0,0,0,.98) 53%,
+   rgba(0,0,0,.84) 63%,rgba(0,0,0,.47) 78%,
+   rgba(0,0,0,.13) 92%,transparent 100%)!important;
+}
+/* Side vignetting without a hard background-coloured seam. The overlay
+ * becomes transparent at the bottom, matching the masked image fade. */
+#home .swappHome1014 .homeHeroInner1014.swapp-feature-ready
+ > .swapp-home-hero-feature::after{
+ background:
+  linear-gradient(90deg,
+   rgba(4,9,18,.38) 0%,rgba(4,9,18,.12) 14%,
+   transparent 32%,transparent 79%,rgba(4,9,18,.18) 100%),
+  linear-gradient(0deg,
+   transparent 0%,rgba(5,10,19,.55) 24%,
+   rgba(5,10,19,.34) 43%,rgba(5,10,19,.05) 74%,
+   transparent 100%)!important;
+}
+#home .swappHome1014 .homeHeroInner1014.swapp-feature-ready
+ > .swapp-home-feature-bridge{
+ /* Keep action links visible over the transparent fade, never a separate band. */
+ background:transparent!important;
+ border:0!important;
+ margin-top:-156px!important;
+}
+#home .swappHome1014 .homeHeroInner1014.swapp-feature-ready
+ > .swapp-home-hero-feature:hover{
+ transform:translateX(-50%)!important;
+ -webkit-transform:translateX(-50%)!important;
+}
+#home .swappHome1014 .homeHeroInner1014.swapp-feature-ready
+ > .swapp-home-hero-feature:focus-visible{
+ outline:2px solid var(--journey-accent)!important;
+ outline-offset:-4px!important;
+}
+/* Real streamers with no profile photograph use readable name chips,
+ * rather than circles displaying meaningless isolated letters. */
+#home .swapp-home-feature-face:not(:has(img)){
+ width:auto;min-width:44px;max-width:140px;
+ padding:0 11px;border-radius:999px;
+ font:750 12px/1.3 Inter,system-ui,sans-serif;
+ white-space:nowrap;text-overflow:ellipsis;
+}
+#home .swapp-home-feature-face:not(:has(img)) span{
+ max-width:100%;overflow:hidden;text-overflow:ellipsis;
+}
+@media(max-width:650px){
+ #home .swappHome1014 .homeHeroInner1014.swapp-feature-ready
+ > .swapp-home-hero-feature{
+  height:clamp(520px,76svh,730px)!important;
+ }
+ #home .swappHome1014 .homeHeroInner1014.swapp-feature-ready
+ > .swapp-home-hero-feature img{
+  object-position:center 30%!important;
+  -webkit-mask-image:linear-gradient(to bottom,
+    #000 0%,#000 40%,rgba(0,0,0,.98) 48%,
+    rgba(0,0,0,.83) 67%,rgba(0,0,0,.42) 82%,
+    transparent 100%)!important;
+  mask-image:linear-gradient(to bottom,
+    #000 0%,#000 40%,rgba(0,0,0,.98) 48%,
+    rgba(0,0,0,.83) 67%,rgba(0,0,0,.42) 82%,
+    transparent 100%)!important;
+ }
+ #home .swappHome1014 .homeHeroInner1014.swapp-feature-ready
+ > .swapp-home-feature-bridge{
+  margin-top:-197px!important;
+ }
+ #home .swapp-home-feature-creators{
+  max-width:100%;
+ }
+}
+@media(max-width:365px){
+ #home .swappHome1014 .homeHeroInner1014.swapp-feature-ready
+ > .swapp-home-feature-bridge{
+  margin-top:-203px!important;
+ }
+}
+@media(prefers-reduced-motion:reduce){
+ #home .swappHome1014 .homeHeroInner1014.swapp-feature-ready
+ > .swapp-home-hero-feature{
+  transform:translateX(-50%)!important;
+  -webkit-transform:translateX(-50%)!important;
+  transition:none!important;
+ }
+ #home .swappHome1014 .homeHeroInner1014.swapp-feature-ready
+ > .swapp-home-feature-bridge{
+  transform:translateX(-50%)!important;
+  -webkit-transform:translateX(-50%)!important;
+  transition:none!important;
+ }
+}
