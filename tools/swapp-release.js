@@ -36,6 +36,7 @@ const RELEASE_FILES=Object.freeze([
  'assets/swapp-video-player.js',
  'assets/swapp-video-gallery.css',
  'assets/swapp-presentation-polish.css',
+ 'assets/swapp-game-journey.css',
  'assets/swapp-discover-comfort.js',
  'assets/swapp-media.css',
  'assets/swapp-live-articles.js',
