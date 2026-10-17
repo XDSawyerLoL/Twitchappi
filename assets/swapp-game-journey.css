@@ -10,7 +10,7 @@
  padding-top:clamp(15px,2vw,28px)!important;
  padding-bottom:clamp(10px,1.5vw,20px)!important;
 }
-#home .swappHome1014 .homeHeroInner1014:has(> .swapp-home-hero-feature)>.homeHeroCopy1014{
+#home .swappHome1014 .homeHeroInner1014.swapp-feature-ready .homeHeroCopy1014{
  display:none!important; /* Existing generic slogan yields to the real featured game. */
 }
 #home .swappHome1014 .swapp-home-hero-feature{
