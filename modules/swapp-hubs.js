@@ -179,11 +179,11 @@ function steamTopSection(){
  }).join('');
  return '<section class="swapp-editorial-top" aria-labelledby="swapp-editorial-top-title">'+
   '<div class="swapp-editorial-top-masthead"><div><small>SWAPP / GAME STORE · FRANCE</small>'+
-  '<h2 id="swapp-editorial-top-title">LES 10 JEUX <em>DU MOMENT.</em></h2>'+
+  '<h1 id="swapp-editorial-top-title">LES 10 JEUX <em>DU MOMENT.</em></h1>'+
   '<p>Les meilleures ventes Steam France, sélectionnées au 16 octobre 2026. Une vitrine gaming, des univers à explorer.</p></div>'+
   '<a href="https://store.steampowered.com/charts/topselling/FR" target="_blank" rel="noopener noreferrer">Classement Steam ↗</a></div>'+
   '<div class="swapp-editorial-top-grid">'+cards+'</div>'+
-  '<p class="swapp-editorial-top-disclaimer">Source : classement public Steam France consulté le 16/10/2026. Classement susceptible de changer. Prix en euros relevés auprès de sources publiques lorsqu’ils étaient disponibles, non synchronisés en direct ; vérifier le prix, l’édition, la région et la disponibilité chez Steam. Liens marchands externes non affiliés. Les images promotionnelles appartiennent aux ayants droit.</p>'+
+  '<p class="swapp-editorial-top-disclaimer">Sélection éditoriale datée du 16/10/2026, non synchronisée en direct. Ordre du classement et prix à vérifier auprès de Steam France ; vérifier également l’édition, la région et la disponibilité. Liens marchands externes non affiliés. Les images promotionnelles appartiennent à leurs ayants droit.</p>'+
  '</section>';
 }
 
