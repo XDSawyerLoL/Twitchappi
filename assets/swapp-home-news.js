@@ -66,6 +66,36 @@
    const all=el('a','','Toutes les bandes-annonces →');all.href='/bandes-annonces';caption.append(all);
    wrap.append(trigger,caption);return wrap;
  }
+ const discussionHref=item=>'/communaute?share=news&title='+encodeURIComponent(item.game?item.game+' — '+item.title:item.title)+'&url='+encodeURIComponent('https://swapp.tv/actus/'+item.slug);
+ const gameKey=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+ async function showVerifiedCreators(item,row){
+  if(!item.game)return;
+  const game=String(item.game).trim().slice(0,90);
+  if(!game)return;
+  try{
+   const data=await fetchItems('/api/discovery/game-lives?limit=5&game='+encodeURIComponent(game),10000);
+   if(!row.isConnected||data?.success!==true||gameKey(data.game)!==gameKey(game)||!Array.isArray(data.items))return;
+   const seen=new Set(),verified=data.items.filter(stream=>{
+    const login=String(stream?.login||'').toLowerCase(),platform=String(stream?.platform||'').toLowerCase(),key=platform+':'+login;
+    if(!/^[a-z0-9_]{2,25}$/.test(login)||seen.has(key)||gameKey(stream.game_name||stream.game)!==gameKey(game))return false;
+    seen.add(key);return true;
+   }).slice(0,4);
+   if(!verified.length)return;
+   const avatars=el('div','swapp-home-feature-creators');
+   avatars.append(el('span','swapp-home-feature-live-label','En direct sur '+game));
+   const faces=el('span','swapp-home-feature-faces');
+   for(const stream of verified){
+    const login=String(stream.login).toLowerCase(),native=['swapp','oryon'].includes(String(stream.platform||'').toLowerCase());
+    const a=el('a','swapp-home-feature-face');a.href=native?'/'+encodeURIComponent(login):'/live/twitch/'+encodeURIComponent(login)+'?game='+encodeURIComponent(game);
+    a.title='Regarder '+(stream.display_name||login)+' en direct';a.setAttribute('aria-label',a.title);
+    const src=safeUrl(stream.profile_image_url||stream.avatar_url||stream.avatar||'');
+    if(src){const img=el('img');img.src=src;img.alt='';img.loading='lazy';img.decoding='async';img.onerror=()=>img.remove();a.append(img)}
+    else a.append(el('span','',String(stream.display_name||login).slice(0,1).toUpperCase()));
+    faces.append(a);
+   }
+   avatars.append(faces);row.append(avatars);
+  }catch{/* No invented live results on failure. */}
+ }
  function decorateHero(modern,articles,onImageError){
    const hero=modern?.querySelector('.homeHeroInner1014');
    if(!hero)return null;
@@ -81,12 +111,24 @@
    tile.addEventListener('click',event=>navigateArticle(event,feature.slug,feature.game));
    const image=el('img');image.src=safeUrl(feature.image?.url||feature.imageUrl);image.alt='';
    image.decoding='async';image.loading='eager';
-   image.onerror=()=>{tile.remove();hero.classList.remove('swapp-hero-has-story');onImageError?.()};
+   const bridge=el('div','swapp-home-feature-bridge');
+   bridge.dataset.swappFeatureGame=String(feature.game||'').slice(0,120);
+   const actions=el('nav','swapp-home-feature-links');
+   actions.setAttribute('aria-label','Explorer ce jeu sur SWAPP');
+   const action=(label,href,primary=false)=>{
+    const link=el('a','swapp-home-feature-cta'+(primary?' primary':''),label);link.href=href;actions.append(link);
+   };
+   action('Lire l’article','/actus/'+encodeURIComponent(feature.slug),true);
+   action('Voir les lives',feature.game?'/actus/'+encodeURIComponent(feature.slug)+'#swapp-article-lives':'/decouvrir');
+   action('En discuter',discussionHref(feature));
+   bridge.append(actions);
+   image.onerror=()=>{tile.remove();bridge.remove();hero.classList.remove('swapp-hero-has-story');onImageError?.()};
    const overlay=el('span','swapp-home-hero-feature-overlay');
-   overlay.append(el('span','swapp-home-hero-feature-label','À LIRE SUR SWAPP'),
-     el('strong','',feature.title),el('span','swapp-home-hero-feature-link','Lire l’article →'));
-   tile.append(image,overlay);hero.append(tile);
+   overlay.append(el('span','swapp-home-hero-feature-label',feature.game||feature.category||'À la une'),
+     el('strong','',feature.title));
+   tile.append(image,overlay);hero.append(tile,bridge);
    hero.classList.add('swapp-hero-has-story');
+   void showVerifiedCreators(feature,bridge);
    return feature.slug;
  }
  function mount(){
