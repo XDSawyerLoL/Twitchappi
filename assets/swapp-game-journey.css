@@ -510,3 +510,73 @@
   transition:none!important;
  }
 }
+
+
+/* SWAPP HOME NO-FLASH V21 — reserve art from first render, no legacy slogan.
+ * The headline was previously visible while /api/actus loaded. Pending
+ * matches the published image footprint, and failure restores the live grid. */
+#home .swappHome1014 .homeHeroCopy1014{
+ display:none!important;
+}
+#home .swappHome1014 .homeHeroInner1014.swapp-hero-pending{
+ display:grid!important;
+ grid-template-columns:minmax(0,1fr)!important;
+ gap:0!important;
+ min-width:0!important;
+ width:100%!important;max-width:100%!important;
+ min-height:clamp(490px,72svh,790px)!important;
+ padding:0!important;
+ margin-top:calc(-1 * clamp(8px,1.5vw,22px))!important;
+ overflow:visible!important;
+}
+#home .swappHome1014 .homeHeroInner1014.swapp-hero-pending
+ > .swapp-home-hero-placeholder{
+ position:relative!important;
+ display:block!important;
+ justify-self:start!important;
+ left:50%!important;
+ width:100vw!important;width:100dvw!important;
+ max-width:none!important;
+ min-height:clamp(490px,72svh,790px)!important;
+ height:clamp(490px,72svh,790px)!important;
+ margin:0!important;
+ padding:0!important;
+ border:0!important;
+ border-radius:0!important;
+ box-shadow:none!important;
+ transform:translateX(-50%)!important;
+ background:
+  radial-gradient(ellipse 48% 55% at 53% 32%,
+    color-mix(in srgb,var(--journey-accent) 7%,transparent),
+    transparent 82%),
+  linear-gradient(to bottom,transparent 50%,rgba(8,13,22,.28) 75%,transparent 100%)!important;
+ pointer-events:none!important;
+}
+#home .swappHome1014 .homeHeroInner1014.swapp-hero-unavailable{
+ display:none!important;
+ min-height:0!important;
+ margin:0!important;
+ padding:0!important;
+}
+#home .swappHome1014 .homeHero1014:has(.swapp-hero-unavailable){
+ display:none!important;
+}
+/* When a slow network is still fetching editorial art, avoid relocating
+ * the live grid after the featured article arrives. */
+@media(max-width:650px){
+ #home .swappHome1014 .homeHeroInner1014.swapp-hero-pending{
+  min-height:clamp(520px,76svh,730px)!important;
+  margin-top:0!important;
+ }
+ #home .swappHome1014 .homeHeroInner1014.swapp-hero-pending
+ > .swapp-home-hero-placeholder{
+  min-height:clamp(520px,76svh,730px)!important;
+  height:clamp(520px,76svh,730px)!important;
+ }
+}
+@media(prefers-reduced-motion:reduce){
+ #home .swappHome1014 .homeHeroInner1014.swapp-hero-pending
+ > .swapp-home-hero-placeholder{
+  animation:none!important;transition:none!important;
+ }
+}
