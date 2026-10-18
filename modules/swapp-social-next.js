@@ -87,6 +87,7 @@ function createSocialNextRouter({express,pool,restoreSession,clock=()=>Date.now(
  // Personal library: authenticated, first-party and private. These rows are
  // explicit follows only, NEVER evidence that the user purchased or owns a game.
  const librarySlug=v=>typeof v==='string'&&v.length>=3&&v.length<=90&&/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(v);
+ const libraryTime=(value,now,fallback)=>{const n=Date.parse(String(value||''));return Number.isFinite(n)&&n>=now-2*365*86400000&&n<=now?n:fallback};
  const libraryName=v=>typeof v==='string'&&v.trim().length>=2&&v.length<=100&&
    !/[<>\u0000-\u001f]/.test(v)?v.trim():'';
  const libraryItem=row=>({
@@ -111,7 +112,7 @@ function createSocialNextRouter({express,pool,restoreSession,clock=()=>Date.now(
   for(const item of input){
    const slug=item?.slug,game=libraryName(item?.game);
    if(!librarySlug(slug)||!game)return bad(res,'invalid_game',400);
-   if(!pending.has(slug))pending.set(slug,{slug,game});
+   if(!pending.has(slug))pending.set(slug,{slug,game,followedAt:item.followedAt,seenAt:item.seenAt});
   }
   const conn=await pool.getConnection();
   try{
@@ -121,9 +122,11 @@ function createSocialNextRouter({express,pool,restoreSession,clock=()=>Date.now(
    const missing=[...pending.values()].filter(x=>!found.has(x.slug));
    if(existing.length+missing.length>30){await conn.rollback();return bad(res,'library_limit',409)}
    const stamp=clock();
-   for(const row of missing){
+   for(const [index,row] of missing.entries()){
+    const followed=libraryTime(row.followedAt,stamp,stamp+index);
+    const seen=libraryTime(row.seenAt,stamp,0);
     await conn.execute('INSERT IGNORE INTO swapp_social_game_follows (user_id,game_slug,game_name,followed_at,seen_at,updated_at) VALUES (?,?,?,?,?,?)',
-     [req.socialPlayer.id,row.slug,row.game,stamp,0,stamp]);
+     [req.socialPlayer.id,row.slug,row.game,followed,seen>=followed?seen:0,stamp]);
    }
    await conn.commit();
   }catch(error){await conn.rollback();throw error}
