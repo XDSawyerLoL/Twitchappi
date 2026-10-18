@@ -71,3 +71,18 @@ Cette version n'a pas de notifications push ni de ventes natives. Elle inaugure 
 - Tester le repli si les articles sont indisponibles : zéro point attribué à un dossier non vérifié.
 - Confirmer MySQL migration `007_swapp_wishlist_rewards.sql`, état de santé des 3 nouvelles tables et version publiée `social-wishlist-points-20261018`.
 - Vérifier iPhone Safari et Android Chrome, clavier, états d'erreur inline, cache CSS/JS et affichage sans nouvelles sections de boutique.
+
+## Espace joueur : fil éditorial personnel (suite de la PR #46)
+- La page /mes-jeux expose « À lire sur tes jeux » immédiatement après son en-tête, avec jusqu'à huit articles réellement publiés. Elle prend en compte les jeux suivis et la liste de souhaits privée déjà disponible sur le compte.
+- Les articles sont classés par date, avec au plus deux articles par jeu ; leurs titres et liens viennent des dossiers éditoriaux déjà publiés et indexés. Aucun appel externe ou nouveau stockage n'est nécessaire.
+- Chaque article renvoie à sa page réelle. Chaque jeu renvoie au dossier qui propose déjà les lives de ce jeu, la communauté et la boutique.
+- Un souhait ne devient pas un jeu suivi automatiquement. Les libellés « Dans tes envies », « Jeu suivi » et « Nouveau depuis ton suivi » sont distincts, sans simulation de présence ou de lecture.
+- Si une envie issue de Steam n'a pas de dossier éditorial publié dans le catalogue de la page, le lien mène à /boutique et non à une page /jeux inexistante. Aucune disponibilité ni remise n'est affirmée.
+- La mise en page est éditoriale et sans rail d'accueil ajouté. Rendu deux colonnes sur ordinateur et une colonne sur mobile, sans série quotidienne, publicité imposée ou notification non consentie.
+
+### Vérifications requises
+- Tests ciblés : node --test test/swapp-player-hub.test.js test/swapp-my-games.test.js test/swapp-wishlist-ui.test.js test/swapp-verified-rewards.test.js
+- Scénarios : rien de suivi, suivre puis retirer un jeu, ajout d'envie seule, lien hors actualité ignoré, brouillon exclu, souhait sans dossier publié, navigation clavier.
+- Confirmer iPhone Safari, Android Chrome, desktop, accès direct à /mes-jeux et F5. Les tests de rendu réels ne sont pas remplacés par des simulations.
+- Confirmer migration MySQL 007, identité du compte SWAPP et points en production avant annonce publique. Cette évolution n'ajoute aucune migration.
+- Vérifier le déploiement sur Hostinger et la version de cache 20261018-player-hub-v2. La fusion GitHub seule ne prouve pas la mise en ligne.
