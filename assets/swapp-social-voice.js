@@ -156,17 +156,9 @@
     connection.once('connect_error',error=>{clearTimeout(timer);reject(error)});
    });
    if(revision!==lifecycle||room!==selectedRoom){leave();return}
-   const result=await new Promise((resolve,reject)=>{
-    connection.timeout(12000).emit('voice:join',{roomId:room},(err,data)=>
-     err?reject(Error('Le salon ne répond pas.')):resolve(data));
-   });
-   if(!result?.ok)throw Error(({
-    room_full:'Salon vocal complet (6 personnes).',
-    not_found:'Ce salon n’existe plus.',
-    social_storage_unavailable:'Serveur des salons indisponible.'
-   })[result?.error]||'Impossible de rejoindre le salon.');
-   connectedRoom=room;busy=false;
-   for(const profile of result.peers||[])if(profile?.id)profiles.set(profile.id,{handle:profile.handle});
+   // Register signalling listeners BEFORE requesting the room. The first SDP offer
+   // can arrive before the join acknowledgment, especially on fast connections.
+   connectedRoom=room;
    connection.on('voice:joined',payload=>{
     if(!payload?.id||!connectedRoom)return;
     profiles.set(payload.id,{handle:payload.handle});repaint();void startOffer(payload.id);
@@ -182,6 +174,18 @@
    connection.on('disconnect',()=>{
     if(connectedRoom){leave();notice('Connexion vocale interrompue. Rejoins le salon pour réessayer.')}
    });
+   const result=await new Promise((resolve,reject)=>{
+    connection.timeout(12000).emit('voice:join',{roomId:room},(err,data)=>
+     err?reject(Error('Le salon ne répond pas.')):resolve(data));
+   });
+   if(!result?.ok)throw Error(({
+    room_full:'Salon vocal complet (6 personnes).',
+    not_found:'Ce salon n’existe plus.',
+    social_storage_unavailable:'Serveur des salons indisponible.'
+   })[result?.error]||'Impossible de rejoindre le salon.');
+   if(revision!==lifecycle){leave();return}
+   busy=false;
+   for(const profile of result.peers||[])if(profile?.id&&!profiles.has(profile.id))profiles.set(profile.id,{handle:profile.handle});
    notice('Microphone ouvert. La voix est transmise directement aux autres participants.');
    repaint();
   }catch(error){
