@@ -104,8 +104,8 @@
    if(!validSlug(slug)||!game)return;
    const existing=games.find(x=>x.slug===slug);
    const next=existing?games.filter(x=>x.slug!==slug):[...games,{slug,game,followedAt:now(),seenAt:''}];
-   if(!existing&&next.length>LIMIT){status('Tu peux suivre 30 jeux au maximum.');return}
-   if(!save(next)){status('Enregistrement local indisponible. Autorise le stockage dans ton navigateur.');return}
+   if(!existing&&next.length>LIMIT){status('Tu peux suivre 30 jeux au maximum.');follow.textContent='Limite de 30 jeux atteinte';follow.setAttribute('aria-live','polite');return}
+   if(!save(next)){status('Enregistrement local indisponible. Autorise le stockage dans ton navigateur.');follow.textContent='Enregistrement indisponible';follow.setAttribute('aria-live','polite');return}
    games=next;update();
    status(existing?'Jeu retiré de ta sélection.':'Jeu ajouté. Les prochaines actualités seront signalées ici.');
    return;
