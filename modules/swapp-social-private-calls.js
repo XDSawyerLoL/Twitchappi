@@ -4,8 +4,8 @@
 const crypto=require('node:crypto');
 const HANDLE=/^[a-z0-9_-]{3,40}$/i;
 const CALL_TIMEOUT_MS=35000,MAX_CALL_MS=2*60*60*1000;
-function installPrivateCalls(voice,{lookupLocalUser,clock=()=>Date.now()}={}){
- if(!voice||typeof lookupLocalUser!=='function')throw Error('private_calls_invalid_configuration');
+function installPrivateCalls(voice,{lookupLocalUser,isAllowedPair,clock=()=>Date.now()}={}){
+ if(!voice||typeof lookupLocalUser!=='function'||typeof isAllowedPair!=='function')throw Error('private_calls_invalid_configuration');
  const calls=new Map(),recipientCooldown=new Map();
  const finish=(call,reason='ended')=>{
   if(!call||!calls.has(call.id))return;
@@ -28,7 +28,7 @@ function installPrivateCalls(voice,{lookupLocalUser,clock=()=>Date.now()}={}){
  voice.on('connection',socket=>{
   socket.data.privateCallId='';
   let lastInvite=0,lastSignalWindow=clock(),signalCount=0;
-  socket.on('call:invite',(packet,ack)=>{
+  socket.on('call:invite',async(packet,ack)=>{
    const reply=typeof ack==='function'?ack:()=>{};
    const user=socket.data.voiceUser;
    const handle=String(packet?.handle||'').trim().toLowerCase().replace(/^@/,'');
@@ -36,6 +36,9 @@ function installPrivateCalls(voice,{lookupLocalUser,clock=()=>Date.now()}={}){
    const local=lookupLocalUser(handle);
    if(!local?.id||String(local.login||'').toLowerCase()!==handle||String(local.id)===String(user.id))
     return reply({ok:false,error:'invalid_recipient'});
+   // A block in EITHER direction prohibits even ringing the recipient.
+   try{if(!(await isAllowedPair(user.id,local.id)))return reply({ok:false,error:'blocked'})}
+   catch{return reply({ok:false,error:'privacy_unavailable'})}
    if(socket.data.privateCallId)return reply({ok:false,error:'busy'});
    if(clock()-lastInvite<20000)return reply({ok:false,error:'rate_limited'});
    if(clock()-Number(recipientCooldown.get(String(local.id))||0)<30000)return reply({ok:false,error:'rate_limited'});
@@ -59,13 +62,18 @@ function installPrivateCalls(voice,{lookupLocalUser,clock=()=>Date.now()}={}){
    reply({ok:true,callId:id});
    for(const other of waiting)other.emit('call:incoming',{callId:id,fromHandle:user.handle});
   });
-  socket.on('call:answer',(packet,ack)=>{
+  socket.on('call:answer',async(packet,ack)=>{
    const reply=typeof ack==='function'?ack:()=>{};
    const call=calls.get(String(packet?.callId||''));
    if(!call||call.status!=='ringing'||call.toUserId!==socket.data.voiceUser?.id||
       !voice.sockets.get(call.fromSocket)?.connected)return reply({ok:false,error:'expired'});
    if(packet.accept!==true){finish(call,'declined');return reply({ok:true})}
    if(socket.data.privateCallId)return reply({ok:false,error:'busy'});
+   try{
+    if(!(await isAllowedPair(call.fromUserId,call.toUserId))){
+     finish(call,'blocked');return reply({ok:false,error:'blocked'});
+    }
+   }catch{finish(call,'privacy_unavailable');return reply({ok:false,error:'privacy_unavailable'})}
    clearTimeout(call.timer);
    call.status='active';call.toSocket=socket.id;
    socket.data.privateCallId=call.id;
@@ -108,6 +116,14 @@ function installPrivateCalls(voice,{lookupLocalUser,clock=()=>Date.now()}={}){
    }
   });
  });
+ // A block saved while a call is already active terminates it on both ends.
+ calls.endBetween=(a,b)=>{
+  const pair=[String(a),String(b)];
+  for(const item of [...calls.values()]){
+   if(pair.includes(item.fromUserId)&&pair.includes(item.toUserId)&&item.fromUserId!==item.toUserId)
+    finish(item,'blocked');
+  }
+ };
  return calls;
 }
 module.exports={installPrivateCalls,CALL_TIMEOUT_MS};
