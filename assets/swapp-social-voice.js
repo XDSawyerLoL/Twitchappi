@@ -313,6 +313,7 @@
  }
  joinButton.addEventListener('click',()=>{void join()});
  playButton.addEventListener('click',()=>{
+  if(deafened)return;
   Promise.allSettled([...audioHost.querySelectorAll('audio')].map(el=>el.play())).then(results=>{
    const blocked=results.some(r=>r.status==='rejected');
    playButton.hidden=!blocked;
@@ -326,12 +327,28 @@
   socket?.emit('voice:mute',muted);
   repaint();
  });
+ deafenButton.addEventListener('click',()=>{
+  if(!connectedRoom)return;
+  deafened=!deafened;
+  for(const participant of peers.values()){
+   participant.audio.muted=deafened;
+   if(!deafened)participant.audio.play().catch(()=>{
+    playButton.hidden=false;
+    notice('Appuie sur « Activer le son » pour écouter les autres joueurs.');
+   });
+  }
+  if(deafened)playButton.hidden=true;
+  repaint();
+ });
  leaveButton.addEventListener('click',()=>{leave();notice('Tu as quitté le salon vocal.')});
  area.addEventListener('ssi:room-selected',event=>{
   const id=String(event.detail?.id||'');
   if(id===selectedRoom)return;
   if(media||socket)leave();
-  selectedRoom=id;notice(id?'Rejoins ce salon vocal lorsque tu le souhaites.':'Choisis un salon de discussion.');
+  selectedRoom=id;
+  selectedRoomName=String(event.detail?.name||'').slice(0,60);
+  selectedRoomGame=String(event.detail?.game||'').slice(0,65);
+  notice(id?'Salon sélectionné. Rejoins le vocal pour activer ton micro.':'Choisis un salon de discussion.');
   repaint();
  });
  const observer=new MutationObserver(()=>{
