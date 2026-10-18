@@ -32,7 +32,13 @@
   return gameText(x.game_name||x.gameName||x.game||x.category);
  }
  function articleGame(article){
-  return gameText(article?.game||article?.game_name||article?.gameName);
+  const raw=gameText(article?.game||article?.game_name||article?.gameName);
+  const label=normalizeGame(article?.title||'');
+  const remastered=/(?:the )?witcher (?:3|iii)(?: wild hunt)? remaster(?:ed)?/.test(label);
+  const original=['the witcher 3','witcher 3','the witcher 3 wild hunt','the witcher iii'];
+  if(remastered&&(!raw||original.includes(normalizeGame(raw))))
+   return 'The Witcher 3: Wild Hunt Remastered';
+  return raw;
  }
  function matchLiveToArticle(live,articles){
   const game=streamGame(live);
@@ -46,7 +52,14 @@
    if(!/^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/.test(slug))continue;
    const title=String(article.title||'').trim();
    if(!title)continue;
-   const direct=normalizeGame(articleGame(article))===normalized;
+   const editorialName=normalizeGame(articleGame(article));
+   const witcherRemaster=/(?:the )?witcher (?:3|iii)(?: wild hunt)? remaster(?:ed)?/;
+   const requestedRemaster=witcherRemaster.test(editorialName);
+   const liveRemaster=witcherRemaster.test(normalized);
+   // Legacy Witcher metadata is repaired from the headline, never treat the
+   // original category as the remastered category.
+   const direct=requestedRemaster?
+    liveRemaster:editorialName===normalized;
    // If a game field is not provided, only use an explicit, whole-title
    // mention of the actual Twitch/SWAPP game (never category-only guessing).
    const titleNorm=' '+normalizeGame(title)+' ';
@@ -55,7 +68,8 @@
    const after=at<0?'':titleNorm.slice(at+token.length).trim().split(' ')[0];
    // Do not confuse a current game's title with a differently numbered sequel.
    const sequel=new Set(['2','3','4','5','ii','iii','iv','v']);
-   const inTitle=!articleGame(article)&&at>=0&&!sequel.has(after);
+   const inTitle=!articleGame(article)&&at>=0&&!sequel.has(after)&&
+    !(requestedRemaster&&!liveRemaster);
    if(!direct&&!inTitle)continue;
    const score=(direct?200:100)+(Math.max(0,12-i));
    if(!best||score>best.score)best={slug,title,game,score};
