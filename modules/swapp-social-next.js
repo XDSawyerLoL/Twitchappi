@@ -83,6 +83,95 @@ function createSocialNextRouter({express,pool,restoreSession,clock=()=>Date.now(
   }
   res.json({matches:result.sort((a,b)=>b.score-a.score||b.createdAt-a.createdAt).slice(0,30),gamePreferences:games.length});
  });
+
+ // Personal library: authenticated, first-party and private. These rows are
+ // explicit follows only, NEVER evidence that the user purchased or owns a game.
+ const librarySlug=v=>typeof v==='string'&&v.length>=3&&v.length<=90&&/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(v);
+ const libraryName=v=>typeof v==='string'&&v.trim().length>=2&&v.length<=100&&
+   !/[<>\\u0000-\\u001f]/.test(v)?v.trim():'';
+ const libraryItem=row=>({
+  slug:String(row.game_slug),game:String(row.game_name),
+  followedAt:new Date(Number(row.followed_at)).toISOString(),
+  seenAt:Number(row.seen_at)>0?new Date(Number(row.seen_at)).toISOString():''
+ });
+ const loadLibrary=async uid=>{
+  const rows=await query('SELECT game_slug,game_name,followed_at,seen_at FROM swapp_social_game_follows WHERE user_id=? ORDER BY followed_at ASC,game_slug ASC LIMIT 30',[uid]);
+  return rows.map(libraryItem);
+ };
+ route('get','/library/games',async(req,res)=>{
+  res.set('Cache-Control','private, no-store');
+  res.json({userId:req.socialPlayer.id,games:await loadLibrary(req.socialPlayer.id)});
+ });
+ // First-time synchronization is explicitly initiated by the user.
+ // Import merges new device-local follows, never overwrites remote removals silently.
+ route('post','/library/import',async(req,res)=>{
+  const input=req.body?.games;
+  if(!Array.isArray(input)||input.length>30)return bad(res,'invalid_library',400);
+  const pending=new Map();
+  for(const item of input){
+   const slug=item?.slug,game=libraryName(item?.game);
+   if(!librarySlug(slug)||!game)return bad(res,'invalid_game',400);
+   if(!pending.has(slug))pending.set(slug,{slug,game});
+  }
+  const conn=await pool.getConnection();
+  try{
+   await conn.beginTransaction();
+   const [existing]=await conn.execute('SELECT game_slug FROM swapp_social_game_follows WHERE user_id=? FOR UPDATE',[req.socialPlayer.id]);
+   const found=new Set(existing.map(x=>x.game_slug));
+   const missing=[...pending.values()].filter(x=>!found.has(x.slug));
+   if(existing.length+missing.length>30){await conn.rollback();return bad(res,'library_limit',409)}
+   const stamp=clock();
+   for(const row of missing){
+    await conn.execute('INSERT IGNORE INTO swapp_social_game_follows (user_id,game_slug,game_name,followed_at,seen_at,updated_at) VALUES (?,?,?,?,?,?)',
+     [req.socialPlayer.id,row.slug,row.game,stamp,0,stamp]);
+   }
+   await conn.commit();
+  }catch(error){await conn.rollback();throw error}
+  finally{conn.release()}
+  res.set('Cache-Control','private, no-store');
+  res.json({userId:req.socialPlayer.id,games:await loadLibrary(req.socialPlayer.id)});
+ });
+ route('put','/library/games/:slug',async(req,res)=>{
+  const slug=req.params.slug,game=libraryName(req.body?.game);
+  if(!librarySlug(slug)||!game)return bad(res,'invalid_game',400);
+  const conn=await pool.getConnection();
+  try{
+   await conn.beginTransaction();
+   const [rows]=await conn.execute('SELECT game_slug FROM swapp_social_game_follows WHERE user_id=? FOR UPDATE',[req.socialPlayer.id]);
+   if(!rows.some(r=>r.game_slug===slug)){
+    if(rows.length>=30){await conn.rollback();return bad(res,'library_limit',409)}
+    const stamp=clock();
+    await conn.execute('INSERT IGNORE INTO swapp_social_game_follows (user_id,game_slug,game_name,followed_at,seen_at,updated_at) VALUES (?,?,?,?,?,?)',
+     [req.socialPlayer.id,slug,game,stamp,0,stamp]);
+   }
+   await conn.commit();
+  }catch(error){await conn.rollback();throw error}
+  finally{conn.release()}
+  res.set('Cache-Control','private, no-store');
+  res.json({games:await loadLibrary(req.socialPlayer.id)});
+ });
+ route('delete','/library/games/:slug',async(req,res)=>{
+  const slug=req.params.slug;
+  if(!librarySlug(slug))return bad(res,'invalid_game',400);
+  await query('DELETE FROM swapp_social_game_follows WHERE user_id=? AND game_slug=?',[req.socialPlayer.id,slug]);
+  res.set('Cache-Control','private, no-store');
+  res.json({games:await loadLibrary(req.socialPlayer.id)});
+ });
+ route('put','/library/games/:slug/seen',async(req,res)=>{
+  const slug=req.params.slug;
+  if(!librarySlug(slug))return bad(res,'invalid_game',400);
+  const stamp=clock();
+  const rows=await query('UPDATE swapp_social_game_follows SET seen_at=?,updated_at=? WHERE user_id=? AND game_slug=?',
+   [stamp,stamp,req.socialPlayer.id,slug]);
+  if(!rows.affectedRows)return bad(res,'not_followed',404);
+  res.set('Cache-Control','private, no-store');
+  res.json({games:await loadLibrary(req.socialPlayer.id)});
+ });
+ route('delete','/library/games',async(req,res)=>{
+  await query('DELETE FROM swapp_social_game_follows WHERE user_id=?',[req.socialPlayer.id]);
+  res.set('Cache-Control','private, no-store');
+  res.json({games:[]});
+ });
  route('get','/game/context',async(req,res)=>{
   const game=clean(req.query.game,65);
   if(game.length<2)return bad(res,'invalid_game');
