@@ -20,7 +20,7 @@ function makeHarness(){
   if(sql.includes('FROM swapp_social_matches WHERE user_id<>?'))
    return [[{user_id:'u2',handle:'alice',game:'PUBG',platform:'PC',style:'Coopération',availability:'Ce soir',created_at:1781500000000},
     {user_id:'u3',handle:'bob',game:'Minecraft',platform:'Xbox',style:'Compétitif',availability:'Demain',created_at:1781500001000}],[]];
-  if(sql.includes('FROM swapp_social_rooms WHERE LOWER(game)'))
+  if(sql.includes('FROM swapp_social_rooms r LEFT JOIN swapp_social_private_rooms'))
    return [[{id:'r1',name:'Salon PUBG',game:'PUBG',created_at:1781500002000}],[]];
   if(sql.includes('FROM swapp_social_matches WHERE LOWER(game)'))
    return [[{handle:'alice',game:'PUBG',platform:'PC',availability:'Ce soir',style:'Coopération',created_at:1781500000000}],[]];
@@ -93,6 +93,7 @@ test('SOCIAL rooms search verified game aliases without confusing sequels',async
  assert.equal(gameQueries.length,2);
  assert.ok(gameQueries[0].args.includes('grand theft auto vi'));
  assert.ok(gameQueries[0].args.includes('gta vi'));
+ assert.equal(gameQueries[0].args.at(-1),'u1');
  assert.equal(gameQueries[0].sql.split('?').length-1,gameQueries[0].args.length);
  await h.send('GET','/game/context',{query:{game:'Hades II'}});
  const last=h.queries.at(-1);
