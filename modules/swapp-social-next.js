@@ -175,6 +175,70 @@ function createSocialNextRouter({express,pool,restoreSession,clock=()=>Date.now(
   res.set('Cache-Control','private, no-store');
   res.json({games:[]});
  });
+
+ // Wishlist is private account intent only: no presumed ownership or listed price.
+ const wishlistItem=row=>({
+  slug:String(row.game_slug),game:String(row.game_name),
+  addedAt:new Date(Number(row.created_at)).toISOString()
+ });
+ const readWishlist=async uid=>(await query(
+  'SELECT game_slug,game_name,created_at FROM swapp_social_game_wishlist WHERE user_id=? ORDER BY created_at DESC LIMIT 50',[uid]
+ )).map(wishlistItem);
+ route('get','/library/wishlist',async(req,res)=>{
+  res.set('Cache-Control','private, no-store');
+  res.json({wishlist:await readWishlist(req.socialPlayer.id)});
+ });
+ route('put','/library/wishlist/:slug',async(req,res)=>{
+  const slug=req.params.slug,game=libraryName(req.body?.game);
+  if(!librarySlug(slug)||!game)return bad(res,'invalid_game',400);
+  const conn=await pool.getConnection();
+  try{
+   await conn.beginTransaction();
+   // Serialize concurrent changes for this identity, including empty wishlists.
+   await conn.execute('INSERT IGNORE INTO swapp_social_reward_accounts (user_id,points,discovery_count,updated_at) VALUES (?,?,?,?)',
+    [req.socialPlayer.id,0,0,clock()]);
+   await conn.execute('SELECT user_id FROM swapp_social_reward_accounts WHERE user_id=? FOR UPDATE',[req.socialPlayer.id]);
+   const [existing]=await conn.execute('SELECT game_slug FROM swapp_social_game_wishlist WHERE user_id=?',[req.socialPlayer.id]);
+   if(!existing.some(x=>x.game_slug===slug)){
+    if(existing.length>=50){await conn.rollback();return bad(res,'wishlist_limit',409)}
+    await conn.execute('INSERT IGNORE INTO swapp_social_game_wishlist (user_id,game_slug,game_name,created_at) VALUES (?,?,?,?)',
+     [req.socialPlayer.id,slug,game,clock()]);
+   }
+   await conn.commit();
+  }catch(error){await conn.rollback();throw error}finally{conn.release()}
+  res.set('Cache-Control','private, no-store');
+  res.json({wishlist:await readWishlist(req.socialPlayer.id)});
+ });
+ route('delete','/library/wishlist/:slug',async(req,res)=>{
+  if(!librarySlug(req.params.slug))return bad(res,'invalid_game',400);
+  await query('DELETE FROM swapp_social_game_wishlist WHERE user_id=? AND game_slug=?',
+   [req.socialPlayer.id,req.params.slug]);
+  res.set('Cache-Control','private, no-store');
+  res.json({wishlist:await readWishlist(req.socialPlayer.id)});
+ });
+ route('delete','/library/wishlist',async(req,res)=>{
+  await query('DELETE FROM swapp_social_game_wishlist WHERE user_id=?',[req.socialPlayer.id]);
+  res.set('Cache-Control','private, no-store');
+  res.json({wishlist:[]});
+ });
+ // All rewards are deterministic, non-cash, non-transferable and never tied to spend.
+ // There is no daily streak, leaderboard, random prize or pay-to-earn action.
+ const progressOf=(points,discoveries)=>{
+  const levels=[{name:'Découvreur',at:0},{name:'Éclaireur',at:30},{name:'Pionnier',at:60},{name:'Explorateur confirmé',at:100}];
+  const level=levels.filter(x=>x.at<=points).at(-1),next=levels.find(x=>x.at>points);
+  return {points,discovered:discoveries,maxPoints:100,level:level.name,
+   nextLevel:next?.name||null,nextThreshold:next?.at||100,
+   pointsToNext:next?next.at-points:0,
+   rule:'10 points au premier suivi de chacun des 10 premiers jeux distincts. Aucun bonus par achat ni connexion quotidienne.'};
+ };
+ route('get','/rewards/me',async(req,res)=>{
+  const account=await query('SELECT points,discovery_count FROM swapp_social_reward_accounts WHERE user_id=? LIMIT 1',[req.socialPlayer.id]);
+  const events=await query('SELECT event_key,points,created_at FROM swapp_social_reward_ledger WHERE user_id=? ORDER BY created_at DESC LIMIT 10',[req.socialPlayer.id]);
+  res.set('Cache-Control','private, no-store');
+  res.json({rewards:progressOf(Number(account[0]?.points||0),Number(account[0]?.discovery_count||0)),
+   history:events.map(x=>({gameSlug:x.event_key.startsWith('discover:')?x.event_key.slice(9):'',
+    points:Number(x.points),at:new Date(Number(x.created_at)).toISOString()}))});
+ });
  route('get','/game/context',async(req,res)=>{
   const game=clean(req.query.game,65);
   if(game.length<2)return bad(res,'invalid_game');
