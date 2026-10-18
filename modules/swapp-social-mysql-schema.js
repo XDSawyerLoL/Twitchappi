@@ -5,7 +5,8 @@ const path=require('node:path');
 const migrations=[
  {file:'002_swapp_social_interactions.sql',count:5},
  {file:'003_swapp_social_passports.sql',count:1},
- {file:'004_swapp_social_voice_notes.sql',count:1}
+ {file:'004_swapp_social_voice_notes.sql',count:1},
+ {file:'005_swapp_social_audio_blocks.sql',count:1}
 ];
 async function ensureSocialMysqlSchema(pool){
  for(const migration of migrations){
@@ -16,7 +17,7 @@ async function ensureSocialMysqlSchema(pool){
    throw new Error('social_schema_invalid');
   for(const sql of statements)await pool.query(sql);
  }
- for(const table of ['swapp_social_matches','swapp_social_polls','swapp_social_votes','swapp_social_rooms','swapp_social_room_messages','swapp_social_passports','swapp_social_voice_notes'])
+ for(const table of ['swapp_social_matches','swapp_social_polls','swapp_social_votes','swapp_social_rooms','swapp_social_room_messages','swapp_social_passports','swapp_social_voice_notes','swapp_social_audio_blocks'])
   await pool.query('SELECT 1 FROM '+table+' LIMIT 0');
 }
 module.exports={ensureSocialMysqlSchema};
