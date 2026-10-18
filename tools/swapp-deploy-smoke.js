@@ -109,7 +109,7 @@ async function verify(){
 
  const playerPage=await request(origin,'/mes-jeux');
  check(playerPage.body.includes('data-my-games-live')&&playerPage.body.includes('En direct sur tes jeux')&&
-  playerPage.body.includes('swapp-my-games-live.js?v=20261019-live-journey-v3'),
+  playerPage.body.includes('swapp-my-games-live.js?v=20261019-witcher-twitch-v1'),
   'The SWAPP/Twitch personal live desk is missing or an old page is deployed');
  const nativePlayer=await request(origin,'/assets/swapp-my-games-live.js');
  check(nativePlayer.body.includes('/api/discovery/game-lives?limit=8&game=')&&
@@ -131,6 +131,20 @@ async function verify(){
  check(personalRelease.release==='social-personal-channels-20261019'&&personalRelease.features?.personalInviteChannels===true,
   'Personal invitation channel Node server has not deployed');
  process.stdout.write('PASS wishlist repair and private SOCIAL channel frontend/server\n');
+ const accountCss=await request(origin,'/assets/swapp-creator-workspace.css');
+ check(home.body.includes('/assets/swapp-creator-workspace.css?v=20261019-creator-workspace-v1')&&
+   accountCss.body.includes('.swapp-account-workspace')&&
+   accountCss.body.includes('.swapp-dash-columns')&&
+   accountCss.body.includes('border-radius:0!important'),
+   'Old bubble-like account and creator dashboard still deployed');
+ const browserIdentity=await request(origin,'/assets/swapp-game-identity.js');
+ check(browserIdentity.body.includes('The Witcher 3: Wild Hunt Remastered')&&
+   browserIdentity.body.includes('The Witcher 3: Wild Hunt'),
+   'Verified edition-aware game matching is missing');
+ const liveAsset=await request(origin,'/assets/swapp-media-live.js');
+ check(liveAsset.body.includes('coverage')&&liveAsset.body.includes("requests.delete(normal(game))"),
+   'Live search cannot distinguish Twitch outage or retry empty results');
+ process.stdout.write('PASS creator workspace and edition-aware live discovery\n');
  const discovery=await request(origin,'/assets/swapp-media-live.js');
  check(discovery.body.includes('/api/discovery/game-lives?limit=6&game='),
   'Article live discovery client is outdated: targeted game lookup missing');
@@ -214,7 +228,7 @@ async function verify(){
  const discover=await request(origin,'/decouvrir');
  check(discover.body.includes('swapp-discover-comfort.js?v=20261018-discover-flat-v26'),
   'Discover has an old mobile UI release');
- check(discover.body.includes('index_script.js?v=20261018-followed-session-v27'),
+ check(discover.body.includes('index_script.js?v=20261019-creator-workspace-v1'),
   'Discover still references an old V4 player script');
  const comfort=await request(origin,'/assets/swapp-discover-comfort.js');
  check(comfort.body.includes('swapp-discover-no-image')&&comfort.body.includes('v4SwipeCard')&&
