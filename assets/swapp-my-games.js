@@ -58,7 +58,7 @@
   const stop=document.querySelector('[data-my-games-disable-sync]');
   if(start){start.hidden=!!syncAccountId;start.disabled=syncing;}
   if(stop){stop.hidden=!syncAccountId;stop.disabled=syncing;}
-  if(syncAccountId)syncNotice('Synchronisation activée pour ton compte SWAPP. Les suivis sont enregistrés dans MySQL.');
+
  }
  function applyRemote(data){
   if(!data||!Array.isArray(data.games))throw Error('Réponse de bibliothèque invalide.');
@@ -106,6 +106,8 @@
   if(syncing){status('Une synchronisation est déjà en cours.');return true;}
   syncing=true;syncUI();
   try{
+   const account=await api('/games');
+   if(String(account.userId)!==syncAccountId)throw Error('Compte SWAPP différent : modifications refusées. Recharge la page.');
    const payload=await api(path,method,body);
    applyRemote(payload);
    status('Modifications enregistrées sur ton compte SWAPP.');
@@ -195,7 +197,7 @@
   const none=root.querySelector('[data-my-games-no-match]');
   if(none)none.hidden=!q||others.some(card=>!card.hidden);
  }
- document.addEventListener('click',event=>{
+ document.addEventListener('click',async event=>{
   const follow=event.target.closest('[data-swapp-follow-game]');
   if(follow){
    const slug=follow.dataset.gameSlug,game=cleanName(follow.dataset.gameName);
@@ -203,6 +205,7 @@
    const existing=games.find(x=>x.slug===slug);
    const next=existing?games.filter(x=>x.slug!==slug):[...games,{slug,game,followedAt:now(),seenAt:''}];
    if(!existing&&next.length>LIMIT){status('Tu peux suivre 30 jeux au maximum.');follow.textContent='Limite de 30 jeux atteinte';follow.setAttribute('aria-live','polite');return}
+   if(await updateServer(existing?'DELETE':'PUT','/games/'+encodeURIComponent(slug),existing?undefined:{game}))return;
    if(!save(next)){status('Enregistrement local indisponible. Autorise le stockage dans ton navigateur.');follow.textContent='Enregistrement indisponible';follow.setAttribute('aria-live','polite');return}
    games=next;update();
    status(existing?'Jeu retiré de ta sélection.':'Jeu ajouté. Les prochaines actualités seront signalées ici.');
@@ -211,6 +214,7 @@
   const seen=event.target.closest('[data-my-games-mark-seen]');
   if(seen){
    const slug=seen.closest('[data-swapp-game-card]')?.dataset.gameSlug;
+   if(await updateServer('PUT','/games/'+encodeURIComponent(slug)+'/seen'))return;
    const next=games.map(x=>x.slug===slug?{...x,seenAt:now()}:x);
    if(!save(next)){status('Impossible de sauvegarder cette action.');return}
    games=next;update();status('Nouveautés marquées comme consultées.');
@@ -218,10 +222,11 @@
  });
  if(root){
   root.querySelector('[data-my-games-search]')?.addEventListener('input',update);
-  root.querySelector('[data-my-games-clear]')?.addEventListener('click',()=>{
+  root.querySelector('[data-my-games-clear]')?.addEventListener('click',async()=>{
    if(!games.length)return;
    // Deliberately explicit: clearing your library does not delete the account.
-   if(!window.confirm('Ne plus suivre tous les jeux sur cet appareil ?'))return;
+   if(!window.confirm(syncAccountId?'Ne plus suivre tous les jeux sur ce compte SWAPP et sur cet appareil ?':'Ne plus suivre tous les jeux sur cet appareil ?'))return;
+   if(await updateServer('DELETE','/games'))return;
    if(!save([])){status('Impossible de modifier la sélection.');return}
    games=[];update();status('Sélection locale effacée.');
   });
@@ -237,6 +242,14 @@
   badge.setAttribute('aria-label',' jeux suivis');
   a.append(' ',badge);menu.appendChild(a);
  }
+ if(root){
+  root.querySelector('[data-my-games-enable-sync]')?.addEventListener('click',()=>{void enableSync()});
+  root.querySelector('[data-my-games-disable-sync]')?.addEventListener('click',()=>{
+   syncAccountId='';try{localStorage.removeItem(SYNC_KEY)}catch{}
+   syncUI();syncNotice('Synchronisation désactivée : les jeux restent sur cet appareil et sur ton compte SWAPP jusqu’à leur suppression explicite.');
+  });
+  root.querySelector('[data-my-games-export]')?.addEventListener('click',exportSelection);
+ }
  if(menu){
   menuLink();
   new MutationObserver(menuLink).observe(menu,{childList:true});
@@ -244,6 +257,11 @@
  window.addEventListener('swapp:home-feature-ready',updateHomeLink);
  window.addEventListener('storage',e=>{
   if(e.key===KEY||e.key===null){games=read();update();}
+  if(e.key===SYNC_KEY){
+   try{const v=JSON.parse(e.newValue||'null');syncAccountId=typeof v?.id==='string'?v.id:''}catch{syncAccountId=''}
+   syncUI();if(syncAccountId)void restoreSync();
+  }
  });
- update();
+ update();syncUI();
+ if(syncAccountId)void restoreSync();
 })();
