@@ -4234,23 +4234,32 @@ function setViewerThemeColor(color){
 function applyViewerThemeColor(){setViewerThemeColor(localStorage.getItem('oryon_viewer_accent')||'#22d3ee')}
 
 function renderUserMenu(){
-  const u=state.session.local, t=state.session.twitch; $('#userAvatar').src=u?.avatar_url||t?.profile_image_url||''; $('#userLabel').textContent=u?.display_name||u?.login||t?.display_name||'Compte';
-  const mode=getAppMode?.() || (u?'streamer':'viewer');
-  const colors=['#22d3ee','#a855f7','#22c55e','#f59e0b','#f43f5e','#ffffff'];
-  const parts=[];
-  parts.push(`<div class="topThemePanel"><b>Couleur du site</b><div class="topThemeColors"><input type="color" value="${esc(localStorage.getItem('oryon_viewer_accent')||'#22d3ee')}" oninput="setViewerThemeColor(this.value)">${colors.map(c=>`<button style="background:${c}" onclick="setViewerThemeColor('${c}')"></button>`).join('')}</div></div><div class="sep"></div>`);
-  if(u||t){
-    parts.push(`<div class="small" style="padding:10px 12px">Compte actif<br><b>${esc(u?.display_name||u?.login||t?.display_name||t?.login||'Utilisateur')}</b><br><span class="modeBadge" style="margin-top:8px">${mode==='streamer'?'🎥 Mode streamer':'👁️ Mode viewer'}</span></div>`);
-    parts.push(`<div class="modeSwitch" style="padding:0 12px 8px"><button class="btn ${mode==='viewer'?'':'secondary'}" onclick="setAppMode('viewer')">Page viewer</button><button class="btn ${mode==='streamer'?'':'secondary'}" onclick="setAppMode('streamer')">Page streamer</button></div><div class="sep"></div>`);
-  }
-  if(u){ parts.push(`<button onclick="swappOpenOwnChannel()">Ma chaîne</button><button onclick="setView('manager')">Gestionnaire de stream</button><button onclick="setView('dashboard')">Tableau de bord créateur</button><button onclick="setView('studio')">Outils créateur</button><div class="sep"></div>`); }
-  parts.push(`<button onclick="setView('settings')">Connexion et créer un compte</button>`);
-  parts.push(t?`<button onclick="logoutTwitch()">Déconnecter Twitch</button>`:`<button onclick="connectTwitch()">Connecter Twitch</button>`);
-  if(u) parts.push(`<button onclick="logoutOryon()">Déconnecter Swapp</button>`);
-  if(isAdmin?.()) parts.push(`<div class="sep"></div><button onclick="setView('admin')">Administration</button>`);
-  $('#userMenu').innerHTML=parts.join('');
+ const u=state.session.local,t=state.session.twitch;
+ $('#userAvatar').src=u?.avatar_url||t?.profile_image_url||'';
+ $('#userLabel').textContent=u?.display_name||u?.login||t?.display_name||'Compte';
+ const colors=['#22d3ee','#a855f7','#22c55e','#f59e0b','#f43f5e','#ffffff'],parts=[];
+ const accent=String(localStorage.getItem('oryon_viewer_accent')||'#22d3ee');
+ parts.push('<div class="topThemePanel"><b>Couleur du site</b><div class="topThemeColors">'+
+  '<input type="color" value="'+(/^#[a-f0-9]{6}$/i.test(accent)?accent:'#22d3ee')+
+  '" aria-label="Couleur du site" oninput="setViewerThemeColor(this.value)">'+
+  colors.map(c=>'<button type="button" aria-label="Choisir '+c+'" style="background:'+c+
+   '" onclick="setViewerThemeColor(\''+c+'\')"></button>').join('')+'</div></div><div class="sep"></div>');
+ if(u||t)parts.push('<div class="small" style="padding:10px 12px">Connecté<br><b>'+
+  esc(u?.display_name||u?.login||t?.display_name||t?.login||'Utilisateur')+'</b></div>');
+ parts.push('<button type="button" onclick="window.swappActiveAccountTab=\'overview\';setView(\'settings\')">Mon espace SWAPP</button>');
+ if(u){
+  parts.push('<button type="button" onclick="swappOpenOwnChannel()">Ma chaîne</button>'+
+   '<button type="button" onclick="setView(\'manager\')">Diffuser</button>'+
+   '<button type="button" onclick="setView(\'dashboard\')">Statistiques</button>'+
+   '<button type="button" onclick="setView(\'studio\')">Outils créateur</button>'+
+   '<a href="/mes-jeux">Mes jeux et envies</a><div class="sep"></div>');
+ }
+ parts.push(t?'<button type="button" onclick="logoutTwitch()">Déconnecter Twitch</button>':
+  '<button type="button" onclick="connectTwitch()">Connecter Twitch</button>');
+ if(u)parts.push('<button type="button" onclick="logoutOryon()">Se déconnecter</button>');
+ if(isAdmin?.())parts.push('<div class="sep"></div><button type="button" onclick="setView(\'admin\')">Administration</button>');
+ $('#userMenu').innerHTML=parts.join('');
 }
-
 async function loadHomeRecommendations(){
   const box=$('#homeShowcaseLives'); if(!box) return;
   box.innerHTML=`<div class="hfEmptyLive"><div><h2>Recherche de lives publics…</h2><p>Swapp cherche des lives à découvrir, pas tes suivis.</p></div></div>`;
