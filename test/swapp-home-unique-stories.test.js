@@ -61,8 +61,8 @@ test('large hero and article grid contain five unique stories, without duplicate
  assert.equal(view.feature.href,'/actus/game-release-0');
  assert.equal(view.gridLinks().length,4);
  assert.equal(new Set([view.feature.href,...view.gridLinks()]).size,5);
- assert.equal(view.main.children[1],view.live,'live discovery follows the featured article');
- assert.equal(view.main.children[2],view.shelf,'supporting news follows live discovery');
+ assert.equal(view.main.children[1],view.shelf,'article grid follows the featured hero');
+ assert.equal(view.main.children[2],view.live,'lives follow the articles');
  assert.equal(view.calls.filter(x=>x==='/api/actus').length,1);
  assert.equal(view.calls.some(x=>x.includes('game-lives')),true,'featured game checked for real creators');
  assert.ok(view.shelf.querySelector('.swapp-home-video-feature'),'one playable trailer appears alongside the editorial title');
