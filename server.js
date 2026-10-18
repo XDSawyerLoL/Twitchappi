@@ -7763,7 +7763,8 @@ require('./modules/swapp-social-voice').installSocialVoice({
   restoreSession: restoreOryonSessionFromRememberCookie,
   getPool: () => process.env.SWAPP_SOCIAL_FEATURES === '1' ? socialInteractionsPool : null,
   secret: oauthSigningSecret,
-  iceServers: getWebRtcIceServers
+  iceServers: getWebRtcIceServers,
+  lookupLocalUser: getOryonUserByLogin
 });
 
 
