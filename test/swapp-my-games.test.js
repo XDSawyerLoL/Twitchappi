@@ -31,7 +31,7 @@ test('Mes jeux only offers real indexed games and published stories',()=>{
  assert.doesNotMatch(html,/private-story|Secret interne|Hades II/);
  assert.match(html,/name="robots" content="noindex,follow"/);
  assert.match(html,/data-story-date="2026-10-17T12:00:00.000Z"/);
- assert.match(html,/href="\/communaute"/);
+ assert.match(html,/href="\/communaute\?game=Grand%20Theft%20Auto%20VI"/);
  assert.match(html,/href="\/boutique"/);
  assert.doesNotMatch(html,/acheter maintenant|promotion limitée|\d+ spectateurs connectés/i);
 });
