@@ -1,6 +1,8 @@
 'use strict';
 // Conservative aliases only: never infer a game from an unrelated article title.
 const aliases=[
+ ['The Witcher 3: Wild Hunt Remastered',['The Witcher 3 Remastered','Witcher 3 Remastered','The Witcher III Remastered','Witcher III Remastered','The Witcher 3 Wild Hunt Remastered','The Witcher III: Wild Hunt Remastered']],
+ ['The Witcher 3: Wild Hunt',['The Witcher 3','Witcher 3','The Witcher III','The Witcher 3 Wild Hunt','Witcher 3 Wild Hunt']],
  ['Grand Theft Auto VI',['GTA 6','GTA6','GTA VI','Grand Theft Auto 6']],
  ['Planet Zoo 2',['Planet Zoo II']],
  ['007 First Light',['James Bond 007 First Light','007: First Light']],
