@@ -558,10 +558,11 @@ async function init(){
   applyIncomingShare();
   bindDelegatedEvents();
   setupVoiceNotes({onConversationChange:loadConversation});
-  setupDirectCalls();
+
   // Public content must not wait for separate health / identity requests.
   // On a cold backend these used to block first content for several seconds.
   await restoreSession();
+  setupDirectCalls();
   void health();
   // Recover a temporarily sleeping upstream without asking the member to refresh.
   setInterval(()=>{
