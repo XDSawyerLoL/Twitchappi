@@ -74,7 +74,7 @@ test('creator workspace uses separated editorial controls, responsive layout and
  assert.match(css,/\.swapp-account-workspace/);
  assert.match(css,/\.swapp-dash-columns/);
  assert.match(css,/border-radius:0!important/);
- assert.match(css,/@media\(max-width:720px\)/);
+ assert.match(css,/@media\(max-width:760px\)/);
  assert.match(css,/@media\(max-width:430px\)/);
  const html=read('index.html'),shell=read('modules/swapp-news/site-shell.js');
  assert.match(html,/swapp-creator-workspace\.css\?v=20261019-account-native-v2/);
