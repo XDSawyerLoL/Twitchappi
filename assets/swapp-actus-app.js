@@ -23,6 +23,14 @@ const slugOk=s=>/^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/.test(s||'');
   const a=gameKey(first),b=gameKey(second);
   return !!(a&&b&&(a===b||gameAliases.some(group=>group.includes(a)&&group.includes(b))));
  };
+const editorialGame=article=>{
+ const raw=String(article?.game||'').trim(),title=gameKey(article?.title);
+ const isRemaster=/(?:the )?witcher (?:3|iii)(?: wild hunt)? remaster(?:ed)?/.test(title);
+ const old=['the witcher 3','witcher 3','the witcher 3 wild hunt','the witcher iii'];
+ if(isRemaster&&(!raw||old.includes(gameKey(raw))||sameGame(raw,'The Witcher 3: Wild Hunt Remastered')))
+  return 'The Witcher 3: Wild Hunt Remastered';
+ return raw;
+};
 const fetchJson=async route=>{
  // AbortSignal.timeout is unavailable on older iPhone Safari releases.
  // AbortController + a finally-cleaned timer works on those devices too.
@@ -85,7 +93,7 @@ if(games.length){
  };
  renderGames();
 }update()}catch(e){if(node.isConnected){const message=el('p','swapp-actus-state',e.message),retry=el('button','swapp-actus-go-live','Réessayer');retry.onclick=()=>{node.replaceChildren();showList(node)};feed.replaceChildren(message,retry)}}}
-async function showArticle(node,slug){node.append(el('p','swapp-actus-state','Chargement de l’article…'));try{const a=await fetchJson('/api/actus/'+encodeURIComponent(slug));if(!node.isConnected)return;node.replaceChildren();node.classList.add('swapp-actus-reading');
+async function showArticle(node,slug){node.append(el('p','swapp-actus-state','Chargement de l’article…'));try{const fetched=await fetchJson('/api/actus/'+encodeURIComponent(slug));const a={...fetched,game:editorialGame(fetched)};if(!node.isConnected)return;node.replaceChildren();node.classList.add('swapp-actus-reading');
 const back=el('button','swapp-actus-go-back','← Toutes les actualités');back.type='button';back.onclick=home;const nav=el('nav','swapp-actus-reader-nav');nav.setAttribute('aria-label','Retour à la rubrique Actualités');nav.append(back);node.append(nav);
 const article=el('article','swapp-actus-article');
 const heading=el('header','swapp-reader-hero swapp-immersive-hero');
