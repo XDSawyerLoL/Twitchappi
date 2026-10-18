@@ -26,7 +26,7 @@ test('real vocal controls render above the room results, not hidden beneath disc
  assert.match(code,/querySelector\('#ssi-chat-panel \.ssi-panel-inner'\)/);
  assert.match(code,/container\.insertBefore\(section,container\.querySelector\('\.ssi-panel-head'\)\)/);
  assert.match(code,/id="swapp-voice-join"/);
- assert.match(code,/Rejoindre le vocal/);
+ assert.match(code,/Rejoindre le salon/);
  assert.match(code,/getUserMedia/);
  assert.match(code,/joinButton\.addEventListener\('click'/);
  assert.doesNotMatch(code,/getUserMedia\(\).then/);
