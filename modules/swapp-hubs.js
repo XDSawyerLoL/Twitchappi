@@ -1,6 +1,7 @@
 'use strict';
 // Native SWAPP community, trailer and shop pages. Identical navigation, no fake products.
 const {layout}=require('./swapp-news/site-shell');
+const {gameSlug}=require('./swapp-game-pages');
 const {escapeHtml:e}=require('./swapp-news/article-core');
 const catalog=require('../data/justplayer-public-catalog.json');
 const fs=require('node:fs');
@@ -177,6 +178,7 @@ function steamTopSection(){
     '</a><div class="swapp-editorial-game-body"><span class="swapp-editorial-game-genre">'+esc(genre)+'</span>'+
     '<h3>'+esc(name)+'</h3><p>'+esc(description)+'</p><div class="swapp-editorial-game-foot">'+
     '<strong>'+esc(price||'Prix à vérifier')+'</strong><a href="'+url+'" target="_blank" rel="noopener noreferrer">Voir sur Steam ↗</a>'+
+    (gameSlug(name)?'<button type="button" data-swapp-wishlist-game data-game-slug="'+esc(gameSlug(name))+'" data-game-name="'+esc(name)+'" aria-pressed="false">♡ Envies</button>':'')+
     '</div></div></article>';
  }).join('');
  return '<section class="swapp-editorial-top" aria-labelledby="swapp-editorial-top-title">'+
