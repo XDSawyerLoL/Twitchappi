@@ -1,5 +1,6 @@
 import { state, dom, api, esc, icon, initials, timeAgo, setStatus, errorText } from './core.js';
 import { requireAuth } from './session.js';
+import {loadVoiceNotes,renderVoiceNote} from './dm-audio.js?v=20261018-direct-audio-v1';
 import { renderPost, renderPosts, notificationLabel } from './render.js?v=20261016-compact-card-1';
 
 let dmRefreshTimer=null,dmLastSignature='';
@@ -7,27 +8,40 @@ function stopDMRefresh(){
  if(dmRefreshTimer!==null){clearInterval(dmRefreshTimer);dmRefreshTimer=null}
  dmLastSignature='';
 }
-function renderDMMessages(messages,userId){
- return (Array.isArray(messages)?messages:[]).map(message=>
-  '<div class="pulse-message '+(message.senderId===userId?'mine':'')+'">'+
-  esc(message.body)+'<small>'+esc(timeAgo(message.createdAt))+'</small></div>').join('');
+function renderDMMessages(messages,userId,notes=[]){
+ const textEntries=(Array.isArray(messages)?messages:[]).map(message=>({
+  key:String(message.id||''),createdAt:Date.parse(message.createdAt)||0,
+  html:'<div class="pulse-message '+(message.senderId===userId?'mine':'')+'">'+
+   esc(message.body)+'<small>'+esc(timeAgo(message.createdAt))+'</small></div>'
+ }));
+ const voiceEntries=(Array.isArray(notes)?notes:[]).map(note=>({
+  key:String(note.id||''),createdAt:Date.parse(note.createdAt)||0,
+  html:renderVoiceNote(note,userId)
+ }));
+ return [...textEntries,...voiceEntries]
+  .sort((a,b)=>a.createdAt-b.createdAt||a.key.localeCompare(b.key))
+  .map(entry=>entry.html).join('');
 }
-function startDMRefresh(handle,revision,userId,initialMessages){
- dmLastSignature=JSON.stringify((initialMessages||[]).map(m=>[m.id,m.createdAt,m.body]));
+function startDMRefresh(handle,revision,userId,initialMessages,initialNotes=[]){
+ let lastNotes=initialNotes;
+ dmLastSignature=JSON.stringify({messages:(initialMessages||[]).map(m=>[m.id,m.createdAt,m.body]),notes:initialNotes.map(n=>n.id)});
  // Reading the thread never replaces the composer or discards an unsent draft.
  dmRefreshTimer=setInterval(async()=>{
   if(!isCurrent(revision,'messages')||document.visibilityState==='hidden')return;
   try{
-   const result=await api('/api/pulse/messages/'+encodeURIComponent(handle));
+   const [result,notesResult]=await Promise.all([
+    api('/api/pulse/messages/'+encodeURIComponent(handle)),loadVoiceNotes(handle)
+   ]);
    if(!isCurrent(revision,'messages'))return;
    const messages=Array.isArray(result.messages)?result.messages:[];
-   const signature=JSON.stringify(messages.map(m=>[m.id,m.createdAt,m.body]));
+   if(Array.isArray(notesResult))lastNotes=notesResult;
+   const signature=JSON.stringify({messages:messages.map(m=>[m.id,m.createdAt,m.body]),notes:lastNotes.map(n=>n.id)});
    if(signature===dmLastSignature)return;
    const list=document.querySelector('.social-dm-view .pulse-message-list');
    if(!list)return;
    const atEnd=list.scrollHeight-list.clientHeight-list.scrollTop<110;
    dmLastSignature=signature;
-   list.innerHTML=renderDMMessages(messages,userId);
+   list.innerHTML=renderDMMessages(messages,userId,lastNotes);
    if(atEnd)list.scrollTop=list.scrollHeight;
   }catch{
    // Keep the last readable messages and any draft when the backend is slow.
@@ -403,16 +417,25 @@ export async function loadConversation(handle){
   const revision=setView('messages','@'+handle);
   setStatus('Chargement','');
   try{
-    const data=await api('/api/pulse/messages/'+encodeURIComponent(handle));
+    const [data,notes]=await Promise.all([
+      api('/api/pulse/messages/'+encodeURIComponent(handle)),loadVoiceNotes(handle)
+    ]);
     if(!isCurrent(revision,'messages'))return;
     let html='<section class="pulse-view social-dm-view"><div class="pulse-view-head social-dm-head"><button type="button" class="social-dm-back" data-social-back-messages aria-label="Retour aux messages">←</button><div class="social-dm-identity"><div class="social-dm-avatar" aria-hidden="true">'+esc(initials(data.user))+'</div><div><h2>'+esc(data.user.displayName)+'</h2><p>@'+esc(data.user.handle)+'</p></div></div></div><div class="pulse-message-list">';
-    html+=renderDMMessages(data.messages,state.user.id);
-    html+='</div><form class="pulse-message-form" id="conversation-form" data-handle="'+esc(handle)+'"><input name="body" maxlength="2000" placeholder="Écrire un message…" required><button class="pulse-mini-button primary">Envoyer</button></form></section>';
+    html+=renderDMMessages(data.messages,state.user.id,notes);
+    html+='</div><div class="pulse-dm-audio-controls" data-handle="'+esc(handle)+'" aria-label="Enregistrement vocal">'+
+     '<button type="button" data-voice-start aria-label="Enregistrer un message vocal">Micro · Vocal</button>'+
+     '<button type="button" data-voice-stop hidden>Arrêter</button>'+
+     '<button type="button" data-voice-send hidden>Envoyer le vocal</button>'+
+     '<button type="button" data-voice-cancel hidden>Effacer</button>'+
+     '<audio data-voice-preview controls preload="none" hidden aria-label="Prévisualiser mon message vocal"></audio>'+
+     '<p data-voice-status role="status" aria-live="polite">30 secondes maximum · aperçu avant envoi</p></div>'+
+     '<form class="pulse-message-form" id="conversation-form" data-handle="'+esc(handle)+'"><input name="body" maxlength="2000" placeholder="Écrire un message…" required><button class="pulse-mini-button primary">Envoyer</button></form></section>';
     dom.feed.innerHTML=html;
     // Conversation windows start at the newest message, including after send.
     const thread=dom.feed.querySelector('.pulse-message-list');
     if(thread)thread.scrollTop=thread.scrollHeight;
-    startDMRefresh(handle,revision,state.user.id,data.messages);
+    startDMRefresh(handle,revision,state.user.id,data.messages,notes);
   }catch(error){
     if(!isCurrent(revision,'messages'))return;
     const accountIsValid=await socialAuthRecovery(error,'Conversation');
