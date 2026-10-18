@@ -9,7 +9,7 @@
  const section=document.createElement('section');
  section.className='swapp-voice';section.setAttribute('aria-label','Salon vocal');
  section.innerHTML=`
-  <div class="swapp-voice-heading"><div><strong>Salon vocal</strong><small>6 participants maximum · aucun enregistrement</small></div><span id="swapp-voice-live" class="swapp-voice-live">Hors ligne</span></div>
+  <div class="swapp-voice-heading"><div><strong>Salon vocal LIVE</strong><small>6 participants maximum · aucun enregistrement</small></div><span id="swapp-voice-live" class="swapp-voice-live">Hors ligne</span></div>
   <p id="swapp-voice-notice" class="swapp-voice-notice" role="status" aria-live="polite">Sélectionne un salon pour rejoindre l’audio.</p>
   <div class="swapp-voice-controls">
    <button type="button" id="swapp-voice-join" disabled>Rejoindre le vocal</button>
