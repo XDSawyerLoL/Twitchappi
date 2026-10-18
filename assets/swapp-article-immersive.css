@@ -4,8 +4,11 @@
 
 /* Restrict the dark reading environment to complete articles, never the index. */
 #actus.view.active:has(.swapp-actus-native.swapp-actus-reading),
-body.swapp-editorial-route:has(.article-wrap){
+body.swapp-editorial-route{
   background:#0b111b!important;
+}
+#actus.view.active:has(.swapp-actus-native.swapp-actus-reading),
+body.swapp-editorial-route:has(.article-wrap){
   overflow-x:clip; /* Full-viewport artwork must not widen the page. */
 }
 #actus .swapp-actus-native.swapp-actus-reading,
