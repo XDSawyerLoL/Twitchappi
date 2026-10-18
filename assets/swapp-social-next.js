@@ -114,14 +114,14 @@
    if(!res.ok)throw Error('live_unavailable');
    const data=await res.json();
    if(version!==gameRequest||!$('#ssn-live-results'))return;
-   const items=Array.isArray(data.items)?data.items:[];
-   const safe=items.filter(x=>/^[a-z0-9_]{2,25}$/.test(String(x.login||'')));
+   const items=data.success===true&&String(data.game||'').trim().toLowerCase()===game.toLowerCase()&&Array.isArray(data.items)?data.items:[];
+   const safe=items.filter(x=>/^[a-z0-9_]{2,25}$/.test(String(x.login||''))&&['twitch','oryon','swapp'].includes(String(x.platform||''))&&String(x.game_name||x.category||x.game||'').trim().toLowerCase()===game.toLowerCase());
    holder.innerHTML=safe.length?'<div class="ssn-lives">'+safe.map(live=>{
     const login=String(live.login),name=esc(live.display_name||login);
     const platform=String(live.platform||'');
-    const href=platform==='twitch'?'https://www.twitch.tv/'+encodeURIComponent(login):'/'+encodeURIComponent(login);
+    const href=platform==='twitch'?'/live/twitch/'+encodeURIComponent(login)+'?game='+encodeURIComponent(game):'/'+encodeURIComponent(login);
     const viewerCount=Math.max(0,Number(live.viewer_count)||0);
-    return '<a class="ssn-live" href="'+esc(href)+'" '+(platform==='twitch'?'target="_blank" rel="noopener noreferrer"':'')+'>'+
+    return '<a class="ssn-live" href="'+esc(href)+'">'+
      '<span class="ssn-live-dot" aria-hidden="true"></span><strong>'+name+'</strong>'+
      '<span>'+esc(platform==='twitch'?'Twitch':'SWAPP')+' · '+viewerCount+' spectateur'+(viewerCount>1?'s':'')+'</span></a>';
    }).join('')+'</div>':'<p>Aucun live confirmé pour ce jeu actuellement.</p>';
