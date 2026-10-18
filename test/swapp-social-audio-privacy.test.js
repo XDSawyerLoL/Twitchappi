@@ -112,3 +112,30 @@ test('proxy wires block registration before the upstream request',()=>{
   source.lastIndexOf('const endpoint=SOCIAL_ORIGIN+'));
  assert.match(server,/endCallsBetween\?\.\(actor\.id,target\.id\)/);
 });
+
+test('a new block immediately hangs up an accepted WebRTC call',async()=>{
+ const {privacy}=fixture();
+ const events={},sockets=new Map(),voice={sockets,on(name,fn){events[name]=fn}};
+ const calls=installPrivateCalls(voice,{
+  lookupLocalUser:h=>users.find(u=>u.login===h),
+  isAllowedPair:privacy.allowed,clock:()=>100000
+ });
+ function sock(id,user){
+  const handlers={},sent=[];
+  const s={id,connected:true,data:{voiceUser:{id:user.id,handle:user.login}},
+   on:(name,fn)=>{handlers[name]=fn},
+   emit:(name,payload)=>{sent.push({name,payload})},handlers,sent};
+  sockets.set(id,s);events.connection(s);return s;
+ }
+ const alice=sock('a',users[0]),bob=sock('b',users[1]);
+ let id,accepted;
+ await alice.handlers['call:invite']({handle:'bob'},result=>{id=result.callId});
+ assert.ok(id);
+ await bob.handlers['call:answer']({callId:id,accept:true},result=>{accepted=result});
+ assert.equal(accepted.ok,true);
+ await privacy.block(users[1],users[0]);
+ calls.endBetween(users[1].id,users[0].id);
+ assert.equal(calls.size,0);
+ assert.equal(alice.sent.find(item=>item.name==='call:ended')?.payload?.reason,'blocked');
+ assert.equal(bob.sent.find(item=>item.name==='call:ended')?.payload?.reason,'blocked');
+});
