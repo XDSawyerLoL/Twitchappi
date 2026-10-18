@@ -30,6 +30,6 @@ test('private-message threads open at the latest reply and preserve drafts on po
 
 test('the app and views are cache-busted together',()=>{
  const server=fs.readFileSync(path.join(__dirname,'../modules/swapp-hubs.js'),'utf8');
- assert.match(app(),/views\.js\?v=20261018-direct-audio-v2/);
- assert.match(server,/app\.js\?v=20261018-direct-audio-v1/);
+ assert.match(app(),/views\.js\?v=20261018-voice-visible-v2/);
+ assert.match(server,/app\.js\?v=20261018-voice-visible-v2/);
 });
