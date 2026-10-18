@@ -224,3 +224,31 @@
  #swappSocialNative .pulse-audio-composer-actions button{flex:1}
  #swappSocialNative .pulse-call-panel{bottom:calc(80px + env(safe-area-inset-bottom));right:12px}
 }
+
+#swappSocialNative .pulse-call-head{display:flex;gap:11px;align-items:center;padding-bottom:14px;border-bottom:1px solid rgba(178,207,234,.14)}
+#swappSocialNative .pulse-call-head>div{display:grid;gap:4px;min-width:0}
+#swappSocialNative .pulse-call-head strong{display:block;font-weight:850;font-size:16px;letter-spacing:-.035em}
+#swappSocialNative .pulse-call-kicker{font-size:9px;color:var(--swapp-page-accent,#69e4d2);font-weight:800;letter-spacing:.14em}
+#swappSocialNative .pulse-call-symbol{
+ display:grid;place-items:center;width:42px;height:42px;border-radius:10px;flex:0 0 42px;
+ background:rgba(79,214,185,.12);border:1px solid rgba(79,214,185,.35);
+ color:#91f2cc;font-size:25px
+}
+#swappSocialNative .pulse-call-person{
+ display:flex;gap:12px;align-items:center;min-width:0;margin:18px 0 10px;
+ font-size:15px;font-weight:850
+}
+#swappSocialNative .pulse-call-person strong{overflow-wrap:anywhere}
+#swappSocialNative .pulse-call-avatar{
+ width:53px;height:53px;flex:0 0 53px;display:grid;place-items:center;border-radius:12px;
+ background:linear-gradient(135deg,#426079,#1b334b);border:2px solid #6789a6;
+ font-size:23px;font-weight:870;color:#f5faff
+}
+#swappSocialNative .pulse-call-panel[data-call-phase="ringing-in"] .pulse-call-symbol{
+ color:#b8ffd4;background:rgba(66,212,147,.17);border-color:rgba(66,212,147,.5)
+}
+#swappSocialNative .pulse-call-panel[data-call-phase="active"] .pulse-call-avatar{
+ border-color:#6be2ab;box-shadow:0 0 0 3px rgba(107,226,171,.12)
+}
+#swappSocialNative .pulse-call-actions{margin-top:13px}
+#swappSocialNative .pulse-call-actions button{flex:1;min-width:110px}
