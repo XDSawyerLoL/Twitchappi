@@ -25,6 +25,7 @@
   catch{return false}
  }
  let games=read();
+ let wishlistSlugs=[];
 
  const SYNC_KEY='swapp:follow-sync-account:v1';
  let syncAccountId='';
@@ -158,6 +159,62 @@
   link.textContent='Mes jeux suivis ('+games.length+')';
   link.setAttribute('aria-label','Retrouver mes '+games.length+' jeux suivis');
  }
+ function renderDigest(){
+  if(!root||typeof document.createElement!=='function')return;
+  const view=root.querySelector('[data-my-games-digest]');
+  if(!view)return;
+  const summary=root.querySelector('[data-my-games-digest-summary]');
+  const following=new Map(games.map(game=>[game.slug,game]));
+  const wished=new Set(wishlistSlugs);
+  const published=[];
+  for(const card of root.querySelectorAll('[data-swapp-game-card]')){
+   const slug=card.dataset.gameSlug;
+   if(!validSlug(slug))continue;
+   const follow=following.get(slug),wish=wished.has(slug);
+   if(!follow&&!wish)continue;
+   const game=cleanName(card.dataset.gameName);
+   for(const link of card.querySelectorAll('[data-story-date]')){
+    const href=link.getAttribute('href')||'';
+    const when=Date.parse(link.dataset.storyDate||'');
+    if(!/^\/actus\/[a-z0-9]+(?:-[a-z0-9]+)*$/.test(href)||!Number.isFinite(when))continue;
+    const title=cleanName(link.dataset.storyTitle||'');
+    if(!title)continue;
+    const since=follow?Math.max(Date.parse(follow.followedAt)||0,Date.parse(follow.seenAt)||0):0;
+    published.push({slug,game,title,href,when,followed:!!follow,wished:wish,isNew:!!follow&&when>since});
+   }
+  }
+  published.sort((a,b)=>b.when-a.when||a.game.localeCompare(b.game,'fr'));
+  const seenUrls=new Set(),perGame=new Map(),selected=[];
+  for(const item of published){
+   if(seenUrls.has(item.href)||(perGame.get(item.slug)||0)>=2)continue;
+   seenUrls.add(item.href);perGame.set(item.slug,(perGame.get(item.slug)||0)+1);
+   selected.push(item);
+   if(selected.length===8)break;
+  }
+  const fragments=[];
+  for(const item of selected){
+   const article=document.createElement('article');article.className='mg-digest-item';
+   const meta=document.createElement('div');meta.className='mg-digest-meta';
+   const category=document.createElement('span');
+   category.className='mg-digest-tag';
+   category.textContent=item.isNew?'Nouveau depuis ton suivi':item.followed?'Jeu suivi':'Dans tes envies';
+   const date=document.createElement('time');
+   date.dateTime=new Date(item.when).toISOString();
+   date.textContent=new Intl.DateTimeFormat('fr-FR',{day:'numeric',month:'short'}).format(new Date(item.when));
+   meta.append(category,date);
+   const story=document.createElement('a');story.className='mg-digest-story';
+   story.href=item.href;story.textContent=item.title;
+   const game=document.createElement('a');game.className='mg-digest-game';
+   game.href='/jeux/'+encodeURIComponent(item.slug);
+   game.textContent=item.game+' · Dossier et lives ↗';
+   article.append(meta,story,game);fragments.push(article);
+  }
+  view.replaceChildren(...fragments);
+  if(summary)summary.textContent=selected.length?
+   selected.length+' publication'+(selected.length>1?'s':'')+' issue'+(selected.length>1?'s':'')+' de tes jeux, classée'+(selected.length>1?'s':'')+' par date.':
+   games.length||wished.size?'Aucun article publié disponible pour cette sélection. Tes envies restent enregistrées.':
+    'Suis un jeu ou ajoute-le à tes envies pour retrouver ici ses actualités publiées.';
+ }
  function update(){
   const favorites=new Map(games.map(item=>[item.slug,item]));
   $$('[data-swapp-follow-game]').forEach(button=>{
@@ -197,6 +254,7 @@
   for(const card of others)card.hidden=!!q&&!card.dataset.gameName.toLocaleLowerCase('fr').includes(q);
   const none=root.querySelector('[data-my-games-no-match]');
   if(none)none.hidden=!q||others.some(card=>!card.hidden);
+  renderDigest();
  }
  document.addEventListener('click',async event=>{
   const follow=event.target.closest('[data-swapp-follow-game]');
@@ -255,6 +313,10 @@
   menuLink();
   new MutationObserver(menuLink).observe(menu,{childList:true});
  }
+ window.addEventListener('swapp:wishlist-changed',event=>{
+  wishlistSlugs=Array.isArray(event.detail?.slugs)?event.detail.slugs.filter(validSlug).slice(0,50):[];
+  renderDigest();
+ });
  window.addEventListener('swapp:home-feature-ready',updateHomeLink);
  window.addEventListener('storage',e=>{
   if(e.key===KEY||e.key===null){games=read();update();}
