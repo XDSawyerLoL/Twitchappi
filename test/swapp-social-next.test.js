@@ -89,7 +89,7 @@ test('cross-site profile writes are forbidden',async()=>{
 test('SOCIAL rooms search verified game aliases without confusing sequels',async()=>{
  const h=makeHarness();
  await h.send('GET','/game/context',{query:{game:'Grand Theft Auto VI'}});
- const gameQueries=h.queries.filter(x=>x.sql.includes('LOWER(game) IN ('));
+ const gameQueries=h.queries.filter(x=>x.sql.includes('LOWER(r.game) IN ('));
  assert.equal(gameQueries.length,2);
  assert.ok(gameQueries[0].args.includes('grand theft auto vi'));
  assert.ok(gameQueries[0].args.includes('gta vi'));
