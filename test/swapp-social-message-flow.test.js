@@ -24,12 +24,12 @@ test('private-message threads open at the latest reply and preserve drafts on po
  const fragment=source.slice(start,end>start?end:start+2300);
  assert.ok(fragment.includes("thread.scrollTop=thread.scrollHeight"),'newest messages are visible');
  assert.ok(source.includes("const list=document.querySelector('.social-dm-view .pulse-message-list')"));
- assert.ok(source.includes('list.innerHTML=renderDMMessages(messages,userId)'));
+ assert.ok(source.includes('list.innerHTML=renderDMMessages(messages,userId,lastNotes)'));
  assert.ok(!source.includes("document.querySelector('.social-dm-view').innerHTML="),'polling must not replace the composer');
 });
 
 test('the app and views are cache-busted together',()=>{
  const server=fs.readFileSync(path.join(__dirname,'../modules/swapp-hubs.js'),'utf8');
- assert.match(app(),/views\.js\?v=20261018-social-structure-v2/);
- assert.match(server,/app\.js\?v=20261018-social-structure-v1/);
+ assert.match(app(),/views\.js\?v=20261018-direct-audio-v2/);
+ assert.match(server,/app\.js\?v=20261018-direct-audio-v1/);
 });

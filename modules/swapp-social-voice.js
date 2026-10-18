@@ -39,7 +39,7 @@ function verifyTicket(value,secret,now=Date.now()){
   return {id:claimed.id,handle:claimed.handle};
 }
 
-function installSocialVoice({app,io,restoreSession,getPool,secret,iceServers=()=>[]}){
+function installSocialVoice({app,io,restoreSession,getPool,secret,iceServers=()=>[],lookupLocalUser=null,isAllowedPair=null}){
   if(!app||!io||typeof restoreSession!=='function'||typeof getPool!=='function'||
     typeof secret!=='string'||secret.length<24)throw Error('swapp_voice_invalid_configuration');
 
@@ -125,6 +125,10 @@ function installSocialVoice({app,io,restoreSession,getPool,secret,iceServers=()=
     });
     socket.on('disconnect',leave);
   });
+  if(typeof lookupLocalUser==='function'){
+    const privateCalls=require('./swapp-social-private-calls').installPrivateCalls(voice,{lookupLocalUser,isAllowedPair});
+    voice.endCallsBetween=(a,b)=>privateCalls.endBetween(a,b);
+  }
   return voice;
 }
 

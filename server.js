@@ -891,12 +891,22 @@ const {createSocialNativeProxy}=require('./modules/swapp-social-native-proxy');
 // Read navigation, search and inbox refreshes are not login attempts.
 // Previous shared 60/10-minute limiter blocked ordinary SOCIAL use.
 const pulseReadLimiter=rateLimit({windowMs:60*1000,max:120,standardHeaders:true,legacyHeaders:false});
+const {createAudioPrivacy}=require('./modules/swapp-social-audio-privacy');
+const socialAudioPrivacy=createAudioPrivacy({
+  getPool:()=>process.env.SWAPP_SOCIAL_FEATURES==='1'&&socialInteractionsState!=='unavailable'?socialInteractionsPool:null,
+  lookupLocalUser:getOryonUserByLogin
+});
 app.use('/api/pulse',(req,res,next)=>req.method==='GET'?pulseReadLimiter(req,res,next):authLimiter(req,res,next),
  createSocialNativeProxy(fetchWithTimeout,{production:IS_PROD,
   restoreLocalSession:restoreOryonSessionFromRememberCookie,
   ssoSecret:String(process.env.SWAPP_SOCIAL_SSO_SECRET||process.env.SWAPP_ACCOUNT_RECOVERY_SECRET||configuredSessionSecret||''),
   lookupLocalUser:getOryonUserByLogin,
-  listLocalUsers:()=>readOryonUsers().users
+  listLocalUsers:()=>readOryonUsers().users,
+  recordAudioBlock:async(actor,target)=>{
+    await socialAudioPrivacy.block(actor,target);
+    // End any active audio call immediately when the block takes effect.
+    io.of('/swapp-social-voice').endCallsBetween?.(actor.id,target.id);
+  }
 }));
 // Experimental SOCIAL interactions stay disabled until durable storage is configured.
 // Dedicated health metadata avoids confusing "Cannot GET" for a disabled feature.
@@ -919,7 +929,7 @@ const safeSocialMysqlError=error=>{
 // Public, non-sensitive release marker for diagnosing stale Hostinger deployments.
 app.get('/api/swapp/social/release',(_req,res)=>{
  res.set('Cache-Control','no-store');
- return res.json({product:'SWAPP SOCIAL',release:'social-sso-recovery-v9',session:'swapp',features:{nativeFeed:true,mysqlInteractions:process.env.SWAPP_SOCIAL_FEATURES==='1'}});
+ return res.json({product:'SWAPP SOCIAL',release:'social-audio-20261018',session:'swapp',features:{nativeFeed:true,mysqlInteractions:process.env.SWAPP_SOCIAL_FEATURES==='1',voiceSignaling:true,voiceNotes:process.env.SWAPP_SOCIAL_FEATURES==='1',privateCalls:process.env.SWAPP_SOCIAL_FEATURES==='1'}});
 });
 app.get('/api/swapp/interactions/status',async(_req,res)=>{
  res.set('Cache-Control','no-store');
@@ -1010,6 +1020,16 @@ if(process.env.SWAPP_SOCIAL_FEATURES==='1'){
 }else{
  app.use('/api/swapp/interactions',(_req,res)=>res.status(503).json({error:'social_features_disabled'}));
 }
+// Short private voice notes use the same SWAPP/MySQL identities and storage.
+// Audio content is never served by the static asset server.
+const {createDirectAudioRouter}=require('./modules/swapp-social-direct-audio');
+app.use('/api/swapp/direct-audio',(req,res,next)=>req.method==='GET'?pulseReadLimiter(req,res,next):authLimiter(req,res,next),
+  createDirectAudioRouter({express,
+    restoreSession:restoreOryonSessionFromRememberCookie,
+    getPool:()=>process.env.SWAPP_SOCIAL_FEATURES==='1'&&socialInteractionsState!=='unavailable'?socialInteractionsPool:null,
+    lookupLocalUser:getOryonUserByLogin,
+    isAllowedPair:socialAudioPrivacy.allowed
+  }));
 // Social client changes must propagate rapidly; its ES imports do not carry cache query tags.
 app.use('/assets/swapp-social-native', express.static(path.join(__dirname, 'assets/swapp-social-native'), {...staticOptions,maxAge:0,setHeaders(res,file){staticOptions.setHeaders(res,file);res.setHeader('Cache-Control','no-store')}}));
 app.use('/assets', express.static(path.join(__dirname, 'assets'), staticOptions));
@@ -7754,7 +7774,9 @@ require('./modules/swapp-social-voice').installSocialVoice({
   restoreSession: restoreOryonSessionFromRememberCookie,
   getPool: () => process.env.SWAPP_SOCIAL_FEATURES === '1' ? socialInteractionsPool : null,
   secret: oauthSigningSecret,
-  iceServers: getWebRtcIceServers
+  iceServers: getWebRtcIceServers,
+  lookupLocalUser: getOryonUserByLogin,
+  isAllowedPair: socialAudioPrivacy.allowed
 });
 
 

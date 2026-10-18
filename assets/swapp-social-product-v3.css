@@ -349,3 +349,49 @@
  #swappSocialNative .swapp-voice-heading{flex-wrap:wrap}
  #swappSocialNative .swapp-voice-controls button{min-height:44px}
 }
+
+/* Direct audio is part of the existing DM thread, not a standalone new section. */
+#swappSocialNative .pulse-dm-audio-controls{
+ display:flex;gap:8px;flex-wrap:wrap;align-items:center;
+ background:#15263b;border-top:1px solid var(--s3-border);
+ padding:10px 14px;color:#dceaf8
+}
+#swappSocialNative .pulse-dm-audio-controls button,
+#swappSocialNative .pulse-dm-call-button{
+ border:1px solid var(--s3-border);border-radius:8px;min-height:40px;
+ color:#e4efff;background:#23364d;padding:8px 12px;font:inherit;font-size:12px;font-weight:750;
+ cursor:pointer
+}
+#swappSocialNative .pulse-dm-call-button{margin-left:auto;background:#aef333;border-color:#aef333;color:#132621}
+#swappSocialNative .pulse-dm-audio-controls button[hidden],
+#swappSocialNative .pulse-dm-audio-controls audio[hidden]{display:none!important}
+#swappSocialNative .pulse-dm-audio-controls [data-voice-status]{flex:1 1 100%;margin:0;color:#aebfd1;font-size:11px;line-height:1.55}
+#swappSocialNative .pulse-dm-audio-controls [data-voice-preview]{flex:1 1 100%;width:100%;max-height:44px}
+#swappSocialNative .pulse-audio-message{min-width:0;max-width:min(100%,390px)}
+#swappSocialNative .pulse-audio-message-title{display:block;font-size:11px;font-weight:780;margin-bottom:7px}
+#swappSocialNative .pulse-audio-message audio{display:block;width:100%;max-width:320px;min-width:185px;height:44px}
+#swappSocialNative .pulse-audio-meta{display:flex;gap:12px;align-items:center;margin-top:6px}
+#swappSocialNative .pulse-audio-meta button{background:transparent;border:0;color:inherit;font:inherit;text-decoration:underline;cursor:pointer;font-size:11px}
+#swappSocialNative .pulse-call-panel{
+ position:fixed;z-index:500;bottom:clamp(90px,8vh,130px);right:clamp(12px,3vw,40px);
+ width:min(380px,calc(100vw - 24px));padding:18px;color:#eef5ff;
+ background:#12253b;border:1px solid #536d86;border-radius:14px;
+ box-shadow:0 16px 55px #0008
+}
+#swappSocialNative .pulse-call-panel[hidden]{display:none!important}
+#swappSocialNative .pulse-call-panel>strong{display:block;font-size:17px;font-weight:850;margin-bottom:7px}
+#swappSocialNative .pulse-call-panel>p{margin:0 0 14px;line-height:1.5;color:#b8cada;font-size:12px}
+#swappSocialNative .pulse-call-actions{display:flex;gap:8px;flex-wrap:wrap}
+#swappSocialNative .pulse-call-actions button{
+ min-height:44px;padding:9px 13px;border-radius:8px;border:1px solid #667d97;
+ color:white;background:#244159;font:inherit;font-size:12px;font-weight:800;cursor:pointer
+}
+#swappSocialNative .pulse-call-actions [data-call-accept]{background:#aef333;color:#1a290f;border-color:#aef333}
+#swappSocialNative .pulse-call-actions [data-call-decline],
+#swappSocialNative .pulse-call-actions [data-call-end]{background:#63313f;border-color:#925b6b}
+#swappSocialNative .pulse-call-actions button[hidden]{display:none!important}
+@media(max-width:650px){
+ #swappSocialNative .pulse-call-panel{bottom:calc(80px + env(safe-area-inset-bottom));right:12px}
+ #swappSocialNative .pulse-dm-call-button{margin-left:8px}
+ #swappSocialNative .pulse-audio-message audio{min-width:0;max-width:100%}
+}

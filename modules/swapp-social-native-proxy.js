@@ -36,7 +36,7 @@ function swappSocialCredentials(user,secret){
  return {handle:'s_'+stem+'_'+suffix,password:crypto.createHmac('sha256',secret).update('social-password-v1:'+id).digest('base64url'),
   displayName:String(user?.display_name||user?.login||'Membre SWAPP').trim().slice(0,50)};
 }
-function createSocialNativeProxy(fetchImpl,{production=true,restoreLocalSession=null,ssoSecret='',lookupLocalUser=null,listLocalUsers=null}={}){
+function createSocialNativeProxy(fetchImpl,{production=true,restoreLocalSession=null,ssoSecret='',lookupLocalUser=null,listLocalUsers=null,recordAudioBlock=null}={}){
 
  if(typeof fetchImpl!=='function')throw Error('fetch implementation is required');
  const sessionSso=typeof restoreLocalSession==='function';
@@ -185,6 +185,21 @@ function createSocialNativeProxy(fetchImpl,{production=true,restoreLocalSession=
      return res.status(503).json({error:code});
     }
    }
+  }
+  // A member's explicit Block action disables first-party voice/audio even if
+  // the remote SOCIAL backend is slow or returns an error. The operation is
+  // idempotent; never permit calls or voice notes to bypass the user's block.
+  const blockParts=path.split('/');
+  const isNativeBlock=blockParts.length===4&&blockParts[1]==='users'&&
+    blockParts[3]==='block'&&/^[a-z0-9_-]{3,32}$/.test(blockParts[2]);
+  if(sessionSso&&method==='POST'&&isNativeBlock&&
+    typeof lookupLocalUser==='function'&&typeof recordAudioBlock==='function'){
+    const handle=path.split('/')[2];
+    const target=lookupLocalUser(handle);
+    if(target?.id&&swappUser?.id&&String(target.id)!==String(swappUser.id)){
+      try{await recordAudioBlock(swappUser,target)}
+      catch{return res.status(503).json({error:'social_audio_block_unavailable'})}
+    }
   }
   const endpoint=SOCIAL_ORIGIN+'/api/pulse'+upstreamPath+safeQuery(path,req.originalUrl?.split('?').slice(1).join('?'));
   // Read-only requests may retry once if Render wakes a cold instance.
