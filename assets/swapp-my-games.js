@@ -215,6 +215,22 @@
    games.length||wished.size?'Aucun article publié disponible pour cette sélection. Tes envies restent enregistrées.':
     'Suis un jeu ou ajoute-le à tes envies pour retrouver ici ses actualités publiées.';
  }
+ function publishGameInterests(){
+  if(typeof CustomEvent!=='function'||typeof window.dispatchEvent!=='function'||!root)return;
+  const selected=new Set([...games.map(x=>x.slug),...wishlistSlugs]);
+  const seen=new Set(),all=[];
+  for(const card of root.querySelectorAll('[data-swapp-game-card]')){
+   const slug=card.dataset.gameSlug,game=cleanName(card.dataset.gameName);
+   if(!selected.has(slug)||!validSlug(slug)||!game||seen.has(slug))continue;
+   seen.add(slug);all.push({slug,game});
+  }
+  // Never infer a live game from a store-only wishlist title.
+  all.sort((a,b)=>{
+   const rank=x=>{const i=games.findIndex(g=>g.slug===x.slug);return i<0?1000+wishlistSlugs.indexOf(x.slug):i};
+   return rank(a)-rank(b);
+  });
+  window.dispatchEvent(new CustomEvent('swapp:game-interests',{detail:{games:all}}));
+ }
  function update(){
   const favorites=new Map(games.map(item=>[item.slug,item]));
   $$('[data-swapp-follow-game]').forEach(button=>{
@@ -255,6 +271,7 @@
   const none=root.querySelector('[data-my-games-no-match]');
   if(none)none.hidden=!q||others.some(card=>!card.hidden);
   renderDigest();
+  publishGameInterests();
  }
  document.addEventListener('click',async event=>{
   const follow=event.target.closest('[data-swapp-follow-game]');
@@ -316,6 +333,7 @@
  window.addEventListener('swapp:wishlist-changed',event=>{
   wishlistSlugs=Array.isArray(event.detail?.slugs)?event.detail.slugs.filter(validSlug).slice(0,50):[];
   renderDigest();
+  publishGameInterests();
  });
  window.addEventListener('swapp:home-feature-ready',updateHomeLink);
  window.addEventListener('storage',e=>{
