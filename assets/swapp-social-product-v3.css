@@ -303,3 +303,49 @@
 }
 #swappSocialNative .swapp-social-connection-notice button[hidden]{display:none!important}
 #swappSocialNative .swapp-social-connection-notice button:focus-visible{outline:2px solid #fff;outline-offset:2px}
+
+/* AUDIO SOCIAL — one compact surface inside the existing room, no extra dashboard. */
+#swappSocialNative .swapp-voice{
+ min-width:0;padding:16px clamp(14px,2vw,22px);background:#102034;
+ border-bottom:1px solid var(--s3-border);color:var(--s3-fg)
+}
+#swappSocialNative .swapp-voice-heading{display:flex;justify-content:space-between;align-items:center;gap:12px}
+#swappSocialNative .swapp-voice-heading>div{display:grid;gap:3px}
+#swappSocialNative .swapp-voice-heading strong{font-size:15px;font-weight:850}
+#swappSocialNative .swapp-voice-heading small{font-size:11px;color:var(--s3-muted)}
+#swappSocialNative .swapp-voice-live{
+ display:inline-flex;white-space:nowrap;align-items:center;gap:7px;
+ color:var(--s3-muted);font-size:11px;font-weight:740
+}
+#swappSocialNative .swapp-voice-live:before{
+ content:'';display:block;width:8px;height:8px;border-radius:50%;background:#7b90a5
+}
+#swappSocialNative .swapp-voice-live.is-live{color:#87e7c2}
+#swappSocialNative .swapp-voice-live.is-live:before{background:#50d69a}
+#swappSocialNative .swapp-voice-notice{margin:10px 0;color:var(--s3-muted);font-size:12px;line-height:1.55}
+#swappSocialNative .swapp-voice-controls{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+#swappSocialNative .swapp-voice-controls button{
+ border-radius:8px;border:1px solid var(--s3-border);background:#1c3148;
+ color:var(--s3-fg);font-size:12px;font-weight:750;
+ padding:9px 14px;min-height:42px;cursor:pointer
+}
+#swappSocialNative .swapp-voice-controls button:first-child:not([hidden]){
+ background:var(--s3-accent);border-color:var(--s3-accent);color:#071b23
+}
+#swappSocialNative .swapp-voice-controls button:disabled{opacity:.46;cursor:not-allowed}
+#swappSocialNative .swapp-voice-controls button:focus-visible{
+ outline:2px solid var(--s3-accent);outline-offset:2px
+}
+#swappSocialNative .swapp-voice-controls button[hidden]{display:none!important}
+#swappSocialNative .swapp-voice-peers{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
+#swappSocialNative .swapp-voice-peers:empty{display:none}
+#swappSocialNative .swapp-voice-participant{
+ display:inline-flex;max-width:100%;overflow-wrap:anywhere;padding:6px 10px;
+ font-size:11px;color:#c8dcee;border:1px solid var(--s3-border);border-radius:100px;
+ background:#19283a
+}
+@media(max-width:650px){
+ #swappSocialNative .swapp-voice{padding:14px}
+ #swappSocialNative .swapp-voice-heading{flex-wrap:wrap}
+ #swappSocialNative .swapp-voice-controls button{min-height:44px}
+}

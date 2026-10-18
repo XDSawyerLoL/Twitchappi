@@ -7747,6 +7747,16 @@ io.use((socket, next) => {
   sessionMiddleware(socket.request, {}, next);
 });
 
+// SWAPP SOCIAL: voice signalling. Socket.IO transports only SDP/ICE metadata.
+// Actual audio uses WebRTC between members, is never recorded by SWAPP.
+require('./modules/swapp-social-voice').installSocialVoice({
+  app, io,
+  restoreSession: restoreOryonSessionFromRememberCookie,
+  getPool: () => process.env.SWAPP_SOCIAL_FEATURES === '1' ? socialInteractionsPool : null,
+  secret: oauthSigningSecret,
+  iceServers: getWebRtcIceServers
+});
+
 
 // =========================================================
 // HUB: GIF picker proxy (GIPHY) + chat history

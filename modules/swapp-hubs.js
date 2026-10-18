@@ -49,10 +49,12 @@ function community(){
   '<script defer src="/assets/swapp-social-reading.js?v=20261016-stories-search-v6"></script>'+
   '<script type="module" src="/assets/swapp-social-native/app.js?v=20261018-social-structure-v1"></script>'+
   '<link rel="stylesheet" href="/assets/swapp-social-interactions.css?v=20261016-match2-v1">'+
-  '<script defer src="/assets/swapp-social-interactions.js?v=20261016-recovery-v6"></script>'+
+  '<script defer src="/assets/swapp-social-interactions.js?v=20261018-voice-room-v1"></script>'+
   '<link rel="stylesheet" href="/assets/swapp-social-next.css?v=20261016-passport-game-v2">'+
   '<script defer src="/assets/swapp-social-next.js?v=20261018-social-structure-v1"></script>'+
-  '<link rel="stylesheet" href="/assets/swapp-social-product-v3.css?v=20261018-social-structure-v1">'+
+   '<script defer src="/socket.io/socket.io.js"></script>'+
+   '<script defer src="/assets/swapp-social-voice.js?v=20261018-voice-v1"></script>'+
+  '<link rel="stylesheet" href="/assets/swapp-social-product-v3.css?v=20261018-voice-v2">'+
   '<link rel="stylesheet" href="/assets/swapp-social-appearance.css?v=20261017-appearance-v2">';
  return layout({title:'Communauté',description:'Le réseau SOCIAL complet intégré dans SWAPP : profils, publications, communautés et messagerie.',content,active:'community',scripts});
 }
