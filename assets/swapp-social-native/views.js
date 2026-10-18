@@ -277,7 +277,7 @@ export async function loadCircles(){
     const data=await api('/api/pulse/circles');
     if(!isCurrent(revision,'circles'))return;
     let html='<section class="pulse-view"><div class="pulse-view-head"><h2>Communautés</h2><p>Échange avec des joueurs, rejoins un salon ou retrouve une équipe.</p></div>'+
-      '<nav class="pulse-community-shortcuts" aria-label="Jeux et salons"><button type="button" data-view="play">Jeux et équipes</button><button type="button" data-view="rooms">Salons vocaux et discussion</button></nav>';
+      '<nav class="pulse-community-shortcuts" aria-label="Jeux et salons"><button type="button" data-view="play">Jeux et équipes</button><button type="button" data-view="rooms">Salons vocaux</button></nav>';
     if(state.user)html+='<form class="pulse-inline-form two" id="circle-create"><input name="name" minlength="3" maxlength="60" placeholder="Nom du cercle" required><input name="description" maxlength="240" placeholder="Description"><button class="pulse-mini-button primary">Créer</button></form>';
     html+='<div class="pulse-card-list">';
     if(!data.circles.length)html+='<div class="pulse-card"><p>Aucune communauté publique pour le moment.</p></div>';

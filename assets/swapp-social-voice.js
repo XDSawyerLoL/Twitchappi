@@ -3,7 +3,7 @@
  'use strict';
  const host=document.getElementById('swappSocialNative');
  const area=host?.querySelector('.swapp-interactive');
- const container=area?.querySelector('#ssi-room-panel .ssi-panel-inner');
+ const container=area?.querySelector('#ssi-chat-panel .ssi-panel-inner');
  if(!area||!container)return;
 
  const section=document.createElement('section');
@@ -12,33 +12,33 @@
  <header class="swapp-voice-heading">
   <div class="swapp-voice-brand">
    <span class="swapp-voice-mark" aria-hidden="true"><svg viewBox="0 0 36 36"><path d="M8 16v4M13 10v16M18 6v24M23 11v14M28 16v4"/></svg></span>
-   <div><span class="swapp-voice-eyebrow">SOCIAL / EN DIRECT</span><strong>Salon vocal</strong><small>6 personnes · Aucun enregistrement</small></div>
+   <div><span class="swapp-voice-eyebrow">CONVERSATION VOCALE</span><strong>Parler avec les joueurs</strong><small>Micro ouvert uniquement après ton accord</small></div>
   </div>
   <span id="swapp-voice-live" class="swapp-voice-live">Hors ligne</span>
  </header>
  <div class="swapp-voice-stage">
   <div class="swapp-voice-room">
-   <div><span class="swapp-voice-room-tag">CONVERSATION</span><h3 id="swapp-voice-room-name">Choisis un salon</h3><p id="swapp-voice-room-game">Sélectionne un salon de discussion ci-dessous.</p></div>
-   <div class="swapp-voice-room-count"><strong id="swapp-voice-count">0</strong><span> / 6 connectés</span></div>
+   <div><span class="swapp-voice-room-tag">SALON SÉLECTIONNÉ</span><h3 id="swapp-voice-room-name">Choisis un salon</h3><p id="swapp-voice-room-game">Choisis un salon dans la liste pour commencer.</p></div>
+   <div class="swapp-voice-room-count"><strong id="swapp-voice-count">0</strong><span> / 6 places</span></div>
   </div>
-  <div class="swapp-voice-members-title"><strong>Participants</strong><span id="swapp-voice-member-caption">En attente de connexion</span></div>
+  <div class="swapp-voice-members-title"><strong>Participants</strong><span id="swapp-voice-member-caption">Pas encore connecté</span></div>
   <div id="swapp-voice-peers" class="swapp-voice-peers" aria-label="Participants audio"></div>
  </div>
  <footer class="swapp-voice-footer">
   <div class="swapp-voice-controls">
-   <button type="button" id="swapp-voice-join" class="swapp-voice-primary" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18a7 7 0 0 1 0-12M15 6a7 7 0 0 1 0 12M4 12h16"/></svg>Rejoindre le vocal</button>
-   <button type="button" id="swapp-voice-mute" class="swapp-voice-control" aria-pressed="false" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8"/></svg><span data-voice-label>Micro actif</span></button>
-   <button type="button" id="swapp-voice-deafen" class="swapp-voice-control" aria-pressed="false" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 13v-2a9 9 0 0 1 18 0v2M4 13h3v7H4a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2ZM20 13h-3v7h3a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2Z"/></svg><span data-voice-label>Écouter</span></button>
+   <button type="button" id="swapp-voice-join" class="swapp-voice-primary" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18a7 7 0 0 1 0-12M15 6a7 7 0 0 1 0 12M4 12h16"/></svg>Rejoindre le salon</button>
+   <button type="button" id="swapp-voice-mute" class="swapp-voice-control" aria-pressed="false" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8"/></svg><span data-voice-label>Couper le micro</span></button>
+   <button type="button" id="swapp-voice-deafen" class="swapp-voice-control" aria-pressed="false" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 13v-2a9 9 0 0 1 18 0v2M4 13h3v7H4a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2ZM20 13h-3v7h3a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2Z"/></svg><span data-voice-label>Couper le son</span></button>
    <button type="button" id="swapp-voice-play" class="swapp-voice-control" hidden>Activer le son</button>
    <button type="button" id="swapp-voice-leave" class="swapp-voice-leave" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 8 2-2a12 12 0 0 1 14 0l2 2-3 5-4-2v-2a11 11 0 0 0-4 0v2l-4 2Z"/></svg>Quitter</button>
   </div>
-  <p id="swapp-voice-notice" class="swapp-voice-notice" role="status" aria-live="polite">Sélectionne un salon pour rejoindre l’audio.</p>
+  <p id="swapp-voice-notice" class="swapp-voice-notice" role="status" aria-live="polite">Sélectionne un salon à gauche, puis rejoins-le pour parler.</p>
  </footer>
  <div id="swapp-voice-audio" hidden></div>
 `;
- // Keep the voice controls above the list of rooms, immediately visible on entry.
- // Joining still requires choosing or creating an actual room first.
- container.insertBefore(section,area.querySelector('#ssi-room-results'));
+ // Discord-inspired layout: room channels remain left, voice and chat share the right pane.
+ // No microphone access until an explicit click on Join.
+ container.insertBefore(section,container.querySelector('.ssi-panel-head'));
  const $=selector=>section.querySelector(selector);
  const joinButton=$('#swapp-voice-join'),muteButton=$('#swapp-voice-mute');
  const leaveButton=$('#swapp-voice-leave'),status=$('#swapp-voice-notice'),playButton=$('#swapp-voice-play');
@@ -84,24 +84,24 @@
   const joined=Boolean(socket?.connected&&media&&connectedRoom);
   updateRoomDetails();
   section.dataset.voiceState=joined?'connected':busy?'connecting':'idle';
-  roomLabel.textContent=selectedRoomName||'Choisis un salon';
-  gameLabel.textContent=selectedRoom?(selectedRoomGame||'Conversation de joueurs'):'Sélectionne un salon de discussion ci-dessous.';
+  roomLabel.textContent=selectedRoomName||'Choisis un salon à gauche';
+  gameLabel.textContent=selectedRoom?(selectedRoomGame||'Conversation de joueurs'):'Choisis un salon dans la liste pour commencer.';
   joinButton.hidden=joined;joinButton.disabled=busy||!selectedRoom;
   muteButton.hidden=!joined;deafenButton.hidden=!joined;leaveButton.hidden=!joined;
   if(!joined)playButton.hidden=true;
-  muteButton.querySelector('[data-voice-label]').textContent=muted?'Micro coupé':'Micro actif';
-  deafenButton.querySelector('[data-voice-label]').textContent=deafened?'Son coupé':'Écouter';
+  muteButton.querySelector('[data-voice-label]').textContent=muted?'Réactiver le micro':'Couper le micro';
+  deafenButton.querySelector('[data-voice-label]').textContent=deafened?'Rétablir le son':'Couper le son';
   muteButton.setAttribute('aria-pressed',String(muted));
   deafenButton.setAttribute('aria-pressed',String(deafened));
   live.textContent=joined?(muted?'Micro coupé':'Connecté'):busy?'Connexion…':'Hors ligne';
   live.classList.toggle('is-live',joined);
   const members=joined?[{id:'__self',handle:'Vous',self:true,muted},...profiles.entries().map(([id,value])=>({id,handle:value.handle,muted:!!value.muted,self:false}))]:[];
   countLabel.textContent=String(members.length);
-  caption.textContent=joined?members.length+' / 6 connectés':'En attente de connexion';
+  caption.textContent=joined?members.length+' / 6 connectés':'Pas encore connecté';
   if(!joined){
    tiles.clear();
    const empty=document.createElement('div');empty.className='swapp-voice-empty';
-   empty.textContent=selectedRoom?'Salon prêt. Rejoins-le pour prendre la parole.':'Choisis un salon pour parler avec la communauté.';
+   empty.textContent=selectedRoom?'Clique sur « Rejoindre le salon » pour parler.':'Choisis un salon à gauche pour voir qui parle.';
    people.replaceChildren(empty);
    return;
   }
@@ -348,7 +348,7 @@
   selectedRoom=id;
   selectedRoomName=String(event.detail?.name||'').slice(0,60);
   selectedRoomGame=String(event.detail?.game||'').slice(0,65);
-  notice(id?'Salon sélectionné. Rejoins le vocal pour activer ton micro.':'Choisis un salon de discussion.');
+  notice(id?'Salon prêt. Rejoins-le quand tu veux parler.':'Choisis un salon de discussion.');
   repaint();
  });
  const observer=new MutationObserver(()=>{

@@ -1,6 +1,6 @@
 import { TOKEN_KEY, state, dom, api, errorText } from './core.js';
 import { openAuth, closeAuth, updateAuthModal, updateAccount, requireAuth, applySession, clearSession, restoreSession } from './session.js';
-import { setView, loadHome, loadExplore, loadCircles, loadNotifications, loadSaved, loadProfile, loadMessages, loadConversation, loadCirclePreview, loadNewsRss } from './views.js?v=20261018-audio-stage-v1';
+import { setView, loadHome, loadExplore, loadCircles, loadNotifications, loadSaved, loadProfile, loadMessages, loadConversation, loadCirclePreview, loadNewsRss } from './views.js?v=20261018-channel-ux-v1';
 import {setupVoiceNotes} from './dm-audio.js?v=20261018-audio-stage-v1';
 import {setupDirectCalls} from './dm-calls.js?v=20261018-audio-stage-v1';
 
@@ -302,7 +302,7 @@ function bindDelegatedEvents(){
  document.addEventListener('swapp:social-view',event=>{
   const view=event.detail?.view;
   if(view==='play'||view==='rooms'){
-   setView(view,view==='play'?'Jeux et équipes':'Salons de discussion');
+   setView(view,view==='play'?'Jeux et équipes':'Salons vocaux');
    revealSocialContent();
   }
  });
@@ -373,7 +373,7 @@ function bindDelegatedEvents(){
       else if(view==='notifications')void loadNotifications();
       else if(view==='messages')void loadMessages();
       else if(view==='play')setView('play','Jouer ensemble');
-      else if(view==='rooms')setView('rooms','Salons & discussion');
+      else if(view==='rooms')setView('rooms','Salons vocaux');
       else if(view==='saved')void loadSaved();
       else if(view==='profile')void loadProfile();
       revealSocialContent();
