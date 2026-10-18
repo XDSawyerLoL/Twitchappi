@@ -528,6 +528,21 @@ function renderPlanning(){
   '<label class="swapp-acct-plan-when" for="planWhen"><span>Date et heure</span><input id="planWhen" name="when" type="datetime-local" required></label>'+
   '<button class="btn swapp-acct-plan-submit" type="submit">Ajouter au planning</button></form>'+
   '<div id="planningList" class="swapp-acct-planning-list" aria-live="polite">Chargement du planning…</div>';
+ const list=document.getElementById('planningList');
+ list?.addEventListener('click',async event=>{
+  const button=event.target.closest('[data-plan-delete]');
+  if(!button||!list.contains(button))return;
+  const id=button.dataset.planDelete;
+  if(!/^[a-f0-9]{16}$/.test(id))return;
+  if(!window.confirm('Supprimer ce direct du planning ?'))return;
+  button.disabled=true;
+  try{
+   const result=await api('/api/oryon/planning/'+id,{method:'DELETE'});
+   if(!result?.success)throw Error(result?.error||'Suppression indisponible');
+   toast('Live retiré du planning');
+   await loadPlanning();
+  }catch(error){toast(error.message||'Impossible de supprimer ce live');button.disabled=false}
+ });
  const form=document.getElementById('planningForm');
  form.onsubmit=async event=>{
   event.preventDefault();
@@ -571,8 +586,10 @@ async function loadPlanning(){
   target.innerHTML=items.map(x=>{
    const stamp=new Date(x.when),date=Number.isFinite(stamp.getTime())?
     stamp.toLocaleString('fr-FR',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}):'Date à confirmer';
+   const id=/^[a-f0-9]{16}$/.test(String(x.id||''))?x.id:'';
    return '<div class="swapp-acct-planning-row"><time>'+esc(date)+'</time><b>'+esc(x.title||'Sans titre')+
-    '</b><span>'+esc(x.category||'Catégorie non renseignée')+'</span></div>';
+    '</b><span>'+esc(x.category||'Catégorie non renseignée')+'</span>'+
+    (id?'<button type="button" data-plan-delete="'+id+'" aria-label="Supprimer le live '+esc(x.title||'sans titre')+'">Supprimer</button>':'')+'</div>';
   }).join('')||'<p class="swapp-acct-empty">Aucun direct planifié. Le formulaire ci-dessus est prêt.</p>';
  }catch(_){
   target.innerHTML='<p class="swapp-acct-empty">Planning temporairement indisponible. Tes directs existants ne sont pas effacés.</p>';
@@ -3995,6 +4012,23 @@ async function renderSettings(){
   '</header>'+nav+sections+'</div>';
  if(u){
   swappAccountTab(window.swappActiveAccountTab||'overview');
+  const tabs=root.querySelector('.swapp-acct-nav');
+  tabs?.addEventListener('keydown',event=>{
+   const keys=['ArrowRight','ArrowLeft','Home','End'];
+   if(!keys.includes(event.key))return;
+   const controls=[...tabs.querySelectorAll('[data-account-tab]')];
+   const current=controls.findIndex(x=>x.getAttribute('aria-selected')==='true');
+   if(!controls.length)return;
+   let next=current;
+   if(event.key==='ArrowRight')next=(current+1)%controls.length;
+   else if(event.key==='ArrowLeft')next=(current+controls.length-1)%controls.length;
+   else if(event.key==='Home')next=0;
+   else if(event.key==='End')next=controls.length-1;
+   event.preventDefault();
+   const button=controls[next];
+   swappAccountTab(button.dataset.accountTab);
+   button.focus();
+  });
   renderPlanning();
   bindSettingsForms();
   loadFoundation();
