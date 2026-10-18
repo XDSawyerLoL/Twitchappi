@@ -1,0 +1,146 @@
+// SWAPP wishlists & discovery points. Server is authoritative; no fictional offers or XP.
+(()=>{
+ 'use strict';
+ const API='/api/swapp/interactions';
+ const slugOK=v=>typeof v==='string'&&v.length>=3&&v.length<=90&&/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(v);
+ const cleanName=v=>String(v||'').trim().slice(0,100);
+ const $$=q=>[...document.querySelectorAll(q)];
+ const $=q=>document.querySelector(q);
+ const buttons=$$('[data-swapp-wishlist-game]');
+ const panel=$('[data-swapp-library-root]');
+ if(!buttons.length&&!panel)return;
+ let wishlist=[],loggedIn=false,busy=false;
+ const notice=message=>{
+  const el=$('[data-swapp-loyalty-status]');
+  if(el)el.textContent=message;
+ };
+ async function call(path,method='GET',payload){
+  const response=await fetch(API+path,{
+   method,credentials:'same-origin',cache:'no-store',
+   headers:{Accept:'application/json',...(payload?{'Content-Type':'application/json'}:{})},
+   ...(payload?{body:JSON.stringify(payload)}:{})
+  });
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok){
+   const message=response.status===401?'Connecte-toi au compte SWAPP pour utiliser ta liste de souhaits.':
+    response.status===409?'Tu peux enregistrer 50 jeux maximum dans tes envies.':
+    response.status===503?'Le service est momentanément indisponible.':'Modification impossible. Réessaie plus tard.';
+   const error=new Error(message);error.status=response.status;throw error;
+  }
+  return data;
+ }
+ function renderButtons(){
+  const slugs=new Set(wishlist.map(x=>x.slug));
+  $$('[data-swapp-wishlist-game]').forEach(button=>{
+   const active=slugs.has(button.dataset.gameSlug);
+   button.setAttribute('aria-pressed',String(active));
+   button.textContent=active?'♥ Dans mes envies':'♡ Ajouter aux envies';
+   button.disabled=busy;
+   button.setAttribute('aria-label',(active?'Retirer de ma liste de souhaits : ':'Ajouter à ma liste de souhaits : ')+(button.dataset.gameName||'jeu'));
+  });
+ }
+ function renderWishlist(){
+  const list=$('[data-swapp-wishlist-results]');
+  const count=$('[data-swapp-wishlist-count]');
+  if(count)count.textContent='('+wishlist.length+'/50)';
+  if(!list)return;
+  list.replaceChildren();
+  if(!loggedIn){
+   const p=document.createElement('p');
+   p.textContent='Connecte-toi à ton compte SWAPP pour conserver tes envies entre appareils.';
+   list.append(p);return;
+  }
+  if(!wishlist.length){
+   const p=document.createElement('p');
+   p.textContent='Aucun jeu dans tes envies. Ajoute un titre depuis son dossier.';
+   list.append(p);return;
+  }
+  for(const item of wishlist){
+   if(!slugOK(item.slug))continue;
+   const row=document.createElement('article');row.className='mg-wish-row';
+   const body=document.createElement('div');
+   const a=document.createElement('a');a.href='/jeux/'+item.slug;a.textContent=cleanName(item.game);
+   const small=document.createElement('small');
+   small.textContent='Suivi d’envie · Aucune offre annoncée';
+   body.append(a,small);
+   const remove=document.createElement('button');
+   remove.type='button';remove.textContent='Retirer';remove.dataset.wishlistRemove=item.slug;
+   remove.setAttribute('aria-label','Retirer '+cleanName(item.game)+' de mes envies');
+   row.append(body,remove);list.append(row);
+  }
+ }
+ function setWishlist(rows){
+  wishlist=Array.isArray(rows)?rows.filter(x=>slugOK(x.slug)).slice(0,50):[];
+  loggedIn=true;renderWishlist();renderButtons();
+ }
+ async function refreshWishlist(){
+  try{const data=await call('/library/wishlist');setWishlist(data.wishlist)}
+  catch(error){
+   if(error.status===401){loggedIn=false;wishlist=[];renderWishlist();renderButtons()}
+   if(panel)notice(error.message);
+  }
+ }
+ async function refreshRewards(){
+  if(!panel)return;
+  const score=$('[data-swapp-rewards-points]');
+  const level=$('[data-swapp-rewards-level]');
+  const next=$('[data-swapp-rewards-next]');
+  const fill=$('[data-swapp-rewards-fill]');
+  const track=$('[data-swapp-rewards-track]');
+  try{
+   const data=await call('/rewards/me');
+   const p=data.rewards;
+   if(!p||!Number.isInteger(p.points)||p.points<0||p.points>100)throw Error('Progression indisponible.');
+   if(score)score.textContent=String(p.points);
+   if(level)level.textContent=p.level;
+   if(next)next.textContent=p.pointsToNext?'Encore '+p.pointsToNext+' pts pour '+p.nextLevel:'Parcours découverte terminé';
+   if(fill)fill.style.width=p.points+'%';
+   if(track)track.setAttribute('aria-valuenow',String(p.points));
+  }catch(error){
+   if(score)score.textContent='—';
+   if(level)level.textContent=error.status===401?'Compte SWAPP requis':'Progression indisponible';
+   if(next)next.textContent='';
+   if(fill)fill.style.width='0%';
+   if(track)track.setAttribute('aria-valuenow','0');
+  }
+ }
+ let pending=Promise.resolve();
+ async function mutate(action){
+  // Serialize mutations: prevent rapid repeated clicks issuing duplicate operations.
+  pending=pending.catch(()=>{}).then(async()=>{
+   if(busy)return;
+   busy=true;renderButtons();
+   try{
+    const data=await action();
+    setWishlist(data.wishlist);
+    notice('Ta liste de souhaits a été mise à jour.');
+   }catch(error){notice(error.message);if(!panel)window.alert(error.message)}
+   finally{busy=false;renderButtons();}
+  });
+  return pending;
+ }
+ document.addEventListener('click',event=>{
+  const btn=event.target.closest('[data-swapp-wishlist-game]');
+  if(btn){
+   const slug=btn.dataset.gameSlug,game=cleanName(btn.dataset.gameName);
+   if(!slugOK(slug)||game.length<2)return;
+   const exists=wishlist.some(x=>x.slug===slug);
+   void mutate(()=>call('/library/wishlist/'+encodeURIComponent(slug),
+    exists?'DELETE':'PUT',exists?undefined:{game}));return;
+  }
+  const remove=event.target.closest('[data-wishlist-remove]');
+  if(remove){
+   const slug=remove.dataset.wishlistRemove;
+   if(slugOK(slug))void mutate(()=>call('/library/wishlist/'+encodeURIComponent(slug),'DELETE'));
+   return;
+  }
+  const clear=event.target.closest('[data-swapp-wishlist-clear]');
+  if(clear&&wishlist.length&&window.confirm('Vider ta liste de souhaits SWAPP ?')){
+   void mutate(()=>call('/library/wishlist','DELETE'));
+  }
+ });
+ window.addEventListener('swapp:library-changed',()=>{void refreshRewards()});
+ window.addEventListener('pageshow',e=>{if(e.persisted){void refreshWishlist();void refreshRewards()}});
+ void refreshWishlist();
+ void refreshRewards();
+})();
