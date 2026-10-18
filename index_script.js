@@ -495,38 +495,6 @@ async function refreshEmoteShelf(login){state.channelEmotes=[]; if(!login)return
 function renderEmoteShelf(){const box=$('#customEmoteShelf'); if(!box)return; const items=state.channelEmotes||[]; box.innerHTML=items.length?`<div class="emoteShelf">${items.map(e=>`<button class="emoteBtn ${e.allowed?'':'locked'}" onclick="selectCustomEmote('${esc(e.code)}')" title=":${esc(e.code)}:"><img src="${esc(e.image_url)}" alt=""><span>:${esc(e.code)}:</span></button>`).join('')}</div>`:'<div class="small">Aucune emote de chaîne.</div>';}
 function toggleEmotes(){const box=$('#customEmoteShelf'); if(!box)return; box.classList.toggle('hidden'); renderEmoteShelf();}
 function selectCustomEmote(code){const e=(state.channelEmotes||[]).find(x=>x.code===code); if(!e)return; if(!e.allowed)return toast(e.gate==='like'?'Aime la chaîne pour utiliser cette emote.':'Suis la chaîne pour utiliser cette emote.'); state.selectedEmote=e; const input=$('#chatInput'); if(input&&!input.value.includes(':'+e.code+':'))input.value=(input.value+' :'+e.code+':').trim(); toast('Emote prête')}
-async function renderSettings(){
- let u=state.session.local;
- if(u?.login){
-  try{const pr=await api('/api/oryon/profile/'+encodeURIComponent(u.login));
-   if(pr.success&&pr.user)u=pr.user
-  }catch(_){}
- }
- const top='<header class="pageHead swapp-workspace-heading"><div><span class="swapp-workspace-overline">SWAPP / ESPACE PERSONNEL</span>'+
-  '<h1>Mon compte</h1><p>Profil, chaîne, connexions et prochains lives. Tout au même endroit.</p></div>'+
-  (u?'<div class="swapp-workspace-person"><strong>'+esc(u.display_name||u.login)+'</strong><a href="/'+encodeURIComponent(u.login)+'">Voir ma chaîne ↗</a></div>':'')+
-  '</header>';
- const quick=u?'<nav class="swapp-workspace-quick" aria-label="Accès direct">'+
-  '<button type="button" onclick="setView(\'manager\')">Diffuser sur SWAPP ↗</button>'+
-  '<button type="button" onclick="setView(\'dashboard\')">Consulter mes statistiques ↗</button>'+
-  '<a href="/mes-jeux">Mes jeux et mes envies ↗</a>'+
-  '<a href="/communaute">SOCIAL ↗</a></nav>':'';
- const twitch='<section class="swapp-account-connections" aria-label="Connexions">'+
-  '<div><span class="swapp-workspace-overline">CONNEXIONS</span><h2>Services connectés</h2><p>Associe Twitch uniquement si tu veux afficher les chaînes que tu suis.</p></div>'+
-  '<div class="swapp-account-twitch"><div><strong>Twitch</strong><span>'+
-  (state.session.twitch?'Connecté : '+esc(state.session.twitch.display_name||state.session.twitch.login):'Non connecté')+
-  '</span></div><button type="button" class="btn secondary" onclick="'+
-  (state.session.twitch?'logoutTwitch()':'connectTwitch()')+'">'+
-  (state.session.twitch?'Déconnecter':'Connecter Twitch')+'</button></div>'+
-  (u?'<div class="swapp-account-session"><span>Compte SWAPP actif</span><button type="button" class="btn secondary" onclick="logoutOryon()">Se déconnecter</button></div>':'')+'</section>';
- const foundation='<details class="swapp-workspace-technical"><summary>Diagnostic du compte et des services</summary>'+
-  '<div id="foundationStatus" role="status">Chargement…</div></details>';
- $('#settings').innerHTML='<div class="swapp-account-workspace">'+top+quick+
-  (u?'<section class="swapp-account-main" aria-label="Profil">'+profileSettings(u)+'</section>':authSettings())+
-  twitch+(u?'<section class="swapp-account-planning" id="planningSettings"></section>':'')+
-  foundation+'</div>';
- bindSettingsForms();void loadFoundation();if(u)renderPlanning();
-}
 function authSettings(){return `<div class="two"><form id="loginForm" class="panel"><h2>Connexion Swapp</h2><input id="loginName" placeholder="pseudo"><input id="loginPass" type="password" placeholder="mot de passe"><button class="btn section">Se connecter</button></form><form id="registerForm" class="panel"><h2>Créer un compte</h2><input id="regName" placeholder="pseudo"><input id="regEmail" type="email" placeholder="email"><input id="regPass" type="password" placeholder="mot de passe"><button class="btn section">Créer</button></form></div>`}
 function profileSettings(u){
  return '<form id="profileForm" class="panel swapp-profile-editor">'+
@@ -3775,15 +3743,6 @@ function renderUserMenu(){
   $('#userMenu').innerHTML=parts.join('');
 }
 
-async function renderSettings(){
-  let u=state.session.local;
-  if(u?.login){ try{ const pr=await api('/api/oryon/profile/'+encodeURIComponent(u.login)); if(pr.success&&pr.user)u=pr.user; }catch(_){} }
-  const mode=getAppMode();
-  $('#settings').innerHTML=`<div class="pageHead"><div><h1>${mode==='streamer'?'Page streamer':'Page viewer'}</h1><p>${mode==='streamer'?'Ton espace créateur et ton menu stream.':'Ton profil viewer, tes goûts, ta mémoire et tes connexions.'}</p></div><div class="modeSwitch"><button class="btn ${mode==='viewer'?'':'secondary'}" onclick="setAppMode('viewer')">Page viewer</button><button class="btn ${mode==='streamer'?'':'secondary'}" onclick="setAppMode('streamer')">Page streamer</button></div></div>
-  <div class="two section"><div class="panel">${mode==='viewer'?viewerProfileCard():(u?profileSettings(u):authSettings())}</div><div class="panel">${mode==='streamer' ? (u ? `<h2>Menu stream</h2><div class="summaryList"><div class="summaryItem"><b>Ma chaîne</b><p class="small">Page publique, lecteur et chat.</p><button class="btn" onclick="setView('channel')">Ouvrir ma chaîne</button></div><div class="summaryItem"><b>Gestionnaire de stream</b><p class="small">Préparer, lancer et configurer ton live Swapp.</p><button class="btn" onclick="setView('manager')">Ouvrir le gestionnaire</button></div><div class="summaryItem"><b>Outils créateur</b><p class="small">Studio, overlays et outils de chaîne.</p><button class="btn" onclick="setView('studio')">Ouvrir les outils</button></div></div>` : authSettings()) : `<h2>Connexions</h2><div class="summaryList"><div class="summaryItem"><b>Twitch</b><p class="small">${state.session.twitch?'Connecté : '+esc(state.session.twitch.display_name||state.session.twitch.login):'Non connecté. Connecte Twitch pour retrouver tes suivis et améliorer les recommandations.'}</p><div class="row">${state.session.twitch?`<button class="btn secondary" onclick="logoutTwitch()">Déconnecter Twitch</button>`:`<button class="btn" onclick="connectTwitch()">Connecter Twitch</button>`}</div></div><div class="summaryItem"><b>Mémoire viewer</b><p class="small">Conserve tes swipes, pépites vues et chaînes aimées même après navigation ou reconnexion.</p><button class="btn secondary" onclick="toast('La mémoire viewer est locale et persistante dans ce navigateur.')">Compris</button></div></div>`}</div></div>`;
-  bindSettingsForms?.();
-}
-
 function multiWatchKey(){ return 'oryon_multiwatch_v1:'+String(state.session?.local?.login||state.session?.twitch?.login||'guest').toLowerCase(); }
 function loadMultiWatch(){ const v=readJsonSafe(multiWatchKey(), null); return Array.isArray(v) && v.length===6 ? v : Array.from({length:6},()=>null); }
 function saveMultiWatch(v){ writeJsonSafe(multiWatchKey(), (v||[]).slice(0,6)); }
@@ -3934,11 +3893,6 @@ async function renderDiscover(){
 function authSettings(){
   return `<div class="authCenterWrap"><div class="authCenterGrid"><form id="loginForm" class="authCard"><h2>Connexion Swapp</h2><p>Connecte-toi pour retrouver ta chaîne, ton profil viewer et ton menu stream.</p><input id="loginName" placeholder="pseudo"><input id="loginPass" type="password" placeholder="mot de passe"><button class="btn">Se connecter</button></form><form id="registerForm" class="authCard"><h2>Créer un compte</h2><p>Crée ton compte Swapp dans un espace propre et centré.</p><input id="regName" placeholder="pseudo"><input id="regEmail" type="email" placeholder="email"><input id="regPass" type="password" placeholder="mot de passe"><button class="btn">Créer</button></form></div></div>`;
 }
-
-function viewerProfilePanel(){
-  return `<section class="panel viewerProfileCompact"><h2>Profil viewer</h2><p class="small">Visible aussi depuis ton profil Swapp quand tu es connecté.</p>${viewerProfileCard()}</section>`;
-}
-
 
 function swappAccountTab(tab){
  const root=document.getElementById('settings');
