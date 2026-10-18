@@ -421,7 +421,7 @@ export async function loadConversation(handle){
       api('/api/pulse/messages/'+encodeURIComponent(handle)),loadVoiceNotes(handle)
     ]);
     if(!isCurrent(revision,'messages'))return;
-    let html='<section class="pulse-view social-dm-view"><div class="pulse-view-head social-dm-head"><button type="button" class="social-dm-back" data-social-back-messages aria-label="Retour aux messages">←</button><div class="social-dm-identity"><div class="social-dm-avatar" aria-hidden="true">'+esc(initials(data.user))+'</div><div><h2>'+esc(data.user.displayName)+'</h2><p>@'+esc(data.user.handle)+'</p></div></div></div><div class="pulse-message-list">';
+    let html='<section class="pulse-view social-dm-view"><div class="pulse-view-head social-dm-head"><button type="button" class="social-dm-back" data-social-back-messages aria-label="Retour aux messages">←</button><div class="social-dm-identity"><div class="social-dm-avatar" aria-hidden="true">'+esc(initials(data.user))+'</div><div><h2>'+esc(data.user.displayName)+'</h2><p>@'+esc(data.user.handle)+'</p></div></div><button type="button" class="pulse-dm-call-button" data-call-handle="'+esc(handle)+'" aria-label="Appeler '+esc(handle)+' en audio">Appeler</button></div><div class="pulse-message-list">';
     html+=renderDMMessages(data.messages,state.user.id,notes);
     html+='</div><div class="pulse-dm-audio-controls" data-handle="'+esc(handle)+'" aria-label="Enregistrement vocal">'+
      '<button type="button" data-voice-start aria-label="Enregistrer un message vocal">Micro · Vocal</button>'+
