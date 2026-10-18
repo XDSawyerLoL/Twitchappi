@@ -43,7 +43,7 @@ test('the native client uses SWAPP routes and imports, with no cross-origin brow
  assert.match(app,/loadConversation/);
  for(const file of ['core','app','render','session','views']){
   const src=read('assets/swapp-social-native/'+file+'.js');
-  assert.doesNotMatch(src,/from\s+['"]\.\/[^'"]+\?v=/);
+  assert.doesNotMatch(src,/from\s+['"]https?:\/\//);
  }
 });
 test('only actual Quantic SOCIAL routes are reachable through the SWAPP bridge',()=>{
