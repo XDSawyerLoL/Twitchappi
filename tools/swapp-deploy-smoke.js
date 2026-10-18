@@ -181,11 +181,11 @@ async function verify(){
  const newsScript=await request(origin,'/assets/swapp-home-news.js');
  check(!newsScript.body.includes('signal:AbortSignal.timeout(')&&
    newsScript.body.includes('new AbortController()')&&
-   home.body.includes('swapp-home-news.js?v=20261018-followed-session-v27'),
+   home.body.includes('swapp-home-news.js?v=20261019-witcher-twitch-v1'),
    'Homepage editorial script is stale or incompatible with older Safari');
  const motionPath='/assets/swapp-home-motion.js?v=20261018-followed-session-v27';
  check(home.body.includes(motionPath)&&
-   home.body.indexOf(motionPath)<home.body.indexOf('swapp-home-news.js?v=20261018-followed-session-v27'),
+   home.body.indexOf(motionPath)<home.body.indexOf('swapp-home-news.js?v=20261019-witcher-twitch-v1'),
    'No cinematic hero helper before the editorial client');
  const motion=await request(origin,'/assets/swapp-home-motion.js');
  check(motion.body.includes('window.SwappHomeMotion')&&
@@ -214,7 +214,7 @@ async function verify(){
   !readerApp.body.includes('a.length>=7&&b.includes(a)'),
   'Actualité still matches sequels incorrectly or opens external lives');
  check(home.body.includes('/assets/swapp-media.css?v=20261017-channel-news-v13')&&
-  home.body.includes('/assets/swapp-actus-app.js?v=20261018-discover-flat-v26'),
+  home.body.includes('/assets/swapp-actus-app.js?v=20261019-witcher-twitch-v1'),
   'Homepage is still using the old game bridge');
  // Native creator channel: same editorial game identity, no frozen status text.
  const nativeArticles=await request(origin,'/assets/swapp-live-articles.js');
