@@ -110,6 +110,7 @@
    if(String(account.userId)!==syncAccountId)throw Error('Compte SWAPP différent : modifications refusées. Recharge la page.');
    const payload=await api(path,method,body);
    applyRemote(payload);
+   window.dispatchEvent(new Event('swapp:library-changed'));
    status('Modifications enregistrées sur ton compte SWAPP.');
   }catch(error){status(error.message+' Aucun changement n’a été appliqué.');}
   finally{syncing=false;syncUI();}
