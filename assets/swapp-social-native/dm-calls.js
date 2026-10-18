@@ -222,9 +222,19 @@ export function setupDirectCalls(){
   if(handle)void invite(handle);
  });
  // Presence is available while SOCIAL is open. No incoming system pushes off-site.
+ let activeAccount=String(state.user?.id||'');
  void connect().catch(()=>{});
- // Reduce repeated idle requests on Hostinger when SOCIAL audio is disabled.
- setInterval(()=>{if(state.user&&!socket?.connected&&!connecting&&Date.now()-connectAt>300000)
-  void connect().catch(()=>{});},300000);
+ // A local identity change needs a new signed ticket. Idle retries are rate-limited.
+ setInterval(()=>{
+  const current=String(state.user?.id||'');
+  if(current!==activeAccount){
+   activeAccount=current;
+   reset({signal:true});socket?.disconnect();socket=null;connectAt=0;
+   if(current)void connect().catch(()=>{});
+   return;
+  }
+  if(current&&!socket?.connected&&!connecting&&Date.now()-connectAt>300000)
+   void connect().catch(()=>{});
+ },30000);
  window.addEventListener('pagehide',()=>{reset({signal:true});socket?.disconnect()});
 }
