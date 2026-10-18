@@ -24,7 +24,7 @@ test('private-message threads open at the latest reply and preserve drafts on po
  const fragment=source.slice(start,end>start?end:start+2300);
  assert.ok(fragment.includes("thread.scrollTop=thread.scrollHeight"),'newest messages are visible');
  assert.ok(source.includes("const list=document.querySelector('.social-dm-view .pulse-message-list')"));
- assert.ok(source.includes('list.innerHTML=renderDMMessages(messages,userId)'));
+ assert.ok(source.includes('list.innerHTML=renderDMMessages(messages,userId,lastNotes)'));
  assert.ok(!source.includes("document.querySelector('.social-dm-view').innerHTML="),'polling must not replace the composer');
 });
 
