@@ -891,12 +891,18 @@ const {createSocialNativeProxy}=require('./modules/swapp-social-native-proxy');
 // Read navigation, search and inbox refreshes are not login attempts.
 // Previous shared 60/10-minute limiter blocked ordinary SOCIAL use.
 const pulseReadLimiter=rateLimit({windowMs:60*1000,max:120,standardHeaders:true,legacyHeaders:false});
+const {createAudioPrivacy}=require('./modules/swapp-social-audio-privacy');
+const socialAudioPrivacy=createAudioPrivacy({
+  getPool:()=>process.env.SWAPP_SOCIAL_FEATURES==='1'&&socialInteractionsState!=='unavailable'?socialInteractionsPool:null,
+  lookupLocalUser:getOryonUserByLogin
+});
 app.use('/api/pulse',(req,res,next)=>req.method==='GET'?pulseReadLimiter(req,res,next):authLimiter(req,res,next),
  createSocialNativeProxy(fetchWithTimeout,{production:IS_PROD,
   restoreLocalSession:restoreOryonSessionFromRememberCookie,
   ssoSecret:String(process.env.SWAPP_SOCIAL_SSO_SECRET||process.env.SWAPP_ACCOUNT_RECOVERY_SECRET||configuredSessionSecret||''),
   lookupLocalUser:getOryonUserByLogin,
-  listLocalUsers:()=>readOryonUsers().users
+  listLocalUsers:()=>readOryonUsers().users,
+  recordAudioBlock:(actor,target)=>socialAudioPrivacy.block(actor,target)
 }));
 // Experimental SOCIAL interactions stay disabled until durable storage is configured.
 // Dedicated health metadata avoids confusing "Cannot GET" for a disabled feature.
@@ -1017,7 +1023,8 @@ app.use('/api/swapp/direct-audio',(req,res,next)=>req.method==='GET'?pulseReadLi
   createDirectAudioRouter({express,
     restoreSession:restoreOryonSessionFromRememberCookie,
     getPool:()=>process.env.SWAPP_SOCIAL_FEATURES==='1'&&socialInteractionsState!=='unavailable'?socialInteractionsPool:null,
-    lookupLocalUser:getOryonUserByLogin
+    lookupLocalUser:getOryonUserByLogin,
+    isAllowedPair:socialAudioPrivacy.allowed
   }));
 // Social client changes must propagate rapidly; its ES imports do not carry cache query tags.
 app.use('/assets/swapp-social-native', express.static(path.join(__dirname, 'assets/swapp-social-native'), {...staticOptions,maxAge:0,setHeaders(res,file){staticOptions.setHeaders(res,file);res.setHeader('Cache-Control','no-store')}}));
@@ -7764,7 +7771,8 @@ require('./modules/swapp-social-voice').installSocialVoice({
   getPool: () => process.env.SWAPP_SOCIAL_FEATURES === '1' ? socialInteractionsPool : null,
   secret: oauthSigningSecret,
   iceServers: getWebRtcIceServers,
-  lookupLocalUser: getOryonUserByLogin
+  lookupLocalUser: getOryonUserByLogin,
+  isAllowedPair: socialAudioPrivacy.allowed
 });
 
 
