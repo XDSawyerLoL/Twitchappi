@@ -103,6 +103,7 @@
 .swapp-creator-workspace .summaryItem:last-child{border-bottom:0!important}
 .swapp-creator-workspace .summaryItem p{color:var(--swapp-workspace-muted);line-height:1.55}
 #dashboard .swapp-dash-overview{margin:26px 0 28px}
+#dashboard .swapp-dash-overview .stats{grid-template-columns:repeat(3,minmax(0,1fr))}
 #dashboard .swapp-dash-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--swapp-workspace-line);border:1px solid var(--swapp-workspace-line)}
 #dashboard .swapp-dash-columns>.panel{border:0!important;margin:0!important;min-height:180px}
 #dashboard .swapp-dash-columns>.swapp-dash-wide{grid-column:1/-1}
@@ -146,6 +147,7 @@
  .swapp-creator-workspace .creatorSide button.active{border-left:0!important;border-bottom-color:var(--swapp-workspace-accent)!important}
  .swapp-creator-workspace .swapp-workspace-exit{margin:12px 0}
  #dashboard .swapp-dash-columns{grid-template-columns:1fr}
+ #dashboard .swapp-dash-overview .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
  #dashboard .swapp-dash-columns>.swapp-dash-wide{grid-column:1}
  .swapp-creator-workspace .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
  #manager .streamModeGrid{grid-template-columns:1fr}
