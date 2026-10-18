@@ -21,6 +21,10 @@
 #swappSocialNative .pulse-topbar{background:#101b2b!important;border-bottom:1px solid var(--s3-border)!important}
 #swappSocialNative .pulse-topbar h1{font-weight:840!important;letter-spacing:-.045em}
 #swappSocialNative .pulse-nav{gap:2px}
+#swappSocialNative .swapp-social-header-tools{display:none}
+#swappSocialNative .pulse-community-shortcuts{display:flex;flex-wrap:wrap;gap:8px;padding:17px 22px;border-bottom:1px solid var(--s3-border)}
+#swappSocialNative .pulse-community-shortcuts button{border:1px solid var(--s3-border);background:#152338;color:#ebf3ff;padding:10px 16px;border-radius:9px;font:750 13px system-ui;cursor:pointer}
+#swappSocialNative .pulse-community-shortcuts button:hover{border-color:var(--s3-accent)}
 #swappSocialNative .pulse-nav-item{border-radius:9px!important;font-size:13px!important;padding:12px 13px!important;min-height:44px}
 #swappSocialNative .pulse-nav-item.active{background:color-mix(in srgb,var(--s3-accent) 12%,#121e30)!important;box-shadow:inset 3px 0 0 var(--s3-accent)!important}
 #swappSocialNative .pulse-nav-item .pi{height:20px;width:20px}
@@ -128,12 +132,25 @@
 #swappSocialNative[data-social-view="messages"] .pulse-view-head{padding:27px 26px 21px!important;border-bottom:1px solid var(--s3-border)!important;background:#152237!important}
 #swappSocialNative[data-social-view="messages"] .pulse-view-head h2{font-size:25px!important;font-weight:840!important;letter-spacing:-.04em}
 #swappSocialNative[data-social-view="messages"] .pulse-view-head p{font-size:12px!important;color:var(--s3-muted)!important}
+/* Conversation list is the inbox; the composer opens only on request. */
+#swappSocialNative[data-social-view="messages"] .pulse-inbox-head{display:flex!important;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
 #swappSocialNative[data-social-view="messages"] .pulse-card-list{margin:0!important;display:block!important}
-#swappSocialNative[data-social-view="messages"] .pulse-user-card{display:flex!important;align-items:center;gap:14px!important;background:transparent!important;border:0!important;border-bottom:1px solid var(--s3-border)!important;border-radius:0!important;min-height:79px!important;padding:15px 25px!important;text-align:left}
+#swappSocialNative[data-social-view="messages"] .pulse-user-card{display:grid!important;grid-template-columns:44px minmax(0,1fr) auto;align-items:center;gap:14px!important;width:100%;background:transparent!important;border:0!important;border-bottom:1px solid var(--s3-border)!important;border-radius:0!important;min-height:78px!important;padding:15px 25px!important;text-align:left}
 #swappSocialNative[data-social-view="messages"] .pulse-user-card:hover{background:var(--s3-hover)!important}
+#swappSocialNative[data-social-view="messages"] .pulse-conversation-preview{min-width:0;display:grid;gap:4px}
 #swappSocialNative[data-social-view="messages"] .pulse-user-card strong{font-size:14px}
-#swappSocialNative[data-social-view="messages"] .pulse-user-card small{font-size:12px;color:var(--s3-muted);display:block}
-#swappSocialNative[data-social-view="messages"] .pulse-inline-form{display:grid!important;grid-template-columns: minmax(140px,1fr) minmax(180px,1.6fr) auto;align-items:center;gap:8px!important;padding:20px 24px!important;border-bottom:1px solid var(--s3-border)!important;background:#111d30!important}
+#swappSocialNative[data-social-view="messages"] .pulse-user-card small{font-size:12px;color:var(--s3-muted);display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+#swappSocialNative[data-social-view="messages"] .pulse-conversation-meta{display:grid;gap:7px;justify-items:end;color:var(--s3-muted);font-size:11px;white-space:nowrap}
+#swappSocialNative[data-social-view="messages"] .pulse-unread-count{background:var(--s3-accent);color:#061823;font-size:11px;min-width:22px;min-height:22px;padding:2px 6px;display:grid;place-items:center;border-radius:999px}
+#swappSocialNative[data-social-view="messages"] .pulse-inbox-empty{display:block!important;min-height:0!important;padding:30px 25px!important}
+#swappSocialNative[data-social-view="messages"] .pulse-inbox-empty p{color:var(--s3-muted)}
+#swappSocialNative[data-social-view="messages"] .pulse-new-message-form{display:grid!important;grid-template-columns:minmax(0,1fr)!important;align-items:stretch;gap:10px!important;padding:22px 24px!important;border-bottom:1px solid var(--s3-border)!important;background:#111d30!important}
+#swappSocialNative[data-social-view="messages"] .pulse-new-message-form[hidden]{display:none!important}
+#swappSocialNative[data-social-view="messages"] .pulse-new-message-form label{color:#c4d5ec;font-size:12px;font-weight:750}
+#swappSocialNative[data-social-view="messages"] .pulse-new-message-form .pulse-mini-button{justify-self:start}
+#swappSocialNative[data-social-view="messages"] .pulse-dm-user-results{display:grid;gap:3px}
+#swappSocialNative[data-social-view="messages"] .pulse-dm-member{background:#19273b;border:1px solid var(--s3-border);border-radius:8px;padding:10px 12px;color:#eef5ff;text-align:left;cursor:pointer}
+#swappSocialNative[data-social-view="messages"] .pulse-dm-member:hover,#swappSocialNative[data-social-view="messages"] .pulse-dm-member:focus-visible{border-color:var(--s3-accent);background:#263b52}
 #swappSocialNative[data-social-view="messages"] .pulse-inline-form input,
 #swappSocialNative[data-social-view="messages"] .pulse-message-form input{background:#091422!important;border:1px solid #374660!important;border-radius:8px!important;color:#f7faff!important;min-height:43px!important;padding:9px 12px!important;min-width:0}
 #swappSocialNative[data-social-view="messages"] .pulse-message-list{min-height:280px;max-height:min(57vh,640px);overflow:auto;padding:26px!important;display:flex!important;flex-direction:column;gap:11px;background:#0e1827!important}
@@ -147,7 +164,7 @@
 #swappSocialNative .swapp-interactive :is(.ssi-empty,.ssn-room,.ssi-item,.ssn-player){border-radius:0!important}
 #swappSocialNative .swapp-interactive :is(.ssn-head,.ssi-panel-head) .ssi-icon{display:none!important}
 #swappSocialNative .swapp-interactive .ssi-ghost{border:1px solid #485670!important}
-/* Full responsiveness: 7 tappable destinations, no iPhone clipping. */
+/* Five primary destinations; search and publishing are in the header. */
 @media(max-width:1100px){
  #swappSocialNative[data-social-view="play"] .swapp-interactive .ssn-space,
  #swappSocialNative[data-social-view="play"] .swapp-interactive .ssi-sections{grid-template-columns:1fr!important}
@@ -157,9 +174,16 @@
  #swappSocialNative[data-social-view="rooms"] .swapp-interactive .ssi-sections{grid-template-columns: minmax(180px,.44fr) minmax(0,1fr)}
 }
 @media (max-width:920px) and (orientation:portrait), (max-width:650px){
- #swappSocialNative .pulse-mobile-nav{display:grid!important;grid-template-columns:repeat(7,minmax(0,1fr))!important;width:100%!important}
+ #swappSocialNative .pulse-mobile-nav{display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;width:100%!important}
  #swappSocialNative .pulse-mobile-nav button{min-width:0!important;width:100%!important;padding:5px!important;display:grid!important;place-items:center!important;border-radius:0!important}
  #swappSocialNative .pulse-mobile-nav .pi{width:19px!important;height:19px!important}
+ #swappSocialNative .swapp-social-header-tools{display:flex;align-items:center;gap:8px;margin-left:auto}
+ #swappSocialNative .swapp-social-header-tools button{display:grid;place-items:center;width:40px;height:40px;border:1px solid var(--s3-border);border-radius:50%;background:#19283c;color:#f2f7ff;cursor:pointer}
+ #swappSocialNative .swapp-social-header-tools button:focus-visible{outline:2px solid var(--s3-accent);outline-offset:2px}
+ #swappSocialNative .swapp-social-header-tools #mobile-compose{background:var(--s3-accent);color:#071923;border-color:var(--s3-accent)}
+ #swappSocialNative .swapp-social-header-tools .pi{width:19px;height:19px}
+ #swappSocialNative .pulse-topbar{gap:10px}
+ #swappSocialNative .swapp-social-topline-tag{display:none}
 }
 @media(max-width:650px){
  #swappSocialNative .pulse-topbar{padding:11px 15px!important}
