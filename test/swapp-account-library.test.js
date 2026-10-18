@@ -17,6 +17,18 @@ function harness(){
   if(sql.startsWith('SELECT game_slug,game_name,followed_at,seen_at')){
    return [[...rows(args[0]).values()].map(x=>({...x})).sort((a,b)=>a.followed_at-b.followed_at),[]];
   }
+  if(sql.startsWith('INSERT IGNORE INTO swapp_social_reward_accounts')){
+   return [{affectedRows:1},[]];
+  }
+  if(sql.startsWith('SELECT points,discovery_count FROM swapp_social_reward_accounts')){
+   return [[{points:0,discovery_count:0}],[]];
+  }
+  if(sql.startsWith('INSERT IGNORE INTO swapp_social_reward_ledger')){
+   return [{affectedRows:1},[]];
+  }
+  if(sql.startsWith('UPDATE swapp_social_reward_accounts')){
+   return [{affectedRows:1},[]];
+  }
   if(sql.startsWith('SELECT game_slug FROM swapp_social_game_follows')){
    return [[...rows(args[0]).keys()].map(game_slug=>({game_slug})),[]];
   }
