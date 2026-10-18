@@ -547,9 +547,69 @@ async function loadFoundation(){const r=await api('/api/oryon/foundation/status'
 function bindSettingsForms(){const lf=$('#loginForm'); if(lf)lf.onsubmit=async e=>{e.preventDefault(); const r=await api('/api/oryon/login',{method:'POST',body:JSON.stringify({login:$('#loginName').value,password:$('#loginPass').value})}); toast(r.success?'Connecté':r.error); if(r.success){if(state.socket){state.socket.disconnect();state.socket=null;state.socketLogin=null} await loadSession();setView('home')}}; const rf=$('#registerForm'); if(rf)rf.onsubmit=async e=>{e.preventDefault(); const r=await api('/api/oryon/register',{method:'POST',body:JSON.stringify({login:$('#regName').value,email:$('#regEmail').value,password:$('#regPass').value})}); toast(r.success?'Compte créé':r.error); if(r.success){if(state.socket){state.socket.disconnect();state.socket=null;state.socketLogin=null} await loadSession();state.watchRoom=null;setView('channel')}}; const pf=$('#profileForm'); if(pf){fileToData($('#avatarFile'),$('#profileAvatar')); fileToData($('#bannerFile'),$('#profileBanner')); fileToData($('#offlineFile'),$('#profileOffline')); pf.onsubmit=async e=>{e.preventDefault(); const prev=await api('/api/oryon/profile/'+encodeURIComponent(state.session.local?.login||'')); const cur=prev.user||{}; const r=await api('/api/oryon/profile',{method:'POST',body:JSON.stringify({display_name:$('#profileDisplay').value,bio:$('#profileBio').value,avatar_url:$('#profileAvatar').value,banner_url:$('#profileBanner').value,offline_image_url:$('#profileOffline').value,tags:$('#profileTags').value,channel_badges:cur.channel_badges||[],peertube_watch_url:'',peertube_embed_url:'',oryon_local_player_url:cur.oryon_local_player_url||state.channelProfile?.oryon_local_player_url||'',oryon_local_status_url:cur.oryon_local_status_url||state.channelProfile?.oryon_local_status_url||''})}); toast(r.success?'Profil sauvegardé':r.error); await loadSession(); renderSettings()}}}
 function fileToData(input,target){if(!input)return; input.onchange=()=>{const f=input.files[0]; if(!f)return; compressImage(f).then(data=>{target.value=data; toast('Image prête. Clique sur Sauvegarder.')}).catch(()=>toast('Image non lisible.'))}}
 function compressImage(file){return new Promise((resolve,reject)=>{const img=new Image(); const rd=new FileReader(); rd.onload=()=>{img.onload=()=>{const max=1000; let w=img.width,h=img.height; const ratio=Math.min(1,max/Math.max(w,h)); w=Math.round(w*ratio); h=Math.round(h*ratio); const c=document.createElement('canvas'); c.width=w; c.height=h; const ctx=c.getContext('2d'); ctx.drawImage(img,0,0,w,h); resolve(c.toDataURL('image/jpeg',0.65));}; img.onerror=reject; img.src=rd.result}; rd.onerror=reject; rd.readAsDataURL(file)})}
-function renderPlanning(){const box=$('#planningSettings'); box.innerHTML=`<div class="panel funPlanner"><div class="pageHead"><div><h2>Planning</h2><p>Planifie vite tes prochains lives avec des cartes lisibles sur ta chaîne.</p></div><button class="btn secondary" type="button" onclick="quickPlanTonight()">Ce soir 21h</button></div><form id="planningForm" class="plannerForm"><input id="planTitle" placeholder="Titre du live"><input id="planCategory" placeholder="Catégorie"><input id="planTags" placeholder="Tags"><input id="planWhen" type="datetime-local"><button class="btn">Ajouter</button></form><div id="planningList" class="planningTimeline section"></div></div>`; $('#planningForm').onsubmit=async e=>{e.preventDefault();const r=await api('/api/oryon/planning',{method:'POST',body:JSON.stringify({title:$('#planTitle').value,category:$('#planCategory').value,tags:$('#planTags').value,when:$('#planWhen').value})});toast(r.success?'Live planifié':r.error);loadPlanning()}; loadPlanning()}
-function quickPlanTonight(){const d=new Date();d.setHours(21,0,0,0); if(d<Date.now())d.setDate(d.getDate()+1); $('#planWhen').value=d.toISOString().slice(0,16); if(!$('#planTitle').value)$('#planTitle').value='Live du soir';}
-async function loadPlanning(){const r=await api('/api/oryon/planning?login='+(state.session.local?.login||'')); $('#planningList').innerHTML=(r.items||[]).map(x=>`<div class="card"><b>${esc(x.title)}</b><p>${new Date(x.when).toLocaleString('fr-FR')}</p><span class="pill">${esc(x.category)}</span></div>`).join('')||'<div class="empty">Aucun live planifié.</div>'}
+function renderPlanning(){
+ const box=document.getElementById('planningSettings');
+ if(!box)return;
+ box.innerHTML='<header class="swapp-acct-section-head"><div><span class="swapp-acct-kicker">CALENDRIER</span>'+
+  '<h2>Prochains directs</h2><p>Ajoute une date, un titre et le jeu que tu prévois de diffuser.</p></div>'+
+  '<button class="btn secondary" type="button" onclick="quickPlanTonight()">Ce soir à 21 h</button></header>'+
+  '<form id="planningForm" class="swapp-acct-planner">'+
+  '<label class="swapp-acct-plan-title" for="planTitle"><span>Titre du direct</span><input id="planTitle" name="title" maxlength="140" required placeholder="Ex. Session découverte"></label>'+
+  '<label class="swapp-acct-plan-game" for="planCategory"><span>Jeu / catégorie</span><input id="planCategory" name="category" maxlength="85" placeholder="Ex. Minecraft"></label>'+
+  '<label class="swapp-acct-plan-tags" for="planTags"><span>Tags</span><input id="planTags" name="tags" maxlength="160" placeholder="FR, chill"></label>'+
+  '<label class="swapp-acct-plan-when" for="planWhen"><span>Date et heure</span><input id="planWhen" name="when" type="datetime-local" required></label>'+
+  '<button class="btn swapp-acct-plan-submit" type="submit">Ajouter au planning</button></form>'+
+  '<div id="planningList" class="swapp-acct-planning-list" aria-live="polite">Chargement du planning…</div>';
+ const form=document.getElementById('planningForm');
+ form.onsubmit=async event=>{
+  event.preventDefault();
+  if(!form.reportValidity())return;
+  const title=document.getElementById('planTitle').value.trim();
+  const category=document.getElementById('planCategory').value.trim();
+  const tags=document.getElementById('planTags').value.trim();
+  const when=document.getElementById('planWhen').value;
+  if(!title||!when)return;
+  const button=form.querySelector('[type="submit"]');
+  button.disabled=true;
+  try{
+   const response=await api('/api/oryon/planning',{method:'POST',body:JSON.stringify({title,category,tags,when})});
+   if(!response?.success)throw Error(response?.error||'Enregistrement indisponible');
+   toast('Live ajouté au planning');
+   form.reset();
+   await loadPlanning();
+  }catch(error){toast(error.message||'Impossible de planifier ce live')}
+  finally{button.disabled=false}
+ };
+ void loadPlanning();
+}
+function quickPlanTonight(){
+ const input=document.getElementById('planWhen');
+ if(!input)return;
+ const d=new Date();
+ d.setHours(21,0,0,0);
+ if(d.getTime()<=Date.now())d.setDate(d.getDate()+1);
+ const two=n=>String(n).padStart(2,'0');
+ input.value=d.getFullYear()+'-'+two(d.getMonth()+1)+'-'+two(d.getDate())+'T'+two(d.getHours())+':'+two(d.getMinutes());
+ if(!document.getElementById('planTitle').value)document.getElementById('planTitle').value='Live du soir';
+ input.focus();
+}
+async function loadPlanning(){
+ const target=document.getElementById('planningList');
+ if(!target)return;
+ try{
+  const result=await api('/api/oryon/planning?login='+encodeURIComponent(state.session.local?.login||''));
+  if(!result?.success)throw Error('not_available');
+  const items=Array.isArray(result.items)?result.items.slice(0,25):[];
+  target.innerHTML=items.map(x=>{
+   const stamp=new Date(x.when),date=Number.isFinite(stamp.getTime())?
+    stamp.toLocaleString('fr-FR',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}):'Date à confirmer';
+   return '<div class="swapp-acct-planning-row"><time>'+esc(date)+'</time><b>'+esc(x.title||'Sans titre')+
+    '</b><span>'+esc(x.category||'Catégorie non renseignée')+'</span></div>';
+  }).join('')||'<p class="swapp-acct-empty">Aucun direct planifié. Le formulaire ci-dessus est prêt.</p>';
+ }catch(_){
+  target.innerHTML='<p class="swapp-acct-empty">Planning temporairement indisponible. Tes directs existants ne sont pas effacés.</p>';
+ }
+}
 async function logoutOryon(){await api('/api/oryon/logout',{method:'POST'}); state.session.local=null; if(state.socket){state.socket.disconnect();state.socket=null;state.socketLogin=null} await loadSession(); setView('home'); toast('Déconnecté')}
 async function renderAdmin(){if(!isAdmin())return setView('home'); $('#admin').innerHTML=`<div class="pageHead"><div><h1>Admin</h1><p>Réservé aux comptes configurés dans ORYON_ADMIN_LOGINS.</p></div></div><div id="adminBox" class="panel">Chargement…</div>`; const r=await api('/api/oryon/admin/summary'); $('#adminBox').innerHTML=r.success?`<div class="stats">${Object.entries(r.stats).map(([k,v])=>`<div class="stat"><span class="small">${k}</span><b>${v}</b></div>`).join('')}</div><h2 class="section">Signalements</h2>${(r.reports||[]).map(x=>`<p>${esc(x.user)} → ${esc(x.target||x.room)} : ${esc(x.reason)}</p>`).join('')||'<p class="muted">Aucun signalement.</p>'}`:esc(r.error)}
 function attachCurrentStream(){const v=$('#localVideo'); if(v&&state.stream){v.srcObject=state.stream; v.muted=true; v.playsInline=true; v.autoplay=true; v.classList.remove('hidden'); v.style.display='block'; v.play?.().catch(()=>{}); const e=$('#managerPreviewEmpty'); if(e){e.classList.add('hidden'); e.style.display='none';} const off=$('#offlinePanel'); if(off) off.style.display='none';} else {const e=$('#managerPreviewEmpty'); if(e){e.classList.remove('hidden'); e.style.display='grid';}}}
