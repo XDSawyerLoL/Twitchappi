@@ -66,7 +66,9 @@ function harness(){
    r[method]=(path,...middleware)=>routes.push({method:method.toUpperCase(),path,middleware});
   return r;
  }};
- createSocialNextRouter({express,pool,restoreSession:async()=>user,clock:()=>1792350000000});
+ createSocialNextRouter({express,pool,restoreSession:async()=>user,
+  resolveIndexedGame:async slug=>slug==='fictional-game'?null:{slug,game:slug},
+  clock:()=>1792350000000});
  async function request(method,path,{body={},params={},origin='https://swapp.tv'}={}){
   const matched=routes.find(x=>x.method===method&&x.path===path);
   assert.ok(matched,'route exists '+method+' '+path);
@@ -131,6 +133,14 @@ test('10 games max are rewarded; buying and wishlisting never grant points',asyn
  assert.equal(stats.level,'Explorateur confirmé');
  assert.equal(stats.pointsToNext,0);
  assert.equal(h.ledgers.get('alice').size,10);
+});
+test('arbitrary API titles cannot earn points without an actual published game hub',async()=>{
+ const h=harness();
+ const action=await follow(h,'fictional-game');
+ assert.equal(action.code,200,'user can still follow a title when editorial verification is absent');
+ const stats=(await h.request('GET','/rewards/me')).payload.rewards;
+ assert.equal(stats.points,0);
+ assert.equal(stats.discovered,0);
 });
 test('deleting wishes or following invalid games cannot generate rewards',async()=>{
  const h=harness();
