@@ -655,3 +655,71 @@
   transition:none!important;
  }
 }
+
+
+/* SWAPP V26 HOME EDITORIAL FIRST — actual content rows, not stacked dashboards. */
+#home .swappHome1014 > .swapp-home-editorial{order:0!important}
+#home .swappHome1014 > .homeLiveSection1014{order:1!important}
+#home .homeLiveGrid1014{
+ display:grid!important;grid-template-columns:none!important;
+ grid-template-rows:minmax(0,1fr)!important;grid-auto-flow:column!important;
+ grid-auto-columns:minmax(250px,calc((100% - 48px)/4))!important;
+ align-items:stretch!important;gap:16px!important;
+ overflow-x:auto!important;overflow-y:hidden!important;
+ scroll-snap-type:x proximity;overscroll-behavior-x:contain;
+ padding:4px 2px 14px!important;scrollbar-width:thin;
+}
+#home .homeLiveGrid1014 > .homeLiveCard1014{
+ width:100%!important;max-width:none!important;
+ grid-column:auto!important;grid-row:auto!important;
+ scroll-snap-align:start;
+}
+#home .homeFollowedSection1014{
+ border-top:1px solid rgba(179,204,226,.22);
+ margin-top:32px;padding-top:22px;
+}
+#home .homeFollowedHead1014{
+ display:flex;align-items:center;flex-wrap:wrap;
+ gap:12px;justify-content:space-between;margin-bottom:14px;
+}
+#home .homeFollowedHead1014 h3{
+ font-size:clamp(21px,2.2vw,30px);line-height:1.16;margin:0;
+}
+#home .homeFollowedRail1014{
+ display:flex;gap:12px;align-items:stretch;
+ overflow-x:auto;overscroll-behavior-x:contain;
+ scroll-snap-type:x proximity;scrollbar-width:thin;
+ padding:2px 1px 12px;color:#bdcde0;font-size:14px;
+}
+#home .homeFollowCard1014{
+ flex:0 0 clamp(210px,21vw,275px);
+ display:grid;gap:8px;min-width:0;align-content:start;
+ text-decoration:none;color:#f7f9fc;scroll-snap-align:start;
+}
+#home .homeFollowArtwork1014{
+ display:block;aspect-ratio:16/9;overflow:hidden;
+ border:1px solid rgba(188,212,235,.2);
+ background:#112035;border-radius:7px;
+}
+#home .homeFollowArtwork1014 img{
+ display:block;width:100%;height:100%;object-fit:cover;
+}
+#home .homeFollowMeta1014{display:grid;gap:2px;min-width:0}
+#home .homeFollowMeta1014 :is(strong,small){
+ display:block;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
+}
+#home .homeFollowMeta1014 small{color:#a5b6cb;font-size:12px}
+#home .homeFollowCard1014:focus-visible{
+ outline:2px solid #8ae6df;outline-offset:3px;
+}
+#home .swapp-home-feature-face:not(:has(img)){
+ width:max-content!important;min-width:48px!important;
+ max-width:180px!important;padding:0 12px!important;
+}
+@media(max-width:1050px){
+ #home .homeLiveGrid1014{grid-auto-columns:minmax(240px,calc((100% - 16px)/2))!important}
+}
+@media(max-width:650px){
+ #home .homeLiveGrid1014{grid-auto-columns:minmax(240px,82vw)!important}
+ #home .homeFollowCard1014{flex-basis:min(75vw,270px)}
+}
