@@ -13,7 +13,10 @@ export function setupDirectCalls(){
  if(!host)return;
  const tray=document.createElement('div');
  tray.className='pulse-call-panel';tray.hidden=true;tray.setAttribute('role','status');
- tray.innerHTML='<strong data-call-title>Appel vocal</strong><p data-call-status aria-live="polite"></p>'+
+ tray.innerHTML='<div class="pulse-call-head"><span class="pulse-call-symbol" aria-hidden="true">◉</span>'+
+  '<div><span class="pulse-call-kicker">SWAPP / SOCIAL</span><strong data-call-title>Appel vocal</strong></div></div>'+
+  '<div class="pulse-call-person"><span class="pulse-call-avatar" data-call-avatar>?</span><strong data-call-name>Un membre</strong></div>'+
+  '<p data-call-status aria-live="polite"></p>'+
   '<div class="pulse-call-actions"><button type="button" data-call-accept hidden>Accepter</button>'+
   '<button type="button" data-call-decline hidden>Refuser</button>'+
   '<button type="button" data-call-mute hidden>Couper le micro</button>'+
@@ -27,13 +30,17 @@ export function setupDirectCalls(){
  let pending=[],connectAt=0;
  function show(text,title='Appel vocal'){
   tray.hidden=false;
+  tray.dataset.callPhase=call?.phase||'connecting';
+  const name=String(call?.handle||'Membre').slice(0,40);
+  $('[data-call-name]').textContent=name==='Membre'?name:'@'+name.replace(/^@/,'');
+  $('[data-call-avatar]').textContent=name.slice(0,1).toUpperCase()||'?';
   $('[data-call-title]').textContent=title;
   $('[data-call-status]').textContent=text;
   const incoming=call?.phase==='ringing-in';
   $('[data-call-accept]').hidden=!incoming;
   $('[data-call-decline]').hidden=!incoming;
   $('[data-call-mute]').hidden=call?.phase!=='active';
-  $('[data-call-listen]').hidden=true;
+  if(!speaker.srcObject)$('[data-call-listen]').hidden=true;
   $('[data-call-end]').hidden=(!call||incoming);
   $('[data-call-mute]').textContent=muted?'Réactiver le micro':'Couper le micro';
  }
@@ -43,6 +50,7 @@ export function setupDirectCalls(){
   if(peer){peer.ontrack=null;peer.onicecandidate=null;peer.close();peer=null}
   if(mic){mic.getTracks().forEach(track=>track.stop());mic=null}
   speaker.srcObject=null;ice=[];pending=[];muted=false;
+  $('[data-call-listen]').hidden=true;
   tray.hidden=true;
  }
  function provideIce(){
