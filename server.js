@@ -4402,8 +4402,18 @@ async function swappAddLiveAvatars(items,accessToken){
 
 app.get('/api/twitch/followed/live', heavyLimiter, async (req, res) => {
   try{
-    const tu = req.session?.twitchUser;
-    if(!tu || (tu.expiry && tu.expiry <= Date.now())) return res.status(401).json({ success:false, error:'Twitch non connecté.', items:[] });
+    // Restore an authenticated SWAPP account before looking for its saved
+    // Twitch link. A cold F5 must not be mistaken for a disconnected user.
+    await restoreOryonSessionFromRememberCookie(req,res,{allowUserRecovery:false});
+    if(!req.session?.twitchUser && req.session?.oryonUser?.id){
+      const users=readOryonUsers().users||[];
+      const owner=users.find(u=>u.id===req.session.oryonUser.id);
+      const linked=owner?.twitch_link;
+      if(linked?.id && (linked.access_token||linked.refresh_token))
+        req.session.twitchUser={...linked};
+    }
+    const tu=await refreshTwitchUserSession(req);
+    if(!tu) return res.status(401).json({ success:false, error:'Twitch non connecté.', items:[] });
     const data = await twitchAPI(`streams/followed?user_id=${encodeURIComponent(tu.id)}&first=100`, tu.access_token);
     const items = (data.data || []).map(s => ({
       id:s.id, user_id:s.user_id, login:s.user_login, display_name:s.user_name,
