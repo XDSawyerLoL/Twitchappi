@@ -26,7 +26,7 @@ test('article headlines repair legacy Witcher game metadata, but do not reclassi
  assert.equal(editorialGame({title:'The Witcher 3 Remastered',game:'Cyberpunk 2077'}),'Cyberpunk 2077');
  assert.equal(editorialGame({title:'The Witcher 3 : notre avis',game:'The Witcher 3'}),'The Witcher 3');
  assert.deepEqual(metadata.detectGames('The Witcher 3 Remastered reçoit une mise à jour',1),['The Witcher 3: Wild Hunt Remastered']);
- assert.equal(metadata.recommend(legacy).primaryGame,'The Witcher 3');
+ assert.equal(metadata.recommend(legacy).primaryGame,'The Witcher 3: Wild Hunt Remastered');
 });
 test('actual streams on the Remastered category match existing published news without inventing a live',()=>{
  const published={slug:'witcher-3-remastered-analyse',title:'The Witcher 3 Remastered : nouvelle version',game:'The Witcher 3'};
