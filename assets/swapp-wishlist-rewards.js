@@ -59,9 +59,12 @@
    if(!slugOK(item.slug))continue;
    const row=document.createElement('article');row.className='mg-wish-row';
    const body=document.createElement('div');
-   const a=document.createElement('a');a.href='/jeux/'+item.slug;a.textContent=cleanName(item.game);
+   const hasPublishedHub=$('[data-swapp-game-card]').some(card=>card.dataset.gameSlug===item.slug);
+   const a=document.createElement('a');
+   a.href=hasPublishedHub?'/jeux/'+item.slug:'/boutique';
+   a.textContent=cleanName(item.game);
    const small=document.createElement('small');
-   small.textContent='Suivi d’envie · Aucune offre annoncée';
+   small.textContent=hasPublishedHub?'Actualités et lives · Dossier publié':'Envie conservée · Disponibilité commerciale à vérifier';
    body.append(a,small);
    const remove=document.createElement('button');
    remove.type='button';remove.textContent='Retirer';remove.dataset.wishlistRemove=item.slug;
@@ -69,14 +72,20 @@
    row.append(body,remove);list.append(row);
   }
  }
+ function notifyDigest(){
+  if(typeof CustomEvent!=='function'||typeof window.dispatchEvent!=='function')return;
+  window.dispatchEvent(new CustomEvent('swapp:wishlist-changed',{
+   detail:{slugs:wishlist.map(item=>item.slug)}
+  }));
+ }
  function setWishlist(rows){
   wishlist=Array.isArray(rows)?rows.filter(x=>slugOK(x.slug)).slice(0,50):[];
-  loggedIn=true;renderWishlist();renderButtons();
+  loggedIn=true;renderWishlist();renderButtons();notifyDigest();
  }
  async function refreshWishlist(){
   try{const data=await call('/library/wishlist');setWishlist(data.wishlist)}
   catch(error){
-   if(error.status===401){loggedIn=false;wishlist=[];renderWishlist();renderButtons()}
+   if(error.status===401){loggedIn=false;wishlist=[];renderWishlist();renderButtons();notifyDigest()}
    if(panel)notice(error.message);
   }
  }
