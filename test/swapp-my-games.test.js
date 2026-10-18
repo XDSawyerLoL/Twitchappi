@@ -21,6 +21,8 @@ test('Mes jeux only offers real indexed games and published stories',()=>{
  const groups=gameHubs(articles);
  const html=renderMyGames(groups);
  assert.match(html,/data-swapp-library-root/);
+ assert.match(html,/data-my-games-enable-sync/);
+ assert.match(html,/data-my-games-export/);
  assert.match(html,/data-my-games-followed/);
  assert.match(html,/data-my-games-available/);
  assert.match(html,/data-my-games-news/);
