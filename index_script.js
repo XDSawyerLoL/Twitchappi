@@ -10893,40 +10893,31 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
     return out;
   }
 
-  // Single-line followed Twitch gallery, separate from recommendations.
+  // One row of genuinely live followed Twitch channels; invisible otherwise.
+  // The backend is the authority for the linked account, not state.session,
+  // which may still be loading when F5 first paints the homepage.
+  let homeFollowedRequest=0;
   async function loadHomeFollowed(){
     const rail=$id('homeFollowedRail1014');
-    if(!rail)return;
-    const status=$id('homeFollowedStatus1014');
-    if(!state.session?.twitch){
-      rail.textContent='Connecte Twitch pour retrouver tes chaînes suivies.';
-      if(status){
-        status.replaceChildren();
-        const button=document.createElement('button');
-        button.type='button';button.className='btn secondary';
-        button.textContent='Connecter Twitch';
-        button.onclick=()=>window.connectTwitch?.();
-        status.append(button);
-      }
-      return;
-    }
-    rail.textContent='Chargement des chaînes suivies…';
-    const data=await apiSafe('/api/twitch/followed/live');
-    if(!rail.isConnected||state.view!=='home')return;
+    const section=rail?.closest('.homeFollowedSection1014');
+    if(!rail||!section)return;
+    const request=++homeFollowedRequest;
+    section.hidden=true;
     rail.replaceChildren();
-    if(!data?.success||!Array.isArray(data.items)){
-      rail.textContent='Suivis temporairement indisponibles.';return;
-    }
+    const data=await apiSafe('/api/twitch/followed/live');
+    if(request!==homeFollowedRequest||!rail.isConnected||state?.view!=='home')return;
+    if(data?.success!==true||!Array.isArray(data.items))return;
     const seen=new Set();
     const lives=data.items.filter(x=>{
       const login=String(x?.login||x?.user_login||'').toLowerCase();
       if(!/^[a-z0-9_]{2,25}$/.test(login)||seen.has(login))return false;
       seen.add(login);return true;
     }).slice(0,8);
-    if(!lives.length){rail.textContent='Aucune chaîne suivie en direct pour le moment.';return;}
+    if(!lives.length)return;
     for(const item of lives){
       const login=String(item.login||item.user_login).toLowerCase();
-      const card=document.createElement('a');card.className='homeFollowCard1014';
+      const card=document.createElement('a');
+      card.className='homeFollowCard1014';
       card.href='/live/twitch/'+encodeURIComponent(login);
       card.setAttribute('aria-label','Regarder '+String(item.display_name||login));
       const art=document.createElement('span');art.className='homeFollowArtwork1014';
@@ -10941,6 +10932,7 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
       const game=document.createElement('small');game.textContent=String(item.game_name||'Live Twitch');
       meta.append(title,game);card.append(art,meta);rail.append(card);
     }
+    section.hidden=false;
   }
 
   // Editorial updates change only the order and an inline article link on
@@ -11062,6 +11054,7 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
     if(!el) return;
     // Mount the home once. Repeated route/load events must not destroy video.
     if(el.querySelector?.(':scope > .swappHome1014')){
+      void loadHomeFollowed();
       return;
     }
     const streamView = (typeof streamTargetView === 'function') ? streamTargetView() : (state?.session?.local ? 'manager' : 'settings');
@@ -11078,7 +11071,7 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
           <div class="homeActions1014"><button class="btn secondary" type="button" onclick="setView('discover')">Tous les lives →</button></div>
         </div>
         <div id="homeLiveGrid1014" class="homeLiveGrid1014" aria-label="Lives en direct, défilement horizontal"><div class="homeEmpty1014">Chargement des lives…</div></div>
-        <div class="homeFollowedSection1014">
+        <div class="homeFollowedSection1014" hidden>
           <div class="homeFollowedHead1014"><h3>Chaînes suivies en direct</h3><div id="homeFollowedStatus1014"></div></div>
           <div id="homeFollowedRail1014" class="homeFollowedRail1014" aria-label="Chaînes Twitch suivies en direct"></div>
         </div>
