@@ -36,7 +36,7 @@ test('Vocal button navigates through existing SOCIAL room view and works on mobi
  const views=read('assets/swapp-social-native/views.js');
  const hub=read('modules/swapp-hubs.js');
  const css=read('assets/swapp-social-appearance.css');
- assert.match(app,/if\(event\.target\.closest\('\[data-view\]'\)\)/);
+ assert.match(app,/closest\('button\[data-view\]'\)/);
  assert.match(views,/dataset\.socialView=view/);
  assert.match(views,/Salons vocaux et discussion/);
  assert.match(css,/\.swapp-social-voice-shortcut/);
