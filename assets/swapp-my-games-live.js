@@ -101,7 +101,9 @@
    social.textContent='Salons du jeu';
    const dossier=doc.createElement('a');dossier.href='/jeux/'+encodeURIComponent(item.slug);
    dossier.textContent='Dossier';
-   actions.append(watch,social,dossier);content.append(actions);
+   const shop=doc.createElement('a');shop.href='/boutique';
+   shop.textContent='Boutique';
+   actions.append(watch,social,dossier,shop);content.append(actions);
    article.append(image,content);
    return article;
   }
