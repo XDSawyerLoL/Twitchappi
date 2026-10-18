@@ -101,7 +101,8 @@ test('changes on other tabs, manual read status, privacy and graceful disabled s
  assert.match(code,/window\.confirm/);
  assert.match(code,/LIMIT=30/);
  assert.match(code,/addEventListener\('swapp:home-feature-ready'/);
- assert.doesNotMatch(code,/fetch\(|XMLHttpRequest|sendBeacon|serviceWorker|Notification\(/);
+ assert.match(code,/if\(!syncAccountId\|\|syncing\)return;/,'automatic restoration requires explicit account consent');
+ assert.doesNotMatch(code,/XMLHttpRequest|sendBeacon|serviceWorker|Notification\(/);
 });
 test('SPA and native routes share the same assets and do not grow the top-level menu',()=>{
  const home=read('index.html'),shell=read('modules/swapp-news/site-shell.js');
