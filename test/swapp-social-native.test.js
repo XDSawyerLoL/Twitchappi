@@ -21,7 +21,8 @@ test('the entire original SOCIAL UI is embedded without iframe or another site m
  assert.match(html,/data-view="circles"/);
  assert.match(html,/data-view="messages"/);
  assert.match(html,/data-view="notifications"/);
- assert.match(html,/data-view="saved"/);
+ assert.doesNotMatch(html,/data-view="saved"/); // No sixth primary destination.
+ assert.match(read('assets/swapp-social-native/views.js'),/data-view="saved"/); // Available from Profile.
  assert.match(html,/id="pulse-text"/);
  assert.match(html,/id="auth-modal"/);
  assert.match(html,/type="module" src="\/assets\/swapp-social-native\/app\.js/);
