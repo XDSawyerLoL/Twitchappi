@@ -68,7 +68,7 @@ test('SOCIAL front page does not wait for independent health/session requests',(
  assert.match(app,/void restoreSession\(\)/);
  assert.match(app,/await Promise\.allSettled\(\[loadHome\(\),loadCirclePreview\(\)\]\)/);
  assert.doesNotMatch(app,/await Promise\.allSettled\(\[health\(\),restoreSession\(\)\]\)/);
- assert.match(read('modules/swapp-hubs.js'),/app\.js\?v=20261017-sso-retry-v9/);
+ assert.match(read('modules/swapp-hubs.js'),/app\.js\?v=20261018-social-structure-v1/);
 });
 
 test('AdSense library is not loaded globally before CMP consent',()=>{
