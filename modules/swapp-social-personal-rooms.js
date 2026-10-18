@@ -4,7 +4,6 @@ const crypto=require('node:crypto');
 const {ROOM_ID,secretOK,newNonce,inviteFor,readInvite,verifyInvite}=require('./swapp-social-room-access');
 function installPersonalRoomRoutes({route,pool,query,bad,clock,trim,inviteSecret}){
  const available=()=>secretOK(inviteSecret);
- const roomInfo=r=>({id:r.id,name:r.name,game:r.game,createdAt:Number(r.created_at),private:true,owner:r.owner_id===undefined?false:undefined});
  const isId=id=>ROOM_ID.test(String(id||''));
  const ownRoom=async(id,user)=>{
   if(!isId(id))return null;
