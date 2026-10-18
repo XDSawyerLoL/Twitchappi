@@ -6,11 +6,11 @@ test('SOCIAL bootstraps five interaction tables plus private player passports',a
  const queries=[];
  const pool={query:async sql=>{queries.push(sql);return [[],[]]}};
  await ensureSocialMysqlSchema(pool);
- assert.equal(queries.length,12);
- const names=['swapp_social_matches','swapp_social_polls','swapp_social_votes','swapp_social_rooms','swapp_social_room_messages','swapp_social_passports'];
+ assert.equal(queries.length,16);
+ const names=['swapp_social_matches','swapp_social_polls','swapp_social_votes','swapp_social_rooms','swapp_social_room_messages','swapp_social_passports','swapp_social_voice_notes','swapp_social_audio_blocks'];
  names.forEach((name,i)=>{
   assert.match(queries[i],new RegExp('^CREATE TABLE IF NOT EXISTS '+name+'\\b','i'));
-  assert.equal(queries[6+i],'SELECT 1 FROM '+name+' LIMIT 0');
+  assert.equal(queries[8+i],'SELECT 1 FROM '+name+' LIMIT 0');
  });
 });
 test('SOCIAL stops on CREATE failure and does not continue with later tables',async()=>{
