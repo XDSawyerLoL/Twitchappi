@@ -40,6 +40,9 @@
 #swappSocialNative .pulse-tabs .pulse-tab strong{font-size:13px!important;letter-spacing:-.02em!important}
 #swappSocialNative .pulse-tabs .pulse-tab small{font-size:10px!important;color:#8fa5be!important}
 #swappSocialNative .swapp-social-stories{border-bottom:1px solid var(--s3-border)!important;background:#0d1726!important}
+/* Large screens already show the editorial rail: avoid two identical news placements.
+   Narrow screens keep the accessible visual stories because their rail is hidden. */
+@media(min-width:1121px){#swappSocialNative[data-social-view="home"] .swapp-social-stories{display:none!important}}
 #swappSocialNative .pulse-main{min-width:0;background:#0f1929!important;border-color:var(--s3-border)!important}
 /* SOCIAL feed should feel like a publication feed, not six boxed form widgets. */
 #swappSocialNative[data-social-view="home"] .pulse-composer{background:#132035!important;border:0!important;border-bottom:1px solid var(--s3-border)!important;padding:24px 25px!important;gap:15px!important}
