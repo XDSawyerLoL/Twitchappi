@@ -205,7 +205,7 @@
    const existing=games.find(x=>x.slug===slug);
    const next=existing?games.filter(x=>x.slug!==slug):[...games,{slug,game,followedAt:now(),seenAt:''}];
    if(!existing&&next.length>LIMIT){status('Tu peux suivre 30 jeux au maximum.');follow.textContent='Limite de 30 jeux atteinte';follow.setAttribute('aria-live','polite');return}
-   if(await updateServer(existing?'DELETE':'PUT','/games/'+encodeURIComponent(slug),existing?undefined:{game}))return;
+   if(syncAccountId){await updateServer(existing?'DELETE':'PUT','/games/'+encodeURIComponent(slug),existing?undefined:{game});return}
    if(!save(next)){status('Enregistrement local indisponible. Autorise le stockage dans ton navigateur.');follow.textContent='Enregistrement indisponible';follow.setAttribute('aria-live','polite');return}
    games=next;update();
    status(existing?'Jeu retiré de ta sélection.':'Jeu ajouté. Les prochaines actualités seront signalées ici.');
@@ -214,7 +214,7 @@
   const seen=event.target.closest('[data-my-games-mark-seen]');
   if(seen){
    const slug=seen.closest('[data-swapp-game-card]')?.dataset.gameSlug;
-   if(await updateServer('PUT','/games/'+encodeURIComponent(slug)+'/seen'))return;
+   if(syncAccountId){await updateServer('PUT','/games/'+encodeURIComponent(slug)+'/seen');return}
    const next=games.map(x=>x.slug===slug?{...x,seenAt:now()}:x);
    if(!save(next)){status('Impossible de sauvegarder cette action.');return}
    games=next;update();status('Nouveautés marquées comme consultées.');
@@ -226,7 +226,7 @@
    if(!games.length)return;
    // Deliberately explicit: clearing your library does not delete the account.
    if(!window.confirm(syncAccountId?'Ne plus suivre tous les jeux sur ce compte SWAPP et sur cet appareil ?':'Ne plus suivre tous les jeux sur cet appareil ?'))return;
-   if(await updateServer('DELETE','/games'))return;
+   if(syncAccountId){await updateServer('DELETE','/games');return}
    if(!save([])){status('Impossible de modifier la sélection.');return}
    games=[];update();status('Sélection locale effacée.');
   });
