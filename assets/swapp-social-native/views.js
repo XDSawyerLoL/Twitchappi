@@ -421,15 +421,17 @@ export async function loadConversation(handle){
       api('/api/pulse/messages/'+encodeURIComponent(handle)),loadVoiceNotes(handle)
     ]);
     if(!isCurrent(revision,'messages'))return;
-    let html='<section class="pulse-view social-dm-view"><div class="pulse-view-head social-dm-head"><button type="button" class="social-dm-back" data-social-back-messages aria-label="Retour aux messages">←</button><div class="social-dm-identity"><div class="social-dm-avatar" aria-hidden="true">'+esc(initials(data.user))+'</div><div><h2>'+esc(data.user.displayName)+'</h2><p>@'+esc(data.user.handle)+'</p></div></div><button type="button" class="pulse-dm-call-button" data-call-handle="'+esc(handle)+'" aria-label="Appeler '+esc(handle)+' en audio">Appeler</button></div><div class="pulse-message-list">';
+    let html='<section class="pulse-view social-dm-view"><div class="pulse-view-head social-dm-head"><button type="button" class="social-dm-back" data-social-back-messages aria-label="Retour aux messages">←</button><div class="social-dm-identity"><div class="social-dm-avatar" aria-hidden="true">'+esc(initials(data.user))+'</div><div><h2>'+esc(data.user.displayName)+'</h2><p>@'+esc(data.user.handle)+'</p></div></div><button type="button" class="pulse-dm-call-button" data-call-handle="'+esc(handle)+'" aria-label="Appeler '+esc(handle)+' en audio"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3a16 16 0 0 0 15 15l-3 4c-7 0-16-9-16-16l4-3Z" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>Appeler</button></div><div class="pulse-message-list">';
     html+=renderDMMessages(data.messages,state.user.id,notes);
     html+='</div><div class="pulse-dm-audio-controls" data-handle="'+esc(handle)+'" aria-label="Enregistrement vocal">'+
-     '<button type="button" data-voice-start aria-label="Enregistrer un message vocal">Micro · Vocal</button>'+
-     '<button type="button" data-voice-stop hidden>Arrêter</button>'+
+     '<div class="pulse-audio-composer-head"><span class="pulse-audio-composer-icon" aria-hidden="true">▥</span><span><strong>Message vocal</strong><small>30 secondes maximum · écoute avant envoi</small></span><time data-voice-timer aria-label="Durée du message">0:00</time></div>'+
+     '<div class="pulse-audio-composer-actions">'+
+     '<button type="button" data-voice-start aria-label="Enregistrer un message vocal">Enregistrer</button>'+
+     '<button type="button" data-voice-stop hidden>Terminer</button>'+
      '<button type="button" data-voice-send hidden>Envoyer le vocal</button>'+
-     '<button type="button" data-voice-cancel hidden>Effacer</button>'+
+     '<button type="button" data-voice-cancel hidden>Effacer</button></div>'+
      '<audio data-voice-preview controls preload="none" hidden aria-label="Prévisualiser mon message vocal"></audio>'+
-     '<p data-voice-status role="status" aria-live="polite">30 secondes maximum · aperçu avant envoi</p></div>'+
+     '<p data-voice-status role="status" aria-live="polite">Ton micro ne sera activé qu’après avoir appuyé sur Enregistrer.</p></div>'+
      '<form class="pulse-message-form" id="conversation-form" data-handle="'+esc(handle)+'"><input name="body" maxlength="2000" placeholder="Écrire un message…" required><button class="pulse-mini-button primary">Envoyer</button></form></section>';
     dom.feed.innerHTML=html;
     // Conversation windows start at the newest message, including after send.

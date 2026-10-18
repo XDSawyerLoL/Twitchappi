@@ -9,16 +9,33 @@
  const section=document.createElement('section');
  section.className='swapp-voice';section.setAttribute('aria-label','Salon vocal');
  section.innerHTML=`
-  <div class="swapp-voice-heading"><div><strong>Salon vocal</strong><small>6 participants maximum · aucun enregistrement</small></div><span id="swapp-voice-live" class="swapp-voice-live">Hors ligne</span></div>
-  <p id="swapp-voice-notice" class="swapp-voice-notice" role="status" aria-live="polite">Sélectionne un salon pour rejoindre l’audio.</p>
-  <div class="swapp-voice-controls">
-   <button type="button" id="swapp-voice-join" disabled>Rejoindre le vocal</button>
-   <button type="button" id="swapp-voice-mute" hidden>Couper le micro</button>
-   <button type="button" id="swapp-voice-play" hidden>Activer le son</button>
-   <button type="button" id="swapp-voice-leave" hidden>Quitter</button>
+ <header class="swapp-voice-heading">
+  <div class="swapp-voice-brand">
+   <span class="swapp-voice-mark" aria-hidden="true"><svg viewBox="0 0 36 36"><path d="M8 16v4M13 10v16M18 6v24M23 11v14M28 16v4"/></svg></span>
+   <div><span class="swapp-voice-eyebrow">SOCIAL / EN DIRECT</span><strong>Salon vocal</strong><small>6 personnes · Aucun enregistrement</small></div>
   </div>
+  <span id="swapp-voice-live" class="swapp-voice-live">Hors ligne</span>
+ </header>
+ <div class="swapp-voice-stage">
+  <div class="swapp-voice-room">
+   <div><span class="swapp-voice-room-tag">CONVERSATION</span><h3 id="swapp-voice-room-name">Choisis un salon</h3><p id="swapp-voice-room-game">Sélectionne un salon de discussion ci-dessous.</p></div>
+   <div class="swapp-voice-room-count"><strong id="swapp-voice-count">0</strong><span> / 6 connectés</span></div>
+  </div>
+  <div class="swapp-voice-members-title"><strong>Participants</strong><span id="swapp-voice-member-caption">En attente de connexion</span></div>
   <div id="swapp-voice-peers" class="swapp-voice-peers" aria-label="Participants audio"></div>
-  <div id="swapp-voice-audio" hidden></div>`;
+ </div>
+ <footer class="swapp-voice-footer">
+  <div class="swapp-voice-controls">
+   <button type="button" id="swapp-voice-join" class="swapp-voice-primary" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18a7 7 0 0 1 0-12M15 6a7 7 0 0 1 0 12M4 12h16"/></svg>Rejoindre le vocal</button>
+   <button type="button" id="swapp-voice-mute" class="swapp-voice-control" aria-pressed="false" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8"/></svg><span data-voice-label>Micro actif</span></button>
+   <button type="button" id="swapp-voice-deafen" class="swapp-voice-control" aria-pressed="false" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 13v-2a9 9 0 0 1 18 0v2M4 13h3v7H4a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2ZM20 13h-3v7h3a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2Z"/></svg><span data-voice-label>Écouter</span></button>
+   <button type="button" id="swapp-voice-play" class="swapp-voice-control" hidden>Activer le son</button>
+   <button type="button" id="swapp-voice-leave" class="swapp-voice-leave" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 8 2-2a12 12 0 0 1 14 0l2 2-3 5-4-2v-2a11 11 0 0 0-4 0v2l-4 2Z"/></svg>Quitter</button>
+  </div>
+  <p id="swapp-voice-notice" class="swapp-voice-notice" role="status" aria-live="polite">Sélectionne un salon pour rejoindre l’audio.</p>
+ </footer>
+ <div id="swapp-voice-audio" hidden></div>
+`;
  // Keep the voice controls above the list of rooms, immediately visible on entry.
  // Joining still requires choosing or creating an actual room first.
  container.insertBefore(section,area.querySelector('#ssi-room-results'));
@@ -26,36 +43,123 @@
  const joinButton=$('#swapp-voice-join'),muteButton=$('#swapp-voice-mute');
  const leaveButton=$('#swapp-voice-leave'),status=$('#swapp-voice-notice'),playButton=$('#swapp-voice-play');
  const live=$('#swapp-voice-live'),people=$('#swapp-voice-peers'),audioHost=$('#swapp-voice-audio');
- let selectedRoom=String(area.dataset.activeSocialRoom||''),connectedRoom='',busy=false,muted=false;
+ const roomLabel=$('#swapp-voice-room-name'),gameLabel=$('#swapp-voice-room-game');
+ const countLabel=$('#swapp-voice-count'),caption=$('#swapp-voice-member-caption');
+ const deafenButton=$('#swapp-voice-deafen');
+ let selectedRoom=String(area.dataset.activeSocialRoom||''),connectedRoom='',busy=false,muted=false,deafened=false;
+ let selectedRoomName='',selectedRoomGame='';
+ const tiles=new Map(),meters=new Map();
+ let audioContext=null,meterFrame=0,lastFrame=0;
  let socket=null,media=null,iceServers=[],lifecycle=0;
  const peers=new Map();
  const profiles=new Map();
  const notice=value=>{status.textContent=value};
+
+ function updateRoomDetails(){
+  if(!selectedRoom){selectedRoomName='';selectedRoomGame='';return}
+  const option=[...area.querySelectorAll('[data-room]')].find(el=>el.dataset.room===selectedRoom);
+  if(option){
+   selectedRoomName=option.querySelector('.ssi-room-name')?.textContent?.replace(/^#\s*/,'').trim()||'Salon sélectionné';
+   selectedRoomGame=option.querySelector('.ssi-room-game')?.textContent?.trim()||'';
+  }else if(!selectedRoomName)selectedRoomName='Salon sélectionné';
+ }
+ function tile(id,handle,isSelf,isMuted){
+  let node=tiles.get(id);
+  if(!node){
+   node=document.createElement('div');node.className='swapp-voice-participant';
+   node.innerHTML='<span class="swapp-voice-avatar"><span class="swapp-voice-initial"></span><span class="swapp-voice-activity" aria-hidden="true"><i></i><i></i><i></i></span></span>'+
+    '<span class="swapp-voice-person"><strong></strong><small></small></span>';
+   tiles.set(id,node);
+  }
+  const name=String(handle||'Membre').slice(0,42);
+  node.querySelector('.swapp-voice-initial').textContent=name.replace(/^@/,'').slice(0,1).toUpperCase()||'?';
+  node.querySelector('strong').textContent=name;
+  node.querySelector('small').textContent=isMuted?'Micro coupé':(isSelf?'Vous':'Connecté');
+  node.classList.toggle('is-self',isSelf);
+  node.classList.toggle('is-muted',Boolean(isMuted));
+  if(isMuted)node.classList.remove('is-speaking');
+  return node;
+ }
  function repaint(){
   const joined=Boolean(socket?.connected&&media&&connectedRoom);
-  joinButton.hidden=joined;
-  joinButton.disabled=busy||!selectedRoom;
-  muteButton.hidden=!joined;leaveButton.hidden=!joined;
+  updateRoomDetails();
+  section.dataset.voiceState=joined?'connected':busy?'connecting':'idle';
+  roomLabel.textContent=selectedRoomName||'Choisis un salon';
+  gameLabel.textContent=selectedRoom?(selectedRoomGame||'Conversation de joueurs'):'Sélectionne un salon de discussion ci-dessous.';
+  joinButton.hidden=joined;joinButton.disabled=busy||!selectedRoom;
+  muteButton.hidden=!joined;deafenButton.hidden=!joined;leaveButton.hidden=!joined;
   if(!joined)playButton.hidden=true;
-  muteButton.textContent=muted?'Activer le micro':'Couper le micro';
+  muteButton.querySelector('[data-voice-label]').textContent=muted?'Micro coupé':'Micro actif';
+  deafenButton.querySelector('[data-voice-label]').textContent=deafened?'Son coupé':'Écouter';
   muteButton.setAttribute('aria-pressed',String(muted));
-  live.textContent=joined?'Micro actif':'Hors ligne';
+  deafenButton.setAttribute('aria-pressed',String(deafened));
+  live.textContent=joined?(muted?'Micro coupé':'Connecté'):busy?'Connexion…':'Hors ligne';
   live.classList.toggle('is-live',joined);
-  people.replaceChildren();
-  if(!joined)return;
-  const members=[{handle:'Vous'+(muted?' (muet)':'')},...profiles.values()];
-  for(const member of members){
-   const item=document.createElement('span');
-   item.className='swapp-voice-participant';
-   item.textContent=String(member.handle||'Membre').slice(0,60)+(member.muted?' · muet':'');
-   people.appendChild(item);
+  const members=joined?[{id:'__self',handle:'Vous',self:true,muted},...profiles.entries().map(([id,value])=>({id,handle:value.handle,muted:!!value.muted,self:false}))]:[];
+  countLabel.textContent=String(members.length);
+  caption.textContent=joined?members.length+' / 6 connectés':'En attente de connexion';
+  if(!joined){
+   tiles.clear();
+   const empty=document.createElement('div');empty.className='swapp-voice-empty';
+   empty.textContent=selectedRoom?'Salon prêt. Rejoins-le pour prendre la parole.':'Choisis un salon pour parler avec la communauté.';
+   people.replaceChildren(empty);
+   return;
   }
+  const nodes=members.map(person=>tile(person.id,person.handle,person.self,person.muted));
+  for(const id of [...tiles.keys()])if(!members.some(p=>p.id===id))tiles.delete(id);
+  people.replaceChildren(...nodes);
+ }
+
+ function stopMeter(id){
+  const track=meters.get(id);if(!track)return;
+  try{track.source.disconnect();track.analyser.disconnect()}catch{}
+  meters.delete(id);
+  tiles.get(id)?.classList.remove('is-speaking');
+ }
+ function stopAllMeters(){
+  if(meterFrame)cancelAnimationFrame(meterFrame);
+  meterFrame=0;lastFrame=0;
+  for(const id of [...meters.keys()])stopMeter(id);
+  const context=audioContext;audioContext=null;
+  if(context)context.close().catch(()=>{});
+ }
+ function updateAudioMeters(time){
+  meterFrame=0;
+  if(time-lastFrame>=100){
+   lastFrame=time;
+   for(const [id,entry] of meters){
+    const node=tiles.get(id);if(!node)continue;
+    entry.analyser.getByteTimeDomainData(entry.values);
+    let energy=0;
+    for(const sample of entry.values){const value=(sample-128)/128;energy+=value*value}
+    const volume=Math.sqrt(energy/entry.values.length);
+    const isMuted=id==='__self'?muted:!!profiles.get(id)?.muted;
+    node.classList.toggle('is-speaking',!isMuted&&volume>0.042);
+    node.style.setProperty('--voice-level',String(Math.max(.15,Math.min(1,volume*9))));
+   }
+  }
+  if(meters.size)meterFrame=requestAnimationFrame(updateAudioMeters);
+ }
+ async function attachAudioMeter(id,stream){
+  const Context=window.AudioContext||window.webkitAudioContext;
+  if(!Context||!stream?.getAudioTracks?.().length)return;
+  try{
+   if(!audioContext)audioContext=new Context();
+   if(audioContext.state==='suspended')await audioContext.resume();
+   if(!media||id!=='__self'&&!connectedRoom)return;
+   stopMeter(id);
+   const source=audioContext.createMediaStreamSource(stream),analyser=audioContext.createAnalyser();
+   analyser.fftSize=512;analyser.smoothingTimeConstant=.6;
+   source.connect(analyser);
+   meters.set(id,{source,analyser,values:new Uint8Array(analyser.fftSize)});
+   if(!meterFrame)meterFrame=requestAnimationFrame(updateAudioMeters);
+  }catch{}
  }
  function closePeer(id){
   const peer=peers.get(id);
   if(!peer)return;
   peer.pc.ontrack=null;peer.pc.onicecandidate=null;peer.pc.onconnectionstatechange=null;
-  peer.pc.close();peer.audio?.remove();peers.delete(id);
+  peer.pc.close();peer.audio?.remove();peers.delete(id);stopMeter(id);tiles.delete(id);
  }
  function leave(){
   lifecycle++;
@@ -63,8 +167,9 @@
   socket?.disconnect();socket=null;
   for(const id of [...peers.keys()])closePeer(id);
   profiles.clear();audioHost.replaceChildren();playButton.hidden=true;
+  stopAllMeters();
   media?.getTracks().forEach(track=>track.stop());media=null;
-  connectedRoom='';busy=false;muted=false;repaint();
+  connectedRoom='';busy=false;muted=false;deafened=false;repaint();
  }
  function send(to,kind,data){
   if(socket?.connected&&connectedRoom)socket.emit('voice:signal',{to,kind,data});
@@ -84,6 +189,9 @@
   pc.ontrack=event=>{
    const stream=event.streams?.[0]||new MediaStream([event.track]);
    element.srcObject=stream;
+   element.muted=deafened;
+   void attachAudioMeter(id,stream);
+   if(deafened)return;
    element.play().catch(()=>{
     playButton.hidden=false;
     notice('Ton navigateur bloque la lecture automatique. Utilise « Activer le son ».');
@@ -140,6 +248,7 @@
    });
    if(revision!==lifecycle){local.getTracks().forEach(t=>t.stop());return}
    media=local;
+   void attachAudioMeter('__self',local);
    const response=await fetch('/api/swapp/social/voice-ticket',{
     method:'POST',credentials:'same-origin',cache:'no-store',
     headers:{'Accept':'application/json','Content-Type':'application/json'},body:'{}'
@@ -204,6 +313,7 @@
  }
  joinButton.addEventListener('click',()=>{void join()});
  playButton.addEventListener('click',()=>{
+  if(deafened)return;
   Promise.allSettled([...audioHost.querySelectorAll('audio')].map(el=>el.play())).then(results=>{
    const blocked=results.some(r=>r.status==='rejected');
    playButton.hidden=!blocked;
@@ -217,12 +327,28 @@
   socket?.emit('voice:mute',muted);
   repaint();
  });
+ deafenButton.addEventListener('click',()=>{
+  if(!connectedRoom)return;
+  deafened=!deafened;
+  for(const participant of peers.values()){
+   participant.audio.muted=deafened;
+   if(!deafened)participant.audio.play().catch(()=>{
+    playButton.hidden=false;
+    notice('Appuie sur « Activer le son » pour écouter les autres joueurs.');
+   });
+  }
+  if(deafened)playButton.hidden=true;
+  repaint();
+ });
  leaveButton.addEventListener('click',()=>{leave();notice('Tu as quitté le salon vocal.')});
  area.addEventListener('ssi:room-selected',event=>{
   const id=String(event.detail?.id||'');
   if(id===selectedRoom)return;
   if(media||socket)leave();
-  selectedRoom=id;notice(id?'Rejoins ce salon vocal lorsque tu le souhaites.':'Choisis un salon de discussion.');
+  selectedRoom=id;
+  selectedRoomName=String(event.detail?.name||'').slice(0,60);
+  selectedRoomGame=String(event.detail?.game||'').slice(0,65);
+  notice(id?'Salon sélectionné. Rejoins le vocal pour activer ton micro.':'Choisis un salon de discussion.');
   repaint();
  });
  const observer=new MutationObserver(()=>{

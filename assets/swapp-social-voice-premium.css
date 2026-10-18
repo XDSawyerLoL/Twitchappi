@@ -1,0 +1,254 @@
+/* SWAPP SOCIAL / Audio — integrated conversation stage; live data only. */
+#swappSocialNative .swapp-voice{
+ --v-accent:var(--swapp-page-accent,var(--s3-accent,#42dccb));
+ position:relative;isolation:isolate;margin:0 0 20px;padding:0;overflow:hidden;
+ background:linear-gradient(145deg,#14283d 0%,#0d1929 58%,#101c30 100%);
+ color:#f3f8ff;border:1px solid rgba(166,200,232,.19);border-radius:12px
+}
+#swappSocialNative .swapp-voice::before{
+ content:"";position:absolute;top:-135px;right:-145px;width:320px;height:320px;pointer-events:none;
+ border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--v-accent) 12%,transparent),transparent 67%);
+ opacity:.85;z-index:-1
+}
+#swappSocialNative .swapp-voice-heading{
+ display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;
+ padding:17px 22px;border-bottom:1px solid rgba(176,202,230,.12)
+}
+#swappSocialNative .swapp-voice-brand{display:flex;align-items:center;gap:12px;min-width:0}
+#swappSocialNative .swapp-voice-brand>div{display:grid;gap:2px;min-width:0}
+#swappSocialNative .swapp-voice-mark{
+ width:42px;height:42px;display:grid;place-items:center;flex:0 0 42px;
+ background:color-mix(in srgb,var(--v-accent) 15%,#172d39);
+ color:var(--v-accent);border:1px solid color-mix(in srgb,var(--v-accent) 39%,#35455c);border-radius:11px
+}
+#swappSocialNative .swapp-voice-mark svg{width:29px;height:29px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round}
+#swappSocialNative .swapp-voice-eyebrow,#swappSocialNative .swapp-voice-room-tag{
+ color:var(--v-accent);font-size:9px;letter-spacing:.15em;font-weight:800
+}
+#swappSocialNative .swapp-voice-heading strong{font-size:18px;font-weight:850;letter-spacing:-.045em;line-height:1.3}
+#swappSocialNative .swapp-voice-heading small{font-size:11px;color:#a9bdd2}
+#swappSocialNative .swapp-voice-live{
+ display:inline-flex;gap:8px;align-items:center;color:#a3b7cc;
+ background:rgba(7,15,27,.42);border:1px solid rgba(180,205,236,.12);
+ padding:8px 11px;border-radius:7px;font-size:11px;font-weight:750;white-space:nowrap
+}
+#swappSocialNative .swapp-voice-live::before{
+ content:"";width:7px;height:7px;flex:none;border-radius:50%;background:#6f849c
+}
+#swappSocialNative .swapp-voice-live.is-live{
+ color:#cbffe7;border-color:rgba(94,235,167,.22);background:rgba(36,120,91,.12)
+}
+#swappSocialNative .swapp-voice-live.is-live::before{background:#5de4a2;box-shadow:0 0 0 3px rgba(93,228,162,.12)}
+#swappSocialNative .swapp-voice-stage{padding:21px 22px 22px}
+#swappSocialNative .swapp-voice-room{display:flex;justify-content:space-between;gap:20px;align-items:center}
+#swappSocialNative .swapp-voice-room h3{
+ font-size:clamp(22px,2.7vw,30px)!important;letter-spacing:-.06em!important;line-height:1.13!important;
+ margin:8px 0!important;font-weight:860!important;overflow-wrap:anywhere
+}
+#swappSocialNative .swapp-voice-room p{font-size:12px;color:#9fb4cb;margin:0}
+#swappSocialNative .swapp-voice-room-count{
+ display:flex;align-items:baseline;gap:4px;white-space:nowrap;color:#a2b7c8;
+ background:rgba(7,16,30,.35);padding:12px 14px;border:1px solid rgba(168,195,226,.12);border-radius:9px
+}
+#swappSocialNative .swapp-voice-room-count strong{font-size:29px;letter-spacing:-.06em;color:#f4f9ff;line-height:1}
+#swappSocialNative .swapp-voice-room-count span{font-size:11px}
+#swappSocialNative .swapp-voice-members-title{
+ display:flex;justify-content:space-between;gap:12px;align-items:center;
+ margin:25px 0 11px;color:#e7f0fa
+}
+#swappSocialNative .swapp-voice-members-title strong{font-size:12px;letter-spacing:.01em;font-weight:800}
+#swappSocialNative .swapp-voice-members-title span{font-size:11px;color:#89a3bd}
+#swappSocialNative .swapp-voice-peers{margin:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+#swappSocialNative .swapp-voice-empty{
+ grid-column:1/-1;min-height:86px;display:flex;align-items:center;justify-content:center;
+ gap:10px;text-align:center;color:#8fa5bd;padding:18px;font-size:12px;line-height:1.6;
+ border:1px dashed rgba(151,184,214,.23);border-radius:9px;background:rgba(7,15,28,.25)
+}
+#swappSocialNative .swapp-voice-participant{
+ display:flex;gap:12px;align-items:center;min-width:0;max-width:none;padding:11px 13px;
+ border:1px solid rgba(174,204,230,.12);border-radius:9px;background:rgba(12,28,45,.83);
+ color:#eaf5ff;transition:border-color .17s,background .17s
+}
+#swappSocialNative .swapp-voice-participant.is-self{border-color:color-mix(in srgb,var(--v-accent) 27%,transparent)}
+#swappSocialNative .swapp-voice-avatar{
+ position:relative;width:43px;height:43px;flex:0 0 43px;border-radius:11px;
+ display:grid;place-items:center;color:#e8f9fa;background:linear-gradient(135deg,#334d66,#1b3047);
+ border:2px solid rgba(166,196,226,.15);transition:border-color .15s,box-shadow .15s
+}
+#swappSocialNative .swapp-voice-initial{font-size:19px;font-weight:860}
+#swappSocialNative .swapp-voice-activity{
+ position:absolute;right:-4px;bottom:-5px;display:flex;align-items:center;justify-content:center;
+ gap:2px;width:24px;height:18px;background:#182b3d;border:1px solid #32485c;border-radius:6px
+}
+#swappSocialNative .swapp-voice-activity i{
+ display:block;width:3px;height:5px;background:#7998b0;border-radius:2px;transform-origin:bottom;
+ transition:height .08s,background .08s
+}
+#swappSocialNative .swapp-voice-person{min-width:0;display:grid;gap:5px}
+#swappSocialNative .swapp-voice-person strong{display:block;font-size:12px;font-weight:820;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#swappSocialNative .swapp-voice-person small{font-size:10px;color:#a4bbce}
+#swappSocialNative .swapp-voice-participant.is-speaking{border-color:rgba(105,239,167,.75);background:rgba(48,110,89,.21)}
+#swappSocialNative .swapp-voice-participant.is-speaking .swapp-voice-avatar{
+ border-color:#62dc9b;box-shadow:0 0 0 3px rgba(65,219,151,.12)
+}
+#swappSocialNative .swapp-voice-participant.is-speaking .swapp-voice-activity i{background:#70eba9}
+#swappSocialNative .swapp-voice-participant.is-speaking .swapp-voice-activity i:nth-child(1){height:12px;transform:scaleY(var(--voice-level,.5))}
+#swappSocialNative .swapp-voice-participant.is-speaking .swapp-voice-activity i:nth-child(2){height:15px;transform:scaleY(var(--voice-level,.5))}
+#swappSocialNative .swapp-voice-participant.is-speaking .swapp-voice-activity i:nth-child(3){height:11px;transform:scaleY(var(--voice-level,.5))}
+#swappSocialNative .swapp-voice-participant.is-muted .swapp-voice-person small{color:#f2acb8}
+#swappSocialNative .swapp-voice-footer{padding:15px 22px 17px;background:rgba(7,16,29,.55);border-top:1px solid rgba(166,199,229,.12)}
+#swappSocialNative .swapp-voice-controls{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+#swappSocialNative .swapp-voice-controls button{
+ display:inline-flex;align-items:center;justify-content:center;gap:9px;padding:11px 15px;min-height:44px;
+ color:#dfeaf6;background:#22354b;border:1px solid rgba(181,209,239,.24);
+ border-radius:8px;font:750 12px/1.3 system-ui,sans-serif;cursor:pointer;
+ transition:background .15s,border-color .15s,transform .15s
+}
+#swappSocialNative .swapp-voice-controls button:hover:not(:disabled){background:#304a63;border-color:#7594b3}
+#swappSocialNative .swapp-voice-controls button:focus-visible{outline:2px solid var(--v-accent);outline-offset:3px}
+#swappSocialNative .swapp-voice-controls button svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round;stroke-linecap:round;flex:none}
+#swappSocialNative .swapp-voice-controls .swapp-voice-primary{
+ background:var(--v-accent);color:#0a1923;border-color:var(--v-accent);font-size:13px;font-weight:850;padding:12px 20px
+}
+#swappSocialNative .swapp-voice-controls .swapp-voice-primary:hover:not(:disabled){
+ background:color-mix(in srgb,var(--v-accent) 86%,white);border-color:color-mix(in srgb,var(--v-accent) 86%,white)
+}
+#swappSocialNative .swapp-voice-controls button[hidden]{display:none!important}
+#swappSocialNative .swapp-voice-controls button[aria-pressed="true"]{border-color:#df8c9a;color:#ffc8d0;background:#4b2b3a}
+#swappSocialNative .swapp-voice-controls .swapp-voice-leave{background:#48303d;border-color:#714655;color:#ffd8df;margin-left:auto}
+#swappSocialNative .swapp-voice-controls button:disabled{opacity:.48;cursor:not-allowed}
+#swappSocialNative .swapp-voice-notice{margin:11px 0 0;font-size:11px;color:#a7bfd2;line-height:1.5}
+@media(max-width:780px){
+ #swappSocialNative .swapp-voice-peers{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:600px){
+ #swappSocialNative .swapp-voice{margin-bottom:16px;border-radius:10px}
+ #swappSocialNative .swapp-voice-heading{padding:15px;gap:12px}
+ #swappSocialNative .swapp-voice-mark{width:38px;height:38px;flex-basis:38px}
+ #swappSocialNative .swapp-voice-heading strong{font-size:16px}
+ #swappSocialNative .swapp-voice-heading small{font-size:10px}
+ #swappSocialNative .swapp-voice-live{padding:7px 9px;font-size:10px}
+ #swappSocialNative .swapp-voice-stage{padding:18px 15px}
+ #swappSocialNative .swapp-voice-room{align-items:flex-start;gap:10px}
+ #swappSocialNative .swapp-voice-room-count{padding:7px 10px;align-items:center}
+ #swappSocialNative .swapp-voice-room-count strong{font-size:20px}
+ #swappSocialNative .swapp-voice-room-count span{font-size:10px}
+ #swappSocialNative .swapp-voice-room h3{font-size:22px!important}
+ #swappSocialNative .swapp-voice-peers{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #swappSocialNative .swapp-voice-participant{gap:8px;padding:10px 8px}
+ #swappSocialNative .swapp-voice-avatar{width:35px;height:35px;flex-basis:35px}
+ #swappSocialNative .swapp-voice-footer{padding:13px 15px 15px}
+ #swappSocialNative .swapp-voice-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ #swappSocialNative .swapp-voice-controls button{width:100%;min-width:0;min-height:47px;padding:9px;gap:6px}
+ #swappSocialNative .swapp-voice-controls .swapp-voice-primary{grid-column:1/-1}
+ #swappSocialNative .swapp-voice-controls .swapp-voice-leave{margin:0;grid-column:1/-1}
+}
+@media(max-width:375px){
+ #swappSocialNative .swapp-voice-peers{grid-template-columns:1fr}
+ #swappSocialNative .swapp-voice-room-count span{display:none}
+}
+@media(prefers-reduced-motion:reduce){
+ #swappSocialNative .swapp-voice *{animation:none!important;transition:none!important}
+}
+
+/* SOCIAL / Messages vocaux privés — keep composer inside the conversation. */
+#swappSocialNative .pulse-dm-audio-controls{
+ display:grid;grid-template-columns:1fr;gap:11px;padding:15px 18px;
+ background:linear-gradient(120deg,#172a3e,#102035);
+ border:1px solid rgba(180,210,232,.16);border-left:3px solid var(--swapp-page-accent,#50daca);
+ border-radius:0;color:#eaf4ff
+}
+#swappSocialNative .pulse-audio-composer-head{display:flex;align-items:center;gap:11px;min-width:0}
+#swappSocialNative .pulse-audio-composer-head>span:nth-child(2){flex:1;display:grid;gap:3px;min-width:0}
+#swappSocialNative .pulse-audio-composer-head strong{font-size:13px;font-weight:830}
+#swappSocialNative .pulse-audio-composer-head small{font-size:11px;color:#9cafc3}
+#swappSocialNative .pulse-audio-composer-icon{display:grid;place-items:center;border-radius:9px;
+ background:rgba(67,205,192,.11);color:var(--swapp-page-accent,#56e2cc);height:39px;width:39px;font-size:23px}
+#swappSocialNative .pulse-audio-composer-head time{
+ font-variant-numeric:tabular-nums;font-size:18px;letter-spacing:-.03em;
+ font-weight:850;color:#f0f7ff;background:#0b1929;border:1px solid #2a4158;
+ border-radius:7px;padding:7px 10px;min-width:61px;text-align:center
+}
+#swappSocialNative .pulse-dm-audio-controls[data-audio-state="recording"] .pulse-audio-composer-head time{
+ color:#ffb8c6;border-color:#a24c63;background:#442335
+}
+#swappSocialNative .pulse-dm-audio-controls[data-audio-state="recording"] .pulse-audio-composer-icon{
+ background:rgba(235,86,124,.15);color:#ff9bba
+}
+#swappSocialNative .pulse-audio-composer-actions{display:flex;flex-wrap:wrap;gap:8px}
+#swappSocialNative .pulse-dm-audio-controls .pulse-audio-composer-actions button{
+ display:inline-flex;align-items:center;justify-content:center;
+ min-height:42px;padding:10px 16px;background:#253b52;border:1px solid #415e78;
+ border-radius:8px;font-size:12px;cursor:pointer
+}
+#swappSocialNative .pulse-dm-audio-controls [data-voice-start],
+#swappSocialNative .pulse-dm-audio-controls [data-voice-send]{
+ background:var(--swapp-page-accent,#60e0cb)!important;
+ border-color:var(--swapp-page-accent,#60e0cb)!important;
+ color:#091d25!important;font-weight:850
+}
+#swappSocialNative .pulse-dm-audio-controls [data-voice-stop]{
+ background:#652b41!important;border-color:#a74a6a!important;color:#ffe1e8!important
+}
+#swappSocialNative .pulse-dm-audio-controls [data-voice-cancel]{background:#182939!important}
+#swappSocialNative .pulse-dm-audio-controls [data-voice-preview]{
+ display:block;max-height:46px;width:100%;accent-color:var(--swapp-page-accent,#60e0cb)
+}
+#swappSocialNative .pulse-dm-audio-controls [data-voice-preview][hidden]{display:none!important}
+#swappSocialNative .pulse-dm-audio-controls [data-voice-status]{
+ font-size:11px;margin:0;color:#a6bacf;line-height:1.6;flex:none
+}
+#swappSocialNative .pulse-dm-call-button{
+ display:inline-flex;align-items:center;gap:8px;margin-left:auto;
+ background:var(--swapp-page-accent,#aef333)!important;
+ border-color:var(--swapp-page-accent,#aef333)!important;
+ color:#081c23!important;border-radius:8px;min-height:42px;padding:9px 15px
+}
+#swappSocialNative .pulse-dm-call-button svg{width:17px;height:17px;flex:none}
+/* Direct calls: genuinely useful fixed control tray, not an extra page layer. */
+#swappSocialNative .pulse-call-panel{
+ width:min(390px,calc(100vw - 24px));padding:19px;bottom:calc(22px + env(safe-area-inset-bottom));
+ right:16px;background:linear-gradient(140deg,#182c41,#101d2f);
+ border:1px solid rgba(168,202,232,.3);border-radius:13px;
+ box-shadow:0 14px 40px rgba(0,0,0,.46);color:#f3f9ff
+}
+#swappSocialNative .pulse-call-panel>strong{font-size:19px;letter-spacing:-.045em}
+#swappSocialNative .pulse-call-panel>p{font-size:12px;line-height:1.5;color:#b7cbe0}
+#swappSocialNative .pulse-call-actions button{min-height:44px;border-radius:8px}
+#swappSocialNative .pulse-call-actions [data-call-accept]{background:#8ee5ba;border-color:#8ee5ba;color:#09231b}
+#swappSocialNative .pulse-call-actions [data-call-end]{background:#682f41;border-color:#9d5169}
+@media(max-width:600px){
+ #swappSocialNative .pulse-dm-audio-controls{padding:13px 12px}
+ #swappSocialNative .pulse-audio-composer-head small{font-size:10px}
+ #swappSocialNative .pulse-audio-composer-head time{font-size:16px}
+ #swappSocialNative .pulse-audio-composer-actions button{flex:1}
+ #swappSocialNative .pulse-call-panel{bottom:calc(80px + env(safe-area-inset-bottom));right:12px}
+}
+
+#swappSocialNative .pulse-call-head{display:flex;gap:11px;align-items:center;padding-bottom:14px;border-bottom:1px solid rgba(178,207,234,.14)}
+#swappSocialNative .pulse-call-head>div{display:grid;gap:4px;min-width:0}
+#swappSocialNative .pulse-call-head strong{display:block;font-weight:850;font-size:16px;letter-spacing:-.035em}
+#swappSocialNative .pulse-call-kicker{font-size:9px;color:var(--swapp-page-accent,#69e4d2);font-weight:800;letter-spacing:.14em}
+#swappSocialNative .pulse-call-symbol{
+ display:grid;place-items:center;width:42px;height:42px;border-radius:10px;flex:0 0 42px;
+ background:rgba(79,214,185,.12);border:1px solid rgba(79,214,185,.35);
+ color:#91f2cc;font-size:25px
+}
+#swappSocialNative .pulse-call-person{
+ display:flex;gap:12px;align-items:center;min-width:0;margin:18px 0 10px;
+ font-size:15px;font-weight:850
+}
+#swappSocialNative .pulse-call-person strong{overflow-wrap:anywhere}
+#swappSocialNative .pulse-call-avatar{
+ width:53px;height:53px;flex:0 0 53px;display:grid;place-items:center;border-radius:12px;
+ background:linear-gradient(135deg,#426079,#1b334b);border:2px solid #6789a6;
+ font-size:23px;font-weight:870;color:#f5faff
+}
+#swappSocialNative .pulse-call-panel[data-call-phase="ringing-in"] .pulse-call-symbol{
+ color:#b8ffd4;background:rgba(66,212,147,.17);border-color:rgba(66,212,147,.5)
+}
+#swappSocialNative .pulse-call-panel[data-call-phase="active"] .pulse-call-avatar{
+ border-color:#6be2ab;box-shadow:0 0 0 3px rgba(107,226,171,.12)
+}
+#swappSocialNative .pulse-call-actions{margin-top:13px}
+#swappSocialNative .pulse-call-actions button{flex:1;min-width:110px}
