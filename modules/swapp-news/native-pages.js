@@ -82,7 +82,10 @@ function immersiveCoverUrl(article){
   return u.protocol==='https:'&&!u.username&&!u.password?u.href:'';
  }catch{return ''}
 }
-function renderNewsStory(article,{baseUrl='https://swapp.tv',relatedArticles=[],gameHubUrl=null}={}){
+function renderNewsStory(originalArticle,{baseUrl='https://swapp.tv',relatedArticles=[],gameHubUrl=null}={}){
+ // Interpret an explicit remaster headline using the Twitch edition identity
+ // without mutating persistent article metadata in the database.
+ const article={...originalArticle,game:require('./game-identity').editorialGame(originalArticle)};
  const url=baseUrl+'/actus/'+encodeURIComponent(article.slug);
  const summary=plainSummary(article);
  const published=article.originalPublishedAt||article.publishedAt;

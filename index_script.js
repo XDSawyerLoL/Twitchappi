@@ -329,7 +329,15 @@ async function loadTeams(){const r=await api('/api/oryon/teams'); $('#teamsList'
 async function createTeam(e){e.preventDefault(); await loadSession(); if(!state.session.local){toast('Compte Swapp requis');return setView('settings')} const r=await api('/api/oryon/teams',{method:'POST',body:JSON.stringify({name:$('#teamName').value,description:$('#teamDesc').value,tags:$('#teamTags').value,logo_url:$('#teamLogo')?.value||''})}); toast(r.success?'Équipe créée':r.error); if(r.success)loadTeams()}
 async function joinTeam(slug){await loadSession(); if(!state.session.local){toast('Compte Swapp requis');return setView('settings')} const r=await api('/api/oryon/teams/'+slug+'/join',{method:'POST'}); toast(r.success?'Équipe rejointe':r.error); loadTeams()}
 async function viewTeam(slug){const r=await api('/api/oryon/teams/'+slug); if(!r.success)return toast(r.error); $('#teamsList').insertAdjacentHTML('afterbegin',`<article class="panel"><div class="row"><img class="teamLogo" src="${esc(r.team.logo_url||'')}" alt=""><div><h2>${esc(r.team.name)}</h2><p>${esc(r.team.description||'')}</p></div></div><p class="small">Membres live : ${(r.live_members||[]).length}</p></article>`)}
-function creatorShell(active,body){const items=[['channel','Ma chaîne'],['manager','Gestionnaire de stream'],['dashboard','Tableau de bord'],['studio','Outils créateur'],['settings','Profil / paramètres']]; return `<div class="creatorLayout"><aside class="creatorSide"><h3>Créer</h3>${items.map(([id,label])=>`<button class="${active===id?'active':''}" onclick="if('${id}'==='channel')state.watchRoom=null;setView('${id}')">${label}</button>`).join('')}<div class="sep"></div><p class="small" style="padding:0 10px">Ces sections sont visibles uniquement avec ton compte Swapp.</p></aside><main>${body}</main></div>`}
+function creatorShell(active,body){
+ const items=[['channel','Ma chaîne'],['manager','Diffuser'],['dashboard','Statistiques'],['studio','Outils'],['settings','Mon compte']];
+ return '<div class="creatorLayout swapp-creator-workspace">'+
+  '<aside class="creatorSide" aria-label="Espace créateur"><div class="swapp-workspace-brand"><small>SWAPP / CRÉATEUR</small><strong>Studio personnel</strong></div>'+
+  '<nav aria-label="Navigation créateur">'+items.map(([id,label])=>
+  '<button type="button" class="'+(active===id?'active':'')+'" aria-current="'+(active===id?'page':'false')+'" onclick="if(\''+id+'\'===\'channel\')state.watchRoom=null;setView(\''+id+'\')">'+label+'</button>').join('')+
+  '</nav><a class="swapp-workspace-exit" href="/mes-jeux">Mes jeux et mes envies ↗</a></aside>'+
+  '<main class="swapp-creator-main">'+body+'</main></div>';
+}
 async function renderChannel(){
  const viewer=state.session.local;
  const targetLogin=(state.watchRoom || viewer?.login || '').toLowerCase();
@@ -398,14 +406,66 @@ async function renderManager(){
 
 function copyText(sel){const el=$(sel); if(!el)return; navigator.clipboard?.writeText(el.textContent||''); toast('Copié')}
 async function regenStreamKey(){const r=await api('/api/oryon/stream-key/regenerate',{method:'POST'}); toast(r.success?'Clé régénérée':r.error); renderManager()}
-async function renderDashboard(){if(!state.session.local){$('#dashboard').innerHTML=authRequired();return} $('#dashboard').innerHTML=creatorShell('dashboard',`<div class="pageHead"><div><h1>Tableau de bord créateur</h1><p>Résumé du stream, progression, objectifs et actions utiles.</p></div><button class="btn" onclick="claimPoints()">Récupérer points</button></div><div id="dashStats" class="stats"></div><div class="managerGrid section"><div class="panel"><h2>Résumé du stream</h2><div id="streamSummary" class="summaryList"></div></div><div class="panel"><h2>Niveau et points</h2><div id="levelBox"></div></div></div><div class="dashGrid section"><div class="panel"><h2>Progression audience / chat / follows</h2><div id="dashChart" class="chart"></div></div><div class="panel"><h2>Conseils actionnables</h2><div id="insights"></div></div></div><div class="three section"><div class="panel"><h2>Meilleurs créneaux</h2><div id="bestSlots"></div></div><div class="panel"><h2>Objectifs</h2><div id="objectives"></div></div><div class="panel"><h2>Historique de streams</h2><div id="streamHistory"></div></div></div>`); await loadDashboard()}
+async function renderDashboard(){
+ if(!state.session.local){$('#dashboard').innerHTML=authRequired();return}
+ $('#dashboard').innerHTML=creatorShell('dashboard',
+  '<header class="pageHead swapp-workspace-heading"><div><span class="swapp-workspace-overline">SWAPP / STATISTIQUES</span>'+
+  '<h1>Tableau de bord</h1><p>Ce qui s’est passé sur ta chaîne, et ce que tu peux améliorer.</p></div>'+
+  '<button class="btn" onclick="claimPoints()">Récupérer mes points</button></header>'+
+  '<section class="swapp-dash-overview"><div id="dashStats" class="stats" aria-label="Indicateurs de la chaîne"></div></section>'+
+  '<div class="swapp-dash-columns">'+
+  '<section class="panel swapp-dash-primary"><h2>Activité de la chaîne</h2><div id="streamSummary" class="summaryList"></div></section>'+
+  '<section class="panel swapp-dash-secondary"><h2>Progression</h2><div id="levelBox"></div></section>'+
+  '<section class="panel swapp-dash-wide"><h2>Audience, messages et abonnements</h2><div id="dashChart" class="chart"></div></section>'+
+  '<section class="panel"><h2>Actions recommandées</h2><div id="insights"></div></section>'+
+  '<section class="panel"><h2>Créneaux de diffusion</h2><div id="bestSlots"></div></section>'+
+  '<section class="panel"><h2>Objectifs</h2><div id="objectives"></div></section>'+
+  '<section class="panel"><h2>Historique</h2><div id="streamHistory"></div></section></div>');
+ await loadDashboard();
+}
 async function loadDashboard(){
- const d=await api('/api/oryon/dashboard/full'); const p=await api('/api/oryon/creator/progression'); if(!d.success){toast(d.error);return} const s=d.stats||{};
- $('#dashStats').innerHTML=[['Followers',s.followers||0],['Suivis',s.following||0],['Score',s.creator_score||0],['Live',s.live?'Oui':'Non']].map(([a,b])=>`<div class="stat"><span class="small">${a}</span><b>${b}</b></div>`).join('');
- $('#streamSummary').innerHTML=[['État',s.live?'En direct':'Hors ligne'],['Après live','Zone préparée pour transformer chaque live en progression concrète : titre, chat, pic, follows, prochaine action.'],['Prochaine action',s.live?'Prépare un raid inversé et surveille le chat':'Prépare titre, catégorie et créneau'],['Priorité Swapp','Régularité, chat sain et découverte des petits créateurs']].map(([a,b])=>`<div class="summaryItem"><b>${a}</b><br><span class="muted">${b}</span></div>`).join('');
- $('#dashChart').innerHTML=(d.history||[]).map(h=>`<div class="bar" style="height:${Math.min(100,12+(h.chat||0))}%"><span>${esc(h.label)}</span></div>`).join('');
- $('#levelBox').innerHTML=`<div class="stat"><span class="small">Niveau</span><b>${p.level||1}</b><p>${p.points||0} points futurs Trade</p><div class="progress"><i style="width:${Math.min(100,((p.points||0)/(p.nextLevelAt||100))*100)}%"></i></div></div><div class="postLiveBox section"><b>Résumé après live préparé</b><p class="small">À la fin d’un live, cette zone pourra convertir les messages, follows et raids inversés en objectifs et points.</p></div>`;
- $('#insights').innerHTML=(d.insights||[]).map(x=>`<p>• ${esc(x)}</p>`).join(''); $('#bestSlots').innerHTML=(d.bestSlots||[]).map(x=>`<p><b>${esc(x.slot)}</b><br><span class="small">${esc(x.why)}</span></p>`).join(''); $('#objectives').innerHTML=(p.objectives||[]).map(o=>`<p>${o.done?'✅':'⬜'} ${esc(o.label)} <span class="small">+${o.points}</span></p>`).join(''); $('#streamHistory').innerHTML=(d.streams||[]).map(x=>`<p><b>${esc(x.title)}</b> — pic ${x.peak}, chat ${x.chat}, follows ${x.follows}</p>`).join('')||'<p class="muted">Aucun historique.</p>'
+ const d=await api('/api/oryon/dashboard/full');
+ const p=await api('/api/oryon/creator/progression').catch(()=>({success:false}));
+ if(!d?.success){
+  const target=$('#dashStats');if(target)target.textContent='Statistiques temporairement indisponibles.';
+  return;
+ }
+ const s=d.stats||{};
+ const stats=[
+  ['Abonnés',Number.isFinite(Number(s.followers))?Math.max(0,Number(s.followers)):0],
+  ['Chaînes suivies',Number.isFinite(Number(s.following))?Math.max(0,Number(s.following)):0],
+  ['Live',s.live?'En direct':'Hors ligne']
+ ];
+ $('#dashStats').innerHTML=stats.map(([label,value])=>
+  '<div class="stat"><span class="small">'+esc(label)+'</span><b>'+esc(String(value))+'</b></div>').join('');
+ $('#streamSummary').innerHTML=[
+  ['Diffusion',s.live?'En direct sur SWAPP':'Aucun direct actif'],
+  ['Audience actuelle',s.live?String(Number(s.live.viewers||0))+' spectateurs mesurés':'Hors ligne'],
+  ['Prochaine action',s.live?'Suivre le chat et les spectateurs réels':'Préparer un titre, un jeu et un créneau']
+ ].map(([label,value])=>
+  '<div class="summaryItem"><b>'+esc(label)+'</b><p class="muted">'+esc(value)+'</p></div>').join('');
+ const progress=p?.success!==false&&Number.isFinite(Number(p?.points))?p:null;
+ const points=progress?Math.max(0,Number(progress.points)):null;
+ const level=progress&&Number.isFinite(Number(progress.level))?Number(progress.level):null;
+ const score=points===null?'Progression temporairement indisponible':
+  'Niveau '+(level??'—')+' · '+points+' points';
+ $('#levelBox').textContent=score;
+ const chart=$('#dashChart');
+ chart.textContent=Array.isArray(d.history)&&d.history.length?
+  'Données historiques disponibles : affichage détaillé en préparation.':
+  'Aucune série historique fiable enregistrée. Les données du live actuel restent disponibles ci-dessus.';
+ $('#insights').innerHTML=(Array.isArray(d.insights)?d.insights:[]).map(x=>'<p>• '+esc(x)+'</p>').join('')||
+  '<p class="muted">Profil et direct déjà configurés. Consulte ton gestionnaire de stream.</p>';
+ $('#bestSlots').textContent=Array.isArray(d.bestSlots)&&d.bestSlots.length?
+  d.bestSlots.map(x=>x.slot).filter(Boolean).join(' · '):
+  'Pas encore de données réelles suffisantes pour conseiller un créneau.';
+ $('#objectives').innerHTML=(Array.isArray(p?.objectives)?p.objectives:[]).map(o=>
+  '<p>'+(o.done?'✓':'○')+' '+esc(o.label||'Objectif')+
+  (Number.isFinite(Number(o.points))?' <span class="small">+'+Number(o.points)+'</span>':'')+'</p>').join('')||
+  '<p class="muted">Aucun objectif actif pour le moment.</p>';
+ $('#streamHistory').textContent=Array.isArray(d.streams)&&d.streams.length?
+  d.streams.map(x=>x.title).filter(Boolean).join(' · '):
+  'Aucune session enregistrée avec des mesures vérifiées. Aucun historique simulé.';
 }
 async function claimPoints(){const r=await api('/api/oryon/creator/progression/claim',{method:'POST'}); toast(r.success?`+${r.gained} points`:r.error); renderDashboard()}
 function renderStudio(){if(!state.session.local){$('#studio').innerHTML=authRequired();return} const sections=['Résumé du stream','Confidentialité','Portail des appels','Émoticônes','Abonnements','Drops et récompenses','Badges de chaîne','Portefeuille','Réglage du contenu','Langue','Modération']; $('#studio').innerHTML=creatorShell('studio',`<div class="pageHead"><div><h1>Outils créateur</h1><p>Chaque section est séparée pour éviter le panneau confus.</p></div></div><div class="sideLayout"><aside class="side">${sections.map((s,i)=>`<button class="${i?'':'active'}" onclick="studioSec(this,'${esc(s)}')">${esc(s)}</button>`).join('')}</aside><div id="studioBody" class="panel"></div></div>`); studioSec(null,sections[0])}
@@ -435,9 +495,54 @@ async function refreshEmoteShelf(login){state.channelEmotes=[]; if(!login)return
 function renderEmoteShelf(){const box=$('#customEmoteShelf'); if(!box)return; const items=state.channelEmotes||[]; box.innerHTML=items.length?`<div class="emoteShelf">${items.map(e=>`<button class="emoteBtn ${e.allowed?'':'locked'}" onclick="selectCustomEmote('${esc(e.code)}')" title=":${esc(e.code)}:"><img src="${esc(e.image_url)}" alt=""><span>:${esc(e.code)}:</span></button>`).join('')}</div>`:'<div class="small">Aucune emote de chaîne.</div>';}
 function toggleEmotes(){const box=$('#customEmoteShelf'); if(!box)return; box.classList.toggle('hidden'); renderEmoteShelf();}
 function selectCustomEmote(code){const e=(state.channelEmotes||[]).find(x=>x.code===code); if(!e)return; if(!e.allowed)return toast(e.gate==='like'?'Aime la chaîne pour utiliser cette emote.':'Suis la chaîne pour utiliser cette emote.'); state.selectedEmote=e; const input=$('#chatInput'); if(input&&!input.value.includes(':'+e.code+':'))input.value=(input.value+' :'+e.code+':').trim(); toast('Emote prête')}
-async function renderSettings(){let u=state.session.local; if(u?.login){try{const pr=await api('/api/oryon/profile/'+encodeURIComponent(u.login)); if(pr.success&&pr.user)u=pr.user;}catch(_){}} $('#settings').innerHTML=`<div class="pageHead"><div><h1>Compte et paramètres</h1><p>Profil Swapp, connexions externes et planning. Twitch, Discord et Google se gèrent ici pour rester liés à ton compte.</p></div></div>${u?profileSettings(u):authSettings()}<div class="two section"><div class="panel"><h2>Connexions externes</h2><div class="summaryList"><div class="summaryItem"><b>Twitch</b><p class="small">${state.session.twitch?'Connecté : '+esc(state.session.twitch.display_name||state.session.twitch.login):'Non connecté. Connecte Twitch pour voir tes suivis en live dans Découvrir.'}</p><div class="row">${state.session.twitch?`<button class="btn secondary" onclick="logoutTwitch()">Déconnecter Twitch</button>`:`<button class="btn" onclick="connectTwitch()">Connecter Twitch</button>`}</div></div><div class="summaryItem"><b>Discord</b><p class="small">Prévu : connexion Discord, rôles communauté et notifications serveur.</p><button class="btn secondary" onclick="toast('Discord sera branché ensuite')">Préparer Discord</button></div><div class="summaryItem"><b>Google</b><p class="small">Prévu : connexion Google pour simplifier la création de compte Swapp.</p><button class="btn secondary" onclick="toast('Connexion Google sera branchée ensuite')">Préparer Google</button></div></div>${u?`<div class="row section"><button class="btn secondary" onclick="logoutOryon()">Déconnecter Swapp</button></div>`:''}</div><div class="panel"><h2>Statut technique</h2><div id="foundationStatus" class="muted">Chargement…</div><p class="small section">Pour éviter de recréer les comptes après redéploiement Render, active une persistance durable : Firebase déjà présent, Supabase/PostgreSQL ou un Render Disk via ORYON_DATA_DIR.</p></div></div><div id="planningSettings" class="section"></div>`; bindSettingsForms(); loadFoundation(); if(u)renderPlanning()}
+async function renderSettings(){
+ let u=state.session.local;
+ if(u?.login){
+  try{const pr=await api('/api/oryon/profile/'+encodeURIComponent(u.login));
+   if(pr.success&&pr.user)u=pr.user
+  }catch(_){}
+ }
+ const top='<header class="pageHead swapp-workspace-heading"><div><span class="swapp-workspace-overline">SWAPP / ESPACE PERSONNEL</span>'+
+  '<h1>Mon compte</h1><p>Profil, chaîne, connexions et prochains lives. Tout au même endroit.</p></div>'+
+  (u?'<div class="swapp-workspace-person"><strong>'+esc(u.display_name||u.login)+'</strong><a href="/'+encodeURIComponent(u.login)+'">Voir ma chaîne ↗</a></div>':'')+
+  '</header>';
+ const quick=u?'<nav class="swapp-workspace-quick" aria-label="Accès direct">'+
+  '<button type="button" onclick="setView(\'manager\')">Diffuser sur SWAPP ↗</button>'+
+  '<button type="button" onclick="setView(\'dashboard\')">Consulter mes statistiques ↗</button>'+
+  '<a href="/mes-jeux">Mes jeux et mes envies ↗</a>'+
+  '<a href="/communaute">SOCIAL ↗</a></nav>':'';
+ const twitch='<section class="swapp-account-connections" aria-label="Connexions">'+
+  '<div><span class="swapp-workspace-overline">CONNEXIONS</span><h2>Services connectés</h2><p>Associe Twitch uniquement si tu veux afficher les chaînes que tu suis.</p></div>'+
+  '<div class="swapp-account-twitch"><div><strong>Twitch</strong><span>'+
+  (state.session.twitch?'Connecté : '+esc(state.session.twitch.display_name||state.session.twitch.login):'Non connecté')+
+  '</span></div><button type="button" class="btn secondary" onclick="'+
+  (state.session.twitch?'logoutTwitch()':'connectTwitch()')+'">'+
+  (state.session.twitch?'Déconnecter':'Connecter Twitch')+'</button></div>'+
+  (u?'<div class="swapp-account-session"><span>Compte SWAPP actif</span><button type="button" class="btn secondary" onclick="logoutOryon()">Se déconnecter</button></div>':'')+'</section>';
+ const foundation='<details class="swapp-workspace-technical"><summary>Diagnostic du compte et des services</summary>'+
+  '<div id="foundationStatus" role="status">Chargement…</div></details>';
+ $('#settings').innerHTML='<div class="swapp-account-workspace">'+top+quick+
+  (u?'<section class="swapp-account-main" aria-label="Profil">'+profileSettings(u)+'</section>':authSettings())+
+  twitch+(u?'<section class="swapp-account-planning" id="planningSettings"></section>':'')+
+  foundation+'</div>';
+ bindSettingsForms();void loadFoundation();if(u)renderPlanning();
+}
 function authSettings(){return `<div class="two"><form id="loginForm" class="panel"><h2>Connexion Swapp</h2><input id="loginName" placeholder="pseudo"><input id="loginPass" type="password" placeholder="mot de passe"><button class="btn section">Se connecter</button></form><form id="registerForm" class="panel"><h2>Créer un compte</h2><input id="regName" placeholder="pseudo"><input id="regEmail" type="email" placeholder="email"><input id="regPass" type="password" placeholder="mot de passe"><button class="btn section">Créer</button></form></div>`}
-function profileSettings(u){return `<form id="profileForm" class="panel"><h2>Profil de chaîne</h2><p class="muted">Ces éléments alimentent ta page chaîne persistante, y compris l’image affichée dans le lecteur quand tu es hors live.</p><div class="two"><input id="profileDisplay" placeholder="Nom affiché" value="${esc(u.display_name||'')}"><input id="profileTags" placeholder="Tags : RP, chill, FR" value="${esc((u.tags||[]).join(', '))}"><textarea id="profileBio" placeholder="Bio">${esc(u.bio||'')}</textarea><div><label class="small">Logo de chaîne</label><input id="avatarFile" type="file" accept="image/*"><input id="profileAvatar" type="hidden" value="${esc(u.avatar_url||'')}"><label class="small">Bannière de chaîne</label><input id="bannerFile" type="file" accept="image/*"><input id="profileBanner" type="hidden" value="${esc(u.banner_url||'')}"><label class="small">Image hors live du lecteur</label><input id="offlineFile" type="file" accept="image/*"><input id="profileOffline" type="hidden" value="${esc(u.offline_image_url||'')}"></div></div><button class="btn section">Sauvegarder</button></form>`}
+function profileSettings(u){
+ return '<form id="profileForm" class="panel swapp-profile-editor">'+
+ '<header class="swapp-profile-heading"><div><span class="swapp-workspace-overline">IDENTITÉ DE CHAÎNE</span><h2>Personnaliser mon profil</h2>'+
+ '<p>Ces informations sont visibles sur ta chaîne SWAPP.</p></div><button type="submit" class="btn">Enregistrer les changements</button></header>'+
+ '<div class="swapp-profile-fields">'+
+ '<label for="profileDisplay">Nom affiché<input id="profileDisplay" maxlength="80" value="'+esc(u.display_name||'')+'" placeholder="Nom de chaîne"></label>'+
+ '<label for="profileTags">Tags<input id="profileTags" maxlength="240" value="'+esc((u.tags||[]).join(', '))+'" placeholder="RP, chill, français"></label>'+
+ '<label class="swapp-profile-bio" for="profileBio">Présentation<textarea id="profileBio" maxlength="1000" rows="4" placeholder="Présente ton univers">'+esc(u.bio||'')+'</textarea></label>'+
+ '</div>'+
+ '<div class="swapp-profile-media">'+
+ '<div><label for="avatarFile">Avatar de la chaîne</label><p>Image de profil</p><input id="avatarFile" type="file" accept="image/*"><input id="profileAvatar" type="hidden" value="'+esc(u.avatar_url||'')+'"></div>'+
+ '<div><label for="bannerFile">Bannière</label><p>En haut de la chaîne</p><input id="bannerFile" type="file" accept="image/*"><input id="profileBanner" type="hidden" value="'+esc(u.banner_url||'')+'"></div>'+
+ '<div><label for="offlineFile">Image hors ligne</label><p>Affichée quand le live est arrêté</p><input id="offlineFile" type="file" accept="image/*"><input id="profileOffline" type="hidden" value="'+esc(u.offline_image_url||'')+'"></div>'+
+ '</div></form>';
+}
 async function loadFoundation(){const r=await api('/api/oryon/foundation/status'); $('#foundationStatus').innerHTML=r.success?`Persistance : <b>${esc(r.persistence.mode)}</b><br>${esc(r.persistence.note)}<br>Admin : <b>config Render</b>`:'Indisponible'}
 function bindSettingsForms(){const lf=$('#loginForm'); if(lf)lf.onsubmit=async e=>{e.preventDefault(); const r=await api('/api/oryon/login',{method:'POST',body:JSON.stringify({login:$('#loginName').value,password:$('#loginPass').value})}); toast(r.success?'Connecté':r.error); if(r.success){if(state.socket){state.socket.disconnect();state.socket=null;state.socketLogin=null} await loadSession();setView('home')}}; const rf=$('#registerForm'); if(rf)rf.onsubmit=async e=>{e.preventDefault(); const r=await api('/api/oryon/register',{method:'POST',body:JSON.stringify({login:$('#regName').value,email:$('#regEmail').value,password:$('#regPass').value})}); toast(r.success?'Compte créé':r.error); if(r.success){if(state.socket){state.socket.disconnect();state.socket=null;state.socketLogin=null} await loadSession();state.watchRoom=null;setView('channel')}}; const pf=$('#profileForm'); if(pf){fileToData($('#avatarFile'),$('#profileAvatar')); fileToData($('#bannerFile'),$('#profileBanner')); fileToData($('#offlineFile'),$('#profileOffline')); pf.onsubmit=async e=>{e.preventDefault(); const prev=await api('/api/oryon/profile/'+encodeURIComponent(state.session.local?.login||'')); const cur=prev.user||{}; const r=await api('/api/oryon/profile',{method:'POST',body:JSON.stringify({display_name:$('#profileDisplay').value,bio:$('#profileBio').value,avatar_url:$('#profileAvatar').value,banner_url:$('#profileBanner').value,offline_image_url:$('#profileOffline').value,tags:$('#profileTags').value,channel_badges:cur.channel_badges||[],peertube_watch_url:'',peertube_embed_url:'',oryon_local_player_url:cur.oryon_local_player_url||state.channelProfile?.oryon_local_player_url||'',oryon_local_status_url:cur.oryon_local_status_url||state.channelProfile?.oryon_local_status_url||''})}); toast(r.success?'Profil sauvegardé':r.error); await loadSession(); renderSettings()}}}
 function fileToData(input,target){if(!input)return; input.onchange=()=>{const f=input.files[0]; if(!f)return; compressImage(f).then(data=>{target.value=data; toast('Image prête. Clique sur Sauvegarder.')}).catch(()=>toast('Image non lisible.'))}}

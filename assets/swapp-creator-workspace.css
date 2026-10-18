@@ -1,0 +1,164 @@
+/* SWAPP CREATOR WORKSPACE — one continuous interface, not a stack of rounded widgets.
+   Preserves the existing forms, OBS controls, stat IDs, navigation and user themes. */
+:root{--swapp-workspace-line:rgba(172,199,221,.2);--swapp-workspace-type:#f6f9ff;--swapp-workspace-muted:#adbdce;--swapp-workspace-accent:var(--swapp-side-light,var(--brand,#88d9e3))}
+#settings.view.active,#dashboard.view.active,#manager.view.active,#studio.view.active{min-width:0;padding-bottom:80px;color:var(--swapp-workspace-type)}
+#settings .swapp-account-workspace,
+#settings>.two,
+#dashboard .swapp-creator-workspace,
+#manager .swapp-creator-workspace,
+#studio .swapp-creator-workspace{
+ width:min(1440px,calc(100% - clamp(28px,5vw,100px)))!important;
+ max-width:none!important;
+ margin:0 auto;
+}
+#settings .swapp-account-workspace{display:flex;flex-direction:column;gap:0;padding-top:clamp(30px,4vw,66px)}
+#settings .swapp-workspace-overline,
+.swapp-creator-workspace .swapp-workspace-overline{display:block;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--swapp-workspace-accent);font-weight:850;margin-bottom:10px}
+#settings .swapp-workspace-heading,
+.swapp-creator-workspace .swapp-workspace-heading{display:flex;justify-content:space-between;align-items:end;gap:24px;margin:0;padding:0 0 clamp(26px,3vw,44px)!important;border-bottom:1px solid var(--swapp-workspace-line)}
+#settings .swapp-workspace-heading h1,
+.swapp-creator-workspace .swapp-workspace-heading h1{
+ font-size:clamp(38px,5.3vw,74px)!important;letter-spacing:-.07em!important;line-height:1!important;margin:0 0 12px!important;font-weight:900!important;
+}
+#settings .swapp-workspace-heading p,
+.swapp-creator-workspace .swapp-workspace-heading p{margin:0!important;max-width:720px;font-size:clamp(14px,1.4vw,17px);color:var(--swapp-workspace-muted);line-height:1.65}
+#settings .swapp-workspace-person{display:flex;flex-direction:column;gap:8px;flex:none;align-items:flex-end;padding-bottom:4px}
+#settings .swapp-workspace-person strong{font-size:15px}
+#settings .swapp-workspace-person a{font-size:12px;color:var(--swapp-workspace-accent);text-decoration:underline;text-underline-offset:4px}
+#settings .swapp-workspace-quick{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;border-bottom:1px solid var(--swapp-workspace-line);min-width:0}
+#settings .swapp-workspace-quick :is(a,button){background:transparent!important;background-image:none!important;box-shadow:none!important;min-height:70px;color:#e9f3fb!important;font-weight:800;font-size:13px;line-height:1.4;padding:16px 12px;text-align:left;border:0!important;border-right:1px solid var(--swapp-workspace-line)!important;border-radius:0!important;display:flex;align-items:center;justify-content:space-between;transition:background .15s}
+#settings .swapp-workspace-quick :is(a,button):last-child{border-right:0!important}
+#settings .swapp-workspace-quick :is(a,button):hover{background:rgba(128,206,224,.08)!important}
+#settings .swapp-account-main{padding:clamp(32px,4vw,57px) 0}
+#settings .swapp-profile-editor{border:0!important;background:none!important;background-image:none!important;border-radius:0!important;box-shadow:none!important;padding:0!important}
+#settings .swapp-profile-heading{display:flex;align-items:start;justify-content:space-between;gap:24px;margin-bottom:27px}
+#settings .swapp-profile-heading h2,
+#settings .swapp-account-connections h2,
+#settings #planningSettings h2{font-size:clamp(23px,2.6vw,35px)!important;line-height:1.16;letter-spacing:-.045em;margin:0 0 8px!important;font-weight:850!important}
+#settings .swapp-profile-heading p,
+#settings .swapp-account-connections p{color:var(--swapp-workspace-muted);font-size:13px;line-height:1.6;margin:0}
+#settings .swapp-profile-heading .btn{flex:none;min-height:44px}
+#settings .swapp-profile-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:21px 25px;margin-bottom:31px}
+#settings .swapp-profile-fields>label{display:flex;flex-direction:column;gap:9px;color:#cbd7e4;font-size:12px;font-weight:780;letter-spacing:.035em}
+#settings .swapp-profile-fields>label.swapp-profile-bio{grid-column:1/-1}
+#settings .swapp-profile-fields :is(input,textarea),
+#settings #planningSettings :is(input,select,textarea),
+#settings .swapp-profile-media input[type=file]{
+ width:100%;background:#101b2b!important;color:#f6fbff!important;border:1px solid #5b6c816b!important;border-radius:5px!important;box-shadow:none!important;padding:12px 14px!important;min-height:48px;font:inherit;
+}
+#settings .swapp-profile-fields textarea{min-height:135px;resize:vertical}
+#settings .swapp-profile-fields :is(input,textarea):focus,
+#settings #planningSettings input:focus{outline:2px solid var(--swapp-workspace-accent);outline-offset:1px}
+#settings .swapp-profile-media{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;border-top:1px solid var(--swapp-workspace-line);border-bottom:1px solid var(--swapp-workspace-line)}
+#settings .swapp-profile-media>div{padding:24px 22px;border-right:1px solid var(--swapp-workspace-line);min-width:0}
+#settings .swapp-profile-media>div:first-child{padding-left:0}
+#settings .swapp-profile-media>div:last-child{border-right:0}
+#settings .swapp-profile-media label{display:block;font-weight:820;font-size:15px;margin-bottom:5px}
+#settings .swapp-profile-media p{margin:0 0 15px;color:var(--swapp-workspace-muted);font-size:12px}
+#settings .swapp-profile-media input[type=file]{min-height:40px;font-size:11px}
+#settings .swapp-account-connections{display:grid;grid-template-columns:minmax(200px,.78fr) minmax(0,1.22fr);gap:35px;padding:35px 0 40px;border-bottom:1px solid var(--swapp-workspace-line);border-top:1px solid var(--swapp-workspace-line)}
+#settings .swapp-account-twitch,#settings .swapp-account-session{grid-column:2;display:flex;align-items:center;justify-content:space-between;gap:24px;min-width:0}
+#settings .swapp-account-twitch{border-bottom:1px solid var(--swapp-workspace-line);padding-bottom:17px}
+#settings .swapp-account-twitch>div{display:grid;gap:5px}
+#settings .swapp-account-twitch strong{font-size:15px}
+#settings .swapp-account-twitch span,#settings .swapp-account-session span{font-size:12px;color:var(--swapp-workspace-muted)}
+#settings .swapp-account-session{padding-top:2px}
+#settings .swapp-workspace-technical{margin-top:38px;color:var(--swapp-workspace-muted);font-size:12px;border-top:1px solid var(--swapp-workspace-line);padding-top:18px}
+#settings .swapp-workspace-technical summary{cursor:pointer;list-style:revert;color:#bcc9d6;font-weight:650}
+#settings .swapp-workspace-technical>div{margin-top:14px;line-height:1.8}
+#settings .swapp-account-planning{padding:45px 0 22px}
+#settings #planningSettings>.panel{margin:0;border:0!important;border-radius:0!important;background:none!important;box-shadow:none!important;padding:0!important}
+#settings #planningSettings .pageHead{border-bottom:1px solid var(--swapp-workspace-line);padding-bottom:18px!important;margin-bottom:20px!important}
+#settings #planningSettings .plannerForm{display:grid;grid-template-columns:2fr 1fr 1fr 1.3fr auto;gap:9px}
+#settings #planningSettings .planningTimeline{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1px;background:var(--swapp-workspace-line)}
+#settings #planningSettings .planCard,#settings #planningSettings .card{border:0!important;border-radius:0!important;background:#121e2d!important;box-shadow:none!important;margin:0!important}
+#settings #planningSettings .planCard:before{display:none!important}
+#settings .btn,.swapp-creator-workspace .btn{border-radius:5px!important;box-shadow:none!important;min-height:42px}
+#settings .swapp-account-workspace>.two{gap:22px;margin:38px 0}
+#settings .swapp-account-workspace>.two>.panel{border-radius:6px!important;background:#172236!important;padding:28px!important}
+/* A consistent rail across Manager, Statistics and Studio; the account page uses top shortcuts. */
+.swapp-creator-workspace.creatorLayout{display:grid!important;grid-template-columns:225px minmax(0,1fr)!important;gap:clamp(24px,4.2vw,70px)!important;align-items:start;padding-top:clamp(22px,3.5vw,50px)}
+.swapp-creator-workspace>.creatorSide{position:sticky!important;top:90px;display:flex!important;flex-direction:column;gap:0;padding:4px 0 0!important;min-width:0;border:0!important;border-right:1px solid var(--swapp-workspace-line)!important;border-radius:0!important;box-shadow:none!important;background:none!important;overflow:visible!important;max-height:calc(100svh - 110px);overflow-y:auto!important}
+.swapp-creator-workspace .swapp-workspace-brand{display:flex;flex-direction:column;gap:8px;padding:0 15px 28px 0;border-bottom:1px solid var(--swapp-workspace-line);margin-bottom:9px}
+.swapp-creator-workspace .swapp-workspace-brand small{font-size:10px;letter-spacing:.17em;color:var(--swapp-workspace-accent);font-weight:820}
+.swapp-creator-workspace .swapp-workspace-brand strong{font-size:20px;letter-spacing:-.05em}
+.swapp-creator-workspace .creatorSide nav{display:flex;flex-direction:column;gap:0}
+.swapp-creator-workspace .creatorSide button{border:0!important;border-radius:0!important;box-shadow:none!important;background:none!important;color:#b5c5d8!important;font-weight:740;text-align:left!important;padding:14px 15px 14px 11px!important;min-height:47px;border-left:2px solid transparent!important;transition:background-color .15s}
+.swapp-creator-workspace .creatorSide button.active,.swapp-creator-workspace .creatorSide button[aria-current=page]{background:rgba(112,215,222,.085)!important;border-left-color:var(--swapp-workspace-accent)!important;color:#fff!important}
+.swapp-creator-workspace .creatorSide button:hover{background:#ffffff0a!important;color:white!important}
+.swapp-creator-workspace .swapp-workspace-exit{display:block;margin:22px 15px 0 0;padding-top:18px;border-top:1px solid var(--swapp-workspace-line);color:var(--swapp-workspace-accent);font-size:12px;font-weight:750}
+.swapp-creator-workspace>.swapp-creator-main{min-width:0;width:100%;padding:0!important;margin:0!important}
+.swapp-creator-workspace .panel,.swapp-creator-workspace .modeCard,.swapp-creator-workspace .summaryItem,.swapp-creator-workspace .stat,
+.swapp-creator-workspace .postLiveBox,.swapp-creator-workspace .obsBox{
+ border-radius:0!important;box-shadow:none!important;background-image:none!important;
+}
+.swapp-creator-workspace .panel{background:#141f2c!important;border:1px solid var(--swapp-workspace-line)!important;padding:clamp(16px,2vw,27px)!important;min-width:0}
+.swapp-creator-workspace .panel h2,.swapp-creator-workspace .obsBox h2{font-size:clamp(18px,2vw,25px);letter-spacing:-.035em;line-height:1.25;margin:0 0 16px}
+.swapp-creator-workspace .stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--swapp-workspace-line);margin:0}
+.swapp-creator-workspace .stat{display:flex;flex-direction:column;gap:8px;min-width:0;padding:19px 20px!important;background:#152132!important;border:0!important}
+.swapp-creator-workspace .stat b{font-size:clamp(22px,2.7vw,38px);font-weight:850;letter-spacing:-.055em}
+.swapp-creator-workspace .stat .small,.swapp-creator-workspace .summaryItem .small{font-size:12px;color:var(--swapp-workspace-muted)}
+.swapp-creator-workspace .summaryList{display:flex;flex-direction:column;gap:0!important}
+.swapp-creator-workspace .summaryItem{padding:15px 0!important;background:transparent!important;border:0!important;border-bottom:1px solid var(--swapp-workspace-line)!important;margin:0!important}
+.swapp-creator-workspace .summaryItem:last-child{border-bottom:0!important}
+.swapp-creator-workspace .summaryItem p{color:var(--swapp-workspace-muted);line-height:1.55}
+#dashboard .swapp-dash-overview{margin:26px 0 28px}
+#dashboard .swapp-dash-overview .stats{grid-template-columns:repeat(3,minmax(0,1fr))}
+#dashboard .swapp-dash-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--swapp-workspace-line);border:1px solid var(--swapp-workspace-line)}
+#dashboard .swapp-dash-columns>.panel{border:0!important;margin:0!important;min-height:180px}
+#dashboard .swapp-dash-columns>.swapp-dash-wide{grid-column:1/-1}
+#dashboard .swapp-dash-columns .chart{height:170px;display:flex;align-items:end;gap:6px;padding:12px 5px 24px;overflow:hidden}
+#dashboard .swapp-dash-columns .chart .bar{min-width:9px;max-width:52px;flex:1;border-radius:2px 2px 0 0}
+#manager .streamModeGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px!important;background:var(--swapp-workspace-line)}
+#manager .modeCard{background:#151f2f!important;border:0!important;padding:20px!important}
+#manager .managerHero{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(280px,.8fr);gap:1px;background:var(--swapp-workspace-line)}
+#manager .managerHero>.panel,#manager .managerHero>.obsBox{min-width:0;margin:0;border:0!important;background:#131f30!important;padding:clamp(18px,2vw,26px)!important}
+#manager .managerPreview,#manager .managerPreview .player{border-radius:5px!important;overflow:hidden}
+#studio .sideLayout{display:grid;grid-template-columns:220px minmax(0,1fr);gap:1px;background:var(--swapp-workspace-line)}
+#studio .sideLayout>.side{padding:10px!important;display:flex;flex-direction:column;background:#141f2c!important;gap:0}
+#studio .sideLayout>.side button{border-radius:0!important;background:none!important;box-shadow:none!important;text-align:left;padding:12px 10px!important}
+#studio .sideLayout>.side button.active{border-left:2px solid var(--swapp-workspace-accent);background:#ffffff12!important}
+#studio .sideLayout>.panel{margin:0;border:0!important}
+#settings :is(a,button,input,textarea,select,summary):focus-visible,
+.swapp-creator-workspace :is(a,button,input,textarea,select):focus-visible{outline:2px solid var(--swapp-workspace-accent)!important;outline-offset:3px}
+@media(max-width:1050px){
+ #settings .swapp-profile-media{grid-template-columns:1fr}
+ #settings .swapp-profile-media>div,#settings .swapp-profile-media>div:first-child{padding:16px 0;border:0;border-bottom:1px solid var(--swapp-workspace-line)}
+ #settings #planningSettings .plannerForm{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .swapp-creator-workspace.creatorLayout{grid-template-columns:170px minmax(0,1fr)!important;gap:22px!important}
+ #manager .managerHero{grid-template-columns:1fr}
+}
+@media(max-width:720px){
+ #settings .swapp-workspace-heading,.swapp-creator-workspace .swapp-workspace-heading{align-items:flex-start;flex-wrap:wrap;gap:18px}
+ #settings .swapp-workspace-person{align-items:flex-start}
+ #settings .swapp-workspace-quick{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #settings .swapp-workspace-quick :is(a,button){min-height:58px;border-bottom:1px solid var(--swapp-workspace-line)!important}
+ #settings .swapp-workspace-quick :is(a,button):nth-child(2n){border-right:0!important}
+ #settings .swapp-profile-heading{flex-direction:column}
+ #settings .swapp-profile-fields{grid-template-columns:1fr;gap:15px}
+ #settings .swapp-account-connections{grid-template-columns:1fr;gap:20px}
+ #settings .swapp-account-twitch,#settings .swapp-account-session{grid-column:1}
+ #settings #planningSettings .plannerForm{grid-template-columns:1fr}
+ .swapp-creator-workspace.creatorLayout{display:flex!important;flex-direction:column;padding-top:18px;gap:22px!important}
+ .swapp-creator-workspace>.creatorSide{position:static!important;overflow:visible!important;max-height:none;width:100%;border-right:0!important}
+ .swapp-creator-workspace .swapp-workspace-brand{padding-bottom:12px}
+ .swapp-creator-workspace .creatorSide nav{flex-direction:row;overflow-x:auto;gap:0;padding-bottom:4px}
+ .swapp-creator-workspace .creatorSide button{flex:none;white-space:nowrap;border-left:0!important;border-bottom:2px solid transparent!important}
+ .swapp-creator-workspace .creatorSide button.active{border-left:0!important;border-bottom-color:var(--swapp-workspace-accent)!important}
+ .swapp-creator-workspace .swapp-workspace-exit{margin:12px 0}
+ #dashboard .swapp-dash-columns{grid-template-columns:1fr}
+ #dashboard .swapp-dash-overview .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #dashboard .swapp-dash-columns>.swapp-dash-wide{grid-column:1}
+ .swapp-creator-workspace .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #manager .streamModeGrid{grid-template-columns:1fr}
+ #studio .sideLayout{grid-template-columns:1fr}
+ #studio .sideLayout>.side{max-height:170px;overflow-y:auto}
+}
+@media(max-width:390px){
+ #settings .swapp-workspace-quick{grid-template-columns:1fr}
+ #settings .swapp-workspace-quick :is(a,button){border-right:0!important}
+ #settings .swapp-account-twitch,#settings .swapp-account-session{flex-wrap:wrap}
+}
+@media(prefers-reduced-motion:reduce){
+ #settings .swapp-workspace-quick :is(a,button),.swapp-creator-workspace .creatorSide button{transition:none!important}
+}

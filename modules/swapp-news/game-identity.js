@@ -1,6 +1,8 @@
 'use strict';
 // Conservative aliases only: never infer a game from an unrelated article title.
 const aliases=[
+ ['The Witcher 3: Wild Hunt Remastered',['The Witcher 3 Remastered','Witcher 3 Remastered','The Witcher III Remastered','Witcher III Remastered','The Witcher 3 Wild Hunt Remastered','The Witcher III: Wild Hunt Remastered']],
+ ['The Witcher 3: Wild Hunt',['The Witcher 3','Witcher 3','The Witcher III','The Witcher 3 Wild Hunt','Witcher 3 Wild Hunt']],
  ['Grand Theft Auto VI',['GTA 6','GTA6','GTA VI','Grand Theft Auto 6']],
  ['Planet Zoo 2',['Planet Zoo II']],
  ['007 First Light',['James Bond 007 First Light','007: First Light']],
@@ -13,4 +15,13 @@ const aliases=[
 const normalize=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
 const equivalent=(a,b)=>{const x=normalize(a),y=normalize(b);if(!x||!y)return false;if(x===y)return true;return aliases.some(group=>{const names=[group[0],...group[1]].map(normalize);return names.includes(x)&&names.includes(y)})};
 const searchNames=game=>{const n=normalize(game);const group=aliases.find(g=>[g[0],...g[1]].some(x=>normalize(x)===n));return group?[group[0],...group[1]].filter((v,i,a)=>a.indexOf(v)===i):[String(game||'').trim()]};
-module.exports={normalize,equivalent,searchNames};
+function editorialGame(article={}){
+ const original=String(article.game||'').trim(),title=normalize(article.title||'');
+ const legacy=new Set(['the witcher 3','witcher 3','the witcher 3 wild hunt','the witcher iii']);
+ const hasRemaster=/(?:the )?witcher (?:3|iii)(?: wild hunt)? remaster(?:ed)?/.test(title);
+ if(hasRemaster&&(!original||legacy.has(normalize(original))||
+   equivalent(original,'The Witcher 3: Wild Hunt Remastered')))
+  return 'The Witcher 3: Wild Hunt Remastered';
+ return original;
+}
+module.exports={normalize,equivalent,searchNames,editorialGame};

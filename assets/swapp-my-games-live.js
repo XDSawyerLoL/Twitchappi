@@ -9,6 +9,8 @@
  const aliases=[
   ['Grand Theft Auto VI','GTA 6','GTA6','GTA VI','Grand Theft Auto 6'],
   ['Planet Zoo 2','Planet Zoo II'],
+  ['The Witcher 3: Wild Hunt Remastered','The Witcher 3 Remastered','Witcher 3 Remastered','The Witcher III Remastered'],
+  ['The Witcher 3: Wild Hunt','The Witcher 3','Witcher 3'],
   ['007 First Light','James Bond 007 First Light','007: First Light'],
   ['Assassin’s Creed Black Flag','Assassins Creed IV Black Flag','Assassin’s Creed IV: Black Flag','Assassin\'s Creed Black Flag'],
   ['Final Fantasy VII','Final Fantasy 7','FF7'],
@@ -41,6 +43,7 @@
     viewers:Number.isFinite(Number(row.viewer_count))&&Number(row.viewer_count)>0?Math.floor(Number(row.viewer_count)):null
    });
   }
+  result.coverage=String(payload.coverage||'unknown');
   return result;
  }
  function curateLiveRows(batches,max=8){
@@ -138,6 +141,7 @@
    if(refresh)refresh.disabled=false;
    if(more)more.disabled=false;
    const succeeded=settled.filter(x=>x.status==='fulfilled').length;
+   const coverage=settled.filter(x=>x.status==='fulfilled').map(x=>x.value.coverage);
    const rows=curateLiveRows(settled.filter(x=>x.status==='fulfilled').map(x=>x.value));
    results.replaceChildren(...rows.map(liveCard));
    const nativeCount=rows.filter(native).length,twitchCount=rows.length-nativeCount;
@@ -145,7 +149,11 @@
     lastSignature='';
     label('Les directs sont indisponibles pour le moment. Utilise « Actualiser les directs » pour réessayer.');
    }else if(!rows.length){
-    label('Aucun direct confirmé pour ces '+slice.length+' jeux actuellement.'+
+    label(coverage.includes('native-only')?
+     'Recherche Twitch non configurée : des directs peuvent exister sur tes jeux.':
+     coverage.includes('partial')?
+     'Recherche partielle : les directs Twitch ne sont pas tous accessibles.':
+     'Aucun direct confirmé sur ces '+slice.length+' jeux dans les résultats disponibles.'+
      (succeeded<slice.length?' Certaines sources sont indisponibles.':''));
    }else{
     label(rows.length+' direct'+(rows.length>1?'s':'')+' confirmé'+(rows.length>1?'s':'')+

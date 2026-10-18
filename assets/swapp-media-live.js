@@ -18,6 +18,8 @@
   const aliases=[
     ['Grand Theft Auto VI','GTA 6','GTA6','GTA VI','Grand Theft Auto 6'],
     ['Planet Zoo 2','Planet Zoo II'],
+    ['The Witcher 3: Wild Hunt Remastered','The Witcher 3 Remastered','Witcher 3 Remastered','The Witcher III Remastered'],
+    ['The Witcher 3: Wild Hunt','The Witcher 3','Witcher 3'],
     ['007 First Light','James Bond 007 First Light','007: First Light'],
     ['Assassin’s Creed Black Flag','Assassins Creed IV Black Flag','Assassin’s Creed IV: Black Flag','Assassin\'s Creed Black Flag'],
     ['Final Fantasy VII','Final Fantasy 7','FF7'],
@@ -68,6 +70,8 @@
       button.onclick=()=>{
         button.disabled=true;
         message(shelf,'Nouvelle tentative…');
+        const game=String(shelf.dataset.game||'').trim();
+        if(game)requests.delete(normal(game));
         renderShelf(shelf);
       };
       target.appendChild(button);
@@ -86,7 +90,11 @@
          if(!response.ok)throw Error('HTTP '+response.status);
          const payload=await response.json();
          if(!payload.success||!Array.isArray(payload.items)||!gameMatch(payload.game,game))throw Error('invalid_game_results');
-         return payload.items.filter(item=>gameMatch(game,item.game_name||item.category||item.game));
+         const verified=payload.items.filter(item=>gameMatch(game,item.game_name||item.category||item.game));
+         // Do not convert an unavailable Twitch integration into a false
+         // claim that no streamer is live.
+         verified.coverage=String(payload.coverage||'unknown');
+         return verified;
        }).catch(error=>{requests.delete(key);throw error;}));
     }
     return requests.get(key);
@@ -125,9 +133,13 @@
       if(!shelf.isConnected)return;
       const cards=validUnique(data,game?4:6,game);
       if(cards.length){target.replaceChildren(...cards);return;}
-      message(shelf,game?
-       'Aucun créateur en direct confirmé sur '+game+' pour le moment. Découvre les autres lives SWAPP.':
-       'Aucun live public disponible pour le moment.');
+      const coverage=Array.isArray(data)?data.coverage:'';
+      const failure=coverage==='native-only'?
+       'Les directs SWAPP ont été vérifiés, mais la recherche Twitch est indisponible : des chaînes peuvent être en direct sur '+game+'.':
+       coverage==='partial'?
+       'Recherche partielle sur '+game+' : Twitch n’a pas pu être interrogé complètement.':
+       'Aucun créateur confirmé pour '+game+' dans les résultats vérifiés. Réessaie pour actualiser.';
+      message(shelf,game?failure:'Aucun live public disponible pour le moment.',{retry:!!game});
     }catch{
       if(shelf.isConnected)message(shelf,game?
        'Les lives de '+game+' sont momentanément indisponibles. Les articles restent accessibles.':

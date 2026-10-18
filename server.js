@@ -5501,17 +5501,33 @@ app.post('/api/oryon/support/first/:login', (req,res)=>{
 
 app.get('/api/oryon/dashboard/full', (req,res)=>{
   try{
-    const cur=req.session?.oryonUser; if(!cur?.id) return res.status(401).json({success:false,error:'Compte Oryon requis.'});
-    const data=readOryonUsers(); const user=data.users.find(u=>u.id===cur.id)||cur; const room=nativeLiveRooms.get(user.login); const live=room?nativeStatsPayload(user.login,room):null;
-    const followers=Number(user.followers_count||0); const following=Array.isArray(user.following)?user.following.length:0; const history=syntheticHistory((followers+following+String(user.login).length)||1);
-    const creator_score=Math.min(100, Math.round(32+followers*2+following+((live?.oryon_score||0)*.45)));
-    const bestSlots=[{slot:'20h30 – 22h30',why:'Meilleure zone FR grand public'},{slot:'Dimanche 17h – 19h',why:'Bon créneau communautaire'},{slot:'Mardi 21h',why:'Moins saturé que le week-end'}];
-    const insights=[]; if(!live) insights.push('Lance un live court avec une catégorie précise : Oryon remonte plus facilement les niches.'); if(live && live.chat_messages<5) insights.push('Ton chat est calme : pose une question simple toutes les 10 minutes.'); insights.push('Évite les titres génériques. Promesse claire = meilleur taux de clic.'); insights.push('Prépare un raid inversé vers un créateur sous 20 viewers en fin de live.');
-    const h=history.at(-1)||{viewers:0,chat:0,follows:0}; const streams=[{date:new Date(Date.now()-86400000).toLocaleDateString('fr-FR'),title:'Dernière session',avg:Math.max(1,h.viewers),peak:Math.max(3,h.viewers+5),chat:h.chat,follows:h.follows}];
-    res.json({success:true,stats:{followers,following,creator_score,live},history,bestSlots,insights,streams,tasks:[{done:!!user.avatar_url,label:'Ajouter un logo de chaîne'},{done:!!user.banner_url,label:'Ajouter une bannière'},{done:!!user.bio,label:'Écrire une bio claire'},{done:!!live,label:'Lancer un live natif'}]});
-  }catch(e){ res.status(500).json({success:false,error:e.message}); }
+    const cur=req.session?.oryonUser;
+    if(!cur?.id)return res.status(401).json({success:false,error:'Compte SWAPP requis.'});
+    const data=readOryonUsers();
+    const user=data.users.find(u=>u.id===cur.id)||cur;
+    const room=nativeLiveRooms.get(user.login);
+    const live=room?nativeStatsPayload(user.login,room):null;
+    const followers=Math.max(0,Number(user.followers_count||0));
+    const following=Array.isArray(user.following)?user.following.length:0;
+    // No synthetic stream history, fake last live or invented "best hour".
+    // Until actual per-channel metrics are persisted, show an honest empty state.
+    const insights=[];
+    if(!user.bio)insights.push('Ajoute une présentation à ta chaîne pour expliquer ton univers.');
+    if(!user.banner_url)insights.push('Ajoute une bannière à ta chaîne SWAPP.');
+    if(!live)insights.push('Prépare le titre et la catégorie de ton prochain direct.');
+    if(live&&Number(live.chat_messages||0)===0)insights.push('Ton direct est actif. Accueille tes premiers messages dans le chat.');
+    const tasks=[
+      {done:!!user.avatar_url,label:'Ajouter un logo de chaîne'},
+      {done:!!user.banner_url,label:'Ajouter une bannière'},
+      {done:!!user.bio,label:'Écrire une bio claire'},
+      {done:!!live,label:'Être actuellement en direct'}
+    ];
+    res.set('Cache-Control','private, no-store');
+    res.json({success:true,stats:{followers,following,creator_score:null,live},
+     history:[],bestSlots:[],insights,streams:[],tasks,
+     dataQuality:{streamHistory:'not_recorded',audienceChart:'not_recorded',bestSlots:'not_recorded'}});
+  }catch(e){res.status(500).json({success:false,error:'Tableau de bord indisponible.'})}
 });
-
 app.get('/api/oryon/moderation/:room',(req,res)=>{ const cur=req.session?.oryonUser; if(!cur?.id) return res.status(401).json({success:false,error:'Compte Oryon requis.'}); const room=normalizeOryonLogin(req.params.room); if(cur.login!==room) return res.status(403).json({success:false,error:'Accès refusé.'}); const {state}=getModState(room); res.json({success:true,state}); });
 app.post('/api/oryon/moderation/:room',(req,res)=>{ const cur=req.session?.oryonUser; if(!cur?.id) return res.status(401).json({success:false,error:'Compte Oryon requis.'}); const room=normalizeOryonLogin(req.params.room); if(cur.login!==room) return res.status(403).json({success:false,error:'Accès refusé.'}); const {data,state}=getModState(room); const action=String(req.body?.action||''); const target=normalizeOryonLogin(req.body?.target||''); if(action==='ban'&&target&&!state.banned.includes(target)) state.banned.push(target); if(action==='unban'&&target) state.banned=state.banned.filter(x=>x!==target); if(action==='mute'&&target&&!state.muted.includes(target)) state.muted.push(target); if(action==='unmute'&&target) state.muted=state.muted.filter(x=>x!==target); if(action==='words') state.blocked_words=String(req.body?.blocked_words||'').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean).slice(0,100); writeJsonSafe(oryonModFile,data); res.json({success:true,state}); });
 app.get('/api/oryon/notifications',(req,res)=>{ const cur=req.session?.oryonUser; if(!cur?.id) return res.status(401).json({success:false,error:'Compte Oryon requis.',items:[]}); const data=readJsonSafe(oryonNotifFile,{items:[]}); const items=(data.items||[]).filter(n=>n.login===cur.login).slice(0,40); res.json({success:true,items}); });
