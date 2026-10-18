@@ -43,30 +43,71 @@
  const joinButton=$('#swapp-voice-join'),muteButton=$('#swapp-voice-mute');
  const leaveButton=$('#swapp-voice-leave'),status=$('#swapp-voice-notice'),playButton=$('#swapp-voice-play');
  const live=$('#swapp-voice-live'),people=$('#swapp-voice-peers'),audioHost=$('#swapp-voice-audio');
- let selectedRoom=String(area.dataset.activeSocialRoom||''),connectedRoom='',busy=false,muted=false;
+ const roomLabel=$('#swapp-voice-room-name'),gameLabel=$('#swapp-voice-room-game');
+ const countLabel=$('#swapp-voice-count'),caption=$('#swapp-voice-member-caption');
+ const deafenButton=$('#swapp-voice-deafen');
+ let selectedRoom=String(area.dataset.activeSocialRoom||''),connectedRoom='',busy=false,muted=false,deafened=false;
+ let selectedRoomName='',selectedRoomGame='';
+ const tiles=new Map(),meters=new Map();
+ let audioContext=null,meterFrame=0,lastFrame=0;
  let socket=null,media=null,iceServers=[],lifecycle=0;
  const peers=new Map();
  const profiles=new Map();
  const notice=value=>{status.textContent=value};
+
+ function updateRoomDetails(){
+  if(!selectedRoom){selectedRoomName='';selectedRoomGame='';return}
+  const option=[...area.querySelectorAll('[data-room]')].find(el=>el.dataset.room===selectedRoom);
+  if(option){
+   selectedRoomName=option.querySelector('.ssi-room-name')?.textContent?.replace(/^#\s*/,'').trim()||'Salon sélectionné';
+   selectedRoomGame=option.querySelector('.ssi-room-game')?.textContent?.trim()||'';
+  }else if(!selectedRoomName)selectedRoomName='Salon sélectionné';
+ }
+ function tile(id,handle,isSelf,isMuted){
+  let node=tiles.get(id);
+  if(!node){
+   node=document.createElement('div');node.className='swapp-voice-participant';
+   node.innerHTML='<span class="swapp-voice-avatar"><span class="swapp-voice-initial"></span><span class="swapp-voice-activity" aria-hidden="true"><i></i><i></i><i></i></span></span>'+
+    '<span class="swapp-voice-person"><strong></strong><small></small></span>';
+   tiles.set(id,node);
+  }
+  const name=String(handle||'Membre').slice(0,42);
+  node.querySelector('.swapp-voice-initial').textContent=name.replace(/^@/,'').slice(0,1).toUpperCase()||'?';
+  node.querySelector('strong').textContent=name;
+  node.querySelector('small').textContent=isMuted?'Micro coupé':(isSelf?'Vous':'Connecté');
+  node.classList.toggle('is-self',isSelf);
+  node.classList.toggle('is-muted',Boolean(isMuted));
+  if(isMuted)node.classList.remove('is-speaking');
+  return node;
+ }
  function repaint(){
   const joined=Boolean(socket?.connected&&media&&connectedRoom);
-  joinButton.hidden=joined;
-  joinButton.disabled=busy||!selectedRoom;
-  muteButton.hidden=!joined;leaveButton.hidden=!joined;
+  updateRoomDetails();
+  section.dataset.voiceState=joined?'connected':busy?'connecting':'idle';
+  roomLabel.textContent=selectedRoomName||'Choisis un salon';
+  gameLabel.textContent=selectedRoom?(selectedRoomGame||'Conversation de joueurs'):'Sélectionne un salon de discussion ci-dessous.';
+  joinButton.hidden=joined;joinButton.disabled=busy||!selectedRoom;
+  muteButton.hidden=!joined;deafenButton.hidden=!joined;leaveButton.hidden=!joined;
   if(!joined)playButton.hidden=true;
-  muteButton.textContent=muted?'Activer le micro':'Couper le micro';
+  muteButton.querySelector('[data-voice-label]').textContent=muted?'Micro coupé':'Micro actif';
+  deafenButton.querySelector('[data-voice-label]').textContent=deafened?'Son coupé':'Écouter';
   muteButton.setAttribute('aria-pressed',String(muted));
-  live.textContent=joined?'Micro actif':'Hors ligne';
+  deafenButton.setAttribute('aria-pressed',String(deafened));
+  live.textContent=joined?(muted?'Micro coupé':'Connecté'):busy?'Connexion…':'Hors ligne';
   live.classList.toggle('is-live',joined);
-  people.replaceChildren();
-  if(!joined)return;
-  const members=[{handle:'Vous'+(muted?' (muet)':'')},...profiles.values()];
-  for(const member of members){
-   const item=document.createElement('span');
-   item.className='swapp-voice-participant';
-   item.textContent=String(member.handle||'Membre').slice(0,60)+(member.muted?' · muet':'');
-   people.appendChild(item);
+  const members=joined?[{id:'__self',handle:'Vous',self:true,muted},...profiles.entries().map(([id,value])=>({id,handle:value.handle,muted:!!value.muted,self:false}))]:[];
+  countLabel.textContent=String(members.length);
+  caption.textContent=joined?members.length+' / 6 connectés':'En attente de connexion';
+  if(!joined){
+   tiles.clear();
+   const empty=document.createElement('div');empty.className='swapp-voice-empty';
+   empty.textContent=selectedRoom?'Salon prêt. Rejoins-le pour prendre la parole.':'Choisis un salon pour parler avec la communauté.';
+   people.replaceChildren(empty);
+   return;
   }
+  const nodes=members.map(person=>tile(person.id,person.handle,person.self,person.muted));
+  for(const id of [...tiles.keys()])if(!members.some(p=>p.id===id))tiles.delete(id);
+  people.replaceChildren(...nodes);
  }
  function closePeer(id){
   const peer=peers.get(id);
