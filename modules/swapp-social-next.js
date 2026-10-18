@@ -8,7 +8,7 @@ const passportPublic=p=>({
  games:safeJson(p.games_json),platform:p.platform,style:p.play_style,
  availability:p.availability,updatedAt:Number(p.updated_at),public:!!p.is_public
 });
-function createSocialNextRouter({express,pool,restoreSession,clock=()=>Date.now()}){
+function createSocialNextRouter({express,pool,restoreSession,resolveIndexedGame=async()=>null,clock=()=>Date.now()}){
  const router=express.Router();
  const query=(sql,args=[])=>pool.execute(sql,args).then(([rows])=>rows);
  const bad=(res,error,status=400)=>res.status(status).json({error});
@@ -137,6 +137,9 @@ function createSocialNextRouter({express,pool,restoreSession,clock=()=>Date.now(
  route('put','/library/games/:slug',async(req,res)=>{
   const slug=req.params.slug,game=libraryName(req.body?.game);
   if(!librarySlug(slug)||!game)return bad(res,'invalid_game',400);
+  // If editorial storage is unavailable, following still works but XP is NOT minted.
+  const verified=await Promise.resolve(resolveIndexedGame(slug)).catch(()=>null);
+  const official=verified?.slug===slug&&libraryName(verified.game)?libraryName(verified.game):null;
   const conn=await pool.getConnection();
   try{
    await conn.beginTransaction();
@@ -148,9 +151,9 @@ function createSocialNextRouter({express,pool,restoreSession,clock=()=>Date.now(
    if(!rows.some(r=>r.game_slug===slug)){
     if(rows.length>=30){await conn.rollback();return bad(res,'library_limit',409)}
     const [added]=await conn.execute('INSERT IGNORE INTO swapp_social_game_follows (user_id,game_slug,game_name,followed_at,seen_at,updated_at) VALUES (?,?,?,?,?,?)',
-     [req.socialPlayer.id,slug,game,stamp,0,stamp]);
+     [req.socialPlayer.id,slug,official||game,stamp,0,stamp]);
     // Only a genuinely new, directly chosen title can earn recognition.
-    if(added.affectedRows===1&&Number(rewardRows[0]?.discovery_count||0)<10){
+    if(added.affectedRows===1&&official&&Number(rewardRows[0]?.discovery_count||0)<10){
      const [awarded]=await conn.execute('INSERT IGNORE INTO swapp_social_reward_ledger (user_id,event_key,event_type,points,created_at) VALUES (?,?,?,?,?)',
       [req.socialPlayer.id,'discover:'+slug,'discover_game',10,stamp]);
      if(awarded.affectedRows===1)await conn.execute(
