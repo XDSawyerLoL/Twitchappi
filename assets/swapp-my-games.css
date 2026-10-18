@@ -43,3 +43,15 @@
 .article-wrap .swapp-article-utility [data-swapp-follow-game]{min-height:34px;border:0;border-bottom:1px solid currentColor;border-radius:0;padding:5px 1px;color:#c7e8e0;background:transparent}
 @media(max-width:720px){.swapp-my-games{padding:18px 15px 64px}.swapp-my-games .mg-header{grid-template-columns:1fr}.swapp-my-games .mg-grid{grid-template-columns:1fr}.swapp-my-games .mg-section-head{align-items:start;flex-wrap:wrap}}
 @media(prefers-reduced-motion:reduce){[data-swapp-follow-game]{transition:none!important}}
+
+/* Explicit user-consented private synchronization. Never a sticky growth popup. */
+.swapp-my-games .mg-sync{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:18px;padding:20px 22px;margin:26px 0 14px;background:#15293c;border-top:2px solid var(--mg-accent);border-bottom:1px solid #ffffff23}
+.swapp-my-games .mg-sync strong{font-size:17px;letter-spacing:-.025em}
+.swapp-my-games .mg-sync p{color:#afc4d5;font-size:12px;line-height:1.6;max-width:590px;margin:7px 0}
+.swapp-my-games .mg-sync [data-my-games-sync-status]{color:#b4e6d8}
+.swapp-my-games .mg-sync-actions{display:grid;gap:8px;justify-items:stretch;min-width:214px}
+.swapp-my-games .mg-sync-actions button{background:#233d52;color:#eaf9ff;border:1px solid #52718a;border-radius:7px;padding:10px 13px;min-height:44px;font-size:12px;font-weight:750}
+.swapp-my-games .mg-sync-actions [data-my-games-enable-sync]{background:var(--mg-accent);color:#081e22;border-color:var(--mg-accent)}
+.swapp-my-games .mg-sync-actions button:disabled{opacity:.5;cursor:wait}
+.swapp-my-games .mg-sync-actions button:focus-visible{outline:2px solid var(--mg-accent);outline-offset:3px}
+@media(max-width:780px){.swapp-my-games .mg-sync{grid-template-columns:1fr;padding:18px 15px}.swapp-my-games .mg-sync-actions{grid-template-columns:1fr;min-width:0}}

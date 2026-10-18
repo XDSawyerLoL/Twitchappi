@@ -21,6 +21,8 @@ test('Mes jeux only offers real indexed games and published stories',()=>{
  const groups=gameHubs(articles);
  const html=renderMyGames(groups);
  assert.match(html,/data-swapp-library-root/);
+ assert.match(html,/data-my-games-enable-sync/);
+ assert.match(html,/data-my-games-export/);
  assert.match(html,/data-my-games-followed/);
  assert.match(html,/data-my-games-available/);
  assert.match(html,/data-my-games-news/);
@@ -105,8 +107,8 @@ test('SPA and native routes share the same assets and do not grow the top-level 
  const home=read('index.html'),shell=read('modules/swapp-news/site-shell.js');
  const nav=read('assets/swapp-navigation.js'),css=read('assets/swapp-my-games.css');
  for(const page of [home,shell]){
-  assert.match(page,/swapp-my-games\.css\?v=20261018-my-games-v1/);
-  assert.match(page,/swapp-my-games\.js\?v=20261018-my-games-v1/);
+  assert.match(page,/swapp-my-games\.css\?v=20261018-cross-device-v2/);
+  assert.match(page,/swapp-my-games\.js\?v=20261018-cross-device-v2/);
  }
  assert.doesNotMatch(nav,/href:'\/mes-jeux'/);
  assert.match(css,/@media\(max-width:720px\)/);

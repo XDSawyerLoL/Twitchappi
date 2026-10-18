@@ -929,7 +929,7 @@ const safeSocialMysqlError=error=>{
 // Public, non-sensitive release marker for diagnosing stale Hostinger deployments.
 app.get('/api/swapp/social/release',(_req,res)=>{
  res.set('Cache-Control','no-store');
- return res.json({product:'SWAPP SOCIAL',release:'social-voice-channels-20261018',session:'swapp',features:{nativeFeed:true,mysqlInteractions:process.env.SWAPP_SOCIAL_FEATURES==='1',voiceSignaling:true,voiceNotes:process.env.SWAPP_SOCIAL_FEATURES==='1',privateCalls:process.env.SWAPP_SOCIAL_FEATURES==='1',visibleVoiceNavigation:true}});
+ return res.json({product:'SWAPP SOCIAL',release:'social-cross-device-library-20261018',session:'swapp',features:{nativeFeed:true,mysqlInteractions:process.env.SWAPP_SOCIAL_FEATURES==='1',voiceSignaling:true,voiceNotes:process.env.SWAPP_SOCIAL_FEATURES==='1',privateCalls:process.env.SWAPP_SOCIAL_FEATURES==='1',visibleVoiceNavigation:true,accountGameLibrary:process.env.SWAPP_SOCIAL_FEATURES==='1'}});
 });
 app.get('/api/swapp/interactions/status',async(_req,res)=>{
  res.set('Cache-Control','no-store');
@@ -950,7 +950,8 @@ app.get('/api/swapp/interactions/status',async(_req,res)=>{
       'SELECT poll_id FROM swapp_social_votes LIMIT 0',
       'SELECT id FROM swapp_social_rooms LIMIT 0',
       'SELECT id FROM swapp_social_room_messages LIMIT 0',
-      'SELECT user_id FROM swapp_social_passports LIMIT 0'
+      'SELECT user_id FROM swapp_social_passports LIMIT 0',
+      'SELECT user_id FROM swapp_social_game_follows LIMIT 0'
      ];
      await Promise.all(checks.map(sql=>socialInteractionsPool.execute(sql)));
      socialInteractionsHealth.payload={enabled:true,state:'database_read_ready'};

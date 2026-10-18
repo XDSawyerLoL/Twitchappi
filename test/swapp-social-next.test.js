@@ -7,7 +7,9 @@ function makeHarness(){
  const routes=[],writes=[];
  const express={Router:()=>({
   get:(path,...middleware)=>routes.push({method:'GET',path,middleware}),
-  put:(path,...middleware)=>routes.push({method:'PUT',path,middleware})
+  put:(path,...middleware)=>routes.push({method:'PUT',path,middleware}),
+  post:(path,...middleware)=>routes.push({method:'POST',path,middleware}),
+  delete:(path,...middleware)=>routes.push({method:'DELETE',path,middleware})
  })};
  const pool={execute:async(sql,args)=>{
   if(sql.startsWith('INSERT INTO swapp_social_passports')){writes.push(args);return [[],[]]}
@@ -28,7 +30,7 @@ function makeHarness(){
   const route=routes.find(r=>r.method===method&&r.path===path);
   assert.ok(route,'Route exists');
   let status=200,data;
-  const res={headersSent:false,status(code){status=code;return this},json(body){data=body;return this}};
+  const res={headersSent:false,set(){return this},status(code){status=code;return this},json(body){data=body;return this}};
   const req={method,params,query,body,session:{},get:()=>origin};
   for(const middleware of route.middleware.slice(0,-1)){
    let proceeded=false;

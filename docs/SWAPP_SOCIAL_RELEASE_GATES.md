@@ -21,7 +21,7 @@ Ce document sépare les validations réelles des simples vérifications statique
 
 ## Identifier précisément le déploiement Hostinger
 Ouvrir `https://swapp.tv/api/swapp/social/release`.
-La propriété `release` doit valoir `social-voice-channels-20261018`. Un 404, une autre valeur ou une erreur indiquent que Hostinger n'a pas encore servi cette version du serveur Node.js. Cette route ne lit aucun mot de passe ni jeton. Le marqueur confirme seulement le **code serveur**, pas l'intégrité des fonctionnalités ni la version du navigateur.
+La propriété `release` doit valoir `social-cross-device-library-20261018`. Un 404, une autre valeur ou une erreur indiquent que Hostinger n'a pas encore servi cette version du serveur Node.js. Cette route ne lit aucun mot de passe ni jeton. Le marqueur confirme seulement le **code serveur**, pas l'intégrité des fonctionnalités ni la version du navigateur.
 Après chaque redéploiement, faire un rechargement sans cache sur `/communaute`.
 
 ## Garde-fou obligatoire : comptes SWAPP persistants

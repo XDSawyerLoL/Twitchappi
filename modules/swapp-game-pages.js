@@ -129,7 +129,12 @@ function renderMyGames(groups=[]){
  const body='<main class="swapp-my-games" data-swapp-library-root>'+
   '<p class="breadcrumb"><a href="/">SWAPP</a> / <a href="/jeux">Jeux</a> / Ma sélection</p>'+
   '<header class="mg-header"><div><span class="mg-eyebrow">SWAPP · MON ESPACE</span><h1>Mes jeux.</h1><p>Retrouve les actualités de tes jeux, les créateurs en direct et la communauté. Tu choisis ce que tu suis, sans notifications forcées.</p></div><a class="mg-header-link" href="/jeux">Découvrir les jeux ↗</a></header>'+
-  '<p class="mg-info">Ta sélection est enregistrée uniquement sur cet appareil. Aucun suivi de navigation ni synchronisation de compte n’est activé. Tu peux retirer un jeu ou effacer ta sélection.</p>'+
+  '<section class="mg-sync" aria-label="Synchronisation de ma bibliothèque">'+
+   '<div><strong>Retrouver mes jeux sur tous mes appareils</strong><p>Tu peux lier volontairement cette sélection à ton compte SWAPP. La première activation fusionne les jeux de cet appareil avec ceux du compte, sans récupérer ton activité ni tes achats.</p>'+
+   '<p data-my-games-sync-status role="status" aria-live="polite">Sans synchronisation : préférences conservées sur cet appareil.</p></div>'+
+   '<div class="mg-sync-actions"><button type="button" data-my-games-enable-sync>Synchroniser avec mon compte</button>'+
+   '<button type="button" data-my-games-disable-sync hidden>Utiliser cet appareil uniquement</button>'+
+   '<button type="button" data-my-games-export>Exporter ma sélection</button></div></section>'+
   '<p data-my-games-status role="status" aria-live="polite"></p>'+
   '<section aria-label="Jeux suivis"><div class="mg-section-head"><h2>Jeux suivis <small>(<span data-my-games-count>0</span>)</small></h2><button class="mg-clear" type="button" data-my-games-clear>Effacer ma sélection</button></div>'+
   '<div data-my-games-empty class="mg-empty"><strong>Ton espace commence avec tes jeux.</strong><p>Choisis un titre ci-dessous et appuie sur « Suivre ce jeu ». Les nouvelles publications apparaîtront ici à ta prochaine visite.</p></div>'+
