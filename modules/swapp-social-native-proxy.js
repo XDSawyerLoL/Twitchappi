@@ -189,7 +189,10 @@ function createSocialNativeProxy(fetchImpl,{production=true,restoreLocalSession=
   // A member's explicit Block action disables first-party voice/audio even if
   // the remote SOCIAL backend is slow or returns an error. The operation is
   // idempotent; never permit calls or voice notes to bypass the user's block.
-  if(sessionSso&&method==='POST'&&/^\\/users\\/[a-z0-9_-]{3,32}\\/block$/.test(path)&&
+  const blockParts=path.split('/');
+  const isNativeBlock=blockParts.length===4&&blockParts[1]==='users'&&
+    blockParts[3]==='block'&&/^[a-z0-9_-]{3,32}$/.test(blockParts[2]);
+  if(sessionSso&&method==='POST'&&isNativeBlock&&
     typeof lookupLocalUser==='function'&&typeof recordAudioBlock==='function'){
     const handle=path.split('/')[2];
     const target=lookupLocalUser(handle);
