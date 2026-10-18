@@ -902,7 +902,11 @@ app.use('/api/pulse',(req,res,next)=>req.method==='GET'?pulseReadLimiter(req,res
   ssoSecret:String(process.env.SWAPP_SOCIAL_SSO_SECRET||process.env.SWAPP_ACCOUNT_RECOVERY_SECRET||configuredSessionSecret||''),
   lookupLocalUser:getOryonUserByLogin,
   listLocalUsers:()=>readOryonUsers().users,
-  recordAudioBlock:(actor,target)=>socialAudioPrivacy.block(actor,target)
+  recordAudioBlock:async(actor,target)=>{
+    await socialAudioPrivacy.block(actor,target);
+    // End any active audio call immediately when the block takes effect.
+    io.of('/swapp-social-voice').endCallsBetween?.(actor.id,target.id);
+  }
 }));
 // Experimental SOCIAL interactions stay disabled until durable storage is configured.
 // Dedicated health metadata avoids confusing "Cannot GET" for a disabled feature.
