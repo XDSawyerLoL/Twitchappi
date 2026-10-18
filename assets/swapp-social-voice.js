@@ -23,7 +23,7 @@
  const joinButton=$('#swapp-voice-join'),muteButton=$('#swapp-voice-mute');
  const leaveButton=$('#swapp-voice-leave'),status=$('#swapp-voice-notice');
  const live=$('#swapp-voice-live'),people=$('#swapp-voice-peers'),audioHost=$('#swapp-voice-audio');
- let selectedRoom='',connectedRoom='',busy=false,muted=false;
+ let selectedRoom=String(area.dataset.activeSocialRoom||''),connectedRoom='',busy=false,muted=false;
  let socket=null,media=null,iceServers=[],lifecycle=0;
  const peers=new Map();
  const profiles=new Map();
