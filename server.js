@@ -929,7 +929,7 @@ const safeSocialMysqlError=error=>{
 // Public, non-sensitive release marker for diagnosing stale Hostinger deployments.
 app.get('/api/swapp/social/release',(_req,res)=>{
  res.set('Cache-Control','no-store');
- return res.json({product:'SWAPP SOCIAL',release:'social-sso-recovery-v9',session:'swapp',features:{nativeFeed:true,mysqlInteractions:process.env.SWAPP_SOCIAL_FEATURES==='1'}});
+ return res.json({product:'SWAPP SOCIAL',release:'social-audio-20261018',session:'swapp',features:{nativeFeed:true,mysqlInteractions:process.env.SWAPP_SOCIAL_FEATURES==='1',voiceSignaling:true,voiceNotes:process.env.SWAPP_SOCIAL_FEATURES==='1',privateCalls:process.env.SWAPP_SOCIAL_FEATURES==='1'}});
 });
 app.get('/api/swapp/interactions/status',async(_req,res)=>{
  res.set('Cache-Control','no-store');
