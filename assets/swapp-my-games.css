@@ -99,3 +99,21 @@
 .swapp-store-steam-only .swapp-editorial-game-foot [data-swapp-wishlist-game][aria-pressed=true]{
  background:#412b3d;border-color:#ed9cb9;color:#ffe4ec
 }
+
+
+/* One personalized editorial desk, not a new home carousel or engagement timer. */
+.swapp-my-games .mg-digest{margin:28px 0 30px;border-top:1px solid #ffffff3d;padding-top:22px}
+.swapp-my-games .mg-digest-intro{display:flex;align-items:end;justify-content:space-between;gap:22px;margin-bottom:18px}
+.swapp-my-games .mg-digest-intro h2{font-size:clamp(27px,3vw,37px);line-height:1.1;letter-spacing:-.05em;margin:7px 0}
+.swapp-my-games .mg-digest-intro p{font-size:13px;color:#a9c1d3;line-height:1.6;max-width:630px;margin:0}
+.swapp-my-games .mg-digest-intro>a{font-size:12px;flex:none;text-decoration:underline;text-underline-offset:4px;font-weight:800}
+.swapp-my-games .mg-digest-status{font-size:11px;color:#9fb9ce;margin:0 0 12px}
+.swapp-my-games .mg-digest-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 28px;border-top:1px solid #ffffff25}
+.swapp-my-games .mg-digest-item{min-width:0;padding:17px 0 20px;border-bottom:1px solid #ffffff25;display:flex;flex-direction:column;gap:8px}
+.swapp-my-games .mg-digest-meta{display:flex;justify-content:space-between;align-items:center;gap:12px;color:#91aec2;font-size:11px}
+.swapp-my-games .mg-digest-tag{color:var(--mg-accent);font-size:10px;letter-spacing:.08em;text-transform:uppercase;font-weight:800}
+.swapp-my-games .mg-digest-story{font-size:clamp(17px,2vw,21px);font-weight:850;line-height:1.3;letter-spacing:-.025em;text-decoration:none}
+.swapp-my-games .mg-digest-story:hover{text-decoration:underline;text-decoration-color:var(--mg-accent);text-underline-offset:4px}
+.swapp-my-games .mg-digest-game{font-size:11px;color:#b1cadb;text-decoration:underline;text-underline-offset:3px;width:fit-content}
+.swapp-my-games .mg-digest a:focus-visible{outline:2px solid var(--mg-accent);outline-offset:4px}
+@media(max-width:700px){.swapp-my-games .mg-digest-list{grid-template-columns:1fr}.swapp-my-games .mg-digest-intro{align-items:start;flex-wrap:wrap;gap:12px}.swapp-my-games .mg-digest-item{padding:15px 0 17px}}
