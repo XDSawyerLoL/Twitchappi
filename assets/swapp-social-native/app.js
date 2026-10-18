@@ -296,7 +296,67 @@ function bindStaticEvents(){
 }
 
 function bindDelegatedEvents(){
+ // Games/rooms stay underneath Communities, sharing the existing controller.
+ document.addEventListener('swapp:social-view',event=>{
+  const view=event.detail?.view;
+  if(view==='play'||view==='rooms'){
+   setView(view,view==='play'?'Jeux et équipes':'Salons de discussion');
+   revealSocialContent();
+  }
+ });
+ let dmLookupTimer=null,dmLookupSeq=0;
+ document.addEventListener('input',event=>{
+  if(!event.target.matches?.('#new-message [name="handle"]'))return;
+  const input=event.target,form=input.closest('#new-message');
+  const results=form?.querySelector('#pulse-dm-user-results');
+  if(!results)return;
+  const query=input.value.trim().replace(/^@/,'').slice(0,100);
+  const revision=++dmLookupSeq;
+  clearTimeout(dmLookupTimer);
+  results.replaceChildren();
+  if(query.length<2)return;
+  dmLookupTimer=setTimeout(async()=>{
+   try{
+    const data=await api('/api/pulse/search?q='+encodeURIComponent(query));
+    if(revision!==dmLookupSeq||!form.isConnected||form.hidden)return;
+    const users=Array.isArray(data.users)?data.users.slice(0,8):[];
+    results.replaceChildren();
+    for(const user of users){
+     if(!user?.handle)continue;
+     const button=document.createElement('button');
+     button.type='button';
+     button.className='pulse-dm-member';
+     button.dataset.dmRecipient=String(user.handle);
+     button.textContent=(user.displayName||user.handle)+' · @'+user.handle;
+     results.append(button);
+    }
+    if(!results.children.length)results.textContent='Aucun membre trouvé.';
+   }catch{
+    if(revision===dmLookupSeq&&form.isConnected)results.textContent='Recherche indisponible. Saisis un pseudo SWAPP.';
+   }
+  },280);
+ });
   document.addEventListener('click',async function(event){
+    const openNew=event.target.closest('[data-new-message-toggle]');
+    if(openNew){
+      const form=document.getElementById('new-message');
+      if(form){
+        form.hidden=!form.hidden;
+        openNew.setAttribute('aria-expanded',String(!form.hidden));
+        if(!form.hidden)form.querySelector('[name="handle"]')?.focus();
+      }
+      return;
+    }
+    const selectedUser=event.target.closest('[data-dm-recipient]');
+    if(selectedUser){
+      const form=selectedUser.closest('#new-message');
+      if(form){
+        form.querySelector('[name="handle"]').value=selectedUser.dataset.dmRecipient;
+        form.querySelector('#pulse-dm-user-results')?.replaceChildren();
+        form.querySelector('[name="body"]')?.focus();
+      }
+      return;
+    }
     const navigate=event.target.closest('button[data-view]');
     if(navigate){
       // Do not hijack links, but accept dynamically inserted sidebar buttons.
