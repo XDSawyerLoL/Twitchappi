@@ -88,7 +88,7 @@ function createSocialNextRouter({express,pool,restoreSession,clock=()=>Date.now(
  // explicit follows only, NEVER evidence that the user purchased or owns a game.
  const librarySlug=v=>typeof v==='string'&&v.length>=3&&v.length<=90&&/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(v);
  const libraryName=v=>typeof v==='string'&&v.trim().length>=2&&v.length<=100&&
-   !/[<>\\u0000-\\u001f]/.test(v)?v.trim():'';
+   !/[<>\u0000-\u001f]/.test(v)?v.trim():'';
  const libraryItem=row=>({
   slug:String(row.game_slug),game:String(row.game_name),
   followedAt:new Date(Number(row.followed_at)).toISOString(),
