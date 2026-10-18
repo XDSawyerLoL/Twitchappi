@@ -111,7 +111,7 @@
    const payload=await api(path,method,body);
    applyRemote(payload);
    window.dispatchEvent(new Event('swapp:library-changed'));
-   status('Modifications enregistrées sur ton compte SWAPP.');
+   status(payload.rewardEarned===10?'Jeu découvert : +10 points SWAPP attribués à ton compte.':'Modifications enregistrées sur ton compte SWAPP.');
   }catch(error){status(error.message+' Aucun changement n’a été appliqué.');}
   finally{syncing=false;syncUI();}
   return true;
