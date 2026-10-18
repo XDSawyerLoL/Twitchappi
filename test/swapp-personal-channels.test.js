@@ -31,7 +31,7 @@ function harness(){
  const express={Router:()=>router};
  const pool={
   async execute(sql,args=[]){
-   if(sql.startsWith('SELECT COUNT(*) AS total FROM swapp_social_private_rooms WHERE owner_id='))return [[{total:0}]];
+   if(sql.startsWith('SELECT room_id FROM swapp_social_private_rooms WHERE owner_id='))return [[...privateRooms.values()].filter(x=>x.owner_id===args[0]).map(x=>({room_id:x.room_id}))];
    if(sql.startsWith('SELECT id FROM swapp_social_rooms WHERE owner_id='))return [[]];
    if(sql.startsWith('INSERT INTO swapp_social_rooms ')){
     const [id,owner_id,name,game,created_at]=args;rooms.set(id,{id,owner_id,name,game,created_at});return [[],[]];
