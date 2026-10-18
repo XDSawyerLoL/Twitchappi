@@ -23,8 +23,8 @@ test('Vocal shortcut is always present in the sticky SOCIAL topbar',()=>{
 });
 test('real vocal controls render above the room results, not hidden beneath discussion',()=>{
  const code=read('assets/swapp-social-voice.js');
- assert.match(code,/querySelector\('#ssi-room-panel \.ssi-panel-inner'\)/);
- assert.match(code,/container\.insertBefore\(section,area\.querySelector\('#ssi-room-results'\)\)/);
+ assert.match(code,/querySelector\('#ssi-chat-panel \.ssi-panel-inner'\)/);
+ assert.match(code,/container\.insertBefore\(section,container\.querySelector\('\.ssi-panel-head'\)\)/);
  assert.match(code,/id="swapp-voice-join"/);
  assert.match(code,/Rejoindre le vocal/);
  assert.match(code,/getUserMedia/);
@@ -38,10 +38,10 @@ test('Vocal button navigates through existing SOCIAL room view and works on mobi
  const css=read('assets/swapp-social-appearance.css');
  assert.match(app,/closest\('button\[data-view\]'\)/);
  assert.match(views,/dataset\.socialView=view/);
- assert.match(views,/Salons vocaux et discussion/);
+ assert.match(views,/Salons vocaux/);
  assert.match(css,/\.swapp-social-voice-shortcut/);
  assert.match(css,/@media\(max-width:350px\)/);
- assert.match(hub,/app\.js\?v=20261018-audio-stage-v1/);
- assert.match(hub,/swapp-social-voice\.js\?v=20261018-audio-stage-v1/);
+ assert.match(hub,/app\.js\?v=20261018-channel-ux-v1/);
+ assert.match(hub,/swapp-social-voice\.js\?v=20261018-channel-ux-v1/);
  assert.match(hub,/swapp-social-appearance\.css\?v=20261018-voice-visible-v2/);
 });
