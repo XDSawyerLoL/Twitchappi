@@ -28,7 +28,7 @@
   if(normalize(location.pathname)!==entryPath){
    // Only repair the accidental root rewrite observed during boot.
    if(normalize(location.pathname)!=='/')return leave();
-   try{history.replaceState({view:entry},'',entryPath+location.search+location.hash)}catch(_){return}
+   try{history.replaceState({view:entry},'',entryPath+(location.search||'')+(location.hash||''))}catch(_){return}
   }
   // Once hydrated, keep the user's current route without redundant renders.
   if(restored&&target.classList.contains('active'))return;
