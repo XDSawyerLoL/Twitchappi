@@ -1,6 +1,6 @@
 'use strict';
 const crypto=require('node:crypto');
-function createSocialMysqlInteractions({express,restoreSession,pool,clock=()=>Date.now()}){
+function createSocialMysqlInteractions({express,restoreSession,pool,clock=()=>Date.now(),inviteSecret=''}){
  const router=express.Router(),bad=(res,msg,status=400)=>res.status(status).json({error:msg});
  const trim=(v,n)=>String(v??'').trim().slice(0,n);
  const query=(sql,args=[])=>pool.execute(sql,args).then(([rows])=>rows);
@@ -18,6 +18,8 @@ function createSocialMysqlInteractions({express,restoreSession,pool,clock=()=>Da
  const route=(method,path,run)=>router[method](path,async(req,res)=>{try{await run(req,res)}catch(e){console.warn('[SOCIAL DB]',e.code||'db_error');if(!res.headersSent)bad(res,'storage_unavailable',503)}});
  const platforms=['PC','PlayStation','Xbox','Switch','Multiplateforme'];
  const pub=m=>({id:m.id,handle:m.handle,game:m.game,platform:m.platform,availability:m.availability,style:m.style,createdAt:Number(m.created_at)});
+ const {accessRoom}=require('./swapp-social-room-access');
+ require('./swapp-social-personal-rooms').installPersonalRoomRoutes({route,pool,query,bad,clock,trim,inviteSecret});
  route('get','/matches',async(req,res)=>{
   const game=trim(req.query.game,65),platform=trim(req.query.platform,30);
   const rows=await query('SELECT * FROM swapp_social_matches WHERE created_at>? AND game LIKE ? AND platform LIKE ? ORDER BY created_at DESC LIMIT 100',[clock()-14*86400000,'%'+game.replace(/[\\%_]/g,'\\$&')+'%',platform||'%']);
@@ -65,8 +67,13 @@ function createSocialMysqlInteractions({express,restoreSession,pool,clock=()=>Da
   res.json({counts:choices.map((_,i)=>Number(votes.find(v=>v.choice_index===i)?.total||0))});
  });
  route('get','/rooms',async(req,res)=>{
-  const rooms=await query('SELECT r.id,r.name,r.game,r.created_at,(SELECT COUNT(*) FROM swapp_social_room_messages m WHERE m.room_id=r.id) message_count FROM swapp_social_rooms r ORDER BY r.created_at DESC LIMIT 40');
-  res.json({rooms:rooms.map(r=>({id:r.id,name:r.name,game:r.game,createdAt:Number(r.created_at),messageCount:Number(r.message_count)}))});
+  const rooms=await query('SELECT r.id,r.name,r.game,r.created_at,p.room_id AS personal_room,p.owner_id AS personal_owner,'+
+   '(SELECT COUNT(*) FROM swapp_social_room_messages m WHERE m.room_id=r.id) message_count '+
+   'FROM swapp_social_rooms r LEFT JOIN swapp_social_private_rooms p ON p.room_id=r.id '+
+   'WHERE p.room_id IS NULL OR EXISTS (SELECT 1 FROM swapp_social_private_members membership WHERE membership.room_id=r.id AND membership.user_id=?) '+
+   'ORDER BY r.created_at DESC LIMIT 40',[req.member.id]);
+  res.set('Cache-Control','private, no-store');
+  res.json({rooms:rooms.map(r=>({id:r.id,name:r.name,game:r.game,createdAt:Number(r.created_at),messageCount:Number(r.message_count),private:!!r.personal_room,owner:!!r.personal_room&&r.personal_owner===req.member.id}))});
  });
  route('post','/rooms',async(req,res)=>{
   const name=trim(req.body?.name,60),game=trim(req.body?.game,65),now=clock();
@@ -77,13 +84,13 @@ function createSocialMysqlInteractions({express,restoreSession,pool,clock=()=>Da
   res.status(201).json({room:{id,name,game}});
  });
  route('get','/rooms/:id/messages',async(req,res)=>{
-  const rooms=await query('SELECT id FROM swapp_social_rooms WHERE id=? LIMIT 1',[req.params.id]);if(!rooms.length)return bad(res,'not_found',404);
+  if(!await accessRoom(pool,req.params.id,req.member.id))return bad(res,'not_found',404);
   const messages=await query('SELECT id,handle,body,created_at FROM swapp_social_room_messages WHERE room_id=? ORDER BY created_at DESC LIMIT 100',[req.params.id]);
   res.json({messages:messages.reverse().map(m=>({id:m.id,handle:m.handle,body:m.body,createdAt:Number(m.created_at)}))});
  });
  route('post','/rooms/:id/messages',async(req,res)=>{
   const body=trim(req.body?.body,160);if(!body)return bad(res,'invalid_message');
-  const rooms=await query('SELECT id FROM swapp_social_rooms WHERE id=? LIMIT 1',[req.params.id]);if(!rooms.length)return bad(res,'not_found',404);
+  if(!await accessRoom(pool,req.params.id,req.member.id))return bad(res,'not_found',404);
   const now=clock(),recent=await query('SELECT id FROM swapp_social_room_messages WHERE room_id=? AND user_id=? AND created_at>? LIMIT 1',[req.params.id,req.member.id,now-1000]);if(recent.length)return bad(res,'rate_limited',429);
   const id=crypto.randomUUID();
   await query('INSERT INTO swapp_social_room_messages (id,room_id,user_id,handle,body,created_at) VALUES (?,?,?,?,?,?)',[id,req.params.id,req.member.id,req.member.handle,body,now]);

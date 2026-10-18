@@ -21,7 +21,7 @@ Ce document sépare les validations réelles des simples vérifications statique
 
 ## Identifier précisément le déploiement Hostinger
 Ouvrir `https://swapp.tv/api/swapp/social/release`.
-La propriété `release` doit valoir `social-wishlist-points-20261018`. Un 404, une autre valeur ou une erreur indiquent que Hostinger n'a pas encore servi cette version du serveur Node.js. Cette route ne lit aucun mot de passe ni jeton. Le marqueur confirme seulement le **code serveur**, pas l'intégrité des fonctionnalités ni la version du navigateur.
+La propriété `release` doit valoir `social-personal-channels-20261019`. Un 404, une autre valeur ou une erreur indiquent que Hostinger n'a pas encore servi cette version du serveur Node.js. Cette route ne lit aucun mot de passe ni jeton. Le marqueur confirme seulement le **code serveur**, pas l'intégrité des fonctionnalités ni la version du navigateur.
 Après chaque redéploiement, faire un rechargement sans cache sur `/communaute`.
 
 ## Garde-fou obligatoire : comptes SWAPP persistants
@@ -61,3 +61,14 @@ Tester avec deux comptes distincts. Ne jamais transmettre de cookies, mots de pa
 - Surveiller les codes 401/429/503 pour `/api/pulse/*` et `/api/swapp/interactions/*`, ainsi que les erreurs JS.
 - En cas de panne persistante, restaurer le commit précédent plutôt que d'écraser les tables ou les publications.
 - Un test de lecture ou une simulation ne valide pas les écritures réelles ni les échanges entre comptes.
+
+
+## Canaux personnels sur invitation (19 octobre 2026)
+- Dans SOCIAL > Vocal > Créer mon salon, le choix Personnel crée un espace privé texte et vocal ; l'option Public reste disponible.
+- Le propriétaire peut copier son lien https://swapp.tv/communaute?invite=... et le renouveler. Cela invalide les anciennes invitations sans expulser automatiquement les membres admis.
+- Un invité doit être connecté à son compte SWAPP. Le lien signé permet de devenir membre, de retrouver le salon sur les autres appareils, de lire les messages et de rejoindre le vocal sur action explicite.
+- Les listes publiques et les recherches de jeux ne divulguent pas les salons privés. Le serveur protège également les messages et la signalisation vocale.
+- Limites : dix salons privés créés par compte, trente membres enregistrés par salon, six participants vocaux simultanés par le système actuel.
+- Migration MySQL idempotente 008_swapp_personal_channels.sql : deux tables ajoutées, sans effacer l'historique des salons publics.
+- Validation requise sur Hostinger avec deux comptes, un refus sans invitation, acceptation du lien, vocal, renouvellement, mobile Safari/Android et état de migration.
+- Marqueur de release attendu : social-personal-channels-20261019. Une fusion GitHub ne confirme pas la mise en ligne.

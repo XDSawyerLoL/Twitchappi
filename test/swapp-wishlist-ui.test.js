@@ -62,6 +62,7 @@ test('adding/removing a wish updates the UI; no fake checkout',async()=>{
  const click=()=>h.listeners.click({target:{closest:q=>q==='[data-swapp-wishlist-game]'?h.button:null}});
  click();await h.tick();assert.equal(h.rows.length,1);
  assert.equal(h.button['aria-pressed'],'true');
+ assert.doesNotMatch(h.map.get('[data-swapp-loyalty-status]').textContent,/Cannot read properties of null|some/);
  click();await h.tick();assert.equal(h.rows.length,0);
  assert.equal(h.button['aria-pressed'],'false');
  assert.ok(h.calls.some(x=>x.method==='PUT'));

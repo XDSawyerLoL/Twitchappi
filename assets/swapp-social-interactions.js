@@ -72,10 +72,11 @@
      <div class="ssi-panel-inner">
       <div class="ssi-panel-head"><div class="ssi-head-main">${icon('rooms')}<div><span class="ssi-section-label">TES ESPACES</span><h3 id="ssi-rooms-title">Salons vocaux</h3><p class="ssi-panel-desc">Choisis un salon pour discuter.</p></div></div><span class="ssi-count" id="ssi-room-badge" title="Nombre de salons">—</span></div>
       <div class="ssi-room-list" id="ssi-room-results" aria-live="polite"></div>
-      <button type="button" class="ssi-ghost ssi-block-action" data-open-form="room" aria-controls="ssi-form-room" aria-expanded="false">+ Créer un salon</button>
+      <button type="button" class="ssi-ghost ssi-block-action" data-open-form="room" aria-controls="ssi-form-room" aria-expanded="false">+ Créer mon salon</button>
       <form class="ssi-inline-form" id="ssi-form-room" hidden>
        <label class="ssi-field">Nom du salon<input name="name" required maxlength="60" placeholder="Ex. Squad du soir"></label>
-       <label class="ssi-field">Jeu associé<input name="game" required maxlength="65" placeholder="Ex. PUBG"></label>
+       <label class="ssi-field">Jeu associé (facultatif)<input name="game" maxlength="65" placeholder="Ex. PUBG"></label>
+       <label class="ssi-field">Visibilité<select name="visibility"><option value="private">Personnel : accessible via ton invitation</option><option value="public">Public : visible par tous</option></select></label>
        <div class="ssi-form-actions"><button type="submit" class="ssi-button">Créer le salon</button><button type="button" class="ssi-ghost" data-close-form="room">Annuler</button></div>
       </form>
      </div>
@@ -83,6 +84,12 @@
     <section class="ssi-panel ssi-panel-chat ssi-chat-panel" id="ssi-chat-panel" aria-labelledby="ssi-chat-title">
      <div class="ssi-panel-inner">
       <div class="ssi-panel-head"><div class="ssi-head-main">${icon('chat')}<div><span class="ssi-section-label">MESSAGES DU SALON</span><div class="ssi-chat-heading"><h3 id="ssi-chat-title">Discussion écrite</h3></div><p class="ssi-chat-hint" id="ssi-chat-hint">Messages de la communauté</p></div></div></div>
+      <div class="ssi-personal-invites" id="ssi-personal-invites" hidden>
+       <strong>Inviter dans mon canal</strong><p>Seuls les membres ayant rejoint par le lien peuvent lire et participer.</p>
+       <label class="ssi-field" for="ssi-personal-url">Lien d’invitation<input id="ssi-personal-url" type="url" readonly aria-label="Lien d’invitation au canal" autocomplete="off"></label>
+       <div class="ssi-personal-actions"><button type="button" class="ssi-button" data-ssi-copy-invite>Copier le lien</button><button type="button" class="ssi-ghost" data-ssi-rotate-invite>Renouveler le lien</button></div>
+       <p id="ssi-invite-notice" role="status" aria-live="polite"></p>
+      </div>
       <div id="ssi-chat-body" aria-live="off"><div class="ssi-room-placeholder">Rejoins un salon pour échanger avec la communauté.</div></div>
      </div>
     </section>
@@ -93,7 +100,7 @@
  const welcome=host.querySelector('#pulse-welcome');
  (welcome?.parentNode||host).insertBefore(area,welcome?.nextSibling||null);
  const $=sel=>area.querySelector(sel);
- const errText={swapp_account_required:'Connecte-toi à SWAPP pour participer.',swapp_session_unavailable:'Ta session SWAPP ne répond pas. Actualise la page.',storage_unavailable:'La base de données est temporairement inaccessible.',already_voted:'Tu as déjà voté à ce sondage.',rate_limited:'Patiente une minute avant de recommencer.',invalid_origin:'Ta session a expiré. Actualise la page.',invalid_match:'Vérifie les informations de ton annonce.',invalid_poll:'Vérifie la question et les réponses.',invalid_room:'Renseigne le nom du salon et le jeu.',invalid_message:'Écris un message avant de l’envoyer.',social_storage_unavailable:'Les salons sont temporairement indisponibles.'};
+ const errText={swapp_account_required:'Connecte-toi à SWAPP pour participer.',swapp_session_unavailable:'Ta session SWAPP ne répond pas. Actualise la page.',storage_unavailable:'La base de données est temporairement inaccessible.',already_voted:'Tu as déjà voté à ce sondage.',rate_limited:'Patiente une minute avant de recommencer.',invalid_origin:'Ta session a expiré. Actualise la page.',invalid_match:'Vérifie les informations de ton annonce.',invalid_poll:'Vérifie la question et les réponses.',invalid_room:'Renseigne le nom du salon et le jeu.',invalid_message:'Écris un message avant de l’envoyer.',social_storage_unavailable:'Les salons sont temporairement indisponibles.',invalid_invite:'Invitation invalide ou expirée.',invite_unavailable:'Les invitations sont indisponibles.',personal_room_limit:'Tu as déjà 10 canaux personnels.',personal_room_full:'Ce salon est complet.'};
  async function req(endpoint,method='GET',data){
   const r=await fetch('/api/swapp/interactions/'+endpoint,{method,credentials:'same-origin',headers:{'Accept':'application/json',...(method!=='GET'?{'Content-Type':'application/json'}:{})},cache:'no-store',...(data?{body:JSON.stringify(data)}:{})});
   const result=await r.json().catch(()=>({}));
@@ -135,7 +142,7 @@
   const el=$('#ssi-room-results');
   if(!count){el.innerHTML=empty('⌁','Aucun salon pour le moment. Crée le premier.');return}
   const visible=roomsExpanded?rooms:rooms.slice(0,6);
-  el.innerHTML=visible.map(r=>`<button class="ssi-room" type="button" data-room="${escape(r.id)}" aria-pressed="${r.id===activeRoom}" aria-label="Sélectionner le salon ${escape(r.name)}"><span class="ssi-room-voice-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4V9Zm12-1a5 5 0 0 1 0 8m2-11a9 9 0 0 1 0 14"/></svg></span><span class="ssi-room-info"><span class="ssi-room-name">${escape(r.name)}</span><span class="ssi-room-game">${escape(r.game)} · Vocal et texte</span></span></button>`).join('')+(count>6?'<button type="button" class="ssi-ghost" data-action="toggle-rooms">'+(roomsExpanded?'Voir moins':'Voir tous les salons ('+count+')')+'</button>':'');
+  el.innerHTML=visible.map(r=>`<button class="ssi-room" type="button" data-room="${escape(r.id)}" aria-pressed="${r.id===activeRoom}" aria-label="Sélectionner le salon ${escape(r.name)}"><span class="ssi-room-voice-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4V9Zm12-1a5 5 0 0 1 0 8m2-11a9 9 0 0 1 0 14"/></svg></span><span class="ssi-room-info"><span class="ssi-room-name">${r.private?'🔒 ':''}${escape(r.name)}</span><span class="ssi-room-game">${escape(r.game)} · ${r.private?'Sur invitation':'Public'} · Vocal et texte</span></span></button>`).join('')+(count>6?'<button type="button" class="ssi-ghost" data-action="toggle-rooms">'+(roomsExpanded?'Voir moins':'Voir tous les salons ('+count+')')+'</button>':'');
  }
  async function loadMatches(){try{const data=await req('match2/compatible');matches=Array.isArray(data.matches)?data.matches:[];renderMatches()}catch(e){$('#ssi-match-results').innerHTML=empty('! ',escape(e.message));}}
  async function loadPolls(){try{const data=await req('polls');polls=Array.isArray(data.polls)?data.polls:[];renderPolls()}catch(e){$('#ssi-poll-results').innerHTML=empty('! ',escape(e.message));}}
@@ -168,6 +175,66 @@
    if(pin)stream.scrollTop=stream.scrollHeight;
   }catch(e){if(id===activeRoom&&version===chatVersion)notice(e.message,'error')}
  }
+
+ const inviteBox=$('#ssi-personal-invites'),inviteInput=$('#ssi-personal-url'),inviteStatus=$('#ssi-invite-notice');
+ let inviteRevision=0;
+ function absoluteInvite(token){
+  const url=new URL('/communaute',window.location.origin);
+  url.searchParams.set('invite',token);
+  return url.toString();
+ }
+ async function updateInvitePanel(room){
+  const rev=++inviteRevision;
+  inviteBox.hidden=!(room?.private&&room.owner);
+  inviteInput.value='';inviteStatus.textContent='';
+  if(inviteBox.hidden)return;
+  inviteStatus.textContent='Préparation du lien…';
+  try{
+   const data=await req('rooms/'+encodeURIComponent(room.id)+'/invite');
+   if(rev!==inviteRevision||activeRoom!==room.id)return;
+   inviteInput.value=absoluteInvite(data.invite);
+   inviteStatus.textContent='Prêt à partager. Un compte SWAPP est nécessaire pour rejoindre.';
+  }catch(e){if(rev===inviteRevision)inviteStatus.textContent=e.message}
+ }
+ inviteBox.querySelector('[data-ssi-copy-invite]').addEventListener('click',()=>{
+  const url=inviteInput.value;
+  if(!url){inviteStatus.textContent='Lien indisponible.';return}
+  if(navigator.clipboard?.writeText){
+   void navigator.clipboard.writeText(url).then(
+    ()=>{inviteStatus.textContent='Lien copié. Tu peux l’envoyer à tes invités.'},
+    ()=>{inviteInput.select();inviteStatus.textContent='Sélectionne le lien pour le copier.'});
+  }else{inviteInput.select();inviteStatus.textContent='Sélectionne le lien pour le copier.'}
+ });
+ inviteBox.querySelector('[data-ssi-rotate-invite]').addEventListener('click',async()=>{
+  const room=rooms.find(r=>r.id===activeRoom);
+  if(!room?.owner||!room.private)return;
+  if(!window.confirm('Créer un nouveau lien ? L’ancien sera désactivé, sans retirer les membres déjà admis.'))return;
+  const revision=++inviteRevision,roomId=room.id;
+  inviteInput.value='';
+  try{
+   const response=await req('rooms/'+encodeURIComponent(room.id)+'/invite/rotate','POST',{});
+   if(revision!==inviteRevision||activeRoom!==roomId)return;
+   inviteInput.value=absoluteInvite(response.invite);
+   inviteStatus.textContent='Nouveau lien disponible. L’ancien ne fonctionne plus.';
+  }catch(e){if(revision===inviteRevision)inviteStatus.textContent=e.message}
+ });
+ async function acceptInviteLink(){
+  const url=new URL(window.location.href),token=url.searchParams.get('invite');
+  if(!token)return;
+  try{
+   const joined=await req('rooms/join','POST',{invite:token});
+   if(!joined.room?.id)throw Error('Réponse invalide du salon');
+   if(!rooms.some(r=>r.id===joined.room.id))rooms.unshift(joined.room);
+   roomsExpanded=true;renderRooms();
+   await selectRoom(joined.room.id);
+   url.searchParams.delete('invite');
+   window.history.replaceState(window.history.state,'',url.pathname+url.search+url.hash);
+   host.dataset.requestedSocialView='rooms';
+   host.dispatchEvent(new CustomEvent('swapp:social-view',{bubbles:true,detail:{view:'rooms'}}));
+   notice('Invitation acceptée : salon vocal et discussion accessibles.');
+  }catch(e){notice(e.message+' Connecte-toi puis réouvre ton invitation si nécessaire.','error')}
+ }
+
  async function selectRoom(id,rerender=true){
   const item=rooms.find(r=>r.id===id);if(!item)return;
   if(activeRoom===id&&$('#ssi-chat-stream'))return;
@@ -176,6 +243,7 @@
   area.dispatchEvent(new CustomEvent('ssi:room-selected',{detail:{id,name:item.name,game:item.game}}));
   $('#ssi-chat-title').textContent='Discussion écrite';
   $('#ssi-chat-hint').textContent='Salon : '+item.name;
+  void updateInvitePanel(item);
   $('#ssi-chat-body').innerHTML='<div class="ssi-chat-stream" id="ssi-chat-stream" aria-label="Messages du salon" aria-live="polite"><div class="ssi-chat-empty">Chargement de la discussion…</div></div><form class="ssi-compose" id="ssi-form-chat"><input name="body" maxlength="160" required autocomplete="off" aria-label="Votre message" placeholder="Écris ton message…"><button type="submit" class="ssi-button">Envoyer ↗</button></form>';
   if(rerender)renderRooms();
   await updateChat(true);
@@ -198,10 +266,11 @@
     await req('polls','POST',{question:data.get('question'),choices});
     await loadPolls();notice('Sondage créé. Les votes sont enregistrés.');
    }else if(kind==='room'){
-    const created=await req('rooms','POST',{name:data.get('name'),game:data.get('game')});
+    const personal=data.get('visibility')!=='public';
+    const created=await req(personal?'rooms/personal':'rooms','POST',{name:data.get('name'),game:data.get('game')||'Discussion'});
     activeRoom='';stopChat();await loadRooms();
     if(created.room?.id)await selectRoom(created.room.id);
-    notice('Salon créé. Tu peux lancer la discussion.');
+    notice(personal?'Canal personnel créé. Partage ton lien d’invitation.':'Salon public créé.');
    }
    form.reset();toggleForm(kind,false);
   }catch(e){notice(e.message,'error')}
@@ -272,6 +341,7 @@
    if(rooms.length)await selectRoom(rooms[0].id,false);
    renderRooms();
    await Promise.all([loadMatches(),loadPolls()]);
+   await acceptInviteLink();
   }catch(e){
    if(retry<3){setTimeout(()=>void initialize(retry+1),1000*(retry+1));return}
    // Keep a retryable hidden module instead of permanently removing the interface.

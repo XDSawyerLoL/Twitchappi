@@ -116,3 +116,5 @@ test('SPA and native routes share the same assets and do not grow the top-level 
  assert.match(css,/prefers-reduced-motion/);
  assert.match(read('assets/swapp-home-news.js'),/swapp:home-feature-ready/);
 });
+
+// Wishlist client revision is validated by the dedicated regression suite.

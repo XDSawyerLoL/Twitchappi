@@ -118,6 +118,19 @@ async function verify(){
   nativePlayer.body.includes("'/communaute?game='"),
   'The SWAPP native-first live client is missing or stale');
  process.stdout.write('PASS personal SWAPP/Twitch live discovery\n');
+ const wishlistFix=await request(origin,'/assets/swapp-wishlist-rewards.js');
+ check(wishlistFix.body.includes("const hasPublishedHub=$$('[data-swapp-game-card]').some("),
+  'Old wishlist JavaScript still throws null.some on /mes-jeux');
+ const personalUI=await request(origin,'/assets/swapp-social-interactions.js');
+ check(personalUI.body.includes("rooms/personal")&&personalUI.body.includes("rooms/join")&&
+  personalUI.body.includes("data-ssi-copy-invite")&&personalUI.body.includes("data-ssi-rotate-invite"),
+  'Personal SOCIAL invite and room joining controls are not deployed');
+ const socialRelease=await request(origin,'/api/swapp/social/release');
+ let personalRelease={};
+ try{personalRelease=JSON.parse(socialRelease.body)}catch{}
+ check(personalRelease.release==='social-personal-channels-20261019'&&personalRelease.features?.personalInviteChannels===true,
+  'Personal invitation channel Node server has not deployed');
+ process.stdout.write('PASS wishlist repair and private SOCIAL channel frontend/server\n');
  const discovery=await request(origin,'/assets/swapp-media-live.js');
  check(discovery.body.includes('/api/discovery/game-lives?limit=6&game='),
   'Article live discovery client is outdated: targeted game lookup missing');

@@ -19,10 +19,10 @@ function fakeServer(){
   namespaces[name]=ns;return ns;
  }};
  const db={async execute(sql,params){
-  assert.match(sql,/FROM swapp_social_rooms WHERE id=\?/);
-  return [[params[0]===ROOM?{id:ROOM}:undefined].filter(Boolean)];
+  assert.match(sql,/FROM swapp_social_rooms r/);
+  return [[params[1]===ROOM?{id:ROOM,private_room:null,private_member:null}:undefined].filter(Boolean)];
  }};
- installSocialVoice({
+  installSocialVoice({
   app,io,restoreSession:async req=>req.user||null,
   getPool:()=>db,secret:SECRET,iceServers:()=>[{urls:['stun:example.org']}]
  });

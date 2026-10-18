@@ -84,9 +84,9 @@ function installSocialVoice({app,io,restoreSession,getPool,secret,iceServers=()=
       const pool=getPool();
       if(!pool)return reply({ok:false,error:'social_storage_unavailable'});
       try{
-        // A signalling room exists only for a real SWAPP SOCIAL/MySQL chat room.
-        const [rows]=await pool.execute('SELECT id FROM swapp_social_rooms WHERE id=? LIMIT 1',[id]);
-        if(!rows?.length)return reply({ok:false,error:'not_found'});
+        // A personal voice room must be joined by invitation first.
+        const {accessRoom}=require('./swapp-social-room-access');
+        if(!await accessRoom(pool,id,socket.data.voiceUser.id))return reply({ok:false,error:'not_found'});
         // Revalidate existence after asynchronous database lookup.
         if(!socket.connected)return;
         leave();

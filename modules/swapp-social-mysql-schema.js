@@ -8,7 +8,8 @@ const migrations=[
  {file:'004_swapp_social_voice_notes.sql',count:1},
  {file:'005_swapp_social_audio_blocks.sql',count:1},
  {file:'006_swapp_social_game_library.sql',count:1},
- {file:'007_swapp_wishlist_rewards.sql',count:3}
+ {file:'007_swapp_wishlist_rewards.sql',count:3},
+ {file:'008_swapp_personal_channels.sql',count:2}
 ];
 async function ensureSocialMysqlSchema(pool){
  for(const migration of migrations){
@@ -19,7 +20,7 @@ async function ensureSocialMysqlSchema(pool){
    throw new Error('social_schema_invalid');
   for(const sql of statements)await pool.query(sql);
  }
- for(const table of ['swapp_social_matches','swapp_social_polls','swapp_social_votes','swapp_social_rooms','swapp_social_room_messages','swapp_social_passports','swapp_social_voice_notes','swapp_social_audio_blocks','swapp_social_game_follows','swapp_social_game_wishlist','swapp_social_reward_accounts','swapp_social_reward_ledger'])
+ for(const table of ['swapp_social_matches','swapp_social_polls','swapp_social_votes','swapp_social_rooms','swapp_social_room_messages','swapp_social_passports','swapp_social_voice_notes','swapp_social_audio_blocks','swapp_social_game_follows','swapp_social_game_wishlist','swapp_social_reward_accounts','swapp_social_reward_ledger','swapp_social_private_rooms','swapp_social_private_members'])
   await pool.query('SELECT 1 FROM '+table+' LIMIT 0');
 }
 module.exports={ensureSocialMysqlSchema};

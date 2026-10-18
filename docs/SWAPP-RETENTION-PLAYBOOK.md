@@ -102,3 +102,10 @@ Cette version n'a pas de notifications push ni de ventes natives. Elle inaugure 
 - Deux chaînes natives SWAPP : une réellement active et une hors ligne ; deux chaînes Twitch dont un jeu proche mais différent ; un compte sans jeux suivis et un compte avec liste de souhaits.
 - Contrôler la priorité des directs SWAPP, l'absence de faux lives, les liens internes, le repli de panne, l'actualisation manuelle, la pagination 4 jeux et la navigation tactile iPhone/Android.
 - Vérifier les assets versionnés 20261019-live-journey-v3 et l'empreinte de la release sur Hostinger ; une fusion GitHub ne prouve pas le déploiement.
+
+
+## Correction des envies et canaux personnels (2026-10-19)
+- L'erreur Cannot read properties of null (reading some) est corrigée : la recherche de dossiers publiée utilise querySelectorAll avant some dans swapp-wishlist-rewards.js.
+- Le script de souhaits est reversionné sur le client SPA et le rendu serveur.
+- SOCIAL permet de créer un salon privé avec lien d'invitation signé, chat MySQL existant, vocal SWAPP existant, authentification et contrôle serveur de l'adhésion.
+- Déployer la migration idempotente 008_swapp_personal_channels.sql avant de valider le parcours sur deux comptes réels.
