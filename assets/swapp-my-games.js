@@ -25,6 +25,104 @@
   catch{return false}
  }
  let games=read();
+
+ const SYNC_KEY='swapp:follow-sync-account:v1';
+ let syncAccountId='';
+ try{
+  const value=JSON.parse(localStorage.getItem(SYNC_KEY)||'null');
+  if(typeof value?.id==='string'&&/^[a-zA-Z0-9_-]{3,100}$/.test(value.id))syncAccountId=value.id;
+ }catch{}
+ let syncing=false;
+ const syncEndpoint='/api/swapp/interactions/library';
+ async function api(path,method='GET',body){
+  const response=await fetch(syncEndpoint+path,{
+   method,credentials:'same-origin',cache:'no-store',
+   headers:{Accept:'application/json',...(body?{'Content-Type':'application/json'}:{})},
+   ...(body?{body:JSON.stringify(body)}:{})
+  });
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok){
+   const error=new Error(response.status===401?'Connecte-toi à ton compte SWAPP pour synchroniser.':
+    response.status===409?'La bibliothèque du compte atteint sa limite de 30 jeux.':
+    response.status===503?'La base SWAPP est temporairement indisponible.':'Synchronisation impossible. Réessaie plus tard.');
+   error.status=response.status;throw error;
+  }
+  return data;
+ }
+ function syncNotice(message){
+  const label=document.querySelector('[data-my-games-sync-status]');
+  if(label)label.textContent=message;
+ }
+ function syncUI(){
+  const start=document.querySelector('[data-my-games-enable-sync]');
+  const stop=document.querySelector('[data-my-games-disable-sync]');
+  if(start){start.hidden=!!syncAccountId;start.disabled=syncing;}
+  if(stop){stop.hidden=!syncAccountId;stop.disabled=syncing;}
+  if(syncAccountId)syncNotice('Synchronisation activée pour ton compte SWAPP. Les suivis sont enregistrés dans MySQL.');
+ }
+ function applyRemote(data){
+  if(!data||!Array.isArray(data.games))throw Error('Réponse de bibliothèque invalide.');
+  const incoming=data.games.filter(g=>validSlug(g?.slug)&&cleanName(g.game)).slice(0,LIMIT).map(g=>({
+   slug:g.slug,game:cleanName(g.game),followedAt:g.followedAt||now(),seenAt:g.seenAt||''
+  }));
+  games=incoming;
+  if(!save(incoming))syncNotice('Bibliothèque synchronisée ; copie locale indisponible sur cet appareil.');
+  update();
+ }
+ async function restoreSync(){
+  if(!syncAccountId||syncing)return;
+  syncing=true;syncUI();
+  try{
+   const remote=await api('/games');
+   if(String(remote.userId)!==syncAccountId){
+    syncAccountId='';
+    try{localStorage.removeItem(SYNC_KEY)}catch{}
+    syncNotice('Compte SWAPP différent : synchronisation désactivée sur cet appareil. La sélection locale est conservée.');
+    return;
+   }
+   applyRemote(remote);syncNotice('Tes jeux sont à jour sur ce compte SWAPP.');
+  }catch(error){syncNotice(error.message+' La sélection reste disponible localement.');}
+  finally{syncing=false;syncUI();}
+ }
+ async function enableSync(){
+  if(syncing)return;
+  syncing=true;syncUI();
+  try{
+   const account=await api('/games');
+   if(!account.userId||typeof account.userId!=='string')throw Error('Compte SWAPP introuvable.');
+   if(syncAccountId&&syncAccountId!==account.userId)throw Error('Le compte a changé. Désactive d’abord la synchronisation précédente.');
+   // Explicit first-time merge; preserves pre-existing follows in the account.
+   const remote=await api('/import','POST',{games:games.map(({slug,game})=>({slug,game}))});
+   if(String(remote.userId)!==String(account.userId))throw Error('Identité SWAPP différente pendant la synchronisation.');
+   try{localStorage.setItem(SYNC_KEY,JSON.stringify({id:String(remote.userId)}))}
+   catch{throw Error('Impossible de mémoriser ton consentement sur cet appareil. Les jeux ont été sauvegardés sur le compte.')}
+   syncAccountId=String(remote.userId);applyRemote(remote);
+   syncNotice('Synchronisation activée. Tu retrouveras ces jeux sur tes autres appareils après connexion.');
+  }catch(error){syncNotice(error.message);}
+  finally{syncing=false;syncUI();}
+ }
+ async function updateServer(method,path,body){
+  if(!syncAccountId)return false;
+  if(syncing){status('Une synchronisation est déjà en cours.');return true;}
+  syncing=true;syncUI();
+  try{
+   const payload=await api(path,method,body);
+   applyRemote(payload);
+   status('Modifications enregistrées sur ton compte SWAPP.');
+  }catch(error){status(error.message+' Aucun changement n’a été appliqué.');}
+  finally{syncing=false;syncUI();}
+  return true;
+ }
+ function exportSelection(){
+  const json=JSON.stringify({format:'swapp-my-games',version:1,exportedAt:now(),games:games.map(x=>({...x}))},null,2);
+  const file=new Blob([json],{type:'application/json'});
+  const url=URL.createObjectURL(file);
+  const a=document.createElement('a');a.href=url;a.download='swapp-mes-jeux.json';
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+  syncNotice('Export enregistré sur cet appareil. Les données ne sont pas envoyées à un tiers.');
+ }
+
  const root=document.querySelector('[data-swapp-library-root]');
  const $=q=>document.querySelector(q);
  const $$=q=>[...document.querySelectorAll(q)];
