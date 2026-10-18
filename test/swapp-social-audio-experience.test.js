@@ -50,6 +50,17 @@ test('private audio composer shows live recorder duration and preview',()=>{
  assert.match(recorder,/box\.dataset\.audioState=/);
  assert.match(recorder,/MAX_SECONDS=30/);
 });
+test('private calls show the actual caller, not a generic browser notification',()=>{
+ const calls=read('assets/swapp-social-native/dm-calls.js');
+ const styles=read('assets/swapp-social-voice-premium.css');
+ const app=read('assets/swapp-social-native/app.js');
+ assert.match(calls,/data-call-name/);
+ assert.match(calls,/data-call-avatar/);
+ assert.match(calls,/tray\.dataset\.callPhase/);
+ assert.match(calls,/call\?\.handle/);
+ assert.match(styles,/\.pulse-call-person/);
+ assert.match(app,/dm-calls\.js\?v=20261018-audio-stage-v1/);
+});
 test('audio styles load after page appearance and support mobile and reduced motion',()=>{
  const css=read('assets/swapp-social-voice-premium.css');
  const hub=read('modules/swapp-hubs.js');
