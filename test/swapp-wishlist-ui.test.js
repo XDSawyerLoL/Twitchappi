@@ -73,5 +73,5 @@ test('guest sees account-required state without invented points or modal spam',a
  h.listeners.click({target:{closest:q=>q==='[data-swapp-wishlist-game]'?h.button:null}});
  await h.tick();
  assert.equal(h.rows.length,0);
- assert.equal(h.button.textContent,'Compte SWAPP requis');
+ assert.match(h.map.get('[data-swapp-loyalty-status]').textContent,/Connecte-toi au compte SWAPP/);
 });
