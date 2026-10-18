@@ -70,9 +70,9 @@
    <div class="ssi-section-group">
     <section class="ssi-panel ssi-panel-rooms" id="ssi-room-panel" aria-labelledby="ssi-rooms-title">
      <div class="ssi-panel-inner">
-      <div class="ssi-panel-head"><div class="ssi-head-main">${icon('rooms')}<div><span class="ssi-section-label">Salons ouverts</span><h3 id="ssi-rooms-title">Rejoins la conversation</h3><p class="ssi-panel-desc">Un jeu, un sujet, un endroit où se retrouver.</p></div></div><span class="ssi-count" id="ssi-room-badge" title="Nombre de salons">—</span></div>
+      <div class="ssi-panel-head"><div class="ssi-head-main">${icon('rooms')}<div><span class="ssi-section-label">TES ESPACES</span><h3 id="ssi-rooms-title">Salons vocaux</h3><p class="ssi-panel-desc">Choisis un salon pour discuter.</p></div></div><span class="ssi-count" id="ssi-room-badge" title="Nombre de salons">—</span></div>
       <div class="ssi-room-list" id="ssi-room-results" aria-live="polite"></div>
-      <button type="button" class="ssi-ghost ssi-block-action" data-open-form="room" aria-controls="ssi-form-room" aria-expanded="false">+ Ouvrir un salon</button>
+      <button type="button" class="ssi-ghost ssi-block-action" data-open-form="room" aria-controls="ssi-form-room" aria-expanded="false">+ Créer un salon</button>
       <form class="ssi-inline-form" id="ssi-form-room" hidden>
        <label class="ssi-field">Nom du salon<input name="name" required maxlength="60" placeholder="Ex. Squad du soir"></label>
        <label class="ssi-field">Jeu associé<input name="game" required maxlength="65" placeholder="Ex. PUBG"></label>
@@ -82,7 +82,7 @@
     </section>
     <section class="ssi-panel ssi-panel-chat ssi-chat-panel" id="ssi-chat-panel" aria-labelledby="ssi-chat-title">
      <div class="ssi-panel-inner">
-      <div class="ssi-panel-head"><div class="ssi-head-main">${icon('chat')}<div><span class="ssi-section-label">Discussion</span><div class="ssi-chat-heading"><h3 id="ssi-chat-title">Choisis un salon</h3></div><p class="ssi-chat-hint" id="ssi-chat-hint">Actualisation des messages toutes les 5 secondes</p></div></div></div>
+      <div class="ssi-panel-head"><div class="ssi-head-main">${icon('chat')}<div><span class="ssi-section-label">MESSAGES DU SALON</span><div class="ssi-chat-heading"><h3 id="ssi-chat-title">Discussion écrite</h3></div><p class="ssi-chat-hint" id="ssi-chat-hint">Messages de la communauté</p></div></div></div>
       <div id="ssi-chat-body" aria-live="off"><div class="ssi-room-placeholder">Rejoins un salon pour échanger avec la communauté.</div></div>
      </div>
     </section>
@@ -133,9 +133,9 @@
  function renderRooms(){
   const count=asCount(rooms);metric('rooms',count);$('#ssi-room-badge').textContent=count;
   const el=$('#ssi-room-results');
-  if(!count){el.innerHTML=empty('⌁','Aucun salon créé. Ouvre le premier et démarre la conversation.');return}
+  if(!count){el.innerHTML=empty('⌁','Aucun salon pour le moment. Crée le premier.');return}
   const visible=roomsExpanded?rooms:rooms.slice(0,6);
-  el.innerHTML=visible.map(r=>`<button class="ssi-room" type="button" data-room="${escape(r.id)}" aria-pressed="${r.id===activeRoom}"><span class="ssi-room-info"><span class="ssi-room-name"># ${escape(r.name)}</span><span class="ssi-room-game">${escape(r.game)}</span></span><span class="ssi-room-meta">${Math.max(0,Number(r.messageCount)||0)} msg ↗</span></button>`).join('')+(count>6?'<button type="button" class="ssi-ghost" data-action="toggle-rooms">'+(roomsExpanded?'Voir moins':'Voir tous les salons ('+count+')')+'</button>':'');
+  el.innerHTML=visible.map(r=>`<button class="ssi-room" type="button" data-room="${escape(r.id)}" aria-pressed="${r.id===activeRoom}" aria-label="Sélectionner le salon ${escape(r.name)}"><span class="ssi-room-voice-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4V9Zm12-1a5 5 0 0 1 0 8m2-11a9 9 0 0 1 0 14"/></svg></span><span class="ssi-room-info"><span class="ssi-room-name">${escape(r.name)}</span><span class="ssi-room-game">${escape(r.game)} · Vocal et texte</span></span></button>`).join('')+(count>6?'<button type="button" class="ssi-ghost" data-action="toggle-rooms">'+(roomsExpanded?'Voir moins':'Voir tous les salons ('+count+')')+'</button>':'');
  }
  async function loadMatches(){try{const data=await req('match2/compatible');matches=Array.isArray(data.matches)?data.matches:[];renderMatches()}catch(e){$('#ssi-match-results').innerHTML=empty('! ',escape(e.message));}}
  async function loadPolls(){try{const data=await req('polls');polls=Array.isArray(data.polls)?data.polls:[];renderPolls()}catch(e){$('#ssi-poll-results').innerHTML=empty('! ',escape(e.message));}}
@@ -174,8 +174,8 @@
   stopChat();activeRoom=id;
   area.dataset.activeSocialRoom=id;
   area.dispatchEvent(new CustomEvent('ssi:room-selected',{detail:{id,name:item.name,game:item.game}}));
-  $('#ssi-chat-title').textContent=item.name;
-  $('#ssi-chat-hint').textContent=item.game+' · Actualisation toutes les 5 secondes';
+  $('#ssi-chat-title').textContent='Discussion écrite';
+  $('#ssi-chat-hint').textContent='Salon : '+item.name;
   $('#ssi-chat-body').innerHTML='<div class="ssi-chat-stream" id="ssi-chat-stream" aria-label="Messages du salon" aria-live="polite"><div class="ssi-chat-empty">Chargement de la discussion…</div></div><form class="ssi-compose" id="ssi-form-chat"><input name="body" maxlength="160" required autocomplete="off" aria-label="Votre message" placeholder="Écris ton message…"><button type="submit" class="ssi-button">Envoyer ↗</button></form>';
   if(rerender)renderRooms();
   await updateChat(true);
@@ -245,7 +245,13 @@
    catch(e){notice(e.message,'error');vote.disabled=false}
    return;
   }
-  const room=event.target.closest('[data-room]');if(room)await selectRoom(room.dataset.room);
+  const room=event.target.closest('[data-room]');if(room){
+   await selectRoom(room.dataset.room);
+   // On a small screen, show the selected voice stage without scrolling on initial load.
+   if(window.matchMedia?.('(max-width:650px)').matches&&event.isTrusted){
+    area.querySelector('#ssi-chat-panel .swapp-voice')?.scrollIntoView({behavior:'smooth',block:'start'});
+   }
+  }
  });
  area.addEventListener('submit',async event=>{
   const form=event.target;if(!form.id?.startsWith('ssi-form-'))return;event.preventDefault();
