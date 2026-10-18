@@ -59,7 +59,7 @@
    if(!slugOK(item.slug))continue;
    const row=document.createElement('article');row.className='mg-wish-row';
    const body=document.createElement('div');
-   const hasPublishedHub=$('[data-swapp-game-card]').some(card=>card.dataset.gameSlug===item.slug);
+   const hasPublishedHub=$$('[data-swapp-game-card]').some(card=>card.dataset.gameSlug===item.slug);
    const a=document.createElement('a');
    a.href=hasPublishedHub?'/jeux/'+item.slug:'/boutique';
    a.textContent=cleanName(item.game);
