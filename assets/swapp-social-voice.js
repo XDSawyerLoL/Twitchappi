@@ -3,7 +3,7 @@
  'use strict';
  const host=document.getElementById('swappSocialNative');
  const area=host?.querySelector('.swapp-interactive');
- const container=area?.querySelector('#ssi-chat-panel .ssi-panel-inner');
+ const container=area?.querySelector('#ssi-room-panel .ssi-panel-inner');
  if(!area||!container)return;
 
  const section=document.createElement('section');
@@ -19,7 +19,9 @@
   </div>
   <div id="swapp-voice-peers" class="swapp-voice-peers" aria-label="Participants audio"></div>
   <div id="swapp-voice-audio" hidden></div>`;
- container.insertBefore(section,area.querySelector('#ssi-chat-body'));
+ // Keep the voice controls above the list of rooms, immediately visible on entry.
+ // Joining still requires choosing or creating an actual room first.
+ container.insertBefore(section,area.querySelector('#ssi-room-results'));
  const $=selector=>section.querySelector(selector);
  const joinButton=$('#swapp-voice-join'),muteButton=$('#swapp-voice-mute');
  const leaveButton=$('#swapp-voice-leave'),status=$('#swapp-voice-notice'),playButton=$('#swapp-voice-play');
