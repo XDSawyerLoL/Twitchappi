@@ -14,6 +14,7 @@
   <div class="swapp-voice-controls">
    <button type="button" id="swapp-voice-join" disabled>Rejoindre le vocal</button>
    <button type="button" id="swapp-voice-mute" hidden>Couper le micro</button>
+   <button type="button" id="swapp-voice-play" hidden>Activer le son</button>
    <button type="button" id="swapp-voice-leave" hidden>Quitter</button>
   </div>
   <div id="swapp-voice-peers" class="swapp-voice-peers" aria-label="Participants audio"></div>
@@ -21,7 +22,7 @@
  container.insertBefore(section,area.querySelector('#ssi-chat-body'));
  const $=selector=>section.querySelector(selector);
  const joinButton=$('#swapp-voice-join'),muteButton=$('#swapp-voice-mute');
- const leaveButton=$('#swapp-voice-leave'),status=$('#swapp-voice-notice');
+ const leaveButton=$('#swapp-voice-leave'),status=$('#swapp-voice-notice'),playButton=$('#swapp-voice-play');
  const live=$('#swapp-voice-live'),people=$('#swapp-voice-peers'),audioHost=$('#swapp-voice-audio');
  let selectedRoom=String(area.dataset.activeSocialRoom||''),connectedRoom='',busy=false,muted=false;
  let socket=null,media=null,iceServers=[],lifecycle=0;
@@ -33,6 +34,7 @@
   joinButton.hidden=joined;
   joinButton.disabled=busy||!selectedRoom;
   muteButton.hidden=!joined;leaveButton.hidden=!joined;
+  if(!joined)playButton.hidden=true;
   muteButton.textContent=muted?'Activer le micro':'Couper le micro';
   muteButton.setAttribute('aria-pressed',String(muted));
   live.textContent=joined?'Micro actif':'Hors ligne';
@@ -58,7 +60,7 @@
   socket?.emit('voice:leave');
   socket?.disconnect();socket=null;
   for(const id of [...peers.keys()])closePeer(id);
-  profiles.clear();audioHost.replaceChildren();
+  profiles.clear();audioHost.replaceChildren();playButton.hidden=true;
   media?.getTracks().forEach(track=>track.stop());media=null;
   connectedRoom='';busy=false;muted=false;repaint();
  }
@@ -81,7 +83,8 @@
    const stream=event.streams?.[0]||new MediaStream([event.track]);
    element.srcObject=stream;
    element.play().catch(()=>{
-    notice('Le navigateur bloque la lecture. Active le son ou touche la page pour écouter.');
+    playButton.hidden=false;
+    notice('Ton navigateur bloque la lecture automatique. Utilise « Activer le son ».');
    });
   };
   pc.onconnectionstatechange=()=>{
@@ -198,6 +201,13 @@
   }
  }
  joinButton.addEventListener('click',()=>{void join()});
+ playButton.addEventListener('click',()=>{
+  Promise.allSettled([...audioHost.querySelectorAll('audio')].map(el=>el.play())).then(results=>{
+   const blocked=results.some(r=>r.status==='rejected');
+   playButton.hidden=!blocked;
+   notice(blocked?'Le navigateur refuse encore le son. Vérifie ses autorisations.':'Son activé pour ce salon vocal.');
+  });
+ });
  muteButton.addEventListener('click',()=>{
   if(!media||!connectedRoom)return;
   muted=!muted;
