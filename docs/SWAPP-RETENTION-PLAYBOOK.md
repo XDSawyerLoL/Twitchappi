@@ -50,3 +50,24 @@ Ne pas mesurer comme succès le temps inutilement passé, le défilement compuls
 - Ne pas lancer des GitHub Actions facturées pour une simple validation.
 
 Cette version n'a pas de notifications push ni de ventes natives. Elle inaugure la **boucle de retour fondée sur les jeux choisis** ; mesurer et fiabiliser avant de multiplier les fonctionnalités.
+
+
+## Boutique : envies privées et points découverte (version 2026-10-18)
+- Bouton **♡ Ajouter aux envies** sur les dossiers indexés, les articles reliés à un dossier et les dix fiches de la vitrine Steam.
+- Liste de souhaits privée MySQL, rattachée au compte SWAPP, 50 titres maximum, suppression individuelle ou complète ; pas de suivi caché ni de prix fictif.
+- La vitrine Steam reste datée ; la présence d'un jeu dans les envies ne signifie ni disponibilité commerciale sur SWAPP, ni prix vérifié, ni possession, ni achat.
+- Points : 10 points pour le premier **nouveau** jeu suivi sur un compte SWAPP synchronisé, uniquement si SWAPP peut vérifier que ce jeu dispose d'un dossier éditorial indexable (deux publications réellement publiées) ; maximum 10 titres / 100 points à vie.
+- Le crédit est atomique dans une transaction MySQL, avec verrou de compte, journal idempotent par couple utilisateur + jeu et aucun nouveau point en se désabonnant puis en se réabonnant.
+- Niveaux symboliques : Découvreur (0), Éclaireur (30), Pionnier (60), Explorateur confirmé (100). Le niveau s'affiche dans **Mes jeux**.
+- Aucun point pour une commande, un clic publicitaire, une connexion quotidienne, un défilement ou une activité artificielle. Pas de loteries ni remises monétaires avant décision explicite, validation du commerce et cadre juridique.
+- La synchronisation initiale importe les jeux existants sans crédit rétroactif automatique, pour ne pas inciter à fabriquer des préférences locales.
+- En cas d'indisponibilité de l'index éditorial, le suivi reste possible mais **aucun point n'est inventé**.
+- Les API personnelles `/library/wishlist` et `/rewards/me` nécessitent un compte SWAPP actif, renvoient des réponses no-store et refusent les écritures hors origine.
+- Les points sont une reconnaissance de découverte, non convertibles, sans valeur marchande, ni classement public et sans expiration ; ne pas les présenter comme des bons d'achat.
+
+## Acceptation avant mise en production des points
+- `node --test test/swapp-wishlist-rewards.test.js test/swapp-verified-rewards.test.js test/swapp-social-mysql-schema.test.js`
+- Tester depuis deux comptes différents : création, retrait, 50 envies, vérification du solde séparé ; 10 nouveaux jeux maximum et aucun double crédit après retrait / re-suivi.
+- Tester le repli si les articles sont indisponibles : zéro point attribué à un dossier non vérifié.
+- Confirmer MySQL migration `007_swapp_wishlist_rewards.sql`, état de santé des 3 nouvelles tables et version publiée `social-wishlist-points-20261018`.
+- Vérifier iPhone Safari et Android Chrome, clavier, états d'erreur inline, cache CSS/JS et affichage sans nouvelles sections de boutique.
