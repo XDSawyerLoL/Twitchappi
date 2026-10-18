@@ -392,7 +392,6 @@ const SPA_INFO=Object.freeze({
 });
 
 const LANDING_CONTENT=Object.freeze({
- '/':{heading:'Actualité jeux vidéo, lives et streamers sur SWAPP',intro:'SWAPP rassemble des actualités gaming, des bandes-annonces et la découverte de créateurs en direct. Parcours les jeux qui font parler et retrouve les communautés qui les font vivre.',detail:'Une plateforme pour découvrir de nouveaux streamers et suivre les nouveautés du jeu vidéo, sans multiplier les sites.'},
  '/decouvrir':{heading:'Découvrir des streamers et des lives gaming',intro:'Explore des diffusions en direct, découvre de nouveaux créateurs et retrouve les jeux qui t’intéressent sur SWAPP.',detail:'La découverte privilégie les jeux, les créateurs et les communautés, sans imposer un compte pour commencer à explorer.'},
  '/categories':{heading:'Jeux vidéo et catégories en direct',intro:'Retrouve les catégories de jeux vidéo et passe des actualités aux lives des créateurs qui y jouent.',detail:'Explore les univers gaming et découvre des streamers par jeu ou par catégorie.'},
  '/equipes':{heading:'Équipes de streamers et communautés gaming',intro:'Parcours les équipes et découvre les créateurs réunis autour des mêmes jeux et centres d’intérêt.',detail:'SWAPP relie la découverte des créateurs à celle des communautés.'},
@@ -411,11 +410,8 @@ function landingMarkup(path){
 function enhanceLandingHtml(html,path){
  const content=landingMarkup(path);
  if(!content)return html;
- const styles='<style>.swappSeoIntro{box-sizing:border-box;max-width:820px;margin:40px auto;padding:24px;color:#f3f6ff;text-align:center;font:500 16px/1.55 system-ui,sans-serif}.swappSeoIntro h1{font-size:clamp(28px,4vw,46px);line-height:1.12;letter-spacing:-.04em;margin:0 0 18px}.swappSeoIntro p{color:#cdd6e7;font-size:17px;margin:10px auto;max-width:720px}.swappSeoIntro .swappSeoDetail{font-size:14px;color:#aebbd0}.swappSeoIntro nav{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:22px}.swappSeoIntro nav a{display:inline-block;color:#f6f8ff;text-decoration:none;border:1px solid #ffffff37;background:#ffffff11;border-radius:24px;padding:7px 12px;font-weight:700;font-size:13px}.swappBootInner.swappSeoBoot{flex-direction:column;gap:8px;max-width:900px;margin:auto}.swappBootInner.swappSeoBoot .swappSeoIntro{margin:0;padding:12px 20px}@media(max-width:600px){.swappSeoIntro{margin:16px auto;padding:20px 14px}.swappSeoIntro p{font-size:15px}}</style>';
+ const styles='<style>.swappSeoIntro{box-sizing:border-box;max-width:820px;margin:40px auto;padding:24px;color:#f3f6ff;text-align:center;font:500 16px/1.55 system-ui,sans-serif}.swappSeoIntro h1{font-size:clamp(28px,4vw,46px);line-height:1.12;letter-spacing:-.04em;margin:0 0 18px}.swappSeoIntro p{color:#cdd6e7;font-size:17px;margin:10px auto;max-width:720px}.swappSeoIntro .swappSeoDetail{font-size:14px;color:#aebbd0}.swappSeoIntro nav{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:22px}.swappSeoIntro nav a{display:inline-block;color:#f6f8ff;text-decoration:none;border:1px solid #ffffff37;background:#ffffff11;border-radius:24px;padding:7px 12px;font-weight:700;font-size:13px}@media(max-width:600px){.swappSeoIntro{margin:16px auto;padding:20px 14px}.swappSeoIntro p{font-size:15px}}</style>';
  let result=html.replace('</head>',styles+'</head>');
- if(path==='/'){
-  return result.replace('<div class="swappBootInner">','<div class="swappBootInner swappSeoBoot">'+content);
- }
  const ids={'/decouvrir':'discover','/categories':'categories','/equipes':'teams','/actus':'actus'};
  const id=ids[path];
  const opening='<section id="'+id+'" class="view"';

@@ -93,6 +93,12 @@ async function verify(){
  process.stdout.write('PASS SWAPP Boutique ten Steam games only; catalog drafts remain private to editor\n');
  // Home markup is also inspected by the Boutique editor check below.
  const home=await request(origin,'/');
+ // The SEO headline used to flash through the banner during F5.
+ check(!home.body.includes('Actualité jeux vidéo, lives et streamers sur SWAPP')&&
+  !home.body.includes('SWAPP rassemble des actualités gaming')&&
+  !home.body.includes('swappSeoIntro')&&
+  home.body.includes('rel="canonical" href="https://swapp.tv/"'),
+  'Server SEO splash still appears behind the homepage video');
  const shopAdminScript=await request(origin,'/assets/swapp-shop-admin.js');
  check(shopAdminScript.body.includes("'/api/editor/boutique'")&&
    shopAdminScript.body.includes("options.headers['x-swapp-editor']='1'"),

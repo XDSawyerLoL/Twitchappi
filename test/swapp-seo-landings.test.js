@@ -6,8 +6,8 @@ const path=require('node:path');
 const {injectSpaMetadata,rssXml,registerSeoRoutes}=require('../modules/swapp-seo');
 const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
 
-test('HTML initial includes crawlable, visible editorial content and internal links for public SPA routes',()=>{
- for(const url of ['/','/actus','/decouvrir','/categories','/equipes']){
+test('secondary public routes keep their crawlable editorial introductions',()=>{
+ for(const url of ['/actus','/decouvrir','/categories','/equipes']){
   const rendered=injectSpaMetadata(html,url);
   assert.match(rendered,/<h1>[^<]+<\/h1>/,url);
   assert.match(rendered,/aria-label="Explorer SWAPP"/,url);
@@ -16,6 +16,19 @@ test('HTML initial includes crawlable, visible editorial content and internal li
   assert.equal((rendered.match(/rel="canonical"/g)||[]).length,1);
   assert.ok(rendered.includes('/index_script.js'),url);
  }
+});
+
+test('homepage never contains the SEO splash while reloading, but retains indexable metadata',()=>{
+ const rendered=injectSpaMetadata(html,'/');
+ assert.doesNotMatch(rendered,/Actualité jeux vidéo, lives et streamers sur SWAPP/);
+ assert.doesNotMatch(rendered,/SWAPP rassemble des actualités gaming/);
+ assert.doesNotMatch(rendered,/swappSeoIntro|swappSeoBoot/);
+ assert.ok(rendered.includes('<div class="swappBootInner">'));
+ assert.ok(rendered.includes('<meta name="description" content="SWAPP réunit actualité du jeu vidéo'));
+ assert.ok(rendered.includes('<link rel="canonical" href="https://swapp.tv/">'));
+ assert.ok(rendered.includes('<script type="application/ld+json">'));
+ assert.ok(rendered.includes('"@type":"WebSite"'));
+ assert.ok(rendered.includes('/assets/swapp-home-motion.js'));
 });
 
 test('private routes are noindex and do not receive public fallback copy',()=>{
@@ -64,7 +77,7 @@ test('legacy duplicate public paths redirect to one canonical destination',()=>{
  assert.match(server,/res\.redirect\(301,destination\+query\)/);
 });
 
-test('html sitemap is linked from home, has valid canonical and omits draft or hostile HTML',()=>{
+test('html sitemap keeps a valid canonical and omits draft or hostile HTML',()=>{
  const {sitemapHtml,sitemapEntries}=require('../modules/swapp-seo');
  const articles=[
   {slug:'le-nouveau-jeu',status:'published',title:'Les jeux & nouveautés',publishedAt:'2026-10-16T10:00:00Z'},
@@ -73,7 +86,6 @@ test('html sitemap is linked from home, has valid canonical and omits draft or h
   {slug:'bad/slug',status:'published',title:'Invalide'}
  ];
  const page=sitemapHtml(articles);
- assert.match(injectSpaMetadata(html,'/'),/href="\/plan-du-site"/);
  assert.match(page,/<title>Plan du site — SWAPP<\/title>/);
  assert.match(page,/rel="canonical" href="https:\/\/swapp.tv\/plan-du-site"/);
  assert.match(page,/Les jeux &amp; nouveautés/);
