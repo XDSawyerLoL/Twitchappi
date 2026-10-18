@@ -550,8 +550,12 @@ function renderPlanning(){
   const title=document.getElementById('planTitle').value.trim();
   const category=document.getElementById('planCategory').value.trim();
   const tags=document.getElementById('planTags').value.trim();
-  const when=document.getElementById('planWhen').value;
-  if(!title||!when)return;
+  const localWhen=document.getElementById('planWhen').value;
+  const parsedWhen=new Date(localWhen);
+  if(!title||!localWhen||!Number.isFinite(parsedWhen.getTime()))return;
+  // Store an explicit UTC instant: Date.parse on Hostinger must never
+  // reinterpret the member's browser-local appointment as server-local time.
+  const when=parsedWhen.toISOString();
   const button=form.querySelector('[type="submit"]');
   button.disabled=true;
   try{
@@ -3994,7 +3998,7 @@ async function renderSettings(){
   (u?'Connecté en tant que '+esc(u.login):'Déconnecté')+
   '</small></div>'+(u?'<button class="btn secondary" type="button" onclick="logoutOryon()">Se déconnecter</button>':'')+'</div></section>';
  const prefs='<div class="swapp-acct-preferences"><label for="swapp-acct-accent"><b>Couleur d’accent</b><small>Modifie le thème de ton espace.</small></label>'+
-  '<input type="color" id="swapp-acct-accent" value="'+(/#[0-9a-f]{6}/i.test(accent)?esc(accent):'#22d3ee')+
+  '<input type="color" id="swapp-acct-accent" value="'+(/^#[0-9a-f]{6}$/i.test(accent)?esc(accent):'#22d3ee')+
   '" oninput="setViewerThemeColor(this.value)" aria-label="Couleur d’accent"></div>';
  const sections=u?(
   '<section data-account-panel="overview" id="swapp-acct-panel-overview" role="tabpanel" aria-labelledby="swapp-acct-tab-overview" class="swapp-acct-pane"><div class="swapp-acct-overview">'+viewer+quick+'</div></section>'+
