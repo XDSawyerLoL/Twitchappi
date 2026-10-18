@@ -50,7 +50,8 @@ function routerFixture(){
  }};
  createDirectAudioRouter({
   express,restoreSession:async request=>request.user,getPool:()=>db,
-  lookupLocalUser:handle=>accounts.find(u=>u.login===handle)
+  lookupLocalUser:handle=>accounts.find(u=>u.login===handle),
+  isAllowedPair:async()=>true
  });
  async function invoke(method,route,{user=accounts[0],origin='https://swapp.tv',params={},query={},body=webm,headers={}}={}){
   const req={
