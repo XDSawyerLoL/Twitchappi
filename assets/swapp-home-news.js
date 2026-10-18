@@ -145,6 +145,7 @@
    hero.classList.add('swapp-feature-ready');
    hero.classList.remove('swapp-hero-pending','swapp-hero-unavailable');
    hero.setAttribute('aria-busy','false');
+   window.dispatchEvent(new Event('swapp:home-feature-ready'));
    void showVerifiedCreators(feature,bridge);
    // Play only this published article's trailer after its poster is ready.
    // The image remains intact if the provider blocks or delays autoplay.
