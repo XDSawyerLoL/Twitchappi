@@ -1,6 +1,6 @@
 import {esc,timeAgo} from './core.js';
 const BASE='/api/swapp/direct-audio';
-const MAX_BYTES=768*1024,MAX_SECONDS=30;
+const MAX_BYTES=512*1024,MAX_SECONDS=30;
 const uuid=/^[a-f0-9-]{36}$/i;
 const types=['audio/webm;codecs=opus','audio/mp4','audio/ogg;codecs=opus','audio/webm'];
 let recorder=null,stream=null,parts=[],started=0,timeout=null,draft=null,objectUrl='',conversation='',busy=false;
