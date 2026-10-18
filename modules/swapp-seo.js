@@ -2,7 +2,7 @@
 // Public SEO routes for SWAPP. No cron, no paid API, no user tracking.
 // Only published Firestore articles may appear in the optional news section.
 const ORIGIN='https://swapp.tv';
-const {gameHubs,renderGameIndex,renderGamePage}=require('./swapp-game-pages');
+const {gameHubs,renderGameIndex,renderGamePage,renderMyGames}=require('./swapp-game-pages');
 // IndexNow's public domain-ownership proof, not a secret credential.
 const INDEXNOW_KEY='b700e3b876341559d245b13c5a25d369';
 const INDEXNOW_KEY_PATH='/'+INDEXNOW_KEY+'.txt';
@@ -334,6 +334,13 @@ function registerSeoRoutes(app,{getPublished=async()=>[],getCreators=async()=>[]
   if(!games.length)return res.status(404).send('Aucun dossier jeu publié pour le moment.');
   res.set('Cache-Control','no-store');
   return res.status(200).type('html').send(renderGameIndex(games));
+ });
+ // Opt-in personal space. Intentionally excluded from XML sitemaps and indexing.
+ // Uses the same published-article cache as /jeux; never queries a private profile.
+ app.get('/mes-jeux',async(_req,res)=>{
+  await ensureCache();
+  res.set('Cache-Control','private, no-store');
+  return res.status(200).type('html').send(renderMyGames(gameHubs(articles)));
  });
  app.get('/jeux/:slug',async(req,res)=>{
   const slug=String(req.params.slug||'');
