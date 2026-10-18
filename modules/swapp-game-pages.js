@@ -79,7 +79,8 @@ function renderGameIndex(groups){
  const meta='<link rel="canonical" href="'+url+'"><meta property="og:type" content="website"><meta property="og:url" content="'+url+'">'+structuredData(indexSchema);
  const links=groups.map(g=>'<article class="card" data-swapp-game-card data-game-slug="'+html(g.slug)+'" data-game-name="'+html(g.game)+'">'+
   '<a href="/jeux/'+encodeURIComponent(g.slug)+'"><div><h3>'+html(g.game)+'</h3><span>'+g.count+' publications</span></div></a>'+
-  '<button type="button" data-swapp-follow-game data-game-slug="'+html(g.slug)+'" data-game-name="'+html(g.game)+'" aria-pressed="false">＋ Suivre ce jeu</button></article>').join('');
+  '<button type="button" data-swapp-follow-game data-game-slug="'+html(g.slug)+'" data-game-name="'+html(g.game)+'" aria-pressed="false">＋ Suivre ce jeu</button>'+
+  '<button type="button" data-swapp-wishlist-game data-game-slug="'+html(g.slug)+'" data-game-name="'+html(g.game)+'" aria-pressed="false">♡ Ajouter aux envies</button></article>').join('');
  const body='<main class="game-portal"><p class="breadcrumb"><a href="/">SWAPP</a> / Jeux</p><header class="hero"><h1>Jeux vidéo : actualités et créateurs</h1><p>Retrouve les jeux couverts par SWAPP, leurs articles et les créateurs en direct.</p><div class="actions"><a href="/mes-jeux">Mes jeux suivis →</a></div></header><section><div class="mg-index-intro"><h2>Explorer les jeux</h2><a href="/mes-jeux">Retrouver ma sélection →</a></div><div class="cards index">'+links+'</div></section></main>';
  return layout({title,description:'Articles et créateurs autour des jeux vidéo couverts par SWAPP.',content:body,metadata:meta,extraCss:CSS,active:'actus'});
 }
@@ -102,7 +103,7 @@ function renderGamePage(group){
    '<div><small>'+html(a.category||'Actualité')+'</small><h3>'+html(a.title)+'</h3><p>'+html(excerpt)+'</p></div></a>';
  }).join('');
  const body='<main class="game-portal"><p class="breadcrumb"><a href="/">SWAPP</a> / <a href="/jeux">Jeux</a> / '+html(group.game)+'</p>'+
-  '<header class="hero"><h1>'+html(group.game)+' : actualités et lives</h1><p>'+html(description)+'</p><div class="actions"><button type="button" data-swapp-follow-game data-game-slug="'+html(group.slug)+'" data-game-name="'+html(group.game)+'" aria-pressed="false">＋ Suivre ce jeu</button><a href="/mes-jeux">Mes jeux</a><a href="/actus">Toutes les actualités</a><a href="/decouvrir">Explorer les créateurs</a><a href="/communaute">Trouver des joueurs</a><a href="/boutique">Consulter la boutique</a></div></header>'+
+  '<header class="hero"><h1>'+html(group.game)+' : actualités et lives</h1><p>'+html(description)+'</p><div class="actions"><button type="button" data-swapp-wishlist-game data-game-slug="'+html(group.slug)+'" data-game-name="'+html(group.game)+'" aria-pressed="false">♡ Ajouter aux envies</button><button type="button" data-swapp-follow-game data-game-slug="'+html(group.slug)+'" data-game-name="'+html(group.game)+'" aria-pressed="false">＋ Suivre ce jeu</button><a href="/mes-jeux">Mes jeux</a><a href="/actus">Toutes les actualités</a><a href="/decouvrir">Explorer les créateurs</a><a href="/communaute">Trouver des joueurs</a><a href="/boutique">Consulter la boutique</a></div></header>'+
   '<section><h2>Articles sur '+html(group.game)+'</h2><div class="cards">'+cards+'</div></section>'+
   '<section class="swapp-media-section" data-swapp-live-shelf data-game="'+html(group.game)+'"><div class="swapp-media-heading"><h2>En direct sur '+html(group.game)+'</h2></div>'+
   '<div class="swapp-live-grid" data-live-results><p class="swapp-live-notice">Recherche des lives actuellement disponibles…</p></div></section></main>';
@@ -124,7 +125,7 @@ function renderMyGames(groups=[]){
   return '<article class="mg-card" data-swapp-game-card data-game-slug="'+html(g.slug)+'" data-game-name="'+html(g.game)+'">'+
    '<div class="mg-card-top"><div><span class="mg-eyebrow">'+g.count+' publications vérifiées</span><h3>'+html(g.game)+'</h3><p>Actualités, lives, joueurs et boutique</p></div><button type="button" data-swapp-follow-game data-game-slug="'+html(g.slug)+'" data-game-name="'+html(g.game)+'" aria-pressed="false">＋ Suivre ce jeu</button></div>'+
    '<span class="mg-new" data-my-games-news hidden></span><div class="mg-card-latest">'+recent+'</div>'+
-   '<div class="mg-card-links"><a href="/jeux/'+encodeURIComponent(g.slug)+'">Dossier et lives →</a><a href="/communaute">Trouver des joueurs</a><a href="/boutique">Voir la boutique</a><button type="button" data-my-games-mark-seen hidden>Marquer comme vues</button></div></article>';
+   '<div class="mg-card-links"><button type="button" data-swapp-wishlist-game data-game-slug="'+html(g.slug)+'" data-game-name="'+html(g.game)+'" aria-pressed="false">♡ Ajouter aux envies</button><a href="/jeux/'+encodeURIComponent(g.slug)+'">Dossier et lives →</a><a href="/communaute">Trouver des joueurs</a><a href="/boutique">Voir la boutique</a><button type="button" data-my-games-mark-seen hidden>Marquer comme vues</button></div></article>';
  }).join('');
  const body='<main class="swapp-my-games" data-swapp-library-root>'+
   '<p class="breadcrumb"><a href="/">SWAPP</a> / <a href="/jeux">Jeux</a> / Ma sélection</p>'+
@@ -135,6 +136,19 @@ function renderMyGames(groups=[]){
    '<div class="mg-sync-actions"><button type="button" data-my-games-enable-sync>Synchroniser avec mon compte</button>'+
    '<button type="button" data-my-games-disable-sync hidden>Utiliser cet appareil uniquement</button>'+
    '<button type="button" data-my-games-export>Exporter ma sélection</button></div></section>'+
+  '<section class="mg-loyalty" aria-label="Ma progression SWAPP" id="recompenses">'+
+   '<div class="mg-loyalty-title"><div><span class="mg-eyebrow">MON PARCOURS SWAPP</span><h2>Points découverte</h2>'+
+   '<p>10 points par nouveau jeu distinct suivi sur ton compte SWAPP, après activation de la synchronisation (10 jeux maximum). Aucun achat requis, aucun bonus quotidien.</p></div>'+
+   '<div class="mg-loyalty-score"><strong data-swapp-rewards-points>—</strong><small>/ 100 points</small></div></div>'+
+   '<div class="mg-level"><span data-swapp-rewards-level>Compte SWAPP requis</span><span data-swapp-rewards-next></span></div>'+
+   '<div class="mg-track" role="progressbar" aria-label="Progression découverte" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" data-swapp-rewards-track><span data-swapp-rewards-fill></span></div>'+
+   '<p class="mg-loyalty-note">Reconnaissance symbolique, sans valeur monétaire ni remise promise. Pas de points pour l’achat d’un jeu.</p></section>'+
+  '<section class="mg-wishlist" aria-label="Ma liste de souhaits" id="liste-de-souhaits">'+
+   '<div class="mg-section-head"><div><span class="mg-eyebrow">BOUTIQUE / À SURVEILLER</span><h2>Ma liste de souhaits <small data-swapp-wishlist-count></small></h2></div>'+
+   '<button type="button" data-swapp-wishlist-clear class="mg-clear">Effacer mes envies</button></div>'+
+   '<p class="mg-info">Retrouve les jeux que tu souhaites acheter. Aucun prix ni disponibilité n’est affiché sans offre vérifiée. Tu gardes toujours le contrôle.</p>'+
+   '<p class="mg-wishlist-status" data-swapp-loyalty-status role="status" aria-live="polite"></p>'+
+   '<div data-swapp-wishlist-results class="mg-wishlist-results"><p>Connecte-toi avec ton compte SWAPP pour retrouver tes envies.</p></div></section>'+
   '<p data-my-games-status role="status" aria-live="polite"></p>'+
   '<section aria-label="Jeux suivis"><div class="mg-section-head"><h2>Jeux suivis <small>(<span data-my-games-count>0</span>)</small></h2><button class="mg-clear" type="button" data-my-games-clear>Effacer ma sélection</button></div>'+
   '<div data-my-games-empty class="mg-empty"><strong>Ton espace commence avec tes jeux.</strong><p>Choisis un titre ci-dessous et appuie sur « Suivre ce jeu ». Les nouvelles publications apparaîtront ici à ta prochaine visite.</p></div>'+

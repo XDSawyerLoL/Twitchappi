@@ -8,7 +8,7 @@ const passportPublic=p=>({
  games:safeJson(p.games_json),platform:p.platform,style:p.play_style,
  availability:p.availability,updatedAt:Number(p.updated_at),public:!!p.is_public
 });
-function createSocialNextRouter({express,pool,restoreSession,clock=()=>Date.now()}){
+function createSocialNextRouter({express,pool,restoreSession,resolveIndexedGame=async()=>null,clock=()=>Date.now()}){
  const router=express.Router();
  const query=(sql,args=[])=>pool.execute(sql,args).then(([rows])=>rows);
  const bad=(res,error,status=400)=>res.status(status).json({error});
@@ -137,21 +137,38 @@ function createSocialNextRouter({express,pool,restoreSession,clock=()=>Date.now(
  route('put','/library/games/:slug',async(req,res)=>{
   const slug=req.params.slug,game=libraryName(req.body?.game);
   if(!librarySlug(slug)||!game)return bad(res,'invalid_game',400);
+  // If editorial storage is unavailable, following still works but XP is NOT minted.
+  const verified=await Promise.resolve(resolveIndexedGame(slug)).catch(()=>null);
+  const official=verified?.slug===slug&&libraryName(verified.game)?libraryName(verified.game):null;
+  let rewardEarned=0;
   const conn=await pool.getConnection();
   try{
    await conn.beginTransaction();
-   const [rows]=await conn.execute('SELECT game_slug FROM swapp_social_game_follows WHERE user_id=? FOR UPDATE',[req.socialPlayer.id]);
+   const stamp=clock();
+   await conn.execute('INSERT IGNORE INTO swapp_social_reward_accounts (user_id,points,discovery_count,updated_at) VALUES (?,?,?,?)',
+    [req.socialPlayer.id,0,0,stamp]);
+   const [rewardRows]=await conn.execute('SELECT points,discovery_count FROM swapp_social_reward_accounts WHERE user_id=? FOR UPDATE',[req.socialPlayer.id]);
+   const [rows]=await conn.execute('SELECT game_slug FROM swapp_social_game_follows WHERE user_id=?',[req.socialPlayer.id]);
    if(!rows.some(r=>r.game_slug===slug)){
     if(rows.length>=30){await conn.rollback();return bad(res,'library_limit',409)}
-    const stamp=clock();
-    await conn.execute('INSERT IGNORE INTO swapp_social_game_follows (user_id,game_slug,game_name,followed_at,seen_at,updated_at) VALUES (?,?,?,?,?,?)',
-     [req.socialPlayer.id,slug,game,stamp,0,stamp]);
+    const [added]=await conn.execute('INSERT IGNORE INTO swapp_social_game_follows (user_id,game_slug,game_name,followed_at,seen_at,updated_at) VALUES (?,?,?,?,?,?)',
+     [req.socialPlayer.id,slug,official||game,stamp,0,stamp]);
+    // Only a genuinely new, directly chosen title can earn recognition.
+    if(added.affectedRows===1&&official&&Number(rewardRows[0]?.discovery_count||0)<10){
+     const [awarded]=await conn.execute('INSERT IGNORE INTO swapp_social_reward_ledger (user_id,event_key,event_type,points,created_at) VALUES (?,?,?,?,?)',
+      [req.socialPlayer.id,'discover:'+slug,'discover_game',10,stamp]);
+     if(awarded.affectedRows===1){
+      await conn.execute('UPDATE swapp_social_reward_accounts SET points=points+10,discovery_count=discovery_count+1,updated_at=? WHERE user_id=?',
+       [stamp,req.socialPlayer.id]);
+      rewardEarned=10;
+     }
+    }
    }
    await conn.commit();
   }catch(error){await conn.rollback();throw error}
   finally{conn.release()}
   res.set('Cache-Control','private, no-store');
-  res.json({games:await loadLibrary(req.socialPlayer.id)});
+  res.json({games:await loadLibrary(req.socialPlayer.id),rewardEarned});
  });
  route('delete','/library/games/:slug',async(req,res)=>{
   const slug=req.params.slug;
@@ -174,6 +191,70 @@ function createSocialNextRouter({express,pool,restoreSession,clock=()=>Date.now(
   await query('DELETE FROM swapp_social_game_follows WHERE user_id=?',[req.socialPlayer.id]);
   res.set('Cache-Control','private, no-store');
   res.json({games:[]});
+ });
+
+ // Wishlist is private account intent only: no presumed ownership or listed price.
+ const wishlistItem=row=>({
+  slug:String(row.game_slug),game:String(row.game_name),
+  addedAt:new Date(Number(row.created_at)).toISOString()
+ });
+ const readWishlist=async uid=>(await query(
+  'SELECT game_slug,game_name,created_at FROM swapp_social_game_wishlist WHERE user_id=? ORDER BY created_at DESC LIMIT 50',[uid]
+ )).map(wishlistItem);
+ route('get','/library/wishlist',async(req,res)=>{
+  res.set('Cache-Control','private, no-store');
+  res.json({wishlist:await readWishlist(req.socialPlayer.id)});
+ });
+ route('put','/library/wishlist/:slug',async(req,res)=>{
+  const slug=req.params.slug,game=libraryName(req.body?.game);
+  if(!librarySlug(slug)||!game)return bad(res,'invalid_game',400);
+  const conn=await pool.getConnection();
+  try{
+   await conn.beginTransaction();
+   // Serialize concurrent changes for this identity, including empty wishlists.
+   await conn.execute('INSERT IGNORE INTO swapp_social_reward_accounts (user_id,points,discovery_count,updated_at) VALUES (?,?,?,?)',
+    [req.socialPlayer.id,0,0,clock()]);
+   await conn.execute('SELECT user_id FROM swapp_social_reward_accounts WHERE user_id=? FOR UPDATE',[req.socialPlayer.id]);
+   const [existing]=await conn.execute('SELECT game_slug FROM swapp_social_game_wishlist WHERE user_id=?',[req.socialPlayer.id]);
+   if(!existing.some(x=>x.game_slug===slug)){
+    if(existing.length>=50){await conn.rollback();return bad(res,'wishlist_limit',409)}
+    await conn.execute('INSERT IGNORE INTO swapp_social_game_wishlist (user_id,game_slug,game_name,created_at) VALUES (?,?,?,?)',
+     [req.socialPlayer.id,slug,game,clock()]);
+   }
+   await conn.commit();
+  }catch(error){await conn.rollback();throw error}finally{conn.release()}
+  res.set('Cache-Control','private, no-store');
+  res.json({wishlist:await readWishlist(req.socialPlayer.id)});
+ });
+ route('delete','/library/wishlist/:slug',async(req,res)=>{
+  if(!librarySlug(req.params.slug))return bad(res,'invalid_game',400);
+  await query('DELETE FROM swapp_social_game_wishlist WHERE user_id=? AND game_slug=?',
+   [req.socialPlayer.id,req.params.slug]);
+  res.set('Cache-Control','private, no-store');
+  res.json({wishlist:await readWishlist(req.socialPlayer.id)});
+ });
+ route('delete','/library/wishlist',async(req,res)=>{
+  await query('DELETE FROM swapp_social_game_wishlist WHERE user_id=?',[req.socialPlayer.id]);
+  res.set('Cache-Control','private, no-store');
+  res.json({wishlist:[]});
+ });
+ // All rewards are deterministic, non-cash, non-transferable and never tied to spend.
+ // There is no daily streak, leaderboard, random prize or pay-to-earn action.
+ const progressOf=(points,discoveries)=>{
+  const levels=[{name:'Découvreur',at:0},{name:'Éclaireur',at:30},{name:'Pionnier',at:60},{name:'Explorateur confirmé',at:100}];
+  const level=levels.filter(x=>x.at<=points).at(-1),next=levels.find(x=>x.at>points);
+  return {points,discovered:discoveries,maxPoints:100,level:level.name,
+   nextLevel:next?.name||null,nextThreshold:next?.at||100,
+   pointsToNext:next?next.at-points:0,
+   rule:'10 points au premier suivi de chacun des 10 premiers jeux distincts. Aucun bonus par achat ni connexion quotidienne.'};
+ };
+ route('get','/rewards/me',async(req,res)=>{
+  const account=await query('SELECT points,discovery_count FROM swapp_social_reward_accounts WHERE user_id=? LIMIT 1',[req.socialPlayer.id]);
+  const events=await query('SELECT event_key,points,created_at FROM swapp_social_reward_ledger WHERE user_id=? ORDER BY created_at DESC LIMIT 10',[req.socialPlayer.id]);
+  res.set('Cache-Control','private, no-store');
+  res.json({rewards:progressOf(Number(account[0]?.points||0),Number(account[0]?.discovery_count||0)),
+   history:events.map(x=>({gameSlug:x.event_key.startsWith('discover:')?x.event_key.slice(9):'',
+    points:Number(x.points),at:new Date(Number(x.created_at)).toISOString()}))});
  });
  route('get','/game/context',async(req,res)=>{
   const game=clean(req.query.game,65);

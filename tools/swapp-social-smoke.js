@@ -23,6 +23,8 @@ const authenticatedChecks=[
  ['/api/swapp/interactions/match2/compatible','matchmaking'],
  ['/api/swapp/interactions/passport/me','player_passport'],
  ['/api/swapp/interactions/library/games','followed_games_library'],
+ ['/api/swapp/interactions/library/wishlist','personal_game_wishlist'],
+ ['/api/swapp/interactions/rewards/me','discovery_reward_status'],
  ['/api/swapp/interactions/game/context?game=PUBG','game_universe'],
  ['/api/pulse/me','social_identity'],
  ['/api/pulse/feed?mode=discover&limit=5','posts'],
@@ -50,7 +52,7 @@ async function check(path,area,authenticated){
     const authenticatedAllowed=authenticated?status===200:status===200;
     const expectedGuest=authenticated&&!cookie&&status===401;
     let state=authenticatedAllowed?'ok':expectedGuest?'requires_login':'unavailable';
-    if(area==='release_marker'&&payload.release!=='social-cross-device-library-20261018')state='unavailable';
+    if(area==='release_marker'&&payload.release!=='social-wishlist-points-20261018')state='unavailable';
     if(area==='account_storage'&&payload.github_deploy_safe!==true)state='unsafe_deploy';
     if(area==='mysql_status'&&!(payload.enabled===true&&payload.state==='database_read_ready'))state='unavailable';
     if(area==='upstream_social'&&status===200&&payload.success===false)state='unavailable';

@@ -929,7 +929,7 @@ const safeSocialMysqlError=error=>{
 // Public, non-sensitive release marker for diagnosing stale Hostinger deployments.
 app.get('/api/swapp/social/release',(_req,res)=>{
  res.set('Cache-Control','no-store');
- return res.json({product:'SWAPP SOCIAL',release:'social-cross-device-library-20261018',session:'swapp',features:{nativeFeed:true,mysqlInteractions:process.env.SWAPP_SOCIAL_FEATURES==='1',voiceSignaling:true,voiceNotes:process.env.SWAPP_SOCIAL_FEATURES==='1',privateCalls:process.env.SWAPP_SOCIAL_FEATURES==='1',visibleVoiceNavigation:true,accountGameLibrary:process.env.SWAPP_SOCIAL_FEATURES==='1'}});
+ return res.json({product:'SWAPP SOCIAL',release:'social-wishlist-points-20261018',session:'swapp',features:{nativeFeed:true,mysqlInteractions:process.env.SWAPP_SOCIAL_FEATURES==='1',voiceSignaling:true,voiceNotes:process.env.SWAPP_SOCIAL_FEATURES==='1',privateCalls:process.env.SWAPP_SOCIAL_FEATURES==='1',visibleVoiceNavigation:true,accountGameLibrary:process.env.SWAPP_SOCIAL_FEATURES==='1',wishlistAndDiscoveryPoints:process.env.SWAPP_SOCIAL_FEATURES==='1'}});
 });
 app.get('/api/swapp/interactions/status',async(_req,res)=>{
  res.set('Cache-Control','no-store');
@@ -951,7 +951,10 @@ app.get('/api/swapp/interactions/status',async(_req,res)=>{
       'SELECT id FROM swapp_social_rooms LIMIT 0',
       'SELECT id FROM swapp_social_room_messages LIMIT 0',
       'SELECT user_id FROM swapp_social_passports LIMIT 0',
-      'SELECT user_id FROM swapp_social_game_follows LIMIT 0'
+      'SELECT user_id FROM swapp_social_game_follows LIMIT 0',
+      'SELECT user_id FROM swapp_social_game_wishlist LIMIT 0',
+      'SELECT user_id FROM swapp_social_reward_accounts LIMIT 0',
+      'SELECT user_id FROM swapp_social_reward_ledger LIMIT 0'
      ];
      await Promise.all(checks.map(sql=>socialInteractionsPool.execute(sql)));
      socialInteractionsHealth.payload={enabled:true,state:'database_read_ready'};
@@ -1004,7 +1007,8 @@ if(process.env.SWAPP_SOCIAL_FEATURES==='1'){
     return res.status(503).json({error:'social_storage_unavailable',reason:socialInteractionsReason});
    next();
   },(req,res,next)=>req.method==='GET'?socialReadLimiter(req,res,next):authLimiter(req,res,next),
-   createSocialNextRouter({express,restoreSession:restoreOryonSessionFromRememberCookie,pool:socialDbPool}),
+   createSocialNextRouter({express,restoreSession:restoreOryonSessionFromRememberCookie,pool:socialDbPool,
+    resolveIndexedGame:slug=>require('./modules/swapp-seo').verifiedIndexedGame(slug)}),
    createSocialMysqlInteractions({express,restoreSession:restoreOryonSessionFromRememberCookie,pool:socialDbPool}));
  }catch(error){
   socialInteractionsState='unavailable';

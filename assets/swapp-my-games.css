@@ -55,3 +55,47 @@
 .swapp-my-games .mg-sync-actions button:disabled{opacity:.5;cursor:wait}
 .swapp-my-games .mg-sync-actions button:focus-visible{outline:2px solid var(--mg-accent);outline-offset:3px}
 @media(max-width:780px){.swapp-my-games .mg-sync{grid-template-columns:1fr;padding:18px 15px}.swapp-my-games .mg-sync-actions{grid-template-columns:1fr;min-width:0}}
+
+/* SWAPP member journey — honest discovery recognition + private wishlist */
+.swapp-my-games .mg-loyalty{padding:22px 25px;background:linear-gradient(110deg,#102634,#1c2d46);border-top:2px solid var(--mg-accent);margin:24px 0 20px}
+.swapp-my-games .mg-loyalty-title{display:flex;align-items:flex-start;justify-content:space-between;gap:20px}
+.swapp-my-games .mg-loyalty h2{margin:5px 0 9px;font-size:clamp(24px,3vw,33px);letter-spacing:-.04em}
+.swapp-my-games .mg-loyalty p{font-size:12px;line-height:1.65;color:#a8bfd2;max-width:630px;margin:0}
+.swapp-my-games .mg-loyalty-score{flex:none;display:grid;justify-items:end;gap:3px;color:#fbffff}
+.swapp-my-games .mg-loyalty-score strong{font-size:clamp(34px,4vw,52px);font-weight:900;letter-spacing:-.06em;line-height:1}
+.swapp-my-games .mg-loyalty-score small{font-size:11px;color:#b4c8d7}
+.swapp-my-games .mg-level{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;margin:25px 0 10px;font-size:12px;font-weight:750}
+.swapp-my-games [data-swapp-rewards-level]{color:#d6fff4}
+.swapp-my-games [data-swapp-rewards-next]{color:#8caabf}
+.swapp-my-games .mg-track{height:7px;border-radius:99px;background:#415366;overflow:hidden}
+.swapp-my-games .mg-track>span{display:block;height:100%;width:0;background:var(--mg-accent);border-radius:inherit;transition:width .3s ease-out}
+.swapp-my-games .mg-loyalty .mg-loyalty-note{margin-top:12px;color:#90aabb;font-size:11px}
+.swapp-my-games .mg-wishlist{margin:25px 0 15px;padding:0 0 20px;border-bottom:1px solid #ffffff25}
+.swapp-my-games .mg-wishlist-results{display:grid;gap:1px;background:#33455a}
+.swapp-my-games .mg-wishlist-results>p{padding:19px;background:#172a3e;margin:0;color:#a9c2d4;font-size:13px}
+.swapp-my-games .mg-wish-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 16px;background:#122338}
+.swapp-my-games .mg-wish-row>div{display:grid;gap:4px;min-width:0}
+.swapp-my-games .mg-wish-row a{font-size:14px;font-weight:800;line-height:1.4;text-decoration:none}
+.swapp-my-games .mg-wish-row a:hover{text-decoration:underline}
+.swapp-my-games .mg-wish-row small{font-size:11px;color:#8caec1}
+.swapp-my-games .mg-wish-row button{min-height:40px;border:1px solid #6b859c;color:#e4ecf4;background:#21364b;padding:8px 13px;border-radius:6px}
+.swapp-my-games .mg-wishlist-status{color:#b6f3e4;min-height:16px;font-size:12px}
+[data-swapp-wishlist-game]{display:inline-flex;min-height:40px;align-items:center;justify-content:center;border:1px solid #7195a9;color:#e8f6ff;background:#193247;border-radius:7px;padding:9px 13px;font:750 12px/1.3 system-ui,sans-serif;cursor:pointer}
+[data-swapp-wishlist-game][aria-pressed=true]{border-color:#e39cba;color:#ffcada;background:#482c43}
+[data-swapp-wishlist-game]:disabled{opacity:.55;cursor:wait}
+[data-swapp-wishlist-game]:focus-visible,.mg-wish-row button:focus-visible{outline:2px solid #8df2d7;outline-offset:3px}
+.game-portal .actions [data-swapp-wishlist-game]{min-height:44px}
+.game-portal [data-swapp-game-card]>button+button{margin-top:0}
+.article-wrap .swapp-article-utility [data-swapp-wishlist-game]{border:0;border-bottom:1px solid currentColor;border-radius:0;padding:5px 1px;min-height:34px;color:#efc3da;background:transparent}
+@media(max-width:650px){.swapp-my-games .mg-loyalty{padding:18px 15px}.swapp-my-games .mg-loyalty-title{gap:10px}.swapp-my-games .mg-loyalty-score strong{font-size:34px}.swapp-my-games .mg-wish-row{padding:12px 10px}.swapp-my-games .mg-wishlist .mg-section-head{align-items:start}}
+@media(prefers-reduced-motion:reduce){.swapp-my-games .mg-track>span{transition:none}}
+
+/* Wishlist stays inside the existing Steam Top-10 cards, never a new storefront shelf. */
+.swapp-store-steam-only .swapp-editorial-game-foot{flex-wrap:wrap;gap:8px}
+.swapp-store-steam-only .swapp-editorial-game-foot [data-swapp-wishlist-game]{
+ min-height:35px;padding:6px 9px;font-size:11px;border-radius:6px;
+ background:#142a3d;border-color:#6c8b9b
+}
+.swapp-store-steam-only .swapp-editorial-game-foot [data-swapp-wishlist-game][aria-pressed=true]{
+ background:#412b3d;border-color:#ed9cb9;color:#ffe4ec
+}
