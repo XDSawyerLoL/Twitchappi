@@ -19,10 +19,10 @@ test('the old live slogan never exists in the initial HTML, even while APIs rema
  let release;
  const wait=new Promise(resolve=>{release=resolve});
  const build=new Function('window','$id','addStyle1014','state','loadLives',
-  'closeMini','safe','streamTargetView','streamTargetLabel',
+  'closeMini','loadHomeFollowed','safe','streamTargetView','streamTargetLabel',
   snippet+'\nreturn window.renderHome;');
  const render=build(window,id=>id==='home'?el:null,()=>{},
-  {session:{local:false}},()=>wait,()=>{},String,()=>null,()=>null);
+  {session:{local:false}},()=>wait,()=>{},()=>{},String,()=>null,()=>null);
  const pending=render();
  // assert before resolving a slow live or news request: first-paint HTML only.
  assert.doesNotMatch(el.innerHTML,/Les bons lives se trouvent ici|Les bons lives sont ici/);
@@ -62,9 +62,9 @@ test('pending area reserves the final image footprint with no popup, border or r
 
 test('HTML shell and smoke test require the same fresh V21 script and CSS files',()=>{
  const html=read('index.html');
- const cssVersion='swapp-game-journey.css?v=20261018-home-editorial-v26';
- const newsVersion='swapp-home-news.js?v=20261018-home-editorial-v26';
- const scriptVersion='index_script.js?v=20261018-home-editorial-v26';
+ const cssVersion='swapp-game-journey.css?v=20261018-followed-session-v27';
+ const newsVersion='swapp-home-news.js?v=20261018-followed-session-v27';
+ const scriptVersion='index_script.js?v=20261018-followed-session-v27';
  for(const x of [cssVersion,newsVersion,scriptVersion])assert.ok(html.includes(x),x);
  const shell=read('modules/swapp-news/site-shell.js');
  assert.ok(shell.includes(cssVersion));
@@ -82,10 +82,10 @@ test('repeat render on F5 reuses existing homepage hero DOM',async()=>{
  const el={innerHTML:'',querySelector(sel){return sel===':scope > .swappHome1014'&&this.innerHTML.includes('swappHome1014')?{}:null}};
  let liveCalls=0;
  const build=new Function('window','$id','addStyle1014','state','loadLives',
-  'closeMini','safe','streamTargetView','streamTargetLabel',
+  'closeMini','loadHomeFollowed','safe','streamTargetView','streamTargetLabel',
   snippet+'\nreturn window.renderHome;');
  const render=build({},id=>id==='home'?el:null,()=>{},
-  {view:'home',session:{local:false}},()=>{liveCalls++;return Promise.resolve()},()=>{},String,()=>null,()=>null);
+  {view:'home',session:{local:false}},()=>{liveCalls++;return Promise.resolve()},()=>{},()=>{},String,()=>null,()=>null);
  await render();
  const html=el.innerHTML;
  await render();await render();

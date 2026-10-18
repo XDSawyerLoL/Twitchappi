@@ -723,3 +723,6 @@
  #home .homeLiveGrid1014{grid-auto-columns:minmax(240px,82vw)!important}
  #home .homeFollowCard1014{flex-basis:min(75vw,270px)}
 }
+
+/* V27: hide the entire follow shelf until real live results are returned. */
+#home .homeFollowedSection1014[hidden]{display:none!important}

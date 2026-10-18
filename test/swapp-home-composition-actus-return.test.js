@@ -35,6 +35,10 @@ test('homepage public lives and Twitch follows occupy separate horizontal rows',
  const runtime=read('index_script.js'),css=read('assets/swapp-game-journey.css');
  assert.match(runtime,/items\.slice\(0,8\)\.map\(card\)/);
  assert.match(runtime,/id="homeFollowedRail1014"/);
+ assert.match(runtime,/class="homeFollowedSection1014" hidden/);
+ assert.match(runtime,/section\.hidden=false/);
+ assert.doesNotMatch(runtime,/Connecte Twitch pour retrouver tes chaînes suivies\./);
+ assert.match(css,/#home \.homeFollowedSection1014\[hidden\]\{display:none!important\}/);
  assert.match(runtime,/loadHomeFollowed\(\)/);
  assert.match(runtime,/\/api\/twitch\/followed\/live/);
  assert.doesNotMatch(runtime,/id="homeLiveMore1014"/);
@@ -49,6 +53,6 @@ test('fresh assets are referenced by both the SPA and editorial shell',()=>{
   assert.match(main,new RegExp(asset.replace(/\./g,'\\.')+'\\?v=20261015-player-41'));
  }
  assert.match(main,/swapp-art-direction\.css\?v=20261015-player-39/);
- assert.match(main,/index_script\.js\?v=20261018-home-editorial-v26/);
+ assert.match(main,/index_script\.js\?v=20261018-followed-session-v27/);
  assert.match(shell,/swapp-art-direction\.css\?v=20261015-player-39/);
 });

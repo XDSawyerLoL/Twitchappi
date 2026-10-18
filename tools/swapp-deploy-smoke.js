@@ -125,6 +125,9 @@ async function verify(){
   'Game bridge CSS is stale or not served by Hostinger');
  const mainBundle=await request(origin,'/index_script.js');
  check(mainBundle.body.includes('homeFollowedRail1014')&&
+  mainBundle.body.includes('class="homeFollowedSection1014" hidden')&&
+  mainBundle.body.includes('section.hidden=false;')&&
+  !mainBundle.body.includes('Connecte Twitch pour retrouver tes chaînes suivies.')&&
   mainBundle.body.includes('items.slice(0,8).map(card)')&&
   !mainBundle.body.includes('id="homeLiveMore1014"'),
   'Old multi-row live widget still present in homepage bundle');
@@ -140,11 +143,11 @@ async function verify(){
  const newsScript=await request(origin,'/assets/swapp-home-news.js');
  check(!newsScript.body.includes('signal:AbortSignal.timeout(')&&
    newsScript.body.includes('new AbortController()')&&
-   home.body.includes('swapp-home-news.js?v=20261018-home-editorial-v26'),
+   home.body.includes('swapp-home-news.js?v=20261018-followed-session-v27'),
    'Homepage editorial script is stale or incompatible with older Safari');
- const motionPath='/assets/swapp-home-motion.js?v=20261018-home-editorial-v26';
+ const motionPath='/assets/swapp-home-motion.js?v=20261018-followed-session-v27';
  check(home.body.includes(motionPath)&&
-   home.body.indexOf(motionPath)<home.body.indexOf('swapp-home-news.js?v=20261018-home-editorial-v26'),
+   home.body.indexOf(motionPath)<home.body.indexOf('swapp-home-news.js?v=20261018-followed-session-v27'),
    'No cinematic hero helper before the editorial client');
  const motion=await request(origin,'/assets/swapp-home-motion.js');
  check(motion.body.includes('window.SwappHomeMotion')&&
@@ -187,7 +190,7 @@ async function verify(){
  const discover=await request(origin,'/decouvrir');
  check(discover.body.includes('swapp-discover-comfort.js?v=20261018-discover-flat-v26'),
   'Discover has an old mobile UI release');
- check(discover.body.includes('index_script.js?v=20261018-home-editorial-v26'),
+ check(discover.body.includes('index_script.js?v=20261018-followed-session-v27'),
   'Discover still references an old V4 player script');
  const comfort=await request(origin,'/assets/swapp-discover-comfort.js');
  check(comfort.body.includes('swapp-discover-no-image')&&comfort.body.includes('v4SwipeCard')&&
@@ -212,7 +215,7 @@ async function verify(){
  const presentation='/assets/swapp-presentation-polish.css?v=20261017-visual-audit-v16';
  check(home.body.includes(presentation),'Home uses an outdated presentation stylesheet');
  check(news.body.includes(presentation),'Actualité uses an outdated presentation stylesheet');
- const journey='/assets/swapp-game-journey.css?v=20261018-home-editorial-v26';
+ const journey='/assets/swapp-game-journey.css?v=20261018-followed-session-v27';
  check(home.body.includes(journey)&&news.body.includes(journey),
   'V17 cinematic journey is missing from homepage or native articles');
  const journeyStyles=await request(origin,'/assets/swapp-game-journey.css');
