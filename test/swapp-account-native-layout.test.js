@@ -18,7 +18,8 @@ function makeView(user){
   setAttribute(name,value){this.attributes[name]=value}
  }));
  const panels=['overview','profile','stream'].map(name=>({dataset:{accountPanel:name},hidden:false}));
- const root={innerHTML:'',querySelectorAll(q){return q==='[data-account-tab]'?buttons:q==='[data-account-panel]'?panels:[]}};
+ const root={innerHTML:'',querySelectorAll(q){return q==='[data-account-tab]'?buttons:q==='[data-account-panel]'?panels:[]},
+  querySelector(q){return q==='.swapp-acct-nav'?{addEventListener(){},querySelectorAll:()=>buttons}:null}};
  const doc={getElementById:id=>id==='settings'?root:null};
  const window={swappViewerSnapshot:()=>({likes:[{login:'mychannel',name:'My Channel',game:'Minecraft',platform:'oryon'}],saved:[{login:'example'}]})};
  const calls=[];
