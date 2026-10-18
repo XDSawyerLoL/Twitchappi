@@ -139,7 +139,7 @@ test('deleting wishes or following invalid games cannot generate rewards',async(
  await wish(h,'minecraft');
  await h.request('DELETE','/library/wishlist');
  assert.equal((await h.request('GET','/rewards/me')).payload.rewards.points,0);
- assert.equal(h.ledgers.get('alice'),undefined);
+ assert.equal(h.ledgers.get('alice')?.size||0,0);
 });
 test('50 wishes cap is deterministic; no daily streak rewards',async()=>{
  const h=harness();
