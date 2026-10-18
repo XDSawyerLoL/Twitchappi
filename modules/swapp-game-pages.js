@@ -138,7 +138,7 @@ function renderMyGames(groups=[]){
    '<button type="button" data-my-games-export>Exporter ma sélection</button></div></section>'+
   '<section class="mg-loyalty" aria-label="Ma progression SWAPP" id="recompenses">'+
    '<div class="mg-loyalty-title"><div><span class="mg-eyebrow">MON PARCOURS SWAPP</span><h2>Points découverte</h2>'+
-   '<p>10 points au premier suivi de chaque jeu distinct, pour tes 10 premiers titres. Aucun achat requis, aucun bonus quotidien.</p></div>'+
+   '<p>10 points par nouveau jeu distinct suivi sur ton compte SWAPP, après activation de la synchronisation (10 jeux maximum). Aucun achat requis, aucun bonus quotidien.</p></div>'+
    '<div class="mg-loyalty-score"><strong data-swapp-rewards-points>—</strong><small>/ 100 points</small></div></div>'+
    '<div class="mg-level"><span data-swapp-rewards-level>Compte SWAPP requis</span><span data-swapp-rewards-next></span></div>'+
    '<div class="mg-track" role="progressbar" aria-label="Progression découverte" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" data-swapp-rewards-track><span data-swapp-rewards-fill></span></div>'+
