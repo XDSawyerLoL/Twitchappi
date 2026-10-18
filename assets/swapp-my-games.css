@@ -89,3 +89,13 @@
 .article-wrap .swapp-article-utility [data-swapp-wishlist-game]{border:0;border-bottom:1px solid currentColor;border-radius:0;padding:5px 1px;min-height:34px;color:#efc3da;background:transparent}
 @media(max-width:650px){.swapp-my-games .mg-loyalty{padding:18px 15px}.swapp-my-games .mg-loyalty-title{gap:10px}.swapp-my-games .mg-loyalty-score strong{font-size:34px}.swapp-my-games .mg-wish-row{padding:12px 10px}.swapp-my-games .mg-wishlist .mg-section-head{align-items:start}}
 @media(prefers-reduced-motion:reduce){.swapp-my-games .mg-track>span{transition:none}}
+
+/* Wishlist stays inside the existing Steam Top-10 cards, never a new storefront shelf. */
+.swapp-store-steam-only .swapp-editorial-game-foot{flex-wrap:wrap;gap:8px}
+.swapp-store-steam-only .swapp-editorial-game-foot [data-swapp-wishlist-game]{
+ min-height:35px;padding:6px 9px;font-size:11px;border-radius:6px;
+ background:#142a3d;border-color:#6c8b9b
+}
+.swapp-store-steam-only .swapp-editorial-game-foot [data-swapp-wishlist-game][aria-pressed=true]{
+ background:#412b3d;border-color:#ed9cb9;color:#ffe4ec
+}
