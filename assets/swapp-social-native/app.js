@@ -302,7 +302,7 @@ function bindDelegatedEvents(){
  document.addEventListener('swapp:social-view',event=>{
   const view=event.detail?.view;
   if(view==='play'||view==='rooms'){
-   setView(view,view==='play'?'Jeux et équipes':'Salons de discussion');
+   setView(view,view==='play'?'Jeux et équipes':'Salons vocaux');
    revealSocialContent();
   }
  });
@@ -373,7 +373,7 @@ function bindDelegatedEvents(){
       else if(view==='notifications')void loadNotifications();
       else if(view==='messages')void loadMessages();
       else if(view==='play')setView('play','Jouer ensemble');
-      else if(view==='rooms')setView('rooms','Salons & discussion');
+      else if(view==='rooms')setView('rooms','Salons vocaux');
       else if(view==='saved')void loadSaved();
       else if(view==='profile')void loadProfile();
       revealSocialContent();
