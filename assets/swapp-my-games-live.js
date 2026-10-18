@@ -43,6 +43,7 @@
     viewers:Number.isFinite(Number(row.viewer_count))&&Number(row.viewer_count)>0?Math.floor(Number(row.viewer_count)):null
    });
   }
+  result.coverage=String(payload.coverage||'unknown');
   return result;
  }
  function curateLiveRows(batches,max=8){
@@ -140,6 +141,7 @@
    if(refresh)refresh.disabled=false;
    if(more)more.disabled=false;
    const succeeded=settled.filter(x=>x.status==='fulfilled').length;
+   const coverage=settled.filter(x=>x.status==='fulfilled').map(x=>x.value.coverage);
    const rows=curateLiveRows(settled.filter(x=>x.status==='fulfilled').map(x=>x.value));
    results.replaceChildren(...rows.map(liveCard));
    const nativeCount=rows.filter(native).length,twitchCount=rows.length-nativeCount;
@@ -147,7 +149,11 @@
     lastSignature='';
     label('Les directs sont indisponibles pour le moment. Utilise « Actualiser les directs » pour réessayer.');
    }else if(!rows.length){
-    label('Aucun direct confirmé pour ces '+slice.length+' jeux actuellement.'+
+    label(coverage.includes('native-only')?
+     'Recherche Twitch non configurée : des directs peuvent exister sur tes jeux.':
+     coverage.includes('partial')?
+     'Recherche partielle : les directs Twitch ne sont pas tous accessibles.':
+     'Aucun direct confirmé sur ces '+slice.length+' jeux dans les résultats disponibles.'+
      (succeeded<slice.length?' Certaines sources sont indisponibles.':''));
    }else{
     label(rows.length+' direct'+(rows.length>1?'s':'')+' confirmé'+(rows.length>1?'s':'')+
