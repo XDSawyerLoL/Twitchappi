@@ -2,6 +2,7 @@ import { TOKEN_KEY, state, dom, api, errorText } from './core.js';
 import { openAuth, closeAuth, updateAuthModal, updateAccount, requireAuth, applySession, clearSession, restoreSession } from './session.js';
 import { setView, loadHome, loadExplore, loadCircles, loadNotifications, loadSaved, loadProfile, loadMessages, loadConversation, loadCirclePreview, loadNewsRss } from './views.js?v=20261018-social-structure-v2';
 import {setupVoiceNotes} from './dm-audio.js?v=20261018-direct-audio-v1';
+import {setupDirectCalls} from './dm-calls.js?v=20261018-direct-audio-v1';
 
 /* Keep the SOCIAL sticky stack exactly beneath the real SWAPP header.
    Hostinger's server shell has different heights across phone sizes; a
@@ -557,6 +558,7 @@ async function init(){
   applyIncomingShare();
   bindDelegatedEvents();
   setupVoiceNotes({onConversationChange:loadConversation});
+  setupDirectCalls();
   // Public content must not wait for separate health / identity requests.
   // On a cold backend these used to block first content for several seconds.
   await restoreSession();
