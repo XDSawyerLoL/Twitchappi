@@ -82,3 +82,23 @@ test('creator workspace uses separated editorial controls, responsive layout and
  assert.match(html,/swapp-game-identity\.js\?v=20261019-witcher-twitch-v1/);
  assert.match(shell,/swapp-media-live\.js\?v=20261019-witcher-twitch-v1/);
 });
+
+
+test('creator dashboard never fabricates sessions, score, historical charts or best hours',()=>{
+ const server=read('server.js');
+ const start=server.indexOf("app.get('/api/oryon/dashboard/full'");
+ const end=server.indexOf("app.get('/api/oryon/moderation/:room'",start);
+ assert.ok(start>=0&&end>start);
+ const route=server.slice(start,end);
+ assert.doesNotMatch(route,/syntheticHistory|Dernière session|Meilleure zone FR|creator_score=Math/);
+ assert.match(route,/history:\[\],bestSlots:\[\]/);
+ assert.match(route,/streams:\[\]/);
+ assert.match(route,/Cache-Control','private, no-store/);
+ const bundle=read('index_script.js');
+ const begin=bundle.indexOf('async function loadDashboard(){');
+ const stop=bundle.indexOf('async function claimPoints(){',begin);
+ const ui=bundle.slice(begin,stop);
+ assert.match(ui,/Aucune série historique fiable enregistrée/);
+ assert.match(ui,/Aucune session enregistrée avec des mesures vérifiées/);
+ assert.doesNotMatch(ui,/points futurs Trade|Résumé après live préparé/);
+});
