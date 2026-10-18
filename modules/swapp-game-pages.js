@@ -135,7 +135,7 @@ function renderMyGames(groups=[]){
    '<p class="mg-digest-status" data-my-games-digest-summary role="status" aria-live="polite">Chargement de ta sélection…</p>'+
    '<div class="mg-digest-list" data-my-games-digest></div></section>'+
   '<section class="mg-live-hub" id="mes-lives" data-my-games-live aria-labelledby="mg-lives-title">'+
-   '<div class="mg-live-heading"><div><span class="mg-eyebrow">SWAPP LIVE · TWITCH</span><h2 id="mg-lives-title">En direct sur tes jeux</h2><p>Les lives SWAPP et Twitch réellement actifs sur les jeux de ta sélection. Les directs SWAPP apparaissent en priorité.</p></div><div class="mg-live-heading-actions"><button type="button" data-my-games-live-refresh>Actualiser les directs</button><a href="/decouvrir">Tous les lives ↗</a></div></div>'+
+   '<div class="mg-live-heading"><div><span class="mg-eyebrow">SWAPP LIVE · TWITCH</span><h2 id="mg-lives-title">En direct sur tes jeux</h2><p>Les lives SWAPP et Twitch réellement actifs sur les jeux de ta sélection. Les directs SWAPP apparaissent en priorité.</p></div><div class="mg-live-heading-actions"><button type="button" data-my-games-live-refresh>Actualiser les directs</button><button type="button" data-my-games-live-more hidden>Voir les jeux suivants</button><a href="/decouvrir">Tous les lives ↗</a></div></div>'+
    '<p class="mg-live-status" role="status" aria-live="polite" data-my-games-live-status>Choisis un jeu pour découvrir les chaînes en direct.</p>'+
    '<div class="mg-live-list" data-my-games-live-results></div>'+
    '<p class="mg-live-footnote">Une sélection de jeux est vérifiée lors de l’affichage de cette section. Actualisation uniquement sur demande, aucun suivi de tes visionnages.</p></section>'+
