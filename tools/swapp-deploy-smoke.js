@@ -131,8 +131,16 @@ async function verify(){
  check(personalRelease.release==='social-personal-channels-20261019'&&personalRelease.features?.personalInviteChannels===true,
   'Personal invitation channel Node server has not deployed');
  process.stdout.write('PASS wishlist repair and private SOCIAL channel frontend/server\n');
+ const accountScript=await request(origin,'/index_script.js');
+ check(accountScript.body.split('async function renderSettings(){').length===2&&
+  accountScript.body.includes('data-account-panel="overview"')&&
+  accountScript.body.includes('data-account-panel="profile"')&&
+  accountScript.body.includes('data-account-panel="stream"')&&
+  accountScript.body.includes('swapp-acct-planner')&&
+  !accountScript.body.includes('function viewerProfilePanel(){'),
+  'Account renderer is stale or still includes shadowed legacy layout');
  const accountCss=await request(origin,'/assets/swapp-creator-workspace.css');
- check(home.body.includes('/assets/swapp-creator-workspace.css?v=20261019-creator-workspace-v1')&&
+ check(home.body.includes('/assets/swapp-creator-workspace.css?v=20261019-account-native-v2')&&
    accountCss.body.includes('.swapp-account-workspace')&&
    accountCss.body.includes('.swapp-dash-columns')&&
    accountCss.body.includes('border-radius:0!important'),
@@ -228,7 +236,7 @@ async function verify(){
  const discover=await request(origin,'/decouvrir');
  check(discover.body.includes('swapp-discover-comfort.js?v=20261018-discover-flat-v26'),
   'Discover has an old mobile UI release');
- check(discover.body.includes('index_script.js?v=20261019-creator-workspace-v1'),
+ check(discover.body.includes('index_script.js?v=20261019-account-native-v2'),
   'Discover still references an old V4 player script');
  const comfort=await request(origin,'/assets/swapp-discover-comfort.js');
  check(comfort.body.includes('swapp-discover-no-image')&&comfort.body.includes('v4SwipeCard')&&
