@@ -1007,7 +1007,8 @@ if(process.env.SWAPP_SOCIAL_FEATURES==='1'){
     return res.status(503).json({error:'social_storage_unavailable',reason:socialInteractionsReason});
    next();
   },(req,res,next)=>req.method==='GET'?socialReadLimiter(req,res,next):authLimiter(req,res,next),
-   createSocialNextRouter({express,restoreSession:restoreOryonSessionFromRememberCookie,pool:socialDbPool}),
+   createSocialNextRouter({express,restoreSession:restoreOryonSessionFromRememberCookie,pool:socialDbPool,
+    resolveIndexedGame:slug=>require('./modules/swapp-seo').verifiedIndexedGame(slug)}),
    createSocialMysqlInteractions({express,restoreSession:restoreOryonSessionFromRememberCookie,pool:socialDbPool}));
  }catch(error){
   socialInteractionsState='unavailable';
