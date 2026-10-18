@@ -264,7 +264,11 @@ function createSocialNextRouter({express,pool,restoreSession,resolveIndexedGame=
   const names=[...new Set(searchNames(game).slice(0,8).map(name=>String(name).trim().toLocaleLowerCase('fr')))].filter(Boolean);
   const slots=names.map(()=>'?').join(',');
   const [roomRows,matchRows]=await Promise.all([
-   query('SELECT id,name,game,created_at FROM swapp_social_rooms WHERE LOWER(game) IN ('+slots+') ORDER BY created_at DESC LIMIT 12',names),
+   query('SELECT r.id,r.name,r.game,r.created_at FROM swapp_social_rooms r '+
+    'LEFT JOIN swapp_social_private_rooms p ON p.room_id=r.id '+
+    'WHERE LOWER(r.game) IN ('+slots+') AND (p.room_id IS NULL OR EXISTS ('+
+    'SELECT 1 FROM swapp_social_private_members m WHERE m.room_id=r.id AND m.user_id=?)) '+
+    'ORDER BY r.created_at DESC LIMIT 12',[...names,req.socialPlayer.id]),
    query('SELECT handle,game,platform,availability,style,created_at FROM swapp_social_matches WHERE LOWER(game) IN ('+slots+') AND created_at>? ORDER BY created_at DESC LIMIT 20',[...names,clock()-14*86400000])
   ]);
   res.json({game,rooms:roomRows.map(r=>({id:r.id,name:r.name,game:r.game,createdAt:Number(r.created_at)})),
