@@ -21,8 +21,8 @@ function installPersonalRoomRoutes({route,pool,query,bad,clock,trim,inviteSecret
   let committed=false,room;
   try{
    await conn.beginTransaction();
-   const [countRows]=await conn.execute('SELECT COUNT(*) AS total FROM swapp_social_private_rooms WHERE owner_id=? FOR UPDATE',[req.member.id]);
-   if(Number(countRows[0]?.total||0)>=10){await conn.rollback();return bad(res,'personal_room_limit',409)}
+   const [ownedRooms]=await conn.execute('SELECT room_id FROM swapp_social_private_rooms WHERE owner_id=? ORDER BY created_at DESC LIMIT 10 FOR UPDATE',[req.member.id]);
+   if(ownedRooms.length>=10){await conn.rollback();return bad(res,'personal_room_limit',409)}
    const [recent]=await conn.execute('SELECT id FROM swapp_social_rooms WHERE owner_id=? AND created_at>? LIMIT 1',[req.member.id,now-60000]);
    if(recent.length){await conn.rollback();return bad(res,'rate_limited',429)}
    const id=crypto.randomUUID(),nonce=newNonce();
