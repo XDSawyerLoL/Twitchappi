@@ -1010,6 +1010,15 @@ if(process.env.SWAPP_SOCIAL_FEATURES==='1'){
 }else{
  app.use('/api/swapp/interactions',(_req,res)=>res.status(503).json({error:'social_features_disabled'}));
 }
+// Short private voice notes use the same SWAPP/MySQL identities and storage.
+// Audio content is never served by the static asset server.
+const {createDirectAudioRouter}=require('./modules/swapp-social-direct-audio');
+app.use('/api/swapp/direct-audio',(req,res,next)=>req.method==='GET'?pulseReadLimiter(req,res,next):authLimiter(req,res,next),
+  createDirectAudioRouter({express,
+    restoreSession:restoreOryonSessionFromRememberCookie,
+    getPool:()=>process.env.SWAPP_SOCIAL_FEATURES==='1'&&socialInteractionsState!=='unavailable'?socialInteractionsPool:null,
+    lookupLocalUser:getOryonUserByLogin
+  }));
 // Social client changes must propagate rapidly; its ES imports do not carry cache query tags.
 app.use('/assets/swapp-social-native', express.static(path.join(__dirname, 'assets/swapp-social-native'), {...staticOptions,maxAge:0,setHeaders(res,file){staticOptions.setHeaders(res,file);res.setHeader('Cache-Control','no-store')}}));
 app.use('/assets', express.static(path.join(__dirname, 'assets'), staticOptions));
