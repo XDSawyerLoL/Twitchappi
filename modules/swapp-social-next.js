@@ -140,12 +140,23 @@ function createSocialNextRouter({express,pool,restoreSession,clock=()=>Date.now(
   const conn=await pool.getConnection();
   try{
    await conn.beginTransaction();
-   const [rows]=await conn.execute('SELECT game_slug FROM swapp_social_game_follows WHERE user_id=? FOR UPDATE',[req.socialPlayer.id]);
+   const stamp=clock();
+   await conn.execute('INSERT IGNORE INTO swapp_social_reward_accounts (user_id,points,discovery_count,updated_at) VALUES (?,?,?,?)',
+    [req.socialPlayer.id,0,0,stamp]);
+   const [rewardRows]=await conn.execute('SELECT points,discovery_count FROM swapp_social_reward_accounts WHERE user_id=? FOR UPDATE',[req.socialPlayer.id]);
+   const [rows]=await conn.execute('SELECT game_slug FROM swapp_social_game_follows WHERE user_id=?',[req.socialPlayer.id]);
    if(!rows.some(r=>r.game_slug===slug)){
     if(rows.length>=30){await conn.rollback();return bad(res,'library_limit',409)}
-    const stamp=clock();
-    await conn.execute('INSERT IGNORE INTO swapp_social_game_follows (user_id,game_slug,game_name,followed_at,seen_at,updated_at) VALUES (?,?,?,?,?,?)',
+    const [added]=await conn.execute('INSERT IGNORE INTO swapp_social_game_follows (user_id,game_slug,game_name,followed_at,seen_at,updated_at) VALUES (?,?,?,?,?,?)',
      [req.socialPlayer.id,slug,game,stamp,0,stamp]);
+    // Only a genuinely new, directly chosen title can earn recognition.
+    if(added.affectedRows===1&&Number(rewardRows[0]?.discovery_count||0)<10){
+     const [awarded]=await conn.execute('INSERT IGNORE INTO swapp_social_reward_ledger (user_id,event_key,event_type,points,created_at) VALUES (?,?,?,?,?)',
+      [req.socialPlayer.id,'discover:'+slug,'discover_game',10,stamp]);
+     if(awarded.affectedRows===1)await conn.execute(
+      'UPDATE swapp_social_reward_accounts SET points=points+10,discovery_count=discovery_count+1,updated_at=? WHERE user_id=?',
+      [stamp,req.socialPlayer.id]);
+    }
    }
    await conn.commit();
   }catch(error){await conn.rollback();throw error}
