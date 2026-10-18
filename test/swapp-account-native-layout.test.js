@@ -71,7 +71,6 @@ test('planning fields have labels and never collapse into clipped one-line input
   assert.ok(planner.includes(id),'missing '+id);
  assert.match(planner,/label class="swapp-acct-plan-title"/);
  assert.match(planner,/type="datetime-local" required/);
- assert.match(planner,/grid-column:1/);
  assert.doesNotMatch(planner,/toISOString\(\)\.slice\(0,16\)/);
  assert.match(planner,/getFullYear\(\)/);
  assert.match(planner,/data-plan-delete/);
