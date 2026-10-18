@@ -117,7 +117,7 @@ test('SSR connects published games to live, SOCIAL, shop and both scripts withou
  assert.doesNotMatch(html,/draft-story|Non publié|spectateurs connectés/);
  const spa=read('index.html'),shell=read('modules/swapp-news/site-shell.js');
  for(const file of [spa,shell]){
-  assert.match(file,/swapp-my-games-live\.js\?v=20261019-live-journey-v3/);
+  assert.match(file,/swapp-my-games-live\.js\?v=20261019-witcher-twitch-v1/);
   assert.match(file,/swapp-my-games\.js\?v=20261019-live-journey-v3/);
   assert.match(file,/swapp-my-games\.css\?v=20261019-live-journey-v3/);
   assert.ok(file.indexOf('swapp-my-games-live.js')<file.indexOf('swapp-my-games.js'));
