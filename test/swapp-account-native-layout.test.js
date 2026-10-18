@@ -73,6 +73,7 @@ test('planning fields have labels and never collapse into clipped one-line input
  assert.match(planner,/type="datetime-local" required/);
  assert.doesNotMatch(planner,/toISOString\(\)\.slice\(0,16\)/);
  assert.match(planner,/getFullYear\(\)/);
+ assert.match(planner,/const when=parsedWhen\.toISOString\(\)/);
  assert.match(planner,/data-plan-delete/);
  assert.match(planner,/method:'DELETE'/);
  const style=css();
@@ -90,4 +91,16 @@ test('new account code and styling are cache-busted and included in deploy check
   assert.ok(smoke.includes(source),source);
  }
  assert.match(smoke,/accountScript\.body\.split\('async function renderSettings\(\)\{'\)\.length===2/);
+});
+
+test('only the active menu uses the same intuitive account navigation, without modes',()=>{
+ const b=script();
+ const start=b.lastIndexOf('function renderUserMenu(){');
+ const end=b.indexOf('\nasync function loadHomeRecommendations()',start);
+ assert.ok(start>=0&&end>start);
+ const menu=b.slice(start,end);
+ for(const action of ['Mon espace SWAPP','Ma chaîne','Diffuser','Statistiques','Outils créateur','Mes jeux et envies'])
+  assert.ok(menu.includes(action),action);
+ assert.doesNotMatch(menu,/Page viewer|Page streamer|modeSwitch|modeBadge/);
+ assert.match(menu,/topThemePanel/);
 });
