@@ -53,7 +53,7 @@ test('SOCIAL main, play, rooms and messages are independent navigable destinatio
  const css=read('assets/swapp-social-product-v3.css');
  const app=read('assets/swapp-social-native/app.js');
  for(const name of ['play','rooms']){
-  assert.match(html,new RegExp('data-view="'+name+'"'));
+  assert.match(read('assets/swapp-social-native/views.js'),new RegExp('data-view="'+name+'"'));
   assert.ok(app.includes("setView('"+name+"'"));
   assert.ok(css.includes('[data-social-view="'+name+'"] .swapp-interactive:not([hidden])'));
  }
@@ -61,7 +61,7 @@ test('SOCIAL main, play, rooms and messages are independent navigable destinatio
  assert.match(css,/\[data-social-view="play"\] :is\(#ssi-room-panel,#ssi-chat-panel\)/);
  assert.match(css,/\[data-social-view="rooms"\] :is\(#ssn-passport,#ssn-universe,#ssi-match-panel,#ssi-poll-panel\)/);
  assert.match(css,/\[data-social-view="messages"\] \.pulse-message-list/);
- assert.match(css,/grid-template-columns:repeat\(7,minmax\(0,1fr\)\)/);
+ assert.match(css,/grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
 });
 
 test('SOCIAL messenger back navigation, production CSS order and no new auth flow',()=>{
@@ -70,8 +70,8 @@ test('SOCIAL messenger back navigation, production CSS order and no new auth flo
  const hub=read('modules/swapp-hubs.js');
  assert.match(views,/data-social-back-messages/);
  assert.match(app,/if\(event.target.closest\('\[data-social-back-messages\]'\)\)\{loadMessages\(\);return;\}/);
- assert.match(hub,/swapp-social-product-v3\.css\?v=20261017-sso-retry-v9/);
- assert.match(hub,/app\.js\?v=20261017-sso-retry-v9/);
+ assert.match(hub,/swapp-social-product-v3\.css\?v=20261018-social-structure-v1/);
+ assert.match(hub,/app\.js\?v=20261018-social-structure-v1/);
  assert.ok(hub.indexOf('swapp-social-product-v3.css')>hub.indexOf('swapp-social-next.css'),'newest design loaded last');
  assert.ok(!htmlRegexNewAuth(hub),'No added SOCIAL login form or separate authentication');
 });
