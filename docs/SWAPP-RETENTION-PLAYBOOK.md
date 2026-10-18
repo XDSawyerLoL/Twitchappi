@@ -109,3 +109,21 @@ Cette version n'a pas de notifications push ni de ventes natives. Elle inaugure 
 - Le script de souhaits est reversionné sur le client SPA et le rendu serveur.
 - SOCIAL permet de créer un salon privé avec lien d'invitation signé, chat MySQL existant, vocal SWAPP existant, authentification et contrôle serveur de l'adhésion.
 - Déployer la migration idempotente 008_swapp_personal_channels.sql avant de valider le parcours sur deux comptes réels.
+
+
+## SWAPP : reconnaissance des jeux et refonte du compte (19 octobre 2026)
+
+### Articles, catégories Twitch, vérification réelle
+- The Witcher 3 Remastered (y compris les variantes Witcher 3 Remastered et The Witcher III Remastered) correspond à The Witcher 3: Wild Hunt Remastered sur Twitch. L'édition originale Wild Hunt est conservée séparément.
+- Cette correspondance fonctionne dans les métadonnées, l'article natif, la SPA Actualité, l'accueil et Mes jeux. Le serveur interroge réellement Twitch Helix pour les catégories puis leurs streams par game_id.
+- Ne pas traduire coverage=native-only ou coverage=partial par « aucun live ». Un message explicite signale l'absence de recherche Twitch, avec reprise possible.
+- Tests ciblés : node --test test/witcher-remastered-creator-workspace.test.js test/game-identity.test.js test/swapp-article-live-discovery.test.js
+- Recette : ouvrir l'article Witcher existant, vérifier le jeu résolu, les flux Twitch réels, les lives SWAPP natifs, les chemins de lecture internes, les pannes Twitch et l'absence de fusion injustifiée avec le jeu original.
+
+### Mon compte et console créateur
+- Le fichier SPA principal index_script.js restructure /compte : identité de chaîne, formulaire lisible, accès rapides aux actions essentielles, connexion Twitch réelle, planning, diagnostic technique repliable.
+- Suppression de la page des boutons factices « Préparer Discord » et « Préparer Google » et de textes obsolètes de migration Render/Firebase.
+- Le tableau de bord conserve ses statistiques, points, historique, progression et objectifs ; le gestionnaire OBS conserve les champs existants. Navigation latérale et séparateurs fins à la place des grands panneaux arrondis.
+- CSS ajouté assets/swapp-creator-workspace.css : fond continu, densité d'information, focus clavier, petits rayons pour les champs et boutons, responsive iPhone/Android ; respect des accents SWAPP.
+- Recette : deux comptes, /compte, /dashboard via menu, planning, connexion/déconnexion, upload avatar/bannière/image hors live, sauvegarde du profil, actions du gestionnaire et du dashboard, ergonomie iPhone.
+- GitHub master et Hostinger doivent être vérifiés séparément, aucune disponibilité production garantie par la fusion.
