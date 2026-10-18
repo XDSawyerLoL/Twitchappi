@@ -6,7 +6,7 @@ const HANDLE=/^[a-z0-9_-]{3,40}$/i;
 const CALL_TIMEOUT_MS=35000,MAX_CALL_MS=2*60*60*1000;
 function installPrivateCalls(voice,{lookupLocalUser,clock=()=>Date.now()}={}){
  if(!voice||typeof lookupLocalUser!=='function')throw Error('private_calls_invalid_configuration');
- const calls=new Map();
+ const calls=new Map(),recipientCooldown=new Map();
  const finish=(call,reason='ended')=>{
   if(!call||!calls.has(call.id))return;
   calls.delete(call.id);
@@ -38,6 +38,7 @@ function installPrivateCalls(voice,{lookupLocalUser,clock=()=>Date.now()}={}){
     return reply({ok:false,error:'invalid_recipient'});
    if(socket.data.privateCallId)return reply({ok:false,error:'busy'});
    if(clock()-lastInvite<20000)return reply({ok:false,error:'rate_limited'});
+   if(clock()-Number(recipientCooldown.get(String(local.id))||0)<30000)return reply({ok:false,error:'rate_limited'});
    const waiting=[...voice.sockets.values()].filter(other=>
     other.id!==socket.id&&other.data.voiceUser?.id===String(local.id)&&
     !other.data.privateCallId&&other.connected);
@@ -46,6 +47,7 @@ function installPrivateCalls(voice,{lookupLocalUser,clock=()=>Date.now()}={}){
    if([...calls.values()].some(c=>c.toUserId===String(local.id)&&c.status==='ringing'))
     return reply({ok:false,error:'busy'});
    lastInvite=clock();
+   recipientCooldown.set(String(local.id),clock());
    const id=crypto.randomUUID();
    const call={id,fromSocket:socket.id,fromUserId:String(user.id),
     fromHandle:user.handle,toUserId:String(local.id),toSocket:'',
@@ -53,6 +55,7 @@ function installPrivateCalls(voice,{lookupLocalUser,clock=()=>Date.now()}={}){
    calls.set(id,call);
    socket.data.privateCallId=id;
    call.timer=setTimeout(()=>finish(call,'missed'),CALL_TIMEOUT_MS);
+   call.timer.unref?.();
    reply({ok:true,callId:id});
    for(const other of waiting)other.emit('call:incoming',{callId:id,fromHandle:user.handle});
   });
@@ -67,6 +70,7 @@ function installPrivateCalls(voice,{lookupLocalUser,clock=()=>Date.now()}={}){
    call.status='active';call.toSocket=socket.id;
    socket.data.privateCallId=call.id;
    call.timer=setTimeout(()=>finish(call,'timeout'),MAX_CALL_MS);
+   call.timer.unref?.();
    reply({ok:true,callId:call.id,peer:call.fromSocket});
    const caller=voice.sockets.get(call.fromSocket);
    caller?.emit('call:accepted',{callId:call.id,peer:socket.id,handle:socket.data.voiceUser.handle,role:'caller'});
