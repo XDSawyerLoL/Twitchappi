@@ -136,31 +136,31 @@ function callFixture(){
   isAllowedPair:async()=>true,clock:()=>100000});
  return {fakeSocket,broadcast};
 }
-test('calls are offered only to online SWAPP members and need consent',()=>{
+test('calls are offered only to online SWAPP members and need consent',async()=>{
  const {fakeSocket}=callFixture();
  const caller=fakeSocket('sid1',{id:'user1',handle:'playerone'});
  let offline;
- caller.events['call:invite']({handle:'playertwo'},value=>{offline=value});
+ await caller.events['call:invite']({handle:'playertwo'},value=>{offline=value});
  assert.equal(offline.error,'offline');
  const receiver=fakeSocket('sid2',{id:'user2',handle:'playertwo'});
  let invited;
- caller.events['call:invite']({handle:'playertwo'},value=>{invited=value});
+ await caller.events['call:invite']({handle:'playertwo'},value=>{invited=value});
  assert.equal(invited.ok,true);
  assert.equal(receiver.out.find(e=>e.type==='call:incoming').data.callId,invited.callId);
  let declined;
- receiver.events['call:answer']({callId:invited.callId,accept:false},result=>{declined=result});
+ await receiver.events['call:answer']({callId:invited.callId,accept:false},result=>{declined=result});
  assert.equal(declined.ok,true);
  assert.equal(caller.out.find(e=>e.type==='call:ended').data.reason,'declined');
 });
-test('ICE and SDP only reach the accepted call partner',()=>{
+test('ICE and SDP only reach the accepted call partner',async()=>{
  const {fakeSocket}=callFixture();
  const caller=fakeSocket('sid1',{id:'user1',handle:'playerone'});
  const receiver=fakeSocket('sid2',{id:'user2',handle:'playertwo'});
  const stranger=fakeSocket('sid3',{id:'user3',handle:'intruder'});
  let id;
- caller.events['call:invite']({handle:'playertwo'},result=>{id=result.callId});
+ await caller.events['call:invite']({handle:'playertwo'},result=>{id=result.callId});
  let accepted;
- receiver.events['call:answer']({callId:id,accept:true},result=>{accepted=result});
+ await receiver.events['call:answer']({callId:id,accept:true},result=>{accepted=result});
  assert.equal(accepted.ok,true);
  stranger.events['call:signal']({callId:id,kind:'offer',data:{type:'offer'}});
  assert.equal(receiver.out.filter(e=>e.type==='call:signal').length,0);
