@@ -92,9 +92,9 @@
  border-color:#62dc9b;box-shadow:0 0 0 3px rgba(65,219,151,.12)
 }
 #swappSocialNative .swapp-voice-participant.is-speaking .swapp-voice-activity i{background:#70eba9}
-#swappSocialNative .swapp-voice-participant.is-speaking .swapp-voice-activity i:nth-child(1){height:calc(5px + 5px * var(--voice-level,.5))}
-#swappSocialNative .swapp-voice-participant.is-speaking .swapp-voice-activity i:nth-child(2){height:calc(6px + 7px * var(--voice-level,.5))}
-#swappSocialNative .swapp-voice-participant.is-speaking .swapp-voice-activity i:nth-child(3){height:calc(5px + 4px * var(--voice-level,.5))}
+#swappSocialNative .swapp-voice-participant.is-speaking .swapp-voice-activity i:nth-child(1){height:12px;transform:scaleY(var(--voice-level,.5))}
+#swappSocialNative .swapp-voice-participant.is-speaking .swapp-voice-activity i:nth-child(2){height:15px;transform:scaleY(var(--voice-level,.5))}
+#swappSocialNative .swapp-voice-participant.is-speaking .swapp-voice-activity i:nth-child(3){height:11px;transform:scaleY(var(--voice-level,.5))}
 #swappSocialNative .swapp-voice-participant.is-muted .swapp-voice-person small{color:#f2acb8}
 #swappSocialNative .swapp-voice-footer{padding:15px 22px 17px;background:rgba(7,16,29,.55);border-top:1px solid rgba(166,199,229,.12)}
 #swappSocialNative .swapp-voice-controls{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
