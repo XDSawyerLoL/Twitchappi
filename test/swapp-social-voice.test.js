@@ -8,7 +8,7 @@ const {installSocialVoice,signTicket,verifyTicket,MAX_PARTICIPANTS,NAMESPACE}=
 const read=file=>fs.readFileSync(path.join(__dirname,'..',file),'utf8');
 const SECRET='a sufficiently long private SWAPP test secret';
 const ROOM='123e4567-e89b-42d3-a456-426614174000';
-const origin='http://localhost:3000';
+const origin='https://swapp.tv';
 
 function fakeServer(){
  const endpoints={},namespaces={};
