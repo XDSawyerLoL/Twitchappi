@@ -4,7 +4,7 @@ const assert=require('node:assert/strict');
 const {createSocialNextRouter}=require('../modules/swapp-social-next');
 
 function makeHarness(){
- const routes=[],writes=[];
+ const routes=[],writes=[],queries=[];
  const express={Router:()=>({
   get:(path,...middleware)=>routes.push({method:'GET',path,middleware}),
   put:(path,...middleware)=>routes.push({method:'PUT',path,middleware}),
@@ -12,6 +12,7 @@ function makeHarness(){
   delete:(path,...middleware)=>routes.push({method:'DELETE',path,middleware})
  })};
  const pool={execute:async(sql,args)=>{
+  queries.push({sql,args});
   if(sql.startsWith('INSERT INTO swapp_social_passports')){writes.push(args);return [[],[]]}
   if(sql.includes('FROM swapp_social_passports'))return [[],[]];
   if(sql.includes('FROM swapp_social_matches WHERE user_id=?'))
@@ -40,7 +41,7 @@ function makeHarness(){
   await route.middleware.at(-1)(req,res);
   return {status,data};
  }
- return {send,writes};
+ return {send,writes,queries};
 }
 
 test('passport is private by default and persists under SWAPP identity',async()=>{
@@ -82,4 +83,19 @@ test('cross-site profile writes are forbidden',async()=>{
  const result=await h.send('PUT','/passport/me',{origin:'https://malicious.example'});
  assert.equal(result.status,403);
  assert.equal(h.writes.length,0);
+});
+
+
+test('SOCIAL rooms search verified game aliases without confusing sequels',async()=>{
+ const h=makeHarness();
+ await h.send('GET','/game/context',{query:{game:'Grand Theft Auto VI'}});
+ const gameQueries=h.queries.filter(x=>x.sql.includes('LOWER(game) IN ('));
+ assert.equal(gameQueries.length,2);
+ assert.ok(gameQueries[0].args.includes('grand theft auto vi'));
+ assert.ok(gameQueries[0].args.includes('gta vi'));
+ assert.equal(gameQueries[0].sql.split('?').length-1,gameQueries[0].args.length);
+ await h.send('GET','/game/context',{query:{game:'Hades II'}});
+ const last=h.queries.at(-1);
+ assert.deepEqual(last.args.slice(0,-1),['hades ii']);
+ assert.equal(last.sql.split('?').length-1,last.args.length);
 });
