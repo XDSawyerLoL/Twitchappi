@@ -92,7 +92,7 @@
    if(!account.userId||typeof account.userId!=='string')throw Error('Compte SWAPP introuvable.');
    if(syncAccountId&&syncAccountId!==account.userId)throw Error('Le compte a changé. Désactive d’abord la synchronisation précédente.');
    // Explicit first-time merge; preserves pre-existing follows in the account.
-   const remote=await api('/import','POST',{games:games.map(({slug,game})=>({slug,game}))});
+   const remote=await api('/import','POST',{games:games.map(({slug,game,followedAt,seenAt})=>({slug,game,followedAt,seenAt}))});
    if(String(remote.userId)!==String(account.userId))throw Error('Identité SWAPP différente pendant la synchronisation.');
    try{localStorage.setItem(SYNC_KEY,JSON.stringify({id:String(remote.userId)}))}
    catch{throw Error('Impossible de mémoriser ton consentement sur cet appareil. Les jeux ont été sauvegardés sur le compte.')}
