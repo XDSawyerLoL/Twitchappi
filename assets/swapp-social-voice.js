@@ -38,7 +38,7 @@
 `;
  // Discord-inspired layout: room channels remain left, voice and chat share the right pane.
  // No microphone access until an explicit click on Join.
- container.insertBefore(section,area.querySelector('#ssi-chat-body'));
+ container.insertBefore(section,container.querySelector('.ssi-panel-head'));
  const $=selector=>section.querySelector(selector);
  const joinButton=$('#swapp-voice-join'),muteButton=$('#swapp-voice-mute');
  const leaveButton=$('#swapp-voice-leave'),status=$('#swapp-voice-notice'),playButton=$('#swapp-voice-play');
@@ -84,7 +84,7 @@
   const joined=Boolean(socket?.connected&&media&&connectedRoom);
   updateRoomDetails();
   section.dataset.voiceState=joined?'connected':busy?'connecting':'idle';
-  roomLabel.textContent=selectedRoomName||'Choisis un salon';
+  roomLabel.textContent=selectedRoomName||'Choisis un salon à gauche';
   gameLabel.textContent=selectedRoom?(selectedRoomGame||'Conversation de joueurs'):'Choisis un salon dans la liste pour commencer.';
   joinButton.hidden=joined;joinButton.disabled=busy||!selectedRoom;
   muteButton.hidden=!joined;deafenButton.hidden=!joined;leaveButton.hidden=!joined;
