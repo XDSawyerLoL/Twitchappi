@@ -3,7 +3,7 @@ const BASE='/api/swapp/direct-audio';
 const MAX_BYTES=512*1024,MAX_SECONDS=30;
 const uuid=/^[a-f0-9-]{36}$/i;
 const types=['audio/webm;codecs=opus','audio/mp4','audio/ogg;codecs=opus','audio/webm'];
-let recorder=null,stream=null,parts=[],started=0,timeout=null,draft=null,objectUrl='',conversation='',busy=false;
+let recorder=null,stream=null,parts=[],started=0,timeout=null,timerInterval=null,draft=null,objectUrl='',conversation='',busy=false;
 let onUpdate=null;
 
 async function request(path,options={}){
@@ -44,6 +44,10 @@ function show(message){
  const st=box.querySelector('[data-voice-status]');
  if(st)st.textContent=message;
  const recording=Boolean(recorder&&recorder.state==='recording');
+ box.dataset.audioState=recording?'recording':busy?'sending':draft?'preview':'idle';
+ const seconds=draft?draft.duration:recording?Math.min(MAX_SECONDS,Math.floor((Date.now()-started)/1000)):0;
+ const counter=box.querySelector('[data-voice-timer]');
+ if(counter)counter.textContent='0:'+String(seconds).padStart(2,'0');
  box.querySelector('[data-voice-start]').hidden=recording||!!draft||busy;
  box.querySelector('[data-voice-stop]').hidden=!recording;
  box.querySelector('[data-voice-send]').hidden=!draft||busy;
@@ -56,6 +60,7 @@ function show(message){
 }
 function discard(){
  clearTimeout(timeout);timeout=null;
+ clearInterval(timerInterval);timerInterval=null;
  if(recorder&&recorder.state==='recording'){recorder.onstop=null;recorder.stop()}
  recorder=null;parts=[];
  if(stream){stream.getTracks().forEach(track=>track.stop());stream=null}
@@ -84,6 +89,7 @@ async function begin(){
   recorder.onstop=()=>{
    if(stream){stream.getTracks().forEach(track=>track.stop());stream=null}
    clearTimeout(timeout);timeout=null;
+   clearInterval(timerInterval);timerInterval=null;
    const duration=Math.min(MAX_SECONDS,Math.max(1,Math.ceil((Date.now()-started)/1000)));
    const mime=(recorder?.mimeType||mimeType||parts[0]?.type||'').split(';')[0];
    recorder=null;
@@ -96,6 +102,7 @@ async function begin(){
    show('Enregistrement prêt : écoute-le, puis choisis Envoyer ou Effacer.');
   };
   recorder.start(500);
+  timerInterval=setInterval(()=>show('Enregistrement en cours…'),500);
   timeout=setTimeout(()=>stop(),MAX_SECONDS*1000);
   show('Enregistrement… 30 secondes maximum.');
  }catch(error){
@@ -105,6 +112,7 @@ async function begin(){
 function stop(){
  if(!recorder||recorder.state!=='recording')return;
  recorder.stop();
+ clearInterval(timerInterval);timerInterval=null;
  show('Préparation du message vocal…');
 }
 async function send(){
