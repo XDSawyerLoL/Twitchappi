@@ -49,6 +49,21 @@ function createDirectAudioRouter({express,restoreSession,getPool,lookupLocalUser
   return u?.id&&String(u.login).toLowerCase()===h?{id:String(u.id),handle:h}:null;
  };
  const query=(sql,args=[])=>getPool().execute(sql,args).then(([rows])=>rows);
+ // Expired audio becomes inaccessible at 30 days. Periodically delete its
+ // binary rows too, rather than merely hiding files from the user interface.
+ const PRUNE_EVERY=6*60*60*1000;
+ let lastPrune=0;
+ async function prune(){
+  const stamp=now(),pool=getPool();
+  if(!pool||stamp-lastPrune<PRUNE_EVERY)return;
+  lastPrune=stamp;
+  try{await pool.execute('DELETE FROM swapp_social_voice_notes WHERE created_at<? LIMIT 500',
+   [stamp-RETENTION_DAYS*86400000]);}
+  catch{lastPrune=0}
+ }
+ const pruneTimer=setInterval(()=>{void prune()},PRUNE_EVERY);
+ pruneTimer.unref?.();
+
  const publicNote=row=>({
   id:row.id,from:row.sender_handle,to:row.recipient_handle,
   fromMe:false,createdAt:new Date(Number(row.created_at)).toISOString(),
@@ -56,6 +71,7 @@ function createDirectAudioRouter({express,restoreSession,getPool,lookupLocalUser
   mime:row.mime,bytes:Number(row.byte_length)
  });
  router.get('/notes',run(async(req,res)=>{
+  void prune();
   const peer=recipient(req.query.peer);
   if(!peer)return fail(res,'not_found',404);
   const me=req.directAudioUser;
@@ -66,6 +82,7 @@ function createDirectAudioRouter({express,restoreSession,getPool,lookupLocalUser
   res.json({notes:rows.reverse().map(row=>({...publicNote(row),fromMe:row.sender_id===me.id}))});
  }));
  router.post('/notes/:handle',express.raw({type:['audio/webm','audio/ogg','audio/mp4'],limit:MAX_BYTES}),run(async(req,res)=>{
+  void prune();
   const me=req.directAudioUser,peer=recipient(req.params.handle);
   if(!peer||peer.id===me.id)return fail(res,'invalid_recipient',400);
   const mime=String(req.get('content-type')||'').split(';')[0].toLowerCase().trim();
