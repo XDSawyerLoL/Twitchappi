@@ -74,7 +74,7 @@
   if(!game)return;
   try{
    const data=await fetchItems('/api/discovery/game-lives?limit=5&game='+encodeURIComponent(game),10000);
-   if(!row.isConnected||data?.success!==true||gameKey(data.game)!==gameKey(game)||!Array.isArray(data.items))return;
+   if(!row.isConnected||data?.success!==true||!(window.SwappGameIdentity?.sameGame?.(data.game,game)||gameKey(data.game)===gameKey(game))||!Array.isArray(data.items))return;
    const seen=new Set(),verified=data.items.filter(stream=>{
     const login=String(stream?.login||'').toLowerCase(),platform=String(stream?.platform||'').toLowerCase(),key=platform+':'+login;
     if(!/^[a-z0-9_]{2,25}$/.test(login)||seen.has(key)||gameKey(stream.game_name||stream.game)!==gameKey(game))return false;
