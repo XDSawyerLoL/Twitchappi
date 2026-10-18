@@ -119,7 +119,7 @@ function renderMyGames(groups=[]){
    const date=String(a.publishedAt||'');
    const validDate=Number.isFinite(Date.parse(date))?new Date(date).toISOString():'';
    const dateText=validDate?new Intl.DateTimeFormat('fr-FR',{day:'2-digit',month:'short'}).format(new Date(validDate)):'';
-   return '<a href="/actus/'+encodeURIComponent(a.slug)+'" data-story-date="'+html(validDate)+'">'+
+   return '<a href="/actus/'+encodeURIComponent(a.slug)+'" data-story-date="'+html(validDate)+'" data-story-title="'+html(String(a.title).slice(0,155))+'">'+
      (dateText?'<time datetime="'+html(validDate)+'">'+html(dateText)+'</time>':'')+html(String(a.title).slice(0,155))+'</a>';
   }).join('');
   return '<article class="mg-card" data-swapp-game-card data-game-slug="'+html(g.slug)+'" data-game-name="'+html(g.game)+'">'+
@@ -130,6 +130,10 @@ function renderMyGames(groups=[]){
  const body='<main class="swapp-my-games" data-swapp-library-root>'+
   '<p class="breadcrumb"><a href="/">SWAPP</a> / <a href="/jeux">Jeux</a> / Ma sélection</p>'+
   '<header class="mg-header"><div><span class="mg-eyebrow">SWAPP · MON ESPACE</span><h1>Mes jeux.</h1><p>Retrouve les actualités de tes jeux, les créateurs en direct et la communauté. Tu choisis ce que tu suis, sans notifications forcées.</p></div><a class="mg-header-link" href="/jeux">Découvrir les jeux ↗</a></header>'+
+  '<section class="mg-digest" id="mes-nouveautes" aria-labelledby="mg-digest-title">'+
+   '<div class="mg-digest-intro"><div><span class="mg-eyebrow">POUR TOI · ACTUALITÉ</span><h2 id="mg-digest-title">À lire sur tes jeux</h2><p>Les dernières publications SWAPP sur les jeux que tu suis ou gardes dans tes envies. Rien n’est ajouté à ta sélection sans ton choix.</p></div><a href="/actus">Toute l’actualité ↗</a></div>'+
+   '<p class="mg-digest-status" data-my-games-digest-summary role="status" aria-live="polite">Chargement de ta sélection…</p>'+
+   '<div class="mg-digest-list" data-my-games-digest></div></section>'+
   '<section class="mg-sync" aria-label="Synchronisation de ma bibliothèque">'+
    '<div><strong>Retrouver mes jeux sur tous mes appareils</strong><p>Tu peux lier volontairement cette sélection à ton compte SWAPP. La première activation fusionne les jeux de cet appareil avec ceux du compte, sans récupérer ton activité ni tes achats.</p>'+
    '<p data-my-games-sync-status role="status" aria-live="polite">Sans synchronisation : préférences conservées sur cet appareil.</p></div>'+
