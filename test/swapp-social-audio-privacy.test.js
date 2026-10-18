@@ -109,6 +109,6 @@ test('proxy wires block registration before the upstream request',()=>{
  const server=fs.readFileSync(path.join(__dirname,'..','server.js'),'utf8');
  assert.match(source,/await recordAudioBlock\(swappUser,target\)/);
  assert.ok(source.indexOf('await recordAudioBlock(swappUser,target)')<
-  source.indexOf('const endpoint=SOCIAL_ORIGIN+'));
+  source.lastIndexOf('const endpoint=SOCIAL_ORIGIN+'));
  assert.match(server,/endCallsBetween\?\.\(actor\.id,target\.id\)/);
 });
