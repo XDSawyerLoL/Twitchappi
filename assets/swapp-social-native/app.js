@@ -569,7 +569,12 @@ async function init(){
       }).catch(()=>{});
     }
   },60000);
-  await Promise.allSettled([loadHome(),loadCirclePreview()]);
+  const requestedView=document.getElementById('swappSocialNative')?.dataset.requestedSocialView;
+  if(requestedView==='play'||requestedView==='rooms'){
+    setView(requestedView,requestedView==='play'?'Jeux et équipes':'Salons de discussion');
+  }
+  // Do not overwrite an intentional view after a delayed SSO response.
+  await Promise.allSettled([...(state.view==='home'?[loadHome()]:[]),loadCirclePreview()]);
 }
 
 init().catch(error=>{
