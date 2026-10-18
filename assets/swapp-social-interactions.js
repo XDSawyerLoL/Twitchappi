@@ -173,7 +173,7 @@
   if(activeRoom===id&&$('#ssi-chat-stream'))return;
   stopChat();activeRoom=id;
   area.dataset.activeSocialRoom=id;
-  area.dispatchEvent(new CustomEvent('ssi:room-selected',{detail:{id}}));
+  area.dispatchEvent(new CustomEvent('ssi:room-selected',{detail:{id,name:item.name,game:item.game}}));
   $('#ssi-chat-title').textContent=item.name;
   $('#ssi-chat-hint').textContent=item.game+' · Actualisation toutes les 5 secondes';
   $('#ssi-chat-body').innerHTML='<div class="ssi-chat-stream" id="ssi-chat-stream" aria-label="Messages du salon" aria-live="polite"><div class="ssi-chat-empty">Chargement de la discussion…</div></div><form class="ssi-compose" id="ssi-form-chat"><input name="body" maxlength="160" required autocomplete="off" aria-label="Votre message" placeholder="Écris ton message…"><button type="submit" class="ssi-button">Envoyer ↗</button></form>';
