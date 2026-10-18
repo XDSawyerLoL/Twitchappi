@@ -10893,6 +10893,56 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
     return out;
   }
 
+  // Single-line followed Twitch gallery, separate from recommendations.
+  async function loadHomeFollowed(){
+    const rail=$id('homeFollowedRail1014');
+    if(!rail)return;
+    const status=$id('homeFollowedStatus1014');
+    if(!state.session?.twitch){
+      rail.textContent='Connecte Twitch pour retrouver tes chaînes suivies.';
+      if(status){
+        status.replaceChildren();
+        const button=document.createElement('button');
+        button.type='button';button.className='btn secondary';
+        button.textContent='Connecter Twitch';
+        button.onclick=()=>window.connectTwitch?.();
+        status.append(button);
+      }
+      return;
+    }
+    rail.textContent='Chargement des chaînes suivies…';
+    const data=await apiSafe('/api/twitch/followed/live');
+    if(!rail.isConnected||state.view!=='home')return;
+    rail.replaceChildren();
+    if(!data?.success||!Array.isArray(data.items)){
+      rail.textContent='Suivis temporairement indisponibles.';return;
+    }
+    const seen=new Set();
+    const lives=data.items.filter(x=>{
+      const login=String(x?.login||x?.user_login||'').toLowerCase();
+      if(!/^[a-z0-9_]{2,25}$/.test(login)||seen.has(login))return false;
+      seen.add(login);return true;
+    }).slice(0,8);
+    if(!lives.length){rail.textContent='Aucune chaîne suivie en direct pour le moment.';return;}
+    for(const item of lives){
+      const login=String(item.login||item.user_login).toLowerCase();
+      const card=document.createElement('a');card.className='homeFollowCard1014';
+      card.href='/live/twitch/'+encodeURIComponent(login);
+      card.setAttribute('aria-label','Regarder '+String(item.display_name||login));
+      const art=document.createElement('span');art.className='homeFollowArtwork1014';
+      const image=String(item.thumbnail_url||'').replace('{width}','640').replace('{height}','360');
+      if(/^https:\/\//i.test(image)){
+        const img=document.createElement('img');
+        img.src=image;img.alt='';img.loading='lazy';
+        img.onerror=()=>img.remove();art.append(img);
+      }
+      const meta=document.createElement('span');meta.className='homeFollowMeta1014';
+      const title=document.createElement('strong');title.textContent=String(item.display_name||login);
+      const game=document.createElement('small');game.textContent=String(item.game_name||'Live Twitch');
+      meta.append(title,game);card.append(art,meta);rail.append(card);
+    }
+  }
+
   // Editorial updates change only the order and an inline article link on
   // existing stream cards. Never add a matching dashboard or extra shelf.
   let lastLiveCandidates=null;
@@ -10923,25 +10973,9 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
       if(sub)sub.textContent='Des créateurs en direct, sélectionnés pour prolonger votre découverte.';
       if(status)status.textContent='Twitch en direct';
     }
-    const more=$id('homeLiveMore1014');
-    const wasExpanded=!!(preserveExpanded&&more?.getAttribute('aria-expanded')==='true');
-    grid.innerHTML=items.length?items.slice(0,12).map(card).join('')
-      :`<div class="homeEmpty1014">Aucun live disponible pour le moment. Essaie à nouveau dans quelques instants.</div>`;
-    if(more){
-      const cards=Array.from(grid.querySelectorAll('.homeLiveCard1014'));
-      const initiallyVisible=window.matchMedia('(max-width:900px)').matches?4:8;
-      cards.forEach((el,i)=>{el.hidden=!wasExpanded&&i>=initiallyVisible});
-      const extras=Math.max(0,cards.length-initiallyVisible);
-      more.hidden=!extras;
-      more.setAttribute('aria-expanded',String(wasExpanded&&extras>0));
-      more.textContent=wasExpanded?'Voir moins de lives':'Afficher '+extras+' autre'+(extras>1?'s':'')+' live'+(extras>1?'s':'');
-      more.onclick=()=>{
-        const expanded=more.getAttribute('aria-expanded')==='true';
-        cards.forEach((el,i)=>{el.hidden=expanded&&i>=initiallyVisible});
-        more.setAttribute('aria-expanded',String(!expanded));
-        more.textContent=expanded?'Afficher '+extras+' autre'+(extras>1?'s':'')+' live'+(extras>1?'s':''):'Voir moins de lives';
-      };
-    }
+    // A single scrolling row; longer discovery belongs on the Discover page.
+    grid.innerHTML=items.length?items.slice(0,8).map(card).join('')
+      :`<div class="homeEmpty1014">Aucun live disponible pour le moment.</div>`;
   }
   // Game-specific API checks Twitch by its real game ID. Limit to two
   // editorial games per render: no guessing and no continuous polling.
@@ -11043,17 +11077,21 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
           <div><h2 id="homeLiveTitle1014">Lives en direct</h2><p id="homeLiveSub1014">Chargement des lives…</p></div>
           <div class="homeActions1014"><button class="btn secondary" type="button" onclick="setView('discover')">Tous les lives →</button></div>
         </div>
-        <div id="homeLiveGrid1014" class="homeLiveGrid1014"><div class="homeEmpty1014">Chargement des lives…</div></div>
-        <button id="homeLiveMore1014" class="homeLiveMore1014" type="button" aria-controls="homeLiveGrid1014" aria-expanded="false" hidden>Voir plus de lives</button>
+        <div id="homeLiveGrid1014" class="homeLiveGrid1014" aria-label="Lives en direct, défilement horizontal"><div class="homeEmpty1014">Chargement des lives…</div></div>
+        <div class="homeFollowedSection1014">
+          <div class="homeFollowedHead1014"><h3>Chaînes suivies en direct</h3><div id="homeFollowedStatus1014"></div></div>
+          <div id="homeFollowedRail1014" class="homeFollowedRail1014" aria-label="Chaînes Twitch suivies en direct"></div>
+        </div>
       </section>
 
     </main>`;
+    void loadHomeFollowed();
     await loadLives(true);
     try{ closeMini?.(); }catch(_e){}
   };
   try{ renderHome = window.renderHome; }catch(_e){}
 
-  window.swappRefreshHome1014 = function(){ homeStamp = 0; loadLives(true); };
+  window.swappRefreshHome1014 = function(){ homeStamp = 0; void loadHomeFollowed(); loadLives(true); };
   window.loadHomeRecommendations = async function(){ addStyle1014(); await loadLives(true); };
   try{ loadHomeRecommendations = window.loadHomeRecommendations; }catch(_e){}
 
