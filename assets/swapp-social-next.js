@@ -57,7 +57,8 @@
   el.textContent=message;el.dataset.type=type;
  };
  const navigateTo=view=>{
-  // Deep links continue to use the native SOCIAL controller.
+  // Save a deep link even when the module initializes before the native controller.
+  if(view==='play'||view==='rooms')host.dataset.requestedSocialView=view;
   const button=host.querySelector('.pulse-community-shortcuts button[data-view="'+view+'"]')||
    host.querySelector('.pulse-sidebar button[data-view="'+view+'"]')||
    host.querySelector('.pulse-mobile-nav button[data-view="'+view+'"]');
