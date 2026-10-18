@@ -134,6 +134,7 @@ export function setupDirectCalls(){
   if(connecting)return connecting;
   if(!state.user||typeof window.io!=='function')return null;
   connecting=(async()=>{
+   connectAt=Date.now();
    const response=await fetch(TOKEN_URL,{method:'POST',credentials:'same-origin',
     headers:{Accept:'application/json','Content-Type':'application/json'},body:'{}',cache:'no-store'});
    if(!response.ok)throw Error('Accès aux appels indisponible.');
@@ -222,7 +223,8 @@ export function setupDirectCalls(){
  });
  // Presence is available while SOCIAL is open. No incoming system pushes off-site.
  void connect().catch(()=>{});
- setInterval(()=>{if(state.user&&!socket?.connected&&!connecting&&Date.now()-connectAt>15000)
-  void connect().catch(()=>{});},45000);
+ // Reduce repeated idle requests on Hostinger when SOCIAL audio is disabled.
+ setInterval(()=>{if(state.user&&!socket?.connected&&!connecting&&Date.now()-connectAt>300000)
+  void connect().catch(()=>{});},300000);
  window.addEventListener('pagehide',()=>{reset({signal:true});socket?.disconnect()});
 }
