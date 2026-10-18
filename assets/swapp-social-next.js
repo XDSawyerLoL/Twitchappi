@@ -105,6 +105,24 @@
   '<button class="ssi-ghost" type="button" data-ssn-create-room="'+esc(game)+'">Créer un salon</button>'+
   '<a class="ssi-ghost" href="/decouvrir">Voir les lives ↗</a><a class="ssi-ghost" href="/jeux">Actualités & jeux ↗</a></div>';
  }
+ // Match editorial aliases exactly, not with substrings that mix sequels.
+ function socialGameMatch(left,right){
+  const normal=x=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+  const a=normal(left),b=normal(right);
+  if(!a||!b)return false;
+  if(a===b)return true;
+  const groups=[
+   ['Grand Theft Auto VI','GTA 6','GTA6','GTA VI','Grand Theft Auto 6'],
+   ['Planet Zoo 2','Planet Zoo II'],
+   ['007 First Light','James Bond 007 First Light','007: First Light'],
+   ['Assassin’s Creed Black Flag','Assassins Creed IV Black Flag','Assassin’s Creed IV: Black Flag'],
+   ['Final Fantasy VII','Final Fantasy 7','FF7'],
+   ['MARVEL Tōkon: Fighting Souls','Marvel Tokon Fighting Souls'],
+   ['Divinity: Original Sin 3','Divinity Original Sin III'],
+   ['Road 96','Road96']
+  ];
+  return groups.some(g=>{const names=g.map(normal);return names.includes(a)&&names.includes(b)});
+ }
  async function loadGameLives(game,version){
   const holder=$('#ssn-live-results');if(!holder)return;
   try{
@@ -114,14 +132,14 @@
    if(!res.ok)throw Error('live_unavailable');
    const data=await res.json();
    if(version!==gameRequest||!$('#ssn-live-results'))return;
-   const items=Array.isArray(data.items)?data.items:[];
-   const safe=items.filter(x=>/^[a-z0-9_]{2,25}$/.test(String(x.login||'')));
+   const items=data.success===true&&socialGameMatch(data.game,game)&&Array.isArray(data.items)?data.items:[];
+   const safe=items.filter(x=>/^[a-z0-9_]{2,25}$/.test(String(x.login||''))&&['twitch','oryon','swapp'].includes(String(x.platform||''))&&socialGameMatch(x.game_name||x.category||x.game,game));
    holder.innerHTML=safe.length?'<div class="ssn-lives">'+safe.map(live=>{
     const login=String(live.login),name=esc(live.display_name||login);
     const platform=String(live.platform||'');
-    const href=platform==='twitch'?'https://www.twitch.tv/'+encodeURIComponent(login):'/'+encodeURIComponent(login);
+    const href=platform==='twitch'?'/live/twitch/'+encodeURIComponent(login)+'?game='+encodeURIComponent(game):'/'+encodeURIComponent(login);
     const viewerCount=Math.max(0,Number(live.viewer_count)||0);
-    return '<a class="ssn-live" href="'+esc(href)+'" '+(platform==='twitch'?'target="_blank" rel="noopener noreferrer"':'')+'>'+
+    return '<a class="ssn-live" href="'+esc(href)+'">'+
      '<span class="ssn-live-dot" aria-hidden="true"></span><strong>'+name+'</strong>'+
      '<span>'+esc(platform==='twitch'?'Twitch':'SWAPP')+' · '+viewerCount+' spectateur'+(viewerCount>1?'s':'')+'</span></a>';
    }).join('')+'</div>':'<p>Aucun live confirmé pour ce jeu actuellement.</p>';

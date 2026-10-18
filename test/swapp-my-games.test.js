@@ -31,7 +31,7 @@ test('Mes jeux only offers real indexed games and published stories',()=>{
  assert.doesNotMatch(html,/private-story|Secret interne|Hades II/);
  assert.match(html,/name="robots" content="noindex,follow"/);
  assert.match(html,/data-story-date="2026-10-17T12:00:00.000Z"/);
- assert.match(html,/href="\/communaute"/);
+ assert.match(html,/href="\/communaute\?game=Grand%20Theft%20Auto%20VI"/);
  assert.match(html,/href="\/boutique"/);
  assert.doesNotMatch(html,/acheter maintenant|promotion limitée|\d+ spectateurs connectés/i);
 });
@@ -108,8 +108,8 @@ test('SPA and native routes share the same assets and do not grow the top-level 
  const home=read('index.html'),shell=read('modules/swapp-news/site-shell.js');
  const nav=read('assets/swapp-navigation.js'),css=read('assets/swapp-my-games.css');
  for(const page of [home,shell]){
-  assert.match(page,/swapp-my-games\.css\?v=20261018-player-hub-v2/);
-  assert.match(page,/swapp-my-games\.js\?v=20261018-player-hub-v2/);
+  assert.match(page,/swapp-my-games\.css\?v=20261019-live-journey-v3/);
+  assert.match(page,/swapp-my-games\.js\?v=20261019-live-journey-v3/);
  }
  assert.doesNotMatch(nav,/href:'\/mes-jeux'/);
  assert.match(css,/@media\(max-width:720px\)/);

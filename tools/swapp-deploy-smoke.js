@@ -107,6 +107,17 @@ async function verify(){
   'Homepage still uses the old account menu without Boutique administration');
  process.stdout.write('PASS Boutique showcase, editable catalogue assets and unified admin menu\n');
 
+ const playerPage=await request(origin,'/mes-jeux');
+ check(playerPage.body.includes('data-my-games-live')&&playerPage.body.includes('En direct sur tes jeux')&&
+  playerPage.body.includes('swapp-my-games-live.js?v=20261019-live-journey-v3'),
+  'The SWAPP/Twitch personal live desk is missing or an old page is deployed');
+ const nativePlayer=await request(origin,'/assets/swapp-my-games-live.js');
+ check(nativePlayer.body.includes('/api/discovery/game-lives?limit=8&game=')&&
+  nativePlayer.body.includes("native(item)?'DIRECT SWAPP':'DIRECT TWITCH'")&&
+  nativePlayer.body.includes("'/live/twitch/'")&&
+  nativePlayer.body.includes("'/communaute?game='"),
+  'The SWAPP native-first live client is missing or stale');
+ process.stdout.write('PASS personal SWAPP/Twitch live discovery\n');
  const discovery=await request(origin,'/assets/swapp-media-live.js');
  check(discovery.body.includes('/api/discovery/game-lives?limit=6&game='),
   'Article live discovery client is outdated: targeted game lookup missing');

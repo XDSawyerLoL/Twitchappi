@@ -86,3 +86,19 @@ Cette version n'a pas de notifications push ni de ventes natives. Elle inaugure 
 - Confirmer iPhone Safari, Android Chrome, desktop, accès direct à /mes-jeux et F5. Les tests de rendu réels ne sont pas remplacés par des simulations.
 - Confirmer migration MySQL 007, identité du compte SWAPP et points en production avant annonce publique. Cette évolution n'ajoute aucune migration.
 - Vérifier le déploiement sur Hostinger et la version de cache 20261018-player-hub-v2. La fusion GitHub seule ne prouve pas la mise en ligne.
+
+## Lives SWAPP natifs + Twitch dans Mes jeux (2026-10-19)
+- Nouvelle section « En direct sur tes jeux » située après les actualités personnelles, uniquement sur /mes-jeux. Les deux sources sont explicites : LIVE SWAPP natif (platform oryon/swapp) et Twitch lu dans SWAPP.
+- Les directs sont recherchés avec /api/discovery/game-lives, service public existant, uniquement pour des jeux éditoriaux publiés que la personne suit ou met dans ses envies. Équivalence stricte des noms de jeux, jamais de correspondance approximative avec une suite différente.
+- Maximum 4 jeux analysés par lot, 8 directs affichés, au plus 3 par jeu, sans doublon de chaîne par plateforme. Priorité de présentation aux lives SWAPP natifs réellement présents, indépendamment du nombre de spectateurs.
+- Le module s'active à l'apparition de la section à l'écran ; si IntersectionObserver est indisponible, les jeux choisis sont recherchés sans attendre. Pas de polling, pas de sauvegarde des chaînes regardées, actualisation et passage au lot de 4 jeux suivants sur action explicite.
+- Les liens de visionnage restent internes : SWAPP natif /pseudo ; Twitch /live/twitch/pseudo?game=Jeu. Un lien contextualisé /communaute?game=Jeu ouvre les salons et joueurs réellement présents sur SOCIAL. Accès au dossier éditorial et à la Boutique SWAPP sans présenter de fausse disponibilité.
+- En cas de panne des sources, afficher un état d'indisponibilité et un bouton de reprise ; ne jamais mettre une chaîne hors ligne en direct, inventer des membres ou afficher un nombre de spectateurs inexistant.
+- Le sous-module SOCIAL de recherche de lives respecte lui aussi le parcours de lecture dans SWAPP et les alias officiels (GTA VI, Planet Zoo II...).
+- Pas de migration MySQL, de VPS, de tâches GitHub Actions, de nouvelles dépendances ou de ventes transactionnelles.
+
+### Recette de production
+- npm test ; npm run check ; npm run verify:production, puis vérifier la section /mes-jeux et /communaute?game=...
+- Deux chaînes natives SWAPP : une réellement active et une hors ligne ; deux chaînes Twitch dont un jeu proche mais différent ; un compte sans jeux suivis et un compte avec liste de souhaits.
+- Contrôler la priorité des directs SWAPP, l'absence de faux lives, les liens internes, le repli de panne, l'actualisation manuelle, la pagination 4 jeux et la navigation tactile iPhone/Android.
+- Vérifier les assets versionnés 20261019-live-journey-v3 et l'empreinte de la release sur Hostinger ; une fusion GitHub ne prouve pas le déploiement.
