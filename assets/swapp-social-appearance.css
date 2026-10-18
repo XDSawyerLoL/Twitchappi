@@ -141,3 +141,37 @@ body:has(#swappSocialNative){
  #swappSocialNative .swapp-page-appearance--social summary::after,
  #swappSocialNative .swapp-page-appearance--social .swapp-appearance-swatch{transition:none}
 }
+
+/* SOCIAL / Vocal — permanent single shortcut, not a sixth primary nav item.
+   This stylesheet loads last, so page appearance overrides cannot hide it. */
+#swappSocialNative .pulse-topbar .swapp-social-voice-shortcut{
+ display:inline-flex!important;flex:0 0 auto;align-items:center;justify-content:center;
+ gap:8px;margin-left:auto;margin-right:8px;padding:9px 14px;min-height:40px;
+ background:color-mix(in srgb,var(--swapp-page-accent,#22d3ee) 15%,#15253b)!important;
+ color:#eff8ff!important;border:1px solid color-mix(in srgb,var(--swapp-page-accent,#22d3ee) 46%,#41536b)!important;
+ border-radius:10px!important;font:750 13px/1 system-ui,sans-serif;
+ cursor:pointer;white-space:nowrap;text-decoration:none;box-shadow:none
+}
+#swappSocialNative .pulse-topbar .swapp-social-voice-shortcut svg{
+ width:17px;height:17px;stroke:currentColor;stroke-width:1.8;fill:none;
+ stroke-linecap:round;stroke-linejoin:round;flex:none
+}
+#swappSocialNative .pulse-topbar .swapp-social-voice-shortcut:hover,
+#swappSocialNative .pulse-topbar .swapp-social-voice-shortcut.active{
+ background:color-mix(in srgb,var(--swapp-page-accent,#22d3ee) 27%,#15253b)!important;
+ border-color:var(--swapp-page-accent,#22d3ee)!important
+}
+#swappSocialNative .pulse-topbar .swapp-social-voice-shortcut:focus-visible{
+ outline:2px solid var(--swapp-page-accent,#22d3ee);outline-offset:3px
+}
+@media(max-width:650px), (max-width:920px) and (orientation:portrait){
+ #swappSocialNative .pulse-topbar .swapp-social-voice-shortcut{
+  gap:6px;padding:8px 10px;min-height:36px;font-size:12px;
+  margin-left:auto;margin-right:4px
+ }
+ #swappSocialNative .pulse-topbar .swapp-social-voice-shortcut svg{width:16px;height:16px}
+}
+@media(max-width:350px){
+ #swappSocialNative .pulse-topbar .swapp-social-voice-shortcut{padding:8px;min-width:36px}
+ #swappSocialNative .pulse-topbar .swapp-social-voice-shortcut span{display:none}
+}
