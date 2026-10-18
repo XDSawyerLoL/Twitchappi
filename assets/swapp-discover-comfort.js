@@ -30,7 +30,7 @@ body.oryonDiscoverV4 #discover .v4Lead{
  line-height:1.5!important;
 }
 body.oryonDiscoverV4 #discover .v4Controls{
- border-radius:20px!important;padding:13px!important;gap:10px!important;
+ border-radius:0!important;padding:13px 0!important;gap:10px!important;
 }
 body.oryonDiscoverV4 #discover .v4MoodRail{
  scrollbar-width:none!important;scroll-snap-type:x proximity;
@@ -50,7 +50,7 @@ body.oryonDiscoverV4 #discover .v4Stage{
  gap:clamp(14px,1.5vw,23px)!important;align-items:start!important;
 }
 body.oryonDiscoverV4 #discover :is(.v4Card,.v4Player){
- border-radius:20px!important;
+ border-radius:8px!important;
  min-height:0!important;aspect-ratio:16/9!important;
  max-height:min(65vh,680px)!important;
 }
@@ -96,19 +96,26 @@ body.oryonDiscoverV4 #discover .v4Tag{
 }
 body.oryonDiscoverV4 #discover .v4Actions{
  max-width:none!important;
- margin:0!important;border-radius:17px!important;
+ margin:0!important;border-radius:0!important;
  padding:9px!important;gap:9px!important;
  box-shadow:none!important;
 }
 body.oryonDiscoverV4 #discover .v4Actions .v4Btn{
- min-height:49px!important;border-radius:13px!important;
+ min-height:49px!important;border-radius:7px!important;
  font-size:14px!important;padding:9px 10px!important;
 }
 body.oryonDiscoverV4 #discover .v4Actions .v4Btn.primary{font-size:15px!important}
 body.oryonDiscoverV4 #discover :is(.v4Card,.v4Mood,.v4Btn,.v4FollowCard,.v4DeckMini button):focus-visible{
  outline:3px solid #8aebec!important;outline-offset:3px!important;
 }
-body.oryonDiscoverV4 #discover .v4Panel{border-radius:20px!important;padding:16px!important}
+body.oryonDiscoverV4 #discover .v4Panel{border-radius:0!important;padding:16px!important}
+body.oryonDiscoverV4 #discover :is(.v4Deck,.v4Follow){
+ background:transparent!important;border:0!important;
+ border-top:1px solid rgba(180,204,229,.22)!important;
+ border-radius:0!important;padding:22px 0 0!important;box-shadow:none!important;
+}
+body.oryonDiscoverV4 #discover :is(.v4DeckSlot,.v4FollowCard){border-radius:7px!important;box-shadow:none!important}
+body.oryonDiscoverV4 #discover :is(.v4BioRow,.v4Search input,.v4Search select){border-radius:6px!important}
 body.oryonDiscoverV4 #discover .v4DeckGrid{
  grid-template-columns:repeat(auto-fill,minmax(150px,1fr))!important;gap:11px!important;
 }
@@ -166,7 +173,7 @@ body.oryonDiscoverV4 #discover .v4FollowRail::-webkit-scrollbar{display:none!imp
   width:100%!important;min-width:0!important;
   min-height:0!important;
   aspect-ratio:16/10!important;max-height:390px!important;
-  border-radius:16px!important;
+  border-radius:8px!important;
  }
  body.oryonDiscoverV4 #discover .v4CardText{
   left:14px!important;right:14px!important;bottom:13px!important;gap:6px!important;
@@ -182,7 +189,7 @@ body.oryonDiscoverV4 #discover .v4FollowRail::-webkit-scrollbar{display:none!imp
     controls. Avoid 3 cramped buttons on 320-390px phones. */
  body.oryonDiscoverV4 #discover .v4Actions{
   grid-template-columns:repeat(2,minmax(0,1fr))!important;
-  gap:8px!important;padding:8px!important;border-radius:14px!important;
+  gap:8px!important;padding:8px 0!important;border-radius:0!important;
  }
  body.oryonDiscoverV4 #discover .v4Actions .v4Btn{
   min-width:0!important;min-height:46px!important;
@@ -223,14 +230,14 @@ body.oryonDiscoverV4 #discover .v4Title{font-size:clamp(34px,4.5vw,62px)!importa
 body.oryonDiscoverV4 #discover .v4Lead{max-width:58ch!important;font-size:15px!important;line-height:1.62!important}
 body.oryonDiscoverV4 #discover .v4Controls{background:transparent!important;border:0!important;box-shadow:none!important;padding:0!important}
 body.oryonDiscoverV4 #discover .v4MoodRail{gap:7px!important}
-body.oryonDiscoverV4 #discover .v4Mood{min-height:42px!important;padding:8px 14px!important;border-radius:999px!important}
+body.oryonDiscoverV4 #discover .v4Mood{min-height:42px!important;padding:8px 14px!important;border-radius:7px!important}
 body.oryonDiscoverV4 #discover .v4Stage{grid-template-columns:minmax(0,1fr) minmax(250px,295px)!important;gap:clamp(12px,1.5vw,22px)!important}
-body.oryonDiscoverV4 #discover .v4Card{overflow:hidden!important;border:1px solid rgba(189,212,240,.19)!important;border-radius:20px!important;aspect-ratio:16/9!important;max-height:650px!important}
+body.oryonDiscoverV4 #discover .v4Card{overflow:hidden!important;border:1px solid rgba(189,212,240,.19)!important;border-radius:8px!important;aspect-ratio:16/9!important;max-height:650px!important}
 body.oryonDiscoverV4 #discover .v4LiveTitle{display:-webkit-box!important;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:clamp(25px,3vw,42px)!important;line-height:1.1!important}
-body.oryonDiscoverV4 #discover .v4Panel{background:rgba(16,26,40,.83)!important;border:1px solid rgba(178,211,233,.15)!important;box-shadow:none!important}
+body.oryonDiscoverV4 #discover .v4Panel{background:rgba(16,26,40,.48)!important;border:1px solid rgba(178,211,233,.15)!important;border-radius:0!important;box-shadow:none!important}
 body.oryonDiscoverV4 #discover .v4Actions{background:transparent!important;box-shadow:none!important;border:0!important}
 body.oryonDiscoverV4 #discover .swapp-mood-reason{display:block;align-self:flex-start;max-width:95%;padding:4px 0 4px 10px;border-left:2px solid var(--swapp-page-accent,#8de5df);color:#e0edf7;font-size:12px;line-height:1.45;text-shadow:0 2px 9px #0008}
-body.oryonDiscoverV4 #discover .swapp-mood-saved-toggle{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:44px;margin:0 0 8px;padding:9px 12px;background:#19293c;color:#e9f7ff;border:1px solid #60748b66;border-radius:10px;cursor:pointer;font:750 13px/1.35 system-ui,sans-serif}
+body.oryonDiscoverV4 #discover .swapp-mood-saved-toggle{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:44px;margin:0 0 8px;padding:9px 12px;background:#19293c;color:#e9f7ff;border:1px solid #60748b66;border-radius:6px;cursor:pointer;font:750 13px/1.35 system-ui,sans-serif}
 body.oryonDiscoverV4 #discover .swapp-mood-saved-toggle:focus-visible{outline:2px solid var(--swapp-page-accent,#8de5df);outline-offset:3px}
 body.oryonDiscoverV4 #discover .v4Deck.is-collapsed :is(.v4DeckGrid,.v4DeckMini){display:none!important}
 body.oryonDiscoverV4 #discover .v4Deck.is-collapsed:after{display:none!important}
