@@ -23,6 +23,8 @@ const authenticatedChecks=[
  ['/api/swapp/interactions/match2/compatible','matchmaking'],
  ['/api/swapp/interactions/passport/me','player_passport'],
  ['/api/swapp/interactions/library/games','followed_games_library'],
+ ['/api/swapp/interactions/library/wishlist','personal_game_wishlist'],
+ ['/api/swapp/interactions/rewards/me','discovery_reward_status'],
  ['/api/swapp/interactions/game/context?game=PUBG','game_universe'],
  ['/api/pulse/me','social_identity'],
  ['/api/pulse/feed?mode=discover&limit=5','posts'],
