@@ -10,6 +10,8 @@ const slugOk=s=>/^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/.test(s||'');
  const gameAliases=[
   ['Grand Theft Auto VI','GTA 6','GTA6','GTA VI','Grand Theft Auto 6'],
   ['Planet Zoo 2','Planet Zoo II'],
+  ['The Witcher 3: Wild Hunt Remastered','The Witcher 3 Remastered','Witcher 3 Remastered','The Witcher III Remastered'],
+  ['The Witcher 3: Wild Hunt','The Witcher 3','Witcher 3'],
   ['007 First Light','James Bond 007 First Light','007: First Light'],
   ['Assassin’s Creed Black Flag','Assassins Creed IV Black Flag','Assassin’s Creed IV: Black Flag',"Assassin's Creed Black Flag"],
   ['Final Fantasy VII','Final Fantasy 7','FF7'],
