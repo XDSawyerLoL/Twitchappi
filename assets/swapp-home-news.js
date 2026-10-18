@@ -70,14 +70,14 @@
  const gameKey=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
  async function showVerifiedCreators(item,row){
   if(!item.game)return;
-  const game=String(item.game).trim().slice(0,90);
+  const game=String(window.SwappGameIdentity?.editorialGame?.(item)||item.game).trim().slice(0,90);
   if(!game)return;
   try{
    const data=await fetchItems('/api/discovery/game-lives?limit=5&game='+encodeURIComponent(game),10000);
    if(!row.isConnected||data?.success!==true||!(window.SwappGameIdentity?.sameGame?.(data.game,game)||gameKey(data.game)===gameKey(game))||!Array.isArray(data.items))return;
    const seen=new Set(),verified=data.items.filter(stream=>{
     const login=String(stream?.login||'').toLowerCase(),platform=String(stream?.platform||'').toLowerCase(),key=platform+':'+login;
-    if(!/^[a-z0-9_]{2,25}$/.test(login)||seen.has(key)||gameKey(stream.game_name||stream.game)!==gameKey(game))return false;
+    if(!/^[a-z0-9_]{2,25}$/.test(login)||seen.has(key)||!(window.SwappGameIdentity?.sameGame?.(stream.game_name||stream.game||stream.category,game)||gameKey(stream.game_name||stream.game)===gameKey(game)))return false;
     seen.add(key);return true;
    }).slice(0,4);
    if(!verified.length)return;
