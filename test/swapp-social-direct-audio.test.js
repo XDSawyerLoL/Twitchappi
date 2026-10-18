@@ -73,7 +73,7 @@ test('media verification accepts WebM/Opus, Ogg and MP4 headers only',()=>{
  assert.equal(sniff(mp4,'audio/mp4'),true);
  assert.equal(sniff(Buffer.alloc(30),'audio/webm'),false);
  assert.equal(sniff(Buffer.from('<script>alert(1)</script>'),'audio/mp4'),false);
- assert.equal(MAX_BYTES,768*1024);
+ assert.equal(MAX_BYTES,512*1024);
  assert.equal(MAX_DURATION,30);
  assert.equal(RETENTION_DAYS,30);
 });
