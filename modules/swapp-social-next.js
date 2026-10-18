@@ -259,9 +259,13 @@ function createSocialNextRouter({express,pool,restoreSession,resolveIndexedGame=
  route('get','/game/context',async(req,res)=>{
   const game=clean(req.query.game,65);
   if(game.length<2)return bad(res,'invalid_game');
+  // Only documented aliases match: GTA VI is GTA 6, but Hades II is not Hades.
+  const {searchNames}=require('./swapp-news/game-identity');
+  const names=[...new Set(searchNames(game).slice(0,8).map(name=>String(name).trim().toLocaleLowerCase('fr')))].filter(Boolean);
+  const slots=names.map(()=>'?').join(',');
   const [roomRows,matchRows]=await Promise.all([
-   query('SELECT id,name,game,created_at FROM swapp_social_rooms WHERE LOWER(game)=LOWER(?) ORDER BY created_at DESC LIMIT 12',[game]),
-   query('SELECT handle,game,platform,availability,style,created_at FROM swapp_social_matches WHERE LOWER(game)=LOWER(?) AND created_at>? ORDER BY created_at DESC LIMIT 20',[game,clock()-14*86400000])
+   query('SELECT id,name,game,created_at FROM swapp_social_rooms WHERE LOWER(game) IN ('+slots+') ORDER BY created_at DESC LIMIT 12',names),
+   query('SELECT handle,game,platform,availability,style,created_at FROM swapp_social_matches WHERE LOWER(game) IN ('+slots+') AND created_at>? ORDER BY created_at DESC LIMIT 20',[...names,clock()-14*86400000])
   ]);
   res.json({game,rooms:roomRows.map(r=>({id:r.id,name:r.name,game:r.game,createdAt:Number(r.created_at)})),
    matches:matchRows.map(m=>({handle:m.handle,game:m.game,platform:m.platform,availability:m.availability,style:m.style,createdAt:Number(m.created_at)}))});
