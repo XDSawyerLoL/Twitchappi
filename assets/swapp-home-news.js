@@ -92,7 +92,7 @@
     const name=String(stream.display_name||login).trim().slice(0,22)||login;
     const fallback=el('span','swapp-home-creator-name',name);
     a.append(fallback);
-    if(src){const img=el('img');img.src=src;img.alt='';img.loading='lazy';img.decoding='async';img.onerror=()=>img.remove();a.prepend(img)}
+    if(src){const img=el('img');img.src=src;img.alt='';img.loading='eager';img.decoding='async';img.onerror=()=>img.remove();a.prepend(img)}
     faces.append(a);
    }
    avatars.append(faces);row.append(avatars);
@@ -179,9 +179,9 @@
      hero.append(placeholder);hero.classList.add('swapp-hero-has-story');
    }
    // The editorial shelf belongs to the page's content flow, never ahead of
-   // the entire homepage hero. Let streams follow the featured article before the news grid.
+   // the entire homepage hero. The magazine follows the hero, before the live and followed rails.
    const liveShelf=modern?.querySelector('.homeLiveSection1014');
-   if(liveShelf)modern.append(section);
+   if(liveShelf)modern.insertBefore(section,liveShelf);
    else if(legacy)legacy.insertBefore(section,legacy.firstChild);
    else base.append(section);
    news().then(async articles=>{
