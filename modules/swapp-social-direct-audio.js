@@ -2,7 +2,7 @@
 // SWAPP SOCIAL audio notes: binary storage in the existing MySQL connection.
 // Authenticated, first-party, size-limited, not publicly addressable.
 const crypto=require('node:crypto');
-const MAX_BYTES=768*1024,MAX_DURATION=30,RETENTION_DAYS=30;
+const MAX_BYTES=512*1024,MAX_DURATION=30,RETENTION_DAYS=30;
 const MIME=new Set(['audio/webm','audio/ogg','audio/mp4']);
 const ID=/^[a-f0-9-]{36}$/i;
 const HANDLE=/^[a-z0-9_-]{3,40}$/i;
@@ -93,8 +93,9 @@ function createDirectAudioRouter({express,restoreSession,getPool,lookupLocalUser
   const stamp=now();
   const recent=await query('SELECT id FROM swapp_social_voice_notes WHERE sender_id=? AND created_at>? LIMIT 1',[me.id,stamp-10000]);
   if(recent.length)return fail(res,'rate_limited',429);
-  const daily=await query('SELECT COUNT(*) AS total FROM swapp_social_voice_notes WHERE sender_id=? AND created_at>?',[me.id,stamp-86400000]);
-  if(Number(daily[0]?.total)>=120)return fail(res,'rate_limited',429);
+  const daily=await query('SELECT COUNT(*) AS total,COALESCE(SUM(byte_length),0) AS bytes_today FROM swapp_social_voice_notes WHERE sender_id=? AND created_at>?',[me.id,stamp-86400000]);
+  if(Number(daily[0]?.total)>=40||Number(daily[0]?.bytes_today||0)+req.body.length>8*1024*1024)
+   return fail(res,'rate_limited',429);
   const id=crypto.randomUUID();
   await query(
    'INSERT INTO swapp_social_voice_notes (id,sender_id,recipient_id,sender_handle,recipient_handle,mime,duration_seconds,byte_length,audio_data,created_at) VALUES (?,?,?,?,?,?,?,?,?,?)',
