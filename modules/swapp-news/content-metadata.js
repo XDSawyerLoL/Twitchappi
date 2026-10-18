@@ -1,6 +1,6 @@
 'use strict';
 // Conservative, explainable game recognition. Editorial confirmation remains required.
-const {normalize,searchNames}=require('./game-identity');
+const {normalize,searchNames,editorialGame}=require('./game-identity');
 const TITLES=[
  'BioShock','Grand Theft Auto VI','CODE VEIN II','Battlestar Galactica: Scattered Hopes',
  'Crimson Desert','Planet Zoo 2','Solasta II','Teenage Mutant Ninja Turtles: The Last Ronin',
@@ -45,7 +45,7 @@ function recommend({title='',summary='',body='',game='',tags=[]}={}){
  const existing=cleanTags(tags);
  const recommended=[...existing,...games.map(x=>x.toLocaleLowerCase('fr')),
   'jeu vidéo',...(games.length?['gaming']:[])];
- return {games,tags:cleanTags(recommended),primaryGame:safeWords(game,120)||games[0]||null};
+ return {games,tags:cleanTags(recommended),primaryGame:safeWords(editorialGame({title,game}),120)||games[0]||null};
 }
 function cleanSEO(value={},fallback={}){
  const raw=(value&&typeof value==='object'&&!Array.isArray(value))?value:{};
