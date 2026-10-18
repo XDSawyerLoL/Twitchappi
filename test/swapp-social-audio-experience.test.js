@@ -65,7 +65,7 @@ test('audio styles load after page appearance and support mobile and reduced mot
  const css=read('assets/swapp-social-voice-premium.css');
  const hub=read('modules/swapp-hubs.js');
  assert.ok(hub.indexOf('swapp-social-appearance.css')<hub.indexOf('swapp-social-voice-premium.css'));
- assert.match(hub,/swapp-social-voice\.js\?v=20261018-audio-stage-v1/);
+ assert.match(hub,/swapp-social-voice\.js\?v=20261018-channel-ux-v1/);
  assert.match(css,/\.swapp-voice-participant\.is-speaking/);
  assert.match(css,/@media\(max-width:600px\)/);
  assert.match(css,/prefers-reduced-motion:reduce/);
