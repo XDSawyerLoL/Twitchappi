@@ -950,7 +950,8 @@ app.get('/api/swapp/interactions/status',async(_req,res)=>{
       'SELECT poll_id FROM swapp_social_votes LIMIT 0',
       'SELECT id FROM swapp_social_rooms LIMIT 0',
       'SELECT id FROM swapp_social_room_messages LIMIT 0',
-      'SELECT user_id FROM swapp_social_passports LIMIT 0'
+      'SELECT user_id FROM swapp_social_passports LIMIT 0',
+      'SELECT user_id FROM swapp_social_game_follows LIMIT 0'
      ];
      await Promise.all(checks.map(sql=>socialInteractionsPool.execute(sql)));
      socialInteractionsHealth.payload={enabled:true,state:'database_read_ready'};
