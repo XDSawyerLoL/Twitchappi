@@ -57,10 +57,13 @@
   el.textContent=message;el.dataset.type=type;
  };
  const navigateTo=view=>{
-  // Reuse SWAPP's existing navigation controller and session, never a parallel router.
-  const button=host.querySelector('.pulse-sidebar button[data-view="'+view+'"]')||
+  // Save a deep link even when the module initializes before the native controller.
+  if(view==='play'||view==='rooms')host.dataset.requestedSocialView=view;
+  const button=host.querySelector('.pulse-community-shortcuts button[data-view="'+view+'"]')||
+   host.querySelector('.pulse-sidebar button[data-view="'+view+'"]')||
    host.querySelector('.pulse-mobile-nav button[data-view="'+view+'"]');
-  button?.click();
+  if(button)button.click();
+  else host.dispatchEvent(new CustomEvent('swapp:social-view',{bubbles:true,detail:{view}}));
  };
  let passport=null;
  const selectedGame=new URLSearchParams(location.search).get('game');

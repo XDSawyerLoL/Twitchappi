@@ -76,7 +76,7 @@ html,body{overflow-x:hidden}.watchShell.channelWatch{grid-template-columns:minma
 
 
 
-<link rel="stylesheet" href="/assets/swapp-unified-nav.css?v=20261016-account-dedupe-2">
+<link rel="stylesheet" href="/assets/swapp-unified-nav.css?v=20261018-fixed-header-v1">
 <link rel="stylesheet" href="/assets/swapp-media.css?v=20261017-channel-news-v13">
 <link rel="stylesheet" href="/assets/swapp-actus-app.css?v=20261015-immersive-cachefix-2">
 <link rel="stylesheet" href="/assets/swapp-visual-polish.css?v=20261016-mobile-swipe-40"><link rel="stylesheet" href="/assets/swapp-art-direction.css?v=20261015-player-39">
@@ -114,11 +114,16 @@ html,body{overflow-x:hidden}.watchShell.channelWatch{grid-template-columns:minma
 <nav id="mobileNav" class="mobileNav"></nav>
 <div id="toast" class="toast"></div>
 <script>
-/* Direct ACTUS reload: show its container before the session request. */
-if((location.pathname||'/').replace(/\/+$/,'')==='/actus'){
- window.__SWAPP_DIRECT_ACTUS_ENTRY__=true;
+/* Render the requested clean SWAPP route before any account/network bootstrap.
+   The generic route guard preserves it if legacy startup tries to show Home. */
+const swappEntryRoutes={'/actus':'actus','/decouvrir':'discover','/categories':'categories','/equipes':'teams','/compte':'settings'};
+const swappEntryPath=(location.pathname||'/').replace(/\/+$/,'')||'/';
+const swappDirectView=swappEntryRoutes[swappEntryPath];
+if(swappDirectView){
+ window.__SWAPP_DIRECT_VIEW_ENTRY__=swappDirectView;
+ if(swappDirectView==='actus')window.__SWAPP_DIRECT_ACTUS_ENTRY__=true;
  document.getElementById('home')?.classList.remove('active');
- document.getElementById('actus')?.classList.add('active');
+ document.getElementById(swappDirectView)?.classList.add('active');
 }
 </script>
 <script src="/assets/swapp-navigation.js?v=20261015-hubs-3"></script>
@@ -135,7 +140,7 @@ if((location.pathname||'/').replace(/\/+$/,'')==='/actus'){
 <script src="/assets/swapp-local-tastes.js?v=20261015-private-36"></script>
 <script src="/assets/swapp-live-curation.js?v=20261015-private-36"></script>
 <script src="/index_script.js?v=20261018-followed-session-v27" defer></script>
-<script defer src="/assets/swapp-route-bootstrap.js?v=20261015-route-31"></script>
+<script defer src="/assets/swapp-route-bootstrap.js?v=20261018-clean-routes-v1"></script>
 <script defer src="/assets/swapp-footer.js?v=20261015-hubs-3"></script>
 <script defer src="/assets/swapp-editor-nav.js?v=20261016-shop-admin-1"></script>
 <script defer src="/assets/swapp-account-menu.js?v=20261015-private-36"></script>

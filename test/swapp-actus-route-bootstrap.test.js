@@ -80,7 +80,7 @@ test('normal homepage loads do not install ACTUS restoration',()=>{
 });
 test('ACTUS initial document selects the correct view before loading the SPA',()=>{
  assert.match(shell,/window\.__SWAPP_DIRECT_ACTUS_ENTRY__=true/);
- assert.match(shell,/src="\/assets\/swapp-route-bootstrap\.js\?v=20261015-route-31"/);
+ assert.match(shell,/src="\/assets\/swapp-route-bootstrap\.js\?v=20261018-clean-routes-v1"/);
  assert.match(shell,/href="\/assets\/swapp-art-direction\.css\?v=[^"]+"/);
  const css=fs.readFileSync(path.join(root,'assets/swapp-art-direction.css'),'utf8');
  assert.match(css,/#actus\.view\.active\s*\{/);

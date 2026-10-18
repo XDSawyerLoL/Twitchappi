@@ -1,39 +1,47 @@
-/* SWAPP ACTUS: restore a direct /actus entry independently from session API health.
- * Only runs on an initial /actus document load, never on ordinary SPA navigation.
+/* Restore direct SWAPP SPA routes after boot-time session/network updates.
+ * Only the entry route is protected. Deliberate navigation is never reverted.
  */
 (()=>{'use strict';
- const entry=(location.pathname||'/').replace(/\/+$/,'')||'/';
- if(entry!=='/actus'&&window.__SWAPP_DIRECT_ACTUS_ENTRY__!==true)return;
+ const ROUTES=Object.freeze({
+  '/actus':'actus','/decouvrir':'discover','/categories':'categories',
+  '/equipes':'teams','/compte':'settings'
+ });
+ const normalize=path=>(path||'/').replace(/\/+$/,'')||'/';
+ const entryPath=normalize(location.pathname);
+ const entry=ROUTES[entryPath];
+ if(!entry)return;
  const home=document.getElementById('home');
- const actus=document.getElementById('actus');
- if(!home||!actus)return;
+ const target=document.getElementById(entry);
+ if(!home||!target)return;
  home.classList.remove('active');
- actus.classList.add('active');
- let leftEntry=false,rendering=false;
- const isActusPath=()=>((location.pathname||'/').replace(/\/+$/,'')||'/')==='/actus';
+ target.classList.add('active');
+ let leftEntry=false,rendering=false,restored=false;
  const leave=()=>{leftEntry=true};
  document.addEventListener('click',event=>{
+  // A click on another destination means the user has left the original route.
   if(event.target?.closest?.('header.top a,header.top nav button,#mobileNav a,#mobileNav button,#home a,#actus a,.swapp-footer a,[data-view]'))leave();
  },true);
  window.addEventListener('popstate',leave);
- window.addEventListener('hashchange',()=>{if(!isActusPath())leave()});
+ window.addEventListener('hashchange',()=>{if(normalize(location.pathname)!==entryPath)leave()});
  async function reconcile(){
   if(leftEntry||rendering)return;
-  // Do not let an unrelated boot-time render rewrite a direct editorial URL to '/'.
-  if(!isActusPath()){
-   if(location.pathname!=='/')return leave();
-   try{history.replaceState({view:'actus'},'','/actus')}catch(_){return}
+  if(normalize(location.pathname)!==entryPath){
+   // Only repair the accidental root rewrite observed during boot.
+   if(normalize(location.pathname)!=='/')return leave();
+   try{history.replaceState({view:entry},'',entryPath+(location.search||'')+(location.hash||''))}catch(_){return}
   }
-  if(actus.classList.contains('active')&&actus.querySelector('.swapp-actus-native'))return;
-  if(!window.SwappActus)return;
+  // Once hydrated, keep the user's current route without redundant renders.
+  if(restored&&target.classList.contains('active'))return;
+  if(entry==='actus'&&target.classList.contains('active')&&target.querySelector('.swapp-actus-native'))return;
+  if(typeof window.setView!=='function'&&!(entry==='actus'&&window.SwappActus))return;
   rendering=true;
   try{
-   if(typeof window.setView==='function')await window.setView('actus');
-   else await window.SwappActus.render(actus);
+   if(typeof window.setView==='function')await window.setView(entry);
+   else await window.SwappActus.render(target);
+   restored=true;
   }catch(error){
-   console.warn('[SWAPP ACTUS] Impossible de restaurer la rubrique :',error);
+   console.warn('[SWAPP ROUTES] Restauration impossible :',error);
   }finally{rendering=false}
  }
- // A late session response must not undo the restored editorial view.
  [0,180,850,2400,6000].forEach(delay=>setTimeout(reconcile,delay));
 })();

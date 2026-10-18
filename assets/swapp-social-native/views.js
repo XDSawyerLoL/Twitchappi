@@ -262,7 +262,8 @@ export async function loadCircles(){
   try{
     const data=await api('/api/pulse/circles');
     if(!isCurrent(revision,'circles'))return;
-    let html='<section class="pulse-view"><div class="pulse-view-head"><h2>Communautés</h2><p>Rejoignez des espaces autour d’un sujet, d’un projet ou d’un intérêt commun.</p></div>';
+    let html='<section class="pulse-view"><div class="pulse-view-head"><h2>Communautés</h2><p>Échange avec des joueurs, rejoins un salon ou retrouve une équipe.</p></div>'+
+      '<nav class="pulse-community-shortcuts" aria-label="Jeux et salons"><button type="button" data-view="play">Jeux et équipes</button><button type="button" data-view="rooms">Salons de discussion</button></nav>';
     if(state.user)html+='<form class="pulse-inline-form two" id="circle-create"><input name="name" minlength="3" maxlength="60" placeholder="Nom du cercle" required><input name="description" maxlength="240" placeholder="Description"><button class="pulse-mini-button primary">Créer</button></form>';
     html+='<div class="pulse-card-list">';
     if(!data.circles.length)html+='<div class="pulse-card"><p>Aucune communauté publique pour le moment.</p></div>';
@@ -323,7 +324,7 @@ export async function loadProfile(handle){
     let actions='';
 
     if(self){
-      actions='<button class="pulse-mini-button primary" data-profile-edit>Modifier</button><button class="pulse-mini-button" data-export>Exporter mes données</button>';
+      actions='<button class="pulse-mini-button primary" data-profile-edit>Modifier</button><button type="button" class="pulse-mini-button" data-view="saved">Mes publications enregistrées</button><button class="pulse-mini-button" data-export>Exporter mes données</button>';
     }else if(state.user){
       actions='<button class="pulse-mini-button primary" data-follow="'+esc(user.handle)+'">'+(user.isFollowing?'Se désabonner':'Suivre')+'</button><button class="pulse-mini-button" data-message-user="'+esc(user.handle)+'">Message</button><button class="pulse-mini-button danger" data-block="'+esc(user.handle)+'">Bloquer</button>';
     }
@@ -374,11 +375,19 @@ export async function loadMessages(){
   try{
     const data=await api('/api/pulse/conversations');
     if(!isCurrent(revision,'messages'))return;
-    let html='<section class="pulse-view"><div class="pulse-view-head"><h2>Messages privés</h2><p>Échange directement avec les membres de SWAPP, sans second compte.</p></div><form class="pulse-inline-form two" id="new-message"><input name="handle" placeholder="Pseudo SWAPP du destinataire" autocomplete="off" aria-label="Pseudo du destinataire SWAPP" required><input name="body" maxlength="2000" placeholder="Ton message…" aria-label="Nouveau message" required><button class="pulse-mini-button primary">Envoyer</button></form><div class="pulse-card-list">';
-    if(!data.conversations.length)html+='<div class="pulse-card"><h3>Tout commence par un message.</h3><p>Entre le pseudo SWAPP d’un membre pour lui écrire.</p></div>';
-    data.conversations.forEach(function(conversation){
-      if(!conversation.user)return;
-      html+='<button class="pulse-card pulse-user-card" data-conversation="'+esc(conversation.user.handle)+'"><div class="pulse-avatar">'+esc(initials(conversation.user))+'</div><div><strong>'+esc(conversation.user.displayName)+'</strong><small>'+esc(conversation.lastMessage?.body||'Nouvelle conversation')+'</small></div><span class="circle-chevron">'+icon('pi-chevron')+'</span></button>';
+    const conversations=Array.isArray(data.conversations)?data.conversations:[];
+    let html='<section class="pulse-view pulse-inbox-view"><div class="pulse-view-head pulse-inbox-head"><div><h2>Messages</h2><p>Tes conversations avec les membres SWAPP.</p></div><button type="button" class="pulse-mini-button primary" data-new-message-toggle aria-expanded="false" aria-controls="new-message">+ Nouveau message</button></div>'+
+      '<form class="pulse-inline-form pulse-new-message-form" id="new-message" hidden><label for="pulse-dm-recipient">Rechercher un membre SWAPP</label><input id="pulse-dm-recipient" name="handle" placeholder="Pseudo SWAPP" autocomplete="off" minlength="2" required>'+
+      '<div class="pulse-dm-user-results" id="pulse-dm-user-results" aria-live="polite"></div><label for="pulse-dm-first-body">Ton premier message</label><input id="pulse-dm-first-body" name="body" maxlength="2000" placeholder="Écrire un message…" required><button type="submit" class="pulse-mini-button primary">Démarrer la conversation</button></form><div class="pulse-card-list">';
+    if(!conversations.length)html+='<div class="pulse-card pulse-inbox-empty"><h3>Aucune conversation pour le moment</h3><p>Utilise « Nouveau message » pour rechercher un membre et lui écrire.</p></div>';
+    conversations.forEach(function(conversation){
+      const user=conversation.user;
+      if(!user)return;
+      const count=Math.min(99,Math.max(0,Number(conversation.unreadCount||0)||0));
+      const last=conversation.lastMessage||{};
+      html+='<button type="button" class="pulse-card pulse-user-card pulse-conversation'+(count?' is-unread':'')+'" data-conversation="'+esc(user.handle)+'"><div class="pulse-avatar">'+esc(initials(user))+'</div>'+
+       '<div class="pulse-conversation-preview"><strong>'+esc(user.displayName||user.handle)+'</strong><small>'+esc(last.body||'Nouvelle conversation')+'</small></div>'+
+       '<span class="pulse-conversation-meta">'+(last.createdAt?'<time>'+esc(timeAgo(last.createdAt))+'</time>':'')+(count?'<b class="pulse-unread-count" aria-label="'+count+' message(s) non lu(s)">'+count+'</b>':'')+'</span></button>';
     });
     dom.feed.innerHTML=html+'</div></section>';
   }catch(error){
