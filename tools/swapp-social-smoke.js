@@ -52,7 +52,7 @@ async function check(path,area,authenticated){
     const authenticatedAllowed=authenticated?status===200:status===200;
     const expectedGuest=authenticated&&!cookie&&status===401;
     let state=authenticatedAllowed?'ok':expectedGuest?'requires_login':'unavailable';
-    if(area==='release_marker'&&payload.release!=='social-cross-device-library-20261018')state='unavailable';
+    if(area==='release_marker'&&payload.release!=='social-wishlist-points-20261018')state='unavailable';
     if(area==='account_storage'&&payload.github_deploy_safe!==true)state='unsafe_deploy';
     if(area==='mysql_status'&&!(payload.enabled===true&&payload.state==='database_read_ready'))state='unavailable';
     if(area==='upstream_social'&&status===200&&payload.success===false)state='unavailable';
