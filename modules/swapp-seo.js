@@ -10,6 +10,8 @@ const INDEXNOW_KEY_PATH='/'+INDEXNOW_KEY+'.txt';
 // publication change. No cron, database poll or third-party service required.
 let invalidateRegisteredSeoCache=()=>{};
 let lookupRegisteredGameHub=()=>null;
+let resolveIndexedGame=async()=>null;
+function verifiedIndexedGame(slug){return resolveIndexedGame(slug)}
 function invalidateSeoCache(){invalidateRegisteredSeoCache()}
 function cachedGameHubForArticle(article){return lookupRegisteredGameHub(article)}
 const CORE_PATHS=Object.freeze([
@@ -254,6 +256,15 @@ function registerSeoRoutes(app,{getPublished=async()=>[],getCreators=async()=>[]
   const slug=String(article?.slug||'');
   return SLUG.test(slug)?gameHubLinks.get(slug)||null:null;
  };
+ // Only a genuinely indexed, published editorial game can award discovery XP.
+ // This resolver shares the sitemap's six-hour content cache and its invalidation.
+ resolveIndexedGame=async slug=>{
+  if(typeof slug!=='string'||!SLUG.test(slug))return null;
+  await ensureCache();
+  if(!hasVerifiedArticles)return null;
+  const found=gameHubs(articles).find(g=>g.slug===slug);
+  return found?{slug:found.slug,game:found.game}:null;
+ };
  async function ensureCache(){
   if(cached&&now()<expires&&loadedRevision===revision)return;
   // All SEO endpoints share a single lookup; a mid-flight editorial update
@@ -469,4 +480,4 @@ function injectSpaMetadata(html,pathname='/'){
  }
  return result.replace('</head>','<meta name="robots" content="noindex,nofollow"></head>');
 }
-module.exports={ORIGIN,CORE_PATHS,INDEXNOW_KEY,INDEXNOW_KEY_PATH,sitemapEntries,sitemapXml,newsSitemapXml,creatorSitemapXml,sitemapHtml,rssXml,robotsText,registerSeoRoutes,invalidateSeoCache,cachedGameHubForArticle,notifyIndexNow,ensureSearchConsoleMeta,injectSpaMetadata,injectCreatorMetadata};
+module.exports={ORIGIN,CORE_PATHS,INDEXNOW_KEY,INDEXNOW_KEY_PATH,sitemapEntries,sitemapXml,newsSitemapXml,creatorSitemapXml,sitemapHtml,rssXml,robotsText,registerSeoRoutes,invalidateSeoCache,cachedGameHubForArticle,verifiedIndexedGame,notifyIndexNow,ensureSearchConsoleMeta,injectSpaMetadata,injectCreatorMetadata};
