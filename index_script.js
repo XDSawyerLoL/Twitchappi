@@ -424,12 +424,48 @@ async function renderDashboard(){
  await loadDashboard();
 }
 async function loadDashboard(){
- const d=await api('/api/oryon/dashboard/full'); const p=await api('/api/oryon/creator/progression'); if(!d.success){toast(d.error);return} const s=d.stats||{};
- $('#dashStats').innerHTML=[['Followers',s.followers||0],['Suivis',s.following||0],['Score',s.creator_score||0],['Live',s.live?'Oui':'Non']].map(([a,b])=>`<div class="stat"><span class="small">${a}</span><b>${b}</b></div>`).join('');
- $('#streamSummary').innerHTML=[['État',s.live?'En direct':'Hors ligne'],['Après live','Zone préparée pour transformer chaque live en progression concrète : titre, chat, pic, follows, prochaine action.'],['Prochaine action',s.live?'Prépare un raid inversé et surveille le chat':'Prépare titre, catégorie et créneau'],['Priorité Swapp','Régularité, chat sain et découverte des petits créateurs']].map(([a,b])=>`<div class="summaryItem"><b>${a}</b><br><span class="muted">${b}</span></div>`).join('');
- $('#dashChart').innerHTML=(d.history||[]).map(h=>`<div class="bar" style="height:${Math.min(100,12+(h.chat||0))}%"><span>${esc(h.label)}</span></div>`).join('');
- $('#levelBox').innerHTML=`<div class="stat"><span class="small">Niveau</span><b>${p.level||1}</b><p>${p.points||0} points futurs Trade</p><div class="progress"><i style="width:${Math.min(100,((p.points||0)/(p.nextLevelAt||100))*100)}%"></i></div></div><div class="postLiveBox section"><b>Résumé après live préparé</b><p class="small">À la fin d’un live, cette zone pourra convertir les messages, follows et raids inversés en objectifs et points.</p></div>`;
- $('#insights').innerHTML=(d.insights||[]).map(x=>`<p>• ${esc(x)}</p>`).join(''); $('#bestSlots').innerHTML=(d.bestSlots||[]).map(x=>`<p><b>${esc(x.slot)}</b><br><span class="small">${esc(x.why)}</span></p>`).join(''); $('#objectives').innerHTML=(p.objectives||[]).map(o=>`<p>${o.done?'✅':'⬜'} ${esc(o.label)} <span class="small">+${o.points}</span></p>`).join(''); $('#streamHistory').innerHTML=(d.streams||[]).map(x=>`<p><b>${esc(x.title)}</b> — pic ${x.peak}, chat ${x.chat}, follows ${x.follows}</p>`).join('')||'<p class="muted">Aucun historique.</p>'
+ const d=await api('/api/oryon/dashboard/full');
+ const p=await api('/api/oryon/creator/progression').catch(()=>({success:false}));
+ if(!d?.success){
+  const target=$('#dashStats');if(target)target.textContent='Statistiques temporairement indisponibles.';
+  return;
+ }
+ const s=d.stats||{};
+ const stats=[
+  ['Abonnés',Number.isFinite(Number(s.followers))?Math.max(0,Number(s.followers)):0],
+  ['Chaînes suivies',Number.isFinite(Number(s.following))?Math.max(0,Number(s.following)):0],
+  ['Live',s.live?'En direct':'Hors ligne']
+ ];
+ $('#dashStats').innerHTML=stats.map(([label,value])=>
+  '<div class="stat"><span class="small">'+esc(label)+'</span><b>'+esc(String(value))+'</b></div>').join('');
+ $('#streamSummary').innerHTML=[
+  ['Diffusion',s.live?'En direct sur SWAPP':'Aucun direct actif'],
+  ['Audience actuelle',s.live?String(Number(s.live.viewers||0))+' spectateurs mesurés':'Hors ligne'],
+  ['Prochaine action',s.live?'Suivre le chat et les spectateurs réels':'Préparer un titre, un jeu et un créneau']
+ ].map(([label,value])=>
+  '<div class="summaryItem"><b>'+esc(label)+'</b><p class="muted">'+esc(value)+'</p></div>').join('');
+ const progress=p?.success!==false&&Number.isFinite(Number(p?.points))?p:null;
+ const points=progress?Math.max(0,Number(progress.points)):null;
+ const level=progress&&Number.isFinite(Number(progress.level))?Number(progress.level):null;
+ const score=points===null?'Progression temporairement indisponible':
+  'Niveau '+(level??'—')+' · '+points+' points';
+ $('#levelBox').textContent=score;
+ const chart=$('#dashChart');
+ chart.textContent=Array.isArray(d.history)&&d.history.length?
+  'Données historiques disponibles : affichage détaillé en préparation.':
+  'Aucune série historique fiable enregistrée. Les données du live actuel restent disponibles ci-dessus.';
+ $('#insights').innerHTML=(Array.isArray(d.insights)?d.insights:[]).map(x=>'<p>• '+esc(x)+'</p>').join('')||
+  '<p class="muted">Profil et direct déjà configurés. Consulte ton gestionnaire de stream.</p>';
+ $('#bestSlots').textContent=Array.isArray(d.bestSlots)&&d.bestSlots.length?
+  d.bestSlots.map(x=>x.slot).filter(Boolean).join(' · '):
+  'Pas encore de données réelles suffisantes pour conseiller un créneau.';
+ $('#objectives').innerHTML=(Array.isArray(p?.objectives)?p.objectives:[]).map(o=>
+  '<p>'+(o.done?'✓':'○')+' '+esc(o.label||'Objectif')+
+  (Number.isFinite(Number(o.points))?' <span class="small">+'+Number(o.points)+'</span>':'')+'</p>').join('')||
+  '<p class="muted">Aucun objectif actif pour le moment.</p>';
+ $('#streamHistory').textContent=Array.isArray(d.streams)&&d.streams.length?
+  d.streams.map(x=>x.title).filter(Boolean).join(' · '):
+  'Aucune session enregistrée avec des mesures vérifiées. Aucun historique simulé.';
 }
 async function claimPoints(){const r=await api('/api/oryon/creator/progression/claim',{method:'POST'}); toast(r.success?`+${r.gained} points`:r.error); renderDashboard()}
 function renderStudio(){if(!state.session.local){$('#studio').innerHTML=authRequired();return} const sections=['Résumé du stream','Confidentialité','Portail des appels','Émoticônes','Abonnements','Drops et récompenses','Badges de chaîne','Portefeuille','Réglage du contenu','Langue','Modération']; $('#studio').innerHTML=creatorShell('studio',`<div class="pageHead"><div><h1>Outils créateur</h1><p>Chaque section est séparée pour éviter le panneau confus.</p></div></div><div class="sideLayout"><aside class="side">${sections.map((s,i)=>`<button class="${i?'':'active'}" onclick="studioSec(this,'${esc(s)}')">${esc(s)}</button>`).join('')}</aside><div id="studioBody" class="panel"></div></div>`); studioSec(null,sections[0])}
