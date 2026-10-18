@@ -3879,22 +3879,113 @@ function viewerProfilePanel(){
   return `<section class="panel viewerProfileCompact"><h2>Profil viewer</h2><p class="small">Visible aussi depuis ton profil Swapp quand tu es connecté.</p>${viewerProfileCard()}</section>`;
 }
 
-async function renderSettings(){
-  const root = $('#settings'); if(!root) return;
-  let u=state.session.local;
-  if(u?.login){ try{ const pr=await api('/api/oryon/profile/'+encodeURIComponent(u.login)); if(pr.success&&pr.user) u=pr.user; }catch(_){} }
-  const mode=getAppMode();
-  if(!u){
-    root.innerHTML=`<div class="settingsShell"><div class="settingsHero"><div><h1>${mode==='streamer'?'Page streamer':'Page viewer'}</h1><p>${mode==='streamer'?'Crée ou connecte ton compte pour débloquer le menu stream et ta chaîne Swapp.':'Crée ou connecte ton compte pour conserver ton profil viewer, tes préférences et ta mémoire.'}</p></div><div class="modeSwitch"><button class="btn ${mode==='viewer'?'':'secondary'}" onclick="setAppMode('viewer')">Page viewer</button><button class="btn ${mode==='streamer'?'':'secondary'}" onclick="setAppMode('streamer')">Page streamer</button></div></div>${authSettings()}<section class="panel"><h2>Connexions externes</h2><div class="summaryList"><div class="summaryItem"><b>Twitch</b><p class="small">${state.session.twitch?'Connecté : '+esc(state.session.twitch.display_name||state.session.twitch.login):'Non connecté. Connecte Twitch pour remonter tes suivis et nourrir les recommandations.'}</p><div class="row">${state.session.twitch?`<button class="btn secondary" onclick="logoutTwitch()">Déconnecter Twitch</button>`:`<button class="btn" onclick="connectTwitch()">Connecter Twitch</button>`}</div></div></div></section></div>`;
-    bindSettingsForms?.();
-    return;
-  }
-  root.innerHTML=`<div class="settingsShell"><div class="settingsHero"><div><h1>${mode==='streamer'?'Page streamer':'Page viewer'}</h1><p>${mode==='streamer'?'Ton espace créateur, ton menu stream et aussi ton profil viewer dans la même page de profil.':'Ton profil viewer complet, ta mémoire et tes connexions Swapp / Twitch.'}</p></div><div class="modeSwitch"><button class="btn ${mode==='viewer'?'':'secondary'}" onclick="setAppMode('viewer')">Page viewer</button><button class="btn ${mode==='streamer'?'':'secondary'}" onclick="setAppMode('streamer')">Page streamer</button></div></div>${mode==='viewer'?`<div class="settingsStack">${viewerProfilePanel()}<section class="panel"><h2>Connexions</h2><div class="summaryList"><div class="summaryItem"><b>Twitch</b><p class="small">${state.session.twitch?'Connecté : '+esc(state.session.twitch.display_name||state.session.twitch.login):'Non connecté. Connecte Twitch pour retrouver tes suivis et améliorer les recommandations.'}</p><div class="row">${state.session.twitch?`<button class="btn secondary" onclick="logoutTwitch()">Déconnecter Twitch</button>`:`<button class="btn" onclick="connectTwitch()">Connecter Twitch</button>`}</div></div><div class="summaryItem"><b>Mémoire viewer</b><p class="small">Conserve tes swipes, pépites vues, chaînes aimées et sauvegardes dans ce navigateur.</p><button class="btn secondary" onclick="toast('La mémoire viewer est bien conservée pour ton compte Swapp dans ce navigateur.')">Compris</button></div><div class="summaryItem"><b>Compte Swapp</b><p class="small">Connecté en tant que ${esc(u.display_name||u.login)}.</p><button class="btn secondary" onclick="logoutOryon()">Déconnecter Swapp</button></div></div></section></div>`:`<div class="settingsGrid"><div class="settingsStack"><section class="panel">${profileSettings(u)}</section>${viewerProfilePanel()}</div><div class="settingsStack"><section class="panel"><h2>Menu stream</h2><div class="summaryList"><div class="summaryItem"><b>Ma chaîne</b><p class="small">Page publique, lecteur géant et tchat adaptatif.</p><button class="btn" onclick="setView('channel')">Ouvrir ma chaîne</button></div><div class="summaryItem"><b>Gestionnaire</b><p class="small">Préparer, lancer et configurer ton live Swapp.</p><button class="btn" onclick="setView('manager')">Ouvrir le gestionnaire</button></div><div class="summaryItem"><b>Outils créateur</b><p class="small">Studio, overlays et outils de chaîne.</p><button class="btn" onclick="setView('studio')">Ouvrir les outils</button></div><div class="summaryItem"><b>Twitch</b><p class="small">${state.session.twitch?'Connecté : '+esc(state.session.twitch.display_name||state.session.twitch.login):'Non connecté. Connecte Twitch pour relier tes suivis et ton profil viewer.'}</p><div class="row">${state.session.twitch?`<button class="btn secondary" onclick="logoutTwitch()">Déconnecter Twitch</button>`:`<button class="btn" onclick="connectTwitch()">Connecter Twitch</button>`}</div></div><div class="summaryItem"><b>Compte</b><p class="small">Déconnecte-toi si besoin.</p><button class="btn secondary" onclick="logoutOryon()">Déconnecter Swapp</button></div></div></section><section id="planningSettings" class="panel"></section></div></div>`}</div>`;
-  bindSettingsForms?.();
-  loadFoundation?.();
-  if(u && mode==='streamer') renderPlanning?.();
-}
 
+function swappAccountTab(tab){
+ const root=document.getElementById('settings');
+ if(!root)return;
+ const selected=['overview','profile','stream'].includes(tab)?tab:'overview';
+ window.swappActiveAccountTab=selected;
+ for(const button of root.querySelectorAll('[data-account-tab]')){
+  const active=button.dataset.accountTab===selected;
+  button.classList.toggle('is-active',active);
+  button.setAttribute('aria-selected',String(active));
+  button.tabIndex=active?0:-1;
+ }
+ for(const panel of root.querySelectorAll('[data-account-panel]')){
+  panel.hidden=panel.dataset.accountPanel!==selected;
+ }
+}
+async function renderSettings(){
+ const root=document.getElementById('settings');
+ if(!root)return;
+ let u=state.session.local;
+ if(u?.login){
+  try{
+   const response=await api('/api/oryon/profile/'+encodeURIComponent(u.login));
+   if(response.success&&response.user)u=response.user;
+  }catch(_){}
+ }
+ const p=typeof viewerProfileV2==='function'?viewerProfileV2():{};
+ const snapshot=typeof window.swappViewerSnapshot==='function'?window.swappViewerSnapshot():{};
+ const liked=Array.isArray(snapshot.likes)?snapshot.likes:(Array.isArray(p.likedChannels)?p.likedChannels:[]);
+ const saved=Array.isArray(snapshot.saved)?snapshot.saved:(typeof savedLives==='function'?savedLives():[]);
+ const history=!!state.swappHistory?.enabled;
+ const accent=String(localStorage.getItem('oryon_viewer_accent')||'#22d3ee');
+ const name=String(u?.display_name||u?.login||state.session.twitch?.display_name||'Invité');
+ const sessionText=u?'Compte SWAPP connecté':'Découvre SWAPP avec un compte unique';
+ const identity='<div class="swapp-acct-identity"><span class="swapp-acct-monogram" aria-hidden="true">'+
+  esc(name.trim().slice(0,1).toUpperCase()||'S')+'</span><div><span class="swapp-acct-kicker">MON ESPACE SWAPP</span>'+
+  '<h1>'+esc(name)+'</h1><p>'+sessionText+'</p></div></div>';
+ const nav=u?'<nav class="swapp-acct-nav" aria-label="Rubriques du compte" role="tablist">'+
+  '<button type="button" data-account-tab="overview" id="swapp-acct-tab-overview" role="tab" aria-controls="swapp-acct-panel-overview" onclick="swappAccountTab(\'overview\')">Vue d’ensemble</button>'+
+  '<button type="button" data-account-tab="profile" id="swapp-acct-tab-profile" role="tab" aria-controls="swapp-acct-panel-profile" onclick="swappAccountTab(\'profile\')">Profil et connexions</button>'+
+  '<button type="button" data-account-tab="stream" id="swapp-acct-tab-stream" role="tab" aria-controls="swapp-acct-panel-stream" onclick="swappAccountTab(\'stream\')">Diffusion et planning</button></nav>':'';
+ const streamLinks='<nav class="swapp-acct-action-links" aria-label="Mes outils de création">'+
+  '<button type="button" onclick="state.watchRoom=null;setView(\'channel\')"><strong>Ma chaîne</strong><span>Profil public et lecteur ↗</span></button>'+
+  '<button type="button" onclick="setView(\'manager\')"><strong>Diffuser</strong><span>OBS et navigateur ↗</span></button>'+
+  '<button type="button" onclick="setView(\'dashboard\')"><strong>Statistiques</strong><span>Indicateurs mesurés ↗</span></button>'+
+  '<button type="button" onclick="setView(\'studio\')"><strong>Outils créateur</strong><span>Personnalisation et modération ↗</span></button></nav>';
+ const metrics='<div class="swapp-acct-metrics" aria-label="Mes activités">'+
+  '<div><span>Chaînes aimées</span><strong>'+liked.length+'</strong></div>'+
+  '<div><span>Lives sauvegardés</span><strong>'+saved.length+'</strong></div>'+
+  '<div><span>Historique facultatif</span><strong>'+ (history?'Activé':'Désactivé')+'</strong></div></div>';
+ const validLogin=x=>/^[a-z0-9_]{2,25}$/.test(String(x||'').toLowerCase());
+ const likedRows=liked.filter(x=>validLogin(x.login)).slice(0,5).map(x=>{
+  const login=String(x.login).toLowerCase();
+  const native=String(x.platform||'').toLowerCase()==='oryon'||String(x.platform||'').toLowerCase()==='swapp';
+  const href=native?'/'+encodeURIComponent(login):'/live/twitch/'+encodeURIComponent(login);
+  return '<a class="swapp-acct-list-row" href="'+href+'"><span><b>'+esc(x.name||login)+
+   '</b><small>'+esc(x.game||x.category||x.game_name||(native?'SWAPP LIVE':'Twitch'))+
+   '</small></span><span aria-hidden="true">↗</span></a>';
+ }).join('');
+ const viewer='<section class="swapp-acct-editorial swapp-acct-overview-main" aria-labelledby="swapp-account-discovery">'+
+  '<div class="swapp-acct-section-head"><div><span class="swapp-acct-kicker">TES ACTIVITÉS</span><h2 id="swapp-account-discovery">Découverte</h2><p>Les chaînes et les jeux que tu as choisis, sans statistiques inventées.</p></div>'+
+  '<a href="/mes-jeux">Gérer mes jeux ↗</a></div>'+metrics+
+  '<div class="swapp-acct-list-head"><h3>Chaînes aimées</h3><a href="/decouvrir">Découvrir des lives ↗</a></div>'+
+  (likedRows||'<p class="swapp-acct-empty">Tu n’as pas encore aimé de chaîne. Explore les directs SWAPP et Twitch pour constituer ta sélection.</p>')+
+  '</section>';
+ const quick='<section class="swapp-acct-editorial swapp-acct-overview-side" aria-labelledby="swapp-account-next">'+
+  '<div class="swapp-acct-section-head"><div><span class="swapp-acct-kicker">ACCÈS RAPIDE</span><h2 id="swapp-account-next">Continuer sur SWAPP</h2></div></div>'+
+  '<nav class="swapp-acct-quick" aria-label="Explorer">'+
+  '<a href="/mes-jeux"><strong>Ma bibliothèque</strong><span>Suivis, envies et actualités ↗</span></a>'+
+  '<a href="/decouvrir"><strong>Découvrir un live</strong><span>Chaînes SWAPP et Twitch ↗</span></a>'+
+  '<a href="/communaute"><strong>Mes discussions</strong><span>Salons et messages SOCIAL ↗</span></a>'+
+  '<a href="/boutique"><strong>Boutique</strong><span>Parcourir les jeux ↗</span></a></nav>'+
+  '</section>';
+ const accountActions='<section class="swapp-acct-connections" aria-labelledby="swapp-account-connections">'+
+  '<div class="swapp-acct-section-head"><div><span class="swapp-acct-kicker">INTÉGRATIONS</span><h2 id="swapp-account-connections">Connexions</h2>'+
+  '<p>Ton compte SWAPP suffit pour accéder à SOCIAL et à tes jeux.</p></div></div>'+
+  '<div class="swapp-acct-connection-row"><div><b>Twitch</b><small>'+
+  (state.session.twitch?'Connecté : '+esc(state.session.twitch.display_name||state.session.twitch.login):'Non connecté')+
+  '</small></div><button class="btn secondary" type="button" onclick="'+(state.session.twitch?'logoutTwitch()':'connectTwitch()')+'">'+
+  (state.session.twitch?'Déconnecter Twitch':'Connecter Twitch')+'</button></div>'+
+  '<div class="swapp-acct-connection-row"><div><b>Compte SWAPP</b><small>'+
+  (u?'Connecté en tant que '+esc(u.login):'Déconnecté')+
+  '</small></div>'+(u?'<button class="btn secondary" type="button" onclick="logoutOryon()">Se déconnecter</button>':'')+'</div></section>';
+ const prefs='<div class="swapp-acct-preferences"><label for="swapp-acct-accent"><b>Couleur d’accent</b><small>Modifie le thème de ton espace.</small></label>'+
+  '<input type="color" id="swapp-acct-accent" value="'+(/#[0-9a-f]{6}/i.test(accent)?esc(accent):'#22d3ee')+
+  '" oninput="setViewerThemeColor(this.value)" aria-label="Couleur d’accent"></div>';
+ const sections=u?(
+  '<section data-account-panel="overview" id="swapp-acct-panel-overview" role="tabpanel" aria-labelledby="swapp-acct-tab-overview" class="swapp-acct-pane"><div class="swapp-acct-overview">'+viewer+quick+'</div></section>'+
+  '<section data-account-panel="profile" id="swapp-acct-panel-profile" role="tabpanel" aria-labelledby="swapp-acct-tab-profile" class="swapp-acct-pane" hidden>'+
+   '<div class="swapp-acct-section-head"><div><span class="swapp-acct-kicker">IDENTITÉ</span><h2>Mon profil public</h2><p>Modifie une seule fois les informations visibles sur ta chaîne.</p></div></div>'+
+   '<div class="swapp-acct-profile-layout"><div class="swapp-acct-profile-form">'+profileSettings(u)+'</div><aside class="swapp-acct-account-side">'+accountActions+prefs+
+   '<details class="swapp-acct-technical"><summary>Diagnostic technique</summary><div id="foundationStatus" role="status">Chargement…</div></details></aside></div></section>'+
+  '<section data-account-panel="stream" id="swapp-acct-panel-stream" role="tabpanel" aria-labelledby="swapp-acct-tab-stream" class="swapp-acct-pane" hidden>'+
+   '<div class="swapp-acct-section-head"><div><span class="swapp-acct-kicker">CRÉATION</span><h2>Ma chaîne et mes diffusions</h2><p>Prépare ton prochain direct ou ouvre le gestionnaire SWAPP.</p></div></div>'+
+   streamLinks+'<section id="planningSettings" class="swapp-acct-planning" aria-label="Planifier un live"></section></section>'
+ ):'<section class="swapp-acct-signin">'+authSettings()+'</section>';
+ root.innerHTML='<div class="swapp-account-workspace-v2">'+
+  '<header class="swapp-acct-header">'+identity+
+  (u?'<a class="swapp-acct-public" href="/'+encodeURIComponent(u.login)+'">Voir ma chaîne ↗</a>':'')+
+  '</header>'+nav+sections+'</div>';
+ if(u){
+  swappAccountTab(window.swappActiveAccountTab||'overview');
+  renderPlanning();
+  bindSettingsForms();
+  loadFoundation();
+ }else bindSettingsForms();
+}
 async function renderChannel(){
   const viewer=state.session.local;
   const targetLogin=(state.watchRoom || viewer?.login || '').toLowerCase();
