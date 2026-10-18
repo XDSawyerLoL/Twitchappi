@@ -141,7 +141,7 @@
  async function loadPolls(){try{const data=await req('polls');polls=Array.isArray(data.polls)?data.polls:[];renderPolls()}catch(e){$('#ssi-poll-results').innerHTML=empty('! ',escape(e.message));}}
  async function loadRooms(){
   const data=await req('rooms');rooms=Array.isArray(data.rooms)?data.rooms:[];
-  if(activeRoom&&!rooms.some(r=>r.id===activeRoom)){activeRoom='';stopChat()}
+  if(activeRoom&&!rooms.some(r=>r.id===activeRoom)){activeRoom='';stopChat();area.dispatchEvent(new CustomEvent('ssi:room-selected',{detail:{id:''}}))}
   if(!activeRoom&&rooms.length)await selectRoom(rooms[0].id,false);
   renderRooms();
  }
@@ -172,6 +172,7 @@
   const item=rooms.find(r=>r.id===id);if(!item)return;
   if(activeRoom===id&&$('#ssi-chat-stream'))return;
   stopChat();activeRoom=id;
+  area.dispatchEvent(new CustomEvent('ssi:room-selected',{detail:{id}}));
   $('#ssi-chat-title').textContent=item.name;
   $('#ssi-chat-hint').textContent=item.game+' · Actualisation toutes les 5 secondes';
   $('#ssi-chat-body').innerHTML='<div class="ssi-chat-stream" id="ssi-chat-stream" aria-label="Messages du salon" aria-live="polite"><div class="ssi-chat-empty">Chargement de la discussion…</div></div><form class="ssi-compose" id="ssi-form-chat"><input name="body" maxlength="160" required autocomplete="off" aria-label="Votre message" placeholder="Écris ton message…"><button type="submit" class="ssi-button">Envoyer ↗</button></form>';
