@@ -100,3 +100,18 @@
 @media(max-width:930px){.swapp-interactive .ssi-grid{grid-template-columns:1fr}.swapp-interactive .ssi-stack{min-width:0}.swapp-interactive .ssi-intro{min-height:0;padding:21px}}
 @media(max-width:520px){.swapp-interactive{margin:10px 0 20px}.swapp-interactive .ssi-intro{padding:17px;border-radius:16px;gap:15px}.swapp-interactive .ssi-intro h2{font-size:25px!important}.swapp-interactive .ssi-intro-side{align-items:flex-start;flex-direction:column;gap:10px}.swapp-interactive .ssi-stat strong{font-size:21px}.swapp-interactive .ssi-stat span{font-size:9px}.swapp-interactive .ssi-stats{gap:20px}.swapp-interactive .ssi-panel{border-radius:15px}.swapp-interactive .ssi-panel-inner{padding:15px}.swapp-interactive .ssi-form-row{grid-template-columns:1fr}.swapp-interactive .ssi-chat-stream{height:245px;min-height:155px;max-height:38vh}.swapp-interactive .ssi-compose{gap:6px}.swapp-interactive .ssi-compose button{padding-inline:10px}}
 @media(prefers-reduced-motion:reduce){.swapp-interactive *{scroll-behavior:auto!important;transition:none!important}}
+
+
+/* Private creator-controlled text and voice channels. Invite link is never a public listing. */
+#swappSocialNative .ssi-personal-invites{display:grid;gap:10px;margin:12px 0 20px;padding:17px 19px;border:1px solid rgba(135,224,203,.35);background:linear-gradient(120deg,#10352f,#14263b);border-radius:11px;min-width:0}
+#swappSocialNative .ssi-personal-invites[hidden]{display:none!important}
+#swappSocialNative .ssi-personal-invites strong{font-weight:850;font-size:16px}
+#swappSocialNative .ssi-personal-invites p{margin:0;color:#bacddd;font-size:12px;line-height:1.6}
+#swappSocialNative .ssi-personal-invites .ssi-field{display:grid;gap:5px;font-size:12px;color:#c8f5e9;font-weight:780}
+#swappSocialNative .ssi-personal-invites input{width:100%;min-width:0;background:#081d2b;color:#f4fcff;border:1px solid #72a9ac;border-radius:7px;padding:12px;font-size:12px;min-height:44px;overflow:hidden;text-overflow:ellipsis}
+#swappSocialNative .ssi-personal-actions{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+#swappSocialNative .ssi-personal-actions button{min-height:44px}
+#swappSocialNative .ssi-personal-actions button:focus-visible,
+#swappSocialNative .ssi-personal-invites input:focus-visible{outline:2px solid #8ef7d7;outline-offset:3px}
+#swappSocialNative #ssi-form-room select{max-width:100%;white-space:normal}
+@media(max-width:580px){#swappSocialNative .ssi-personal-invites{padding:13px}#swappSocialNative .ssi-personal-actions{display:grid;grid-template-columns:1fr}}
