@@ -124,6 +124,11 @@ async function verify(){
  check(bridgeCss.body.includes('SWAPP GAME BRIDGE V12')&&bridgeCss.body.includes('.swapp-game-connection')&&bridgeCss.body.includes('.swapp-live-article-game'),
   'Game bridge CSS is stale or not served by Hostinger');
  const mainBundle=await request(origin,'/index_script.js');
+ check(mainBundle.body.includes('homeFollowedRail1014')&&
+  mainBundle.body.includes('items.slice(0,8).map(card)')&&
+  !mainBundle.body.includes('id="homeLiveMore1014"'),
+  'Old multi-row live widget still present in homepage bundle');
+
  check(!mainBundle.body.includes('window.renderHome = async function renderHomeFinal')&&
   !mainBundle.body.includes('window.renderHome = async function renderHomeRestored')&&
   !mainBundle.body.includes('window.renderHome = async function renderHome1013'),
@@ -135,11 +140,11 @@ async function verify(){
  const newsScript=await request(origin,'/assets/swapp-home-news.js');
  check(!newsScript.body.includes('signal:AbortSignal.timeout(')&&
    newsScript.body.includes('new AbortController()')&&
-   home.body.includes('swapp-home-news.js?v=20261018-hero-lifecycle-v25'),
+   home.body.includes('swapp-home-news.js?v=20261018-home-editorial-v26'),
    'Homepage editorial script is stale or incompatible with older Safari');
- const motionPath='/assets/swapp-home-motion.js?v=20261018-hero-lifecycle-v25';
+ const motionPath='/assets/swapp-home-motion.js?v=20261018-home-editorial-v26';
  check(home.body.includes(motionPath)&&
-   home.body.indexOf(motionPath)<home.body.indexOf('swapp-home-news.js?v=20261018-hero-lifecycle-v25'),
+   home.body.indexOf(motionPath)<home.body.indexOf('swapp-home-news.js?v=20261018-home-editorial-v26'),
    'No cinematic hero helper before the editorial client');
  const motion=await request(origin,'/assets/swapp-home-motion.js');
  check(motion.body.includes('window.SwappHomeMotion')&&
@@ -168,7 +173,7 @@ async function verify(){
   !readerApp.body.includes('a.length>=7&&b.includes(a)'),
   'Actualité still matches sequels incorrectly or opens external lives');
  check(home.body.includes('/assets/swapp-media.css?v=20261017-channel-news-v13')&&
-  home.body.includes('/assets/swapp-actus-app.js?v=20261017-journey-v17'),
+  home.body.includes('/assets/swapp-actus-app.js?v=20261018-discover-flat-v26'),
   'Homepage is still using the old game bridge');
  // Native creator channel: same editorial game identity, no frozen status text.
  const nativeArticles=await request(origin,'/assets/swapp-live-articles.js');
@@ -180,12 +185,13 @@ async function verify(){
   'Native creator page still ships outdated game matching or broken news status');
  process.stdout.write('PASS game-specific article live discovery\n');
  const discover=await request(origin,'/decouvrir');
- check(discover.body.includes('swapp-discover-comfort.js?v=20261017-journey-v17'),
+ check(discover.body.includes('swapp-discover-comfort.js?v=20261018-discover-flat-v26'),
   'Discover has an old mobile UI release');
- check(discover.body.includes('index_script.js?v=20261018-hero-lifecycle-v25'),
+ check(discover.body.includes('index_script.js?v=20261018-home-editorial-v26'),
   'Discover still references an old V4 player script');
  const comfort=await request(origin,'/assets/swapp-discover-comfort.js');
- check(comfort.body.includes('swapp-discover-no-image')&&comfort.body.includes('v4SwipeCard')
+ check(comfort.body.includes('swapp-discover-no-image')&&comfort.body.includes('v4SwipeCard')&&
+  comfort.body.includes('border-radius:0!important')
   &&comfort.body.includes('lastSavedImage')
   &&comfort.body.includes('grid-column:1/-1!important;grid-row:1!important'),
   'Discover mobile card, saved thumbnails or primary Watch action are outdated');
@@ -206,7 +212,7 @@ async function verify(){
  const presentation='/assets/swapp-presentation-polish.css?v=20261017-visual-audit-v16';
  check(home.body.includes(presentation),'Home uses an outdated presentation stylesheet');
  check(news.body.includes(presentation),'Actualité uses an outdated presentation stylesheet');
- const journey='/assets/swapp-game-journey.css?v=20261018-hero-lifecycle-v25';
+ const journey='/assets/swapp-game-journey.css?v=20261018-home-editorial-v26';
  check(home.body.includes(journey)&&news.body.includes(journey),
   'V17 cinematic journey is missing from homepage or native articles');
  const journeyStyles=await request(origin,'/assets/swapp-game-journey.css');
@@ -215,6 +221,8 @@ async function verify(){
   journeyStyles.body.includes('SWAPP EDGELESS HERO V19')&&
   journeyStyles.body.includes('SWAPP HOME NO-FLASH V21')&&
   journeyStyles.body.includes('SWAPP V22 — cinematic trailer overlay')&&
+  journeyStyles.body.includes('SWAPP V26 HOME EDITORIAL FIRST')&&
+  journeyStyles.body.includes('.homeFollowedRail1014')&&
   journeyStyles.body.includes('width:max(100cqw,177.778cqh)')&&
   journeyStyles.body.includes('height:max(100cqh,56.25cqw)')&&
   journeyStyles.body.includes('.swapp-home-motion-playing')&&

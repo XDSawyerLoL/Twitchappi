@@ -108,10 +108,10 @@ test('cleaner homepage has no legacy first-paint masking and mounts cinematic cl
  assert.doesNotMatch(boot,/#home\.view\.active > :not\(\.swappHome1014\)/);
  assert.doesNotMatch(boot,/\.homeHeroCopy1014\{display:none!important\}/);
  assert.doesNotMatch(boot,/\.homeHeroInner1014:not\(\.swapp-feature-ready\)/);
- const helper='swapp-home-motion.js?v=20261018-hero-lifecycle-v25';
- assert.match(html,/swapp-home-news\.js\?v=20261018-hero-lifecycle-v25/);
+ const helper='swapp-home-motion.js?v=20261018-home-editorial-v26';
+ assert.match(html,/swapp-home-news\.js\?v=20261018-home-editorial-v26/);
  assert.ok(html.includes(helper));
- assert.ok(html.indexOf(helper)<html.indexOf('swapp-home-news.js?v=20261018-hero-lifecycle-v25'));
+ assert.ok(html.indexOf(helper)<html.indexOf('swapp-home-news.js?v=20261018-home-editorial-v26'));
  assert.match(read('assets/swapp-home-news.js'),/SwappHomeMotion\?\.attach\?\.\(tile,feature\)/);
 });
 
@@ -135,6 +135,6 @@ test('hero remains image first and never animates for motion-sensitive visitors'
  assert.doesNotMatch(part,/width:118%!important|height:118%!important/);
  assert.match(read('tools/swapp-release.js'),/'assets\/swapp-home-motion\.js'/);
  const smoke=read('tools/swapp-deploy-smoke.js');
- assert.match(smoke,/swapp-home-motion\.js\?v=20261018-hero-lifecycle-v25/);
+ assert.match(smoke,/swapp-home-motion\.js\?v=20261018-home-editorial-v26/);
  assert.match(smoke,/youtube-nocookie\.com/);
 });

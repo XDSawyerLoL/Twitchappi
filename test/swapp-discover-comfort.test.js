@@ -64,11 +64,20 @@ function harness({missing=false,saved=false,invite=false}={}){
 test('current Discover V4 script loads after its legacy JS in the SPA',()=>{
  const html=read('index.html');
  const legacy=html.indexOf('<script src="/index_script.js?');
- const comfort=html.indexOf('<script defer src="/assets/swapp-discover-comfort.js?v=20261017-journey-v17"');
+ const comfort=html.indexOf('<script defer src="/assets/swapp-discover-comfort.js?v=20261018-discover-flat-v26"');
  assert.ok(legacy>=0&&comfort>legacy);
  assert.equal((html.match(/swapp-discover-comfort\.js/g)||[]).length,1);
  assert.equal(fs.existsSync(path.join(root,'.github/workflows/swapp-quality.yml')),false);
 });
+test('Discover modules have restrained corners and flat section separators',()=>{
+ const js=read('assets/swapp-discover-comfort.js');
+ assert.match(js,/\.v4Deck,\.v4Follow\)\{/);
+ assert.match(js,/border-top:1px solid rgba\(180,204,229,\.22\)!important/);
+ assert.match(js,/\.v4Panel\{border-radius:0!important/);
+ assert.match(js,/\.v4Mood\{min-height:42px!important;padding:8px 14px!important;border-radius:7px!important/);
+ assert.doesNotMatch(js,/\.v4Deck,.v4Follow\{[^}]*border-radius:26px/);
+});
+
 test('Discover compact card and actions are mobile-first and isolated to V4',()=>{
  const s=read('assets/swapp-discover-comfort.js');
  assert.match(s,/body\.oryonDiscoverV4 #discover \.v4CardText/);
@@ -130,7 +139,7 @@ test('Discover V4 respects API score and diversity ordering all the way to the p
  assert.match(actual,/already ranked these lives by mood, relevance and diversity/);
  assert.doesNotMatch(actual,/items\.sort\(\(a,b\)=>Math\.abs/);
  const html=read('index.html');
- assert.match(html,/index_script\.js\?v=20261018-hero-lifecycle-v25/);
+ assert.match(html,/index_script\.js\?v=20261018-home-editorial-v26/);
 });
 
 test('live-card decorations refresh on actual DOM replacements without polling',()=>{

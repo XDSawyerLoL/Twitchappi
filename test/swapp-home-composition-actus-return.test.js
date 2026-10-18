@@ -22,7 +22,7 @@ test('ACTUS return sits in its own semantic navigation with reliable top spacing
 test('above-the-fold layout shows featured article, then live channels, then the remaining news',()=>{
  const home=read('assets/swapp-home-news.js'),runtime=read('index_script.js'),css=read('assets/swapp-art-direction.css');
  assert.match(home,/const liveShelf=modern\?\.querySelector\('\.homeLiveSection1014'\)/);
- assert.match(home,/if\(liveShelf\)modern\.append\(section\)/);
+ assert.match(home,/if\(liveShelf\)modern\.insertBefore\(section,liveShelf\)/);
  assert.match(home,/const featuredSlug=decorateHero\(modern,valid/);
  assert.match(home,/visible=featuredSlug\?valid\.filter\(item=>item\.slug!==featuredSlug\):valid/);
  assert.doesNotMatch(home,/browseLive\.href='\/decouvrir'/);
@@ -31,21 +31,16 @@ test('above-the-fold layout shows featured article, then live channels, then the
  assert.match(css,/#home \.swappHome1014>\.homeLiveSection1014/);
 });
 
-test('home live grid shows eight cards on desktop and four on mobile and safely expands or collapses the rest',()=>{
- const runtime=read('index_script.js'),css=read('assets/swapp-art-direction.css');
- assert.ok(runtime.includes("const initiallyVisible=window.matchMedia('(max-width:900px)').matches?4:8;"));
- assert.match(runtime,/cards\.forEach\(\(el,i\)=>\{el\.hidden=!wasExpanded&&i>=initiallyVisible\}\)/);
- assert.match(runtime,/more\.setAttribute\('aria-expanded',String\(wasExpanded&&extras>0\)\)/);
- assert.match(runtime,/more\.setAttribute\('aria-expanded',String\(!expanded\)\)/);
- assert.match(runtime,/cards\.forEach\(\(el,i\)=>\{el\.hidden=expanded&&i>=initiallyVisible\}\)/);
- assert.match(runtime,/id="homeLiveMore1014"/);
- assert.match(css,/#home \.homeLiveCard1014\[hidden\]\{display:none!important\}/);
- assert.match(css,/#home \.homeLiveGrid1014>\.homeLiveCard1014\s*\{/);
- assert.match(css,/grid-column:auto!important/);
- assert.match(css,/grid-row:auto!important/);
- assert.doesNotMatch(css,/grid-column:span 2;grid-row:span 2/);
- assert.match(css,/#home \.homeLiveMore1014\[hidden\]\{display:none!important\}/);
- assert.doesNotMatch(runtime,/Fallback Twitch/);
+test('homepage public lives and Twitch follows occupy separate horizontal rows',()=>{
+ const runtime=read('index_script.js'),css=read('assets/swapp-game-journey.css');
+ assert.match(runtime,/items\.slice\(0,8\)\.map\(card\)/);
+ assert.match(runtime,/id="homeFollowedRail1014"/);
+ assert.match(runtime,/loadHomeFollowed\(\)/);
+ assert.match(runtime,/\/api\/twitch\/followed\/live/);
+ assert.doesNotMatch(runtime,/id="homeLiveMore1014"/);
+ assert.match(css,/grid-auto-flow:column!important/);
+ assert.match(css,/\.homeFollowedRail1014\{/);
+ assert.match(css,/scroll-snap-type:x proximity/);
 });
 
 test('fresh assets are referenced by both the SPA and editorial shell',()=>{
@@ -54,6 +49,6 @@ test('fresh assets are referenced by both the SPA and editorial shell',()=>{
   assert.match(main,new RegExp(asset.replace(/\./g,'\\.')+'\\?v=20261015-player-41'));
  }
  assert.match(main,/swapp-art-direction\.css\?v=20261015-player-39/);
- assert.match(main,/index_script\.js\?v=20261015-cinematic-38/);
+ assert.match(main,/index_script\.js\?v=20261018-home-editorial-v26/);
  assert.match(shell,/swapp-art-direction\.css\?v=20261015-player-39/);
 });

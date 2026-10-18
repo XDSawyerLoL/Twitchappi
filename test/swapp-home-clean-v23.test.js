@@ -61,10 +61,10 @@ test('video iframe uses a stable parent and covers 16:9 with no 118% guess',()=>
 test('fresh V23 assets are loaded in SPA, native shells and production smoke',()=>{
  const html=read('index.html');
  for(const asset of ['index_script.js','swapp-home-news.js','swapp-game-journey.css','swapp-home-motion.js']){
-  assert.match(html,new RegExp(asset.replace(/\./g,'\\.')+'\\?v=20261018-hero-lifecycle-v25'));
+  assert.match(html,new RegExp(asset.replace(/\./g,'\\.')+'\\?v=20261018-home-editorial-v26'));
  }
  for(const path of ['modules/swapp-news/site-shell.js','modules/swapp-news/article-core.js'])
-  assert.ok(read(path).includes('swapp-game-journey.css?v=20261018-hero-lifecycle-v25'),path);
+  assert.ok(read(path).includes('swapp-game-journey.css?v=20261018-home-editorial-v26'),path);
  const smoke=read('tools/swapp-deploy-smoke.js');
  assert.match(smoke,/Obsolete home renderer still shipped to production/);
  assert.match(smoke,/start:TRAILER_START_SECONDS/);

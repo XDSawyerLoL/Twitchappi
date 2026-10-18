@@ -16,4 +16,7 @@ test('dedicated game discovery paginates Twitch streams independently from homep
  assert.match(route,/items\.length<Math\.max\(limit\*4,80\)/);
  assert.match(route,/encodeURIComponent\(cursor\)/);
  assert.doesNotMatch(route,/out\.slice\(0,limit\)/);
+ assert.match(route,/swappAddLiveAvatars\(visible\)/);
+ assert.match(server,/profile_image_url=url/);
+ assert.match(server,/users\?'/);
 });
