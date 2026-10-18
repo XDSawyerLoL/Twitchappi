@@ -4376,6 +4376,30 @@ app.get('/api/native/lives', (req, res) => {
   res.json({ success:true, items });
 });
 
+// Public Twitch channel photos for live widgets, cached to protect API limits.
+const swappLiveAvatarCache=new Map();
+async function swappAddLiveAvatars(items,accessToken){
+ const twitch=(items||[]).filter(x=>x?.platform==='twitch'&&/^[a-z0-9_]{2,25}$/.test(String(x.login||''))).slice(0,24);
+ const now=Date.now();
+ const missing=[...new Set(twitch.map(x=>String(x.login).toLowerCase()))]
+  .filter(login=>!swappLiveAvatarCache.has(login)||swappLiveAvatarCache.get(login).expires<now);
+ if(missing.length){
+  try{
+   const response=await twitchAPI('users?'+missing.map(login=>'login='+encodeURIComponent(login)).join('&'),accessToken);
+   const users=new Map((response.data||[]).map(u=>[String(u.login||'').toLowerCase(),String(u.profile_image_url||'')]));
+   for(const login of missing){
+    const url=users.get(login)||'';
+    swappLiveAvatarCache.set(login,{url:/^https:\/\//i.test(url)?url:'',expires:now+600000});
+   }
+   if(swappLiveAvatarCache.size>400)swappLiveAvatarCache.clear();
+  }catch(e){console.warn('[SWAPP] Twitch public avatars unavailable:',e.message)}
+ }
+ for(const item of twitch){
+  const url=swappLiveAvatarCache.get(String(item.login).toLowerCase())?.url;
+  if(url)item.profile_image_url=url;
+ }
+}
+
 app.get('/api/twitch/followed/live', heavyLimiter, async (req, res) => {
   try{
     const tu = req.session?.twitchUser;
@@ -4386,6 +4410,7 @@ app.get('/api/twitch/followed/live', heavyLimiter, async (req, res) => {
       title:s.title, game_name:s.game_name, viewer_count:s.viewer_count || 0, started_at:s.started_at,
       thumbnail_url:String(s.thumbnail_url || '').replace('{width}','640').replace('{height}','360'), platform:'twitch'
     }));
+    await swappAddLiveAvatars(items,tu.access_token);
     res.json({ success:true, items });
   }catch(e){
     console.warn('⚠️ /api/twitch/followed/live', e.message);
@@ -9169,7 +9194,9 @@ app.get('/api/discovery/game-lives', heavyLimiter, async (req,res)=>{
     }
     items.sort((a,b)=>Number(['oryon','swapp'].includes(b.platform))-Number(['oryon','swapp'].includes(a.platform))||b.viewer_count-a.viewer_count);
     res.set('Cache-Control','public, max-age=25');
-    return res.json({success:true,game,items:items.slice(0,limit),totalCandidates:items.length,
+    const visible=items.slice(0,limit);
+    if(twitchAvailable)await swappAddLiveAvatars(visible);
+    return res.json({success:true,game,items:visible,totalCandidates:items.length,
       coverage:twitchAvailable?(twitchError?'partial':'game-search'):'native-only'});
   }catch(e){return res.status(503).json({success:false,error:'Recherche de lives indisponible',items:[]})}
 });
