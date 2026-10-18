@@ -49,7 +49,6 @@ const RELEASE_FILES=Object.freeze([
  'assets/swapp-social-next.js',
  'assets/swapp-social-interactions.js',
  'assets/swapp-social-interactions.css',
- 'assets/swapp-wishlist-rewards.js',
  'modules/swapp-social-personal-rooms.js',
  'modules/swapp-social-room-access.js',
  'modules/swapp-social-mysql.js',
