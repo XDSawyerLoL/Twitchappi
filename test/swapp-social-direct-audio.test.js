@@ -133,7 +133,7 @@ function callFixture(){
   return socket;
  };
  installPrivateCalls(voice,{lookupLocalUser:handle=>accounts.find(u=>u.login===handle),
-  clock:()=>100000});
+  isAllowedPair:async()=>true,clock:()=>100000});
  return {fakeSocket,broadcast};
 }
 test('calls are offered only to online SWAPP members and need consent',()=>{
