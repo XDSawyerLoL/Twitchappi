@@ -43,6 +43,20 @@
   const since=Math.max(Date.parse(item.followedAt)||0,Date.parse(item.seenAt)||0);
   return [...card.querySelectorAll('[data-story-date]')].filter(a=>articleDate(a)>since).length;
  }
+ function updateHomeLink(){
+  const nav=$('#home .swapp-home-feature-links');
+  if(!nav)return;
+  let link=nav.querySelector('[data-my-games-home-link]');
+  if(!games.length){link?.remove();return}
+  if(!link){
+   link=document.createElement('a');
+   link.className='swapp-home-feature-cta';
+   link.dataset.myGamesHomeLink='1';link.href='/mes-jeux';
+   nav.appendChild(link);
+  }
+  link.textContent='Mes jeux suivis ('+games.length+')';
+  link.setAttribute('aria-label','Retrouver mes '+games.length+' jeux suivis');
+ }
  function update(){
   const favorites=new Map(games.map(item=>[item.slug,item]));
   $$('[data-swapp-follow-game]').forEach(button=>{
@@ -53,6 +67,7 @@
    button.setAttribute('aria-label',(picked?'Ne plus suivre ':'Suivre ')+(button.dataset.gameName||slug));
   });
   $$('[data-swapp-favorites-count]').forEach(el=>el.textContent=String(games.length));
+  updateHomeLink();
   if(!root)return;
   const followed=root.querySelector('[data-my-games-followed]');
   const explore=root.querySelector('[data-my-games-available]');
@@ -128,6 +143,7 @@
   menuLink();
   new MutationObserver(menuLink).observe(menu,{childList:true});
  }
+ window.addEventListener('swapp:home-feature-ready',updateHomeLink);
  window.addEventListener('storage',e=>{
   if(e.key===KEY||e.key===null){games=read();update();}
  });
