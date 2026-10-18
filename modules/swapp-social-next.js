@@ -140,6 +140,7 @@ function createSocialNextRouter({express,pool,restoreSession,resolveIndexedGame=
   // If editorial storage is unavailable, following still works but XP is NOT minted.
   const verified=await Promise.resolve(resolveIndexedGame(slug)).catch(()=>null);
   const official=verified?.slug===slug&&libraryName(verified.game)?libraryName(verified.game):null;
+  let rewardEarned=0;
   const conn=await pool.getConnection();
   try{
    await conn.beginTransaction();
@@ -156,16 +157,18 @@ function createSocialNextRouter({express,pool,restoreSession,resolveIndexedGame=
     if(added.affectedRows===1&&official&&Number(rewardRows[0]?.discovery_count||0)<10){
      const [awarded]=await conn.execute('INSERT IGNORE INTO swapp_social_reward_ledger (user_id,event_key,event_type,points,created_at) VALUES (?,?,?,?,?)',
       [req.socialPlayer.id,'discover:'+slug,'discover_game',10,stamp]);
-     if(awarded.affectedRows===1)await conn.execute(
-      'UPDATE swapp_social_reward_accounts SET points=points+10,discovery_count=discovery_count+1,updated_at=? WHERE user_id=?',
-      [stamp,req.socialPlayer.id]);
+     if(awarded.affectedRows===1){
+      await conn.execute('UPDATE swapp_social_reward_accounts SET points=points+10,discovery_count=discovery_count+1,updated_at=? WHERE user_id=?',
+       [stamp,req.socialPlayer.id]);
+      rewardEarned=10;
+     }
     }
    }
    await conn.commit();
   }catch(error){await conn.rollback();throw error}
   finally{conn.release()}
   res.set('Cache-Control','private, no-store');
-  res.json({games:await loadLibrary(req.socialPlayer.id)});
+  res.json({games:await loadLibrary(req.socialPlayer.id),rewardEarned});
  });
  route('delete','/library/games/:slug',async(req,res)=>{
   const slug=req.params.slug;
