@@ -20,3 +20,14 @@ test('dedicated game discovery paginates Twitch streams independently from homep
  assert.match(server,/profile_image_url=url/);
  assert.match(server,/users\?'/);
 });
+
+test('followed streams restore and refresh a linked SWAPP Twitch session after F5',()=>{
+ const start=server.indexOf("app.get('/api/twitch/followed/live'");
+ const end=server.indexOf('// ORYON UX PREMIUM ROUTES',start);
+ assert.ok(start>0&&end>start);
+ const route=server.slice(start,end);
+ assert.match(route,/restoreOryonSessionFromRememberCookie\(req,res,\{allowUserRecovery:false\}\)/);
+ assert.match(route,/owner\?\.twitch_link/);
+ assert.match(route,/refreshTwitchUserSession\(req\)/);
+ assert.match(route,/if\(!tu\) return res\.status\(401\)/);
+});

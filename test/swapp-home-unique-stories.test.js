@@ -113,6 +113,6 @@ test('trailer is full-width cinematic 16:9 and responsive rather than 290px wide
  assert.match(css,/@media\(max-width:980px\)/);
  assert.match(css,/@media\(max-width:600px\)/);
  assert.doesNotMatch(css,/width:clamp\(190px,19vw,290px\)/);
- assert.match(html,/swapp-home-news\.js\?v=20261018-home-editorial-v26/);
+ assert.match(html,/swapp-home-news\.js\?v=20261018-followed-session-v27/);
  assert.match(html,/swapp-video-gallery\.css\?v=20261016-ios-journey-1/);
 });

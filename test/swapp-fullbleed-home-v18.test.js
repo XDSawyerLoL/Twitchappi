@@ -53,13 +53,13 @@ test('iPhone is full-width and respects safe area, short screens and reduced mot
 });
 
 test('full-bleed version ships to the SPA and native shell with a deployment guard',()=>{
- const version='/assets/swapp-game-journey.css?v=20261018-home-editorial-v26';
+ const version='/assets/swapp-game-journey.css?v=20261018-followed-session-v27';
  for(const file of ['index.html','modules/swapp-news/site-shell.js','modules/swapp-news/article-core.js'])
   assert.ok(read(file).includes(version),file);
  assert.ok(read('tools/swapp-release.js').includes("'assets/swapp-game-journey.css'"));
  const smoke=read('tools/swapp-deploy-smoke.js');
  assert.ok(smoke.includes('SWAPP FULL-BLEED HOME V18'));
- assert.ok(smoke.includes('20261018-home-editorial-v26'));
+ assert.ok(smoke.includes('20261018-followed-session-v27'));
  let level=0;
  for(const char of css.replace(/\/\*[\s\S]*?\*\//g,'')){
   level+=char==='{'?1:char==='}'?-1:0;
