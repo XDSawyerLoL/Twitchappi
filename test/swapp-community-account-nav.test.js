@@ -75,7 +75,7 @@ test('secondary Plus links are hidden while collapsed and are scroll-bounded',()
 
 test('both public and native pages load the corrected nav versions',()=>{
  const version='swapp-hub-nav.js?v=20261016-account-dedupe-2';
- const style='swapp-unified-nav.css?v=20261016-account-dedupe-2';
+ const style='swapp-unified-nav.css?v=20261018-fixed-header-v1';
  for(const file of ['index.html','modules/swapp-news/site-shell.js']){
   const source=read(file);
   assert.ok(source.includes(version),file+' JS cache');
