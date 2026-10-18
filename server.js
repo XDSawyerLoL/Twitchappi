@@ -1009,7 +1009,7 @@ if(process.env.SWAPP_SOCIAL_FEATURES==='1'){
   },(req,res,next)=>req.method==='GET'?socialReadLimiter(req,res,next):authLimiter(req,res,next),
    createSocialNextRouter({express,restoreSession:restoreOryonSessionFromRememberCookie,pool:socialDbPool,
     resolveIndexedGame:slug=>require('./modules/swapp-seo').verifiedIndexedGame(slug)}),
-   createSocialMysqlInteractions({express,restoreSession:restoreOryonSessionFromRememberCookie,pool:socialDbPool}));
+   createSocialMysqlInteractions({express,restoreSession:restoreOryonSessionFromRememberCookie,pool:socialDbPool,inviteSecret:oauthSigningSecret}));
  }catch(error){
   socialInteractionsState='unavailable';
   socialInteractionsPool=null;
