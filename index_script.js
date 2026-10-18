@@ -8357,6 +8357,12 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
 
   window.swappShareChannel=function swappShareChannel(login){const url=profileUrl(login || state?.channelProfile?.login || state?.session?.local?.login || '');if(navigator.share){navigator.share({title:'Chaîne Swapp',url}).catch(()=>{});return;}navigator.clipboard?.writeText(url).then(()=>toast?.('Lien de chaîne copié.')).catch(()=>prompt('Lien de chaîne',url));};
 
+  // Shared exact local viewer data for the real account renderer.
+  // No invented scores, no passive server-side profile upload.
+  window.swappViewerSnapshot=()=>({
+    likes:mergedLikes(),
+    saved:typeof savedLives==='function'?savedLives():[]
+  });
   window.viewerProfileCard=function viewerProfileCardReady(){
     const p=(typeof viewerProfileV2==='function'?viewerProfileV2():{})||{};
     const likes=mergedLikes();
