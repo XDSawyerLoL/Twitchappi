@@ -15,8 +15,8 @@ function sniff(buffer,mime){
  if(mime==='audio/mp4')return buffer.toString('ascii',4,8)==='ftyp';
  return false;
 }
-function createDirectAudioRouter({express,restoreSession,getPool,lookupLocalUser}){
- if(!express||typeof restoreSession!=='function'||typeof getPool!=='function'||typeof lookupLocalUser!=='function')
+function createDirectAudioRouter({express,restoreSession,getPool,lookupLocalUser,isAllowedPair}){
+ if(!express||typeof restoreSession!=='function'||typeof getPool!=='function'||typeof lookupLocalUser!=='function'||typeof isAllowedPair!=='function')
   throw Error('swapp_direct_audio_configuration');
  const router=express.Router();
  const fail=(res,error,status=400)=>res.status(status).json({error});
@@ -75,6 +75,7 @@ function createDirectAudioRouter({express,restoreSession,getPool,lookupLocalUser
   const peer=recipient(req.query.peer);
   if(!peer)return fail(res,'not_found',404);
   const me=req.directAudioUser;
+  if(!(await isAllowedPair(me.id,peer.id)))return fail(res,'blocked',403);
   const rows=await query(
    'SELECT id,sender_id,recipient_id,sender_handle,recipient_handle,mime,duration_seconds,byte_length,created_at FROM swapp_social_voice_notes WHERE created_at>=? AND ((sender_id=? AND recipient_id=?) OR (sender_id=? AND recipient_id=?)) ORDER BY created_at DESC LIMIT 100',
    [now()-RETENTION_DAYS*86400000,me.id,peer.id,peer.id,me.id]
@@ -85,6 +86,7 @@ function createDirectAudioRouter({express,restoreSession,getPool,lookupLocalUser
   void prune();
   const me=req.directAudioUser,peer=recipient(req.params.handle);
   if(!peer||peer.id===me.id)return fail(res,'invalid_recipient',400);
+  if(!(await isAllowedPair(me.id,peer.id)))return fail(res,'blocked',403);
   const mime=String(req.get('content-type')||'').split(';')[0].toLowerCase().trim();
   const seconds=Number(req.get('x-swapp-audio-duration'));
   if(!MIME.has(mime)||!sniff(req.body,mime))return fail(res,'invalid_audio',415);
@@ -106,9 +108,10 @@ function createDirectAudioRouter({express,restoreSession,getPool,lookupLocalUser
  router.get('/media/:id',run(async(req,res)=>{
   const id=String(req.params.id||'');
   if(!ID.test(id))return fail(res,'not_found',404);
-  const rows=await query('SELECT mime,audio_data,byte_length FROM swapp_social_voice_notes WHERE id=? AND created_at>=? AND (sender_id=? OR recipient_id=?) LIMIT 1',
+  const rows=await query('SELECT mime,audio_data,byte_length,sender_id,recipient_id FROM swapp_social_voice_notes WHERE id=? AND created_at>=? AND (sender_id=? OR recipient_id=?) LIMIT 1',
    [id,now()-RETENTION_DAYS*86400000,req.directAudioUser.id,req.directAudioUser.id]);
   if(!rows.length)return fail(res,'not_found',404);
+  if(!(await isAllowedPair(rows[0].sender_id,rows[0].recipient_id)))return fail(res,'not_found',404);
   const data=rows[0].audio_data;
   if(!Buffer.isBuffer(data))return fail(res,'storage_unavailable',503);
   res.set('Content-Type',rows[0].mime);
