@@ -150,3 +150,77 @@
 @media(prefers-reduced-motion:reduce){
  #swappSocialNative .swapp-voice *{animation:none!important;transition:none!important}
 }
+
+/* SOCIAL / Messages vocaux privés — keep composer inside the conversation. */
+#swappSocialNative .pulse-dm-audio-controls{
+ display:grid;grid-template-columns:1fr;gap:11px;padding:15px 18px;
+ background:linear-gradient(120deg,#172a3e,#102035);
+ border:1px solid rgba(180,210,232,.16);border-left:3px solid var(--swapp-page-accent,#50daca);
+ border-radius:0;color:#eaf4ff
+}
+#swappSocialNative .pulse-audio-composer-head{display:flex;align-items:center;gap:11px;min-width:0}
+#swappSocialNative .pulse-audio-composer-head>span:nth-child(2){flex:1;display:grid;gap:3px;min-width:0}
+#swappSocialNative .pulse-audio-composer-head strong{font-size:13px;font-weight:830}
+#swappSocialNative .pulse-audio-composer-head small{font-size:11px;color:#9cafc3}
+#swappSocialNative .pulse-audio-composer-icon{display:grid;place-items:center;border-radius:9px;
+ background:rgba(67,205,192,.11);color:var(--swapp-page-accent,#56e2cc);height:39px;width:39px;font-size:23px}
+#swappSocialNative .pulse-audio-composer-head time{
+ font-variant-numeric:tabular-nums;font-size:18px;letter-spacing:-.03em;
+ font-weight:850;color:#f0f7ff;background:#0b1929;border:1px solid #2a4158;
+ border-radius:7px;padding:7px 10px;min-width:61px;text-align:center
+}
+#swappSocialNative .pulse-dm-audio-controls[data-audio-state="recording"] .pulse-audio-composer-head time{
+ color:#ffb8c6;border-color:#a24c63;background:#442335
+}
+#swappSocialNative .pulse-dm-audio-controls[data-audio-state="recording"] .pulse-audio-composer-icon{
+ background:rgba(235,86,124,.15);color:#ff9bba
+}
+#swappSocialNative .pulse-audio-composer-actions{display:flex;flex-wrap:wrap;gap:8px}
+#swappSocialNative .pulse-dm-audio-controls .pulse-audio-composer-actions button{
+ display:inline-flex;align-items:center;justify-content:center;
+ min-height:42px;padding:10px 16px;background:#253b52;border:1px solid #415e78;
+ border-radius:8px;font-size:12px;cursor:pointer
+}
+#swappSocialNative .pulse-dm-audio-controls [data-voice-start],
+#swappSocialNative .pulse-dm-audio-controls [data-voice-send]{
+ background:var(--swapp-page-accent,#60e0cb)!important;
+ border-color:var(--swapp-page-accent,#60e0cb)!important;
+ color:#091d25!important;font-weight:850
+}
+#swappSocialNative .pulse-dm-audio-controls [data-voice-stop]{
+ background:#652b41!important;border-color:#a74a6a!important;color:#ffe1e8!important
+}
+#swappSocialNative .pulse-dm-audio-controls [data-voice-cancel]{background:#182939!important}
+#swappSocialNative .pulse-dm-audio-controls [data-voice-preview]{
+ display:block;max-height:46px;width:100%;accent-color:var(--swapp-page-accent,#60e0cb)
+}
+#swappSocialNative .pulse-dm-audio-controls [data-voice-preview][hidden]{display:none!important}
+#swappSocialNative .pulse-dm-audio-controls [data-voice-status]{
+ font-size:11px;margin:0;color:#a6bacf;line-height:1.6;flex:none
+}
+#swappSocialNative .pulse-dm-call-button{
+ display:inline-flex;align-items:center;gap:8px;margin-left:auto;
+ background:var(--swapp-page-accent,#aef333)!important;
+ border-color:var(--swapp-page-accent,#aef333)!important;
+ color:#081c23!important;border-radius:8px;min-height:42px;padding:9px 15px
+}
+#swappSocialNative .pulse-dm-call-button svg{width:17px;height:17px;flex:none}
+/* Direct calls: genuinely useful fixed control tray, not an extra page layer. */
+#swappSocialNative .pulse-call-panel{
+ width:min(390px,calc(100vw - 24px));padding:19px;bottom:calc(22px + env(safe-area-inset-bottom));
+ right:16px;background:linear-gradient(140deg,#182c41,#101d2f);
+ border:1px solid rgba(168,202,232,.3);border-radius:13px;
+ box-shadow:0 14px 40px rgba(0,0,0,.46);color:#f3f9ff
+}
+#swappSocialNative .pulse-call-panel>strong{font-size:19px;letter-spacing:-.045em}
+#swappSocialNative .pulse-call-panel>p{font-size:12px;line-height:1.5;color:#b7cbe0}
+#swappSocialNative .pulse-call-actions button{min-height:44px;border-radius:8px}
+#swappSocialNative .pulse-call-actions [data-call-accept]{background:#8ee5ba;border-color:#8ee5ba;color:#09231b}
+#swappSocialNative .pulse-call-actions [data-call-end]{background:#682f41;border-color:#9d5169}
+@media(max-width:600px){
+ #swappSocialNative .pulse-dm-audio-controls{padding:13px 12px}
+ #swappSocialNative .pulse-audio-composer-head small{font-size:10px}
+ #swappSocialNative .pulse-audio-composer-head time{font-size:16px}
+ #swappSocialNative .pulse-audio-composer-actions button{flex:1}
+ #swappSocialNative .pulse-call-panel{bottom:calc(80px + env(safe-area-inset-bottom));right:12px}
+}
