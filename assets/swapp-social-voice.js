@@ -109,11 +109,57 @@
   for(const id of [...tiles.keys()])if(!members.some(p=>p.id===id))tiles.delete(id);
   people.replaceChildren(...nodes);
  }
+
+ function stopMeter(id){
+  const track=meters.get(id);if(!track)return;
+  try{track.source.disconnect();track.analyser.disconnect()}catch{}
+  meters.delete(id);
+  tiles.get(id)?.classList.remove('is-speaking');
+ }
+ function stopAllMeters(){
+  if(meterFrame)cancelAnimationFrame(meterFrame);
+  meterFrame=0;lastFrame=0;
+  for(const id of [...meters.keys()])stopMeter(id);
+  const context=audioContext;audioContext=null;
+  if(context)context.close().catch(()=>{});
+ }
+ function updateAudioMeters(time){
+  meterFrame=0;
+  if(time-lastFrame>=100){
+   lastFrame=time;
+   for(const [id,entry] of meters){
+    const node=tiles.get(id);if(!node)continue;
+    entry.analyser.getByteTimeDomainData(entry.values);
+    let energy=0;
+    for(const sample of entry.values){const value=(sample-128)/128;energy+=value*value}
+    const volume=Math.sqrt(energy/entry.values.length);
+    const isMuted=id==='__self'?muted:!!profiles.get(id)?.muted;
+    node.classList.toggle('is-speaking',!isMuted&&volume>0.042);
+    node.style.setProperty('--voice-level',String(Math.max(.15,Math.min(1,volume*9))));
+   }
+  }
+  if(meters.size)meterFrame=requestAnimationFrame(updateAudioMeters);
+ }
+ async function attachAudioMeter(id,stream){
+  const Context=window.AudioContext||window.webkitAudioContext;
+  if(!Context||!stream?.getAudioTracks?.().length)return;
+  try{
+   if(!audioContext)audioContext=new Context();
+   if(audioContext.state==='suspended')await audioContext.resume();
+   if(!media||id!=='__self'&&!connectedRoom)return;
+   stopMeter(id);
+   const source=audioContext.createMediaStreamSource(stream),analyser=audioContext.createAnalyser();
+   analyser.fftSize=512;analyser.smoothingTimeConstant=.6;
+   source.connect(analyser);
+   meters.set(id,{source,analyser,values:new Uint8Array(analyser.fftSize)});
+   if(!meterFrame)meterFrame=requestAnimationFrame(updateAudioMeters);
+  }catch{}
+ }
  function closePeer(id){
   const peer=peers.get(id);
   if(!peer)return;
   peer.pc.ontrack=null;peer.pc.onicecandidate=null;peer.pc.onconnectionstatechange=null;
-  peer.pc.close();peer.audio?.remove();peers.delete(id);
+  peer.pc.close();peer.audio?.remove();peers.delete(id);stopMeter(id);tiles.delete(id);
  }
  function leave(){
   lifecycle++;
@@ -121,8 +167,9 @@
   socket?.disconnect();socket=null;
   for(const id of [...peers.keys()])closePeer(id);
   profiles.clear();audioHost.replaceChildren();playButton.hidden=true;
+  stopAllMeters();
   media?.getTracks().forEach(track=>track.stop());media=null;
-  connectedRoom='';busy=false;muted=false;repaint();
+  connectedRoom='';busy=false;muted=false;deafened=false;repaint();
  }
  function send(to,kind,data){
   if(socket?.connected&&connectedRoom)socket.emit('voice:signal',{to,kind,data});
@@ -142,6 +189,9 @@
   pc.ontrack=event=>{
    const stream=event.streams?.[0]||new MediaStream([event.track]);
    element.srcObject=stream;
+   element.muted=deafened;
+   void attachAudioMeter(id,stream);
+   if(deafened)return;
    element.play().catch(()=>{
     playButton.hidden=false;
     notice('Ton navigateur bloque la lecture automatique. Utilise « Activer le son ».');
@@ -198,6 +248,7 @@
    });
    if(revision!==lifecycle){local.getTracks().forEach(t=>t.stop());return}
    media=local;
+   void attachAudioMeter('__self',local);
    const response=await fetch('/api/swapp/social/voice-ticket',{
     method:'POST',credentials:'same-origin',cache:'no-store',
     headers:{'Accept':'application/json','Content-Type':'application/json'},body:'{}'
