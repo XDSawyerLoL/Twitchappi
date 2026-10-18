@@ -1,5 +1,7 @@
 /* Canonical SWAPP navigation shared by the streaming SPA and the editorial routes. */
-header.top{position:sticky;top:0;z-index:80;background:rgba(8,11,18,.94);backdrop-filter:blur(16px);border-bottom:1px solid #2a3446}
+/* Canonical fixed header: body owns the offset, so scrolling cannot hide navigation. */
+body{padding-top:68px;scroll-padding-top:68px}
+header.top{position:fixed!important;inset:0 0 auto 0;top:0;z-index:80;background:rgba(8,11,18,.94);backdrop-filter:blur(16px);border-bottom:1px solid #2a3446}
 header.top .topbar{height:68px;display:flex;align-items:center;gap:14px;padding:0 18px;max-width:none;margin:0}
 header.top .brand{display:flex;align-items:center;gap:10px;font-weight:1000;letter-spacing:-.03em;white-space:nowrap;color:#f6f8ff;text-decoration:none;line-height:1;font-size:18px}
 header.top .brandMark{display:block;width:38px;height:38px;border-radius:15px;background:linear-gradient(135deg,#22ede5,#31dcc4);box-shadow:0 0 28px rgba(34,238,225,.28)}
