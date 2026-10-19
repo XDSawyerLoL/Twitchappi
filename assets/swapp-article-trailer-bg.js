@@ -68,12 +68,23 @@
   if(typeof IntersectionObserver==='function'){
    const observer=new IntersectionObserver(entries=>{
     visible=entries.some(entry=>entry.isIntersecting);
-    if(!scene.isConnected){stop();observer.disconnect();return}
+    if(!scene.isConnected){
+     stop();observer.disconnect();
+     document.removeEventListener('visibilitychange',onVisibility);
+     return;
+    }
     if(!visible)stop();else play();
    },{rootMargin:'120px 0px'});
    observer.observe(scene);
   }
-  document.addEventListener('visibilitychange',()=>{if(document.hidden)stop();else play()});
+  function onVisibility(){
+   if(!scene.isConnected){
+    document.removeEventListener('visibilitychange',onVisibility);
+    stop();return;
+   }
+   if(document.hidden)stop();else play();
+  }
+  document.addEventListener('visibilitychange',onVisibility);
   function listen(){
    if(typeof window.__tcfapi!=='function')return;
    try{window.__tcfapi('addEventListener',0,(tc,success)=>{
