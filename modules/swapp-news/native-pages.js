@@ -114,7 +114,7 @@ function renderNewsStory(originalArticle,{baseUrl='https://swapp.tv',relatedArti
  const metadata=`<link rel="canonical" href="${escapeHtml(url)}"><meta name="keywords" content="${escapeHtml(tags.join(', '))}"><meta property="og:type" content="${isVideo?'video.other':'article'}"><meta property="og:url" content="${escapeHtml(url)}"><meta property="og:title" content="${escapeHtml(seoTitle)}"><meta property="og:description" content="${escapeHtml(seoDescription)}">${shareImage?`<meta property="og:image" content="${escapeHtml(shareImage)}"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="${escapeHtml(shareImage)}">`:''}<script type="application/ld+json">${jsonLd}</script>`;
  const coverUrl=immersiveCoverUrl(article);
  const poster=heroVideoId?coverUrl||'https://i.ytimg.com/vi/'+heroVideoId+'/hqdefault.jpg':'';
- const hasGame=Boolean(article.game||(Array.isArray(article.games)&&article.games.length));
+ const hasGame=articleExtras.isGameArticle(article);
  const scene='<div class="swapp-article-scene'+(coverUrl||poster?' has-art':'')+
   (hasGame?' has-game':'')+(heroVideoId?' has-trailer':'')+'" aria-hidden="true"'+
   (heroVideoId?' data-swapp-trailer-id="'+heroVideoId+'" data-swapp-trailer-title="'+escapeHtml(String(article.game||article.title||'Jeu vidéo').slice(0,140))+'"':'')+'>'+
