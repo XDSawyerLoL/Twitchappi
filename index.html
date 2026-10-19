@@ -6,6 +6,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
 <title>Swapp — découvre les lives qu’on ne te montre pas</title>
+<meta name="description" content="SWAPP rassemble actualités jeux vidéo, articles, bandes-annonces, créateurs en direct et communauté autour des jeux.">
+<link rel="canonical" href="https://swapp.tv/">
 <script src="/socket.io/socket.io.js"></script>
 <link rel="icon" href="/favicon.ico" />
 <style>
@@ -99,7 +101,31 @@ html,body{overflow-x:hidden}.watchShell.channelWatch{grid-template-columns:minma
   </div>
 </header>
 <main class="app">
-  <section id="home" class="view active"><div class="swappBoot"><div class="swappBootInner"><span class="swapp-boot-wordmark" aria-hidden="true">SWAPP<span class="swapp-wordmark-dot">.</span></span><span>Chargement de SWAPP…</span></div></div></section>
+  <section id="home" class="view active"><noscript>
+  <style>
+   #home .swappBoot{display:none!important}
+   #home .swapp-nojs{max-width:1050px;margin:0 auto;padding:clamp(32px,6vw,72px) 22px;color:#f6f8ff}
+   #home .swapp-nojs h1{font-size:clamp(28px,5vw,52px);line-height:1.14;letter-spacing:-.045em}
+   #home .swapp-nojs h2{font-size:23px;margin-top:30px}
+   #home .swapp-nojs p,#home .swapp-nojs li{font-size:17px;line-height:1.65;color:#cbd5e1}
+   #home .swapp-nojs a{color:#7ee7ed;text-underline-offset:4px}
+   #home .swapp-nojs ul{padding-left:22px}
+  </style>
+  <div class="swapp-nojs">
+   <h1>SWAPP — Actualités jeux vidéo, jeux et créateurs en direct</h1>
+   <p>Découvre un jeu, retrouve les articles qui lui sont consacrés et explore les créateurs qui y jouent. SWAPP réunit la lecture, les vidéos et la communauté autour des univers gaming.</p>
+   <h2>Explorer SWAPP sans JavaScript</h2>
+   <ul>
+    <li><a href="/actus">Lire les actualités du jeu vidéo</a> — articles éditoriaux accessibles sur des pages dédiées.</li>
+    <li><a href="/bandes-annonces">Voir les bandes-annonces</a> — sélection de vidéos consacrées aux jeux.</li>
+    <li><a href="/communaute">Découvrir la communauté</a> — informations sur l'espace communautaire SWAPP.</li>
+    <li><a href="/boutique">Parcourir la boutique</a> — présentation des offres et partenaires disponibles.</li>
+    <li><a href="/plan-du-site">Ouvrir le plan du site</a> — retrouver les rubriques et publications.</li>
+   </ul>
+   <p>Les fonctionnalités interactives, la connexion et les lecteurs de lives nécessitent l’activation de JavaScript.</p>
+   <p><a href="/contact">Contact</a> · <a href="/mentions-legales">Mentions légales</a> · <a href="/confidentialite">Confidentialité</a> · <a href="/cookies">Cookies et traceurs</a></p>
+  </div>
+ </noscript><div class="swappBoot"><div class="swappBootInner"><span class="swapp-boot-wordmark" aria-hidden="true">SWAPP<span class="swapp-wordmark-dot">.</span></span><span>Chargement de SWAPP…</span></div></div></section>
   <section id="discover" class="view"></section>
   <section id="twitch" class="view"></section>
   <section id="categories" class="view"></section>
