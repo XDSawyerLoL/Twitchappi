@@ -41,6 +41,7 @@ const RELEASE_FILES=Object.freeze([
  'assets/swapp-article-immersive.css',
  'assets/swapp-reader-studio.css',
  'assets/swapp-reader-studio.js',
+ 'assets/swapp-neural-narration.js',
  'assets/swapp-article-trailer-bg.js',
  'assets/swapp-editor-enhance.js',
  'assets/swapp-adsense-inarticle.js',
