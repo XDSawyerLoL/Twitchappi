@@ -29,7 +29,7 @@ test('CMP settings button is conditional on the real Google CMP and TCF GDPR sig
  const src=fs.readFileSync(path.join(__dirname,'../assets/swapp-footer.js'),'utf8');
  assert.match(src,/CONSENT_API_READY/);
  assert.match(src,/showRevocationMessage/);
- assert.match(src,/data?.gdprApplies!==true/);
+ assert.ok(src.includes('data?.gdprApplies!==true'));
  assert.match(src,/typeof window\.__tcfapi!=='function'/);
  assert.doesNotMatch(src,/localStorage\.setItem\(['"]consent/);
 });
