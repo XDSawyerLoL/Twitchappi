@@ -1,5 +1,5 @@
 /* SWAPP Lecture — opt-in distraction-free reading and honest French voice playback.
-   No generated audio, network request, microphone, tracking or claims of Mairy TTS. */
+   No direct fetch, microphone or tracking. Browser online voices may send article text to their provider. */
 (()=>{'use strict';
  if(window.__swappReaderStudio)return;
  window.__swappReaderStudio=true;
@@ -111,6 +111,9 @@
   if(!playing||paused||sequence!==serial||!parts[index])return;
   const chosen=voices[Number(qs('[data-reader-voice]').value)];
   if(!chosen){clearAudio();status('La voix française sélectionnée est indisponible.');return;}
+  if(chosen.localService===false&&!qs('[data-reader-online-consent]').checked){
+   clearAudio();status('Cette voix peut traiter le texte via un service en ligne du navigateur. Ton accord explicite est nécessaire.');return;
+  }
   const part=parts[index];
   highlight(part.element);
   const utterance=new window.SpeechSynthesisUtterance(part.text);
@@ -187,7 +190,8 @@
    '<span data-reader-audio-count aria-live="off"></span></div>'+
    '<div class="swapp-reader-audio-settings">'+
    '<label>Voix française<select data-reader-voice aria-label="Choisir une voix française"></select></label>'+
-   '<label>Vitesse<select data-reader-speed><option value="0.85">0,85×</option><option value="1" selected>1×</option><option value="1.1">1,1×</option><option value="1.2">1,2×</option></select></label></div>'+
+   '<label>Vitesse<select data-reader-speed><option value="0.85">0,85×</option><option value="1" selected>1×</option><option value="1.1">1,1×</option><option value="1.2">1,2×</option></select></label></div>'+ 
+   '<label class="swapp-reader-online-privacy"><input type="checkbox" data-reader-online-consent> Autoriser une voix en ligne si le navigateur en utilise une (le texte peut être transmis au fournisseur de la voix).</label>'+ 
    '<p data-reader-audio-status role="status">Vérification des voix installées…</p>'+
    '</div>';
   root.prepend(studio);
@@ -216,6 +220,7 @@
   qs('[data-reader-prev]').addEventListener('click',()=>jump(-1));
   qs('[data-reader-next]').addEventListener('click',()=>jump(1));
   qs('[data-reader-voice]').addEventListener('change',()=>{if(playing){clearAudio();status('Voix modifiée. Relance la lecture.')}});
+  qs('[data-reader-online-consent]').addEventListener('change',()=>{if(playing){clearAudio();status('Consentement vocal modifié. Relance la lecture.')}});
   qs('[data-reader-speed]').addEventListener('change',()=>{if(playing)jump(0)});
   applyPreferences();updateVoices();
  }
