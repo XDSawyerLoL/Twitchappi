@@ -153,3 +153,30 @@ test('article sharing uses canonical SWAPP URL without a paid SDK or user tracki
  assert.doesNotMatch(client,/google-analytics|gtag\(|trackEvent\(|sendBeacon\(/);
  assert.doesNotThrow(()=>new Function(client));
 });
+
+test('vignette distincte survives article validation, protects rights and controls listing/SEO only',()=>{
+ const {cardImageSources}=require('../assets/swapp-article-extras');
+ const body='Un article consacré au jeu vidéo et à ses mécaniques, avec plusieurs observations utiles.';
+ const input={title:'Test des vignettes gaming SWAPP',body,summary:'Un test des visuels du jeu',
+  game:'Test de jeu',sources:[{url:'https://example.org/test'}],
+  image:{url:'https://example.org/hero.jpg',credit:'Studio',rights:'Licence vérifiée'},
+  trailerUrl:'https://www.youtube.com/watch?v=uQuKE0KDgiM'};
+ const custom={url:'https://example.org/card.jpg',credit:'Éditeur',rights:'Licence vérifiée',
+  alt:'Artwork du jeu',position:'right'};
+ const a=assertArticle({...input,thumbnail:custom},{publish:true});
+ assert.deepEqual(a.thumbnail,custom);
+ assert.equal(a.image.url,'https://example.org/hero.jpg');
+ assert.deepEqual(cardImageSources(a),[
+  'https://example.org/card.jpg','https://example.org/hero.jpg',
+  'https://i.ytimg.com/vi/uQuKE0KDgiM/hqdefault.jpg']);
+ const html=renderNewsStory({...a,status:'published',publishedAt:'2026-10-19T00:00:00.000Z'});
+ const cards=renderNewsHome([a]);
+ assert.match(cards,/src="https:\/\/example.org\/card\.jpg"/);
+ assert.match(html,/src="https:\/\/example.org\/hero\.jpg"/);
+ assert.match(html,/<meta property="og:image" content="https:\/\/example.org\/card\.jpg"/);
+ assert.throws(()=>assertArticle({...input,thumbnail:{url:'http://example.org/a.jpg'}},{publish:true}),/vignette/);
+ assert.throws(()=>assertArticle({...input,thumbnail:{url:'https://example.org/card.jpg'}},{publish:true}),/droits vérifiés requis pour la vignette/);
+ assert.doesNotThrow(()=>assertArticle({...input,thumbnail:null},{publish:true}));
+ const noImage=assertArticle({...input,image:null,thumbnail:null},{publish:true});
+ assert.equal(cardImageSources(noImage)[0],'https://i.ytimg.com/vi/uQuKE0KDgiM/hqdefault.jpg');
+});
