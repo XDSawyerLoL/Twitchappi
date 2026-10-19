@@ -158,11 +158,17 @@
         if(!proof||pilot.seen.has(identity)||pilot.seen.size>=48)return;
         pilot.seen.add(identity);
         // The browser will send a same-origin Origin header. Cookies excluded.
+        const unavailable=()=>{
+          if(!pilot.active)return;
+          pilot.active=false;stop();
+          button.setAttribute('aria-pressed','false');
+          button.textContent='Mesure indisponible · Réessayer';
+        };
         void fetch('/api/discovery/fair-event',{
           method:'POST',credentials:'omit',keepalive:true,
           headers:{'Content-Type':'application/json','Accept':'application/json'},
           body:JSON.stringify({proof,event})
-        }).catch(()=>{});
+        }).then(response=>{if(!response.ok)unavailable()}).catch(unavailable);
       };
       const start=()=>{
         stop();
