@@ -1,5 +1,6 @@
 'use strict';
 const crypto = require('node:crypto');
+const {correctWoWForever}=require('./editorial-corrections');
 const {assertArticle, renderArticle, renderListing, isLegacyJustPlayerUrl} = require('./article-core');
 const {js:studioJs,renderStudio}=require('./editor-ui');
 const {renderNewsHome,renderNewsStory,renderJustPlayerPreview}=require('./native-pages');
@@ -59,7 +60,7 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
       &&!oldTitles.has(String(x.title||'').toLowerCase())
       &&!withdrawnUrls.has(x.legacyUrl)
       &&!withdrawnTitles.has(String(x.title||'').toLowerCase()));
-    return [...original.map(publicArticle),...recovered.map(recoveredArticle)].sort((a,b)=>String(b.publishedAt||'').localeCompare(String(a.publishedAt||'')));
+    return [...original.map(publicArticle),...recovered.map(recoveredArticle)].map(correctWoWForever).sort((a,b)=>String(b.publishedAt||'').localeCompare(String(a.publishedAt||'')));
   };
   // Recommendations from published SWAPP records and recovered articles already cached.
   // Does not initiate any remote fetch of the retired publishing platform.
@@ -104,10 +105,10 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
       const canonical=slug.startsWith('justplayer-')?nativeSlug({slug}):slug;
       const exact=await articles.doc(slug).get();
       if(exact.exists&&exact.data().status==='published')
-        return res.json(publicArticle(exact.data()));
+        return res.json(correctWoWForever(publicArticle(exact.data())));
       const snap=canonical!==slug?await articles.doc(canonical).get():exact;
       if(snap.exists&&snap.data().status==='published')
-        return res.json(publicArticle(snap.data()));
+        return res.json(correctWoWForever(publicArticle(snap.data())));
       if((exact.exists&&exact.data().legacySuppressRecovery)
         ||(snap.exists&&snap.data().legacySuppressRecovery))
         return res.status(404).json({error:'Article retiré du magazine'});

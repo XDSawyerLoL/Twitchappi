@@ -85,7 +85,8 @@ function immersiveCoverUrl(article){
 function renderNewsStory(originalArticle,{baseUrl='https://swapp.tv',relatedArticles=[],gameHubUrl=null}={}){
  // Interpret an explicit remaster headline using the Twitch edition identity
  // without mutating persistent article metadata in the database.
- const article={...originalArticle,game:require('./game-identity').editorialGame(originalArticle)};
+ const corrected=require('./editorial-corrections').correctWoWForever(originalArticle);
+ const article={...corrected,game:require('./game-identity').editorialGame(corrected)};
  const url=baseUrl+'/actus/'+encodeURIComponent(article.slug);
  const summary=plainSummary(article);
  const published=article.originalPublishedAt||article.publishedAt;
