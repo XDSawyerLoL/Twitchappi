@@ -47,6 +47,9 @@ test('listen mode cannot start without a French voice and never auto-plays',()=>
  assert.match(js,/api\.pause\(\)/);
  assert.match(js,/api\.resume\(\)/);
  assert.match(js,/api\.cancel\(\)/);
+ assert.match(js,/data-reader-online-consent/);
+ assert.match(js,/chosen\.localService===false/);
+ assert.match(js,/checked/);
  assert.match(js,/utterance\.onerror=/);
  assert.match(js,/utterance\.onend=/);
  assert.match(js,/addEventListener\('click',play\)/);
