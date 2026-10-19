@@ -1,7 +1,7 @@
 'use strict';
 const test=require('node:test');
 const assert=require('node:assert/strict');
-const {createMysqlAccountsStore,accountRow,validateUri,DDL}=require('../modules/swapp-oryon-mysql-accounts');
+const {createMysqlAccountsStore,createMysqlAccountsRecovery,accountRow,validateUri,DDL}=require('../modules/swapp-oryon-mysql-accounts');
 
 function fixture(){
  const rows=new Map(),events=[];
@@ -84,4 +84,55 @@ test('MySQL account store never deletes omitted existing accounts',async()=>{
  await store.save([one,two]);
  await store.save([one]);
  assert.equal((await store.load()).length,2);
+});
+
+test('MySQL account readiness retries after a temporary outage without restarting Node',async()=>{
+ let ready=false,attempts=0,clock=1000;
+ const recovery=createMysqlAccountsRecovery({
+  isReady:()=>ready,
+  load:async()=>{
+   attempts++;
+   if(attempts===1)throw Error('temporary_mysql_outage');
+   ready=true;
+  },
+  now:()=>clock,
+  retryDelayMs:5000
+ });
+
+ assert.equal(await recovery.ensure(),false);
+ assert.equal(attempts,1);
+ clock+=4999;
+ assert.equal(await recovery.ensure(),false);
+ assert.equal(attempts,1);
+ clock+=1;
+ assert.equal(await recovery.ensure(),true);
+ assert.equal(attempts,2);
+});
+
+test('MySQL account readiness shares one recovery attempt across concurrent requests',async()=>{
+ let ready=false,attempts=0,release;
+ const pending=new Promise(resolve=>{release=resolve});
+ const recovery=createMysqlAccountsRecovery({
+  isReady:()=>ready,
+  load:async()=>{attempts++;await pending;ready=true}
+ });
+
+ const first=recovery.ensure();
+ const second=recovery.ensure();
+ await Promise.resolve();
+ assert.equal(attempts,1);
+ release();
+ assert.deepEqual(await Promise.all([first,second]),[true,true]);
+ assert.equal(attempts,1);
+});
+
+test('MySQL account readiness does not query the database while already ready',async()=>{
+ let attempts=0;
+ const recovery=createMysqlAccountsRecovery({
+  isReady:()=>true,
+  load:async()=>{attempts++}
+ });
+
+ assert.equal(await recovery.ensure(),true);
+ assert.equal(attempts,0);
 });

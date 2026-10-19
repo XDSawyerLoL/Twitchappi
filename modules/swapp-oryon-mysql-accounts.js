@@ -31,6 +31,24 @@ function accountRow(user){
  if(Buffer.byteLength(payload,'utf8')>MAX_RECORD_BYTES)throw Error('mysql_accounts_record_too_large');
  return {id,login,email,payload};
 }
+function createMysqlAccountsRecovery({isReady,load,now=Date.now,retryDelayMs=5000}={}){
+ if(typeof isReady!=='function'||typeof load!=='function')throw Error('mysql_accounts_recovery_invalid');
+ let retryAfter=0,inFlight=null;
+ async function ensure(){
+  if(isReady())return true;
+  if(inFlight){
+   await inFlight;
+   return !!isReady();
+  }
+  const current=Number(now());
+  if(Number.isFinite(current)&&current<retryAfter)return false;
+  retryAfter=(Number.isFinite(current)?current:Date.now())+Math.max(1000,Number(retryDelayMs)||5000);
+  inFlight=Promise.resolve().then(load).catch(()=>{}).finally(()=>{inFlight=null});
+  await inFlight;
+  return !!isReady();
+ }
+ return {ensure};
+}
 function createMysqlAccountsStore({uri,pool,mysqlFactory}={}){
  let client=pool||null,initPromise=null,queue=Promise.resolve(),ready=false;
  async function ensure(){
@@ -104,4 +122,4 @@ function createMysqlAccountsStore({uri,pool,mysqlFactory}={}){
  }
  return {ensure,load,save,get ready(){return ready}};
 }
-module.exports={createMysqlAccountsStore,accountRow,validateUri,DDL};
+module.exports={createMysqlAccountsStore,createMysqlAccountsRecovery,accountRow,validateUri,DDL};
