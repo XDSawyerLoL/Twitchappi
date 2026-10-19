@@ -53,5 +53,32 @@ test('WoW trailer uses one immersive scene on native and SPA article views',()=>
  assert.match(script,/stop\(\)/);
  assert.match(script,/mute=1/);
  for(const shell of ['index.html','modules/swapp-news/site-shell.js'])
-  assert.match(read(shell),/swapp-article-trailer-bg\.js\?v=20261019-trailer-autoplay-cover-v4/);
+  assert.match(read(shell),/swapp-article-trailer-bg\.js\?v=20261019-game-media-universal-v5/);
+});
+
+test('universal immersive gameplay hero never plays an unrelated video',()=>{
+ const extras=require('../assets/swapp-article-extras');
+ const warcraft={slug:'warcraft-news',title:'Azeroth',contentType:'article',game:'World of Warcraft',
+  trailerUrl:'https://www.youtube.com/watch?v=uQuKE0KDgiM',body:'Un article fiable '.repeat(25),
+  sources:[{url:'https://worldofwarcraft.blizzard.com',label:'Blizzard'}]};
+ const witcher={...warcraft,slug:'witcher-news',title:'The Witcher',game:'The Witcher 3',trailerUrl:null,
+  image:{url:'https://example.com/witcher.jpg',credit:'Studio',rights:'Autorisation'}};
+ assert.equal(extras.heroTrailerId(warcraft),'uQuKE0KDgiM');
+ assert.equal(extras.heroTrailerId(witcher),null);
+ assert.equal(extras.heroTrailerId({...warcraft,trailerUrl:'https://evil.example.com/abc'}),null);
+ const wowHtml=renderNewsStory(warcraft),witcherHtml=renderNewsStory(witcher);
+ assert.match(wowHtml,/data-swapp-trailer-id="uQuKE0KDgiM"/);
+ assert.match(wowHtml,/has-trailer/);
+ assert.match(wowHtml,/data-swapp-trailer-title="World of Warcraft"/);
+ assert.doesNotMatch(witcherHtml,/data-swapp-trailer-id/);
+ assert.match(witcherHtml,/has-game/);
+ assert.match(witcherHtml,/witcher\.jpg/);
+ const fs=require('node:fs'),path=require('node:path');
+ const spa=fs.readFileSync(path.join(__dirname,'../assets/swapp-actus-app.js'),'utf8');
+ assert.match(spa,/SwappArticleExtras\?\.heroTrailerId\?\.\(a\)/);
+ assert.doesNotMatch(spa,/slug==='world-of-warcraft-forever-le-trailer'\?/);
+ const css=fs.readFileSync(path.join(__dirname,'../assets/swapp-article-immersive.css'),'utf8');
+ assert.match(css,/swapp-game-cover-drift/);
+ assert.match(css,/\.has-game\.has-art:not\(\.has-trailer\) img/);
+ assert.match(css,/@media\(prefers-reduced-motion:reduce\)/);
 });

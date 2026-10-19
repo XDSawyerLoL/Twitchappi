@@ -94,7 +94,8 @@ function renderNewsStory(originalArticle,{baseUrl='https://swapp.tv',relatedArti
  const seoDescription=String(article.seo?.description||summary).slice(0,160);
  const tags=Array.isArray(article.tags)?article.tags.filter(v=>typeof v==='string').slice(0,12):[];
  const isVideo=['video','trailer'].includes(article.contentType);
- const videoId=isVideo?require('../../assets/swapp-article-extras').trailerId(article.trailerUrl):null;
+ const videoId=isVideo?articleExtras.trailerId(article.trailerUrl):null;
+ const heroVideoId=articleExtras.heroTrailerId(article);
  const shareImage=editorialCover(article);
  // Google's video rich results require uploadDate, name and thumbnailUrl.
  // Keep actual origin dates on imported editorials; never invent publish times.
@@ -112,12 +113,12 @@ function renderNewsStory(originalArticle,{baseUrl='https://swapp.tv',relatedArti
  const jsonLd=JSON.stringify(schema).replace(/</g,'\\u003c');
  const metadata=`<link rel="canonical" href="${escapeHtml(url)}"><meta name="keywords" content="${escapeHtml(tags.join(', '))}"><meta property="og:type" content="${isVideo?'video.other':'article'}"><meta property="og:url" content="${escapeHtml(url)}"><meta property="og:title" content="${escapeHtml(seoTitle)}"><meta property="og:description" content="${escapeHtml(seoDescription)}">${shareImage?`<meta property="og:image" content="${escapeHtml(shareImage)}"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="${escapeHtml(shareImage)}">`:''}<script type="application/ld+json">${jsonLd}</script>`;
  const coverUrl=immersiveCoverUrl(article);
- const trailerId=String(article.slug||'')==='world-of-warcraft-forever-le-trailer'?videoId:null;
- const poster=trailerId?'https://i.ytimg.com/vi/'+trailerId+'/hqdefault.jpg':'';
+ const poster=heroVideoId?coverUrl||'https://i.ytimg.com/vi/'+heroVideoId+'/hqdefault.jpg':'';
+ const hasGame=Boolean(article.game||(Array.isArray(article.games)&&article.games.length));
  const scene='<div class="swapp-article-scene'+(coverUrl||poster?' has-art':'')+
-  (trailerId?' has-trailer':'')+'" aria-hidden="true"'+
-  (trailerId?' data-swapp-trailer-id="'+trailerId+'"':'')+'>'+
-  (trailerId?'<img class="swapp-article-trailer-poster" src="'+escapeHtml(poster)+'" alt="" decoding="async" fetchpriority="high">':
+  (hasGame?' has-game':'')+(heroVideoId?' has-trailer':'')+'" aria-hidden="true"'+
+  (heroVideoId?' data-swapp-trailer-id="'+heroVideoId+'" data-swapp-trailer-title="'+escapeHtml(String(article.game||article.title||'Jeu vidéo').slice(0,140))+'"':'')+'>'+
+  (heroVideoId?'<img class="swapp-article-trailer-poster" src="'+escapeHtml(poster)+'" alt="" decoding="async" fetchpriority="high">':
    coverUrl?'<img src="'+escapeHtml(coverUrl)+'" alt="" decoding="async" fetchpriority="high">':'')+
   '</div>';
  const heroCredit=coverUrl&&article.image?.credit?`<p class="swapp-immersive-credit">${escapeHtml(article.image.credit)}</p>`:'';

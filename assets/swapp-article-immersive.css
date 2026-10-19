@@ -61,6 +61,7 @@ body.swapp-editorial-route .article-wrap > :not(.swapp-article-scene){
 .swapp-article-scene::after{display:none!important;content:none!important}
 .swapp-article-scene:not(.has-art) img{display:none!important}
 
+/* Every gaming article: one immersive atmosphere, trailer when available, image otherwise. */
 /* WoW: full-bleed 16:9 video cropped like a cover image inside ONE existing
    hero scene. The original left/bottom gradients remain, no second banner. */
 .swapp-article-scene.has-trailer .swapp-article-trailer-poster{
@@ -109,6 +110,26 @@ body.swapp-editorial-route .article-wrap > :not(.swapp-article-scene){
  .swapp-article-scene.has-trailer .swapp-article-trailer-frame{transition:none!important}
 }
 
+/* The game artwork stays alive when no verified trailer was supplied.
+   No false video, no duplicate element or extra network request. */
+@keyframes swapp-game-cover-drift{
+  0%,100%{transform:scale(1.035) translate3d(0,0,0)}
+  50%{transform:scale(1.08) translate3d(-.9%,.5%,0)}
+}
+.swapp-article-scene.has-game.has-art:not(.has-trailer) img{
+  animation:swapp-game-cover-drift 22s ease-in-out infinite alternate;
+  transform-origin:78% 38%;will-change:transform
+}
+@media(max-width:700px){
+ .swapp-article-scene.has-game.has-art:not(.has-trailer) img{
+  animation-duration:28s;transform-origin:center center
+ }
+}
+@media(prefers-reduced-motion:reduce){
+ .swapp-article-scene.has-game.has-art:not(.has-trailer) img{
+  animation:none!important;transform:none!important;will-change:auto
+ }
+}
 /* Small, consistent article navigation. */
 #actus .swapp-actus-native.swapp-actus-reading .swapp-actus-reader-nav{
   width:min(1280px,calc(100% - 24px));margin:0 auto!important;

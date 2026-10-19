@@ -101,10 +101,16 @@ const article=el('article','swapp-actus-article');
 const heading=el('header','swapp-reader-hero swapp-immersive-hero');
 const heroCopy=el('div','swapp-immersive-content');
 // The image belongs to the article environment, not to the header.
-const trailerId=slug==='world-of-warcraft-forever-le-trailer'?window.SwappArticleExtras?.trailerId?.(a.trailerUrl):null;
-const heroImage=trailerId?'https://i.ytimg.com/vi/'+trailerId+'/hqdefault.jpg':url(a.image?.url||a.imageUrl);
+const trailerId=window.SwappArticleExtras?.heroTrailerId?.(a)||null;
+const coverImage=url(a.image?.url||a.imageUrl);
+const heroImage=coverImage||(trailerId?'https://i.ytimg.com/vi/'+trailerId+'/hqdefault.jpg':null);
 const scene=el('div','swapp-article-scene');
-if(trailerId){scene.dataset.swappTrailerId=trailerId;scene.classList.add('has-trailer');}
+if(a.game||(Array.isArray(a.games)&&a.games.length))scene.classList.add('has-game');
+if(trailerId){
+ scene.dataset.swappTrailerId=trailerId;
+ scene.dataset.swappTrailerTitle=String(a.game||a.title||'Jeu vidéo').slice(0,140);
+ scene.classList.add('has-trailer');
+}
 scene.setAttribute('aria-hidden','true');
 if(heroImage){
  const sceneImage=el('img',trailerId?'swapp-article-trailer-poster':'');
@@ -120,7 +126,7 @@ heroCopy.append(kicker,el('h1','',a.title));
 if(a.summary)heroCopy.append(el('p','swapp-actus-summary',a.summary));
 heroCopy.append(el('p','swapp-actus-author',[a.author,date(a.publishedAt||a.originalPublishedAt)].filter(Boolean).join(' · ')));
 heading.append(heroCopy);article.append(heading);
-if(heroImage&&a.image?.credit)heroCopy.append(el('p','swapp-immersive-credit',a.image.credit));
+if(coverImage&&a.image?.credit)heroCopy.append(el('p','swapp-immersive-credit',a.image.credit));
 const controls=el('div','swapp-reader-controls');const words=String(a.body||'').trim().split(/\s+/).filter(Boolean).length;
 controls.append(el('span','swapp-read-time',Math.max(1,Math.ceil(words/220))+' min de lecture'));
 const actions=el('nav','swapp-game-journey-actions');actions.setAttribute('aria-label','Explorer ce jeu sur SWAPP');

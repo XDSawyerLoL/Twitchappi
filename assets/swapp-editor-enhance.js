@@ -9,6 +9,11 @@
  const keys=['contentType','title','summary','body','category','game','games','tags','seoTitle','seoDescription',
   'author','image','credit','rights','legacy','date','sources','trailerUrl','affTitle1','affUrl1',
   'affMerchant1','affKind1','affTitle2','affUrl2','affMerchant2','affKind2'];
+ const trailerField=$('trailerUrl');
+ if(trailerField){
+  trailerField.placeholder='URL YouTube officielle — en-tête immersif automatique à 10 s';
+  trailerField.title='Pour tout article de jeu, une vidéo YouTube vérifiée active le fond animé muet de l’en-tête. Sinon, son image reste immersive.';
+ }
  const draftPrefix='swapp-studio-tab-draft-v2:';
  let changed=false,timer=null,slug='new',lastPreviewVideo=null;
  function storeKey(){return draftPrefix+slug}

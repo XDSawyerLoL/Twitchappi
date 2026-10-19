@@ -11,6 +11,7 @@
   const id=scene.getAttribute('data-swapp-trailer-id')||'';
   const hero=scene.parentElement?.querySelector('.swapp-immersive-hero .swapp-immersive-content');
   if(!valid(id)||!hero)return;
+  const gameLabel=String(scene.getAttribute('data-swapp-trailer-title')||'jeu vidéo').trim().slice(0,140);
   mounted.add(scene);
   const control=document.createElement('button');
   control.type='button';
@@ -54,7 +55,7 @@
    if(!force&&reduced())return;
    const iframe=document.createElement('iframe');
    iframe.className='swapp-article-trailer-frame';
-   iframe.title='World of Warcraft: Forever — bande-annonce muette de fond';
+   iframe.title=gameLabel+' — bande-annonce muette en fond d’article';
    iframe.setAttribute('aria-hidden','true');
    iframe.setAttribute('tabindex','-1');
    iframe.setAttribute('allow','autoplay; encrypted-media; picture-in-picture');

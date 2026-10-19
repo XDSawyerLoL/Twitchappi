@@ -30,6 +30,12 @@
   else if(domain==='www.youtube-nocookie.com'&&/^\/embed\/[A-Za-z0-9_-]{11}$/.test(u.pathname))id=u.pathname.split('/')[2];
   return /^[A-Za-z0-9_-]{11}$/.test(id)?id:null;
  }
+ // A video backdrop is attached ONLY when the editor actually supplied
+ // a valid YouTube URL. Never reuse a neighbouring game's trailer.
+ // Works for ordinary articles as well as video/trailer content types.
+ function heroTrailerId(article){
+  return trailerId(article?.trailerUrl);
+ }
  function commercialLinks(links,strict=false){
   if(links==null)return [];
   if(!Array.isArray(links)||links.length>2){if(strict)throw Error('Deux liens commerciaux maximum');return []}
@@ -139,5 +145,5 @@
    if(button)activate(button);
   });
  }
- return Object.freeze({trailerId,commercialLinks,isAmazonLink,amazonDisclosure,renderServer,mount});
+ return Object.freeze({trailerId,heroTrailerId,commercialLinks,isAmazonLink,amazonDisclosure,renderServer,mount});
 });
