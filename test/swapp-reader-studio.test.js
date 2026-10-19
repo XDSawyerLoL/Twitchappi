@@ -111,3 +111,11 @@ test('Vivienne is preferred and Mairaiy is a real recorded audio option, not a f
  assert.match(js,/mairaiy\.disabled=!mairaiyAvailable/);
  assert.doesNotMatch(js,/data-reader-online-consent|Autoriser une voix en ligne si le navigateur en utilise une/);
 });
+
+
+test('reader JS and CSS bypass shared browser cache when SWAPP deploys a new voice',()=>{
+ const server=read('server.js');
+ assert.ok(server.includes('swapp-reader-(?:studio|experience)'));
+ assert.ok(server.includes('swapp-neural-narration\\.js'));
+ assert.match(server,/Cache-Control','no-store, no-cache, must-revalidate/);
+});
