@@ -32,3 +32,30 @@ Audit fondé sur le dépôt GitHub `XDSawyerLoL/Twitchappi`, les pages accessibl
 - https://support.google.com/adsense/answer/7299563?hl=fr
 
 Ce rapport ne doit pas être affiché comme une attestation de conformité ou être utilisé pour demander un réexamen automatique.
+
+
+## Modifications techniques faites le 19 octobre 2026
+- Le texte public de `/actus/world-of-warcraft-forever-le-trailer` est remplacé à l'affichage par un dossier original, sourcé à partir des communiqués officiels Blizzard : l'affirmation « On a testé » est supprimée, le trailer officiel et les informations de sortie sont ajoutés. Cette correction est conditionnelle à la présence du texte obsolète et ne modifie pas directement le document Firestore. Quand une édition réelle remplace l'ancien contenu, le correctif cesse de s'appliquer. Les anciennes images dont les droits n'étaient pas établis sont supprimées du rendu corrigé.
+- Les pages juridiques exposent les renseignements de l'éditeur **uniquement si** les variables Hostinger ci-dessous sont correctement configurées. Elles conservent les avertissements pertinents lorsque ces informations manquent. Ne jamais publier de fausses identités.
+- Un bouton « Gérer mes choix publicitaires » est rendu dans le pied de page seulement lorsque l'API Google CMP certifiée est effectivement chargée et que le signal IAB TCF indique que le RGPD s'applique. Il réouvre le dialogue officiel, et n'enregistre aucun consentement localement.
+
+## Variables à configurer sur Hostinger (valeurs authentiques uniquement)
+Ces champs sont des informations publiques. Les renseigner dans **Hostinger → Web App → Variables d'environnement**, sans les inventer et sans les inscrire en clair dans GitHub :
+- `SWAPP_LEGAL_PUBLISHER_NAME` : nom légal complet de l'éditeur (personne physique ou société).
+- `SWAPP_LEGAL_PUBLISHER_ADDRESS` : adresse officielle légalement publiable.
+- `SWAPP_LEGAL_REGISTRATION` : numéro d'immatriculation applicable, s'il existe.
+- `SWAPP_LEGAL_CONTACT_EMAIL` : adresse **existante et contrôlée**, destinée au contact.
+- `SWAPP_LEGAL_PRIVACY_EMAIL` : boîte privée dédiée aux demandes RGPD ; si absente, l'adresse de contact est utilisée.
+- `SWAPP_LEGAL_HOST_DETAILS` : dénomination et coordonnées contractuelles vérifiées de l'hébergeur.
+
+Après renseignement, vérifier effectivement `/mentions-legales`, `/contact` et `/confidentialite`. Une boîte non créée ou un e-mail inaccessible ne compte pas comme un contact réel. Les finalités, bases légales, durées de conservation et destinataires des traitements doivent encore être complétés après audit des services.
+
+## Action nécessaire dans le compte Google AdSense
+SWAPP ne peut pas **activer** lui-même une CMP certifiée Google à partir de GitHub.
+1. Ouvrir **AdSense → Confidentialité et messages → Réglementations européennes → Créer** (ou **Gérer**).
+2. Sélectionner **swapp.tv**, personnaliser le message en français, prévoir **Accepter, Refuser, Gérer les options**, choisir les partenaires et publier la configuration. Les libellés exacts peuvent varier.
+3. Tester en navigation privée depuis la France (ordinateur et mobile), tester refus, acceptation, puis révocation via le lien du pied de page.
+4. Si la CMP n'est pas active, **ne pas revendiquer** un consentement vérifié. Le code dans `<head>` est un code de vérification, pas une CMP.
+5. Contrôler la nouvelle version de `swapp.tv` après déploiement Hostinger. GitHub seul ne démontre pas le comportement réel.
+
+Sources : https://support.google.com/adsense/answer/10960768?hl=fr et https://developers.google.com/funding-choices/fc-api-docs?hl=fr .
