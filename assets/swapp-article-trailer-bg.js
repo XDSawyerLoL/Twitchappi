@@ -13,16 +13,6 @@
   if(!valid(id)||!hero)return;
   const gameLabel=String(scene.getAttribute('data-swapp-trailer-title')||'jeu vidéo').trim().slice(0,140);
   mounted.add(scene);
-  const control=document.createElement('button');
-  control.type='button';
-  control.className='swapp-trailer-hero-toggle';
-  control.textContent='Ⅱ Mettre la vidéo en pause';
-  control.setAttribute('aria-pressed','false');
-  control.setAttribute('aria-label','Mettre en pause ou relancer la bande-annonce muette');
-  const actions=document.createElement('div');
-  actions.className='swapp-trailer-hero-actions';
-  actions.append(control);
-  hero.append(actions);
   const poster=scene.querySelector('.swapp-article-trailer-poster');
   // Prefer an actual high-resolution YouTube image, with graceful fallback.
   // Do not replace an editor's licensed primary artwork.
@@ -63,8 +53,6 @@
   function stop(){
    if(frame){frame.remove();frame=null}
    scene.classList.remove('is-trailer-playing');
-   control.textContent='▶ Reprendre la vidéo';
-   control.setAttribute('aria-pressed','false');
    if(poster)poster.hidden=false;
   }
   function play(force=false){
@@ -82,8 +70,6 @@
    iframe.addEventListener('load',()=>{
     if(frame!==iframe)return;
     scene.classList.add('is-trailer-playing');
-    control.textContent='Ⅱ Mettre la vidéo en pause';
-    control.setAttribute('aria-pressed','true');
     // Register YouTube's official postMessage listening protocol.
     try{iframe.contentWindow?.postMessage(JSON.stringify({event:'listening',id:'swapp-hero'}),
       'https://www.youtube-nocookie.com')}catch(_){}
@@ -95,10 +81,6 @@
    scene.append(iframe);
    frame=iframe;
   }
-  control.addEventListener('click',()=>{
-   if(frame){paused=true;stop();return}
-   paused=false;play(true);
-  });
   function onVisibility(){
    if(!scene.isConnected){
     stop();document.removeEventListener('visibilitychange',onVisibility);
