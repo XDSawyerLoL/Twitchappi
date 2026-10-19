@@ -216,7 +216,7 @@ test('studio always loads current protected action code and avoids stale cache',
  const router=read('modules/swapp-news/router.js');
  assert.match(router,/router\.get\('\/actus\/studio',\.\.\.editor,.*private, no-store/);
  assert.match(router,/router\.get\('\/actus\/studio\.js',\.\.\.editor,.*private, no-store/);
- assert.match(renderStudio(),/swapp-editor-enhance\.js\?v=20261019-trailer-visible-v4/);
+ assert.match(renderStudio(),/swapp-editor-enhance\.js\?v=20261019-thumbnail-cards-v5/);
 });
 test('publish button and draft save are enabled for unsaved posts and properly disabled after publishing',()=>{
  const begin=js.indexOf('function setEditor(a){'),end=js.indexOf('function previewImage()',begin);
@@ -227,4 +227,20 @@ test('publish button and draft save are enabled for unsaved posts and properly d
  const html=renderStudio();
  assert.ok(!html.includes('id="ed-publish" disabled'));
  assert.match(html,/id="ed-publish-hint"/);
+});
+
+test('dedicated 16:9 article thumbnails appear in Studio and persist independently from hero',()=>{
+ const html=renderStudio();
+ for(const name of ['thumbnailUrl','thumbnailCredit','thumbnailRights','thumbnailAlt',
+  'thumbnailPosition','ed-thumb-preview','ed-thumb-from-cover','ed-thumb-from-trailer','ed-thumb-clear']){
+   assert.match(html,new RegExp('id="'+name+'"'));
+ }
+ assert.match(html,/Vignette de carte · 16:9/);
+ assert.ok(html.indexOf('id="thumbnailUrl"')<html.indexOf('id="body"'));
+ for(const field of ["thumbnail:$('thumbnailUrl')", "thumbnailUrl:a?.thumbnail?.url", "previewThumbnail()"]){
+   assert.ok(js.includes(field),field);
+ }
+ const enhancement=read('assets/swapp-editor-enhance.js');
+ for(const key of ['thumbnailUrl','thumbnailCredit','thumbnailRights','thumbnailAlt','thumbnailPosition'])
+   assert.ok(enhancement.includes("'"+key+"'"));
 });
