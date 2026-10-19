@@ -137,17 +137,17 @@ test('full view opens the integrated SWAPP player; modified clicks use official 
  assert.equal(prevented,false);
  assert.equal(opened.length,1);
 });
-test('the existing articles and stream cards expose accessible inline play without more sections',()=>{
+test('article live cards are accessible single-action links with SWAPP integrated watch',()=>{
  const app=read('assets/swapp-actus-app.js');
  const html=read('index.html');
  const css=read('assets/swapp-art-direction.css');
  const main=read('index_script.js');
  assert.ok(html.indexOf('/assets/swapp-article-player.js?v=20261015-player-41') <
-   html.indexOf('/assets/swapp-actus-app.js?v=20261015-player-41'));
- assert.match(app,/swapp-reader-live-inline/);
- assert.match(app,/SwappArticlePlayer\?\.open/);
- assert.match(app,/SwappArticlePlayer\?\.close\(\)/);
- assert.match(app,/link=el\(native\?'a':'div','swapp-reader-live-card'\)/);
+   html.indexOf('/assets/swapp-actus-app.js?v=20261019-premium-live-v8'));
+ assert.match(app,/const card=el\('a','swapp-reader-live-card'\)/);
+ assert.match(app,/swapp-reader-live-watch/);
+ assert.match(app,/swapp-reader-live-header/);
+ assert.doesNotMatch(app,/swapp-reader-live-inline|swapp-reader-live-actions|Même jeu ·/);
  assert.match(app,/SwappArticlePlayer\?\.openFull/);
  assert.match(app,/\/live\/twitch\//);
  assert.doesNotMatch(app,/https:\/\/www\.twitch\.tv\//);

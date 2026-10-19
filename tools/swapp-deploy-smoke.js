@@ -95,7 +95,7 @@ async function verify(){
  const home=await request(origin,'/');
  // All articles share a single immersive scene: own game trailer when one
  // exists, animated poster otherwise. Google CMP remains for AdSense only.
- check(home.body.includes('swapp-article-trailer-bg.js?v=20261019-game-media-universal-v5'),
+ check(home.body.includes('swapp-article-trailer-bg.js?v=20261019-highres-poster-v6'),
   'The current universal game-article trailer controller is missing from SPA');
  const trailerJs=await request(origin,'/assets/swapp-article-trailer-bg.js');
  check(trailerJs.body.includes('youtube-nocookie.com/embed')&&
@@ -104,7 +104,7 @@ async function verify(){
   !trailerJs.body.includes('CONSENT_API_READY'),
   'Game-article autoplay controller is stale');
  const extras=await request(origin,'/assets/swapp-article-extras.js');
- check(home.body.includes('swapp-article-extras.js?v=20261019-card-thumbnails-v7'),
+ check(home.body.includes('swapp-article-extras.js?v=20261019-slim-trailer-v8'),
   'Homepage still caches previous trailer validation library');
  check(extras.body.includes('function heroTrailerId(article)')&&
    extras.body.includes('heroTrailerId,isGameArticle,cardImageSources,commercialLinks'),
@@ -112,11 +112,24 @@ async function verify(){
  const cardClient=await request(origin,'/assets/swapp-actus-app.js');
  check(cardClient.body.includes('SwappArticleExtras?.cardImageSources')&&
   cardClient.body.includes('swapp-actus-cover-fallback')&&
-  home.body.includes('swapp-actus-app.css?v=20261019-card-thumbnails-v7'),
+  home.body.includes('swapp-actus-app.css?v=20261019-premium-live-v8'),
   'Card thumbnails or premium missing-image style are stale');
  const cardCss=await request(origin,'/assets/swapp-actus-app.css');
  check(cardCss.body.includes('swapp-actus-cover-fallback'),
   'Card design fallback not deployed');
+ // The lower full-screen trailer is gone; the verified YouTube hero remains.
+ check(extras.body.includes('swapp-hero-video-links')&&
+  !extras.body.includes('swapp-trailer-stage')&&
+  home.body.includes('swapp-article-extras.css?v=20261019-slim-trailer-v8'),
+  'Article still duplicates a large trailer below its immersive header');
+ check(trailerJs.body.includes('maxresdefault')&&
+  trailerJs.body.includes('sddefault'),
+  'Ambient YouTube artwork does not try high-resolution poster');
+ check(cardClient.body.includes('swapp-reader-live-header')&&
+  cardClient.body.includes('swapp-reader-live-watch')&&
+  !cardClient.body.includes('swapp-reader-live-inline')&&
+  !cardClient.body.includes('swapp-game-connection'),
+  'The article live cards still show duplicate actions or badges');
  const trailerCss=await request(origin,'/assets/swapp-article-immersive.css');
  check(trailerCss.body.includes('.swapp-article-scene.has-trailer')&&
   trailerCss.body.includes('.swapp-article-trailer-frame')&&
@@ -258,7 +271,7 @@ async function verify(){
   !readerApp.body.includes('a.length>=7&&b.includes(a)'),
   'Actualité still matches sequels incorrectly or opens external lives');
  check(home.body.includes('/assets/swapp-media.css?v=20261017-channel-news-v13')&&
-  home.body.includes('/assets/swapp-actus-app.js?v=20261019-card-thumbnails-v7'),
+  home.body.includes('/assets/swapp-actus-app.js?v=20261019-premium-live-v8'),
   'Homepage is still using the old game bridge');
  // Native creator channel: same editorial game identity, no frozen status text.
  const nativeArticles=await request(origin,'/assets/swapp-live-articles.js');
@@ -359,7 +372,7 @@ async function verify(){
  process.stdout.write('PASS shared navigation, news and SOCIAL presentation asset\n');
  process.stdout.write('PASS /actus\n');
  // Verify the actual mobile reading and video assets, not just HTML shell CSS.
- const articleClient='/assets/swapp-actus-app.js?v=20261019-card-thumbnails-v7';
+ const articleClient='/assets/swapp-actus-app.js?v=20261019-premium-live-v8';
  const videoClient='/assets/swapp-video-player.js?v=20261016-ios-journey-1';
  const videoStyle='/assets/swapp-video-gallery.css?v=20261016-ios-journey-1';
  for(const name of [articleClient,videoClient,videoStyle])
