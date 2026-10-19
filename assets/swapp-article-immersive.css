@@ -40,7 +40,7 @@ body.swapp-editorial-route .article-wrap > :not(.swapp-article-scene){
   height:100%;width:auto;max-width:none;
   object-fit:contain;object-position:right top;
   filter:brightness(.83) saturate(.98) contrast(1.03);
-  transform:none!important;
+  transform:none;
   /* Fade the real IMAGE edge, not just a transparent veil over it.
      Its right-aligned, natural-ratio layout is unchanged. */
   -webkit-mask-image:linear-gradient(90deg,
