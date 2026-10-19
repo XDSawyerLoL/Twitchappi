@@ -13,7 +13,7 @@ test('SWAPP legal disclosures describe the existing ad setup without claiming ve
  assert.match(legal,/plateforme de gestion du consentement certifiée par Google/);
  assert.match(legal,/Ne communiquez jamais des données personnelles sensibles/);
  assert.match(legal,/coordonnées privées du responsable du traitement/);
- assert.doesNotMatch(legal,/bandeau de consentement est déjà actif\./);
+ assert.match(legal,/Cette page n’affirme pas qu’un bandeau de consentement est déjà actif/);
 });
 
 test('publisher pages and AdSense verification are present but approval is never declared',()=>{
