@@ -65,8 +65,28 @@ function summarizeFairAdmin({bands=[],daily=[],dailyCreators=[],games=[],uniqueC
   bands:visibleBands,trend,games:topGames,
   warning:'Les catégories varient selon l’audience instantanée et un même créateur peut changer de catégorie. Les résultats volontaires ne représentent pas tous les visiteurs.'};
 }
-const PAGE_CSS='<link rel="stylesheet" href="/assets/swapp-fair-admin.css?v=20261019-dashboard-v1">';
-const PAGE_SCRIPT='<script defer src="/assets/swapp-fair-admin.js?v=20261019-dashboard-surfaces-v3"></script>';
+// Server-side offers are API candidates, NOT voluntary observed impressions.
+function summarizeFairOffers({bands=[],uniqueCreators=0,days=7,placement='all',enabled=true}={}){
+ const periodDays=days===14?14:7;
+ const base={enabled:!!enabled,kind:'server-returned-candidates',placement,periodDays,
+  comparableToOptIn:false,thresholds:{opportunities:50,creators:5},
+  note:'Candidats contenus dans les réponses API terminées ; pas des cartes vues, des visiteurs uniques ni un entonnoir de conversion.'};
+ if(!enabled)return {...base,sample:'not_collected'};
+ const rows=(Array.isArray(bands)?bands:[]).filter(x=>BANDS.includes(x.audience_band))
+  .map(x=>({name:x.audience_band,opportunities:count(x.opportunities),creators:count(x.creators)}));
+ const total=rows.reduce((acc,x)=>acc+x.opportunities,0),creators=count(uniqueCreators);
+ if(total<50||creators<5)return {...base,sample:'insufficient'};
+ return {...base,sample:'aggregate',totals:{opportunities:total,creators},
+  bands:BANDS.map(name=>{
+   const r=rows.find(x=>x.name===name)||{opportunities:0,creators:0};
+   const visible=r.opportunities>=10&&r.creators>=3;
+   return {name,sample:visible?'aggregate':'insufficient',
+    opportunities:visible?r.opportunities:null,creators:visible?r.creators:null,
+    share:visible?percent(r.opportunities,total):null};
+  })};
+}
+const PAGE_CSS='<link rel="stylesheet" href="/assets/swapp-fair-admin.css?v=20261019-server-offers-v4">';
+const PAGE_SCRIPT='<script defer src="/assets/swapp-fair-admin.js?v=20261019-server-offers-v4"></script>';
 function fairAdminPage(){
  const content='<main class="fair-admin" id="fair-admin-root">'+
   '<nav class="fair-crumb" aria-label="Administration"><a href="/actus/studio">Administration</a><span aria-hidden="true">/</span><strong>Fair Discovery</strong></nav>'+
@@ -75,6 +95,14 @@ function fairAdminPage(){
   '<div class="fair-header-actions"><label for="fair-period">Période</label><select id="fair-period"><option value="7">7 derniers jours</option><option value="14">14 derniers jours</option></select>'+
   '<label for="fair-placement">Emplacement</label><select id="fair-placement"><option value="all" selected>Tous</option><option value="home">Accueil</option><option value="discover">Découvrir</option><option value="game">Fiches de jeux</option></select><button type="button" id="fair-refresh">Actualiser</button></div></header>'+
   '<p id="fair-status" role="status" aria-live="polite">Chargement des statistiques agrégées…</p>'+
+  '<section class="fair-panel fair-offers-panel" aria-labelledby="fair-offers-title">'+
+  '<div class="fair-panel-head"><h2 id="fair-offers-title">Opportunités proposées par SWAPP</h2><span>Candidats API · mesure indépendante</span></div>'+
+  '<p class="fair-offers-note">Ces propositions proviennent de réponses du serveur terminées. Elles ne prouvent pas que les cartes ont été affichées ou vues. Ne pas calculer de taux de conversion avec les impressions volontaires.</p>'+
+  '<p id="fair-offers-status" role="status" aria-live="polite">Chargement…</p>'+
+  '<div class="fair-offers-totals" id="fair-offers-totals" hidden>'+
+  '<strong id="fair-offers-count">—</strong><span>propositions de lives</span>'+
+  '<strong id="fair-offers-creators">—</strong><span>créateurs distincts</span></div>'+
+  '<div class="fair-bars" id="fair-offers-bands" hidden></div></section>'+
   '<div class="fair-empty" id="fair-empty" hidden><strong id="fair-empty-title">Pas encore de données exploitables.</strong>'+
   '<p id="fair-empty-description">Les statistiques restent masquées tant que l’échantillon volontaire est insuffisant.</p>'+
   '<a href="/jeux">Parcourir les fiches de jeux →</a></div>'+
@@ -88,12 +116,12 @@ function fairAdminPage(){
   '<div id="fair-trend" class="fair-trend" role="img" aria-label="Histogramme des impressions volontaires par jour"></div></section></div>'+
   '<section class="fair-panel" aria-labelledby="fair-games-title"><div class="fair-panel-head"><h2 id="fair-games-title">Jeux où les lives sont découverts</h2><span>Jeux dépassant les seuils minimaux</span></div>'+
   '<div id="fair-games" class="fair-game-list"></div></section></div>'+
-  '<footer class="fair-foot"><p><strong>Lecture correcte :</strong> il s’agit d’un échantillon de visiteurs ayant activé la mesure sur les fiches de jeux. Un résultat masqué signifie « données insuffisantes », pas zéro. Les impressions ne comptent pas les visiteurs uniques.</p>'+
+  '<footer class="fair-foot"><p><strong>Lecture correcte :</strong> les opportunités désignent des candidats renvoyés par les API de SWAPP, et les impressions désignent des cartes vues après consentement volontaire. Ces séries sont indépendantes et ne permettent pas de calculer un taux de conversion. Un résultat masqué signifie « données insuffisantes », pas zéro.</p>'+
   '<a href="/actus/studio">← Retour au Studio</a></footer></main>';
  return layout({title:'Fair Discovery · Administration SWAPP',description:'Statistiques administrateur sur la découverte volontaire des créateurs SWAPP',
   content,active:'actus',metadata:'<meta name="robots" content="noindex,nofollow,noarchive">',scripts:PAGE_CSS+PAGE_SCRIPT});
 }
-function registerFairAdmin({app,guard,restoreSession,fairMetrics,getPool}={}){
+function registerFairAdmin({app,guard,restoreSession,fairMetrics,fairOffers=null,getPool}={}){
  if(typeof app?.get!=='function'||typeof guard!=='function'||typeof restoreSession!=='function'||
   !fairMetrics||typeof fairMetrics.summary!=='function'||typeof getPool!=='function')throw Error('fair_admin_dependencies_missing');
  // Restrict both routes to the exact authenticated editor role. This reuses
@@ -115,6 +143,13 @@ function registerFairAdmin({app,guard,restoreSession,fairMetrics,getPool}={}){
    if(!base.enabled)return res.json(summarizeFairAdmin({enabled:false,days}));
    const pool=getPool();
    if(!pool)return res.status(503).json({error:'metrics_unavailable'});
+   // Server candidates are an independent series. A failure cannot obscure voluntary measurements.
+   let offers={enabled:false,sample:'unavailable'};
+   if(fairOffers){
+    try{const raw=await fairOffers.summary({days,placement});
+     offers=summarizeFairOffers({...raw,days,placement});
+    }catch{offers={enabled:false,sample:'unavailable'}}
+   }
    const range=days===14?13:6;
    const where='WHERE event_day>=UTC_DATE() - INTERVAL '+range+' DAY AND event_day<=UTC_DATE()'+(placement==='all'?'':' AND placement=?');
   const params=placement==='all'?[]:[placement];
@@ -131,8 +166,8 @@ function registerFairAdmin({app,guard,restoreSession,fairMetrics,getPool}={}){
    const [games]=await pool.execute('SELECT game_name,COUNT(DISTINCT platform,creator_login) AS creators,'+
     'SUM(impressions) AS impressions,SUM(clicks) AS clicks FROM swapp_fair_exposure_daily '+where+
     ' GROUP BY game_name ORDER BY impressions DESC LIMIT 120',params);
-   return res.json(summarizeFairAdmin({bands,uniqueCreators:unique?.[0]?.creators,daily,dailyCreators,games,days,placement}));
+   return res.json({...summarizeFairAdmin({bands,uniqueCreators:unique?.[0]?.creators,daily,dailyCreators,games,days,placement}),offers});
   }catch{return res.status(503).json({error:'metrics_unavailable'})}
  });
 }
-module.exports={registerFairAdmin,summarizeFairAdmin,fairAdminPage};
+module.exports={registerFairAdmin,summarizeFairAdmin,summarizeFairOffers,fairAdminPage};

@@ -57,3 +57,15 @@
 @media(max-width:780px){.fair-admin{width:min(100% - 28px,640px);margin:19px auto 80px}.fair-header{display:block}.fair-header-actions{margin-top:25px}.fair-dashboard-grid{grid-template-columns:1fr}.fair-panel{padding:22px 18px}.fair-bar-caption,.fair-game-title{align-items:flex-start}.fair-header-actions :is(select,button){min-height:48px}}
 @media(max-width:420px){.fair-kpis article{padding:17px 11px 20px}.fair-kpis strong{font-size:33px}.fair-bar-caption strong,.fair-game-title strong{font-size:12px}.fair-bar-caption>span,.fair-game-title>span{font-size:11px}.fair-game{grid-template-columns:27px minmax(0,1fr);gap:10px}}
 @media(prefers-reduced-motion:reduce){.fair-bar-fill{transition:none}}
+
+/* Fair Discovery v4: offers have a distinct neutral visual language. */
+.fair-offers-panel{margin-bottom:22px;border-color:#47616a;background:linear-gradient(112deg,#112936,#162438)}
+.fair-offers-note{max-width:970px;color:#afc5d1;font-size:13px;line-height:1.65}
+#fair-offers-status{font-size:12px;line-height:1.5;color:#a1ccda}
+.fair-offers-totals{display:grid;grid-template-columns:max-content minmax(0,1fr) max-content minmax(0,1fr);align-items:baseline;gap:10px 16px;margin:20px 0 24px;padding:14px 0;border-top:1px solid #ffffff24;border-bottom:1px solid #ffffff24}
+.fair-offers-totals strong{font-variant-numeric:tabular-nums;font-size:clamp(25px,3vw,40px);letter-spacing:-.05em;color:#e2f8ff}
+.fair-offers-totals span{font-size:12px;color:#afc5d1}
+#fair-offers-bands{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}
+#fair-offers-bands .fair-bar-caption{align-items:flex-start;flex-wrap:wrap;gap:5px}
+#fair-offers-bands .fair-bar-track{height:8px}
+@media(max-width:780px){.fair-offers-totals{grid-template-columns:max-content minmax(0,1fr)}#fair-offers-bands{grid-template-columns:1fr;gap:21px}}
