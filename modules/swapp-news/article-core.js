@@ -1,6 +1,6 @@
 'use strict';
 
-const {trailerId,commercialLinks}=require('../../assets/swapp-article-extras');
+const {trailerId,commercialLinks,cardImageSources}=require('../../assets/swapp-article-extras');
 const {serverHeader,serverMobile}=require('../../assets/swapp-navigation');
 const {recommend,cleanTags,cleanSEO,contentType,detectGames}=require('./content-metadata');
 
@@ -114,7 +114,8 @@ function renderArticle(article, {baseUrl = 'https://swapp.tv'} = {}) {
 function renderListing(articles, {baseUrl='https://swapp.tv'} = {}) {
   const [featured,...latest]=articles;
   function item(a) {
-    const picture=a.image?.url ? '<img src="'+escapeHtml(a.image.url)+'" alt="" loading="lazy">' : '';
+    const thumbnail=cardImageSources(a)[0];
+    const picture=thumbnail?'<img src="'+escapeHtml(thumbnail)+'" alt="'+escapeHtml(a.thumbnail?.alt||a.title)+'" loading="lazy">':'';
     return '<a class="card" href="/actus/'+encodeURIComponent(a.slug)+'">'+picture+
       '<div class="card-content"><span class="pill">'+escapeHtml(a.category||'ACTUS')+'</span><h2>'+escapeHtml(a.title)+
       '</h2><p>'+escapeHtml(a.summary||a.body?.slice(0,160)||'')+'</p><small class="muted">'+
@@ -122,7 +123,7 @@ function renderListing(articles, {baseUrl='https://swapp.tv'} = {}) {
   }
   const heroFeature=featured?
     '<span class="swapp-media-kicker">À la une · '+escapeHtml(featured.category||'ACTUS')+'</span>'+
-    (featured.image?.url?'<img src="'+escapeHtml(featured.image.url)+'" alt="" loading="lazy">':'')+
+    (cardImageSources(featured)[0]?'<img src="'+escapeHtml(cardImageSources(featured)[0])+'" alt="" loading="lazy">':'')+
     '<h2>'+escapeHtml(featured.title)+'</h2><p>'+escapeHtml(featured.summary||'')+'</p>'+
     '<a class="swapp-media-button primary" href="/actus/'+encodeURIComponent(featured.slug)+'">Lire cet article →</a>':
     '<span class="swapp-media-kicker">La rédaction prend forme</span><h2>Le gaming, ses histoires et ceux qui les vivent.</h2>'+
