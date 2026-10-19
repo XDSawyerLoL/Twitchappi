@@ -581,13 +581,17 @@ async function init(){
       }).catch(()=>{});
     }
   },60000);
-  const requestedGame=String(new URLSearchParams(location.search).get('game')||'').trim().slice(0,90);
+  const params=new URLSearchParams(location.search);
+  const requestedGame=String(params.get('game')||'').trim();
   const requestedView=document.getElementById('swappSocialNative')?.dataset.requestedSocialView;
-  if(requestedView==='play'||requestedView==='rooms'){
+  // A real game room beats a text-only search. Leave news reposts and explicit
+  // play entries alone. No room is auto-joined and no microphone starts.
+  const gameRooms=requestedGame.length>=2&&requestedGame.length<=65&&params.get('share')!=='news'&&requestedView!=='play';
+  if(gameRooms)setView('rooms','Salons · '+requestedGame);
+  else if(requestedView==='play'||requestedView==='rooms')
     setView(requestedView,requestedView==='play'?'Jeux et équipes':'Salons de discussion');
-  }
-  // Do not overwrite an intentional view after a delayed SSO response.
-  await Promise.allSettled([...(requestedGame.length>=2?[loadExplore(requestedGame,{gameContext:true})]:state.view==='home'?[loadHome()]:[]),loadCirclePreview()]);
+  // Do not overwrite an intentional view after the delayed SSO response.
+  await Promise.allSettled([...(state.view==='home'?[loadHome()]:[]),loadCirclePreview()]);
 }
 
 init().catch(error=>{
