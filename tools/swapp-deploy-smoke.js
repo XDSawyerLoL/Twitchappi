@@ -146,7 +146,7 @@ async function verify(){
  // SWAPP Lecture: both server-rendered articles and the SPA must ship the same
  // opt-in reader and narrator. This does not claim that a Mairy voice exists.
  for(const [pathname,page] of [['/',home],['/actus',news]]){
-  check(page.body.includes('/assets/swapp-reader-studio.js?v=20261019-reading-v2')&&
+  check(page.body.includes('/assets/swapp-reader-studio.js?v=20261019-native-boot-v3')&&
     page.body.includes('/assets/swapp-reader-studio.css?v=20261019-reading-v1'),
     pathname+': article reading module absent or stale');
  }
@@ -174,7 +174,7 @@ async function verify(){
  check(reader.body.includes('currentToc')&&
   reader.body.includes('if(found&&toc&&mount(found))')&&
   reader.body.includes('ResizeObserver')&&
-  home.body.includes('swapp-reader-experience.js?v=20261019-toc-sticky-v3'),
+  home.body.includes('swapp-reader-experience.js?v=20261019-native-boot-v4'),
   'First-navigation TOC mounting fix not deployed');
  check(extras.body.includes('function partnerOffersHtml(a)')&&
   extras.body.includes('swapp-affiliate-offer swapp-affiliate-manual')&&
