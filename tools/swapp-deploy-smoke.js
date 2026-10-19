@@ -93,20 +93,26 @@ async function verify(){
  process.stdout.write('PASS SWAPP Boutique ten Steam games only; catalog drafts remain private to editor\n');
  // Home markup is also inspected by the Boutique editor check below.
  const home=await request(origin,'/');
- // WoW editorial ambient trailer: verify deployment serves the exact controller
- // and both public HTML shells use it. No browser playback or consent is faked.
+ // All articles share a single immersive scene: own game trailer when one
+ // exists, animated poster otherwise. Google CMP remains for AdSense only.
  check(home.body.includes('swapp-article-trailer-bg.js?v=20261019-game-media-universal-v5'),
-  'WoW immersive trailer controller is missing from deployed SPA');
+  'The current universal game-article trailer controller is missing from SPA');
  const trailerJs=await request(origin,'/assets/swapp-article-trailer-bg.js');
  check(trailerJs.body.includes('youtube-nocookie.com/embed')&&
-  trailerJs.body.includes('CONSENT_API_READY')&&
-  trailerJs.body.includes('start=10')&&trailerJs.body.includes('mute=1'),
-  'WoW trailer controller asset is stale or missing privacy gates');
+  trailerJs.body.includes('start=10')&&trailerJs.body.includes('mute=1')&&
+  trailerJs.body.includes('data-swapp-trailer-title')&&
+  !trailerJs.body.includes('CONSENT_API_READY'),
+  'Game-article autoplay controller is stale');
+ const extras=await request(origin,'/assets/swapp-article-extras.js');
+ check(extras.body.includes('function heroTrailerId(article)')&&
+   extras.body.includes('heroTrailerId,commercialLinks'),
+  'Universal editorial game-trailer matcher has not deployed');
  const trailerCss=await request(origin,'/assets/swapp-article-immersive.css');
  check(trailerCss.body.includes('.swapp-article-scene.has-trailer')&&
-  trailerCss.body.includes('.swapp-article-trailer-frame'),
-  'WoW immersive trailer background CSS is not deployed');
- process.stdout.write('PASS immersive WoW trailer assets and CMP gate\n');
+  trailerCss.body.includes('.swapp-article-trailer-frame')&&
+  trailerCss.body.includes('swapp-game-cover-drift'),
+  'Universal moving game-art fallback and trailer styles have not deployed');
+ process.stdout.write('PASS universal game article atmosphere and verified trailer autoplay\n');
  // The SEO headline used to flash through the banner during F5.
  check(!home.body.includes('Actualité jeux vidéo, lives et streamers sur SWAPP')&&
   !home.body.includes('SWAPP rassemble des actualités gaming')&&
