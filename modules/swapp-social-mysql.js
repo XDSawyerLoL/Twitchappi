@@ -19,6 +19,7 @@ function createSocialMysqlInteractions({express,restoreSession,pool,clock=()=>Da
  const platforms=['PC','PlayStation','Xbox','Switch','Multiplateforme'];
  const pub=m=>({id:m.id,handle:m.handle,game:m.game,platform:m.platform,availability:m.availability,style:m.style,createdAt:Number(m.created_at)});
  const {accessRoom}=require('./swapp-social-room-access');
+ const {gameFromQuery,gameRoomQuery,visibleGameRooms}=require('./swapp-social-game-context');
  require('./swapp-social-personal-rooms').installPersonalRoomRoutes({route,pool,query,bad,clock,trim,inviteSecret});
  route('get','/matches',async(req,res)=>{
   const game=trim(req.query.game,65),platform=trim(req.query.platform,30);
@@ -67,13 +68,19 @@ function createSocialMysqlInteractions({express,restoreSession,pool,clock=()=>Da
   res.json({counts:choices.map((_,i)=>Number(votes.find(v=>v.choice_index===i)?.total||0))});
  });
  route('get','/rooms',async(req,res)=>{
+  // Do not disclose private rooms outside the signed-in member's room list.
+  // Group the privacy condition before the game condition to avoid SQL OR bypass.
+  const requested=req.query?.game;
+  if(requested!==undefined&&!gameFromQuery(requested))return bad(res,'invalid_game',400);
+  const filter=gameRoomQuery(requested);
   const rooms=await query('SELECT r.id,r.name,r.game,r.created_at,p.room_id AS personal_room,p.owner_id AS personal_owner,'+
    '(SELECT COUNT(*) FROM swapp_social_room_messages m WHERE m.room_id=r.id) message_count '+
    'FROM swapp_social_rooms r LEFT JOIN swapp_social_private_rooms p ON p.room_id=r.id '+
-   'WHERE p.room_id IS NULL OR EXISTS (SELECT 1 FROM swapp_social_private_members membership WHERE membership.room_id=r.id AND membership.user_id=?) '+
-   'ORDER BY r.created_at DESC LIMIT 40',[req.member.id]);
+   'WHERE (p.room_id IS NULL OR EXISTS (SELECT 1 FROM swapp_social_private_members membership WHERE membership.room_id=r.id AND membership.user_id=?)) '+
+   filter.clause+' ORDER BY r.created_at DESC LIMIT 40',[req.member.id,...filter.args]);
+  const visible=visibleGameRooms(rooms,filter.game);
   res.set('Cache-Control','private, no-store');
-  res.json({rooms:rooms.map(r=>({id:r.id,name:r.name,game:r.game,createdAt:Number(r.created_at),messageCount:Number(r.message_count),private:!!r.personal_room,owner:!!r.personal_room&&r.personal_owner===req.member.id}))});
+  res.json({rooms:visible.map(r=>({id:r.id,name:r.name,game:r.game,createdAt:Number(r.created_at),messageCount:Number(r.message_count),private:!!r.personal_room,owner:!!r.personal_room&&r.personal_owner===req.member.id})),...(filter.game?{game:filter.game}: {})});
  });
  route('post','/rooms',async(req,res)=>{
   const name=trim(req.body?.name,60),game=trim(req.body?.game,65),now=clock();

@@ -68,7 +68,7 @@ test('game identity remains exact and sequel-safe across article and community',
  const app=read('assets/swapp-social-native/app.js');
  const views=read('assets/swapp-social-native/views.js');
  const hubs=read('modules/swapp-hubs.js');
- assert.match(app,/requestedGame\.length>=2\?\[loadExplore\(requestedGame,\{gameContext:true\}\)\]/);
+ assert.match(app,/if\(gameRooms\)setView\('rooms','Salons · '\+requestedGame\)/);
  assert.match(app,/gameJump\.dataset\.nextGame/);
  assert.match(views,/window\.SwappGameIdentity\?\.sameGame/);
  assert.match(views,/const game=String\(item\.game\|\|''\)/);

@@ -31,5 +31,5 @@ test('private-message threads open at the latest reply and preserve drafts on po
 test('the app and views are cache-busted together',()=>{
  const server=fs.readFileSync(path.join(__dirname,'../modules/swapp-hubs.js'),'utf8');
  assert.match(app(),/views\.js\?v=20261019-game-synergy-v1/);
- assert.match(server,/app\.js\?v=20261019-game-synergy-v1/);
+ assert.match(server,/app\.js\?v=20261019-game-rooms-v2/);
 });

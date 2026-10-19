@@ -72,6 +72,7 @@
      <div class="ssi-panel-inner">
       <div class="ssi-panel-head"><div class="ssi-head-main">${icon('rooms')}<div><span class="ssi-section-label">TES ESPACES</span><h3 id="ssi-rooms-title">Salons vocaux</h3><p class="ssi-panel-desc">Choisis un salon pour discuter.</p></div></div><span class="ssi-count" id="ssi-room-badge" title="Nombre de salons">—</span></div>
       <div class="ssi-room-list" id="ssi-room-results" aria-live="polite"></div>
+      <button type="button" class="ssi-ghost ssi-block-action" id="ssi-game-room-scope" data-action="toggle-game-rooms" hidden>Voir tous les salons</button>
       <button type="button" class="ssi-ghost ssi-block-action" data-open-form="room" aria-controls="ssi-form-room" aria-expanded="false">+ Créer mon salon</button>
       <form class="ssi-inline-form" id="ssi-form-room" hidden>
        <label class="ssi-field">Nom du salon<input name="name" required maxlength="60" placeholder="Ex. Squad du soir"></label>
@@ -115,6 +116,9 @@
  }
  const asCount=x=>Array.isArray(x)?x.length:0;
  let matches=[],polls=[],rooms=[],activeRoom='',chatTimer=null,chatVersion=0,chatSignature='',pollsExpanded=false,roomsExpanded=false;
+ const queryGame=String(new URLSearchParams(window.location.search).get('game')||'').trim();
+ const initialGame=queryGame.length>=2&&queryGame.length<=65?queryGame:'';
+ let roomGameFilter=initialGame,roomRequestId=0;
  const metric=(name,n)=>{$('#ssi-count-'+name).textContent=String(n);};
  function renderMatches(){
   const count=asCount(matches);metric('matches',count);$('#ssi-match-badge').textContent=count;
@@ -138,16 +142,24 @@
   }).join('')+(count>3?'<button type="button" class="ssi-ghost" data-action="toggle-polls">'+(pollsExpanded?'Voir moins':'Voir les '+(count-3)+' autres sondages')+'</button>':'');
  }
  function renderRooms(){
+  const title=$('#ssi-rooms-title'),switcher=$('#ssi-game-room-scope');
+  if(title)title.textContent=roomGameFilter?'Salons · '+roomGameFilter:'Salons vocaux';
+  if(switcher&&initialGame){switcher.hidden=false;switcher.textContent=roomGameFilter?'Voir tous les salons':'Revenir aux salons de '+initialGame}
   const count=asCount(rooms);metric('rooms',count);$('#ssi-room-badge').textContent=count;
   const el=$('#ssi-room-results');
-  if(!count){el.innerHTML=empty('⌁','Aucun salon pour le moment. Crée le premier.');return}
+  if(!count){el.innerHTML=empty('⌁',roomGameFilter?'Aucun salon accessible pour '+escape(roomGameFilter)+'. Crée le premier ou affiche tous les salons.':'Aucun salon pour le moment. Crée le premier.');return}
   const visible=roomsExpanded?rooms:rooms.slice(0,6);
   el.innerHTML=visible.map(r=>`<button class="ssi-room" type="button" data-room="${escape(r.id)}" aria-pressed="${r.id===activeRoom}" aria-label="Sélectionner le salon ${escape(r.name)}"><span class="ssi-room-voice-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4V9Zm12-1a5 5 0 0 1 0 8m2-11a9 9 0 0 1 0 14"/></svg></span><span class="ssi-room-info"><span class="ssi-room-name">${r.private?'🔒 ':''}${escape(r.name)}</span><span class="ssi-room-game">${escape(r.game)} · ${r.private?'Sur invitation':'Public'} · Vocal et texte</span></span></button>`).join('')+(count>6?'<button type="button" class="ssi-ghost" data-action="toggle-rooms">'+(roomsExpanded?'Voir moins':'Voir tous les salons ('+count+')')+'</button>':'');
  }
  async function loadMatches(){try{const data=await req('match2/compatible');matches=Array.isArray(data.matches)?data.matches:[];renderMatches()}catch(e){$('#ssi-match-results').innerHTML=empty('! ',escape(e.message));}}
  async function loadPolls(){try{const data=await req('polls');polls=Array.isArray(data.polls)?data.polls:[];renderPolls()}catch(e){$('#ssi-poll-results').innerHTML=empty('! ',escape(e.message));}}
  async function loadRooms(){
-  const data=await req('rooms');rooms=Array.isArray(data.rooms)?data.rooms:[];
+  const requestId=++roomRequestId,filter=roomGameFilter;
+  const data=await req('rooms'+(filter?'?game='+encodeURIComponent(filter):''));
+  if(requestId!==roomRequestId)return;
+  const same=window.SwappGameIdentity?.sameGame;
+  const normalized=x=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+  rooms=(Array.isArray(data.rooms)?data.rooms:[]).filter(r=>!filter||(typeof same==='function'?same(filter,r.game):normalized(filter)===normalized(r.game)));
   if(activeRoom&&!rooms.some(r=>r.id===activeRoom)){activeRoom='';stopChat();area.dataset.activeSocialRoom='';area.dispatchEvent(new CustomEvent('ssi:room-selected',{detail:{id:''}}))}
   if(!activeRoom&&rooms.length)await selectRoom(rooms[0].id,false);
   renderRooms();
@@ -269,8 +281,9 @@
     const personal=data.get('visibility')!=='public';
     const created=await req(personal?'rooms/personal':'rooms','POST',{name:data.get('name'),game:data.get('game')||'Discussion'});
     activeRoom='';stopChat();await loadRooms();
-    if(created.room?.id)await selectRoom(created.room.id);
-    notice(personal?'Canal personnel créé. Partage ton lien d’invitation.':'Salon public créé.');
+    const shown=rooms.some(r=>r.id===created.room?.id);
+    if(shown)await selectRoom(created.room.id);
+    notice((personal?'Canal personnel créé. Partage ton lien d’invitation.':'Salon public créé.')+(shown?'':' Retrouve-le dans tous les salons.'));
    }
    form.reset();toggleForm(kind,false);
   }catch(e){notice(e.message,'error')}
@@ -301,11 +314,20 @@
  });
  area.addEventListener('ssi:passport-saved',()=>void loadMatches());
  area.addEventListener('click',async event=>{
-  const open=event.target.closest('[data-open-form]');if(open){toggleForm(open.dataset.openForm,!$('#ssi-form-'+open.dataset.openForm).hidden);return}
+  const open=event.target.closest('[data-open-form]');if(open){
+   toggleForm(open.dataset.openForm,!$('#ssi-form-'+open.dataset.openForm).hidden);
+   if(open.dataset.openForm==='room'&&roomGameFilter){const field=$('#ssi-form-room [name="game"]');if(field&&!field.value.trim())field.value=roomGameFilter}
+   return;
+  }
   const close=event.target.closest('[data-close-form]');if(close){toggleForm(close.dataset.closeForm,false);return}
   const action=event.target.closest('[data-action]');if(action){
    if(action.dataset.action==='toggle-polls'){pollsExpanded=!pollsExpanded;renderPolls()}
    if(action.dataset.action==='toggle-rooms'){roomsExpanded=!roomsExpanded;renderRooms()}
+   if(action.dataset.action==='toggle-game-rooms'){
+    roomGameFilter=roomGameFilter?'':initialGame;
+    activeRoom='';stopChat();roomsExpanded=false;
+    await loadRooms();
+   }
    return;
   }
   const vote=event.target.closest('[data-vote]');if(vote){
@@ -336,10 +358,8 @@
  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&activeRoom)void updateChat()});
  async function initialize(retry=0){
   try{
-   const result=await req('rooms');rooms=Array.isArray(result.rooms)?result.rooms:[];
    area.hidden=false;host.classList.add('ssi-enhanced');
-   if(rooms.length)await selectRoom(rooms[0].id,false);
-   renderRooms();
+   await loadRooms();
    await Promise.all([loadMatches(),loadPolls()]);
    await acceptInviteLink();
   }catch(e){

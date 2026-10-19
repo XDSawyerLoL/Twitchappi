@@ -4,6 +4,7 @@
 const fs=require('node:fs');
 const path=require('node:path');
 const crypto=require('node:crypto');
+const {gameFromQuery,visibleGameRooms}=require('./swapp-social-game-context');
 function createSocialInteractions({express,restoreSession,filename=process.env.SWAPP_SOCIAL_DATA_FILE||path.join(process.cwd(),'data','swapp-social-interactions.json'),clock=()=>Date.now()}){
  const router=express.Router();
  let data={matches:[],polls:[],rooms:[]},chain=Promise.resolve();
@@ -61,7 +62,13 @@ function createSocialInteractions({express,restoreSession,filename=process.env.S
   p.votes[req.socialMember.id]=choice;
   try{await persist();res.json({counts:p.choices.map((_,i)=>Object.values(p.votes).filter(v=>v===i).length)})}catch{return bad(res,'storage_unavailable',503)}
  });
- router.get('/rooms',auth,(req,res)=>res.json({rooms:data.rooms.slice(-40).reverse().map(r=>({id:r.id,name:r.name,game:r.game,createdAt:r.createdAt,messageCount:r.messages.length}))}));
+ router.get('/rooms',auth,(req,res)=>{
+  if(req.query?.game!==undefined&&!gameFromQuery(req.query.game))return bad(res,'invalid_game');
+  const game=gameFromQuery(req.query?.game);
+  const rooms=visibleGameRooms(data.rooms,game).slice(-40).reverse().map(r=>({id:r.id,name:r.name,game:r.game,createdAt:r.createdAt,messageCount:r.messages.length}));
+  res.set('Cache-Control','private, no-store');
+  return res.json({rooms,...(game?{game}:{})});
+ });
  router.post('/rooms',auth,async(req,res)=>{
   const name=safe(req.body?.name).slice(0,60),game=validGame(req.body?.game);
   if(name.length<3||!game)return bad(res,'invalid_room');
