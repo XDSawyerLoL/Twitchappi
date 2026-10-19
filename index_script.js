@@ -3963,7 +3963,7 @@ async function renderSettings(){
  const metrics='<div class="swapp-acct-metrics" aria-label="Mes activités">'+
   '<div><span>Chaînes aimées</span><strong>'+liked.length+'</strong></div>'+
   '<div><span>Lives sauvegardés</span><strong>'+saved.length+'</strong></div>'+
-  '<div><span>Historique facultatif</span><strong>'+ (history?'Activé':'Désactivé')+'</strong></div></div>';
+  '<div><span>Historique facultatif</span><strong data-swapp-history-value>'+ (history?'Activé':'Désactivé')+'</strong></div></div>';
  const validLogin=x=>/^[a-z0-9_]{2,25}$/.test(String(x||'').toLowerCase());
  const likedRows=liked.filter(x=>validLogin(x.login)).slice(0,5).map(x=>{
   const login=String(x.login).toLowerCase();
@@ -3999,7 +3999,8 @@ async function renderSettings(){
   '</small></div>'+(u?'<button class="btn secondary" type="button" onclick="logoutOryon()">Se déconnecter</button>':'')+'</div></section>';
  const prefs='<div class="swapp-acct-preferences"><label for="swapp-acct-accent"><b>Couleur d’accent</b><small>Modifie le thème de ton espace.</small></label>'+
   '<input type="color" id="swapp-acct-accent" value="'+(/^#[0-9a-f]{6}$/i.test(accent)?esc(accent):'#22d3ee')+
-  '" oninput="setViewerThemeColor(this.value)" aria-label="Couleur d’accent"></div>';
+  '" oninput="setViewerThemeColor(this.value)" aria-label="Couleur d’accent"></div>'+
+  '<div class="swapp-acct-history-setting" id="swapp-acct-history-settings" aria-live="polite"></div>';
  const sections=u?(
   '<section data-account-panel="overview" id="swapp-acct-panel-overview" role="tabpanel" aria-labelledby="swapp-acct-tab-overview" class="swapp-acct-pane"><div class="swapp-acct-overview">'+viewer+quick+'</div></section>'+
   '<section data-account-panel="profile" id="swapp-acct-panel-profile" role="tabpanel" aria-labelledby="swapp-acct-tab-profile" class="swapp-acct-pane" hidden>'+
@@ -8587,17 +8588,25 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
     try{const r=await api('/api/oryon/viewer/history');if(r) state.swappHistory=r;return r||{success:false,enabled:false};}catch(_){return state.swappHistory||{success:false,enabled:false};}
   }
   function historyBlockHtml(status){
-    const logged=!!window.state?.session?.local; const enabled=!!status?.enabled;
-    if(!logged) return `<section class="swappSettingsHistoryBlock" data-swapp-history-settings><div><span class="swappSettingsHistoryState">Compte requis</span><h2>Les recommandations ne sont pas pertinentes ?</h2><p>Connecte-toi ou crée un compte Swapp pour conserver tes J’aime, tes swipes et ton historique viewer.</p></div><div class="swappSettingsHistoryActions"><button class="btn" onclick="setView('settings')">Connexion et créer un compte</button></div></section>`;
-    return `<section class="swappSettingsHistoryBlock" data-swapp-history-settings><div><span class="swappSettingsHistoryState">${enabled?'Historique activé':'Historique désactivé'}</span><h2>Les recommandations ne sont pas pertinentes ?</h2><p>En activant l’historique des vidéos regardées, vous obtiendrez des recommandations plus personnalisées.</p></div><div class="swappSettingsHistoryActions"><button class="btn secondary" onclick="swappSetRecommendationHistory(false);setTimeout(swappRefreshSettingsHistoryBlock,250)">Ne pas activer l’historique</button><button class="btn" onclick="swappSetRecommendationHistory(true);setTimeout(swappRefreshSettingsHistoryBlock,250)">${enabled?'Réactiver l’historique':'Activer l’historique'}</button></div></section>`;
+    const enabled=!!status?.enabled;
+    return '<div class="swapp-acct-history-copy"><strong>Historique de visionnage</strong>'+
+      '<small>'+ (enabled?'Activé uniquement sur demande':'Désactivé par défaut')+
+      '. Utilisé pour personnaliser tes découvertes lorsque tu le souhaites.</small></div>'+
+      '<button type="button" class="btn secondary" onclick="swappSetRecommendationHistory('+
+       String(!enabled)+');setTimeout(swappRefreshSettingsHistoryBlock,300)">'+
+       (enabled?'Désactiver':'Activer')+'</button>';
   }
   async function installSettingsHistoryBlock(){
-    const root=document.getElementById('settings'); if(!root||!root.classList.contains('active')) return;
-    root.querySelectorAll('[data-swapp-history-settings]').forEach(el=>el.remove());
-    let mode='viewer'; try{mode=typeof getAppMode==='function'?getAppMode():'viewer';}catch(_){mode='viewer';}
-    if(mode!=='viewer') return;
-    const status=await getHistoryState(); const after=root.querySelector('.settingsHero')||root.querySelector('.pageHead'); const target=root.querySelector('.settingsShell')||root;
-    if(after) after.insertAdjacentHTML('afterend',historyBlockHtml(status)); else target.insertAdjacentHTML('afterbegin',historyBlockHtml(status));
+    // Never insert a floating card into the root: render only inside the
+    // existing Preferences tab, even after subsequent SPA navigation.
+    const root=document.getElementById('settings');
+    const target=root?.querySelector('#swapp-acct-history-settings');
+    if(!target||!root.classList.contains('active'))return;
+    const status=await getHistoryState();
+    if(!target.isConnected)return;
+    target.innerHTML=historyBlockHtml(status);
+    const metric=root.querySelector('[data-swapp-history-value]');
+    if(metric)metric.textContent=status?.enabled?'Activé':'Désactivé';
   }
   window.swappRefreshSettingsHistoryBlock=installSettingsHistoryBlock;
   function cleanAll(){applyPremiumFullWidth();removeHomeArtifacts();if(activeView()==='settings') installSettingsHistoryBlock();}
