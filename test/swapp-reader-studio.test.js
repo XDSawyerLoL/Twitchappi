@@ -10,7 +10,7 @@ test('reader module parses and loads in the SPA and native article shell',()=>{
  const js=read('assets/swapp-reader-studio.js');
  assert.doesNotThrow(()=>new Function(js));
  const spa=read('index.html'),native=read('modules/swapp-news/site-shell.js');
- const script='/assets/swapp-reader-studio.js?v=20261019-reading-v2';
+ const script='/assets/swapp-reader-studio.js?v=20261019-native-boot-v3';
  const style='/assets/swapp-reader-studio.css?v=20261019-reading-v1';
  for(const page of [spa,native]){
   assert.ok(page.includes(script));
