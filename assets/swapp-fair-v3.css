@@ -1,0 +1,10 @@
+/* Fair Discovery v3: low-profile consent controls inside existing live surfaces. */
+.swapp-fair-v3-control{display:flex;align-items:center;flex-wrap:wrap;gap:8px 13px;margin:9px 0;font:inherit;max-width:100%;color:#a5c3d7}
+.swapp-fair-v3-button{border:1px solid #5d8f9a;background:#153646;color:#d8f8fc;border-radius:6px;font:inherit;font-size:12px;font-weight:750;padding:8px 11px;min-height:36px;cursor:pointer;white-space:normal;text-align:left;transition:background .15s ease}
+.swapp-fair-v3-button:hover,.swapp-fair-v3-button:focus-visible{background:#225368;outline:2px solid transparent;border-color:#83e3e6}
+.swapp-fair-v3-button[aria-pressed=true]{background:#164f4d;border-color:#74d7bd;color:#e2fff5}
+.swapp-fair-v3-control small{font-size:11px;line-height:1.35;color:#95bac5}
+#discover .v4Controls .swapp-fair-v3-control{margin:0;padding-top:3px}
+#homeLiveGrid1014~.swapp-fair-v3-control{margin-top:10px}
+@media(max-width:650px){.swapp-fair-v3-control{gap:6px 9px}.swapp-fair-v3-button{font-size:12px;min-height:42px}.swapp-fair-v3-control small{font-size:10px}}
+@media(prefers-reduced-motion:reduce){.swapp-fair-v3-button{transition:none}}
