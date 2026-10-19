@@ -71,11 +71,14 @@ test('SOCIAL front page does not wait for independent health/session requests',(
  assert.match(read('modules/swapp-hubs.js'),/app\.js\?v=20261018-social-structure-v1/);
 });
 
-test('AdSense library is not loaded globally before CMP consent',()=>{
+test('AdSense verifier loads in public HTML while ad placements require TCF consent',()=>{
  const site=read('index.html'),pages=read('modules/swapp-news/site-shell.js');
  const ads=read('assets/swapp-adsense-inarticle.js');
  for(const html of [site,pages]){
-  assert.ok(!html.includes('pagead2.googlesyndication.com/pagead/js/adsbygoogle.js'));
+  const verificationTag='<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6082969821681414" crossorigin="anonymous"></script>';
+  assert.ok(html.includes(verificationTag));
+  assert.ok(html.indexOf(verificationTag)>html.indexOf('<head>'));
+  assert.ok(html.indexOf(verificationTag)<html.indexOf('</head>'));
   assert.ok(html.includes('/assets/swapp-adsense-inarticle.js?v=20261016-inarticle-2'));
   assert.ok(!html.includes('<ins class="adsbygoogle"'));
  }

@@ -99,10 +99,10 @@ test('CMP opt-out removes the placement and prevents a new request',async()=>{
  assert.equal(h.content.children.some(x=>x.className==='swapp-ad-placement'),false);
  assert.equal(h.window.adsbygoogle.length,1);
 });
-test('ad slot is loaded from both article shells, not on every homepage load',()=>{
+test('verifier is available in both public heads, while article slots remain deferred',()=>{
  for(const html of [read('index.html'),read('modules/swapp-news/site-shell.js')]){
   assert.match(html,/swapp-adsense-inarticle\.js\?v=20261016-inarticle-2/);
-  assert.doesNotMatch(html,/src="https:\/\/pagead2\.googlesyndication\.com\/pagead\/js\/adsbygoogle\.js/);
+  assert.match(html,/src="https:\/\/pagead2\.googlesyndication\.com\/pagead\/js\/adsbygoogle\.js\?client=ca-pub-6082969821681414"/);
  }
  const css=read('assets/swapp-article-immersive.css');
  assert.match(css,/\.swapp-ad-placement/);
