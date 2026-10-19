@@ -5527,6 +5527,7 @@ app.get('/api/oryon/discover/find-live', heavyLimiter, async (req,res)=>{
       source,
       source_detail: top.length ? 'scored_pool' : 'empty',
       pool_size: unique.length,
+      discovery:{policy:'fair-discovery-v1',mix:'relevance-small-audiences-game-diversity',paidBoost:false},
       learning: { active: identity.type !== 'guest', viewerType: identity.type, firestore: !!firestoreOk }
     });
   }catch(e){
@@ -9328,10 +9329,13 @@ app.get('/api/discovery/game-lives', heavyLimiter, async (req,res)=>{
     }
     items.sort((a,b)=>Number(['oryon','swapp'].includes(b.platform))-Number(['oryon','swapp'].includes(a.platform))||b.viewer_count-a.viewer_count);
     res.set('Cache-Control','public, max-age=25');
-    const visible=items.slice(0,limit);
+    // Fair Discovery: verified exact-game matches only, then rotate small
+    // creators into the same shelf as established channels. No paid boosts.
+    const visible=require('./modules/swapp-discovery-diversity').rankGameLives(items,{limit});
     if(twitchAvailable)await swappAddLiveAvatars(visible);
     return res.json({success:true,game,items:visible,totalCandidates:items.length,
-      coverage:twitchAvailable?(twitchError?'partial':'game-search'):'native-only'});
+      coverage:twitchAvailable?(twitchError?'partial':'game-search'):'native-only',
+      discovery:{policy:'fair-discovery-v1',ranking:'verified-game-then-small-creators',paidBoost:false}});
   }catch(e){return res.status(503).json({success:false,error:'Recherche de lives indisponible',items:[]})}
 });
 

@@ -33,7 +33,7 @@ test('SOCIAL inbox starts with conversations and searches members on demand',()=
  const views=read('assets/swapp-social-native/views.js');
  const app=read('assets/swapp-social-native/app.js');
  const css=read('assets/swapp-social-product-v3.css');
- assert.match(views,/class="pulse-inbox-view"/);
+ assert.match(views,/class="pulse-view pulse-inbox-view"/);
  assert.match(views,/data-new-message-toggle/);
  assert.match(views,/id="new-message" hidden/);
  assert.match(views,/class="pulse-conversation-preview"/);

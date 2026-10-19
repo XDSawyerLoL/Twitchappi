@@ -234,7 +234,7 @@ async function verify(){
   'Native creator page still ships outdated game matching or broken news status');
  process.stdout.write('PASS game-specific article live discovery\n');
  const discover=await request(origin,'/decouvrir');
- check(discover.body.includes('swapp-discover-comfort.js?v=20261018-discover-flat-v26'),
+ check(discover.body.includes('swapp-discover-comfort.js?v=20261019-fair-discovery-v27'),
   'Discover has an old mobile UI release');
  check(discover.body.includes('index_script.js?v=20261019-account-native-v2'),
   'Discover still references an old V4 player script');

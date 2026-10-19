@@ -201,17 +201,17 @@ export async function loadHome(){
 
 let latestExploreRequest=0;
 
-export async function loadExplore(query=''){
+export async function loadExplore(query='',{gameContext=false}={}){
   const requestId=++latestExploreRequest;
   query=String(query||'').trim().slice(0,100);
-  const revision=setView('explore','Explorer');
+  const revision=setView('explore',gameContext?'Autour de '+query:'Explorer');
   const form='<form id="social-mobile-search-form" class="pulse-mobile-search" role="search">'+
     '<label for="social-mobile-query">Rechercher dans SOCIAL et les actualités SWAPP</label>'+
     '<div class="pulse-mobile-search-row"><input id="social-mobile-query" type="search" name="query" minlength="2" maxlength="100" autocomplete="off" placeholder="Jeu, article, pseudo ou discussion…" value="'+esc(query)+'" required>'+
     '<button type="submit">Rechercher</button></div></form>';
   const intro='<section class="pulse-view pulse-explore-view"><div class="pulse-view-head">'+
-    '<h2>'+(query?'Résultats de recherche':'Tout commence par une découverte.')+'</h2>'+
-    '<p>'+(query?'Membres, publications et actualités correspondant à ta recherche.':
+    '<h2>'+(gameContext?'Autour de '+esc(query):query?'Résultats de recherche':'Tout commence par une découverte.')+'</h2>'+
+    '<p>'+(gameContext?'Actualités portant sur ce jeu, créateurs et conversations disponibles. Les résultats absents ne sont pas inventés.':query?'Membres, publications et actualités correspondant à ta recherche.':
         'Retrouve un membre SWAPP, un jeu ou une conversation dans un seul espace.')+'</p></div>'+form;
   dom.feed.innerHTML=intro+'</section>';
   const newsTask=fetchNewsFeed();
@@ -227,7 +227,13 @@ export async function loadExplore(query=''){
   const matches=items=>items.filter(item=>{
     if(!item||!item.title)return false;
     if(query.length<2)return true;
-    const words=(String(item.title)+' '+String(item.summary||'')).toLocaleLowerCase('fr-FR');
+    if(gameContext){
+      // Editorial results must carry an explicit game, not a title guess.
+      const game=String(item.game||'').trim();
+      const norm=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+      return !!game&&(window.SwappGameIdentity?.sameGame?.(game,query)||norm(game)===norm(query));
+    }
+    const words=(String(item.title)+' '+String(item.summary||'')+' '+String(item.game||'')).toLocaleLowerCase('fr-FR');
     return words.includes(query.toLocaleLowerCase('fr-FR'));
   });
   const articles=matches(news).sort((a,b)=>Date.parse(b.publishedAt||0)-Date.parse(a.publishedAt||0))
