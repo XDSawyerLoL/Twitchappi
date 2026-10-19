@@ -61,6 +61,20 @@ function assertArticle(value, {publish = false, legacyRequired = false} = {}) {
   const trailerUrl=String(value.trailerUrl||'').trim();
   if(trailerUrl&&!trailerId(trailerUrl))throw new Error('URL bande-annonce YouTube HTTPS invalide');
   if(publish&&(kind==='trailer'||kind==='video')&&!trailerUrl)throw new Error('Une vidéo YouTube officielle est requise pour publier une vidéo intégrée');
+  // The SWAPP game verdict is an editorial decision, NEVER a reader score.
+  // No score is inferred from Twitch, user feedback, article date or keywords.
+  const requestedVerdict=value.editorialVerdict&&typeof value.editorialVerdict==='object'&&!Array.isArray(value.editorialVerdict)?value.editorialVerdict:null;
+  const verdictScore=requestedVerdict?.score;
+  const editorialVerdict=verdictScore==null||verdictScore===''?null:{
+    score:Number(verdictScore),
+    text:String(requestedVerdict.text||'').trim().slice(0,360)
+  };
+  if(editorialVerdict&&(!Number.isInteger(editorialVerdict.score)||editorialVerdict.score<1||editorialVerdict.score>5))
+    throw new Error('Verdict SWAPP : sélectionne un niveau de 1 à 5');
+  if(editorialVerdict&&editorialVerdict.text.length<35)
+    throw new Error('Verdict SWAPP : une justification rédactionnelle d’au moins 35 caractères est obligatoire');
+  if(!editorialVerdict&&requestedVerdict&&String(requestedVerdict.text||'').trim())
+    throw new Error('Verdict SWAPP : sélectionne une note avant de rédiger le verdict');
   const links=commercialLinks(value.commercialLinks,true);
   const editorial=recommend({title,summary,body,game:value.game,tags:value.tags});
   const requestedGames=Array.isArray(value.games)?value.games:[];
@@ -83,6 +97,7 @@ function assertArticle(value, {publish = false, legacyRequired = false} = {}) {
       alt:String(thumbnail.alt||'').trim().slice(0,180),
       position:['center','top','bottom','left','right'].includes(thumbnail.position)?thumbnail.position:'center'}:null,
     trailerUrl:trailerUrl||null,
+    editorialVerdict,
     commercialLinks:links,
     legacyUrl: value.legacyUrl || null,
     originalPublishedAt: toIsoDate(value.originalPublishedAt || null)
