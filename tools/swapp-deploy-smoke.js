@@ -110,10 +110,10 @@ async function verify(){
   !trailerJs.body.includes('CONSENT_API_READY'),
   'Game-article autoplay controller is stale');
  const extras=await request(origin,'/assets/swapp-article-extras.js');
- check(home.body.includes('swapp-article-extras.js?v=20261019-editorial-verdict-v9'),
+ check(home.body.includes('swapp-article-extras.js?v=20261019-manual-commerce-v10'),
   'Homepage still caches previous trailer validation library');
  check(extras.body.includes('function heroTrailerId(article)')&&
-   extras.body.includes('heroTrailerId,isGameArticle,cardImageSources,commercialLinks'),
+   extras.body.includes('heroTrailerId,isGameArticle,cardImageSources,commercialLinks,partnerOffersHtml'),
   'Universal editorial game-trailer matcher has not deployed');
  const cardClient=await request(origin,'/assets/swapp-actus-app.js');
  check(cardClient.body.includes('SwappArticleExtras?.cardImageSources')&&
@@ -141,7 +141,7 @@ async function verify(){
  check(shelfScript.body.includes("shelf.id==='swapp-article-lives'")&&
   shelfScript.body.includes('swapp-live-card-editorial')&&
   shelfScript.body.includes("articleMode?'Regarder le live")&&
-  home.body.includes('swapp-article-immersive.css?v=20261019-single-reader-v6'),
+  home.body.includes('swapp-article-immersive.css?v=20261019-manual-commerce-v7'),
   'Direct article lives still use oversized repeated game pills');
  const reader=await request(origin,'/assets/swapp-reader-experience.js');
  check(reader.body.includes('currentToc')&&
@@ -149,6 +149,12 @@ async function verify(){
   reader.body.includes('ResizeObserver')&&
   home.body.includes('swapp-reader-experience.js?v=20261019-toc-sticky-v3'),
   'First-navigation TOC mounting fix not deployed');
+ check(extras.body.includes('function partnerOffersHtml(a)')&&
+  extras.body.includes('swapp-affiliate-offer swapp-affiliate-manual')&&
+  !extras.body.includes('Pour aller plus loin')&&
+  readerApp.body.includes('SwappArticleExtras?.partnerOffersHtml?.(a)')&&
+  home.body.includes('swapp-article-extras.js?v=20261019-manual-commerce-v10'),
+  'Witcher manual Instant Gaming link still renders as huge footer advertisement');
  const trailerCss=await request(origin,'/assets/swapp-article-immersive.css');
  check(trailerCss.body.includes('html:has(#actus.view.active .swapp-actus-native.swapp-actus-reading)')&&
   trailerCss.body.includes('overflow-y:visible!important'),
@@ -159,7 +165,7 @@ async function verify(){
   'TOC sticky panel may be too tall or non-sticky on initial load');
  check(trailerCss.body.includes('#fa7b19')&&
   trailerCss.body.includes('swapp-affiliate-link')&&
-  home.body.includes('swapp-article-immersive.css?v=20261019-single-reader-v6'),
+  home.body.includes('swapp-article-immersive.css?v=20261019-manual-commerce-v7'),
   'Orange compact partner action not deployed');
  check(cardClient.body.includes('OFFRE INSTANT GAMING · LIEN AFFILIÉ')&&
   cardClient.body.includes('Voir l’offre ↗')&&
@@ -312,7 +318,7 @@ async function verify(){
   !readerApp.body.includes('a.length>=7&&b.includes(a)'),
   'Actualité still matches sequels incorrectly or opens external lives');
  check(home.body.includes('/assets/swapp-media.css?v=20261017-channel-news-v13')&&
-  home.body.includes('/assets/swapp-actus-app.js?v=20261019-single-reader-v9'),
+  home.body.includes('/assets/swapp-actus-app.js?v=20261019-manual-commerce-v10'),
   'Homepage is still using the old game bridge');
  // Native creator channel: same editorial game identity, no frozen status text.
  const nativeArticles=await request(origin,'/assets/swapp-live-articles.js');
@@ -413,7 +419,7 @@ async function verify(){
  process.stdout.write('PASS shared navigation, news and SOCIAL presentation asset\n');
  process.stdout.write('PASS /actus\n');
  // Verify the actual mobile reading and video assets, not just HTML shell CSS.
- const articleClient='/assets/swapp-actus-app.js?v=20261019-single-reader-v9';
+ const articleClient='/assets/swapp-actus-app.js?v=20261019-manual-commerce-v10';
  const videoClient='/assets/swapp-video-player.js?v=20261016-ios-journey-1';
  const videoStyle='/assets/swapp-video-gallery.css?v=20261016-ios-journey-1';
  for(const name of [articleClient,videoClient,videoStyle])
