@@ -7,7 +7,8 @@
   function renderEditorAccess(){
     let link=menu.querySelector('[data-swapp-editor-link]');
     let shop=menu.querySelector('[data-swapp-shop-admin-link]');
-    if(!allowed){if(link)link.remove();if(shop)shop.remove();return;}
+    let fair=menu.querySelector('[data-swapp-fair-admin-link]');
+    if(!allowed){if(link)link.remove();if(shop)shop.remove();if(fair)fair.remove();return;}
     if(!link){
      link=document.createElement('a');
      link.href='/actus/studio';
@@ -21,6 +22,13 @@
      shop.dataset.swappShopAdminLink='1';
      shop.textContent='Gestion Boutique · Produits & vitrine';
      menu.appendChild(shop);
+    }
+    if(!fair){
+     fair=document.createElement('a');
+     fair.href='/admin/fair-discovery';
+     fair.dataset.swappFairAdminLink='1';
+     fair.textContent='Fair Discovery · Visibilité des créateurs';
+     menu.appendChild(fair);
     }
   }
   async function check(force=false){
@@ -37,7 +45,7 @@
   }
   const observer=new MutationObserver(records=>{
     // The link inserted by this script must not trigger another check.
-    if(records.every(r=>[...r.addedNodes].every(n=>n.nodeType===1&&(n.dataset?.swappEditorLink||n.dataset?.swappShopAdminLink))))return;
+    if(records.every(r=>[...r.addedNodes].every(n=>n.nodeType===1&&(n.dataset?.swappEditorLink||n.dataset?.swappShopAdminLink||n.dataset?.swappFairAdminLink))))return;
     if(allowed)renderEditorAccess();
     else check();
   });

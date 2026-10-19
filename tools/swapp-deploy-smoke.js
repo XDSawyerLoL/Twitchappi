@@ -117,7 +117,7 @@ async function verify(){
  check(shopAdminScript.body.includes("'/api/editor/boutique'")&&
    shopAdminScript.body.includes("options.headers['x-swapp-editor']='1'"),
    'Boutique admin UI asset is missing secure API persistence');
- check(home.body.includes('swapp-editor-nav.js?v=20261016-shop-admin-1'),
+ check(home.body.includes('swapp-editor-nav.js?v=20261019-fair-admin-v1'),
   'Homepage still uses the old account menu without Boutique administration');
  process.stdout.write('PASS Boutique showcase, editable catalogue assets and unified admin menu\n');
 
