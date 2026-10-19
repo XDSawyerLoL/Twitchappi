@@ -57,9 +57,10 @@
    if(!slugOK(item.slug))continue;
    const row=document.createElement('article');row.className='mg-wish-row';
    const body=document.createElement('div');
-   const a=document.createElement('a');a.href='/jeux/'+item.slug;a.textContent=cleanName(item.game);
+   const editorial=!!document.querySelector('[data-swapp-game-card][data-game-slug="'+item.slug+'"]');
+   const a=document.createElement('a');a.href=editorial?'/jeux/'+item.slug:'/boutique';a.textContent=cleanName(item.game);
    const small=document.createElement('small');
-   small.textContent='Suivi d’envie · Aucune offre annoncée';
+   small.textContent=editorial?'Dossier du jeu · Aucune offre annoncée':'Voir la vitrine · Disponibilité non vérifiée';
    body.append(a,small);
    const remove=document.createElement('button');
    remove.type='button';remove.textContent='Retirer';remove.dataset.wishlistRemove=item.slug;
