@@ -216,7 +216,7 @@ test('studio always loads current protected action code and avoids stale cache',
  const router=read('modules/swapp-news/router.js');
  assert.match(router,/router\.get\('\/actus\/studio',\.\.\.editor,.*private, no-store/);
  assert.match(router,/router\.get\('\/actus\/studio\.js',\.\.\.editor,.*private, no-store/);
- assert.match(renderStudio(),/swapp-editor-enhance\.js\?v=20261019-thumbnail-cards-v5/);
+ assert.match(renderStudio(),/swapp-editor-enhance\.js\?v=20261019-editorial-verdict-v6/);
 });
 test('publish button and draft save are enabled for unsaved posts and properly disabled after publishing',()=>{
  const begin=js.indexOf('function setEditor(a){'),end=js.indexOf('function previewImage()',begin);
