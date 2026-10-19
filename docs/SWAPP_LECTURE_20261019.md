@@ -1,3 +1,13 @@
+# Choix final de voix — 20 octobre 2026
+
+**Interface publique SWAPP Lecture : Vivienne uniquement.** Le sélecteur multivoix a été retiré au profit d'une étiquette fixe « Voix Vivienne ». L'application choisit exclusivement une voix française dont le nom ou l'identifiant contient « Vivienne ». Elle préfère sa variante naturelle lorsque plusieurs variantes existent. Aucune autre voix française ou voix système n'est proposée comme substitut. Si Vivienne n'est pas disponible dans le navigateur, le bouton de lecture reste désactivé et la cause est affichée.
+
+La case d'autorisation des voix en ligne reste supprimée. La mention concise sous le lecteur précise qu'une voix du navigateur peut fonctionner en ligne. La lecture reste initiée par l'utilisateur.
+
+Le module audio Mairaiy/Aoede et les producteurs d'enregistrements restent conservés comme code de développement **mais ne sont plus chargés ni affichés sur les pages publiques**, faute d'enregistrements officiels prêts à être utilisés. Aucun coût Gemini n'est engagé.
+
+---
+
 # Réglage du lecteur vocal — 20 octobre 2026
 
 Le panneau « Écouter » propose directement **Vivienne** en premier si le navigateur fournit cette voix française. La case à cocher imposant une autorisation supplémentaire pour les voix en ligne a été retirée. Le bouton « Écouter l’article » constitue désormais l'action volontaire qui lance la voix choisie ; l'interface précise brièvement si le moteur vocal du navigateur peut fonctionner en ligne. L'application n'envoie elle-même aucun texte à un prestataire vocal ; pour une voix distante du navigateur, le fournisseur du navigateur peut traiter l'audio/texte selon ses propres règles.
