@@ -33,3 +33,23 @@ test('CMP settings button is conditional on the real Google CMP and TCF GDPR sig
  assert.match(src,/typeof window\.__tcfapi!=='function'/);
  assert.doesNotMatch(src,/localStorage\.setItem\(['"]consent/);
 });
+
+test('trade name, city and bare hosting brand do not masquerade as complete legal identity',()=>{
+ const {legalCompleteness}=require('../modules/swapp-news/legal-pages');
+ const fields=publicLegalDetails({
+  SWAPP_LEGAL_PUBLISHER_NAME:'SWAPP.TV',
+  SWAPP_LEGAL_PUBLISHER_ADDRESS:'Boulogne-billancourt',
+  SWAPP_LEGAL_HOST_DETAILS:'HOSTINGER',
+  SWAPP_LEGAL_CONTACT_EMAIL:'contact@example.org'
+ });
+ const checked=legalCompleteness(fields);
+ assert.equal(checked.tradeOnly,true);
+ assert.equal(checked.addressLooksComplete,false);
+ assert.equal(checked.hostDetailsComplete,false);
+ assert.equal(checked.editorLooksComplete,false);
+ const html=legalSupplement('/mentions-legales',fields);
+ assert.match(html,/Nom commercial du site/);
+ assert.match(html,/adresse incomplète/);
+ assert.match(html,/coordonnées incomplètes/);
+ assert.doesNotMatch(html,/Identité déclarée de l’éditeur/);
+});
