@@ -27,7 +27,7 @@ function harness({reduced=false,initiallyHidden=false}={}){
   googlefc:{showRevocationMessage(){throw Error('Video must not open consent dialog')}}};
  vm.runInNewContext(script,{window,document,navigator:{},console,IntersectionObserver:undefined});
  window.SwappTrailerHero.mount(scene);
- const button=content.children[0].children[0];
+ const button=content.children[0]?.children?.[0]||null;
  return {scene,scripts,button,document,events,listeners,windowEvents,messages};
 }
 test('trailer autoplays without clicks or CMP and starts silently at ten seconds',()=>{
@@ -39,16 +39,14 @@ test('trailer autoplays without clicks or CMP and starts silently at ten seconds
  assert.match(h.scripts[0].src,/start=10/);
  assert.equal(h.scripts[0].attributes.loading,'eager');
  assert.equal(h.scripts[0].attributes.allow,'autoplay; encrypted-media; picture-in-picture');
- assert.equal(h.button.textContent,'Ⅱ Mettre la vidéo en pause');
+ assert.equal(h.button,null); // no extra pause control layered over the hero
 });
-test('pause and resume work without a consent dialog',()=>{
- const h=harness();
- h.button.listeners.click();assert.equal(h.scripts[0].removed,true);
- h.button.listeners.click();assert.equal(h.scripts.length,2);
+test('no pause control is displayed over the auto-playing cinematic header',()=>{
+ const h=harness();assert.equal(h.scripts.length,1);
+ assert.equal(h.button,null);
 });
-test('reduced motion prevents autoplay, but manual playback remains available',()=>{
+test('reduced-motion preference prevents background autoplay',()=>{
  const h=harness({reduced:true});assert.equal(h.scripts.length,0);
- h.button.listeners.click();assert.equal(h.scripts.length,1);
 });
 test('hidden tabs defer autoplay until visible',()=>{
  const h=harness({initiallyHidden:true});assert.equal(h.scripts.length,0);
