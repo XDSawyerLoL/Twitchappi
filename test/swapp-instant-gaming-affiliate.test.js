@@ -35,10 +35,13 @@ test('native article displays a single disclosed partner link adjacent to discov
  const html=renderNewsStory({slug:'valor-mortis-analyse',title:'Valor Mortis est sorti',game:'Valor Mortis',category:'Actualités JV',
   summary:'Un jeu napoléonien',body:'## Histoire\n\nNotre analyse complète.'});
  assert.match(html,/À découvrir ensuite/);
- assert.match(html,/PARTENAIRE · LIEN AFFILIÉ/);
+ assert.match(html,/OFFRE INSTANT GAMING · LIEN AFFILIÉ/);
  assert.match(html,/href="https:\/\/www\.instant-gaming\.com\/fr\/20157-acheter-valor-mortis-pc-steam\/\?igr=SANSAHD"/);
  assert.match(html,/rel="sponsored nofollow noopener noreferrer"/);
- assert.match(html,/SWAPP peut toucher une commission/);
+ assert.match(html,/Voir l’offre ↗/);
+ assert.doesNotMatch(html,/SWAPP peut toucher une commission/);
+ assert.match(read('modules/swapp-news/legal-pages.js'),/Liens affiliés et offres partenaires/);
+ assert.match(read('modules/swapp-news/legal-pages.js'),/SWAPP peut recevoir une commission/);
  assert.equal((html.match(/class="swapp-affiliate-offer"/g)||[]).length,1);
  const other=renderNewsStory({slug:'game-news',title:'World of Warcraft : actualités',game:'World of Warcraft',body:'Texte'});
  assert.doesNotMatch(other,/swapp-affiliate-offer/);
@@ -60,7 +63,7 @@ test('editor-provided Boutique products remain visible without editorial affilia
 test('SPA and native reader have the same affiliate disclosure and no tracking scripts',()=>{
  const spa=read('assets/swapp-actus-app.js'),native=read('modules/swapp-news/native-pages.js'),shell=read('index.html');
  assert.match(spa,/SwappInstantGaming\?\.forArticle\?\.\(a\)/);
- assert.match(spa,/PARTENAIRE · LIEN AFFILIÉ/);
+ assert.match(spa,/OFFRE INSTANT GAMING · LIEN AFFILIÉ/);
  assert.match(spa,/shopLink\.rel='sponsored nofollow noopener noreferrer'/);
  assert.match(native,/instantGaming\.forArticle\(article\)/);
  assert.match(shell,/swapp-instant-gaming\.js\?v=20261016-ig-offers-1/);
