@@ -105,7 +105,7 @@ const trailerId=window.SwappArticleExtras?.heroTrailerId?.(a)||null;
 const coverImage=url(a.image?.url||a.imageUrl);
 const heroImage=coverImage||(trailerId?'https://i.ytimg.com/vi/'+trailerId+'/hqdefault.jpg':null);
 const scene=el('div','swapp-article-scene');
-if(a.game||(Array.isArray(a.games)&&a.games.length))scene.classList.add('has-game');
+if(window.SwappArticleExtras?.isGameArticle?.(a))scene.classList.add('has-game');
 if(trailerId){
  scene.dataset.swappTrailerId=trailerId;
  scene.dataset.swappTrailerTitle=String(a.game||a.title||'Jeu vidéo').slice(0,140);
