@@ -95,7 +95,7 @@ function createFairMetrics({getPool,isEnabled,secret,now=Date.now}={}){
   if(!enabled())return {enabled:false,scope:'game-card-opt-in',sample:'not_collected'};
   const pool=await ready();
   const [rows]=await pool.execute(
-   'SELECT audience_band,COUNT(DISTINCT CONCAT(platform,":",creator_login)) AS creators,SUM(impressions) AS impressions,SUM(clicks) AS clicks '+
+   'SELECT audience_band,COUNT(DISTINCT platform,creator_login) AS creators,SUM(impressions) AS impressions,SUM(clicks) AS clicks '+
    'FROM swapp_fair_exposure_daily WHERE event_day>=UTC_DATE() - INTERVAL 6 DAY AND event_day<=UTC_DATE() AND placement=? GROUP BY audience_band',[PLACEMENT]);
   const normalized=(rows||[]).map(row=>({band:String(row.audience_band),creators:Number(row.creators)||0,impressions:Number(row.impressions)||0,clicks:Number(row.clicks)||0}))
    .filter(x=>['small','growing','established'].includes(x.band));
