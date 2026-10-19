@@ -600,6 +600,11 @@ body.swapp-editorial-route .article-wrap > .swapp-reading-progress{
  outline:2px solid #ffbb73!important;outline-offset:3px
 }
 :is(#actus,body.swapp-editorial-route) .swapp-affiliate-disclosure{display:none!important}
+/* Amazon links require the publisher's complete legal disclosure near the offer. */
+:is(#actus,body.swapp-editorial-route) .swapp-affiliate-manual .swapp-amazon-disclosure{
+ grid-column:1/-1;grid-row:4;white-space:normal;margin-top:5px;
+ font:500 10px/1.45 system-ui,sans-serif;color:#94aabe
+}
 @media(max-width:540px){
  :is(#actus,body.swapp-editorial-route) .swapp-article-reading .swapp-affiliate-offer{
   grid-template-columns:minmax(0,1fr) auto;column-gap:8px
