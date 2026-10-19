@@ -64,6 +64,12 @@ async function verify(){
  const social=await request(origin,'/communaute');
  check(social.body.includes('class="swapp-social-sticky-stack"'),'SOCIAL HTML does not contain the unified sticky stack');
  check(social.body.includes('id="feed-tabs"'),'SOCIAL feed controls missing');
+ check(social.body.includes('swapp-social-appearance.css?v=20261019-no-top-gap-v3'),
+  'SOCIAL fixed-header patch has stale CSS cache key');
+ const socialAppearance=await request(origin,'/assets/swapp-social-appearance.css');
+ check(socialAppearance.body.includes('body:has(#swappSocialNative) header.top')&&
+  socialAppearance.body.includes('inset-block-start:0!important'),
+  'SOCIAL header top gap defensive fix missing');
  check(social.body.includes('social-fixed-10'),'SOCIAL HTML uses an older CSS release');
  check(social.body.includes('social-fixed-js-10'),'SOCIAL HTML uses an older JS release');
  process.stdout.write('PASS /communaute HTML\n');
@@ -138,6 +144,14 @@ async function verify(){
   home.body.includes('swapp-article-immersive.css?v=20261019-affiliate-compact-v4'),
   'Direct article lives still use oversized repeated game pills');
  const trailerCss=await request(origin,'/assets/swapp-article-immersive.css');
+ check(trailerCss.body.includes('#fa7b19')&&
+  trailerCss.body.includes('swapp-affiliate-link')&&
+  home.body.includes('swapp-article-immersive.css?v=20261019-affiliate-compact-v4'),
+  'Orange compact partner action not deployed');
+ check(cardClient.body.includes('OFFRE INSTANT GAMING · LIEN AFFILIÉ')&&
+  cardClient.body.includes('Voir l’offre ↗')&&
+  !cardClient.body.includes('SWAPP peut toucher une commission. Prix, stock'),
+  'SPA still serves oversized affiliate prose');
  check(trailerCss.body.includes('.swapp-article-scene.has-trailer')&&
   trailerCss.body.includes('.swapp-article-trailer-frame')&&
   trailerCss.body.includes('swapp-game-cover-drift')&&
