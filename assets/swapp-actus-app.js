@@ -101,11 +101,13 @@ const article=el('article','swapp-actus-article');
 const heading=el('header','swapp-reader-hero swapp-immersive-hero');
 const heroCopy=el('div','swapp-immersive-content');
 // The image belongs to the article environment, not to the header.
-const heroImage=url(a.image?.url||a.imageUrl);
+const trailerId=slug==='world-of-warcraft-forever-le-trailer'?window.SwappArticleExtras?.trailerId?.(a.trailerUrl):null;
+const heroImage=trailerId?'https://i.ytimg.com/vi/'+trailerId+'/hqdefault.jpg':url(a.image?.url||a.imageUrl);
 const scene=el('div','swapp-article-scene');
+if(trailerId){scene.dataset.swappTrailerId=trailerId;scene.classList.add('has-trailer');}
 scene.setAttribute('aria-hidden','true');
 if(heroImage){
- const sceneImage=el('img');
+ const sceneImage=el('img',trailerId?'swapp-article-trailer-poster':'');
  sceneImage.src=heroImage;sceneImage.alt='';sceneImage.decoding='async';sceneImage.fetchPriority='high';
  sceneImage.onerror=()=>{scene.classList.remove('has-art');sceneImage.remove()};
  scene.append(sceneImage);scene.classList.add('has-art');
@@ -230,7 +232,9 @@ if(!recommendations.children.length){
  all.href='/actus';all.onclick=event=>{if(event.button||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
   event.preventDefault();home()};recommendations.append(all);
 }};
-node.append(article);window.SwappArticleFeedback?.mountArticle(article,a.slug||slug);if(items.length)fillRecommendations(items);else fetchJson('/api/actus').then(data=>{items=Array.isArray(data.articles)?data.articles:[];fillRecommendations(items)}).catch(()=>fillRecommendations([]));
+node.append(article);
+if(trailerId)window.SwappTrailerHero?.mount?.(scene);
+window.SwappArticleFeedback?.mountArticle(article,a.slug||slug);if(items.length)fillRecommendations(items);else fetchJson('/api/actus').then(data=>{items=Array.isArray(data.articles)?data.articles:[];fillRecommendations(items)}).catch(()=>fillRecommendations([]));
 }catch(e){
  if(!node.isConnected)return;
  const status=el('p','swapp-actus-state',e.message||'Article temporairement indisponible.');
