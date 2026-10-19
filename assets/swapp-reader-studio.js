@@ -134,6 +134,7 @@
   try{api.speak(utterance)}catch(_){clearAudio();status('Lecture vocale indisponible sur cet appareil.')}
  }
  function play(){
+  window.SwappNeuralNarration?.pauseActive();
   if(!speechReady||!voices.length)return;
   if(playing){
    if(paused){paused=false;api.resume();}
@@ -223,6 +224,7 @@
   qs('[data-reader-online-consent]').addEventListener('change',()=>{if(playing){clearAudio();status('Consentement vocal modifié. Relance la lecture.')}});
   qs('[data-reader-speed]').addEventListener('change',()=>{if(playing)jump(0)});
   applyPreferences();updateVoices();
+  window.SwappNeuralNarration?.attach({studio,content,root});
  }
  function sync(){
   const reading=onArticle();
