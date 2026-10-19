@@ -55,7 +55,7 @@
    field.append(opt);
   });
   const selected=voices.findIndex(voice=>voice.voiceURI===priorVoice);
-  const vivienne=voices.findIndex(voice=>/\\bvivienne\\b/i.test(voice.name||''));
+  const vivienne=voices.findIndex(voice=>/\bvivienne\b/i.test(voice.name||''));
   const preferred=selected>=0?selected:(vivienne>=0?vivienne:0);
   field.value=prior==='mairaiy'&&mairaiyAvailable?'mairaiy':voices.length?String(preferred):mairaiyAvailable?'mairaiy':'';
   const start=qs('[data-reader-play]');
