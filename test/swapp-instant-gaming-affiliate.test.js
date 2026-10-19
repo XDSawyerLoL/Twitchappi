@@ -76,6 +76,41 @@ test('a game article with an existing commercial partner is not overloaded with 
  const article={slug:'valor-mortis-with-partner',title:'Valor Mortis',game:'Valor Mortis',
   body:'## Test\n\nLecture du jeu',commercialLinks:[{title:'Voir le jeu',merchant:'Partenaire',url:'https://example.com/item',kind:'affiliate'}]};
  const html=renderNewsStory(article);
- assert.doesNotMatch(html,/swapp-affiliate-offer/);
- assert.match(read('assets/swapp-actus-app.js'),/a\.commercialLinks\?\.length\?null/);
+ assert.equal((html.match(/class="swapp-affiliate-offer swapp-affiliate-manual"/g)||[]).length,1);
+ assert.match(html,/href="https:\/\/example\.com\/item"/);
+ assert.match(read('assets/swapp-actus-app.js'),/SwappArticleExtras\?\.partnerOffersHtml\?\.\(a\)/);
+ assert.doesNotMatch(html,/swapp-article-commerce|Pour aller plus loin/);
+});
+
+test('Witcher manually entered Instant Gaming URL uses right-hand À découvrir ensuite offer',()=>{
+ const referral='https://www.instant-gaming.com/fr/1497-acheter-the-witcher-3-wild-hunt/?igr=SANSAHD';
+ const article={slug:'the-witcher-3-remastered-le-retour-spectaculaire-de-geralt-onze-ans-apres',
+  title:'The Witcher 3 Remastered : le retour spectaculaire de Geralt',
+  game:'The Witcher 3: Wild Hunt Remastered',
+  category:'Actualités JV',body:'## Retour de Geralt\n\nUne analyse de la rédaction.',
+  commercialLinks:[{title:'Offre toi le jeu!',merchant:'Instant Gaming',url:referral,kind:'affiliate'}]};
+ const html=renderNewsStory(article);
+ const rail=html.match(/<details class="swapp-reader-next" open>([\s\S]*?)<\/details>/)?.[1]||'';
+ assert.match(rail,/À découvrir ensuite/);
+ assert.match(rail,/class="swapp-affiliate-offer swapp-affiliate-manual"/);
+ assert.match(rail,/OFFRE INSTANT GAMING · LIEN AFFILIÉ/);
+ assert.match(rail,/Voir l’offre ↗/);
+ assert.match(rail,/href="https:\/\/www\.instant-gaming\.com\/fr\/1497-acheter-the-witcher-3-wild-hunt\/\?igr=SANSAHD"/);
+ assert.match(rail,/rel="sponsored nofollow noopener noreferrer"/);
+ assert.equal((html.match(/swapp-affiliate-offer swapp-affiliate-manual/g)||[]).length,1);
+ assert.doesNotMatch(html,/Pour aller plus loin|swapp-article-commerce/);
+ const library=read('assets/swapp-article-extras.js');
+ assert.match(library,/function partnerOffersHtml\(a\)/);
+ assert.match(library,/function renderServer\(article\)\{return sourcesHtml\(article\)\+editorialVerdictHtml\(article\)\}/);
+ assert.match(read('modules/swapp-news/native-pages.js'),/const manualPartner=articleExtras\.partnerOffersHtml\(article\)/);
+ const spa=read('assets/swapp-actus-app.js');
+ assert.match(spa,/SwappArticleExtras\?\.partnerOffersHtml\?\.\(a\)/);
+ assert.match(spa,/recommend\.append\(\.\.\.holder\.children\)/);
+});
+test('editor supplied Amazon commercial offers still carry statutory partner disclosure',()=>{
+ const html=renderNewsStory({slug:'article-affiliation-amazon',title:'Un jeu',body:'Article de test',
+  commercialLinks:[{title:'Offre Amazon',merchant:'Amazon',url:'https://link.amazon/example',kind:'affiliate'}]});
+ assert.match(html,/En tant que Partenaire Amazon, je réalise un bénéfice/);
+ assert.match(html,/swapp-affiliate-offer swapp-affiliate-manual/);
+ assert.doesNotMatch(html,/Pour aller plus loin/);
 });
