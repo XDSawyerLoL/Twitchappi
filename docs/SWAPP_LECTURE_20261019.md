@@ -1,3 +1,12 @@
+# Réglage du lecteur vocal — 20 octobre 2026
+
+Le panneau « Écouter » propose directement **Vivienne** en premier si le navigateur fournit cette voix française. La case à cocher imposant une autorisation supplémentaire pour les voix en ligne a été retirée. Le bouton « Écouter l’article » constitue désormais l'action volontaire qui lance la voix choisie ; l'interface précise brièvement si le moteur vocal du navigateur peut fonctionner en ligne. L'application n'envoie elle-même aucun texte à un prestataire vocal ; pour une voix distante du navigateur, le fournisseur du navigateur peut traiter l'audio/texte selon ses propres règles.
+
+**Mairaiy** apparaît dans le même sélecteur comme voix Quantic Studio réelle (Gemini/Aoede). Elle est sélectionnable uniquement après validation et disponibilité d'un enregistrement **Aoede authentique** pour l'article courant. Le transport Mairaiy utilise les mêmes commandes « Écouter », « Pause », « Reprendre », « Arrêter », « Passage précédent/suivant », vitesse et mise en évidence du texte. Aucun remplacement par Kokoro ou Vivienne n'est présenté sous le nom Mairaiy. S'il n'existe pas encore d'enregistrement, l'option indique « Mairaiy · enregistrement non disponible » et Vivienne fonctionne normalement.
+
+Les fichiers audio Mairaiy sont générés manuellement par `tools/swapp-mairaiy-narration-generate.py` avec l'accord explicite de l'opérateur en raison des coûts Gemini potentiels. **Cette livraison ne génère ni ne facture d'audio Mairaiy.** L'arrivée d'un vrai audio sur SWAPP requiert toujours la génération et la publication Hostinger de l'enregistrement.
+
+---
 # Mise à jour — Voix Mairaiy historique retrouvée dans Quantic Studio
 
 **Source confirmée :** dépôt `XDSawyerLoL/Auralive`, fichiers `app/services/voice_identity_lock.py`, `app/services/avatar_audio.py`, `app/main.py`, tests `tests/test_voice_identity_lock.py`.

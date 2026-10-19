@@ -70,7 +70,7 @@ test('SPA and native page load the same reader and versioned new styling',()=>{
  const spa=read('index.html'),native=read('modules/swapp-news/site-shell.js');
  for(const text of [spa,native]){
   assert.match(text,/swapp-article-immersive\.css\?v=20261019-single-reader-v6/);
-  assert.match(text,/swapp-reader-experience\.js\?v=20261019-native-boot-v4/);
+  assert.match(text,/swapp-reader-experience\.js\?v=20261020-voice-v1/);
  }
  assert.match(spa,/swapp-actus-app\.js\?v=20261019-single-reader-v9/);
  assert.match(spa,/swapp-instant-gaming\.js\?v=20261016-ig-offers-1/);
@@ -111,7 +111,7 @@ test('long desktop contents panel remains sticky and viewport-clamped',()=>{
  assert.match(css,/position:static!important;grid-column:1;grid-row:auto/);
  assert.match(css,/max-height:none!important/);
  for(const html of [read('index.html'),read('modules/swapp-news/site-shell.js')]){
-  assert.match(html,/swapp-reader-experience\.js\?v=20261019-native-boot-v4/);
+  assert.match(html,/swapp-reader-experience\.js\?v=20261020-voice-v1/);
   assert.match(html,/swapp-article-immersive\.css\?v=20261019-single-reader-v6/);
  }
 });

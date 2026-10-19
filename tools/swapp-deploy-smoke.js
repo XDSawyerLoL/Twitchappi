@@ -146,13 +146,13 @@ async function verify(){
  // SWAPP Lecture: both server-rendered articles and the SPA must ship the same
  // opt-in reader and narrator. This does not claim that a Mairy voice exists.
  for(const [pathname,page] of [['/',home],['/actus',news]]){
-  check(page.body.includes('/assets/swapp-reader-studio.js?v=20261019-native-boot-v3')&&
-    page.body.includes('/assets/swapp-reader-studio.css?v=20261019-reading-v1'),
+  check(page.body.includes('/assets/swapp-reader-studio.js?v=20261020-voice-v1')&&
+    page.body.includes('/assets/swapp-reader-studio.css?v=20261020-voice-v1'),
     pathname+': article reading module absent or stale');
  }
  const neuralStudio=await request(origin,'/assets/swapp-neural-narration.js');
- check(home.body.includes('/assets/swapp-neural-narration.js?v=20261019-neural-v1')&&
-    news.body.includes('/assets/swapp-neural-narration.js?v=20261019-neural-v1')&&
+ check(home.body.includes('/assets/swapp-neural-narration.js?v=20261020-voice-v1')&&
+    news.body.includes('/assets/swapp-neural-narration.js?v=20261020-voice-v1')&&
     neuralStudio.body.includes('validManifest')&&
     neuralStudio.body.includes('swapp-narrations/')&&
     neuralStudio.body.includes('credentials:\'omit\''),
@@ -174,7 +174,7 @@ async function verify(){
  check(reader.body.includes('currentToc')&&
   reader.body.includes('if(found&&toc&&mount(found))')&&
   reader.body.includes('ResizeObserver')&&
-  home.body.includes('swapp-reader-experience.js?v=20261019-native-boot-v4'),
+  home.body.includes('swapp-reader-experience.js?v=20261020-voice-v1'),
   'First-navigation TOC mounting fix not deployed');
  check(extras.body.includes('function partnerOffersHtml(a)')&&
   extras.body.includes('swapp-affiliate-offer swapp-affiliate-manual')&&

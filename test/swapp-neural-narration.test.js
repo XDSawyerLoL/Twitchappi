@@ -53,10 +53,10 @@ test('neural audio is opt in and only reads published same-origin static manifes
 test('two SWAPP article shells load studio after provider and before existing reader',()=>{
  const home=read('index.html'),native=read('modules/swapp-news/site-shell.js');
  for(const page of [home,native]){
-  const provider=page.indexOf('swapp-neural-narration.js?v=20261019-neural-v1');
-  const reader=page.indexOf('swapp-reader-studio.js?v=20261019-native-boot-v3');
+  const provider=page.indexOf('swapp-neural-narration.js?v=20261020-voice-v1');
+  const reader=page.indexOf('swapp-reader-studio.js?v=20261020-voice-v1');
   assert.ok(provider>0&&reader>provider);
-  assert.ok(page.includes('swapp-reader-studio.css?v=20261019-reading-v1'));
+  assert.ok(page.includes('swapp-reader-studio.css?v=20261020-voice-v1'));
  }
  const studio=read('assets/swapp-reader-studio.js');
  assert.match(studio,/SwappNeuralNarration\?\.attach/);
@@ -118,4 +118,16 @@ test('Mairaiy producer validates original Quantic Studio identity and requires q
  assert.match(script,/approve-provider-usage/);
  assert.match(script,/ready/);
  assert.doesNotMatch(script,/api\.openai\.com|elevenlabs\.io|new SpeechSynthesisUtterance/);
+});
+
+test('recorded Mairaiy has one unified voice selector transport and source identity checks',()=>{
+ const script=read('assets/swapp-neural-narration.js');
+ assert.match(script,/onAvailability\(mairaiy\)/);
+ assert.match(script,/toggleMairaiy:async/);
+ assert.match(script,/stopMairaiy/);
+ assert.match(script,/jumpMairaiy/);
+ assert.match(script,/audio\.play\(\)/);
+ assert.match(script,/onPlaybackState/);
+ assert.match(script,/data\.engine==='gemini-tts'/);
+ assert.doesNotMatch(script,/navigator\.mediaDevices|getUserMedia/);
 });
