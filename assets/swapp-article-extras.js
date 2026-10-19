@@ -79,15 +79,37 @@
   }
   return out;
  }
- // Every valid article YouTube URL already drives the immersive header.
- // Never render a second blurry full-width player farther down the article.
- function trailerHtml(a){
-  const id=trailerId(a?.trailerUrl);
-  if(!id)return '';
-  return '<nav class="swapp-hero-video-links" aria-label="Bande-annonce">'+
-   '<a href="#swapp-article-hero">Revoir la bande-annonce en haut ↑</a>'+
-   '<a href="https://www.youtube.com/watch?v='+id+'" target="_blank" rel="noopener noreferrer">Ouvrir sur YouTube ↗</a>'+
-   '</nav>';
+ // The cinematic trailer lives in the hero only; never repeat it below.
+ function editorialVerdictHtml(a){
+  const verdict=a?.editorialVerdict;
+  const score=verdict?.score,explanation=String(verdict?.text||'').trim();
+  if(!Number.isInteger(score)||score<1||score>5||explanation.length<35)return '';
+  const label=['','Décevant','Perfectible','Solide','Remarquable','Référence'][score];
+  const segments=Array.from({length:5},(_,i)=>
+   '<span class="swapp-verdict-segment'+(i<score?' is-lit':'')+'" aria-hidden="true"></span>').join('');
+  return '<section class="swapp-editorial-verdict" aria-label="Verdict de la rédaction SWAPP sur le jeu : '+
+   score+' sur 5">'+
+   '<div class="swapp-verdict-heading"><div><span class="swapp-verdict-kicker">VERDICT DE LA RÉDACTION</span>'+
+   '<h2>Le regard SWAPP sur '+escape(a?.game||'ce jeu')+'</h2></div>'+
+   '<strong class="swapp-verdict-number">'+score+'<small> / 5</small></strong></div>'+
+   '<div class="swapp-verdict-meter" role="img" aria-label="'+score+' segments sur 5, '+label+'">'+segments+
+   '<span class="swapp-verdict-word">'+label+'</span></div>'+
+   '<p class="swapp-verdict-reason">'+escape(explanation)+'</p>'+
+   '<small class="swapp-verdict-signature">Analyse de la rédaction SWAPP · Note attribuée au jeu, pas à l’article</small>'+
+   '</section>';
+ }
+ function sourcesHtml(a){
+  const entries=Array.isArray(a?.sources)?a.sources:[];
+  const links=entries.map(source=>{
+   let url;try{const u=new URL(String(source?.url||''));if(!['http:','https:'].includes(u.protocol)||u.username||u.password)return '';url=u.href}catch{return ''}
+   let host='Source';try{host=new URL(url).hostname.replace(/^www\./,'')}catch(_){}
+   return '<a href="'+escape(url)+'" target="_blank" rel="nofollow noopener noreferrer">'+
+    escape(String(source?.label||'').trim()==='Source'||!String(source?.label||'').trim()?host:source.label)+' ↗</a>';
+  }).filter(Boolean);
+  if(!links.length)return '';
+  return '<details id="swapp-article-sources" class="swapp-editorial-sources"><summary>'+
+   (links.length===1?'1 référence vérifiable':links.length+' références vérifiables')+
+   '</summary><div class="swapp-editorial-source-links">'+links.join('')+'</div></details>';
  }
  function linkHtml(a){
   const links=commercialLinks(a?.commercialLinks);
@@ -108,7 +130,7 @@
   if(!/^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/.test(slug))return '';
   return '<p class="swapp-article-discuss"><a href="/communaute?article='+encodeURIComponent(slug)+'">En discuter avec la communauté SWAPP →</a></p>';
  }
- function renderServer(article){return trailerHtml(article)+linkHtml(article)+discussionHtml(article)}
+ function renderServer(article){return sourcesHtml(article)+editorialVerdictHtml(article)+linkHtml(article)}
  function mount(node,article){
   if(typeof document==='undefined'||!node)return;
   const parser=document.createElement('div');
