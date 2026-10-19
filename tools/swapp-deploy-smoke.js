@@ -146,10 +146,17 @@ async function verify(){
  // SWAPP Lecture: both server-rendered articles and the SPA must ship the same
  // opt-in reader and narrator. This does not claim that a Mairy voice exists.
  for(const [pathname,page] of [['/',home],['/actus',news]]){
-  check(page.body.includes('/assets/swapp-reader-studio.js?v=20261019-reading-v1')&&
+  check(page.body.includes('/assets/swapp-reader-studio.js?v=20261019-reading-v2')&&
     page.body.includes('/assets/swapp-reader-studio.css?v=20261019-reading-v1'),
     pathname+': article reading module absent or stale');
  }
+ const neuralStudio=await request(origin,'/assets/swapp-neural-narration.js');
+ check(home.body.includes('/assets/swapp-neural-narration.js?v=20261019-neural-v1')&&
+    news.body.includes('/assets/swapp-neural-narration.js?v=20261019-neural-v1')&&
+    neuralStudio.body.includes('validManifest')&&
+    neuralStudio.body.includes('swapp-narrations/')&&
+    neuralStudio.body.includes('credentials:\'omit\''),
+    'Neural narration player missing or stale');
  const readerStudio=await request(origin,'/assets/swapp-reader-studio.js');
  const readerStudioCss=await request(origin,'/assets/swapp-reader-studio.css');
  check(readerStudio.body.includes('swapp-reader-focus')&&
