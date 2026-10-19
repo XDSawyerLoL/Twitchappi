@@ -143,8 +143,8 @@ test('no game uses existing general discovery only, without new sections',async(
 test('release uses the changed client version and never schedules a paid workflow',()=>{
  const shell=fs.readFileSync(path.join(root,'modules/swapp-news/site-shell.js'),'utf8');
  const core=fs.readFileSync(path.join(root,'modules/swapp-news/article-core.js'),'utf8');
- assert.match(shell,/swapp-media-live\.js\?v=20261017-stability-store-v14/);
- assert.match(core,/swapp-media-live\.js\?v=20261017-stability-store-v14/);
+ assert.match(shell,/swapp-media-live\.js\?v=20261019-fair-optin-v2/);
+ assert.match(core,/swapp-media-live\.js\?v=20261019-fair-optin-v2/);
  assert.equal(fs.existsSync(path.join(root,'.github/workflows/swapp-quality.yml')),false);
 });
 
