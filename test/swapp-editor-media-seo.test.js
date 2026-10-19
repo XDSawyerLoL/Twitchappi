@@ -94,7 +94,7 @@ test('video articles without manually uploaded covers get playable YouTube poste
  const thumbnail='https://i.ytimg.com/vi/VQRLujxTm3c/hqdefault.jpg';
  assert.ok(page.includes('<meta property="og:image" content="'+thumbnail+'">'));
  assert.ok(page.includes('<meta name="twitter:card" content="summary_large_image">'));
- assert.ok(page.includes('class="swapp-hero-video-links"'));
+ assert.doesNotMatch(page,/swapp-hero-video-links|swapp-trailer-stage/);
  assert.doesNotMatch(page,/swapp-trailer-stage|swapp-trailer-thumb/);
  assert.ok(page.includes('data-swapp-trailer-id="VQRLujxTm3c"'));
  assert.ok(page.includes('https://www.youtube.com/watch?v=VQRLujxTm3c'));
@@ -109,8 +109,8 @@ test('an uploaded licensed cover takes priority over the official YouTube thumbn
  status:'published',publishedAt:'2026-10-15T10:00:00.000Z'};
  const page=renderNewsStory(article);
  assert.match(page,/<meta property="og:image" content="https:\/\/example.org\/licensed-wow.jpg">/);
- assert.match(page,/class="swapp-hero-video-links"/);
- assert.match(page,/href="https:\/\/www.youtube.com\/watch\?v=VQRLujxTm3c"/);
+ assert.doesNotMatch(page,/swapp-hero-video-links|swapp-trailer-stage/);
+ assert.match(page,/data-swapp-trailer-id="VQRLujxTm3c"/);
  assert.doesNotMatch(page,/swapp-trailer-stage|swapp-trailer-thumb/);
 });
 test('an article without a verified video URL never invents a video player',()=>{
