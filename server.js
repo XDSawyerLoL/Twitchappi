@@ -3120,6 +3120,13 @@ const ORYON_DATA_DIR = process.env.ORYON_DATA_DIR || __dirname;
 const ORYON_USERS_FILE = path.join(ORYON_DATA_DIR, '.oryon-users.json');
 let __oryonUsersCache = null;
 let __oryonUsersPersistence = 'json-local';
+// Account storage can be moved to Hostinger MySQL without changing the rest of SWAPP.
+const SWAPP_MYSQL_ACCOUNTS=String(process.env.SWAPP_ACCOUNT_STORE||'').trim().toLowerCase()==='mysql';
+const swappMysqlAccounts=SWAPP_MYSQL_ACCOUNTS
+ ?require('./modules/swapp-oryon-mysql-accounts').createMysqlAccountsStore({
+   uri:process.env.SWAPP_ACCOUNT_MYSQL_URL||process.env.SWAPP_MYSQL_URL||process.env.DATABASE_URL
+  }):null;
+let swappMysqlAccountsReady=false;
 // Swapp streamer/channel hardening. No visual change: this only normalizes persistent
 // channel data so every account has a stable public channel and reliable live status.
 const SWAPP_CHANNEL_SCHEMA_VERSION = 3;
@@ -3269,6 +3276,8 @@ function readOryonUsers(){
   // populates __oryonUsersCache on startup; this fallback prevents route crashes
   // during cold starts and keeps the JSON backup readable when Firestore is absent.
   if(__oryonUsersCache && Array.isArray(__oryonUsersCache.users)) return __oryonUsersCache;
+  // Never read old JSON or Firestore account backups in MySQL account mode.
+  if(SWAPP_MYSQL_ACCOUNTS)return {users:[]};
   try{
     if(fs.existsSync(ORYON_USERS_FILE)){
       const raw = fs.readFileSync(ORYON_USERS_FILE, 'utf8');
@@ -3284,6 +3293,21 @@ function readOryonUsers(){
   return __oryonUsersCache;
 }
 async function loadOryonUsersPersistent(){
+  if(SWAPP_MYSQL_ACCOUNTS){
+    try{
+      const users=await swappMysqlAccounts.load();
+      __oryonUsersCache=normalizeOryonUsersPayload({users});
+      __oryonUsersPersistence='mysql:swapp_oryon_accounts';
+      swappMysqlAccountsReady=true;
+      return;
+    }catch(error){
+      swappMysqlAccountsReady=false;
+      __oryonUsersCache=null;
+      __oryonUsersPersistence='mysql:unavailable';
+      console.error('[ORYON] MySQL account load unavailable:',error.code||error.message);
+      throw error;
+    }
+  }
   // 1) Firestore source of truth: individual docs first, then compact state doc.
   if(firestoreOk && db && typeof db.collection === 'function'){
     try{
@@ -3337,12 +3361,21 @@ async function firestoreOryonHasExistingUsers(){
 }
 
 function oryonProductionRequiresDurableStorage(){
+  if(SWAPP_MYSQL_ACCOUNTS)return !swappMysqlAccountsReady;
   return String(process.env.NODE_ENV || '').toLowerCase() === 'production'
     && String(process.env.ALLOW_EPHEMERAL_ACCOUNTS || '').toLowerCase() !== 'true'
     && !(firestoreOk && db && typeof db.collection === 'function');
 }
 
 async function persistOryonUsers(data){
+  if(SWAPP_MYSQL_ACCOUNTS){
+    if(!swappMysqlAccountsReady)throw Error('mysql_accounts_unavailable');
+    const normalized=normalizeOryonUsersPayload(data,{ensureStreamKey:true});
+    const result=await swappMysqlAccounts.save(normalized.users);
+    __oryonUsersCache={users:normalized.users};
+    __oryonUsersPersistence='mysql:swapp_oryon_accounts';
+    return result;
+  }
   const normalized = normalizeOryonUsersPayload(data, { ensureStreamKey:true });
   const payload = { users: normalized.users };
   if(normalized.login_conflicts?.length) console.warn('[ORYON] conflits de pseudos ignores:', normalized.login_conflicts.join(','));
@@ -3393,6 +3426,11 @@ async function persistOryonUsers(data){
 }
 
 function writeOryonUsers(data){
+  if(SWAPP_MYSQL_ACCOUNTS){
+    // Existing non-awaited activity updates are still serialized by the MySQL store.
+    persistOryonUsers(data).catch(e=>console.error('[ORYON] MySQL background write failed:',e.code||e.message));
+    return;
+  }
   __oryonUsersCache = { users: Array.isArray(data?.users) ? data.users : [] };
   persistOryonUsers(__oryonUsersCache).catch(e=>console.warn('[ORYON] async persist failed:', e.message));
 }
@@ -3442,14 +3480,25 @@ async function persistOryonGenericState(file, data){
   }
 }
 const ORYON_STATE_READY = loadOryonGenericStatePersistent();
-app.use('/api/oryon', async (_req, _res, next) => {
+app.use('/api/oryon', async (req, res, next) => {
   try { await ORYON_USERS_READY; } catch (_) {}
+  if(SWAPP_MYSQL_ACCOUNTS&&!swappMysqlAccountsReady&&req.path!=='/persistence-status')
+    return res.status(503).json({success:false,error:'mysql_accounts_unavailable'});
   try { await ORYON_STATE_READY; } catch (_) {}
   next();
 });
 
 app.get('/api/oryon/persistence-status', async (_req, res) => {
   try{ await ORYON_USERS_READY; }catch(_){}
+  res.set('Cache-Control','no-store');
+  if(SWAPP_MYSQL_ACCOUNTS)return res.json({
+    success:true,store:'mysql',mysql:swappMysqlAccountsReady,
+    persistence:__oryonUsersPersistence,
+    users:swappMysqlAccountsReady?(__oryonUsersCache?.users||[]).length:null,
+    requires_env:swappMysqlAccountsReady?[]:['SWAPP_MYSQL_URL'],
+    github_deploy_safe:swappMysqlAccountsReady,
+    warning:swappMysqlAccountsReady?null:'Stockage MySQL des comptes indisponible ; aucune bascule JSON autorisée.'
+  });
   res.json({
     success:true,
     firestore: !!firestoreOk,
@@ -3719,7 +3768,7 @@ app.post('/api/oryon/register', async (req, res) => {
     if(login.length < 3) return res.status(400).json({ success:false, error:'Pseudo trop court.' });
     if(!isValidEmail(email)) return res.status(400).json({ success:false, error:'Email invalide.' });
     if(password.length < 6) return res.status(400).json({ success:false, error:'Mot de passe trop court.' });
-    if(oryonProductionRequiresDurableStorage()) return res.status(503).json({ success:false, error:'Persistance comptes non configurée. FIREBASE_SERVICE_KEY doit être chargé avant de créer des comptes en production.' });
+    if(oryonProductionRequiresDurableStorage()) return res.status(503).json({ success:false, error:'Stockage durable des comptes indisponible : vérifier MySQL ou la configuration du stockage sélectionné.' });
     try{ await ORYON_USERS_READY; }catch(_){}
     const data = readOryonUsers();
     if(data.users.some(u => u.login === login)) return res.status(409).json({ success:false, error:'Ce pseudo existe déjà.' });
@@ -3752,7 +3801,7 @@ app.post('/api/oryon/login', async (req, res) => {
     try{ await loadOryonUsersPersistent(); }catch(_){}
     const login = normalizeOryonLogin(req.body?.login);
     const password = String(req.body?.password || '');
-    if(oryonProductionRequiresDurableStorage()) return res.status(503).json({ success:false, error:'Persistance comptes indisponible. Vérifie FIREBASE_SERVICE_KEY côté Hostinger.' });
+    if(oryonProductionRequiresDurableStorage()) return res.status(503).json({ success:false, error:'Stockage durable des comptes indisponible : vérifier MySQL ou la configuration du stockage sélectionné.' });
     const data = readOryonUsers();
     const user = data.users.find(u => u.login === login);
     if(!user || !verifyOryonPassword(password, user.password_hash)) return res.status(401).json({ success:false, error:'Identifiants invalides.' });
@@ -3769,7 +3818,7 @@ app.post('/api/oryon/login', async (req, res) => {
 app.post('/api/oryon/password/forgot', authLimiter, async (req, res) => {
   try{
     try{ await loadOryonUsersPersistent(); }catch(_){}
-    if(oryonProductionRequiresDurableStorage()) return res.status(503).json({ success:false, error:'Persistance comptes indisponible. Vérifie FIREBASE_SERVICE_KEY_BASE64 côté Hostinger.' });
+    if(oryonProductionRequiresDurableStorage()) return res.status(503).json({ success:false, error:'Stockage durable des comptes indisponible : vérifier MySQL ou la configuration du stockage sélectionné.' });
     if(!swappPasswordResetEmailConfigured() && IS_PROD && String(process.env.SWAPP_PASSWORD_RESET_LOG_LINKS || '').toLowerCase() !== 'true'){
       return res.status(503).json({ success:false, error:'Email de récupération non configuré. Ajoute RESEND_API_KEY ou SENDGRID_API_KEY, ou SMTP_HOST/SMTP_USER/SMTP_PASS + SWAPP_EMAIL_FROM.' });
     }
@@ -3805,7 +3854,7 @@ app.post('/api/oryon/password/forgot', authLimiter, async (req, res) => {
 app.post('/api/oryon/password/reset', authLimiter, async (req, res) => {
   try{
     try{ await loadOryonUsersPersistent(); }catch(_){}
-    if(oryonProductionRequiresDurableStorage()) return res.status(503).json({ success:false, error:'Persistance comptes indisponible. Vérifie FIREBASE_SERVICE_KEY_BASE64 côté Hostinger.' });
+    if(oryonProductionRequiresDurableStorage()) return res.status(503).json({ success:false, error:'Stockage durable des comptes indisponible : vérifier MySQL ou la configuration du stockage sélectionné.' });
     const token = String(req.body?.token || '').trim();
     const password = String(req.body?.password || '');
     if(token.length < 32) return res.status(400).json({ success:false, error:'Lien de récupération invalide.' });
@@ -3839,7 +3888,7 @@ app.post('/api/oryon/restore-session', async (req, res) => {
     const login = normalizeOryonLogin(req.body?.login);
     const token = String(req.body?.remember_token || req.body?.token || '').trim();
     if(!login || !token) return res.status(400).json({success:false,error:'Jeton de session manquant.'});
-    if(oryonProductionRequiresDurableStorage()) return res.status(503).json({ success:false, error:'Persistance comptes indisponible. Vérifie FIREBASE_SERVICE_KEY côté Hostinger.' });
+    if(oryonProductionRequiresDurableStorage()) return res.status(503).json({ success:false, error:'Stockage durable des comptes indisponible : vérifier MySQL ou la configuration du stockage sélectionné.' });
     const data = readOryonUsers();
     const user = data.users.find(u => u.login === login);
     if(!user || !verifyOryonRememberToken(user, token)) return res.status(401).json({success:false,error:'Session expirée. Reconnecte-toi une fois.'});
