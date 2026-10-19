@@ -82,7 +82,9 @@
   for(const p of placements){
    const s=sessions.get(p.key),root=document.querySelector(p.root);
    // Each SPA route navigation ends opt-in for the previous screen.
-   if(!root){
+   const view=p.key==='discover'?document.getElementById('discover'):document.getElementById('home');
+   const inactive=view?.classList?.contains('view')&&!view.classList.contains('active');
+   if(!root||inactive){
     if(s.active){s.active=false;resetWatch(s)}
     s.button=null;s.nodes=[];s.lastRoot=null;continue;
    }
