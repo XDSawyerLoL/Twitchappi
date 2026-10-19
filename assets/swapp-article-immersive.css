@@ -687,3 +687,32 @@ body.swapp-editorial-route #swapp-article-lives .swapp-game-connection{display:n
 @media(prefers-reduced-motion:reduce){
  body.swapp-editorial-route #swapp-article-lives .swapp-live-card-editorial{transition:none!important}
 }
+
+/* Native editorial pages inherit the precise user-chosen SWAPP side light.
+   The SPA stores "oryon_viewer_accent"; an early script restores it here.
+   Tint the environment, NOT the video, text, commerce CTA or site branding. */
+html.swapp-editorial-theme body.swapp-editorial-route:has(.article-wrap){
+ background:
+  radial-gradient(ellipse 80% 68% at -11% 30%,
+   color-mix(in srgb,var(--swapp-side-light,#22d3ee) 35%,transparent),transparent 69%),
+  radial-gradient(ellipse 60% 48% at 107% 83%,
+   color-mix(in srgb,var(--swapp-side-light,#22d3ee) 13%,transparent),transparent 79%),
+  #05070d!important;
+}
+html.swapp-editorial-theme body.swapp-editorial-route .article-wrap{
+ background:
+  radial-gradient(ellipse 72% 72% at -15% 30%,
+   color-mix(in srgb,var(--swapp-side-light,#22d3ee) 26%,transparent),transparent 77%),
+  radial-gradient(ellipse 52% 58% at 105% 92%,
+   color-mix(in srgb,var(--swapp-side-light,#22d3ee) 11%,transparent),transparent 80%),
+  linear-gradient(180deg,#0b111b,#070d17 60%,#0b111b)!important;
+}
+/* A restrained personal color accent in reading affordances, not every UI button. */
+html.swapp-editorial-theme body.swapp-editorial-route
+ .swapp-article-reading .swapp-reader-toc a[aria-current="location"]{
+ border-left-color:var(--swapp-side-light,#22d3ee)!important;
+}
+html.swapp-editorial-theme body.swapp-editorial-route
+ .swapp-reader-next-item:is(:hover,:focus-visible){
+ border-left-color:var(--swapp-side-light,#22d3ee)!important;
+}

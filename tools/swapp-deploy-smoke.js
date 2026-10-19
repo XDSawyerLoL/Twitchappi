@@ -141,7 +141,7 @@ async function verify(){
  check(shelfScript.body.includes("shelf.id==='swapp-article-lives'")&&
   shelfScript.body.includes('swapp-live-card-editorial')&&
   shelfScript.body.includes("articleMode?'Regarder le live")&&
-  home.body.includes('swapp-article-immersive.css?v=20261019-manual-commerce-v7'),
+  home.body.includes('swapp-article-immersive.css?v=20261019-native-colors-v8'),
   'Direct article lives still use oversized repeated game pills');
  const reader=await request(origin,'/assets/swapp-reader-experience.js');
  check(reader.body.includes('currentToc')&&
@@ -155,7 +155,16 @@ async function verify(){
   readerApp.body.includes('SwappArticleExtras?.partnerOffersHtml?.(a)')&&
   home.body.includes('swapp-article-extras.js?v=20261019-manual-commerce-v10'),
   'Witcher manual Instant Gaming link still renders as huge footer advertisement');
+ const nativeColor=await request(origin,'/assets/swapp-editorial-color.js');
+ check(nativeColor.body.includes("oryon_viewer_accent")&&
+  nativeColor.body.includes("'--swapp-side-light'")&&
+  nativeColor.body.includes('swapp-editorial-theme')&&
+  home.body.includes('swapp-article-immersive.css?v=20261019-native-colors-v8'),
+  'Native article does not restore the SPA user-selected side light');
  const trailerCss=await request(origin,'/assets/swapp-article-immersive.css');
+ check(trailerCss.body.includes('html.swapp-editorial-theme body.swapp-editorial-route .article-wrap')&&
+  trailerCss.body.includes('color-mix(in srgb,var(--swapp-side-light,#22d3ee) 26%,transparent)'),
+  'Article backdrop CSS does not honor the selected SWAPP color');
  check(trailerCss.body.includes('html:has(#actus.view.active .swapp-actus-native.swapp-actus-reading)')&&
   trailerCss.body.includes('overflow-y:visible!important'),
   'SPA article still traps sticky sidebars with html/body overflow hidden');
@@ -165,7 +174,7 @@ async function verify(){
   'TOC sticky panel may be too tall or non-sticky on initial load');
  check(trailerCss.body.includes('#fa7b19')&&
   trailerCss.body.includes('swapp-affiliate-link')&&
-  home.body.includes('swapp-article-immersive.css?v=20261019-manual-commerce-v7'),
+  home.body.includes('swapp-article-immersive.css?v=20261019-native-colors-v8'),
   'Orange compact partner action not deployed');
  check(cardClient.body.includes('OFFRE INSTANT GAMING · LIEN AFFILIÉ')&&
   cardClient.body.includes('Voir l’offre ↗')&&
