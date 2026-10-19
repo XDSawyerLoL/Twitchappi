@@ -100,8 +100,12 @@ test('editorial YouTube trailer is click-to-play only and labels every commercia
  const html=extras.renderServer(article);
  assert.doesNotMatch(html,/swapp-trailer-launch|swapp-hero-video-links/);
  assert.match(html,/swapp-editorial-sources/);
- assert.match(html,/Lien affilié|LIEN AFFILIÉ/);
- assert.match(html,/rel="sponsored nofollow noopener noreferrer"/);
+ assert.doesNotMatch(html,/swapp-article-commerce|Pour aller plus loin/);
+ const compact=extras.partnerOffersHtml(article);
+ assert.match(compact,/LIEN AFFILIÉ/);
+ assert.match(compact,/swapp-affiliate-offer swapp-affiliate-manual/);
+ assert.match(compact,/rel="sponsored nofollow noopener noreferrer"/);
+ assert.match(compact,/href="https:\/\/marchand\.example\/jeu"/);
  assert.doesNotMatch(html,/<iframe/);
  assert.throws(()=>assertArticle({...article,trailerUrl:'https://malicious.example/watch?v=M7lc1UVf-VE'}),/bande-annonce/);
  assert.throws(()=>assertArticle({...article,commercialLinks:[{url:'https://example.com',title:'Acheter'}]}),/commercial/);
