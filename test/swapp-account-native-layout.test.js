@@ -94,6 +94,18 @@ test('new account code and styling are cache-busted and included in deploy check
  assert.match(smoke,/accountScript\.body\.split\('async function renderSettings\(\)\{'\)\.length===2/);
 });
 
+test('a legacy history helper cannot add floating account cards after render',()=>{
+ const b=script();
+ const start=b.indexOf('async function installSettingsHistoryBlock(){');
+ const end=b.indexOf('window.swappRefreshSettingsHistoryBlock=installSettingsHistoryBlock',start);
+ assert.ok(start>=0&&end>start);
+ const logic=b.slice(start,end);
+ assert.match(logic,/querySelector\('#swapp-acct-history-settings'\)/);
+ assert.doesNotMatch(logic,/insertAdjacentHTML|settingsShell|settingsHero|historyBlockHtml\(status\).*afterend/s);
+ assert.match(b,/data-swapp-history-value/);
+ assert.match(b,/id="swapp-acct-history-settings"/);
+ assert.match(css(),/\.swapp-acct-history-setting\{display:flex/);
+});
 test('only the active menu uses the same intuitive account navigation, without modes',()=>{
  const b=script();
  const start=b.lastIndexOf('function renderUserMenu(){');
