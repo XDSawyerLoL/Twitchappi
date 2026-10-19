@@ -267,7 +267,13 @@ const recommend=el('details','swapp-reader-next');recommend.open=true;
 const recommendHeading=el('summary','','À découvrir ensuite');
 const recommendations=el('div','swapp-reader-next-list');
 recommend.append(recommendHeading,recommendations);
-const commercial=(a.commercialLinks?.length?null:window.SwappInstantGaming?.forArticle?.(a));
+const manualPartner=window.SwappArticleExtras?.partnerOffersHtml?.(a)||'';
+if(manualPartner){
+ const holder=document.createElement('div');
+ holder.innerHTML=manualPartner;
+ recommend.append(...holder.children);
+}
+const commercial=manualPartner?null:window.SwappInstantGaming?.forArticle?.(a);
 if(commercial){
  const partner=el('aside','swapp-affiliate-offer');
  partner.setAttribute('aria-label','Offre partenaire Instant Gaming · lien affilié');
