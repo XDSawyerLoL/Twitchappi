@@ -98,7 +98,8 @@ test('editorial YouTube trailer is click-to-play only and labels every commercia
   commercialLinks:[{title:'Voir le jeu',merchant:'Marchand',url:'https://marchand.example/jeu',kind:'affiliate'}]
  },{publish:true});
  const html=extras.renderServer(article);
- assert.match(html,/swapp-trailer-launch/);
+ assert.doesNotMatch(html,/swapp-trailer-launch|swapp-hero-video-links/);
+ assert.match(html,/swapp-editorial-sources/);
  assert.match(html,/Lien affilié|LIEN AFFILIÉ/);
  assert.match(html,/rel="sponsored nofollow noopener noreferrer"/);
  assert.doesNotMatch(html,/<iframe/);
