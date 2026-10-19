@@ -95,7 +95,7 @@ async function verify(){
  const home=await request(origin,'/');
  // All articles share a single immersive scene: own game trailer when one
  // exists, animated poster otherwise. Google CMP remains for AdSense only.
- check(home.body.includes('swapp-article-trailer-bg.js?v=20261019-highres-poster-v6'),
+ check(home.body.includes('swapp-article-trailer-bg.js?v=20261019-no-pause-v7'),
   'The current universal game-article trailer controller is missing from SPA');
  const trailerJs=await request(origin,'/assets/swapp-article-trailer-bg.js');
  check(trailerJs.body.includes('youtube-nocookie.com/embed')&&
@@ -104,7 +104,7 @@ async function verify(){
   !trailerJs.body.includes('CONSENT_API_READY'),
   'Game-article autoplay controller is stale');
  const extras=await request(origin,'/assets/swapp-article-extras.js');
- check(home.body.includes('swapp-article-extras.js?v=20261019-slim-trailer-v8'),
+ check(home.body.includes('swapp-article-extras.js?v=20261019-editorial-verdict-v9'),
   'Homepage still caches previous trailer validation library');
  check(extras.body.includes('function heroTrailerId(article)')&&
    extras.body.includes('heroTrailerId,isGameArticle,cardImageSources,commercialLinks'),
@@ -118,10 +118,11 @@ async function verify(){
  check(cardCss.body.includes('swapp-actus-cover-fallback'),
   'Card design fallback not deployed');
  // The lower full-screen trailer is gone; the verified YouTube hero remains.
- check(extras.body.includes('swapp-hero-video-links')&&
+ check(extras.body.includes('swapp-editorial-verdict')&&
+  extras.body.includes('swapp-editorial-sources')&&
   !extras.body.includes('swapp-trailer-stage')&&
-  home.body.includes('swapp-article-extras.css?v=20261019-slim-trailer-v8'),
-  'Article still duplicates a large trailer below its immersive header');
+  home.body.includes('swapp-article-extras.css?v=20261019-editorial-verdict-v9'),
+  'Article still shows duplicate lower modules or lacks the SWAPP editorial verdict');
  check(trailerJs.body.includes('maxresdefault')&&
   trailerJs.body.includes('sddefault'),
   'Ambient YouTube artwork does not try high-resolution poster');
