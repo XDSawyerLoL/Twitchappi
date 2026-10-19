@@ -31,3 +31,27 @@ test('public API responses and list previews apply the same correction',()=>{
  assert.match(router,/res\.json\(correctWoWForever\(publicArticle\(exact\.data\(\)\)\)\)/);
  assert.match(router,/res\.json\(correctWoWForever\(publicArticle\(snap\.data\(\)\)\)\)/);
 });
+
+test('WoW trailer uses one immersive scene on native and SPA article views',()=>{
+ const fs=require('node:fs'),path=require('node:path');
+ const read=file=>fs.readFileSync(path.join(__dirname,'..',file),'utf8');
+ const native=read('modules/swapp-news/native-pages.js');
+ const spa=read('assets/swapp-actus-app.js');
+ const css=read('assets/swapp-article-immersive.css');
+ const script=read('assets/swapp-article-trailer-bg.js');
+ assert.match(native,/data-swapp-trailer-id/);
+ assert.match(native,/swapp-article-trailer-poster/);
+ assert.match(spa,/scene\.dataset\.swappTrailerId=trailerId/);
+ assert.match(spa,/SwappTrailerHero\?\.mount\?\.\(scene\)/);
+ assert.match(css,/\.swapp-article-scene\.has-trailer/);
+ assert.match(css,/\.swapp-article-trailer-frame/);
+ assert.match(script,/www\.youtube-nocookie\.com\/embed/);
+ assert.match(script,/CONSENT_API_READY/);
+ assert.match(script,/prefers-reduced-motion/);
+ assert.match(script,/saveData/);
+ assert.match(script,/if\(cmp===false\)/);
+ assert.match(script,/stop\(\)/);
+ assert.match(script,/mute=1/);
+ for(const shell of ['index.html','modules/swapp-news/site-shell.js'])
+  assert.match(read(shell),/swapp-article-trailer-bg\.js\?v=20261019-trailer-fade-v1/);
+});
