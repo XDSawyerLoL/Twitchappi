@@ -30,7 +30,7 @@
  let active=null;
  function pauseActive(){if(active&&!active.paused)active.pause()}
  function stopActive(){if(active){active.pause();active.currentTime=0;active=null}}
- function attach({studio,content,root}){
+ function attach({studio,content,root,onAvailability=()=>{},onPlaybackState=()=>{}}){
   if(!studio||!content||!root)return;
   const host=root.closest('[data-swapp-article-slug]');
   const slug=host?.getAttribute('data-swapp-article-slug')||
@@ -41,7 +41,7 @@
   if(!toggle||!panel)return;
   const blocks=articleBlocks(content);
   if(!blocks.length)return;
-  let loaded=false,loading=false,closed=false,marked=null,manifest=null;
+  let loaded=false,loading=false,closed=false,marked=null,manifest=null,sourceIsMairaiy=false;
   const container=document.createElement('section');
   container.className='swapp-neural-narration';
   container.setAttribute('aria-label','Narration studio de cet article');
@@ -67,7 +67,12 @@
     if(r.top<105||r.bottom>innerHeight-110)marked.scrollIntoView({block:'center',behavior:'auto'});
    }
    counter.textContent=(i+1)+' / '+blocks.length;
+   report();
   }
+  const report=()=>{if(sourceIsMairaiy&&manifest)onPlaybackState({
+   playing:!audio.paused&&!audio.ended,paused:audio.paused&&!audio.ended&&audio.currentTime>0,
+   index:chapter(),total:manifest.blocks.length
+  })};
   function chapter(){
    if(!manifest)return 0;
    let i=0;
@@ -88,16 +93,17 @@
   audio.addEventListener('play',()=>{
    if(active&&active!==audio)active.pause();
    active=audio;
-   const stop=studio.querySelector('[data-reader-stop]');
-   if(stop&&!stop.disabled)stop.click();
+   window.SwappReaderStudio?.stopBrowserAudio?.();
+   report();
   });
-  audio.addEventListener('pause',()=>{if(active===audio)active=null});
-  audio.addEventListener('ended',()=>{if(active===audio)active=null});
+  audio.addEventListener('pause',()=>{if(active===audio)active=null;report()});
+  audio.addEventListener('ended',()=>{if(active===audio)active=null;report()});
   function dispose(){
    if(closed)return;
    closed=true;audio.pause();audio.removeAttribute('src');audio.load();
    if(active===audio)active=null;
    if(marked)marked.classList.remove('swapp-narration-current');
+   onAvailability(false);
    container.remove();
   }
   const observer=new MutationObserver(()=>{
@@ -121,16 +127,39 @@
     if(closed||!studio.isConnected||!validManifest(data,slug,blocks))return;
     manifest=data;
     const mairaiy=data.engine==='gemini-tts'&&data.voice==='mairaiy-gemini-aoede';
+    sourceIsMairaiy=mairaiy;
     title.textContent=mairaiy?'Mairaiy · Narration officielle':'Narration alternative · Français';
     label.textContent=mairaiy?'Voix historique Aoede de Quantic Studio, préenregistrée pour cet article.':'Voix Kokoro ff_siwis distincte de Mairaiy.';
     audio.src='/assets/swapp-narrations/'+encodeURIComponent(slug)+'/'+data.audio;
-    container.hidden=false;loaded=true;
+    container.hidden=mairaiy;loaded=true;
+    onAvailability(mairaiy);
     const status=studio.querySelector('[data-reader-audio-status]');
-    if(status)status.textContent='Narration studio disponible. Le bouton de lecture audio apparaît ci-dessus.';
+    if(status)status.textContent=mairaiy?'Mairaiy est disponible dans la liste des voix.':'Narration alternative disponible au-dessus des commandes.';
    }catch(_){/* Use the unchanged system voice when no recording exists. */}
    finally{loading=false}
   }
   toggle.addEventListener('click',()=>{if(!panel.hidden)discover()});
+  const stopMairaiy=()=>{
+   if(!sourceIsMairaiy||!manifest)return;
+   audio.pause();
+   audio.currentTime=0;
+   if(marked){marked.classList.remove('swapp-narration-current');marked=null;}
+   report();
+  };
+  return {
+   discover,
+   isMairaiyAvailable:()=>!!(sourceIsMairaiy&&manifest&&!closed),
+   toggleMairaiy:async()=>{
+    if(!sourceIsMairaiy||!manifest||closed)return false;
+    if(!audio.paused){audio.pause();report();return true;}
+    try{
+     await audio.play();report();return true;
+    }catch(_){return false;}
+   },
+   stopMairaiy,
+   jumpMairaiy:delta=>{if(sourceIsMairaiy&&manifest)jump(delta)},
+   setSpeed:rate=>{audio.playbackRate=Math.max(.8,Math.min(1.25,Number(rate)||1))}
+  };
  }
  window.SwappNeuralNarration={attach,pauseActive,stopActive,validManifest,articleBlocks};
 })();
