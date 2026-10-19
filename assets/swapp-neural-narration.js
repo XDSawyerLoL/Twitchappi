@@ -10,7 +10,10 @@
  }
  function validManifest(data,slug,blocks){
   if(!data||data.version!==1||data.slug!==slug||data.language!=='fr-FR'||
-     !/^kokoro-82m/.test(String(data.engine||''))||
+     !((data.engine==='gemini-tts'&&data.voice==='mairaiy-gemini-aoede'&&
+        data.engine_voice==='Aoede'&&data.model==='gemini-3.1-flash-tts-preview'&&
+        data.historical_profile==='aura-live-2.0.7-natural')||
+       (/^kokoro-82m/.test(String(data.engine||''))&&data.voice==='ff_siwis'))||
      !/^audio\.(mp3|wav)$/.test(String(data.audio||''))||
      !Array.isArray(data.blocks)||!data.blocks.length||data.blocks.length!==blocks.length||
      blocks.length>300)return false;
@@ -44,7 +47,7 @@
   container.setAttribute('aria-label','Narration studio de cet article');
   container.hidden=true;
   const title=document.createElement('h3');title.textContent='Narration studio · Français';
-  const label=document.createElement('p');label.textContent='Voix neuronale française préenregistrée, distincte de Mairy.';
+  const label=document.createElement('p');label.textContent='Lecture audio préenregistrée, voix identifiée à la publication.';
   const audio=document.createElement('audio');
   audio.controls=true;audio.preload='none';audio.setAttribute('playsinline','');
   audio.setAttribute('aria-label','Écouter la narration studio');
@@ -117,6 +120,9 @@
     const data=await response.json();
     if(closed||!studio.isConnected||!validManifest(data,slug,blocks))return;
     manifest=data;
+    const mairaiy=data.engine==='gemini-tts'&&data.voice==='mairaiy-gemini-aoede';
+    title.textContent=mairaiy?'Mairaiy · Narration officielle':'Narration alternative · Français';
+    label.textContent=mairaiy?'Voix historique Aoede de Quantic Studio, préenregistrée pour cet article.':'Voix Kokoro ff_siwis distincte de Mairaiy.';
     audio.src='/assets/swapp-narrations/'+encodeURIComponent(slug)+'/'+data.audio;
     container.hidden=false;loaded=true;
     const status=studio.querySelector('[data-reader-audio-status]');
