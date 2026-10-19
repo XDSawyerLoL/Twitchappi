@@ -1,121 +1,85 @@
-/* SWAPP - immersive article trailer. Uses the existing editorial scene, no extra hero. */
+/* SWAPP — ambient WoW trailer: full-bleed, silent, starts at 00:10.
+   No Google/AdSense consent UI belongs to this decorative player.
+   The website's advertising consent mechanism is separate. */
 (()=>{'use strict';
  if(window.SwappTrailerHero)return;
- const valid=id=>/^[A-Za-z0-9_-]{11}$/.test(id);
- const installed=new WeakSet();
+ const valid=id=>/^[a-zA-Z0-9_-]{11}$/.test(id);
+ const mounted=new WeakSet();
  const reduced=()=>!!window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
- const saveData=()=>!!navigator.connection?.saveData;
- // Only certified TCF decisions may authorize the background player.
- const allowed=tc=>tc?.cmpStatus!=='error'&&(tc?.gdprApplies===false||(tc?.gdprApplies===true&&typeof tc.tcString==='string'&&tc.tcString.length>0&&tc.purpose?.consents?.['1']===true&&tc.vendor?.consents?.['755']===true));
  function mount(scene){
-  if(!scene||installed.has(scene))return;
+  if(!scene||mounted.has(scene))return;
   const id=scene.getAttribute('data-swapp-trailer-id')||'';
-  const content=scene.parentElement?.querySelector('.swapp-immersive-hero .swapp-immersive-content');
-  if(!valid(id)||!content)return;
-  installed.add(scene);
+  const hero=scene.parentElement?.querySelector('.swapp-immersive-hero .swapp-immersive-content');
+  if(!valid(id)||!hero)return;
+  mounted.add(scene);
+  const control=document.createElement('button');
+  control.type='button';
+  control.className='swapp-trailer-hero-toggle';
+  control.textContent='Ⅱ Mettre la vidéo en pause';
+  control.setAttribute('aria-pressed','false');
+  control.setAttribute('aria-label','Mettre en pause ou relancer la bande-annonce muette');
   const actions=document.createElement('div');
   actions.className='swapp-trailer-hero-actions';
-  const button=document.createElement('button');
-  button.type='button';button.className='swapp-trailer-hero-toggle';
-  button.setAttribute('aria-pressed','false');
-  button.textContent='▶ Animer avec le trailer';
-  const note=document.createElement('small');
-  note.className='swapp-trailer-hero-note';
-  note.textContent='Lecture automatique à 10 s après consentement · sans son';
-  actions.append(button,note);content.append(actions);
-  let frame=null,enabled=false,paused=false,cmp=null,visible=true;
+  actions.append(control);
+  hero.append(actions);
   const poster=scene.querySelector('.swapp-article-trailer-poster');
+  let frame=null,paused=false,visible=true;
+  let observer=null;
   function stop(){
    if(frame){frame.remove();frame=null}
    scene.classList.remove('is-trailer-playing');
-   button.textContent='▶ Animer avec le trailer';
-   button.setAttribute('aria-pressed','false');
+   control.textContent='▶ Reprendre la vidéo';
+   control.setAttribute('aria-pressed','false');
    if(poster)poster.hidden=false;
   }
   function play(force=false){
-   if(frame||cmp!==true||!scene.isConnected||document.hidden||!visible)return;
-   if(!force&&(paused||!enabled||reduced()||saveData()))return;
+   if(frame||paused||!scene.isConnected||document.hidden||!visible)return;
+   // Honour users who explicitly disable motion at the OS/browser level.
+   if(!force&&reduced())return;
    const iframe=document.createElement('iframe');
    iframe.className='swapp-article-trailer-frame';
-   iframe.title='Bande-annonce officielle de World of Warcraft: Forever, arrière-plan muet';
-   iframe.setAttribute('aria-hidden','true');iframe.tabIndex=-1;
+   iframe.title='World of Warcraft: Forever — bande-annonce muette de fond';
+   iframe.setAttribute('aria-hidden','true');
+   iframe.setAttribute('tabindex','-1');
    iframe.setAttribute('allow','autoplay; encrypted-media; picture-in-picture');
    iframe.setAttribute('referrerpolicy','strict-origin-when-cross-origin');
    iframe.setAttribute('loading','eager');
    iframe.addEventListener('load',()=>{
     if(frame!==iframe)return;
     scene.classList.add('is-trailer-playing');
-    button.textContent='Ⅱ Arrêter l’animation';
-    button.setAttribute('aria-pressed','true');
+    control.textContent='Ⅱ Mettre la vidéo en pause';
+    control.setAttribute('aria-pressed','true');
    },{once:true});
    iframe.addEventListener('error',()=>{if(frame===iframe)stop()},{once:true});
    iframe.src='https://www.youtube-nocookie.com/embed/'+id+
     '?autoplay=1&mute=1&controls=0&playsinline=1&loop=1&playlist='+id+
     '&start=10&rel=0&fs=0&disablekb=1';
-   scene.append(iframe);frame=iframe;
+   scene.append(iframe);
+   frame=iframe;
   }
-  button.addEventListener('click',()=>{
+  control.addEventListener('click',()=>{
    if(frame){paused=true;stop();return}
-   if(cmp!==true){
-    // Never bypass the official Google/IAB consent message on a manual click.
-    if(typeof window.googlefc?.showRevocationMessage==='function')
-     window.googlefc.showRevocationMessage();
-    else note.textContent='Le consentement Google doit être configuré pour démarrer la vidéo';
-    return;
-   }
-   paused=false;enabled=true;
-   play(true);
-   note.textContent='Bande-annonce muette · lecture depuis 10 secondes';
+   paused=false;play(true);
   });
-  if(typeof IntersectionObserver==='function'){
-   const observer=new IntersectionObserver(entries=>{
-    visible=entries.some(entry=>entry.isIntersecting);
-    if(!scene.isConnected){
-     stop();observer.disconnect();
-     document.removeEventListener('visibilitychange',onVisibility);
-     return;
-    }
-    if(!visible)stop();else play();
-   },{rootMargin:'120px 0px'});
-   observer.observe(scene);
-  }
   function onVisibility(){
    if(!scene.isConnected){
-    document.removeEventListener('visibilitychange',onVisibility);
-    stop();return;
+    stop();document.removeEventListener('visibilitychange',onVisibility);
+    if(observer)observer.disconnect();
+    return;
    }
    if(document.hidden)stop();else play();
   }
   document.addEventListener('visibilitychange',onVisibility);
-  let registered=false;
-  function listen(){
-   if(registered||typeof window.__tcfapi!=='function')return false;
-   try{window.__tcfapi('addEventListener',2,(tc,success)=>{
-    if(!success||!tc)return;
-    if(tc.eventStatus!=='tcloaded'&&tc.eventStatus!=='useractioncomplete')return;
-    const previouslyGranted=cmp===true;
-    cmp=allowed(tc);
-    if(!cmp){
-     enabled=false;stop();
-     note.textContent='Consentement requis pour animer la bande-annonce';
-     return;
-    }
-    enabled=true;
-    if(!previouslyGranted)paused=false;
-    note.textContent='Lecture automatique à 10 s · sans son';
-    play();
-   });registered=true;return true}catch(_){return false}
+  if(typeof IntersectionObserver==='function'){
+   observer=new IntersectionObserver(entries=>{
+    if(!scene.isConnected){onVisibility();return}
+    visible=entries.some(entry=>entry.isIntersecting);
+    if(visible)play();else stop();
+   },{rootMargin:'120px 0px'});
+   observer.observe(scene);
   }
-  // A certified CMP may load after the article renderer. The version is TCF v2.
-  if(!listen()){
-   const googlefc=window.googlefc=window.googlefc||{};
-   googlefc.callbackQueue=googlefc.callbackQueue||[];
-   googlefc.callbackQueue.push({CONSENT_API_READY:listen});
-   let attempts=0;
-   const ticker=setInterval(()=>{
-    if(!scene.isConnected||listen()||++attempts>=45)clearInterval(ticker);
-   },1000);
-  }
+  // Start as soon as the article hero is mounted; no click, dialog or CMP wait.
+  play();
  }
  function scan(){document.querySelectorAll('.swapp-article-scene[data-swapp-trailer-id]').forEach(mount)}
  window.SwappTrailerHero={mount,scan};

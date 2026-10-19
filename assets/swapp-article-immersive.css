@@ -30,7 +30,7 @@ body.swapp-editorial-route .article-wrap > :not(.swapp-article-scene){
    It fades out completely BEFORE the body of the article starts. */
 .swapp-article-scene{
   position:absolute;z-index:0;pointer-events:none;overflow:hidden;
-  top:0;left:50%;width:100vw;height:clamp(390px,35vw,570px);
+  top:0;left:50%;width:100vw;--swapp-scene-height:clamp(390px,35vw,570px);height:var(--swapp-scene-height);
   transform:translateX(-50%);background:transparent!important;
   mask-image:linear-gradient(to bottom,#000 0%,#000 38%,rgba(0,0,0,.88) 58%,transparent 100%);
   -webkit-mask-image:linear-gradient(to bottom,#000 0%,#000 38%,rgba(0,0,0,.88) 58%,transparent 100%);
@@ -61,46 +61,53 @@ body.swapp-editorial-route .article-wrap > :not(.swapp-article-scene){
 .swapp-article-scene::after{display:none!important;content:none!important}
 .swapp-article-scene:not(.has-art) img{display:none!important}
 
-/* WoW gameplay trailer lives in the SAME immersive editorial scene.
-   The existing edge/bottom masks and text gradient apply to the video. */
+/* WoW: full-bleed 16:9 video cropped like a cover image inside ONE existing
+   hero scene. The original left/bottom gradients remain, no second banner. */
 .swapp-article-scene.has-trailer .swapp-article-trailer-poster{
- position:absolute;top:0;right:0;left:auto;width:auto;height:100%;
- max-width:none;object-fit:cover;object-position:right center;
- filter:brightness(.84) saturate(1.05);
+ position:absolute;inset:0;width:100%!important;height:100%!important;
+ max-width:none;object-fit:cover;object-position:center center;
+ -webkit-mask-image:none;mask-image:none;
+ filter:brightness(.93) saturate(1.06);transition:opacity .4s ease;
 }
 .swapp-article-scene.has-trailer .swapp-article-trailer-frame{
  position:absolute;z-index:0;top:50%;left:50%;right:auto;
- width:max(100%,1014px);height:auto;min-height:100%;max-width:none;
- aspect-ratio:16/9;border:0;pointer-events:none;
- transform:translate(-50%,-50%);opacity:0;
- filter:brightness(.85) saturate(1.08);
- transition:opacity .7s ease;
- -webkit-mask-image:linear-gradient(90deg,transparent 0%,rgba(0,0,0,.3) 15%,#000 44%,#000 100%);
- mask-image:linear-gradient(90deg,transparent 0%,rgba(0,0,0,.3) 15%,#000 44%,#000 100%);
+ width:max(100%,calc(var(--swapp-scene-height) * 1.777778));
+ height:max(100%,calc(100vw * .5625));
+ min-width:100%;min-height:100%;max-width:none;max-height:none;
+ aspect-ratio:auto;border:0;pointer-events:none;display:block;
+ transform:translate(-50%,-50%)!important;
+ opacity:0;filter:brightness(.92) saturate(1.06);
+ -webkit-mask-image:none;mask-image:none;
+ transition:opacity .55s ease;
 }
-.swapp-article-scene.has-trailer.is-trailer-playing .swapp-article-trailer-frame{opacity:.93}
+.swapp-article-scene.has-trailer.is-trailer-playing .swapp-article-trailer-frame{opacity:1}
 .swapp-article-scene.has-trailer.is-trailer-playing .swapp-article-trailer-poster{opacity:0}
-.swapp-trailer-hero-actions{
- display:flex;align-items:center;flex-wrap:wrap;gap:10px;
- margin-top:16px;position:relative;z-index:2
+.swapp-article-scene.has-trailer::before{
+ background:linear-gradient(90deg,#0b111b 0%,rgba(11,17,27,.95) 15%,
+ rgba(11,17,27,.78) 30%,rgba(11,17,27,.4) 48%,
+ rgba(11,17,27,.06) 75%,transparent 100%);
 }
+.swapp-trailer-hero-actions{display:flex;align-items:center;margin-top:14px;position:relative;z-index:2}
 .swapp-trailer-hero-toggle{
- border:1px solid rgba(156,193,210,.5);background:rgba(9,21,34,.65);
- color:#e4f4fc;padding:9px 12px;border-radius:8px;cursor:pointer;
+ border:1px solid rgba(156,193,210,.48);background:rgba(9,21,34,.59);
+ color:#e4f4fc;padding:8px 11px;border-radius:7px;cursor:pointer;
  font:700 12px/1.3 system-ui,sans-serif
 }
 .swapp-trailer-hero-toggle:hover,.swapp-trailer-hero-toggle:focus-visible{
  background:#20364b;outline:2px solid #8addeb;outline-offset:2px
 }
-.swapp-trailer-hero-note{font-size:11px;color:#aebed2}
 @media(max-width:700px){
- .swapp-article-scene.has-trailer .swapp-article-trailer-frame{width:max(100%,850px)}
- .swapp-trailer-hero-actions{align-items:flex-start;flex-direction:column}
+ .swapp-article-scene.has-trailer .swapp-article-trailer-poster{
+  width:100%!important;height:100%!important;object-fit:cover;object-position:center
+ }
+ .swapp-article-scene.has-trailer::before{
+  background:linear-gradient(0deg,#0b111b 0%,rgba(11,17,27,.88) 28%,
+  rgba(11,17,27,.4) 70%,rgba(11,17,27,.16) 100%);
+ }
 }
 @media(prefers-reduced-motion:reduce){
  .swapp-article-scene.has-trailer .swapp-article-trailer-frame{transition:none!important}
 }
-
 
 /* Small, consistent article navigation. */
 #actus .swapp-actus-native.swapp-actus-reading .swapp-actus-reader-nav{
@@ -285,7 +292,7 @@ body.swapp-editorial-route .article-wrap > figure:has(img.cover-img){display:non
   :is(#actus,body.swapp-editorial-route) .swapp-article-reading:has(.swapp-reader-toc) .swapp-actus-body{grid-column:1;grid-row:auto}
 }
 @media(max-width:700px){
-  .swapp-article-scene{height:clamp(280px,70vw,430px)}
+  .swapp-article-scene{--swapp-scene-height:clamp(280px,70vw,430px);height:var(--swapp-scene-height)}
   .swapp-article-scene img{
     width:100%;height:auto;max-width:100%;top:0;left:0;right:auto;
     /* On mobile, keep the full-width image visible; its fade is vertical. */

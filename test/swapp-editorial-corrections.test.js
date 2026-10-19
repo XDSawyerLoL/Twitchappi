@@ -53,5 +53,5 @@ test('WoW trailer uses one immersive scene on native and SPA article views',()=>
  assert.match(script,/stop\(\)/);
  assert.match(script,/mute=1/);
  for(const shell of ['index.html','modules/swapp-news/site-shell.js'])
-  assert.match(read(shell),/swapp-article-trailer-bg\.js\?v=20261019-trailer-fade-v2/);
+  assert.match(read(shell),/swapp-article-trailer-bg\.js\?v=20261019-trailer-autoplay-cover-v3/);
 });

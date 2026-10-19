@@ -95,7 +95,7 @@ async function verify(){
  const home=await request(origin,'/');
  // WoW editorial ambient trailer: verify deployment serves the exact controller
  // and both public HTML shells use it. No browser playback or consent is faked.
- check(home.body.includes('swapp-article-trailer-bg.js?v=20261019-trailer-fade-v2'),
+ check(home.body.includes('swapp-article-trailer-bg.js?v=20261019-trailer-autoplay-cover-v3'),
   'WoW immersive trailer controller is missing from deployed SPA');
  const trailerJs=await request(origin,'/assets/swapp-article-trailer-bg.js');
  check(trailerJs.body.includes('youtube-nocookie.com/embed')&&
