@@ -7,7 +7,7 @@
  const $=id=>document.getElementById(id);
  const edit=document.querySelector('.editor-view[data-view="edit"]');
  const keys=['contentType','title','summary','body','category','game','games','tags','seoTitle','seoDescription',
-  'author','image','credit','rights','legacy','date','sources','trailerUrl','thumbnailUrl','thumbnailCredit','thumbnailRights','thumbnailAlt','thumbnailPosition','affTitle1','affUrl1',
+  'author','image','credit','rights','legacy','date','sources','trailerUrl','thumbnailUrl','thumbnailCredit','thumbnailRights','thumbnailAlt','thumbnailPosition','editorialScore','editorialText','affTitle1','affUrl1',
   'affMerchant1','affKind1','affTitle2','affUrl2','affMerchant2','affKind2'];
  const trailerField=$('trailerUrl');
  if(trailerField){
