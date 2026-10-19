@@ -12,7 +12,7 @@ function navigationHarness(){
  const from=source.indexOf('export function setView(');
  const end=source.indexOf('const NEWS_FEEDS',from);
  assert.ok(from>=0&&end>from,'The view controller is present');
- const setViewSource=source.slice(from,end).replace('export function','function');
+ const setViewSource='let viewRevision=0; function stopDMRefresh(){}\n'+source.slice(from,end).replace('export function','function');
  const active=new Set();
  const nodes=['home','play','rooms','explore','circles','notifications','messages','saved','profile'].map(view=>({
   dataset:{view},
@@ -71,7 +71,7 @@ test('SOCIAL messenger back navigation, production CSS order and no new auth flo
  assert.match(views,/data-social-back-messages/);
  assert.match(app,/if\(event.target.closest\('\[data-social-back-messages\]'\)\)\{loadMessages\(\);return;\}/);
  assert.match(hub,/swapp-social-product-v3\.css\?v=20261018-direct-audio-v3/);
- assert.match(hub,/app\.js\?v=20261018-channel-ux-v1/);
+ assert.match(hub,/app\.js\?v=20261019-game-synergy-v1/);
  assert.ok(hub.indexOf('swapp-social-product-v3.css')>hub.indexOf('swapp-social-next.css'),'newest design loaded last');
  assert.ok(!htmlRegexNewAuth(hub),'No added SOCIAL login form or separate authentication');
 });

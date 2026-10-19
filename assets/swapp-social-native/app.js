@@ -1,6 +1,6 @@
 import { TOKEN_KEY, state, dom, api, errorText } from './core.js';
 import { openAuth, closeAuth, updateAuthModal, updateAccount, requireAuth, applySession, clearSession, restoreSession } from './session.js';
-import { setView, loadHome, loadExplore, loadCircles, loadNotifications, loadSaved, loadProfile, loadMessages, loadConversation, loadCirclePreview, loadNewsRss } from './views.js?v=20261018-channel-ux-v1';
+import { setView, loadHome, loadExplore, loadCircles, loadNotifications, loadSaved, loadProfile, loadMessages, loadConversation, loadCirclePreview, loadNewsRss } from './views.js?v=20261019-game-synergy-v1';
 import {setupVoiceNotes} from './dm-audio.js?v=20261018-audio-stage-v1';
 import {setupDirectCalls} from './dm-calls.js?v=20261018-audio-stage-v1';
 
@@ -406,6 +406,13 @@ function bindDelegatedEvents(){
       return;
     }
 
+    const gameJump=event.target.closest('[data-next-game]');
+    if(gameJump){
+      const game=String(gameJump.dataset.nextGame||'').trim().slice(0,90);
+      if(game.length>=2){event.preventDefault();await loadExplore(game,{gameContext:true});revealSocialContent()}
+      return;
+    }
+
     const profile=event.target.closest('[data-profile]');
     if(profile){
       loadProfile(profile.dataset.profile);
@@ -574,12 +581,13 @@ async function init(){
       }).catch(()=>{});
     }
   },60000);
+  const requestedGame=String(new URLSearchParams(location.search).get('game')||'').trim().slice(0,90);
   const requestedView=document.getElementById('swappSocialNative')?.dataset.requestedSocialView;
   if(requestedView==='play'||requestedView==='rooms'){
     setView(requestedView,requestedView==='play'?'Jeux et équipes':'Salons de discussion');
   }
   // Do not overwrite an intentional view after a delayed SSO response.
-  await Promise.allSettled([...(state.view==='home'?[loadHome()]:[]),loadCirclePreview()]);
+  await Promise.allSettled([...(requestedGame.length>=2?[loadExplore(requestedGame,{gameContext:true})]:state.view==='home'?[loadHome()]:[]),loadCirclePreview()]);
 }
 
 init().catch(error=>{

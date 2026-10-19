@@ -29,6 +29,7 @@ body.oryonDiscoverV4 #discover .v4Lead{
  font-size:clamp(15px,1.15vw,19px)!important;
  line-height:1.5!important;
 }
+body.oryonDiscoverV4 #discover .swapp-fair-discovery-line{display:block;margin-top:12px;font-size:13px;line-height:1.5;color:#a6d8df;font-weight:600;letter-spacing:.005em}
 body.oryonDiscoverV4 #discover .v4Controls{
  border-radius:0!important;padding:13px 0!important;gap:10px!important;
 }
@@ -262,6 +263,13 @@ body.oryonDiscoverV4 #discover .v4Deck.is-collapsed:after{display:none!important
  function decorate(){
   const area=doc.getElementById('discover');
   if(!area||!area.querySelector('.v4Page'))return;
+  const lead=area.querySelector('.v4Lead');
+  if(lead&&!lead.querySelector('.swapp-fair-discovery-line')){
+   const note=doc.createElement('span');
+   note.className='swapp-fair-discovery-line';
+   note.textContent='Découverte équitable : des suggestions pertinentes et une place pour les petits créateurs.';
+   lead.appendChild(note);
+  }
   const inviteHost=area.querySelector('.v4Hero > div');
   if(inviteHost&&!inviteHost.querySelector('.swapp-discover-creator-join')){
    const invite=doc.createElement('button');
