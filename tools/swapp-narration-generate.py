@@ -15,6 +15,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -173,7 +174,7 @@ def main():
         output = produce(blocks, args.slug, args.output.resolve(), args.speed, args.wav_only)
         print("Generated:", output)
         print("Upload this folder over FTP to Hostinger assets/swapp-narrations/")
-    except (OSError, ValueError, RuntimeError, subprocess.CalledProcessError) as exc:
+    except (OSError, ValueError, urllib.error.URLError, RuntimeError, subprocess.CalledProcessError) as exc:
         parser.exit(1, "Narration failed: " + str(exc) + "\n")
 
 
