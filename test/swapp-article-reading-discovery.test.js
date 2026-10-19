@@ -69,10 +69,10 @@ test('reading preferences, headings, and progress work without tracking or anima
 test('SPA and native page load the same reader and versioned new styling',()=>{
  const spa=read('index.html'),native=read('modules/swapp-news/site-shell.js');
  for(const text of [spa,native]){
-  assert.match(text,/swapp-article-immersive\.css\?v=20261016-ig-offers-11/);
-  assert.match(text,/swapp-reader-experience\.js\?v=20261016-reader-2/);
+  assert.match(text,/swapp-article-immersive\.css\?v=20261019-single-reader-v6/);
+  assert.match(text,/swapp-reader-experience\.js\?v=20261019-toc-sticky-v3/);
  }
- assert.match(spa,/swapp-actus-app\.js\?v=20261017-journey-v17/);
+ assert.match(spa,/swapp-actus-app\.js\?v=20261019-single-reader-v9/);
  assert.match(spa,/swapp-instant-gaming\.js\?v=20261016-ig-offers-1/);
 });
 
@@ -112,6 +112,18 @@ test('long desktop contents panel remains sticky and viewport-clamped',()=>{
  assert.match(css,/max-height:none!important/);
  for(const html of [read('index.html'),read('modules/swapp-news/site-shell.js')]){
   assert.match(html,/swapp-reader-experience\.js\?v=20261019-toc-sticky-v3/);
-  assert.match(html,/swapp-article-immersive\.css\?v=20261019-toc-sticky-v5/);
+  assert.match(html,/swapp-article-immersive\.css\?v=20261019-single-reader-v6/);
  }
+});
+
+test('first card navigation and refresh use the identical server-rendered article reader',()=>{
+ const app=read('assets/swapp-actus-app.js'),home=read('assets/swapp-home-news.js');
+ const css=read('assets/swapp-article-immersive.css');
+ assert.match(app,/function open\(slug\)\{[\s\S]*?window\.location\.assign\('\/actus\/'\+encodeURIComponent\(slug\)\)/);
+ assert.doesNotMatch(app,/function open\(slug\)\{if\(!slugOk\(slug\)\)return;history\.pushState/);
+ assert.doesNotMatch(home,/event\.preventDefault\(\);window\.setView\('actus'\);window\.SwappActus\.open\(slug\)/);
+ assert.match(home,/a\.href='\/actus\/'\+encodeURIComponent\(item\.slug\)/);
+ assert.match(css,/html:has\(#actus\.view\.active \.swapp-actus-native\.swapp-actus-reading\)/);
+ assert.match(css,/overflow-x:clip!important;\s*overflow-y:visible!important/);
+ assert.match(read('index.html'),/swapp-home-news\.js\?v=20261019-single-reader-v8/);
 });

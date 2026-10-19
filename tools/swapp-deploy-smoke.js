@@ -141,7 +141,7 @@ async function verify(){
  check(shelfScript.body.includes("shelf.id==='swapp-article-lives'")&&
   shelfScript.body.includes('swapp-live-card-editorial')&&
   shelfScript.body.includes("articleMode?'Regarder le live")&&
-  home.body.includes('swapp-article-immersive.css?v=20261019-toc-sticky-v5'),
+  home.body.includes('swapp-article-immersive.css?v=20261019-single-reader-v6'),
   'Direct article lives still use oversized repeated game pills');
  const reader=await request(origin,'/assets/swapp-reader-experience.js');
  check(reader.body.includes('currentToc')&&
@@ -150,13 +150,16 @@ async function verify(){
   home.body.includes('swapp-reader-experience.js?v=20261019-toc-sticky-v3'),
   'First-navigation TOC mounting fix not deployed');
  const trailerCss=await request(origin,'/assets/swapp-article-immersive.css');
+ check(trailerCss.body.includes('html:has(#actus.view.active .swapp-actus-native.swapp-actus-reading)')&&
+  trailerCss.body.includes('overflow-y:visible!important'),
+  'SPA article still traps sticky sidebars with html/body overflow hidden');
  check(trailerCss.body.includes('align-self:start!important')&&
   trailerCss.body.includes('max-height:calc(100dvh - 108px)')&&
   trailerCss.body.includes('overflow-y:auto!important'),
   'TOC sticky panel may be too tall or non-sticky on initial load');
  check(trailerCss.body.includes('#fa7b19')&&
   trailerCss.body.includes('swapp-affiliate-link')&&
-  home.body.includes('swapp-article-immersive.css?v=20261019-toc-sticky-v5'),
+  home.body.includes('swapp-article-immersive.css?v=20261019-single-reader-v6'),
   'Orange compact partner action not deployed');
  check(cardClient.body.includes('OFFRE INSTANT GAMING · LIEN AFFILIÉ')&&
   cardClient.body.includes('Voir l’offre ↗')&&
@@ -264,11 +267,14 @@ async function verify(){
  const newsScript=await request(origin,'/assets/swapp-home-news.js');
  check(!newsScript.body.includes('signal:AbortSignal.timeout(')&&
    newsScript.body.includes('new AbortController()')&&
-   home.body.includes('swapp-home-news.js?v=20261019-card-thumbnails-v7'),
+   home.body.includes('swapp-home-news.js?v=20261019-single-reader-v8'),
    'Homepage editorial script is stale or incompatible with older Safari');
+ check(newsScript.body.includes('function navigateArticle(event,slug,game)')&&
+  !newsScript.body.includes("event.preventDefault();window.setView('actus');window.SwappActus.open(slug)"),
+  'Homepage still intercepts canonical editorial links with the SPA route');
  const motionPath='/assets/swapp-home-motion.js?v=20261018-followed-session-v27';
  check(home.body.includes(motionPath)&&
-   home.body.indexOf(motionPath)<home.body.indexOf('swapp-home-news.js?v=20261019-card-thumbnails-v7'),
+   home.body.indexOf(motionPath)<home.body.indexOf('swapp-home-news.js?v=20261019-single-reader-v8'),
    'No cinematic hero helper before the editorial client');
  const motion=await request(origin,'/assets/swapp-home-motion.js');
  check(motion.body.includes('window.SwappHomeMotion')&&
@@ -297,12 +303,16 @@ async function verify(){
   !studioEnhance.body.includes('Une bande-annonce est facultative pour cet article.'),
   'Studio still hides the trailer URL for normal articles');
  const readerApp=await request(origin,'/assets/swapp-actus-app.js');
+ check(readerApp.body.includes("window.location.assign('/actus/'+encodeURIComponent(slug))")&&
+  !readerApp.body.includes("history.pushState({view:'actus'},'','/actus/'+encodeURIComponent(slug))"),
+  'Article cards still use a second client-side article renderer, causing first-load layout drift');
+
  check(readerApp.body.includes('const sameGame=')&&
   readerApp.body.includes('/live/twitch/')&&
   !readerApp.body.includes('a.length>=7&&b.includes(a)'),
   'Actualité still matches sequels incorrectly or opens external lives');
  check(home.body.includes('/assets/swapp-media.css?v=20261017-channel-news-v13')&&
-  home.body.includes('/assets/swapp-actus-app.js?v=20261019-premium-live-v8'),
+  home.body.includes('/assets/swapp-actus-app.js?v=20261019-single-reader-v9'),
   'Homepage is still using the old game bridge');
  // Native creator channel: same editorial game identity, no frozen status text.
  const nativeArticles=await request(origin,'/assets/swapp-live-articles.js');
@@ -403,7 +413,7 @@ async function verify(){
  process.stdout.write('PASS shared navigation, news and SOCIAL presentation asset\n');
  process.stdout.write('PASS /actus\n');
  // Verify the actual mobile reading and video assets, not just HTML shell CSS.
- const articleClient='/assets/swapp-actus-app.js?v=20261019-premium-live-v8';
+ const articleClient='/assets/swapp-actus-app.js?v=20261019-single-reader-v9';
  const videoClient='/assets/swapp-video-player.js?v=20261016-ios-journey-1';
  const videoStyle='/assets/swapp-video-gallery.css?v=20261016-ios-journey-1';
  for(const name of [articleClient,videoClient,videoStyle])
