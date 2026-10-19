@@ -3,6 +3,7 @@
 // Usage: node tools/swapp-social-smoke.js
 // Optional SWAPP_SMOKE_COOKIE must be set locally; never paste it into a ticket.
 const https=require('node:https');
+const {accountPersistenceStatus}=require('../modules/swapp-account-durability');
 const origin=process.env.SWAPP_SMOKE_ORIGIN||'https://swapp.tv';
 const cookie=process.env.SWAPP_SMOKE_COOKIE||'';
 const base=new URL(origin);
@@ -53,7 +54,7 @@ async function check(path,area,authenticated){
     const expectedGuest=authenticated&&!cookie&&status===401;
     let state=authenticatedAllowed?'ok':expectedGuest?'requires_login':'unavailable';
     if(area==='release_marker'&&payload.release!=='social-personal-channels-20261019')state='unavailable';
-    if(area==='account_storage'&&payload.github_deploy_safe!==true)state='unsafe_deploy';
+    if(area==='account_storage'&&(!payload.github_deploy_safe||!accountPersistenceStatus({firestoreOk:payload.firestore===true,persistence:payload.persistence,userCount:payload.users}).safe))state='unsafe_deploy';
     if(area==='mysql_status'&&!(payload.enabled===true&&payload.state==='database_read_ready'))state='unavailable';
     if(area==='upstream_social'&&status===200&&payload.success===false)state='unavailable';
     resolve({area,status,ms:elapsed,state,
