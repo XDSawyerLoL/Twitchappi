@@ -117,16 +117,30 @@ function createSocialNextRouter({express,pool,restoreSession,resolveIndexedGame=
   const conn=await pool.getConnection();
   try{
    await conn.beginTransaction();
-   const [existing]=await conn.execute('SELECT game_slug FROM swapp_social_game_follows WHERE user_id=? FOR UPDATE',[req.socialPlayer.id]);
+   const stamp=clock();
+   await conn.execute('INSERT IGNORE INTO swapp_social_reward_accounts (user_id,points,discovery_count,updated_at) VALUES (?,?,?,?)',
+    [req.socialPlayer.id,0,0,stamp]);
+   const [rewardRows]=await conn.execute('SELECT points,discovery_count FROM swapp_social_reward_accounts WHERE user_id=? FOR UPDATE',[req.socialPlayer.id]);
+   let credited=Number(rewardRows[0]?.discovery_count||0);
+   const [existing]=await conn.execute('SELECT game_slug FROM swapp_social_game_follows WHERE user_id=?',[req.socialPlayer.id]);
    const found=new Set(existing.map(x=>x.game_slug));
    const missing=[...pending.values()].filter(x=>!found.has(x.slug));
    if(existing.length+missing.length>30){await conn.rollback();return bad(res,'library_limit',409)}
-   const stamp=clock();
    for(const [index,row] of missing.entries()){
     const followed=libraryTime(row.followedAt,stamp,stamp+index);
     const seen=libraryTime(row.seenAt,stamp,0);
-    await conn.execute('INSERT IGNORE INTO swapp_social_game_follows (user_id,game_slug,game_name,followed_at,seen_at,updated_at) VALUES (?,?,?,?,?,?)',
+    const [added]=await conn.execute('INSERT IGNORE INTO swapp_social_game_follows (user_id,game_slug,game_name,followed_at,seen_at,updated_at) VALUES (?,?,?,?,?,?)',
      [req.socialPlayer.id,row.slug,row.game,followed,seen>=followed?seen:0,stamp]);
+    // The first explicit account import counts as game discovery too.
+    // Existing ledger rows ensure export/reimport and unfollow cannot farm XP.
+    if(added.affectedRows===1&&credited<10){
+     const [awarded]=await conn.execute('INSERT IGNORE INTO swapp_social_reward_ledger (user_id,event_key,event_type,points,created_at) VALUES (?,?,?,?,?)',
+      [req.socialPlayer.id,'discover:'+row.slug,'discover_game',10,stamp]);
+     if(awarded.affectedRows===1){
+      await conn.execute('UPDATE swapp_social_reward_accounts SET points=points+10,discovery_count=discovery_count+1,updated_at=? WHERE user_id=?',
+       [stamp,req.socialPlayer.id]);credited++;
+     }
+    }
    }
    await conn.commit();
   }catch(error){await conn.rollback();throw error}
