@@ -117,10 +117,17 @@ test('Auto clears page-specific inline tint and remains selected after returning
  assert.equal(again.rootNode.dataset.swappPageColor,'auto');
 });
 test('premium sidebar stylesheet is last; no full-width SOCIAL bar remains',()=>{
- assert.ok(hub.includes('swapp-social-appearance.css?v=20261017-appearance-v2'));
+ assert.ok(hub.includes('swapp-social-appearance.css?v=20261019-no-top-gap-v3'));
  assert.ok(hub.indexOf('swapp-social-appearance.css')>hub.indexOf('swapp-social-product-v3.css'));
  assert.ok(!globalCSS.includes('.swapp-social-viewport>.swapp-page-appearance'));
  assert.ok(css.includes('.swapp-appearance-indicator'));
  assert.ok(css.includes('pulse-topbar>.swapp-page-appearance--social'));
  assert.ok(css.includes('swapp-page-appearance--social.is-compact'));
+});
+
+test('community header never sits below a phantom top spacer',()=>{
+ assert.match(css,/body:has\(#swappSocialNative\) header\.top/);
+ assert.match(css,/inset-block-start:0!important/);
+ assert.match(css,/margin-top:0!important/);
+ assert.doesNotMatch(css,/body\s*>\s*div:not/);
 });
