@@ -35,3 +35,39 @@ Ne pas présenter un SpeechSynthesisUtterance comme Mairy. Pour atteindre la voi
 
 ## Coûts et infrastructure
 Aucun VPS, moteur externe payé, GitHub Action payante, compte supplémentaire ou clé API ajoutés. L’accès à des voix en ligne peut dépendre du navigateur et de son fournisseur, indépendamment des coûts SWAPP.
+## Narration neuronale réelle : pipeline Kokoro hors ligne (nouvelle livraison)
+
+SWAPP accepte maintenant une **bande audio neuronale préenregistrée par article**, en plus de la voix système. La lecture est un fichier continu MP3 (ou WAV), compatible avec les commandes natives du navigateur, avec passage précédent/suivant et mise en évidence du paragraphe en cours. Aucun appel au moteur IA sur Hostinger.
+
+Moteur de génération proposé : **Kokoro-82M**, voix française `ff_siwis`, phonémisation française `espeak-ng`. La voix est une vraie synthèse neuronale libre, **pas la véritable voix Mairy**. Ne pas renommer cette voix « Mairy » sans correspondance audio et droits établis.
+
+### Installation sur un poste de production audio (pas Hostinger)
+
+```bash
+python -m pip install 'kokoro>=0.9.4' torch numpy soundfile
+# Sur Debian / WSL : sudo apt-get install espeak-ng ffmpeg
+python tools/swapp-narration-generate.py --slug un-article-publie
+# Ou avec un export JSON éditorial vérifié :
+python tools/swapp-narration-generate.py --slug un-article-publie --json article.json
+```
+
+La machine de génération doit avoir de la mémoire disponible et les fichiers du modèle ; le premier téléchargement des poids est externe au site. L'utilisation gratuite n'élimine pas les coûts locaux éventuels d'électricité, de trafic et de stockage.
+
+Le script lit le JSON public `/api/actus/:slug` ou un export local et rejette les slugs invalides, les brouillons, les textes absents et les documents excessifs. Il génère dans `assets/swapp-narrations/<slug>/` : un seul `audio.mp3` (ou `audio.wav`) et `manifest.json`. Les repères temporels sont dérivés des échantillons produits ; ils ne sont pas des timings de phonèmes inventés.
+
+### Publication sur Hostinger
+
+Transférer **ensemble** `audio.mp3` (ou `audio.wav`) et `manifest.json` dans `assets/swapp-narrations/<slug>/` via le FTP Hostinger existant. Envoyer l'audio avant le manifeste pour éviter une référence temporairement cassée. Ces fichiers audio ne sont pas automatiquement produits par le déploiement de code GitHub.
+
+SWAPP découvre le manifeste **seulement après le clic « Écouter »**. Le manifeste est vérifié localement avec le slug, la langue, le moteur, les noms de fichiers et le texte réellement présent dans l'article. Si l'article est édité depuis la génération, si l'audio manque ou si la version est incorrecte, la narration studio est masquée : la lecture système reste disponible. Aucun envoi du texte éditorial à un prestataire vocal pendant l'écoute studio.
+
+### Critères de validation complémentaires
+
+- [ ] Générer un article entier de test avec `ff_siwis` sur la machine de production. **Pas encore exécuté sur les machines de SWAPP.**
+- [ ] Vérifier les chemins `/assets/swapp-narrations/<slug>/manifest.json` et `audio.mp3` après transfert FTP.
+- [ ] Tester Safari iPhone, Chrome Android, Edge/Chrome PC, lecture verrouillée mobile, pause/reprise, repères de paragraphes et navigation entre passages.
+- [ ] Modifier l'article et constater que le manifeste obsolète n'est plus accepté.
+- [ ] Vérifier l'absence d'envoi du texte du navigateur par SWAPP à une API TTS.
+- [ ] Mesurer la qualité des noms de jeux, annonces, nombres et anglicismes avant d'annoncer un niveau comparable à Mairy.
+
+Sans fichier audio effectivement produit et transféré, le lecteur neuronale reste une **capacité préparée**, pas une narration disponible en production.
