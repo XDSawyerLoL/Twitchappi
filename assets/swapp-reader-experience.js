@@ -102,3 +102,56 @@
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});
  else boot();
 })();
+
+
+/* Native reader recovery: older Hostinger Node processes may keep an earlier
+ * article shell in memory even after the updated files are deployed. The
+ * existing progress reader can restore the new toolbar without F5 twice.
+ * No tracking, network calls to third parties or synthetic audio autoplay. */
+(()=>{'use strict';
+ if(window.__swappReaderBootRecovery)return;
+ window.__swappReaderBootRecovery=true;
+ let scheduled=0;
+ const base='/assets/';
+ const hasArticle=()=>document.querySelector(
+  'body.swapp-editorial-route main.article-wrap .swapp-article-reading #article-content,'+
+  'main.article-wrap[data-swapp-article-slug] .swapp-article-reading #article-content,'+
+  '#actus.view.active .swapp-actus-reading .swapp-article-reading #article-content');
+ const ready=()=>!!document.querySelector('.swapp-article-reading > .swapp-reader-studio');
+ function ensureCss(){
+  if(document.querySelector('link[href*="swapp-reader-studio.css"]'))return;
+  const link=document.createElement('link');
+  link.rel='stylesheet';
+  link.href=base+'swapp-reader-studio.css?v=20261019-native-boot-v3';
+  document.head.appendChild(link);
+ }
+ function ensureScript(name,complete){
+  const present=name==='swapp-neural-narration.js'
+   ?!!window.SwappNeuralNarration:!!window.SwappReaderStudio;
+  if(present){complete();return;}
+  const id='swapp-recovery-'+name;
+  if(document.getElementById(id))return;
+  const script=document.createElement('script');
+  script.id=id;
+  script.src=base+name+'?v=20261019-native-boot-v3';
+  script.onload=complete;
+  script.onerror=()=>{script.remove();console.warn('[SWAPP LECTURE] Module inaccessible:',name);};
+  document.head.appendChild(script);
+ }
+ function recover(){
+  if(!hasArticle()||ready())return;
+  ensureCss();
+  const start=()=>ensureScript('swapp-reader-studio.js',()=>{
+   window.SwappReaderStudio?.sync();
+  });
+  ensureScript('swapp-neural-narration.js',start);
+ }
+ function schedule(){
+  if(scheduled)clearTimeout(scheduled);
+  scheduled=setTimeout(()=>{scheduled=0;recover()},650);
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',schedule,{once:true});
+ else schedule();
+ window.addEventListener('pageshow',schedule,{passive:true});
+ window.addEventListener('popstate',schedule,{passive:true});
+})();
