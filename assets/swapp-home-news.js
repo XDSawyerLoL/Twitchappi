@@ -32,8 +32,10 @@
    if(event.button||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
    // Only intentional article openings, never impressions or scrolls.
    window.SwappLocalTastes?.record?.(game);
-   if(typeof window.setView!=='function'||!window.SwappActus)return;
-   event.preventDefault();window.setView('actus');window.SwappActus.open(slug);
+   // Keep the native article link navigation; the editorial server is the
+   // canonical reader and does not require a second F5 to fix its sidebars.
+   // The browser still supports Ctrl-click, middle-click, back and bfcache.
+   if(!/^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/.test(slug))return;
  }
  function story(item,index){
    const a=el('a','swapp-home-story'+(index===0?' swapp-home-story-featured':''));a.href='/actus/'+encodeURIComponent(item.slug);
