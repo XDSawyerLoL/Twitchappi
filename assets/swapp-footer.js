@@ -17,6 +17,27 @@ function mount(){
  </div>`;
  const nav=document.getElementById('mobileNav');
  (nav?.parentNode||document.body).insertBefore(footer,nav||null);
+ // The revocation control appears only when Google's actual certified CMP API
+ // has loaded and confirms that GDPR applies. No homegrown consent mechanism.
+ const googlefc=window.googlefc=window.googlefc||{};
+ googlefc.callbackQueue=googlefc.callbackQueue||[];
+ googlefc.callbackQueue.push({CONSENT_API_READY:()=>{
+  if(typeof window.googlefc?.showRevocationMessage!=='function')return;
+  if(typeof window.__tcfapi!=='function')return;
+  try{window.__tcfapi('addEventListener',0,(data,ok)=>{
+   if(!ok||data?.gdprApplies!==true||!footer.isConnected)return;
+   if(footer.querySelector('[data-swapp-cmp-revocation]'))return;
+   const control=document.createElement('button');
+   control.type='button';
+   control.dataset.swappCmpRevocation='1';
+   control.textContent='Gérer mes choix publicitaires';
+   control.setAttribute('aria-label','Modifier mon consentement aux publicités');
+   control.style.cssText='display:block;padding:8px 0;background:transparent;border:0;color:inherit;text-align:left;font:inherit;cursor:pointer';
+   control.addEventListener('click',()=>window.googlefc?.showRevocationMessage?.());
+   footer.querySelector('.swapp-footer-col:last-child')?.appendChild(control);
+  })}catch(_){}
+ }});
+
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});else mount();
 })();
