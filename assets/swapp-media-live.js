@@ -128,7 +128,7 @@
     return out;
   }
   // Session-only and OFF by default: a player explicitly requests the
-  // sampling pilot. No cookie, localStorage, device ID or implicit telemetry.
+  // sampling pilot. No browser persistence, identifying fields or implicit telemetry.
   const fairPilots=new WeakMap();
   function setupFairPilot(shelf,cards,available){
     if(!available||!cards.some(node=>node.dataset.swappFairProof)||!('IntersectionObserver' in window))return;
