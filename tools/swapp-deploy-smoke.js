@@ -143,6 +143,26 @@ async function verify(){
   shelfScript.body.includes("articleMode?'Regarder le live")&&
   home.body.includes('swapp-article-immersive.css?v=20261019-native-colors-v8'),
   'Direct article lives still use oversized repeated game pills');
+ // SWAPP Lecture: both server-rendered articles and the SPA must ship the same
+ // opt-in reader and narrator. This does not claim that a Mairy voice exists.
+ for(const [pathname,page] of [['/',home],['/actus',news]]){
+  check(page.body.includes('/assets/swapp-reader-studio.js?v=20261019-reading-v1')&&
+    page.body.includes('/assets/swapp-reader-studio.css?v=20261019-reading-v1'),
+    pathname+': article reading module absent or stale');
+ }
+ const readerStudio=await request(origin,'/assets/swapp-reader-studio.js');
+ const readerStudioCss=await request(origin,'/assets/swapp-reader-studio.css');
+ check(readerStudio.body.includes('swapp-reader-focus')&&
+  readerStudio.body.includes('speechSynthesis')&&
+  readerStudio.body.includes('data-reader-voice')&&
+  readerStudio.body.includes('api.cancel()')&&
+  readerStudio.body.includes('swapp-narration-current'),
+  'Reader focus or audio playback controls missing in deployed script');
+ check(readerStudioCss.body.includes('html.swapp-reader-focus')&&
+  readerStudioCss.body.includes('data-swapp-reader-theme="sepia"')&&
+  readerStudioCss.body.includes('min-height:44px'),
+  'Reader typography/themes or mobile controls missing in deployed stylesheet');
+ process.stdout.write('PASS SWAPP Lecture reader and opt-in audio assets\n');
  const reader=await request(origin,'/assets/swapp-reader-experience.js');
  check(reader.body.includes('currentToc')&&
   reader.body.includes('if(found&&toc&&mount(found))')&&
