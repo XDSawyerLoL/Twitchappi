@@ -85,7 +85,7 @@ test('admin surface filtering keeps consented samples segregated',()=>{
  assert.match(admin,/option value="home">Accueil/);
  assert.match(admin,/option value="discover">Découvrir/);
  assert.match(admin,/option value="game">Fiches de jeux/);
- assert.match(admin,/!['all','game','home','discover'].includes\(placement\)/);
+ assert.match(admin,/!\[['all','game','home','discover'].includes\(placement\)/);
  assert.match(admin,/placement==='all'\?\[\]:\[placement\]/);
  assert.match(admin,/AND placement=\?/);
  assert.match(client,/id\('placement'\)\.addEventListener\('change',refresh\)/);
