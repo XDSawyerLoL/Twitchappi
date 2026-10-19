@@ -239,6 +239,11 @@ async function verify(){
   newsScript.body.includes('swapp-home-feature-creators')&&
   newsScript.body.includes('data?.success!==true'),
   'V17 home game journey or verified-live identity is missing');
+ const studioEnhance=await request(origin,'/assets/swapp-editor-enhance.js');
+ check(studioEnhance.body.includes('if(videoBox)videoBox.hidden=false')&&
+  studioEnhance.body.includes('Ajouter la vidéo de fond')&&
+  !studioEnhance.body.includes('Une bande-annonce est facultative pour cet article.'),
+  'Studio still hides the trailer URL for normal articles');
  const readerApp=await request(origin,'/assets/swapp-actus-app.js');
  check(readerApp.body.includes('const sameGame=')&&
   readerApp.body.includes('/live/twitch/')&&

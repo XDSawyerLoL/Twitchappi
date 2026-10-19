@@ -205,14 +205,18 @@ test('new-video control selects video type and updates visible required input',(
  assert.match(context,/\.value='video'/);
  assert.match(context,/dispatchEvent\(new Event\('change'/);
  const behavior=read('assets/swapp-editor-enhance.js');
- assert.match(behavior,/videoBox\.hidden=!isVideo/);
+ assert.match(behavior,/if\(videoBox\)videoBox\.hidden=false/);
+ assert.doesNotMatch(behavior,/videoBox\.hidden=!isVideo/);
+ assert.doesNotMatch(behavior,/Une bande-annonce est facultative pour cet article/);
+ assert.match(behavior,/Ajouter la vidéo de fond/);
+ assert.match(behavior,/field\?\.focus\?\./);
  assert.match(behavior,/sourceBox\.hidden=isVideo/);
 });
 test('studio always loads current protected action code and avoids stale cache',()=>{
  const router=read('modules/swapp-news/router.js');
  assert.match(router,/router\.get\('\/actus\/studio',\.\.\.editor,.*private, no-store/);
  assert.match(router,/router\.get\('\/actus\/studio\.js',\.\.\.editor,.*private, no-store/);
- assert.match(renderStudio(),/swapp-editor-enhance\.js\?v=20261015-studio-3/);
+ assert.match(renderStudio(),/swapp-editor-enhance\.js\?v=20261019-trailer-visible-v4/);
 });
 test('publish button and draft save are enabled for unsaved posts and properly disabled after publishing',()=>{
  const begin=js.indexOf('function setEditor(a){'),end=js.indexOf('function previewImage()',begin);

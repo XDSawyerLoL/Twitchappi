@@ -95,14 +95,28 @@
  }
  function video(){
   const host=$('ed-live-video'),id=videoId($('trailerUrl').value);
-  if(id===lastPreviewVideo)return;
-  host.replaceChildren();lastPreviewVideo=id;
+  const currentKey=id+'|'+$('contentType').value+'|'+$('trailerUrl').value.trim();
+  if(currentKey===lastPreviewVideo)return;
+  host.replaceChildren();lastPreviewVideo=currentKey;
   if(!id){
+   const callout=document.createElement('div');
+   callout.className='editor-studio-video-empty';
    const p=document.createElement('p');
-   p.textContent=['video','trailer'].includes($('contentType').value)
-    ?'Ajoute une URL YouTube valide pour prévisualiser la vidéo.'
-    :'Une bande-annonce est facultative pour cet article.';
-   host.append(p);return;
+   p.textContent=$('trailerUrl').value.trim()
+    ?'URL YouTube non reconnue. Vérifie le lien dans le champ vidéo ci-dessus.'
+    :'Ajoute la bande-annonce du jeu pour activer le fond vidéo en autoplay à 10 secondes.';
+   const button=document.createElement('button');
+   button.type='button';
+   button.className='editor-video-open-input';
+   button.textContent='＋ Ajouter la vidéo de fond';
+   button.addEventListener('click',()=>{
+    const box=$('ed-video-field'),field=$('trailerUrl');
+    if(box)box.hidden=false;
+    field?.scrollIntoView?.({block:'center',behavior:'smooth'});
+    field?.focus?.({preventScroll:true});
+   });
+   callout.append(p,button);
+   host.append(callout);return;
   }
   const poster=document.createElement('button');
   poster.type='button';poster.className='editor-studio-video-poster';
@@ -125,11 +139,14 @@
   const type=$('contentType').value;
   const isVideo=type==='video'||type==='trailer';
   const videoBox=$('ed-video-field'),sourceBox=$('ed-source-field');
-  // Hide optional complexity while retaining saved values and allowing editing.
-  if(videoBox)videoBox.hidden=!isVideo&&!$('trailerUrl').value.trim();
+  // The background video field must ALWAYS be visible for every article,
+  // including a standard 'Article' with no trailerUrl yet.
+  if(videoBox)videoBox.hidden=false;
   if(sourceBox)sourceBox.hidden=isVideo&&!$('sources').value.trim();
   const videoHeading=videoBox?.querySelector('h3');
-  if(videoHeading)videoHeading.textContent=isVideo?'Vidéo YouTube (obligatoire)':'Vidéo YouTube facultative';
+  if(videoHeading)videoHeading.textContent=isVideo
+   ?'Vidéo de fond · URL YouTube obligatoire'
+   :'Vidéo de fond · autoplay à 10 secondes (facultatif)';
   const message=$('ed-publish-hint');
   if(message&&!$('ed-publish').disabled&&message.textContent.includes('brouillon')){
    message.textContent=isVideo?'Ajoute une URL YouTube valide, puis clique sur Publier. SWAPP enregistre automatiquement le brouillon.':

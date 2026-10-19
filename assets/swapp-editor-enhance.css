@@ -65,3 +65,10 @@
 .editor-studio-diagnostics p{margin:6px 0;padding-bottom:7px;border-bottom:1px solid #ffffff10;
  color:#c4d1e5;font-size:13px;line-height:1.55}
 .editor-studio-diagnostics small{display:block;margin-top:11px;color:#93a8c0;font-size:11px;line-height:1.55}
+
+/* Empty trailer previews are an actionable shortcut, not a dead status label. */
+.editor-studio-video-empty{width:100%;display:grid;justify-items:center;gap:12px;padding:14px 8px;text-align:center}
+.editor-studio-video-empty p{margin:0;font-size:13px;color:#d0dfed;line-height:1.55}
+.editor-video-open-input{border:1px solid #45cfdf;background:#133544;color:#e4fbff;
+ border-radius:9px;padding:11px 14px;font:700 13px/1.35 system-ui,sans-serif;cursor:pointer}
+.editor-video-open-input:hover,.editor-video-open-input:focus-visible{background:#1c5366;outline:2px solid #90ebf4;outline-offset:2px}
