@@ -1,7 +1,8 @@
 /* SWAPP Lecture — opt-in distraction-free reading and honest French voice playback.
    No direct fetch, microphone or tracking. Browser online voices may send article text to their provider. */
 (()=>{'use strict';
- if(window.__swappReaderStudio)return;
+ if(window.__swappReaderStudio&&window.SwappReaderStudio?.sync){window.SwappReaderStudio.sync();return;}
+ // A cached script may have set the guard before failing. A reloaded script must retry.
  window.__swappReaderStudio=true;
  const api=window.speechSynthesis;
  const speechReady=!!(api&&typeof window.SpeechSynthesisUtterance==='function');
@@ -18,7 +19,8 @@
  const one=(scope,selector)=>scope?.querySelector(selector);
  const escapeValue=value=>String(value||'').replace(/\s+/g,' ').trim();
  const onArticle=()=>{
-  const native=one(document,'body.swapp-editorial-route main.article-wrap > .swapp-article-reading');
+  const native=one(document,'body.swapp-editorial-route main.article-wrap > .swapp-article-reading')||
+   one(document,'main.article-wrap[data-swapp-article-slug] > .swapp-article-reading');
   if(native)return native;
   const active=one(document,'#actus.view.active .swapp-actus-native.swapp-actus-reading .swapp-article-reading');
   return active&&active.getClientRects().length?active:null;
@@ -235,6 +237,7 @@
   if(root&&content)build();
  }
  const observer=new MutationObserver(sync);
+ window.SwappReaderStudio={sync};
  function boot(){
   sync();
   observer.observe(document.body,{childList:true,subtree:true});

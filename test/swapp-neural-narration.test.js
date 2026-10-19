@@ -54,7 +54,7 @@ test('two SWAPP article shells load studio after provider and before existing re
  const home=read('index.html'),native=read('modules/swapp-news/site-shell.js');
  for(const page of [home,native]){
   const provider=page.indexOf('swapp-neural-narration.js?v=20261019-neural-v1');
-  const reader=page.indexOf('swapp-reader-studio.js?v=20261019-reading-v2');
+  const reader=page.indexOf('swapp-reader-studio.js?v=20261019-native-boot-v3');
   assert.ok(provider>0&&reader>provider);
   assert.ok(page.includes('swapp-reader-studio.css?v=20261019-reading-v1'));
  }
