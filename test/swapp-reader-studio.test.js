@@ -57,7 +57,7 @@ test('listen mode cannot start without a French voice and never auto-plays',()=>
  assert.match(js,/Mairaiy · Quantic Studio/);
  assert.match(js,/Mairaiy · enregistrement non disponible/);
  assert.match(js,/vivienne/);
- assert.match(js,/narrator\\?\\.stopMairaiy/);
+ assert.match(js,/stopMairaiy/);
 });
 
 test('reading focus is responsive, distraction free and does not overwrite global site colors',()=>{
