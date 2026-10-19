@@ -142,6 +142,19 @@ test('arbitrary API titles cannot earn points without an actual published game h
  assert.equal(stats.points,0);
  assert.equal(stats.discovered,0);
 });
+test('existing device-local follows get recognition on the first opt-in import, never twice',async()=>{
+ const h=harness();
+ const payload={games:[
+  {slug:'minecraft',game:'Minecraft',followedAt:'2026-10-15T12:00:00.000Z'},
+  {slug:'elden-ring',game:'Elden Ring',followedAt:'2026-10-16T12:00:00.000Z'}
+ ]};
+ const first=await h.request('POST','/library/import',{body:payload});
+ assert.equal(first.code,200);
+ assert.equal(first.payload.games.length,2);
+ assert.equal((await h.request('GET','/rewards/me')).payload.rewards.points,20);
+ await h.request('POST','/library/import',{body:payload});
+ assert.equal((await h.request('GET','/rewards/me')).payload.rewards.points,20);
+});
 test('deleting wishes or following invalid games cannot generate rewards',async()=>{
  const h=harness();
  assert.equal((await h.request('PUT','/library/games/:slug',{params:{slug:'../../secret'},body:{game:'foo'}})).code,400);
