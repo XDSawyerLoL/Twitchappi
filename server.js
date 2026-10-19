@@ -1027,6 +1027,33 @@ if(process.env.SWAPP_SOCIAL_FEATURES==='1'){
 }else{
  app.use('/api/swapp/interactions',(_req,res)=>res.status(503).json({error:'social_features_disabled'}));
 }
+// Opt-in Fair Discovery pilot: verified card signals, no visitor identifiers.
+// Reuse the existing Hostinger MySQL pool, never create a second connection pool.
+const fairMetrics=require('./modules/swapp-fair-metrics').createFairMetrics({
+ getPool:()=>socialInteractionsState!=='unavailable'?socialInteractionsPool:null,
+ isEnabled:()=>process.env.SWAPP_FAIR_METRICS_ENABLED==='1'&&process.env.SWAPP_SOCIAL_FEATURES==='1',
+ // An explicit persistent signing key is required; never issue reusable tokens
+ // with the temporary development session secret.
+ secret:configuredSessionSecret
+});
+const fairMetricsLimiter=rateLimit({windowMs:60*1000,max:12,standardHeaders:false,legacyHeaders:false});
+app.get('/api/discovery/fair-summary',async(_req,res)=>{
+ res.set('Cache-Control','no-store');
+ try{return res.json(await fairMetrics.summary())}
+ catch{return res.status(503).json({enabled:fairMetrics.enabled(),sample:'unavailable'})}
+});
+app.post('/api/discovery/fair-event',fairMetricsLimiter,async(req,res)=>{
+ res.set('Cache-Control','no-store');
+ if(!fairMetrics.enabled())return res.status(503).json({ok:false,error:'metrics_disabled'});
+ const origin=String(req.get('origin')||'');
+ const approved=['https://swapp.tv','https://www.swapp.tv'];
+ if(!IS_PROD)approved.push('http://localhost:3000','http://127.0.0.1:3000');
+ if(!approved.includes(origin))return res.status(403).json({ok:false,error:'origin_denied'});
+ try{
+  const result=await fairMetrics.record(req.body?.proof,req.body?.event);
+  return res.status(result.status).json({ok:result.ok});
+ }catch{return res.status(503).json({ok:false,error:'metrics_unavailable'})}
+});
 // Short private voice notes use the same SWAPP/MySQL identities and storage.
 // Audio content is never served by the static asset server.
 const {createDirectAudioRouter}=require('./modules/swapp-social-direct-audio');
@@ -9333,7 +9360,11 @@ app.get('/api/discovery/game-lives', heavyLimiter, async (req,res)=>{
     // creators into the same shelf as established channels. No paid boosts.
     const visible=require('./modules/swapp-discovery-diversity').rankGameLives(items,{limit});
     if(twitchAvailable)await swappAddLiveAvatars(visible);
-    return res.json({success:true,game,items:visible,totalCandidates:items.length,
+    // Public creator/game proof only; the HMAC is not tied to a viewer.
+    const reportable=fairMetrics.enabled()?visible.map(item=>({...item,fairProof:fairMetrics.issue(item)})):visible;
+    if(fairMetrics.enabled())res.set('Cache-Control','private, no-store');
+    return res.json({success:true,game,items:reportable,totalCandidates:items.length,
+      fairMetrics:{enabled:fairMetrics.enabled(),scope:'opt-in-game-cards'},
       coverage:twitchAvailable?(twitchError?'partial':'game-search'):'native-only',
       discovery:{policy:'fair-discovery-v1',ranking:'verified-game-then-small-creators',paidBoost:false}});
   }catch(e){return res.status(503).json({success:false,error:'Recherche de lives indisponible',items:[]})}
