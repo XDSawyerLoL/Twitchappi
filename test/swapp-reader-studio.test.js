@@ -10,8 +10,8 @@ test('reader module parses and loads in the SPA and native article shell',()=>{
  const js=read('assets/swapp-reader-studio.js');
  assert.doesNotThrow(()=>new Function(js));
  const spa=read('index.html'),native=read('modules/swapp-news/site-shell.js');
- const script='/assets/swapp-reader-studio.js?v=20261019-native-boot-v3';
- const style='/assets/swapp-reader-studio.css?v=20261019-reading-v1';
+ const script='/assets/swapp-reader-studio.js?v=20261020-voice-v1';
+ const style='/assets/swapp-reader-studio.css?v=20261020-voice-v1';
  for(const page of [spa,native]){
   assert.ok(page.includes(script));
   assert.ok(page.includes(style));
@@ -41,20 +41,23 @@ test('listen mode cannot start without a French voice and never auto-plays',()=>
  assert.match(js,/window\.speechSynthesis/);
  assert.match(js,/SpeechSynthesisUtterance/);
  assert.match(js,/filter\(v=>\/\^fr/);
- assert.match(js,/start\.disabled=!voices\.length/);
+ assert.match(js,/start\.disabled=!voices\.length&&!mairaiyAvailable/);
  assert.match(js,/data-reader-voice/);
  assert.match(js,/utterance\.lang=chosen\.lang\|\|'fr-FR'/);
  assert.match(js,/api\.pause\(\)/);
  assert.match(js,/api\.resume\(\)/);
  assert.match(js,/api\.cancel\(\)/);
- assert.match(js,/data-reader-online-consent/);
+ assert.doesNotMatch(js,/data-reader-online-consent/);
  assert.match(js,/chosen\.localService!==true/);
- assert.match(js,/checked/);
+ assert.doesNotMatch(js,/Autoriser une voix en ligne si le navigateur/);
  assert.match(js,/utterance\.onerror=/);
  assert.match(js,/utterance\.onend=/);
  assert.match(js,/addEventListener\('click',play\)/);
  assert.doesNotMatch(js,/new SpeechSynthesisUtterance\(['"]Mairy/);
- assert.match(js,/Mairy naturelle n’est pas encore connectée/);
+ assert.match(js,/Mairaiy · Quantic Studio/);
+ assert.match(js,/Mairaiy · enregistrement non disponible/);
+ assert.match(js,/vivienne/);
+ assert.match(js,/narrator\\?\\.stopMairaiy/);
 });
 
 test('reading focus is responsive, distraction free and does not overwrite global site colors',()=>{
@@ -88,14 +91,23 @@ test('cached Hostinger article shell recovers reader toolbar with a fresh script
  assert.match(legacy,/swapp-reader-studio\.js/);
  assert.match(legacy,/swapp-neural-narration\.js/);
  assert.match(legacy,/swapp-reader-studio\.css/);
- assert.match(legacy,/20261019-native-boot-v3/);
+ assert.match(legacy,/20261020-voice-v1/);
  assert.match(legacy,/window\.SwappReaderStudio\?\.sync\(\)/);
  const studio=read('assets/swapp-reader-studio.js');
  assert.match(studio,/window\.SwappReaderStudio=\{sync\}/);
  assert.match(studio,/main\.article-wrap\[data-swapp-article-slug\]/);
  const native=read('modules/swapp-news/site-shell.js');
  const spa=read('index.html');
- for(const page of [native,spa])assert.match(page,/swapp-reader-experience\.js\?v=20261019-native-boot-v4/);
+ for(const page of [native,spa])assert.match(page,/swapp-reader-experience\.js\?v=20261020-voice-v1/);
  const release=read('tools/swapp-release.js');
  assert.match(release,/'assets\/swapp-reader-experience\.js'/);
+});
+
+test('Vivienne is preferred and Mairaiy is a real recorded audio option, not a fake browser voice',()=>{
+ const js=read('assets/swapp-reader-studio.js');
+ assert.match(js,/Number\(\/\\bvivienne\\b\/i\.test\(b\.name/);
+ assert.match(js,/field\.value=prior==='mairaiy'&&mairaiyAvailable/);
+ assert.match(js,/narrator\.toggleMairaiy\(\)/);
+ assert.match(js,/mairaiy\.disabled=!mairaiyAvailable/);
+ assert.doesNotMatch(js,/data-reader-online-consent|Autoriser une voix en ligne si le navigateur en utilise une/);
 });
