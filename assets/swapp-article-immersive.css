@@ -7,9 +7,19 @@
 body.swapp-editorial-route{
   background:#0b111b!important;
 }
+/* SPA-only first-load fix: the legacy app sets html,body {overflow-x:hidden}.
+   That implicitly makes overflow-y:auto and creates a non-scrolling containing
+   block for BOTH sticky sidebars. Direct SSR refresh doesn't have this rule,
+   which is why a second F5 appeared to fix the article. */
+html:has(#actus.view.active .swapp-actus-native.swapp-actus-reading),
+body:has(#actus.view.active .swapp-actus-native.swapp-actus-reading){
+ overflow-x:clip!important;
+ overflow-y:visible!important;
+}
 #actus.view.active:has(.swapp-actus-native.swapp-actus-reading),
 body.swapp-editorial-route:has(.article-wrap){
-  overflow-x:clip; /* Full-viewport artwork must not widen the page. */
+ overflow-x:clip!important;
+ overflow-y:visible!important;
 }
 #actus .swapp-actus-native.swapp-actus-reading,
 body.swapp-editorial-route .article-wrap{
