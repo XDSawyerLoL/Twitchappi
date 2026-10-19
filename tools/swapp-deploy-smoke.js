@@ -93,6 +93,20 @@ async function verify(){
  process.stdout.write('PASS SWAPP Boutique ten Steam games only; catalog drafts remain private to editor\n');
  // Home markup is also inspected by the Boutique editor check below.
  const home=await request(origin,'/');
+ // WoW editorial ambient trailer: verify deployment serves the exact controller
+ // and both public HTML shells use it. No browser playback or consent is faked.
+ check(home.body.includes('swapp-article-trailer-bg.js?v=20261019-trailer-fade-v1'),
+  'WoW immersive trailer controller is missing from deployed SPA');
+ const trailerJs=await request(origin,'/assets/swapp-article-trailer-bg.js');
+ check(trailerJs.body.includes('youtube-nocookie.com/embed')&&
+  trailerJs.body.includes('CONSENT_API_READY')&&
+  trailerJs.body.includes('start=10')&&trailerJs.body.includes('mute=1'),
+  'WoW trailer controller asset is stale or missing privacy gates');
+ const trailerCss=await request(origin,'/assets/swapp-article-immersive.css');
+ check(trailerCss.body.includes('.swapp-article-scene.has-trailer')&&
+  trailerCss.body.includes('.swapp-article-trailer-frame'),
+  'WoW immersive trailer background CSS is not deployed');
+ process.stdout.write('PASS immersive WoW trailer assets and CMP gate\n');
  // The SEO headline used to flash through the banner during F5.
  check(!home.body.includes('Actualité jeux vidéo, lives et streamers sur SWAPP')&&
   !home.body.includes('SWAPP rassemble des actualités gaming')&&
