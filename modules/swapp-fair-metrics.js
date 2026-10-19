@@ -100,12 +100,17 @@ function createFairMetrics({getPool,isEnabled,secret,now=Date.now}={}){
   const normalized=(rows||[]).map(row=>({band:String(row.audience_band),creators:Number(row.creators)||0,impressions:Number(row.impressions)||0,clicks:Number(row.clicks)||0}))
    .filter(x=>['small','growing','established'].includes(x.band));
   const allImpressions=normalized.reduce((sum,x)=>sum+x.impressions,0);
-  const allCreators=normalized.reduce((sum,x)=>sum+x.creators,0);
+  // A creator can move between audience bands over seven days; count their
+  // public channel only once when enforcing the disclosure threshold.
+  const [distinctRows]=await pool.execute(
+   'SELECT COUNT(DISTINCT platform,creator_login) AS creators FROM swapp_fair_exposure_daily '+
+   'WHERE event_day>=UTC_DATE() - INTERVAL 6 DAY AND event_day<=UTC_DATE() AND placement=?',[PLACEMENT]);
+  const allCreators=Math.max(0,Number(distinctRows?.[0]?.creators)||0);
   // Suppress low-volume results entirely, including individual cohort counts.
   if(allImpressions<MIN_IMPRESSIONS||allCreators<MIN_CREATORS)return {enabled:true,scope:'game-card-opt-in',sample:'insufficient',minimumImpressions:MIN_IMPRESSIONS,minimumCreators:MIN_CREATORS};
   const small=normalized.find(x=>x.band==='small')?.impressions||0;
   return {enabled:true,scope:'game-card-opt-in',sample:'limited-voluntary',periodDays:7,impressions:allImpressions,
-   creatorCohortCount:allCreators,smallAudienceImpressionShare:Math.round(small/allImpressions*1000)/10,
+   uniqueCreatorsRepresented:allCreators,smallAudienceImpressionShare:Math.round(small/allImpressions*1000)/10,
    caveat:'Échantillon volontaire ; pas une mesure exhaustive ou une preuve de parité.'};
  }
  return {enabled,issue,verify,record,summary};
