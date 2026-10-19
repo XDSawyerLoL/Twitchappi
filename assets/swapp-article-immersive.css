@@ -223,7 +223,11 @@ body.swapp-editorial-route .article-wrap > .swapp-immersive-hero{
 }
 /* Unboxed sticky contents sidebar. No color panels. */
 :is(#actus,body.swapp-editorial-route) .swapp-article-reading .swapp-reader-toc{
-  position:sticky;top:92px;display:flex!important;flex-direction:column!important;
+  position:sticky!important;top:92px!important;align-self:start!important;
+  max-height:calc(100vh - 108px);max-height:calc(100dvh - 108px);
+  min-height:0!important;overflow-y:auto!important;overflow-x:hidden!important;
+  overscroll-behavior-y:contain;scrollbar-width:thin;
+  display:flex!important;flex-direction:column!important;
   gap:12px!important;align-items:stretch!important;
   width:100%!important;max-width:none!important;
   margin:0!important;padding:12px 0!important;
@@ -304,7 +308,9 @@ body.swapp-editorial-route .article-wrap > figure:has(img.cover-img){display:non
     grid-template-columns:1fr;gap:24px
   }
   :is(#actus,body.swapp-editorial-route) .swapp-article-reading .swapp-reader-toc{
-    position:static;grid-column:1;grid-row:auto;
+    position:static!important;grid-column:1;grid-row:auto;
+    align-self:auto!important;max-height:none!important;
+    overflow:visible!important;overscroll-behavior-y:auto;
     display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));
     gap:9px 18px!important;padding:0 0 16px!important;
     border-bottom:1px solid rgba(199,216,235,.15)!important;

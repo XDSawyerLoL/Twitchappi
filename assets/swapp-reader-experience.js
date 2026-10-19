@@ -2,7 +2,7 @@
 (()=>{'use strict';
  if(window.__swappReaderExperience)return;
  window.__swappReaderExperience=true;
- let current=null,detach=()=>{},storedSize=18,raf=0;
+ let current=null,currentToc=null,detach=()=>{},storedSize=18,raf=0;
  try{const value=Number(sessionStorage.getItem('swapp-reader-font-v1'));if([16,17,18,19,20,21,22].includes(value))storedSize=value}catch(_){}
  const $=(root,selector)=>root?.querySelector(selector);
  const articleNow=()=>{
@@ -13,9 +13,9 @@
  const reduced=()=>window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
  function mount(article){
   const reading=$(article,'.swapp-article-reading'),toc=$(reading,'.swapp-reader-toc');
-  if(!reading||!toc)return;
+  if(!reading||!toc)return false;
   const body=$(reading,'#article-content');
-  if(!body)return;
+  if(!body)return false;
   let size=storedSize;
   const percent=document.createElement('span');
   percent.className='swapp-reader-percent';
@@ -63,20 +63,41 @@
   const schedule=()=>{if(!raf)raf=requestAnimationFrame(update)};
   window.addEventListener('scroll',schedule,{passive:true});
   window.addEventListener('resize',schedule,{passive:true});
+  window.addEventListener('load',schedule,{once:true});
+  let sizes=null;
+  if(typeof ResizeObserver==='function'){
+   sizes=new ResizeObserver(schedule);
+   sizes.observe(body);sizes.observe(reading);
+  }
   const previousDetach=detach;
-  detach=()=>{previousDetach();window.removeEventListener('scroll',schedule);window.removeEventListener('resize',schedule);if(raf)cancelAnimationFrame(raf);raf=0;};
+  detach=()=>{previousDetach();
+   window.removeEventListener('scroll',schedule);
+   window.removeEventListener('resize',schedule);
+   window.removeEventListener('load',schedule);
+   sizes?.disconnect();
+   if(raf)cancelAnimationFrame(raf);raf=0;
+  };
   schedule();
+  document.fonts?.ready?.then(schedule,()=>{});
+  return true;
  }
  function sync(){
   const found=articleNow();
-  if(found===current)return;
-  detach();detach=()=>{};current=found;
-  if(found)mount(found);
+  const toc=$(found,'.swapp-article-reading .swapp-reader-toc');
+  // SPA shell can exist before the full TOC/body. Retry rather than remember
+  // a half-built article. Re-mount if routing replaces the TOC inside same root.
+  if(found===current&&toc===currentToc)return;
+  detach();detach=()=>{};current=null;currentToc=null;
+  if(found&&toc&&mount(found)){current=found;currentToc=toc;}
  }
  function boot(){
   sync();
   const observer=new MutationObserver(sync);
-  observer.observe(document.body,{childList:true,subtree:true});
+  observer.observe(document.body,{
+   childList:true,subtree:true,attributes:true,attributeFilter:['class','hidden']
+  });
+  window.addEventListener('pageshow',sync,{passive:true});
+  window.addEventListener('popstate',sync,{passive:true});
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});
  else boot();

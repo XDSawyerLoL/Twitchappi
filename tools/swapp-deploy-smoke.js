@@ -141,12 +141,22 @@ async function verify(){
  check(shelfScript.body.includes("shelf.id==='swapp-article-lives'")&&
   shelfScript.body.includes('swapp-live-card-editorial')&&
   shelfScript.body.includes("articleMode?'Regarder le live")&&
-  home.body.includes('swapp-article-immersive.css?v=20261019-affiliate-compact-v4'),
+  home.body.includes('swapp-article-immersive.css?v=20261019-toc-sticky-v5'),
   'Direct article lives still use oversized repeated game pills');
+ const reader=await request(origin,'/assets/swapp-reader-experience.js');
+ check(reader.body.includes('currentToc')&&
+  reader.body.includes('if(found&&toc&&mount(found))')&&
+  reader.body.includes('ResizeObserver')&&
+  home.body.includes('swapp-reader-experience.js?v=20261019-toc-sticky-v3'),
+  'First-navigation TOC mounting fix not deployed');
  const trailerCss=await request(origin,'/assets/swapp-article-immersive.css');
+ check(trailerCss.body.includes('align-self:start!important')&&
+  trailerCss.body.includes('max-height:calc(100dvh - 108px)')&&
+  trailerCss.body.includes('overflow-y:auto!important'),
+  'TOC sticky panel may be too tall or non-sticky on initial load');
  check(trailerCss.body.includes('#fa7b19')&&
   trailerCss.body.includes('swapp-affiliate-link')&&
-  home.body.includes('swapp-article-immersive.css?v=20261019-affiliate-compact-v4'),
+  home.body.includes('swapp-article-immersive.css?v=20261019-toc-sticky-v5'),
   'Orange compact partner action not deployed');
  check(cardClient.body.includes('OFFRE INSTANT GAMING · LIEN AFFILIÉ')&&
   cardClient.body.includes('Voir l’offre ↗')&&

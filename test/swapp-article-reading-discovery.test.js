@@ -89,3 +89,29 @@ test('article starts without old horizontal rails and keeps navigation intact',(
  assert.match(css,/\.swapp-reader-percent/);
  assert.match(spa,/const back=el\('button','swapp-actus-go-back'/);
 });
+
+test('TOC retries mounting on SPA article hydration without requiring a reload',()=>{
+ const js=read('assets/swapp-reader-experience.js');
+ assert.match(js,/if\(!reading\|\|!toc\)return false/);
+ assert.match(js,/if\(!body\)return false/);
+ assert.match(js,/if\(found===current&&toc===currentToc\)return/);
+ assert.match(js,/if\(found&&toc&&mount\(found\)\)\{current=found;currentToc=toc;\}/);
+ assert.match(js,/attributeFilter:\['class','hidden'\]/);
+ assert.match(js,/pageshow/);
+ assert.match(js,/ResizeObserver/);
+});
+test('long desktop contents panel remains sticky and viewport-clamped',()=>{
+ const css=read('assets/swapp-article-immersive.css');
+ const start=css.indexOf('.swapp-article-reading .swapp-reader-toc{');
+ const end=css.indexOf('}\n',start);
+ const rule=css.slice(start,end);
+ assert.match(rule,/position:sticky!important;top:92px!important;align-self:start!important/);
+ assert.match(rule,/max-height:calc\(100dvh - 108px\)/);
+ assert.match(rule,/overflow-y:auto!important;overflow-x:hidden!important/);
+ assert.match(css,/position:static!important;grid-column:1;grid-row:auto/);
+ assert.match(css,/max-height:none!important/);
+ for(const html of [read('index.html'),read('modules/swapp-news/site-shell.js')]){
+  assert.match(html,/swapp-reader-experience\.js\?v=20261019-toc-sticky-v3/);
+  assert.match(html,/swapp-article-immersive\.css\?v=20261019-toc-sticky-v5/);
+ }
+});
