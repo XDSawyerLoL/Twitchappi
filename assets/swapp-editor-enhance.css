@@ -72,3 +72,21 @@
 .editor-video-open-input{border:1px solid #45cfdf;background:#133544;color:#e4fbff;
  border-radius:9px;padding:11px 14px;font:700 13px/1.35 system-ui,sans-serif;cursor:pointer}
 .editor-video-open-input:hover,.editor-video-open-input:focus-visible{background:#1c5366;outline:2px solid #90ebf4;outline-offset:2px}
+
+/* 16:9 thumbnail: separate from the fullscreen/immersive article artwork. */
+.editor-thumbnail-primary{border:1px solid #3c7889;border-left:4px solid #68d9e9;
+ padding:19px 20px;margin:20px 0;background:linear-gradient(115deg,#112633,#151c30);scroll-margin-top:100px}
+.editor-thumbnail-primary h3{margin:0 0 7px;font-size:18px;color:#e6f7fc}
+.editor-thumbnail-primary>.editor-note{margin:0 0 16px}
+.editor-thumbnail-layout{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(240px,.8fr);gap:21px;align-items:start}
+.editor-thumbnail-layout .field{margin:11px 0}
+.editor-thumbnail-layout .editor-actions{margin:12px 0;gap:7px}
+.editor-thumbnail-layout .editor-actions button{font-size:12px;padding:9px 10px}
+.editor-thumbnail-review{min-width:0}
+.editor-thumbnail-stage{aspect-ratio:16/9;overflow:hidden;border:1px solid #54718a;
+ border-radius:9px;background:linear-gradient(145deg,#162739,#2a2440);display:grid;place-items:center}
+.editor-thumbnail-stage img{width:100%;height:100%;object-fit:cover;display:block}
+.editor-thumbnail-stage img[hidden]{display:none!important}
+.editor-thumbnail-stage:has(img[hidden]):after{content:"SWAPP · ACTUALITÉ";font-size:12px;letter-spacing:.2em;color:#a4bbca}
+#ed-thumb-status{display:block;margin-top:9px;font-size:12px;color:#b2c6d7}
+@media(max-width:800px){.editor-thumbnail-layout{grid-template-columns:1fr}}
