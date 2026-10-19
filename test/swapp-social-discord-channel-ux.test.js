@@ -49,6 +49,6 @@ test('CSS and JS cache keys are updated coherently without paid workflows',()=>{
  assert.match(hub,/swapp-social-voice\.js\?v=20261018-channel-ux-v1/);
  assert.match(hub,/swapp-social-interactions\.js\?v=20261018-channel-ux-v1/);
  assert.match(hub,/swapp-social-voice-premium\.css\?v=20261018-channel-ux-v1/);
- assert.match(hub,/swapp-social-native\/app\.js\?v=20261018-channel-ux-v1/);
+ assert.match(hub,/swapp-social-native\/app\.js\?v=20261019-service-health-v1/);
  assert.match(app,/views\.js\?v=20261018-channel-ux-v1/);
 });

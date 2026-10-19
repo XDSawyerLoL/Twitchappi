@@ -1104,3 +1104,7 @@ body:has(#swapp-social-access)>header.top{
 .swapp-social-viewport .swapp-social-stories[hidden]{
   display:none!important;
 }
+
+/* SWAPP Excellence: dependent service status is not a global green light. */
+.swapp-social-viewport #api-state[data-service-state="partial"]{color:#eec477}
+.swapp-social-viewport #api-state[data-service-state="offline"]{color:#f58e92}
