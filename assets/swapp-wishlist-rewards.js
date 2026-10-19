@@ -6,10 +6,8 @@
  const cleanName=v=>String(v||'').trim().slice(0,100);
  const $$=q=>[...document.querySelectorAll(q)];
  const $=q=>document.querySelector(q);
- const buttons=$$('[data-swapp-wishlist-game]');
  const panel=$('[data-swapp-library-root]');
- if(!buttons.length&&!panel)return;
- let wishlist=[],loggedIn=false,busy=false;
+ let wishlist=[],loggedIn=false,busy=false,hydrated=false,loading=null;
  const notice=message=>{
   const el=$('[data-swapp-loyalty-status]');
   if(el)el.textContent=message;
@@ -74,11 +72,17 @@
   loggedIn=true;renderWishlist();renderButtons();
  }
  async function refreshWishlist(){
-  try{const data=await call('/library/wishlist');setWishlist(data.wishlist)}
+  try{const data=await call('/library/wishlist');setWishlist(data.wishlist);hydrated=true}
   catch(error){
-   if(error.status===401){loggedIn=false;wishlist=[];renderWishlist();renderButtons()}
+   if(error.status===401){loggedIn=false;wishlist=[];hydrated=true;renderWishlist();renderButtons()}
    if(panel)notice(error.message);
   }
+ }
+ async function ensureWishlist(){
+  if(hydrated)return;
+  if(!loading)loading=refreshWishlist().finally(()=>{loading=null});
+  await loading;
+  if(!hydrated)throw new Error('Impossible de vérifier ta liste de souhaits pour le moment.');
  }
  async function refreshRewards(){
   if(!panel)return;
@@ -124,23 +128,27 @@
    delete btn.dataset.wishlistError;
    const slug=btn.dataset.gameSlug,game=cleanName(btn.dataset.gameName);
    if(!slugOK(slug)||game.length<2)return;
-   const exists=wishlist.some(x=>x.slug===slug);
-   mutate(()=>call('/library/wishlist/'+encodeURIComponent(slug),
-    exists?'DELETE':'PUT',exists?undefined:{game}),btn);return;
+   mutate(async()=>{
+    await ensureWishlist();
+    const exists=wishlist.some(x=>x.slug===slug);
+    return call('/library/wishlist/'+encodeURIComponent(slug),exists?'DELETE':'PUT',exists?undefined:{game});
+   },btn);return;
   }
   const remove=event.target.closest('[data-wishlist-remove]');
   if(remove){
    const slug=remove.dataset.wishlistRemove;
-   if(slugOK(slug))mutate(()=>call('/library/wishlist/'+encodeURIComponent(slug),'DELETE'),remove);
+   if(slugOK(slug))mutate(async()=>{await ensureWishlist();return call('/library/wishlist/'+encodeURIComponent(slug),'DELETE')},remove);
    return;
   }
   const clear=event.target.closest('[data-swapp-wishlist-clear]');
   if(clear&&wishlist.length&&window.confirm('Vider ta liste de souhaits SWAPP ?')){
-   mutate(()=>call('/library/wishlist','DELETE'),clear);
+   mutate(async()=>{await ensureWishlist();return call('/library/wishlist','DELETE')},clear);
   }
  });
  window.addEventListener('swapp:library-changed',()=>{void refreshRewards()});
  window.addEventListener('pageshow',e=>{if(e.persisted){void refreshWishlist();void refreshRewards()}});
- void refreshWishlist();
+ // SPA game actions can appear after the initial script evaluation.
+ // Delegated clicks remain active even if there were no cards on first load.
+ if(panel||$('[data-swapp-wishlist-game]').length)void refreshWishlist();
  void refreshRewards();
 })();
