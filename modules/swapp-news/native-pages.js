@@ -108,7 +108,7 @@ function renderNewsStory(originalArticle,{baseUrl='https://swapp.tv',relatedArti
    ...(shareImage?{image:[shareImage]}:{}),
    ...(videoId?{embedUrl:'https://www.youtube-nocookie.com/embed/'+videoId,
       thumbnailUrl:shareImage||'https://i.ytimg.com/vi/'+videoId+'/hqdefault.jpg',
-      ...(published?{uploadDate:published}:{})}:{})};
+      ...((article.trailerPublishedAt||published)?{uploadDate:article.trailerPublishedAt||published}:{})}:{})};
  const jsonLd=JSON.stringify(schema).replace(/</g,'\\u003c');
  const metadata=`<link rel="canonical" href="${escapeHtml(url)}"><meta name="keywords" content="${escapeHtml(tags.join(', '))}"><meta property="og:type" content="${isVideo?'video.other':'article'}"><meta property="og:url" content="${escapeHtml(url)}"><meta property="og:title" content="${escapeHtml(seoTitle)}"><meta property="og:description" content="${escapeHtml(seoDescription)}">${shareImage?`<meta property="og:image" content="${escapeHtml(shareImage)}"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="${escapeHtml(shareImage)}">`:''}<script type="application/ld+json">${jsonLd}</script>`;
  const coverUrl=immersiveCoverUrl(article);
