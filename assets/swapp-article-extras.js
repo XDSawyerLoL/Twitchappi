@@ -111,26 +111,35 @@
    (links.length===1?'1 référence vérifiable':links.length+' références vérifiables')+
    '</summary><div class="swapp-editorial-source-links">'+links.join('')+'</div></details>';
  }
- function linkHtml(a){
-  const links=commercialLinks(a?.commercialLinks);
-  if(!links.length)return '';
-  return '<aside class="swapp-article-extra swapp-article-commerce" aria-label="Liens commerciaux sélectionnés"><h2>Pour aller plus loin</h2>'+
-   '<p>La rédaction choisit ces liens indépendamment de ses articles. Les liens rémunérés sont identifiés et n’influencent pas les conclusions éditoriales.</p>'+
-   '<div class="swapp-article-deals">'+links.map(link=>
-    '<a href="'+escape(link.url)+'" target="_blank" rel="sponsored nofollow noopener noreferrer"><span class="swapp-deal-type">'+
-    (link.kind==='sponsored'?'PUBLICITÉ · PARTENARIAT RÉMUNÉRÉ':
-     isAmazonLink(link.url)?'LIEN RÉMUNÉRÉ PAR AMAZON':'LIEN AFFILIÉ · COMMISSION POSSIBLE')+'</span>'+
-    '<strong>'+escape(link.title)+'</strong><small>'+escape(link.merchant)+' ↗</small></a>'
-   ).join('')+'</div>'+
-   (links.some(link=>link.kind==='affiliate'&&isAmazonLink(link.url))
-    ?'<p class="swapp-amazon-disclosure">'+escape(amazonDisclosure)+'</p>':'')+'</aside>';
+ // Editor-supplied affiliate links use the same small purchase rail as
+ // verified catalog offers. They are NOT separate advertising panels.
+ function partnerOffersHtml(a){
+  return commercialLinks(a?.commercialLinks).map(link=>{
+   let hostname='';
+   try{hostname=new URL(link.url).hostname.toLowerCase()}catch(_){}
+   const ig=hostname==='instant-gaming.com'||hostname==='www.instant-gaming.com';
+   const affiliate=link.kind==='affiliate';
+   const label=!affiliate?'PUBLICITÉ · PARTENARIAT':ig?
+    'OFFRE INSTANT GAMING · LIEN AFFILIÉ':isAmazonLink(link.url)?
+    'OFFRE AMAZON · LIEN AFFILIÉ':'OFFRE PARTENAIRE · LIEN AFFILIÉ';
+   const disclosure=isAmazonLink(link.url)?
+    '<small class="swapp-amazon-disclosure">'+escape(amazonDisclosure)+'</small>':'';
+   return '<aside class="swapp-affiliate-offer swapp-affiliate-manual" aria-label="'+
+    escape(link.merchant+' · '+(affiliate?'lien affilié':'publicité'))+'">'+
+    '<span class="swapp-affiliate-kicker">'+label+'</span>'+
+    '<strong class="swapp-affiliate-game">'+escape(link.title)+'</strong>'+
+    '<span class="swapp-affiliate-platform">'+escape(link.merchant)+'</span>'+
+    '<a class="swapp-affiliate-link" href="'+escape(link.url)+
+    '" target="_blank" rel="sponsored nofollow noopener noreferrer">Voir l’offre ↗</a>'+
+    disclosure+'</aside>';
+  }).join('');
  }
  function discussionHtml(article){
   const slug=String(article?.slug||'');
   if(!/^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/.test(slug))return '';
   return '<p class="swapp-article-discuss"><a href="/communaute?article='+encodeURIComponent(slug)+'">En discuter avec la communauté SWAPP →</a></p>';
  }
- function renderServer(article){return sourcesHtml(article)+editorialVerdictHtml(article)+linkHtml(article)}
+ function renderServer(article){return sourcesHtml(article)+editorialVerdictHtml(article)}
  function mount(node,article){
   if(typeof document==='undefined'||!node)return;
   const parser=document.createElement('div');
@@ -187,5 +196,5 @@
    if(button)activate(button);
   });
  }
- return Object.freeze({trailerId,heroTrailerId,isGameArticle,cardImageSources,commercialLinks,isAmazonLink,amazonDisclosure,renderServer,mount});
+ return Object.freeze({trailerId,heroTrailerId,isGameArticle,cardImageSources,commercialLinks,partnerOffersHtml,isAmazonLink,amazonDisclosure,renderServer,mount});
 });
