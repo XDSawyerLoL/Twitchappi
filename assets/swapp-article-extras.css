@@ -35,3 +35,10 @@
 .swapp-article-discuss a{display:inline-flex;align-items:center;text-decoration:none;color:#e9e2ff!important;border-bottom:1px solid color-mix(in srgb,var(--brand,#8b5cf6) 55%,#8190aa);padding-bottom:5px;font-weight:800;line-height:1.55}
 .swapp-article-discuss a:hover{color:#fff!important;border-bottom-color:#fff}
 .swapp-article-discuss a:focus-visible{outline:2px solid #fff;outline-offset:4px}
+
+/* One cinematic trailer in the article header; a quiet pair of links below. */
+.swapp-hero-video-links{display:flex;align-items:center;gap:18px;flex-wrap:wrap;
+ max-width:1120px;margin:17px auto 22px;padding:0 6px;font:700 12px/1.5 system-ui,sans-serif}
+.swapp-hero-video-links a{color:#b8d7e5;text-decoration:none!important;border-bottom:1px solid #6c8aa155;padding:5px 0}
+.swapp-hero-video-links a:hover{color:#f5fcff;border-color:#8ce3f0}
+.swapp-hero-video-links a:focus-visible{outline:2px solid #81e5f5;outline-offset:3px}

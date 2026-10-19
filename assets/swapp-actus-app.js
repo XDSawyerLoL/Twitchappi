@@ -145,7 +145,7 @@ if(a.game)kicker.append(el('span','swapp-reader-kicker-game',a.game));
 heroCopy.append(kicker,el('h1','',a.title));
 if(a.summary)heroCopy.append(el('p','swapp-actus-summary',a.summary));
 heroCopy.append(el('p','swapp-actus-author',[a.author,date(a.publishedAt||a.originalPublishedAt)].filter(Boolean).join(' · ')));
-heading.append(heroCopy);article.append(heading);
+heading.id='swapp-article-hero';heading.append(heroCopy);article.append(heading);
 if(coverImage&&a.image?.credit)heroCopy.append(el('p','swapp-immersive-credit',a.image.credit));
 const controls=el('div','swapp-reader-controls');const words=String(a.body||'').trim().split(/\s+/).filter(Boolean).length;
 controls.append(el('span','swapp-read-time',Math.max(1,Math.ceil(words/220))+' min de lecture'));
@@ -197,31 +197,72 @@ fetchJson('/api/discovery/game-lives?limit=12&game='+encodeURIComponent(a.game))
  const retry=el('button','swapp-game-journey-action','Relancer la recherche');
  retry.type='button';retry.onclick=()=>showArticle(node,slug);
  games.append(retry);return;
-}const grid=el('div','swapp-reader-live-grid');for(const stream of streams){const login=String(stream.login||'').toLowerCase();if(!/^[a-z0-9_]{2,25}$/.test(login))continue;const native=['swapp','oryon'].includes(String(stream.platform||'').toLowerCase());const link=el(native?'a':'div','swapp-reader-live-card');const streamHref=native?'/'+encodeURIComponent(login):'/live/twitch/'+encodeURIComponent(login)+'?game='+encodeURIComponent(String(a.game).slice(0,90));if(native)link.href=streamHref;const imgSrc=url(stream.thumbnail_url);const coverBox=el('div','swapp-reader-live-cover');if(imgSrc){const img=el('img');img.src=imgSrc;img.alt='';img.loading='lazy';coverBox.append(img)}coverBox.append(el('span','swapp-reader-live-badge','● EN DIRECT'));const info=el('div','swapp-reader-live-info');info.append(el('b','',stream.display_name||login),el('span','swapp-game-connection','Même jeu · '+a.game),el('small','',stream.title||'Regarder ce live'));link.append(coverBox,info);
-if(!native){
-  const actions=el('div','swapp-reader-live-actions');
-  const canEmbed=!!window.SwappArticlePlayer?.canEmbed?.(window.innerWidth,window.innerHeight);
-  if(canEmbed){
-    const mini=el('button','swapp-reader-live-inline','▶ Regarder ici');
-    mini.type='button';
-    mini.setAttribute('aria-label','Regarder '+(stream.display_name||login)+' dans un mini-lecteur');
-    mini.onclick=()=>{
-      const opened=window.SwappArticlePlayer?.open({login,name:stream.display_name||login,game:a.game,source:mini});
-      if(!opened)window.location.assign(streamHref);
-    };
-    actions.append(mini);
-  }
-  const full=el('a','swapp-reader-live-full',canEmbed?'Voir le live sur SWAPP →':'Regarder sur SWAPP →');
-  full.href=streamHref;
-  full.onclick=event=>{
-    if(event.button||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
-    const opened=window.SwappArticlePlayer?.openFull({login,name:stream.display_name||login,game:a.game});
-    if(opened)event.preventDefault();
-  };
-  actions.append(full);
-  link.append(actions);
+
 }
-grid.append(link)}if(grid.children.length){games.append(el('p','swapp-actus-live-status',streams.length+' créateur'+(streams.length>1?'s':'')+' en direct sur ce jeu'));const cards=[...grid.children];const visible=3;cards.forEach((card,i)=>{if(i>=visible)card.hidden=true});games.append(grid);if(cards.length>visible){const more=el('button','swapp-reader-live-more','Voir les '+(cards.length-visible)+' autres lives');more.type='button';more.setAttribute('aria-expanded','false');more.onclick=()=>{const expanded=more.getAttribute('aria-expanded')==='true';cards.forEach((card,i)=>{card.hidden=expanded&&i>=visible});more.setAttribute('aria-expanded',String(!expanded));more.textContent=expanded?'Voir les '+(cards.length-visible)+' autres lives':'Voir moins de lives';};games.append(more)}}}).catch(()=>{if(games.isConnected){games.replaceChildren(el('h2','','En direct sur '+a.game),el('p','swapp-actus-live-status','Lives momentanément indisponibles.'))}});
+const liveHeader=el('div','swapp-reader-live-header');
+const copy=el('div','swapp-reader-live-header-copy');
+copy.append(el('h2','','En direct sur '+a.game),
+ el('p','swapp-actus-live-status',streams.length+' créateur'+(streams.length>1?'s':'')+' en direct'));
+liveHeader.append(copy);
+const grid=el('div','swapp-reader-live-grid');
+for(const stream of streams){
+ const login=String(stream.login||'').toLowerCase();
+ if(!/^[a-z0-9_]{2,25}$/.test(login))continue;
+ const native=['swapp','oryon'].includes(String(stream.platform||'').toLowerCase());
+ const streamHref=native?'/'+encodeURIComponent(login):
+  '/live/twitch/'+encodeURIComponent(login)+'?game='+encodeURIComponent(String(a.game).slice(0,90));
+ // The entire card is ONE native link: works with keyboard, middle-click, and
+ // still opens SWAPP's integrated Twitch player when the user left-clicks.
+ const card=el('a','swapp-reader-live-card');card.href=streamHref;
+ card.setAttribute('aria-label','Regarder le live de '+(stream.display_name||login)+' sur SWAPP');
+ const cover=el('div','swapp-reader-live-cover');
+ const image=url(stream.thumbnail_url);
+ if(image){
+  const img=el('img');img.src=image;img.alt='';img.loading='lazy';
+  cover.append(img);
+ }
+ cover.append(el('span','swapp-reader-live-badge','● EN DIRECT'));
+ const info=el('div','swapp-reader-live-info');
+ const creator=el('div','swapp-reader-live-creator');
+ const avatar=url(stream.profile_image_url||stream.avatar_url||stream.avatar);
+ if(avatar){
+  const img=el('img','swapp-reader-live-avatar');img.src=avatar;img.alt='';img.loading='lazy';
+  creator.append(img);
+ }
+ creator.append(el('strong','',stream.display_name||login));
+ info.append(creator);
+ const metaParts=[a.game];
+ const viewers=Number(stream.viewer_count);
+ if(Number.isFinite(viewers)&&viewers>0)metaParts.push(viewers.toLocaleString('fr-FR')+' spectateurs');
+ info.append(el('span','swapp-reader-live-meta',metaParts.join(' · ')));
+ info.append(el('p','swapp-reader-live-title',stream.title||'Live en cours'));
+ info.append(el('span','swapp-reader-live-watch','Regarder le live ↗'));
+ card.append(cover,info);
+ if(!native)card.onclick=event=>{
+  if(event.button||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
+  const opened=window.SwappArticlePlayer?.openFull?.({
+   login,name:stream.display_name||login,game:a.game});
+  if(opened)event.preventDefault();
+ };
+ grid.append(card);
+}
+if(grid.children.length){
+ const cards=[...grid.children],visible=3;
+ cards.forEach((card,i)=>{if(i>=visible)card.hidden=true});
+ if(cards.length>visible){
+  const more=el('button','swapp-reader-live-more','Voir les '+(cards.length-visible)+' autres lives →');
+  more.type='button';more.setAttribute('aria-expanded','false');
+  more.onclick=()=>{
+   const expanded=more.getAttribute('aria-expanded')==='true';
+   cards.forEach((card,i)=>{card.hidden=expanded&&i>=visible});
+   more.setAttribute('aria-expanded',String(!expanded));
+   more.textContent=expanded?'Voir les '+(cards.length-visible)+' autres lives →':'Réduire les lives ↑';
+  };
+  liveHeader.append(more);
+ }
+ games.replaceChildren(liveHeader,grid);
+}
+}).catch(()=>{if(games.isConnected){games.replaceChildren(el('h2','','En direct sur '+a.game),el('p','swapp-actus-live-status','Lives momentanément indisponibles.'))}});
 }
 const recommend=el('details','swapp-reader-next');recommend.open=true;
 const recommendHeading=el('summary','','À découvrir ensuite');

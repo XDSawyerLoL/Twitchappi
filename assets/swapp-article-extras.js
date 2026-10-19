@@ -79,20 +79,15 @@
   }
   return out;
  }
+ // Every valid article YouTube URL already drives the immersive header.
+ // Never render a second blurry full-width player farther down the article.
  function trailerHtml(a){
   const id=trailerId(a?.trailerUrl);
   if(!id)return '';
-  const thumb='https://i.ytimg.com/vi/'+id+'/hqdefault.jpg';
-  const title=escape(a?.title||'Vidéo SWAPP');
-  return '<section class="swapp-article-extra swapp-article-video" aria-label="Vidéo intégrée">'+
-   '<div class="swapp-trailer-heading"><span>SWAPP · VIDÉO</span><h2>Regarder la bande-annonce</h2>'+
-   '<p>Une vidéo sélectionnée par la rédaction. La lecture commence uniquement après ton clic.</p></div>'+
-   '<div class="swapp-trailer-stage"><button class="swapp-trailer-launch" type="button" data-swapp-trailer-id="'+id+'" aria-label="Lancer la vidéo : '+title+'">'+
-   '<img class="swapp-trailer-thumb" src="'+thumb+'" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">'+
-   '<span class="swapp-trailer-overlay"><span class="swapp-trailer-icon" aria-hidden="true">▶</span>'+
-   '<span class="swapp-trailer-watch">Lire la vidéo</span></span></button></div>'+
-   '<p class="swapp-trailer-origin">Bande-annonce hébergée sur YouTube · <a href="https://www.youtube.com/watch?v='+id+'" target="_blank" rel="noopener noreferrer">Ouvrir sur YouTube ↗</a></p>'+
-   '</section>';
+  return '<nav class="swapp-hero-video-links" aria-label="Bande-annonce">'+
+   '<a href="#swapp-article-hero">Revoir la bande-annonce en haut ↑</a>'+
+   '<a href="https://www.youtube.com/watch?v='+id+'" target="_blank" rel="noopener noreferrer">Ouvrir sur YouTube ↗</a>'+
+   '</nav>';
  }
  function linkHtml(a){
   const links=commercialLinks(a?.commercialLinks);

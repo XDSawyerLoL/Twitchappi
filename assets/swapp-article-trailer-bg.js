@@ -24,6 +24,24 @@
   actions.append(control);
   hero.append(actions);
   const poster=scene.querySelector('.swapp-article-trailer-poster');
+  // Prefer an actual high-resolution YouTube image, with graceful fallback.
+  // Do not replace an editor's licensed primary artwork.
+  const posterSrc=poster?.getAttribute?.('src')||poster?.src||'';
+  if(poster&&posterSrc.includes('/'+id+'/hqdefault.jpg')){
+   const resolutions=['maxresdefault','sddefault','hqdefault'];
+   let rank=0;
+   const next=()=>{
+    if(rank>=resolutions.length-1)return;
+    rank++;poster.src='https://i.ytimg.com/vi/'+id+'/'+resolutions[rank]+'.jpg';
+   };
+   poster.addEventListener?.('error',next);
+   poster.addEventListener?.('load',()=>{
+    // Missing maxres thumbnails are sometimes a 120px "image unavailable"
+    // response (HTTP 200), not a network error.
+    if(poster.naturalWidth&&poster.naturalWidth<320)next();
+   });
+   poster.src='https://i.ytimg.com/vi/'+id+'/'+resolutions[0]+'.jpg';
+  }
   let frame=null,paused=false,visible=true;
   let observer=null;
   // YouTube sometimes normalizes the URL and ignores an initial start value.
