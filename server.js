@@ -3122,11 +3122,18 @@ let __oryonUsersCache = null;
 let __oryonUsersPersistence = 'json-local';
 // Account storage can be moved to Hostinger MySQL without changing the rest of SWAPP.
 const SWAPP_MYSQL_ACCOUNTS=String(process.env.SWAPP_ACCOUNT_STORE||'').trim().toLowerCase()==='mysql';
+const swappMysqlAccountsModule=SWAPP_MYSQL_ACCOUNTS?require('./modules/swapp-oryon-mysql-accounts'):null;
 const swappMysqlAccounts=SWAPP_MYSQL_ACCOUNTS
- ?require('./modules/swapp-oryon-mysql-accounts').createMysqlAccountsStore({
+ ?swappMysqlAccountsModule.createMysqlAccountsStore({
    uri:process.env.SWAPP_ACCOUNT_MYSQL_URL||process.env.SWAPP_MYSQL_URL||process.env.DATABASE_URL
   }):null;
 let swappMysqlAccountsReady=false;
+const swappMysqlAccountsRecovery=SWAPP_MYSQL_ACCOUNTS
+ ?swappMysqlAccountsModule.createMysqlAccountsRecovery({
+   isReady:()=>swappMysqlAccountsReady,
+   load:()=>loadOryonUsersPersistent(),
+   retryDelayMs:5000
+  }):null;
 // Swapp streamer/channel hardening. No visual change: this only normalizes persistent
 // channel data so every account has a stable public channel and reliable live status.
 const SWAPP_CHANNEL_SCHEMA_VERSION = 3;
@@ -3491,6 +3498,7 @@ async function persistOryonGenericState(file, data){
 const ORYON_STATE_READY = loadOryonGenericStatePersistent();
 app.use('/api/oryon', async (req, res, next) => {
   try { await ORYON_USERS_READY; } catch (_) {}
+  if(SWAPP_MYSQL_ACCOUNTS&&!swappMysqlAccountsReady)await swappMysqlAccountsRecovery.ensure();
   if(SWAPP_MYSQL_ACCOUNTS&&!swappMysqlAccountsReady&&req.path!=='/persistence-status')
     return res.status(503).json({success:false,error:'mysql_accounts_unavailable'});
   try { await ORYON_STATE_READY; } catch (_) {}
@@ -3499,6 +3507,7 @@ app.use('/api/oryon', async (req, res, next) => {
 
 app.get('/api/oryon/persistence-status', async (_req, res) => {
   try{ await ORYON_USERS_READY; }catch(_){}
+  if(SWAPP_MYSQL_ACCOUNTS&&!swappMysqlAccountsReady)await swappMysqlAccountsRecovery.ensure();
   res.set('Cache-Control','no-store');
   if(SWAPP_MYSQL_ACCOUNTS)return res.json({
     success:true,store:'mysql',mysql:swappMysqlAccountsReady,

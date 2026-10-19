@@ -20,6 +20,7 @@ test('database account mode fails closed on errors, never falls back to JSON/Fir
  assert.match(server,/swappMysqlAccountsReady=false/);
  assert.match(server,/mysql_accounts_unavailable/);
  assert.match(server,/if\(SWAPP_MYSQL_ACCOUNTS\)return !swappMysqlAccountsReady/);
+ assert.match(server,/await swappMysqlAccountsRecovery\.ensure\(\)/);
  assert.match(server,/if\(SWAPP_MYSQL_ACCOUNTS&&!swappMysqlAccountsReady&&req\.path!=='\/persistence-status'\)/);
 });
 test('account readiness endpoint identifies actual MySQL store, not Firestore configuration',()=>{
