@@ -182,3 +182,26 @@ test('vignette distincte survives article validation, protects rights and contro
  const noImage=assertArticle({...input,image:null,thumbnail:null},{publish:true});
  assert.equal(cardImageSources(noImage)[0],'https://i.ytimg.com/vi/uQuKE0KDgiM/hqdefault.jpg');
 });
+
+test('only newsroom may publish a justified SWAPP game verdict; readers have no score widget',()=>{
+ const details='Une proposition exigeante, une direction artistique remarquable et quelques limites techniques encore visibles.';
+ const rated=assertArticle({...input,game:'007 First Light',
+  editorialVerdict:{score:4,text:details}},{publish:true});
+ assert.equal(rated.editorialVerdict.score,4);
+ assert.equal(rated.editorialVerdict.text,details);
+ const page=renderNewsStory({...rated,slug:'swapp-verdict-sample',
+  status:'published',publishedAt:'2026-10-19T18:00:00.000Z'});
+ assert.match(page,/swapp-editorial-verdict/);
+ assert.match(page,/VERDICT DE LA RÉDACTION/);
+ assert.match(page,/4 segments sur 5, Remarquable/);
+ assert.match(page,/Une proposition exigeante/);
+ assert.match(page,/swapp-editorial-sources/);
+ assert.doesNotMatch(page,/swapp-hero-video-links|swapp-trailer-stage|Voir mes articles sauvegardés/);
+ const unrated=assertArticle({...input,editorialVerdict:null},{publish:true});
+ assert.equal(unrated.editorialVerdict,null);
+ assert.doesNotMatch(renderNewsStory({...unrated,slug:'swapp-unrated',
+  status:'published',publishedAt:'2026-10-19T18:00:00.000Z'}),/class="swapp-editorial-verdict"/);
+ assert.throws(()=>assertArticle({...input,editorialVerdict:{score:6,text:details}},{publish:true}),/Verdict SWAPP/);
+ assert.throws(()=>assertArticle({...input,editorialVerdict:{score:5,text:'Bon jeu'}},{publish:true}),/justification rédactionnelle/);
+ assert.throws(()=>assertArticle({...input,editorialVerdict:{text:details}},{publish:true}),/sélectionne une note/);
+});
