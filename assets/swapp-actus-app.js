@@ -270,15 +270,15 @@ recommend.append(recommendHeading,recommendations);
 const commercial=(a.commercialLinks?.length?null:window.SwappInstantGaming?.forArticle?.(a));
 if(commercial){
  const partner=el('aside','swapp-affiliate-offer');
- partner.setAttribute('aria-label','Lien affilié Instant Gaming');
- partner.append(el('span','swapp-affiliate-kicker','PARTENAIRE · LIEN AFFILIÉ'));
+ partner.setAttribute('aria-label','Offre partenaire Instant Gaming · lien affilié');
+ partner.append(el('span','swapp-affiliate-kicker','OFFRE INSTANT GAMING · LIEN AFFILIÉ'));
  partner.append(el('strong','swapp-affiliate-game',commercial.game));
  partner.append(el('span','swapp-affiliate-platform',commercial.platform));
- const shopLink=el('a','swapp-affiliate-link','Voir le jeu sur Instant Gaming ↗');
+ const shopLink=el('a','swapp-affiliate-link','Voir l’offre ↗');
  shopLink.href=commercial.url;shopLink.target='_blank';
  shopLink.rel='sponsored nofollow noopener noreferrer';
  partner.append(shopLink);
- partner.append(el('small','swapp-affiliate-disclosure','SWAPP peut toucher une commission. Prix, stock et région à vérifier chez le marchand.'));
+
  recommend.append(partner);
 }
 reading.append(recommend);
