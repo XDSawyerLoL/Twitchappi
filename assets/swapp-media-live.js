@@ -141,7 +141,10 @@
       button.dataset.swappFairOpt='';button.setAttribute('aria-pressed','false');
       button.textContent='Contribuer à une découverte équitable (facultatif)';
       button.title='Compter anonymement les lives réellement vus sur cette page, sans compte ni historique.';
-      heading.appendChild(button);
+      const explanation=document.createElement('small');
+      explanation.className='swapp-fair-optin-info';
+      explanation.textContent='Volontaire · cartes visibles et clics uniquement · sans identifiant visiteur · cette page seulement.';
+      heading.append(button,explanation);
       pilot={button,active:false,cards:[],seen:new Set(),timers:new Map(),observer:null};
       fairPilots.set(shelf,pilot);
       const stop=()=>{
