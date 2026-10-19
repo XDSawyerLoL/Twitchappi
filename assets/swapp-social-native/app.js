@@ -169,12 +169,37 @@ async function editProfile(){
 }
 
 async function health(){
-  try{
-    await api('/api/pulse/health');
-    document.getElementById('api-state').textContent='En ligne';
-    document.getElementById('api-state').title='Service SOCIAL disponible';
-  }catch{
-    document.getElementById('api-state').textContent='Hors ligne';
+  const label=document.getElementById('api-state');
+  if(!label)return;
+  // Feed/DM and SWAPP MySQL salons are distinct services. A green Render
+  // response alone must never claim the entire SOCIAL experience works.
+  async function probe(path){
+    const controller=new AbortController();
+    const timer=setTimeout(()=>controller.abort(),6500);
+    try{return await api(path,{signal:controller.signal})}
+    finally{clearTimeout(timer)}
+  }
+  const [upstream,database]=await Promise.allSettled([
+    probe('/api/pulse/health'),
+    probe('/api/swapp/interactions/status')
+  ]);
+  const feedReady=upstream.status==='fulfilled'&&upstream.value?.success===true;
+  const roomsReady=database.status==='fulfilled'&&database.value?.enabled===true&&
+    database.value?.state==='database_read_ready';
+  const mode=feedReady&&roomsReady?'ready':feedReady||roomsReady?'partial':'offline';
+  label.dataset.serviceState=mode;
+  if(mode==='ready'){
+    label.textContent='Services joignables';
+    label.title='Fil SOCIAL et base MySQL SWAPP accessibles. Publications, connexion et vocal restent à vérifier avec des comptes réels.';
+  }else if(feedReady){
+    label.textContent='Salons à vérifier';
+    label.title='Le fil SOCIAL répond, mais la base MySQL des salons SWAPP n’est pas confirmée.';
+  }else if(roomsReady){
+    label.textContent='Fil indisponible';
+    label.title='La base MySQL SWAPP répond, mais le fil et les messages privés SOCIAL ne sont pas accessibles.';
+  }else{
+    label.textContent='Services indisponibles';
+    label.title='Le fil SOCIAL et la base MySQL SWAPP ne sont pas confirmés. Recharge la page pour réessayer.';
   }
 }
 
