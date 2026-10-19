@@ -112,7 +112,14 @@ function renderNewsStory(originalArticle,{baseUrl='https://swapp.tv',relatedArti
  const jsonLd=JSON.stringify(schema).replace(/</g,'\\u003c');
  const metadata=`<link rel="canonical" href="${escapeHtml(url)}"><meta name="keywords" content="${escapeHtml(tags.join(', '))}"><meta property="og:type" content="${isVideo?'video.other':'article'}"><meta property="og:url" content="${escapeHtml(url)}"><meta property="og:title" content="${escapeHtml(seoTitle)}"><meta property="og:description" content="${escapeHtml(seoDescription)}">${shareImage?`<meta property="og:image" content="${escapeHtml(shareImage)}"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="${escapeHtml(shareImage)}">`:''}<script type="application/ld+json">${jsonLd}</script>`;
  const coverUrl=immersiveCoverUrl(article);
- const scene=`<div class="swapp-article-scene${coverUrl?' has-art':''}" aria-hidden="true">${coverUrl?`<img src="${escapeHtml(coverUrl)}" alt="" decoding="async" fetchpriority="high">`:''}</div>`;
+ const trailerId=String(article.slug||'')==='world-of-warcraft-forever-le-trailer'?videoId:null;
+ const poster=trailerId?'https://i.ytimg.com/vi/'+trailerId+'/hqdefault.jpg':'';
+ const scene='<div class="swapp-article-scene'+(coverUrl||poster?' has-art':'')+
+  (trailerId?' has-trailer':'')+'" aria-hidden="true"'+
+  (trailerId?' data-swapp-trailer-id="'+trailerId+'"':'')+'>'+
+  (trailerId?'<img class="swapp-article-trailer-poster" src="'+escapeHtml(poster)+'" alt="" decoding="async" fetchpriority="high">':
+   coverUrl?'<img src="'+escapeHtml(coverUrl)+'" alt="" decoding="async" fetchpriority="high">':'')+
+  '</div>';
  const heroCredit=coverUrl&&article.image?.credit?`<p class="swapp-immersive-credit">${escapeHtml(article.image.credit)}</p>`:'';
  const discussUrl='/communaute?share=news&title='+encodeURIComponent(article.game?article.game+' — '+article.title:article.title)+'&url='+encodeURIComponent(baseUrl.replace(/\/$/,'')+'/actus/'+article.slug);
  const heroActions=`<div class="story-actions swapp-article-hero-actions swapp-game-journey-actions" aria-label="Explorer ce jeu sur SWAPP"><a class="button-link primary" href="#article-content">Lire l’article ↓</a><a class="button-link" href="${article.game?'#swapp-article-lives':'/decouvrir'}">Voir les lives →</a><a class="button-link" href="${escapeHtml(discussUrl)}">En discuter →</a></div><div class="swapp-article-utility"><button class="button-link" type="button" data-swapp-article-share>Partager l’article ↗</button>${gameHubUrl&&/^\/jeux\/[a-z0-9-]+$/.test(gameHubUrl)?'<a class="button-link" href="'+escapeHtml(gameHubUrl)+'">Dossier du jeu ↗</a><button type="button" data-swapp-follow-game data-game-slug="'+escapeHtml(gameHubUrl.slice('/jeux/'.length))+'" data-game-name="'+escapeHtml(article.game||'Jeu')+'" aria-pressed="false">＋ Suivre ce jeu</button><button type="button" data-swapp-wishlist-game data-game-slug="'+escapeHtml(gameHubUrl.slice('/jeux/'.length))+'" data-game-name="'+escapeHtml(article.game||'Jeu')+'" aria-pressed="false">♡ Ajouter aux envies</button>':''}</div>`;
