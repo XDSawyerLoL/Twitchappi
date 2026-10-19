@@ -202,3 +202,62 @@ test('SEO status reuses the cache when a verified editorial sitemap is available
  assert.match(news.body,/https:\/\/swapp\.tv\/actus\/real-story-today/);
  assert.equal(h.reads(),1);
 });
+
+
+test('inherited homepage SEO is replaced with exactly one route-specific canonical and preview',()=>{
+ const inherited='<html><head><title>Old SWAPP</title>'+
+  '<meta name="description" content="Home description">'+
+  '<meta name="theme-color" content="#111827">'+
+  '<meta name="google-site-verification" content="proof">'+
+  '<link rel="canonical" href="https://swapp.tv/">'+
+  '<link rel="alternate" type="application/rss+xml" href="/feed.xml">'+
+  '<meta property="og:url" content="https://swapp.tv/">'+
+  '<meta property="og:title" content="Old title">'+
+  '<meta name="twitter:title" content="Old title"></head><body>SWAPP</body></html>';
+ for(const route of ['/','/actus','/decouvrir','/categories','/equipes']){
+  const head=injectSpaMetadata(inherited,route).split('</head>')[0];
+  assert.equal((head.match(/rel="canonical"/g)||[]).length,1,route+' canonical count');
+  assert.match(head,new RegExp('<link rel="canonical" href="https://swapp\.tv'+(route==='/'?'/':route)+'">'));
+  assert.equal((head.match(/property="og:url"/g)||[]).length,1,route+' OG URL count');
+  assert.equal((head.match(/name="description"/g)||[]).length,1,route+' description count');
+  assert.equal((head.match(/name="twitter:title"/g)||[]).length,1,route+' Twitter title count');
+  assert.equal((head.match(/application\/rss\+xml/g)||[]).length,1,route+' feed count');
+  assert.match(head,/name="google-site-verification" content="proof"/);
+  assert.match(head,/name="theme-color" content="#111827"/);
+ }
+});
+
+test('account route removes homepage canonical and preview while remaining noindex',()=>{
+ const base='<html><head><title>Accueil</title><link rel="canonical" href="https://swapp.tv/">'+
+  '<meta property="og:url" content="https://swapp.tv/">'+
+  '<meta name="description" content="Homepage"></head><body>Compte</body></html>';
+ const out=injectSpaMetadata(base,'/compte');
+ const head=out.split('</head>')[0];
+ assert.match(head,/name="robots" content="noindex,nofollow"/);
+ assert.doesNotMatch(head,/rel="canonical"|property="og:url"|name="description"/);
+});
+
+test('landing SEO fallback is no-script only and cannot overlay interactive views',()=>{
+ const base='<html><head><title>SWAPP</title></head><body><main>'+
+  '<section id="discover" class="view"><p>Card</p></section>'+
+  '<section id="actus" class="view"><p>News</p></section></main></body></html>';
+ for(const route of ['/decouvrir','/actus']){
+  const output=injectSpaMetadata(base,route);
+  assert.match(output,/<noscript><div class="swappSeoIntro">/);
+  assert.match(output,/<\/div><\/noscript>/);
+  assert.equal((output.match(/swappSeoIntro"/g)||[]).length,1);
+  assert.match(output,/<p>Card<\/p>/);
+ }
+});
+
+test('public creator metadata drops inherited canonical rather than duplicating it',()=>{
+ const {injectCreatorMetadata}=require('../modules/swapp-seo');
+ const page='<html><head><title>Accueil</title><link rel="canonical" href="https://swapp.tv/">'+
+  '<meta name="description" content="Accueil">'+
+  '<meta property="og:url" content="https://swapp.tv/"></head><body></body></html>';
+ const out=injectCreatorMetadata(page,{login:'petitstream',display_name:'Petit Stream',channel_public:true},'petitstream');
+ const head=out.split('</head>')[0];
+ assert.equal((head.match(/rel="canonical"/g)||[]).length,1);
+ assert.match(head,/rel="canonical" href="https:\/\/swapp.tv\/petitstream"/);
+ assert.equal((head.match(/property="og:url"/g)||[]).length,1);
+});
