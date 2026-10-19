@@ -20,7 +20,7 @@ Migration additive `migrations/mysql/010_swapp_fair_exposure_daily.sql`.
 
 Conservation bornée à 14 jours : purge opportuniste, exécutée après un signal accepté au maximum une fois par jour si le service est actif. Si aucun signal n'arrive, les anciennes lignes ne sont supprimées qu'à la reprise des envois. Pour une rétention juridiquement stricte de 14 jours, prévoir une purge régulière maîtrisée via l'hébergement, pas un workflow GitHub Actions.
 
-La requête `GET /api/discovery/fair-summary` publie uniquement un agrégat **sur sept jours** et la part d'impressions des créateurs ayant au plus 25 spectateurs à l'instant de la recommandation. Aucun créateur n'est nommé. Si moins de 50 impressions ou moins de 5 couples créateur/catégorie d'audience ont participé, l'API répond `sample: insufficient` sans exposer les compteurs des petits groupes.
+La requête `GET /api/discovery/fair-summary` publie uniquement un agrégat **sur sept jours** et la part d'impressions des créateurs ayant au plus 25 spectateurs à l'instant de la recommandation. Aucun créateur n'est nommé. Si moins de 50 impressions ou moins de 5 créateurs distincts (même lorsqu'ils changent de catégorie d'audience) ont participé, l'API répond `sample: insufficient` sans exposer les compteurs des petits groupes.
 
 ## Activation et fonctionnement
 
@@ -32,7 +32,7 @@ Activer uniquement quand les éléments suivants sont déjà fonctionnels :
 - sauvegarde MySQL existante et droit CREATE TABLE pour une migration additive ;
 - application Node correctement déployée, pages de jeux et SOCiAL testés.
 
-Mettre `SWAPP_FAIR_METRICS_ENABLED=1` dans l'environnement sécurisé Hostinger, pas dans GitHub. Le premier événement volontaire exécute la migration idempotente `CREATE TABLE IF NOT EXISTS` puis écrit le compteur. Aucun nouveau pool de connexions n'est créé. En cas de défaillance, le site et les lives restent utilisables ; la mesure renvoie 503.
+Mettre `SWAPP_FAIR_METRICS_ENABLED=1` dans l'environnement sécurisé Hostinger, pas dans GitHub. La première requête de métriques après activation (consultation du résumé ou événement volontaire) exécute la migration idempotente `CREATE TABLE IF NOT EXISTS` puis écrit le compteur. Aucun nouveau pool de connexions n'est créé. En cas de défaillance, le site et les lives restent utilisables ; la mesure renvoie 503.
 
 Vérifier :
 1. `GET /api/discovery/fair-summary` renvoie `enabled:false` en mode désactivé.
