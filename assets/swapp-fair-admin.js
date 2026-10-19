@@ -76,6 +76,34 @@
    article.append(position,detail);target.append(article);
   });
  }
+ function renderOffers(data){
+  const offered=data?.offers||{};
+  const status=id('offers-status'),summary=id('offers-totals'),bandsRoot=id('offers-bands');
+  summary.hidden=true;bandsRoot.hidden=true;bandsRoot.replaceChildren();
+  if(offered.sample==='unavailable'||offered.enabled===false){
+   status.textContent='La série des propositions du serveur est momentanément indisponible.';return;
+  }
+  if(offered.sample!=='aggregate'){
+   status.textContent='Pas encore assez de propositions : minimum 50 et 5 créateurs distincts sur la période sélectionnée.';return;
+  }
+  id('offers-count').textContent=fmt(offered.totals.opportunities);
+  id('offers-creators').textContent=fmt(offered.totals.creators);
+  status.textContent='Candidats renvoyés par les réponses API terminées · les cartes ne sont pas nécessairement vues.';
+  summary.hidden=false;bandsRoot.hidden=false;
+  const names={small:'Petites audiences · 0–25',growing:'En développement · 26–100',established:'Audiences établies · +100'};
+  for(const name of ['small','growing','established']){
+   const row=(offered.bands||[]).find(x=>x.name===name);
+   const valid=row?.sample==='aggregate';
+   const box=create('article','fair-bar-item'),line=create('div','fair-bar-caption');
+   line.append(create('strong','',names[name]),create('span','',valid?pct(row.share):'Données insuffisantes'));
+   box.append(line);
+   if(valid){
+    box.append(bar(row.share,100,{small:name==='small'}));
+    box.append(create('small','fair-bar-detail',fmt(row.opportunities)+' propositions · '+fmt(row.creators)+' créateurs'));
+   }else box.append(create('small','fair-bar-detail','Groupe masqué par les seuils de confidentialité.'));
+   bandsRoot.append(box);
+  }
+ }
  async function refresh(){
   const turn=++requestId,button=id('refresh');
   button.disabled=true;id('status').textContent='Actualisation des agrégats…';
@@ -86,6 +114,7 @@
    const body=await response.json().catch(()=>({}));
    if(turn!==requestId)return;
    if(!response.ok)throw Error(response.status===403?'Accès administrateur refusé. Vérifie ton compte SWAPP.':'Statistiques temporairement indisponibles. Vérifie MySQL et le déploiement.');
+   renderOffers(body);
    if(!body.enabled){
     showMessage('Mesure non activée','Le dispositif Fair Discovery est désactivé sur ce serveur. Les autres fonctions de SWAPP ne sont pas affectées.');
     id('status').textContent='Mesure désactivée';return;

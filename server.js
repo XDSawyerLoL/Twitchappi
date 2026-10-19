@@ -1036,6 +1036,12 @@ const fairMetrics=require('./modules/swapp-fair-metrics').createFairMetrics({
  // with the temporary development session secret.
  secret:configuredSessionSecret
 });
+// First-party candidate opportunities are distinct from opt-in observed cards.
+// Buffered public-creator aggregates; no visitor identity, no database work in the response path.
+const fairOffers=require('./modules/swapp-fair-offers').createFairOffers({
+ getPool:()=>socialInteractionsState!=='unavailable'?socialInteractionsPool:null,
+ isEnabled:()=>fairMetrics.enabled(),verify:fairMetrics.verify
+});
 const fairMetricsLimiter=rateLimit({windowMs:60*1000,max:12,standardHeaders:false,legacyHeaders:false});
 app.get('/api/discovery/fair-summary',async(_req,res)=>{
  res.set('Cache-Control','no-store');
@@ -1163,7 +1169,7 @@ app.use(createShopRouter({express,store:swappShopStore,requireEditor:shopEditorG
 // Same pinned SWAPP administrator session as the Boutique: read-only Fair Discovery.
 require('./modules/swapp-fair-admin').registerFairAdmin({
  app,guard:shopEditorGuard,restoreSession:restoreOryonSessionFromRememberCookie,
- fairMetrics,getPool:()=>socialInteractionsState!=='unavailable'?socialInteractionsPool:null
+ fairMetrics,fairOffers,getPool:()=>socialInteractionsState!=='unavailable'?socialInteractionsPool:null
 });
 
 const SWAPP_CLEAN_VIEW_PATHS = new Set(['/actus','/decouvrir','/discover','/categories','/equipes','/teams','/compte','/connexion','/settings','/chaine','/channel','/gestionnaire','/manager','/dashboard','/studio','/admin','/reset-password']);
@@ -5551,6 +5557,9 @@ app.get('/api/oryon/discover/find-live', heavyLimiter, async (req,res)=>{
     // Verified server candidates only, no extra Twitch calls or viewer fingerprint.
     const reportable=fairMetrics.enabled()?top.map(item=>({...item,fairProof:fairMetrics.issue(item,{placement:'discover'})})):top;
     if(fairMetrics.enabled())res.set('Cache-Control','private, no-store');
+    if(fairOffers.enabled())res.once('finish',()=>{
+      if(res.statusCode===200)fairOffers.capture(reportable,{placement:'discover'});
+    });
     res.json({
       success:true,
       items: reportable,
@@ -9319,6 +9328,9 @@ app.get('/api/discovery/home-lives', heavyLimiter, async (req,res)=>{
     const ranked=require('./modules/swapp-home-discovery').rankHomeLives(out,{limit});
     const reportable=fairMetrics.enabled()?ranked.map(item=>({...item,fairProof:fairMetrics.issue(item,{placement:'home'})})):ranked;
     if(fairMetrics.enabled())res.set('Cache-Control','private, no-store');
+    if(fairOffers.enabled())res.once('finish',()=>{
+      if(res.statusCode===200)fairOffers.capture(reportable,{placement:'home'});
+    });
     res.json({ success:true, items: reportable, fairMetrics:{enabled:fairMetrics.enabled(),placement:'home',sample:'opt-in-only'}, source: ranked.length?'public-discovery':'empty', twitchConfigured:!!(TWITCH_CLIENT_ID&&TWITCH_CLIENT_SECRET), firestore:!!firestoreOk });
   }catch(e){ res.json({ success:false, error:e.message, items:[] }); }
 });
@@ -9374,6 +9386,9 @@ app.get('/api/discovery/game-lives', heavyLimiter, async (req,res)=>{
     // Public creator/game proof only; the HMAC is not tied to a viewer.
     const reportable=fairMetrics.enabled()?visible.map(item=>({...item,fairProof:fairMetrics.issue(item)})):visible;
     if(fairMetrics.enabled())res.set('Cache-Control','private, no-store');
+    if(fairOffers.enabled())res.once('finish',()=>{
+      if(res.statusCode===200)fairOffers.capture(reportable,{placement:'game'});
+    });
     return res.json({success:true,game,items:reportable,totalCandidates:items.length,
       fairMetrics:{enabled:fairMetrics.enabled(),scope:'opt-in-game-cards'},
       coverage:twitchAvailable?(twitchError?'partial':'game-search'):'native-only',
