@@ -109,7 +109,7 @@ test('API requires explicit enablement, same-origin writes, bounded rate and no 
 test('browser only observes after consent, supports opt-out and records no visitor ID',()=>{
  const js=read('assets/swapp-media-live.js');
  const shell=read('modules/swapp-news/site-shell.js');
- assert.match(js,/pilot\.active=false/);
+ assert.match(js,/active:false/);
  assert.match(js,/button\.addEventListener\('click'/);
  assert.match(js,/threshold:\[0,\.5,1\]/);
  assert.match(js,/},1250\)/);
