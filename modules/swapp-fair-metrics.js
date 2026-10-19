@@ -11,6 +11,7 @@ const VALID_PLATFORM=new Set(['twitch','swapp','oryon']);
 const LOGIN=/^[a-z0-9_]{2,40}$/;
 const TOKEN=/^[A-Za-z0-9_-]{30,500}\.[a-f0-9]{64}$/;
 const PLACEMENT='game';
+const PLACEMENTS=new Set(['game','home','discover']);
 const MIN_IMPRESSIONS=50;
 const MIN_CREATORS=5;
 function canonicalGame(raw){
@@ -32,7 +33,7 @@ function createFairMetrics({getPool,isEnabled,secret,now=Date.now}={}){
   return crypto.createHmac('sha256',key).update('swapp-fair-game-v2:'+raw).digest('hex');
  }
  function issue(card,{placement=PLACEMENT}={}){
-  if(!enabled()||placement!==PLACEMENT)return '';
+  if(!enabled()||!PLACEMENTS.has(placement))return '';
   const platform=String(card?.platform||'').toLowerCase();
   const login=String(card?.login||card?.user_login||'').trim().toLowerCase();
   const game=canonicalGame(card?.game_name||card?.game);
@@ -50,7 +51,7 @@ function createFairMetrics({getPool,isEnabled,secret,now=Date.now}={}){
    if(a.length!==b.length||!crypto.timingSafeEqual(a,b))return null;
    const p=JSON.parse(Buffer.from(body,'base64url').toString('utf8'));
    const current=Math.floor(now()/TOKEN_WINDOW_MS);
-   if(p.v!==2||p.p!==PLACEMENT||!Number.isSafeInteger(p.t)||p.t>current||p.t<current-2
+   if(p.v!==2||!PLACEMENTS.has(p.p)||!Number.isSafeInteger(p.t)||p.t>current||p.t<current-2
     ||!VALID_PLATFORM.has(p.s)||!LOGIN.test(p.c)||p.g!==canonicalGame(p.g)
     ||!['small','growing','established'].includes(p.b))return null;
    return p;
@@ -91,12 +92,13 @@ function createFairMetrics({getPool,isEnabled,secret,now=Date.now}={}){
   }
   return {ok:true,status:202};
  }
- async function summary(){
-  if(!enabled())return {enabled:false,scope:'game-card-opt-in',sample:'not_collected'};
+ async function summary({placement=PLACEMENT}={}){
+  if(!PLACEMENTS.has(placement))throw Error('fair_invalid_placement');
+  if(!enabled())return {enabled:false,scope:placement+'-card-opt-in',sample:'not_collected'};
   const pool=await ready();
   const [rows]=await pool.execute(
    'SELECT audience_band,COUNT(DISTINCT platform,creator_login) AS creators,SUM(impressions) AS impressions,SUM(clicks) AS clicks '+
-   'FROM swapp_fair_exposure_daily WHERE event_day>=UTC_DATE() - INTERVAL 6 DAY AND event_day<=UTC_DATE() AND placement=? GROUP BY audience_band',[PLACEMENT]);
+   'FROM swapp_fair_exposure_daily WHERE event_day>=UTC_DATE() - INTERVAL 6 DAY AND event_day<=UTC_DATE() AND placement=? GROUP BY audience_band',[placement]);
   const normalized=(rows||[]).map(row=>({band:String(row.audience_band),creators:Number(row.creators)||0,impressions:Number(row.impressions)||0,clicks:Number(row.clicks)||0}))
    .filter(x=>['small','growing','established'].includes(x.band));
   const allImpressions=normalized.reduce((sum,x)=>sum+x.impressions,0);
@@ -104,12 +106,12 @@ function createFairMetrics({getPool,isEnabled,secret,now=Date.now}={}){
   // public channel only once when enforcing the disclosure threshold.
   const [distinctRows]=await pool.execute(
    'SELECT COUNT(DISTINCT platform,creator_login) AS creators FROM swapp_fair_exposure_daily '+
-   'WHERE event_day>=UTC_DATE() - INTERVAL 6 DAY AND event_day<=UTC_DATE() AND placement=?',[PLACEMENT]);
+   'WHERE event_day>=UTC_DATE() - INTERVAL 6 DAY AND event_day<=UTC_DATE() AND placement=?',[placement]);
   const allCreators=Math.max(0,Number(distinctRows?.[0]?.creators)||0);
   // Suppress low-volume results entirely, including individual cohort counts.
-  if(allImpressions<MIN_IMPRESSIONS||allCreators<MIN_CREATORS)return {enabled:true,scope:'game-card-opt-in',sample:'insufficient',minimumImpressions:MIN_IMPRESSIONS,minimumCreators:MIN_CREATORS};
+  if(allImpressions<MIN_IMPRESSIONS||allCreators<MIN_CREATORS)return {enabled:true,scope:placement+'-card-opt-in',sample:'insufficient',minimumImpressions:MIN_IMPRESSIONS,minimumCreators:MIN_CREATORS};
   const small=normalized.find(x=>x.band==='small')?.impressions||0;
-  return {enabled:true,scope:'game-card-opt-in',sample:'limited-voluntary',periodDays:7,impressions:allImpressions,
+  return {enabled:true,scope:placement+'-card-opt-in',sample:'limited-voluntary',periodDays:7,impressions:allImpressions,
    uniqueCreatorsRepresented:allCreators,smallAudienceImpressionShare:Math.round(small/allImpressions*1000)/10,
    caveat:'Échantillon volontaire ; pas une mesure exhaustive ou une preuve de parité.'};
  }
