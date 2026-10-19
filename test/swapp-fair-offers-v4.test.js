@@ -143,5 +143,5 @@ test('offers: table is additive, 14-day retention, and shipping is fingerprinted
  assert.match(release,/migrations\/mysql\/011_swapp_fair_opportunities_daily\.sql/);
  assert.match(release,/modules\/swapp-fair-offers\.js/);
  assert.match(read('modules/swapp-fair-offers.js'),/const DAYS=14/);
- assert.match(read('modules/swapp-fair-offers.js'),/INTERVAL '\+DAYS\+' DAY/);
+ assert.match(read('modules/swapp-fair-offers.js'),/INTERVAL '\+\(DAYS-1\)\+' DAY/);
 });
