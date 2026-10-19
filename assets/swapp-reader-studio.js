@@ -14,9 +14,8 @@
   if(themes.includes(saved.theme))preferences.theme=saved.theme;
   if(fonts.includes(saved.font))preferences.font=saved.font;
  }catch(_){}
- let root=null,content=null,studio=null,panel=null,toolbar=null,narrator=null,mairaiyAvailable=false;
- let mairaiyPlaying=false,mairaiyPaused=false,mairaiyIndex=0,mairaiyTotal=0;
- let voices=[],parts=[],index=0,playing=false,paused=false,serial=0,currentMarked=null;
+ let root=null,content=null,studio=null,panel=null,toolbar=null;
+ let vivienneVoice=null,parts=[],index=0,playing=false,paused=false,serial=0,currentMarked=null;
  const one=(scope,selector)=>scope?.querySelector(selector);
  const escapeValue=value=>String(value||'').replace(/\s+/g,' ').trim();
  const onArticle=()=>{
@@ -28,46 +27,23 @@
  };
  const qs=selector=>one(studio,selector);
  function save(){try{sessionStorage.setItem(store,JSON.stringify(preferences))}catch(_){}}
- function quality(voice){
-  const name=String(voice.name||'')+' '+String(voice.voiceURI||'');
-  return /natural|neural|premium|enhanced|online/i.test(name);
- }
- function sortedFrench(){
-  return speechReady?api.getVoices().filter(v=>/^fr(?:-|_)/i.test(v.lang||''))
-   .sort((a,b)=>Number(/\bvivienne\b/i.test(b.name||''))-Number(/\bvivienne\b/i.test(a.name||''))||
-    Number(quality(b))-Number(quality(a))||Number(b.lang==='fr-FR')-Number(a.lang==='fr-FR')||a.name.localeCompare(b.name)): [];
+ // Strictly Vivienne: never substitute another system, browser or synthetic voice.
+ function findVivienne(){
+  if(!speechReady)return null;
+  const voices=api.getVoices();
+  return voices.filter(voice=>/^fr(?:-|_)/i.test(voice.lang||'')&&
+   /\bvivienne\b/i.test([voice.name,voice.voiceURI].filter(Boolean).join(' ')))
+   .sort((a,b)=>Number(/natural|neural/i.test(b.name||''))-Number(/natural|neural/i.test(a.name||'')))[0]||null;
  }
  function status(message){const el=qs('[data-reader-audio-status]');if(el)el.textContent=message}
  function updateVoices(){
   if(!studio)return;
-  const field=qs('[data-reader-voice]'),prior=field.value;
-  const priorVoice=voices[Number(prior)]?.voiceURI;
-  voices=sortedFrench();
-  field.replaceChildren();
-  const mairaiy=document.createElement('option');
-  mairaiy.value='mairaiy';
-  mairaiy.textContent=mairaiyAvailable?'Mairaiy · Quantic Studio':'Mairaiy · enregistrement non disponible';
-  mairaiy.disabled=!mairaiyAvailable;
-  field.append(mairaiy);
-  voices.forEach((voice,i)=>{
-   const opt=document.createElement('option');opt.value=String(i);
-   opt.textContent=voice.name+' ('+voice.lang+')'+(quality(voice)?' · naturelle':'');
-   field.append(opt);
-  });
-  const selected=voices.findIndex(voice=>voice.voiceURI===priorVoice);
-  const vivienne=voices.findIndex(voice=>/\bvivienne\b/i.test(voice.name||''));
-  const preferred=selected>=0?selected:(vivienne>=0?vivienne:0);
-  field.value=prior==='mairaiy'&&mairaiyAvailable?'mairaiy':voices.length?String(preferred):mairaiyAvailable?'mairaiy':'';
-  const start=qs('[data-reader-play]');
-  start.disabled=!voices.length&&!mairaiyAvailable;
+  vivienneVoice=findVivienne();
+  qs('[data-reader-play]').disabled=!vivienneVoice;
   refreshButtons();
-  if(mairaiyAvailable&&field.value==='mairaiy')status('Mairaiy · voix officielle Quantic Studio, enregistrement prêt.');
-  else if(voices.length){
-   const chosen=voices[Number(field.value)];
-   const name=chosen?.name||'Voix française';
-   status(name+ ' · voix fournie par le navigateur.'+(chosen?.localService===true?'':' Le moteur vocal peut fonctionner en ligne.'));
-  }else if(!speechReady)status('Aucune voix du navigateur ; Mairaiy sera disponible seulement avec un enregistrement.');
-  else status('Aucune voix française installée. Mairaiy exige un enregistrement de cet article.');
+  status(vivienneVoice?
+   'Vivienne · voix française sélectionnée. Selon le navigateur, sa synthèse peut fonctionner en ligne.':
+   'Vivienne n’est pas disponible dans ce navigateur. Aucune autre voix ne sera utilisée.');
  }
  function highlight(node){
   if(currentMarked)currentMarked.classList.remove('swapp-narration-current');
@@ -118,19 +94,16 @@
  }
  function refreshButtons(){
   if(!studio)return;
-  const mairaiy=qs('[data-reader-voice]')?.value==='mairaiy';
-  const isPlaying=mairaiy?mairaiyPlaying:playing;
-  const isPaused=mairaiy?mairaiyPaused:paused;
-  qs('[data-reader-play]').textContent=isPlaying?(isPaused?'Reprendre':'Pause'):'Écouter l’article';
-  qs('[data-reader-stop]').disabled=!isPlaying;
-  qs('[data-reader-prev]').disabled=!isPlaying;
-  qs('[data-reader-next]').disabled=!isPlaying;
-  qs('[data-reader-audio-count]').textContent=isPlaying?(mairaiy?String(mairaiyIndex+1)+' / '+mairaiyTotal:String(index+1)+' / '+parts.length):'';
+  qs('[data-reader-play]').textContent=playing?(paused?'Reprendre':'Pause'):'Écouter l’article';
+  qs('[data-reader-stop]').disabled=!playing;
+  qs('[data-reader-prev]').disabled=!playing;
+  qs('[data-reader-next]').disabled=!playing;
+  qs('[data-reader-audio-count]').textContent=playing?String(index+1)+' / '+parts.length:'';
  }
  function say(sequence){
   if(!playing||paused||sequence!==serial||!parts[index])return;
-  const chosen=voices[Number(qs('[data-reader-voice]').value)];
-  if(!chosen){clearAudio();status('La voix française sélectionnée est indisponible.');return;}
+  const chosen=vivienneVoice;
+  if(!chosen){clearAudio();status('Vivienne indisponible. Aucune autre voix ne sera utilisée.');return;}
   const part=parts[index];
   highlight(part.element);
   const utterance=new window.SpeechSynthesisUtterance(part.text);
@@ -151,18 +124,9 @@
   try{api.speak(utterance)}catch(_){clearAudio();status('Lecture vocale indisponible sur cet appareil.')}
  }
  function play(){
-  if(qs('[data-reader-voice]')?.value==='mairaiy'){
-   if(!mairaiyAvailable||!narrator?.isMairaiyAvailable()){
-    status('Aucun enregistrement Mairaiy disponible pour cet article.');return;
-   }
-   clearAudio();
-   narrator.toggleMairaiy().then(ok=>{
-    if(!ok)status('Enregistrement Mairaiy indisponible pour cet article.');
-   });
-   return;
-  }
-  window.SwappNeuralNarration?.pauseActive();
-  if(!speechReady||!voices.length)return;
+  // Refresh installed voices on a user gesture (Safari/Edge can load asynchronously).
+  if(!vivienneVoice)updateVoices();
+  if(!speechReady||!vivienneVoice){status('Vivienne indisponible sur cet appareil.');return;}
   if(playing){
    if(paused){paused=false;api.resume();}
    else{paused=true;api.pause();}
@@ -171,11 +135,10 @@
   parts=fragments();
   if(!parts.length){status('Cet article ne contient pas de texte à lire.');return;}
   serial++;playing=true;paused=false;index=0;
-  status('Lecture française. La fluidité dépend de la voix installée.');
+  status('Lecture avec Vivienne.');
   say(serial);
  }
  function jump(offset){
-  if(qs('[data-reader-voice]')?.value==='mairaiy'){narrator?.jumpMairaiy(offset);return;}
   if(!playing)return;
   const target=Math.max(0,Math.min(parts.length-1,index+offset));
   serial++;api.cancel();index=target;paused=false;playing=true;say(serial);
@@ -218,7 +181,7 @@
    '<button type="button" data-reader-stop disabled>Arrêter</button>'+
    '<span data-reader-audio-count aria-live="off"></span></div>'+
    '<div class="swapp-reader-audio-settings">'+
-   '<label>Voix française<select data-reader-voice aria-label="Choisir une voix française"></select></label>'+
+   '<span class="swapp-reader-fixed-voice" aria-label="Voix de lecture : Vivienne">Voix <strong>Vivienne</strong></span>'+
    '<label>Vitesse<select data-reader-speed><option value="0.85">0,85×</option><option value="1" selected>1×</option><option value="1.1">1,1×</option><option value="1.2">1,2×</option></select></label></div>'+ 
    '<p data-reader-audio-status role="status">Vérification des voix installées…</p>'+
    '</div>';
@@ -244,36 +207,18 @@
    });
   }
   qs('[data-reader-play]').addEventListener('click',play);
-  qs('[data-reader-stop]').addEventListener('click',()=>{clearAudio();narrator?.stopMairaiy();status('Lecture arrêtée.');refreshButtons()});
+  qs('[data-reader-stop]').addEventListener('click',()=>{clearAudio();status('Lecture arrêtée.');refreshButtons()});
   qs('[data-reader-prev]').addEventListener('click',()=>jump(-1));
   qs('[data-reader-next]').addEventListener('click',()=>jump(1));
-  qs('[data-reader-voice]').addEventListener('change',()=>{
-   clearAudio();narrator?.stopMairaiy();updateVoices();
-  });
-  qs('[data-reader-speed]').addEventListener('change',()=>{
-   if(qs('[data-reader-voice]')?.value==='mairaiy')narrator?.setSpeed(Number(qs('[data-reader-speed]').value));
-   else if(playing)jump(0);
-  });
+  qs('[data-reader-speed]').addEventListener('change',()=>{if(playing)jump(0)});
   applyPreferences();updateVoices();
-  narrator=window.SwappNeuralNarration?.attach({
-   studio,content,root,
-   onAvailability:available=>{
-    if(!studio?.isConnected)return;
-    mairaiyAvailable=available;updateVoices();
-   },
-   onPlaybackState:({playing:running,paused:resting,index:chapter,total})=>{
-    mairaiyPlaying=running;mairaiyPaused=resting;mairaiyIndex=chapter;mairaiyTotal=total;
-    refreshButtons();
-   }
-  })||null;
  }
  function sync(){
   const reading=onArticle();
   const text=one(reading,'#article-content');
   if(reading===root&&text===content&&studio?.isConnected)return;
   if(root||studio){clearAudio();setFocus(false);}
-  root=reading;content=text;studio=null;panel=null;toolbar=null;narrator=null;
-  mairaiyAvailable=false;mairaiyPlaying=false;mairaiyPaused=false;mairaiyIndex=0;mairaiyTotal=0;
+  root=reading;content=text;studio=null;panel=null;toolbar=null;vivienneVoice=null;
   if(root&&content)build();
  }
  const observer=new MutationObserver(sync);
