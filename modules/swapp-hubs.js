@@ -251,7 +251,7 @@ function shopAdmin(){
  const content='<main class="swapp-shop-admin"><aside class="swapp-shop-admin-menu"><a href="/boutique">← Voir la Boutique</a>'+
   '<span class="swapp-shop-admin-caption">SWAPP · ADMINISTRATION</span><h1>Gestion Boutique</h1>'+
   '<nav aria-label="Administration Boutique"><a class="active" href="#shop-admin-catalog">Produits & vitrines</a>'+
-  '<a href="#shop-admin-form">Modifier un produit</a><a href="/actus/studio">Studio · Actualité & vidéos</a></nav>'+
+  '<a href="#shop-admin-form">Modifier un produit</a><a href="/actus/studio">Studio · Actualité & vidéos</a><a href="/admin/fair-discovery">Fair Discovery · Statistiques</a></nav>'+
   '<p>Les produits visibles sont publiés directement sur la vitrine après sauvegarde.</p></aside>'+
   '<section class="swapp-shop-admin-main"><header><span class="swapp-shop-overline">Éditeur sécurisé</span>'+
   '<h2>Composer la vitrine.</h2><p>Ajoute, modifie et ordonne les jeux, casquettes et tapis de souris. Aucun outil externe nécessaire.</p>'+

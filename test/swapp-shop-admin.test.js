@@ -160,7 +160,7 @@ test('admin and editor endpoints require pinned admin role, same origin and expl
 });
 test('admin menu, editor scripts and CSS are wired on every SWAPP page without checkout',()=>{
  for(const html of [read('index.html'),read('modules/swapp-news/site-shell.js')]){
-  assert.match(html,/swapp-editor-nav\.js\?v=20261016-shop-admin-1/);
+  assert.match(html,/swapp-editor-nav\.js\?v=20261019-fair-admin-v1/);
  }
  const nav=read('assets/swapp-editor-nav.js');
  assert.match(nav,/data\.swappShopAdminLink|swappShopAdminLink/);

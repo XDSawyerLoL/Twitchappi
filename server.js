@@ -1160,6 +1160,11 @@ app.use(['/boutique/admin','/api/editor/boutique'],async(req,res,next)=>{
 });
 app.use(createShopRouter({express,store:swappShopStore,requireEditor:shopEditorGuard,
  shop:swappHubs.shop,shopProduct:swappHubs.shopProduct,shopAdmin:swappHubs.shopAdmin}));
+// Same pinned SWAPP administrator session as the Boutique: read-only Fair Discovery.
+require('./modules/swapp-fair-admin').registerFairAdmin({
+ app,guard:shopEditorGuard,restoreSession:restoreOryonSessionFromRememberCookie,
+ fairMetrics,getPool:()=>socialInteractionsState!=='unavailable'?socialInteractionsPool:null
+});
 
 const SWAPP_CLEAN_VIEW_PATHS = new Set(['/actus','/decouvrir','/discover','/categories','/equipes','/teams','/compte','/connexion','/settings','/chaine','/channel','/gestionnaire','/manager','/dashboard','/studio','/admin','/reset-password']);
 const SWAPP_RESERVED_ROOT_PATHS = new Set(['index_script.js','favicon.ico','pricing','twitch_auth_start','twitch_auth_callback','twitch_user_status','twitch_logout','firebase_status','followed_streams','get_default_stream','boost_queue','stream_info','cycle_stream','stream_boost','scan_target','critique_ia','start_raid','analyze_schedule','api','assets','actus','jeux','communaute','bandes-annonces','boutique','reset-password','contact','moderation','mentions-legales','confidentialite','cgu','cookies']);
