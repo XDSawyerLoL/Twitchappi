@@ -1,3 +1,26 @@
+# Mise à jour — Voix Mairaiy historique retrouvée dans Quantic Studio
+
+**Source confirmée :** dépôt `XDSawyerLoL/Auralive`, fichiers `app/services/voice_identity_lock.py`, `app/services/avatar_audio.py`, `app/main.py`, tests `tests/test_voice_identity_lock.py`.
+
+Le profil vocal réel conservé par Quantic Studio est **Mairaiy / Gemini TTS / Aoede / fr-fr**, modèle configuré `gemini-3.1-flash-tts-preview`, profil historique `aura-live-2.0.7-natural`. Son endpoint expose `GET /voice/.well-known/voicestudio-speech` et `POST /voice/v1/audio/speech`. Le verrou d'identité interdit un repli silencieux vers Kokoro, Windows ou la synthèse navigateur.
+
+Le nouveau générateur **`tools/swapp-mairaiy-narration-generate.py`** utilise ce service existant plutôt que de fabriquer une voix. En production audio, il contrôle les informations de découverte, les en-têtes audio confirmant Aoede et l'identité historique. Les segments WAV sont assemblés en un enregistrement de chaque article, avec repères de paragraphes et manifeste. Le lecteur SWAPP n'affiche « Mairaiy · Narration officielle » **que** si le manifeste respecte strictement ce profil.
+
+Exemple de préparation depuis un ordinateur équipé du projet :
+
+```bash
+python tools/swapp-mairaiy-narration-generate.py --slug un-article-publie \
+  --service https://VOTRE-SERVICE-QUANTIC-STUDIO \
+  --approve-provider-usage
+```
+
+La vraie URL doit être celle du service Quantic Studio effectivement configuré ; aucune URL fictive n'est installée. Un token de production peut être fourni localement via `SWAPP_MAIRAIY_PRODUCER_TOKEN`, jamais dans le navigateur. La génération est **manuelle**, avec confirmation explicite parce que Gemini peut consommer un quota payant. Aucun appel payant n'a été lancé pour cette livraison. Une fois les fichiers générés, transférer les `audio.mp3`/`audio.wav` et leur `manifest.json` via FTP Hostinger.
+
+L'ancien générateur `tools/swapp-narration-generate.py` reste une **option distincte Kokoro ff_siwis**. Même si son audio est de bonne qualité, il ne sera jamais présenté comme la voix Mairaiy. La lecture système reste elle aussi un choix distinct.
+
+**État réel :** architecture et scripts déposés sur GitHub ; aucun enregistrement Aoede généré ni mis en ligne, moteur Gemini non confirmé disponible, validation iPhone/Android et tests complets encore requis.
+
+---
 # SWAPP Lecture — liseuse et écoute d’articles (19 octobre 2026)
 
 ## Objectif
