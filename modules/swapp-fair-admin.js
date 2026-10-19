@@ -15,15 +15,15 @@ const dayOf=x=>{
  if(x instanceof Date&&!Number.isNaN(x.getTime()))return x.toISOString().slice(0,10);
  return '';
 };
-function summarizeFairAdmin({bands=[],daily=[],dailyCreators=[],games=[],uniqueCreators=0,days=7,enabled=true}={}){
+function summarizeFairAdmin({bands=[],daily=[],dailyCreators=[],games=[],uniqueCreators=0,days=7,enabled=true,placement='game'}={}){
  const periodDays=days===14?14:7;
- if(!enabled)return {enabled:false,scope:SCOPE,sample:'not_collected',periodDays};
+ if(!enabled)return {enabled:false,scope:placement==='all'?'all-card-opt-in':placement+'-card-opt-in',sample:'not_collected',periodDays};
  const base=(Array.isArray(bands)?bands:[]).filter(x=>BANDS.includes(x.audience_band))
   .map(x=>({name:x.audience_band,impressions:count(x.impressions),clicks:count(x.clicks),creators:count(x.creators)}));
  const totals=base.reduce((a,x)=>({impressions:a.impressions+x.impressions,clicks:a.clicks+x.clicks}),{impressions:0,clicks:0});
  const creators=count(uniqueCreators);
- const shared={enabled:true,scope:SCOPE,periodDays,thresholds:{impressions:MIN_IMPRESSIONS,creators:MIN_CREATORS},
-  sampling:'voluntary',notice:'Mesure limitée aux cartes des fiches de jeux, pour les visiteurs volontaires ; aucune donnée visiteur.'};
+ const shared={enabled:true,scope:placement==='all'?'all-card-opt-in':placement+'-card-opt-in',placement,periodDays,thresholds:{impressions:MIN_IMPRESSIONS,creators:MIN_CREATORS},
+  sampling:'voluntary',notice:'Mesure limitée aux cartes de lives des surfaces sélectionnées et aux visiteurs volontaires ; aucune donnée visiteur.'};
  if(totals.impressions<MIN_IMPRESSIONS||creators<MIN_CREATORS)
   return {...shared,sample:'insufficient',message:'Collecte active, mais échantillon encore insuffisant pour une analyse fiable.'};
  const visibleBands=BANDS.map(name=>{
@@ -73,7 +73,7 @@ function fairAdminPage(){
   '<header class="fair-header"><div><span class="fair-kicker">SWAPP / INTELLIGENCE ÉDITORIALE</span>'+
   '<h1>La découverte, mesurée.</h1><p>Comprendre les chances de visibilité offertes aux créateurs, sans surveiller les visiteurs.</p></div>'+
   '<div class="fair-header-actions"><label for="fair-period">Période</label><select id="fair-period"><option value="7">7 derniers jours</option><option value="14">14 derniers jours</option></select>'+
-  '<button type="button" id="fair-refresh">Actualiser</button></div></header>'+
+  '<label for="fair-placement">Emplacement</label><select id="fair-placement"><option value="all" selected>Tous</option><option value="home">Accueil</option><option value="discover">Découvrir</option><option value="game">Fiches de jeux</option></select><button type="button" id="fair-refresh">Actualiser</button></div></header>'+
   '<p id="fair-status" role="status" aria-live="polite">Chargement des statistiques agrégées…</p>'+
   '<div class="fair-empty" id="fair-empty" hidden><strong id="fair-empty-title">Pas encore de données exploitables.</strong>'+
   '<p id="fair-empty-description">Les statistiques restent masquées tant que l’échantillon volontaire est insuffisant.</p>'+
@@ -108,27 +108,30 @@ function registerFairAdmin({app,guard,restoreSession,fairMetrics,getPool}={}){
  app.get('/api/editor/fair-discovery',guard,async(req,res)=>{
   if(![undefined,'7','14'].includes(req.query?.days))return res.status(400).json({error:'invalid_period'});
   const days=req.query?.days==='14'?14:7;
+  const placement=req.query?.placement||'game';
+  if(!['all','game','home','discover'].includes(placement))return res.status(400).json({error:'invalid_placement'});
   try{
    const base=await fairMetrics.summary();
    if(!base.enabled)return res.json(summarizeFairAdmin({enabled:false,days}));
    const pool=getPool();
    if(!pool)return res.status(503).json({error:'metrics_unavailable'});
    const range=days===14?13:6;
-   const where='WHERE event_day>=UTC_DATE() - INTERVAL '+range+' DAY AND event_day<=UTC_DATE() AND placement=?';
+   const where='WHERE event_day>=UTC_DATE() - INTERVAL '+range+' DAY AND event_day<=UTC_DATE()'+(placement==='all'?'':' AND placement=?');
+  const params=placement==='all'?[]:[placement];
    const [bands]=await pool.execute('SELECT audience_band,COUNT(DISTINCT platform,creator_login) AS creators,'+
     'SUM(impressions) AS impressions,SUM(clicks) AS clicks FROM swapp_fair_exposure_daily '+where+
-    ' GROUP BY audience_band',['game']);
-   const [unique]=await pool.execute('SELECT COUNT(DISTINCT platform,creator_login) AS creators FROM swapp_fair_exposure_daily '+where,['game']);
+    ' GROUP BY audience_band',params);
+   const [unique]=await pool.execute('SELECT COUNT(DISTINCT platform,creator_login) AS creators FROM swapp_fair_exposure_daily '+where,params);
    const [daily]=await pool.execute("SELECT DATE_FORMAT(event_day,'%Y-%m-%d') AS day,audience_band,"+
     'SUM(impressions) AS impressions,SUM(clicks) AS clicks FROM swapp_fair_exposure_daily '+where+
-    ' GROUP BY event_day,audience_band ORDER BY event_day',['game']);
+    ' GROUP BY event_day,audience_band ORDER BY event_day',params);
    const [dailyCreators]=await pool.execute("SELECT DATE_FORMAT(event_day,'%Y-%m-%d') AS day,"+
     'COUNT(DISTINCT platform,creator_login) AS creators FROM swapp_fair_exposure_daily '+where+
-    ' GROUP BY event_day ORDER BY event_day',['game']);
+    ' GROUP BY event_day ORDER BY event_day',params);
    const [games]=await pool.execute('SELECT game_name,COUNT(DISTINCT platform,creator_login) AS creators,'+
     'SUM(impressions) AS impressions,SUM(clicks) AS clicks FROM swapp_fair_exposure_daily '+where+
-    ' GROUP BY game_name ORDER BY impressions DESC LIMIT 120',['game']);
-   return res.json(summarizeFairAdmin({bands,uniqueCreators:unique?.[0]?.creators,daily,dailyCreators,games,days}));
+    ' GROUP BY game_name ORDER BY impressions DESC LIMIT 120',params);
+   return res.json(summarizeFairAdmin({bands,uniqueCreators:unique?.[0]?.creators,daily,dailyCreators,games,days,placement}));
   }catch{return res.status(503).json({error:'metrics_unavailable'})}
  });
 }
