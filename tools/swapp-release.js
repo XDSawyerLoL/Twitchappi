@@ -21,6 +21,8 @@ const RELEASE_FILES=Object.freeze([
  'assets/swapp-editor-nav.js',
  'assets/swapp-hubs.css',
  'modules/swapp-discovery-diversity.js',
+ 'modules/swapp-fair-metrics.js',
+ 'migrations/mysql/010_swapp_fair_exposure_daily.sql',
  'modules/swapp-seo.js',
  'modules/swapp-game-pages.js',
  'modules/swapp-news/site-shell.js',

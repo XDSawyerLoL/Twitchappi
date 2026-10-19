@@ -38,6 +38,8 @@
     const isNative=platform==='oryon'||platform==='swapp';
     const el=document.createElement('a');
     el.className='swapp-live-card';
+    if(typeof item.fairProof==='string'&&/^[A-Za-z0-9_-]{30,500}\.[a-f0-9]{64}$/.test(item.fairProof))
+      el.dataset.swappFairProof=item.fairProof;
     el.href=isNative ? '/'+encodeURIComponent(login) : '/live/twitch/'+encodeURIComponent(login)+(item.game_name?'?game='+encodeURIComponent(String(item.game_name).slice(0,90)):'');
     const cover=document.createElement('div');cover.className='swapp-live-cover';
     const src=safeImage(item.thumbnail_url);
@@ -94,6 +96,7 @@
          // Do not convert an unavailable Twitch integration into a false
          // claim that no streamer is live.
          verified.coverage=String(payload.coverage||'unknown');
+         verified.metricsEnabled=payload.fairMetrics?.enabled===true;
          return verified;
        }).catch(error=>{requests.delete(key);throw error;}));
     }
@@ -124,6 +127,84 @@
     }
     return out;
   }
+  // Session-only and OFF by default: a player explicitly requests the
+  // sampling pilot. No browser persistence, identifying fields or implicit telemetry.
+  const fairPilots=new WeakMap();
+  function setupFairPilot(shelf,cards,available){
+    if(!available||!cards.some(node=>node.dataset.swappFairProof)||!('IntersectionObserver' in window))return;
+    const heading=shelf.querySelector('.swapp-media-heading');
+    if(!heading)return;
+    let pilot=fairPilots.get(shelf);
+    if(!pilot){
+      const button=document.createElement('button');
+      button.type='button';button.className='swapp-media-button';
+      button.dataset.swappFairOpt='';button.setAttribute('aria-pressed','false');
+      button.textContent='Contribuer à une découverte équitable (facultatif)';
+      button.title='Compter anonymement les lives réellement vus sur cette page, sans compte ni historique.';
+      const explanation=document.createElement('small');
+      explanation.className='swapp-fair-optin-info';
+      explanation.textContent='Volontaire · cartes visibles et clics uniquement · sans identifiant visiteur · cette page seulement.';
+      heading.append(button,explanation);
+      pilot={button,active:false,cards:[],seen:new Set(),timers:new Map(),observer:null};
+      fairPilots.set(shelf,pilot);
+      const stop=()=>{
+        pilot.observer?.disconnect();pilot.observer=null;
+        for(const timer of pilot.timers.values())clearTimeout(timer);
+        pilot.timers.clear();
+      };
+      const record=(node,event)=>{
+        if(!pilot.active||!node.isConnected||document.visibilityState!=='visible')return;
+        const proof=node.dataset.swappFairProof,identity=proof+':'+event;
+        if(!proof||pilot.seen.has(identity)||pilot.seen.size>=48)return;
+        pilot.seen.add(identity);
+        // The browser will send a same-origin Origin header. Cookies excluded.
+        const unavailable=()=>{
+          if(!pilot.active)return;
+          pilot.active=false;stop();
+          button.setAttribute('aria-pressed','false');
+          button.textContent='Mesure indisponible · Réessayer';
+        };
+        void fetch('/api/discovery/fair-event',{
+          method:'POST',credentials:'omit',keepalive:true,
+          headers:{'Content-Type':'application/json','Accept':'application/json'},
+          body:JSON.stringify({proof,event})
+        }).then(response=>{if(!response.ok)unavailable()}).catch(unavailable);
+      };
+      const start=()=>{
+        stop();
+        pilot.observer=new IntersectionObserver(entries=>{
+          for(const entry of entries){
+            const node=entry.target,previous=pilot.timers.get(node);
+            if(previous){clearTimeout(previous);pilot.timers.delete(node)}
+            if(entry.intersectionRatio<.5||document.visibilityState!=='visible')continue;
+            pilot.timers.set(node,setTimeout(()=>{
+              pilot.timers.delete(node);
+              if(pilot.active&&document.visibilityState==='visible')record(node,'impression');
+            },1250));
+          }
+        },{threshold:[0,.5,1]});
+        for(const node of pilot.cards)pilot.observer.observe(node);
+      };
+      button.addEventListener('click',()=>{
+        pilot.active=!pilot.active;
+        button.setAttribute('aria-pressed',String(pilot.active));
+        button.textContent=pilot.active?'Mesure volontaire activée · Désactiver':'Contribuer à une découverte équitable (facultatif)';
+        if(pilot.active)start();else stop();
+      });
+      shelf.addEventListener('click',event=>{
+        if(!pilot.active)return;
+        const node=event.target.closest('.swapp-live-card[data-swapp-fair-proof]');
+        if(node&&pilot.cards.includes(node))record(node,'click');
+      },true);
+      document.addEventListener('visibilitychange',()=>{
+        if(!pilot.active)return;
+        if(document.visibilityState!=='visible')stop();else start();
+      });
+      pilot.refresh=()=>{if(pilot.active)start()};
+    }
+    pilot.cards=cards.filter(node=>!!node.dataset.swappFairProof);
+    pilot.refresh();
+  }
   async function renderShelf(shelf){
     const game=String(shelf.dataset.game||'').trim().slice(0,90);
     const target=shelf.querySelector('[data-live-results]');
@@ -132,7 +213,7 @@
       const data=game?await gameLives(game):await generalLives();
       if(!shelf.isConnected)return;
       const cards=validUnique(data,game?4:6,game);
-      if(cards.length){target.replaceChildren(...cards);return;}
+      if(cards.length){target.replaceChildren(...cards);setupFairPilot(shelf,cards,!!data.metricsEnabled);return;}
       const coverage=Array.isArray(data)?data.coverage:'';
       const failure=coverage==='native-only'?
        'Les directs SWAPP ont été vérifiés, mais la recherche Twitch est indisponible : des chaînes peuvent être en direct sur '+game+'.':
