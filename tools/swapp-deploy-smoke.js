@@ -104,13 +104,16 @@ async function verify(){
   !trailerJs.body.includes('CONSENT_API_READY'),
   'Game-article autoplay controller is stale');
  const extras=await request(origin,'/assets/swapp-article-extras.js');
+ check(home.body.includes('swapp-article-extras.js?v=20261019-game-media-v6'),
+  'Homepage still caches previous trailer validation library');
  check(extras.body.includes('function heroTrailerId(article)')&&
-   extras.body.includes('heroTrailerId,commercialLinks'),
+   extras.body.includes('heroTrailerId,isGameArticle,commercialLinks'),
   'Universal editorial game-trailer matcher has not deployed');
  const trailerCss=await request(origin,'/assets/swapp-article-immersive.css');
  check(trailerCss.body.includes('.swapp-article-scene.has-trailer')&&
   trailerCss.body.includes('.swapp-article-trailer-frame')&&
-  trailerCss.body.includes('swapp-game-cover-drift'),
+  trailerCss.body.includes('swapp-game-cover-drift')&&
+  trailerCss.body.includes('has-game.has-art:not(.has-trailer)'),
   'Universal moving game-art fallback and trailer styles have not deployed');
  process.stdout.write('PASS universal game article atmosphere and verified trailer autoplay\n');
  // The SEO headline used to flash through the banner during F5.
@@ -242,7 +245,7 @@ async function verify(){
   !readerApp.body.includes('a.length>=7&&b.includes(a)'),
   'Actualité still matches sequels incorrectly or opens external lives');
  check(home.body.includes('/assets/swapp-media.css?v=20261017-channel-news-v13')&&
-  home.body.includes('/assets/swapp-actus-app.js?v=20261019-witcher-twitch-v1'),
+  home.body.includes('/assets/swapp-actus-app.js?v=20261019-game-media-v6'),
   'Homepage is still using the old game bridge');
  // Native creator channel: same editorial game identity, no frozen status text.
  const nativeArticles=await request(origin,'/assets/swapp-live-articles.js');
@@ -343,7 +346,7 @@ async function verify(){
  process.stdout.write('PASS shared navigation, news and SOCIAL presentation asset\n');
  process.stdout.write('PASS /actus\n');
  // Verify the actual mobile reading and video assets, not just HTML shell CSS.
- const articleClient='/assets/swapp-actus-app.js?v=20261016-ios-journey-1';
+ const articleClient='/assets/swapp-actus-app.js?v=20261019-game-media-v6';
  const videoClient='/assets/swapp-video-player.js?v=20261016-ios-journey-1';
  const videoStyle='/assets/swapp-video-gallery.css?v=20261016-ios-journey-1';
  for(const name of [articleClient,videoClient,videoStyle])

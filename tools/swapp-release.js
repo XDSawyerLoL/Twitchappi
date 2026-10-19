@@ -37,6 +37,7 @@ const RELEASE_FILES=Object.freeze([
  'modules/swapp-news/legal-pages.js',
  'assets/swapp-article-immersive.css',
  'assets/swapp-article-trailer-bg.js',
+ 'assets/swapp-editor-enhance.js',
  'assets/swapp-adsense-inarticle.js',
  'assets/swapp-article-extras.js',
  'assets/swapp-footer.js',

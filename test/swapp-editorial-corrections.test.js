@@ -65,6 +65,9 @@ test('universal immersive gameplay hero never plays an unrelated video',()=>{
   image:{url:'https://example.com/witcher.jpg',credit:'Studio',rights:'Autorisation'}};
  assert.equal(extras.heroTrailerId(warcraft),'uQuKE0KDgiM');
  assert.equal(extras.heroTrailerId(witcher),null);
+ assert.equal(extras.isGameArticle(witcher),true);
+ assert.equal(extras.isGameArticle({game:'',category:'Actualités JV',tags:['jeu vidéo']}),true);
+ assert.equal(extras.isGameArticle({game:'',category:'Politique',tags:[]}),false);
  assert.equal(extras.heroTrailerId({...warcraft,trailerUrl:'https://evil.example.com/abc'}),null);
  const wowHtml=renderNewsStory(warcraft),witcherHtml=renderNewsStory(witcher);
  assert.match(wowHtml,/data-swapp-trailer-id="uQuKE0KDgiM"/);
@@ -76,9 +79,12 @@ test('universal immersive gameplay hero never plays an unrelated video',()=>{
  const fs=require('node:fs'),path=require('node:path');
  const spa=fs.readFileSync(path.join(__dirname,'../assets/swapp-actus-app.js'),'utf8');
  assert.match(spa,/SwappArticleExtras\?\.heroTrailerId\?\.\(a\)/);
+ assert.match(spa,/SwappArticleExtras\?\.isGameArticle\?\.\(a\)/);
  assert.doesNotMatch(spa,/slug==='world-of-warcraft-forever-le-trailer'\?/);
  const css=fs.readFileSync(path.join(__dirname,'../assets/swapp-article-immersive.css'),'utf8');
  assert.match(css,/swapp-game-cover-drift/);
+ const emptyGame={...witcher,slug:'valor-mortis-news',game:'',games:[],category:'Actualités JV',tags:['jeu vidéo']};
+ assert.match(renderNewsStory(emptyGame),/has-game/);
  assert.match(css,/\.has-game\.has-art:not\(\.has-trailer\) img/);
  assert.match(css,/@media\(prefers-reduced-motion:reduce\)/);
 });
