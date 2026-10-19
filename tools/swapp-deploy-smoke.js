@@ -135,7 +135,7 @@ async function verify(){
  check(shelfScript.body.includes("shelf.id==='swapp-article-lives'")&&
   shelfScript.body.includes('swapp-live-card-editorial')&&
   shelfScript.body.includes("articleMode?'Regarder le live")&&
-  home.body.includes('swapp-article-immersive.css?v=20261019-article-lives-v3'),
+  home.body.includes('swapp-article-immersive.css?v=20261019-affiliate-compact-v4'),
   'Direct article lives still use oversized repeated game pills');
  const trailerCss=await request(origin,'/assets/swapp-article-immersive.css');
  check(trailerCss.body.includes('.swapp-article-scene.has-trailer')&&
