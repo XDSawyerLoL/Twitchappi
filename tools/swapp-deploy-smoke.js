@@ -104,11 +104,19 @@ async function verify(){
   !trailerJs.body.includes('CONSENT_API_READY'),
   'Game-article autoplay controller is stale');
  const extras=await request(origin,'/assets/swapp-article-extras.js');
- check(home.body.includes('swapp-article-extras.js?v=20261019-game-media-v6'),
+ check(home.body.includes('swapp-article-extras.js?v=20261019-card-thumbnails-v7'),
   'Homepage still caches previous trailer validation library');
  check(extras.body.includes('function heroTrailerId(article)')&&
-   extras.body.includes('heroTrailerId,isGameArticle,commercialLinks'),
+   extras.body.includes('heroTrailerId,isGameArticle,cardImageSources,commercialLinks'),
   'Universal editorial game-trailer matcher has not deployed');
+ const cardClient=await request(origin,'/assets/swapp-actus-app.js');
+ check(cardClient.body.includes('SwappArticleExtras?.cardImageSources')&&
+  cardClient.body.includes('swapp-actus-cover-fallback')&&
+  home.body.includes('swapp-actus-app.css?v=20261019-card-thumbnails-v7'),
+  'Card thumbnails or premium missing-image style are stale');
+ const cardCss=await request(origin,'/assets/swapp-actus-app.css');
+ check(cardCss.body.includes('swapp-actus-cover-fallback'),
+  'Card design fallback not deployed');
  const trailerCss=await request(origin,'/assets/swapp-article-immersive.css');
  check(trailerCss.body.includes('.swapp-article-scene.has-trailer')&&
   trailerCss.body.includes('.swapp-article-trailer-frame')&&
@@ -212,11 +220,11 @@ async function verify(){
  const newsScript=await request(origin,'/assets/swapp-home-news.js');
  check(!newsScript.body.includes('signal:AbortSignal.timeout(')&&
    newsScript.body.includes('new AbortController()')&&
-   home.body.includes('swapp-home-news.js?v=20261019-witcher-twitch-v1'),
+   home.body.includes('swapp-home-news.js?v=20261019-card-thumbnails-v7'),
    'Homepage editorial script is stale or incompatible with older Safari');
  const motionPath='/assets/swapp-home-motion.js?v=20261018-followed-session-v27';
  check(home.body.includes(motionPath)&&
-   home.body.indexOf(motionPath)<home.body.indexOf('swapp-home-news.js?v=20261019-witcher-twitch-v1'),
+   home.body.indexOf(motionPath)<home.body.indexOf('swapp-home-news.js?v=20261019-card-thumbnails-v7'),
    'No cinematic hero helper before the editorial client');
  const motion=await request(origin,'/assets/swapp-home-motion.js');
  check(motion.body.includes('window.SwappHomeMotion')&&
@@ -250,7 +258,7 @@ async function verify(){
   !readerApp.body.includes('a.length>=7&&b.includes(a)'),
   'Actualité still matches sequels incorrectly or opens external lives');
  check(home.body.includes('/assets/swapp-media.css?v=20261017-channel-news-v13')&&
-  home.body.includes('/assets/swapp-actus-app.js?v=20261019-game-media-v6'),
+  home.body.includes('/assets/swapp-actus-app.js?v=20261019-card-thumbnails-v7'),
   'Homepage is still using the old game bridge');
  // Native creator channel: same editorial game identity, no frozen status text.
  const nativeArticles=await request(origin,'/assets/swapp-live-articles.js');
@@ -351,7 +359,7 @@ async function verify(){
  process.stdout.write('PASS shared navigation, news and SOCIAL presentation asset\n');
  process.stdout.write('PASS /actus\n');
  // Verify the actual mobile reading and video assets, not just HTML shell CSS.
- const articleClient='/assets/swapp-actus-app.js?v=20261019-game-media-v6';
+ const articleClient='/assets/swapp-actus-app.js?v=20261019-card-thumbnails-v7';
  const videoClient='/assets/swapp-video-player.js?v=20261016-ios-journey-1';
  const videoStyle='/assets/swapp-video-gallery.css?v=20261016-ios-journey-1';
  for(const name of [articleClient,videoClient,videoStyle])
