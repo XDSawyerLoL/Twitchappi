@@ -64,6 +64,14 @@ async function verify(){
  const social=await request(origin,'/communaute');
  check(social.body.includes('class="swapp-social-sticky-stack"'),'SOCIAL HTML does not contain the unified sticky stack');
  check(social.body.includes('id="feed-tabs"'),'SOCIAL feed controls missing');
+ check(social.body.includes('/assets/swapp-social-native/app.js?v=20261019-service-health-v1')&&
+  social.body.includes('/assets/swapp-social-native/social-swapp.css?v=20261019-service-health-v1'),
+  'SOCIAL service diagnostic JavaScript/CSS release is stale');
+ const serviceState=await request(origin,'/assets/swapp-social-native/app.js');
+ check(serviceState.body.includes("probe('/api/pulse/health')")&&
+  serviceState.body.includes("probe('/api/swapp/interactions/status')")&&
+  serviceState.body.includes("label.dataset.serviceState=mode"),
+  'SOCIAL still reports one global status for independent services');
  check(social.body.includes('social-fixed-10'),'SOCIAL HTML uses an older CSS release');
  check(social.body.includes('social-fixed-js-10'),'SOCIAL HTML uses an older JS release');
  process.stdout.write('PASS /communaute HTML\n');
