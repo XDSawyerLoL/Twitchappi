@@ -24,7 +24,7 @@ function mount(){
  googlefc.callbackQueue.push({CONSENT_API_READY:()=>{
   if(typeof window.googlefc?.showRevocationMessage!=='function')return;
   if(typeof window.__tcfapi!=='function')return;
-  try{window.__tcfapi('addEventListener',0,(data,ok)=>{
+  try{window.__tcfapi('addEventListener',2,(data,ok)=>{
    if(!ok||data?.gdprApplies!==true||!footer.isConnected)return;
    if(footer.querySelector('[data-swapp-cmp-revocation]'))return;
    const control=document.createElement('button');
