@@ -25,6 +25,22 @@
   const poster=scene.querySelector('.swapp-article-trailer-poster');
   let frame=null,paused=false,visible=true;
   let observer=null;
+  // YouTube sometimes normalizes the URL and ignores an initial start value.
+  // Request 00:10 again when its IFrame API reports the player is ready.
+  const youtubeOrigins=new Set(['https://www.youtube-nocookie.com','https://www.youtube.com']);
+  function onYouTubeMessage(event){
+   if(!frame||event.source!==frame.contentWindow||!youtubeOrigins.has(event.origin))return;
+   let data=event.data;
+   if(typeof data==='string'){try{data=JSON.parse(data)}catch(_){return}}
+   if(data?.event!=='onReady')return;
+   const player=frame.contentWindow;
+   try{
+    player.postMessage(JSON.stringify({event:'command',func:'seekTo',args:[10,true]}),event.origin);
+    player.postMessage(JSON.stringify({event:'command',func:'mute',args:[]}),event.origin);
+    player.postMessage(JSON.stringify({event:'command',func:'playVideo',args:[]}),event.origin);
+   }catch(_){}
+  }
+  window.addEventListener('message',onYouTubeMessage);
   function stop(){
    if(frame){frame.remove();frame=null}
    scene.classList.remove('is-trailer-playing');
@@ -49,11 +65,14 @@
     scene.classList.add('is-trailer-playing');
     control.textContent='Ⅱ Mettre la vidéo en pause';
     control.setAttribute('aria-pressed','true');
+    // Register YouTube's official postMessage listening protocol.
+    try{iframe.contentWindow?.postMessage(JSON.stringify({event:'listening',id:'swapp-hero'}),
+      'https://www.youtube-nocookie.com')}catch(_){}
    },{once:true});
    iframe.addEventListener('error',()=>{if(frame===iframe)stop()},{once:true});
    iframe.src='https://www.youtube-nocookie.com/embed/'+id+
     '?autoplay=1&mute=1&controls=0&playsinline=1&loop=1&playlist='+id+
-    '&start=10&rel=0&fs=0&disablekb=1';
+    '&start=10&rel=0&fs=0&disablekb=1&enablejsapi=1&origin='+encodeURIComponent(window.location?.origin||'https://swapp.tv');
    scene.append(iframe);
    frame=iframe;
   }
@@ -64,6 +83,7 @@
   function onVisibility(){
    if(!scene.isConnected){
     stop();document.removeEventListener('visibilitychange',onVisibility);
+    window.removeEventListener('message',onYouTubeMessage);
     if(observer)observer.disconnect();
     return;
    }
