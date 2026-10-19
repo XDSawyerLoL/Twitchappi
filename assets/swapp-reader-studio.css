@@ -30,7 +30,8 @@
 .swapp-reader-audio-toolbar [data-reader-play]{font-weight:800;background:#26556b;border-color:#5cafc3}
 .swapp-reader-audio-toolbar [data-reader-audio-count]{font-size:12px;font-variant-numeric:tabular-nums;color:#b4c9de}
 .swapp-reader-audio-settings{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:12px}
-.swapp-reader-audio-settings [data-reader-voice]{max-width:min(420px,70vw)}
+.swapp-reader-audio-settings .swapp-reader-fixed-voice{display:inline-flex;align-items:center;gap:7px;color:#b6cbe0;font-size:12px}
+.swapp-reader-audio-settings .swapp-reader-fixed-voice strong{color:var(--swapp-side-light,#86d7ed);font-weight:850;font-size:14px}
 .swapp-reader-audio [data-reader-audio-status]{font-size:12px;line-height:1.5;color:#b6cbe0;margin:12px 0 0}
 .swapp-article-reading #article-content .swapp-narration-current{
  border-left:3px solid var(--swapp-side-light,#81d0df)!important;

@@ -146,22 +146,23 @@ async function verify(){
  // SWAPP Lecture: both server-rendered articles and the SPA must ship the same
  // opt-in reader and narrator. This does not claim that a Mairy voice exists.
  for(const [pathname,page] of [['/',home],['/actus',news]]){
-  check(page.body.includes('/assets/swapp-reader-studio.js?v=20261020-voice-v1')&&
-    page.body.includes('/assets/swapp-reader-studio.css?v=20261020-voice-v1'),
+  check(page.body.includes('/assets/swapp-reader-studio.js?v=20261020-vivienne-only-v2')&&
+    page.body.includes('/assets/swapp-reader-studio.css?v=20261020-vivienne-only-v2'),
     pathname+': article reading module absent or stale');
  }
- const neuralStudio=await request(origin,'/assets/swapp-neural-narration.js');
- check(home.body.includes('/assets/swapp-neural-narration.js?v=20261020-voice-v1')&&
-    news.body.includes('/assets/swapp-neural-narration.js?v=20261020-voice-v1')&&
-    neuralStudio.body.includes('validManifest')&&
-    neuralStudio.body.includes('swapp-narrations/')&&
-    neuralStudio.body.includes('credentials:\'omit\''),
-    'Neural narration player missing or stale');
+ check(!home.body.includes('<script src="/assets/swapp-neural-narration.js')&&
+    !home.body.includes('<script defer src="/assets/swapp-neural-narration.js')&&
+    !news.body.includes('<script src="/assets/swapp-neural-narration.js')&&
+    !news.body.includes('<script defer src="/assets/swapp-neural-narration.js'),
+    'Vivienne-only reader unexpectedly loads neural/Mairaiy audio module');
  const readerStudio=await request(origin,'/assets/swapp-reader-studio.js');
  const readerStudioCss=await request(origin,'/assets/swapp-reader-studio.css');
  check(readerStudio.body.includes('swapp-reader-focus')&&
   readerStudio.body.includes('speechSynthesis')&&
-  readerStudio.body.includes('data-reader-voice')&&
+  readerStudio.body.includes('swapp-reader-fixed-voice')&&
+  readerStudio.body.includes('findVivienne')&&
+  !readerStudio.body.includes('data-reader-voice')&&
+  !readerStudio.body.includes('mairaiy')&&
   readerStudio.body.includes('api.cancel()')&&
   readerStudio.body.includes('swapp-narration-current'),
   'Reader focus or audio playback controls missing in deployed script');
@@ -174,7 +175,7 @@ async function verify(){
  check(reader.body.includes('currentToc')&&
   reader.body.includes('if(found&&toc&&mount(found))')&&
   reader.body.includes('ResizeObserver')&&
-  home.body.includes('swapp-reader-experience.js?v=20261020-voice-v1'),
+  home.body.includes('swapp-reader-experience.js?v=20261020-vivienne-only-v2'),
   'First-navigation TOC mounting fix not deployed');
  check(extras.body.includes('function partnerOffersHtml(a)')&&
   extras.body.includes('swapp-affiliate-offer swapp-affiliate-manual')&&

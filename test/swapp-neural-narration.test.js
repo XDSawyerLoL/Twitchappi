@@ -50,25 +50,23 @@ test('neural audio is opt in and only reads published same-origin static manifes
  assert.match(js,/pagehide/);
 });
 
-test('two SWAPP article shells load studio after provider and before existing reader',()=>{
+test('Vivienne-only mode does not load pre-recorded Mairaiy or Kokoro in public articles',()=>{
  const home=read('index.html'),native=read('modules/swapp-news/site-shell.js');
  for(const page of [home,native]){
-  const provider=page.indexOf('swapp-neural-narration.js?v=20261020-voice-v1');
-  const reader=page.indexOf('swapp-reader-studio.js?v=20261020-voice-v1');
-  assert.ok(provider>0&&reader>provider);
-  assert.ok(page.includes('swapp-reader-studio.css?v=20261020-voice-v1'));
+  assert.doesNotMatch(page,/src="\/assets\/swapp-neural-narration\.js/);
+  assert.ok(page.includes('swapp-reader-studio.js?v=20261020-vivienne-only-v2'));
+  assert.ok(page.includes('swapp-reader-studio.css?v=20261020-vivienne-only-v2'));
  }
  const studio=read('assets/swapp-reader-studio.js');
- assert.match(studio,/SwappNeuralNarration\?\.attach/);
- assert.match(studio,/SwappNeuralNarration\?\.pauseActive/);
+ assert.doesNotMatch(studio,/SwappNeuralNarration|mairaiy|data-reader-voice/i);
+ const fallback=read('assets/swapp-reader-experience.js');
+ assert.doesNotMatch(fallback,/ensureScript\('swapp-neural-narration\.js'/);
 });
 
-test('release fingerprint and Hostinger smoke include studio player without audio dependency',()=>{
- assert.match(read('tools/swapp-release.js'),/'assets\/swapp-neural-narration.js'/);
+test('archived Mairaiy producer is still available offline but no longer exposed to visitors',()=>{
+ assert.match(read('tools/swapp-release.js'),/'assets\/swapp-neural-narration\.js'/);
  const smoke=read('tools/swapp-deploy-smoke.js');
- assert.match(smoke,/Neural narration player missing or stale/);
- assert.match(smoke,/swapp-neural-narration.js/);
- // Production must not require a specific article audio file to serve the website.
+ assert.match(smoke,/Vivienne-only reader unexpectedly loads neural/);
  assert.doesNotMatch(smoke,/\/assets\/swapp-narrations\/[a-z0-9-]+\/manifest\.json/);
 });
 
