@@ -3371,7 +3371,13 @@ async function persistOryonUsers(data){
   if(SWAPP_MYSQL_ACCOUNTS){
     if(!swappMysqlAccountsReady)throw Error('mysql_accounts_unavailable');
     const normalized=normalizeOryonUsersPayload(data,{ensureStreamKey:true});
-    const result=await swappMysqlAccounts.save(normalized.users);
+    let result;
+    try{result=await swappMysqlAccounts.save(normalized.users)}
+    catch(error){
+      swappMysqlAccountsReady=false;
+      __oryonUsersPersistence='mysql:unavailable';
+      throw error;
+    }
     __oryonUsersCache={users:normalized.users};
     __oryonUsersPersistence='mysql:swapp_oryon_accounts';
     return result;
@@ -3437,7 +3443,10 @@ function writeOryonUsers(data){
 async function writeOryonUsersAndWait(data){
   return await persistOryonUsers(data);
 }
-const ORYON_USERS_READY = loadOryonUsersPersistent();
+// A database outage must not crash Node with an unhandled startup rejection.
+const ORYON_USERS_READY = loadOryonUsersPersistent().catch(error=>{
+  console.error('[ORYON] Account storage startup unavailable:',error.code||error.message);
+});
 
 // Generic durable state for teams/planning/progression/events/admin logs.
 // These were previously kept in files under __dirname, which disappears on Render redeploy.
@@ -3529,7 +3538,9 @@ function issueOryonRememberToken(user, data){
   const token = makeOryonRememberToken();
   user.remember_token_hash = hashOryonRememberToken(token);
   user.remember_token_issued_at = Date.now();
-  if(data) writeOryonUsers(data);
+  // MySQL login and registration routes already await writeOryonUsersAndWait.
+  // Do not enqueue a second asynchronous copy of the same remember-token write.
+  if(data&&!SWAPP_MYSQL_ACCOUNTS) writeOryonUsers(data);
   return token;
 }
 function verifyOryonRememberToken(user, token){
