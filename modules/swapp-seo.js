@@ -124,6 +124,7 @@ function creatorSitemapXml(creators=[]){
 function injectCreatorMetadata(html,creator,login){
  let result=String(html||'');
  if(!result.includes('</head>'))return result;
+ result=removeInheritedSeoTags(result);
  const slug=String(login||'').toLowerCase();
  if(!CREATOR_LOGIN.test(slug)||RESERVED_CREATOR_PATHS.has(slug)||!creator||creator.channel_public===false||
     String(creator.login||'').toLowerCase()!==slug)
@@ -437,7 +438,9 @@ function enhanceLandingHtml(html,path){
  if(start<0)return result;
  const end=result.indexOf('</section>',start);
  if(end<0)return result;
- return result.slice(0,end)+content+result.slice(end);
+ // Keep the fallback readable without JavaScript, but never flash SEO copy
+ // behind a hydrated hero, editorial article grid or live player.
+ return result.slice(0,end)+'<noscript>'+content+'</noscript>'+result.slice(end);
 }
 
 const NOINDEX_PATHS=new Set(['/compte','/connexion','/settings','/gestionnaire','/manager','/dashboard','/studio','/admin','/boutique/admin','/reset-password']);
@@ -452,6 +455,30 @@ function ensureSearchConsoleMeta(html){
  if(raw.includes(SEARCH_CONSOLE_TOKEN))return raw;
  return raw.replace(/<head(?:\s[^>]*)?>/i,head=>head+'\n'+tag);
 }
+
+/**
+ * Remove inherited homepage metadata only in the HTML head, before applying
+ * page-specific SEO. Prevent contradictory canonical/OG/description tags.
+ * Keep Search Console, theme, scripts, styles and any body content unchanged.
+ */
+function removeInheritedSeoTags(html){
+ const raw=String(html||'');
+ const end=raw.search(/<\/head\s*>/i);
+ if(end<0)return raw;
+ const head=raw.slice(0,end)
+  .replace(/<link\b[^>]*>/gi,tag=>{
+   if(/\brel\s*=\s*["']canonical["']/i.test(tag))return '';
+   if(/\brel\s*=\s*["']alternate["']/i.test(tag)&&/\btype\s*=\s*["']application\/rss\+xml["']/i.test(tag))return '';
+   return tag;
+  })
+  .replace(/<meta\b[^>]*>/gi,tag=>{
+   const name=(tag.match(/\bname\s*=\s*["']([^"']+)["']/i)||[])[1]?.toLowerCase()||'';
+   const property=(tag.match(/\bproperty\s*=\s*["']([^"']+)["']/i)||[])[1]?.toLowerCase()||'';
+   return name==='description'||name==='robots'||name.startsWith('twitter:')||property.startsWith('og:')?'':tag;
+  });
+ return head+raw.slice(end);
+}
+
 function injectSpaMetadata(html,pathname='/'){
  const urlPath=String(pathname||'/').split('?')[0];
  const raw=urlPath==='/'?ensureSearchConsoleMeta(html):String(html||'');
@@ -460,7 +487,7 @@ function injectSpaMetadata(html,pathname='/'){
  const info=SPA_INFO[path];
  const hidden=NOINDEX_PATHS.has(path)||path.startsWith('/reset-password/');
  if(!info&&!hidden)return raw;
- let result=raw;
+ let result=removeInheritedSeoTags(raw);
  if(info){
   const tags='<meta name="description" content="'+encodeXml(info.description)+'">'+
    '<link rel="canonical" href="'+ORIGIN+path+'">'+
