@@ -36,6 +36,23 @@
  function heroTrailerId(article){
   return trailerId(article?.trailerUrl);
  }
+
+ // Card media is deliberately independent of the full-bleed article artwork.
+ // Use a verified YouTube video id only from this article.
+ function cardImageSources(article){
+  const out=[];
+  for(const raw of [article?.thumbnail?.url,article?.image?.url,article?.imageUrl]){
+   let source='';
+   try{
+    const u=new URL(String(raw||''));
+    if(u.protocol==='https:'&&!u.username&&!u.password)source=u.href;
+   }catch(_){}
+   if(source&&!out.includes(source))out.push(source);
+  }
+  const id=trailerId(article?.trailerUrl);
+  if(id)out.push('https://i.ytimg.com/vi/'+id+'/hqdefault.jpg');
+  return [...new Set(out)];
+ }
  function isGameArticle(article){
   if(String(article?.game||'').trim())return true;
   if(Array.isArray(article?.games)&&article.games.some(x=>String(x||'').trim()))return true;
@@ -153,5 +170,5 @@
    if(button)activate(button);
   });
  }
- return Object.freeze({trailerId,heroTrailerId,isGameArticle,commercialLinks,isAmazonLink,amazonDisclosure,renderServer,mount});
+ return Object.freeze({trailerId,heroTrailerId,isGameArticle,cardImageSources,commercialLinks,isAmazonLink,amazonDisclosure,renderServer,mount});
 });

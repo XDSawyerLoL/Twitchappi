@@ -50,6 +50,12 @@ function assertArticle(value, {publish = false, legacyRequired = false} = {}) {
   const image = value.image && typeof value.image === 'object' ? value.image : null;
   if (image && !isHttpUrl(image.url)) throw new Error('URL image invalide');
   if (publish && image && (!String(image.credit || '').trim() || !String(image.rights || '').trim() || /(?:à|a)\s*vérifier/i.test(String(image.rights)))) throw new Error('Crédit et droits vérifiés requis pour l’image');
+  const thumbnail=value.thumbnail&&typeof value.thumbnail==='object'&&!Array.isArray(value.thumbnail)?value.thumbnail:null;
+  if(thumbnail){
+    if(!isHttpUrl(thumbnail.url)||!String(thumbnail.url).startsWith('https://'))throw new Error('URL HTTPS de vignette invalide');
+    if(publish&&(!String(thumbnail.credit||'').trim()||!String(thumbnail.rights||'').trim()||/(?:à|a)\s*vérifier/i.test(String(thumbnail.rights||''))))
+      throw new Error('Crédit et droits vérifiés requis pour la vignette');
+  }
   if (legacyRequired && !isLegacyJustPlayerUrl(value.legacyUrl)) throw new Error('URL JustPlayer requise');
   if (value.legacyUrl && !isHttpUrl(value.legacyUrl)) throw new Error('URL ancienne invalide');
   const trailerUrl=String(value.trailerUrl||'').trim();
@@ -71,6 +77,11 @@ function assertArticle(value, {publish = false, legacyRequired = false} = {}) {
     author: String(value.author || 'Rédaction SWAPP').trim().slice(0, 120),
     sources: sources.map(s => ({url:s.url, label:String(s.label || '').trim().slice(0, 180)})),
     image: image ? {url:image.url,credit:String(image.credit||'').trim().slice(0,180),rights:String(image.rights||'').trim().slice(0,180)} : null,
+    thumbnail:thumbnail?{url:String(thumbnail.url).trim(),
+      credit:String(thumbnail.credit||'').trim().slice(0,180),
+      rights:String(thumbnail.rights||'').trim().slice(0,180),
+      alt:String(thumbnail.alt||'').trim().slice(0,180),
+      position:['center','top','bottom','left','right'].includes(thumbnail.position)?thumbnail.position:'center'}:null,
     trailerUrl:trailerUrl||null,
     commercialLinks:links,
     legacyUrl: value.legacyUrl || null,

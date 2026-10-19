@@ -38,7 +38,7 @@
  function story(item,index){
    const a=el('a','swapp-home-story'+(index===0?' swapp-home-story-featured':''));a.href='/actus/'+encodeURIComponent(item.slug);
    a.addEventListener('click',e=>navigateArticle(e,item.slug,item.game));
-   const image=el('div','swapp-home-story-image'),src=safeUrl(item.image?.url||item.imageUrl);
+   const image=el('div','swapp-home-story-image'),src=safeUrl(window.SwappArticleExtras?.cardImageSources?.(item)?.[0]||item.image?.url||item.imageUrl);
    if(src){const img=el('img');img.src=src;img.alt='';img.loading=index===0?'eager':'lazy';img.decoding='async';img.onerror=()=>{img.remove();image.classList.add('swapp-home-image-fallback')};image.append(img)}else{image.classList.add('swapp-home-image-fallback')}
    image.append(el('span','swapp-home-story-category',item.game||item.category||'Actualité'));
    const body=el('div','swapp-home-story-body');

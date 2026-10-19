@@ -13,6 +13,22 @@
 .swapp-actus-cover{width:100%;aspect-ratio:16/9;overflow:hidden;background:linear-gradient(135deg,#173b53,#2e2648);display:grid;place-items:center}
 .swapp-actus-cover img{width:100%;height:100%;display:block;object-fit:cover}
 .swapp-actus-cover-empty{color:#a5dee4;font-weight:800;font-size:clamp(18px,2.3vw,29px);padding:18px;text-align:center}
+/* Editorial cover when no verified game image can be resolved. No huge fake title. */
+.swapp-actus-cover.swapp-actus-cover-fallback{
+ background:radial-gradient(ellipse at 75% 12%,#294f6244,transparent 45%),
+ linear-gradient(135deg,#122235,#1b1932 76%,#0b1b25);position:relative
+}
+.swapp-actus-cover.swapp-actus-cover-fallback:before{
+ content:"";position:absolute;inset:14px;border:1px solid #9bd4de18;pointer-events:none
+}
+.swapp-actus-cover-fallback .swapp-actus-cover-empty{
+ width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;
+ gap:11px;padding:22px;color:#b9cedc!important;font-size:13px!important;letter-spacing:.06em
+}
+.swapp-actus-cover-symbol{font:700 clamp(29px,3vw,49px)/1 system-ui,sans-serif;color:#70c8d1;opacity:.7}
+.swapp-actus-cover-editorial{font:700 10px/1.2 system-ui,sans-serif;color:#7eacc2;letter-spacing:.24em}
+.swapp-actus-cover-game{font:700 clamp(12px,1.3vw,16px)/1.35 system-ui,sans-serif;color:#c3d9e2;letter-spacing:.08em;text-transform:uppercase}
+
 .swapp-actus-info{padding:19px;display:flex;flex-direction:column;gap:10px;flex:1}
 .swapp-actus-info small{font-size:11px;color:#c6a4ea;text-transform:uppercase;font-weight:900}
 .swapp-actus-info h2{margin:0;font-size:clamp(18px,1.6vw,22px);line-height:1.25}

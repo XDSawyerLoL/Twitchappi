@@ -46,7 +46,27 @@ const fetchJson=async route=>{
  }finally{clearTimeout(timer)}
 };
 let items=[];
-function cover(article){const p=el('div','swapp-actus-cover'),source=url(article.image?.url||article.imageUrl);if(source){const img=el('img');img.src=source;img.alt=article.title||'Visuel du jeu';img.loading='lazy';img.onerror=()=>{img.remove();if(!p.childElementCount)p.append(el('span','swapp-actus-cover-empty',article.game||article.category||'Jeux vidéo'))};p.append(img)}else p.append(el('span','swapp-actus-cover-empty',article.game||article.category||'Jeux vidéo'));return p;}
+function cover(article){
+ const p=el('div','swapp-actus-cover');
+ const candidates=window.SwappArticleExtras?.cardImageSources?.(article)||[];
+ const fallback=()=>{
+  p.classList.add('swapp-actus-cover-fallback');
+  const art=el('div','swapp-actus-cover-empty');
+  art.append(el('span','swapp-actus-cover-symbol','◈'),
+   el('small','swapp-actus-cover-editorial','SWAPP · ACTUALITÉ'),
+   el('span','swapp-actus-cover-game',String(article.game||'JEU VIDÉO').slice(0,42)));
+  p.replaceChildren(art);
+ };
+ if(!candidates.length){fallback();return p}
+ let index=0;
+ const img=el('img');
+ img.alt=article.thumbnail?.alt||article.title||'Visuel du jeu';
+ img.loading='lazy';img.decoding='async';
+ img.style.objectPosition=['center','top','bottom','left','right'].includes(article.thumbnail?.position)?article.thumbnail.position:'center';
+ img.onerror=()=>{index++;if(index<candidates.length)img.src=candidates[index];else fallback()};
+ img.src=candidates[0];p.append(img);
+ return p;
+}
 function makeCard(a){if(!slugOk(a.slug))return null;const link=el('a','swapp-actus-card');link.href='/actus/'+encodeURIComponent(a.slug);
 const info=el('div','swapp-actus-info');info.append(el('small','',a.game||a.category||'Actualité'),el('h2','',a.title),el('p','',a.summary||''),el('span','',date(a.publishedAt||a.originalPublishedAt)+' · Lire l’article →'));
 link.append(cover(a),info);link.onclick=e=>{if(e.button||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey)return;e.preventDefault();window.SwappLocalTastes?.record?.(a.game);open(a.slug)};return link;}
@@ -224,7 +244,7 @@ if(commercial){
 reading.append(recommend);
 const fillRecommendations=list=>{if(!recommend.isConnected)return;recommendations.replaceChildren();const base=String(a.game||'').toLocaleLowerCase('fr');const baseTokens=new Set(String(a.title||'').toLocaleLowerCase('fr').split(/[^\\p{L}\\p{N}]+/u).filter(w=>w.length>=5));const candidates=list.filter(x=>x.slug!==slug&&x.slug!==a.slug&&slugOk(x.slug)).sort((x,y)=>{const score=z=>{const game=Number(!!base&&String(z.game||'').toLocaleLowerCase('fr')===base)*10;const category=Number(!!a.category&&z.category===a.category)*2;const common=String(z.title||'').toLocaleLowerCase('fr').split(/[^\\p{L}\\p{N}]+/u).filter(w=>baseTokens.has(w)).length;const time=Number(new Date(z.publishedAt||z.originalPublishedAt||0))||0;return [game+category+Math.min(common,3),time]};const sy=score(y),sx=score(x);return sy[0]-sx[0]||sy[1]-sx[1]}).slice(0,3);candidates.forEach(x=>{
  const link=el('a','swapp-reader-next-item');link.href='/actus/'+encodeURIComponent(x.slug);
- const imgUrl=url(x.image?.url||x.imageUrl);
+ const imgUrl=window.SwappArticleExtras?.cardImageSources?.(x)?.[0]||null;
  if(imgUrl){const img=el('img','swapp-reader-next-thumb');img.src=imgUrl;img.alt='';img.loading='lazy';link.append(img);}
  const content=el('span','swapp-reader-next-copy');
  content.append(el('small','',x.game||x.category||'Actualité'),el('strong','',x.title));

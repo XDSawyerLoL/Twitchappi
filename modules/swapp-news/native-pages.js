@@ -11,13 +11,12 @@ function dateLabel(input){
  return Number.isFinite(d.getTime())?new Intl.DateTimeFormat('fr-FR',{day:'numeric',month:'long',year:'numeric',timeZone:'UTC'}).format(d):'';
 }
 function plainSummary(a){return String(a.summary||a.body||'').slice(0,250);}
-function editorialCover(a){
- const youtubeId=articleExtras.trailerId(a?.trailerUrl);
- return a?.image?.url||(youtubeId?'https://i.ytimg.com/vi/'+youtubeId+'/hqdefault.jpg':null);
-}
+function editorialCover(a){return articleExtras.cardImageSources(a)[0]||null;}
 function card(a){
  const url='/actus/'+encodeURIComponent(a.slug);
- const media=editorialCover(a)?`<img class="story-image" src="${escapeHtml(editorialCover(a))}" alt="${escapeHtml(a.title)}" loading="lazy">`:'<div class="story-fallback" aria-hidden="true">✦</div>';
+ const artwork=editorialCover(a);
+ const media=artwork?`<img class="story-image" src="${escapeHtml(artwork)}" alt="${escapeHtml(a.thumbnail?.alt||a.title)}" loading="lazy" style="object-position:${escapeHtml(a.thumbnail?.position||'center')}">`:
+  '<div class="story-fallback swapp-story-no-art" aria-hidden="true"><span class="swapp-story-no-art-mark">SWAPP</span><span class="swapp-story-no-art-icon">◈</span><small>LE MAGAZINE GAMING</small></div>';
  return `<a class="story-card" href="${url}">${media}<div class="story-info"><span class="tag">${escapeHtml(a.category||'Actualité')}</span><h3>${escapeHtml(a.title)}</h3><p>${escapeHtml(plainSummary(a))}</p><div class="story-meta"><span>${escapeHtml(dateLabel(a.publishedAt||a.originalPublishedAt))}</span><span>Lire l’article →</span></div></div></a>`;
 }
 function renderNewsHome(articles,{baseUrl='https://swapp.tv',category='',query=''}={}){
