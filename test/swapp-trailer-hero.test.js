@@ -5,6 +5,7 @@ const fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
 const script=fs.readFileSync(path.join(__dirname,'../assets/swapp-article-trailer-bg.js'),'utf8');
 function harness({reduced=false,initiallyHidden=false}={}){
  const scripts=[],listeners=[],events=[];
+ const windowEvents=[],messages=[];
  const content={children:[],append(...nodes){this.children.push(...nodes)}};
  const poster={hidden:false};
  const scene={isConnected:true,parentElement:{querySelector(){return content}},
@@ -15,17 +16,19 @@ function harness({reduced=false,initiallyHidden=false}={}){
  const document={readyState:'loading',hidden:initiallyHidden,
   createElement(tag){return {tagName:tag,attributes:{},listeners:{},
    setAttribute(n,v){this.attributes[n]=String(v)},
+   ...(tag==='iframe'?{contentWindow:{postMessage(data,origin){messages.push({data,origin})}}}:{}),
    addEventListener(n,fn){this.listeners[n]=fn},append(...nodes){this.children=nodes},
    remove(){this.removed=true}}},addEventListener(n,fn){listeners.push({n,fn})},
    removeEventListener(n,fn){const i=listeners.findIndex(x=>x.n===n&&x.fn===fn);if(i>=0)listeners.splice(i,1)},
    querySelectorAll(){return [scene]}};
- const window={matchMedia:()=>({matches:reduced}),addEventListener(){},
+ const window={matchMedia:()=>({matches:reduced}),addEventListener(n,fn){windowEvents.push({n,fn})},
+  removeEventListener(n,fn){const i=windowEvents.findIndex(x=>x.n===n&&x.fn===fn);if(i>=0)windowEvents.splice(i,1)},
   __tcfapi(){throw Error('Video must not invoke AdSense CMP')},
   googlefc:{showRevocationMessage(){throw Error('Video must not open consent dialog')}}};
  vm.runInNewContext(script,{window,document,navigator:{},console,IntersectionObserver:undefined});
  window.SwappTrailerHero.mount(scene);
  const button=content.children[0].children[0];
- return {scene,scripts,button,document,events,listeners};
+ return {scene,scripts,button,document,events,listeners,windowEvents,messages};
 }
 test('trailer autoplays without clicks or CMP and starts silently at ten seconds',()=>{
  const h=harness();
@@ -59,4 +62,20 @@ test('full-bleed scene covers the viewport and continues its original fade',()=>
  assert.match(css,/height:max\(100%,calc\(100vw \* \.5625\)\)/);
  assert.match(css,/\.swapp-article-scene\.has-trailer::before/);
  assert.match(css,/\.swapp-article-scene\.has-trailer \.swapp-article-trailer-poster/);
+});
+
+test('YouTube onReady forces a 10-second seek even when embed ignores start URL',()=>{
+ const h=harness();
+ const player=h.scripts[0];
+ const onMessage=h.windowEvents.find(x=>x.n==='message');
+ assert.ok(onMessage);
+ const send=(origin,data)=>onMessage.fn({origin,source:player.contentWindow,data:JSON.stringify(data)});
+ send('https://not-youtube.example',{event:'onReady'});
+ assert.equal(h.messages.length,0);
+ send('https://www.youtube-nocookie.com',{event:'onReady'});
+ const commands=h.messages.map(x=>JSON.parse(x.data)).filter(x=>x.event==='command');
+ assert.deepEqual?.(commands.map(x=>x.func),['seekTo','mute','playVideo']);
+ assert.equal(commands[0].args[0],10);
+ assert.equal(commands[0].args[1],true);
+ assert.match(player.src,/enablejsapi=1/);
 });
