@@ -26,3 +26,13 @@ test('publisher pages and AdSense verification are present but approval is never
  assert.match(review,/ne s'agit ni d'une décision de Google/i);
  assert.match(review,/Demander un examen/);
 });
+
+test('homepage offers substantive human-readable fallback without JS or first-paint flash',()=>{
+ const home=read('index.html');
+ assert.match(home,/<meta name="description" content="SWAPP rassemble actualités jeux vidéo/);
+ assert.match(home,/<link rel="canonical" href="https:\/\/swapp.tv\/">/);
+ assert.match(home,/<noscript>[\s\S]*?Explorer SWAPP sans JavaScript[\s\S]*?<\/noscript>/);
+ for(const route of ['/actus','/communaute','/boutique','/plan-du-site','/confidentialite'])
+  assert.ok(home.includes('href="'+route+'"'));
+ assert.match(home,/#home \.swappBoot\{display:none!important\}/);
+});
