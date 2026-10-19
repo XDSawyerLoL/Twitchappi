@@ -48,7 +48,7 @@ test('listen mode cannot start without a French voice and never auto-plays',()=>
  assert.match(js,/api\.resume\(\)/);
  assert.match(js,/api\.cancel\(\)/);
  assert.doesNotMatch(js,/data-reader-online-consent/);
- assert.match(js,/chosen\.localService!==true/);
+ assert.match(js,/chosen\?\.localService===true/);
  assert.doesNotMatch(js,/Autoriser une voix en ligne si le navigateur/);
  assert.match(js,/utterance\.onerror=/);
  assert.match(js,/utterance\.onend=/);
@@ -94,7 +94,7 @@ test('cached Hostinger article shell recovers reader toolbar with a fresh script
  assert.match(legacy,/20261020-voice-v1/);
  assert.match(legacy,/window\.SwappReaderStudio\?\.sync\(\)/);
  const studio=read('assets/swapp-reader-studio.js');
- assert.match(studio,/window\.SwappReaderStudio=\{sync\}/);
+ assert.match(studio,/window\.SwappReaderStudio=\{sync,stopBrowserAudio:clearAudio\}/);
  assert.match(studio,/main\.article-wrap\[data-swapp-article-slug\]/);
  const native=read('modules/swapp-news/site-shell.js');
  const spa=read('index.html');
