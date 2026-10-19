@@ -495,38 +495,6 @@ async function refreshEmoteShelf(login){state.channelEmotes=[]; if(!login)return
 function renderEmoteShelf(){const box=$('#customEmoteShelf'); if(!box)return; const items=state.channelEmotes||[]; box.innerHTML=items.length?`<div class="emoteShelf">${items.map(e=>`<button class="emoteBtn ${e.allowed?'':'locked'}" onclick="selectCustomEmote('${esc(e.code)}')" title=":${esc(e.code)}:"><img src="${esc(e.image_url)}" alt=""><span>:${esc(e.code)}:</span></button>`).join('')}</div>`:'<div class="small">Aucune emote de chaîne.</div>';}
 function toggleEmotes(){const box=$('#customEmoteShelf'); if(!box)return; box.classList.toggle('hidden'); renderEmoteShelf();}
 function selectCustomEmote(code){const e=(state.channelEmotes||[]).find(x=>x.code===code); if(!e)return; if(!e.allowed)return toast(e.gate==='like'?'Aime la chaîne pour utiliser cette emote.':'Suis la chaîne pour utiliser cette emote.'); state.selectedEmote=e; const input=$('#chatInput'); if(input&&!input.value.includes(':'+e.code+':'))input.value=(input.value+' :'+e.code+':').trim(); toast('Emote prête')}
-async function renderSettings(){
- let u=state.session.local;
- if(u?.login){
-  try{const pr=await api('/api/oryon/profile/'+encodeURIComponent(u.login));
-   if(pr.success&&pr.user)u=pr.user
-  }catch(_){}
- }
- const top='<header class="pageHead swapp-workspace-heading"><div><span class="swapp-workspace-overline">SWAPP / ESPACE PERSONNEL</span>'+
-  '<h1>Mon compte</h1><p>Profil, chaîne, connexions et prochains lives. Tout au même endroit.</p></div>'+
-  (u?'<div class="swapp-workspace-person"><strong>'+esc(u.display_name||u.login)+'</strong><a href="/'+encodeURIComponent(u.login)+'">Voir ma chaîne ↗</a></div>':'')+
-  '</header>';
- const quick=u?'<nav class="swapp-workspace-quick" aria-label="Accès direct">'+
-  '<button type="button" onclick="setView(\'manager\')">Diffuser sur SWAPP ↗</button>'+
-  '<button type="button" onclick="setView(\'dashboard\')">Consulter mes statistiques ↗</button>'+
-  '<a href="/mes-jeux">Mes jeux et mes envies ↗</a>'+
-  '<a href="/communaute">SOCIAL ↗</a></nav>':'';
- const twitch='<section class="swapp-account-connections" aria-label="Connexions">'+
-  '<div><span class="swapp-workspace-overline">CONNEXIONS</span><h2>Services connectés</h2><p>Associe Twitch uniquement si tu veux afficher les chaînes que tu suis.</p></div>'+
-  '<div class="swapp-account-twitch"><div><strong>Twitch</strong><span>'+
-  (state.session.twitch?'Connecté : '+esc(state.session.twitch.display_name||state.session.twitch.login):'Non connecté')+
-  '</span></div><button type="button" class="btn secondary" onclick="'+
-  (state.session.twitch?'logoutTwitch()':'connectTwitch()')+'">'+
-  (state.session.twitch?'Déconnecter':'Connecter Twitch')+'</button></div>'+
-  (u?'<div class="swapp-account-session"><span>Compte SWAPP actif</span><button type="button" class="btn secondary" onclick="logoutOryon()">Se déconnecter</button></div>':'')+'</section>';
- const foundation='<details class="swapp-workspace-technical"><summary>Diagnostic du compte et des services</summary>'+
-  '<div id="foundationStatus" role="status">Chargement…</div></details>';
- $('#settings').innerHTML='<div class="swapp-account-workspace">'+top+quick+
-  (u?'<section class="swapp-account-main" aria-label="Profil">'+profileSettings(u)+'</section>':authSettings())+
-  twitch+(u?'<section class="swapp-account-planning" id="planningSettings"></section>':'')+
-  foundation+'</div>';
- bindSettingsForms();void loadFoundation();if(u)renderPlanning();
-}
 function authSettings(){return `<div class="two"><form id="loginForm" class="panel"><h2>Connexion Swapp</h2><input id="loginName" placeholder="pseudo"><input id="loginPass" type="password" placeholder="mot de passe"><button class="btn section">Se connecter</button></form><form id="registerForm" class="panel"><h2>Créer un compte</h2><input id="regName" placeholder="pseudo"><input id="regEmail" type="email" placeholder="email"><input id="regPass" type="password" placeholder="mot de passe"><button class="btn section">Créer</button></form></div>`}
 function profileSettings(u){
  return '<form id="profileForm" class="panel swapp-profile-editor">'+
@@ -547,9 +515,90 @@ async function loadFoundation(){const r=await api('/api/oryon/foundation/status'
 function bindSettingsForms(){const lf=$('#loginForm'); if(lf)lf.onsubmit=async e=>{e.preventDefault(); const r=await api('/api/oryon/login',{method:'POST',body:JSON.stringify({login:$('#loginName').value,password:$('#loginPass').value})}); toast(r.success?'Connecté':r.error); if(r.success){if(state.socket){state.socket.disconnect();state.socket=null;state.socketLogin=null} await loadSession();setView('home')}}; const rf=$('#registerForm'); if(rf)rf.onsubmit=async e=>{e.preventDefault(); const r=await api('/api/oryon/register',{method:'POST',body:JSON.stringify({login:$('#regName').value,email:$('#regEmail').value,password:$('#regPass').value})}); toast(r.success?'Compte créé':r.error); if(r.success){if(state.socket){state.socket.disconnect();state.socket=null;state.socketLogin=null} await loadSession();state.watchRoom=null;setView('channel')}}; const pf=$('#profileForm'); if(pf){fileToData($('#avatarFile'),$('#profileAvatar')); fileToData($('#bannerFile'),$('#profileBanner')); fileToData($('#offlineFile'),$('#profileOffline')); pf.onsubmit=async e=>{e.preventDefault(); const prev=await api('/api/oryon/profile/'+encodeURIComponent(state.session.local?.login||'')); const cur=prev.user||{}; const r=await api('/api/oryon/profile',{method:'POST',body:JSON.stringify({display_name:$('#profileDisplay').value,bio:$('#profileBio').value,avatar_url:$('#profileAvatar').value,banner_url:$('#profileBanner').value,offline_image_url:$('#profileOffline').value,tags:$('#profileTags').value,channel_badges:cur.channel_badges||[],peertube_watch_url:'',peertube_embed_url:'',oryon_local_player_url:cur.oryon_local_player_url||state.channelProfile?.oryon_local_player_url||'',oryon_local_status_url:cur.oryon_local_status_url||state.channelProfile?.oryon_local_status_url||''})}); toast(r.success?'Profil sauvegardé':r.error); await loadSession(); renderSettings()}}}
 function fileToData(input,target){if(!input)return; input.onchange=()=>{const f=input.files[0]; if(!f)return; compressImage(f).then(data=>{target.value=data; toast('Image prête. Clique sur Sauvegarder.')}).catch(()=>toast('Image non lisible.'))}}
 function compressImage(file){return new Promise((resolve,reject)=>{const img=new Image(); const rd=new FileReader(); rd.onload=()=>{img.onload=()=>{const max=1000; let w=img.width,h=img.height; const ratio=Math.min(1,max/Math.max(w,h)); w=Math.round(w*ratio); h=Math.round(h*ratio); const c=document.createElement('canvas'); c.width=w; c.height=h; const ctx=c.getContext('2d'); ctx.drawImage(img,0,0,w,h); resolve(c.toDataURL('image/jpeg',0.65));}; img.onerror=reject; img.src=rd.result}; rd.onerror=reject; rd.readAsDataURL(file)})}
-function renderPlanning(){const box=$('#planningSettings'); box.innerHTML=`<div class="panel funPlanner"><div class="pageHead"><div><h2>Planning</h2><p>Planifie vite tes prochains lives avec des cartes lisibles sur ta chaîne.</p></div><button class="btn secondary" type="button" onclick="quickPlanTonight()">Ce soir 21h</button></div><form id="planningForm" class="plannerForm"><input id="planTitle" placeholder="Titre du live"><input id="planCategory" placeholder="Catégorie"><input id="planTags" placeholder="Tags"><input id="planWhen" type="datetime-local"><button class="btn">Ajouter</button></form><div id="planningList" class="planningTimeline section"></div></div>`; $('#planningForm').onsubmit=async e=>{e.preventDefault();const r=await api('/api/oryon/planning',{method:'POST',body:JSON.stringify({title:$('#planTitle').value,category:$('#planCategory').value,tags:$('#planTags').value,when:$('#planWhen').value})});toast(r.success?'Live planifié':r.error);loadPlanning()}; loadPlanning()}
-function quickPlanTonight(){const d=new Date();d.setHours(21,0,0,0); if(d<Date.now())d.setDate(d.getDate()+1); $('#planWhen').value=d.toISOString().slice(0,16); if(!$('#planTitle').value)$('#planTitle').value='Live du soir';}
-async function loadPlanning(){const r=await api('/api/oryon/planning?login='+(state.session.local?.login||'')); $('#planningList').innerHTML=(r.items||[]).map(x=>`<div class="card"><b>${esc(x.title)}</b><p>${new Date(x.when).toLocaleString('fr-FR')}</p><span class="pill">${esc(x.category)}</span></div>`).join('')||'<div class="empty">Aucun live planifié.</div>'}
+function renderPlanning(){
+ const box=document.getElementById('planningSettings');
+ if(!box)return;
+ box.innerHTML='<header class="swapp-acct-section-head"><div><span class="swapp-acct-kicker">CALENDRIER</span>'+
+  '<h2>Prochains directs</h2><p>Ajoute une date, un titre et le jeu que tu prévois de diffuser.</p></div>'+
+  '<button class="btn secondary" type="button" onclick="quickPlanTonight()">Ce soir à 21 h</button></header>'+
+  '<form id="planningForm" class="swapp-acct-planner">'+
+  '<label class="swapp-acct-plan-title" for="planTitle"><span>Titre du direct</span><input id="planTitle" name="title" maxlength="140" required placeholder="Ex. Session découverte"></label>'+
+  '<label class="swapp-acct-plan-game" for="planCategory"><span>Jeu / catégorie</span><input id="planCategory" name="category" maxlength="85" placeholder="Ex. Minecraft"></label>'+
+  '<label class="swapp-acct-plan-tags" for="planTags"><span>Tags</span><input id="planTags" name="tags" maxlength="160" placeholder="FR, chill"></label>'+
+  '<label class="swapp-acct-plan-when" for="planWhen"><span>Date et heure</span><input id="planWhen" name="when" type="datetime-local" required></label>'+
+  '<button class="btn swapp-acct-plan-submit" type="submit">Ajouter au planning</button></form>'+
+  '<div id="planningList" class="swapp-acct-planning-list" aria-live="polite">Chargement du planning…</div>';
+ const list=document.getElementById('planningList');
+ list?.addEventListener('click',async event=>{
+  const button=event.target.closest('[data-plan-delete]');
+  if(!button||!list.contains(button))return;
+  const id=button.dataset.planDelete;
+  if(!/^[a-f0-9]{16}$/.test(id))return;
+  if(!window.confirm('Supprimer ce direct du planning ?'))return;
+  button.disabled=true;
+  try{
+   const result=await api('/api/oryon/planning/'+id,{method:'DELETE'});
+   if(!result?.success)throw Error(result?.error||'Suppression indisponible');
+   toast('Live retiré du planning');
+   await loadPlanning();
+  }catch(error){toast(error.message||'Impossible de supprimer ce live');button.disabled=false}
+ });
+ const form=document.getElementById('planningForm');
+ form.onsubmit=async event=>{
+  event.preventDefault();
+  if(!form.reportValidity())return;
+  const title=document.getElementById('planTitle').value.trim();
+  const category=document.getElementById('planCategory').value.trim();
+  const tags=document.getElementById('planTags').value.trim();
+  const localWhen=document.getElementById('planWhen').value;
+  const parsedWhen=new Date(localWhen);
+  if(!title||!localWhen||!Number.isFinite(parsedWhen.getTime()))return;
+  // Store an explicit UTC instant: Date.parse on Hostinger must never
+  // reinterpret the member's browser-local appointment as server-local time.
+  const when=parsedWhen.toISOString();
+  const button=form.querySelector('[type="submit"]');
+  button.disabled=true;
+  try{
+   const response=await api('/api/oryon/planning',{method:'POST',body:JSON.stringify({title,category,tags,when})});
+   if(!response?.success)throw Error(response?.error||'Enregistrement indisponible');
+   toast('Live ajouté au planning');
+   form.reset();
+   await loadPlanning();
+  }catch(error){toast(error.message||'Impossible de planifier ce live')}
+  finally{button.disabled=false}
+ };
+ void loadPlanning();
+}
+function quickPlanTonight(){
+ const input=document.getElementById('planWhen');
+ if(!input)return;
+ const d=new Date();
+ d.setHours(21,0,0,0);
+ if(d.getTime()<=Date.now())d.setDate(d.getDate()+1);
+ const two=n=>String(n).padStart(2,'0');
+ input.value=d.getFullYear()+'-'+two(d.getMonth()+1)+'-'+two(d.getDate())+'T'+two(d.getHours())+':'+two(d.getMinutes());
+ if(!document.getElementById('planTitle').value)document.getElementById('planTitle').value='Live du soir';
+ input.focus();
+}
+async function loadPlanning(){
+ const target=document.getElementById('planningList');
+ if(!target)return;
+ try{
+  const result=await api('/api/oryon/planning?login='+encodeURIComponent(state.session.local?.login||''));
+  if(!result?.success)throw Error('not_available');
+  const items=Array.isArray(result.items)?result.items.slice(0,25):[];
+  target.innerHTML=items.map(x=>{
+   const stamp=new Date(x.when),date=Number.isFinite(stamp.getTime())?
+    stamp.toLocaleString('fr-FR',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}):'Date à confirmer';
+   const id=/^[a-f0-9]{16}$/.test(String(x.id||''))?x.id:'';
+   return '<div class="swapp-acct-planning-row"><time>'+esc(date)+'</time><b>'+esc(x.title||'Sans titre')+
+    '</b><span>'+esc(x.category||'Catégorie non renseignée')+'</span>'+
+    (id?'<button type="button" data-plan-delete="'+id+'" aria-label="Supprimer le live '+esc(x.title||'sans titre')+'">Supprimer</button>':'')+'</div>';
+  }).join('')||'<p class="swapp-acct-empty">Aucun direct planifié. Le formulaire ci-dessus est prêt.</p>';
+ }catch(_){
+  target.innerHTML='<p class="swapp-acct-empty">Planning temporairement indisponible. Tes directs existants ne sont pas effacés.</p>';
+ }
+}
 async function logoutOryon(){await api('/api/oryon/logout',{method:'POST'}); state.session.local=null; if(state.socket){state.socket.disconnect();state.socket=null;state.socketLogin=null} await loadSession(); setView('home'); toast('Déconnecté')}
 async function renderAdmin(){if(!isAdmin())return setView('home'); $('#admin').innerHTML=`<div class="pageHead"><div><h1>Admin</h1><p>Réservé aux comptes configurés dans ORYON_ADMIN_LOGINS.</p></div></div><div id="adminBox" class="panel">Chargement…</div>`; const r=await api('/api/oryon/admin/summary'); $('#adminBox').innerHTML=r.success?`<div class="stats">${Object.entries(r.stats).map(([k,v])=>`<div class="stat"><span class="small">${k}</span><b>${v}</b></div>`).join('')}</div><h2 class="section">Signalements</h2>${(r.reports||[]).map(x=>`<p>${esc(x.user)} → ${esc(x.target||x.room)} : ${esc(x.reason)}</p>`).join('')||'<p class="muted">Aucun signalement.</p>'}`:esc(r.error)}
 function attachCurrentStream(){const v=$('#localVideo'); if(v&&state.stream){v.srcObject=state.stream; v.muted=true; v.playsInline=true; v.autoplay=true; v.classList.remove('hidden'); v.style.display='block'; v.play?.().catch(()=>{}); const e=$('#managerPreviewEmpty'); if(e){e.classList.add('hidden'); e.style.display='none';} const off=$('#offlinePanel'); if(off) off.style.display='none';} else {const e=$('#managerPreviewEmpty'); if(e){e.classList.remove('hidden'); e.style.display='grid';}}}
@@ -3715,15 +3764,6 @@ function renderUserMenu(){
   $('#userMenu').innerHTML=parts.join('');
 }
 
-async function renderSettings(){
-  let u=state.session.local;
-  if(u?.login){ try{ const pr=await api('/api/oryon/profile/'+encodeURIComponent(u.login)); if(pr.success&&pr.user)u=pr.user; }catch(_){} }
-  const mode=getAppMode();
-  $('#settings').innerHTML=`<div class="pageHead"><div><h1>${mode==='streamer'?'Page streamer':'Page viewer'}</h1><p>${mode==='streamer'?'Ton espace créateur et ton menu stream.':'Ton profil viewer, tes goûts, ta mémoire et tes connexions.'}</p></div><div class="modeSwitch"><button class="btn ${mode==='viewer'?'':'secondary'}" onclick="setAppMode('viewer')">Page viewer</button><button class="btn ${mode==='streamer'?'':'secondary'}" onclick="setAppMode('streamer')">Page streamer</button></div></div>
-  <div class="two section"><div class="panel">${mode==='viewer'?viewerProfileCard():(u?profileSettings(u):authSettings())}</div><div class="panel">${mode==='streamer' ? (u ? `<h2>Menu stream</h2><div class="summaryList"><div class="summaryItem"><b>Ma chaîne</b><p class="small">Page publique, lecteur et chat.</p><button class="btn" onclick="setView('channel')">Ouvrir ma chaîne</button></div><div class="summaryItem"><b>Gestionnaire de stream</b><p class="small">Préparer, lancer et configurer ton live Swapp.</p><button class="btn" onclick="setView('manager')">Ouvrir le gestionnaire</button></div><div class="summaryItem"><b>Outils créateur</b><p class="small">Studio, overlays et outils de chaîne.</p><button class="btn" onclick="setView('studio')">Ouvrir les outils</button></div></div>` : authSettings()) : `<h2>Connexions</h2><div class="summaryList"><div class="summaryItem"><b>Twitch</b><p class="small">${state.session.twitch?'Connecté : '+esc(state.session.twitch.display_name||state.session.twitch.login):'Non connecté. Connecte Twitch pour retrouver tes suivis et améliorer les recommandations.'}</p><div class="row">${state.session.twitch?`<button class="btn secondary" onclick="logoutTwitch()">Déconnecter Twitch</button>`:`<button class="btn" onclick="connectTwitch()">Connecter Twitch</button>`}</div></div><div class="summaryItem"><b>Mémoire viewer</b><p class="small">Conserve tes swipes, pépites vues et chaînes aimées même après navigation ou reconnexion.</p><button class="btn secondary" onclick="toast('La mémoire viewer est locale et persistante dans ce navigateur.')">Compris</button></div></div>`}</div></div>`;
-  bindSettingsForms?.();
-}
-
 function multiWatchKey(){ return 'oryon_multiwatch_v1:'+String(state.session?.local?.login||state.session?.twitch?.login||'guest').toLowerCase(); }
 function loadMultiWatch(){ const v=readJsonSafe(multiWatchKey(), null); return Array.isArray(v) && v.length===6 ? v : Array.from({length:6},()=>null); }
 function saveMultiWatch(v){ writeJsonSafe(multiWatchKey(), (v||[]).slice(0,6)); }
@@ -3875,26 +3915,130 @@ function authSettings(){
   return `<div class="authCenterWrap"><div class="authCenterGrid"><form id="loginForm" class="authCard"><h2>Connexion Swapp</h2><p>Connecte-toi pour retrouver ta chaîne, ton profil viewer et ton menu stream.</p><input id="loginName" placeholder="pseudo"><input id="loginPass" type="password" placeholder="mot de passe"><button class="btn">Se connecter</button></form><form id="registerForm" class="authCard"><h2>Créer un compte</h2><p>Crée ton compte Swapp dans un espace propre et centré.</p><input id="regName" placeholder="pseudo"><input id="regEmail" type="email" placeholder="email"><input id="regPass" type="password" placeholder="mot de passe"><button class="btn">Créer</button></form></div></div>`;
 }
 
-function viewerProfilePanel(){
-  return `<section class="panel viewerProfileCompact"><h2>Profil viewer</h2><p class="small">Visible aussi depuis ton profil Swapp quand tu es connecté.</p>${viewerProfileCard()}</section>`;
+function swappAccountTab(tab){
+ const root=document.getElementById('settings');
+ if(!root)return;
+ const selected=['overview','profile','stream'].includes(tab)?tab:'overview';
+ window.swappActiveAccountTab=selected;
+ for(const button of root.querySelectorAll('[data-account-tab]')){
+  const active=button.dataset.accountTab===selected;
+  button.classList.toggle('is-active',active);
+  button.setAttribute('aria-selected',String(active));
+  button.tabIndex=active?0:-1;
+ }
+ for(const panel of root.querySelectorAll('[data-account-panel]')){
+  panel.hidden=panel.dataset.accountPanel!==selected;
+ }
 }
-
 async function renderSettings(){
-  const root = $('#settings'); if(!root) return;
-  let u=state.session.local;
-  if(u?.login){ try{ const pr=await api('/api/oryon/profile/'+encodeURIComponent(u.login)); if(pr.success&&pr.user) u=pr.user; }catch(_){} }
-  const mode=getAppMode();
-  if(!u){
-    root.innerHTML=`<div class="settingsShell"><div class="settingsHero"><div><h1>${mode==='streamer'?'Page streamer':'Page viewer'}</h1><p>${mode==='streamer'?'Crée ou connecte ton compte pour débloquer le menu stream et ta chaîne Swapp.':'Crée ou connecte ton compte pour conserver ton profil viewer, tes préférences et ta mémoire.'}</p></div><div class="modeSwitch"><button class="btn ${mode==='viewer'?'':'secondary'}" onclick="setAppMode('viewer')">Page viewer</button><button class="btn ${mode==='streamer'?'':'secondary'}" onclick="setAppMode('streamer')">Page streamer</button></div></div>${authSettings()}<section class="panel"><h2>Connexions externes</h2><div class="summaryList"><div class="summaryItem"><b>Twitch</b><p class="small">${state.session.twitch?'Connecté : '+esc(state.session.twitch.display_name||state.session.twitch.login):'Non connecté. Connecte Twitch pour remonter tes suivis et nourrir les recommandations.'}</p><div class="row">${state.session.twitch?`<button class="btn secondary" onclick="logoutTwitch()">Déconnecter Twitch</button>`:`<button class="btn" onclick="connectTwitch()">Connecter Twitch</button>`}</div></div></div></section></div>`;
-    bindSettingsForms?.();
-    return;
-  }
-  root.innerHTML=`<div class="settingsShell"><div class="settingsHero"><div><h1>${mode==='streamer'?'Page streamer':'Page viewer'}</h1><p>${mode==='streamer'?'Ton espace créateur, ton menu stream et aussi ton profil viewer dans la même page de profil.':'Ton profil viewer complet, ta mémoire et tes connexions Swapp / Twitch.'}</p></div><div class="modeSwitch"><button class="btn ${mode==='viewer'?'':'secondary'}" onclick="setAppMode('viewer')">Page viewer</button><button class="btn ${mode==='streamer'?'':'secondary'}" onclick="setAppMode('streamer')">Page streamer</button></div></div>${mode==='viewer'?`<div class="settingsStack">${viewerProfilePanel()}<section class="panel"><h2>Connexions</h2><div class="summaryList"><div class="summaryItem"><b>Twitch</b><p class="small">${state.session.twitch?'Connecté : '+esc(state.session.twitch.display_name||state.session.twitch.login):'Non connecté. Connecte Twitch pour retrouver tes suivis et améliorer les recommandations.'}</p><div class="row">${state.session.twitch?`<button class="btn secondary" onclick="logoutTwitch()">Déconnecter Twitch</button>`:`<button class="btn" onclick="connectTwitch()">Connecter Twitch</button>`}</div></div><div class="summaryItem"><b>Mémoire viewer</b><p class="small">Conserve tes swipes, pépites vues, chaînes aimées et sauvegardes dans ce navigateur.</p><button class="btn secondary" onclick="toast('La mémoire viewer est bien conservée pour ton compte Swapp dans ce navigateur.')">Compris</button></div><div class="summaryItem"><b>Compte Swapp</b><p class="small">Connecté en tant que ${esc(u.display_name||u.login)}.</p><button class="btn secondary" onclick="logoutOryon()">Déconnecter Swapp</button></div></div></section></div>`:`<div class="settingsGrid"><div class="settingsStack"><section class="panel">${profileSettings(u)}</section>${viewerProfilePanel()}</div><div class="settingsStack"><section class="panel"><h2>Menu stream</h2><div class="summaryList"><div class="summaryItem"><b>Ma chaîne</b><p class="small">Page publique, lecteur géant et tchat adaptatif.</p><button class="btn" onclick="setView('channel')">Ouvrir ma chaîne</button></div><div class="summaryItem"><b>Gestionnaire</b><p class="small">Préparer, lancer et configurer ton live Swapp.</p><button class="btn" onclick="setView('manager')">Ouvrir le gestionnaire</button></div><div class="summaryItem"><b>Outils créateur</b><p class="small">Studio, overlays et outils de chaîne.</p><button class="btn" onclick="setView('studio')">Ouvrir les outils</button></div><div class="summaryItem"><b>Twitch</b><p class="small">${state.session.twitch?'Connecté : '+esc(state.session.twitch.display_name||state.session.twitch.login):'Non connecté. Connecte Twitch pour relier tes suivis et ton profil viewer.'}</p><div class="row">${state.session.twitch?`<button class="btn secondary" onclick="logoutTwitch()">Déconnecter Twitch</button>`:`<button class="btn" onclick="connectTwitch()">Connecter Twitch</button>`}</div></div><div class="summaryItem"><b>Compte</b><p class="small">Déconnecte-toi si besoin.</p><button class="btn secondary" onclick="logoutOryon()">Déconnecter Swapp</button></div></div></section><section id="planningSettings" class="panel"></section></div></div>`}</div>`;
-  bindSettingsForms?.();
-  loadFoundation?.();
-  if(u && mode==='streamer') renderPlanning?.();
+ const root=document.getElementById('settings');
+ if(!root)return;
+ let u=state.session.local;
+ if(u?.login){
+  try{
+   const response=await api('/api/oryon/profile/'+encodeURIComponent(u.login));
+   if(response.success&&response.user)u=response.user;
+  }catch(_){}
+ }
+ const p=typeof viewerProfileV2==='function'?viewerProfileV2():{};
+ const snapshot=typeof window.swappViewerSnapshot==='function'?window.swappViewerSnapshot():{};
+ const liked=Array.isArray(snapshot.likes)?snapshot.likes:(Array.isArray(p.likedChannels)?p.likedChannels:[]);
+ const saved=Array.isArray(snapshot.saved)?snapshot.saved:(typeof savedLives==='function'?savedLives():[]);
+ const history=!!state.swappHistory?.enabled;
+ const accent=String(localStorage.getItem('oryon_viewer_accent')||'#22d3ee');
+ const name=String(u?.display_name||u?.login||state.session.twitch?.display_name||'Invité');
+ const sessionText=u?'Compte SWAPP connecté':'Découvre SWAPP avec un compte unique';
+ const identity='<div class="swapp-acct-identity"><span class="swapp-acct-monogram" aria-hidden="true">'+
+  esc(name.trim().slice(0,1).toUpperCase()||'S')+'</span><div><span class="swapp-acct-kicker">MON ESPACE SWAPP</span>'+
+  '<h1>'+esc(name)+'</h1><p>'+sessionText+'</p></div></div>';
+ const nav=u?'<nav class="swapp-acct-nav" aria-label="Rubriques du compte" role="tablist">'+
+  '<button type="button" data-account-tab="overview" id="swapp-acct-tab-overview" role="tab" aria-controls="swapp-acct-panel-overview" onclick="swappAccountTab(\'overview\')">Vue d’ensemble</button>'+
+  '<button type="button" data-account-tab="profile" id="swapp-acct-tab-profile" role="tab" aria-controls="swapp-acct-panel-profile" onclick="swappAccountTab(\'profile\')">Profil et connexions</button>'+
+  '<button type="button" data-account-tab="stream" id="swapp-acct-tab-stream" role="tab" aria-controls="swapp-acct-panel-stream" onclick="swappAccountTab(\'stream\')">Diffusion et planning</button></nav>':'';
+ const streamLinks='<nav class="swapp-acct-action-links" aria-label="Mes outils de création">'+
+  '<button type="button" onclick="state.watchRoom=null;setView(\'channel\')"><strong>Ma chaîne</strong><span>Profil public et lecteur ↗</span></button>'+
+  '<button type="button" onclick="setView(\'manager\')"><strong>Diffuser</strong><span>OBS et navigateur ↗</span></button>'+
+  '<button type="button" onclick="setView(\'dashboard\')"><strong>Statistiques</strong><span>Indicateurs mesurés ↗</span></button>'+
+  '<button type="button" onclick="setView(\'studio\')"><strong>Outils créateur</strong><span>Personnalisation et modération ↗</span></button></nav>';
+ const metrics='<div class="swapp-acct-metrics" aria-label="Mes activités">'+
+  '<div><span>Chaînes aimées</span><strong>'+liked.length+'</strong></div>'+
+  '<div><span>Lives sauvegardés</span><strong>'+saved.length+'</strong></div>'+
+  '<div><span>Historique facultatif</span><strong data-swapp-history-value>'+ (history?'Activé':'Désactivé')+'</strong></div></div>';
+ const validLogin=x=>/^[a-z0-9_]{2,25}$/.test(String(x||'').toLowerCase());
+ const likedRows=liked.filter(x=>validLogin(x.login)).slice(0,5).map(x=>{
+  const login=String(x.login).toLowerCase();
+  const native=String(x.platform||'').toLowerCase()==='oryon'||String(x.platform||'').toLowerCase()==='swapp';
+  const href=native?'/'+encodeURIComponent(login):'/live/twitch/'+encodeURIComponent(login);
+  return '<a class="swapp-acct-list-row" href="'+href+'"><span><b>'+esc(x.name||login)+
+   '</b><small>'+esc(x.game||x.category||x.game_name||(native?'SWAPP LIVE':'Twitch'))+
+   '</small></span><span aria-hidden="true">↗</span></a>';
+ }).join('');
+ const viewer='<section class="swapp-acct-editorial swapp-acct-overview-main" aria-labelledby="swapp-account-discovery">'+
+  '<div class="swapp-acct-section-head"><div><span class="swapp-acct-kicker">TES ACTIVITÉS</span><h2 id="swapp-account-discovery">Découverte</h2><p>Les chaînes et les jeux que tu as choisis, sans statistiques inventées.</p></div>'+
+  '<a href="/mes-jeux">Gérer mes jeux ↗</a></div>'+metrics+
+  '<div class="swapp-acct-list-head"><h3>Chaînes aimées</h3><a href="/decouvrir">Découvrir des lives ↗</a></div>'+
+  (likedRows||'<p class="swapp-acct-empty">Tu n’as pas encore aimé de chaîne. Explore les directs SWAPP et Twitch pour constituer ta sélection.</p>')+
+  '</section>';
+ const quick='<section class="swapp-acct-editorial swapp-acct-overview-side" aria-labelledby="swapp-account-next">'+
+  '<div class="swapp-acct-section-head"><div><span class="swapp-acct-kicker">ACCÈS RAPIDE</span><h2 id="swapp-account-next">Continuer sur SWAPP</h2></div></div>'+
+  '<nav class="swapp-acct-quick" aria-label="Explorer">'+
+  '<a href="/mes-jeux"><strong>Ma bibliothèque</strong><span>Suivis, envies et actualités ↗</span></a>'+
+  '<a href="/decouvrir"><strong>Découvrir un live</strong><span>Chaînes SWAPP et Twitch ↗</span></a>'+
+  '<a href="/communaute"><strong>Mes discussions</strong><span>Salons et messages SOCIAL ↗</span></a>'+
+  '<a href="/boutique"><strong>Boutique</strong><span>Parcourir les jeux ↗</span></a></nav>'+
+  '</section>';
+ const accountActions='<section class="swapp-acct-connections" aria-labelledby="swapp-account-connections">'+
+  '<div class="swapp-acct-section-head"><div><span class="swapp-acct-kicker">INTÉGRATIONS</span><h2 id="swapp-account-connections">Connexions</h2>'+
+  '<p>Ton compte SWAPP suffit pour accéder à SOCIAL et à tes jeux.</p></div></div>'+
+  '<div class="swapp-acct-connection-row"><div><b>Twitch</b><small>'+
+  (state.session.twitch?'Connecté : '+esc(state.session.twitch.display_name||state.session.twitch.login):'Non connecté')+
+  '</small></div><button class="btn secondary" type="button" onclick="'+(state.session.twitch?'logoutTwitch()':'connectTwitch()')+'">'+
+  (state.session.twitch?'Déconnecter Twitch':'Connecter Twitch')+'</button></div>'+
+  '<div class="swapp-acct-connection-row"><div><b>Compte SWAPP</b><small>'+
+  (u?'Connecté en tant que '+esc(u.login):'Déconnecté')+
+  '</small></div>'+(u?'<button class="btn secondary" type="button" onclick="logoutOryon()">Se déconnecter</button>':'')+'</div></section>';
+ const prefs='<div class="swapp-acct-preferences"><label for="swapp-acct-accent"><b>Couleur d’accent</b><small>Modifie le thème de ton espace.</small></label>'+
+  '<input type="color" id="swapp-acct-accent" value="'+(/^#[0-9a-f]{6}$/i.test(accent)?esc(accent):'#22d3ee')+
+  '" oninput="setViewerThemeColor(this.value)" aria-label="Couleur d’accent"></div>'+
+  '<div class="swapp-acct-history-setting" id="swapp-acct-history-settings" aria-live="polite"></div>';
+ const sections=u?(
+  '<section data-account-panel="overview" id="swapp-acct-panel-overview" role="tabpanel" aria-labelledby="swapp-acct-tab-overview" class="swapp-acct-pane"><div class="swapp-acct-overview">'+viewer+quick+'</div></section>'+
+  '<section data-account-panel="profile" id="swapp-acct-panel-profile" role="tabpanel" aria-labelledby="swapp-acct-tab-profile" class="swapp-acct-pane" hidden>'+
+   '<div class="swapp-acct-section-head"><div><span class="swapp-acct-kicker">IDENTITÉ</span><h2>Mon profil public</h2><p>Modifie une seule fois les informations visibles sur ta chaîne.</p></div></div>'+
+   '<div class="swapp-acct-profile-layout"><div class="swapp-acct-profile-form">'+profileSettings(u)+'</div><aside class="swapp-acct-account-side">'+accountActions+prefs+
+   '<details class="swapp-acct-technical"><summary>Diagnostic technique</summary><div id="foundationStatus" role="status">Chargement…</div></details></aside></div></section>'+
+  '<section data-account-panel="stream" id="swapp-acct-panel-stream" role="tabpanel" aria-labelledby="swapp-acct-tab-stream" class="swapp-acct-pane" hidden>'+
+   '<div class="swapp-acct-section-head"><div><span class="swapp-acct-kicker">CRÉATION</span><h2>Ma chaîne et mes diffusions</h2><p>Prépare ton prochain direct ou ouvre le gestionnaire SWAPP.</p></div></div>'+
+   streamLinks+'<section id="planningSettings" class="swapp-acct-planning" aria-label="Planifier un live"></section></section>'
+ ):'<section class="swapp-acct-signin">'+authSettings()+'</section>';
+ root.innerHTML='<div class="swapp-account-workspace-v2">'+
+  '<header class="swapp-acct-header">'+identity+
+  (u?'<a class="swapp-acct-public" href="/'+encodeURIComponent(u.login)+'">Voir ma chaîne ↗</a>':'')+
+  '</header>'+nav+sections+'</div>';
+ if(u){
+  swappAccountTab(window.swappActiveAccountTab||'overview');
+  const tabs=root.querySelector('.swapp-acct-nav');
+  tabs?.addEventListener('keydown',event=>{
+   const keys=['ArrowRight','ArrowLeft','Home','End'];
+   if(!keys.includes(event.key))return;
+   const controls=[...tabs.querySelectorAll('[data-account-tab]')];
+   const current=controls.findIndex(x=>x.getAttribute('aria-selected')==='true');
+   if(!controls.length)return;
+   let next=current;
+   if(event.key==='ArrowRight')next=(current+1)%controls.length;
+   else if(event.key==='ArrowLeft')next=(current+controls.length-1)%controls.length;
+   else if(event.key==='Home')next=0;
+   else if(event.key==='End')next=controls.length-1;
+   event.preventDefault();
+   const button=controls[next];
+   swappAccountTab(button.dataset.accountTab);
+   button.focus();
+  });
+  renderPlanning();
+  bindSettingsForms();
+  loadFoundation();
+ }else bindSettingsForms();
 }
-
 async function renderChannel(){
   const viewer=state.session.local;
   const targetLogin=(state.watchRoom || viewer?.login || '').toLowerCase();
@@ -4091,23 +4235,32 @@ function setViewerThemeColor(color){
 function applyViewerThemeColor(){setViewerThemeColor(localStorage.getItem('oryon_viewer_accent')||'#22d3ee')}
 
 function renderUserMenu(){
-  const u=state.session.local, t=state.session.twitch; $('#userAvatar').src=u?.avatar_url||t?.profile_image_url||''; $('#userLabel').textContent=u?.display_name||u?.login||t?.display_name||'Compte';
-  const mode=getAppMode?.() || (u?'streamer':'viewer');
-  const colors=['#22d3ee','#a855f7','#22c55e','#f59e0b','#f43f5e','#ffffff'];
-  const parts=[];
-  parts.push(`<div class="topThemePanel"><b>Couleur du site</b><div class="topThemeColors"><input type="color" value="${esc(localStorage.getItem('oryon_viewer_accent')||'#22d3ee')}" oninput="setViewerThemeColor(this.value)">${colors.map(c=>`<button style="background:${c}" onclick="setViewerThemeColor('${c}')"></button>`).join('')}</div></div><div class="sep"></div>`);
-  if(u||t){
-    parts.push(`<div class="small" style="padding:10px 12px">Compte actif<br><b>${esc(u?.display_name||u?.login||t?.display_name||t?.login||'Utilisateur')}</b><br><span class="modeBadge" style="margin-top:8px">${mode==='streamer'?'🎥 Mode streamer':'👁️ Mode viewer'}</span></div>`);
-    parts.push(`<div class="modeSwitch" style="padding:0 12px 8px"><button class="btn ${mode==='viewer'?'':'secondary'}" onclick="setAppMode('viewer')">Page viewer</button><button class="btn ${mode==='streamer'?'':'secondary'}" onclick="setAppMode('streamer')">Page streamer</button></div><div class="sep"></div>`);
-  }
-  if(u){ parts.push(`<button onclick="swappOpenOwnChannel()">Ma chaîne</button><button onclick="setView('manager')">Gestionnaire de stream</button><button onclick="setView('dashboard')">Tableau de bord créateur</button><button onclick="setView('studio')">Outils créateur</button><div class="sep"></div>`); }
-  parts.push(`<button onclick="setView('settings')">Connexion et créer un compte</button>`);
-  parts.push(t?`<button onclick="logoutTwitch()">Déconnecter Twitch</button>`:`<button onclick="connectTwitch()">Connecter Twitch</button>`);
-  if(u) parts.push(`<button onclick="logoutOryon()">Déconnecter Swapp</button>`);
-  if(isAdmin?.()) parts.push(`<div class="sep"></div><button onclick="setView('admin')">Administration</button>`);
-  $('#userMenu').innerHTML=parts.join('');
+ const u=state.session.local,t=state.session.twitch;
+ $('#userAvatar').src=u?.avatar_url||t?.profile_image_url||'';
+ $('#userLabel').textContent=u?.display_name||u?.login||t?.display_name||'Compte';
+ const colors=['#22d3ee','#a855f7','#22c55e','#f59e0b','#f43f5e','#ffffff'],parts=[];
+ const accent=String(localStorage.getItem('oryon_viewer_accent')||'#22d3ee');
+ parts.push('<div class="topThemePanel"><b>Couleur du site</b><div class="topThemeColors">'+
+  '<input type="color" value="'+(/^#[a-f0-9]{6}$/i.test(accent)?accent:'#22d3ee')+
+  '" aria-label="Couleur du site" oninput="setViewerThemeColor(this.value)">'+
+  colors.map(c=>'<button type="button" aria-label="Choisir '+c+'" style="background:'+c+
+   '" onclick="setViewerThemeColor(\''+c+'\')"></button>').join('')+'</div></div><div class="sep"></div>');
+ if(u||t)parts.push('<div class="small" style="padding:10px 12px">Connecté<br><b>'+
+  esc(u?.display_name||u?.login||t?.display_name||t?.login||'Utilisateur')+'</b></div>');
+ parts.push('<button type="button" onclick="window.swappActiveAccountTab=\'overview\';setView(\'settings\')">Mon espace SWAPP</button>');
+ if(u){
+  parts.push('<button type="button" onclick="swappOpenOwnChannel()">Ma chaîne</button>'+
+   '<button type="button" onclick="setView(\'manager\')">Diffuser</button>'+
+   '<button type="button" onclick="setView(\'dashboard\')">Statistiques</button>'+
+   '<button type="button" onclick="setView(\'studio\')">Outils créateur</button>'+
+   '<a href="/mes-jeux">Mes jeux et envies</a><div class="sep"></div>');
+ }
+ parts.push(t?'<button type="button" onclick="logoutTwitch()">Déconnecter Twitch</button>':
+  '<button type="button" onclick="connectTwitch()">Connecter Twitch</button>');
+ if(u)parts.push('<button type="button" onclick="logoutOryon()">Se déconnecter</button>');
+ if(isAdmin?.())parts.push('<div class="sep"></div><button type="button" onclick="setView(\'admin\')">Administration</button>');
+ $('#userMenu').innerHTML=parts.join('');
 }
-
 async function loadHomeRecommendations(){
   const box=$('#homeShowcaseLives'); if(!box) return;
   box.innerHTML=`<div class="hfEmptyLive"><div><h2>Recherche de lives publics…</h2><p>Swapp cherche des lives à découvrir, pas tes suivis.</p></div></div>`;
@@ -8252,6 +8405,12 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
 
   window.swappShareChannel=function swappShareChannel(login){const url=profileUrl(login || state?.channelProfile?.login || state?.session?.local?.login || '');if(navigator.share){navigator.share({title:'Chaîne Swapp',url}).catch(()=>{});return;}navigator.clipboard?.writeText(url).then(()=>toast?.('Lien de chaîne copié.')).catch(()=>prompt('Lien de chaîne',url));};
 
+  // Shared exact local viewer data for the real account renderer.
+  // No invented scores, no passive server-side profile upload.
+  window.swappViewerSnapshot=()=>({
+    likes:mergedLikes(),
+    saved:typeof savedLives==='function'?savedLives():[]
+  });
   window.viewerProfileCard=function viewerProfileCardReady(){
     const p=(typeof viewerProfileV2==='function'?viewerProfileV2():{})||{};
     const likes=mergedLikes();
@@ -8429,17 +8588,25 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
     try{const r=await api('/api/oryon/viewer/history');if(r) state.swappHistory=r;return r||{success:false,enabled:false};}catch(_){return state.swappHistory||{success:false,enabled:false};}
   }
   function historyBlockHtml(status){
-    const logged=!!window.state?.session?.local; const enabled=!!status?.enabled;
-    if(!logged) return `<section class="swappSettingsHistoryBlock" data-swapp-history-settings><div><span class="swappSettingsHistoryState">Compte requis</span><h2>Les recommandations ne sont pas pertinentes ?</h2><p>Connecte-toi ou crée un compte Swapp pour conserver tes J’aime, tes swipes et ton historique viewer.</p></div><div class="swappSettingsHistoryActions"><button class="btn" onclick="setView('settings')">Connexion et créer un compte</button></div></section>`;
-    return `<section class="swappSettingsHistoryBlock" data-swapp-history-settings><div><span class="swappSettingsHistoryState">${enabled?'Historique activé':'Historique désactivé'}</span><h2>Les recommandations ne sont pas pertinentes ?</h2><p>En activant l’historique des vidéos regardées, vous obtiendrez des recommandations plus personnalisées.</p></div><div class="swappSettingsHistoryActions"><button class="btn secondary" onclick="swappSetRecommendationHistory(false);setTimeout(swappRefreshSettingsHistoryBlock,250)">Ne pas activer l’historique</button><button class="btn" onclick="swappSetRecommendationHistory(true);setTimeout(swappRefreshSettingsHistoryBlock,250)">${enabled?'Réactiver l’historique':'Activer l’historique'}</button></div></section>`;
+    const enabled=!!status?.enabled;
+    return '<div class="swapp-acct-history-copy"><strong>Historique de visionnage</strong>'+
+      '<small>'+ (enabled?'Activé uniquement sur demande':'Désactivé par défaut')+
+      '. Utilisé pour personnaliser tes découvertes lorsque tu le souhaites.</small></div>'+
+      '<button type="button" class="btn secondary" onclick="swappSetRecommendationHistory('+
+       String(!enabled)+');setTimeout(swappRefreshSettingsHistoryBlock,300)">'+
+       (enabled?'Désactiver':'Activer')+'</button>';
   }
   async function installSettingsHistoryBlock(){
-    const root=document.getElementById('settings'); if(!root||!root.classList.contains('active')) return;
-    root.querySelectorAll('[data-swapp-history-settings]').forEach(el=>el.remove());
-    let mode='viewer'; try{mode=typeof getAppMode==='function'?getAppMode():'viewer';}catch(_){mode='viewer';}
-    if(mode!=='viewer') return;
-    const status=await getHistoryState(); const after=root.querySelector('.settingsHero')||root.querySelector('.pageHead'); const target=root.querySelector('.settingsShell')||root;
-    if(after) after.insertAdjacentHTML('afterend',historyBlockHtml(status)); else target.insertAdjacentHTML('afterbegin',historyBlockHtml(status));
+    // Never insert a floating card into the root: render only inside the
+    // existing Preferences tab, even after subsequent SPA navigation.
+    const root=document.getElementById('settings');
+    const target=root?.querySelector('#swapp-acct-history-settings');
+    if(!target||!root.classList.contains('active'))return;
+    const status=await getHistoryState();
+    if(!target.isConnected)return;
+    target.innerHTML=historyBlockHtml(status);
+    const metric=root.querySelector('[data-swapp-history-value]');
+    if(metric)metric.textContent=status?.enabled?'Activé':'Désactivé';
   }
   window.swappRefreshSettingsHistoryBlock=installSettingsHistoryBlock;
   function cleanAll(){applyPremiumFullWidth();removeHomeArtifacts();if(activeView()==='settings') installSettingsHistoryBlock();}

@@ -51,7 +51,7 @@ test('article readers use category-aware lookups and do not call an unavailable 
 });
 test('account and dashboard render functional forms and real controls instead of fake service integrations',()=>{
  const bundle=read('index_script.js');
- const settings=bundle.slice(bundle.indexOf('async function renderSettings(){'),bundle.indexOf('\nfunction authSettings(){'));
+ const settings=bundle.slice(bundle.indexOf('async function renderSettings(){'),bundle.indexOf('\nasync function renderChannel(){',bundle.indexOf('async function renderSettings(){')));
  const dashboard=bundle.slice(bundle.indexOf('async function renderDashboard(){'),bundle.indexOf('\nasync function loadDashboard()'));
  const shell=bundle.slice(bundle.indexOf('function creatorShell(active,body){'),bundle.indexOf('\nasync function renderChannel()'));
  for(const key of ['id="profileForm"','id="planningSettings"','id="foundationStatus"','connectTwitch()','setView(\\\'dashboard\\\')','/mes-jeux']){
@@ -74,11 +74,11 @@ test('creator workspace uses separated editorial controls, responsive layout and
  assert.match(css,/\.swapp-account-workspace/);
  assert.match(css,/\.swapp-dash-columns/);
  assert.match(css,/border-radius:0!important/);
- assert.match(css,/@media\(max-width:720px\)/);
- assert.match(css,/@media\(max-width:390px\)/);
+ assert.match(css,/@media\(max-width:760px\)/);
+ assert.match(css,/@media\(max-width:430px\)/);
  const html=read('index.html'),shell=read('modules/swapp-news/site-shell.js');
- assert.match(html,/swapp-creator-workspace\.css\?v=20261019-creator-workspace-v1/);
- assert.match(html,/index_script\.js\?v=20261019-creator-workspace-v1/);
+ assert.match(html,/swapp-creator-workspace\.css\?v=20261019-account-native-v2/);
+ assert.match(html,/index_script\.js\?v=20261019-account-native-v2/);
  assert.match(html,/swapp-game-identity\.js\?v=20261019-witcher-twitch-v1/);
  assert.match(shell,/swapp-media-live\.js\?v=20261019-witcher-twitch-v1/);
 });

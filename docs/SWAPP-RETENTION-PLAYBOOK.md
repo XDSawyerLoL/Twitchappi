@@ -127,3 +127,16 @@ Cette version n'a pas de notifications push ni de ventes natives. Elle inaugure 
 - CSS ajouté assets/swapp-creator-workspace.css : fond continu, densité d'information, focus clavier, petits rayons pour les champs et boutons, responsive iPhone/Android ; respect des accents SWAPP.
 - Recette : deux comptes, /compte, /dashboard via menu, planning, connexion/déconnexion, upload avatar/bannière/image hors live, sauvegarde du profil, actions du gestionnaire et du dashboard, ergonomie iPhone.
 - GitHub master et Hostinger doivent être vérifiés séparément, aucune disponibilité production garantie par la fusion.
+
+
+## Correction structurelle de /compte (capture utilisateur, 19 octobre 2026)
+- Cause réelle : `index_script.js` comportait trois définitions globales de `renderSettings()`. La dernière version chargeait `viewerProfilePanel()` (qui contenait une seconde carte viewer), ainsi qu'une `settingsGrid` imbriquant des panneaux géants. Les précédentes corrections modifiaient la première définition, masquée à l'exécution.
+- Correction à la source : suppression des deux versions inutilisées et de `viewerProfilePanel()` ; un seul rendu du compte reste actif.
+- Un ancien script `installSettingsHistoryBlock()` continuait d'insérer une grande carte « recommandations » dans le DOM à chaque rendu, navigation et chargement asynchrone. L'injection flottante est supprimée : son seul emplacement autorisé est maintenant un interrupteur d'historique dans « Profil et connexions », avec état réel synchronisé. Les anciennes références CSS ne doivent plus affecter la vue compte.
+- Nouvelle structure : en-tête identitaire unique et trois onglets **Vue d’ensemble**, **Profil et connexions**, **Diffusion et planning**, basculables au clavier (flèches, Home, End). Le profil viewer utilise les véritables listes locales de likes et de lives sauvegardés sans réafficher quatre grosses cartes d'instructions.
+- Le menu du compte actif ne réintroduit plus les anciens contrôles « Page viewer / Page streamer » : Mon espace SWAPP, Ma chaîne, Diffuser, Statistiques, Outils créateur, Mes jeux et envies, connexion Twitch.
+- Le CSS existant `assets/swapp-creator-workspace.css` a été réécrit pour la nouvelle structure, avec fond continu, séparateurs fins et mises en page réellement responsive ; aucune nouvelle feuille de style superposée.
+- Planning : libellés visibles, tailles minimales zéro pour éviter les champs tronqués, date/heure de l'appareil local convertie en ISO UTC lors de l'enregistrement sur Hostinger, raccourci 21 h local, liste lisible et suppression réelle avec confirmation via DELETE /api/oryon/planning/:id.
+- Les formulaires de profil existants, images, connexion Twitch, OBS, statistiques et planning sont conservés. Le nouvel onglet « Diffusion » utilise les véritables routes et commandes existantes.
+- Régression testée par simulation navigateur de la fonction active : un seul H1, trois onglets et aucun panneau historique, vérification de la navigation clavier, test du raccourci horaire et de la correspondance des versions chargées.
+- Production à contrôler avec un compte connecté : photo screenshot comparable, largeur desktop 1590 px, écran iPhone 375/390 px, tous les onglets, profils, véritables favoris, bouton 21 h, Ajout/Suppression d'un live, absence d'anciens panneaux lors de F5 et navigation interne.
