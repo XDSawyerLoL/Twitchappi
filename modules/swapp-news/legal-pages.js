@@ -42,16 +42,27 @@ function publicLegalDetails(env=process.env){
   privacy:email('SWAPP_LEGAL_PRIVACY_EMAIL')||email('SWAPP_LEGAL_CONTACT_EMAIL')
  });
 }
+function legalCompleteness(details){
+ // These are presentation guardrails, not a certification of legal compliance.
+ const publisher=String(details.publisher||''),address=String(details.address||''),hosting=String(details.hosting||'');
+ const tradeOnly=/^(?:https?:\/\/)?(?:www\.)?[a-z0-9-]+\.(?:tv|fr|com|net)$/i.test(publisher);
+ const addressLooksComplete=/\b\d{5}\b/.test(address)&&/\d/.test(address)&&/\p{L}/u.test(address);
+ const hostDetailsComplete=hosting.length>=30&&/\d/.test(hosting)&&/\p{L}/u.test(hosting);
+ return {tradeOnly,addressLooksComplete,hostDetailsComplete,
+  editorLooksComplete:!!publisher&&!tradeOnly&&addressLooksComplete&&!!details.contact};
+}
+
 function legalSupplement(route,details){
  const pieces=[];
  const item=(heading,body)=>'<section class="section"><h2>'+esc(heading)+'</h2><p>'+body+'</p></section>';
  const mail=(address)=>'<a href="mailto:'+esc(address)+'">'+esc(address)+'</a>';
  if(route==='/mentions-legales'){
-  if(details.publisher)pieces.push(item('Identité déclarée de l’éditeur',esc(details.publisher)));
-  if(details.address)pieces.push(item('Adresse professionnelle déclarée',esc(details.address)));
+  const quality=legalCompleteness(details);
+  if(details.publisher)pieces.push(item(quality.tradeOnly?'Nom commercial du site':'Identité déclarée de l’éditeur',esc(details.publisher)+(quality.tradeOnly?' — le nom commercial ne remplace pas l’identité juridique de l’éditeur.':'')));
+  if(details.address)pieces.push(item(quality.addressLooksComplete?'Adresse professionnelle déclarée':'Localisation déclarée (adresse incomplète)',esc(details.address)+(quality.addressLooksComplete?'':' — une adresse professionnelle complète doit être publiée lorsque la réglementation l’exige.')));
   if(details.registration)pieces.push(item('Immatriculation déclarée',esc(details.registration)));
-  if(details.hosting)pieces.push(item('Coordonnées de l’hébergeur déclarées',esc(details.hosting)));
-  if(details.contact)pieces.push(item('Contact professionnel',mail(details.contact)));
+  if(details.hosting)pieces.push(item(quality.hostDetailsComplete?'Coordonnées de l’hébergeur déclarées':'Prestataire d’hébergement (coordonnées incomplètes)',esc(details.hosting)+(quality.hostDetailsComplete?'':' — les coordonnées permettant d’identifier l’hébergeur restent à compléter.')));
+  if(details.contact)pieces.push(item('Contact professionnel déclaré',mail(details.contact)));
  }
  if(route==='/contact'&&details.contact)
   pieces.push(item('Contacter l’éditeur directement',mail(details.contact)+' — pour les demandes concernant le service ou la rédaction. Évitez de publier vos données privées sur GitHub.'));
@@ -69,8 +80,8 @@ function register(app){
    const section=page.sections.filter(([h])=>{
     // Do not keep a contradictory "missing" notice after real publisher data
     // have been configured. Unverified sections remain visible.
-    if(route==='/mentions-legales'&&h==='Éditeur du service'&&details.publisher&&details.address&&details.contact)return false;
-    if(route==='/mentions-legales'&&h==='Hébergement'&&details.hosting)return false;
+    if(route==='/mentions-legales'&&h==='Éditeur du service'&&legalCompleteness(details).editorLooksComplete)return false;
+    if(route==='/mentions-legales'&&h==='Hébergement'&&legalCompleteness(details).hostDetailsComplete)return false;
     if(route==='/contact'&&h==='Contact éditorial'&&details.contact)return false;
     if(route==='/confidentialite'&&h==='Vos droits et contact'&&details.privacy)return false;
     return true;
@@ -80,4 +91,4 @@ function register(app){
   });
  }
 }
-module.exports={register,publicLegalDetails,legalSupplement};
+module.exports={register,publicLegalDetails,legalSupplement,legalCompleteness};
