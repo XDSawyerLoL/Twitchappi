@@ -73,7 +73,7 @@ function createFairOffers({getPool,isEnabled,verify,now=Date.now,
     ' ON DUPLICATE KEY UPDATE opportunities=opportunities+VALUES(opportunities)',args);
    if(now()-lastCleanup>24*60*60*1000){
     lastCleanup=now();
-    try{await pool.query('DELETE FROM swapp_fair_opportunities_daily WHERE event_day < UTC_DATE() - INTERVAL '+DAYS+' DAY')}catch{}
+    try{await pool.query('DELETE FROM swapp_fair_opportunities_daily WHERE event_day < UTC_DATE() - INTERVAL '+(DAYS-1)+' DAY')}catch{}
    }
    return batch.length;
   };
