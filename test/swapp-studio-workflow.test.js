@@ -123,6 +123,20 @@ test('diagnostic tool measures actual network requests on demand, without tracki
  assert.doesNotMatch(enhance,/sendBeacon|gtag\(|analytics/);
 });
 
+test('editor gives each story a direct video-background action and clearly labels the autoplay field',()=>{
+ const html=renderStudio();
+ assert.match(html,/Vidéo de fond de l’article · Autoplay à 10 secondes/);
+ assert.match(html,/Lien YouTube de la vidéo de fond/);
+ assert.match(html,/id="trailerUrl"/);
+ assert.match(html,/fonctionne aussi avec le type « Article »/i);
+ assert.match(js,/videoJump\.textContent='Vidéo de fond →'/);
+ assert.match(js,/videoJump\.addEventListener\('click',/);
+ assert.match(js,/field\?\.scrollIntoView\?\./);
+ assert.match(js,/field\?\.focus\?\./);
+ assert.ok(html.indexOf('id="trailerUrl"')<html.indexOf('id="body"'));
+ assert.doesNotMatch(html,/La vidéo ne se charge qu’au clic du visiteur/);
+});
+
 test('new publication can publish directly with SEO, media and affiliation tucked away',()=>{
  const html=renderStudio();
  assert.match(html, /id="ed-publish">Publier sur SWAPP/);
