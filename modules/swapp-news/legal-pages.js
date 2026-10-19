@@ -29,13 +29,47 @@ const pages={
  ['Consentement','La mise en place et la vérification d’une plateforme de gestion du consentement certifiée par Google, compatible IAB TCF, doivent être finalisées pour les usages publicitaires concernés. Cette page n’affirme pas qu’un bandeau de consentement est déjà actif. Aucun consentement n’est présumé par la simple visite du site.']]}
 };
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function publicLegalDetails(env=process.env){
+ const detail=key=>String(env[key]||'').trim().slice(0,240);
+ const email=key=>{const raw=detail(key);return /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(raw)?raw:'';};
+ return Object.freeze({
+  publisher:detail('SWAPP_LEGAL_PUBLISHER_NAME'),
+  address:detail('SWAPP_LEGAL_PUBLISHER_ADDRESS'),
+  registration:detail('SWAPP_LEGAL_REGISTRATION'),
+  hosting:detail('SWAPP_LEGAL_HOST_DETAILS'),
+  contact:email('SWAPP_LEGAL_CONTACT_EMAIL'),
+  privacy:email('SWAPP_LEGAL_PRIVACY_EMAIL')||email('SWAPP_LEGAL_CONTACT_EMAIL')
+ });
+}
+function legalSupplement(route,details){
+ const pieces=[];
+ const item=(heading,body)=>'<section class="section"><h2>'+esc(heading)+'</h2><p>'+body+'</p></section>';
+ const mail=(address)=>'<a href="mailto:'+esc(address)+'">'+esc(address)+'</a>';
+ if(route==='/mentions-legales'){
+  if(details.publisher)pieces.push(item('Identité déclarée de l’éditeur',esc(details.publisher)));
+  if(details.address)pieces.push(item('Adresse professionnelle déclarée',esc(details.address)));
+  if(details.registration)pieces.push(item('Immatriculation déclarée',esc(details.registration)));
+  if(details.hosting)pieces.push(item('Coordonnées de l’hébergeur déclarées',esc(details.hosting)));
+  if(details.contact)pieces.push(item('Contact professionnel',mail(details.contact)));
+ }
+ if(route==='/contact'&&details.contact)
+  pieces.push(item('Contacter l’éditeur directement',mail(details.contact)+' — pour les demandes concernant le service ou la rédaction. Évitez de publier vos données privées sur GitHub.'));
+ if(route==='/confidentialite'&&details.privacy)
+  pieces.push(item('Exercer vos droits sur les données',mail(details.privacy)+' — demandes relatives à l’accès, la rectification, la suppression ou l’opposition.'));
+ if(route==='/cookies')
+  pieces.push(item('Modifier vos choix publicitaires','Lorsque le message Google est activé pour votre région, le pied de page propose « Gérer mes choix publicitaires » dès que son API est disponible. Aucun consentement n’est simulé en son absence.'));
+ return pieces.join('');
+}
+
 function register(app){
  for(const [route,page] of Object.entries(pages)){
   app.get(route,(req,res)=>{
-   const section=page.sections.map(([h,p])=>'<section class="section"><h2>'+esc(h)+'</h2><p>'+esc(p)+'</p></section>').join('');
+   const details=publicLegalDetails();
+   const section=page.sections.map(([h,p])=>'<section class="section"><h2>'+esc(h)+'</h2><p>'+esc(p)+'</p></section>').join('')+legalSupplement(route,details);
    const issue='<a href="https://github.com/XDSawyerLoL/Twitchappi/issues/new" rel="noopener noreferrer" target="_blank">Ouvrir un signalement sur GitHub ↗</a>';
    res.type('html').send('<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+esc(page.title)+' — SWAPP</title><link rel="stylesheet" href="/assets/swapp-media.css?v=legal-1"><style>body{background:#0b101b;color:#f0f5ff;font:16px/1.65 system-ui,sans-serif;margin:0}.legal-header{border-bottom:1px solid #35435b;background:#101b2a;padding:17px max(22px,calc((100vw - 1060px)/2))}.legal-header a{color:#a4eef0;text-decoration:none;font-weight:800}.legal-header .legal-wordmark{color:#fff;font-size:25px;font-weight:950;letter-spacing:-.075em}.legal-header .legal-wordmark span{color:#66e5e4}.legal-main{max-width:1000px;margin:40px auto 80px;padding:0 23px}.legal-main h1{font-size:clamp(33px,5vw,55px);line-height:1.1;margin-bottom:10px}.legal-main .lead{color:#bed0e5}.legal-main .section{padding:22px 0;border-bottom:1px solid #304056}.legal-main h2{font-size:21px}.legal-main p{color:#c6d0df}.legal-note{border:1px solid #887545;background:#332c1b;padding:13px 17px;border-radius:12px;color:#f5dc9d}.legal-main a{color:#8ee7ed}</style></head><body><header class="legal-header"><a class="legal-wordmark" href="/" aria-label="SWAPP — Accueil">SWAPP<span aria-hidden="true">.</span></a> · <a href="/actus">Actualités</a> · <a href="/contact">Contact</a></header><main class="legal-main"><p class="legal-note">Informations en cours de vérification — cette page ne constitue pas une version juridique définitive.</p><h1>'+esc(page.title)+'</h1><p class="lead">'+esc(page.intro)+'</p>'+section+'<p>'+issue+'</p></main><script defer src="/assets/swapp-footer.js?v=legal-1"></script></body></html>');
   });
  }
 }
-module.exports={register};
+module.exports={register,publicLegalDetails,legalSupplement};
