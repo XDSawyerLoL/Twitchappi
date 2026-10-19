@@ -129,7 +129,7 @@ function renderNewsStory(originalArticle,{baseUrl='https://swapp.tv',relatedArti
  const related=(Array.isArray(relatedArticles)?relatedArticles:[]).filter(x=>
   x&&x.slug!==article.slug&&/^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/.test(String(x.slug||''))).slice(0,3);
  const nextLinks=related.map(x=>{
-  const art=immersiveCoverUrl(x);
+  const art=editorialCover(x);
   return `<a class="swapp-reader-next-item" href="/actus/${encodeURIComponent(x.slug)}">${art?`<img class="swapp-reader-next-thumb" src="${escapeHtml(art)}" alt="" loading="lazy">`:''}<span class="swapp-reader-next-copy"><small>${escapeHtml(x.game||x.category||'Actualité')}</small><strong>${escapeHtml(x.title||'Article SWAPP')}</strong></span></a>`;
  }).join('');
  const sponsor=(article.commercialLinks?.length?null:instantGaming.forArticle(article));
