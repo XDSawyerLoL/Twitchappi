@@ -42,7 +42,7 @@ test('neural audio is opt in and only reads published same-origin static manifes
  assert.match(js,/cache:'no-store'/);
  assert.match(js,/AbortController/);
  assert.match(js,/preload='none'/);
- assert.match(js,/source/); // code contains the manifest audio.src assignment
+ assert.match(js,/audio\.src='\/assets\/swapp-narrations\//);
  assert.doesNotMatch(js,/XMLHttpRequest|localStorage|sendBeacon|analytics|SpeechRecognition|microphone/);
  assert.match(js,/audio\.addEventListener\('timeupdate'/);
  assert.match(js,/previous|before\.addEventListener\('click'/);
