@@ -41,6 +41,7 @@ function correctWoWForever(article){
   author:'Rédaction SWAPP',
   sources,
   trailerUrl:'https://www.youtube.com/watch?v=uQuKE0KDgiM',
+  trailerPublishedAt:'2026-09-12T00:00:00.000Z', // Official upload date, not the article publication date.
   image:null, // Original remote illustration had no verified reuse authorization.
   commercialLinks:[], // Remove unrelated affiliate offer from corrected editorial.
   seo:{title:'World of Warcraft: Forever : trailer, sortie et nouveautés',
