@@ -111,7 +111,7 @@
   if(!playing||paused||sequence!==serial||!parts[index])return;
   const chosen=voices[Number(qs('[data-reader-voice]').value)];
   if(!chosen){clearAudio();status('La voix française sélectionnée est indisponible.');return;}
-  if(chosen.localService===false&&!qs('[data-reader-online-consent]').checked){
+  if(chosen.localService!==true&&!qs('[data-reader-online-consent]').checked){
    clearAudio();status('Cette voix peut traiter le texte via un service en ligne du navigateur. Ton accord explicite est nécessaire.');return;
   }
   const part=parts[index];
