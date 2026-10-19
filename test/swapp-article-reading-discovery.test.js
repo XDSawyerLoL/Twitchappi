@@ -127,3 +127,16 @@ test('first card navigation and refresh use the identical server-rendered articl
  assert.match(css,/overflow-x:clip!important;\s*overflow-y:visible!important/);
  assert.match(read('index.html'),/swapp-home-news\.js\?v=20261019-single-reader-v8/);
 });
+
+test('article verdict leads straight to the contextual lives, not a floating row of CTAs',()=>{
+ const html=renderNewsStory(article);
+ const lives=html.indexOf('id="swapp-article-lives"');
+ const exit=html.indexOf('class="swapp-article-end-nav"');
+ assert.ok(lives>0 && exit>lives,'the subtle article exit follows the creator streams');
+ assert.match(html.slice(exit,exit+250),/href="\/actus">← Revenir à l’actualité/);
+ assert.doesNotMatch(html,/class="story-actions"><a class="button-link primary" href="\/actus">← Toutes les actualités/);
+ assert.match(html.slice(lives,lives+1100),/href="\/decouvrir">Tous les lives/);
+ const css=read('assets/swapp-article-immersive.css');
+ assert.match(css,/\.article-wrap > \.swapp-article-end-nav/);
+ assert.match(css,/width:min\(990px,calc\(100% - 36px\)\)/);
+});

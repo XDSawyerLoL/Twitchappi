@@ -716,3 +716,29 @@ html.swapp-editorial-theme body.swapp-editorial-route
  .swapp-reader-next-item:is(:hover,:focus-visible){
  border-left-color:var(--swapp-side-light,#22d3ee)!important;
 }
+
+/* One quiet end-of-article exit after contextual lives.
+   Do not interrupt the newsroom verdict -> creator discovery journey. */
+body.swapp-editorial-route .article-wrap > .swapp-article-end-nav{
+ box-sizing:border-box;display:flex;align-items:center;
+ width:min(990px,calc(100% - 36px));max-width:990px;
+ margin:12px auto 20px;padding:22px 0 0;
+ border-top:1px solid rgba(156,182,209,.21);
+ background:transparent!important;
+}
+body.swapp-editorial-route .swapp-article-end-nav a{
+ display:inline-flex;align-items:center;min-height:40px;
+ padding:5px 0;color:#a8cedc;font:700 13px/1.4 system-ui,sans-serif;
+ border:0;background:transparent;text-decoration:none!important;
+}
+body.swapp-editorial-route .swapp-article-end-nav a:hover{
+ color:#edfaff;text-decoration:underline!important;text-underline-offset:4px
+}
+body.swapp-editorial-route .swapp-article-end-nav a:focus-visible{
+ outline:2px solid #8de1f1;outline-offset:4px
+}
+@media(max-width:650px){
+ body.swapp-editorial-route .article-wrap > .swapp-article-end-nav{
+  width:calc(100% - 28px);margin:10px auto 22px;padding-top:16px
+ }
+}
