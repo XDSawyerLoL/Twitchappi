@@ -80,14 +80,14 @@
   const turn=++requestId,button=id('refresh');
   button.disabled=true;id('status').textContent='Actualisation des agrégats…';
   try{
-   const response=await fetch('/api/editor/fair-discovery?days='+id('period').value,{
+   const response=await fetch('/api/editor/fair-discovery?days='+id('period').value+'&placement='+id('placement').value,{
     credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}
    });
    const body=await response.json().catch(()=>({}));
    if(turn!==requestId)return;
    if(!response.ok)throw Error(response.status===403?'Accès administrateur refusé. Vérifie ton compte SWAPP.':'Statistiques temporairement indisponibles. Vérifie MySQL et le déploiement.');
    if(!body.enabled){
-    showMessage('Mesure non activée','Le dispositif Fair Discovery v2 est désactivé sur ce serveur. Les autres fonctions de SWAPP ne sont pas affectées.');
+    showMessage('Mesure non activée','Le dispositif Fair Discovery est désactivé sur ce serveur. Les autres fonctions de SWAPP ne sont pas affectées.');
     id('status').textContent='Mesure désactivée';return;
    }
    if(body.sample!=='limited-voluntary'){
@@ -108,6 +108,7 @@
   }finally{if(turn===requestId)button.disabled=false}
  }
  id('period').addEventListener('change',refresh);
+ id('placement').addEventListener('change',refresh);
  id('refresh').addEventListener('click',refresh);
  refresh();
 })();

@@ -5548,9 +5548,13 @@ app.get('/api/oryon/discover/find-live', heavyLimiter, async (req,res)=>{
     const top = require('./modules/swapp-discovery-diversity').diversifyDiscovery(scored,{
       limit:60,query:q,firstScreen:12,perGame:2
     });
+    // Verified server candidates only, no extra Twitch calls or viewer fingerprint.
+    const reportable=fairMetrics.enabled()?top.map(item=>({...item,fairProof:fairMetrics.issue(item,{placement:'discover'})})):top;
+    if(fairMetrics.enabled())res.set('Cache-Control','private, no-store');
     res.json({
       success:true,
-      items: top,
+      items: reportable,
+      fairMetrics:{enabled:fairMetrics.enabled(),placement:'discover',sample:'opt-in-only'},
       query:q,
       max,
       lang,
@@ -9313,7 +9317,9 @@ app.get('/api/discovery/home-lives', heavyLimiter, async (req,res)=>{
     // Reserve bounded native visibility and diversify only the existing pool.
     // No new provider request, viewer tracking or paid recommendation engine.
     const ranked=require('./modules/swapp-home-discovery').rankHomeLives(out,{limit});
-    res.json({ success:true, items: ranked, source: ranked.length?'public-discovery':'empty', twitchConfigured:!!(TWITCH_CLIENT_ID&&TWITCH_CLIENT_SECRET), firestore:!!firestoreOk });
+    const reportable=fairMetrics.enabled()?ranked.map(item=>({...item,fairProof:fairMetrics.issue(item,{placement:'home'})})):ranked;
+    if(fairMetrics.enabled())res.set('Cache-Control','private, no-store');
+    res.json({ success:true, items: reportable, fairMetrics:{enabled:fairMetrics.enabled(),placement:'home',sample:'opt-in-only'}, source: ranked.length?'public-discovery':'empty', twitchConfigured:!!(TWITCH_CLIENT_ID&&TWITCH_CLIENT_SECRET), firestore:!!firestoreOk });
   }catch(e){ res.json({ success:false, error:e.message, items:[] }); }
 });
 
