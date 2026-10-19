@@ -318,7 +318,13 @@ if(items.length)fillRecommendations(items);else fetchJson('/api/actus').then(dat
  node.replaceChildren(status,actions);
 }}
 function render(target){if(!target)return;window.SwappArticlePlayer?.close();target.replaceChildren();const node=el('div','swapp-actus-native');target.append(node);const parts=location.pathname.split('/').filter(Boolean);return parts.length===2&&parts[0]==='actus'&&slugOk(parts[1])?showArticle(node,parts[1]):showList(node);}
-function open(slug){if(!slugOk(slug))return;history.pushState({view:'actus'},'','/actus/'+encodeURIComponent(slug));render(document.getElementById('actus'));window.scrollTo(0,0);}
+function open(slug){
+ if(!slugOk(slug))return;
+ // Articles have ONE canonical layout: the server-rendered editorial page.
+ // Client-side re-rendering used a separate shell whose body overflow and
+ // sticky reading columns differed until F5. Navigate directly instead.
+ window.location.assign('/actus/'+encodeURIComponent(slug));
+}
 function home(){history.pushState({view:'actus'},'','/actus');render(document.getElementById('actus'));window.scrollTo(0,0);}
 window.SwappActus=Object.freeze({render,open,home});
 })();
