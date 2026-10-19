@@ -43,5 +43,5 @@ test('Vocal button navigates through existing SOCIAL room view and works on mobi
  assert.match(css,/@media\(max-width:350px\)/);
  assert.match(hub,/app\.js\?v=20261019-game-rooms-v2/);
  assert.match(hub,/swapp-social-voice\.js\?v=20261018-channel-ux-v1/);
- assert.match(hub,/swapp-social-appearance\.css\?v=20261018-voice-visible-v2/);
+ assert.match(hub,/swapp-social-appearance\.css\?v=20261019-no-top-gap-v3/);
 });
