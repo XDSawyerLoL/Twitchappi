@@ -8,11 +8,15 @@ const root=path.resolve(__dirname,'..');
 const read=p=>fs.readFileSync(path.join(root,p),'utf8');
 const SECRET='server-side-secret-which-is-never-sent-to-browser-012345';
 const game={platform:'twitch',login:'example_streamer',game_name:'GTA 6',viewer_count:8};
-function mockMetrics({enabled=true,rows=[]}={}){
+function mockMetrics({enabled=true,rows=[],uniqueCreators=null}={}){
  const logs={query:[],execute:[]};
  const pool={
   async query(sql){logs.query.push(sql);return [[],[]]},
-  async execute(sql,args){logs.execute.push({sql,args});return [sql.startsWith('SELECT')?rows:[],[]]}
+  async execute(sql,args){
+   logs.execute.push({sql,args});
+   if(sql.startsWith('SELECT COUNT(DISTINCT'))return [[{creators:uniqueCreators??rows.reduce((sum,row)=>sum+Number(row.creators||0),0)}],[]];
+   return [sql.startsWith('SELECT')?rows:[],[]];
+  }
  };
  let timestamp=Date.UTC(2026,9,19,14,0,0);
  const fair=createFairMetrics({getPool:()=>pool,isEnabled:()=>enabled,secret:SECRET,now:()=>timestamp});
@@ -87,7 +91,14 @@ test('public reporting suppresses sparse samples and marks opt-in selection bias
  assert.equal(b.sample,'limited-voluntary');
  assert.equal(b.impressions,80);
  assert.equal(b.smallAudienceImpressionShare,31.3);
+ assert.equal(b.uniqueCreatorsRepresented,6);
  assert.match(b.caveat,/Échantillon volontaire/);
+ const changingAudience=mockMetrics({uniqueCreators:2,rows:[
+  {audience_band:'small',creators:2,impressions:55},
+  {audience_band:'growing',creators:2,impressions:50},
+  {audience_band:'established',creators:2,impressions:45}
+ ]});
+ assert.equal((await changingAudience.fair.summary()).sample,'insufficient','two unique creators must never count as six');
  assert.equal('creatorLogin' in b,false);
 });
 test('API requires explicit enablement, same-origin writes, bounded rate and no personal data',()=>{
