@@ -183,7 +183,6 @@ if(!sections.length){
 }
 reading.append(toc);
 reading.append(body);article.append(reading);window.SwappArticleExtras?.mount(article,a);
-if(a.sources?.length){const sources=el('aside','swapp-actus-sources swapp-reader-source-panel');sources.id='swapp-article-sources';const intro=el('div','swapp-reader-source-intro');intro.append(el('span','swapp-reader-source-icon','↗'),el('div','swapp-reader-source-copy'));intro.lastChild.append(el('h2','','Sources'),el('p','','Retrouver les références de cet article'));sources.append(intro);const sourceLinks=el('div','swapp-reader-source-links');sources.append(sourceLinks);for(const source of a.sources){const address=url(source.url);if(!address)continue;const link=el('a','',source.label||'Source originale');link.href=address;link.target='_blank';link.rel='noopener noreferrer';link.className='swapp-reader-source-link';link.append(el('span','',' ↗'));sourceLinks.append(link)}if(sourceLinks.children.length)article.append(sources);}
 if(a.game){const games=el('section','swapp-actus-related swapp-reader-live-panel');games.id='swapp-article-lives';games.append(el('h2','','En direct sur '+a.game),el('p','swapp-actus-live-status','Créateurs qui jouent à ce jeu actuellement'));article.append(games);
 const normal=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
 const matches=sameGame;
@@ -301,7 +300,7 @@ if(!recommendations.children.length){
 }};
 node.append(article);
 if(trailerId)window.SwappTrailerHero?.mount?.(scene);
-window.SwappArticleFeedback?.mountArticle(article,a.slug||slug);if(items.length)fillRecommendations(items);else fetchJson('/api/actus').then(data=>{items=Array.isArray(data.articles)?data.articles:[];fillRecommendations(items)}).catch(()=>fillRecommendations([]));
+if(items.length)fillRecommendations(items);else fetchJson('/api/actus').then(data=>{items=Array.isArray(data.articles)?data.articles:[];fillRecommendations(items)}).catch(()=>fillRecommendations([]));
 }catch(e){
  if(!node.isConnected)return;
  const status=el('p','swapp-actus-state',e.message||'Article temporairement indisponible.');
