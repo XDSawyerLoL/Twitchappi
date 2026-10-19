@@ -66,7 +66,7 @@ function summarizeFairAdmin({bands=[],daily=[],dailyCreators=[],games=[],uniqueC
   warning:'Les catégories varient selon l’audience instantanée et un même créateur peut changer de catégorie. Les résultats volontaires ne représentent pas tous les visiteurs.'};
 }
 const PAGE_CSS='<link rel="stylesheet" href="/assets/swapp-fair-admin.css?v=20261019-dashboard-v1">';
-const PAGE_SCRIPT='<script defer src="/assets/swapp-fair-admin.js?v=20261019-dashboard-v1"></script>';
+const PAGE_SCRIPT='<script defer src="/assets/swapp-fair-admin.js?v=20261019-dashboard-surfaces-v3"></script>';
 function fairAdminPage(){
  const content='<main class="fair-admin" id="fair-admin-root">'+
   '<nav class="fair-crumb" aria-label="Administration"><a href="/actus/studio">Administration</a><span aria-hidden="true">/</span><strong>Fair Discovery</strong></nav>'+
