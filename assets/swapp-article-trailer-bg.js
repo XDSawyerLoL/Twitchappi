@@ -5,7 +5,8 @@
  const installed=new WeakSet();
  const reduced=()=>!!window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
  const saveData=()=>!!navigator.connection?.saveData;
- const allowed=tc=>tc?.gdprApplies===false||(tc?.gdprApplies===true&&typeof tc.tcString==='string'&&tc.tcString.length>0&&tc.purpose?.consents?.['1']===true&&tc.vendor?.consents?.['755']===true);
+ // Only certified TCF decisions may authorize the background player.
+ const allowed=tc=>tc?.cmpStatus!=='error'&&(tc?.gdprApplies===false||(tc?.gdprApplies===true&&typeof tc.tcString==='string'&&tc.tcString.length>0&&tc.purpose?.consents?.['1']===true&&tc.vendor?.consents?.['755']===true));
  function mount(scene){
   if(!scene||installed.has(scene))return;
   const id=scene.getAttribute('data-swapp-trailer-id')||'';
@@ -20,7 +21,7 @@
   button.textContent='▶ Animer avec le trailer';
   const note=document.createElement('small');
   note.className='swapp-trailer-hero-note';
-  note.textContent='YouTube chargé après accord · sans son';
+  note.textContent='Lecture automatique à 10 s après consentement · sans son';
   actions.append(button,note);content.append(actions);
   let frame=null,enabled=false,paused=false,cmp=null,visible=true;
   const poster=scene.querySelector('.swapp-article-trailer-poster');
@@ -32,7 +33,7 @@
    if(poster)poster.hidden=false;
   }
   function play(force=false){
-   if(frame||!scene.isConnected||document.hidden||!visible)return;
+   if(frame||cmp!==true||!scene.isConnected||document.hidden||!visible)return;
    if(!force&&(paused||!enabled||reduced()||saveData()))return;
    const iframe=document.createElement('iframe');
    iframe.className='swapp-article-trailer-frame';
@@ -40,7 +41,7 @@
    iframe.setAttribute('aria-hidden','true');iframe.tabIndex=-1;
    iframe.setAttribute('allow','autoplay; encrypted-media; picture-in-picture');
    iframe.setAttribute('referrerpolicy','strict-origin-when-cross-origin');
-   iframe.setAttribute('loading','lazy');
+   iframe.setAttribute('loading','eager');
    iframe.addEventListener('load',()=>{
     if(frame!==iframe)return;
     scene.classList.add('is-trailer-playing');
@@ -55,15 +56,16 @@
   }
   button.addEventListener('click',()=>{
    if(frame){paused=true;stop();return}
-   if(cmp===false){
+   if(cmp!==true){
+    // Never bypass the official Google/IAB consent message on a manual click.
     if(typeof window.googlefc?.showRevocationMessage==='function')
      window.googlefc.showRevocationMessage();
-    else note.textContent='Consentement refusé : modifier vos préférences pour lire la vidéo';
+    else note.textContent='Le consentement Google doit être configuré pour démarrer la vidéo';
     return;
    }
    paused=false;enabled=true;
    play(true);
-   note.textContent='Vidéo YouTube chargée à votre demande · sans son';
+   note.textContent='Bande-annonce muette · lecture depuis 10 secondes';
   });
   if(typeof IntersectionObserver==='function'){
    const observer=new IntersectionObserver(entries=>{
@@ -85,21 +87,34 @@
    if(document.hidden)stop();else play();
   }
   document.addEventListener('visibilitychange',onVisibility);
+  let registered=false;
   function listen(){
-   if(typeof window.__tcfapi!=='function')return;
-   try{window.__tcfapi('addEventListener',0,(tc,success)=>{
+   if(registered||typeof window.__tcfapi!=='function')return false;
+   try{window.__tcfapi('addEventListener',2,(tc,success)=>{
     if(!success||!tc)return;
     if(tc.eventStatus!=='tcloaded'&&tc.eventStatus!=='useractioncomplete')return;
+    const previouslyGranted=cmp===true;
     cmp=allowed(tc);
-    if(!cmp){enabled=false;stop();return}
-    enabled=true;play();
-   })}catch(_){}
+    if(!cmp){
+     enabled=false;stop();
+     note.textContent='Consentement requis pour animer la bande-annonce';
+     return;
+    }
+    enabled=true;
+    if(!previouslyGranted)paused=false;
+    note.textContent='Lecture automatique à 10 s · sans son';
+    play();
+   });registered=true;return true}catch(_){return false}
   }
-  if(typeof window.__tcfapi==='function')listen();
-  else{
-   window.googlefc=window.googlefc||{};
-   window.googlefc.callbackQueue=window.googlefc.callbackQueue||[];
-   window.googlefc.callbackQueue.push({CONSENT_API_READY:listen});
+  // A certified CMP may load after the article renderer. The version is TCF v2.
+  if(!listen()){
+   const googlefc=window.googlefc=window.googlefc||{};
+   googlefc.callbackQueue=googlefc.callbackQueue||[];
+   googlefc.callbackQueue.push({CONSENT_API_READY:listen});
+   let attempts=0;
+   const ticker=setInterval(()=>{
+    if(!scene.isConnected||listen()||++attempts>=45)clearInterval(ticker);
+   },1000);
   }
  }
  function scan(){document.querySelectorAll('.swapp-article-scene[data-swapp-trailer-id]').forEach(mount)}
