@@ -40,6 +40,7 @@ const RELEASE_FILES=Object.freeze([
  'modules/swapp-news/legal-pages.js',
  'assets/swapp-article-immersive.css',
  'assets/swapp-reader-studio.css',
+ 'assets/swapp-reader-experience.js',
  'assets/swapp-reader-studio.js',
  'assets/swapp-neural-narration.js',
  'assets/swapp-article-trailer-bg.js',
