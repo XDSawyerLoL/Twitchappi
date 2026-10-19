@@ -122,18 +122,17 @@
   if(document.querySelector('link[href*="swapp-reader-studio.css"]'))return;
   const link=document.createElement('link');
   link.rel='stylesheet';
-  link.href=base+'swapp-reader-studio.css?v=20261020-voice-v1';
+  link.href=base+'swapp-reader-studio.css?v=20261020-vivienne-only-v2';
   document.head.appendChild(link);
  }
  function ensureScript(name,complete){
-  const present=name==='swapp-neural-narration.js'
-   ?!!window.SwappNeuralNarration:!!window.SwappReaderStudio;
+  const present=!!window.SwappReaderStudio;
   if(present){complete();return;}
   const id='swapp-recovery-'+name;
   if(document.getElementById(id))return;
   const script=document.createElement('script');
   script.id=id;
-  script.src=base+name+'?v=20261020-voice-v1';
+  script.src=base+name+'?v=20261020-vivienne-only-v2';
   script.onload=complete;
   script.onerror=()=>{script.remove();console.warn('[SWAPP LECTURE] Module inaccessible:',name);};
   document.head.appendChild(script);
@@ -141,10 +140,7 @@
  function recover(){
   if(!hasArticle()||ready())return;
   ensureCss();
-  const start=()=>ensureScript('swapp-reader-studio.js',()=>{
-   window.SwappReaderStudio?.sync();
-  });
-  ensureScript('swapp-neural-narration.js',start);
+  ensureScript('swapp-reader-studio.js',()=>window.SwappReaderStudio?.sync());
  }
  function schedule(){
   if(scheduled)clearTimeout(scheduled);
