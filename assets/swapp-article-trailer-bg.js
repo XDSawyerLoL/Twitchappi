@@ -55,8 +55,11 @@
   }
   button.addEventListener('click',()=>{
    if(frame){paused=true;stop();return}
-   if(cmp===false&&typeof window.googlefc?.showRevocationMessage==='function'){
-    window.googlefc.showRevocationMessage();return;
+   if(cmp===false){
+    if(typeof window.googlefc?.showRevocationMessage==='function')
+     window.googlefc.showRevocationMessage();
+    else note.textContent='Consentement refusé : modifier vos préférences pour lire la vidéo';
+    return;
    }
    paused=false;enabled=true;
    play(true);
