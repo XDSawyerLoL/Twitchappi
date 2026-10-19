@@ -17,7 +17,7 @@ test('cached French studio audio requires exact slug, paragraphs and safe same-o
  const api=player();
  const blocks=[{text:'Un jeu magnifique.',node:{}},{text:'Les créateurs jouent.',node:{}}];
  const data={version:1,slug:'un-jeu-publie',language:'fr-FR',engine:'kokoro-82m-v1.0',
-   audio:'audio.mp3',blocks:[
+   voice:'ff_siwis',audio:'audio.mp3',blocks:[
      {text:blocks[0].text,start:0,end:1.7},
      {text:blocks[1].text,start:1.88,end:3.4},
    ]};
@@ -81,4 +81,41 @@ test('offline producer uses French Kokoro voice; never runs inference on Hosting
  assert.match(script,/api\/actus\//);
  assert.match(script,/\"audio_sha256\"/);
  assert.doesNotMatch(script,/OPENAI_API_KEY|ELEVENLABS_API_KEY|GROQ_API_KEY|tts\.azure|api\.openai/);
+});
+
+
+test('the real Mairaiy profile is Gemini Aoede only, never Kokoro under her name',()=>{
+ const api=player();
+ const blocks=[{text:'Bonjour, voici la nouvelle analyse.',node:{}}];
+ const fixture={
+  version:1,slug:'ma-nouvelle-analyse',language:'fr-FR',
+  engine:'gemini-tts',voice:'mairaiy-gemini-aoede',
+  engine_voice:'Aoede',model:'gemini-3.1-flash-tts-preview',
+  historical_profile:'aura-live-2.0.7-natural',
+  audio:'audio.wav',blocks:[{text:blocks[0].text,start:0,end:3.1}]
+ };
+ assert.equal(api.validManifest(fixture,'ma-nouvelle-analyse',blocks),true);
+ assert.equal(api.validManifest({...fixture,engine_voice:'Zephyr'},'ma-nouvelle-analyse',blocks),false);
+ assert.equal(api.validManifest({...fixture,voice:'ff_siwis'},'ma-nouvelle-analyse',blocks),false);
+ assert.equal(api.validManifest({...fixture,engine:'kokoro-82m-v1.0'},'ma-nouvelle-analyse',blocks),false);
+ assert.equal(api.validManifest({...fixture,model:'custom-unknown-model'},'ma-nouvelle-analyse',blocks),false);
+ const client=read('assets/swapp-neural-narration.js');
+ assert.match(client,/Mairaiy · Narration officielle/);
+ assert.match(client,/Voix historique Aoede de Quantic Studio/);
+ assert.match(client,/Voix Kokoro ff_siwis distincte de Mairaiy/);
+});
+
+test('Mairaiy producer validates original Quantic Studio identity and requires quota approval',()=>{
+ const script=read('tools/swapp-mairaiy-narration-generate.py');
+ assert.match(script,/PROFILE = "mairaiy-gemini-aoede"/);
+ assert.match(script,/ENGINE = "gemini-tts"/);
+ assert.match(script,/VOICE = "Aoede"/);
+ assert.match(script,/MODEL = "gemini-3.1-flash-tts-preview"/);
+ assert.match(script,/aura-live-2.0.7-natural/);
+ assert.match(script,/voice\/v1\/audio\/speech/);
+ assert.match(script,/X-Mairaiy-Engine/);
+ assert.match(script,/X-Mairaiy-Voice/);
+ assert.match(script,/approve-provider-usage/);
+ assert.match(script,/ready/);
+ assert.doesNotMatch(script,/api\.openai\.com|elevenlabs\.io|new SpeechSynthesisUtterance/);
 });
