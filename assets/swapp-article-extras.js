@@ -36,6 +36,14 @@
  function heroTrailerId(article){
   return trailerId(article?.trailerUrl);
  }
+ function isGameArticle(article){
+  if(String(article?.game||'').trim())return true;
+  if(Array.isArray(article?.games)&&article.games.some(x=>String(x||'').trim()))return true;
+  const category=String(article?.category||'').toLowerCase();
+  if(/\b(?:jv|jeux?|gaming)\b/i.test(category))return true;
+  return Array.isArray(article?.tags)&&article.tags.some(x=>
+   /^(?:jeu[x]? vid[eé]o|gaming|jv)$/i.test(String(x||'').trim()));
+ }
  function commercialLinks(links,strict=false){
   if(links==null)return [];
   if(!Array.isArray(links)||links.length>2){if(strict)throw Error('Deux liens commerciaux maximum');return []}
@@ -145,5 +153,5 @@
    if(button)activate(button);
   });
  }
- return Object.freeze({trailerId,heroTrailerId,commercialLinks,isAmazonLink,amazonDisclosure,renderServer,mount});
+ return Object.freeze({trailerId,heroTrailerId,isGameArticle,commercialLinks,isAmazonLink,amazonDisclosure,renderServer,mount});
 });
