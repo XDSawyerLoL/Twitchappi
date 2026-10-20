@@ -105,6 +105,7 @@ function renderGamePage(group){
  const body='<main class="game-portal"><p class="breadcrumb"><a href="/">SWAPP</a> / <a href="/jeux">Jeux</a> / '+html(group.game)+'</p>'+
   '<header class="hero"><h1>'+html(group.game)+' : actualités et lives</h1><p>'+html(description)+'</p><div class="actions"><button type="button" data-swapp-wishlist-game data-game-slug="'+html(group.slug)+'" data-game-name="'+html(group.game)+'" aria-pressed="false">♡ Ajouter aux envies</button><button type="button" data-swapp-follow-game data-game-slug="'+html(group.slug)+'" data-game-name="'+html(group.game)+'" aria-pressed="false">＋ Suivre ce jeu</button><a href="/mes-jeux">Mes jeux</a><a href="/actus">Toutes les actualités</a><a href="/decouvrir">Explorer les créateurs</a><a href="/communaute?game='+encodeURIComponent(group.game)+'">Salons du jeu</a><a href="/boutique">Consulter la boutique</a></div></header>'+
   '<section><h2>Articles sur '+html(group.game)+'</h2><div class="cards">'+cards+'</div></section>'+
+  '<section class="swapp-spotlight-public" data-spotlight-game="'+html(group.game)+'" aria-label="Créateurs Spotlight"></section>'+
   '<section class="swapp-media-section" data-swapp-live-shelf data-game="'+html(group.game)+'"><div class="swapp-media-heading"><h2>En direct sur '+html(group.game)+'</h2></div>'+
   '<div class="swapp-live-grid" data-live-results><p class="swapp-live-notice">Recherche des lives actuellement disponibles…</p></div></section></main>';
  return layout({title,description,content:body,metadata:meta,extraCss:CSS,active:'actus'});
