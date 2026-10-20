@@ -63,7 +63,7 @@ test('events require explicit opt in, prompt data is not sent to external servic
  assert.match(app,/Pas de voix ni d'IA conversationnelle simulées/);
  assert.doesNotMatch(app,/Notification\.requestPermission|speechSynthesis|SpeechRecognition/);
  assert.doesNotMatch(app,/fetch\(['"]https?:\/\//);
- assert.match(app,/SOCIAL est accessible dans la rubrique Communauté/);
+ assert.match(app,/La rubrique Social donne accès aux publications/);
  assert.match(app,/\/api\/swapp\/social-preview/);
 });
 
