@@ -1,7 +1,7 @@
 /* Creator Twitch association: understated dashboard row, never a promotional card. */
 #dashboard .swapp-creator-twitch-link{
-  width:min(1390px,calc(100% - clamp(28px,5vw,90px)));
-  margin:20px auto 28px;
+  width:100%;max-width:100%;
+  margin:20px 0 28px;
   padding:24px 0 22px;
   border-top:1px solid var(--swapp-workspace-line,rgba(174,198,217,.2));
   border-bottom:1px solid var(--swapp-workspace-line,rgba(174,198,217,.2));
@@ -29,7 +29,7 @@
 #dashboard .swapp-creator-link-btn:focus-visible{outline:2px solid var(--swapp-workspace-accent,var(--brand,#76e7e3));outline-offset:3px}
 #dashboard .swapp-creator-link-btn.is-danger{color:#f7b6b8}
 @media(max-width:700px){
-  #dashboard .swapp-creator-twitch-link{width:calc(100% - 32px);margin:18px auto 22px;padding:20px 0}
+  #dashboard .swapp-creator-twitch-link{width:100%;margin:18px 0 22px;padding:20px 0}
   #dashboard .swapp-creator-link-body{align-items:stretch;flex-direction:column}
   #dashboard .swapp-creator-link-actions{width:100%}
   #dashboard .swapp-creator-link-btn{flex:1 1 auto;min-width:0}
