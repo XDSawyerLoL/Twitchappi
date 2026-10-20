@@ -32,20 +32,30 @@
         <button class="pulse-nav-item active" data-view="home"><svg class="pi" aria-hidden="true"><use href="#pi-home"></use></svg><span class="pulse-nav-label">Fil</span></button>
         <button class="pulse-nav-item" data-view="circles"><svg class="pi" aria-hidden="true"><use href="#pi-circles"></use></svg><span class="pulse-nav-label">Communautés</span></button>
         <button class="pulse-nav-item" data-view="messages"><svg class="pi" aria-hidden="true"><use href="#pi-mail"></use></svg><span class="pulse-nav-label">Messages</span></button>
+        <button class="pulse-nav-item" data-view="rooms"><svg class="pi" aria-hidden="true"><use href="#pi-message"></use></svg><span class="pulse-nav-label">Salons vocaux</span></button>
         <button class="pulse-nav-item" data-view="notifications"><svg class="pi" aria-hidden="true"><use href="#pi-bell"></use></svg><span class="pulse-nav-label">Notifications</span></button>
         <button class="pulse-nav-item" data-view="profile"><svg class="pi" aria-hidden="true"><use href="#pi-user"></use></svg><span class="pulse-nav-label">Profil</span></button>
       </nav>
+      <div class="swapp-social-channels" aria-label="Espaces de SOCIAL">
+        <span class="swapp-social-channel-label">ESPACES SWAPP</span>
+        <button type="button" data-view="play" class="swapp-social-channel-link"><svg class="pi" aria-hidden="true"><use href="#pi-gamepad"></use></svg><span>Jeux et équipes</span></button>
+        <button type="button" data-view="circles" class="swapp-social-channel-link"><svg class="pi" aria-hidden="true"><use href="#pi-circles"></use></svg><span>Mes communautés</span></button>
+      </div>
       <button class="pulse-primary" id="compose-focus"><svg class="pi " aria-hidden="true"><use href="#pi-plus"></use></svg><span class="pulse-primary-label">Publier</span></button>
+      <div class="swapp-social-voice-dock">
+        <button type="button" data-view="rooms" class="swapp-social-voice-shortcut" title="Rejoindre les salons vocaux" aria-label="Ouvrir les salons vocaux"><svg aria-hidden="true" viewBox="0 0 24 24" focusable="false"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8"/></svg><span><strong>Vocal</strong><small>Salons et discussions</small></span><svg class="pi swapp-voice-dock-chevron" aria-hidden="true"><use href="#pi-chevron"></use></svg></button>
+      </div>
     </aside>
 
     <main class="pulse-main">
       <div class="swapp-social-sticky-stack" role="group" aria-label="Navigation SOCIAL">
       <header class="pulse-topbar">
-        <div><span class="pulse-kicker">SOCIAL</span><h1 id="view-title">Le fil</h1></div><p class="swapp-social-topline-tag">JEUX · COMMUNAUTÉS · CONVERSATIONS</p><button type="button" class="swapp-social-voice-shortcut" data-view="rooms" aria-label="Accéder aux salons vocaux de SOCIAL" title="Salons vocaux"><svg aria-hidden="true" viewBox="0 0 24 24" focusable="false"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8"/></svg><span>Vocal</span></button><div class="swapp-social-header-tools"><button type="button" data-view="explore" aria-label="Rechercher un membre, un jeu ou un article"><svg class="pi" aria-hidden="true"><use href="#pi-search"></use></svg></button><button type="button" id="mobile-compose" aria-label="Publier"><svg class="pi" aria-hidden="true"><use href="#pi-plus"></use></svg></button></div>
+        <div><span class="pulse-kicker">SOCIAL</span><h1 id="view-title">Le fil</h1></div><p class="swapp-social-topline-tag">JEUX · COMMUNAUTÉS · CONVERSATIONS</p><div class="swapp-social-header-tools"><button type="button" data-view="explore" aria-label="Rechercher un membre, un jeu ou un article"><svg class="pi" aria-hidden="true"><use href="#pi-search"></use></svg></button><button type="button" id="mobile-compose" aria-label="Publier"><svg class="pi" aria-hidden="true"><use href="#pi-plus"></use></svg></button></div>
       </header>
 <nav class="pulse-mobile-nav" aria-label="Navigation mobile SOCIAL">
     <button class="active" data-view="home" aria-label="Fil"><svg class="pi" aria-hidden="true"><use href="#pi-home"></use></svg></button>
     <button data-view="circles" aria-label="Communautés"><svg class="pi" aria-hidden="true"><use href="#pi-circles"></use></svg></button>
+    <button data-view="rooms" aria-label="Salons vocaux"><svg class="pi" aria-hidden="true"><use href="#pi-message"></use></svg></button>
     <button data-view="messages" aria-label="Messages"><svg class="pi" aria-hidden="true"><use href="#pi-mail"></use></svg></button>
     <button data-view="notifications" aria-label="Notifications"><svg class="pi" aria-hidden="true"><use href="#pi-bell"></use></svg></button>
     <button data-view="profile" aria-label="Profil"><svg class="pi" aria-hidden="true"><use href="#pi-user"></use></svg></button>
@@ -54,6 +64,7 @@
       <section class="pulse-tabs" id="feed-tabs" aria-label="Choisir le fil à afficher">
         <button class="pulse-tab" data-feed="following"><strong id="feed-following-label">Abonnements</strong><small id="feed-following-help">Les comptes que tu suis</small></button>
         <button class="pulse-tab active" data-feed="discover"><strong>Pour vous</strong><small>Publications recommandées et tendances</small></button>
+        <button class="pulse-tab" data-feed="news"><strong>Actualités</strong><small>À lire et à partager</small></button>
       </section>
       </div>
       <div class="swapp-social-mobile-offset" aria-hidden="true"></div>

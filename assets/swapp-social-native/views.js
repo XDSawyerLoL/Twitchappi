@@ -130,7 +130,7 @@ async function fetchNewsFeed(){
          game:typeof rawGame==='string'?rawGame.trim().slice(0,65):'',
          publishedAt:a.publishedAt||a.originalPublishedAt};
         });
-       cachedNewsFeed={items};
+       cachedNewsFeed={items:items.filter(item=>item.title)};
        cachedNewsFeedAt=Date.now();
        return cachedNewsFeed;
       }
@@ -146,14 +146,15 @@ function renderNewsCard(item){
   const url=safeNewsUrl(item.url||item.articleUrl);
   const image=safeNewsUrl(item.image);
   const summary=String(item.summary||'').slice(0,280);
-  return '<article class="pulse-news-card">'+
+  return '<article class="pulse-news-card'+(image?'':' is-text-only')+'">'+
     (image?'<a class="pulse-news-media" href="'+esc(url||image)+'" target="_blank" rel="noopener noreferrer"><img src="'+esc(image)+'" alt="" loading="lazy" referrerpolicy="no-referrer"></a>':'')+
     '<div class="pulse-news-body"><div class="pulse-news-meta"><span>SWAPP</span><strong>'+esc(source)+'</strong><span>'+esc(newsTime(item.publishedAt))+'</span></div>'+
     '<h2>'+esc(title)+'</h2>'+
     (summary?'<p>'+esc(summary)+(String(item.summary||'').length>280?'…':'')+'</p>':'')+
     '<div class="pulse-news-actions">'+
       (url?'<a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">Lire la source ↗</a>':'')+
-      '<button type="button" data-news-repost data-news-title="'+esc(title)+'" data-news-source="'+esc(source)+'" data-news-url="'+esc(url)+'" data-news-image="'+esc(image)+'">Reposter sur SOCIAL</button>'+
+      '<button type="button" data-news-repost data-news-title="'+esc(title)+'" data-news-source="'+esc(source)+'" data-news-url="'+esc(url)+'" data-news-image="'+esc(image)+'">Reposter</button>'+
+      (url?'<button type="button" data-news-share data-news-url="'+esc(url)+'" data-news-title="'+esc(title)+'">Partager</button>':'')+
       (item.game?'<button type="button" data-next-game="'+esc(item.game)+'">Discuter du jeu ↗</button>':'')+
     '</div></div></article>';
 }
@@ -177,19 +178,36 @@ export async function loadNewsRss(){
   }
 }
 
-async function showRealNewsWhenEmpty(revision){
+async function appendRealNewsToDiscovery(revision,hasPosts){
  const feed=dom.feed;
+ if(!feed)return;
  try{
   const response=await fetchNewsFeed();
-  if(!isCurrent(revision,'home')||state.feed==='news'||!feed)return;
-  const items=(response.items||[]).filter(x=>x&&x.title).sort((a,b)=>Date.parse(b.publishedAt||0)-Date.parse(a.publishedAt||0)).slice(0,4);
+  if(!isCurrent(revision,'home')||state.feed!=='discover'||!feed.isConnected)return;
+  const items=(response.items||[]).filter(x=>x&&x.title)
+   .sort((a,b)=>Date.parse(b.publishedAt||0)-Date.parse(a.publishedAt||0)).slice(0,3);
   if(!items.length)return;
-  feed.innerHTML='<section class="pulse-starter-news" aria-label="Découvrir les dernières actualités SWAPP">'+
-   '<header class="pulse-starter-news-head"><span>POUR COMMENCER</span><h2>Des jeux dont on parle.</h2>'+
-   '<p>Les derniers articles publiés par SWAPP. Lis, partage et lance la discussion.</p></header>'+
-   '<div class="pulse-news-grid">'+items.map(renderNewsCard).join('')+'</div></section>';
+  // This is an editorial feed, not fabricated SOCIAL posts. Do not write to
+  // Pulse or change the user's following feed. Real posts remain untouched.
+  const section=document.createElement('section');
+  section.className='pulse-starter-news pulse-news-in-timeline';
+  section.setAttribute('aria-label','Actualités SWAPP à partager');
+  section.innerHTML='<header class="pulse-starter-news-head"><span>SWAPP · ACTUALITÉ</span>'+
+   '<h2>Les jeux font l’actualité.</h2>'+
+   '<p>Articles publiés sur SWAPP. Partage-les ou discutes-en dans SOCIAL.</p>'+
+   '</header><div class="pulse-news-grid">'+items.map(renderNewsCard).join('')+'</div>'+
+   '<footer class="pulse-news-end"><button type="button" data-feed-switch="news">Toutes les actualités →</button></footer>';
+  if(!hasPosts)feed.replaceChildren(section);
+  else{
+   // Surface editorial news after the second real SOCIAL publication.
+   // A large social feed must not bury the latest news 40 posts below.
+   const posts=Array.from(feed.children).filter(node=>node.classList?.contains('pulse-post'));
+   const anchor=posts[Math.min(1,posts.length-1)];
+   if(anchor)anchor.after(section);
+   else feed.append(section);
+  }
  }catch{
-  // A failing news API must never hide existing SOCIAL content or break navigation.
+  // An unavailable news service must not replace real SOCIAL posts.
  }
 }
 
@@ -203,7 +221,7 @@ export async function loadHome(){
     if(!isCurrent(revision,'home')||state.feed!==feedMode)return;
     const posts=Array.isArray(data.posts)?data.posts:[];
     renderPosts(posts,state.user&&state.feed==='following'?'Suis des comptes ou publie le premier message de ton fil.':'Aucune publication publique.');
-    if(posts.length===0&&state.feed==='discover')await showRealNewsWhenEmpty(revision);
+    if(state.feed==='discover')void appendRealNewsToDiscovery(revision,posts.length>0);
   }catch(error){
     if(isCurrent(revision,'home')&&state.feed===feedMode)
       showRecoverableError('Fil momentanément indisponible',error,'home');

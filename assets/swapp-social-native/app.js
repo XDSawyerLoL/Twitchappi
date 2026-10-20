@@ -1,6 +1,6 @@
 import { TOKEN_KEY, state, dom, api, errorText } from './core.js';
 import { openAuth, closeAuth, updateAuthModal, updateAccount, requireAuth, applySession, clearSession, restoreSession } from './session.js';
-import { setView, loadHome, loadExplore, loadCircles, loadNotifications, loadSaved, loadProfile, loadMessages, loadConversation, loadCirclePreview, loadNewsRss } from './views.js?v=20261019-game-synergy-v1';
+import { setView, loadHome, loadExplore, loadCircles, loadNotifications, loadSaved, loadProfile, loadMessages, loadConversation, loadCirclePreview, loadNewsRss } from './views.js?v=20261021-discord-news-v1';
 import {setupVoiceNotes} from './dm-audio.js?v=20261018-audio-stage-v1';
 import {setupDirectCalls} from './dm-calls.js?v=20261018-audio-stage-v1';
 
@@ -424,6 +424,48 @@ function bindDelegatedEvents(){
     }
     if(event.target.closest('[data-social-create-circle]')){
       loadCircles();
+      return;
+    }
+    const newsSwitch=event.target.closest('[data-feed-switch="news"]');
+    if(newsSwitch){
+      event.preventDefault();
+      state.feed='news';
+      void loadNewsRss();
+      return;
+    }
+    const newsShare=event.target.closest('[data-news-share]');
+    if(newsShare){
+      event.preventDefault();
+      const url=safeHttpsUrl(newsShare.dataset.newsUrl);
+      const title=String(newsShare.dataset.newsTitle||'Actualité SWAPP').slice(0,180);
+      if(!url)return;
+      const oldLabel=newsShare.textContent;
+      newsShare.disabled=true;
+      try{
+        if(typeof navigator.share==='function'){
+          await navigator.share({title,text:title,url});
+        }else if(navigator.clipboard?.writeText){
+          await navigator.clipboard.writeText(url);
+          newsShare.textContent='Lien copié ✓';
+        }else{
+          const input=document.createElement('textarea');
+          input.value=url;input.setAttribute('readonly','');input.style.position='fixed';
+          input.style.opacity='0';document.body.append(input);input.select();
+          const copied=document.execCommand?.('copy')===true;input.remove();
+          if(!copied)throw Error('share_not_supported');
+          newsShare.textContent='Lien copié ✓';
+        }
+      }catch(error){
+        if(error?.name!=='AbortError'){
+          newsShare.textContent='Impossible de partager';
+          console.warn('[SWAPP SOCIAL] Share unavailable:',error?.name||'unsupported');
+        }
+      }finally{
+        newsShare.disabled=false;
+        if(newsShare.isConnected){
+          window.setTimeout(()=>{if(newsShare.isConnected)newsShare.textContent=oldLabel},2300);
+        }
+      }
       return;
     }
     const newsRepost=event.target.closest('[data-news-repost]');
