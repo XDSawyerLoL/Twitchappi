@@ -76,7 +76,7 @@ function createSocialNativeProxy(fetchImpl,{production=true,restoreLocalSession=
  }
  async function issueSocialToken(req,user){
   const cached=req.session?.swappSocialAuth;
-  if(cached?.userId===user.id&&typeof cached.token==='string'&&cached.token.length>=20)return cached.token;
+  if(cached?.userId===user.id&&cached?.backend===upstreamOrigin&&typeof cached.token==='string'&&cached.token.length>=20)return cached.token;
   const key=String(req.sessionID||'')+':'+String(user.id);
   if(signingIn.has(key))return signingIn.get(key);
   const task=(async()=>{
@@ -104,7 +104,7 @@ function createSocialNativeProxy(fetchImpl,{production=true,restoreLocalSession=
    const token=result.payload?.token;
    if(typeof token!=='string'||!/^[A-Za-z0-9._-]{20,768}$/.test(token))
     throw Object.assign(new Error('social_sso_unavailable'),{status:503});
-   if(req.session)req.session.swappSocialAuth={userId:user.id,token};
+   if(req.session)req.session.swappSocialAuth={userId:user.id,token,backend:upstreamOrigin};
    return token;
   })();
   signingIn.set(key,task);
