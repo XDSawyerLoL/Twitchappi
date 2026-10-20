@@ -4,7 +4,7 @@
 (()=>{'use strict';
  const ROUTES=Object.freeze({
   '/actus':'actus','/decouvrir':'discover','/categories':'categories',
-  '/equipes':'teams','/compte':'settings'
+  '/equipes':'teams','/compte':'settings','/dashboard':'dashboard'
  });
  const normalize=path=>(path||'/').replace(/\/+$/,'')||'/';
  const entryPath=normalize(location.pathname);
