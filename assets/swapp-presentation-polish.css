@@ -389,9 +389,9 @@ body.oryonDiscoverV4 #discover .v4Meta{
   font-size:10px!important;
   letter-spacing:-.045em;
  }
- /* 320px iPhone SE: keep the full 'Communauté' label inside its tab. */
+ /* 320px iPhone SE: keep the 'Social' label readable inside its tab. */
  #mobileNav.mobileNav > a[href="/communaute"]{
-  letter-spacing:-.11em!important;
+  letter-spacing:normal!important;
  }
 }
 

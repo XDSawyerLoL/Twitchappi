@@ -33,7 +33,7 @@
   <div class="swapp-companion-tabs" role="tablist" aria-label="Mairy et événements">
    <button type="button" data-swapp-tab="mairy" role="tab" aria-selected="true" aria-controls="swappCompanionGuide" id="swappCompanionGuideTab">Discuter</button>
    <button type="button" data-swapp-tab="events" role="tab" aria-selected="false" aria-controls="swappCompanionEvents" id="swappCompanionEventsTab">Événements <span class="swapp-companion-tab-count" hidden></span></button>
-   <button type="button" data-swapp-tab="community" role="tab" aria-selected="false" aria-controls="swappCompanionCommunity" id="swappCompanionCommunityTab">Communauté</button>
+   <button type="button" data-swapp-tab="community" role="tab" aria-selected="false" aria-controls="swappCompanionCommunity" id="swappCompanionCommunityTab">Social</button>
   </div>
   <div class="swapp-companion-pane" id="swappCompanionGuide" role="tabpanel" aria-labelledby="swappCompanionGuideTab">
    <p class="swapp-companion-intro">Je t'aide à trouver un direct, une actualité ou une fonctionnalité de SWAPP.</p>
@@ -55,7 +55,7 @@
   </div>
   <div class="swapp-companion-pane" id="swappCompanionCommunity" role="tabpanel" aria-labelledby="swappCompanionCommunityTab" hidden>
    <p class="swapp-companion-intro">Découvre les dernières publications de SOCIAL, le réseau communautaire intégré à SWAPP.</p>
-   <p class="swapp-companion-disclaimer">Aperçu des publications publiques. Ouvre Communauté pour accéder aux profils, messages, abonnements et discussions.</p>
+   <p class="swapp-companion-disclaimer">Aperçu des publications publiques. Ouvre Social pour accéder aux profils, messages, abonnements et discussions.</p>
    <div class="swapp-companion-community-list" aria-live="polite"></div>
    <button type="button" class="swapp-companion-reload">Actualiser les publications</button>
   </div>
@@ -160,7 +160,7 @@
     addReply('Tu peux suivre les directs et les actualités en activant les catégories dans Événements. Rien n’est activé automatiquement.');
     show('events',false);
    }else if(/(?:\bcommunaute\b|\bsocial\b|\bdiscussion\b|\bmessage\b)/.test(query)){
-    addReply('SOCIAL est accessible dans la rubrique Communauté : publications, profils, messages privés et groupes. Le compte SOCIAL reste distinct de ton compte SWAPP.');
+    addReply('La rubrique Social donne accès aux publications, profils, messages privés et groupes. Ton compte SWAPP suffit pour y participer.');
     show('community',false);
    }else{
     addReply('Je peux te montrer les directs disponibles, les dernières actualités, les réglages de couleurs et les événements. Quelle partie veux-tu explorer ?');

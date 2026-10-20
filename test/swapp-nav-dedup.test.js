@@ -5,7 +5,7 @@ const fs=require('node:fs');
 const path=require('node:path');
 const vm=require('node:vm');
 const ROOT=path.resolve(__dirname,'..');
-const EXPECTED=['Accueil','Découvrir','Catégories','Équipes','Actualité','Communauté','Vidéos','Boutique'];
+const EXPECTED=['Accueil','Découvrir','Catégories','Équipes','Actualité','Social','Vidéos','Boutique'];
 
 class Element {
  constructor(tag,text='',href=null){
@@ -64,7 +64,7 @@ test('keep eight tabs and use real links for SOCIAL, videos and shop instead of 
 });
 test('a later SPA or widget re-render cannot reintroduce duplicated destinations',()=>{
  const {nav,group,observe}=setup();
- group.append(new Element('a','Communauté','/communaute'));
+ group.append(new Element('a','Social','/communaute'));
  group.append(new Element('a','Vidéos','/bandes-annonces'));
  group.append(new Element('a','Boutique','/boutique'));
  observe();

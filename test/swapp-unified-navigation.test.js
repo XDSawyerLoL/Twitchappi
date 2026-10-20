@@ -8,7 +8,7 @@ const {layout}=require('../modules/swapp-news/site-shell');
 const {renderNewsHome,renderNewsStory}=require('../modules/swapp-news/native-pages');
 const {renderTwitchWatch}=require('../modules/swapp-news/watch');
 const ROOT=path.resolve(__dirname,'..');
-const expected=['Accueil','Découvrir','Catégories','Équipes','Actualité','Communauté','Vidéos','Boutique'];
+const expected=['Accueil','Découvrir','Catégories','Équipes','Actualité','Social','Vidéos','Boutique'];
 test('même contrat de menu pour toutes les pages SWAPP',()=>{
  assert.deepEqual(items.map(x=>x.label),expected);
  assert.equal(account.label,'Compte');
@@ -84,7 +84,7 @@ test('SOCIAL, videos and shop remain in the shared mobile menu',()=>{
 });
 
 
-test('Communauté, Vidéos et Boutique partagent exactement les dimensions du logo et de la navigation',()=>{
+test('Social, Vidéos et Boutique partagent exactement les dimensions du logo et de la navigation',()=>{
  const {community,trailers,shop}=require('../modules/swapp-hubs');
  const spa=fs.readFileSync(path.join(ROOT,'index.html'),'utf8');
  const navCss=fs.readFileSync(path.join(ROOT,'assets/swapp-unified-nav.css'),'utf8');

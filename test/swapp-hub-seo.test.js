@@ -4,7 +4,7 @@ const assert=require('node:assert/strict');
 const {layout}=require('../modules/swapp-news/site-shell');
 
 const PAGE_PATHS=[
- ['community','/communaute','Communauté'],
+ ['community','/communaute','Social'],
  ['trailers','/bandes-annonces','Vidéos'],
  ['shop','/boutique','Boutique']
 ];

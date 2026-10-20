@@ -33,12 +33,12 @@ test('iPhone SE navigation displays five destinations and the full community lab
  const css=read('assets/swapp-presentation-polish.css');
  const nav=require('../assets/swapp-navigation').serverMobile('community');
  assert.equal((nav.slice(0,nav.indexOf('<details')).match(/<a /g)||[]).length,4);
- assert.match(nav,/>Communauté<\/a>/);
+ assert.match(nav,/>Social<\/a>/);
  assert.match(nav,/<details class="swapp-mobile-more">/);
  const mobile=css.slice(css.indexOf('Compact five-destination mobile bar'));
  assert.match(mobile,/grid-template-columns:repeat\(5,minmax\(0,1fr\)\)!important/);
  assert.match(mobile,/@media\(max-width:360px\)/);
- assert.match(mobile,/#mobileNav\.mobileNav > a\[href="\/communaute"\]\{\s*letter-spacing:-\.11em!important/);
+ assert.match(mobile,/#mobileNav\.mobileNav > a\[href="\/communaute"\]\{\s*letter-spacing:normal!important/);
  assert.match(mobile,/width:min\(270px,calc\(100vw - 22px\)\)/);
 });
 
