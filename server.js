@@ -559,6 +559,7 @@ async function restoreOryonSessionFromRememberCookie(req, res, {allowUserRecover
     const remember_token = issueOryonRememberToken(user, data);
     await writeOryonUsersAndWait(data);
     req.session.oryonUser = sessionOryonUser(user);
+    req.session.twitchUser = user.twitch_link || null;
     setOryonRememberCookie(res, user, remember_token);
     return req.session.oryonUser;
   }catch(e){
@@ -3915,6 +3916,7 @@ app.post('/api/oryon/register', async (req, res) => {
     const remember_token = issueOryonRememberToken(user, data);
     const persistResult = await writeOryonUsersAndWait(data);
     req.session.oryonUser = sessionOryonUser(user);
+    req.session.twitchUser = user.twitch_link || null;
     setOryonRememberCookie(res, user, remember_token);
     req.session.save(() => res.json({ success:true, user: publicOryonUser(user), remember_token, emailVerificationRequired:false, persistence:persistResult||null }));
   }catch(e){ res.status(500).json({ success:false, error:e.message }); }
@@ -3946,6 +3948,7 @@ app.post('/api/oryon/login', async (req, res) => {
     const remember_token = issueOryonRememberToken(user, data);
     const persistResult = await writeOryonUsersAndWait(data);
     req.session.oryonUser = sessionOryonUser(user);
+    req.session.twitchUser = user.twitch_link || null;
     setOryonRememberCookie(res, user, remember_token);
     req.session.save(() => res.json({ success:true, user: publicOryonUser(user), remember_token, persistence:persistResult||null }));
   }catch(e){ res.status(500).json({ success:false, error:e.message }); }
@@ -4011,6 +4014,7 @@ app.post('/api/oryon/password/reset', authLimiter, async (req, res) => {
     const remember_token = issueOryonRememberToken(user, data);
     const persistResult = await writeOryonUsersAndWait(data);
     req.session.oryonUser = sessionOryonUser(user);
+    req.session.twitchUser = user.twitch_link || null;
     setOryonRememberCookie(res, user, remember_token);
     req.session.save(() => res.json({ success:true, user:publicOryonUser(user), remember_token, persistence:persistResult || null }));
   }catch(e){
@@ -4032,6 +4036,7 @@ app.post('/api/oryon/restore-session', async (req, res) => {
     ensureOryonUserShape(user, { ensureStreamKey:true });
     await writeOryonUsersAndWait(data);
     req.session.oryonUser = sessionOryonUser(user);
+    req.session.twitchUser = user.twitch_link || null;
     setOryonRememberCookie(res, user, token);
     req.session.save(() => res.json({success:true,user:publicOryonUser(user),remember_token:token}));
   }catch(e){ res.status(500).json({success:false,error:e.message}); }
@@ -4039,6 +4044,9 @@ app.post('/api/oryon/restore-session', async (req, res) => {
 
 app.post('/api/oryon/logout', (req, res) => {
   req.session.oryonUser = null;
+  req.session.twitchUser = null;
+  req.session.twitch_oauth_state = null;
+  req.session.twitch_link_user_id = null;
   clearOryonRememberCookie(res);
   req.session.save(() => res.json({ success:true }));
 });
@@ -10060,6 +10068,7 @@ app.post('/api/oryon/client-recover', async (req, res) => {
     const remember_token = issueOryonRememberToken(user, data);
     const persistResult = await writeOryonUsersAndWait(data);
     req.session.oryonUser = sessionOryonUser(user);
+    req.session.twitchUser = user.twitch_link || null;
     setOryonRememberCookie(res, user, remember_token);
     req.session.save(() => res.json({success:true,user:publicOryonUser(user),remember_token,persistence:persistResult||null,recovered:true}));
   }catch(e){ res.status(500).json({success:false,error:e.message}); }
