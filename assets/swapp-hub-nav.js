@@ -5,7 +5,7 @@
  */
 (()=>{'use strict';
  const HUBS=[
-  {href:'/communaute',label:'Communauté'},
+  {href:'/communaute',label:'Social'},
   {href:'/bandes-annonces',label:'Vidéos'},
   {href:'/boutique',label:'Boutique'}
  ];
