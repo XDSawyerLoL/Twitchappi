@@ -339,6 +339,15 @@ function bindDelegatedEvents(){
   },280);
  });
   document.addEventListener('click',async function(event){
+    const retry=event.target.closest('[data-social-retry]');
+    if(retry){
+      event.preventDefault();
+      if(retry.dataset.socialRetry==='home')await loadHome();
+      else if(retry.dataset.socialRetry==='messages')await loadMessages();
+      else if(retry.dataset.socialRetry==='conversation'&&retry.dataset.socialHandle)
+        await loadConversation(retry.dataset.socialHandle);
+      return;
+    }
     const openNew=event.target.closest('[data-new-message-toggle]');
     if(openNew){
       const form=document.getElementById('new-message');
