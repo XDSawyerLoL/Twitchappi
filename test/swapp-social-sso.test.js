@@ -7,7 +7,7 @@ const secret='S'.repeat(48);
 const account={id:'swapp-user-01',login:'Player_01',display_name:'SWAPP Player'};
 const token='abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGH';
 function request(path,method='GET',authenticated=true){
- return {path,method,headers:{origin:'https://swapp.tv',referer:'https://swapp.tv/communaute'},
+ return {path,method,headers:{origin:'https://swapp.tv',referer:'https://swapp.tv/social'},
   session:authenticated?{oryonUser:{...account}}:{},sessionID:'swapp-session-test',
   originalUrl:'/api/pulse'+path,body:method==='GET'?undefined:{body:'Bonjour',handle:'member_02'}};
 }
