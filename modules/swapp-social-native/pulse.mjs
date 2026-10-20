@@ -305,7 +305,16 @@ export async function handlePulse(req,res,url,corsHeaders={}){
     if(route==='/api/pulse/export'&&req.method==='GET'){const store=await readStore(),a=await auth(req,store);if(!a){json(res,401,{error:'unauthorized'},corsHeaders);return true}const uid=a.user.id,data={user:publicUser(a.user,store,uid),posts:Object.values(store.posts).filter(p=>p.authorId===uid),follows:store.follows[uid]||[],likes:Object.entries(store.likes).filter(([,ids])=>ids.includes(uid)).map(([pid])=>pid),bookmarks:store.bookmarks[uid]||[],circles:Object.values(store.circles).filter(c=>(store.circleMembers[c.id]||{})[uid]),notifications:store.notifications[uid]||[],messages:Object.values(store.messages).filter(msg=>msg.senderId===uid||msg.recipientId===uid)};json(res,200,{exportedAt:now(),data},corsHeaders);return true}
 
     json(res,404,{error:'not_found'},corsHeaders);return true
-  }catch(e){console.error('[pulse]',e);json(res,e.status||500,{error:e.message||'internal_error'},corsHeaders);return true}
+  }catch(e){
+    // Do not expose database messages, credentials or internal stack traces.
+    const publicErrors=new Set(['social_mysql_import_required','social_mysql_snapshot_invalid',
+      'social_mysql_url_missing','social_mysql_url_invalid','rate_limited','body_too_large',
+      'invalid_json','invalid_body']);
+    const error=publicErrors.has(String(e?.message))?e.message:'social_native_backend_unavailable';
+    console.warn('[SWAPP SOCIAL] Native handler error:',Number(e?.status)||500);
+    json(res,publicErrors.has(error)?(Number(e?.status)||503):503,{error},corsHeaders);
+    return true;
+  }
 }
 
 // Startup schema initialization does not create an empty store: import approval is required.
