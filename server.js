@@ -976,7 +976,16 @@ app.use('/api/pulse',async(req,res,next)=>{
      SOCIAL_MIGRATED_APPROVED&&state.snapshot_type==='imported');
   if(!eligible){
    res.set('Cache-Control','no-store');
-   return res.status(503).json({error:'social_storage_not_ready'});
+   const reason=!SOCIAL_MYSQL_APPROVED?'fresh_start_approval_missing':
+     !state.database_reachable?'mysql_connection_unavailable':
+     !state.snapshot_present?
+       (socialFreshBootstrapState==='disabled'?'fresh_initialization_not_requested':
+        socialFreshBootstrapState==='starting'?'fresh_initialization_in_progress':
+        socialFreshBootstrapState==='created'?'mysql_snapshot_not_visible':
+        socialFreshBootstrapState==='already_present'?'mysql_snapshot_not_visible':
+        socialFreshBootstrapState):
+     'snapshot_mode_mismatch';
+   return res.status(503).json({error:'social_storage_not_ready',reason});
   }
  }
  return next();
