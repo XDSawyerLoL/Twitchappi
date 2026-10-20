@@ -27,6 +27,8 @@
       swapp_account_required:'Connecte-toi à ton compte SWAPP.',
       verified_twitch_link_required:'Lie d’abord ta chaîne Twitch dans ton tableau de bord.',
       game_not_found_on_twitch:'Jeu non reconnu exactement sur Twitch. Utilise son nom officiel.',
+      spotlight_game_not_covered:'SWAPP ne possède pas encore d’article publié sur ce jeu. Réservation impossible.',
+      spotlight_articles_unavailable:'Les articles SWAPP sont temporairement indisponibles : impossible de réserver.',
       slot_already_reserved:'Ce créneau est déjà réservé pour ce jeu.',
       spotlight_max_upcoming_reached:'Trois réservations futures maximum par créateur.',
       slot_must_start_on_half_hour:'Choisis un horaire à 00 ou 30 minutes.',
