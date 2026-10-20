@@ -898,8 +898,37 @@ const socialAudioPrivacy=createAudioPrivacy({
   getPool:()=>process.env.SWAPP_SOCIAL_FEATURES==='1'&&socialInteractionsState!=='unavailable'?socialInteractionsPool:null,
   lookupLocalUser:getOryonUserByLogin
 });
-app.use('/api/pulse',(req,res,next)=>req.method==='GET'?pulseReadLimiter(req,res,next):authLimiter(req,res,next),
- createSocialNativeProxy(fetchWithTimeout,{production:IS_PROD,
+// Native cutover is opt-in. A missing verified import never creates a blank network.
+// Default remains the historical Render proxy until a complete migration is checked.
+const SOCIAL_BACKEND_MODE=String(process.env.SWAPP_SOCIAL_BACKEND||'render').trim().toLowerCase();
+const SOCIAL_MYSQL_SELECTED=SOCIAL_BACKEND_MODE==='mysql';
+const SOCIAL_MYSQL_APPROVED=process.env.SWAPP_SOCIAL_MYSQL_MIGRATION_VERIFIED==='1';
+const localSocialBridge=SOCIAL_MYSQL_SELECTED?
+ require('./modules/swapp-social-local-bridge'):null;
+const socialTransport=SOCIAL_MYSQL_SELECTED?
+ localSocialBridge.createInProcessPulseFetch():fetchWithTimeout;
+const socialUpstreamOrigin=SOCIAL_MYSQL_SELECTED?
+ localSocialBridge.INTERNAL_ORIGIN:undefined;
+app.get('/api/swapp/social/backend-status',(_req,res)=>{
+ res.set('Cache-Control','no-store');
+ res.json({success:true,mode:SOCIAL_MYSQL_SELECTED?'mysql':'render',
+  migration_approved:SOCIAL_MYSQL_APPROVED,
+  active_backend:SOCIAL_MYSQL_SELECTED&&SOCIAL_MYSQL_APPROVED?'mysql':
+    SOCIAL_MYSQL_SELECTED?'blocked_unverified':'render',
+  mysql_configured:Boolean(process.env.SWAPP_SOCIAL_MYSQL_URL||
+    process.env.SWAPP_MYSQL_URL||process.env.DATABASE_URL),
+  historical_data_verified:false // only live import validation can establish this.
+ });
+});
+app.use('/api/pulse',(req,res,next)=>{
+ if(SOCIAL_MYSQL_SELECTED&&!SOCIAL_MYSQL_APPROVED){
+  res.set('Cache-Control','no-store');
+  return res.status(503).json({error:'social_migration_not_verified'});
+ }
+ return next();
+},(req,res,next)=>req.method==='GET'?pulseReadLimiter(req,res,next):authLimiter(req,res,next),
+ createSocialNativeProxy(socialTransport,{production:IS_PROD,
+  upstreamOrigin:socialUpstreamOrigin,
   restoreLocalSession:restoreOryonSessionFromRememberCookie,
   ssoSecret:String(process.env.SWAPP_SOCIAL_SSO_SECRET||process.env.SWAPP_ACCOUNT_RECOVERY_SECRET||configuredSessionSecret||''),
   lookupLocalUser:getOryonUserByLogin,
