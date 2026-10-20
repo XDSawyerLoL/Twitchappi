@@ -26,7 +26,7 @@ test('the entire original SOCIAL UI is embedded without iframe or another site m
  assert.match(html,/id="pulse-text"/);
  assert.match(html,/id="auth-modal"/);
  assert.match(html,/type="module" src="\/assets\/swapp-social-native\/app\.js/);
- assert.match(html,/href="\/communaute"[^>]*aria-current="page"/);
+ assert.match(html,/href="\/social"[^>]*aria-current="page"/);
  assert.doesNotMatch(html,/<iframe/);
  assert.doesNotMatch(html,/id="swappCommunityFeed"/);
 });
@@ -71,7 +71,7 @@ test('an authenticated message is proxied to the pinned server, not a user suppl
  },{production:true});
  const token='a'.repeat(43),res=mockResponse();
  await handler({method:'POST',path:'/messages',headers:{
-   origin:'https://swapp.tv',referer:'https://swapp.tv/communaute',
+   origin:'https://swapp.tv',referer:'https://swapp.tv/social',
    cookie:'SWAPP_SECRET=hidden',authorization:'Bearer '+token
  },body:{handle:'sansa',body:'Salut'},originalUrl:'/api/pulse/messages'},res);
  assert.equal(res.statusCode,201);
