@@ -911,14 +911,29 @@ const SOCIAL_MYSQL_APPROVED=SOCIAL_MIGRATED_APPROVED!==SOCIAL_FRESH_APPROVED;
 const {createNativeSocialReadiness}=require('./modules/swapp-social-native-status');
 const socialNativeReadiness=createNativeSocialReadiness();
 const {bootstrapFreshSocial}=require('./modules/swapp-social-fresh-boot');
+let socialFreshBootstrapState='disabled';
 if(process.env.SWAPP_SOCIAL_FRESH_AUTO_INIT==='1'){
-  // This is an explicit, one-time Hostinger environment opt-in. Never create
-  // an empty SOCIAL for a deployment that did not opt in.
+  // Initialization requires explicit flags; no implicit fresh network creation.
+  socialFreshBootstrapState='starting';
   void bootstrapFreshSocial().then(result=>{
-    console.info('[SWAPP SOCIAL] fresh bootstrap:',result.state);
+    socialFreshBootstrapState=result.state==='created_fresh'?'created':
+      result.state==='already_fresh'?'already_present':'disabled';
+    socialNativeReadiness.invalidate();
+    console.info('[SWAPP SOCIAL] fresh bootstrap:',socialFreshBootstrapState);
   }).catch(error=>{
-    // No credentials, SQL text, data or stack traces in logs.
-    console.error('[SWAPP SOCIAL] fresh bootstrap blocked:',String(error?.code||error?.message||'failed').slice(0,70));
+    const code=String(error?.code||error?.message||'');
+    const allowedCodes=new Set([
+      'fresh_social_bootstrap_approval_incomplete','social_mysql_url_missing',
+      'social_mysql_url_invalid','existing_social_snapshot_unreadable',
+      'existing_social_snapshot_invalid','existing_social_snapshot_not_fresh',
+      'fresh_social_readback_missing','fresh_social_readback_mismatch',
+      'ER_TABLEACCESS_DENIED_ERROR','ER_DBACCESS_DENIED_ERROR','ER_ACCESS_DENIED_ERROR',
+      'ER_SPECIFIC_ACCESS_DENIED_ERROR','ER_BAD_DB_ERROR','ER_NO_SUCH_TABLE',
+      'ER_DUP_ENTRY','ETIMEDOUT','ECONNREFUSED'
+    ]);
+    socialFreshBootstrapState=allowedCodes.has(code)?code:'initialization_failed';
+    socialNativeReadiness.invalidate();
+    console.error('[SWAPP SOCIAL] fresh bootstrap blocked:',socialFreshBootstrapState);
   });
 }
 
@@ -937,6 +952,8 @@ app.get('/api/swapp/social-native/backend-status',async(_req,res)=>{
  res.json({success:true,mode:SOCIAL_MYSQL_SELECTED?'mysql':'render',
   migration_approved:Boolean(SOCIAL_MIGRATED_APPROVED&&SOCIAL_MYSQL_APPROVED),
   fresh_start_approved:Boolean(SOCIAL_FRESH_APPROVED&&SOCIAL_MYSQL_APPROVED),
+  fresh_auto_init_requested:process.env.SWAPP_SOCIAL_FRESH_AUTO_INIT==='1',
+  fresh_bootstrap_state:socialFreshBootstrapState,
   writes_frozen:SOCIAL_MIGRATION_FREEZE,
   active_backend:SOCIAL_MYSQL_SELECTED&&SOCIAL_MYSQL_APPROVED&&ready?'mysql':
     SOCIAL_MYSQL_SELECTED?'blocked_unverified':'render',
@@ -959,7 +976,16 @@ app.use('/api/pulse',async(req,res,next)=>{
      SOCIAL_MIGRATED_APPROVED&&state.snapshot_type==='imported');
   if(!eligible){
    res.set('Cache-Control','no-store');
-   return res.status(503).json({error:'social_storage_not_ready'});
+   const reason=!SOCIAL_MYSQL_APPROVED?'fresh_start_approval_missing':
+     !state.database_reachable?'mysql_connection_unavailable':
+     !state.snapshot_present?
+       (socialFreshBootstrapState==='disabled'?'fresh_initialization_not_requested':
+        socialFreshBootstrapState==='starting'?'fresh_initialization_in_progress':
+        socialFreshBootstrapState==='created'?'mysql_snapshot_not_visible':
+        socialFreshBootstrapState==='already_present'?'mysql_snapshot_not_visible':
+        socialFreshBootstrapState):
+     'snapshot_mode_mismatch';
+   return res.status(503).json({error:'social_storage_not_ready',reason});
   }
  }
  return next();
