@@ -120,7 +120,7 @@
 #swappSocialNative .social-timeline-retry{
  min-height:42px;padding:9px 15px;margin-top:16px;
  background:transparent;border:1px solid var(--social-timeline-accent);
- color:#f2f9ff;font:700 13px/1.25 inherit;border-radius:7px;cursor:pointer;
+ color:#f2f9ff;font:inherit;font-size:13px;font-weight:700;line-height:1.25;border-radius:7px;cursor:pointer;
 }
 #swappSocialNative .social-timeline-retry:hover{background:rgba(115,214,220,.12)}
 @media(max-width:1140px){
