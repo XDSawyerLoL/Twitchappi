@@ -111,7 +111,7 @@ function chrome(title,description,url,body){
  const meta='<link rel="canonical" href="'+ORIGIN+url+'"><meta property="og:type" content="article"><meta property="og:url" content="'+ORIGIN+url+'"><meta property="og:title" content="'+esc(title)+' · SWAPP"><meta property="og:description" content="'+esc(description)+'"><meta property="og:image" content="'+HERO+'">'+
  schema({'@context':'https://schema.org','@type':'BreadcrumbList',itemListElement:[{'@type':'ListItem',position:1,name:'SWAPP',item:ORIGIN},{'@type':'ListItem',position:2,name:'Guides Aion 2',item:ORIGIN+ROOT},...(url===ROOT?[]:[{'@type':'ListItem',position:3,name:title,item:ORIGIN+url}])]});
  const head='<link rel="stylesheet" href="/assets/swapp-aion2-guide.css?v=20261020-1"><link rel="stylesheet" href="/assets/swapp-page-colors.css?v=20261017-appearance-v2"><script defer src="/assets/swapp-page-colors.js?v=20261017-appearance-v2"></script><script defer src="/assets/swapp-aion2-guide.js?v=20261020-1"></script>';
- return layout({title,description,metadata:meta,content:body,active:'actus',scripts:head});
+ return layout({title,description,metadata:meta,content:body,active:'guides',scripts:head});
 }
 function crumb(label){return '<nav class="ag-crumb" aria-label="Fil d’Ariane"><a href="/">SWAPP</a><span>›</span><a href="'+ROOT+'">Guides Aion 2</a>'+(label?'<span>›</span><span aria-current="page">'+esc(label)+'</span>':'')+'</nav>'}
 function cover(title,subtitle,kicker,compact=false){
