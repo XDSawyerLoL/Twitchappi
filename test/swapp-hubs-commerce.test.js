@@ -19,7 +19,7 @@ test('all three SWAPP hubs preserve the original navigation and design',()=>{
   assert.match(html,/href="\/bandes-annonces"/);
   assert.match(html,/href="\/boutique"/);
  }
- assert.match(routes[0][1],/aria-current="page">Communauté<\/a>/);
+ assert.match(routes[0][1],/aria-current="page">Social<\/a>/);
  assert.match(routes[1][1],/aria-current="page">Vidéos<\/a>/);
  assert.match(routes[2][1],/aria-current="page">Boutique<\/a>/);
 });
