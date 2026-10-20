@@ -91,3 +91,21 @@ test('backend remains on Render unless explicit mode is chosen and verified migr
  assert.doesNotMatch(local,/INSERT IGNORE INTO quantic_pulse_store/);
  assert.match(local,/SELECT data FROM swapp_social_native_store/);
 });
+
+test('SWAPP native proxy may use ONLY the pinned in-process destination',async()=>{
+ const {createSocialNativeProxy}=require('../modules/swapp-social-native-proxy');
+ const calls=[];
+ const proxy=createSocialNativeProxy(async(url,opts)=>{
+  calls.push(url);
+  return {status:200,text:async()=>JSON.stringify({ok:true})}
+ },{production:true,upstreamOrigin:INTERNAL_ORIGIN});
+ const req={method:'GET',path:'/health',headers:{},originalUrl:'/api/pulse/health',session:{}};
+ const res={statusCode:0,body:null,set(){return this},status(n){this.statusCode=n;return this},
+  json(data){this.body=data;return this}};
+ await proxy(req,res);
+ assert.equal(res.statusCode,200);
+ assert.equal(res.body.ok,true);
+ assert.deepEqual(calls,[INTERNAL_ORIGIN+'/api/pulse/health']);
+ assert.throws(()=>createSocialNativeProxy(async()=>{},{
+  upstreamOrigin:'https://attacker.example'}),/invalid_social_upstream_origin/);
+});
