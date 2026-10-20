@@ -130,7 +130,7 @@ async function fetchNewsFeed(){
          game:typeof rawGame==='string'?rawGame.trim().slice(0,65):'',
          publishedAt:a.publishedAt||a.originalPublishedAt};
         });
-       cachedNewsFeed={items};
+       cachedNewsFeed={items:items.filter(item=>item.title)};
        cachedNewsFeedAt=Date.now();
        return cachedNewsFeed;
       }
@@ -153,7 +153,8 @@ function renderNewsCard(item){
     (summary?'<p>'+esc(summary)+(String(item.summary||'').length>280?'…':'')+'</p>':'')+
     '<div class="pulse-news-actions">'+
       (url?'<a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">Lire la source ↗</a>':'')+
-      '<button type="button" data-news-repost data-news-title="'+esc(title)+'" data-news-source="'+esc(source)+'" data-news-url="'+esc(url)+'" data-news-image="'+esc(image)+'">Reposter sur SOCIAL</button>'+
+      '<button type="button" data-news-repost data-news-title="'+esc(title)+'" data-news-source="'+esc(source)+'" data-news-url="'+esc(url)+'" data-news-image="'+esc(image)+'">Reposter</button>'+
+      (url?'<button type="button" data-news-share data-news-url="'+esc(url)+'" data-news-title="'+esc(title)+'">Partager</button>':'')+
       (item.game?'<button type="button" data-next-game="'+esc(item.game)+'">Discuter du jeu ↗</button>':'')+
     '</div></div></article>';
 }
@@ -177,19 +178,29 @@ export async function loadNewsRss(){
   }
 }
 
-async function showRealNewsWhenEmpty(revision){
+async function appendRealNewsToDiscovery(revision,hasPosts){
  const feed=dom.feed;
+ if(!feed)return;
  try{
   const response=await fetchNewsFeed();
-  if(!isCurrent(revision,'home')||state.feed==='news'||!feed)return;
-  const items=(response.items||[]).filter(x=>x&&x.title).sort((a,b)=>Date.parse(b.publishedAt||0)-Date.parse(a.publishedAt||0)).slice(0,4);
+  if(!isCurrent(revision,'home')||state.feed!=='discover'||!feed.isConnected)return;
+  const items=(response.items||[]).filter(x=>x&&x.title)
+   .sort((a,b)=>Date.parse(b.publishedAt||0)-Date.parse(a.publishedAt||0)).slice(0,5);
   if(!items.length)return;
-  feed.innerHTML='<section class="pulse-starter-news" aria-label="Découvrir les dernières actualités SWAPP">'+
-   '<header class="pulse-starter-news-head"><span>POUR COMMENCER</span><h2>Des jeux dont on parle.</h2>'+
-   '<p>Les derniers articles publiés par SWAPP. Lis, partage et lance la discussion.</p></header>'+
-   '<div class="pulse-news-grid">'+items.map(renderNewsCard).join('')+'</div></section>';
+  // This is an editorial feed, not fabricated SOCIAL posts. Do not write to
+  // Pulse or change the user's following feed. Real posts remain untouched.
+  const section=document.createElement('section');
+  section.className='pulse-starter-news pulse-news-in-timeline';
+  section.setAttribute('aria-label','Actualités SWAPP à partager');
+  section.innerHTML='<header class="pulse-starter-news-head"><span>SWAPP · ACTUALITÉ</span>'+
+   '<h2>Les jeux font l’actualité.</h2>'+
+   '<p>Articles publiés sur SWAPP. Partage-les ou discutes-en dans SOCIAL.</p>'+
+   '</header><div class="pulse-news-grid">'+items.map(renderNewsCard).join('')+'</div>'+
+   '<footer class="pulse-news-end"><button type="button" data-feed-switch="news">Toutes les actualités →</button></footer>';
+  if(!hasPosts)feed.replaceChildren(section);
+  else feed.append(section);
  }catch{
-  // A failing news API must never hide existing SOCIAL content or break navigation.
+  // An unavailable news service must not replace real SOCIAL posts.
  }
 }
 
@@ -203,7 +214,7 @@ export async function loadHome(){
     if(!isCurrent(revision,'home')||state.feed!==feedMode)return;
     const posts=Array.isArray(data.posts)?data.posts:[];
     renderPosts(posts,state.user&&state.feed==='following'?'Suis des comptes ou publie le premier message de ton fil.':'Aucune publication publique.');
-    if(posts.length===0&&state.feed==='discover')await showRealNewsWhenEmpty(revision);
+    if(state.feed==='discover')void appendRealNewsToDiscovery(revision,posts.length>0);
   }catch(error){
     if(isCurrent(revision,'home')&&state.feed===feedMode)
       showRecoverableError('Fil momentanément indisponible',error,'home');
