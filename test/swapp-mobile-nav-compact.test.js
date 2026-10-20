@@ -33,7 +33,7 @@ test('native and SPA navigation share the same four pinned destinations and Plus
  const {serverMobile}=require('../assets/swapp-navigation');
  const html=serverMobile('community');
  const top=html.slice(0,html.indexOf('<details class="swapp-mobile-more">'));
- for(const label of ['Accueil','Découvrir','Actualité','Communauté']){
+ for(const label of ['Accueil','Découvrir','Actualité','Social']){
   assert.match(top,new RegExp('>'+label+'<'));
  }
  assert.equal((top.match(/<a /g)||[]).length,4);
