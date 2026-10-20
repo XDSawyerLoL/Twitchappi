@@ -902,22 +902,28 @@ const socialAudioPrivacy=createAudioPrivacy({
 // Default remains the historical Render proxy until a complete migration is checked.
 const SOCIAL_BACKEND_MODE=String(process.env.SWAPP_SOCIAL_BACKEND||'render').trim().toLowerCase();
 const SOCIAL_MYSQL_SELECTED=SOCIAL_BACKEND_MODE==='mysql';
-const SOCIAL_MYSQL_APPROVED=process.env.SWAPP_SOCIAL_MYSQL_MIGRATION_VERIFIED==='1';
+const SOCIAL_MYSQL_APPROVED=process.env.SWAPP_SOCIAL_MYSQL_MIGRATION_VERIFIED==='1'&&
+ String(process.env.SWAPP_ACCOUNT_STORE||'').trim().toLowerCase()==='mysql';
+const {createNativeSocialReadiness}=require('./modules/swapp-social-native-status');
+const socialNativeReadiness=createNativeSocialReadiness();
 const localSocialBridge=SOCIAL_MYSQL_SELECTED?
  require('./modules/swapp-social-local-bridge'):null;
 const socialTransport=SOCIAL_MYSQL_SELECTED?
  localSocialBridge.createInProcessPulseFetch():fetchWithTimeout;
 const socialUpstreamOrigin=SOCIAL_MYSQL_SELECTED?
  localSocialBridge.INTERNAL_ORIGIN:undefined;
-app.get('/api/swapp/social/backend-status',(_req,res)=>{
+app.get('/api/swapp/social/backend-status',async(_req,res)=>{
  res.set('Cache-Control','no-store');
+ const mysqlReadiness=await socialNativeReadiness.probe();
+ const ready=mysqlReadiness.snapshot_present&&mysqlReadiness.database_reachable;
  res.json({success:true,mode:SOCIAL_MYSQL_SELECTED?'mysql':'render',
   migration_approved:SOCIAL_MYSQL_APPROVED,
-  active_backend:SOCIAL_MYSQL_SELECTED&&SOCIAL_MYSQL_APPROVED?'mysql':
+  active_backend:SOCIAL_MYSQL_SELECTED&&SOCIAL_MYSQL_APPROVED&&ready?'mysql':
     SOCIAL_MYSQL_SELECTED?'blocked_unverified':'render',
-  mysql_configured:Boolean(process.env.SWAPP_SOCIAL_MYSQL_URL||
-    process.env.SWAPP_MYSQL_URL||process.env.DATABASE_URL),
-  historical_data_verified:false // only live import validation can establish this.
+  mysql_configured:Boolean(process.env.SWAPP_SOCIAL_MYSQL_URL||process.env.SWAPP_MYSQL_URL),
+  mysql_reachable:mysqlReadiness.database_reachable,
+  snapshot_present:mysqlReadiness.snapshot_present,
+  historical_data_verified:false // requires operator approval after source/destination count checks
  });
 });
 app.use('/api/pulse',(req,res,next)=>{
