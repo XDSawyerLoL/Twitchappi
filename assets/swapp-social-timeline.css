@@ -148,3 +148,8 @@
   scroll-behavior:auto!important;
  }
 }
+
+#swappSocialNative .social-action-error{
+ font-size:12px;line-height:1.5;color:#ffc6c9;padding:9px 0 0;margin:0;
+}
+#swappSocialNative .pulse-action[disabled]{opacity:.55;cursor:progress}
