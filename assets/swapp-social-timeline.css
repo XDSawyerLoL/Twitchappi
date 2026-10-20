@@ -395,3 +395,40 @@
  #swappSocialNative .pulse-starter-news-head{padding:18px 15px 12px!important}
  #swappSocialNative .pulse-news-media img{max-height:220px!important}
 }
+
+/* News mixed into the discussion is deliberately compact; the full News tab
+   keeps immersive article images. Discord-like media previews, not huge cards. */
+#swappSocialNative .pulse-news-in-timeline .pulse-news-card:not(.is-text-only){
+ grid-template-columns:122px minmax(0,1fr)!important;
+ align-items:start!important;gap:15px!important;
+}
+#swappSocialNative .pulse-news-in-timeline .pulse-news-card.is-text-only{
+ grid-template-columns:minmax(0,1fr)!important;
+}
+#swappSocialNative .pulse-news-in-timeline .pulse-news-media img{
+ height:104px!important;max-height:104px!important;
+ width:100%!important;aspect-ratio:1.17!important;
+ object-fit:cover!important;
+}
+#swappSocialNative .pulse-news-in-timeline .pulse-news-body h2{
+ margin:2px 0 7px!important;font-size:15px!important;
+}
+#swappSocialNative .pulse-news-in-timeline .pulse-news-body p{
+ margin:0 0 3px!important;display:-webkit-box;
+ -webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+}
+#swappSocialNative .pulse-news-in-timeline .pulse-news-actions{
+ gap:6px!important;padding-top:7px!important;
+}
+#swappSocialNative .pulse-news-in-timeline .pulse-news-actions :is(a,button){
+ padding:7px 9px!important;min-height:33px!important;font-size:11px!important;
+}
+@media(max-width:430px){
+ #swappSocialNative .pulse-news-in-timeline .pulse-news-card:not(.is-text-only){
+  grid-template-columns:92px minmax(0,1fr)!important;gap:10px!important;
+ }
+ #swappSocialNative .pulse-news-in-timeline .pulse-news-media img{
+  height:86px!important;max-height:86px!important;
+ }
+ #swappSocialNative .pulse-news-in-timeline .pulse-news-meta{font-size:9px!important}
+}
