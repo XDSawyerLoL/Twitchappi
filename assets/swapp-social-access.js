@@ -83,7 +83,7 @@
      form.querySelector('input[type="password"]').value='';
      setAccess(true);
      // Refresh the SWAPP account header and SOCIAL using the new first-party session.
-     window.location.replace('/communaute');
+     window.location.replace('/social');
    }catch(e){
      error.textContent=e?.name==='TimeoutError'?'Le serveur SWAPP ne répond pas. Réessaie.':String(e?.message||'Connexion impossible.');
      error.hidden=false;
