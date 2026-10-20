@@ -3,6 +3,31 @@
 **Statut : code préparé, migration des données NON exécutée, bascule NON activée.**
 Ne jamais annoncer que SOCIAL n'utilise plus Render tant que les vérifications sur Hostinger et un test réel de deux comptes ne sont pas terminés.
 
+## État confirmé en production — 20 octobre 2026
+
+Contrôles HTTP de la véritable application :
+- `https://quanticminds.onrender.com/health` confirme `pulse.storage=postgres`.
+- `https://quanticminds.onrender.com/api/pulse/health` confirme `storage=postgres`.
+- `https://swapp.tv/api/pulse/health` répond également `storage=postgres` via le proxy SWAPP existant.
+- `https://swapp.tv/api/swapp/social-native/backend-status` annonce `mode=render`, `active_backend=render`, `mysql_reachable=true`, `snapshot_present=false` et `migration_approved=false`.
+- L'instance QuanticMinds est sur Render et ne présente pas de disque attaché ; dans ce cas **cela n'implique pas que les données sont volatiles**, puisque le magasin réellement déclaré est PostgreSQL.
+- L'inventaire en lecture seule des projets PostgreSQL Neon connectés et des projets Railway disponibles n'a pas permis d'identifier la table `quantic_pulse_store` : ces sources ne doivent pas être considérées comme le PostgreSQL Render.
+- Le connecteur Render de ce compte ne permet pas de lire la variable privée `PULSE_DATABASE_URL`, d'exécuter un shell dans le service ou d'exporter directement sa base PostgreSQL. **Aucune sauvegarde intégrale n'a donc été récupérée.**
+- Ne pas confondre le stockage MySQL accessible à SWAPP et la source PostgreSQL de QuanticMinds : ce sont deux états distincts.
+
+### Contrôle après import
+
+Le nouvel outil `tools/swapp-social-migration-verify.js` compare le **SHA-256 canonique et les compteurs de TOUTES les collections essentielles** entre la sauvegarde privée et la destination MySQL.
+
+```bash
+# Contrôle hors réseau et sans divulguer le contenu du snapshot
+node tools/swapp-social-migration-verify.js /chemin/prive/pulse-full.json
+# Comparaison de la copie importée : arrêt avec erreur en cas de différence
+node tools/swapp-social-migration-verify.js /chemin/prive/pulse-full.json --compare
+```
+
+Ce contrôle valide le contenu de l'instantané transféré, mais il ne peut pas prouver à lui seul qu'aucune écriture nouvelle n'a eu lieu sur la source depuis sa capture. Le gel de toutes les interfaces d'écriture reste obligatoire.
+
 ## Constat vérifié
 
 - SWAPP utilisait `/api/pulse/*` → proxy Node → service QuanticMinds sur Render.
