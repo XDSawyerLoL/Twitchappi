@@ -58,7 +58,7 @@ function community(){
    '<script defer src="/assets/swapp-social-voice.js?v=20261018-channel-ux-v1"></script>'+
   '<link rel="stylesheet" href="/assets/swapp-social-product-v3.css?v=20261018-direct-audio-v3">'+
   '<link rel="stylesheet" href="/assets/swapp-social-appearance.css?v=20261019-no-top-gap-v3"><link rel="stylesheet" href="/assets/swapp-social-voice-premium.css?v=20261018-channel-ux-v1">';
- return layout({title:'Communauté',description:'Le réseau SOCIAL complet intégré dans SWAPP : profils, publications, communautés et messagerie.',content,active:'community',scripts});
+ return layout({title:'Social',description:'Le réseau SOCIAL complet intégré dans SWAPP : profils, publications, communautés et messagerie.',content,active:'community',scripts});
 }
 function verifiedTrailers(items=catalog.items){
  const out=[],seen=new Set();
