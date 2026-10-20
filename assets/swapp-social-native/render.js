@@ -44,9 +44,9 @@ export function renderPost(post){
       (linkTitle && String(post.body||'').trim().replace(/\s*Source\s*:\s*SWAPP\s*$/i,'').trim()===String(linkTitle).trim() ? '' : '<p>'+esc(post.body)+'</p>')+media+quote+
       '<div class="pulse-actions">'+
         '<button class="pulse-action" data-action="reply" aria-label="Répondre" title="Répondre">'+icon('pi-reply')+'<span class="pulse-action-name">Répondre</span><span class="pulse-action-count">'+Number(post.counts?.replies||0)+'</span></button>'+
-        '<button class="pulse-action '+(reposted?'active':'')+'" data-action="repost" aria-label="Relay" title="Relayer cette publication">'+icon('pi-relay')+'<span class="pulse-action-name">Relayer</span><span class="pulse-action-count">'+Number(post.counts?.reposts||0)+'</span></button>'+
-        '<button class="pulse-action '+(liked?'liked':'')+'" data-action="like" aria-label="SOCIAL" title="Envoyer un SOCIAL — montrer que cette publication vous plaît">'+icon('pi-pulse','pi-pulse')+'<span class="pulse-action-name">SOCIAL</span><span class="pulse-action-count">'+Number(post.counts?.likes||0)+'</span></button>'+
-        '<button class="pulse-action '+(bookmarked?'active':'')+'" data-action="bookmark" aria-label="Enregistrer" title="Enregistrer">'+icon('pi-bookmark')+'</button>'+
+        '<button class="pulse-action '+(reposted?'active':'')+'" data-action="repost" aria-label="Reposter" aria-pressed="'+String(Boolean(reposted))+'" title="Relayer cette publication">'+icon('pi-relay')+'<span class="pulse-action-name">Relayer</span><span class="pulse-action-count">'+Number(post.counts?.reposts||0)+'</span></button>'+
+        '<button class="pulse-action '+(liked?'liked':'')+'" data-action="like" aria-label="J’aime" aria-pressed="'+String(Boolean(liked))+'" title="Aimer cette publication">'+icon('pi-pulse','pi-pulse')+'<span class="pulse-action-name">J’aime</span><span class="pulse-action-count">'+Number(post.counts?.likes||0)+'</span></button>'+
+        '<button class="pulse-action '+(bookmarked?'active':'')+'" data-action="bookmark" aria-label="Enregistrer" aria-pressed="'+String(Boolean(bookmarked))+'" title="Enregistrer">'+icon('pi-bookmark')+'</button>'+
         '<button class="pulse-action" data-action="share" aria-label="Partager" title="Partager">'+icon('pi-share')+'</button>'+
         '<button class="pulse-action danger" data-action="report" aria-label="Signaler" title="Signaler">'+icon('pi-report')+'</button>'+
       '</div>'+
