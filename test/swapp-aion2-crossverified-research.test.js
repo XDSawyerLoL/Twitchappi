@@ -52,7 +52,7 @@ test('existing chapters gain version-specific cross-source warnings',()=>{
  assert.ok(e.includes('Bleu · Épique')&&e.includes('Doré · Unique'));
  const classGuide=render('/guides/aion-2/classes/sorcier');
  assert.ok(classGuide.includes('APRÈS LA ROTATION'));
- assert.ok(classInsert('sorcier').includes('Feu de l\\'enfer'));
+ assert.ok(classInsert('sorcier').includes("Feu de l'enfer"));
 });
 test('source audit flags old regional data without confusing it for global',()=>{
  const page=render('/guides/aion-2/sources');
