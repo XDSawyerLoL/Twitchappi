@@ -76,7 +76,7 @@ function makeTransport({slowPost=false,denyRecipient=false}={}){
   return async(path,method='GET',body)=>{
    let status=200,data;
    const req={path,method,originalUrl:'/api/pulse'+path,
-    headers:{origin:'https://swapp.tv',referer:'https://swapp.tv/communaute'},
+    headers:{origin:'https://swapp.tv',referer:'https://swapp.tv/social'},
     session,sessionID:'session-'+user.id,body};
    const res={
     set(){return this},status(code){status=code;return this},

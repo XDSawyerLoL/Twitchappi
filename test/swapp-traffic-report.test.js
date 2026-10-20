@@ -36,7 +36,7 @@ test('reports only aggregate pages and search referrals; never stores personal d
    log('16/Oct/2026:13:48:01 +0200','/actus/private',{ua:'Googlebot/2.1'}),
    log('16/Oct/2026:13:49:01 +0200','/actus/article',{status:404}),
    log('01/Sep/2026:13:45:01 +0200','/'),
-   log('16/Oct/2026:13:50:01 +0200','/communaute')
+   log('16/Oct/2026:13:50:01 +0200','/social')
   ].join('\n'));
   const result=await trafficReport(file,{days:30,now:Date.parse('2026-10-16T12:00:00Z')});
   assert.equal(result.pageViews,3);

@@ -76,6 +76,17 @@ export function setView(view,title){
   return revision;
 }
 const isCurrent=(revision,view)=>revision===viewRevision&&state.view===view;
+function showRecoverableError(title,error,retry,handle=''){
+  setStatus(title,errorText(error));
+  if(!dom.feed||typeof document.createElement!=='function'||typeof dom.feed.append!=='function')return;
+  const button=document.createElement('button');
+  button.type='button';button.className='social-timeline-retry';
+  button.dataset.socialRetry=retry;
+  if(handle)button.dataset.socialHandle=String(handle);
+  button.textContent='Réessayer';
+  dom.feed.append(button);
+}
+
 
 const NEWS_FEEDS=['/api/actus'];
 
@@ -195,7 +206,7 @@ export async function loadHome(){
     if(posts.length===0&&state.feed==='discover')await showRealNewsWhenEmpty(revision);
   }catch(error){
     if(isCurrent(revision,'home')&&state.feed===feedMode)
-      setStatus('SOCIAL indisponible',errorText(error));
+      showRecoverableError('Fil momentanément indisponible',error,'home');
   }
 }
 
@@ -369,7 +380,7 @@ export async function loadProfile(handle){
           (actualPassport.availability?' · '+esc(actualPassport.availability):'')+'</p>':
         '<p>Aucun passeport public disponible pour ce compte.</p>')+
       (games.length?'<div class="pulse-profile-game-list">'+games.map(game=>
-        '<a href="/communaute?game='+encodeURIComponent(game)+'">'+esc(game)+'</a>').join('')+'</div>':'')+
+        '<a href="/social?game='+encodeURIComponent(game)+'">'+esc(game)+'</a>').join('')+'</div>':'')+
       (self?'<button type="button" class="pulse-mini-button" data-view="play">Gérer mon passeport ↗</button>':'')+
       '</section>';
     dom.feed.innerHTML=passport+'<section class="pulse-profile-hero"><div class="pulse-avatar">'+esc(initials(user))+'</div><h2>'+esc(user.displayName)+'</h2><div class="handle">@'+esc(user.handle)+'</div><p>'+esc(user.bio||'Aucune bio pour le moment.')+'</p><div class="pulse-profile-stats"><span><strong>'+user.followers+'</strong> abonnés</span><span><strong>'+user.following+'</strong> abonnements</span></div><div class="pulse-profile-actions">'+actions+'</div></section>'+((data.posts||[]).map(renderPost).join('')||'<div class="pulse-status"><strong>Aucune publication</strong></div>');
@@ -413,8 +424,8 @@ export async function loadMessages(){
   }catch(error){
     if(!isCurrent(revision,'messages'))return;
     const accountIsValid=await socialAuthRecovery(error,'Messages');
-    if(isCurrent(revision,'messages'))setStatus('Messages indisponibles',
-      accountIsValid?'Ton compte SWAPP est reconnu, mais le serveur SOCIAL externe ne répond pas. Tes autres espaces SWAPP restent disponibles.':errorText(error));
+    if(isCurrent(revision,'messages'))showRecoverableError('Messages indisponibles',
+      accountIsValid?new Error('Le serveur SOCIAL est momentanément indisponible. Tes autres espaces SWAPP restent disponibles.'):error,'messages');
   }
 }
 
@@ -447,8 +458,8 @@ export async function loadConversation(handle){
   }catch(error){
     if(!isCurrent(revision,'messages'))return;
     const accountIsValid=await socialAuthRecovery(error,'Conversation');
-    if(isCurrent(revision,'messages'))setStatus('Conversation indisponible',
-      accountIsValid?'Ton compte SWAPP est reconnu, mais le serveur SOCIAL externe ne répond pas. Tes autres espaces SWAPP restent disponibles.':errorText(error));
+    if(isCurrent(revision,'messages'))showRecoverableError('Conversation indisponible',
+      accountIsValid?new Error('Le serveur SOCIAL est momentanément indisponible. Tes autres espaces SWAPP restent disponibles.'):error,'conversation',handle);
   }
 }
 

@@ -931,7 +931,7 @@ const safeSocialMysqlError=error=>{
 // Public, non-sensitive release marker for diagnosing stale Hostinger deployments.
 app.get('/api/swapp/social/release',(_req,res)=>{
  res.set('Cache-Control','no-store');
- return res.json({product:'SWAPP SOCIAL',release:'social-personal-channels-20261019',session:'swapp',features:{nativeFeed:true,mysqlInteractions:process.env.SWAPP_SOCIAL_FEATURES==='1',voiceSignaling:true,voiceNotes:process.env.SWAPP_SOCIAL_FEATURES==='1',privateCalls:process.env.SWAPP_SOCIAL_FEATURES==='1',visibleVoiceNavigation:true,accountGameLibrary:process.env.SWAPP_SOCIAL_FEATURES==='1',wishlistAndDiscoveryPoints:process.env.SWAPP_SOCIAL_FEATURES==='1',personalInviteChannels:process.env.SWAPP_SOCIAL_FEATURES==='1'}});
+ return res.json({product:'SWAPP SOCIAL',release:'social-canonical-timeline-20261020',session:'swapp',features:{nativeFeed:true,mysqlInteractions:process.env.SWAPP_SOCIAL_FEATURES==='1',voiceSignaling:true,voiceNotes:process.env.SWAPP_SOCIAL_FEATURES==='1',privateCalls:process.env.SWAPP_SOCIAL_FEATURES==='1',visibleVoiceNavigation:true,accountGameLibrary:process.env.SWAPP_SOCIAL_FEATURES==='1',wishlistAndDiscoveryPoints:process.env.SWAPP_SOCIAL_FEATURES==='1',personalInviteChannels:process.env.SWAPP_SOCIAL_FEATURES==='1'}});
 });
 app.get('/api/swapp/interactions/status',async(_req,res)=>{
  res.set('Cache-Control','no-store');
@@ -1135,7 +1135,8 @@ async function sendSwappPublicChannelUi(req, res, login){
 }
 // Additional discovery areas keep the same navigation and SWAPP visual system.
 const swappHubs=require('./modules/swapp-hubs');
-app.get('/communaute',(_req,res)=>{res.set('Cache-Control','no-store');res.type('html').send(swappHubs.community())});
+app.get('/communaute',(req,res)=>{res.set('Cache-Control','no-store');return res.redirect(308,'/social'+(req.originalUrl.includes('?')?req.originalUrl.slice(req.originalUrl.indexOf('?')):''));});
+app.get('/social',(_req,res)=>{res.set('Cache-Control','no-store');res.type('html').send(swappHubs.community())});
 app.get('/bandes-annonces',async(_req,res)=>{
  res.set('Cache-Control','no-store');
  let videos=[];

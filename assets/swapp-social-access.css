@@ -1,4 +1,4 @@
-/* SOCIAL authentication entry, applies to /communaute only. */
+/* SOCIAL authentication entry, applies to /social only. */
 .swapp-social-access{position:relative;min-height:calc(100dvh - 78px)}
 .swapp-social-access-content{min-height:inherit}
 .swapp-social-access.is-pending .swapp-social-access-content,.swapp-social-access.is-locked .swapp-social-access-content{filter:blur(12px);opacity:.45;pointer-events:none;user-select:none}

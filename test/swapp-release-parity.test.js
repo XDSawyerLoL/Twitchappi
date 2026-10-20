@@ -62,7 +62,7 @@ test('production smoke loads the homepage before checking Boutique editor assets
 
 test('release check verifies SOCIAL, ads.txt, home and Actualité separately',()=>{
  const src=fs.readFileSync(path.join(__dirname,'..','tools/swapp-deploy-smoke.js'),'utf8');
- for(const route of ['/api/release','/ads.txt','/communaute','/actus','/assets/swapp-social-native/social-swapp.css']){
+ for(const route of ['/api/release','/ads.txt','/social','/actus','/assets/swapp-social-native/social-swapp.css']){
   assert.ok(src.includes(route),route);
  }
  assert.match(src,/DEPLOYMENT DRIFT/);

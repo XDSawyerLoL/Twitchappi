@@ -86,7 +86,7 @@ test('lazy player hub shows verified native SWAPP first, Twitch internally, and 
  const second=h.results.children[1].children[1].children[3].children[0];
  assert.equal(first.href,'/streamswapp');
  assert.equal(second.href,'/live/twitch/streamtwitch?game=Minecraft');
- assert.equal(h.results.children[0].children[1].children[3].children[1].href,'/communaute?game=Minecraft');
+ assert.equal(h.results.children[0].children[1].children[3].children[1].href,'/social?game=Minecraft');
  assert.match(h.status.textContent,/1 SWAPP · 1 Twitch/);
  h.refresh['on:click']();await h.tick();
  assert.equal(h.calls.length,2,'manual refresh instead of polling');
@@ -110,8 +110,8 @@ test('SSR connects published games to live, SOCIAL, shop and both scripts withou
  const hub=gameHubs(articles),html=renderMyGames(hub),page=renderGamePage(hub[0]);
  assert.match(html,/data-my-games-live/);
  assert.match(html,/data-my-games-live-more hidden/);
- assert.match(html,/href="\/communaute\?game=Minecraft"/);
- assert.match(page,/href="\/communaute\?game=Minecraft"/);
+ assert.match(html,/href="\/social\?game=Minecraft"/);
+ assert.match(page,/href="\/social\?game=Minecraft"/);
  assert.match(html,/href="\/boutique"/);
  assert.match(html,/name="robots" content="noindex,follow"/);
  assert.doesNotMatch(html,/draft-story|Non publié|spectateurs connectés/);

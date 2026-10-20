@@ -15,7 +15,7 @@ test('all three SWAPP hubs preserve the original navigation and design',()=>{
   assert.match(html,/id="mobileNav"/);
   assert.match(html,/swapp-hubs\.css/);
   assert.match(html,/swapp-companion-core\.js/);
-  assert.match(html,/href="\/communaute"/);
+  assert.match(html,/href="\/social"/);
   assert.match(html,/href="\/bandes-annonces"/);
   assert.match(html,/href="\/boutique"/);
  }

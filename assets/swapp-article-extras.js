@@ -137,7 +137,7 @@
  function discussionHtml(article){
   const slug=String(article?.slug||'');
   if(!/^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/.test(slug))return '';
-  return '<p class="swapp-article-discuss"><a href="/communaute?article='+encodeURIComponent(slug)+'">En discuter avec la communauté SWAPP →</a></p>';
+  return '<p class="swapp-article-discuss"><a href="/social?article='+encodeURIComponent(slug)+'">En discuter avec la communauté SWAPP →</a></p>';
  }
  function renderServer(article){return sourcesHtml(article)+editorialVerdictHtml(article)}
  function mount(node,article){

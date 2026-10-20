@@ -21,7 +21,7 @@ a{color:inherit;text-decoration:none}button,input,textarea,select{font:inherit}b
 function layout({title='Actualité', description='Actualités jeux vidéo et streaming', content='', metadata='', extraCss='', scripts='', active='actus'}) {
  // Native SOCIAL, Videos and Boutique have shareable public canonical URLs.
  // Article pages provide their own editorial metadata; never overwrite it.
- const hubPaths={community:'/communaute',trailers:'/bandes-annonces',shop:'/boutique'};
+ const hubPaths={community:'/social',trailers:'/bandes-annonces',shop:'/boutique'};
  const hubPath=hubPaths[active];
  const hubMeta=hubPath&&!metadata.includes('rel="canonical"')
   ?'<link rel="canonical" href="https://swapp.tv'+hubPath+'">'+

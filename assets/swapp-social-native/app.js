@@ -110,13 +110,47 @@ async function publishPost(){
   }
 }
 
-async function toggleAction(postId,action){
+const socialActionInFlight=new Set();
+async function toggleAction(postId,action,button){
   if(!requireAuth())return;
+  const key=String(postId)+':'+String(action);
+  if(socialActionInFlight.has(key))return;
+  socialActionInFlight.add(key);
+  if(button)button.disabled=true;
   try{
-    await api('/api/pulse/posts/'+encodeURIComponent(postId)+'/'+action,{method:'POST',body:'{}'});
-    if(state.view==='home')await loadHome();
+    // The server remains authoritative. Update only AFTER a confirmed success.
+    const result=await api('/api/pulse/posts/'+encodeURIComponent(postId)+'/'+action,{
+      method:'POST',body:'{}'
+    });
+    if(button?.isConnected){
+      const previous=button.getAttribute('aria-pressed')==='true';
+      const next=!previous;
+      button.setAttribute('aria-pressed',String(next));
+      button.classList.toggle(action==='like'?'liked':'active',next);
+      const counter=button.querySelector('.pulse-action-count');
+      if(counter){
+        const fromServer=Number(result?.post?.counts?.[action==='like'?'likes':action==='repost'?'reposts':'bookmarks']);
+        const existing=Number(counter.textContent)||0;
+        counter.textContent=String(Number.isFinite(fromServer)&&result?.post?.counts?
+          Math.max(0,fromServer):Math.max(0,existing+(next?1:-1)));
+      }
+    }
   }catch(error){
-    alert(errorText(error));
+    const card=button?.closest?.('.pulse-post');
+    if(card){
+      let note=card.querySelector('[data-social-action-error]');
+      if(!note){
+        note=document.createElement('p');
+        note.dataset.socialActionError='1';
+        note.setAttribute('role','status');
+        note.className='social-action-error';
+        card.querySelector('.pulse-post-main')?.append(note);
+      }
+      if(note)note.textContent=errorText(error);
+    }else alert(errorText(error));
+  }finally{
+    socialActionInFlight.delete(key);
+    if(button?.isConnected)button.disabled=false;
   }
 }
 
@@ -339,6 +373,15 @@ function bindDelegatedEvents(){
   },280);
  });
   document.addEventListener('click',async function(event){
+    const retry=event.target.closest('[data-social-retry]');
+    if(retry){
+      event.preventDefault();
+      if(retry.dataset.socialRetry==='home')await loadHome();
+      else if(retry.dataset.socialRetry==='messages')await loadMessages();
+      else if(retry.dataset.socialRetry==='conversation'&&retry.dataset.socialHandle)
+        await loadConversation(retry.dataset.socialHandle);
+      return;
+    }
     const openNew=event.target.closest('[data-new-message-toggle]');
     if(openNew){
       const form=document.getElementById('new-message');
@@ -424,7 +467,7 @@ function bindDelegatedEvents(){
     if(post&&action){
       const postId=post.dataset.id;
       if(['like','repost','bookmark'].includes(action.dataset.action)){
-        toggleAction(postId,action.dataset.action);
+        toggleAction(postId,action.dataset.action,action);
         return;
       }
       if(action.dataset.action==='reply'){

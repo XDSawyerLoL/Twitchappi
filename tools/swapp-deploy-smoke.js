@@ -61,7 +61,7 @@ async function verify(){
  check(ads.body.trim()==='google.com, pub-6082969821681414, DIRECT, f08c47fec0942fa0','AdSense ads.txt seller declaration differs');
  check((ads.response.headers.get('content-type')||'').startsWith('text/plain'),'AdSense ads.txt is not served as text/plain');
  process.stdout.write('PASS /ads.txt\n');
- const social=await request(origin,'/communaute');
+ const social=await request(origin,'/social');
  check(social.body.includes('class="swapp-social-sticky-stack"'),'SOCIAL HTML does not contain the unified sticky stack');
  check(social.body.includes('id="feed-tabs"'),'SOCIAL feed controls missing');
  check(social.body.includes('swapp-social-appearance.css?v=20261019-no-top-gap-v3'),
@@ -72,7 +72,7 @@ async function verify(){
   'SOCIAL header top gap defensive fix missing');
  check(social.body.includes('social-fixed-10'),'SOCIAL HTML uses an older CSS release');
  check(social.body.includes('social-fixed-js-10'),'SOCIAL HTML uses an older JS release');
- process.stdout.write('PASS /communaute HTML\n');
+ process.stdout.write('PASS /social HTML\n');
  const stylesheet=await request(origin,'/assets/swapp-social-native/social-swapp.css');
  check(stylesheet.body.includes('SOCIAL sticky stack v2'),'SOCIAL CSS is stale at the public asset path');
  process.stdout.write('PASS SOCIAL public stylesheet\n');
@@ -240,7 +240,7 @@ async function verify(){
  check(nativePlayer.body.includes('/api/discovery/game-lives?limit=8&game=')&&
   nativePlayer.body.includes("native(item)?'DIRECT SWAPP':'DIRECT TWITCH'")&&
   nativePlayer.body.includes("'/live/twitch/'")&&
-  nativePlayer.body.includes("'/communaute?game='"),
+  nativePlayer.body.includes("'/social?game='"),
   'The SWAPP native-first live client is missing or stale');
  process.stdout.write('PASS personal SWAPP/Twitch live discovery\n');
  const wishlistFix=await request(origin,'/assets/swapp-wishlist-rewards.js');
@@ -253,7 +253,7 @@ async function verify(){
  const socialRelease=await request(origin,'/api/swapp/social/release');
  let personalRelease={};
  try{personalRelease=JSON.parse(socialRelease.body)}catch{}
- check(personalRelease.release==='social-personal-channels-20261019'&&personalRelease.features?.personalInviteChannels===true,
+ check(personalRelease.release==='social-canonical-timeline-20261020'&&personalRelease.features?.personalInviteChannels===true,
   'Personal invitation channel Node server has not deployed');
  process.stdout.write('PASS wishlist repair and private SOCIAL channel frontend/server\n');
  const accountScript=await request(origin,'/index_script.js');

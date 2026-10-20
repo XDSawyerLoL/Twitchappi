@@ -390,7 +390,7 @@ body.oryonDiscoverV4 #discover .v4Meta{
   letter-spacing:-.045em;
  }
  /* 320px iPhone SE: keep the 'Social' label readable inside its tab. */
- #mobileNav.mobileNav > a[href="/communaute"]{
+ #mobileNav.mobileNav > a[href="/social"]{
   letter-spacing:normal!important;
  }
 }

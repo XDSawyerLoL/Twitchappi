@@ -68,7 +68,7 @@
    const all=el('a','','Toutes les bandes-annonces →');all.href='/bandes-annonces';caption.append(all);
    wrap.append(trigger,caption);return wrap;
  }
- const discussionHref=item=>'/communaute?share=news&title='+encodeURIComponent(item.game?item.game+' — '+item.title:item.title)+'&url='+encodeURIComponent('https://swapp.tv/actus/'+item.slug);
+ const discussionHref=item=>'/social?share=news&title='+encodeURIComponent(item.game?item.game+' — '+item.title:item.title)+'&url='+encodeURIComponent('https://swapp.tv/actus/'+item.slug);
  const gameKey=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
  async function showVerifiedCreators(item,row){
   if(!item.game)return;

@@ -42,7 +42,7 @@ test('native and SPA navigation share the same four pinned destinations and Plus
   assert.ok(html.includes('href="'+route+'"'),route);
  }
  const spa=read('assets/swapp-hub-nav.js');
- assert.match(spa,/const pinned=\['\/','\/decouvrir','\/actus','\/communaute'\]/);
+ assert.match(spa,/const pinned=\['\/','\/decouvrir','\/actus','\/social'\]/);
 });
 
 function mountedMenu(){
@@ -66,7 +66,7 @@ function mountedMenu(){
  };
  const win={
   innerWidth:390,
-  location:{pathname:'/communaute',origin:'https://swapp.tv'},
+  location:{pathname:'/social',origin:'https://swapp.tv'},
   matchMedia:q=>({matches:q.includes('1080px')}),
   requestAnimationFrame:fn=>{fn();return 0},
   addEventListener(){}

@@ -191,7 +191,7 @@
  const inviteBox=$('#ssi-personal-invites'),inviteInput=$('#ssi-personal-url'),inviteStatus=$('#ssi-invite-notice');
  let inviteRevision=0;
  function absoluteInvite(token){
-  const url=new URL('/communaute',window.location.origin);
+  const url=new URL('/social',window.location.origin);
   url.searchParams.set('invite',token);
   return url.toString();
  }

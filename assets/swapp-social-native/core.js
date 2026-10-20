@@ -70,29 +70,52 @@ export function errorText(e){
     social_upstream_unreachable:'SWAPP ne parvient pas à joindre le serveur SOCIAL. La connexion réseau côté serveur doit être vérifiée.',
     social_temporarily_unavailable:'Le serveur SOCIAL est temporairement indisponible. Un ancien serveur SWAPP peut encore renvoyer ce message.',
     network_error:'Connexion au service SOCIAL impossible. Recharge la page puis réessaie.',
-    request_failed:'La requête SOCIAL a échoué. Réessaie dans un instant.'
+    request_failed:'La requête SOCIAL a échoué. Réessaie dans un instant.',
+    invalid_upstream_response:'SOCIAL a reçu une réponse serveur illisible. Réessaie.',
+    request_cancelled:'Requête annulée.'
   };
   return map[e?.message]||e?.message||'Une erreur est survenue.';
 }
 
+// Read-only requests may be retried once after a short Render cold-start or
+// upstream timeout. Never retry writes automatically: doing so can duplicate
+// a post, reaction or private message after an uncertain network failure.
 export async function api(path,options={}){
-  const headers={'content-type':'application/json',...(options.headers||{})};
-  // Browser never handles upstream SOCIAL tokens; SWAPP session cookie is the authority.
-  let response;
-  try{
-    response=await fetch(API_BASE+path,{...options,headers,credentials:'same-origin',signal:options.signal||
-      (typeof AbortSignal?.timeout==='function'?AbortSignal.timeout(options.method&&options.method!=='GET'?20000:35000):undefined)});
-  }catch(cause){
-    const err=new Error('network_error');
-    err.cause=cause;
-    throw err;
+  const method=String(options.method||'GET').toUpperCase();
+  const retryableRead=method==='GET';
+  const headers={'Accept':'application/json','Content-Type':'application/json',...(options.headers||{})};
+  const {signal,...requestOptions}=options;
+  for(let attempt=0;attempt<(retryableRead?2:1);attempt++){
+    let response;
+    try{
+      const timeout=typeof AbortSignal!=='undefined'&&typeof AbortSignal.timeout==='function'
+        ?AbortSignal.timeout(retryableRead?20000:24000):undefined;
+      // An explicitly supplied signal remains authoritative for navigation cancellation.
+      response=await fetch(API_BASE+path,{...requestOptions,method,headers,
+        credentials:'same-origin',cache:'no-store',signal:signal||timeout});
+    }catch(cause){
+      if(signal?.aborted)throw Object.assign(new Error('request_cancelled'),{cause});
+      if(retryableRead&&attempt===0){
+        await new Promise(resolve=>setTimeout(resolve,650));
+        continue;
+      }
+      const err=new Error(cause?.name==='TimeoutError'?'social_upstream_timeout':'network_error');
+      err.cause=cause;throw err;
+    }
+    const data=await response.json().catch(()=>null);
+    if(response.ok){
+      if(data===null)throw Object.assign(new Error('invalid_upstream_response'),{status:502});
+      return data;
+    }
+    if(retryableRead&&attempt===0&&[502,503,504].includes(response.status)){
+      await new Promise(resolve=>setTimeout(resolve,650));
+      continue;
+    }
+    const err=new Error(data?.error||(
+      response.status===429?'rate_limited':
+      [502,503,504].includes(response.status)?'social_upstream_unavailable':'request_failed'
+    ));
+    err.status=response.status;err.data=data;throw err;
   }
-  const data=await response.json().catch(function(){return{}});
-  if(!response.ok){
-    const err=new Error(data.error||'request_failed');
-    err.status=response.status;
-    err.data=data;
-    throw err;
-  }
-  return data;
+  throw new Error('network_error');
 }

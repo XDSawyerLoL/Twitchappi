@@ -100,7 +100,7 @@
    watch.href=native(item)?'/'+encodeURIComponent(item.login):
     '/live/twitch/'+encodeURIComponent(item.login)+'?game='+encodeURIComponent(item.game);
    watch.textContent='Regarder sur SWAPP ↗';
-   const social=doc.createElement('a');social.href='/communaute?game='+encodeURIComponent(item.game);
+   const social=doc.createElement('a');social.href='/social?game='+encodeURIComponent(item.game);
    social.textContent='Salons du jeu';
    const dossier=doc.createElement('a');dossier.href='/jeux/'+encodeURIComponent(item.slug);
    dossier.textContent='Dossier';

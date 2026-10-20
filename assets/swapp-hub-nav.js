@@ -5,7 +5,7 @@
  */
 (()=>{'use strict';
  const HUBS=[
-  {href:'/communaute',label:'Social'},
+  {href:'/social',label:'Social'},
   {href:'/bandes-annonces',label:'Vidéos'},
   {href:'/boutique',label:'Boutique'}
  ];
@@ -94,7 +94,7 @@
  function mobile(){
   const nav=document.getElementById('mobileNav');
   if(!nav)return;
-  const pinned=['/','/decouvrir','/actus','/communaute'];
+  const pinned=['/','/decouvrir','/actus','/social'];
   let more=nav.querySelector(':scope > .swapp-mobile-more');
   if(!more){
    more=document.createElement('details');

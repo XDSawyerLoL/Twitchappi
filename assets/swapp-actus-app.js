@@ -155,7 +155,7 @@ read.onclick=e=>{const dest=article.querySelector('#article-content');if(!dest)r
 const watch=el('a','swapp-game-journey-action','Voir les lives →');watch.href=a.game?'#swapp-article-lives':'/decouvrir';
 if(a.game)watch.onclick=e=>{const dest=article.querySelector('#swapp-article-lives');if(!dest)return;e.preventDefault();dest.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'})};
 const discuss=el('a','swapp-game-journey-action','En discuter →');
-discuss.href='/communaute?share=news&title='+encodeURIComponent(a.game?a.game+' — '+a.title:a.title)+'&url='+encodeURIComponent(location.origin+'/actus/'+slug);
+discuss.href='/social?share=news&title='+encodeURIComponent(a.game?a.game+' — '+a.title:a.title)+'&url='+encodeURIComponent(location.origin+'/actus/'+slug);
 actions.append(read,watch,discuss);heroCopy.append(actions);
 const share=el('button','swapp-reader-share','Partager l’article');share.type='button';share.onclick=async()=>{const address=location.origin+'/actus/'+encodeURIComponent(slug);try{if(navigator.share){await navigator.share({title:a.title,url:address});return}if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(address);share.textContent='Lien copié';return}}catch(e){if(e.name==='AbortError')return}share.textContent='Copier le lien : '+address};controls.append(share);heroCopy.append(controls);
 // Artwork remains behind the heading. Reading progress is now a small TOC label,

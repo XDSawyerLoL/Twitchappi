@@ -38,7 +38,7 @@ function section(uri){
  if(pathname==='/decouvrir'||pathname==='/discover')return 'Découverte';
  if(pathname==='/categories')return 'Catégories';
  if(pathname==='/equipes'||pathname==='/teams')return 'Équipes';
- if(pathname==='/communaute')return 'Social';
+ if(pathname==='/social'||pathname==='/communaute')return 'Social';
  if(pathname==='/bandes-annonces')return 'Bandes-annonces';
  if(pathname==='/boutique')return 'Boutique';
  if(pathname==='/plan-du-site')return 'Plan du site';
