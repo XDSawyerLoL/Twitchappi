@@ -26,7 +26,7 @@ function fixture(record){
    const req={
     method:'POST',path:'/users/bob/block',body:{},session:{},
     originalUrl:'/api/pulse/users/bob/block',
-    headers:{origin:'https://swapp.tv',referer:'https://swapp.tv/communaute'}
+    headers:{origin:'https://swapp.tv',referer:'https://swapp.tv/social'}
    };
    const res={statusCode:200,
     set(){return this},status(n){this.statusCode=n;return this},
