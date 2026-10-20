@@ -150,7 +150,7 @@ test('the shared mobile menu and SOCIAL page preserve the same complete journey'
  const social=read('assets/swapp-social-native/app.js');
  assert.match(mobile,/href="\/decouvrir"/);
  assert.match(mobile,/href="\/actus"/);
- assert.match(mobile,/href="\/communaute"[^>]*aria-current="page"/);
+ assert.match(mobile,/href="\/social"[^>]*aria-current="page"/);
  assert.match(mobile,/href="\/bandes-annonces"/);
  assert.match(main,/active:'community'/);
  assert.match(main,/active:'trailers'/);
