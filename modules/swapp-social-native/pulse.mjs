@@ -1,17 +1,13 @@
 // SWAPP-hosted derivative of QuanticSillage/backend/pulse.mjs (2026-10-20).
 // Persist ONLY to a migrated Hostinger MySQL snapshot. No JSON/Firestore fallback;
 // no automatic empty-store creation and no contact with Render from this module.
-import { mkdir, readFile, writeFile, rename } from 'node:fs/promises';
-import { join } from 'node:path';
 import { randomBytes, createHash, scryptSync, timingSafeEqual } from 'node:crypto';
 import { newQuanticChallenge, validQuanticChallenge, identityFingerprint, verifyQuanticProof,
   normalizeQuanticAssertion, QUANTIC_CHALLENGE_MS, QUANTIC_SESSION_MS } from './quantic-id-auth.mjs';
 
-const DATA_DIR=process.env.DATA_DIR||'./data';
-const FILE=join(DATA_DIR,'pulse.json');
+
 const SESSION_MS=2592000000;
 const HANDLE_RE=/^[a-z0-9_]{3,24}$/;
-const PULSE_DATABASE_URL=''; // SWAPP NEVER uses the Render PostgreSQL data store.
 // This vendored runtime shares SWAPP's EXISTING Hostinger MySQL service only.
 const SWAPP_SOCIAL_MYSQL_URL=String(process.env.SWAPP_SOCIAL_MYSQL_URL||
  process.env.SWAPP_MYSQL_URL||process.env.DATABASE_URL||'');
@@ -26,7 +22,7 @@ function requireImportedSnapshot(rows){
    throw Object.assign(new Error('social_mysql_snapshot_invalid'),{status:503});
  return data;
 }
-let pgPool=null,pgPoolInitializing=null,mysqlPool=null,writeQueue=Promise.resolve();
+let mysqlPool=null,mysqlPoolInitializing=null;
 const rate=new Map();
 
 function emptyStore(){return{version:1,users:{},handles:{},sessions:{},posts:{},follows:{},likes:{},reposts:{},bookmarks:{},circles:{},circleMembers:{},notifications:{},reports:{},blocks:{},conversations:{},messages:{},quanticChallenges:{},quanticKeys:{}}}
@@ -42,57 +38,31 @@ function hashPassword(password,salt=randomBytes(16).toString('hex')){return{salt
 function verifyPassword(password,user){const a=scryptSync(String(password),user.passwordSalt,64),b=Buffer.from(user.passwordHash,'hex');return a.length===b.length&&timingSafeEqual(a,b)}
 function allowRate(req,bucket,max,windowMs){const ip=String(req.headers['x-forwarded-for']||req.socket?.remoteAddress||'unknown').split(',')[0].trim(),key=ip+':'+bucket,t=Date.now(),cur=rate.get(key);if(!cur||t-cur.start>windowMs){rate.set(key,{start:t,count:1});return true}cur.count++;return cur.count<=max}
 
-async function pg(){
-  if(!usePostgres)return null;
-  if(pgPool)return pgPool;
-  if(pgPoolInitializing)return pgPoolInitializing;
-  // Concurrent SOCIAL requests share a single initialized pool.
-  pgPoolInitializing=(async()=>{
-    const mod=await import('pg');
-    const connectionUrl=new URL(PULSE_DATABASE_URL);
-    if(connectionUrl.searchParams.get('sslmode')==='require')connectionUrl.searchParams.set('sslmode','verify-full');
-    const candidate=new mod.Pool({connectionString:connectionUrl.toString(),max:4});
-    // pg emits 'error' when an IDLE client loses its connection.
-    // Without a listener EventEmitter crashes the entire Node process.
-    // Failed idle clients are removed by pg and replaced automatically.
-    candidate.on('error',error=>{
-      const code=typeof error?.code==='string'?error.code.slice(0,48):'connection_lost';
-      console.warn('[PULSE DB] Idle PostgreSQL connection lost:',code);
-    });
-    try{
-      await candidate.query('CREATE TABLE IF NOT EXISTS quantic_pulse_store (store_key VARCHAR(40) PRIMARY KEY, data JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())');
-      await candidate.query('INSERT INTO quantic_pulse_store (store_key,data) VALUES ($1,$2::jsonb) ON CONFLICT (store_key) DO NOTHING',['pulse',JSON.stringify(emptyStore())]);
-      pgPool=candidate;
-      return candidate;
-    }catch(error){
-      try{await candidate.end()}catch{}
-      throw error;
-    }
-  })();
-  try{return await pgPoolInitializing}
-  catch(error){pgPool=null;throw error}
-  finally{pgPoolInitializing=null}
-}
 async function pool(){
   if(!useMysql)throw Object.assign(new Error('social_mysql_url_missing'),{status:503});
   if(mysqlPool)return mysqlPool;
-  const valid=new URL(SWAPP_SOCIAL_MYSQL_URL);
-  if(valid.protocol!=='mysql:'||!valid.hostname||!valid.username||
-     !valid.pathname||valid.pathname==='/')throw Object.assign(new Error('social_mysql_url_invalid'),{status:503});
-  const mysql=await import('mysql2/promise');
-  const candidate=mysql.createPool({uri:SWAPP_SOCIAL_MYSQL_URL,waitForConnections:true,
-    connectionLimit:4,queueLimit:50,connectTimeout:5000,enableKeepAlive:true,timezone:'Z'});
-  try{
-    await candidate.query(`CREATE TABLE IF NOT EXISTS swapp_social_native_store (
-      store_key VARCHAR(40) NOT NULL PRIMARY KEY,
-      data LONGTEXT NOT NULL,
-      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
-    mysqlPool=candidate;
-    return mysqlPool;
-  }catch(e){await candidate.end().catch(()=>{});throw e}
+  if(mysqlPoolInitializing)return mysqlPoolInitializing;
+  mysqlPoolInitializing=(async()=>{
+    const valid=new URL(SWAPP_SOCIAL_MYSQL_URL);
+    if(valid.protocol!=='mysql:'||!valid.hostname||!valid.username||
+       !valid.pathname||valid.pathname==='/')
+      throw Object.assign(new Error('social_mysql_url_invalid'),{status:503});
+    const mysql=await import('mysql2/promise');
+    const candidate=mysql.createPool({uri:SWAPP_SOCIAL_MYSQL_URL,waitForConnections:true,
+      connectionLimit:4,queueLimit:50,connectTimeout:5000,enableKeepAlive:true,timezone:'Z'});
+    try{
+      await candidate.query(`CREATE TABLE IF NOT EXISTS swapp_social_native_store (
+        store_key VARCHAR(40) NOT NULL PRIMARY KEY,
+        data LONGTEXT NOT NULL,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
+      mysqlPool=candidate;
+      return mysqlPool;
+    }catch(e){await candidate.end().catch(()=>{});throw e}
+  })();
+  try{return await mysqlPoolInitializing}
+  finally{mysqlPoolInitializing=null}
 }
-async function ensureFile(){await mkdir(DATA_DIR,{recursive:true});try{await readFile(FILE,'utf8')}catch{await writeFile(FILE,JSON.stringify(emptyStore(),null,2))}}
 async function readStore(){
  const p=await pool();
  const [rows]=await p.execute('SELECT data FROM swapp_social_native_store WHERE store_key=?',['pulse']);
