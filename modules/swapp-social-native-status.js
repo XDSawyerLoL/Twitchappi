@@ -30,6 +30,9 @@ function createNativeSocialReadiness({mysqlFactory=()=>require('mysql2/promise')
   })().finally(()=>{pending=null});
   return pending;
  }
- return {probe};
+ // A bootstrap may finish after a status probe has cached 'none'.
+ // Drop only the in-memory health cache; never alter the MySQL table.
+ function invalidate(){cache.until=0;cache.payload={database_reachable:false,snapshot_present:false,snapshot_type:'none'};}
+ return {probe,invalidate};
 }
 module.exports={createNativeSocialReadiness};
