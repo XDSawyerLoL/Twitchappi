@@ -31,7 +31,9 @@ test('activation requires a named confirmation and opt-in for fresh storage',asy
  const env={SWAPP_ACCOUNT_STORE:'mysql',SWAPP_SOCIAL_FRESH_START_APPROVED:'1',
   SWAPP_SOCIAL_BACKEND:'render',SWAPP_MYSQL_URL:'mysql://demo@localhost/db'};
  assert.throws(()=>approvedEnvironment({...env,SWAPP_SOCIAL_FRESH_START_APPROVED:'0'}),/explicit_fresh_start_approval_required/);
- assert.throws(()=>approvedEnvironment({...env,SWAPP_ACCOUNT_STORE:'json'}),/swapp_accounts_must_use_mysql/);
+ assert.doesNotThrow(()=>approvedEnvironment({...env,SWAPP_ACCOUNT_STORE:'firestore'}));
+ assert.doesNotThrow(()=>approvedEnvironment({...env,SWAPP_ACCOUNT_STORE:'json'}));
+
  assert.throws(()=>approvedEnvironment({...env,SWAPP_SOCIAL_BACKEND:'mysql'}),/refuse_bootstrap_while_native_backend_active/);
  await assert.rejects(()=>run(['--commit'],env),/fresh_social_history_confirmation_required/);
  assert.equal(CONFIRM,'NEW_SOCIAL_WITHOUT_HISTORY');

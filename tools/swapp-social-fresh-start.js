@@ -26,7 +26,7 @@ function freshSummary(){
   }};
 }
 function approvedEnvironment(env){
-  if(env.SWAPP_ACCOUNT_STORE!=='mysql')throw Error('swapp_accounts_must_use_mysql');
+  // SWAPP accounts may remain in Firestore; this tool creates only the separate SOCIAL MySQL store.
   if(env.SWAPP_SOCIAL_FRESH_START_APPROVED!=='1')throw Error('explicit_fresh_start_approval_required');
   if(env.SWAPP_SOCIAL_BACKEND==='mysql')throw Error('refuse_bootstrap_while_native_backend_active');
   const uri=env.SWAPP_SOCIAL_MYSQL_URL||env.SWAPP_MYSQL_URL;

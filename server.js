@@ -905,10 +905,23 @@ const SOCIAL_MYSQL_SELECTED=SOCIAL_BACKEND_MODE==='mysql';
 const SOCIAL_MIGRATION_FREEZE=process.env.SWAPP_SOCIAL_MIGRATION_FREEZE==='1';
 const SOCIAL_MIGRATED_APPROVED=process.env.SWAPP_SOCIAL_MYSQL_MIGRATION_VERIFIED==='1';
 const SOCIAL_FRESH_APPROVED=process.env.SWAPP_SOCIAL_FRESH_START_VERIFIED==='1';
-const SOCIAL_MYSQL_APPROVED=(SOCIAL_MIGRATED_APPROVED!==SOCIAL_FRESH_APPROVED)&&
- String(process.env.SWAPP_ACCOUNT_STORE||'').trim().toLowerCase()==='mysql';
+// SWAPP identity may still live in Firestore. SOCIAL uses a separate MySQL
+// store and authenticates members via SWAPP's existing first-party session.
+const SOCIAL_MYSQL_APPROVED=SOCIAL_MIGRATED_APPROVED!==SOCIAL_FRESH_APPROVED;
 const {createNativeSocialReadiness}=require('./modules/swapp-social-native-status');
 const socialNativeReadiness=createNativeSocialReadiness();
+const {bootstrapFreshSocial}=require('./modules/swapp-social-fresh-boot');
+if(process.env.SWAPP_SOCIAL_FRESH_AUTO_INIT==='1'){
+  // This is an explicit, one-time Hostinger environment opt-in. Never create
+  // an empty SOCIAL for a deployment that did not opt in.
+  void bootstrapFreshSocial().then(result=>{
+    console.info('[SWAPP SOCIAL] fresh bootstrap:',result.state);
+  }).catch(error=>{
+    // No credentials, SQL text, data or stack traces in logs.
+    console.error('[SWAPP SOCIAL] fresh bootstrap blocked:',String(error?.code||error?.message||'failed').slice(0,70));
+  });
+}
+
 const localSocialBridge=SOCIAL_MYSQL_SELECTED?
  require('./modules/swapp-social-local-bridge'):null;
 const socialTransport=SOCIAL_MYSQL_SELECTED?
