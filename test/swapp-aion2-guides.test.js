@@ -5,9 +5,9 @@ const {PUBLIC_PATHS,CLASSES,SECTIONS,render,registerAion2Routes}=require('../mod
 const {sitemapEntries}=require('../modules/swapp-seo');
 test('all Aion 2 guide pages are distinct, server-rendered, indexed and linked',()=>{
  assert.equal(CLASSES.length,8);
- assert.equal(SECTIONS.length,7);
- assert.equal(PUBLIC_PATHS.length,16);
- assert.equal(new Set(PUBLIC_PATHS).size,16);
+ assert.equal(SECTIONS.length,10);
+ assert.equal(PUBLIC_PATHS.length,19);
+ assert.equal(new Set(PUBLIC_PATHS).size,19);
  const canonical=new Set();
  for(const path of PUBLIC_PATHS){
   const html=render(path);
@@ -16,7 +16,7 @@ test('all Aion 2 guide pages are distinct, server-rendered, indexed and linked',
   assert.match(html,/swapp-aion2-guide\.css/,path);
   assert.match(html,/swapp-aion2-guide\.js/,path);
   assert.ok(html.includes('rel="canonical" href="https://swapp.tv'+path+'"'),path);
-  assert.ok(html.includes('Illustration officielle')||html.includes('Art officiel'),path);
+  assert.ok(html.includes('ag-site'),path);
   assert.ok(html.includes('SWAPP'),path);
   assert.ok(!canonical.has(path));canonical.add(path);
  }
@@ -27,8 +27,8 @@ test('class-specific pages have substantive PvE, PvP and rotation instructions',
  for(const item of CLASSES){
   const page=render('/guides/aion-2/classes/'+item.slug);
   assert.ok(page.includes('<h1>'+item.name+'</h1>'),item.slug);
-  assert.ok(page.includes('BUILD PVE')&&page.includes('BUILD PVP'),item.slug);
-  assert.ok(page.includes('ROTATION DE DÉPART'),item.slug);
+  assert.ok(page.includes('data-ag-panel-select="pve"')&&page.includes('data-ag-panel-select="pvp"'),item.slug);
+  assert.ok(page.includes('Ordre réel des actions sur boss'),item.slug);
  }
 });
 test('unknown guide slug returns null, not an invented page',()=>{
