@@ -76,7 +76,7 @@ test('navigation mobile compacte sans défilement horizontal',()=>{
 test('SOCIAL, videos and shop remain in the shared mobile menu',()=>{
  const menu=serverMobile('community');
  assert.match(menu,/class="swapp-mobile-more"/);
- assert.match(menu,/href="\/communaute"[^>]*aria-current="page"/);
+ assert.match(menu,/href="\/social"[^>]*aria-current="page"/);
  assert.match(menu,/href="\/bandes-annonces"/);
  assert.match(menu,/href="\/boutique"/);
  const home=require('../assets/swapp-navigation').serverHeader('shop');
