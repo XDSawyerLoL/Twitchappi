@@ -92,7 +92,7 @@ function firstFocus(){
  const list=navigable();
  if(modal())return focusItem(list[0]);
  const path=location.pathname;
- const specific=path==='/communaute'
+ const specific=path==='/social'
   ?$('.pulse-sidebar .pulse-nav-item.active,.pulse-mobile-nav button.active,.pulse-tab.active,#pulse-feed button')
   :path==='/twitch'
    ?$('#twitch.view.active button,#twitch.view.active a[href],#twitch.view.active [tabindex="0"]')
@@ -117,7 +117,7 @@ function move(dx,dy){
 }
 function jumpNav(direction){
  if(modal()){focusItem(navigable()[0]);return}
- const local=location.pathname==='/communaute'?$$('.pulse-nav-item,.pulse-mobile-nav button').filter(visible):[];
+ const local=location.pathname==='/social'?$$('.pulse-nav-item,.pulse-mobile-nav button').filter(visible):[];
  const list=local.length?local:navNodes();
  if(!list.length)return;
  const index=list.indexOf(current());
