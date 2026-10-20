@@ -913,7 +913,7 @@ const socialTransport=SOCIAL_MYSQL_SELECTED?
  localSocialBridge.createInProcessPulseFetch():fetchWithTimeout;
 const socialUpstreamOrigin=SOCIAL_MYSQL_SELECTED?
  localSocialBridge.INTERNAL_ORIGIN:undefined;
-app.get('/api/swapp/social/backend-status',async(_req,res)=>{
+app.get('/api/swapp/social-native/backend-status',async(_req,res)=>{
  res.set('Cache-Control','no-store');
  const mysqlReadiness=await socialNativeReadiness.probe();
  const ready=mysqlReadiness.snapshot_present&&mysqlReadiness.database_reachable;
