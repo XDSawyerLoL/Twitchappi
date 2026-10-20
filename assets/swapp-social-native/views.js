@@ -369,7 +369,7 @@ export async function loadProfile(handle){
           (actualPassport.availability?' · '+esc(actualPassport.availability):'')+'</p>':
         '<p>Aucun passeport public disponible pour ce compte.</p>')+
       (games.length?'<div class="pulse-profile-game-list">'+games.map(game=>
-        '<a href="/communaute?game='+encodeURIComponent(game)+'">'+esc(game)+'</a>').join('')+'</div>':'')+
+        '<a href="/social?game='+encodeURIComponent(game)+'">'+esc(game)+'</a>').join('')+'</div>':'')+
       (self?'<button type="button" class="pulse-mini-button" data-view="play">Gérer mon passeport ↗</button>':'')+
       '</section>';
     dom.feed.innerHTML=passport+'<section class="pulse-profile-hero"><div class="pulse-avatar">'+esc(initials(user))+'</div><h2>'+esc(user.displayName)+'</h2><div class="handle">@'+esc(user.handle)+'</div><p>'+esc(user.bio||'Aucune bio pour le moment.')+'</p><div class="pulse-profile-stats"><span><strong>'+user.followers+'</strong> abonnés</span><span><strong>'+user.following+'</strong> abonnements</span></div><div class="pulse-profile-actions">'+actions+'</div></section>'+((data.posts||[]).map(renderPost).join('')||'<div class="pulse-status"><strong>Aucune publication</strong></div>');
