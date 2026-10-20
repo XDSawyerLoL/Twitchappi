@@ -5,7 +5,7 @@ const fs=require('node:fs');
 const path=require('node:path');
 const vm=require('node:vm');
 const ROOT=path.resolve(__dirname,'..');
-const EXPECTED=['Accueil','Découvrir','Catégories','Équipes','Actualité','Social','Vidéos','Boutique'];
+const EXPECTED=['Accueil','Découvrir','Catégories','Équipes','Actualité','Guides','Social','Vidéos','Boutique'];
 
 class Element {
  constructor(tag,text='',href=null){
@@ -35,7 +35,7 @@ function setup(){
  for(const label of EXPECTED){
   const button=new Element('button',label);button.rootNav=nav;group.append(button);
  }
- const hrefs=['/social','/bandes-annonces','/boutique'];
+ const hrefs=['/guides/aion-2','/social','/bandes-annonces','/boutique'];
  for(let i=0;i<hrefs.length;i++){
   const a=new Element('a',EXPECTED[5+i],hrefs[i]);a.rootNav=nav;nav.append(a);
  }
@@ -54,24 +54,25 @@ function setup(){
 }
 test('keep eight tabs and use real links for SOCIAL, videos and shop instead of empty SPA views',()=>{
  const {nav,group}=setup();
- assert.equal(nav.querySelectorAll('a,button').length,8);
+ assert.equal(nav.querySelectorAll('a,button').length,9);
  assert.deepEqual(group.children.map(x=>x.textContent),EXPECTED);
  assert.equal(nav.children.length,1);
- assert.equal(nav.querySelectorAll('a').length,3);
+ assert.equal(nav.querySelectorAll('a').length,4);
  assert.deepEqual(group.children.slice(5).map(x=>x.getAttribute('href')),
-  ['/social','/bandes-annonces','/boutique']);
+  ['/guides/aion-2','/social','/bandes-annonces','/boutique']);
  assert.equal(group.children.slice(5).every(x=>x.dataset.swappNativeRoute==='1'),true);
 });
 test('a later SPA or widget re-render cannot reintroduce duplicated destinations',()=>{
  const {nav,group,observe}=setup();
+ group.append(new Element('a','Guides','/guides/aion-2'));
  group.append(new Element('a','Social','/social'));
  group.append(new Element('a','Vidéos','/bandes-annonces'));
  group.append(new Element('a','Boutique','/boutique'));
  observe();
- assert.equal(nav.querySelectorAll('a,button').length,8);
+ assert.equal(nav.querySelectorAll('a,button').length,9);
  assert.deepEqual(group.children.map(x=>x.textContent),EXPECTED);
  assert.deepEqual(group.children.slice(5).map(x=>x.getAttribute('href')),
-  ['/social','/bandes-annonces','/boutique']);
+  ['/guides/aion-2','/social','/bandes-annonces','/boutique']);
 });
 test('uniform desktop styling covers both buttons and links, and assets are cache-busted',()=>{
  const css=fs.readFileSync(path.join(ROOT,'assets/swapp-unified-nav.css'),'utf8');
@@ -81,7 +82,7 @@ test('uniform desktop styling covers both buttons and links, and assets are cach
  const home=fs.readFileSync(path.join(ROOT,'index.html'),'utf8');
  const shell=fs.readFileSync(path.join(ROOT,'modules/swapp-news/site-shell.js'),'utf8');
  for(const source of [home,shell]){
-  assert.match(source,/swapp-hub-nav\.js\?v=20261015-perf-1/);
-  assert.match(source,/swapp-unified-nav\.css\?v=20261016-header-parity-10/);
+  assert.match(source,/swapp-hub-nav\.js\?v=20261020-guides-native-v2/);
+  assert.match(source,/swapp-unified-nav\.css\?v=20261018-fixed-header-v1/);
  }
 });
