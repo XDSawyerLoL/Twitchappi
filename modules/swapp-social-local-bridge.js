@@ -30,9 +30,13 @@ function createInProcessPulseFetch({load=()=>import('./swapp-social-native/pulse
   const headers=normalizedHeaderMap(options.headers);
   // Rate-limit by an internal stable pseudonymous source, not the single
   // shared 127.0.0.1 address. Never trust browser-supplied X-Forwarded-For.
-  const identity=headers.authorization||(
-    method==='POST'&&url.pathname.startsWith('/api/pulse/auth/')
-      ?body.slice(0,500):'public:'+url.pathname);
+  let identity=headers.authorization||'public:'+url.pathname;
+  if(method==='POST'&&/^\/api\/pulse\/auth\/(login|register)$/.test(url.pathname)){
+    let handle='invalid';
+    try{handle=String(JSON.parse(body)?.handle||'invalid').toLowerCase().slice(0,40)}catch(_){}
+    // Stable per-handle throttling: varying a password must NOT evade limits.
+    identity='auth-handle:'+handle;
+  }
   const rateKey=crypto.createHash('sha256').update(identity).digest('hex').slice(0,24);
   headers['x-forwarded-for']='swapp-internal-'+rateKey;
   const req={
