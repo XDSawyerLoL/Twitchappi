@@ -1,5 +1,16 @@
 # SWAPP Creator — lancement progressif (20 octobre 2026)
 
+## État réel après les PR #70 et #71
+- **P0** : couche MySQL, OAuth Twitch et API de jeux présentes ; vérification de l'application Hostinger, des sessions OAuth réelles et du stockage de production toujours nécessaire.
+- **P1** : compte SWAPP unique et liaison Twitch Creator depuis le tableau de bord **fusionnés sur master** ; profil Creator enrichi restant à tester/compléter.
+- **P2** : création, déplacement et annulation des réservations Spotlight de 30 minutes en MySQL **fusionnées sur master**, sous commutateur `SWAPP_SPOTLIGHT_ENABLED=1` (désactivé par défaut).
+- **P3** : créneaux intégrés aux articles ACTUS et fiches de jeux ; mise en avant live uniquement avec contrôle Twitch user_id/game_id. **Code fusionné, fonctionnement Hostinger non vérifié**.
+- **P4** : contraintes uniques et protection des créneaux présentes, mais liste d'attente, remplacement automatique des absences et rotation équitable avancée non livrés.
+- **P5** : pilote réel non lancé ; badge ASCENSION et Creator Network non livrés.
+- Détails techniques, instructions Hostinger et tests : [SWAPP_SPOTLIGHT_MVP_20261020.md](./SWAPP_SPOTLIGHT_MVP_20261020.md).
+
+
+
 ## Décision produit
 Un seul compte d'identité : **SWAPP**. Twitch et, plus tard, d'autres plateformes sont des comptes externes associés depuis le **tableau de bord Creator**. La connexion Twitch seule ne crée jamais un compte SWAPP ni un droit de réserver un Spotlight.
 
