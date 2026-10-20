@@ -35,7 +35,7 @@ function setup(){
  for(const label of EXPECTED){
   const button=new Element('button',label);button.rootNav=nav;group.append(button);
  }
- const hrefs=['/communaute','/bandes-annonces','/boutique'];
+ const hrefs=['/social','/bandes-annonces','/boutique'];
  for(let i=0;i<hrefs.length;i++){
   const a=new Element('a',EXPECTED[5+i],hrefs[i]);a.rootNav=nav;nav.append(a);
  }
@@ -59,19 +59,19 @@ test('keep eight tabs and use real links for SOCIAL, videos and shop instead of 
  assert.equal(nav.children.length,1);
  assert.equal(nav.querySelectorAll('a').length,3);
  assert.deepEqual(group.children.slice(5).map(x=>x.getAttribute('href')),
-  ['/communaute','/bandes-annonces','/boutique']);
+  ['/social','/bandes-annonces','/boutique']);
  assert.equal(group.children.slice(5).every(x=>x.dataset.swappNativeRoute==='1'),true);
 });
 test('a later SPA or widget re-render cannot reintroduce duplicated destinations',()=>{
  const {nav,group,observe}=setup();
- group.append(new Element('a','Social','/communaute'));
+ group.append(new Element('a','Social','/social'));
  group.append(new Element('a','Vidéos','/bandes-annonces'));
  group.append(new Element('a','Boutique','/boutique'));
  observe();
  assert.equal(nav.querySelectorAll('a,button').length,8);
  assert.deepEqual(group.children.map(x=>x.textContent),EXPECTED);
  assert.deepEqual(group.children.slice(5).map(x=>x.getAttribute('href')),
-  ['/communaute','/bandes-annonces','/boutique']);
+  ['/social','/bandes-annonces','/boutique']);
 });
 test('uniform desktop styling covers both buttons and links, and assets are cache-busted',()=>{
  const css=fs.readFileSync(path.join(ROOT,'assets/swapp-unified-nav.css'),'utf8');
