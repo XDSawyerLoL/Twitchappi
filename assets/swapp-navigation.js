@@ -14,6 +14,7 @@
     Object.freeze({id:'categories',label:'Catégories',href:'/categories'}),
     Object.freeze({id:'teams',label:'Équipes',href:'/equipes'}),
     Object.freeze({id:'actus',label:'Actualité',href:'/actus'}),
+    Object.freeze({id:'guides',label:'Guides',href:'/guides/aion-2'}),
     Object.freeze({id:'community',label:'Social',href:'/social'}),
     Object.freeze({id:'trailers',label:'Vidéos',href:'/bandes-annonces'}),
     Object.freeze({id:'shop',label:'Boutique',href:'/boutique'})
