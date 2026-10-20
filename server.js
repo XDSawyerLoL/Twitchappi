@@ -9424,6 +9424,178 @@ app.get('/api/discovery/home-lives', heavyLimiter, async (req,res)=>{
 
 
 
+// SWAPP Spotlight MVP: schedule verified Twitch streams alongside first-party game journalism.
+const SWAPP_SPOTLIGHT_ENABLED=process.env.SWAPP_SPOTLIGHT_ENABLED==='1';
+const {createSpotlightStore,apiError:spotlightError}=require('./modules/swapp-spotlight');
+let spotlightDbPool=null;
+function spotlightPool(){
+  if(!SWAPP_SPOTLIGHT_ENABLED||!SWAPP_MYSQL_ACCOUNTS)return null;
+  if(socialInteractionsPool)return socialInteractionsPool;
+  if(spotlightDbPool)return spotlightDbPool;
+  const uri=process.env.SWAPP_MYSQL_URL;
+  if(!uri)return null;
+  try{
+    const check=new URL(uri);
+    if(check.protocol!=='mysql:'||!check.hostname||!check.username||!check.pathname||check.pathname==='/')return null;
+    spotlightDbPool=require('mysql2/promise').createPool({
+      uri,connectionLimit:3,waitForConnections:true,queueLimit:20,connectTimeout:5000,
+      enableKeepAlive:true,timezone:'Z'
+    });
+    return spotlightDbPool;
+  }catch(_){return null;}
+}
+const spotlightStore=createSpotlightStore({getPool:spotlightPool});
+const spotlightLiveCache=new Map();
+let spotlightPublishedGamesCache={until:0,games:[]};
+async function spotlightPublishedGame(game){
+  if(!firestoreOk||!db||typeof db.collection!=='function')throw spotlightError('spotlight_articles_unavailable',503);
+  let games=spotlightPublishedGamesCache.games;
+  if(Date.now()>=spotlightPublishedGamesCache.until){
+    const snap=await db.collection('swapp_news_articles').where('status','==','published').limit(500).get();
+    const {editorialGame}=require('./modules/swapp-news/game-identity');
+    games=(snap.docs||[]).map(doc=>editorialGame(doc.data()||{})).filter(Boolean);
+    spotlightPublishedGamesCache={until:Date.now()+120000,games};
+  }
+  const {equivalent}=require('./modules/swapp-news/game-identity');
+  if(!games.some(title=>equivalent(title,game)))throw spotlightError('spotlight_game_not_covered',422);
+}
+
+function spotlightHandleError(error,res,req){
+  if(error?.code==='ER_DUP_ENTRY')return res.status(409).json({success:false,error:'slot_already_reserved'});
+  if(error?.status&&error.status<500)return res.status(error.status).json({success:false,error:error.message});
+  recordSwappError('spotlight',req,error);
+  return res.status(503).json({success:false,error:'spotlight_temporarily_unavailable'});
+}
+async function spotlightAuthorized(req,res){
+  if(!SWAPP_SPOTLIGHT_ENABLED||!SWAPP_MYSQL_ACCOUNTS)
+    throw spotlightError('spotlight_not_enabled',503);
+  await restoreOryonSessionFromRememberCookie(req,res,{allowUserRecovery:false});
+  const id=req.session?.oryonUser?.id;
+  if(!id)throw spotlightError('swapp_account_required',401);
+  await ORYON_USERS_READY.catch(()=>{});
+  if(!swappMysqlAccountsReady){
+    await swappMysqlAccountsRecovery.ensure();
+    if(!swappMysqlAccountsReady)throw spotlightError('swapp_account_storage_unavailable',503);
+  }
+  const user=(readOryonUsers().users||[]).find(x=>String(x.id)===String(id));
+  if(!user)throw spotlightError('swapp_account_not_found',401);
+  return user;
+}
+function spotlightWriteAllowed(req){
+  if(req.get('x-swapp-spotlight-action')!=='creator')throw spotlightError('spotlight_action_header_required',403);
+  const origin=req.get('origin');
+  if(origin){
+    let host='';
+    try{const u=new URL(origin);if(u.protocol==='https:'||!IS_PROD&&u.protocol==='http:')host=u.host.toLowerCase()}catch(_){}
+    if(host!==String(req.get('host')||'').toLowerCase())throw spotlightError('origin_denied',403);
+  }
+}
+function spotlightId(req){
+  const raw=String(req.params.id||'');
+  if(!/^[1-9]\d{0,14}$/.test(raw))throw spotlightError('invalid_reservation_id');
+  return raw;
+}
+async function spotlightStreamState(booking){
+  const now=Date.now(),start=Date.parse(booking.start_at),end=Date.parse(booking.end_at);
+  if(!Number.isFinite(start)||!Number.isFinite(end))return {state:'unverified'};
+  if(now<start)return {state:'scheduled'};
+  if(now>=end)return {state:'finished'};
+  if(!TWITCH_CLIENT_ID||!TWITCH_CLIENT_SECRET)return {state:'verification_unavailable'};
+  const id=String(booking.twitch_user_id||'');
+  let hit=spotlightLiveCache.get(id);
+  if(!hit||hit.until<=now){
+    try{
+      const response=await twitchAPI('streams?user_id='+encodeURIComponent(id)+'&first=1');
+      hit={until:now+45000,live:Array.isArray(response?.data)?response.data[0]||null:null,available:true};
+    }catch(_){hit={until:now+15000,live:null,available:false}}
+    if(spotlightLiveCache.size>150)spotlightLiveCache.clear();
+    spotlightLiveCache.set(id,hit);
+  }
+  if(!hit.available)return {state:'verification_unavailable'};
+  const live=hit.live;
+  if(!live||String(live.user_id)!==id)return {state:'offline'};
+  // Compare an immutable Twitch game ID, not a fuzzy game-title substring.
+  if(String(live.game_id)!==String(booking.twitch_game_id))return {state:'wrong_game'};
+  return {state:'live_verified',viewers:Math.max(0,Number(live.viewer_count)||0),
+    title:String(live.title||'').slice(0,130)};
+}
+app.get('/api/creator/spotlight/status',async(_req,res)=>{
+  res.set('Cache-Control','no-store');
+  if(SWAPP_SPOTLIGHT_ENABLED&&SWAPP_MYSQL_ACCOUNTS){
+    await ORYON_USERS_READY.catch(()=>{});
+    if(!swappMysqlAccountsReady)await swappMysqlAccountsRecovery.ensure();
+  }
+  res.json({success:true,enabled:Boolean(SWAPP_SPOTLIGHT_ENABLED&&SWAPP_MYSQL_ACCOUNTS&&swappMysqlAccountsReady&&spotlightPool()&&TWITCH_CLIENT_ID&&TWITCH_CLIENT_SECRET&&firestoreOk),
+    accounts_mysql:SWAPP_MYSQL_ACCOUNTS&&swappMysqlAccountsReady,
+    twitch_api_configured:Boolean(TWITCH_CLIENT_ID&&TWITCH_CLIENT_SECRET)});
+});
+app.get('/api/creator/spotlight',heavyLimiter,async(req,res)=>{
+  res.set('Cache-Control','no-store');
+  try{
+    if(!SWAPP_SPOTLIGHT_ENABLED||!SWAPP_MYSQL_ACCOUNTS)throw spotlightError('spotlight_not_enabled',503);
+    const game=String(req.query.game||'');
+    const {validateGame}=require('./modules/swapp-spotlight');
+    validateGame(game);
+    const list=await spotlightStore.list(game,{limit:12});
+    // Verify only the current slot; never falsely claim a scheduled streamer is online.
+    const now=Date.now(),current=list.filter(b=>Date.parse(b.start_at)<=now&&now<Date.parse(b.end_at)).slice(0,1);
+    const states=new Map(await Promise.all(current.map(async b=>[b.id,await spotlightStreamState({
+      ...b,twitch_user_id:await spotlightTwitchId(b.id)
+    })])));
+    res.json({success:true,game,items:list.map(b=>({...b,live:states.get(b.id)||{state:'scheduled'}}))});
+  }catch(e){spotlightHandleError(e,res,req);}
+});
+// Fetch Twitch IDs from private reservation rows, never disclose them to the browser.
+async function spotlightTwitchId(id){
+  const pool=spotlightPool();
+  if(!pool)return '';
+  const [rows]=await pool.execute('SELECT twitch_user_id FROM swapp_creator_spotlight WHERE id=? AND status=\'reserved\' LIMIT 1',[id]);
+  return String(rows[0]?.twitch_user_id||'');
+}
+app.get('/api/creator/spotlight/mine',heavyLimiter,async(req,res)=>{
+  res.set('Cache-Control','no-store');
+  try{
+    const user=await spotlightAuthorized(req,res);
+    const list=await spotlightStore.mine(String(user.id));
+    res.json({success:true,items:list});
+  }catch(e){spotlightHandleError(e,res,req);}
+});
+app.post('/api/creator/spotlight/reservations',mutationLimiter,async(req,res)=>{
+  res.set('Cache-Control','no-store');
+  try{
+    spotlightWriteAllowed(req);
+    const user=await spotlightAuthorized(req,res);
+    const game=String(req.body?.game||'').trim();
+    const {validateGame}=require('./modules/swapp-spotlight');
+    validateGame(game);
+    // Only sell/confirm a real placement if a published SWAPP article covers the game.
+    await spotlightPublishedGame(game);
+    // Strict exact-match Twitch category verification; never invent a game identity.
+    const gameId=await twitchCategoryIdByName(game);
+    if(!gameId)throw spotlightError('game_not_found_on_twitch',422);
+    const item=await spotlightStore.reserve({user,game,start_at:req.body?.start_at,twitchGameId:gameId});
+    res.status(201).json({success:true,item});
+  }catch(e){spotlightHandleError(e,res,req);}
+});
+app.patch('/api/creator/spotlight/reservations/:id',mutationLimiter,async(req,res)=>{
+  res.set('Cache-Control','no-store');
+  try{
+    spotlightWriteAllowed(req);
+    const user=await spotlightAuthorized(req,res);
+    const item=await spotlightStore.reschedule(spotlightId(req),user,req.body?.start_at);
+    res.json({success:true,item});
+  }catch(e){spotlightHandleError(e,res,req);}
+});
+app.delete('/api/creator/spotlight/reservations/:id',mutationLimiter,async(req,res)=>{
+  res.set('Cache-Control','no-store');
+  try{
+    spotlightWriteAllowed(req);
+    const user=await spotlightAuthorized(req,res);
+    const item=await spotlightStore.cancel(spotlightId(req),user);
+    res.json({success:true,item});
+  }catch(e){spotlightHandleError(e,res,req);}
+});
+
 // Exact game discovery for ACTUS: unlike homepage recommendations, this searches Twitch by game ID.
 app.get('/api/discovery/game-lives', heavyLimiter, async (req,res)=>{
   const game=String(req.query.game||'').trim().slice(0,90);
