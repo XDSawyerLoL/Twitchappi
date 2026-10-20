@@ -902,6 +902,7 @@ const socialAudioPrivacy=createAudioPrivacy({
 // Default remains the historical Render proxy until a complete migration is checked.
 const SOCIAL_BACKEND_MODE=String(process.env.SWAPP_SOCIAL_BACKEND||'render').trim().toLowerCase();
 const SOCIAL_MYSQL_SELECTED=SOCIAL_BACKEND_MODE==='mysql';
+const SOCIAL_MIGRATION_FREEZE=process.env.SWAPP_SOCIAL_MIGRATION_FREEZE==='1';
 const SOCIAL_MYSQL_APPROVED=process.env.SWAPP_SOCIAL_MYSQL_MIGRATION_VERIFIED==='1'&&
  String(process.env.SWAPP_ACCOUNT_STORE||'').trim().toLowerCase()==='mysql';
 const {createNativeSocialReadiness}=require('./modules/swapp-social-native-status');
@@ -918,6 +919,7 @@ app.get('/api/swapp/social/backend-status',async(_req,res)=>{
  const ready=mysqlReadiness.snapshot_present&&mysqlReadiness.database_reachable;
  res.json({success:true,mode:SOCIAL_MYSQL_SELECTED?'mysql':'render',
   migration_approved:SOCIAL_MYSQL_APPROVED,
+  writes_frozen:SOCIAL_MIGRATION_FREEZE,
   active_backend:SOCIAL_MYSQL_SELECTED&&SOCIAL_MYSQL_APPROVED&&ready?'mysql':
     SOCIAL_MYSQL_SELECTED?'blocked_unverified':'render',
   mysql_configured:Boolean(process.env.SWAPP_SOCIAL_MYSQL_URL||process.env.SWAPP_MYSQL_URL),
@@ -927,6 +929,10 @@ app.get('/api/swapp/social/backend-status',async(_req,res)=>{
  });
 });
 app.use('/api/pulse',(req,res,next)=>{
+ if(SOCIAL_MIGRATION_FREEZE&&req.method!=='GET'){
+  res.set('Cache-Control','no-store');
+  return res.status(503).json({error:'social_migration_write_frozen'});
+ }
  if(SOCIAL_MYSQL_SELECTED&&!SOCIAL_MYSQL_APPROVED){
   res.set('Cache-Control','no-store');
   return res.status(503).json({error:'social_migration_not_verified'});
