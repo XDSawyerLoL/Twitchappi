@@ -56,7 +56,7 @@ test('real game links, chats, passsports and accessibility stay connected',()=>{
  assert.ok(game.includes("navigateTo('play');\n  void openGame"));
  assert.ok(game.includes("navigateTo('rooms');"));
  assert.ok(game.includes("navigateTo('play');void openGame(selectedGame)"));
- assert.ok(views.includes('startDMRefresh(handle,revision,state.user.id,data.messages)'));
+ assert.ok(views.includes('startDMRefresh(handle,revision,state.user.id,data.messages,notes)'));
  assert.ok(views.includes("actualPassport=(await response.json()).passport"));
  assert.ok(!views.includes('Jeux mentionnés dans les publications'));
  assert.ok(!root.includes('swapp-activities'));
