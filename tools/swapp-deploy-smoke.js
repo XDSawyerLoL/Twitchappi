@@ -253,7 +253,7 @@ async function verify(){
  const socialRelease=await request(origin,'/api/swapp/social/release');
  let personalRelease={};
  try{personalRelease=JSON.parse(socialRelease.body)}catch{}
- check(personalRelease.release==='social-personal-channels-20261019'&&personalRelease.features?.personalInviteChannels===true,
+ check(personalRelease.release==='social-canonical-timeline-20261020'&&personalRelease.features?.personalInviteChannels===true,
   'Personal invitation channel Node server has not deployed');
  process.stdout.write('PASS wishlist repair and private SOCIAL channel frontend/server\n');
  const accountScript=await request(origin,'/index_script.js');
