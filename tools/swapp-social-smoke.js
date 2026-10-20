@@ -9,7 +9,7 @@ const base=new URL(origin);
 if(base.protocol!=='https:'||!['swapp.tv','www.swapp.tv'].includes(base.hostname))
  throw Error('The production smoke only permits swapp.tv HTTPS URLs');
 const publicChecks=[
- ['/communaute','social_page'],
+ ['/social','social_page'],
  ['/api/oryon/session','swapp_account_session'],
  ['/api/oryon/persistence-status','account_storage'],
  ['/api/actus','swapp_editorial'],
