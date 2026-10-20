@@ -20,6 +20,7 @@ const rateLimit = require('express-rate-limit');
 const session = require('express-session');
 const MemoryStore = require('memorystore')(session);
 const { TWITCH_OAUTH_COOKIE_NAME, TWITCH_OAUTH_TTL_MS, newTwitchOAuthState, verifyTwitchOAuthState } = require('./lib/twitch-oauth-state');
+const { COOKIE_NAME: CREATOR_TWITCH_LINK_COOKIE, LINK_TTL_MS: CREATOR_TWITCH_LINK_TTL_MS, issueCreatorTwitchLinkProof, verifyCreatorTwitchLinkProof, findExistingTwitchOwner } = require('./lib/creator-twitch-link');
 const http = require('http');
 const { Server } = require('socket.io');
 let openid;
@@ -558,6 +559,7 @@ async function restoreOryonSessionFromRememberCookie(req, res, {allowUserRecover
     const remember_token = issueOryonRememberToken(user, data);
     await writeOryonUsersAndWait(data);
     req.session.oryonUser = sessionOryonUser(user);
+    req.session.twitchUser = user.twitch_link || null;
     setOryonRememberCookie(res, user, remember_token);
     return req.session.oryonUser;
   }catch(e){
@@ -2964,8 +2966,15 @@ if (ENABLE_TRACKED_CRON) {
 // =========================================================
 // 3. AUTH (MULTI-USER SAFE)
 // =========================================================
-app.get('/twitch_auth_start', authLimiter, (req, res) => {
+app.get('/twitch_auth_start', authLimiter, async (req, res) => {
   res.set('Cache-Control', 'no-store');
+  const creatorLink = req.query.mode === 'link';
+  if(creatorLink){
+    await restoreOryonSessionFromRememberCookie(req, res, {allowUserRecovery:false});
+    if(!req.session?.oryonUser?.id) return res.status(401).send('Connecte-toi d’abord à ton compte SWAPP, puis ouvre le tableau de bord.');
+    await ORYON_USERS_READY.catch(()=>{});
+    if((!SWAPP_MYSQL_ACCOUNTS || !swappMysqlAccountsReady)) return res.status(503).send('Comptes SWAPP temporairement indisponibles.');
+  }
   const cfg = validateTwitchOAuthConfig(req);
   if(!cfg.ok){
     recordSwappError('twitch_oauth_config', req, cfg.publicError || 'Configuration Twitch invalide', { expected:cfg.expected, configured:cfg.configured ? 'configured' : 'missing' });
@@ -2978,12 +2987,21 @@ app.get('/twitch_auth_start', authLimiter, (req, res) => {
   if((req.get('host') || '').toLowerCase() !== callbackUrl.host.toLowerCase()){
     const canonicalStart = new URL('/twitch_auth_start', callbackUrl.origin);
     if(req.query.returnTo) canonicalStart.searchParams.set('returnTo', safeNextRedirect(req.query.returnTo, '/decouvrir'));
+    if(creatorLink) canonicalStart.searchParams.set('mode', 'link');
     return res.redirect(302, canonicalStart.href);
   }
 
   const { state, cookieValue } = newTwitchOAuthState(oauthSigningSecret);
   req.session.twitch_oauth_state = state;
-  req.session.twitch_return_to = safeNextRedirect(req.query.returnTo, '/decouvrir');
+  req.session.twitch_return_to = creatorLink ? '/dashboard?twitch=linked' : safeNextRedirect(req.query.returnTo, '/decouvrir');
+  req.session.twitch_link_user_id = creatorLink ? String(req.session.oryonUser.id) : null;
+  if(creatorLink){
+    res.cookie(CREATOR_TWITCH_LINK_COOKIE, issueCreatorTwitchLinkProof({
+      state, userId:req.session.oryonUser.id, secret:oauthSigningSecret
+    }), {httpOnly:true,sameSite:'lax',secure:IS_PROD,path:'/',maxAge:CREATOR_TWITCH_LINK_TTL_MS});
+  }else{
+    res.clearCookie(CREATOR_TWITCH_LINK_COOKIE,{sameSite:'lax',secure:IS_PROD,path:'/'});
+  }
   // A short-lived first-party proof protects callbacks when the in-memory
   // Express session is lost during the external OAuth round-trip.
   res.cookie(TWITCH_OAUTH_COOKIE_NAME, cookieValue, {
@@ -3011,8 +3029,12 @@ app.get('/twitch_auth_callback', authLimiter, async (req, res) => {
   res.set('Cache-Control', 'no-store');
   const { code, state } = req.query;
   const stateCookie = req.cookies?.[TWITCH_OAUTH_COOKIE_NAME];
-  // Consume the one-use proof, including on a failed or cancelled callback.
+  const creatorLinkCookie = req.cookies?.[CREATOR_TWITCH_LINK_COOKIE];
+  const creatorLinkSessionId = req.session?.twitch_link_user_id || null;
+  const creatorLinkIntent = Boolean(creatorLinkCookie || creatorLinkSessionId);
+  // Consume both one-use proofs, including on a failed or cancelled callback.
   res.clearCookie(TWITCH_OAUTH_COOKIE_NAME, { sameSite:'lax', secure:IS_PROD, path:'/' });
+  res.clearCookie(CREATOR_TWITCH_LINK_COOKIE, { sameSite:'lax', secure:IS_PROD, path:'/' });
   if(req.query?.error){
     recordSwappError('twitch_oauth_denied', req, req.query.error_description || req.query.error);
     return res.status(401).send('Connexion Twitch refusée ou annulée.');
@@ -3036,8 +3058,22 @@ app.get('/twitch_auth_callback', authLimiter, async (req, res) => {
     });
     return res.status(403).send('Connexion Twitch expirée ou interrompue. Retourne sur SWAPP et relance la connexion.');
   }
-  // State validated against the existing session or a signed short-lived first-party cookie.
+  // Twitch login alone never creates a SWAPP account link.
+  let creatorLinkOwnerId = null;
+  if(creatorLinkIntent){
+    const boundOwner = verifyCreatorTwitchLinkProof({
+      state, cookieValue:creatorLinkCookie, secret:oauthSigningSecret
+    });
+    if(boundOwner && creatorLinkSessionId && boundOwner !== String(creatorLinkSessionId))
+      return res.status(403).send('Association Twitch interrompue : identité SWAPP différente.');
+    creatorLinkOwnerId = boundOwner || (proof === 'session' ? creatorLinkSessionId : null);
+    await restoreOryonSessionFromRememberCookie(req,res,{allowUserRecovery:false});
+    if(!creatorLinkOwnerId || !req.session?.oryonUser?.id ||
+       String(req.session.oryonUser.id) !== String(creatorLinkOwnerId))
+      return res.status(403).send('Reconnecte-toi à SWAPP avant de lier Twitch.');
+  }
   req.session.twitch_oauth_state = null;
+  req.session.twitch_link_user_id = null;
 
   try {
     const tokenRes = await fetch('https://id.twitch.tv/oauth2/token', {
@@ -3066,7 +3102,7 @@ app.get('/twitch_auth_callback', authLimiter, async (req, res) => {
     }
 
     // \u2705 Stockage par utilisateur: SESSION (multi-user)
-    req.session.twitchUser = {
+    const twitchSession = {
       display_name: user.display_name,
       login: user.login,
       id: user.id,
@@ -3076,25 +3112,21 @@ app.get('/twitch_auth_callback', authLimiter, async (req, res) => {
       expiry: Date.now() + (Number(tokenData.expires_in || 0) * 1000)
     };
 
-    // Lie Twitch au compte Swapp connecté, pour retrouver la connexion après rechargement.
-    try{
-      const local = req.session?.oryonUser;
-      if(local?.id){
-        const ud = readOryonUsers();
-        const ou = (ud.users||[]).find(x => x.id === local.id);
-        if(ou){
-          ou.twitch_link = {
-            id:user.id, login:user.login, display_name:user.display_name,
-            profile_image_url:user.profile_image_url,
-            access_token:tokenData.access_token,
-            refresh_token:tokenData.refresh_token || null,
-            expiry: Date.now() + (Number(tokenData.expires_in || 0) * 1000),
-            linkedAt: Date.now()
-          };
-          writeOryonUsers(ud);
-        }
-      }
-    }catch(e){ console.warn('[ORYON] link twitch failed:', e.message); }
+    if(creatorLinkOwnerId){
+      await ORYON_USERS_READY.catch(()=>{});
+      if((!SWAPP_MYSQL_ACCOUNTS || !swappMysqlAccountsReady))
+        return res.status(503).send('Stockage des comptes SWAPP indisponible. Association non enregistrée.');
+      const users = readOryonUsers();
+      const owner = (users.users||[]).find(x => String(x.id) === String(creatorLinkOwnerId));
+      if(!owner) return res.status(401).send('Compte SWAPP introuvable. Association non effectuée.');
+      if(findExistingTwitchOwner(users.users,user.id,creatorLinkOwnerId))
+        return res.status(409).send('Cette chaîne Twitch est déjà liée à un autre compte SWAPP.');
+      owner.twitch_link = {...twitchSession,linkedAt:Date.now()};
+      const saved = await writeOryonUsersAndWait(users);
+      if(saved?.error) return res.status(503).send('Association non sauvegardée. Réessaie.');
+    }
+    // Legacy Twitch OAuth still permits Twitch-only sessions, not account linking.
+    req.session.twitchUser = twitchSession;
 
     // If Steam was connected before Twitch, persist it now so it becomes permanent.
     try{
@@ -3150,6 +3182,54 @@ app.get('/twitch_user_status', async (req, res) => {
   res.json({ is_connected: false });
 });
 
+
+// Creator linkage is owned by SWAPP account, not by Twitch login alone.
+app.get('/api/creator/twitch/status', async (req,res)=>{
+  res.set('Cache-Control','no-store');
+  await restoreOryonSessionFromRememberCookie(req,res,{allowUserRecovery:false});
+  const id=req.session?.oryonUser?.id;
+  if(!id)return res.status(401).json({success:false,error:'swapp_account_required'});
+  await ORYON_USERS_READY.catch(()=>{});
+  if(!SWAPP_MYSQL_ACCOUNTS||!swappMysqlAccountsReady)
+    return res.status(503).json({success:false,error:'mysql_accounts_unavailable'});
+  const owner=(readOryonUsers().users||[]).find(u=>String(u.id)===String(id));
+  if(!owner)return res.status(401).json({success:false,error:'swapp_account_missing'});
+  const tw=owner.twitch_link;
+  return res.json({success:true,linked:Boolean(tw?.id),
+    twitch:tw?.id?{id:String(tw.id),login:String(tw.login||''),
+      display_name:String(tw.display_name||tw.login||''),
+      profile_image_url:String(tw.profile_image_url||''),
+      authorization_valid:Boolean(tw.access_token&&(!tw.expiry||tw.expiry>Date.now()))}:null});
+});
+
+app.post('/api/creator/twitch/unlink',mutationLimiter,async(req,res)=>{
+  res.set('Cache-Control','no-store');
+  if(req.get('x-swapp-creator-action')!=='unlink')
+    return res.status(403).json({success:false,error:'invalid_action'});
+  const origin=req.get('origin');
+  if(origin){let host='';try{host=new URL(origin).host.toLowerCase();}catch(_){}
+    if(!host||host!==String(req.get('host')||'').toLowerCase())
+      return res.status(403).json({success:false,error:'origin_denied'});
+  }
+  await restoreOryonSessionFromRememberCookie(req,res,{allowUserRecovery:false});
+  const id=req.session?.oryonUser?.id;
+  if(!id)return res.status(401).json({success:false,error:'swapp_account_required'});
+  await ORYON_USERS_READY.catch(()=>{});
+  if(!SWAPP_MYSQL_ACCOUNTS||!swappMysqlAccountsReady)
+    return res.status(503).json({success:false,error:'mysql_accounts_unavailable'});
+  try{
+    const data=readOryonUsers();
+    const owner=(data.users||[]).find(u=>String(u.id)===String(id));
+    if(!owner)return res.status(401).json({success:false,error:'swapp_account_missing'});
+    const twId=owner.twitch_link?.id||null;
+    owner.twitch_link=null;
+    const saved=await writeOryonUsersAndWait(data);
+    if(saved?.error)return res.status(503).json({success:false,error:'persistence_unavailable'});
+    if(twId&&String(req.session?.twitchUser?.id||'')===String(twId))req.session.twitchUser=null;
+    req.session.save(err=>err?res.status(503).json({success:false,error:'session_save_failed'}):res.json({success:true,linked:false}));
+  }catch(e){recordSwappError('creator_twitch_unlink',req,e);
+    res.status(503).json({success:false,error:'persistence_unavailable'});}
+});
 
 // =========================================================
 // ORYON — comptes locaux, lives natifs publics, Twitch suivis
@@ -3836,6 +3916,7 @@ app.post('/api/oryon/register', async (req, res) => {
     const remember_token = issueOryonRememberToken(user, data);
     const persistResult = await writeOryonUsersAndWait(data);
     req.session.oryonUser = sessionOryonUser(user);
+    req.session.twitchUser = user.twitch_link || null;
     setOryonRememberCookie(res, user, remember_token);
     req.session.save(() => res.json({ success:true, user: publicOryonUser(user), remember_token, emailVerificationRequired:false, persistence:persistResult||null }));
   }catch(e){ res.status(500).json({ success:false, error:e.message }); }
@@ -3867,6 +3948,7 @@ app.post('/api/oryon/login', async (req, res) => {
     const remember_token = issueOryonRememberToken(user, data);
     const persistResult = await writeOryonUsersAndWait(data);
     req.session.oryonUser = sessionOryonUser(user);
+    req.session.twitchUser = user.twitch_link || null;
     setOryonRememberCookie(res, user, remember_token);
     req.session.save(() => res.json({ success:true, user: publicOryonUser(user), remember_token, persistence:persistResult||null }));
   }catch(e){ res.status(500).json({ success:false, error:e.message }); }
@@ -3932,6 +4014,7 @@ app.post('/api/oryon/password/reset', authLimiter, async (req, res) => {
     const remember_token = issueOryonRememberToken(user, data);
     const persistResult = await writeOryonUsersAndWait(data);
     req.session.oryonUser = sessionOryonUser(user);
+    req.session.twitchUser = user.twitch_link || null;
     setOryonRememberCookie(res, user, remember_token);
     req.session.save(() => res.json({ success:true, user:publicOryonUser(user), remember_token, persistence:persistResult || null }));
   }catch(e){
@@ -3953,6 +4036,7 @@ app.post('/api/oryon/restore-session', async (req, res) => {
     ensureOryonUserShape(user, { ensureStreamKey:true });
     await writeOryonUsersAndWait(data);
     req.session.oryonUser = sessionOryonUser(user);
+    req.session.twitchUser = user.twitch_link || null;
     setOryonRememberCookie(res, user, token);
     req.session.save(() => res.json({success:true,user:publicOryonUser(user),remember_token:token}));
   }catch(e){ res.status(500).json({success:false,error:e.message}); }
@@ -3960,6 +4044,9 @@ app.post('/api/oryon/restore-session', async (req, res) => {
 
 app.post('/api/oryon/logout', (req, res) => {
   req.session.oryonUser = null;
+  req.session.twitchUser = null;
+  req.session.twitch_oauth_state = null;
+  req.session.twitch_link_user_id = null;
   clearOryonRememberCookie(res);
   req.session.save(() => res.json({ success:true }));
 });
@@ -9981,6 +10068,7 @@ app.post('/api/oryon/client-recover', async (req, res) => {
     const remember_token = issueOryonRememberToken(user, data);
     const persistResult = await writeOryonUsersAndWait(data);
     req.session.oryonUser = sessionOryonUser(user);
+    req.session.twitchUser = user.twitch_link || null;
     setOryonRememberCookie(res, user, remember_token);
     req.session.save(() => res.json({success:true,user:publicOryonUser(user),remember_token,persistence:persistResult||null,recovered:true}));
   }catch(e){ res.status(500).json({success:false,error:e.message}); }

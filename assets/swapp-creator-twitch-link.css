@@ -1,0 +1,36 @@
+/* Creator Twitch association: understated dashboard row, never a promotional card. */
+#dashboard .swapp-creator-twitch-link{
+  width:100%;max-width:100%;
+  margin:20px 0 28px;
+  padding:24px 0 22px;
+  border-top:1px solid var(--swapp-workspace-line,rgba(174,198,217,.2));
+  border-bottom:1px solid var(--swapp-workspace-line,rgba(174,198,217,.2));
+  color:var(--swapp-workspace-type,#f3f7fd);
+}
+#dashboard .swapp-creator-link-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:24px}
+#dashboard .swapp-creator-link-eyebrow{display:block;font-size:10px;letter-spacing:.13em;font-weight:800;color:var(--swapp-workspace-accent,var(--brand,#76e7e3));margin:0 0 8px}
+#dashboard .swapp-creator-link-heading h2{font-size:clamp(23px,2.8vw,32px);font-weight:800;letter-spacing:-.04em;margin:0 0 7px;line-height:1.2}
+#dashboard .swapp-creator-link-heading p,#dashboard .swapp-creator-link-note{font-size:13px;color:var(--swapp-workspace-muted,#aebed0);line-height:1.55;margin:0}
+#dashboard .swapp-creator-link-body{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:18px;margin-top:22px}
+#dashboard .swapp-creator-link-current{display:flex;gap:13px;align-items:center}
+#dashboard .swapp-creator-link-avatar{height:42px;width:42px;border-radius:9px;object-fit:cover}
+#dashboard .swapp-creator-link-copy{display:flex;flex-direction:column;gap:3px;min-width:0}
+#dashboard .swapp-creator-link-copy strong{font-size:15px;overflow-wrap:anywhere}
+#dashboard .swapp-creator-link-copy span{font-size:12px;color:var(--swapp-workspace-muted,#aebed0);overflow-wrap:anywhere}
+#dashboard .swapp-creator-link-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+#dashboard .swapp-creator-link-btn{
+  width:auto;display:inline-flex;align-items:center;justify-content:center;
+  border:1px solid var(--swapp-workspace-line,rgba(174,198,217,.35));
+  border-radius:6px;background:rgba(255,255,255,.035);color:inherit;
+  padding:10px 15px;font-size:12px;font-weight:750;line-height:1.25;
+  box-shadow:none;text-decoration:none;min-height:39px;
+}
+#dashboard .swapp-creator-link-btn:hover{border-color:var(--swapp-workspace-accent,var(--brand,#76e7e3));background:rgba(255,255,255,.08)}
+#dashboard .swapp-creator-link-btn:focus-visible{outline:2px solid var(--swapp-workspace-accent,var(--brand,#76e7e3));outline-offset:3px}
+#dashboard .swapp-creator-link-btn.is-danger{color:#f7b6b8}
+@media(max-width:700px){
+  #dashboard .swapp-creator-twitch-link{width:100%;margin:18px 0 22px;padding:20px 0}
+  #dashboard .swapp-creator-link-body{align-items:stretch;flex-direction:column}
+  #dashboard .swapp-creator-link-actions{width:100%}
+  #dashboard .swapp-creator-link-btn{flex:1 1 auto;min-width:0}
+}
