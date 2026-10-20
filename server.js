@@ -9446,6 +9446,20 @@ function spotlightPool(){
 }
 const spotlightStore=createSpotlightStore({getPool:spotlightPool});
 const spotlightLiveCache=new Map();
+let spotlightPublishedGamesCache={until:0,games:[]};
+async function spotlightPublishedGame(game){
+  if(!firestoreOk||!db||typeof db.collection!=='function')throw spotlightError('spotlight_articles_unavailable',503);
+  let games=spotlightPublishedGamesCache.games;
+  if(Date.now()>=spotlightPublishedGamesCache.until){
+    const snap=await db.collection('swapp_news_articles').where('status','==','published').limit(500).get();
+    const {editorialGame}=require('./modules/swapp-news/game-identity');
+    games=(snap.docs||[]).map(doc=>editorialGame(doc.data()||{})).filter(Boolean);
+    spotlightPublishedGamesCache={until:Date.now()+120000,games};
+  }
+  const {equivalent}=require('./modules/swapp-news/game-identity');
+  if(!games.some(title=>equivalent(title,game)))throw spotlightError('spotlight_game_not_covered',422);
+}
+
 function spotlightHandleError(error,res,req){
   if(error?.code==='ER_DUP_ENTRY')return res.status(409).json({success:false,error:'slot_already_reserved'});
   if(error?.status&&error.status<500)return res.status(error.status).json({success:false,error:error.message});
@@ -9507,7 +9521,8 @@ async function spotlightStreamState(booking){
 }
 app.get('/api/creator/spotlight/status',(_req,res)=>{
   res.set('Cache-Control','no-store');
-  res.json({success:true,enabled:SWAPP_SPOTLIGHT_ENABLED,accounts_mysql:SWAPP_MYSQL_ACCOUNTS&&swappMysqlAccountsReady,
+  res.json({success:true,enabled:Boolean(SWAPP_SPOTLIGHT_ENABLED&&SWAPP_MYSQL_ACCOUNTS&&swappMysqlAccountsReady&&spotlightPool()&&TWITCH_CLIENT_ID&&TWITCH_CLIENT_SECRET&&firestoreOk),
+    accounts_mysql:SWAPP_MYSQL_ACCOUNTS&&swappMysqlAccountsReady,
     twitch_api_configured:Boolean(TWITCH_CLIENT_ID&&TWITCH_CLIENT_SECRET)});
 });
 app.get('/api/creator/spotlight',heavyLimiter,async(req,res)=>{
@@ -9549,6 +9564,8 @@ app.post('/api/creator/spotlight/reservations',mutationLimiter,async(req,res)=>{
     const game=String(req.body?.game||'').trim();
     const {validateGame}=require('./modules/swapp-spotlight');
     validateGame(game);
+    // Only sell/confirm a real placement if a published SWAPP article covers the game.
+    await spotlightPublishedGame(game);
     // Strict exact-match Twitch category verification; never invent a game identity.
     const gameId=await twitchCategoryIdByName(game);
     if(!gameId)throw spotlightError('game_not_found_on_twitch',422);
