@@ -925,7 +925,7 @@ app.get('/api/swapp/social/backend-status',async(_req,res)=>{
   mysql_configured:Boolean(process.env.SWAPP_SOCIAL_MYSQL_URL||process.env.SWAPP_MYSQL_URL),
   mysql_reachable:mysqlReadiness.database_reachable,
   snapshot_present:mysqlReadiness.snapshot_present,
-  historical_data_verified:false // requires operator approval after source/destination count checks
+  operator_confirmed_migration:Boolean(SOCIAL_MYSQL_APPROVED&&ready) // must be supported by external backup and source/destination count checks
  });
 });
 app.use('/api/pulse',(req,res,next)=>{
