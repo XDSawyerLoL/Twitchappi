@@ -32,7 +32,7 @@ test('homepage offers substantive human-readable fallback without JS or first-pa
  assert.match(home,/<meta name="description" content="SWAPP rassemble actualités jeux vidéo/);
  assert.match(home,/<link rel="canonical" href="https:\/\/swapp.tv\/">/);
  assert.match(home,/<noscript>[\s\S]*?Explorer SWAPP sans JavaScript[\s\S]*?<\/noscript>/);
- for(const route of ['/actus','/communaute','/boutique','/plan-du-site','/confidentialite'])
+ for(const route of ['/actus','/social','/boutique','/plan-du-site','/confidentialite'])
   assert.ok(home.includes('href="'+route+'"'));
  assert.match(home,/#home \.swappBoot\{display:none!important\}/);
 });
