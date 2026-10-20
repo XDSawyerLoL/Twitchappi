@@ -190,7 +190,7 @@ let loadingCommunity=false;
    if(!communityList.children.length){
     communityList.append(node('p','swapp-companion-empty','Aucune publication publique disponible actuellement.'));
    }
-   const openAll=node('a','swapp-companion-reload','Ouvrir le réseau SOCIAL →');openAll.href='/communaute';communityList.append(openAll);
+   const openAll=node('a','swapp-companion-reload','Ouvrir le réseau SOCIAL →');openAll.href='/social';communityList.append(openAll);
   }catch(_){
    communityList.replaceChildren(node('p','swapp-companion-empty','SOCIAL ne répond pas actuellement. Aucun contenu fictif n’est affiché.'));
   }finally{loadingCommunity=false}
