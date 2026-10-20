@@ -58,7 +58,7 @@ test('SOCIAL remains mounted on its full native page and uses an independent bac
  assert.match(native,/id="pulse-feed"/);
  assert.match(native,/id="pulse-text"/);
  assert.match(native,/data-view="messages"/);
- assert.match(server,/app\.get\('\/communaute'/);
+ assert.match(server,/app\.get\('\/social'/);
  assert.match(server,/app\.use\('\/api\/pulse'/);
 });
 
