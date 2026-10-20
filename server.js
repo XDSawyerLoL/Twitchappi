@@ -1135,7 +1135,8 @@ async function sendSwappPublicChannelUi(req, res, login){
 }
 // Additional discovery areas keep the same navigation and SWAPP visual system.
 const swappHubs=require('./modules/swapp-hubs');
-app.get('/communaute',(_req,res)=>{res.set('Cache-Control','no-store');res.type('html').send(swappHubs.community())});
+app.get('/communaute',(req,res)=>{res.set('Cache-Control','no-store');return res.redirect(308,'/social'+(req.originalUrl.includes('?')?req.originalUrl.slice(req.originalUrl.indexOf('?')):''));});
+app.get('/social',(_req,res)=>{res.set('Cache-Control','no-store');res.type('html').send(swappHubs.community())});
 app.get('/bandes-annonces',async(_req,res)=>{
  res.set('Cache-Control','no-store');
  let videos=[];
