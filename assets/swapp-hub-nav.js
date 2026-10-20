@@ -1,10 +1,11 @@
 /* SWAPP: canonical navigation. Native destinations must be real anchors.
  * The live SPA's historical tabs can be <button>; only existing SPA views
- * remain buttons. Community, video, and shop are full server pages, so a
+ * remain buttons. Guides, community, video, and shop are full server pages, so a
  * retained SPA button must NEVER shadow an <a href> to that route.
  */
 (()=>{'use strict';
  const HUBS=[
+  {href:'/guides/aion-2',label:'Guides'},
   {href:'/social',label:'Social'},
   {href:'/bandes-annonces',label:'Vidéos'},
   {href:'/boutique',label:'Boutique'}
