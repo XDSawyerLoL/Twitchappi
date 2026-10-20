@@ -1,0 +1,39 @@
+/* SWAPP Creator Spotlight — restrained, accessible editorial design. */
+.swapp-spotlight-public,.swapp-spotlight-dashboard{
+ --spot-line:var(--swapp-workspace-line,rgba(175,195,217,.24));
+ --spot-accent:var(--swapp-workspace-accent,var(--brand,#55cdd9));
+ width:100%;min-width:0;margin:30px 0;padding:26px 0;
+ border-top:1px solid var(--spot-line);border-bottom:1px solid var(--spot-line);
+ color:var(--text,#f4f7fd);
+}
+.swapp-spotlight-head{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;align-items:center}
+.swapp-spotlight-heading{font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--spot-accent);margin:0 0 8px}
+.swapp-spotlight-public h2,.swapp-spotlight-dashboard h2{font-size:clamp(24px,2.8vw,34px);line-height:1.18;letter-spacing:-.04em;margin:0 0 10px}
+.swapp-spotlight-dashboard h3{font-size:18px;margin:24px 0 12px}
+.swapp-spotlight-note{font-size:13px;line-height:1.65;color:var(--muted,#b6c2d4);margin:8px 0 16px}
+.swapp-spotlight-list,.swapp-spotlight-mine{margin-top:14px;border-top:1px solid var(--spot-line)}
+.swapp-spotlight-slot{display:flex;align-items:center;justify-content:space-between;gap:16px;min-width:0;padding:16px 0;border-bottom:1px solid var(--spot-line)}
+.swapp-spotlight-slot-info{min-width:0;display:flex;gap:5px;flex-direction:column}
+.swapp-spotlight-slot-info strong{font-size:16px;overflow-wrap:anywhere}
+.swapp-spotlight-slot-info small,.swapp-spotlight-slot-time{font-size:12px;color:var(--muted,#b6c2d4);line-height:1.5}
+.swapp-spotlight-slot-time{font-weight:700;color:var(--spot-accent)}
+.swapp-spotlight-cta,.swapp-spotlight-actions button{display:inline-flex;align-items:center;justify-content:center;min-height:41px;
+ text-decoration:none;cursor:pointer;border:1px solid var(--spot-accent);border-radius:7px;
+ background:transparent;color:inherit;padding:10px 16px;font-size:13px;font-weight:750}
+.swapp-spotlight-cta:hover,.swapp-spotlight-actions button:hover{background:color-mix(in srgb,var(--spot-accent) 12%,transparent)}
+.swapp-spotlight-cta:focus-visible,.swapp-spotlight-actions button:focus-visible{outline:2px solid var(--spot-accent);outline-offset:3px}
+.swapp-spotlight-cta:disabled{opacity:.6;cursor:wait}
+.swapp-spotlight-player{display:block;width:min(100%,880px);aspect-ratio:16/9;min-height:300px;border:0;margin:15px 0 28px;border-radius:7px}
+.swapp-spotlight-form{display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,.5fr) auto;align-items:end;gap:14px;margin:22px 0}
+.swapp-spotlight-form label{display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:700;color:inherit;min-width:0}
+.swapp-spotlight-form input{height:45px;width:100%;min-width:0;padding:9px 12px;border:1px solid var(--spot-line);
+ color:var(--text,#f4f7fd);background:var(--surface,#111927);border-radius:5px}
+.swapp-spotlight-actions{display:flex;gap:8px;flex-wrap:wrap}
+.swapp-spotlight-actions button{border-color:var(--spot-line)}
+.swapp-spotlight-status{font-size:13px;color:var(--spot-accent);min-height:20px}
+@media(max-width:820px){
+ .swapp-spotlight-form{grid-template-columns:1fr}
+ .swapp-spotlight-form .swapp-spotlight-cta{width:100%}
+ .swapp-spotlight-slot{align-items:flex-start;flex-direction:column}
+ .swapp-spotlight-head>.swapp-spotlight-cta{width:100%}
+}
