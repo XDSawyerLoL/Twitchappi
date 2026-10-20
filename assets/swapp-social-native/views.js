@@ -146,7 +146,7 @@ function renderNewsCard(item){
   const url=safeNewsUrl(item.url||item.articleUrl);
   const image=safeNewsUrl(item.image);
   const summary=String(item.summary||'').slice(0,280);
-  return '<article class="pulse-news-card">'+
+  return '<article class="pulse-news-card'+(image?'':' is-text-only')+'">'+
     (image?'<a class="pulse-news-media" href="'+esc(url||image)+'" target="_blank" rel="noopener noreferrer"><img src="'+esc(image)+'" alt="" loading="lazy" referrerpolicy="no-referrer"></a>':'')+
     '<div class="pulse-news-body"><div class="pulse-news-meta"><span>SWAPP</span><strong>'+esc(source)+'</strong><span>'+esc(newsTime(item.publishedAt))+'</span></div>'+
     '<h2>'+esc(title)+'</h2>'+
