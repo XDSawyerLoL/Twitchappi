@@ -143,7 +143,7 @@ html,body{overflow-x:hidden}.watchShell.channelWatch{grid-template-columns:minma
 <script>
 /* Render the requested clean SWAPP route before any account/network bootstrap.
    The generic route guard preserves it if legacy startup tries to show Home. */
-const swappEntryRoutes={'/actus':'actus','/decouvrir':'discover','/categories':'categories','/equipes':'teams','/compte':'settings'};
+const swappEntryRoutes={'/actus':'actus','/decouvrir':'discover','/categories':'categories','/equipes':'teams','/compte':'settings','/dashboard':'dashboard'};
 const swappEntryPath=(location.pathname||'/').replace(/\/+$/,'')||'/';
 const swappDirectView=swappEntryRoutes[swappEntryPath];
 if(swappDirectView){
