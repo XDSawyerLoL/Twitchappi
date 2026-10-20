@@ -105,7 +105,7 @@ function newsSitemapXml(articles=[],currentTime=Date.now()){
 
 
 const CREATOR_LOGIN=/^[a-z0-9_][a-z0-9_-]{1,31}$/;
-const RESERVED_CREATOR_PATHS=new Set(['jeux','actus','api','assets','boutique','communaute','bandes-annonces','pricing','contact','confidentialite','mentions-legales','cgu','cookies','reset-password']);
+const RESERVED_CREATOR_PATHS=new Set(['communaute','jeux','actus','api','assets','boutique','communaute','bandes-annonces','pricing','contact','confidentialite','mentions-legales','cgu','cookies','reset-password']);
 function creatorSitemapXml(creators=[]){
  const seen=new Set(),rows=[];
  for(const creator of Array.isArray(creators)?creators:[]){
