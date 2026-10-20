@@ -26,7 +26,7 @@ test('native game article has exactly three main journeys and still keeps sharin
  assert.equal((main.match(/class="button-link/g)||[]).length,3);
  assert.match(main,/href="#article-content"/);
  assert.match(main,/href="#swapp-article-lives"/);
- assert.match(main,/href="\/communaute\?share=news&amp;title=/);
+ assert.match(main,/href="\/social\?share=news&amp;title=/);
  assert.match(main,/https%3A%2F%2Fswapp\.tv%2Factus%2Fune-aventure-sur-elden-ring/);
  assert.match(html,/data-swapp-article-share/,'original share remains available');
  assert.match(html,/id="swapp-article-lives"/);
@@ -54,7 +54,7 @@ test('SPA article reader repeats the same three routes without auto-publishing',
  const spa=read('assets/swapp-actus-app.js');
  assert.match(spa,/el\('nav','swapp-game-journey-actions'\)/);
  for(const cta of ["'Lire l’article ↓'","'Voir les lives →'","'En discuter →'"])assert.ok(spa.includes(cta));
- assert.match(spa,/\/communaute\?share=news&title=/);
+ assert.match(spa,/\/social\?share=news&title=/);
  assert.match(spa,/heroCopy\.append\(actions\)/);
  assert.doesNotMatch(spa,/\/api\/pulse\/post|publishPost\(/);
 });
