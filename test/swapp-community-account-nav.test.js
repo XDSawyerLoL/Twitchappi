@@ -15,7 +15,7 @@ function navigationInternals(){
  assert.ok(index>0,'Navigation internals boundary changed');
  // Run the exact production account lookup/deduplication code in isolation.
  const script=source.slice(0,index)+'\n globalThis.__navTest={dest,dedupe};\n})();';
- const context={location:{origin:'https://swapp.tv',pathname:'/communaute'},URL};
+ const context={location:{origin:'https://swapp.tv',pathname:'/social'},URL};
  vm.runInNewContext(script,context);
  return context.__navTest;
 }
