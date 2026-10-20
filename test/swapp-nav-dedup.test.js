@@ -5,7 +5,7 @@ const fs=require('node:fs');
 const path=require('node:path');
 const vm=require('node:vm');
 const ROOT=path.resolve(__dirname,'..');
-const EXPECTED=['Accueil','Découvrir','Catégories','Équipes','Actualité','Social','Vidéos','Boutique'];
+const EXPECTED=['Accueil','Découvrir','Catégories','Équipes','Actualité','Guides','Social','Vidéos','Boutique'];
 
 class Element {
  constructor(tag,text='',href=null){
@@ -21,7 +21,7 @@ class Element {
  insertBefore(child,before){if(child.parentElement)child.remove();const index=this.children.indexOf(before);child.parentElement=this;this.children.splice(index<0?this.children.length:index,0,child)}
  remove(){if(this.parentElement){const parent=this.parentElement;parent.children.splice(parent.children.indexOf(this),1);this.parentElement=null}}
  replaceWith(replacement){if(!this.parentElement)return;const parent=this.parentElement;const index=parent.children.indexOf(this);parent.children[index]=replacement;replacement.parentElement=parent;this.parentElement=null}
- closest(selector){if(selector==='#nav'){let el=this;while(el){if(el.tagName==='NAV')return el;el=el.parentElement}}return null}
+ closest(selector){if(selector.startsWith('#nav a,'))return this;if(selector==='#nav'){let el=this;while(el){if(el.tagName==='NAV')return el;el=el.parentElement}}return null}
  querySelectorAll(selector){const nodes=[];function walk(el){for(const child of el.children){if(child.matches(selector))nodes.push(child);walk(child)}}walk(this);return nodes}
  querySelector(selector){
   if(selector==='.navGroup')return this.children.find(x=>x.className==='navGroup')||null;
@@ -35,43 +35,45 @@ function setup(){
  for(const label of EXPECTED){
   const button=new Element('button',label);button.rootNav=nav;group.append(button);
  }
- const hrefs=['/social','/bandes-annonces','/boutique'];
+ const hrefs=['/guides/aion-2','/social','/bandes-annonces','/boutique'];
  for(let i=0;i<hrefs.length;i++){
   const a=new Element('a',EXPECTED[5+i],hrefs[i]);a.rootNav=nav;nav.append(a);
  }
- let observer;
+ let observer,clickListener,navigatedTo=null;
+ const location={origin:'https://swapp.tv',pathname:'/',assign(url){navigatedTo=url}};
  const document={
   readyState:'complete',
   getElementById(id){return id==='nav'?nav:null},
   createElement(tag){const el=new Element(tag);el.rootNav=nav;return el},
-  addEventListener(){}
+  addEventListener(type,handler){if(type==='click')clickListener=handler}
  };
  const MutationObserver=class{constructor(cb){observer=cb}observe(){}};
  const source=fs.readFileSync(path.join(ROOT,'assets/swapp-hub-nav.js'),'utf8');
  vm.runInNewContext(source,{document,MutationObserver,queueMicrotask:fn=>fn(),
-   location:{origin:'https://swapp.tv',pathname:'/'},URL,setTimeout});
- return {nav,group,observe:()=>observer?.()};
+   location,URL,setTimeout});
+ return {nav,group,observe:()=>observer?.(),navigate:()=>navigatedTo,click:(target,mods={})=>{let prevented=false,stopped=false;clickListener({target,button:0,...mods,preventDefault(){prevented=true},stopImmediatePropagation(){stopped=true}});return {prevented,stopped}}};
 }
-test('keep eight tabs and use real links for SOCIAL, videos and shop instead of empty SPA views',()=>{
+test('keep nine tabs with native Guides, SOCIAL, videos and shop instead of empty SPA views',()=>{
  const {nav,group}=setup();
- assert.equal(nav.querySelectorAll('a,button').length,8);
+ assert.equal(nav.querySelectorAll('a,button').length,9);
  assert.deepEqual(group.children.map(x=>x.textContent),EXPECTED);
  assert.equal(nav.children.length,1);
- assert.equal(nav.querySelectorAll('a').length,3);
+ assert.equal(nav.querySelectorAll('a').length,4);
  assert.deepEqual(group.children.slice(5).map(x=>x.getAttribute('href')),
-  ['/social','/bandes-annonces','/boutique']);
+  ['/guides/aion-2','/social','/bandes-annonces','/boutique']);
  assert.equal(group.children.slice(5).every(x=>x.dataset.swappNativeRoute==='1'),true);
 });
 test('a later SPA or widget re-render cannot reintroduce duplicated destinations',()=>{
  const {nav,group,observe}=setup();
+ group.append(new Element('a','Guides','/guides/aion-2'));
  group.append(new Element('a','Social','/social'));
  group.append(new Element('a','Vidéos','/bandes-annonces'));
  group.append(new Element('a','Boutique','/boutique'));
  observe();
- assert.equal(nav.querySelectorAll('a,button').length,8);
+ assert.equal(nav.querySelectorAll('a,button').length,9);
  assert.deepEqual(group.children.map(x=>x.textContent),EXPECTED);
  assert.deepEqual(group.children.slice(5).map(x=>x.getAttribute('href')),
-  ['/social','/bandes-annonces','/boutique']);
+  ['/guides/aion-2','/social','/bandes-annonces','/boutique']);
 });
 test('uniform desktop styling covers both buttons and links, and assets are cache-busted',()=>{
  const css=fs.readFileSync(path.join(ROOT,'assets/swapp-unified-nav.css'),'utf8');
@@ -81,7 +83,23 @@ test('uniform desktop styling covers both buttons and links, and assets are cach
  const home=fs.readFileSync(path.join(ROOT,'index.html'),'utf8');
  const shell=fs.readFileSync(path.join(ROOT,'modules/swapp-news/site-shell.js'),'utf8');
  for(const source of [home,shell]){
-  assert.match(source,/swapp-hub-nav\.js\?v=20261015-perf-1/);
-  assert.match(source,/swapp-unified-nav\.css\?v=20261016-header-parity-10/);
+  assert.match(source,/swapp-hub-nav\.js\?v=20261020-guides-native-v2/);
+  assert.match(source,/swapp-unified-nav\.css\?v=20261018-fixed-header-v1/);
  }
+});
+
+test('clicking Guides leaves the SPA and actually navigates to the tutorial page',()=>{
+ const {group,click,navigate}=setup();
+ const link=group.children.find(x=>x.textContent==='Guides');
+ assert.equal(link.tagName,'A');
+ assert.equal(link.getAttribute('href'),'/guides/aion-2');
+ const event=click(link);
+ assert.deepEqual(event,{prevented:true,stopped:true});
+ assert.equal(navigate(),'/guides/aion-2');
+});
+test('modified Guides click remains an ordinary link for opening a separate tab',()=>{
+ const {group,click,navigate}=setup();
+ const result=click(group.children.find(x=>x.textContent==='Guides'),{ctrlKey:true});
+ assert.deepEqual(result,{prevented:false,stopped:false});
+ assert.equal(navigate(),null);
 });

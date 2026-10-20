@@ -43,7 +43,7 @@ test('navigation DOM reconciliation is frame-batched, never one costly pass per 
 test('both page shells use latest batched menu script with no stale assets',()=>{
  const spa=read('index.html'),ssr=read('modules/swapp-news/site-shell.js');
  for(const source of [spa,ssr]){
-  assert.match(source,/swapp-hub-nav\.js\?v=20261020-social-label-v1/);
+  assert.match(source,/swapp-hub-nav\.js\?v=20261020-guides-native-v2/);
   assert.doesNotMatch(source,/swapp-hub-nav\.js\?v=20261015-community-restore-10/);
  }
  assert.match(spa,/swapp-home-news\.js\?v=20261018-followed-session-v27/);
