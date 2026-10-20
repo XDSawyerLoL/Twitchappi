@@ -2973,7 +2973,7 @@ app.get('/twitch_auth_start', authLimiter, async (req, res) => {
     await restoreOryonSessionFromRememberCookie(req, res, {allowUserRecovery:false});
     if(!req.session?.oryonUser?.id) return res.status(401).send('Connecte-toi d’abord à ton compte SWAPP, puis ouvre le tableau de bord.');
     await ORYON_USERS_READY.catch(()=>{});
-    if(SWAPP_MYSQL_ACCOUNTS && !swappMysqlAccountsReady) return res.status(503).send('Comptes SWAPP temporairement indisponibles.');
+    if((!SWAPP_MYSQL_ACCOUNTS || !swappMysqlAccountsReady)) return res.status(503).send('Comptes SWAPP temporairement indisponibles.');
   }
   const cfg = validateTwitchOAuthConfig(req);
   if(!cfg.ok){
@@ -3114,7 +3114,7 @@ app.get('/twitch_auth_callback', authLimiter, async (req, res) => {
 
     if(creatorLinkOwnerId){
       await ORYON_USERS_READY.catch(()=>{});
-      if(SWAPP_MYSQL_ACCOUNTS && !swappMysqlAccountsReady)
+      if((!SWAPP_MYSQL_ACCOUNTS || !swappMysqlAccountsReady))
         return res.status(503).send('Stockage des comptes SWAPP indisponible. Association non enregistrée.');
       const users = readOryonUsers();
       const owner = (users.users||[]).find(x => String(x.id) === String(creatorLinkOwnerId));
@@ -3190,7 +3190,7 @@ app.get('/api/creator/twitch/status', async (req,res)=>{
   const id=req.session?.oryonUser?.id;
   if(!id)return res.status(401).json({success:false,error:'swapp_account_required'});
   await ORYON_USERS_READY.catch(()=>{});
-  if(SWAPP_MYSQL_ACCOUNTS&&!swappMysqlAccountsReady)
+  if(!SWAPP_MYSQL_ACCOUNTS||!swappMysqlAccountsReady)
     return res.status(503).json({success:false,error:'mysql_accounts_unavailable'});
   const owner=(readOryonUsers().users||[]).find(u=>String(u.id)===String(id));
   if(!owner)return res.status(401).json({success:false,error:'swapp_account_missing'});
@@ -3215,7 +3215,7 @@ app.post('/api/creator/twitch/unlink',mutationLimiter,async(req,res)=>{
   const id=req.session?.oryonUser?.id;
   if(!id)return res.status(401).json({success:false,error:'swapp_account_required'});
   await ORYON_USERS_READY.catch(()=>{});
-  if(SWAPP_MYSQL_ACCOUNTS&&!swappMysqlAccountsReady)
+  if(!SWAPP_MYSQL_ACCOUNTS||!swappMysqlAccountsReady)
     return res.status(503).json({success:false,error:'mysql_accounts_unavailable'});
   try{
     const data=readOryonUsers();
