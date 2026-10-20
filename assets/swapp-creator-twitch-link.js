@@ -4,7 +4,7 @@
   const STATUS_URL='/api/creator/twitch/status';
   const LINK_URL='/twitch_auth_start?mode=link&returnTo=%2Fdashboard';
   const UNLINK_URL='/api/creator/twitch/unlink';
-  let pending=false;
+  const pending=new WeakSet();
   const element=(tag,className,text)=>{
     const el=document.createElement(tag);
     if(className)el.className=className;
@@ -23,11 +23,11 @@
     root.replaceChildren(element('p','swapp-creator-link-note',text));
   };
   async function loadStatus(section){
-    if(pending||!section.isConnected)return;
+    if(pending.has(section)||!section.isConnected)return;
     const display=section.querySelector('[data-creator-twitch-state]');
     const actions=section.querySelector('[data-creator-twitch-actions]');
     if(!display||!actions)return;
-    pending=true;
+    pending.add(section);
     actions.replaceChildren();message(display,'Vérification de la connexion…');
     try{
       const response=await fetch(STATUS_URL,{credentials:'same-origin',cache:'no-store',headers:{'Accept':'application/json'}});
@@ -66,14 +66,14 @@
     }catch(_){
       message(display,'Impossible de vérifier la liaison Twitch pour le moment.');
       actions.replaceChildren(button('Réessayer',()=>loadStatus(section)));
-    }finally{pending=false;}
+    }finally{pending.delete(section);}
   }
   async function unlink(section){
-    if(pending||!window.confirm('Délier Twitch de ce compte SWAPP ? Ton compte SWAPP reste actif.'))return;
+    if(pending.has(section)||!window.confirm('Délier Twitch de ce compte SWAPP ? Ton compte SWAPP reste actif.'))return;
     const actions=section.querySelector('[data-creator-twitch-actions]');
     const display=section.querySelector('[data-creator-twitch-state]');
     if(!actions||!display)return;
-    pending=true;actions.replaceChildren();message(display,'Déliaison en cours…');
+    pending.add(section);actions.replaceChildren();message(display,'Déliaison en cours…');
     try{
       const r=await fetch(UNLINK_URL,{method:'POST',credentials:'same-origin',cache:'no-store',
         headers:{'Accept':'application/json','Content-Type':'application/json','X-SWAPP-CREATOR-ACTION':'unlink'},body:'{}'});
@@ -84,7 +84,7 @@
     }catch(_){
       message(display,'Déliaison impossible. Aucun changement confirmé.');
       actions.append(button('Vérifier la liaison',()=>loadStatus(section)));
-    }finally{pending=false;}
+    }finally{pending.delete(section);}
   }
   function mount(){
     const dashboard=document.getElementById(DASHBOARD_ID);
