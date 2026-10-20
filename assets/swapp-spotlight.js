@@ -103,11 +103,27 @@
         const info=el('div','swapp-spotlight-slot-info');
         info.append(el('strong','',item.game),el('small','',timeLabel(item.start_at)));
         const actions=el('div','swapp-spotlight-actions');
-        actions.append(btn('Modifier',async()=>{
-          const next=window.prompt('Nouvelle date et heure (ISO UTC, ex. 2026-11-01T19:00:00Z) :',item.start_at);
-          if(next===null)return;
-          try{await action(API+'/reservations/'+item.id,'PATCH',{start_at:next.trim()});status.textContent='Créneau modifié.';renderMine(section,status)}
-          catch(e){status.textContent=explain(e)}
+        actions.append(btn('Modifier',()=>{
+          if(q('.swapp-spotlight-edit',row))return;
+          const editor=el('form','swapp-spotlight-edit');
+          const dateLabel=el('label','','Nouvel horaire');
+          const date=el('input');date.type='datetime-local';date.required=true;date.step='1800';
+          date.value=localDate(new Date(item.start_at));
+          date.min=localDate(new Date(Date.now()+3600000));
+          dateLabel.append(date);
+          const save=el('button','swapp-spotlight-cta','Enregistrer');save.type='submit';
+          const close=btn('Fermer',()=>editor.remove());
+          editor.append(dateLabel,save,close);
+          editor.addEventListener('submit',async event=>{
+            event.preventDefault();
+            save.disabled=true;
+            try{
+              const utc=new Date(date.value).toISOString();
+              await action(API+'/reservations/'+item.id,'PATCH',{start_at:utc});
+              status.textContent='Créneau modifié.';renderMine(section,status);
+            }catch(e){status.textContent=explain(e);save.disabled=false}
+          });
+          row.after(editor);date.focus();
         }));
         actions.append(btn('Annuler',async()=>{
           if(!window.confirm('Annuler ce Spotlight ?'))return;
@@ -132,13 +148,19 @@
     const game=el('input');game.required=true;game.maxLength=100;game.placeholder='Nom exact du jeu sur Twitch';game.autocomplete='off';game.setAttribute('aria-label','Jeu vidéo');
     const fromUrl=new URLSearchParams(location.search).get('game');if(fromUrl)game.value=fromUrl.slice(0,100);
     gameField.append(game);
+    const suggestions=el('datalist');suggestions.id='swapp-spotlight-games';game.setAttribute('list',suggestions.id);
+    void data('/api/actus').then(res=>{
+      const games=[...new Set((Array.isArray(res.articles)?res.articles:[])
+        .map(article=>String(article.game||'').trim()).filter(Boolean))].slice(0,250).sort((a,b)=>a.localeCompare(b,'fr'));
+      games.forEach(name=>{const option=el('option');option.value=name;suggestions.append(option)});
+    }).catch(()=>{});
     const dateField=el('label','','Début du créneau');
     const start=el('input');start.type='datetime-local';start.required=true;start.step='1800';
     const next=new Date(Date.now()+2*3600000);next.setMinutes(next.getMinutes()<30?30:0,0,0);if(next.getMinutes()===0&&Date.now()+3600000>next.getTime())next.setHours(next.getHours()+1);
     start.value=localDate(next);start.min=localDate(new Date(Date.now()+3600000));
     dateField.append(start);
     const submit=el('button','swapp-spotlight-cta','Réserver un Spotlight');submit.type='submit';
-    form.append(gameField,dateField,submit);
+    form.append(gameField,suggestions,dateField,submit);
     form.addEventListener('submit',async e=>{
       e.preventDefault();submit.disabled=true;status.textContent='Vérification du jeu et du créneau…';
       try{
