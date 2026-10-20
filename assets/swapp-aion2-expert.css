@@ -12,3 +12,23 @@
 .ag-first-advice{border-top:1px solid #ffffff2b;border-bottom:1px solid #ffffff2b;padding:29px 0}.ag-first-advice h2{font-size:clamp(25px,2.9vw,36px);letter-spacing:-.05em;margin:10px 0 23px}.ag-advice-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-bottom:18px}.ag-advice-grid>div{border-left:2px solid #8ddbe8;background:#7eb8db0c;padding:17px}.ag-advice-grid strong{font-size:15px}.ag-advice-grid p{font-size:13px;color:#bbcada;margin:9px 0 0}
 @media(max-width:750px){.ag-deep-two,.ag-stigma-set,.ag-world-gates{grid-template-columns:repeat(2,minmax(0,1fr))}.ag-advice-grid{grid-template-columns:1fr}.ag-world-gates strong{font-size:18px;min-width:55px}}
 @media(max-width:480px){.ag-deep-head p{font-size:14px}.ag-deep-tab{padding:13px 18px}.ag-deep-lesson{gap:12px;grid-template-columns:30px minmax(0,1fr);padding:19px 0}.ag-deep-lesson h3{font-size:19px}.ag-deep-lesson p{font-size:13px}.ag-seq{font-size:21px}.ag-detailed-steps>li{gap:14px}.ag-stigma-set,.ag-deep-two,.ag-world-gates{grid-template-columns:1fr}.ag-decision-row{grid-template-columns:1fr;gap:5px}.ag-deep-two section{padding:17px}.ag-why{font-size:12px!important}}
+
+
+/* Actual skill images, not labels masquerading as artwork. */
+.ag-skill-visual{display:inline-flex;position:relative;align-items:center;justify-content:center;width:56px;height:56px;min-width:56px;max-width:56px;overflow:hidden;vertical-align:middle;border:1px solid #d2e8ff55;border-radius:9px;background:linear-gradient(135deg,#16243b,#25455d);box-shadow:inset 0 0 0 2px #081220,0 2px 12px #0004}
+.ag-skill-visual img{display:block;width:100%;height:100%;object-fit:cover;object-position:center;border-radius:7px}
+.ag-skill-visual .ag-skill-placeholder{display:none;position:absolute;inset:0;align-items:center;justify-content:center;font-size:29px;color:#8edcee;background:linear-gradient(145deg,#1d425e,#101a2b)}
+.ag-skill-no-image .ag-skill-placeholder,.ag-icon-failed .ag-skill-placeholder{display:flex}
+.ag-icon-failed img{display:none!important}
+.ag-detailed-steps>li:has(.ag-skill-visual){align-items:center;gap:15px}.ag-detailed-steps>li .ag-skill-visual+div{flex:1;min-width:0}
+.ag-stigma-set>div{align-items:center;min-width:0;gap:12px}.ag-stigma-set>div .ag-skill-visual{width:49px;height:49px;min-width:49px;max-width:49px}.ag-stigma-set>div span:last-child{min-width:0;overflow-wrap:anywhere}
+.ag-icon-combo{border-top:1px solid #ffffff35;border-bottom:1px solid #ffffff35;margin:27px 0 35px;padding:25px 0}
+.ag-icon-combo-header h3{margin:7px 0 10px;font-size:clamp(23px,2.8vw,32px)}.ag-icon-combo-header p{font-size:14px;color:#becfe0;margin:0 0 22px}
+.ag-icon-combo-grid{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px;counter-reset:none}
+.ag-icon-combo-grid>li{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:20px 18px 18px;min-height:220px;background:linear-gradient(150deg,#183046,#101c2b);border:1px solid #86c6d133}
+.ag-icon-combo-grid>li:not(:last-child)::after{content:"›";position:absolute;z-index:2;top:33px;right:-14px;font-size:27px;font-weight:900;color:#b4ecfa;text-shadow:0 0 6px #000;background:#0b1625;border-radius:50%;width:25px;height:26px;text-align:center;line-height:22px}
+.ag-icon-combo-grid>li .ag-skill-visual{width:62px;height:62px;min-width:62px;max-width:62px}
+.ag-icon-combo-num{font-size:11px!important;letter-spacing:.15em;font-weight:850;color:#94d7e7}.ag-icon-combo-grid>li strong{font-size:16px;line-height:1.15;color:#f3f9ff}.ag-icon-combo-grid>li p{font-size:12px;line-height:1.6;margin:0;color:#c1d0e0}
+.ag-icon-credit{font-size:11px!important;margin:13px 0 0;color:#99b2c7!important}.ag-icon-credit a{color:#b0ebfb;text-decoration:underline;text-underline-offset:2px}
+@media(max-width:800px){.ag-icon-combo-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.ag-icon-combo-grid>li:nth-child(2)::after{display:none}}
+@media(max-width:480px){.ag-detailed-steps>li:has(.ag-skill-visual){gap:9px}.ag-detailed-steps>li:has(.ag-skill-visual) .ag-seq{flex-basis:26px}.ag-detailed-steps .ag-skill-visual{width:43px;height:43px;min-width:43px;max-width:43px}.ag-stigma-set>div .ag-skill-visual{width:46px;height:46px;min-width:46px;max-width:46px}.ag-icon-combo-grid>li{padding:13px 11px;min-height:235px}.ag-icon-combo-grid>li .ag-skill-visual{width:55px;height:55px;min-width:55px;max-width:55px}}
