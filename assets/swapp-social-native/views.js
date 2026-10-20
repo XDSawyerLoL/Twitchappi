@@ -185,7 +185,7 @@ async function appendRealNewsToDiscovery(revision,hasPosts){
   const response=await fetchNewsFeed();
   if(!isCurrent(revision,'home')||state.feed!=='discover'||!feed.isConnected)return;
   const items=(response.items||[]).filter(x=>x&&x.title)
-   .sort((a,b)=>Date.parse(b.publishedAt||0)-Date.parse(a.publishedAt||0)).slice(0,5);
+   .sort((a,b)=>Date.parse(b.publishedAt||0)-Date.parse(a.publishedAt||0)).slice(0,3);
   if(!items.length)return;
   // This is an editorial feed, not fabricated SOCIAL posts. Do not write to
   // Pulse or change the user's following feed. Real posts remain untouched.
@@ -198,7 +198,14 @@ async function appendRealNewsToDiscovery(revision,hasPosts){
    '</header><div class="pulse-news-grid">'+items.map(renderNewsCard).join('')+'</div>'+
    '<footer class="pulse-news-end"><button type="button" data-feed-switch="news">Toutes les actualités →</button></footer>';
   if(!hasPosts)feed.replaceChildren(section);
-  else feed.append(section);
+  else{
+   // Surface editorial news after the second real SOCIAL publication.
+   // A large social feed must not bury the latest news 40 posts below.
+   const posts=Array.from(feed.children).filter(node=>node.classList?.contains('pulse-post'));
+   const anchor=posts[Math.min(1,posts.length-1)];
+   if(anchor)anchor.after(section);
+   else feed.append(section);
+  }
  }catch{
   // An unavailable news service must not replace real SOCIAL posts.
  }
