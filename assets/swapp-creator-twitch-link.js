@@ -103,10 +103,27 @@
     const state=element('div','');state.setAttribute('data-creator-twitch-state','');state.setAttribute('aria-live','polite');
     const actions=element('div','swapp-creator-link-actions');actions.setAttribute('data-creator-twitch-actions','');
     content.append(state,actions);section.append(content);
-    const title=dashboard.querySelector('.pageHead,.swapp-dashboard-header,.swapp-workspace-header');
-    if(title&&title.parentElement===dashboard)title.insertAdjacentElement('afterend',section);
-    else dashboard.prepend(section);
+    const main=dashboard.querySelector('.swapp-creator-main')||dashboard;
+    const title=main.querySelector('.pageHead,.swapp-dashboard-header,.swapp-workspace-header');
+    if(title&&title.parentElement===main)title.insertAdjacentElement('afterend',section);
+    else main.prepend(section);
     loadStatus(section);
+  }
+  function routeExistingAccountConnection(){
+    const root=document.getElementById('settings');
+    if(!root)return;
+    for(const row of root.querySelectorAll('.swapp-acct-connection-row')){
+      if(row.dataset.creatorTwitchRouted==='1'||row.querySelector('b')?.textContent?.trim()!=='Twitch')continue;
+      row.dataset.creatorTwitchRouted='1';
+      const oldButton=row.querySelector('button');
+      if(oldButton){
+        const manage=element('a','btn secondary','Gérer Twitch');
+        manage.href='/dashboard';
+        oldButton.replaceWith(manage);
+      }
+      const hint=row.querySelector('small');
+      if(hint)hint.textContent='Liaison et déliaison depuis le tableau de bord SWAPP Creator.';
+    }
   }
   function init(){
     const dashboard=document.getElementById(DASHBOARD_ID);
@@ -119,6 +136,12 @@
       if(a) schedule();
     });
     window.addEventListener('popstate',schedule);
+    const settings=document.getElementById('settings');
+    if(settings){
+      const settingsObserver=new MutationObserver(routeExistingAccountConnection);
+      settingsObserver.observe(settings,{childList:true,subtree:true});
+      routeExistingAccountConnection();
+    }
     schedule();
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});
