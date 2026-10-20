@@ -9519,8 +9519,12 @@ async function spotlightStreamState(booking){
   return {state:'live_verified',viewers:Math.max(0,Number(live.viewer_count)||0),
     title:String(live.title||'').slice(0,130)};
 }
-app.get('/api/creator/spotlight/status',(_req,res)=>{
+app.get('/api/creator/spotlight/status',async(_req,res)=>{
   res.set('Cache-Control','no-store');
+  if(SWAPP_SPOTLIGHT_ENABLED&&SWAPP_MYSQL_ACCOUNTS){
+    await ORYON_USERS_READY.catch(()=>{});
+    if(!swappMysqlAccountsReady)await swappMysqlAccountsRecovery.ensure();
+  }
   res.json({success:true,enabled:Boolean(SWAPP_SPOTLIGHT_ENABLED&&SWAPP_MYSQL_ACCOUNTS&&swappMysqlAccountsReady&&spotlightPool()&&TWITCH_CLIENT_ID&&TWITCH_CLIENT_SECRET&&firestoreOk),
     accounts_mysql:SWAPP_MYSQL_ACCOUNTS&&swappMysqlAccountsReady,
     twitch_api_configured:Boolean(TWITCH_CLIENT_ID&&TWITCH_CLIENT_SECRET)});
