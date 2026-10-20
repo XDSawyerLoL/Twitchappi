@@ -72,6 +72,10 @@ export function errorText(e){
     network_error:'Connexion au service SOCIAL impossible. Recharge la page puis réessaie.',
     request_failed:'La requête SOCIAL a échoué. Réessaie dans un instant.',
     invalid_upstream_response:'SOCIAL a reçu une réponse serveur illisible. Réessaie.',
+    social_migration_write_frozen:'SOCIAL est temporairement en lecture seule pendant une maintenance de données. Aucune action n’a été enregistrée.',
+    social_migration_not_verified:'SOCIAL attend la validation de la migration des données. Aucun nouveau réseau vide n’a été ouvert.',
+    social_mysql_import_required:'Les données historiques de SOCIAL ne sont pas encore importées.',
+    social_native_backend_unavailable:'La base SOCIAL est momentanément indisponible. Tes données n’ont pas été effacées.',
     request_cancelled:'Requête annulée.'
   };
   return map[e?.message]||e?.message||'Une erreur est survenue.';
