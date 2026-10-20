@@ -36,9 +36,11 @@ function swappSocialCredentials(user,secret){
  return {handle:'s_'+stem+'_'+suffix,password:crypto.createHmac('sha256',secret).update('social-password-v1:'+id).digest('base64url'),
   displayName:String(user?.display_name||user?.login||'Membre SWAPP').trim().slice(0,50)};
 }
-function createSocialNativeProxy(fetchImpl,{production=true,restoreLocalSession=null,ssoSecret='',lookupLocalUser=null,listLocalUsers=null,recordAudioBlock=null}={}){
+function createSocialNativeProxy(fetchImpl,{production=true,restoreLocalSession=null,ssoSecret='',lookupLocalUser=null,listLocalUsers=null,recordAudioBlock=null,upstreamOrigin=SOCIAL_ORIGIN}={}){
 
  if(typeof fetchImpl!=='function')throw Error('fetch implementation is required');
+ if(!['https://quanticminds.onrender.com','http://swapp-social.internal'].includes(upstreamOrigin))
+  throw Error('invalid_social_upstream_origin');
  const sessionSso=typeof restoreLocalSession==='function';
  // Collapse parallel feed/me/circles requests into one backend sign-in.
  const signingIn=new Map();
@@ -52,7 +54,7 @@ function createSocialNativeProxy(fetchImpl,{production=true,restoreLocalSession=
   if(recipientProvisioning.has(key))return recipientProvisioning.get(key);
   const task=(async()=>{
    const credentials=swappSocialCredentials(local,ssoSecret);
-   const response=await fetchImpl(SOCIAL_ORIGIN+'/api/pulse/auth/register',{
+   const response=await fetchImpl(upstreamOrigin+'/api/pulse/auth/register',{
     method:'POST',redirect:'error',
     headers:{Accept:'application/json','Content-Type':'application/json'},
     body:JSON.stringify(credentials)
@@ -80,7 +82,7 @@ function createSocialNativeProxy(fetchImpl,{production=true,restoreLocalSession=
   const task=(async()=>{
    const creds=swappSocialCredentials(user,ssoSecret);
    const authCall=async(kind)=>{
-    const endpoint=SOCIAL_ORIGIN+'/api/pulse/auth/'+kind;
+    const endpoint=upstreamOrigin+'/api/pulse/auth/'+kind;
     const response=await fetchImpl(endpoint,{method:'POST',redirect:'error',
      headers:{Accept:'application/json','Content-Type':'application/json'},
      body:JSON.stringify(kind==='login'?{handle:creds.handle,password:creds.password}:creds)},10000);
@@ -201,7 +203,7 @@ function createSocialNativeProxy(fetchImpl,{production=true,restoreLocalSession=
       catch{return res.status(503).json({error:'social_audio_block_unavailable'})}
     }
   }
-  const endpoint=SOCIAL_ORIGIN+'/api/pulse'+upstreamPath+safeQuery(path,req.originalUrl?.split('?').slice(1).join('?'));
+  const endpoint=upstreamOrigin+'/api/pulse'+upstreamPath+safeQuery(path,req.originalUrl?.split('?').slice(1).join('?'));
   // Read-only requests may retry once if Render wakes a cold instance.
   // Never retry a write: a timeout must not publish a post or send a DM twice.
   // Retry writes ONLY after an explicit 401 (not after a timeout or server error).
