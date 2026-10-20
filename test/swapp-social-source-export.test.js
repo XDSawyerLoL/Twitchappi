@@ -41,7 +41,7 @@ test('readiness checks MySQL with read-only query, caches and reveals no private
  const probe=createNativeSocialReadiness({mysqlFactory:()=>fakeMysql,
   uri:'mysql://user:password@localhost:3306/swapp',now:()=>1000});
  const a=await probe.probe(),b=await probe.probe();
- assert.deepEqual(a,{database_reachable:true,snapshot_present:true});
+ assert.deepEqual(a,{database_reachable:true,snapshot_present:true,snapshot_type:'imported'});
  assert.deepEqual(b,a);
  assert.equal(connects,1);assert.equal(queries,1);assert.equal(ends,1);
  assert.ok(!Object.keys(a).some(key=>/password|user|record/.test(key)));
@@ -54,6 +54,7 @@ test('probe fails closed and does not claim an import if no table exists',async(
  const state=await probe.probe();
  assert.equal(state.database_reachable,true);
  assert.equal(state.snapshot_present,false);
+ assert.equal(state.snapshot_type,'none');
 });
 test('server supports an explicit SWAPP-only write freeze during final export',()=>{
  const s=require('node:fs').readFileSync(require('node:path').join(__dirname,'..','server.js'),'utf8');
@@ -61,4 +62,15 @@ test('server supports an explicit SWAPP-only write freeze during final export',(
  assert.match(s,/return res\.status\(503\)\.json\(\{error:'social_migration_write_frozen'\}\)/);
  assert.match(s,/SWAPP_SOCIAL_MYSQL_MIGRATION_VERIFIED==='1'/);
  assert.match(s,/SWAPP_ACCOUNT_STORE\|\|''/);
+});
+
+test('readiness detects explicit fresh-v1 marker without exposing any SOCIAL data',async()=>{
+ const mysql={async createConnection(){return{
+  async execute(sql){assert.match(sql,/JSON_EXTRACT/);return [[{snapshot_bytes:428,snapshot_origin:'fresh-v1'}]]},
+  async end(){}
+ }}};
+ const probe=createNativeSocialReadiness({mysqlFactory:()=>mysql,uri:'mysql://user:password@localhost/db'});
+ const state=await probe.probe();
+ assert.deepEqual(state,{database_reachable:true,snapshot_present:true,snapshot_type:'fresh'});
+ assert.ok(!JSON.stringify(state).includes('password'));
 });
