@@ -138,6 +138,16 @@
   reconciling=true;
   try{desktop();mobile()}finally{reconciling=false}
  }
+ // Guides is server-rendered, not an SPA view. The capture handler wins over
+ // legacy delegated SPA click handling, including a cached SPA menu button.
+ document.addEventListener('click',event=>{
+  const target=event.target?.closest?.('#nav a,#nav button,#mobileNav a,#mobileNav button');
+  if(!target||dest(target)!=='/guides/aion-2')return;
+  if(event.button!==0||event.ctrlKey||event.metaKey||event.shiftKey||event.altKey)return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  location.assign('/guides/aion-2');
+ },true);
  // Multiple SPA updates can mutate the menu in one frame. Reconcile once
  // per frame, not once per DOM mutation/microtask, to avoid main-thread churn.
  const nextFrame=typeof requestAnimationFrame==='function'
