@@ -39,11 +39,14 @@ test('Creator controls reside in dashboard and use authenticated SWAPP APIs',()=
   assert.match(client,/api\/creator\/twitch\/status/);
   assert.match(client,/api\/creator\/twitch\/unlink/);
   assert.match(client,/mode=link/);
+  assert.match(client,/routeExistingAccountConnection/);
+  assert.match(client,/Gérer Twitch/);
   assert.match(html,/swapp-creator-twitch-link\.js/);
   assert.match(server,/app\.get\('\/api\/creator\/twitch\/status'/);
   assert.match(server,/app\.post\('\/api\/creator\/twitch\/unlink'/);
   assert.match(server,/findExistingTwitchOwner\(users\.users,user\.id,creatorLinkOwnerId\)/);
   assert.match(server,/if\(creatorLinkOwnerId\)/);
+  assert.match(server,/if\(!SWAPP_MYSQL_ACCOUNTS\|\|!swappMysqlAccountsReady\)/);
 });
 test('OAuth returns to the real SWAPP dashboard deep link',()=>{
   const bootstrap=pathInRepo('assets/swapp-route-bootstrap.js');
