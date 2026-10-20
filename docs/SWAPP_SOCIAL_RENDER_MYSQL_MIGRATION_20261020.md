@@ -18,7 +18,7 @@ Ne jamais annoncer que SOCIAL n'utilise plus Render tant que les vérifications 
 3. `modules/swapp-social-native-proxy.js` : sélection contrôlée entre Render historique et service local ; le frontend conserve ses URL `/api/pulse/*`.
 4. `tools/swapp-social-render-export.js` : export **en lecture seule** du vrai magasin de données depuis un environnement administratif disposant de ses accès. Il n'est pas déployé dans Render automatiquement.
 5. `tools/swapp-social-mysql-import.js` : vérification de structure, relations utilisateurs/posts/messages, empreinte SHA-256, import **une seule fois**, transaction + lecture de contrôle, refus d'écrasement d'un magasin déjà initialisé.
-6. `/api/swapp/social/backend-status` : état public sans secrets : mode demandé, disponibilité MySQL, présence d'un snapshot, bascule approuvée et gel des écritures.
+6. `/api/swapp/social-native/backend-status` : état public sans secrets : mode demandé, disponibilité MySQL, présence d'un snapshot, bascule approuvée et gel des écritures.
 7. `SWAPP_SOCIAL_MIGRATION_FREEZE=1` : option de maintenance bloquant les écritures `/api/pulse/*` côté SWAPP pendant le cliché final, sans changer les lecteurs existants.
 
 ### Schéma et charge
@@ -78,7 +78,7 @@ SWAPP_SOCIAL_IMPORT_APPROVED=0
 Après le dernier export, la comparaison des comptes/relations/messages et le test en environnement non public :
 
 1. `SWAPP_SOCIAL_MIGRATION_FREEZE=1` côté SWAPP et une mesure équivalente pour toutes les écritures QuanticMinds.
-2. Effectuer l'**export final**, audit du SHA et import. Vérifier `GET /api/swapp/social/backend-status` : `snapshot_present=true`.
+2. Effectuer l'**export final**, audit du SHA et import. Vérifier `GET /api/swapp/social-native/backend-status` : `snapshot_present=true`.
 3. Mettre `SWAPP_SOCIAL_BACKEND=mysql` et **uniquement après validation** `SWAPP_SOCIAL_MYSQL_MIGRATION_VERIFIED=1`. Si le flag est absent, SWAPP refuse les nouvelles requêtes vers ce mode, **sans se rabattre silencieusement sur Render**.
 4. En maintenant le gel des écritures, valider le fil Pour vous/Abonnements, les profils, les réponses, les favoris, les abonnements et les anciens threads/messages avec **deux comptes SWAPP**.
 5. Si l'ensemble des données est correct, lever `SWAPP_SOCIAL_MIGRATION_FREEZE=0`. Le backend est alors local, sur le même Node/Hostinger. Tester posts, likes, reposts, DMs, notifications, blocage et modération.
