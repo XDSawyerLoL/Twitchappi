@@ -38,7 +38,7 @@ test('iPhone SE navigation displays five destinations and the full community lab
  const mobile=css.slice(css.indexOf('Compact five-destination mobile bar'));
  assert.match(mobile,/grid-template-columns:repeat\(5,minmax\(0,1fr\)\)!important/);
  assert.match(mobile,/@media\(max-width:360px\)/);
- assert.match(mobile,/#mobileNav\.mobileNav > a\[href="\/communaute"\]\{\s*letter-spacing:normal!important/);
+ assert.match(mobile,/#mobileNav\.mobileNav > a\[href="\/social"\]\{\s*letter-spacing:normal!important/);
  assert.match(mobile,/width:min\(270px,calc\(100vw - 22px\)\)/);
 });
 
@@ -77,7 +77,7 @@ test('legacy article fallback never reintroduces a second ACTUS navigation or cl
  assert.match(html,/viewport-fit=cover/);
  assert.match(html,/aria-label="Navigation principale"/);
  assert.match(html,/id="mobileNav" class="mobileNav"/);
- assert.match(html,/href="\/communaute"/);
+ assert.match(html,/href="\/social"/);
  assert.match(html,/href="\/boutique"/);
  assert.match(html,/swapp-presentation-polish\.css\?v=20261017-visual-audit-v16/);
  assert.doesNotMatch(html,/>ACTUS × LIVE<\/a>/);
