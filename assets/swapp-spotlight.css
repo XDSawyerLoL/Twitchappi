@@ -37,3 +37,9 @@
  .swapp-spotlight-slot{align-items:flex-start;flex-direction:column}
  .swapp-spotlight-head>.swapp-spotlight-cta{width:100%}
 }
+
+.swapp-spotlight-dashboard [hidden],.swapp-spotlight-public[hidden]{display:none!important}
+.swapp-spotlight-edit{display:flex;align-items:flex-end;flex-wrap:wrap;gap:10px;padding:14px 0;border-bottom:1px solid var(--spot-line)}
+.swapp-spotlight-edit label{display:grid;gap:5px;min-width:min(100%,260px);font-size:12px;font-weight:700}
+.swapp-spotlight-edit input{height:41px;width:100%;padding:8px;border:1px solid var(--spot-line);background:var(--surface,#111927);color:inherit;border-radius:5px}
+.swapp-spotlight-edit button{min-height:41px;padding:8px 12px;border:1px solid var(--spot-line);border-radius:5px;color:inherit;background:transparent;cursor:pointer}
