@@ -7,7 +7,7 @@ const vm=require('node:vm');
 const root=path.join(__dirname,'..');
 const read=p=>fs.readFileSync(path.join(root,p),'utf8');
 
-test('SOCIAL editorial rail is scoped to /communaute and wired once',()=>{
+test('SOCIAL editorial rail is scoped to /social and wired once',()=>{
  const html=read('assets/swapp-social-native/social-body.html');
  const hub=read('modules/swapp-hubs.js');
  const css=read('assets/swapp-social-refinement.css');
