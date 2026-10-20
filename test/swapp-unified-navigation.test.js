@@ -8,7 +8,7 @@ const {layout}=require('../modules/swapp-news/site-shell');
 const {renderNewsHome,renderNewsStory}=require('../modules/swapp-news/native-pages');
 const {renderTwitchWatch}=require('../modules/swapp-news/watch');
 const ROOT=path.resolve(__dirname,'..');
-const expected=['Accueil','Découvrir','Catégories','Équipes','Actualité','Social','Vidéos','Boutique'];
+const expected=['Accueil','Découvrir','Catégories','Équipes','Actualité','Guides','Social','Vidéos','Boutique'];
 test('même contrat de menu pour toutes les pages SWAPP',()=>{
  assert.deepEqual(items.map(x=>x.label),expected);
  assert.equal(account.label,'Compte');
@@ -38,7 +38,7 @@ test('le serveur utilise la barre et les identifiants exacts du site de lives',(
 test('le site client charge le même contrat avant le script SPA',()=>{
  const html=fs.readFileSync(path.join(ROOT,'index.html'),'utf8');
  const script=fs.readFileSync(path.join(ROOT,'index_script.js'),'utf8');
- assert.ok(html.indexOf('src="/assets/swapp-navigation.js?v=20261015-hubs-3"') < html.indexOf('src="/index_script.js'));
+ assert.ok(html.indexOf('src="/assets/swapp-navigation.js?v=20261020-social-label-v1"') < html.indexOf('src="/index_script.js'));
  assert.match(script,/window\.SwappNavigation/);
  assert.match(html,/href="\/assets\/swapp-unified-nav\.css\?v=20261018-fixed-header-v1"/);
  assert.match(layout({content:''}),/href="\/assets\/swapp-unified-nav\.css\?v=20261018-fixed-header-v1"/);
