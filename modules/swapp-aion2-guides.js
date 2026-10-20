@@ -7,6 +7,7 @@
 const {layout}=require('./swapp-news/site-shell');
 const {classPlaybook}=require('./swapp-aion2-playbooks');
 const {chapterPlaybook}=require('./swapp-aion2-chapter-clinics');
+const {renderResearch,researchInsert,classInsert,toolsIntro}=require('./swapp-aion2-research');
 const ORIGIN='https://swapp.tv', ROOT='/guides/aion-2';
 const HERO='https://blogfiles.ncsoft.net/news/186b69f6-2a8d-4e72-9076-c72221de00b5.jpg';
 const STEAM='https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/3393110/10aa4b096ebe6af0d1dd7882e5ba004271aef6f7/header.jpg';
@@ -19,7 +20,10 @@ const SECTIONS=[
  ['equipement','Équipement & systèmes','Comprendre sa puissance','Améliorations, Daevanion, Stigmas et Arcana','04'],
  ['pve','Donjons & PvE','Réussir ses premières instances','Mécaniques de boss, placements et coopération','05'],
  ['pvp','Arènes & Abysses','Survivre et progresser','Vol, contrôles, duels et combats entre factions','06'],
- ['macros','Macros & commandes','Jouer avec plus de précision','Organiser les actions sans automatisation abusive','07']
+ ['macros','Macros & commandes','Jouer avec plus de précision','Organiser les actions sans automatisation abusive','07'],
+ ['donjons','Boss et donjons','Comprendre les mécaniques de boss','Grotte de Krao, Temple du Feu, coûts et stratégies','08'],
+ ['fin-de-jeu','Après le niveau 45','Progresser jusqu’aux raids','Paliers de puissance, ressources et routine de raid','09'],
+ ['sources','Sources vérifiées','Distinguer les régions et les données','Quatorze références et désaccords expliqués','10']
 ];
 const CLASSES=[
  {slug:'templier',name:'Templier',icon:'♜',role:'Tank',tone:'steel',weapon:'Épée + bouclier',level:'Intermédiaire',deck:'Le pilier de l’équipe : tenir l’aggro, bloquer et protéger.',
@@ -112,7 +116,7 @@ function schema(object){return '<script type="application/ld+json">'+JSON.string
 function chrome(title,description,url,body){
  const meta='<link rel="canonical" href="'+ORIGIN+url+'"><meta property="og:type" content="article"><meta property="og:url" content="'+ORIGIN+url+'"><meta property="og:title" content="'+esc(title)+' · SWAPP"><meta property="og:description" content="'+esc(description)+'"><meta property="og:image" content="'+HERO+'">'+
  schema({'@context':'https://schema.org','@type':'BreadcrumbList',itemListElement:[{'@type':'ListItem',position:1,name:'SWAPP',item:ORIGIN},{'@type':'ListItem',position:2,name:'Guides Aion 2',item:ORIGIN+ROOT},...(url===ROOT?[]:[{'@type':'ListItem',position:3,name:title,item:ORIGIN+url}])]});
- const head='<link rel="stylesheet" href="/assets/swapp-aion2-guide.css?v=20261020-1"><link rel="stylesheet" href="/assets/swapp-aion2-expert.css?v=20261021-icons-v2"><script defer src="/assets/swapp-aion2-expert.js?v=20261021-icons-v2"></script><link rel="stylesheet" href="/assets/swapp-page-colors.css?v=20261017-appearance-v2"><script defer src="/assets/swapp-page-colors.js?v=20261017-appearance-v2"></script><script defer src="/assets/swapp-aion2-guide.js?v=20261020-1"></script>';
+ const head='<link rel="stylesheet" href="/assets/swapp-aion2-guide.css?v=20261020-1"><link rel="stylesheet" href="/assets/swapp-aion2-expert.css?v=20261021-icons-v2"><script defer src="/assets/swapp-aion2-expert.js?v=20261021-icons-v2"></script><link rel="stylesheet" href="/assets/swapp-aion2-research.css?v=20261021-academy-v1"><script defer src="/assets/swapp-aion2-research.js?v=20261021-academy-v1"></script><link rel="stylesheet" href="/assets/swapp-page-colors.css?v=20261017-appearance-v2"><script defer src="/assets/swapp-page-colors.js?v=20261017-appearance-v2"></script><script defer src="/assets/swapp-aion2-guide.js?v=20261020-1"></script>';
  return layout({title,description,metadata:meta,content:body,active:'guides',scripts:head});
 }
 function crumb(label){return '<nav class="ag-crumb" aria-label="Fil d’Ariane"><a href="/">SWAPP</a><span>›</span><a href="'+ROOT+'">Guides Aion 2</a>'+(label?'<span>›</span><span aria-current="page">'+esc(label)+'</span>':'')+'</nav>'}
@@ -134,17 +138,20 @@ function classesGrid(){return '<div class="ag-filters" aria-label="Filtrer les c
 function index(){
  const main=cover('AION 2', 'Le centre de formation SWAPP : du premier envol au niveau 45, avec des tutoriels progressifs, des fiches de classes et des conseils de combat.', 'SWAPP / GUIDES DE JEU')+
  '<section class="ag-overview" aria-label="Informations essentielles"><div><strong>08</strong><span>classes jouables</span></div><div><strong>45</strong><span>niveau maximal · S1</span></div><div><strong>02</strong><span>factions rivales</span></div><div><strong>PC</strong><span>Steam / PURPLE</span></div></section>'+
- '<section class="ag-section"><div class="ag-heading"><div><span class="ag-eyebrow">APPRENDRE, PAS SCROLLER</span><h2>Construis ton parcours</h2></div><p>Sept modules courts et complémentaires. Tu avances dans l’ordre que tu préfères.</p></div><div class="ag-path-grid">'+SECTIONS.map(x=>'<a href="'+ROOT+'/'+x[0]+'" class="ag-path"><span class="ag-path-number">'+x[4]+'</span><div><strong>'+esc(x[1])+'</strong><p>'+esc(x[3])+'</p></div><span aria-hidden="true">↗</span></a>').join('')+'</div></section>'+
+ '<section class="ag-section"><div class="ag-heading"><div><span class="ag-eyebrow">APPRENDRE, PAS SCROLLER</span><h2>Construis ton parcours</h2></div><p>Dix parcours documentés et complémentaires. Chaque conseil important indique ses sources.</p></div><div class="ag-path-grid">'+SECTIONS.map(x=>'<a href="'+ROOT+'/'+x[0]+'" class="ag-path"><span class="ag-path-number">'+x[4]+'</span><div><strong>'+esc(x[1])+'</strong><p>'+esc(x[3])+'</p></div><span aria-hidden="true">↗</span></a>').join('')+'</div></section>'+
+ toolsIntro()+
  '<section class="ag-section ag-first-advice"><span class="ag-eyebrow">DES CONSEILS, PAS SEULEMENT DES RUBRIQUES</span><h2>Trois décisions qui changent tes premières heures</h2><div class="ag-advice-grid"><div><strong>05 — Obtiens tes ailes</strong><p>Termine l’Ascension et entraîne-toi à contrôler ton vol.</p></div><div><strong>12 — Oriente ton Daevanion</strong><p>Renforce tes compétences fréquentes avant de disperser tes points.</p></div><div><strong>22 — Choisis ton premier Stigma</strong><p>Prends celui qui répond à ton rôle : menace, burst, soin ou soutien.</p></div></div><a class="ag-card-link" href="/guides/aion-2/debuter">Voir le plan de départ précis →</a></section>'+
  '<section class="ag-section"><div class="ag-heading"><div><span class="ag-eyebrow">PERSONNALISE TON AVENTURE</span><h2>Les huit classes</h2></div><p>Choisis selon ton style, pas selon une tier list temporaire.</p></div>'+classesGrid()+'</section>'+
  '<section class="ag-section"><div class="ag-photo-editorial"><img src="'+STEAM+'" loading="lazy" alt="Affiche promotionnelle officielle Aion 2 : Élyséenne et Asmodienne"><div><span class="ag-eyebrow">LE CONSEIL SWAPP</span><h2>Apprends à lire un combat.</h2><p>Une bonne esquive, une position stable et une capacité utilisée au bon moment comptent autant que le score de dégâts.</p><a href="'+ROOT+'/pve">Comprendre le PvE ↗</a><small>Visuel promotionnel © NCSOFT / Steam</small></div></div></section>'+
  '<section class="ag-section"><div class="ag-heading"><div><span class="ag-eyebrow">TA CHECKLIST</span><h2>Mon premier envol</h2></div><p>Suivi facultatif stocké uniquement dans ce navigateur.</p></div><div class="ag-checklist" data-ag-checklist><div class="ag-progress"><span><strong data-ag-progress-count>0/4</strong> objectifs terminés</span><div class="ag-progress-track"><div data-ag-progress-bar style="width:0%"></div></div></div>'+
  [['serveur','Choisir mon serveur et ma faction'],['vol','Débloquer et maîtriser le vol'],['classe','Comprendre le rôle de ma classe'],['donjon','Terminer ma première instance adaptée']].map(x=>'<label class="ag-task"><input type="checkbox" data-ag-task="'+x[0]+'"><span>'+esc(x[1])+'</span></label>').join('')+'</div></section>'+
  '<section class="ag-footer-next"><strong>Tu cherches des joueurs ou des créateurs ?</strong><p>SWAPP réunit guides, actualités et découverte de streams. Les lives sont proposés dans Découvrir, sans promettre qu’un stream Aion 2 est actuellement disponible.</p><a href="/decouvrir">Découvrir des créateurs ↗</a><a href="/social?game=Aion%202">Parler d’Aion 2 sur Social ↗</a></section>'+
- '<footer class="ag-sources">Rédaction originale SWAPP, mise à jour le 21 octobre 2026. <a href="'+SOURCE+'" target="_blank" rel="noopener noreferrer">NCSOFT : présentation officielle</a> · <a href="https://store.steampowered.com/app/3393110/AION_2/" target="_blank" rel="noopener noreferrer">Fiche Steam</a>. Les builds doivent être adaptés après les mises à jour.</footer>';
+ '<footer class="ag-sources">Rédaction originale SWAPP, édition recoupée le 21 octobre 2026. <a href="'+SOURCE+'" target="_blank" rel="noopener noreferrer">NCSOFT : présentation officielle</a> · <a href="https://store.steampowered.com/app/3393110/AION_2/" target="_blank" rel="noopener noreferrer">Fiche Steam</a>. Les builds doivent être adaptés après les mises à jour.</footer>';
  return chrome('Aion 2 : guides, classes et tutoriels','Guides Aion 2 français : démarrage, niveau 45, huit classes, PvE, PvP, équipement et macros.',ROOT,shell(main,''));
 }
 function chapter(slug){
+ const extra=renderResearch(slug);
+ if(extra){const sect=SECTIONS.find(x=>x[0]===slug);return chrome(sect[1]+' : Aion 2 · guide mondial',sect[3],ROOT+'/'+slug,shell(extra,slug));}
  if(slug==='classes'){
   return chrome('Les huit classes d’Aion 2','Choisir sa classe Aion 2 : tank, DPS, soin et soutien, guide français.',ROOT+'/classes',shell(cover('Choisir sa classe','Huit profils pour huit manières de découvrir Atréia. Une bonne classe est celle qui correspond à ton style de jeu.','CHAPITRE 03 · CLASSES',true)+'<section class="ag-section">'+classesGrid()+'</section>'+note('Important','Une tier list change avec l’équilibrage. Ici, on décrit le rôle de chaque classe plutôt que de promettre un classement définitif.'),'classes'));
  }
@@ -152,7 +159,7 @@ function chapter(slug){
  if(!c||!sect)return null;
  const next=SECTIONS[(SECTIONS.findIndex(x=>x[0]===slug)+1)%SECTIONS.length];
  const main=cover(c.title,c.lead,'CHAPITRE '+sect[4]+' · GUIDE',true)+
- '<div class="ag-article">'+(chapterPlaybook(slug)||c.body)+'</div>'+
+ '<div class="ag-article">'+(chapterPlaybook(slug)||c.body)+researchInsert(slug)+'</div>'+
  '<div class="ag-next"><span>POURSUIVRE LA FORMATION</span><a href="'+ROOT+'/'+next[0]+'">'+esc(next[1])+' <span aria-hidden="true">↗</span></a></div>'+
  '<footer class="ag-sources">Guide éditorial SWAPP · 21 octobre 2026. <a href="'+SOURCE+'" target="_blank" rel="noopener noreferrer">Présentation officielle NCSOFT</a>. Les paliers et règles de progression peuvent évoluer.</footer>';
  return chrome(c.title+' | Guide Aion 2',c.lead,ROOT+'/'+slug,shell(main,slug));
@@ -161,6 +168,7 @@ function classPage(slug){
  const c=CLASSES.find(x=>x.slug===slug);if(!c)return null;
  const main='<header class="ag-class-hero"><div><span class="ag-kicker">AION 2 / GUIDE DE CLASSE</span><div class="ag-emblem ag-'+c.tone+'" aria-hidden="true">'+c.icon+'</div><h1>'+c.name+'</h1><p>'+esc(c.deck)+'</p><div class="ag-class-tags"><span>'+esc(c.role)+'</span><span>'+esc(c.weapon)+'</span><span>'+esc(c.level)+'</span></div></div><img src="'+HERO+'" alt="Art officiel Aion 2 © NCSOFT"></header>'+
  classPlaybook(slug)+
+ classInsert(slug)+
  note('Erreur à éviter',esc(c.mistake))+
  '<div class="ag-next"><span>RETOUR AU CHOIX DES CLASSES</span><a href="'+ROOT+'/classes">Voir les huit classes ↗</a></div>'+
  '<footer class="ag-sources">Guide original SWAPP. Orientation PvE/PvP de départ : pas un classement de méta, pas une promesse de performance. Visuel officiel © NCSOFT.</footer>';
