@@ -14,7 +14,7 @@ test.use({
 const ORIGIN=process.env.SWAPP_VERIFY_URL||'https://swapp.tv';
 
 test('SOCIAL navigation stays beneath SWAPP when the page scrolls',async({page},testInfo)=>{
- await page.goto(ORIGIN+'/communaute',{waitUntil:'domcontentloaded'});
+ await page.goto(ORIGIN+'/social',{waitUntil:'domcontentloaded'});
  const shell=page.locator('.swapp-social-sticky-stack');
  await expect(shell).toBeVisible();
  const header=page.locator('header.top');
@@ -50,7 +50,7 @@ test('SOCIAL navigation stays beneath SWAPP when the page scrolls',async({page},
 });
 
 test('SOCIAL Explorer exposes mobile search and keeps global SWAPP navigation',async({page},testInfo)=>{
- await page.goto(ORIGIN+'/communaute',{waitUntil:'domcontentloaded'});
+ await page.goto(ORIGIN+'/social',{waitUntil:'domcontentloaded'});
  const mobileNav=page.locator('#mobileNav');
  await expect(mobileNav).toBeVisible();
  const explore=page.locator('.pulse-mobile-nav button[data-view="explore"]');
