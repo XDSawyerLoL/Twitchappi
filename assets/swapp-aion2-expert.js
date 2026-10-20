@@ -13,3 +13,10 @@
   show('pve');
  }
 })();
+
+/* Image loading fallback: hide broken external icons without leaving broken image glyphs. */
+document.querySelectorAll('img[data-ag-skill-icon]').forEach(img=>{
+ const fallback=()=>img.parentElement?.classList.add('ag-icon-failed');
+ img.addEventListener('error',fallback,{once:true});
+ if(img.complete&&!img.naturalWidth)fallback();
+});
