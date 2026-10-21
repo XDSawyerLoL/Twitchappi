@@ -3991,7 +3991,8 @@ async function renderSettings(){
   '<nav class="swapp-acct-quick" aria-label="Administration SWAPP">'+
   '<a href="/actus/studio"><strong>Studio rédaction</strong><span>Articles et vidéos ↗</span></a>'+
   '<a href="/boutique/admin"><strong>Gestion Boutique</strong><span>Produits et vitrine ↗</span></a>'+
-  '<a href="/admin/fair-discovery"><strong>Fair Discovery</strong><span>Mesure de visibilité et équité ↗</span></a></nav></div>'+
+  '<a href="/admin/fair-discovery"><strong>Fair Discovery</strong><span>Mesure de visibilité et équité ↗</span></a></nav>'+
+  '<section class="swapp-ops-status" data-swapp-ops-status hidden aria-label="État des services"></section></div>'+
   (typeof isAdmin==='function'&&isAdmin()?
     '<button class="swapp-acct-general-admin" type="button" onclick="setView(&quot;admin&quot;)">Administration générale ↗</button>':'')+
   '</section>';
@@ -4033,7 +4034,7 @@ async function renderSettings(){
    void fetch('/api/editor/actus/access',{credentials:'same-origin',cache:'no-store',
     headers:{Accept:'application/json'}})
     .then(response=>response.ok?response.json():null)
-    .then(access=>{if(access?.canEdit&&tools.isConnected)tools.hidden=false})
+    .then(access=>{if(access?.canEdit&&tools.isConnected){tools.hidden=false;window.SwappOpsStatus?.load(tools.querySelector('[data-swapp-ops-status]'));}})
     .catch(()=>{tools.hidden=true});
   }
  }
