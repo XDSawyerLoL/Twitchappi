@@ -41,7 +41,7 @@ function buildDiscordMessage(article,{baseUrl='https://swapp.tv'}={}){
  if(Number.isFinite(publishedAt.getTime()))embed.timestamp=publishedAt.toISOString();
  return {
   username:'SWAPP · Actualités',
-  content:'🎮 **NOUVEL ARTICLE SUR SWAPP**\n'+articleUrl,
+  content:'📰 **À LA UNE · '+game.toUpperCase()+'**\n'+trimText(summary,210)+'\n\n👉 **L’article complet sur SWAPP :** '+articleUrl,
   embeds:[embed],
   allowed_mentions:{parse:[]},
   tts:false
@@ -74,9 +74,6 @@ function createDiscordPublisher({firestore,articles,fetchImpl=globalThis.fetch,e
   });
   return true;
  };
- async function updateStatus(ref,patch){
-  await ref.update({...patch,updatedAt:new Date(clock()).toISOString()});
- }
  async function claim(ref){
   const lease=crypto.randomBytes(8).toString('hex');
   const claimed=await firestore.runTransaction(async tx=>{
