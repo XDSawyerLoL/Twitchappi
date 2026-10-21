@@ -260,8 +260,8 @@ test('creator SEO reuses loaded server cache, does not fetch external identities
  const server=fs.readFileSync(path.join(__dirname,'../server.js'),'utf8');
  assert.match(server,/async function sendSwappPublicChannelUi/);
  assert.match(server,/injectCreatorMetadata\(html,/);
- assert.match(server,/getCreators:async=>\{/);
- assert.match(server,/return readOryonUsers\(\)\.users\|\|\[\];/);
+ assert.match(server,/getOryonUserByLogin\(clean\)/);
+ assert.match(server,/await ORYON_USERS_READY/);
 });
 
 test('an editorial commit refreshes sitemap immediately without paid polling',async()=>{
