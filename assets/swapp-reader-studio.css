@@ -1,7 +1,7 @@
 /* SWAPP Lecture — one unobtrusive control bar, native and SPA article readers. */
 :is(body.swapp-editorial-route,#actus) .swapp-article-reading > .swapp-reader-studio{
  grid-column:1/-1!important;grid-row:1!important;min-width:0;width:100%;
- margin:0 0 26px;padding:0 0 16px;border-bottom:1px solid rgba(160,184,216,.23);
+ margin:0;padding:0 0 14px;border-bottom:1px solid rgba(160,184,216,.23);
  position:relative;z-index:3;color:#dae9f8;font:500 13px/1.5 system-ui,sans-serif;
 }
 .swapp-reader-studio-primary{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
@@ -115,7 +115,7 @@ html.swapp-reader-focus body.swapp-editorial-route .swapp-reader-audio{
  background:#101b2b;color:#f4f7ff
 }
 @media(max-width:700px){
- :is(body.swapp-editorial-route,#actus) .swapp-article-reading > .swapp-reader-studio{margin-bottom:18px}
+ :is(body.swapp-editorial-route,#actus) .swapp-article-reading > .swapp-reader-studio{margin-bottom:0}
  .swapp-reader-studio-primary{align-items:flex-start}
  .swapp-reader-studio-primary strong{padding-top:12px}
  .swapp-reader-studio-actions{width:100%}
