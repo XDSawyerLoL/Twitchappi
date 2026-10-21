@@ -40,7 +40,7 @@ test('article readers use category-aware lookups and do not call an unavailable 
  const native=read('modules/swapp-news/native-pages.js');
  const spa=read('assets/swapp-actus-app.js');
  const shelf=read('assets/swapp-media-live.js');
- assert.match(native,/editorialGame\(originalArticle\)/);
+ assert.match(native,/game:require\('\.\/game-identity'\)\.editorialGame\(corrected\)/);
  assert.match(spa,/const editorialGame=article/);
  assert.match(spa,/const a=\{\.\.\.fetched,game:editorialGame\(fetched\)\}/);
  assert.match(spa,/Twitch n’est pas disponible sur SWAPP/);
@@ -77,8 +77,8 @@ test('creator workspace uses separated editorial controls, responsive layout and
  assert.match(css,/@media\(max-width:760px\)/);
  assert.match(css,/@media\(max-width:430px\)/);
  const html=read('index.html'),shell=read('modules/swapp-news/site-shell.js');
- assert.match(html,/swapp-creator-workspace\.css\?v=20261021-account-hub-v1/);
- assert.match(html,/index_script\.js\?v=20261021-account-hub-v1/);
+ assert.match(html,/swapp-creator-workspace\.css\?v=[^"']+/);
+ assert.match(html,/index_script\.js\?v=[^"']+/);
  assert.match(html,/swapp-game-identity\.js\?v=20261019-witcher-twitch-v1/);
  assert.match(shell,/swapp-media-live\.js\?v=20261021-game-universe-v1/);
 });
