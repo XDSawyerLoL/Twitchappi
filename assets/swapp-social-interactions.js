@@ -70,28 +70,28 @@
    <div class="ssi-section-group">
     <section class="ssi-panel ssi-panel-rooms" id="ssi-room-panel" aria-labelledby="ssi-rooms-title">
      <div class="ssi-panel-inner">
-      <div class="ssi-panel-head"><div class="ssi-head-main">${icon('rooms')}<div><span class="ssi-section-label">TES ESPACES</span><h3 id="ssi-rooms-title">Salons vocaux</h3><p class="ssi-panel-desc">Choisis un salon pour discuter.</p></div></div><span class="ssi-count" id="ssi-room-badge" title="Nombre de salons">—</span></div>
+      <div class="ssi-panel-head"><div class="ssi-head-main">${icon('rooms')}<div><span class="ssi-section-label">COMMUNAUTÉS SWAPP</span><h3 id="ssi-rooms-title">Mes espaces</h3><p class="ssi-panel-desc">Texte et vocal au même endroit. Crée un espace privé ou rejoins un salon public.</p></div></div><span class="ssi-count" id="ssi-room-badge" title="Nombre de salons">—</span></div>
       <div class="ssi-room-list" id="ssi-room-results" aria-live="polite"></div>
       <button type="button" class="ssi-ghost ssi-block-action" id="ssi-game-room-scope" data-action="toggle-game-rooms" hidden>Voir tous les salons</button>
-      <button type="button" class="ssi-ghost ssi-block-action" data-open-form="room" aria-controls="ssi-form-room" aria-expanded="false">+ Créer mon salon</button>
+      <button type="button" class="ssi-ghost ssi-block-action" data-open-form="room" aria-controls="ssi-form-room" aria-expanded="false">+ Créer mon espace</button>
       <form class="ssi-inline-form" id="ssi-form-room" hidden>
-       <label class="ssi-field">Nom du salon<input name="name" required maxlength="60" placeholder="Ex. Squad du soir"></label>
-       <label class="ssi-field">Jeu associé (facultatif)<input name="game" maxlength="65" placeholder="Ex. PUBG"></label>
-       <label class="ssi-field">Visibilité<select name="visibility"><option value="private">Personnel : accessible via ton invitation</option><option value="public">Public : visible par tous</option></select></label>
-       <div class="ssi-form-actions"><button type="submit" class="ssi-button">Créer le salon</button><button type="button" class="ssi-ghost" data-close-form="room">Annuler</button></div>
+       <label class="ssi-field">Nom de ton espace<input name="name" required maxlength="60" placeholder="Ex. Notre guilde"></label>
+       <label class="ssi-field">Jeu associé (facultatif)<input name="game" maxlength="65" placeholder="Ex. Aion 2"></label>
+       <label class="ssi-field">Qui peut entrer ?<select name="visibility"><option value="private">Privé · seulement avec mon lien</option><option value="public">Public · visible dans les communautés</option></select></label>
+       <div class="ssi-form-actions"><button type="submit" class="ssi-button">Créer mon espace</button><button type="button" class="ssi-ghost" data-close-form="room">Annuler</button></div>
       </form>
      </div>
     </section>
     <section class="ssi-panel ssi-panel-chat ssi-chat-panel" id="ssi-chat-panel" aria-labelledby="ssi-chat-title">
      <div class="ssi-panel-inner">
-      <div class="ssi-panel-head"><div class="ssi-head-main">${icon('chat')}<div><span class="ssi-section-label">MESSAGES DU SALON</span><div class="ssi-chat-heading"><h3 id="ssi-chat-title">Discussion écrite</h3></div><p class="ssi-chat-hint" id="ssi-chat-hint">Messages de la communauté</p></div></div></div>
+      <div class="ssi-panel-head"><div class="ssi-head-main">${icon('chat')}<div><span class="ssi-section-label">ESPACE DE DISCUSSION</span><div class="ssi-chat-heading"><h3 id="ssi-chat-title">Discussion écrite</h3></div><p class="ssi-chat-hint" id="ssi-chat-hint">Choisis un espace à gauche · messages et vocal sur le même écran</p></div></div></div>
       <div class="ssi-personal-invites" id="ssi-personal-invites" hidden>
        <strong>Inviter dans mon canal</strong><p>Seuls les membres ayant rejoint par le lien peuvent lire et participer.</p>
        <label class="ssi-field" for="ssi-personal-url">Lien d’invitation<input id="ssi-personal-url" type="url" readonly aria-label="Lien d’invitation au canal" autocomplete="off"></label>
        <div class="ssi-personal-actions"><button type="button" class="ssi-button" data-ssi-copy-invite>Copier le lien</button><button type="button" class="ssi-ghost" data-ssi-rotate-invite>Renouveler le lien</button></div>
        <p id="ssi-invite-notice" role="status" aria-live="polite"></p>
       </div>
-      <div id="ssi-chat-body" aria-live="off"><div class="ssi-room-placeholder">Rejoins un salon pour échanger avec la communauté.</div></div>
+      <div id="ssi-chat-body" aria-live="off"><div class="ssi-room-placeholder">Choisis un espace dans la liste ou crée le tien pour commencer à discuter.</div></div>
      </div>
     </section>
    </div>
@@ -143,13 +143,17 @@
  }
  function renderRooms(){
   const title=$('#ssi-rooms-title'),switcher=$('#ssi-game-room-scope');
-  if(title)title.textContent=roomGameFilter?'Salons · '+roomGameFilter:'Salons vocaux';
+  if(title)title.textContent=roomGameFilter?'Espaces · '+roomGameFilter:'Mes espaces';
   if(switcher&&initialGame){switcher.hidden=false;switcher.textContent=roomGameFilter?'Voir tous les salons':'Revenir aux salons de '+initialGame}
   const count=asCount(rooms);metric('rooms',count);$('#ssi-room-badge').textContent=count;
   const el=$('#ssi-room-results');
-  if(!count){el.innerHTML=empty('⌁',roomGameFilter?'Aucun salon accessible pour '+escape(roomGameFilter)+'. Crée le premier ou affiche tous les salons.':'Aucun salon pour le moment. Crée le premier.');return}
+  if(!count){el.innerHTML=empty('⌁',roomGameFilter?'Aucun espace pour '+escape(roomGameFilter)+'. Crée le tien ou affiche tous les espaces.':'Pas encore d’espace. Clique sur « Créer mon espace » pour ouvrir ton salon texte et vocal.');return}
   const visible=roomsExpanded?rooms:rooms.slice(0,6);
-  el.innerHTML=visible.map(r=>`<button class="ssi-room" type="button" data-room="${escape(r.id)}" aria-pressed="${r.id===activeRoom}" aria-label="Sélectionner le salon ${escape(r.name)}"><span class="ssi-room-voice-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4V9Zm12-1a5 5 0 0 1 0 8m2-11a9 9 0 0 1 0 14"/></svg></span><span class="ssi-room-info"><span class="ssi-room-name">${r.private?'🔒 ':''}${escape(r.name)}</span><span class="ssi-room-game">${escape(r.game)} · ${r.private?'Sur invitation':'Public'} · Vocal et texte</span></span></button>`).join('')+(count>6?'<button type="button" class="ssi-ghost" data-action="toggle-rooms">'+(roomsExpanded?'Voir moins':'Voir tous les salons ('+count+')')+'</button>':'');
+  const renderRoom=r=>`<button class="ssi-room" type="button" data-room="${escape(r.id)}" aria-pressed="${r.id===activeRoom}" aria-label="Ouvrir ${escape(r.name)}"><span class="ssi-room-voice-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4V9Zm12-1a5 5 0 0 1 0 8m2-11a9 9 0 0 1 0 14"/></svg></span><span class="ssi-room-info"><span class="ssi-room-name">${escape(r.name)}</span><span class="ssi-room-game">${escape(r.game||'Discussion')} · ${r.private?'Privé · invitation':'Public'}${r.owner?' · à toi':''}</span></span></button>`;
+   const mine=visible.filter(r=>r.private),publicRooms=visible.filter(r=>!r.private);
+   el.innerHTML=(mine.length?'<div class="ssi-room-group"><h4>ESPACES PRIVÉS</h4>'+mine.map(renderRoom).join('')+'</div>':'')+
+    (publicRooms.length?'<div class="ssi-room-group"><h4>SALONS PUBLICS</h4>'+publicRooms.map(renderRoom).join('')+'</div>':'')+
+    (count>6?'<button type="button" class="ssi-ghost" data-action="toggle-rooms">'+(roomsExpanded?'Voir moins':'Voir les '+(count-6)+' autres espaces')+'</button>':'');
  }
  async function loadMatches(){try{const data=await req('match2/compatible');matches=Array.isArray(data.matches)?data.matches:[];renderMatches()}catch(e){$('#ssi-match-results').innerHTML=empty('! ',escape(e.message));}}
  async function loadPolls(){try{const data=await req('polls');polls=Array.isArray(data.polls)?data.polls:[];renderPolls()}catch(e){$('#ssi-poll-results').innerHTML=empty('! ',escape(e.message));}}
@@ -254,7 +258,7 @@
   area.dataset.activeSocialRoom=id;
   area.dispatchEvent(new CustomEvent('ssi:room-selected',{detail:{id,name:item.name,game:item.game}}));
   $('#ssi-chat-title').textContent='Discussion écrite';
-  $('#ssi-chat-hint').textContent='Salon : '+item.name;
+  $('#ssi-chat-hint').textContent='Espace : '+item.name;
   void updateInvitePanel(item);
   $('#ssi-chat-body').innerHTML='<div class="ssi-chat-stream" id="ssi-chat-stream" aria-label="Messages du salon" aria-live="polite"><div class="ssi-chat-empty">Chargement de la discussion…</div></div><form class="ssi-compose" id="ssi-form-chat"><input name="body" maxlength="160" required autocomplete="off" aria-label="Votre message" placeholder="Écris ton message…"><button type="submit" class="ssi-button">Envoyer ↗</button></form>';
   if(rerender)renderRooms();
@@ -283,7 +287,7 @@
     activeRoom='';stopChat();await loadRooms();
     const shown=rooms.some(r=>r.id===created.room?.id);
     if(shown)await selectRoom(created.room.id);
-    notice((personal?'Canal personnel créé. Partage ton lien d’invitation.':'Salon public créé.')+(shown?'':' Retrouve-le dans tous les salons.'));
+    notice((personal?'Espace privé créé. Son lien d’invitation est dans la conversation.':'Espace public créé.')+(shown?'':' Retrouve-le dans tous les salons.'));
    }
    form.reset();toggleForm(kind,false);
   }catch(e){notice(e.message,'error')}
