@@ -103,36 +103,28 @@ test('known editorial aliases share one game URL without fragmenting search resu
  assert.equal(hubs[0].game,'Grand Theft Auto VI');
 });
 
-test('article game links only appear for real indexed hubs already cached, with no extra reads',async()=>{
+test('articles expose game actions without creating obsolete dossier links',async()=>{
  const {cachedGameHubForArticle,invalidateSeoCache}=require('../modules/swapp-seo');
- const articles=[
+ const rows=[
   {slug:'gta-first',title:'GTA 6 first',summary:'Preview coverage',game:'GTA 6',status:'published'},
-  {slug:'gta-second',title:'GTA VI next',summary:'More coverage',game:'Grand Theft Auto VI',status:'published'},
-  {slug:'only-hades',title:'Hades II only',summary:'Single publication',game:'Hades II',status:'published'}
+  {slug:'gta-second',title:'GTA VI next',summary:'More coverage',game:'Grand Theft Auto VI',status:'published'}
  ];
- const routes=new Map();
- let reads=0;
- registerSeoRoutes({get:(route,handler)=>routes.set(route,handler)},{getPublished:async()=>{reads++;return articles}});
- assert.equal(cachedGameHubForArticle(articles[0]),null);
- const response={set(){return this},type(){return this},status(){return this},send(v){this.body=v;return this}};
- await routes.get('/sitemap.xml')({},response);
- assert.equal(cachedGameHubForArticle(articles[0]),'/jeux/grand-theft-auto-vi');
- assert.equal(cachedGameHubForArticle(articles[1]),'/jeux/grand-theft-auto-vi');
- assert.equal(cachedGameHubForArticle(articles[2]),'/jeux/hades-ii');
+ const routes=new Map();let reads=0;
+ registerSeoRoutes({get:(route,handler)=>routes.set(route,handler)},{getPublished:async()=>{reads++;return rows}});
+ const res={set(){return this},type(){return this},status(){return this},send(v){this.body=v;return this}};
+ await routes.get('/sitemap.xml')({},res);
  assert.equal(reads,1);
- const eligibleHtml=require('../modules/swapp-news/native-pages').renderNewsStory(
-  {...articles[0],author:'Rédaction SWAPP',body:'Des détails disponibles auprès des sources officielles.',publishedAt:'2026-10-16T10:00:00Z'},
-  {gameHubUrl:cachedGameHubForArticle(articles[0])});
- assert.match(eligibleHtml,/href="\/jeux\/grand-theft-auto-vi"/);
- const thinHtml=require('../modules/swapp-news/native-pages').renderNewsStory(
-  {...articles[2],author:'Rédaction SWAPP',body:'Quelques informations.',publishedAt:'2026-10-16T10:00:00Z'},
-  {gameHubUrl:cachedGameHubForArticle(articles[2])});
- assert.match(thinHtml,/href="\/jeux\/hades-ii"/);
+ assert.equal(cachedGameHubForArticle(rows[0]),null);
+ const html=require('../modules/swapp-news/native-pages').renderNewsStory(
+  {...rows[0],author:'Rédaction SWAPP',body:'Des informations disponibles et vérifiées.',publishedAt:'2026-10-16T10:00:00Z'},
+  {gameHubUrl:'/jeux/grand-theft-auto-vi'});
+ assert.doesNotMatch(html,/Dossier du jeu|href="\/jeux\//);
+ assert.match(html,/data-swapp-follow-game/);
+ assert.match(html,/data-swapp-wishlist-game/);
+ assert.match(html,/Discuter sur SWAPP SOCIAL/);
  invalidateSeoCache();
- assert.equal(cachedGameHubForArticle(articles[0]),null);
- assert.equal(reads,1);
+ assert.equal(cachedGameHubForArticle(rows[0]),null);
 });
-
 test('game hubs expose true JSON-LD lists and an editorial sharing image where provided',()=>{
  const rows=[
   {slug:'news-one',title:'GTA VI : <nouvelles> annonces',summary:'Couverture originale',status:'published',game:'GTA VI',
@@ -181,5 +173,5 @@ test('game index uses full-width artwork, readable titles and responsive card ac
  assert.match(html,/@media\(max-width:1000px\)/);
  assert.match(html,/@media\(max-width:620px\)/);
  assert.doesNotMatch(html,/\.game-portal \.index a\{display:flex/);
- assert.match(html,/href="\/jeux" class="active" aria-current="page"/);
+ assert.doesNotMatch(html,/aria-current="page">Jeux<\/a>/);
 });
