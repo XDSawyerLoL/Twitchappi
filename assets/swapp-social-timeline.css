@@ -432,3 +432,19 @@
  }
  #swappSocialNative .pulse-news-in-timeline .pulse-news-meta{font-size:9px!important}
 }
+
+/* Community view is one Discord-like workspace: SWAPP sidebar,
+   a compact room rail, then the real voice/text conversation.
+   The generic news/right rail belongs to the feed, not to a chat. */
+#swappSocialNative[data-social-view="rooms"] .pulse-shell{
+ grid-template-columns:218px minmax(0,1fr)!important;
+ width:min(1450px,100%)!important;max-width:1450px!important
+}
+#swappSocialNative[data-social-view="rooms"] .pulse-right{display:none!important}
+#swappSocialNative[data-social-view="rooms"] .pulse-main{border-right:0!important}
+@media(min-width:921px) and (max-width:1120px){
+ #swappSocialNative[data-social-view="rooms"] .pulse-shell{grid-template-columns:75px minmax(0,1fr)!important}
+}
+@media(max-width:920px) and (orientation:portrait),(max-width:650px){
+ #swappSocialNative[data-social-view="rooms"] .pulse-shell{display:block!important}
+}
