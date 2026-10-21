@@ -72,7 +72,7 @@
   passport=p;
   const games=Array.isArray(p.games)?p.games:[];
   const labels=[p.platform,p.style,p.availability].filter(Boolean);
-  $('#ssn-passport-title').textContent=(p.displayName||p.handle||'Ton')+' · Gaming';
+  $('#ssn-passport-title').textContent='Mon profil · '+(p.displayName||p.handle||'SWAPP');
   $('#ssn-passport-summary').innerHTML='<span class="ssn-handle">@'+esc(p.handle)+'</span>'+
    '<span class="ssn-visibility">'+(p.public?'Passeport public':'Passeport privé')+'</span>'+
    (games.length?'<div class="ssn-tags">'+games.map(g=>'<button type="button" data-ssn-game="'+esc(g)+'">'+esc(g)+'</button>').join('')+'</div>':'<p>Ajoute tes jeux favoris pour améliorer tes compatibilités.</p>')+
