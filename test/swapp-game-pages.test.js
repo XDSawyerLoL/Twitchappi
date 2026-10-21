@@ -12,9 +12,9 @@ const published=[
  {slug:'article-hidden',title:'Secret',summary:'Non publié.',game:'Hades II',status:'draft'},
  {slug:'article-gta-second',title:'Copie',summary:'Doublon',game:'Grand Theft Auto VI',status:'published'}
 ];
-test('only games supported by multiple distinct published stories get an indexable hub',()=>{
+test('all games with at least one verified published article get a GAME UNIVERSE hub',()=>{
  const groups=gameHubs(published);
- assert.equal(groups.length,1);
+ assert.equal(groups.length,2);
  assert.equal(groups[0].game,'Grand Theft Auto VI');
  assert.equal(groups[0].count,2);
  assert.equal(gameHubUrl('Grand Theft Auto VI'),'/jeux/grand-theft-auto-vi');
@@ -40,9 +40,9 @@ test('XML and HTML sitemaps include only eligible game pages',()=>{
  const xml=sitemapXml(published),html=sitemapHtml(published);
  assert.match(xml,/https:\/\/swapp.tv\/jeux\/grand-theft-auto-vi/);
  assert.match(xml,/https:\/\/swapp.tv\/jeux<\/loc>/);
- assert.doesNotMatch(xml,/\/jeux\/hades-ii/);
+ assert.match(xml,/\/jeux\/hades-ii/);
  assert.match(html,/href="\/jeux\/grand-theft-auto-vi"/);
- assert.doesNotMatch(html,/href="\/jeux\/hades-ii"/);
+ assert.match(html,/href="\/jeux\/hades-ii"/);
 });
 test('unpublished, empty, duplicate, invalid and malicious stories do not create a game hub',()=>{
  const input=[
@@ -56,10 +56,10 @@ test('unpublished, empty, duplicate, invalid and malicious stories do not create
  assert.doesNotMatch(html,/<script>test<\/script>/);
  assert.match(html,/&lt;script&gt;test&lt;\/script&gt;/);
  assert.match(html,/Also &amp; useful/);
- assert.equal(gameHubs(input.slice(0,1)).length,0);
- assert.equal(gameHubs([{...input[0],slug:'article-a'}, {...input[0],slug:'article-b'}]).length,0, 'same title across different slugs is not independent coverage');
+ assert.equal(gameHubs(input.slice(0,1)).length,1);
+ assert.equal(gameHubs([{...input[0],slug:'article-a'}, {...input[0],slug:'article-b'}])[0].count,1, 'duplicate headlines count only once');
 });
-test('game HTTP routes reuse SEO cache, return real 404 for thin or missing topics',async()=>{
+test('game HTTP routes reuse SEO cache, return live hubs for single editorials and 404 for unknown topics',async()=>{
  const handlers=new Map();
  let reads=0;
  registerSeoRoutes({get:(route,handler)=>handlers.set(route,handler)},{getPublished:async()=>{reads++;return published}});
@@ -67,11 +67,13 @@ test('game HTTP routes reuse SEO cache, return real 404 for thin or missing topi
  const visible=res(),missing=res(),index=res(),xml=res();
  await handlers.get('/jeux/:slug')({params:{slug:'grand-theft-auto-vi'}},visible);
  await handlers.get('/jeux/:slug')({params:{slug:'hades-ii'}},missing);
+ const unknown=res();await handlers.get('/jeux/:slug')({params:{slug:'unknown-game'}},unknown);
  await handlers.get('/jeux')({},index);
  await handlers.get('/sitemap.xml')({},xml);
  assert.equal(visible.statusCode,200);
  assert.match(visible.body,/grand-theft-auto-vi/);
- assert.equal(missing.statusCode,404);
+ assert.equal(missing.statusCode,200);
+ assert.equal(unknown.statusCode,404);
  assert.equal(index.statusCode,200);
  assert.match(xml.body,/grand-theft-auto-vi/);
  assert.equal(reads,1);
@@ -117,7 +119,7 @@ test('article game links only appear for real indexed hubs already cached, with 
  await routes.get('/sitemap.xml')({},response);
  assert.equal(cachedGameHubForArticle(articles[0]),'/jeux/grand-theft-auto-vi');
  assert.equal(cachedGameHubForArticle(articles[1]),'/jeux/grand-theft-auto-vi');
- assert.equal(cachedGameHubForArticle(articles[2]),null);
+ assert.equal(cachedGameHubForArticle(articles[2]),'/jeux/hades-ii');
  assert.equal(reads,1);
  const eligibleHtml=require('../modules/swapp-news/native-pages').renderNewsStory(
   {...articles[0],author:'Rédaction SWAPP',body:'Des détails disponibles auprès des sources officielles.',publishedAt:'2026-10-16T10:00:00Z'},
@@ -126,7 +128,7 @@ test('article game links only appear for real indexed hubs already cached, with 
  const thinHtml=require('../modules/swapp-news/native-pages').renderNewsStory(
   {...articles[2],author:'Rédaction SWAPP',body:'Quelques informations.',publishedAt:'2026-10-16T10:00:00Z'},
   {gameHubUrl:cachedGameHubForArticle(articles[2])});
- assert.doesNotMatch(thinHtml,/href="\/jeux\/hades-ii"/);
+ assert.match(thinHtml,/href="\/jeux\/hades-ii"/);
  invalidateSeoCache();
  assert.equal(cachedGameHubForArticle(articles[0]),null);
  assert.equal(reads,1);
@@ -156,4 +158,15 @@ test('game hubs expose true JSON-LD lists and an editorial sharing image where p
  assert.match(page,/name="twitter:card" content="summary_large_image"/);
  assert.doesNotMatch(page,/<nouvelles>|<script>.+<nouvelles>/);
  assert.equal((page.match(/rel="canonical"/g)||[]).length,1);
+});
+
+test('hub covers use verified trailer thumbnails when no licensed image is attached',()=>{
+ const one={slug:'ordinary-oddness-news',title:'Ordinary Oddness',summary:'Gameplay confirmé',game:'Ordinary Oddness',status:'published',trailerUrl:'https://www.youtube.com/watch?v=mOMUnP5fAdo'};
+ const hub=gameHubs([one])[0];
+ assert.equal(hub.count,1);
+ const page=renderGamePage(hub),index=renderGameIndex([hub]);
+ assert.match(page,/i.ytimg.com\/vi\/mOMUnP5fAdo\/hqdefault.jpg/);
+ assert.match(page,/SWAPP \/ GAME UNIVERSE/);
+ assert.match(index,/i.ytimg.com\/vi\/mOMUnP5fAdo\/hqdefault.jpg/);
+ assert.match(page,/data-swapp-live-shelf/);
 });
