@@ -103,13 +103,15 @@ function renderGamePage(group){
   text:group.game+' : découvre les actualités et les créateurs sur SWAPP',
   url
  }).toString();
+ const blueskyShare='https://bsky.app/intent/compose?text='+encodeURIComponent(group.game+' : actualités et créateurs sur SWAPP\n'+url);
  const socialUrl='/social?game='+encodeURIComponent(group.game);
  const discordJoin=channels.discordInvite
    ?'<a href="'+html(channels.discordInvite)+'" target="_blank" rel="noopener noreferrer">Rejoindre le Discord SWAPP ↗</a>':'';
  const communityActions='<section class="game-universe-share" aria-labelledby="game-universe-share-title">'+
   '<div><span class="universe-kicker">FAIS VIVRE CET UNIVERS</span><h2 id="game-universe-share-title">Retrouve les autres joueurs.</h2><p>Partage ce jeu et prolonge les échanges dans la communauté.</p></div>'+
   '<div class="actions"><a href="'+html(xShare)+'" target="_blank" rel="noopener noreferrer">Partager ce jeu sur X ↗</a>'+
-  '<a href="'+html(socialUrl)+'">Discuter sur SWAPP SOCIAL ↗</a>'+discordJoin+'</div></section>';
+  '<a href="'+html(socialUrl)+'">Discuter sur SWAPP SOCIAL ↗</a>'+ 
+  '<a href="'+html(blueskyShare)+'" target="_blank" rel="noopener noreferrer">Partager sur Bluesky ↗</a>'+discordJoin+'</div></section>';
  const cards=group.articles.map(a=>{
   const cover=safeCover(a),excerpt=String(a.summary||a.body||'').replace(/\s+/g,' ').slice(0,180);
   return '<a class="card" href="/actus/'+encodeURIComponent(a.slug)+'">'+
