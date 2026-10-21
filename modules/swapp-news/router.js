@@ -16,7 +16,8 @@ const swappReleaseBySlug=new Map(swappReleaseArticles.map(article=>[article.slug
 const {publicArticle,recoveredArticle,nativeSlug,legacyDraft}=require('./editorial-identity');
 const {registerArticleScores}=require('./article-scores');
 const {registerEditorInsights}=require('./editor-insights');
-const {notifyIndexNow,invalidateSeoCache,cachedGameHubForArticle}=require('../swapp-seo');
+const {notifyIndexNow,invalidateSeoCache,verifiedIndexedGame}=require('../swapp-seo');
+const {gameSlug}=require('../swapp-game-pages');
 
 function createNewsRouter({express, firestore, requireEditor, isReady = () => true, baseUrl = 'https://swapp.tv', publicFetch = globalThis.fetch, publicCatalog = catalog, canEdit = () => false, sendApp = null}) {
   if (typeof express?.Router !== 'function' || typeof firestore?.collection !== 'function' ||
@@ -113,7 +114,14 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
     return filtered.sort((a,b)=>score(b)-score(a)
       ||String(b.publishedAt||b.originalPublishedAt||'').localeCompare(String(a.publishedAt||a.originalPublishedAt||''))).slice(0,3);
   };
-  const storyHtml=async item=>renderNewsStory(item,{baseUrl,relatedArticles:await relatedTo(item),gameHubUrl:cachedGameHubForArticle(item)});
+  const storyHtml=async item=>{
+    // Every verified game's article must link to its GAME UNIVERSE hub,
+    // including after a fresh Hostinger restart before sitemap warm-up.
+    const key=gameSlug(item?.game);
+    const verified=key?await verifiedIndexedGame(key):null;
+    const gameHubUrl=verified?'/jeux/'+encodeURIComponent(verified.slug):null;
+    return renderNewsStory(item,{baseUrl,relatedArticles:await relatedTo(item),gameHubUrl});
+  };
   const noStore=(_req,res,next)=>{res.set('Cache-Control','no-store');next();};
   const editor=[available,requireEditor,noStore];
 
