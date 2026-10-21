@@ -16,14 +16,18 @@ test('agenda and TV pages provide distinct real-data views',()=>{
   assert.match(html,/swapp-program\.css/);
  }
 });
-test('the programme uses public APIs and never invents a live or stream embed',()=>{
+test('the programme uses public APIs and embeds Twitch only after a click',()=>{
  const code=read('assets/swapp-program.js'),server=read('server.js');
  assert.match(code,/\/api\/actus/);
  assert.match(code,/\/api\/creator\/spotlight\?game=/);
  assert.match(code,/\/api\/discovery\/game-lives\?game=/);
  assert.match(code,/live_verified/);
  assert.match(code,/coverage==='partial'/);
- assert.doesNotMatch(code,/<iframe|autoplay/);
+ assert.match(code,/play\.addEventListener\('click'/);
+ assert.match(code,/player\.twitch\.tv/);
+ assert.match(code,/muted:'true'/);
+ assert.match(code,/data\.on_air\?\.twitch_login/);
+ assert.doesNotMatch(code,/document\.createElement\('iframe'\)\s*;\s*document\.body\.append/);
  assert.match(server,/app\.get\('\/agenda'/);
  assert.match(server,/app\.get\('\/tv'/);
 });
