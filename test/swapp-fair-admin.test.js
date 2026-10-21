@@ -33,7 +33,7 @@ test('fair admin: aggregate summary, min-volume groups and real unique creators'
    {game_name:'Hades',impressions:19,clicks:5,creators:9},
    {game_name:'Game low creators',impressions:80,clicks:20,creators:2}]
  });
- assert.equal(result.sample,'limited-voluntary');
+ assert.equal(result.sample,'limited-aggregate');
  assert.equal(result.totals.impressions,61);
  assert.equal(result.totals.clicks,9);
  assert.equal(result.totals.creators,6);
@@ -51,8 +51,8 @@ test('fair admin: period is restricted to 7 or 14 days and duplicate groups do n
  assert.equal(x.periodDays,7);assert.equal(x.sample,'insufficient');
  const y=summarizeFairAdmin({days:14,bands,uniqueCreators:10});
  assert.equal(y.periodDays,14);
- assert.equal(y.sample,'limited-voluntary');
- assert.equal(y.bands.every(x=>x.sample!=='limited-voluntary'||x.creators>=3),true);
+ assert.equal(y.sample,'limited-aggregate');
+ assert.equal(y.bands.every(x=>x.sample!=='limited-aggregate'||x.creators>=3),true);
 });
 function appFixture({enabled=true,fail=false}={}){
  const routes=new Map(),middlewares=[],executions=[],restored=[];
