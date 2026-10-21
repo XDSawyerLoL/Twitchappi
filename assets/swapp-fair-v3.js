@@ -1,5 +1,5 @@
-/* SWAPP Fair Discovery v3 — explicit opt-in on existing Home/Discover cards.
- * No extra live API calls, cookies, storage, user IDs, passive tracking or extra shelf.
+/* SWAPP Fair Discovery — automatic anonymized public-creator card aggregates.
+ * No extra live API calls, cookies, storage, user IDs, visitor identification or extra shelf.
  * The server supplied a signed proof on its already-returned verified candidate.
  */
 (()=>{
@@ -14,7 +14,7 @@
    label:'Découvrir',mount:()=>document.querySelector('#discover .v4Controls')}
  ];
  const sessions=new Map();
- for(const p of placements)sessions.set(p.key,{active:false,button:null,observer:null,timers:new Map(),seen:new Set(),nodes:[],lastRoot:null});
+ for(const p of placements)sessions.set(p.key,{active:true,button:null,observer:null,timers:new Map(),seen:new Set(),nodes:[],lastRoot:null});
  function resetWatch(s){
   s.observer?.disconnect();s.observer=null;
   for(const id of s.timers.values())clearTimeout(id);
@@ -29,7 +29,7 @@
   const fail=()=>{
    if(!s.active)return;
    s.active=false;resetWatch(s);
-   if(s.button){s.button.setAttribute('aria-pressed','false');s.button.textContent='Mesure indisponible · Réessayer';}
+   if(s.button)s.button.textContent='Mesure anonyme momentanément indisponible';
   };
   void fetch('/api/discovery/fair-event',{
    method:'POST',credentials:'omit',keepalive:true,
@@ -59,24 +59,16 @@
   if(!mount||!('IntersectionObserver' in window))return;
   let wrapper=mount.querySelector('[data-swapp-fair-v3="'+p.key+'"]');
   if(!wrapper){
-   wrapper=document.createElement('span');wrapper.className='swapp-fair-v3-control';
+   wrapper=document.createElement('span');
+   wrapper.className='swapp-fair-v3-control';
    wrapper.dataset.swappFairV3=p.key;
-   const button=document.createElement('button');
-   button.type='button';button.className='swapp-fair-v3-button';
-   button.setAttribute('aria-pressed',String(s.active));
-   button.textContent=s.active?'Mesure volontaire activée · Désactiver':'Mesure équitable (facultatif)';
-   button.title='Mesurer les cartes réellement vues, uniquement après ton accord, sans identifier les visiteurs.';
-   const detail=document.createElement('small');detail.textContent='Volontaire · sans compte ni historique · cette page';
-   wrapper.append(button,detail);
-   button.addEventListener('click',()=>{
-    s.active=!s.active;
-    button.setAttribute('aria-pressed',String(s.active));
-    button.textContent=s.active?'Mesure volontaire activée · Désactiver':'Mesure équitable (facultatif)';
-    if(s.active)observe(s);else resetWatch(s);
-   });
-   mount.append(wrapper);
+   const label=document.createElement('small');
+   label.className='swapp-fair-v3-status';
+   label.textContent='Découverte équitable · mesure anonyme active';
+   label.title='Impressions agrégées des cartes de chaînes publiques : sans cookie, compte, adresse IP conservée ni historique individuel.';
+   wrapper.append(label);mount.append(wrapper);
   }
-  s.button=wrapper.querySelector('button');
+  s.button=wrapper.querySelector('small');
  }
  function refresh(){
   for(const p of placements){
@@ -85,7 +77,7 @@
    const view=p.key==='discover'?document.getElementById('discover'):document.getElementById('home');
    const inactive=view?.classList?.contains('view')&&!view.classList.contains('active');
    if(!root||inactive){
-    if(s.active){s.active=false;resetWatch(s)}
+    resetWatch(s);
     s.button=null;s.nodes=[];s.lastRoot=null;continue;
    }
    const nodes=[...root.querySelectorAll(p.card)].filter(validCard);
