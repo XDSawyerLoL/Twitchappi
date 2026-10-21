@@ -142,7 +142,8 @@ test('fair admin: responsive visuals, no external charts and admin-only SWAPP en
  assert.match(css,/@media\(prefers-reduced-motion:reduce\)/);
  assert.match(server,/registerFairAdmin/);
  assert.match(server,/guard:shopEditorGuard/);
- assert.match(navigation,/if\(!allowed\).*?if\(fair\)fair\.remove\(\)/);
+ assert.match(navigation,/data-swapp-fair-admin-link/);
+  assert.match(read('index_script.js'),/href="\/admin\/fair-discovery"/);
  assert.match(studio,/\/admin\/fair-discovery/);
  assert.match(shop,/\/admin\/fair-discovery/);
  assert.match(release,/modules\/swapp-fair-admin\.js/);
