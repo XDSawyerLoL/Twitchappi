@@ -22,6 +22,12 @@ test('only real public X/Bluesky profiles pass validation',()=>{
  assert.equal(blueskyProfile('https://bsky.app/profile/swapp.bsky.social'),'https://bsky.app/profile/swapp.bsky.social');
  assert.equal(blueskyProfile('https://bsky.app/profile/swapp.bsky.social?token=foo'),null);
 });
+test('SWAPP owner Discord invite is available by default and can be overridden in the future',()=>{
+ const defaultLinks=publicCommunityLinks({});
+ assert.equal(defaultLinks.discordInvite,'https://discord.gg/AYKJYYJrTJ');
+ assert.equal(publicCommunityLinks({SWAPP_DISCORD_INVITE_URL:'https://discord.gg/OtherValidCode'}).discordInvite,'https://discord.gg/OtherValidCode');
+ assert.equal(publicCommunityLinks({SWAPP_DISCORD_INVITE_URL:'https://discord.com/api/webhooks/123456789012345678/not-a-public-invite'}).discordInvite,'https://discord.gg/AYKJYYJrTJ');
+});
 test('browser receives validated public links, not a private Discord webhook',()=>{
  const env={
   SWAPP_DISCORD_INVITE_URL:'https://discord.gg/SWAPP2026',
