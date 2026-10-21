@@ -21,6 +21,11 @@ jobs:
           node --check modules/swapp-news/game-identity.js
           node --check assets/swapp-game-identity.js
           node --check assets/swapp-social-native/views.js
+          node --check assets/swapp-program.js
+          node --check assets/swapp-tv-rotation.js
+          node --check modules/swapp-program.js
+          node --check modules/swapp-tv-queue.js
+          node --check modules/swapp-tv-director.js
       - name: Editorial, SOCIAL and game-identity regression tests (Node built-ins only)
         run: |
-          node --test test/swapp-seo-landings.test.js test/swapp-social-rss-images.test.js test/witcher-remastered-creator-workspace.test.js
+          node --test test/swapp-seo-landings.test.js test/swapp-social-rss-images.test.js test/witcher-remastered-creator-workspace.test.js test/swapp-program.test.js test/swapp-tv-rotation.test.js test/swapp-tv-queue.test.js test/swapp-tv-director.test.js

@@ -1227,6 +1227,67 @@ async function sendSwappPublicChannelUi(req, res, login){
 }
 // Additional discovery areas keep the same navigation and SWAPP visual system.
 const swappHubs=require('./modules/swapp-hubs');
+const swappProgram=require('./modules/swapp-program');
+const SWAPP_TV_QUEUE_ENABLED=process.env.SWAPP_TV_QUEUE_ENABLED==='1';
+const swappTvQueue=require('./modules/swapp-tv-queue').createTvQueue({getPool:()=>spotlightPool()});
+const SWAPP_TV_DIRECTOR_ENABLED=SWAPP_TV_QUEUE_ENABLED&&process.env.SWAPP_TV_DIRECTOR_ENABLED==='1';
+const swappTvDirector=require('./modules/swapp-tv-director').createDirector({
+ getPool:()=>spotlightPool(),
+ verifyLive:async candidate=>{
+  if(!TWITCH_CLIENT_ID||!TWITCH_CLIENT_SECRET)return false;
+  const login=String(candidate.twitch_login||'');
+  if(!/^[a-z0-9_]{3,25}$/.test(login))return false;
+  const gameName=String(candidate.game_name||'');
+  const gameId=await twitchCategoryIdByName(gameName);
+  if(!gameId)return false;
+  const stream=await twitchAPI('streams?user_login='+encodeURIComponent(login)+'&first=1');
+  const live=stream?.data?.[0];
+  return Boolean(live&&String(live.user_login||'').toLowerCase()===login&&String(live.game_id)===String(gameId));
+ }
+});
+if(SWAPP_TV_DIRECTOR_ENABLED){
+ let ticking=false;
+ const tick=async()=>{
+  if(ticking)return;
+  ticking=true;
+  try{await swappTvDirector.advance()}
+  catch(e){console.warn('[SWAPP TV] Director unavailable:',String(e.message||e).slice(0,120))}
+  finally{ticking=false}
+ };
+ // Only started by deliberate Hostinger feature flags; no paid scheduler or VPS.
+ const heartbeat=setInterval(tick,60000);
+ if(typeof heartbeat.unref==='function')heartbeat.unref();
+}
+
+app.get('/api/swapp-tv/queue/status',async(_req,res)=>{
+ res.set('Cache-Control','no-store');
+ if(!SWAPP_TV_QUEUE_ENABLED)return res.json({enabled:false,on_air:null,waiting:[]});
+ try{res.json({enabled:true,...await swappTvQueue.state()})}
+ catch(_){res.status(503).json({enabled:false,error:'tv_queue_storage_unavailable',on_air:null,waiting:[]})}
+});
+app.post('/api/swapp-tv/queue',mutationLimiter,async(req,res)=>{
+ res.set('Cache-Control','no-store');
+ if(!SWAPP_TV_QUEUE_ENABLED)return res.status(503).json({error:'tv_queue_not_enabled'});
+ try{
+  spotlightWriteAllowed(req);
+  const user=await spotlightAuthorized(req,res);
+  const game=String(req.body?.game||'').trim();
+  require('./modules/swapp-spotlight').validateGame(game);
+  await spotlightPublishedGame(game);
+  const twitchGameId=await twitchCategoryIdByName(game);
+  if(!twitchGameId)throw spotlightError('game_not_found_on_twitch',422);
+  res.status(201).json({success:true,...await swappTvQueue.enter(user,game)});
+ }catch(e){spotlightHandleError(e,res,req)}
+});
+app.delete('/api/swapp-tv/queue',mutationLimiter,async(req,res)=>{
+ res.set('Cache-Control','no-store');
+ if(!SWAPP_TV_QUEUE_ENABLED)return res.status(503).json({error:'tv_queue_not_enabled'});
+ try{spotlightWriteAllowed(req);const user=await spotlightAuthorized(req,res);res.json({success:true,...await swappTvQueue.leave(user)})}
+ catch(e){spotlightHandleError(e,res,req)}
+});
+
+app.get('/agenda',(_req,res)=>{res.set('Cache-Control','no-store');res.type('html').send(swappProgram.page('agenda'))});
+app.get('/tv',(_req,res)=>{res.set('Cache-Control','no-store');res.type('html').send(swappProgram.page('tv'))});
 app.get('/communaute',(req,res)=>{res.set('Cache-Control','no-store');return res.redirect(308,'/social'+(req.originalUrl.includes('?')?req.originalUrl.slice(req.originalUrl.indexOf('?')):''));});
 app.get('/social',(_req,res)=>{res.set('Cache-Control','no-store');res.type('html').send(swappHubs.community())});
 app.get('/bandes-annonces',async(_req,res)=>{
