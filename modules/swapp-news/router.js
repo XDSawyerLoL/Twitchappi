@@ -114,6 +114,19 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
   registerArticleScores({router,firestore,articles,publicNews,available,baseUrl,nativeSlug});
   registerEditorInsights({router,firestore,articles,editor});
   router.get('/api/actus/recovery-status',(_req,res)=>res.json(publicNews.status()));
+  // Public, read-only proof of CMS adoption. Does not expose draft content,
+  // credentials or unpublished editorial information.
+  router.get('/api/actus/release-status',available,async(req,res,next)=>{
+    try{
+      res.set('Cache-Control','no-store');
+      await ensureReleaseEditable();
+      const states=await Promise.all(swappReleaseArticles.map(async item=>{
+        const document=await articles.doc(item.slug).get();
+        return {slug:item.slug,editableInStudio:document.exists};
+      }));
+      return res.json({releaseCount:states.length,editableCount:states.filter(x=>x.editableInStudio).length,articles:states});
+    }catch(error){next(error);}
+  });
   router.get('/api/actus',available,async(req,res,next)=>{
     try {
       const list=await published();
