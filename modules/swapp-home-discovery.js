@@ -2,12 +2,12 @@
 // SWAPP homepage: keep genuinely live native creators discoverable without
 // replacing Twitch variety, tracking viewers or issuing an extra API call.
 // The incoming array is already restricted to live data by the server.
-const {gameKey,replayTitle,rotationRank}=require('./swapp-discovery-diversity');
+const {gameKey,replayTitle,rotationRank,MIN_FEATURE_VIEWERS}=require('./swapp-discovery-diversity');
 function rankHomeLives(items,{limit=12}={}){
  const max=Math.max(1,Math.min(12,Number(limit)||12));
  const seen=new Set(),candidates=[];
  for(const item of Array.isArray(items)?items:[]){
-  if(!item||typeof item!=='object'||replayTitle(item))continue;
+  if(!item||typeof item!=='object'||replayTitle(item)||Number(item.viewer_count??item.viewers)<MIN_FEATURE_VIEWERS)continue;
   const platform=String(item.platform||'').toLowerCase();
   const login=String(item.login||item.user_login||item.host_login||'').trim().replace(/^@/,'').toLowerCase();
   if(!/^[a-z0-9_-]{2,40}$/.test(login))continue;
@@ -35,7 +35,7 @@ function rankHomeLives(items,{limit=12}={}){
  const audience=x=>Math.max(0,Number(x.item.viewer_count??x.item.viewers??0)||0);
  const openSmallSlots=Math.max(0,Math.ceil(max/3)-reserved.filter(x=>audience(x)<=25).length);
  const slot=Math.floor(Date.now()/(15*60*1000));
- const small=scored.filter(x=>!included.has(x.index)&&audience(x)<=25)
+ const small=scored.filter(x=>!included.has(x.index)&&audience(x)>=MIN_FEATURE_VIEWERS&&audience(x)<=25)
   .sort((a,b)=>b.score-a.score||rotationRank(a.item,slot)-rotationRank(b.item,slot))
   .slice(0,openSmallSlots);
  for(const x of small)included.add(x.index);
