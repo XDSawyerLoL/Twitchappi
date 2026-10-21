@@ -32,7 +32,7 @@ test('articles with no identified game still share the article without follow/wi
 test('sharing points to the article URL, not retired game pages, with escaped titles',()=>{
  const html=renderArticleEngagement(article({title:'Jeu & <script>alert(1)</script>'}));
  assert.doesNotMatch(html,/<script>alert/);
- assert.match(html,/\/actus\/baldurs-gate-news/);
+ assert.match(html,/swapp\.tv%2Factus%2Fbaldurs-gate-news/);
  assert.doesNotMatch(html,/href="\/jeux\//);
 });
 test('retired game index and detail pages do not appear in new sitemaps',()=>{
