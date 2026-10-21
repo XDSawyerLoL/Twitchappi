@@ -12,6 +12,8 @@
 const {normalize:normalizeGame,searchNames}=require('./swapp-news/game-identity');
 const generic=new Set(['live','oryon live','swapp live','gaming','jeux video','jeu video','just chatting','discussion','unknown']);
 const ROTATION_MS=15*60*1000;
+// Editorial promotion floor, not a Twitch broadcast eligibility restriction.
+const MIN_FEATURE_VIEWERS=20;
 function gameKey(row){
  const raw=normalizeGame(row?.game_name||row?.category||'');
  if(!raw||generic.has(raw))return 'unknown:'+String(row?.platform||'')+':'+String(row?.login||'');
@@ -42,9 +44,11 @@ function rotationSlot(value){
 function diversifyDiscovery(scored,{limit=60,query='',firstScreen=12,perGame=2,rotation=null}={}){
  const list=Array.isArray(scored)?scored:[];
  const max=Math.max(1,Math.min(60,Number(limit)||60));
- const candidates=list.filter(row=>row&&typeof row==='object'&&!replayTitle(row));
- // The visitor's explicit request wins over all editorial quotas.
- if(String(query||'').trim())return candidates.slice(0,max);
+ const valid=list.filter(row=>row&&typeof row==='object'&&!replayTitle(row));
+ // Explicit searches never hide a specific small streamer; the floor
+ // only applies when SWAPP chooses whom to promote autonomously.
+ if(String(query||'').trim())return valid.slice(0,max);
+ const candidates=valid.filter(row=>audience(row)>=MIN_FEATURE_VIEWERS);
  if(!candidates.length)return [];
  const first=Math.min(max,Math.max(1,Math.min(12,Number(firstScreen)||12)),candidates.length);
  const cap=Math.max(1,Math.min(4,Number(perGame)||2));
@@ -72,7 +76,7 @@ function diversifyDiscovery(scored,{limit=60,query='',firstScreen=12,perGame=2,r
  for(const entry of eligible){if(chosen.length>=relevanceSlots)break;take(entry)}
  // Reserve opportunities for creators with small *current live audiences*.
  const smallSlots=Math.ceil(first*.3);
- const lowAudience=eligible.filter(({item})=>audience(item)<=25)
+ const lowAudience=eligible.filter(({item})=>audience(item)>=MIN_FEATURE_VIEWERS&&audience(item)<=25)
   .sort((a,b)=>{
    // Coarse relevance tiers protect quality without freezing positions.
    const at=Math.floor((Number(a.item.score)||0)/15);
@@ -111,7 +115,7 @@ function diversifyDiscovery(scored,{limit=60,query='',firstScreen=12,perGame=2,r
 }
 function rankGameLives(items,{limit=12,rotation=null}={}){
  const max=Math.max(1,Math.min(24,Number(limit)||12));
- const list=Array.isArray(items)?items.filter(x=>x&&typeof x==='object'&&!replayTitle(x)):[];
+ const list=Array.isArray(items)?items.filter(x=>x&&typeof x==='object'&&!replayTitle(x)&&audience(x)>=MIN_FEATURE_VIEWERS):[];
  const picked=[],seen=new Set(),slot=rotationSlot(rotation);
  const append=item=>{
   const key=creatorKey(item).toLowerCase();
@@ -123,7 +127,7 @@ function rankGameLives(items,{limit=12,rotation=null}={}){
  if(native)append(native);
  // Balance each exact-game shelf: at least roughly half of visible entries
  // can be small creators when sufficiently many verified small lives exist.
- const small=list.filter(x=>audience(x)<=25).sort((a,b)=>
+ const small=list.filter(x=>audience(x)>=MIN_FEATURE_VIEWERS&&audience(x)<=25).sort((a,b)=>
   rotationRank(a,slot)-rotationRank(b,slot)||creatorKey(a).localeCompare(creatorKey(b)));
  let lowCount=picked.filter(x=>audience(x)<=25).length;
  const target=Math.ceil(max*.5);
@@ -132,4 +136,4 @@ function rankGameLives(items,{limit=12,rotation=null}={}){
  for(const item of list)append(item);
  return picked;
 }
-module.exports={diversifyDiscovery,rankGameLives,gameKey,replayTitle,rotationRank};
+module.exports={diversifyDiscovery,rankGameLives,gameKey,replayTitle,rotationRank,MIN_FEATURE_VIEWERS};
