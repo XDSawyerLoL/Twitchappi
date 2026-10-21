@@ -100,8 +100,8 @@ test('admin surface filtering keeps consented samples segregated',()=>{
 });
 test('release contains new first-party assets with no added paid workflow',()=>{
  const html=read('index.html'),release=read('tools/swapp-release.js');
- assert.match(html,/swapp-fair-v3\.js\?v=20261019-surfaces-v1/);
- assert.match(html,/swapp-fair-v3\.css\?v=20261019-surfaces-v1/);
+ assert.match(html,/swapp-fair-v3\.js\?v=20261021-auto-anonymous-v1/);
+ assert.match(html,/swapp-fair-v3\.css\?v=20261021-auto-anonymous-v1/);
  assert.match(release,/assets\/swapp-fair-v3\.js/);
  assert.match(release,/assets\/swapp-fair-v3\.css/);
  assert.equal(fs.existsSync(path.join(__dirname,'..','.github/workflows/swapp-quality.yml')),false);
