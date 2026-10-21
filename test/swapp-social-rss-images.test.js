@@ -7,7 +7,7 @@ const vm=require('node:vm');
 const read=p=>fs.readFileSync(path.join(__dirname,'..',p),'utf8');
 const views=read('assets/swapp-social-native/views.js');
 function loadImageResolver(){
- const start=views.indexOf('function safeNewsMedia(article){');
+ const start=views.indexOf('function safeNewsUrl(value){');
  const end=views.indexOf('\nfunction newsTime(',start);
  assert.ok(start>0&&end>start);
  const code=views.slice(start,end)+'\nsafeNewsMedia';
