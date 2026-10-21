@@ -73,7 +73,8 @@ test('SPA cards carry only already signed proofs and render no separate homepage
  assert.match(client,/entry\.intersectionRatio<\.5/);
  assert.match(client,/},1250\)/);
  assert.match(client,/getBoundingClientRect\(\)\.width>0/);
- assert.match(client,/button\.addEventListener\('click'/);
+ assert.match(client,/active:true/);
+ assert.doesNotMatch(client,/Mesure équitable/);
  assert.match(client,/credentials:'omit',keepalive:true/);
  assert.match(client,/if\(!root\|\|inactive\)/);
  assert.doesNotMatch(client,/localStorage|sessionStorage|sendBeacon|window\.fetch\s*=|getItem\(|\.cookie/i);
