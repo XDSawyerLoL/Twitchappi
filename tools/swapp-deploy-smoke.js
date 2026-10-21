@@ -228,9 +228,9 @@ async function verify(){
  check(shopAdminScript.body.includes("'/api/editor/boutique'")&&
    shopAdminScript.body.includes("options.headers['x-swapp-editor']='1'"),
    'Boutique admin UI asset is missing secure API persistence');
- check(home.body.includes('swapp-editor-nav.js?v=20261019-fair-admin-v1'),
-  'Homepage still uses the old account menu without Boutique administration');
- process.stdout.write('PASS Boutique showcase, editable catalogue assets and unified admin menu\n');
+ check(home.body.includes('swapp-editor-nav.js?v=20261021-account-hub-v1'),
+  'Homepage is missing the unified SWAPP account menu');
+ process.stdout.write('PASS Boutique showcase, editable catalogue assets and unified account hub\n');
 
  const playerPage=await request(origin,'/mes-jeux');
  check(playerPage.body.includes('data-my-games-live')&&playerPage.body.includes('En direct sur tes jeux')&&
@@ -265,7 +265,7 @@ async function verify(){
   !accountScript.body.includes('function viewerProfilePanel(){'),
   'Account renderer is stale or still includes shadowed legacy layout');
  const accountCss=await request(origin,'/assets/swapp-creator-workspace.css');
- check(home.body.includes('/assets/swapp-creator-workspace.css?v=20261019-account-native-v2')&&
+ check(home.body.includes('/assets/swapp-creator-workspace.css?v=20261021-account-hub-v1')&&
    accountCss.body.includes('.swapp-account-workspace')&&
    accountCss.body.includes('.swapp-dash-columns')&&
    accountCss.body.includes('border-radius:0!important'),
@@ -373,7 +373,7 @@ async function verify(){
  const discover=await request(origin,'/decouvrir');
  check(discover.body.includes('swapp-discover-comfort.js?v=20261019-fair-discovery-v27'),
   'Discover has an old mobile UI release');
- check(discover.body.includes('index_script.js?v=20261019-fair-v3-verified-cards'),
+ check(discover.body.includes('index_script.js?v=20261021-account-hub-v1'),
   'Discover still references an old V4 player script');
  const comfort=await request(origin,'/assets/swapp-discover-comfort.js');
  check(comfort.body.includes('swapp-discover-no-image')&&comfort.body.includes('v4SwipeCard')&&
