@@ -96,7 +96,7 @@ test('admin surface filtering keeps consented samples segregated',()=>{
   {audience_band:'established',impressions:100,creators:1}
  ]});
  assert.equal(insufficient.sample,'insufficient');
- assert.equal(insufficient.scope,'all-card-opt-in');
+ assert.equal(insufficient.scope,'all-card-aggregate');
 });
 test('release contains new first-party assets with no added paid workflow',()=>{
  const html=read('index.html'),release=read('tools/swapp-release.js');
