@@ -7,7 +7,8 @@ function rankHomeLives(items,{limit=12}={}){
  const max=Math.max(1,Math.min(12,Number(limit)||12));
  const seen=new Set(),candidates=[];
  for(const item of Array.isArray(items)?items:[]){
-  if(!item||typeof item!=='object'||replayTitle(item)||Number(item.viewer_count??item.viewers)<MIN_FEATURE_VIEWERS)continue;
+  const currentViewers=Number(item?.viewer_count??item?.viewers);
+  if(!item||typeof item!=='object'||replayTitle(item)||!Number.isFinite(currentViewers)||currentViewers<MIN_FEATURE_VIEWERS)continue;
   const platform=String(item.platform||'').toLowerCase();
   const login=String(item.login||item.user_login||item.host_login||'').trim().replace(/^@/,'').toLowerCase();
   if(!/^[a-z0-9_-]{2,40}$/.test(login))continue;
