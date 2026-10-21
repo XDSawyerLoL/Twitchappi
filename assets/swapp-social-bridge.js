@@ -19,6 +19,30 @@
    text:'🎮 '+headline+' — à découvrir sur SWAPP',url:target
   }).toString();
  }
+ function verifiedInvite(value){
+  try{
+   const u=new URL(String(value||''));
+   return u.protocol==='https:'&&u.hostname==='discord.gg'&&!u.search&&!u.hash
+      &&/^\/[a-zA-Z0-9-]{2,64}$/.test(u.pathname)?u.href:null;
+  }catch{return null;}
+ }
+ function loadCommunityLinks(inviteLink,channels){
+  if(typeof fetch!=='function')return;
+  void fetch('/api/swapp/community-links',{credentials:'same-origin',cache:'default',headers:{Accept:'application/json'}})
+  .then(r=>r.ok?r.json():null).then(data=>{
+    if(!inviteLink?.isConnected||!data?.success)return;
+    const invite=verifiedInvite(data.discordInvite);
+    if(invite){inviteLink.href=invite;inviteLink.hidden=false;}
+    if(!channels?.isConnected)return;
+    for(const [name,raw,host] of [['X',data.xProfile,'x.com'],['Bluesky',data.blueskyProfile,'bsky.app']]){
+      let valid=null;
+      try{const u=new URL(String(raw||''));if(u.protocol==='https:'&&u.hostname===host&&!u.username&&!u.password&&!u.search&&!u.hash)valid=u.href;}catch{}
+      if(!valid)continue;
+      const link=text('a','swapp-social-bridge-follow','Suivre SWAPP sur '+name+' ↗');
+      link.href=valid;link.target='_blank';link.rel='noopener noreferrer';channels.append(link);
+    }
+  }).catch(()=>{});
+ }
  function build(container,articles){
   if(!container||!container.isConnected)return null;
   const existing=container.querySelector('[data-swapp-social-bridge]');
@@ -66,11 +90,18 @@
     notice.textContent='Copie ce lien pour le partager dans Discord : '+href;
    }
   });
-  discord.append(dbrand,dheadline,ddesc,copy,notice);
+  const buttons=text('div','swapp-social-bridge-buttons');
+  const join=text('a','swapp-social-bridge-action swapp-social-bridge-join','Rejoindre notre Discord ↗');
+  join.hidden=true;join.target='_blank';join.rel='noopener noreferrer';
+  buttons.append(copy,join);
+  discord.append(dbrand,dheadline,ddesc,buttons,notice);
   sides.append(x,connection,discord);
   const footer=text('p','swapp-social-bridge-footnote','X pour découvrir · Discord pour échanger · SWAPP pour tout retrouver.');
-  panel.append(kicker,intro,sides,footer);
+  const channels=text('nav','swapp-social-bridge-channels');
+  channels.setAttribute('aria-label','Réseaux officiels SWAPP');
+  panel.append(kicker,intro,sides,footer,channels);
   container.append(panel);
+  loadCommunityLinks(join,channels);
   return panel;
  }
  window.SwappSocialBridge={mount:build,buildXIntent,latestArticle};
