@@ -207,3 +207,23 @@
 @media(prefers-reduced-motion:reduce){
  #settings .swapp-acct-nav button,.swapp-creator-workspace .creatorSide button{transition:none!important}
 }
+
+/* Unified account hub: concise personal links and a permission-gated admin area.
+ * Reuses the existing editorial row style instead of introducing big cards. */
+#settings .swapp-acct-management[hidden]{display:none!important}
+#settings .swapp-acct-management{
+ margin-top:24px;padding-top:20px;border-top:1px solid var(--swapp-workspace-line)
+}
+#settings .swapp-acct-management-heading{margin:0 0 15px}
+#settings .swapp-acct-management-heading h3{
+ margin:5px 0 6px;font-size:clamp(19px,2vw,25px);font-weight:850;letter-spacing:-.035em
+}
+#settings .swapp-acct-management-heading p{
+ margin:0;color:var(--swapp-workspace-muted);font-size:12px;line-height:1.6
+}
+#settings .swapp-acct-quick a strong small{
+ margin-left:7px;font-size:11px;font-weight:750;color:var(--swapp-workspace-muted)
+}
+#settings .swapp-acct-management .swapp-acct-quick a:last-child{
+ border-bottom:0
+}
