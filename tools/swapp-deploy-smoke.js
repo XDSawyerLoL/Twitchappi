@@ -279,7 +279,7 @@ async function verify(){
    'Live search cannot distinguish Twitch outage or retry empty results');
  process.stdout.write('PASS creator workspace and edition-aware live discovery\n');
  const discovery=await request(origin,'/assets/swapp-media-live.js');
- check(discovery.body.includes('/api/discovery/game-lives?limit=6&game='),
+ check(discovery.body.includes('/api/discovery/game-lives?limit=6&lang=fr&game='),
   'Article live discovery client is outdated: targeted game lookup missing');
  check(discovery.body.includes("text(button,'Réessayer')")&&discovery.body.includes('requests.delete(key)'),
   'Article live discovery retry/recovery is outdated');
