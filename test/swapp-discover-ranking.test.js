@@ -8,7 +8,7 @@ const root=path.resolve(__dirname,'..');
 const read=p=>fs.readFileSync(path.join(root,p),'utf8');
 const make=(game,idx,score=100)=>({
  platform:'twitch',login:game.toLowerCase().replace(/[^a-z]/g,'')+idx,
- title:'En direct',game_name:game,viewer_count:15+idx,score
+ title:'En direct',game_name:game,viewer_count:20+idx,score
 });
 
 test('broad Discover presents several relevant games rather than one-game repetition',()=>{
