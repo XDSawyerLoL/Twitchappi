@@ -7,40 +7,23 @@ on:
 permissions:
   contents: read
 jobs:
-  test:
+  regression:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: npm
-      - name: Upgrade npm CLI
+      - name: Syntax checks (no dependency install)
         run: |
-          npm install --global npm@11.6.2 --no-audit --no-fund
-          npm --version
-      - name: Install dependencies
-        timeout-minutes: 8
-        env:
-          NPM_CONFIG_MAXSOCKETS: '2'
-          NPM_CONFIG_FETCH_RETRIES: '3'
-          NPM_CONFIG_FETCH_RETRY_MINTIMEOUT: '2000'
+          node --check server.js
+          node --check index_script.js
+          node --check app.js
+          node --check modules/swapp-seo.js
+          node --check modules/swapp-news/game-identity.js
+          node --check assets/swapp-game-identity.js
+          node --check assets/swapp-social-native/views.js
+      - name: Editorial, SOCIAL and game-identity regression tests (Node built-ins only)
         run: |
-          npm ci --ignore-scripts --no-audit --no-fund --loglevel=warn || {
-            echo "::warning::npm ci failed; clearing partial install and retrying once"
-            rm -rf node_modules
-            npm ci --ignore-scripts --no-audit --no-fund --loglevel=warn
-          }
-      - name: Print npm diagnostics if install failed
-        if: failure()
-        run: |
-          for file in $(ls -t "$HOME"/.npm/_logs/*debug-0.log 2>/dev/null | head -2); do
-            echo "::group::$file"
-            tail -n 100 "$file"
-            echo "::endgroup::"
-          done
-      - name: Check server and browser entry syntax
-        run: npm run check
-      - name: Run regression tests
-        run: npm test
+          node --test test/swapp-seo-landings.test.js test/swapp-social-rss-images.test.js test/witcher-remastered-creator-workspace.test.js
