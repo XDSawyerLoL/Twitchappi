@@ -10,6 +10,7 @@ const {makePublicCatalog}=require('./public-catalog');
 const {recommend}=require('./content-metadata');
 const catalog=require('../../data/justplayer-public-catalog.json');
 const {createEditorialReleaseSync,loadEditorialReleases}=require('./editorial-release-sync');
+const {createDiscordPublisher}=require('./discord-publisher');
 const swappReleaseArticles=loadEditorialReleases();
 const swappReleaseBySlug=new Map(swappReleaseArticles.map(article=>[article.slug,article]));
 const {publicArticle,recoveredArticle,nativeSlug,legacyDraft}=require('./editorial-identity');
@@ -39,15 +40,20 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
   const articles=firestore.collection('swapp_news_articles');
   const outbox=firestore.collection('swapp_news_outbox');
   const importKeys=firestore.collection('swapp_news_import_keys');
-  const releaseSync=createEditorialReleaseSync({firestore,articles,releaseArticles:swappReleaseArticles});
+  const discordPublisher=createDiscordPublisher({firestore,articles,baseUrl,isReady});
+  const releaseSync=createEditorialReleaseSync({firestore,articles,releaseArticles:swappReleaseArticles,
+    recordDiscordPublication:discordPublisher.recordPublication});
+  discordPublisher.start();
   // SWAPP already serves these editor-reviewed articles publicly. When the
   // production magazine loads, adopt only still-missing records into the
   // existing CMS collection. Existing edits, drafts and withdrawals win.
   // A temporary storage failure leaves the verified public fallback intact.
   const ensureReleaseEditable=async()=>{
     if(process.env.NODE_ENV!=='production'||!isReady())return;
-    try{await releaseSync.sync();}
-    catch(error){console.warn('[SWAPP EDITORIAL] Adoption CMS reportee:',String(error?.message||error).slice(0,180));}
+    try{
+      const result=await releaseSync.sync();
+      if(result.created>0)discordPublisher.kick();
+    }catch(error){console.warn('[SWAPP EDITORIAL] Adoption CMS reportee:',String(error?.message||error).slice(0,180));}
   };
   const publicNews=makePublicCatalog({catalog:publicCatalog,fetchImpl:publicFetch});
   const slugOk = s => /^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/.test(String(s||''));
@@ -248,6 +254,10 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
   // Only authenticated editors may submit unpublished text for analysis.
   // Read-only preflight: use the EXACT publication validator, no DB writes.
   // Editors can see missing sources, images, rights or media URLs before saving.
+  // Secret-free status for SWAPP administrators. Does not emit a Discord message.
+  router.get('/api/editor/actus/discord/status',...editor,(req,res)=>{
+    res.json({discord:discordPublisher.status()});
+  });
   router.post('/api/editor/actus/validate',...editor,(req,res)=>{
     try{
       const validated=assertArticle(req.body,{publish:true});
@@ -395,12 +405,17 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
         assertArticle(old,{publish:true});
         const now=new Date().toISOString(),revision=Number(old.revision||1);
         const eventId=`article_${slug}_r${revision}`;
+        // Atomically schedule Discord only for the initial publication of a slug.
+        await discordPublisher.recordPublication(tx,{...old,slug},now);
         tx.update(ref,{status:'published',publishedAt:old.originalPublishedAt||now,updatedAt:now,legacySuppressRecovery:false});
         tx.create(outbox.doc(eventId),{type:'article.published',articleSlug:slug,revision,
           createdAt:now,status:'paused',channels:[],attempts:0});
         return {code:200,slug,status:'published',eventId,social:'paused'};
       });
-      if(result.code===200&&!result.alreadyPublished&&result.status==='published')signalIndexing([slug]);
+      if(result.code===200&&!result.alreadyPublished&&result.status==='published'){
+        signalIndexing([slug]);
+        discordPublisher.kick();
+      }
       return res.status(result.code).json(result);
     }catch(e){if(isValidation(e)) return sendError(res,e);next(e);}
   });
