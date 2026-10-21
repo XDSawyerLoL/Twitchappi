@@ -80,7 +80,7 @@ test('creator workspace uses separated editorial controls, responsive layout and
  assert.match(html,/swapp-creator-workspace\.css\?v=20261021-account-hub-v1/);
  assert.match(html,/index_script\.js\?v=20261021-account-hub-v1/);
  assert.match(html,/swapp-game-identity\.js\?v=20261019-witcher-twitch-v1/);
- assert.match(shell,/swapp-media-live\.js\?v=20261021-auto-fair-v1/);
+ assert.match(shell,/swapp-media-live\.js\?v=20261021-game-universe-v1/);
 });
 
 
