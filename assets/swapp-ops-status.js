@@ -10,6 +10,7 @@
   {name:'Fair Discovery',url:'/api/discovery/fair-summary',describe:d=>({ok:d.enabled===true,detail:d.enabled?'Activé · échantillon '+String(d.sample||'indisponible'):'Désactivé'})},
   {name:'Actualités',url:'/api/actus/release-status',describe:d=>({ok:d.releaseCount>0&&d.releaseCount===d.editableCount,detail:String(d.editableCount||0)+' / '+String(d.releaseCount||0)+' articles du lot éditables'})},
   {name:'Discord',url:'/api/editor/actus/discord/status',describe:d=>({ok:d.discord?.enabled===true,detail:d.discord?.enabled?'Annonce automatique configurée':'À configurer sur Hostinger'})},
+  {name:'Liens communautaires',url:'/api/swapp/community-links',describe:d=>({ok:!!d.discordInvite,detail:[d.discordInvite?'Invitation Discord prête':'Invitation Discord à renseigner',d.xProfile?'X relié':'X non relié',d.blueskyProfile?'Bluesky relié':'Bluesky non relié'].join(' · ')})},
   {name:'Référencement',url:'/api/seo/status',describe:d=>({ok:d.articleSource==='ready',detail:String(d.publishedCount||0)+' articles · '+String(d.articleSource||'inconnu')})}
  ];
  async function load(host){
