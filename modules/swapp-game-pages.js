@@ -108,7 +108,7 @@ function renderGameIndex(groups){
     '</div></article>';
  }).join('');
  const body='<main class="game-portal"><p class="breadcrumb"><a href="/">SWAPP</a> / Jeux</p><header class="hero"><h1>Jeux vidéo : actualités et créateurs</h1><p>Retrouve les jeux couverts par SWAPP, leurs articles et les créateurs en direct.</p><div class="actions"><a href="/mes-jeux">Mes jeux suivis →</a></div></header><section><div class="mg-index-intro"><h2>Explorer les jeux</h2><a href="/mes-jeux">Retrouver ma sélection →</a></div><div class="cards index">'+links+'</div></section></main>';
- return layout({title,description:'Articles et créateurs autour des jeux vidéo couverts par SWAPP.',content:body,metadata:meta,extraCss:CSS,active:'actus'});
+ return layout({title,description:'Articles et créateurs autour des jeux vidéo couverts par SWAPP.',content:body,metadata:meta,extraCss:CSS,active:'games'});
 }
 function renderGamePage(group){
  const url=ORIGIN+'/jeux/'+encodeURIComponent(group.slug);
@@ -149,7 +149,7 @@ function renderGamePage(group){
   '<section class="swapp-spotlight-public" data-spotlight-game="'+html(group.game)+'" aria-label="Créateurs Spotlight"></section>'+
   '<section class="swapp-media-section" data-swapp-live-shelf data-game="'+html(group.game)+'"><div class="swapp-media-heading"><h2>En direct sur '+html(group.game)+'</h2></div>'+
   '<div class="swapp-live-grid" data-live-results><p class="swapp-live-notice">Recherche des lives actuellement disponibles…</p></div></section></main>';
- return layout({title,description,content:body,metadata:meta,extraCss:CSS,active:'actus'});
+ return layout({title,description,content:body,metadata:meta,extraCss:CSS,active:'games'});
 }
 
 // One personal hub, populated with verified published articles only.
@@ -209,7 +209,7 @@ function renderMyGames(groups=[]){
   (safe.length?'':'<p class="mg-info">Aucun dossier de jeu publié pour le moment. <a href="/actus">Lire les actualités →</a></p>')+
   '</section></main>';
  const meta='<meta name="robots" content="noindex,follow">';
- return layout({title:'Mes jeux',description:'Ta sélection personnelle de jeux, actualités et créateurs sur SWAPP.',content:body,metadata:meta,active:'actus'});
+ return layout({title:'Mes jeux',description:'Ta sélection personnelle de jeux, actualités et créateurs sur SWAPP.',content:body,metadata:meta,active:'games'});
 }
 
 module.exports={canonicalGame,gameSlug,gameHubUrl,gameHubs,renderGameIndex,renderGamePage,renderMyGames};
