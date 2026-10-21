@@ -13,7 +13,7 @@ function live(login,game,viewers,score=100,platform='twitch'){
 }
 test('general discovery reserves relevant first-screen opportunities for small creators',()=>{
  const mainstream=Array.from({length:14},(_,i)=>live('major'+i,['Fortnite','Minecraft','Valorant'][i%3],250,140-i));
- const small=Array.from({length:12},(_,i)=>live('small'+i,['Fortnite','Minecraft','Valorant','Balatro'][i%4],4+i,127-i));
+ const small=Array.from({length:12},(_,i)=>live('small'+i,['Fortnite','Minecraft','Valorant','Balatro'][i%4],20+(i%6),127-i));
  const input=[...mainstream,...small].sort((a,b)=>b.score-a.score);
  const snapshot=JSON.stringify(input);
  const result=diversifyDiscovery(input,{firstScreen:12,limit:24,perGame:2,rotation:100});
@@ -22,6 +22,7 @@ test('general discovery reserves relevant first-screen opportunities for small c
  assert.ok(new Set(result.slice(0,12).map(x=>x.game_name)).size>=3);
  assert.equal(new Set(result.map(x=>x.login)).size,24);
  assert.equal(JSON.stringify(input),snapshot);
+ assert.ok(result.every(x=>x.viewer_count>=20));
 });
 test('explicit searches and negative relevance floor are respected',()=>{
  const base=[
@@ -33,9 +34,9 @@ test('explicit searches and negative relevance floor are respected',()=>{
  assert.deepEqual(broad.slice(0,6),base.slice(0,6));
 });
 test('same-game shelves include small creators without relying on popularity alone',()=>{
- const pool=[live('native','Elden Ring',0,0,'oryon'),
+ const pool=[live('native','Elden Ring',20,0,'oryon'),
   ...Array.from({length:8},(_,i)=>live('large'+i,'Elden Ring',200+i)),
-  ...Array.from({length:8},(_,i)=>live('small'+i,'Elden Ring',3+i))];
+  ...Array.from({length:8},(_,i)=>live('small'+i,'Elden Ring',20+(i%6)))];
  const ranked=rankGameLives(pool,{limit:8,rotation:0});
  assert.equal(ranked.length,8);
  assert.equal(ranked[0].login,'native');
@@ -44,7 +45,7 @@ test('same-game shelves include small creators without relying on popularity alo
  assert.ok(ranked.every(x=>pool.includes(x)));
 });
 test('rotating qualified creators changes priority without tracking visitors',()=>{
- const pool=Array.from({length:18},(_,i)=>live('streamer'+i,'Hades II',i+1));
+ const pool=Array.from({length:18},(_,i)=>live('streamer'+i,'Hades II',20+(i%6)));
  const a=rankGameLives(pool,{limit:5,rotation:10});
  const b=rankGameLives(pool,{limit:5,rotation:10});
  const c=rankGameLives(pool,{limit:5,rotation:24});
@@ -54,11 +55,11 @@ test('rotating qualified creators changes priority without tracking visitors',()
 test('small creators can reach the existing homepage shelf',()=>{
  const all=[
   ...Array.from({length:16},(_,i)=>live('mid'+i,['Fortnite','Minecraft','Valorant'][i%3],60+i)),
-  ...Array.from({length:7},(_,i)=>live('micro'+i,['Balatro','Hades II','Outer Wilds'][i%3],1+i))
+  ...Array.from({length:7},(_,i)=>live('micro'+i,['Balatro','Hades II','Outer Wilds'][i%3],20+(i%6)))
  ];
  const ranked=rankHomeLives(all,{limit:12});
  assert.equal(ranked.length,12);
- assert.ok(ranked.some(x=>x.viewer_count<=10));
+ assert.ok(ranked.some(x=>x.viewer_count>=20&&x.viewer_count<=25));
  assert.equal(new Set(ranked.map(x=>x.login)).size,12);
 });
 test('game identity remains exact and sequel-safe across article and community',()=>{
