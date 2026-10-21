@@ -9748,7 +9748,12 @@ app.get('/api/discovery/game-lives', heavyLimiter, async (req,res)=>{
     res.set('Cache-Control','public, max-age=25');
     // Fair Discovery: verified exact-game matches only, then rotate small
     // creators into the same shelf as established channels. No paid boosts.
-    const visible=require('./modules/swapp-discovery-diversity').rankGameLives(items,{limit});
+    const requestedLanguage=String(req.query.lang||'').toLowerCase();
+    const preferred=requestedLanguage==='fr'
+      ?items.filter(x=>['oryon','swapp'].includes(x.platform)||String(x.language||'').toLowerCase()==='fr')
+      :items;
+    const languageFallback=requestedLanguage==='fr'&&!preferred.length;
+    const visible=require('./modules/swapp-discovery-diversity').rankGameLives(languageFallback?items:preferred,{limit});
     if(twitchAvailable)await swappAddLiveAvatars(visible);
     // Public creator/game proof only; the HMAC is not tied to a viewer.
     const reportable=fairMetrics.enabled()?visible.map(item=>({...item,fairProof:fairMetrics.issue(item)})):visible;
@@ -9756,7 +9761,7 @@ app.get('/api/discovery/game-lives', heavyLimiter, async (req,res)=>{
     if(fairOffers.enabled())res.once('finish',()=>{
       if(res.statusCode===200)fairOffers.capture(reportable,{placement:'game'});
     });
-    return res.json({success:true,game,items:reportable,totalCandidates:items.length,
+    return res.json({success:true,game,items:reportable,totalCandidates:items.length,languagePreference:requestedLanguage==='fr'?'fr':null,languageFallback,
       fairMetrics:{enabled:fairMetrics.enabled(),scope:'anonymous-game-cards'},
       coverage:twitchAvailable?(twitchError?'partial':'game-search'):'native-only',
       discovery:{policy:'fair-discovery-v1',ranking:'verified-game-then-small-creators',paidBoost:false}});
