@@ -141,13 +141,13 @@ async function verify(){
  check(shelfScript.body.includes("shelf.id==='swapp-article-lives'")&&
   shelfScript.body.includes('swapp-live-card-editorial')&&
   shelfScript.body.includes("articleMode?'Regarder le live")&&
-  home.body.includes('swapp-article-immersive.css?v=20261020-end-nav-v9'),
+  home.body.includes('swapp-article-immersive.css?v=20261021-compact-reading-v1'),
   'Direct article lives still use oversized repeated game pills');
  // SWAPP Lecture: both server-rendered articles and the SPA must ship the same
  // opt-in reader and narrator. This does not claim that a Mairy voice exists.
  for(const [pathname,page] of [['/',home],['/actus',news]]){
   check(page.body.includes('/assets/swapp-reader-studio.js?v=20261020-vivienne-only-v2')&&
-    page.body.includes('/assets/swapp-reader-studio.css?v=20261020-vivienne-only-v2'),
+    page.body.includes('/assets/swapp-reader-studio.css?v=20261021-compact-reading-v1'),
     pathname+': article reading module absent or stale');
  }
  check(!home.body.includes('<script src="/assets/swapp-neural-narration.js')&&
@@ -187,7 +187,7 @@ async function verify(){
  check(nativeColor.body.includes("oryon_viewer_accent")&&
   nativeColor.body.includes("'--swapp-side-light'")&&
   nativeColor.body.includes('swapp-editorial-theme')&&
-  home.body.includes('swapp-article-immersive.css?v=20261020-end-nav-v9'),
+  home.body.includes('swapp-article-immersive.css?v=20261021-compact-reading-v1'),
   'Native article does not restore the SPA user-selected side light');
  const readerExit=await request(origin,'/actus/valor-mortis-est-sorti-le-soulslike-napoleonien-des-cre');
  check(readerExit.body.includes('class="swapp-article-end-nav"')&&
@@ -206,7 +206,7 @@ async function verify(){
   'TOC sticky panel may be too tall or non-sticky on initial load');
  check(trailerCss.body.includes('#fa7b19')&&
   trailerCss.body.includes('swapp-affiliate-link')&&
-  home.body.includes('swapp-article-immersive.css?v=20261020-end-nav-v9'),
+  home.body.includes('swapp-article-immersive.css?v=20261021-compact-reading-v1'),
   'Orange compact partner action not deployed');
  check(cardClient.body.includes('OFFRE INSTANT GAMING · LIEN AFFILIÉ')&&
   cardClient.body.includes('Voir l’offre ↗')&&
