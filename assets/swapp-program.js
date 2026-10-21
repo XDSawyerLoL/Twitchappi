@@ -20,9 +20,20 @@ async function showAntenna(){
   panel.append(el('h2','SWAPP TV · Antenne commune'));
   if(data.on_air?.twitch_login){
    panel.append(el('p','À l’antenne : '+data.on_air.creator_login+' · '+data.on_air.game));
-   const a=el('a','Voir le direct →');
-   a.href='/live/twitch/'+encodeURIComponent(data.on_air.twitch_login);
-   panel.append(a);
+   const login=String(data.on_air.twitch_login).toLowerCase();
+   if(/^[a-z0-9_]{3,25}$/.test(login)){
+    const slot=el('div',undefined,'swapp-tv-player-slot');slot.dataset.login=login;
+    const play=el('button','Lancer le direct (son désactivé)');play.type='button';
+    play.addEventListener('click',()=>{
+     const iframe=el('iframe');iframe.title='Direct Twitch — '+login;
+     const params=new URLSearchParams({channel:login,parent:location.hostname,autoplay:'true',muted:'true'});
+     iframe.src='https://player.twitch.tv/?'+params.toString();
+     iframe.allow='autoplay; fullscreen';iframe.allowFullscreen=true;
+     iframe.referrerPolicy='strict-origin-when-cross-origin';
+     slot.replaceChildren(iframe);
+    });
+    slot.append(play);panel.append(slot);
+   }
   }else panel.append(el('p','Aucun créateur actuellement à l’antenne.'));
   const list=el('ol');
   for(const item of (Array.isArray(data.waiting)?data.waiting:[]).slice(0,12)){
