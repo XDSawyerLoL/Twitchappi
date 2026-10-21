@@ -1,0 +1,52 @@
+/* X ↔ Discord: real component rendered in SWAPP homepage, not an image. */
+#home .swapp-social-bridge{
+ position:relative;isolation:isolate;margin:clamp(32px,4vw,58px) auto;
+ max-width:1440px;padding:clamp(23px,3vw,36px);overflow:hidden;
+ color:#eef4ff;background:linear-gradient(123deg,#0c111c 0%,#111724 53%,#101222 100%);
+ border:1px solid rgba(190,208,240,.16);border-radius:19px;
+ box-shadow:0 16px 40px rgba(0,0,0,.15)
+}
+#home .swapp-social-bridge:before{content:"";position:absolute;z-index:-1;inset:0;background:
+ radial-gradient(circle at 16% 25%,rgba(177,194,237,.12),transparent 32%),
+ radial-gradient(circle at 82% 74%,rgba(99,103,242,.12),transparent 31%);pointer-events:none}
+#home .swapp-social-bridge-kicker{font:850 11px/1.5 system-ui,sans-serif;color:#a9bdde;letter-spacing:.16em}
+#home .swapp-social-bridge-intro{display:flex;gap:20px;justify-content:space-between;align-items:end;margin:8px 0 23px}
+#home .swapp-social-bridge-intro h2{margin:0;max-width:680px;font-size:clamp(24px,3vw,40px);font-weight:850;line-height:1.12;letter-spacing:-.04em}
+#home .swapp-social-bridge-intro p{margin:0 0 2px;max-width:360px;color:#bdcadd;font-size:13px;line-height:1.6}
+#home .swapp-social-bridge-sides{display:grid;grid-template-columns:minmax(0,1fr) 74px minmax(0,1fr);align-items:stretch;gap:0}
+#home .swapp-social-bridge-side{display:flex;flex-direction:column;gap:10px;min-width:0;padding:clamp(20px,2.4vw,31px);border-radius:13px;border:1px solid rgba(184,204,240,.17);background:rgba(255,255,255,.035)}
+#home .swapp-social-bridge-discord{background:linear-gradient(125deg,rgba(95,100,218,.15),rgba(108,121,225,.04));border-color:rgba(150,157,245,.28)}
+#home .swapp-social-bridge-platform{display:flex;align-items:center;gap:10px;min-height:44px}
+#home .swapp-social-bridge-symbol{width:43px;height:43px;display:grid;place-items:center;border-radius:11px;border:1px solid rgba(201,220,249,.25);background:#05070b;color:#f7f9ff;font-size:29px;font-weight:800}
+#home .swapp-social-bridge-chat{font-size:27px;background:#5865f2;border-color:rgba(173,183,255,.42)}
+#home .swapp-social-bridge-name{font:850 11px/1.35 system-ui,sans-serif;letter-spacing:.095em;color:#c9d5eb}
+#home .swapp-social-bridge-side h3{margin:10px 0 1px;font-size:clamp(18px,2.2vw,27px);letter-spacing:-.035em;line-height:1.22;color:#fff}
+#home .swapp-social-bridge-side p{margin:0 0 16px;font-size:13px;line-height:1.7;color:#bbc7da;max-width:490px;flex:1}
+#home .swapp-social-bridge-action{display:inline-flex;align-items:center;justify-content:center;align-self:flex-start;min-height:45px;padding:11px 17px;border-radius:8px;border:1px solid rgba(202,216,245,.32);color:#f8fbff!important;background:#293244;font-size:13px;font-weight:820;text-decoration:none;cursor:pointer;transition:background .17s,border-color .17s,transform .17s}
+#home .swapp-social-bridge-discord .swapp-social-bridge-action{background:#4d58d4;border-color:#727ef9}
+#home .swapp-social-bridge-action:hover{background:#3b4660;transform:translateY(-2px)}
+#home .swapp-social-bridge-discord .swapp-social-bridge-action:hover{background:#6371f0}
+#home .swapp-social-bridge-action:focus-visible{outline:2px solid #d1e6ff;outline-offset:3px}
+#home .swapp-social-bridge-connection{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:#acb8d8}
+#home .swapp-social-bridge-connection span:nth-child(1),#home .swapp-social-bridge-connection span:nth-child(3){font-size:21px;line-height:1}
+#home .swapp-social-bridge-connection span:nth-child(2){writing-mode:vertical-rl;letter-spacing:.19em;font-weight:900;font-size:10px}
+#home .swapp-social-bridge-notice{display:block;overflow-wrap:anywhere;color:#c5d4f9;font-size:12px;line-height:1.5}
+#home .swapp-social-bridge-notice:empty{display:none}
+#home .swapp-social-bridge-footnote{margin:19px 0 0;color:#8da3bf;font-size:12px;letter-spacing:.01em}
+@media(max-width:870px){
+ #home .swapp-social-bridge-intro{display:block}
+ #home .swapp-social-bridge-intro p{margin:11px 0 0;max-width:590px}
+ #home .swapp-social-bridge-sides{grid-template-columns:minmax(0,1fr) 46px minmax(0,1fr)}
+ #home .swapp-social-bridge-side{padding:19px}
+}
+@media(max-width:660px){
+ #home .swapp-social-bridge{border-radius:14px;margin:26px auto;padding:18px}
+ #home .swapp-social-bridge-sides{grid-template-columns:1fr;gap:0}
+ #home .swapp-social-bridge-connection{flex-direction:row;padding:9px 0}
+ #home .swapp-social-bridge-connection span:nth-child(2){writing-mode:horizontal-tb}
+ #home .swapp-social-bridge-connection span:nth-child(3){display:none}
+ #home .swapp-social-bridge-connection span:nth-child(1){transform:rotate(90deg)}
+ #home .swapp-social-bridge-side{padding:19px}
+ #home .swapp-social-bridge-action{width:100%;align-self:stretch}
+}
+@media(prefers-reduced-motion:reduce){#home .swapp-social-bridge-action{transition:none;transform:none!important}}
