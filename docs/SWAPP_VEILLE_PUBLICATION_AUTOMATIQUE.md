@@ -24,7 +24,8 @@
 - La synchronisation automatique ne concerne **que** les lots editoriaux versions et deja publies par l'editeur sur GitHub ; elle n'utilise aucune URL d'actualite externe pour ecrire du contenu aveuglement.
 - Une ligne Firestore preexistante, meme en brouillon ou de-publiee, n'est jamais reecrite, effacee ou republiee automatiquement.
 - Les donnees MySQL de comptes et SOCIAL sont independantes : cette methode ne migre pas les comptes et ne change pas le mecanisme de stockage des articles.
-- La publication sociale automatique est desactivee : aucun post Twitch, X, SOCIAL ou autre sans permission distincte.
+- EXCEPTION VALIDEE : toute **nouvelle** publication est mise en file pour une annonce dans le salon Discord choisi par le proprietaire, via webhook prive Hostinger SWAPP_DISCORD_WEBHOOK_URL. Voir docs/SWAPP_DISCORD_AUTOPUBLICATION.md. Les articles historiques deja publies ne sont pas automatiquement republies sur Discord.
+- Les autres reseaux sociaux (Twitch, X, SOCIAL, etc.) restent desactives sans connexion et autorisation distinctes.
 - Le type `video` exige un trailer officiel et une validation des droits ; les articles sans videos peuvent faire une alerte au lieu d'une auto-publication.
 
 ## Activation et audit
