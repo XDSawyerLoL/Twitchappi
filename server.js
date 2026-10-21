@@ -5746,7 +5746,7 @@ app.get('/api/oryon/discover/find-live', heavyLimiter, async (req,res)=>{
     res.json({
       success:true,
       items: reportable,
-      fairMetrics:{enabled:fairMetrics.enabled(),placement:'discover',sample:'opt-in-only'},
+      fairMetrics:{enabled:fairMetrics.enabled(),placement:'discover',sample:'automatic-anonymous'},
       query:q,
       max,
       lang,
@@ -9757,7 +9757,7 @@ app.get('/api/discovery/game-lives', heavyLimiter, async (req,res)=>{
       if(res.statusCode===200)fairOffers.capture(reportable,{placement:'game'});
     });
     return res.json({success:true,game,items:reportable,totalCandidates:items.length,
-      fairMetrics:{enabled:fairMetrics.enabled(),scope:'opt-in-game-cards'},
+      fairMetrics:{enabled:fairMetrics.enabled(),scope:'anonymous-game-cards'},
       coverage:twitchAvailable?(twitchError?'partial':'game-search'):'native-only',
       discovery:{policy:'fair-discovery-v1',ranking:'verified-game-then-small-creators',paidBoost:false}});
   }catch(e){return res.status(503).json({success:false,error:'Recherche de lives indisponible',items:[]})}
