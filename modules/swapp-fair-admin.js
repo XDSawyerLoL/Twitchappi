@@ -1,6 +1,6 @@
 'use strict';
 // SWAPP Fair Discovery: read-only admin dashboard, all metrics remain aggregates.
-// Shares represent voluntary game-card samples, NOT global SWAPP exposure.
+// Shares represent anonymous verified game-card samples, NOT unique visitors.
 const {layout}=require('./swapp-news/site-shell');
 const SCOPE='game-card-opt-in';
 const BANDS=['small','growing','established'];
@@ -23,7 +23,7 @@ function summarizeFairAdmin({bands=[],daily=[],dailyCreators=[],games=[],uniqueC
  const totals=base.reduce((a,x)=>({impressions:a.impressions+x.impressions,clicks:a.clicks+x.clicks}),{impressions:0,clicks:0});
  const creators=count(uniqueCreators);
  const shared={enabled:true,scope:placement==='all'?'all-card-opt-in':placement+'-card-opt-in',placement,periodDays,thresholds:{impressions:MIN_IMPRESSIONS,creators:MIN_CREATORS},
-  sampling:'voluntary',notice:'Mesure limitée aux cartes de lives des surfaces sélectionnées et aux visiteurs volontaires ; aucune donnée visiteur.'};
+  sampling:'automatic-anonymous',notice:'Mesure automatique des cartes publiques vérifiées et visibles ; aucun cookie ni identifiant visiteur.'};
  if(totals.impressions<MIN_IMPRESSIONS||creators<MIN_CREATORS)
   return {...shared,sample:'insufficient',message:'Collecte active, mais échantillon encore insuffisant pour une analyse fiable.'};
  const visibleBands=BANDS.map(name=>{
@@ -51,7 +51,7 @@ function summarizeFairAdmin({bands=[],daily=[],dailyCreators=[],games=[],uniqueC
  const trend=[...byDate.values()].sort((a,b)=>a.day.localeCompare(b.day)).slice(-periodDays).map(row=>{
   if(row.impressions<MIN_GROUP_IMPRESSIONS||row.creators<MIN_GROUP_CREATORS)
    return {day:row.day,sample:'insufficient',impressions:null,clicks:null,smallShare:null};
-  return {day:row.day,sample:'limited-voluntary',impressions:row.impressions,
+  return {day:row.day,sample:'limited-aggregate',impressions:row.impressions,
    clicks:row.clicks,smallShare:row.small>=MIN_GROUP_IMPRESSIONS?percent(row.small,row.impressions):null};
  });
  // A game's public name is allowed; never send a creator login, session or a raw event.
@@ -61,9 +61,9 @@ function summarizeFairAdmin({bands=[],daily=[],dailyCreators=[],games=[],uniqueC
   .filter(x=>x.name.length>=2&&x.impressions>=MIN_GAME_IMPRESSIONS&&x.creators>=MIN_GAME_CREATORS)
   .sort((a,b)=>b.impressions-a.impressions||a.name.localeCompare(b.name,'fr'))
   .slice(0,8).map(x=>({name:x.name,impressions:x.impressions,clicks:x.clicks,clickRate:percent(x.clicks,x.impressions)}));
- return {...shared,sample:'limited-voluntary',totals:{...totals,creators,clickRate:percent(totals.clicks,totals.impressions)},
+ return {...shared,sample:'limited-aggregate',totals:{...totals,creators,clickRate:percent(totals.clicks,totals.impressions)},
   bands:visibleBands,trend,games:topGames,
-  warning:'Les catégories varient selon l’audience instantanée et un même créateur peut changer de catégorie. Les résultats volontaires ne représentent pas tous les visiteurs.'};
+  warning:'Les catégories varient selon l’audience instantanée et un même créateur peut changer de catégorie. Ces résultats agrégés ne comptabilisent pas les visiteurs uniques.'};
 }
 // Server-side offers are API candidates, NOT voluntary observed impressions.
 function summarizeFairOffers({bands=[],uniqueCreators=0,days=7,placement='all',enabled=true}={}){
@@ -104,9 +104,9 @@ function fairAdminPage(){
   '<strong id="fair-offers-creators">—</strong><span>créateurs distincts</span></div>'+
   '<div class="fair-bars" id="fair-offers-bands" hidden></div></section>'+
   '<div class="fair-empty" id="fair-empty" hidden><strong id="fair-empty-title">Pas encore de données exploitables.</strong>'+
-  '<p id="fair-empty-description">Les statistiques restent masquées tant que l’échantillon volontaire est insuffisant.</p>'+
+  '<p id="fair-empty-description">Les statistiques restent masquées tant que l’échantillon anonyme est insuffisant.</p>'+
   '<a href="/jeux">Parcourir les fiches de jeux →</a></div>'+
-  '<div id="fair-data" hidden><section class="fair-kpis" aria-label="Indicateurs"><article><span>Impressions volontaires</span><strong id="fair-impressions">—</strong><small>Cartes vues au moins 1,25 s</small></article>'+
+  '<div id="fair-data" hidden><section class="fair-kpis" aria-label="Indicateurs"><article><span>Impressions anonymes</span><strong id="fair-impressions">—</strong><small>Cartes vues au moins 1,25 s</small></article>'+
   '<article><span>Clics vers les lives</span><strong id="fair-clicks">—</strong><small>Actions volontaires enregistrées</small></article>'+
   '<article><span>Créateurs distincts</span><strong id="fair-creators">—</strong><small>Identités publiques uniques</small></article>'+
   '<article><span>Taux clic / impression</span><strong id="fair-ctr">—</strong><small>Ce n’est pas un taux de conversion global</small></article></section>'+
