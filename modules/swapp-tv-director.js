@@ -8,6 +8,7 @@ const DDL=`CREATE TABLE IF NOT EXISTS swapp_tv_director (
  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`;
 const MAX_AIR_SECONDS=10*60;
+function utcTime(value){if(value instanceof Date)return value.getTime();if(!value)return NaN;const text=String(value).trim().replace(' ','T');return Date.parse(/(?:Z|[+-]\d\d:?\d\d)$/.test(text)?text:text+'Z')}
 function choice(rows,{recentUsers=[]}={}){
  const recent=new Set(recentUsers.map(String));
  const eligible=rows.filter(x=>x&&x.status==='waiting'&&!recent.has(String(x.user_id))&&/^[a-z0-9_]{3,40}$/.test(String(x.twitch_login||'')));
@@ -23,7 +24,7 @@ function createDirector({getPool,verifyLive,now=Date.now}={}){
   try{
    await db.beginTransaction();
    const [head]=await db.execute('SELECT current_queue_id,started_at FROM swapp_tv_director WHERE id=1 FOR UPDATE');
-   if(head[0]?.current_queue_id&&head[0].started_at&&now()-Date.parse(String(head[0].started_at).replace(' ','T').replace(/Z?$/,'Z'))<MAX_AIR_SECONDS*1000){
+   if(head[0]?.current_queue_id&&head[0].started_at&&now()-utcTime(head[0].started_at)<MAX_AIR_SECONDS*1000){
     await db.commit();return {changed:false,reason:'slot_active'};
    }
    // A completed turn receives a cooldown; it cannot immediately occupy another position.
