@@ -329,16 +329,16 @@ export async function loadExplore(query='',{gameContext=false}={}){
 }
 
 export async function loadCircles(){
-  const revision=setView('circles','Communautés');
-  setStatus('Chargement des communautés','');
+  const revision=setView('circles','Groupes publics');
+  setStatus('Chargement des groupes publics','');
   try{
     const data=await api('/api/pulse/circles');
     if(!isCurrent(revision,'circles'))return;
-    let html='<section class="pulse-view"><div class="pulse-view-head"><h2>Communautés</h2><p>Échange avec des joueurs, rejoins un salon ou retrouve une équipe.</p></div>'+
-      '<nav class="pulse-community-shortcuts" aria-label="Jeux et salons"><button type="button" data-view="play">Jeux et équipes</button><button type="button" data-view="rooms">Salons vocaux</button></nav>';
-    if(state.user)html+='<form class="pulse-inline-form two" id="circle-create"><input name="name" minlength="3" maxlength="60" placeholder="Nom du cercle" required><input name="description" maxlength="240" placeholder="Description"><button class="pulse-mini-button primary">Créer</button></form>';
+    let html='<section class="pulse-view"><div class="pulse-view-head"><h2>Groupes publics</h2><p>Rejoins un groupe existant ou crée le tien. Pour discuter en texte et en vocal, ouvre les espaces communautaires.</p></div>'+
+      '<nav class="pulse-community-shortcuts" aria-label="Navigation des communautés"><button type="button" data-view="rooms">← Mes espaces et salons</button><button type="button" data-view="play">Trouver une équipe</button></nav>';
+    if(state.user)html+='<form class="pulse-inline-form two" id="circle-create"><input name="name" minlength="3" maxlength="60" placeholder="Nom de ton groupe" required><input name="description" maxlength="240" placeholder="De quoi parle ce groupe ?"><button class="pulse-mini-button primary">Créer mon groupe</button></form>';
     html+='<div class="pulse-card-list">';
-    if(!data.circles.length)html+='<div class="pulse-card"><p>Aucune communauté publique pour le moment.</p></div>';
+    if(!data.circles.length)html+='<div class="pulse-card"><p>Aucun groupe public pour le moment. Tu peux en créer un ci-dessus ou ouvrir ton espace privé.</p></div>';
     data.circles.forEach(function(circle){
       html+='<div class="pulse-card"><div class="pulse-card-row"><div><h3>'+esc(circle.name)+'</h3><div class="pulse-card-meta">'+circle.memberCount+' membres · '+esc(circle.visibility)+'</div></div><button class="pulse-mini-button '+(circle.joined?'':'primary')+'" data-circle-join="'+esc(circle.id)+'">'+(circle.joined?'Quitter':'Rejoindre')+'</button></div><p>'+esc(circle.description||'')+'</p></div>';
     });
