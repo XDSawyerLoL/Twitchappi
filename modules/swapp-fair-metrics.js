@@ -1,5 +1,5 @@
 'use strict';
-// SWAPP Fair Discovery v2 — explicit opt-in, verified *visible* creator cards.
+// SWAPP Fair Discovery v2 — automatic anonymous sampling, verified *visible* creator cards.
 // This stores public creator/game identities + daily aggregate counts only.
 // Never stores viewer identifiers, IPs, cookies, sessions, URLs or raw events.
 const crypto=require('node:crypto');
@@ -94,7 +94,7 @@ function createFairMetrics({getPool,isEnabled,secret,now=Date.now}={}){
  }
  async function summary({placement=PLACEMENT}={}){
   if(!PLACEMENTS.has(placement))throw Error('fair_invalid_placement');
-  if(!enabled())return {enabled:false,scope:placement+'-card-opt-in',sample:'not_collected'};
+  if(!enabled())return {enabled:false,scope:placement+'-card-aggregate',sample:'not_collected'};
   const pool=await ready();
   const [rows]=await pool.execute(
    'SELECT audience_band,COUNT(DISTINCT platform,creator_login) AS creators,SUM(impressions) AS impressions,SUM(clicks) AS clicks '+
@@ -109,11 +109,11 @@ function createFairMetrics({getPool,isEnabled,secret,now=Date.now}={}){
    'WHERE event_day>=UTC_DATE() - INTERVAL 6 DAY AND event_day<=UTC_DATE() AND placement=?',[placement]);
   const allCreators=Math.max(0,Number(distinctRows?.[0]?.creators)||0);
   // Suppress low-volume results entirely, including individual cohort counts.
-  if(allImpressions<MIN_IMPRESSIONS||allCreators<MIN_CREATORS)return {enabled:true,scope:placement+'-card-opt-in',sample:'insufficient',minimumImpressions:MIN_IMPRESSIONS,minimumCreators:MIN_CREATORS};
+  if(allImpressions<MIN_IMPRESSIONS||allCreators<MIN_CREATORS)return {enabled:true,scope:placement+'-card-aggregate',sample:'insufficient',minimumImpressions:MIN_IMPRESSIONS,minimumCreators:MIN_CREATORS};
   const small=normalized.find(x=>x.band==='small')?.impressions||0;
-  return {enabled:true,scope:placement+'-card-opt-in',sample:'limited-voluntary',periodDays:7,impressions:allImpressions,
+  return {enabled:true,scope:placement+'-card-aggregate',sample:'limited-aggregate',periodDays:7,impressions:allImpressions,
    uniqueCreatorsRepresented:allCreators,smallAudienceImpressionShare:Math.round(small/allImpressions*1000)/10,
-   caveat:'Échantillon volontaire ; pas une mesure exhaustive ou une preuve de parité.'};
+   caveat:'Échantillon de cartes publiques vérifiées ; sans visiteur unique, mesure exhaustive ou preuve de parité.'};
  }
  return {enabled,issue,verify,record,summary};
 }
