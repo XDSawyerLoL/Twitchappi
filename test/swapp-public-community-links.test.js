@@ -44,6 +44,7 @@ test('GAME UNIVERSE retains its real article & play discovery while offering saf
  assert.match(html,/Partager ce jeu sur X/);
  assert.match(html,/Discuter sur SWAPP SOCIAL/);
  assert.match(html,/https:\/\/x\.com\/intent\/tweet/);
+ assert.match(html,/bsky\.app\/intent\/compose/);
  assert.match(html,/\/social\?game=Elden%20Ring/);
  assert.match(html,/data-swapp-live-shelf/);
  assert.match(html,/href="\/actus\/news-game-sample"/);
