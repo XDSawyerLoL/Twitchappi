@@ -1261,8 +1261,8 @@ if(SWAPP_TV_DIRECTOR_ENABLED){
 
 app.get('/api/swapp-tv/queue/status',async(_req,res)=>{
  res.set('Cache-Control','no-store');
- if(!SWAPP_TV_QUEUE_ENABLED)return res.json({enabled:false,on_air:null,waiting:[]});
- try{res.json({enabled:true,...await swappTvQueue.state()})}
+ if(!SWAPP_TV_QUEUE_ENABLED)return res.json({enabled:false,director_enabled:false,on_air:null,waiting:[]});
+ try{res.json({enabled:true,director_enabled:SWAPP_TV_DIRECTOR_ENABLED,...await swappTvQueue.state()})}
  catch(_){res.status(503).json({enabled:false,error:'tv_queue_storage_unavailable',on_air:null,waiting:[]})}
 });
 app.post('/api/swapp-tv/queue',mutationLimiter,async(req,res)=>{
@@ -1270,7 +1270,7 @@ app.post('/api/swapp-tv/queue',mutationLimiter,async(req,res)=>{
  if(!SWAPP_TV_QUEUE_ENABLED)return res.status(503).json({error:'tv_queue_not_enabled'});
  try{
   spotlightWriteAllowed(req);
-  const user=await spotlightAuthorized(req,res);
+  const user=await spotlightAuthorized(req,res,{tv:true});
   const game=String(req.body?.game||'').trim();
   require('./modules/swapp-spotlight').validateGame(game);
   await spotlightPublishedGame(game);
@@ -1282,7 +1282,7 @@ app.post('/api/swapp-tv/queue',mutationLimiter,async(req,res)=>{
 app.delete('/api/swapp-tv/queue',mutationLimiter,async(req,res)=>{
  res.set('Cache-Control','no-store');
  if(!SWAPP_TV_QUEUE_ENABLED)return res.status(503).json({error:'tv_queue_not_enabled'});
- try{spotlightWriteAllowed(req);const user=await spotlightAuthorized(req,res);res.json({success:true,...await swappTvQueue.leave(user)})}
+ try{spotlightWriteAllowed(req);const user=await spotlightAuthorized(req,res,{tv:true});res.json({success:true,...await swappTvQueue.leave(user)})}
  catch(e){spotlightHandleError(e,res,req)}
 });
 
@@ -9631,8 +9631,8 @@ function spotlightHandleError(error,res,req){
   recordSwappError('spotlight',req,error);
   return res.status(503).json({success:false,error:'spotlight_temporarily_unavailable'});
 }
-async function spotlightAuthorized(req,res){
-  if(!SWAPP_SPOTLIGHT_ENABLED||!SWAPP_MYSQL_ACCOUNTS)
+async function spotlightAuthorized(req,res,{tv=false}={}){
+  if(!(tv?SWAPP_TV_QUEUE_ENABLED:SWAPP_SPOTLIGHT_ENABLED)||!SWAPP_MYSQL_ACCOUNTS)
     throw spotlightError('spotlight_not_enabled',503);
   await restoreOryonSessionFromRememberCookie(req,res,{allowUserRecovery:false});
   const id=req.session?.oryonUser?.id;
