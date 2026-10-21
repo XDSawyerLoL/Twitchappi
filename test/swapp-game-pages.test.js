@@ -170,3 +170,17 @@ test('hub covers use verified trailer thumbnails when no licensed image is attac
  assert.match(index,/i.ytimg.com\/vi\/mOMUnP5fAdo\/hqdefault.jpg/);
  assert.match(page,/data-swapp-live-shelf/);
 });
+
+test('game index uses full-width artwork, readable titles and responsive card actions',()=>{
+ const html=renderGameIndex(gameHubs(published));
+ assert.match(html,/class="game-index-card"/);
+ assert.match(html,/class="game-index-link"/);
+ assert.match(html,/class="game-index-media/);
+ assert.match(html,/class="game-index-details"/);
+ assert.match(html,/class="game-index-actions"/);
+ assert.match(html,/grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
+ assert.match(html,/@media\(max-width:1000px\)/);
+ assert.match(html,/@media\(max-width:620px\)/);
+ assert.doesNotMatch(html,/\.game-portal \.index a\{display:flex/);
+ assert.match(html,/href="\/jeux" class="active" aria-current="page"/);
+});
