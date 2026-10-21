@@ -303,3 +303,14 @@ test('Search Console verification survives alternate Hostinger UI_FILE without d
  const file=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
  assert.equal((injectSpaMetadata(file,'/').match(/google-site-verification/g)||[]).length,1);
 });
+
+test('RSS exposes real HTTPS editorial covers and rejects unsafe media URLs',()=>{
+ const xml=rssXml([
+  {slug:'article-avec-image',status:'published',title:'Image',image:{url:'https://cdn.example.org/cover.jpg?a=1&b=2'}},
+  {slug:'article-invalide',status:'published',title:'Sans image',image:'javascript:alert(1)'},
+  {slug:'article-secret',status:'draft',title:'Brouillon',image:'https://cdn.example.org/draft.jpg'}
+ ]);
+ assert.match(xml,/xmlns:media="http:\/\/search.yahoo.com\/mrss\/"/);
+ assert.match(xml,/<media:content url="https:\/\/cdn.example.org\/cover.jpg\?a=1&amp;b=2" medium="image" \/>/);
+ assert.doesNotMatch(xml,/javascript:|draft.jpg/);
+});
