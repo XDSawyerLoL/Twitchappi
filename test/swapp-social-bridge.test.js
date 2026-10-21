@@ -24,8 +24,8 @@ function flatten(root,out=[]){
 }
 test('the home page imports a real first-party X/Discord visual in correct order',()=>{
  const html=read('index.html'),home=read('assets/swapp-home-news.js');
- assert.match(html,/swapp-social-bridge\.css\?v=20261021-bridge-v1/);
- assert.match(html,/swapp-social-bridge\.js\?v=20261021-bridge-v1/);
+ assert.match(html,/swapp-social-bridge\.css\?v=20261021-join-bridge-v2/);
+ assert.match(html,/swapp-social-bridge\.js\?v=20261021-join-bridge-v2/);
  assert.ok(html.indexOf('swapp-social-bridge.js')<html.indexOf('swapp-home-news.js'));
  assert.match(home,/SwappSocialBridge\?\.mount\(section,valid\)/);
  assert.doesNotMatch(read('assets/swapp-social-bridge.js'),/DISCORD_WEBHOOK_URL|\/api\/webhooks\/\d+\/[^ ]+/);
