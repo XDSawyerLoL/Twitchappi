@@ -84,6 +84,6 @@ test('wishlist interest highlights published stories without silently following'
 test('store-only wishlist titles fall back to the boutique, never a fake game dossier',()=>{
  const code=fs.readFileSync(path.join(__dirname,'../assets/swapp-wishlist-rewards.js'),'utf8');
  assert.match(code,/hasPublishedHub=\$\$\('\[data-swapp-game-card\]'\)/);
- assert.match(code,/a\.href=hasPublishedHub\?'\/jeux\/'\+item\.slug:'\/boutique'/);
+ assert.match(code,/a\.href=hasPublishedHub\?'\/actus\?q='\+encodeURIComponent\(cleanName\(item\.game\)\):'\/boutique'/);
  assert.match(code,/swapp:wishlist-changed/);
 });

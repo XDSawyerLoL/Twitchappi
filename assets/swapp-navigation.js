@@ -11,7 +11,6 @@
   const items=Object.freeze([
     Object.freeze({id:'home',label:'Accueil',href:'/'}),
     Object.freeze({id:'discover',label:'Découvrir',href:'/decouvrir'}),
-    Object.freeze({id:'games',label:'Jeux',href:'/jeux'}),
     Object.freeze({id:'categories',label:'Catégories',href:'/categories'}),
     Object.freeze({id:'teams',label:'Équipes',href:'/equipes'}),
     Object.freeze({id:'actus',label:'Actualité',href:'/actus'}),

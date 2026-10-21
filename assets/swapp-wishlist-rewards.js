@@ -50,7 +50,7 @@
   }
   if(!wishlist.length){
    const p=document.createElement('p');
-   p.textContent='Aucun jeu dans tes envies. Ajoute un titre depuis son dossier.';
+   p.textContent='Aucun jeu dans tes envies. Ajoute un titre directement depuis un article SWAPP.';
    list.append(p);return;
   }
   for(const item of wishlist){
@@ -59,10 +59,10 @@
    const body=document.createElement('div');
    const hasPublishedHub=$$('[data-swapp-game-card]').some(card=>card.dataset.gameSlug===item.slug);
    const a=document.createElement('a');
-   a.href=hasPublishedHub?'/jeux/'+item.slug:'/boutique';
+   a.href=hasPublishedHub?'/actus?q='+encodeURIComponent(cleanName(item.game)):'/boutique';
    a.textContent=cleanName(item.game);
    const small=document.createElement('small');
-   small.textContent=hasPublishedHub?'Actualités et lives · Dossier publié':'Envie conservée · Disponibilité commerciale à vérifier';
+   small.textContent=hasPublishedHub?'Retrouver les articles du jeu':'Envie conservée · Disponibilité commerciale à vérifier';
    body.append(a,small);
    const remove=document.createElement('button');
    remove.type='button';remove.textContent='Retirer';remove.dataset.wishlistRemove=item.slug;

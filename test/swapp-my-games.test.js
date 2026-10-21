@@ -15,7 +15,7 @@ const articles=[
 ];
 function fakeResponse(){
  return {code:200,body:'',headers:{},set(k,v){this.headers[k]=v;return this},type(){return this},
-  status(code){this.code=code;return this},send(s){this.body=s;return this}};
+  status(code){this.code=code;return this},send(s){this.body=s;return this},redirect(code,url){this.code=code;this.redirectLocation=url;return this}};
 }
 test('Mes jeux only offers real indexed games and published stories',()=>{
  const groups=gameHubs(articles);
@@ -58,13 +58,16 @@ test('Mes jeux reuses only published data from the existing cache and never goes
  assert.equal(my.code,200);
  assert.equal(my.headers['Cache-Control'],'private, no-store');
  assert.match(my.body,/Mes jeux/);
+ assert.equal(games.code,301);
+ assert.equal(games.redirectLocation,'/actus');
  assert.equal(reads,1,'same public editorial cache');
  assert.doesNotMatch(sitemapXml(articles),/mes-jeux/,'personal preferences never indexed');
 });
-test('article follow button requires a real cached game hub',()=>{
+test('article following requires a known game name, not a separate game hub',()=>{
  const source=read('modules/swapp-news/native-pages.js');
  assert.match(source,/data-swapp-follow-game/);
- assert.match(source,/gameHubUrl&&/);
+ assert.match(source,/gameSlug\(game\)/);
+ assert.doesNotMatch(source,/gameHubUrl&&/);
  assert.match(source,/data-game-slug/);
 });
 test('local storage is not written at startup; following is deliberate and removable',()=>{
