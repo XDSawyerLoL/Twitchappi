@@ -11,8 +11,20 @@ test('Agenda is a true calendar and SWAPP TV remains separate',()=>{
 test('calendar loads only backed Spotlight reservations and never fills fake events',()=>{
  const src=read('assets/swapp-calendar.js');
  assert.match(src,/\/api\/creator\/spotlight\?game=/);
+ assert.match(src,/\/api\/creator\/spotlight\/status/);
+ assert.match(src,/if\(!health\.enabled\)/);
  assert.match(src,/x\.status!=='reserved'/);
  assert.match(src,/Date\.parse\(x\.end\)<=Date\.now\(\)/);
  assert.match(src,/Aucun rendez-vous confirmé/);
  assert.doesNotMatch(src,/Math\.random|mockEvent|demoEvent/);
+});
+
+test('calendar CSS is embedded in the delivered HTML, independent of browser cache',()=>{
+ const html=page('agenda');
+ const inline=html.match(/<style>([\s\S]*?)<\/style>/)?.[1]||'';
+ assert.match(inline,/\.scal\{/);
+ assert.match(inline,/\.scal-grid\{display:grid;grid-template-columns:repeat\(7/);
+ assert.match(inline,/\.scal-workspace\{display:grid/);
+ assert.match(inline,/@media\(max-width:670px\)/);
+ assert.match(html,/swapp-program\.css\?v=20261021-calendar-cssfix-v2/);
 });

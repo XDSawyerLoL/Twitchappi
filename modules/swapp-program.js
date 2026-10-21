@@ -1,5 +1,9 @@
 'use strict';
 const {layout}=require('./swapp-news/site-shell');
+const fs=require('node:fs');
+const path=require('node:path');
+// The calendar must retain its layout even if an older CSS URL is cached by the browser.
+const CALENDAR_CSS=fs.readFileSync(path.join(__dirname,'../assets/swapp-program.css'),'utf8');
 function page(kind){
  const tv=kind==='tv';
  const content=tv?`<main id="swapp-tv" class="stv" aria-label="SWAPP TV">
@@ -32,6 +36,6 @@ function page(kind){
  <aside class="scal-aside"><span class="scal-kicker">SÉLECTION DU JOUR</span><h3 id="scal-selected-label">Aujourd'hui</h3><div id="scal-day-events" aria-live="polite"><p>Sélectionne une date pour voir les rendez-vous.</p></div><div class="scal-aside-tv"><span class="scal-kicker">LA CHAÎNE</span><h3>LE LIVE<br>NE S'ARRÊTE PAS.</h3><p>Découvre les créateurs et les jeux à l'antenne.</p><a href="/tv">OUVRIR SWAPP TV ↗</a></div></aside></div></section>
  <footer class="scal-foot"><span>SWAPP / AGENDA</span><span>TOUTES LES HEURES SONT LOCALES · AUCUN ÉVÉNEMENT INVENTÉ</span></footer>
  </main>`;
- return layout({title:tv?'SWAPP TV — La chaîne du Game Universe':'Agenda SWAPP',description:tv?'La chaîne gaming collective, découverte équitable et directs vérifiés':'Agenda des rendez-vous Spotlight SWAPP',content,active:tv?'tv':'agenda',scripts:'<link rel="stylesheet" href="/assets/swapp-program.css?v=20261021-broadcast-v1">'+(tv?'<script defer src="/assets/swapp-tv-broadcast.js?v=20261021-broadcast-v1"></script>':'<script defer src="/assets/swapp-calendar.js?v=20261021-calendar-v1"></script>')});
+ return layout({title:tv?'SWAPP TV — La chaîne du Game Universe':'Agenda SWAPP',description:tv?'La chaîne gaming collective, découverte équitable et directs vérifiés':'Agenda des rendez-vous Spotlight SWAPP',content,active:tv?'tv':'agenda',extraCss:tv?'':CALENDAR_CSS,scripts:'<link rel="stylesheet" href="/assets/swapp-program.css?v=20261021-calendar-cssfix-v2">'+(tv?'<script defer src="/assets/swapp-tv-broadcast.js?v=20261021-broadcast-v1"></script>':'<script defer src="/assets/swapp-calendar.js?v=20261021-calendar-health-v2"></script>')});
 }
 module.exports={page};
