@@ -307,17 +307,7 @@
    games=[];update();status('Sélection locale effacée.');
   });
  }
- // Your account menu is rebuilt by the SPA: attach a single durable, low-noise link.
- const menu=$('#userMenu');
- function menuLink(){
-  if(!menu||menu.querySelector('[data-my-games-menu]'))return;
-  const a=document.createElement('a');
-  a.href='/mes-jeux';a.dataset.myGamesMenu='1';
-  a.textContent='Mes jeux suivis';
-  const badge=document.createElement('small');badge.setAttribute('data-swapp-favorites-count','');badge.textContent=String(games.length);
-  badge.setAttribute('aria-label',' jeux suivis');
-  a.append(' ',badge);menu.appendChild(a);
- }
+ // Personal library is linked from /compte; do not duplicate it in the account dropdown.
  if(root){
   root.querySelector('[data-my-games-enable-sync]')?.addEventListener('click',()=>{void enableSync()});
   root.querySelector('[data-my-games-disable-sync]')?.addEventListener('click',()=>{
@@ -325,10 +315,6 @@
    syncUI();syncNotice('Synchronisation désactivée : les jeux restent sur cet appareil et sur ton compte SWAPP jusqu’à leur suppression explicite.');
   });
   root.querySelector('[data-my-games-export]')?.addEventListener('click',exportSelection);
- }
- if(menu){
-  menuLink();
-  new MutationObserver(menuLink).observe(menu,{childList:true});
  }
  window.addEventListener('swapp:wishlist-changed',event=>{
   wishlistSlugs=Array.isArray(event.detail?.slugs)?event.detail.slugs.filter(validSlug).slice(0,50):[];
