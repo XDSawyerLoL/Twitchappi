@@ -46,7 +46,7 @@
   </div>
   <form id="ssn-game-form" class="ssn-search">
    <input name="game" required maxlength="65" minlength="2" autocomplete="off" aria-label="Chercher un univers de jeu" placeholder="Explore un jeu (ex. PUBG)">
-   <button class="ssi-button" type="submit">Explorer ↗</button>
+   <button class="ssi-button" type="submit">Voir les joueurs et salons ↗</button>
   </form>
   <div id="ssn-game-results" class="ssn-game-results" aria-live="polite"></div>
  </section>`;
