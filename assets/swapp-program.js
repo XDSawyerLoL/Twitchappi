@@ -29,6 +29,30 @@ async function showAntenna(){
    list.append(el('li',item.creator_login+' · '+item.game));
   }
   panel.append(el('h3','File d’attente publique'),list);
+  const form=el('form');const select=el('select');
+  select.setAttribute('aria-label','Jeu couvert par SWAPP');
+  const games=[...new Set(Array.from(document.querySelectorAll('option')).map(o=>o.value).filter(Boolean))];
+  if(!games.length){const unavailable=el('p','La réservation sera accessible après la validation de la programmation.');panel.append(unavailable)}
+  else{
+   for(const game of games){const option=el('option',game);option.value=game;select.append(option)}
+   const join=el('button','Rejoindre la file');join.type='submit';
+   const leave=el('button','Quitter la file');leave.type='button';
+   const result=el('p');result.setAttribute('role','status');
+   form.append(select,join,leave,result);
+   const mutation=async(method)=>{
+    result.textContent='Vérification du compte et du jeu…';
+    try{
+     const response=await fetch('/api/swapp-tv/queue',{method,credentials:'same-origin',headers:{'Content-Type':'application/json','X-SWAPP-SPOTLIGHT-ACTION':'creator'},...(method==='POST'?{body:JSON.stringify({game:select.value})}:{})});
+     const data=await response.json().catch(()=>({}));
+     if(!response.ok)throw Error(data.error||'queue_unavailable');
+     result.textContent=method==='POST'?'Demande enregistrée. Le passage à l’antenne dépendra de la régie.':'Sortie de file enregistrée.';
+     await showAntenna();
+    }catch(e){result.textContent=({'swapp_account_required':'Connecte-toi à SWAPP.','verified_twitch_link_required':'Lie ta chaîne Twitch.','already_in_queue':'Tu es déjà dans la file.','spotlight_game_not_covered':'Ce jeu doit être couvert par un article publié.'}[e.message]||'Inscription indisponible : '+e.message)}
+   };
+   form.addEventListener('submit',event=>{event.preventDefault();mutation('POST')});
+   leave.addEventListener('click',()=>mutation('DELETE'));
+   panel.append(form);
+  }
   const parent=document.querySelector('#swapp-program-controls');
   if(existing)existing.replaceWith(panel);else parent.append(panel);
  }catch{const existing=document.querySelector('#swapp-tv-antenna');if(existing)existing.remove()}
@@ -60,6 +84,6 @@ async function runTv(games){
  render();if(timer)clearInterval(timer);
  timer=setInterval(()=>{index++;if(index%Math.max(1,lineup.length)===0){clearInterval(timer);runTv(games)}else render()},60000);
 }
-async function init(){try{const data=await json('/api/actus');if(!Array.isArray(data.articles))throw Error('invalid_articles');const games=gamesOf(data.articles);if(!games.length){status.textContent='Aucun jeu éditorial disponible pour le moment.';return}if(tv){status.textContent='Recherche des directs correspondant aux jeux couverts…';await showAntenna();await runTv(games);setInterval(showAntenna,60000)}else{const select=choice(games);const show=async()=>{status.textContent='Lecture des réservations Spotlight…';try{const node=await agenda(select.value);content.replaceChildren(node);status.textContent='Agenda du jeu : '+select.value}catch{content.replaceChildren(el('p','Agenda Spotlight indisponible ou non activé.'));status.textContent='Aucun créneau ne peut être confirmé.'}};select.addEventListener('change',show);await show()}}catch{status.textContent='Les données SWAPP sont momentanément indisponibles.'}}
+async function init(){try{const data=await json('/api/actus');if(!Array.isArray(data.articles))throw Error('invalid_articles');const games=gamesOf(data.articles);if(!games.length){status.textContent='Aucun jeu éditorial disponible pour le moment.';return}if(tv){status.textContent='Recherche des directs correspondant aux jeux couverts…';for(const game of games){const option=el('option',game);controls.append(option)}await showAntenna();await runTv(games);setInterval(showAntenna,60000)}else{const select=choice(games);const show=async()=>{status.textContent='Lecture des réservations Spotlight…';try{const node=await agenda(select.value);content.replaceChildren(node);status.textContent='Agenda du jeu : '+select.value}catch{content.replaceChildren(el('p','Agenda Spotlight indisponible ou non activé.'));status.textContent='Aucun créneau ne peut être confirmé.'}};select.addEventListener('change',show);await show()}}catch{status.textContent='Les données SWAPP sont momentanément indisponibles.'}}
 init();
 })();
