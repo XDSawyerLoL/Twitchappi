@@ -129,6 +129,6 @@ test('browser only observes after consent, supports opt-out and records no visit
  assert.match(js,/new WeakMap\(\)/);
  assert.match(js,/if\(pilot\.active\)start\(\);else stop\(\)/);
  assert.match(js,/Volontaire · cartes visibles et clics uniquement/);
- assert.match(shell,/swapp-media-live\.js\?v=20261019-fair-optin-v2/);
+ assert.match(shell,/swapp-media-live\.js\?v=20261021-auto-fair-v1/);
  assert.doesNotMatch(js,/localStorage|sessionStorage|sendBeacon|visitorId/i);
 });
