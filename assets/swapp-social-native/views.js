@@ -94,6 +94,29 @@ function safeNewsUrl(value){
   try{const url=new URL(String(value||''));return url.protocol==='https:'?url.href:''}catch{return''}
 }
 
+// Same media order as SWAPP editorial: article illustration, then that
+// article's official trailer poster. Never select another game's image.
+function safeNewsMedia(article){
+  const fromShared=globalThis.SwappArticleExtras?.cardImageSources?.(article);
+  if(Array.isArray(fromShared)){
+    for(const source of fromShared){if(safeNewsUrl(source))return safeNewsUrl(source)}
+  }
+  const cover=article?.thumbnail?.url||article?.image?.url||article?.imageUrl||
+    (typeof article?.image==='string'?article.image:'');
+  if(safeNewsUrl(cover))return safeNewsUrl(cover);
+  try{
+    const u=new URL(String(article?.trailerUrl||''));
+    if(u.protocol!=='https:'||u.username||u.password)return '';
+    let id='';
+    if(['youtube.com','www.youtube.com','m.youtube.com'].includes(u.hostname))
+      id=u.pathname==='/watch'?u.searchParams.get('v')||'':
+        /^\/(?:embed|shorts)\/[A-Za-z0-9_-]{11}$/.test(u.pathname)?u.pathname.split('/')[2]:'';
+    else if(u.hostname==='youtu.be'&&/^\/[A-Za-z0-9_-]{11}$/.test(u.pathname))
+      id=u.pathname.slice(1);
+    return /^[A-Za-z0-9_-]{11}$/.test(id)?'https://i.ytimg.com/vi/'+id+'/hqdefault.jpg':'';
+  }catch{return ''}
+}
+
 function newsTime(iso){
   const t=Date.parse(String(iso||''));if(!Number.isFinite(t))return'';
   const mins=Math.max(0,Math.floor((Date.now()-t)/60000));
@@ -126,7 +149,7 @@ async function fetchNewsFeed(){
          const rawGame=a.game?.name||a.game||a.game_name||a.gameName||a.primaryGame||
           (Array.isArray(a.games)?(a.games[0]?.name||a.games[0]):'');
          return {title:String(a.title||''),source:'SWAPP',url:location.origin+'/actus/'+encodeURIComponent(a.slug),
-         image:typeof a.image==='object'?a.image?.url:String(typeof a.image==='string'?a.image:a.imageUrl||''),summary:String(a.summary||''),
+         image:safeNewsMedia(a),summary:String(a.summary||''),
          game:typeof rawGame==='string'?rawGame.trim().slice(0,65):'',
          publishedAt:a.publishedAt||a.originalPublishedAt};
         });
