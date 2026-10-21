@@ -1,0 +1,7 @@
+{
+  "schema": 1,
+  "description": "Manifestes éditoriaux SWAPP. Chaque nouveau lot doit être publié dans data/ puis ajouté à cette liste ; les slugs sont uniques. Le CMS conserve priorité après adoption.",
+  "releases": [
+    "swapp-veille-native-20261021.json"
+  ]
+}
