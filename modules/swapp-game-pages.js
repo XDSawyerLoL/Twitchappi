@@ -65,7 +65,7 @@ const CSS=[
  '.game-portal .hero-cover{float:right;width:min(38%,380px);aspect-ratio:16/9;object-fit:cover;border-radius:13px;margin:0 0 12px 22px;border:1px solid #ffffff2a}.game-portal .universe-kicker{font-size:11px;font-weight:900;letter-spacing:.16em;color:#d6b7ff;text-transform:uppercase}.game-portal .journey{display:flex;flex-wrap:wrap;gap:7px;color:#bdcbe0;font-size:12px;margin-top:14px}.game-portal .journey span+span:before{content:"→";margin-right:7px;color:#d4a9ff}.game-portal .index .game-index-details span{color:#acbdd2;font-size:13px}',
   '.game-portal .game-universe-share{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;padding:22px 24px;margin:24px 0;border:1px solid #ffffff22;border-radius:14px;background:linear-gradient(116deg,#121e35,#182039)}',
   '.game-portal .game-universe-share h2{margin:4px 0 6px;font-size:clamp(19px,2.3vw,27px)}.game-portal .game-universe-share p{margin:0;color:#b9c6dc;font-size:13px}.game-portal .game-universe-share .actions{margin:0}',
- '@media(max-width:640px){.game-portal{padding:20px 14px}.game-portal .hero{padding:23px 19px}.game-portal .hero-cover{float:none;width:100%;margin:0 0 16px}}'
+ '@media(max-width:640px){.game-portal{padding:20px 14px}.game-portal .hero{padding:23px 19px}.game-portal .hero-cover{float:none;width:100%;margin:0 0 16px}}',
 
  '.game-portal .cards.index{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;align-items:stretch}',
  '.game-portal .cards.index>.game-index-card{display:flex;flex-direction:column;min-width:0;overflow:hidden;isolation:isolate;background:#182337;border:1px solid #ffffff2c;border-radius:16px;transition:border-color .2s,transform .2s}',
