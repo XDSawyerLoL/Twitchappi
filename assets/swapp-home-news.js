@@ -195,9 +195,6 @@
      // Matching reorders the existing live cards, not the article shelf.
      window.dispatchEvent(new CustomEvent('swapp:home-news-ready',{detail:{articles:valid}}));
      grid.replaceChildren();
-     // The X ↔ Discord bridge belongs to the actual editorial flow,
-     // immediately after verified news and before the live rail.
-     window.SwappSocialBridge?.mount(section,valid);
      if(!valid.length){
        decorateHero(modern,[]);
        const retryState=el('div','swapp-home-empty');
