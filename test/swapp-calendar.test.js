@@ -16,3 +16,13 @@ test('calendar loads only backed Spotlight reservations and never fills fake eve
  assert.match(src,/Aucun rendez-vous confirmé/);
  assert.doesNotMatch(src,/Math\.random|mockEvent|demoEvent/);
 });
+
+test('calendar CSS is embedded in the delivered HTML, independent of browser cache',()=>{
+ const html=page('agenda');
+ const inline=html.match(/<style>([\s\S]*?)<\/style>/)?.[1]||'';
+ assert.match(inline,/\.scal\{/);
+ assert.match(inline,/\.scal-grid\{display:grid;grid-template-columns:repeat\(7/);
+ assert.match(inline,/\.scal-workspace\{display:grid/);
+ assert.match(inline,/@media\(max-width:670px\)/);
+ assert.match(html,/swapp-program\.css\?v=20261021-calendar-cssfix-v2/);
+});
