@@ -356,22 +356,23 @@
   }else await save(form.id.slice('ssi-form-'.length),form);
  });
  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&activeRoom)void updateChat()});
- async function initialize(retry=0){
-  try{
-   area.hidden=false;host.classList.add('ssi-enhanced');
-   await loadRooms();
-   await Promise.all([loadMatches(),loadPolls()]);
-   await acceptInviteLink();
-  }catch(e){
-   if(retry<3){setTimeout(()=>void initialize(retry+1),1000*(retry+1));return}
-   // Keep a retryable hidden module instead of permanently removing the interface.
-   area.hidden=true;host.classList.remove('ssi-enhanced');
+ async function initialize(){
+  // Rooms are independent from matchmaking and polls. A guest session or
+  // failed room request must never blank every community module.
+  area.hidden=false;host.classList.add('ssi-enhanced');
+  const [result]=await Promise.allSettled([loadRooms(),loadMatches(),loadPolls()]);
+  if(result.status==='rejected'){
+   rooms=[];renderRooms();
+   const message=String(result.reason?.message||'Salons momentanément indisponibles.');
+   const box=$('#ssi-room-results');
+   if(box)box.innerHTML=empty('⌁',escape(message));
   }
+  await acceptInviteLink();
  }
  document.getElementById('swapp-social-retry-modules')?.addEventListener('click',()=>{
   area.hidden=true;
   host.classList.remove('ssi-enhanced');
-  void initialize(0);
+  void initialize();
  });
  void initialize();
 })();
