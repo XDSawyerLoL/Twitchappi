@@ -29,7 +29,7 @@ function summarizeFairAdmin({bands=[],daily=[],dailyCreators=[],games=[],uniqueC
  const visibleBands=BANDS.map(name=>{
   const x=base.find(b=>b.name===name)||{impressions:0,clicks:0,creators:0};
   const releasable=x.impressions>=MIN_GROUP_IMPRESSIONS&&x.creators>=MIN_GROUP_CREATORS;
-  return {name,sample:releasable?'limited-voluntary':'insufficient',
+  return {name,sample:releasable?'limited-aggregate':'insufficient',
    impressions:releasable?x.impressions:null,clicks:releasable?x.clicks:null,
    creators:releasable?x.creators:null,share:releasable?percent(x.impressions,totals.impressions):null,
    clickRate:releasable?percent(x.clicks,x.impressions):null};
