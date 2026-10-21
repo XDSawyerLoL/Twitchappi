@@ -52,7 +52,7 @@ test('Vivienne is matched by name and locale, never replaced by another French v
 test('SPA, native article and cached fallback load only current Vivienne voice assets',()=>{
  const home=read('index.html'),native=read('modules/swapp-news/site-shell.js');
  const script='/assets/swapp-reader-studio.js?v=20261020-vivienne-only-v2';
- const style='/assets/swapp-reader-studio.css?v=20261020-vivienne-only-v2';
+ const style='/assets/swapp-reader-studio.css?v=20261021-compact-reading-v1';
  for(const page of [home,native]){
   assert.ok(page.includes(script));
   assert.ok(page.includes(style));
