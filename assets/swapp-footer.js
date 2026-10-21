@@ -17,6 +17,26 @@ function mount(){
  </div>`;
  const nav=document.getElementById('mobileNav');
  (nav?.parentNode||document.body).insertBefore(footer,nav||null);
+ // Public invite to the user's Discord, never the private announcement webhook.
+ if(typeof fetch==='function'){
+  void fetch('/api/swapp/community-links',{credentials:'same-origin',headers:{Accept:'application/json'}})
+   .then(response=>response.ok?response.json():null)
+   .then(data=>{
+    if(!footer.isConnected||!data?.success||!data.discordInvite)return;
+    let invite;
+    try{
+     const url=new URL(String(data.discordInvite));
+     if(url.protocol!=='https:'||url.hostname!=='discord.gg'||!/^\/[a-zA-Z0-9-]{2,64}$/.test(url.pathname)||url.search||url.hash)return;
+     invite=url.href;
+    }catch{return;}
+    const social=footer.querySelectorAll('.swapp-footer-col')[1];
+    if(!social||social.querySelector('[data-swapp-discord-invite]'))return;
+    const link=document.createElement('a');link.href=invite;link.target='_blank';
+    link.rel='noopener noreferrer';link.dataset.swappDiscordInvite='1';
+    link.textContent='Rejoindre le Discord SWAPP ↗';social.append(link);
+   }).catch(()=>{});
+ }
+
  // The revocation control appears only when Google's actual certified CMP API
  // has loaded and confirms that GDPR applies. No homegrown consent mechanism.
  const googlefc=window.googlefc=window.googlefc||{};
