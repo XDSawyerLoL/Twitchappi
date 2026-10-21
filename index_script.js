@@ -4021,6 +4021,9 @@ async function renderSettings(){
   '<header class="swapp-acct-header">'+identity+
   (u?'<a class="swapp-acct-public" href="/'+encodeURIComponent(u.login)+'">Voir ma chaîne ↗</a>':'')+
   '</header>'+nav+sections+'</div>';
+ // Sync the visible personal-library counter when a SPA account panel is built.
+ if(typeof window.dispatchEvent==='function')
+  window.dispatchEvent(new Event('swapp:account-rendered'));
  // Never infer admin privileges from a nickname or a link.
  if(u && typeof fetch==='function'){
   const tools=root.querySelector('[data-swapp-admin-tools]');
