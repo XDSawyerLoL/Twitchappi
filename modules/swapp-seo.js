@@ -123,7 +123,7 @@ function creatorSitemapXml(creators=[]){
   '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'+entries+'\n</urlset>\n';
 }
 function injectCreatorMetadata(html,creator,login){
- let result=String(html||'');
+ let result=String(html||'').replace(/<link\s+rel=["']canonical["'][^>]*>\s*/gi,'');
  if(!result.includes('</head>'))return result;
  const slug=String(login||'').toLowerCase();
  if(!CREATOR_LOGIN.test(slug)||RESERVED_CREATOR_PATHS.has(slug)||!creator||creator.channel_public===false||
@@ -461,7 +461,7 @@ function injectSpaMetadata(html,pathname='/'){
  const info=SPA_INFO[path];
  const hidden=NOINDEX_PATHS.has(path)||path.startsWith('/reset-password/');
  if(!info&&!hidden)return raw;
- let result=raw;
+ let result=raw.replace(/<link\s+rel=["']canonical["'][^>]*>\s*/gi,'');
  if(info){
   const tags='<meta name="description" content="'+encodeXml(info.description)+'">'+
    '<link rel="canonical" href="'+ORIGIN+path+'">'+
