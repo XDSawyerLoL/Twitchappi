@@ -6,13 +6,13 @@ const path=require('node:path');
 const vm=require('node:vm');
 const read=file=>fs.readFileSync(path.join(__dirname,'..',file),'utf8');
 
-test('SOCIAL keeps five top-level destinations and two feed tabs',()=>{
+test('SOCIAL has separate Discord-like Communities, player matchmaking and three news feed tabs',()=>{
  const html=read('assets/swapp-social-native/social-body.html');
  const part=name=>html.match(new RegExp('<nav class="'+name+'"[^>]*>([\\s\\S]*?)<\\/nav>'))?.[1]||'';
  const destinations=section=>[...section.matchAll(/<button[^>]+data-view="([^"]+)"/g)].map(x=>x[1]);
- assert.deepEqual(destinations(part('pulse-nav')),['home','circles','messages','notifications','profile']);
- assert.deepEqual(destinations(part('pulse-mobile-nav')),['home','circles','messages','notifications','profile']);
- assert.deepEqual([...html.matchAll(/class="pulse-tab(?: active)?" data-feed="([^"]+)"/g)].map(x=>x[1]),['following','discover']);
+ assert.deepEqual(destinations(part('pulse-nav')),['home','rooms','messages','play','notifications','profile']);
+ assert.deepEqual(destinations(part('pulse-mobile-nav')),['home','rooms','play','messages','notifications','profile']);
+ assert.deepEqual([...html.matchAll(/class="pulse-tab(?: active)?" data-feed="([^"]+)"/g)].map(x=>x[1]),['following','discover','news']);
  assert.match(html,/class="swapp-social-header-tools"/);
  assert.match(html,/data-view="explore"/);
  assert.equal((html.match(/id="mobile-compose"/g)||[]).length,1);
