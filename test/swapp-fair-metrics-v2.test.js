@@ -27,7 +27,7 @@ test('off by default means no token and no SQL',async()=>{
  assert.equal(fair.enabled(),false);
  assert.equal(fair.issue(game),'');
  assert.deepEqual(await fair.record('irrelevant','impression'),{ok:false,status:503});
- assert.deepEqual(await fair.summary(),{enabled:false,scope:'game-card-opt-in',sample:'not_collected'});
+ assert.deepEqual(await fair.summary(),{enabled:false,scope:'game-card-aggregate',sample:'not_collected'});
  assert.equal(logs.query.length+logs.execute.length,0);
  const noSecret=createFairMetrics({getPool:()=>({}),isEnabled:()=>true,secret:'short'});
  assert.equal(noSecret.enabled(),false);
@@ -88,7 +88,7 @@ test('public reporting suppresses sparse samples and marks opt-in selection bias
   {audience_band:'established',creators:1,impressions:20,clicks:1}
  ]});
  const b=await enough.fair.summary();
- assert.equal(b.sample,'limited-voluntary');
+ assert.equal(b.sample,'limited-aggregate');
  assert.equal(b.impressions,80);
  assert.equal(b.smallAudienceImpressionShare,31.3);
  assert.equal(b.uniqueCreatorsRepresented,6);
@@ -111,7 +111,7 @@ test('API requires explicit enablement, same-origin writes, bounded rate and no 
  assert.match(server,/approved\.includes\(origin\)/);
  assert.match(server,/fairMetrics\.record\(req\.body\?\.proof,req\.body\?\.event\)/);
  assert.match(server,/fairMetrics\.issue\(item\)/);
- assert.match(server,/fairMetrics:\{enabled:fairMetrics\.enabled\(\),scope:'opt-in-game-cards'\}/);
+ assert.match(server,/fairMetrics:\{enabled:fairMetrics\.enabled\(\),scope:'anonymous-game-cards'\}/);
  assert.match(module,/MIN_IMPRESSIONS=50/);
  assert.match(module,/MIN_CREATORS=5/);
  assert.match(ddl,/PRIMARY KEY \(event_day,placement,platform,creator_login,game_name,audience_band\)/);
