@@ -91,6 +91,6 @@ test('end-to-end code contract links MySQL routes, articles, games and dashboard
  assert.match(client,/live_verified/);
  for(const html of [spa,ssr]){
   assert.match(html,/swapp-spotlight\.css\?v=20261020-spotlight-mvp-1/);
-  assert.match(html,/swapp-spotlight\.js\?v=20261020-spotlight-mvp-1/);
+  assert.match(html,/swapp-spotlight\.js\?v=20261021-recognition-v1/);
  }
 });
