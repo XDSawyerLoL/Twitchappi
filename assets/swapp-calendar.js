@@ -35,6 +35,10 @@ async function init(){
  try{
   const data=await fetchJson('/api/actus');const games=[...new Set((Array.isArray(data.articles)?data.articles:[]).filter(a=>a?.slug&&a.status!=='draft').map(gameName).filter(v=>v.length>1))].slice(0,12);
   const select=$('scal-game');for(const game of games){const option=el('option',game);option.value=game;select.append(option)}
+  if(!games.length){$('scal-status').textContent='Aucun jeu éditorial disponible actuellement.';render();return}
+  const health=await fetchJson('/api/creator/spotlight/status').catch(()=>null);
+  if(!health){$('scal-status').textContent='Service de programmation momentanément inaccessible.';render();return}
+  if(!health.enabled){$('scal-status').textContent='Réservations Spotlight non activées ou indisponibles. Aucun créneau ne peut être confirmé actuellement.';render();return}
   let success=0,unavailable=0;
   const results=await Promise.all(games.map(async game=>{try{const d=await fetchJson('/api/creator/spotlight?game='+encodeURIComponent(game));if(!d.success||!Array.isArray(d.items))throw Error('missing_items');success++;return d.items.map(x=>({id:x.id,game,creator:x.creator_login||x.twitch_login||'Créateur',start:x.start_at,end:x.end_at,status:x.status}))}catch{unavailable++;return []}}));
   const seen=new Set();events=results.flat().filter(x=>{const k=String(x.id)+':'+x.game;if(x.status!=='reserved'||!Number.isFinite(Date.parse(x.start))||Date.parse(x.end)<=Date.now()||seen.has(k))return false;seen.add(k);return true});
