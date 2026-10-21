@@ -48,7 +48,7 @@ function diversifyDiscovery(scored,{limit=60,query='',firstScreen=12,perGame=2,r
  // Explicit searches never hide a specific small streamer; the floor
  // only applies when SWAPP chooses whom to promote autonomously.
  if(String(query||'').trim())return valid.slice(0,max);
- const candidates=valid.filter(row=>audience(row)>=MIN_FEATURE_VIEWERS);
+ const candidates=valid.filter(row=>Number.isFinite(audience(row))&&audience(row)>=MIN_FEATURE_VIEWERS);
  if(!candidates.length)return [];
  const first=Math.min(max,Math.max(1,Math.min(12,Number(firstScreen)||12)),candidates.length);
  const cap=Math.max(1,Math.min(4,Number(perGame)||2));
@@ -115,7 +115,7 @@ function diversifyDiscovery(scored,{limit=60,query='',firstScreen=12,perGame=2,r
 }
 function rankGameLives(items,{limit=12,rotation=null}={}){
  const max=Math.max(1,Math.min(24,Number(limit)||12));
- const list=Array.isArray(items)?items.filter(x=>x&&typeof x==='object'&&!replayTitle(x)&&audience(x)>=MIN_FEATURE_VIEWERS):[];
+ const list=Array.isArray(items)?items.filter(x=>x&&typeof x==='object'&&!replayTitle(x)&&Number.isFinite(audience(x))&&audience(x)>=MIN_FEATURE_VIEWERS):[];
  const picked=[],seen=new Set(),slot=rotationSlot(rotation);
  const append=item=>{
   const key=creatorKey(item).toLowerCase();
