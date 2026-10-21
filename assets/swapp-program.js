@@ -11,7 +11,33 @@ const sameGame=(a,b)=>String(a).normalize('NFD').replace(/[\u0300-\u036f]/g,'').
 let timer=null,epoch=0;
 async function agenda(game){const data=await json('/api/creator/spotlight?game='+encodeURIComponent(game));if(data.success!==true||!Array.isArray(data.items))throw Error('invalid_agenda');const now=Date.now();const rows=data.items.filter(x=>x.status==='reserved'&&Date.parse(x.end_at)>now).sort((a,b)=>Date.parse(a.start_at)-Date.parse(b.start_at));const list=el('section');if(!rows.length){list.append(el('p','Aucun rendez-vous Spotlight confirmé pour ce jeu.'));return list}for(const r of rows){const a=el('article',undefined,'swapp-program-card');a.append(el('strong',r.creator_login||r.twitch_login||'Créateur'),el('p',new Date(r.start_at).toLocaleString('fr-FR',{dateStyle:'full',timeStyle:'short'})));if(r.live?.state==='live_verified')a.append(el('span','DIRECT VÉRIFIÉ'));list.append(a)}return list}
 async function tvData(game){const data=await json('/api/discovery/game-lives?game='+encodeURIComponent(game)+'&limit=24');if(data.success!==true||!sameGame(game,data.game)||!Array.isArray(data.items))throw Error('invalid_live_results');return data}
-async function runTv(games){const round=++epoch;const found=[];let partial=false;for(const game of games.slice(0,6)){try{const d=await tvData(game);if(d.coverage==='partial'||d.coverage==='native-only')partial=true;for(const s of d.items){if(!validLogin(s.login)||!sameGame(game,s.game_name||s.category||s.game)||!['twitch','oryon','swapp'].includes(String(s.platform).toLowerCase()))continue;const key=s.platform+':'+s.login;if(!found.some(x=>x.key===key))found.push({key,game,...s})}}catch{partial=true}}if(round!==epoch)return;let index=0;const render=()=>{if(!found.length){content.replaceChildren(el('p',partial?'Aucun live confirmé parmi les résultats actuellement accessibles. La couverture Twitch peut être partielle.':'Aucun créateur en direct confirmé pour ces jeux.'));return}const s=found[index%found.length],card=el('article',undefined,'swapp-tv-feature');card.append(el('small','À l’antenne · '+s.game),el('h2',s.display_name||s.login),el('p',s.title||'Direct en cours'));const a=el('a','Regarder le direct sur SWAPP →');a.href=String(s.platform).toLowerCase()==='twitch'?'/live/twitch/'+encodeURIComponent(s.login)+'?game='+encodeURIComponent(s.game):'/'+encodeURIComponent(s.login);card.append(a);const more=el('p',(index%found.length+1)+' / '+found.length+' · Rotation toutes les 60 secondes · Lecture volontaire');content.replaceChildren(card,more);status.textContent=partial?'Sélection vérifiée, couverture partielle des lives Twitch.':'Sélection des lives disponibles, sans diffusion automatique.'};render();if(timer)clearInterval(timer);timer=setInterval(()=>{index++;render()},60000)}
+async function runTv(games){
+ const round=++epoch,found=[],spotlights=[];let partial=false;
+ for(const game of games.slice(0,6)){
+  try{
+   const d=await tvData(game);if(d.coverage==='partial'||d.coverage==='native-only')partial=true;
+   for(const item of d.items)found.push({...item,game});
+   // Spotlight is optional: unavailable bookings never imply a fake live.
+   try{const slots=await json('/api/creator/spotlight?game='+encodeURIComponent(game));if(Array.isArray(slots.items))spotlights.push(...slots.items)}catch{}
+  }catch{partial=true}
+ }
+ if(round!==epoch)return;
+ const lineup=globalThis.SwappTvRotation?.lineup(found,spotlights)||[];
+ let index=0;
+ const render=()=>{
+  if(!lineup.length){content.replaceChildren(el('p',partial?'Aucun direct confirmé dans les résultats accessibles. Twitch peut être partiel.':'Aucun direct confirmé actuellement.'));return}
+  const s=lineup[index%lineup.length],card=el('article',undefined,'swapp-tv-feature');
+  card.append(el('small',(s.spotlight?'Créneau Spotlight vérifié · ':'SWAPP TV · ')+s.game),el('h2',s.display_name||s.login),el('p',s.title||'Direct en cours'));
+  const a=el('a','Regarder le direct sur SWAPP →');
+  a.href=s.platform==='twitch'?'/live/twitch/'+encodeURIComponent(s.login)+'?game='+encodeURIComponent(s.game):'/'+encodeURIComponent(s.login);
+  card.append(a);
+  const more=el('p',(index%lineup.length+1)+' / '+lineup.length+' · Rotation équitable · 60 secondes · Lecture volontaire');
+  content.replaceChildren(card,more);
+  status.textContent=partial?'Sélection basée sur des résultats partiels, sans garantie de permanence du live.':'Sélection issue des résultats de directs, actualisée régulièrement.';
+ };
+ render();if(timer)clearInterval(timer);
+ timer=setInterval(()=>{index++;if(index%Math.max(1,lineup.length)===0){clearInterval(timer);runTv(games)}else render()},60000);
+}
 async function init(){try{const data=await json('/api/actus');if(!Array.isArray(data.articles))throw Error('invalid_articles');const games=gamesOf(data.articles);if(!games.length){status.textContent='Aucun jeu éditorial disponible pour le moment.';return}if(tv){status.textContent='Recherche des directs correspondant aux jeux couverts…';await runTv(games)}else{const select=choice(games);const show=async()=>{status.textContent='Lecture des réservations Spotlight…';try{const node=await agenda(select.value);content.replaceChildren(node);status.textContent='Agenda du jeu : '+select.value}catch{content.replaceChildren(el('p','Agenda Spotlight indisponible ou non activé.'));status.textContent='Aucun créneau ne peut être confirmé.'}};select.addEventListener('change',show);await show()}}catch{status.textContent='Les données SWAPP sont momentanément indisponibles.'}}
 init();
 })();
