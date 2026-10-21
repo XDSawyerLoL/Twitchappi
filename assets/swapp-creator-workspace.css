@@ -236,3 +236,16 @@
  cursor:pointer
 }
 #settings .swapp-acct-general-admin:hover{color:#fff!important}
+
+/* SWAPP operations: plain, compact statuses in authorized account only. */
+#settings .swapp-ops-status[hidden]{display:none!important}
+#settings .swapp-ops-status{padding-top:18px;margin-top:16px;border-top:1px solid var(--swapp-workspace-line)}
+#settings .swapp-ops-status h4{font-size:17px;margin:0 0 6px;letter-spacing:-.02em}
+#settings .swapp-ops-status>p{font-size:12px;color:var(--swapp-workspace-muted);margin:0 0 8px}
+#settings .swapp-ops-row{display:grid;grid-template-columns:120px minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--swapp-workspace-line)}
+#settings .swapp-ops-row strong{font-size:12px}
+#settings .swapp-ops-row span{font-size:11px;color:var(--swapp-workspace-muted);overflow-wrap:anywhere}
+#settings .swapp-ops-row small{font-size:10px;color:#aebdd0;font-weight:800}
+#settings .swapp-ops-row small[data-status="ok"]{color:#90d9c4}
+#settings .swapp-ops-row small[data-status="action"]{color:#ffca9d}
+@media(max-width:640px){#settings .swapp-ops-row{grid-template-columns:1fr auto}#settings .swapp-ops-row span{grid-column:1/-1;grid-row:2}}
