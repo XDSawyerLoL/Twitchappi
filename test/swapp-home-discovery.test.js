@@ -11,8 +11,8 @@ const make=(platform,login,game,viewers=40,title='En direct')=>({
 test('native SWAPP creators receive bounded visible spots even when Twitch has higher viewer scores',()=>{
  const twitch=Array.from({length:20},(_,i)=>make('twitch','twitch'+i,['Minecraft','Fortnite','Valorant'][i%3],65));
  const natives=[
-  make('oryon','creator01','Outer Wilds',2),
-  make('oryon','creator02','Balatro',5)
+  make('oryon','creator01','Outer Wilds',20),
+  make('oryon','creator02','Balatro',21)
  ];
  const input=[...twitch,...natives],snapshot=JSON.stringify(input);
  const picks=rankHomeLives(input,{limit:12});
@@ -44,8 +44,8 @@ test('home ranking avoids five identical games on the first screen when alternat
 });
 test('login deduplication is platform-aware and excludes labelled replays',()=>{
  const input=[
-  make('oryon','same','Balatro',5),
-  make('oryon','same','Balatro',6),
+  make('oryon','same','Balatro',20),
+  make('oryon','same','Balatro',21),
   make('twitch','same','Balatro',38),
   make('twitch','replay123','Minecraft',58,'Rediffusion de la finale'),
   make('twitch','live123','Minecraft',51,'Une partie en direct')
@@ -57,7 +57,7 @@ test('login deduplication is platform-aware and excludes labelled replays',()=>{
  assert.ok(!ranked.some(x=>x.login==='replay123'));
 });
 test('small first-page limits and empty pools stay bounded',()=>{
- const rows=[make('oryon','nativea','Balatro',1),make('twitch','otherb','Minecraft',80)];
+ const rows=[make('oryon','nativea','Balatro',20),make('twitch','otherb','Minecraft',80)];
  assert.equal(rankHomeLives(rows,{limit:1}).length,1);
  assert.equal(rankHomeLives(rows,{limit:1})[0].login,'nativea');
  assert.deepEqual(rankHomeLives([]),[]);
@@ -75,4 +75,10 @@ test('homepage uses the new pure module without changing the public endpoint or 
  assert.doesNotMatch(route,/gemini|openai|localStorage|sendBeacon|fetch\(/i);
  const module=fs.readFileSync(path.join(root,'modules/swapp-home-discovery.js'),'utf8');
  assert.doesNotMatch(module,/fetch\(|XMLHttpRequest|axios|localStorage|sendBeacon/);
+});
+
+test('SWAPP never promotes a Twitch or native stream with fewer than 20 concurrent viewers',()=>{
+ const items=[make('oryon','below','Balatro',19),make('twitch','eligible','Minecraft',20),make('twitch','zero','Fortnite',0)];
+ const ranked=rankHomeLives(items,{limit:12});
+ assert.deepEqual(ranked.map(x=>x.login),['eligible']);
 });
