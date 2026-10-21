@@ -241,16 +241,10 @@ async function notifyIndexNow(slugs=[],{fetchImpl=globalThis.fetch,enabled=proce
 
 function registerSeoRoutes(app,{getPublished=async()=>[],getCreators=async()=>[],now=()=>Date.now()}={}){
  if(!app||typeof app.get!=='function')throw Error('Express app required');
- let cached=null,articles=[],expires=0,inflight=null,revision=0,loadedRevision=-1,gameHubLinks=new Map(),hasVerifiedArticles=false,lastReadSuccessful=false;
+ let cached=null,articles=[],expires=0,inflight=null,revision=0,loadedRevision=-1,hasVerifiedArticles=false,lastReadSuccessful=false;
  const TTL=6*60*60*1000;
  invalidateRegisteredSeoCache=()=>{revision++;expires=0};
- // Only serve links to pages actually present in the cached sitemap. Direct
- // visits before the first cache load simply show no optional hub link.
- lookupRegisteredGameHub=article=>{
-  if(!cached||loadedRevision!==revision||now()>=expires)return null;
-  const slug=String(article?.slug||'');
-  return SLUG.test(slug)?gameHubLinks.get(slug)||null:null;
- };
+ // Retired /jeux hubs are no longer promoted from articles.
  // Only a genuinely indexed, published editorial game can award discovery XP.
  // This resolver shares the sitemap's six-hour content cache and its invalidation.
  resolveIndexedGame=async slug=>{
@@ -276,16 +270,10 @@ function registerSeoRoutes(app,{getPublished=async()=>[],getCreators=async()=>[]
     if(fetchRevision!==revision)return;
     const current=(Array.isArray(data)?data:[]).filter(x=>
      x?.status==='published'&&SLUG.test(String(x.slug||'')));
-    const hubs=gameHubs(current);
-    const nextLinks=new Map();
-    for(const hub of hubs)
-     for(const item of hub.articles)
-      nextLinks.set(String(item.slug),'/jeux/'+encodeURIComponent(hub.slug));
     articles=current;
     cached=sitemapXml(current);
     hasVerifiedArticles=true;
     lastReadSuccessful=true;
-    gameHubLinks=nextLinks;
     loadedRevision=fetchRevision;
     expires=now()+TTL;
    }catch(err){
