@@ -87,7 +87,7 @@ test('planning fields have labels and never collapse into clipped one-line input
 test('new account code and styling are cache-busted and included in deploy checks',()=>{
  const html=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
  const smoke=fs.readFileSync(path.join(__dirname,'..','tools/swapp-deploy-smoke.js'),'utf8');
- for(const source of ['index_script.js?v=20261019-fair-v3-verified-cards','swapp-creator-workspace.css?v=20261019-account-native-v2']){
+ for(const source of ['index_script.js?v=20261021-account-hub-v1','swapp-creator-workspace.css?v=20261021-account-hub-v1']){
   assert.ok(html.includes(source),source);
   assert.ok(smoke.includes(source),source);
  }
@@ -112,8 +112,11 @@ test('only the active menu uses the same intuitive account navigation, without m
  const end=b.indexOf('\nasync function loadHomeRecommendations()',start);
  assert.ok(start>=0&&end>start);
  const menu=b.slice(start,end);
- for(const action of ['Mon espace SWAPP','Ma chaîne','Diffuser','Statistiques','Outils créateur','Mes jeux et envies'])
+ for(const action of ['Mon espace SWAPP','Diffuser'])
   assert.ok(menu.includes(action),action);
  assert.doesNotMatch(menu,/Page viewer|Page streamer|modeSwitch|modeBadge/);
  assert.match(menu,/topThemePanel/);
+ assert.doesNotMatch(menu,/Mes jeux et envies|Studio administrateur|Gestion Boutique|Fair Discovery|Ma chaîne|Outils créateur/);
+ assert.match(account(),/data-swapp-admin-tools/);
+ assert.match(account(),/api\/editor\/actus\/access/);
 });
