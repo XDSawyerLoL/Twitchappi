@@ -10,6 +10,26 @@
  * migration, so no new social publication event is emitted.
  */
 const {assertArticle}=require('./article-core');
+const fs=require('node:fs');
+const path=require('node:path');
+function loadEditorialReleases({dataDir=path.join(__dirname,'../../data')}={}){
+ const manifest=JSON.parse(fs.readFileSync(path.join(dataDir,'swapp-editorial-releases.json'),'utf8'));
+ if(manifest.schema!==1||!Array.isArray(manifest.releases)||manifest.releases.length>250)
+   throw Error('Manifeste editorial SWAPP invalide');
+ const articles=[],seen=new Set();
+ for(const name of manifest.releases){
+   if(typeof name!=='string'||!/^[a-z0-9][a-z0-9-]*\.json$/.test(name))
+     throw Error('Nom de lot editorial non autorise');
+   const release=JSON.parse(fs.readFileSync(path.join(dataDir,name),'utf8'));
+   if(release.kind!=='swapp-editorial-release'||!Array.isArray(release.articles))
+     throw Error('Lot editorial invalide : '+name);
+   for(const article of release.articles){
+     if(!article.slug||seen.has(article.slug))throw Error('Doublon editorial : '+article.slug);
+     seen.add(article.slug);articles.push(article);
+   }
+ }
+ return articles;
+}
 
 function createEditorialReleaseSync({firestore,articles,releaseArticles=[],clock=()=>new Date().toISOString()}={}){
  if(typeof firestore?.runTransaction!=='function'||typeof articles?.doc!=='function')
@@ -47,4 +67,4 @@ function createEditorialReleaseSync({firestore,articles,releaseArticles=[],clock
  }
  return {sync,articles:validated,completed:()=>done};
 }
-module.exports={createEditorialReleaseSync};
+module.exports={createEditorialReleaseSync,loadEditorialReleases};
