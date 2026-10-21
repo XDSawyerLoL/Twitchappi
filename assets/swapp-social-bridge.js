@@ -99,6 +99,14 @@
   const footer=text('p','swapp-social-bridge-footnote','X pour découvrir · Discord pour échanger · SWAPP pour tout retrouver.');
   const channels=text('nav','swapp-social-bridge-channels');
   channels.setAttribute('aria-label','Réseaux officiels SWAPP');
+  // Bluesky's official compose intent is available without a SWAPP account,
+  // VPS, access token or paid API. The visitor chooses whether to post.
+  const blueskyShare=text('a','swapp-social-bridge-follow','Partager aussi sur Bluesky ↗');
+  blueskyShare.href='https://bsky.app/intent/compose?text='+encodeURIComponent(
+    '🎮 '+String(item?.title||'Actualités jeux vidéo SWAPP').trim().slice(0,125)+'\n'+href
+  );
+  blueskyShare.target='_blank';blueskyShare.rel='noopener noreferrer';
+  channels.append(blueskyShare);
   panel.append(kicker,intro,sides,footer,channels);
   container.append(panel);
   loadCommunityLinks(join,channels);
