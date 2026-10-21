@@ -9,8 +9,8 @@ const {collectPublicCatalog}=require('../../tools/justplayer-public-fetch');
 const {makePublicCatalog}=require('./public-catalog');
 const {recommend}=require('./content-metadata');
 const catalog=require('../../data/justplayer-public-catalog.json');
-const swappEditorialRelease=require('../../data/swapp-veille-native-20261021.json');
-const swappReleaseArticles=swappEditorialRelease.articles || [];
+const {createEditorialReleaseSync,loadEditorialReleases}=require('./editorial-release-sync');
+const swappReleaseArticles=loadEditorialReleases();
 const swappReleaseBySlug=new Map(swappReleaseArticles.map(article=>[article.slug,article]));
 const {publicArticle,recoveredArticle,nativeSlug,legacyDraft}=require('./editorial-identity');
 const {registerArticleScores}=require('./article-scores');
@@ -39,12 +39,23 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
   const articles=firestore.collection('swapp_news_articles');
   const outbox=firestore.collection('swapp_news_outbox');
   const importKeys=firestore.collection('swapp_news_import_keys');
+  const releaseSync=createEditorialReleaseSync({firestore,articles,releaseArticles:swappReleaseArticles});
+  // SWAPP already serves these editor-reviewed articles publicly. When the
+  // production magazine loads, adopt only still-missing records into the
+  // existing CMS collection. Existing edits, drafts and withdrawals win.
+  // A temporary storage failure leaves the verified public fallback intact.
+  const ensureReleaseEditable=async()=>{
+    if(process.env.NODE_ENV!=='production'||!isReady())return;
+    try{await releaseSync.sync();}
+    catch(error){console.warn('[SWAPP EDITORIAL] Adoption CMS reportee:',String(error?.message||error).slice(0,180));}
+  };
   const publicNews=makePublicCatalog({catalog:publicCatalog,fetchImpl:publicFetch});
   const slugOk = s => /^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/.test(String(s||''));
   const available=(req,res,next)=>isReady() ? next() : res.status(503).json({error:'news_storage_unavailable'});
   const sendError=(res,e)=>res.status(400).json({error:e.message || 'Article invalide'});
   const isValidation=e=>/Article|Titre|Slug|source|URL|Résumé|Crédit|droits|Date|JustPlayer|Contenu|Type de publication|vidéo|commercial|liens|Lien/.test(String(e?.message||''));
   const published=async()=>{
+    await ensureReleaseEditable();
     const snap=await articles.where('status','==','published').limit(500).get();
     const original=snap.docs.map(x=>x.data());
     const oldUrls=new Set(original.map(x=>x.legacyUrl).filter(Boolean));
@@ -248,8 +259,16 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
   });
   router.get('/api/editor/actus',...editor,async(req,res,next)=>{
     try{
+      await ensureReleaseEditable();
       const snap=await articles.limit(500).get();
-      const list=snap.docs.map(d=>publicArticle(d.data())).sort((a,b)=>String(b.updatedAt||'').localeCompare(String(a.updatedAt||'')));
+      const stored=snap.docs.map(d=>publicArticle(d.data()));
+      const present=new Set(snap.docs.map(d=>d.id));
+      // In the event of a temporary CMS outage, Studio can still show the
+      // original released articles. The next successful load adopts them.
+      const pending=process.env.NODE_ENV==='production'
+        ? swappReleaseArticles.filter(a=>!present.has(a.slug)).map(publicArticle)
+        : [];
+      const list=[...stored,...pending].sort((a,b)=>String(b.updatedAt||b.publishedAt||'').localeCompare(String(a.updatedAt||a.publishedAt||'')));
       return res.json({articles:list});
     }catch(e){next(e);}
   });
