@@ -17,12 +17,12 @@ const dayOf=x=>{
 };
 function summarizeFairAdmin({bands=[],daily=[],dailyCreators=[],games=[],uniqueCreators=0,days=7,enabled=true,placement='game'}={}){
  const periodDays=days===14?14:7;
- if(!enabled)return {enabled:false,scope:placement==='all'?'all-card-opt-in':placement+'-card-opt-in',sample:'not_collected',periodDays};
+ if(!enabled)return {enabled:false,scope:placement==='all'?'all-card-aggregate':placement+'-card-aggregate',sample:'not_collected',periodDays};
  const base=(Array.isArray(bands)?bands:[]).filter(x=>BANDS.includes(x.audience_band))
   .map(x=>({name:x.audience_band,impressions:count(x.impressions),clicks:count(x.clicks),creators:count(x.creators)}));
  const totals=base.reduce((a,x)=>({impressions:a.impressions+x.impressions,clicks:a.clicks+x.clicks}),{impressions:0,clicks:0});
  const creators=count(uniqueCreators);
- const shared={enabled:true,scope:placement==='all'?'all-card-opt-in':placement+'-card-opt-in',placement,periodDays,thresholds:{impressions:MIN_IMPRESSIONS,creators:MIN_CREATORS},
+ const shared={enabled:true,scope:placement==='all'?'all-card-aggregate':placement+'-card-aggregate',placement,periodDays,thresholds:{impressions:MIN_IMPRESSIONS,creators:MIN_CREATORS},
   sampling:'automatic-anonymous',notice:'Mesure automatique des cartes publiques vérifiées et visibles ; aucun cookie ni identifiant visiteur.'};
  if(totals.impressions<MIN_IMPRESSIONS||creators<MIN_CREATORS)
   return {...shared,sample:'insufficient',message:'Collecte active, mais échantillon encore insuffisant pour une analyse fiable.'};
