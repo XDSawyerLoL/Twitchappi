@@ -432,3 +432,50 @@
   grid-template-columns:repeat(2,minmax(0,1fr))
  }
 }
+
+/* SOCIAL · community-first hierarchy. Text/voice is the workspace, not a dashboard. */
+#swappSocialNative[data-social-view="rooms"] .swapp-interactive #ssi-room-panel .ssi-room-group{
+ display:block;min-width:0;padding:6px 0 8px
+}
+#swappSocialNative[data-social-view="rooms"] .swapp-interactive .ssi-room-group>h4{
+ display:block;margin:0;padding:11px 12px 7px;color:#9fb3c9;
+ font:800 10px/1.4 system-ui,sans-serif;letter-spacing:.11em;
+}
+#swappSocialNative[data-social-view="rooms"] .swapp-interactive .ssi-room-group+.ssi-room-group{
+ border-top:1px solid rgba(180,206,241,.13)
+}
+#swappSocialNative[data-social-view="rooms"] .swapp-interactive #ssi-room-panel .ssi-inline-form{
+ padding:15px!important;border-top:1px solid rgba(180,206,241,.16);
+ background:#15253a!important;max-height:min(65vh,490px);overflow:auto
+}
+#swappSocialNative[data-social-view="rooms"] .swapp-interactive #ssi-room-panel .ssi-block-action{
+ background:color-mix(in srgb,var(--swapp-page-accent,#50d8be) 16%,#1b293d)!important;
+ color:#f7fffd!important;border:1px solid color-mix(in srgb,var(--swapp-page-accent,#50d8be) 35%,#33445a)!important;
+ font-weight:800!important
+}
+#swappSocialNative[data-social-view="rooms"] .swapp-interactive #ssi-room-panel .ssi-room[aria-pressed="true"]{
+ background:color-mix(in srgb,var(--swapp-page-accent,#50d8be) 16%,#172c43)!important
+}
+#swappSocialNative[data-social-view="rooms"] .swapp-interactive #ssi-chat-panel .ssi-room-placeholder{
+ color:#c0d1e5!important;font-size:13px!important;line-height:1.7!important;
+ padding:20px 12px!important
+}
+#swappSocialNative[data-social-view="rooms"] .swapp-interactive :is(.ssi-room,.ssi-block-action,.ssi-inline-form input,.ssi-inline-form select):focus-visible{
+ outline:2px solid var(--swapp-page-accent,#50d8be)!important;outline-offset:2px
+}
+@media(max-width:650px), (max-width:920px) and (orientation:portrait){
+ #swappSocialNative[data-social-view="rooms"] .swapp-interactive .ssi-room-list{
+  display:block!important;max-height:225px!important;overflow-y:auto!important;overflow-x:hidden!important;
+  scroll-snap-type:none!important;padding:6px 11px 11px!important
+ }
+ #swappSocialNative[data-social-view="rooms"] .swapp-interactive .ssi-room-group{
+  display:flex;gap:6px;align-items:stretch;overflow-x:auto;flex-wrap:nowrap
+ }
+ #swappSocialNative[data-social-view="rooms"] .swapp-interactive .ssi-room-group>h4{
+  position:sticky;left:0;flex:0 0 83px;padding:13px 4px;font-size:9px;
+  align-self:center;background:#111d2e
+ }
+ #swappSocialNative[data-social-view="rooms"] .swapp-interactive .ssi-room-group .ssi-room{
+  flex:0 0 152px
+ }
+}
