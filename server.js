@@ -9592,7 +9592,7 @@ const SWAPP_SPOTLIGHT_ENABLED=process.env.SWAPP_SPOTLIGHT_ENABLED==='1';
 const {createSpotlightStore,apiError:spotlightError}=require('./modules/swapp-spotlight');
 let spotlightDbPool=null;
 function spotlightPool(){
-  if(!SWAPP_SPOTLIGHT_ENABLED||!SWAPP_MYSQL_ACCOUNTS)return null;
+  if(!(SWAPP_SPOTLIGHT_ENABLED||SWAPP_TV_QUEUE_ENABLED)||!SWAPP_MYSQL_ACCOUNTS)return null;
   if(socialInteractionsPool)return socialInteractionsPool;
   if(spotlightDbPool)return spotlightDbPool;
   const uri=process.env.SWAPP_MYSQL_URL;
