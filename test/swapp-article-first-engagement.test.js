@@ -40,3 +40,31 @@ test('retired game index and detail pages do not appear in new sitemaps',()=>{
  assert.match(xml,/\/actus\/baldurs-gate-news/);
  assert.doesNotMatch(xml,/\/jeux(?:\/|<)/);
 });
+
+
+test('premium article endcap separates primary game actions from lightweight share navigation',()=>{
+ const html=renderNewsStory(article());
+ assert.match(html,/class="sae-main"/);
+ assert.match(html,/class="sae-controls"/);
+ assert.match(html,/class="sae-sharebar"/);
+ assert.match(html,/class="sae-links"/);
+ assert.match(html,/class="sae-social-link"/);
+ assert.match(html,/aria-label="Partager et discuter de cet article"/);
+ assert.match(html,/data-swapp-follow-game[^>]*aria-pressed="false"/);
+ assert.match(html,/data-swapp-wishlist-game[^>]*aria-pressed="false"/);
+ assert.match(html,/@media\(max-width:760px\)/);
+ assert.match(html,/@media\(max-width:500px\)/);
+ assert.match(html,/prefers-reduced-motion:reduce/);
+ assert.match(html,/var\(--swapp-page-accent/);
+ assert.doesNotMatch(html,/class="swapp-engagement-actions"/);
+ const primary=html.indexOf('class="sae-controls"');
+ const secondary=html.indexOf('class="sae-sharebar"');
+ assert.ok(primary<secondary,'follow and wishlist should precede social links');
+});
+test('context-specific endcap never adds empty game actions to a general news story',()=>{
+ const html=renderArticleEngagement(article({game:''}));
+ assert.match(html,/La conversation/);
+ assert.match(html,/class="sae-sharebar"/);
+ assert.doesNotMatch(html,/class="sae-controls"/);
+ assert.doesNotMatch(html,/data-swapp-follow-game|data-swapp-wishlist-game/);
+});

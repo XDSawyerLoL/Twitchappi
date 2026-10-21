@@ -85,15 +85,36 @@ function immersiveCoverUrl(article){
 }
 
 const ARTICLE_ENGAGEMENT_CSS=[
- '.swapp-article-engagement{margin:36px 0 32px;padding:clamp(21px,3vw,32px);border:1px solid #ffffff2c;background:linear-gradient(125deg,#161e29,#0f141e);border-radius:14px;clear:both}',
- '.swapp-article-engagement .swapp-engagement-eyebrow{display:block;font-size:11px;font-weight:850;letter-spacing:.16em;color:var(--swapp-page-accent,#9bdde0);margin-bottom:10px}',
- '.swapp-article-engagement h2{font-size:clamp(23px,3vw,34px);letter-spacing:-.055em;line-height:1.13;margin:0 0 8px}',
- '.swapp-article-engagement p{font-size:14px;line-height:1.6;color:#bdc9d8;margin:0 0 20px}',
- '.swapp-article-engagement .swapp-engagement-actions{display:flex;flex-wrap:wrap;gap:9px;align-items:stretch}',
- '.swapp-article-engagement .swapp-engagement-actions a,.swapp-article-engagement .swapp-engagement-actions button{min-height:42px;display:inline-flex;align-items:center;justify-content:center;text-align:center;padding:10px 13px;border:1px solid #ffffff35;border-radius:7px;background:#ffffff0b;color:#f5f9ff;text-decoration:none;font:750 12px/1.35 system-ui,sans-serif;cursor:pointer;white-space:normal}',
- '.swapp-article-engagement .swapp-engagement-actions a:hover,.swapp-article-engagement .swapp-engagement-actions button:hover{border-color:var(--swapp-page-accent,#9bdde0);background:#ffffff18}',
- '.swapp-article-engagement .swapp-engagement-actions a:focus-visible,.swapp-article-engagement .swapp-engagement-actions button:focus-visible{outline:2px solid var(--swapp-page-accent,#9bdde0);outline-offset:3px}',
- '@media(max-width:620px){.swapp-article-engagement .swapp-engagement-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.swapp-article-engagement .swapp-engagement-actions>*{min-width:0}}'
+ ".article-body .swapp-article-engagement{--sae-accent:var(--swapp-page-accent,var(--swapp-side-light,#9adfe0));position:relative;isolation:isolate;overflow:hidden;clear:both;margin:clamp(38px,5vw,64px) 0 24px;padding:0;border:1px solid rgba(204,223,235,.17);border-radius:12px;color:#f4f7fa;background:linear-gradient(125deg,rgba(31,43,52,.76),rgba(9,14,21,.96) 67%);box-shadow:0 14px 44px rgba(0,0,0,.13)}",
+ ".article-body .swapp-article-engagement::before{content:'';position:absolute;z-index:0;top:0;left:0;width:min(45%,210px);height:2px;background:linear-gradient(90deg,var(--sae-accent),transparent);pointer-events:none}",
+ ".article-body .swapp-article-engagement::after{content:'';position:absolute;z-index:0;top:-120px;right:-70px;width:250px;height:250px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--sae-accent) 11%,transparent),transparent 70%);pointer-events:none}",
+ ".article-body .swapp-article-engagement .sae-main{display:grid;grid-template-columns:minmax(0,1fr) minmax(195px,245px);align-items:center;gap:clamp(20px,3vw,46px);padding:clamp(25px,3vw,38px);position:relative;z-index:1}",
+ ".article-body .swapp-article-engagement .sae-overline{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:14px;color:var(--sae-accent);font:800 10px/1.45 Inter,system-ui,sans-serif;letter-spacing:.2em;text-transform:uppercase}",
+ ".article-body .swapp-article-engagement .sae-beacon{display:inline-block;width:6px;height:6px;flex:0 0 6px;border-radius:50%;background:var(--sae-accent);box-shadow:0 0 12px color-mix(in srgb,var(--sae-accent) 45%,transparent)}",
+ ".article-body .swapp-article-engagement .sae-game-context{color:#a4adb9;font-size:10px;letter-spacing:.09em;min-width:0;max-width:100%;overflow-wrap:anywhere}",
+ ".article-body .swapp-article-engagement h2{margin:0 0 10px;max-width:540px;color:#f6f7fb;font:850 clamp(25px,3vw,35px)/1.12 Inter,system-ui,sans-serif;letter-spacing:-.055em;text-wrap:balance}",
+ ".article-body .swapp-article-engagement h2 em{font-style:normal;color:var(--sae-accent)}",
+ ".article-body .swapp-article-engagement .sae-deck{margin:0;max-width:470px;color:#aab6c4;font:400 13px/1.7 Inter,system-ui,sans-serif}",
+ ".article-body .swapp-article-engagement .sae-controls{display:grid;gap:10px;align-content:center;min-width:0}",
+ ".article-body .swapp-article-engagement .sae-controls button{width:100%;min-height:46px;display:flex;align-items:center;justify-content:center;gap:8px;margin:0;padding:12px 15px;border:1px solid rgba(221,239,246,.24);border-radius:5px;background:#ffffff0b;color:#f3f5f8;text-align:center;font:800 12px/1.3 Inter,system-ui,sans-serif;letter-spacing:.005em;white-space:normal;cursor:pointer;transition:background-color .18s ease,border-color .18s ease,color .18s ease,transform .18s ease}",
+ ".article-body .swapp-article-engagement .sae-controls [data-swapp-follow-game]{background:#f3f6f7;color:#101820;border-color:#f3f6f7}",
+ ".article-body .swapp-article-engagement .sae-controls [data-swapp-follow-game]:hover{background:var(--sae-accent);border-color:var(--sae-accent);transform:translateY(-1px)}",
+ ".article-body .swapp-article-engagement .sae-controls [data-swapp-follow-game][aria-pressed='true']{background:color-mix(in srgb,var(--sae-accent) 16%,#17212b);border-color:var(--sae-accent);color:#f4faff}",
+ ".article-body .swapp-article-engagement .sae-controls [data-swapp-wishlist-game]:hover{background:#ffffff1a;border-color:#d0dce2}",
+ ".article-body .swapp-article-engagement .sae-controls [data-swapp-wishlist-game][aria-pressed='true']{color:var(--sae-accent);border-color:var(--sae-accent);background:#ffffff0b}",
+ ".article-body .swapp-article-engagement .sae-controls button:disabled{opacity:.45;cursor:not-allowed}",
+ ".article-body .swapp-article-engagement .sae-sharebar{position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;min-height:66px;padding:12px clamp(25px,3vw,38px);border-top:1px solid rgba(207,225,235,.13);background:rgba(0,0,0,.18)}",
+ ".article-body .swapp-article-engagement .sae-sharetitle{color:#8d9ca9;font:850 10px/1.35 Inter,system-ui,sans-serif;letter-spacing:.16em;white-space:nowrap}",
+ ".article-body .swapp-article-engagement .sae-links{display:flex;align-items:center;flex-wrap:wrap;gap:clamp(12px,1.6vw,23px)}",
+ ".article-body .swapp-article-engagement .sae-links a{display:inline-flex;align-items:center;gap:7px;padding:6px 0;border:0;border-bottom:1px solid transparent;border-radius:0;background:transparent;color:#cbd5df;text-decoration:none;font:700 11px/1.35 Inter,system-ui,sans-serif;white-space:nowrap;transition:color .18s ease,border-color .18s ease}",
+ ".article-body .swapp-article-engagement .sae-links a:hover{border-color:var(--sae-accent);color:#fff}",
+ ".article-body .swapp-article-engagement .sae-links .sae-social-link{color:var(--sae-accent)}",
+ ".article-body .swapp-article-engagement .sae-links .sae-logo{display:inline-grid;place-items:center;min-width:15px;font-size:15px;font-weight:900;color:inherit}",
+ ".article-body .swapp-article-engagement .sae-links .sae-arrow{color:#9faeb8;font-size:12px}",
+ ".article-body .swapp-article-engagement :is(button,a):focus-visible{outline:2px solid var(--sae-accent);outline-offset:4px}",
+ "@media(max-width:760px){.article-body .swapp-article-engagement .sae-main{grid-template-columns:minmax(0,1fr);gap:21px}.article-body .swapp-article-engagement .sae-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.article-body .swapp-article-engagement .sae-sharebar{align-items:flex-start}.article-body .swapp-article-engagement .sae-sharetitle{width:100%}}",
+ "@media(max-width:500px){.article-body .swapp-article-engagement{border-radius:9px}.article-body .swapp-article-engagement .sae-main{padding:24px 18px}.article-body .swapp-article-engagement .sae-overline{font-size:9px}.article-body .swapp-article-engagement .sae-controls{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.article-body .swapp-article-engagement .sae-controls button{min-height:48px;padding:10px 8px;font-size:11px}.article-body .swapp-article-engagement .sae-sharebar{padding:17px 18px 20px}.article-body .swapp-article-engagement .sae-links{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%;gap:9px 14px}.article-body .swapp-article-engagement .sae-links a{min-width:0;white-space:normal;min-height:35px}}",
+ "@media(prefers-reduced-motion:reduce){.article-body .swapp-article-engagement *{transition:none!important;animation:none!important}}"
 ].join('');
 function renderArticleEngagement(article,baseUrl='https://swapp.tv'){
  const slug=String(article?.slug||'');
@@ -105,19 +126,24 @@ function renderArticleEngagement(article,baseUrl='https://swapp.tv'){
  const shareBlue='https://bsky.app/intent/compose?text='+encodeURIComponent(title+' — '+link);
  const social='/social?'+new URLSearchParams(game?{game,share:'news',url:link}:{share:'news',url:link}).toString();
  const discord=publicCommunityLinks().discordInvite;
- const gameButtons=key?
-  '<button type="button" data-swapp-follow-game data-game-slug="'+escapeHtml(key)+'" data-game-name="'+escapeHtml(game)+'" aria-pressed="false">＋ Suivre ce jeu</button>'+
-  '<button type="button" data-swapp-wishlist-game data-game-slug="'+escapeHtml(key)+'" data-game-name="'+escapeHtml(game)+'" aria-pressed="false">♡ Mes envies</button>':'';
+ const controls=key?
+  '<div class="sae-controls" aria-label="Tes actions sur ce jeu">'+
+   '<button type="button" data-swapp-follow-game data-game-slug="'+escapeHtml(key)+'" data-game-name="'+escapeHtml(game)+'" aria-pressed="false">＋ Suivre ce jeu</button>'+
+   '<button type="button" data-swapp-wishlist-game data-game-slug="'+escapeHtml(key)+'" data-game-name="'+escapeHtml(game)+'" aria-pressed="false">♡ Mes envies</button>'+
+  '</div>':'';
  return '<section class="swapp-article-engagement" aria-labelledby="swapp-article-community-title">'+
-  '<span class="swapp-engagement-eyebrow">SWAPP / COMMUNAUTÉ</span>'+
-  '<h2 id="swapp-article-community-title">Retrouve les autres joueurs.</h2>'+
-  '<p>'+(game?'Partage ce jeu et prolonge les échanges dans la communauté.':'Partage cet article et prolonge les échanges dans la communauté.')+'</p>'+
-  '<div class="swapp-engagement-actions">'+gameButtons+
-  '<a href="'+escapeHtml(shareX)+'" target="_blank" rel="noopener noreferrer">'+(game?'Partager ce jeu sur X ↗':'Partager l’article sur X ↗')+'</a>'+
-  '<a href="'+escapeHtml(social)+'">Discuter sur SWAPP SOCIAL ↗</a>'+
-  '<a href="'+escapeHtml(shareBlue)+'" target="_blank" rel="noopener noreferrer">Partager sur Bluesky ↗</a>'+
-  (discord?'<a href="'+escapeHtml(discord)+'" target="_blank" rel="noopener noreferrer">Rejoindre le Discord SWAPP ↗</a>':'')+
-  '</div></section>';
+  '<div class="sae-main"><div class="sae-copy">'+
+   '<span class="sae-overline"><span class="sae-beacon" aria-hidden="true"></span> SWAPP / APRÈS L’ARTICLE'+(game?'<span class="sae-game-context">— '+escapeHtml(game)+'</span>':'')+'</span>'+
+   '<h2 id="swapp-article-community-title">'+(game?'Le jeu continue. <em>Avec toi.</em>':'La conversation <em>continue.</em>')+'</h2>'+
+   '<p class="sae-deck">'+(game?'Suis le jeu, garde-le dans tes envies et retrouve ceux qui y jouent.':'Partage cette lecture et retrouve les échanges dans la communauté.')+'</p>'+
+  '</div>'+controls+'</div>'+
+  '<div class="sae-sharebar"><span class="sae-sharetitle">PARTAGER & ÉCHANGER</span>'+
+   '<nav class="sae-links" aria-label="Partager et discuter de cet article">'+
+    '<a class="sae-social-link" href="'+escapeHtml(social)+'" aria-label="Discuter sur SWAPP SOCIAL"><span class="sae-logo" aria-hidden="true">⌗</span> SWAPP SOCIAL <span class="sae-arrow" aria-hidden="true">↗</span></a>'+
+    '<a href="'+escapeHtml(shareX)+'" aria-label="'+(game?'Partager ce jeu sur X':'Partager l’article sur X')+'" target="_blank" rel="noopener noreferrer"><span class="sae-logo" aria-hidden="true">𝕏</span> X <span class="sae-arrow" aria-hidden="true">↗</span></a>'+
+    '<a href="'+escapeHtml(shareBlue)+'" aria-label="Partager sur Bluesky" target="_blank" rel="noopener noreferrer"><span class="sae-logo" aria-hidden="true">✦</span> Bluesky <span class="sae-arrow" aria-hidden="true">↗</span></a>'+
+    (discord?'<a href="'+escapeHtml(discord)+'" aria-label="Rejoindre le Discord SWAPP" target="_blank" rel="noopener noreferrer"><span class="sae-logo" aria-hidden="true">◈</span> Discord <span class="sae-arrow" aria-hidden="true">↗</span></a>':'')+
+   '</nav></div></section>';
 }
 
 function renderNewsStory(originalArticle,{baseUrl='https://swapp.tv',relatedArticles=[],gameHubUrl=null}={}){
