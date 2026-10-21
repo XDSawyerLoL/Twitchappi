@@ -321,6 +321,7 @@
   renderDigest();
   publishGameInterests();
  });
+ window.addEventListener('swapp:account-rendered',update);
  window.addEventListener('swapp:home-feature-ready',updateHomeLink);
  window.addEventListener('storage',e=>{
   if(e.key===KEY||e.key===null){games=read();update();}
