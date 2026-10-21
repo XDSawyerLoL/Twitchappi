@@ -3992,6 +3992,8 @@ async function renderSettings(){
   '<a href="/actus/studio"><strong>Studio rédaction</strong><span>Articles et vidéos ↗</span></a>'+
   '<a href="/boutique/admin"><strong>Gestion Boutique</strong><span>Produits et vitrine ↗</span></a>'+
   '<a href="/admin/fair-discovery"><strong>Fair Discovery</strong><span>Mesure de visibilité et équité ↗</span></a></nav></div>'+
+  (typeof isAdmin==='function'&&isAdmin()?
+    '<button class="swapp-acct-general-admin" type="button" onclick="setView(&quot;admin&quot;)">Administration générale ↗</button>':'')+
   '</section>';
  const accountActions='<section class="swapp-acct-connections" aria-labelledby="swapp-account-connections">'+
   '<div class="swapp-acct-section-head"><div><span class="swapp-acct-kicker">INTÉGRATIONS</span><h2 id="swapp-account-connections">Connexions</h2>'+
