@@ -50,7 +50,7 @@ test('RSS contains only published, valid, correctly escaped editorials',()=>{
   {slug:'brouillon-interne',title:'Interne',status:'draft'},
   {slug:'bad/slug',title:'Mauvais',status:'published'}
  ]);
- assert.match(rss,/<rss version="2.0">/);
+ assert.match(rss,/<rss version="2.0" xmlns:media="http:\/\/search.yahoo.com\/mrss\/">/);
  assert.match(rss,/Jeux &amp; nouveautés/);
  assert.match(rss,/Info &lt;brut&gt;/);
  assert.match(rss,/https:\/\/swapp\.tv\/actus\/jeux-sorties-2026/);
