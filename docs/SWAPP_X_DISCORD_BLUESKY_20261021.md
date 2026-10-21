@@ -35,3 +35,35 @@ https://github.com/bluesky-social/pds
 - Bluesky automatique ne nécessite pas de VPS mais exige le compte SWAPP et un mot de passe d'application privé.
 - Faire entrer les lecteurs dans un Discord SWAPP nécessite une invitation publique valide, distincte du webhook privé.
 - Ne jamais décrire ces automatisations non configurées comme déjà actives.
+
+
+## Livraison complémentaire — parcours crédible SWAPP
+L'accueil conserve son module réel X ↔ Discord, et propose maintenant aussi un lien de partage volontaire « Partager aussi sur Bluesky » via l'intention officielle bsky.app/intent/compose?text=... ; ni compte d'application SWAPP, ni VPS, ni API payante ne sont nécessaires pour que les visiteurs partagent.
+
+Les dossiers /jeux/:slug intègrent une section « Fais vivre cet univers » regroupant :
+- Partager ce jeu sur X (URL exacte du jeu) ;
+- Discuter sur SWAPP SOCIAL (filtrage par jeu) ;
+- Partager sur Bluesky (composition volontaire avec titre et URL) ;
+- Rejoindre le Discord SWAPP UNIQUEMENT lorsque l'invitation officielle est disponible.
+
+### Configuration des liens publics sur Hostinger
+Les liens publics sont servis par GET /api/swapp/community-links après validation stricte des domaines :
+- SWAPP_DISCORD_INVITE_URL=https://discord.gg/CODE_D_INVITATION : **URL PUBLIQUE d'invitation**, différente du webhook Discord déjà privé. Sans cette variable, aucun faux bouton « Rejoindre » n'est présenté ; le bouton « Copier le lien pour Discord » reste disponible.
+- SWAPP_X_PROFILE_URL=https://x.com/VotreCompte (facultatif).
+- SWAPP_BLUESKY_PROFILE_URL=https://bsky.app/profile/votrecompte.bsky.social (facultatif).
+
+Configurer les variables directement dans la Web App Node Hostinger, puis redémarrer. Le site ne dévoile JAMAIS SWAPP_DISCORD_WEBHOOK_URL. Ne renseigner aucune URL de webhook dans la variable d'invitation.
+Si l'API retourne discordInvite:null ou xProfile:null ou blueskyProfile:null, le profil correspondant n'est pas encore activé : c'est attendu, pas une panne du partage X ou Bluesky.
+
+Le tableau de bord /compte > Administration > État des services expose désormais une ligne « Liens communautaires » distincte de la ligne « Discord » qui mesure la publication automatisée par webhook.
+
+### Vérifications du 21 octobre 2026
+- API publique /api/swapp/community-links répond avec les trois valeurs null ; aucun serveur Discord n'a été inventé.
+- /jeux/cyberpunk-2077 et /jeux/crimson-desert répondent avec la section de partage GAME UNIVERSE.
+- /assets/swapp-social-bridge.js?v=20261021-bluesky-share-v3 est servi en production et contient l'action de partage Bluesky.
+- Tests dédiés : test/swapp-social-bridge.test.js et test/swapp-public-community-links.test.js.
+- Le rendu complet de l'accueil en navigateur et la livraison réelle des messages webhook ne sont pas certifiés par ces contrôles de contenu ; les valider séparément avant de communiquer des taux de performance.
+
+### Sources produit
+Bluesky a officiellement publié l'URL d'intention de composition en 2024 : https://bsky.app/profile/bsky.app/post/3kmjboaopvn2f.
+AT Protocol permet la publication depuis un compte hébergé sur bsky.social ; auto-héberger un PDS (qui nécessiterait une infrastructure distincte) n'est pas requis : https://docs.bsky.app/docs/tutorials/creating-a-post.
