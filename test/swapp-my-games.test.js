@@ -110,7 +110,7 @@ test('SPA and native routes share the same assets and do not grow the top-level 
  const nav=read('assets/swapp-navigation.js'),css=read('assets/swapp-my-games.css');
  for(const page of [home,shell]){
   assert.match(page,/swapp-my-games\.css\?v=20261019-live-journey-v3/);
-  assert.match(page,/swapp-my-games\.js\?v=20261019-live-journey-v3/);
+  assert.match(page,/swapp-my-games\.js\?v=20261021-account-hub-v1/);
  }
  assert.doesNotMatch(nav,/href:'\/mes-jeux'/);
  assert.match(css,/@media\(max-width:720px\)/);
