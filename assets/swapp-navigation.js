@@ -32,7 +32,7 @@
       '<nav id="nav" class="mainNav" aria-label="Navigation principale"><div class="navGroup">'+navigation+'</div></nav>'+
       '<div class="userArea"><button type="button" id="userBtn" class="userBtn" aria-haspopup="true" aria-expanded="false">'+
       '<img id="userAvatar" class="avatarMini" alt=""><span id="userLabel">Compte</span></button>'+
-      '<div id="userMenu" class="menu"><a href="/compte">Mon compte SWAPP</a></div></div>'+
+      '<div id="userMenu" class="menu"><a href="/compte">Mon espace SWAPP</a></div></div>'+
       '</div></header>';
   }
   function serverMobile(active='actus'){
