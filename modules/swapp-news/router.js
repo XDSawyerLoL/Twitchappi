@@ -9,6 +9,9 @@ const {collectPublicCatalog}=require('../../tools/justplayer-public-fetch');
 const {makePublicCatalog}=require('./public-catalog');
 const {recommend}=require('./content-metadata');
 const catalog=require('../../data/justplayer-public-catalog.json');
+const swappEditorialRelease=require('../../data/swapp-veille-native-20261021.json');
+const swappReleaseArticles=swappEditorialRelease.articles || [];
+const swappReleaseBySlug=new Map(swappReleaseArticles.map(article=>[article.slug,article]));
 const {publicArticle,recoveredArticle,nativeSlug,legacyDraft}=require('./editorial-identity');
 const {registerArticleScores}=require('./article-scores');
 const {registerEditorInsights}=require('./editor-insights');
@@ -60,14 +63,22 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
       &&!oldTitles.has(String(x.title||'').toLowerCase())
       &&!withdrawnUrls.has(x.legacyUrl)
       &&!withdrawnTitles.has(String(x.title||'').toLowerCase()));
-    return [...original.map(publicArticle),...recovered.map(recoveredArticle)].map(correctWoWForever).sort((a,b)=>String(b.publishedAt||'').localeCompare(String(a.publishedAt||'')));
+    // Versioned editorial release follows the usual native rendering paths.
+    // Never resurrect an article explicitly withdrawn or overwrite a Firestore draft.
+    const allSlugs=new Set(all.docs.map(d=>String(d.id||d.data()?.slug||'')));
+    const editorialFallback=swappReleaseArticles.filter(item=>!allSlugs.has(item.slug)
+      &&!oldTitles.has(String(item.title||'').toLowerCase())
+      &&!withdrawnTitles.has(String(item.title||'').toLowerCase()));
+    return [...original.map(publicArticle),...editorialFallback.map(publicArticle),...recovered.map(recoveredArticle)]
+      .map(correctWoWForever)
+      .sort((a,b)=>String(b.publishedAt||'').localeCompare(String(a.publishedAt||'')));
   };
   // Recommendations from published SWAPP records and recovered articles already cached.
   // Does not initiate any remote fetch of the retired publishing platform.
   const relatedTo=async current=>{
     const snapshot=await articles.where('status','==','published').limit(80).get();
     const candidates=[...snapshot.docs.map(d=>publicArticle(d.data())),
-      ...publicNews.articles().map(recoveredArticle)];
+      ...swappReleaseArticles.map(publicArticle),...publicNews.articles().map(recoveredArticle)];
     const norm=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
       .toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
     const game=norm(current.game),category=norm(current.category);
@@ -112,6 +123,8 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
       if((exact.exists&&exact.data().legacySuppressRecovery)
         ||(snap.exists&&snap.data().legacySuppressRecovery))
         return res.status(404).json({error:'Article retiré du magazine'});
+      if(!exact.exists&&!snap.exists&&swappReleaseBySlug.has(slug))
+        return res.json(publicArticle(swappReleaseBySlug.get(slug)));
       const historicalSlug=slug.startsWith('justplayer-')?slug:'justplayer-'+slug;
       const original=await publicNews.get(historicalSlug);
       return original?res.json(recoveredArticle(original)):res.status(404).json({error:'Article introuvable'});
@@ -197,6 +210,10 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
       if((exact.exists&&exact.data().legacySuppressRecovery)
         ||(snap.exists&&snap.data().legacySuppressRecovery))
         return res.status(404).send('Article retiré du magazine');
+      if(!exact.exists&&!snap.exists&&swappReleaseBySlug.has(slug)){
+        res.set('Cache-Control','public, max-age=60');
+        return res.type('html').send(await storyHtml(publicArticle(swappReleaseBySlug.get(slug))));
+      }
       const historicalSlug=slug.startsWith('justplayer-')?slug:'justplayer-'+slug;
       const original=await publicNews.get(historicalSlug);
       return original?res.type('html').send(await storyHtml(recoveredArticle(original))):
