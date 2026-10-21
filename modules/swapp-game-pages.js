@@ -77,7 +77,7 @@ function renderGameIndex(groups){
   }))}};
  const meta='<link rel="canonical" href="'+url+'"><meta property="og:type" content="website"><meta property="og:url" content="'+url+'">'+structuredData(indexSchema);
  const links=groups.map(g=>'<article class="card" data-swapp-game-card data-game-slug="'+html(g.slug)+'" data-game-name="'+html(g.game)+'">'+
-  '<a href="/jeux/'+encodeURIComponent(g.slug)+'">'+(safeCover(g.articles[0])?'<img src="'+html(safeCover(g.articles[0]))+'" alt="Illustration de '+html(g.game)+'" loading="lazy">':'')+'<div><h3>'+html(g.game)+'</h3><span>'+g.count+' publications</span></div></a>'+
+  '<a href="/jeux/'+encodeURIComponent(g.slug)+'">'+(safeCover(g.articles[0])?'<img src="'+html(safeCover(g.articles[0]))+'" alt="Illustration de '+html(g.game)+'" loading="lazy">':'')+'<div><h3>'+html(g.game)+'</h3><span>'+g.count+' publication'+(g.count>1?'s':'')+'</span></div></a>'+
   '<button type="button" data-swapp-follow-game data-game-slug="'+html(g.slug)+'" data-game-name="'+html(g.game)+'" aria-pressed="false">＋ Suivre ce jeu</button>'+
   '<button type="button" data-swapp-wishlist-game data-game-slug="'+html(g.slug)+'" data-game-name="'+html(g.game)+'" aria-pressed="false">♡ Ajouter aux envies</button></article>').join('');
  const body='<main class="game-portal"><p class="breadcrumb"><a href="/">SWAPP</a> / Jeux</p><header class="hero"><h1>Jeux vidéo : actualités et créateurs</h1><p>Retrouve les jeux couverts par SWAPP, leurs articles et les créateurs en direct.</p><div class="actions"><a href="/mes-jeux">Mes jeux suivis →</a></div></header><section><div class="mg-index-intro"><h2>Explorer les jeux</h2><a href="/mes-jeux">Retrouver ma sélection →</a></div><div class="cards index">'+links+'</div></section></main>';
@@ -85,7 +85,7 @@ function renderGameIndex(groups){
 }
 function renderGamePage(group){
  const url=ORIGIN+'/jeux/'+encodeURIComponent(group.slug);
- const title=group.game+' : actualités et lives',description='Les '+group.count+' publications SWAPP autour de '+group.game+', et les créateurs en direct.';
+ const title=group.game+' : actualités et lives',description=group.count+' publication'+(group.count>1?'s':'')+' SWAPP sur '+group.game+', les créateurs réellement en direct et la communauté.';
  const cover=group.articles.map(safeCover).find(Boolean)||'';
  const pageSchema={'@context':'https://schema.org','@type':'CollectionPage',
   name:title,url,description,
@@ -123,7 +123,7 @@ function renderMyGames(groups=[]){
      (dateText?'<time datetime="'+html(validDate)+'">'+html(dateText)+'</time>':'')+html(String(a.title).slice(0,155))+'</a>';
   }).join('');
   return '<article class="mg-card" data-swapp-game-card data-game-slug="'+html(g.slug)+'" data-game-name="'+html(g.game)+'">'+
-   '<div class="mg-card-top"><div><span class="mg-eyebrow">'+g.count+' publications vérifiées</span><h3>'+html(g.game)+'</h3><p>Actualités, lives, joueurs et boutique</p></div><button type="button" data-swapp-follow-game data-game-slug="'+html(g.slug)+'" data-game-name="'+html(g.game)+'" aria-pressed="false">＋ Suivre ce jeu</button></div>'+
+   '<div class="mg-card-top"><div><span class="mg-eyebrow">'+g.count+' publication'+(g.count>1?'s':'')+' vérifiée'+(g.count>1?'s':'')+'</span><h3>'+html(g.game)+'</h3><p>Actualités, lives, joueurs et boutique</p></div><button type="button" data-swapp-follow-game data-game-slug="'+html(g.slug)+'" data-game-name="'+html(g.game)+'" aria-pressed="false">＋ Suivre ce jeu</button></div>'+
    '<span class="mg-new" data-my-games-news hidden></span><div class="mg-card-latest">'+recent+'</div>'+
    '<div class="mg-card-links"><button type="button" data-swapp-wishlist-game data-game-slug="'+html(g.slug)+'" data-game-name="'+html(g.game)+'" aria-pressed="false">♡ Ajouter aux envies</button><a href="/jeux/'+encodeURIComponent(g.slug)+'">Dossier et lives →</a><a href="/social?game='+encodeURIComponent(g.game)+'">Salons du jeu</a><a href="/boutique">Voir la boutique</a><button type="button" data-my-games-mark-seen hidden>Marquer comme vues</button></div></article>';
  }).join('');
