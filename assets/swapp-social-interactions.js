@@ -71,9 +71,9 @@
     <section class="ssi-panel ssi-panel-rooms" id="ssi-room-panel" aria-labelledby="ssi-rooms-title">
      <div class="ssi-panel-inner">
       <div class="ssi-panel-head"><div class="ssi-head-main">${icon('rooms')}<div><span class="ssi-section-label">COMMUNAUTÉS SWAPP</span><h3 id="ssi-rooms-title">Mes espaces</h3><p class="ssi-panel-desc">Texte et vocal au même endroit. Crée un espace privé ou rejoins un salon public.</p></div></div><span class="ssi-count" id="ssi-room-badge" title="Nombre de salons">—</span></div>
+      <button type="button" class="ssi-ghost ssi-block-action" data-open-form="room" aria-controls="ssi-form-room" aria-expanded="false">+ Créer mon espace</button>
       <div class="ssi-room-list" id="ssi-room-results" aria-live="polite"></div>
       <button type="button" class="ssi-ghost ssi-block-action" id="ssi-game-room-scope" data-action="toggle-game-rooms" hidden>Voir tous les salons</button>
-      <button type="button" class="ssi-ghost ssi-block-action" data-open-form="room" aria-controls="ssi-form-room" aria-expanded="false">+ Créer mon espace</button>
       <form class="ssi-inline-form" id="ssi-form-room" hidden>
        <label class="ssi-field">Nom de ton espace<input name="name" required maxlength="60" placeholder="Ex. Notre guilde"></label>
        <label class="ssi-field">Jeu associé (facultatif)<input name="game" maxlength="65" placeholder="Ex. Aion 2"></label>
