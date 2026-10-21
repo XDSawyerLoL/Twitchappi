@@ -113,7 +113,7 @@ function renderArticleEngagement(article,baseUrl='https://swapp.tv'){
   '<h2 id="swapp-article-community-title">Retrouve les autres joueurs.</h2>'+
   '<p>'+(game?'Partage ce jeu et prolonge les échanges dans la communauté.':'Partage cet article et prolonge les échanges dans la communauté.')+'</p>'+
   '<div class="swapp-engagement-actions">'+gameButtons+
-  '<a href="'+escapeHtml(shareX)+'" target="_blank" rel="noopener noreferrer">Partager sur X ↗</a>'+
+  '<a href="'+escapeHtml(shareX)+'" target="_blank" rel="noopener noreferrer">'+(game?'Partager ce jeu sur X ↗':'Partager l’article sur X ↗')+'</a>'+
   '<a href="'+escapeHtml(social)+'">Discuter sur SWAPP SOCIAL ↗</a>'+
   '<a href="'+escapeHtml(shareBlue)+'" target="_blank" rel="noopener noreferrer">Partager sur Bluesky ↗</a>'+
   (discord?'<a href="'+escapeHtml(discord)+'" target="_blank" rel="noopener noreferrer">Rejoindre le Discord SWAPP ↗</a>':'')+
