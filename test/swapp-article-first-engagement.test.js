@@ -10,7 +10,7 @@ function article(overrides={}){
 }
 test('game article automatically exposes follow, wishlist and four community links without a hub',()=>{
  const html=renderNewsStory(article());
- for(const name of ['data-swapp-follow-game','data-swapp-wishlist-game','Partager sur X','Discuter sur SWAPP SOCIAL','Partager sur Bluesky','Rejoindre le Discord SWAPP'])
+ for(const name of ['data-swapp-follow-game','data-swapp-wishlist-game','Partager ce jeu sur X','Discuter sur SWAPP SOCIAL','Partager sur Bluesky','Rejoindre le Discord SWAPP'])
   assert.match(html,new RegExp(name),name);
  assert.match(html,/data-game-slug="baldur-s-gate-3"/);
  assert.match(html,/https:\/\/discord\.gg\/AYKJYYJrTJ/);
@@ -24,7 +24,7 @@ test('game article automatically exposes follow, wishlist and four community lin
 });
 test('articles with no identified game still share the article without follow/wishlist actions',()=>{
  const html=renderArticleEngagement(article({game:''}));
- assert.match(html,/Partager sur X/);
+ assert.match(html,/Partager l’article sur X/);
  assert.match(html,/Discuter sur SWAPP SOCIAL/);
  assert.match(html,/Partager sur Bluesky/);
  assert.doesNotMatch(html,/data-swapp-follow-game|data-swapp-wishlist-game/);
