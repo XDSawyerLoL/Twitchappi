@@ -9,7 +9,7 @@ function mount(){
  footer.innerHTML=`<div class="swapp-footer-inner">
   <div class="swapp-footer-top">
    <div class="swapp-footer-brand"><a href="/" aria-label="SWAPP, accueil">SWAPP<span class="swapp-footer-brand-dot">.</span></a><p>Jeux vidéo, créateurs et communauté.<br>Une seule plateforme pour découvrir, lire et regarder.</p></div>
-   <div class="swapp-footer-col"><h2>Explorer</h2><a href="/">Accueil</a><a href="/actus">Actualités</a><a href="/decouvrir">Lives et créateurs</a><a href="/bandes-annonces">Bandes-annonces</a><a href="/boutique">Boutique</a><a href="/plan-du-site">Plan du site</a></div>
+   <div class="swapp-footer-col"><h2>Explorer</h2><a href="/">Accueil</a><a href="/actus">Actualités</a><a href="/jeux">Univers de jeux</a><a href="/decouvrir">Lives et créateurs</a><a href="/bandes-annonces">Bandes-annonces</a><a href="/boutique">Boutique</a><a href="/plan-du-site">Plan du site</a></div>
    <div class="swapp-footer-col"><h2>Social</h2><a href="/social">Social</a><a href="/contact">Contact</a><a href="/moderation">Modération</a><a href="https://github.com/XDSawyerLoL/Twitchappi/issues/new" target="_blank" rel="noopener noreferrer">Signaler un problème <span aria-hidden="true">↗</span></a><a href="https://github.com/XDSawyerLoL/Twitchappi" target="_blank" rel="noopener noreferrer">Projet SWAPP <span aria-hidden="true">↗</span></a></div>
    <div class="swapp-footer-col"><h2>Transparence</h2><a href="/mentions-legales">Mentions légales</a><a href="/cgu">CGU</a><a href="/confidentialite">Confidentialité</a><a href="/cookies">Cookies</a><p class="swapp-footer-pending">Informations juridiques en cours de finalisation.</p></div>
   </div>
