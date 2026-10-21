@@ -53,7 +53,7 @@ function community(){
   '<link rel="stylesheet" href="/assets/swapp-social-interactions.css?v=20261019-personal-invites-v1">'+
   '<script defer src="/assets/swapp-social-interactions.js?v=20261021-community-shell-v3"></script>'+
   '<link rel="stylesheet" href="/assets/swapp-social-next.css?v=20261016-passport-game-v2">'+
-  '<script defer src="/assets/swapp-social-next.js?v=20261021-community-shell-v2"></script>'+
+  '<script defer src="/assets/swapp-social-next.js?v=20261021-community-shell-v3"></script>'+
    '<script defer src="/socket.io/socket.io.js"></script>'+
    '<script defer src="/assets/swapp-social-voice.js?v=20261018-channel-ux-v1"></script>'+
   '<link rel="stylesheet" href="/assets/swapp-social-product-v3.css?v=20261021-fixed-shell-v1">'+
