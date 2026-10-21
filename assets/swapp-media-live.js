@@ -94,7 +94,7 @@
   function gameLives(game){
     const key=normal(game);
     if(!requests.has(key)){
-      const url='/api/discovery/game-lives?limit=6&game='+encodeURIComponent(game.slice(0,90));
+      const url='/api/discovery/game-lives?limit=6&lang=fr&game='+encodeURIComponent(game.slice(0,90));
       requests.set(key,getWithTimeout(url,12000)
        .then(async response=>{
          if(!response.ok)throw Error('HTTP '+response.status);
@@ -105,6 +105,7 @@
          // claim that no streamer is live.
          verified.coverage=String(payload.coverage||'unknown');
          verified.metricsEnabled=payload.fairMetrics?.enabled===true;
+          verified.languageFallback=payload.languageFallback===true;
          return verified;
        }).catch(error=>{requests.delete(key);throw error;}));
     }
@@ -212,7 +213,17 @@
       if(!shelf.isConnected)return;
       const articleMode=shelf.id==='swapp-article-lives';
       const cards=validUnique(data,articleMode?3:(game?4:6),game,articleMode);
-      if(cards.length){target.replaceChildren(...cards);setupFairPilot(shelf,cards,!!data.metricsEnabled);return;}
+      if(cards.length){
+        target.replaceChildren();
+        if(game&&data.languageFallback){
+          const languageNotice=document.createElement('p');
+          languageNotice.className='swapp-live-notice';
+          text(languageNotice,'Aucun créateur francophone éligible actuellement : sélection internationale vérifiée.');
+          target.append(languageNotice);
+        }
+        target.append(...cards);
+        setupFairPilot(shelf,cards,!!data.metricsEnabled);return;
+      }
       const coverage=Array.isArray(data)?data.coverage:'';
       const failure=coverage==='native-only'?
        'Les directs SWAPP ont été vérifiés, mais la recherche Twitch est indisponible : des chaînes peuvent être en direct sur '+game+'.':
@@ -259,7 +270,7 @@
         link.className='swapp-live-card swapp-related-card swapp-game-linked-card';
         // Reverse journey: the live viewer sees the real editorial artwork
         // for this exact game. No generic stock image or invented article.
-        const coverSrc=safeImage(a.image?.url||a.imageUrl);
+        const coverSrc=safeImage(window.SwappArticleExtras?.cardImageSources?.(a)?.[0]||a.image?.url||a.imageUrl);
         if(coverSrc){
           const cover=document.createElement('div');cover.className='swapp-live-cover swapp-related-cover';
           const img=document.createElement('img');img.src=coverSrc;img.alt='';
