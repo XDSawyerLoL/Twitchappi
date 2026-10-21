@@ -1,8 +1,9 @@
 'use strict';
-// Publish a game page only if at least two different, real published articles exist.
+// One verified article suffices for a GAME UNIVERSE hub; never invent game data.
 // The page only aggregates first-party editorial content and the existing live shelf.
 const {layout}=require('./swapp-news/site-shell');
 const {searchNames}=require('./swapp-news/game-identity');
+const {cardImageSources}=require('../assets/swapp-article-extras');
 const ORIGIN='https://swapp.tv';
 const SLUG=/^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/;
 const GAME=/^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -24,7 +25,7 @@ function gameSlug(value){
 function gameHubUrl(game){
  const slug=gameSlug(game);return slug?'/jeux/'+slug:'';
 }
-function gameHubs(articles=[],{minArticles=2,maxGames=40}={}){
+function gameHubs(articles=[],{minArticles=1,maxGames=90}={}){
  const groups=new Map();
  for(const a of Array.isArray(articles)?articles:[]){
   if(a?.status!=='published'||!SLUG.test(String(a.slug||'')))continue;
@@ -49,24 +50,22 @@ function gameHubs(articles=[],{minArticles=2,maxGames=40}={}){
 }
 const CSS=[
  '.game-portal{max-width:1250px;margin:0 auto;padding:38px 24px 65px}',
- '.game-portal .hero{padding:38px clamp(23px,4vw,55px);background:linear-gradient(125deg,#1b2944,#241833);border:1px solid #ffffff25;border-radius:27px}',
+ '.game-portal .hero{padding:clamp(24px,4vw,44px);background:linear-gradient(125deg,#1b2944,#241833);border:1px solid #ffffff25;border-radius:22px;overflow:hidden;position:relative}',
  '.game-portal h1{font-size:clamp(32px,5vw,60px);letter-spacing:-.06em;line-height:1.1;margin:10px 0}',
  '.game-portal h2{font-size:clamp(24px,3vw,32px);margin:34px 0 16px}',
  '.game-portal p{color:#c9d4e5}.game-portal a:hover{text-decoration:underline}',
  '.game-portal .breadcrumb{font-size:13px;margin-bottom:15px;color:#bac8dc}.game-portal .breadcrumb a{color:#9be7f3}',
  '.game-portal .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,290px),1fr));gap:16px}',
  '.game-portal .card{display:block;border:1px solid #ffffff25;border-radius:19px;overflow:hidden;background:#17243b;text-decoration:none}',
- '.game-portal .card img{width:100%;height:177px;object-fit:cover}.game-portal .card div{padding:22px}',
+ '.game-portal .card img{width:100%;height:177px;object-fit:cover}.game-portal .card div{padding:17px}',
  '.game-portal .card h3{font-size:21px;line-height:1.2;margin:8px 0}.game-portal .card p{font-size:14px}',
  '.game-portal .card small{color:#8ce5f0}.game-portal .actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}',
- '.game-portal .actions a{padding:10px 17px;border-radius:12px;border:1px solid #ffffff38;background:#ffffff15;color:white;text-decoration:none;font-weight:700}',
- '.game-portal .index a{display:flex;justify-content:space-between;gap:12px}.game-portal .index span{color:#acbdd2;font-size:14px}',
- '@media(max-width:640px){.game-portal{padding:20px 14px}.game-portal .hero{padding:23px 19px}}'
+ '.game-portal .actions a,.game-portal .actions button{padding:10px 15px;border-radius:9px;border:1px solid #ffffff38;background:#ffffff15;color:white;text-decoration:none;font-weight:700}',
+ '.game-portal .hero-cover{float:right;width:min(38%,380px);aspect-ratio:16/9;object-fit:cover;border-radius:13px;margin:0 0 12px 22px;border:1px solid #ffffff2a}.game-portal .universe-kicker{font-size:11px;font-weight:900;letter-spacing:.16em;color:#d6b7ff;text-transform:uppercase}.game-portal .journey{display:flex;flex-wrap:wrap;gap:7px;color:#bdcbe0;font-size:12px;margin-top:14px}.game-portal .journey span+span:before{content:"→";margin-right:7px;color:#d4a9ff}.game-portal .index a{display:flex;justify-content:space-between;gap:12px}.game-portal .index span{color:#acbdd2;font-size:14px}',
+ '@media(max-width:640px){.game-portal{padding:20px 14px}.game-portal .hero{padding:23px 19px}.game-portal .hero-cover{float:none;width:100%;margin:0 0 16px}}'
 ].join('');
-function safeCover(a){
- try{const source=String(a?.image?.url||'').slice(0,2000),u=new URL(source);
-  return u.protocol==='https:'&&!u.username&&!u.password?u.href:''}catch{return ''}
-}
+function safeCover(a){return cardImageSources(a)[0]||'';}
+
 function structuredData(object){
  return '<script type="application/ld+json">'+JSON.stringify(object).replace(/</g,'\\u003c')+'</script>';
 }
@@ -78,7 +77,7 @@ function renderGameIndex(groups){
   }))}};
  const meta='<link rel="canonical" href="'+url+'"><meta property="og:type" content="website"><meta property="og:url" content="'+url+'">'+structuredData(indexSchema);
  const links=groups.map(g=>'<article class="card" data-swapp-game-card data-game-slug="'+html(g.slug)+'" data-game-name="'+html(g.game)+'">'+
-  '<a href="/jeux/'+encodeURIComponent(g.slug)+'"><div><h3>'+html(g.game)+'</h3><span>'+g.count+' publications</span></div></a>'+
+  '<a href="/jeux/'+encodeURIComponent(g.slug)+'">'+(safeCover(g.articles[0])?'<img src="'+html(safeCover(g.articles[0]))+'" alt="Illustration de '+html(g.game)+'" loading="lazy">':'')+'<div><h3>'+html(g.game)+'</h3><span>'+g.count+' publications</span></div></a>'+
   '<button type="button" data-swapp-follow-game data-game-slug="'+html(g.slug)+'" data-game-name="'+html(g.game)+'" aria-pressed="false">＋ Suivre ce jeu</button>'+
   '<button type="button" data-swapp-wishlist-game data-game-slug="'+html(g.slug)+'" data-game-name="'+html(g.game)+'" aria-pressed="false">♡ Ajouter aux envies</button></article>').join('');
  const body='<main class="game-portal"><p class="breadcrumb"><a href="/">SWAPP</a> / Jeux</p><header class="hero"><h1>Jeux vidéo : actualités et créateurs</h1><p>Retrouve les jeux couverts par SWAPP, leurs articles et les créateurs en direct.</p><div class="actions"><a href="/mes-jeux">Mes jeux suivis →</a></div></header><section><div class="mg-index-intro"><h2>Explorer les jeux</h2><a href="/mes-jeux">Retrouver ma sélection →</a></div><div class="cards index">'+links+'</div></section></main>';
@@ -103,8 +102,8 @@ function renderGamePage(group){
    '<div><small>'+html(a.category||'Actualité')+'</small><h3>'+html(a.title)+'</h3><p>'+html(excerpt)+'</p></div></a>';
  }).join('');
  const body='<main class="game-portal"><p class="breadcrumb"><a href="/">SWAPP</a> / <a href="/jeux">Jeux</a> / '+html(group.game)+'</p>'+
-  '<header class="hero"><h1>'+html(group.game)+' : actualités et lives</h1><p>'+html(description)+'</p><div class="actions"><button type="button" data-swapp-wishlist-game data-game-slug="'+html(group.slug)+'" data-game-name="'+html(group.game)+'" aria-pressed="false">♡ Ajouter aux envies</button><button type="button" data-swapp-follow-game data-game-slug="'+html(group.slug)+'" data-game-name="'+html(group.game)+'" aria-pressed="false">＋ Suivre ce jeu</button><a href="/mes-jeux">Mes jeux</a><a href="/actus">Toutes les actualités</a><a href="/decouvrir">Explorer les créateurs</a><a href="/social?game='+encodeURIComponent(group.game)+'">Salons du jeu</a><a href="/boutique">Consulter la boutique</a></div></header>'+
-  '<section><h2>Articles sur '+html(group.game)+'</h2><div class="cards">'+cards+'</div></section>'+
+  '<header class="hero">'+(cover?'<img class="hero-cover" src="'+html(cover)+'" alt="Visuel de '+html(group.game)+'" loading="eager">':'')+'<span class="universe-kicker">SWAPP / GAME UNIVERSE</span><h1>'+html(group.game)+' : actualités et lives</h1><p>'+html(description)+'</p><div class="journey"><span>Actualités</span><span>Créateurs</span><span>Communauté</span><span>Mes jeux</span></div><div class="actions"><button type="button" data-swapp-wishlist-game data-game-slug="'+html(group.slug)+'" data-game-name="'+html(group.game)+'" aria-pressed="false">♡ Ajouter aux envies</button><button type="button" data-swapp-follow-game data-game-slug="'+html(group.slug)+'" data-game-name="'+html(group.game)+'" aria-pressed="false">＋ Suivre ce jeu</button><a href="/mes-jeux">Mes jeux</a><a href="/actus">Toutes les actualités</a><a href="/decouvrir">Explorer les créateurs</a><a href="/social?game='+encodeURIComponent(group.game)+'">Salons du jeu</a><a href="/boutique">Consulter la boutique</a></div></header>'+
+  '<section><h2>À lire sur '+html(group.game)+'</h2><div class="cards">'+cards+'</div></section>'+
   '<section class="swapp-spotlight-public" data-spotlight-game="'+html(group.game)+'" aria-label="Créateurs Spotlight"></section>'+
   '<section class="swapp-media-section" data-swapp-live-shelf data-game="'+html(group.game)+'"><div class="swapp-media-heading"><h2>En direct sur '+html(group.game)+'</h2></div>'+
   '<div class="swapp-live-grid" data-live-results><p class="swapp-live-notice">Recherche des lives actuellement disponibles…</p></div></section></main>';
