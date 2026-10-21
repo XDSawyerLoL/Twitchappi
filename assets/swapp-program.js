@@ -16,7 +16,7 @@ async function showAntenna(){
   const data=await json('/api/swapp-tv/queue/status');
   const existing=document.querySelector('#swapp-tv-antenna');
   if(!data.enabled){if(existing)existing.remove();return}
-  if(existing&&existing.dataset.onAir===String(data.on_air?.id||''))return;
+  if(existing&&existing.dataset.onAir===String(data.on_air?.id||'')){const prior=existing.querySelector('[data-swapp-tv-waiting]');if(prior){prior.replaceChildren(...(Array.isArray(data.waiting)?data.waiting:[]).slice(0,12).map(item=>el('li',item.creator_login+' · '+item.game)))}return;}
   const panel=el('section',undefined,'swapp-tv-antenna');panel.id='swapp-tv-antenna';panel.dataset.onAir=String(data.on_air?.id||'');
   panel.append(el('h2','SWAPP TV · Antenne commune'));
   if(data.on_air?.twitch_login){
@@ -36,7 +36,7 @@ async function showAntenna(){
     slot.append(play);panel.append(slot);
    }
   }else panel.append(el('p','Aucun créateur actuellement à l’antenne.'));
-  const list=el('ol');
+  const list=el('ol');list.dataset.swappTvWaiting='1';
   for(const item of (Array.isArray(data.waiting)?data.waiting:[]).slice(0,12)){
    list.append(el('li',item.creator_login+' · '+item.game));
   }
@@ -96,6 +96,6 @@ async function runTv(games){
  render();if(timer)clearInterval(timer);
  timer=setInterval(()=>{index++;if(index%Math.max(1,lineup.length)===0){clearInterval(timer);runTv(games)}else render()},60000);
 }
-async function init(){try{const data=await json('/api/actus');if(!Array.isArray(data.articles))throw Error('invalid_articles');const games=gamesOf(data.articles);if(!games.length){status.textContent='Aucun jeu éditorial disponible pour le moment.';return}if(tv){status.textContent='Recherche des directs correspondant aux jeux couverts…';window.__swappTvGames=games;await showAntenna();await runTv(games);setInterval(showAntenna,60000)}else{const select=choice(games);const show=async()=>{status.textContent='Lecture des réservations Spotlight…';try{const node=await agenda(select.value);content.replaceChildren(node);status.textContent='Agenda du jeu : '+select.value}catch{content.replaceChildren(el('p','Agenda Spotlight indisponible ou non activé.'));status.textContent='Aucun créneau ne peut être confirmé.'}};select.addEventListener('change',show);await show()}}catch{status.textContent='Les données SWAPP sont momentanément indisponibles.'}}
+async function init(){try{const data=await json('/api/actus');if(!Array.isArray(data.articles))throw Error('invalid_articles');const games=gamesOf(data.articles);if(!games.length){status.textContent='Aucun jeu éditorial disponible pour le moment.';return}if(tv){status.textContent='Vérification de la régie collective…';window.__swappTvGames=games;const queue=await json('/api/swapp-tv/queue/status').catch(()=>({enabled:false}));if(queue.enabled){await showAntenna();status.textContent='Antenne commune synchronisée par SWAPP TV.';content.replaceChildren(el('p','Les passages à l’antenne sont pilotés par la régie commune, et non par un carrousel local.'));setInterval(showAntenna,60000)}else{status.textContent='Régie non activée : découverte des directs disponibles.';await runTv(games)}}else{const select=choice(games);const show=async()=>{status.textContent='Lecture des réservations Spotlight…';try{const node=await agenda(select.value);content.replaceChildren(node);status.textContent='Agenda du jeu : '+select.value}catch{content.replaceChildren(el('p','Agenda Spotlight indisponible ou non activé.'));status.textContent='Aucun créneau ne peut être confirmé.'}};select.addEventListener('change',show);await show()}}catch{status.textContent='Les données SWAPP sont momentanément indisponibles.'}}
 init();
 })();
