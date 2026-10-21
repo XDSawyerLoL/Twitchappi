@@ -39,7 +39,7 @@ function createTvQueue({getPool}={}){
   const pool=await ready();
   const [onAir]=await pool.execute("SELECT id,creator_login,twitch_login,game_name,status,joined_at,started_at FROM swapp_tv_queue WHERE status='on_air' ORDER BY started_at DESC LIMIT 1");
   const [waiting]=await pool.execute("SELECT id,creator_login,twitch_login,game_name,status,joined_at,started_at FROM swapp_tv_queue WHERE status='waiting' ORDER BY joined_at ASC,id ASC LIMIT 100");
-  return {on_air:onAir[0]?publicRow(onAir[0]):null,waiting:waiting.map((r,i)=>({...publicRow(r),position:i+1})),mine:userId?waiting.findIndex(r=>String(r.user_id)===String(userId))+1||null:null};
+  return {on_air:onAir[0]?publicRow(onAir[0]):null,waiting:waiting.map((r,i)=>({...publicRow(r),position:i+1}))};
  }
  return {ready,enter,leave,state};
 }
