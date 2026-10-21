@@ -62,10 +62,27 @@ const CSS=[
  '.game-portal .card h3{font-size:21px;line-height:1.2;margin:8px 0}.game-portal .card p{font-size:14px}',
  '.game-portal .card small{color:#8ce5f0}.game-portal .actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}',
  '.game-portal .actions a,.game-portal .actions button{padding:10px 15px;border-radius:9px;border:1px solid #ffffff38;background:#ffffff15;color:white;text-decoration:none;font-weight:700}',
- '.game-portal .hero-cover{float:right;width:min(38%,380px);aspect-ratio:16/9;object-fit:cover;border-radius:13px;margin:0 0 12px 22px;border:1px solid #ffffff2a}.game-portal .universe-kicker{font-size:11px;font-weight:900;letter-spacing:.16em;color:#d6b7ff;text-transform:uppercase}.game-portal .journey{display:flex;flex-wrap:wrap;gap:7px;color:#bdcbe0;font-size:12px;margin-top:14px}.game-portal .journey span+span:before{content:"→";margin-right:7px;color:#d4a9ff}.game-portal .index a{display:flex;justify-content:space-between;gap:12px}.game-portal .index span{color:#acbdd2;font-size:14px}',
+ '.game-portal .hero-cover{float:right;width:min(38%,380px);aspect-ratio:16/9;object-fit:cover;border-radius:13px;margin:0 0 12px 22px;border:1px solid #ffffff2a}.game-portal .universe-kicker{font-size:11px;font-weight:900;letter-spacing:.16em;color:#d6b7ff;text-transform:uppercase}.game-portal .journey{display:flex;flex-wrap:wrap;gap:7px;color:#bdcbe0;font-size:12px;margin-top:14px}.game-portal .journey span+span:before{content:"→";margin-right:7px;color:#d4a9ff}.game-portal .index .game-index-details span{color:#acbdd2;font-size:13px}',
   '.game-portal .game-universe-share{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;padding:22px 24px;margin:24px 0;border:1px solid #ffffff22;border-radius:14px;background:linear-gradient(116deg,#121e35,#182039)}',
   '.game-portal .game-universe-share h2{margin:4px 0 6px;font-size:clamp(19px,2.3vw,27px)}.game-portal .game-universe-share p{margin:0;color:#b9c6dc;font-size:13px}.game-portal .game-universe-share .actions{margin:0}',
  '@media(max-width:640px){.game-portal{padding:20px 14px}.game-portal .hero{padding:23px 19px}.game-portal .hero-cover{float:none;width:100%;margin:0 0 16px}}'
+
+ '.game-portal .cards.index{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;align-items:stretch}',
+ '.game-portal .cards.index>.game-index-card{display:flex;flex-direction:column;min-width:0;overflow:hidden;isolation:isolate;background:#182337;border:1px solid #ffffff2c;border-radius:16px;transition:border-color .2s,transform .2s}',
+ '.game-portal .cards.index>.game-index-card:hover{border-color:#a9dbdc;transform:translateY(-2px)}',
+ '.game-portal .cards.index .game-index-link{display:block;flex:1;min-width:0;min-height:0;text-decoration:none!important;overflow:hidden}',
+ '.game-portal .cards.index .game-index-media{width:100%;aspect-ratio:16/9;min-height:0;overflow:hidden;background:#101824;position:relative;padding:0}',
+ '.game-portal .cards.index .game-index-media img{display:block;width:100%;height:100%;object-fit:cover;object-position:center;background:#101824}',
+ '.game-portal .cards.index .game-index-no-art{display:grid;place-items:center;background:linear-gradient(125deg,#1d3545,#101722)}',
+ '.game-portal .cards.index .game-index-no-art span{font-size:11px;letter-spacing:.12em;color:#a1b8c4;font-weight:800;text-align:center;padding:16px}',
+ '.game-portal .cards.index .game-index-details{min-width:0;padding:17px 17px 12px;display:flex;flex-direction:column;gap:7px}',
+ '.game-portal .cards.index .game-index-details h3{margin:0;line-height:1.2;font-size:clamp(17px,1.6vw,22px);letter-spacing:-.035em;overflow-wrap:anywhere;color:#f4f7ff}',
+ '.game-portal .cards.index .game-index-details span{font-size:12px;color:#b3c6d6}',
+ '.game-portal .cards.index .game-index-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;align-items:stretch;padding:5px 15px 16px;min-width:0}',
+ '.game-portal .cards.index .game-index-actions button{min-width:0;min-height:41px;width:100%;margin:0;justify-content:center;align-self:stretch;padding:8px 7px;font-size:11px;line-height:1.3;text-align:center;white-space:normal}',
+ '.game-portal .cards.index .game-index-link:focus-visible,.game-portal .cards.index .game-index-actions button:focus-visible{outline:2px solid #a8e9ff;outline-offset:-2px}',
+ '@media(max-width:1000px){.game-portal .cards.index{grid-template-columns:repeat(2,minmax(0,1fr))}}',
+ '@media(max-width:620px){.game-portal .cards.index{grid-template-columns:minmax(0,1fr);gap:13px}.game-portal .cards.index .game-index-media{aspect-ratio:16/9}.game-portal .cards.index .game-index-details h3{font-size:20px}}',
 ].join('');
 function safeCover(a){return cardImageSources(a)[0]||'';}
 
@@ -79,10 +96,17 @@ function renderGameIndex(groups){
    '@type':'ListItem',position:i+1,name:g.game,url:ORIGIN+'/jeux/'+encodeURIComponent(g.slug)
   }))}};
  const meta='<link rel="canonical" href="'+url+'"><meta property="og:type" content="website"><meta property="og:url" content="'+url+'">'+structuredData(indexSchema);
- const links=groups.map(g=>'<article class="card" data-swapp-game-card data-game-slug="'+html(g.slug)+'" data-game-name="'+html(g.game)+'">'+
-  '<a href="/jeux/'+encodeURIComponent(g.slug)+'">'+(safeCover(g.articles[0])?'<img src="'+html(safeCover(g.articles[0]))+'" alt="Illustration de '+html(g.game)+'" loading="lazy">':'')+'<div><h3>'+html(g.game)+'</h3><span>'+g.count+' publication'+(g.count>1?'s':'')+'</span></div></a>'+
-  '<button type="button" data-swapp-follow-game data-game-slug="'+html(g.slug)+'" data-game-name="'+html(g.game)+'" aria-pressed="false">＋ Suivre ce jeu</button>'+
-  '<button type="button" data-swapp-wishlist-game data-game-slug="'+html(g.slug)+'" data-game-name="'+html(g.game)+'" aria-pressed="false">♡ Ajouter aux envies</button></article>').join('');
+ const links=groups.map(g=>{
+  const cover=safeCover(g.articles[0]);
+  return '<article class="card game-index-card" data-swapp-game-card data-game-slug="'+html(g.slug)+'" data-game-name="'+html(g.game)+'">'+
+   '<a class="game-index-link" href="/jeux/'+encodeURIComponent(g.slug)+'">'+
+    (cover?'<div class="game-index-media"><img src="'+html(cover)+'" alt="Visuel du jeu '+html(g.game)+'" loading="lazy" decoding="async"></div>':'<div class="game-index-media game-index-no-art" aria-hidden="true"><span>SWAPP / GAME UNIVERSE</span></div>')+
+    '<div class="game-index-details"><h3>'+html(g.game)+'</h3><span>'+g.count+' publication'+(g.count>1?'s':'')+'</span></div></a>'+
+    '<div class="game-index-actions">'+
+     '<button type="button" data-swapp-follow-game data-game-slug="'+html(g.slug)+'" data-game-name="'+html(g.game)+'" aria-pressed="false">＋ Suivre</button>'+
+     '<button type="button" data-swapp-wishlist-game data-game-slug="'+html(g.slug)+'" data-game-name="'+html(g.game)+'" aria-pressed="false">♡ Mes envies</button>'+
+    '</div></article>';
+ }).join('');
  const body='<main class="game-portal"><p class="breadcrumb"><a href="/">SWAPP</a> / Jeux</p><header class="hero"><h1>Jeux vidéo : actualités et créateurs</h1><p>Retrouve les jeux couverts par SWAPP, leurs articles et les créateurs en direct.</p><div class="actions"><a href="/mes-jeux">Mes jeux suivis →</a></div></header><section><div class="mg-index-intro"><h2>Explorer les jeux</h2><a href="/mes-jeux">Retrouver ma sélection →</a></div><div class="cards index">'+links+'</div></section></main>';
  return layout({title,description:'Articles et créateurs autour des jeux vidéo couverts par SWAPP.',content:body,metadata:meta,extraCss:CSS,active:'actus'});
 }
