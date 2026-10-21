@@ -1,0 +1,57 @@
+{
+  "kind": "swapp-editorial-release",
+  "release": "2026-10-22-serious-sam-third-encounter",
+  "description": "Article original en français. Teaser Croteam officiel, miniature YouTube native (sans réhébergement), sans offre Instant Gaming inventée.",
+  "articles": [
+    {
+      "slug": "serious-sam-the-third-encounter-suite-directe-second-encounter",
+      "title": "Serious Sam: The Third Encounter — Croteam ressuscite la suite directe de The Second Encounter",
+      "summary": "Croteam et Devolver Digital annoncent Serious Sam: The Third Encounter, suite directe de The Second Encounter. FPS arcade, coopération, vidéo officielle et informations confirmées.",
+      "body": "Vingt-quatre ans après Serious Sam: The Second Encounter (2002), Croteam retrouve précisément ce fil narratif. Annoncé le 21 octobre 2026 avec Devolver Digital, Serious Sam: The Third Encounter est un nouvel épisode de la série de FPS arcade. Le projet est en développement précoce : sa sortie PC sur Steam est confirmée, mais ni date ni fenêtre de lancement n'ont été annoncées.\n\n## Une véritable suite à The Second Encounter, pas un nouveau préquel\n\nLe nom peut surprendre au milieu des épisodes numérotés, des préquelles et des déclinaisons de la licence. Pourtant, Croteam est explicite : The Third Encounter reprend l'histoire là où The Second Encounter l'avait laissée. Il ne s'agit ni d'une réédition ni d'une aventure parallèle. Sam Stone repart à l'offensive contre Mental et son armée extraterrestre, avec l'ambition affichée d'atteindre le cœur de ses forces.\n\nPour les joueurs de la première heure, c'est davantage qu'un nouvel intitulé : le studio annonce une continuation de l'intrigue classique. Reste à découvrir la place qu'elle accordera aux personnages et à la conclusion du conflit. Aucune fin de scénario n'a été présentée publiquement.\n\n## Du FPS arcade, des hordes et de nouveaux mondes\n\nLes caractéristiques publiées par Croteam sur Steam mettent en avant une action de type run-and-gun : se déplacer constamment, affronter des vagues d'ennemis toujours plus nombreuses et utiliser un arsenal surdimensionné. Les armes emblématiques de Serious Sam doivent revenir, avec de nouveaux équipements promis par l'équipe.\n\nL'aventure doit traverser plusieurs environnements extraterrestres, des planètes hostiles aux forteresses étranges. Les développeurs insistent sur des décors plus vivants et un art visuel renouvelé, mais aucun essai indépendant ne permet aujourd'hui d'évaluer le rendu final, les performances ou la variété réelle des niveaux.\n\nLa coopération est également annoncée en complément du solo. La fiche Steam indique des fonctionnalités de jeu coopératif en ligne, mais ne précise pas encore un nombre maximal de participants confirmé pour toutes les situations : mieux vaut donc ne pas extrapoler sur la taille des équipes.\n\n## Un premier teaser officiel, pas encore une démonstration de gameplay\n\nCroteam a accompagné la révélation d'un teaser officiel. Cette vidéo sert à annoncer le projet et son orientation ; elle ne doit pas être confondue avec une longue présentation jouable ou un test du système de combat. La vignette associée à l'article est issue de la vidéo officielle hébergée par YouTube : SWAPP ne reproduit pas une capture de presse aux droits incertains.\n\nDes premières captures ont également été montrées sur la fiche Steam. Elles donnent une idée du ton visuel, sans apporter de preuve sur la fluidité, la difficulté ou l'étendue définitive du contenu. Une véritable séquence de gameplay restera nécessaire pour juger les ambitions du jeu.\n\n## PC, français et disponibilité : les éléments utiles\n\nLa version PC est pour l'instant la seule plateforme annoncée officiellement, avec une page Steam déjà accessible pour ajouter le jeu à sa liste de souhaits. Aucune date de sortie, précommande ni prix officiel n'a été communiqué. Des versions console ne sont ni annoncées ni exclues : elles sont simplement non confirmées à cette date.\n\nSteam indique le français dans les langues prises en charge pour l'interface, les dialogues audio et les sous-titres ; cette indication de fiche doit être reconfirmée à l'approche du lancement. La configuration PC affichée est préliminaire et peut évoluer pendant le développement.\n\nAucune offre d'achat Instant Gaming correspondant exactement à The Third Encounter n'a pu être vérifiée lors de la préparation de cet article. SWAPP ne renvoie donc pas vers un épisode différent et n'affiche aucun faux prix.\n\n## Pourquoi SWAPP va suivre ce retour\n\nLe pari éditorial est clair : dans un marché où les FPS multiplient parfois systèmes de progression et récompenses persistantes, Croteam remet au premier plan la course, le tir et la coopération. Cette intention peut séduire les amateurs de boomer shooters, mais elle ne garantit pas à elle seule un bon jeu.\n\nLes prochaines vérifications importantes porteront sur les premières scènes de gameplay, le nombre de joueurs en coopération, les plateformes supplémentaires, la configuration finale et, surtout, la date de sortie. Pour le moment, l'annonce est réelle, le teaser est officiel et le projet reste à un stade précoce.",
+      "game": "Serious Sam: The Third Encounter",
+      "games": [
+        "Serious Sam: The Third Encounter"
+      ],
+      "tags": [
+        "serious sam",
+        "croteam",
+        "devolver digital",
+        "fps",
+        "boomer shooter",
+        "coopération",
+        "pc"
+      ],
+      "seo": {
+        "title": "Serious Sam: The Third Encounter annoncé : teaser, coop et sortie PC",
+        "description": "Croteam dévoile Serious Sam: The Third Encounter, suite de The Second Encounter. Premier teaser, coopération, PC, français et date de sortie : ce qui est confirmé."
+      },
+      "author": "Rédaction SWAPP",
+      "category": "Actualités JV",
+      "contentType": "article",
+      "trailerUrl": "https://www.youtube.com/watch?v=YLaTMaSX4ZE",
+      "sources": [
+        {
+          "label": "Croteam / Devolver Digital — fiche officielle Steam de The Third Encounter",
+          "url": "https://store.steampowered.com/app/459920/Serious_Sam_The_Third_Encounter/"
+        },
+        {
+          "label": "Croteam — annonces officielles du jeu sur Steam",
+          "url": "https://steamcommunity.com/games/459920/announcements/"
+        },
+        {
+          "label": "Croteam — teaser officiel publié sur YouTube",
+          "url": "https://www.youtube.com/watch?v=YLaTMaSX4ZE"
+        }
+      ],
+      "status": "published",
+      "revision": 1,
+      "image": null,
+      "thumbnail": null,
+      "commercialLinks": [],
+      "editorialVerdict": null,
+      "legacyUrl": null,
+      "originalPublishedAt": null,
+      "publishedAt": "2026-10-21T22:52:28.853Z"
+    }
+  ]
+}
