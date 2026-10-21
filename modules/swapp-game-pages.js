@@ -4,6 +4,7 @@
 const {layout}=require('./swapp-news/site-shell');
 const {searchNames}=require('./swapp-news/game-identity');
 const {cardImageSources}=require('../assets/swapp-article-extras');
+const {publicCommunityLinks}=require('./swapp-public-community-links');
 const ORIGIN='https://swapp.tv';
 const SLUG=/^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/;
 const GAME=/^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -62,6 +63,8 @@ const CSS=[
  '.game-portal .card small{color:#8ce5f0}.game-portal .actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}',
  '.game-portal .actions a,.game-portal .actions button{padding:10px 15px;border-radius:9px;border:1px solid #ffffff38;background:#ffffff15;color:white;text-decoration:none;font-weight:700}',
  '.game-portal .hero-cover{float:right;width:min(38%,380px);aspect-ratio:16/9;object-fit:cover;border-radius:13px;margin:0 0 12px 22px;border:1px solid #ffffff2a}.game-portal .universe-kicker{font-size:11px;font-weight:900;letter-spacing:.16em;color:#d6b7ff;text-transform:uppercase}.game-portal .journey{display:flex;flex-wrap:wrap;gap:7px;color:#bdcbe0;font-size:12px;margin-top:14px}.game-portal .journey span+span:before{content:"→";margin-right:7px;color:#d4a9ff}.game-portal .index a{display:flex;justify-content:space-between;gap:12px}.game-portal .index span{color:#acbdd2;font-size:14px}',
+  '.game-portal .game-universe-share{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;padding:22px 24px;margin:24px 0;border:1px solid #ffffff22;border-radius:14px;background:linear-gradient(116deg,#121e35,#182039)}',
+  '.game-portal .game-universe-share h2{margin:4px 0 6px;font-size:clamp(19px,2.3vw,27px)}.game-portal .game-universe-share p{margin:0;color:#b9c6dc;font-size:13px}.game-portal .game-universe-share .actions{margin:0}',
  '@media(max-width:640px){.game-portal{padding:20px 14px}.game-portal .hero{padding:23px 19px}.game-portal .hero-cover{float:none;width:100%;margin:0 0 16px}}'
 ].join('');
 function safeCover(a){return cardImageSources(a)[0]||'';}
@@ -95,6 +98,18 @@ function renderGamePage(group){
   }))}};
  const meta='<link rel="canonical" href="'+url+'"><meta property="og:type" content="website"><meta property="og:url" content="'+url+'"><meta property="og:title" content="'+html(title)+'"><meta property="og:description" content="'+html(description)+'">'+
   (cover?'<meta property="og:image" content="'+html(cover)+'"><meta name="twitter:card" content="summary_large_image">':'<meta name="twitter:card" content="summary">')+structuredData(pageSchema);
+ const channels=publicCommunityLinks();
+ const xShare='https://x.com/intent/tweet?'+new URLSearchParams({
+  text:group.game+' : découvre les actualités et les créateurs sur SWAPP',
+  url
+ }).toString();
+ const socialUrl='/social?game='+encodeURIComponent(group.game);
+ const discordJoin=channels.discordInvite
+   ?'<a href="'+html(channels.discordInvite)+'" target="_blank" rel="noopener noreferrer">Rejoindre le Discord SWAPP ↗</a>':'';
+ const communityActions='<section class="game-universe-share" aria-labelledby="game-universe-share-title">'+
+  '<div><span class="universe-kicker">FAIS VIVRE CET UNIVERS</span><h2 id="game-universe-share-title">Retrouve les autres joueurs.</h2><p>Partage ce jeu et prolonge les échanges dans la communauté.</p></div>'+
+  '<div class="actions"><a href="'+html(xShare)+'" target="_blank" rel="noopener noreferrer">Partager ce jeu sur X ↗</a>'+
+  '<a href="'+html(socialUrl)+'">Discuter sur SWAPP SOCIAL ↗</a>'+discordJoin+'</div></section>';
  const cards=group.articles.map(a=>{
   const cover=safeCover(a),excerpt=String(a.summary||a.body||'').replace(/\s+/g,' ').slice(0,180);
   return '<a class="card" href="/actus/'+encodeURIComponent(a.slug)+'">'+
@@ -104,6 +119,7 @@ function renderGamePage(group){
  const body='<main class="game-portal"><p class="breadcrumb"><a href="/">SWAPP</a> / <a href="/jeux">Jeux</a> / '+html(group.game)+'</p>'+
   '<header class="hero">'+(cover?'<img class="hero-cover" src="'+html(cover)+'" alt="Visuel de '+html(group.game)+'" loading="eager">':'')+'<span class="universe-kicker">SWAPP / GAME UNIVERSE</span><h1>'+html(group.game)+' : actualités et lives</h1><p>'+html(description)+'</p><div class="journey"><span>Actualités</span><span>Créateurs</span><span>Communauté</span><span>Mes jeux</span></div><div class="actions"><button type="button" data-swapp-wishlist-game data-game-slug="'+html(group.slug)+'" data-game-name="'+html(group.game)+'" aria-pressed="false">♡ Ajouter aux envies</button><button type="button" data-swapp-follow-game data-game-slug="'+html(group.slug)+'" data-game-name="'+html(group.game)+'" aria-pressed="false">＋ Suivre ce jeu</button><a href="/mes-jeux">Mes jeux</a><a href="/actus">Toutes les actualités</a><a href="/decouvrir">Explorer les créateurs</a><a href="/social?game='+encodeURIComponent(group.game)+'">Salons du jeu</a><a href="/boutique">Consulter la boutique</a></div></header>'+
   '<section><h2>À lire sur '+html(group.game)+'</h2><div class="cards">'+cards+'</div></section>'+
+  communityActions+
   '<section class="swapp-spotlight-public" data-spotlight-game="'+html(group.game)+'" aria-label="Créateurs Spotlight"></section>'+
   '<section class="swapp-media-section" data-swapp-live-shelf data-game="'+html(group.game)+'"><div class="swapp-media-heading"><h2>En direct sur '+html(group.game)+'</h2></div>'+
   '<div class="swapp-live-grid" data-live-results><p class="swapp-live-notice">Recherche des lives actuellement disponibles…</p></div></section></main>';
