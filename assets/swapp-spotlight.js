@@ -35,7 +35,8 @@
       slot_outside_booking_window:'Le créneau doit être compris entre une heure et 45 jours dans le futur.',
       spotlight_reservation_not_found:'Ce créneau n’est plus modifiable.',
       spotlight_not_enabled:'Les réservations Spotlight ne sont pas encore activées.',
-      spotlight_temporarily_unavailable:'Le service Spotlight ne répond pas actuellement.'
+      spotlight_temporarily_unavailable:'Le service Spotlight ne répond pas actuellement.',
+      spotlight_audience_below_minimum:'Pour obtenir une mise en avant Spotlight, le direct doit réunir au moins 20 spectateurs.'
     };
     return errors[code]||'Action impossible pour le moment. Vérifie la connexion et réessaie.';
   }
@@ -60,7 +61,8 @@
       frame.src='https://player.twitch.tv/?channel='+encodeURIComponent(row.twitch_login)+'&parent='+encodeURIComponent(location.hostname)+'&autoplay=false';
       host.append(item,frame);return;
     }
-    const status=row.live?.state==='wrong_game'?'Jeu différent — aucune mise en avant active':
+    const status=row.live?.state==='below_minimum_audience'?'Mise en avant en attente · minimum 20 spectateurs':
+      row.live?.state==='wrong_game'?'Jeu différent — aucune mise en avant active':
       row.live?.state==='offline'?'Non confirmé en direct':
       row.live?.state==='verification_unavailable'?'Contrôle Twitch indisponible':
       row.live?.state==='finished'?'Créneau terminé':'Créneau réservé · en attente du direct';
@@ -90,12 +92,32 @@
       }else result.items.slice(0,6).forEach(item=>renderPublicCard(list,item));
     }catch(_){list.replaceChildren(el('p','swapp-spotlight-note','Agenda momentanément indisponible.'))}
   }
+  function renderNotices(section,notices){
+    const host=q('[data-spotlight-notices]',section);
+    if(!host)return;
+    host.replaceChildren();
+    const list=Array.isArray(notices)?notices:[];
+    if(!list.length){host.hidden=true;return}
+    host.hidden=false;
+    host.append(el('h3','','SWAPP te met en lumière'));
+    for(const notice of list.slice(0,6)){
+      const card=el('article','swapp-spotlight-slot');
+      const details=el('div','swapp-spotlight-slot-info');
+      details.append(el('strong','',String(notice.title||'Ta chaîne est à l’honneur sur SWAPP')));
+      details.append(el('p','swapp-spotlight-note',String(notice.body||'')));
+      const url=String(notice.url||'');
+      if(/^\/live\/twitch\/[a-z0-9_]+$/.test(url))card.append(details,link(url,'Voir ma mise en avant →','swapp-spotlight-cta'));
+      else card.append(details);
+      host.append(card);
+    }
+  }
   async function renderMine(section,status){
     const list=q('[data-spotlight-mine]',section);if(!list)return;
     list.replaceChildren(el('p','swapp-spotlight-note','Chargement de tes créneaux…'));
     try{
       const result=await data(API+'/mine');
       if(!section.isConnected)return;
+      renderNotices(section,result.notices);
       list.replaceChildren();
       if(!result.items?.length){list.append(el('p','swapp-spotlight-note','Tu n’as aucune réservation à venir.'));return}
       result.items.forEach(item=>{
@@ -141,7 +163,7 @@
     section.id='spotlight';section.setAttribute('data-spotlight-dashboard','');
     section.append(el('span','swapp-spotlight-heading','SWAPP CREATOR / SPOTLIGHT'));
     section.append(el('h2','','Réserver ma visibilité'));
-    section.append(el('p','swapp-spotlight-note','Choisis un jeu Twitch officiel et un créneau de 30 minutes. Ton direct sera mis en avant seulement si SWAPP vérifie que tu diffuses réellement ce jeu.'));
+    section.append(el('p','swapp-spotlight-note','Réserve un créneau gratuit de 30 minutes. SWAPP mettra ton direct en lumière si tu joues réellement au jeu annoncé et réunis au moins 20 spectateurs au moment du contrôle. Tu recevras ensuite une notification dans cet espace.'));
     const status=el('p','swapp-spotlight-status');status.setAttribute('role','status');
     const form=el('form','swapp-spotlight-form');
     const gameField=el('label','','Jeu vidéo');
@@ -173,7 +195,8 @@
     });
     const mineTitle=el('h3','','Mes prochains créneaux');
     const mine=el('div','swapp-spotlight-mine');mine.setAttribute('data-spotlight-mine','');
-    section.append(form,status,mineTitle,mine);
+    const notices=el('div','swapp-spotlight-notices');notices.dataset.spotlightNotices='';notices.hidden=true;
+    section.append(form,status,notices,mineTitle,mine);
     main.append(section);
     if(!(await isOn())){form.hidden=true;mineTitle.hidden=true;mine.hidden=true;
       status.textContent='Spotlight est installé mais pas encore activé sur ce serveur.';return}
