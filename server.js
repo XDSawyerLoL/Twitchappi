@@ -9541,6 +9541,8 @@ function spotlightPool(){
   }catch(_){return null;}
 }
 const spotlightStore=createSpotlightStore({getPool:spotlightPool});
+const {createSpotlightNotices,qualifiesForSpotlight,MIN_FEATURE_VIEWERS}=require('./modules/swapp-spotlight-notices');
+const spotlightNotices=createSpotlightNotices({getPool:spotlightPool});
 const spotlightLiveCache=new Map();
 let spotlightPublishedGamesCache={until:0,games:[]};
 async function spotlightPublishedGame(game){
@@ -9635,10 +9637,19 @@ app.get('/api/creator/spotlight',heavyLimiter,async(req,res)=>{
     const list=await spotlightStore.list(game,{limit:12});
     // Verify only the current slot; never falsely claim a scheduled streamer is online.
     const now=Date.now(),current=list.filter(b=>Date.parse(b.start_at)<=now&&now<Date.parse(b.end_at)).slice(0,1);
-    const states=new Map(await Promise.all(current.map(async b=>[b.id,await spotlightStreamState({
-      ...b,twitch_user_id:await spotlightTwitchId(b.id)
-    })])));
-    res.json({success:true,game,items:list.map(b=>({...b,live:states.get(b.id)||{state:'scheduled'}}))});
+    const states=new Map(await Promise.all(current.map(async b=>{
+      const live=await spotlightStreamState({...b,twitch_user_id:await spotlightTwitchId(b.id)});
+      if(qualifiesForSpotlight(live)){
+        // Record once for the connected creator. A database error must never
+        // fabricate a missing public live or interrupt the reader experience.
+        await spotlightNotices.record(b,live).catch(error=>
+          console.warn('[SWAPP SPOTLIGHT] Notification indisponible:',String(error.message||error).slice(0,90)));
+      }
+      return [b.id,live.state==='live_verified'&&!qualifiesForSpotlight(live)
+        ?{state:'below_minimum_audience',minViewers:MIN_FEATURE_VIEWERS}:live];
+    })));
+    res.json({success:true,game,minSpotlightViewers:MIN_FEATURE_VIEWERS,
+      items:list.map(b=>({...b,live:states.get(b.id)||{state:'scheduled'}}))});
   }catch(e){spotlightHandleError(e,res,req);}
 });
 // Fetch Twitch IDs from private reservation rows, never disclose them to the browser.
@@ -9653,7 +9664,8 @@ app.get('/api/creator/spotlight/mine',heavyLimiter,async(req,res)=>{
   try{
     const user=await spotlightAuthorized(req,res);
     const list=await spotlightStore.mine(String(user.id));
-    res.json({success:true,items:list});
+    const notices=await spotlightNotices.mine(String(user.id)).catch(()=>[]);
+    res.json({success:true,items:list,notices,minSpotlightViewers:MIN_FEATURE_VIEWERS});
   }catch(e){spotlightHandleError(e,res,req);}
 });
 app.post('/api/creator/spotlight/reservations',mutationLimiter,async(req,res)=>{
