@@ -416,7 +416,7 @@ function bindDelegatedEvents(){
       else if(view==='notifications')void loadNotifications();
       else if(view==='messages')void loadMessages();
       else if(view==='play')setView('play','Jouer ensemble');
-      else if(view==='rooms')setView('rooms','Salons vocaux');
+      else if(view==='rooms')setView('rooms','Communautés');
       else if(view==='saved')void loadSaved();
       else if(view==='profile')void loadProfile();
       revealSocialContent();
