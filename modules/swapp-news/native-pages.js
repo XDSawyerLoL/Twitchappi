@@ -4,6 +4,8 @@ const articleExtras=require('../../assets/swapp-article-extras');
 const instantGaming=require('../../assets/swapp-instant-gaming');
 const {layout}=require('./site-shell');
 const {getPublicArchives}=require('./archive');
+const {gameSlug}=require('../swapp-game-pages');
+const {publicCommunityLinks}=require('../swapp-public-community-links');
 const catalog=require('../../data/justplayer-public-catalog.json');
 function dateLabel(input){
  if(!input)return '';
@@ -81,6 +83,43 @@ function immersiveCoverUrl(article){
   return u.protocol==='https:'&&!u.username&&!u.password?u.href:'';
  }catch{return ''}
 }
+
+const ARTICLE_ENGAGEMENT_CSS=[
+ '.swapp-article-engagement{margin:36px 0 32px;padding:clamp(21px,3vw,32px);border:1px solid #ffffff2c;background:linear-gradient(125deg,#161e29,#0f141e);border-radius:14px;clear:both}',
+ '.swapp-article-engagement .swapp-engagement-eyebrow{display:block;font-size:11px;font-weight:850;letter-spacing:.16em;color:var(--swapp-page-accent,#9bdde0);margin-bottom:10px}',
+ '.swapp-article-engagement h2{font-size:clamp(23px,3vw,34px);letter-spacing:-.055em;line-height:1.13;margin:0 0 8px}',
+ '.swapp-article-engagement p{font-size:14px;line-height:1.6;color:#bdc9d8;margin:0 0 20px}',
+ '.swapp-article-engagement .swapp-engagement-actions{display:flex;flex-wrap:wrap;gap:9px;align-items:stretch}',
+ '.swapp-article-engagement .swapp-engagement-actions a,.swapp-article-engagement .swapp-engagement-actions button{min-height:42px;display:inline-flex;align-items:center;justify-content:center;text-align:center;padding:10px 13px;border:1px solid #ffffff35;border-radius:7px;background:#ffffff0b;color:#f5f9ff;text-decoration:none;font:750 12px/1.35 system-ui,sans-serif;cursor:pointer;white-space:normal}',
+ '.swapp-article-engagement .swapp-engagement-actions a:hover,.swapp-article-engagement .swapp-engagement-actions button:hover{border-color:var(--swapp-page-accent,#9bdde0);background:#ffffff18}',
+ '.swapp-article-engagement .swapp-engagement-actions a:focus-visible,.swapp-article-engagement .swapp-engagement-actions button:focus-visible{outline:2px solid var(--swapp-page-accent,#9bdde0);outline-offset:3px}',
+ '@media(max-width:620px){.swapp-article-engagement .swapp-engagement-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.swapp-article-engagement .swapp-engagement-actions>*{min-width:0}}'
+].join('');
+function renderArticleEngagement(article,baseUrl='https://swapp.tv'){
+ const slug=String(article?.slug||'');
+ if(!/^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/.test(slug))return '';
+ const game=String(article.game||'').trim(),key=game?gameSlug(game):'';
+ const link=baseUrl.replace(/\/$/,'')+'/actus/'+encodeURIComponent(slug);
+ const title=String(article.title||'Découvre cet article sur SWAPP');
+ const shareX='https://x.com/intent/tweet?'+new URLSearchParams({text:title,url:link}).toString();
+ const shareBlue='https://bsky.app/intent/compose?text='+encodeURIComponent(title+' — '+link);
+ const social='/social?'+new URLSearchParams(game?{game,share:'news',url:link}:{share:'news',url:link}).toString();
+ const discord=publicCommunityLinks().discordInvite;
+ const gameButtons=key?
+  '<button type="button" data-swapp-follow-game data-game-slug="'+escapeHtml(key)+'" data-game-name="'+escapeHtml(game)+'" aria-pressed="false">＋ Suivre ce jeu</button>'+
+  '<button type="button" data-swapp-wishlist-game data-game-slug="'+escapeHtml(key)+'" data-game-name="'+escapeHtml(game)+'" aria-pressed="false">♡ Mes envies</button>':'';
+ return '<section class="swapp-article-engagement" aria-labelledby="swapp-article-community-title">'+
+  '<span class="swapp-engagement-eyebrow">SWAPP / COMMUNAUTÉ</span>'+
+  '<h2 id="swapp-article-community-title">Retrouve les autres joueurs.</h2>'+
+  '<p>Partage cet article et prolonge les échanges dans la communauté.</p>'+
+  '<div class="swapp-engagement-actions">'+gameButtons+
+  '<a href="'+escapeHtml(shareX)+'" target="_blank" rel="noopener noreferrer">Partager sur X ↗</a>'+
+  '<a href="'+escapeHtml(social)+'">Discuter sur SWAPP SOCIAL ↗</a>'+
+  '<a href="'+escapeHtml(shareBlue)+'" target="_blank" rel="noopener noreferrer">Partager sur Bluesky ↗</a>'+
+  (discord?'<a href="'+escapeHtml(discord)+'" target="_blank" rel="noopener noreferrer">Rejoindre le Discord SWAPP ↗</a>':'')+
+  '</div></section>';
+}
+
 function renderNewsStory(originalArticle,{baseUrl='https://swapp.tv',relatedArticles=[],gameHubUrl=null}={}){
  // Interpret an explicit remaster headline using the Twitch edition identity
  // without mutating persistent article metadata in the database.
@@ -122,7 +161,7 @@ function renderNewsStory(originalArticle,{baseUrl='https://swapp.tv',relatedArti
   '</div>';
  const heroCredit=coverUrl&&article.image?.credit?`<p class="swapp-immersive-credit">${escapeHtml(article.image.credit)}</p>`:'';
  const discussUrl='/communaute?share=news&title='+encodeURIComponent(article.game?article.game+' — '+article.title:article.title)+'&url='+encodeURIComponent(baseUrl.replace(/\/$/,'')+'/actus/'+article.slug);
- const heroActions=`<div class="story-actions swapp-article-hero-actions swapp-game-journey-actions" aria-label="Explorer ce jeu sur SWAPP"><a class="button-link primary" href="#article-content">Lire l’article ↓</a><a class="button-link" href="${article.game?'#swapp-article-lives':'/decouvrir'}">Voir les lives →</a><a class="button-link" href="${escapeHtml(discussUrl)}">En discuter →</a></div><div class="swapp-article-utility"><button class="button-link" type="button" data-swapp-article-share>Partager l’article ↗</button>${gameHubUrl&&/^\/jeux\/[a-z0-9-]+$/.test(gameHubUrl)?'<a class="button-link" href="'+escapeHtml(gameHubUrl)+'">Dossier du jeu ↗</a><button type="button" data-swapp-follow-game data-game-slug="'+escapeHtml(gameHubUrl.slice('/jeux/'.length))+'" data-game-name="'+escapeHtml(article.game||'Jeu')+'" aria-pressed="false">＋ Suivre ce jeu</button><button type="button" data-swapp-wishlist-game data-game-slug="'+escapeHtml(gameHubUrl.slice('/jeux/'.length))+'" data-game-name="'+escapeHtml(article.game||'Jeu')+'" aria-pressed="false">♡ Ajouter aux envies</button>':''}</div>`;
+ const heroActions=`<div class="story-actions swapp-article-hero-actions swapp-game-journey-actions" aria-label="Explorer ce jeu sur SWAPP"><a class="button-link primary" href="#article-content">Lire l’article ↓</a><a class="button-link" href="${article.game?'#swapp-article-lives':'/decouvrir'}">Voir les lives →</a><a class="button-link" href="${escapeHtml(discussUrl)}">En discuter →</a></div>`;
  const hero=`<header id="swapp-article-hero" class="swapp-native-immersive-hero swapp-immersive-hero"><div class="swapp-immersive-content"><span class="eyebrow">${escapeHtml(article.category||'Actualités')} ${article.game?'· '+escapeHtml(article.game):''}</span><h1 class="article-title">${escapeHtml(article.title)}</h1><p class="article-deck">${escapeHtml(summary)}</p><div class="article-byline"><span>Par <strong>${escapeHtml(article.author||'Rédaction SWAPP')}</strong></span><span>·</span><time datetime="${escapeHtml(published||'')}">${escapeHtml(dateLabel(published))}</time></div>${heroActions}${heroCredit}</div></header>`;
  const sources=(article.sources||[]).map(s=>`<li><a href="${escapeHtml(s.url)}" rel="nofollow noopener noreferrer" target="_blank">${escapeHtml(s.label||s.url)}</a></li>`).join('');
  const toc=articleContents(article,articleHeadings(article.body),Boolean(sources));
@@ -138,8 +177,8 @@ function renderNewsStory(originalArticle,{baseUrl='https://swapp.tv',relatedArti
   `<aside class="swapp-affiliate-offer" aria-label="Offre partenaire Instant Gaming · lien affilié"><span class="swapp-affiliate-kicker">OFFRE INSTANT GAMING · LIEN AFFILIÉ</span><strong class="swapp-affiliate-game">${escapeHtml(sponsor.game)}</strong><span class="swapp-affiliate-platform">${escapeHtml(sponsor.platform)}</span><a class="swapp-affiliate-link" href="${escapeHtml(sponsor.url)}" target="_blank" rel="sponsored nofollow noopener noreferrer">Voir l’offre ↗</a></aside>`:'';
  const nextReading=`<details class="swapp-reader-next" open><summary>À découvrir ensuite</summary><div class="swapp-reader-next-list">${nextLinks||'<a class="swapp-reader-next-all" href="/actus">Explorer toute l’actualité →</a>'}</div>${manualPartner||sponsorHtml}</details>`;
  const liveSection=`<aside id="swapp-article-lives" class="swapp-article-related swapp-media-section" data-swapp-live-shelf data-game="${escapeHtml(article.game||'')}"><div class="swapp-media-heading"><div><span class="swapp-media-kicker">Actualités & lives</span><h2>${article.game?'En direct sur '+escapeHtml(article.game):'Les créateurs en direct'}</h2><p>Un article peut mener à un live. Les suggestions suivent le jeu de l’article lorsqu’il est renseigné.</p></div><a class="swapp-media-button" href="/decouvrir">Tous les lives →</a></div><div class="swapp-live-grid" data-live-results><p class="swapp-live-notice">Recherche des lives…</p></div></aside>`;
- const content=`<main class="article-wrap" data-swapp-article-slug="${escapeHtml(article.slug)}">${scene}<p class="breadcrumb"><a href="/actus">SWAPP · Actualité</a> / ${escapeHtml(article.category||'Actualités')}</p>${hero}<div class="swapp-article-reading">${toc}<div id="article-content" class="article-body">${markdown(article.body)}</div>${nextReading}</div>${articleExtras.renderServer(article)}${article.game?'<section class="swapp-spotlight-public" data-spotlight-game="'+escapeHtml(article.game)+'" aria-label="Créateurs Spotlight"></section>':''}${liveSection}<nav class="swapp-article-end-nav" aria-label="Retour après lecture"><a href="/actus">← Revenir à l’actualité</a></nav></main>`;
- return layout({title:seoTitle,description:seoDescription,metadata,content});
+ const content=`<main class="article-wrap" data-swapp-article-slug="${escapeHtml(article.slug)}">${scene}<p class="breadcrumb"><a href="/actus">SWAPP · Actualité</a> / ${escapeHtml(article.category||'Actualités')}</p>${hero}<div class="swapp-article-reading">${toc}<div id="article-content" class="article-body">${markdown(article.body)}${renderArticleEngagement(article,baseUrl)}</div>${nextReading}</div>${articleExtras.renderServer(article)}${article.game?'<section class="swapp-spotlight-public" data-spotlight-game="'+escapeHtml(article.game)+'" aria-label="Créateurs Spotlight"></section>':''}${liveSection}<nav class="swapp-article-end-nav" aria-label="Retour après lecture"><a href="/actus">← Revenir à l’actualité</a></nav></main>`;
+ return layout({title:seoTitle,description:seoDescription,metadata,content,extraCss:ARTICLE_ENGAGEMENT_CSS});
 }
 
 function renderJustPlayerPreview(item, article=null) {
@@ -157,4 +196,4 @@ function renderJustPlayerPreview(item, article=null) {
  return layout({title,description:'Publication historique en cours de reprise dans SWAPP',metadata:'<meta name="robots" content="noindex,follow">',content});
 }
 
-module.exports={renderNewsHome,renderNewsStory,renderJustPlayerPreview,markdown,dateLabel};
+module.exports={renderNewsHome,renderNewsStory,renderJustPlayerPreview,renderArticleEngagement,markdown,dateLabel};
