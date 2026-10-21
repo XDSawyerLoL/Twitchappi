@@ -22,12 +22,12 @@ function flatten(root,out=[]){
  for(const el of root.children||[]){out.push(el);flatten(el,out)}
  return out;
 }
-test('the home page imports a real first-party X/Discord visual in correct order',()=>{
+test('the homepage no longer mounts the unrelated X/Discord promotional block',()=>{
  const html=read('index.html'),home=read('assets/swapp-home-news.js');
- assert.match(html,/swapp-social-bridge\.css\?v=20261021-join-bridge-v2/);
- assert.match(html,/swapp-social-bridge\.js\?v=20261021-bluesky-share-v3/);
- assert.ok(html.indexOf('swapp-social-bridge.js')<html.indexOf('swapp-home-news.js'));
- assert.match(home,/SwappSocialBridge\?\.mount\(section,valid\)/);
+ assert.doesNotMatch(html,/swapp-social-bridge\.css\?v=/);
+ assert.doesNotMatch(html,/swapp-social-bridge\.js\?v=/);
+ assert.doesNotMatch(home,/SwappSocialBridge\?\.mount/);
+ assert.match(home,/swapp-home-story-grid/);
  assert.doesNotMatch(read('assets/swapp-social-bridge.js'),/DISCORD_WEBHOOK_URL|\/api\/webhooks\/\d+\/[^ ]+/);
 });
 test('X composer is correct; Discord receives the canonical article link once, and duplicate mount is prevented',async()=>{
