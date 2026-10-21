@@ -6,8 +6,9 @@
  *
  * Firestore is the authority after adoption. A document with the same slug,
  * including a withdrawn article, is NEVER overwritten or resurrected.
- * News articles already appeared publicly from the versioned release before
- * migration, so no new social publication event is emitted.
+ * Existing release articles already adopted to Firestore never generate new
+ * announcements. Only newly created release records schedule a Discord event,
+ * within the same Firestore transaction, preserving editorial idempotency.
  */
 const {assertArticle}=require('./article-core');
 const fs=require('node:fs');
@@ -31,7 +32,7 @@ function loadEditorialReleases({dataDir=path.join(__dirname,'../../data')}={}){
  return articles;
 }
 
-function createEditorialReleaseSync({firestore,articles,releaseArticles=[],clock=()=>new Date().toISOString()}={}){
+function createEditorialReleaseSync({firestore,articles,releaseArticles=[],clock=()=>new Date().toISOString(),recordDiscordPublication=null}={}){
  if(typeof firestore?.runTransaction!=='function'||typeof articles?.doc!=='function')
   throw Error('Persistance editorial requise');
  if(!Array.isArray(releaseArticles))throw Error('Lot editorial invalide');
@@ -54,6 +55,7 @@ function createEditorialReleaseSync({firestore,articles,releaseArticles=[],clock
          const ref=articles.doc(a.slug),snapshot=await tx.get(ref);
          if(snapshot.exists)return 'already_exists';
          const now=clock();
+         if(recordDiscordPublication)await recordDiscordPublication(tx,a,now);
          tx.create(ref,{...a,status:'published',revision:1,createdAt:now,updatedAt:now,
            provenance:'swapp-editorial-release',legacySuppressRecovery:false});
          return 'created';
