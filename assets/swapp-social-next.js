@@ -21,8 +21,8 @@
  layout.innerHTML=`
  <section class="ssn-passport" id="ssn-passport" aria-labelledby="ssn-passport-title">
   <div class="ssn-head"><span class="ssn-avatar" aria-hidden="true">◈</span><div class="ssn-copy">
-   <span class="ssi-kicker">IDENTITÉ JOUEUR</span><h3 id="ssn-passport-title">Ton passeport gaming</h3>
-   <p>Un seul compte SWAPP. Tes jeux et disponibilités, sous ton contrôle.</p></div>
+   <span class="ssi-kicker">FACULTATIF / PROFIL</span><h3 id="ssn-passport-title">Ton profil de joueur</h3>
+   <p>Renseigne tes jeux et horaires pour faciliter les rencontres.</p></div>
    <button type="button" id="ssn-passport-toggle" class="ssi-ghost" aria-expanded="false" aria-controls="ssn-passport-form">Personnaliser</button>
   </div>
   <div class="ssn-summary" id="ssn-passport-summary" aria-live="polite">Chargement du profil…</div>
@@ -41,8 +41,8 @@
   </form>
  </section>
  <section class="ssn-universe" id="ssn-universe" aria-labelledby="ssn-universe-title">
-  <div class="ssn-head"><span class="ssn-orbit" aria-hidden="true">✦</span><div class="ssn-copy"><span class="ssi-kicker">UNIVERS VIVANTS</span>
-   <h3 id="ssn-universe-title">De l'actu au jeu.</h3><p>Un même jeu, ses coéquipiers, ses discussions et les lives SWAPP.</p></div>
+  <div class="ssn-head"><span class="ssn-orbit" aria-hidden="true">✦</span><div class="ssn-copy"><span class="ssi-kicker">ÉTAPE 1 / TON JEU</span>
+   <h3 id="ssn-universe-title">Choisis un jeu.</h3><p>Retrouve ses joueurs, ses salons et les créateurs en direct.</p></div>
   </div>
   <form id="ssn-game-form" class="ssn-search">
    <input name="game" required maxlength="65" minlength="2" autocomplete="off" aria-label="Chercher un univers de jeu" placeholder="Explore un jeu (ex. PUBG)">
