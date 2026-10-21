@@ -30,11 +30,13 @@ function blueskyProfile(raw){
  if(!actor||(!/^[a-zA-Z0-9_-]+(?:\.[a-zA-Z0-9_-]+)+$/.test(actor)&&!/^(?:did:plc|did:web):[a-zA-Z0-9_.:-]+$/.test(actor)))return null;
  return 'https://bsky.app/profile/'+actor;
 }
+// Public invite supplied by the SWAPP owner. Safe to publish; never a webhook.
+const DEFAULT_DISCORD_INVITE_URL='https://discord.gg/AYKJYYJrTJ';
 function publicCommunityLinks(env=process.env){
  return {
-  discordInvite:discordInvite(env.SWAPP_DISCORD_INVITE_URL),
+  discordInvite:discordInvite(env.SWAPP_DISCORD_INVITE_URL)||discordInvite(DEFAULT_DISCORD_INVITE_URL),
   xProfile:xProfile(env.SWAPP_X_PROFILE_URL),
   blueskyProfile:blueskyProfile(env.SWAPP_BLUESKY_PROFILE_URL)
  };
 }
-module.exports={discordInvite,xProfile,blueskyProfile,publicCommunityLinks};
+module.exports={discordInvite,xProfile,blueskyProfile,publicCommunityLinks,DEFAULT_DISCORD_INVITE_URL};
