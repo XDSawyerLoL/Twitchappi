@@ -15,9 +15,9 @@
  const area=document.createElement('section');area.className='swapp-interactive';area.hidden=true;area.setAttribute('aria-label','Espaces SOCIAL · SWAPP');
  area.innerHTML=`
   <header class="ssi-intro">
-   <div class="ssi-intro-copy"><span class="ssi-kicker"><i aria-hidden="true"></i> SWAPP / SOCIAL</span>
-    <h2>Le jeu se vit ensemble.</h2>
-    <p>Une équipe à trouver, un avis à partager, une discussion à lancer. Choisis ton espace.</p>
+   <div class="ssi-intro-copy"><span class="ssi-kicker"><i aria-hidden="true"></i> SOCIAL / JOUER ENSEMBLE</span>
+    <h2>Trouve des joueurs, sans te perdre dans les menus.</h2>
+    <p>Choisis un jeu, cherche des coéquipiers et contacte-les. Pour créer ton propre salon texte et vocal, ouvre « Communautés ».</p>
    </div>
    <div class="ssi-intro-side">
     <div class="ssi-stats" aria-label="Activité enregistrée">
@@ -41,7 +41,7 @@
    <div class="ssi-section-group">
     <section class="ssi-panel ssi-panel-match" id="ssi-match-panel" aria-labelledby="ssi-match-title">
      <div class="ssi-panel-inner">
-      <div class="ssi-panel-head"><div class="ssi-head-main">${icon('team')}<div><span class="ssi-section-label">SWAPP Match</span><h3 id="ssi-match-title">Trouve ta team</h3><p class="ssi-panel-desc">De vrais joueurs qui cherchent le même jeu.</p></div></div><span class="ssi-count" id="ssi-match-badge" title="Compatibilités trouvées">—</span></div>
+      <div class="ssi-panel-head"><div class="ssi-head-main">${icon('team')}<div><span class="ssi-section-label">ÉTAPE 2 / JOUEURS</span><h3 id="ssi-match-title">Trouver une équipe</h3><p class="ssi-panel-desc">Publie tes disponibilités pour rencontrer des joueurs du même jeu.</p></div></div><span class="ssi-count" id="ssi-match-badge" title="Compatibilités trouvées">—</span></div>
       <div id="ssi-match-results" class="ssi-list" aria-live="polite"></div>
       <button class="ssi-button ssi-block-action" type="button" data-open-form="match" aria-controls="ssi-form-match" aria-expanded="false">+ Chercher des coéquipiers</button>
       <form class="ssi-inline-form" id="ssi-form-match" hidden>
@@ -55,7 +55,7 @@
     </section>
     <section class="ssi-panel ssi-panel-polls" id="ssi-poll-panel" aria-labelledby="ssi-poll-title">
      <div class="ssi-panel-inner">
-      <div class="ssi-panel-head"><div class="ssi-head-main">${icon('poll')}<div><span class="ssi-section-label">La communauté décide</span><h3 id="ssi-poll-title">À vous de voter</h3><p class="ssi-panel-desc">Des questions et des résultats, pas des likes vides.</p></div></div><span class="ssi-count" id="ssi-poll-badge" title="Nombre de sondages">—</span></div>
+      <div class="ssi-panel-head"><div class="ssi-head-main">${icon('poll')}<div><span class="ssi-section-label">FACULTATIF / SONDAGES</span><h3 id="ssi-poll-title">Sondages de la communauté</h3><p class="ssi-panel-desc">Pose une question et laisse les membres voter.</p></div></div><span class="ssi-count" id="ssi-poll-badge" title="Nombre de sondages">—</span></div>
       <div id="ssi-poll-results" class="ssi-list" aria-live="polite"></div>
       <button class="ssi-ghost ssi-block-action" type="button" data-open-form="poll" aria-controls="ssi-form-poll" aria-expanded="false">+ Poser une question</button>
       <form class="ssi-inline-form" id="ssi-form-poll" hidden>
