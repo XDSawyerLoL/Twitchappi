@@ -135,8 +135,8 @@
     }
     return out;
   }
-  // Session-only and OFF by default: a player explicitly requests the
-  // sampling pilot. No browser persistence, identifying fields or implicit telemetry.
+  // Anonymous per-card counts are automatic for verified, publicly promoted streams.
+  // No identifying fields, cookies, user sessions or history.
   const fairPilots=new WeakMap();
   function setupFairPilot(shelf,cards,available){
     if(!available||!cards.some(node=>node.dataset.swappFairProof)||!('IntersectionObserver' in window))return;
@@ -144,16 +144,11 @@
     if(!heading)return;
     let pilot=fairPilots.get(shelf);
     if(!pilot){
-      const button=document.createElement('button');
-      button.type='button';button.className='swapp-media-button';
-      button.dataset.swappFairOpt='';button.setAttribute('aria-pressed','false');
-      button.textContent='Contribuer à une découverte équitable (facultatif)';
-      button.title='Compter anonymement les lives réellement vus sur cette page, sans compte ni historique.';
       const explanation=document.createElement('small');
       explanation.className='swapp-fair-optin-info';
-      explanation.textContent='Volontaire · cartes visibles et clics uniquement · sans identifiant visiteur · cette page seulement.';
-      heading.append(button,explanation);
-      pilot={button,active:false,cards:[],seen:new Set(),timers:new Map(),observer:null};
+      explanation.textContent='Découverte équitable active · mesure anonyme des cartes réellement vues · sans cookie ni identifiant visiteur.';
+      heading.append(explanation);
+      pilot={active:true,cards:[],seen:new Set(),timers:new Map(),observer:null};
       fairPilots.set(shelf,pilot);
       const stop=()=>{
         pilot.observer?.disconnect();pilot.observer=null;
@@ -169,8 +164,7 @@
         const unavailable=()=>{
           if(!pilot.active)return;
           pilot.active=false;stop();
-          button.setAttribute('aria-pressed','false');
-          button.textContent='Mesure indisponible · Réessayer';
+          explanation.textContent='Mesure équitable momentanément indisponible';
         };
         void fetch('/api/discovery/fair-event',{
           method:'POST',credentials:'omit',keepalive:true,
@@ -193,12 +187,8 @@
         },{threshold:[0,.5,1]});
         for(const node of pilot.cards)pilot.observer.observe(node);
       };
-      button.addEventListener('click',()=>{
-        pilot.active=!pilot.active;
-        button.setAttribute('aria-pressed',String(pilot.active));
-        button.textContent=pilot.active?'Mesure volontaire activée · Désactiver':'Contribuer à une découverte équitable (facultatif)';
-        if(pilot.active)start();else stop();
-      });
+      // Collection now runs without a user opt-in switch. Counts are aggregated
+      // from signed public creator cards; visitors are never identified.
       shelf.addEventListener('click',event=>{
         if(!pilot.active)return;
         const node=event.target.closest('.swapp-live-card[data-swapp-fair-proof]');
