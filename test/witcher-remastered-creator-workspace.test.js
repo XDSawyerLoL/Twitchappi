@@ -77,8 +77,8 @@ test('creator workspace uses separated editorial controls, responsive layout and
  assert.match(css,/@media\(max-width:760px\)/);
  assert.match(css,/@media\(max-width:430px\)/);
  const html=read('index.html'),shell=read('modules/swapp-news/site-shell.js');
- assert.match(html,/swapp-creator-workspace\.css\?v=20261019-account-native-v2/);
- assert.match(html,/index_script\.js\?v=20261019-account-native-v2/);
+ assert.match(html,/swapp-creator-workspace\.css\?v=20261021-account-hub-v1/);
+ assert.match(html,/index_script\.js\?v=20261021-account-hub-v1/);
  assert.match(html,/swapp-game-identity\.js\?v=20261019-witcher-twitch-v1/);
  assert.match(shell,/swapp-media-live\.js\?v=20261021-auto-fair-v1/);
 });
