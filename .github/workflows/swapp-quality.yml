@@ -16,10 +16,14 @@ jobs:
         with:
           node-version: '22'
           cache: npm
+      - name: Upgrade npm CLI
+        run: |
+          npm install --global npm@11.6.2 --no-audit --no-fund
+          npm --version
       - name: Install dependencies
         timeout-minutes: 8
         env:
-          NPM_CONFIG_MAXSOCKETS: '5'
+          NPM_CONFIG_MAXSOCKETS: '2'
           NPM_CONFIG_FETCH_RETRIES: '3'
           NPM_CONFIG_FETCH_RETRY_MINTIMEOUT: '2000'
         run: |
@@ -28,6 +32,14 @@ jobs:
             rm -rf node_modules
             npm ci --ignore-scripts --no-audit --no-fund --loglevel=warn
           }
+      - name: Print npm diagnostics if install failed
+        if: failure()
+        run: |
+          for file in $(ls -t "$HOME"/.npm/_logs/*debug-0.log 2>/dev/null | head -2); do
+            echo "::group::$file"
+            tail -n 100 "$file"
+            echo "::endgroup::"
+          done
       - name: Check server and browser entry syntax
         run: npm run check
       - name: Run regression tests
