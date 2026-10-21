@@ -29,7 +29,7 @@
   const target=id('cohorts');target.replaceChildren();
   const rows=Array.isArray(data.bands)?data.bands:[];
   for(const name of ['small','growing','established']){
-   const d=rows.find(x=>x.name===name),available=d?.sample==='limited-voluntary';
+   const d=rows.find(x=>x.name===name),available=d?.sample==='limited-aggregate';
    const row=create('article','fair-bar-item');
    const heading=create('div','fair-bar-caption');
    heading.append(create('strong','',bands[name]),
@@ -46,9 +46,9 @@
   const target=id('trend');target.replaceChildren();
   const days=Array.isArray(data.trend)?data.trend:[];
   if(!days.length){target.append(create('p','fair-muted','Aucune journée avec mesure volontaire.'));return}
-  const max=Math.max(1,...days.filter(x=>x.sample==='limited-voluntary').map(x=>x.impressions||0));
+  const max=Math.max(1,...days.filter(x=>x.sample==='limited-aggregate').map(x=>x.impressions||0));
   for(const d of days){
-   const available=d.sample==='limited-voluntary';
+   const available=d.sample==='limited-aggregate';
    const date=create('time','',String(d.day||'').slice(5));
    date.dateTime=d.day;
    const line=create('div','fair-trend-row');
@@ -119,7 +119,7 @@
     showMessage('Mesure non activée','Le dispositif Fair Discovery est désactivé sur ce serveur. Les autres fonctions de SWAPP ne sont pas affectées.');
     id('status').textContent='Mesure désactivée';return;
    }
-   if(body.sample!=='limited-voluntary'){
+   if(body.sample!=='limited-aggregate'){
     showMessage('Échantillon encore insuffisant','Le tableau de bord attend au moins 50 impressions volontaires et 5 créateurs distincts sur la période sélectionnée. Les données trop faibles restent masquées.');
     id('status').textContent='Collecte activée · publication des statistiques différée';return;
    }
