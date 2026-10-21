@@ -50,3 +50,13 @@
  #home .swapp-social-bridge-action{width:100%;align-self:stretch}
 }
 @media(prefers-reduced-motion:reduce){#home .swapp-social-bridge-action{transition:none;transform:none!important}}
+
+#home .swapp-social-bridge-buttons{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+#home .swapp-social-bridge-buttons>[hidden]{display:none!important}
+#home .swapp-social-bridge-join{background:#5865f2!important;border-color:#8e98ff!important}
+#home .swapp-social-bridge-channels{display:flex;gap:8px 20px;flex-wrap:wrap}
+#home .swapp-social-bridge-channels:empty{display:none}
+#home .swapp-social-bridge-follow{display:inline-flex;padding:7px 0;color:#cddcff;text-decoration:underline;text-underline-offset:3px;font-size:12px}
+#home .swapp-social-bridge-follow:hover{color:#fff}
+#home .swapp-social-bridge-follow:focus-visible{outline:2px solid #d1e6ff;outline-offset:4px}
+@media(max-width:660px){#home .swapp-social-bridge-buttons{display:grid;grid-template-columns:1fr}}
