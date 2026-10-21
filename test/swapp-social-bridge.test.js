@@ -54,3 +54,26 @@ test('X composer is correct; Discord receives the canonical article link once, a
  assert.equal(copied,'https://swapp.tv/actus/'+article.slug);
  assert.equal(discord.textContent,'Lien copié ✓');
 });
+
+test('verified public invite appears; unconfigured or malicious webhooks never become join links',async()=>{
+ const invoke=async payload=>{
+  const window={},document={createElement:tag=>new Element(tag)};
+  const fetch=async()=>({ok:true,json:async()=>payload});
+  const navigator={clipboard:{writeText:async()=>{}}};
+  vm.runInNewContext(read('assets/swapp-social-bridge.js'),{window,document,navigator,URLSearchParams,URL,fetch},{timeout:1200});
+  const host=new Element('section'),panel=window.SwappSocialBridge.mount(host,[{slug:'official-news-story',title:'Actualité SWAPP'}]);
+  await new Promise(resolve=>setImmediate(resolve));
+  const nodes=flatten(panel);
+  const join=nodes.find(n=>n.tagName==='a'&&n.textContent.includes('Rejoindre notre Discord'));
+  const profileLinks=nodes.filter(n=>n.tagName==='a'&&n.textContent.includes('Suivre SWAPP sur'));
+  return {join,profileLinks};
+ };
+ const normal=await invoke({success:true,discordInvite:'https://discord.gg/LegitSWAPP',xProfile:'https://x.com/SwappGaming',blueskyProfile:'https://bsky.app/profile/swapp.bsky.social'});
+ assert.equal(normal.join.hidden,false);
+ assert.equal(normal.join.href,'https://discord.gg/LegitSWAPP');
+ assert.equal(normal.profileLinks.length,2);
+ const malicious=await invoke({success:true,discordInvite:'https://discord.com/api/webhooks/123456789012345678/secret-string',xProfile:null,blueskyProfile:null});
+ assert.equal(malicious.join.hidden,true);
+ assert.equal(malicious.join.href,undefined);
+ assert.equal(malicious.profileLinks.length,0);
+});
