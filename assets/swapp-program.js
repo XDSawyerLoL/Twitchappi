@@ -16,7 +16,8 @@ async function showAntenna(){
   const data=await json('/api/swapp-tv/queue/status');
   const existing=document.querySelector('#swapp-tv-antenna');
   if(!data.enabled){if(existing)existing.remove();return}
-  const panel=el('section',undefined,'swapp-tv-antenna');panel.id='swapp-tv-antenna';
+  if(existing&&existing.dataset.onAir===String(data.on_air?.id||''))return;
+  const panel=el('section',undefined,'swapp-tv-antenna');panel.id='swapp-tv-antenna';panel.dataset.onAir=String(data.on_air?.id||'');
   panel.append(el('h2','SWAPP TV · Antenne commune'));
   if(data.on_air?.twitch_login){
    panel.append(el('p','À l’antenne : '+data.on_air.creator_login+' · '+data.on_air.game));
