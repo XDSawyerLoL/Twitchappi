@@ -41,12 +41,7 @@ function sitemapEntries(articles=[]){
   entries.push({loc:ORIGIN+path,lastmod:isoDate(article.updatedAt||article.publishedAt)});
   if(entries.length>=CORE_PATHS.length+500)break;
  }
- const hubs=gameHubs(articles);
- if(hubs.length){
-  entries.push({loc:ORIGIN+'/jeux',lastmod:''});
-  for(const game of hubs)
-   entries.push({loc:ORIGIN+'/jeux/'+encodeURIComponent(game.slug),lastmod:isoDate(game.lastmod)});
- }
+
  return entries;
 }
 function sitemapXml(articles=[]){
@@ -192,7 +187,6 @@ function sitemapHtml(articles=[]){
   ['/categories','Jeux et catégories'],['/equipes','Équipes'],['/bandes-annonces','Bandes-annonces'],
   ['/social','Social'],['/boutique','Boutique']
  ];
- const hubs=gameHubs(articles);
  const index=indexLinks.map(([url,name])=>
   '<li><a href="'+url+'">'+encodeXml(name)+'</a></li>').join('');
  const valid=(Array.isArray(articles)?articles:[]).filter(a=>
@@ -219,7 +213,7 @@ function sitemapHtml(articles=[]){
   '<header><a href="/">SWAPP.</a></header><main><h1>Plan du site</h1>'+
   '<p>Accède aux principales rubriques de SWAPP et aux articles vérifiés publiés par la rédaction.</p>'+
   '<section><h2>Explorer SWAPP</h2><ul>'+index+'</ul></section>'+
-  (hubs.length?'<section><h2>Jeux suivis</h2><p><a href="/jeux">Tous les jeux</a></p><ul>'+hubs.map(g=>'<li><a href="/jeux/'+encodeURIComponent(g.slug)+'">'+encodeXml(g.game)+'</a> ('+g.count+' publications)</li>').join('')+'</ul></section>':'')+
+
   '<section><h2>Articles publiés</h2>'+
   (items?'<ul>'+items+'</ul>':'<p>Les publications seront listées ici dès qu’elles seront accessibles.</p>')+
   '</section></main></body></html>';
@@ -340,29 +334,30 @@ function registerSeoRoutes(app,{getPublished=async()=>[],getCreators=async()=>[]
  });
  // Game hubs only exist for topics with at least two distinct published
  // editorials. Share the existing six-hour cache and immediate invalidation.
- app.get('/jeux',async(_req,res)=>{
-  await ensureCache();
-  const games=gameHubs(articles);
-  if(!games.length)return res.status(404).send('Aucun dossier jeu publié pour le moment.');
+ // The old game directory is now an editorial shortcut, not a second destination.
+ app.get('/jeux',(_req,res)=>{
   res.set('Cache-Control','no-store');
-  return res.status(200).type('html').send(renderGameIndex(games));
+  return res.redirect(301,'/actus');
  });
- // Opt-in personal space. Intentionally excluded from XML sitemaps and indexing.
- // Uses the same published-article cache as /jeux; never queries a private profile.
- app.get('/mes-jeux',async(_req,res)=>{
-  await ensureCache();
-  res.set('Cache-Control','private, no-store');
-  return res.status(200).type('html').send(renderMyGames(gameHubs(articles)));
- });
+ // Preserve historic links without presenting a redundant game hub.
+ // Link a valid game to its most recent *published* editorial; unknown games 404.
+ // Temporary redirect avoids permanently binding future game coverage to one story.
  app.get('/jeux/:slug',async(req,res)=>{
   const slug=String(req.params.slug||'');
   if(!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)||slug.length>90)
    return res.status(404).send('Jeu introuvable.');
   await ensureCache();
-  const game=gameHubs(articles).find(x=>x.slug===slug);
-  if(!game)return res.status(404).send('Jeu introuvable.');
+  const game=gameHubs(articles).find(g=>g.slug===slug);
+  const article=game?.articles?.find(a=>SLUG.test(String(a.slug||'')));
+  if(!article)return res.status(404).send('Jeu introuvable.');
   res.set('Cache-Control','no-store');
-  return res.status(200).type('html').send(renderGamePage(game));
+  return res.redirect(302,'/actus/'+encodeURIComponent(article.slug));
+ });
+ // Personal "Mes jeux" is a preference manager and remains available.
+ app.get('/mes-jeux',async(_req,res)=>{
+  await ensureCache();
+  res.set('Cache-Control','private, no-store');
+  return res.status(200).type('html').send(renderMyGames(gameHubs(articles)));
  });
  app.get('/creators-sitemap.xml',async(_req,res)=>{
   res.set('Content-Type','application/xml; charset=utf-8');
