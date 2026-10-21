@@ -3975,17 +3975,23 @@ async function renderSettings(){
  }).join('');
  const viewer='<section class="swapp-acct-editorial swapp-acct-overview-main" aria-labelledby="swapp-account-discovery">'+
   '<div class="swapp-acct-section-head"><div><span class="swapp-acct-kicker">TES ACTIVITÉS</span><h2 id="swapp-account-discovery">Découverte</h2><p>Les chaînes et les jeux que tu as choisis, sans statistiques inventées.</p></div>'+
-  '<a href="/mes-jeux">Gérer mes jeux ↗</a></div>'+metrics+
+  '</div>'+metrics+
   '<div class="swapp-acct-list-head"><h3>Chaînes aimées</h3><a href="/decouvrir">Découvrir des lives ↗</a></div>'+
   (likedRows||'<p class="swapp-acct-empty">Tu n’as pas encore aimé de chaîne. Explore les directs SWAPP et Twitch pour constituer ta sélection.</p>')+
   '</section>';
  const quick='<section class="swapp-acct-editorial swapp-acct-overview-side" aria-labelledby="swapp-account-next">'+
-  '<div class="swapp-acct-section-head"><div><span class="swapp-acct-kicker">ACCÈS RAPIDE</span><h2 id="swapp-account-next">Continuer sur SWAPP</h2></div></div>'+
-  '<nav class="swapp-acct-quick" aria-label="Explorer">'+
-  '<a href="/mes-jeux"><strong>Ma bibliothèque</strong><span>Suivis, envies et actualités ↗</span></a>'+
-  '<a href="/decouvrir"><strong>Découvrir un live</strong><span>Chaînes SWAPP et Twitch ↗</span></a>'+
-  '<a href="/communaute"><strong>Mes discussions</strong><span>Salons et messages SOCIAL ↗</span></a>'+
-  '<a href="/boutique"><strong>Boutique</strong><span>Parcourir les jeux ↗</span></a></nav>'+
+  '<div class="swapp-acct-section-head"><div><span class="swapp-acct-kicker">UN SEUL COMPTE</span><h2 id="swapp-account-next">Mes accès SWAPP</h2><p>Retrouve tes jeux, tes activités et tes outils depuis cet espace.</p></div></div>'+
+  '<nav class="swapp-acct-quick" aria-label="Mes espaces">'+
+  '<a href="/mes-jeux"><strong>Mes jeux suivis <small data-swapp-favorites-count aria-label="Nombre de jeux suivis"></small></strong><span>Bibliothèque, envies et nouvelles publications ↗</span></a>'+
+  '<a href="/decouvrir"><strong>Découvrir les créateurs</strong><span>Chaînes et directs du moment ↗</span></a>'+
+  '<a href="/social"><strong>Mes discussions</strong><span>Communautés et messages SWAPP SOCIAL ↗</span></a>'+
+  '<a href="/boutique"><strong>Boutique SWAPP</strong><span>Jeux et produits à découvrir ↗</span></a></nav>'+
+  '<div class="swapp-acct-management" data-swapp-admin-tools hidden>'+
+  '<div class="swapp-acct-management-heading"><span class="swapp-acct-kicker">ACCÈS RÉSERVÉ</span><h3>Administration</h3><p>Rédaction, boutique et visibilité des créateurs au même endroit.</p></div>'+
+  '<nav class="swapp-acct-quick" aria-label="Administration SWAPP">'+
+  '<a href="/actus/studio"><strong>Studio rédaction</strong><span>Articles et vidéos ↗</span></a>'+
+  '<a href="/boutique/admin"><strong>Gestion Boutique</strong><span>Produits et vitrine ↗</span></a>'+
+  '<a href="/admin/fair-discovery"><strong>Fair Discovery</strong><span>Mesure de visibilité et équité ↗</span></a></nav></div>'+
   '</section>';
  const accountActions='<section class="swapp-acct-connections" aria-labelledby="swapp-account-connections">'+
   '<div class="swapp-acct-section-head"><div><span class="swapp-acct-kicker">INTÉGRATIONS</span><h2 id="swapp-account-connections">Connexions</h2>'+
@@ -4015,6 +4021,17 @@ async function renderSettings(){
   '<header class="swapp-acct-header">'+identity+
   (u?'<a class="swapp-acct-public" href="/'+encodeURIComponent(u.login)+'">Voir ma chaîne ↗</a>':'')+
   '</header>'+nav+sections+'</div>';
+ // Never infer admin privileges from a nickname or a link.
+ if(u && typeof fetch==='function'){
+  const tools=root.querySelector('[data-swapp-admin-tools]');
+  if(tools){
+   void fetch('/api/editor/actus/access',{credentials:'same-origin',cache:'no-store',
+    headers:{Accept:'application/json'}})
+    .then(response=>response.ok?response.json():null)
+    .then(access=>{if(access?.canEdit&&tools.isConnected)tools.hidden=false})
+    .catch(()=>{tools.hidden=true});
+  }
+ }
  if(u){
   swappAccountTab(window.swappActiveAccountTab||'overview');
   const tabs=root.querySelector('.swapp-acct-nav');
@@ -4248,17 +4265,11 @@ function renderUserMenu(){
  if(u||t)parts.push('<div class="small" style="padding:10px 12px">Connecté<br><b>'+
   esc(u?.display_name||u?.login||t?.display_name||t?.login||'Utilisateur')+'</b></div>');
  parts.push('<button type="button" onclick="window.swappActiveAccountTab=\'overview\';setView(\'settings\')">Mon espace SWAPP</button>');
- if(u){
-  parts.push('<button type="button" onclick="swappOpenOwnChannel()">Ma chaîne</button>'+
-   '<button type="button" onclick="setView(\'manager\')">Diffuser</button>'+
-   '<button type="button" onclick="setView(\'dashboard\')">Statistiques</button>'+
-   '<button type="button" onclick="setView(\'studio\')">Outils créateur</button>'+
-   '<a href="/mes-jeux">Mes jeux et envies</a><div class="sep"></div>');
- }
+ if(u)parts.push('<button type="button" onclick="setView(&quot;manager&quot;)">Diffuser</button>');
  parts.push(t?'<button type="button" onclick="logoutTwitch()">Déconnecter Twitch</button>':
   '<button type="button" onclick="connectTwitch()">Connecter Twitch</button>');
  if(u)parts.push('<button type="button" onclick="logoutOryon()">Se déconnecter</button>');
- if(isAdmin?.())parts.push('<div class="sep"></div><button type="button" onclick="setView(\'admin\')">Administration</button>');
+
  $('#userMenu').innerHTML=parts.join('');
 }
 async function loadHomeRecommendations(){
