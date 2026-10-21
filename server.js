@@ -1374,6 +1374,12 @@ try{
   // The endpoint reports 503 until the deployment is complete.
   console.warn('[SWAPP RELEASE] fingerprint module unavailable');
 }
+// Public community entry points: no webhook or OAuth credential is ever sent.
+const {publicCommunityLinks}=require('./modules/swapp-public-community-links');
+app.get('/api/swapp/community-links',(_req,res)=>{
+  res.set('Cache-Control','public, max-age=300');
+  res.json({success:true,...publicCommunityLinks()});
+});
 app.get('/api/release',(_req,res)=>{
   res.set('Cache-Control','no-store');
   res.set('X-Content-Type-Options','nosniff');
