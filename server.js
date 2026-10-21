@@ -9752,7 +9752,7 @@ app.get('/api/discovery/game-lives', heavyLimiter, async (req,res)=>{
     const preferred=requestedLanguage==='fr'
       ?items.filter(x=>['oryon','swapp'].includes(x.platform)||String(x.language||'').toLowerCase()==='fr')
       :items;
-    const languageFallback=requestedLanguage==='fr'&&!preferred.length;
+    const languageFallback=requestedLanguage==='fr'&&!preferred.some(x=>Number(x.viewer_count??x.viewers)>=20);
     const visible=require('./modules/swapp-discovery-diversity').rankGameLives(languageFallback?items:preferred,{limit});
     if(twitchAvailable)await swappAddLiveAvatars(visible);
     // Public creator/game proof only; the HMAC is not tied to a viewer.
