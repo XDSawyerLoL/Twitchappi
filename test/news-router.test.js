@@ -42,7 +42,10 @@ test('publication transactionnelle : article public et événement social en pau
  const event=firestore.all.get(`swapp_news_outbox/article_${slug}_r1`);
  assert.equal(event.status,'paused');assert.deepEqual(event.channels,[]);
  const again=await request('POST','/api/editor/actus/:slug/publish',{params:{slug}});
- assert.equal(again.payload.alreadyPublished,true);assert.equal(firestore.all.size,2);
+ assert.equal(again.payload.alreadyPublished,true);assert.equal(firestore.all.size,3);
+ const discord=firestore.all.get('swapp_news_discord_outbox/'+slug);
+ assert.equal(discord.status,'pending');
+ assert.equal(discord.articleSlug,slug);
  const listing=await request('GET','/actus');assert.match(listing.payload,/SWAPP/);assert.match(listing.payload,/Un grand jeu/);
 });
 test('import JustPlayer en dry-run ne modifie pas Firestore',async()=>{
