@@ -23,7 +23,7 @@ function createDirector({getPool,verifyLive,now=Date.now}={}){
   try{
    await db.beginTransaction();
    const [head]=await db.execute('SELECT current_queue_id,started_at FROM swapp_tv_director WHERE id=1 FOR UPDATE');
-   if(head[0]?.current_queue_id&&head[0].started_at&&now()-new Date(head[0].started_at+'Z').getTime()<MAX_AIR_SECONDS*1000){
+   if(head[0]?.current_queue_id&&head[0].started_at&&now()-Date.parse(String(head[0].started_at).replace(' ','T').replace(/Z?$/,'Z'))<MAX_AIR_SECONDS*1000){
     await db.commit();return {changed:false,reason:'slot_active'};
    }
    // A completed turn receives a cooldown; it cannot immediately occupy another position.
