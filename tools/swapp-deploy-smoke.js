@@ -394,6 +394,26 @@ async function verify(){
  process.stdout.write('PASS / home\n');
  const news=await request(origin,'/actus');
  check(news.body.includes('SWAPP')||news.body.includes('Swapp'),'Actualité returned an unexpected document');
+
+ // Consolidation gate: page-specific SEO must not inherit the homepage
+ // canonical/preview. Fail closed if Hostinger still serves an old build.
+ for(const [pathname,page] of [['/',home],['/decouvrir',discover],['/actus',news]]){
+  const head=page.body.split(/<\/head\s*>/i)[0];
+  const expected='https://swapp.tv'+pathname;
+  const canonical=[...head.matchAll(/<link\b[^>]*\brel=["']canonical["'][^>]*>/gi)];
+  const og=[...head.matchAll(/<meta\b[^>]*\bproperty=["']og:url["'][^>]*>/gi)];
+  check(canonical.length===1&&canonical[0][0].includes('href="'+expected+'"'),
+   pathname+': expected one self-referencing canonical, got '+canonical.length);
+  check(og.length===1&&og[0][0].includes('content="'+expected+'"'),
+   pathname+': expected one route-specific Open Graph URL, got '+og.length);
+  check((head.match(/<meta\b[^>]*\bname=["']description["']/gi)||[]).length===1,
+   pathname+': duplicate description metadata');
+  if(pathname!=='/'){
+   check(page.body.includes('<noscript><div class="swappSeoIntro">'),
+    pathname+': SEO fallback may flash behind interactive content');
+  }
+ }
+ process.stdout.write('PASS self-canonical SEO, clean previews and no-flash fallback\n');
  // A successful GitHub commit is not proof the final visual layer reached Hostinger.
  const presentation='/assets/swapp-presentation-polish.css?v=20261017-visual-audit-v16';
  check(home.body.includes(presentation),'Home uses an outdated presentation stylesheet');
