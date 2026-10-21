@@ -33,7 +33,7 @@ test('SOCIAL is composed of six semantic navigable sections without the old card
 test('SOCIAL serves the optimized destination layout without old section CSS',()=>{
  assert.ok(hubs.includes('swapp-social-product-v3.css?v=20261021-fixed-shell-v1'));
  assert.ok(!hubs.includes('swapp-social-sections.css?v='));
- assert.ok(hubs.includes('swapp-social-interactions.js?v=20261021-community-shell-v2'));
+ assert.ok(hubs.includes('swapp-social-interactions.js?v=20261021-community-shell-v3'));
  assert.ok(hubs.includes('swapp-social-next.js?v=20261021-community-shell-v2'));
  assert.ok(sections.includes('grid-template-columns:minmax(215px,.38fr) minmax(0,1fr)'));
  assert.ok(sections.includes('grid-template-columns:repeat(5,minmax(0,1fr))!important'));
