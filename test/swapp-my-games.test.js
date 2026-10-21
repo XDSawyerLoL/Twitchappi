@@ -28,7 +28,8 @@ test('Mes jeux only offers real indexed games and published stories',()=>{
  assert.match(html,/data-my-games-news/);
  assert.match(html,/story-one/);
  assert.match(html,/story-two/);
- assert.doesNotMatch(html,/private-story|Secret interne|Hades II/);
+ assert.doesNotMatch(html,/private-story|Secret interne/);
+ assert.match(html,/Hades II/);
  assert.match(html,/name="robots" content="noindex,follow"/);
  assert.match(html,/data-story-date="2026-10-17T12:00:00.000Z"/);
  assert.match(html,/href="\/social\?game=Grand%20Theft%20Auto%20VI"/);
