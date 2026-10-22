@@ -147,3 +147,57 @@
 @media(max-width:1150px){.stv .stv-broadcast{grid-template-columns:minmax(0,1fr)}.stv .stv-rail{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,1fr)}.stv .stv-rail-head{grid-column:1/-1}.stv .stv-chat{grid-column:1/-1}.stv .stv-chat-feed{height:260px}.stv-program-dialog .scal-workspace{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:760px){.stv .stv-rail{grid-template-columns:minmax(0,1fr)}.stv .stv-creator-inline{border-left:0}.stv .stv-chat{grid-column:1}.stv .stv-mast{align-items:center}.stv .stv-mast .stv-programme-link{margin-left:0}.stv-program-dialog{width:calc(100vw - 12px);height:calc(100dvh - 16px);border-radius:11px}.stv-program-dialog .scal-shell{padding:13px 8px}.stv-program-dialog .scal-day{min-height:70px;padding:5px}.stv-program-dialog .scal-chip{max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:9px}.stv-program-dialog .scal-toolbar{gap:8px}}
 @media(prefers-reduced-motion:reduce){.stv .stv-chat *, .stv-program-dialog *{transition:none!important;animation:none!important}}
+
+
+/* TV side dock V5: three compact tabs, never a second vertical module. */
+.stv .stv-broadcast{display:grid!important;grid-template-columns:minmax(0,1fr) clamp(310px,27vw,365px)!important;align-items:start!important;gap:12px!important}
+.stv .stv-stage{min-width:0}
+.stv .stv-dock{position:relative;display:flex!important;flex-direction:column!important;align-items:stretch;align-self:start!important;grid-column:auto!important;min-width:0;height:clamp(425px,45vw,650px);max-height:calc(100dvh - 115px);overflow:hidden;background:linear-gradient(160deg,#17253d,#101a2c);border:1px solid #ffffff2e;border-radius:15px}
+.stv .stv-dock-top{display:flex;align-items:stretch;min-height:48px;flex:0 0 auto;border-bottom:1px solid #ffffff26;padding:6px}
+.stv .stv-dock-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;flex:1;min-width:0}
+.stv .stv-dock-tabs button{border:1px solid transparent;background:transparent;color:#aebed1;border-radius:8px;padding:9px 5px;cursor:pointer;font-size:12px;line-height:1.25;font-weight:830;white-space:nowrap}
+.stv .stv-dock-tabs button:hover{background:#ffffff12;color:#fff}
+.stv .stv-dock-tabs button[aria-selected=true]{background:color-mix(in srgb,var(--tv-accent) 16%,#102039);border-color:color-mix(in srgb,var(--tv-accent) 50%,transparent);color:#fff}
+.stv .stv-dock-tabs .stv-queue-count{display:none}
+.stv .stv-dock-close{display:none;border:0;background:transparent;color:#ecf8ff;font-size:18px;cursor:pointer;padding:0 9px}
+.stv .stv-chat{border:0;background:transparent;min-width:0;min-height:0;flex:1;display:flex!important;flex-direction:column;overflow:hidden}
+.stv .stv-chat[hidden],.stv .stv-dock-queue[hidden],.stv .stv-chat-pane[hidden]{display:none!important}
+.stv .stv-chat-pane{display:flex;min-width:0;min-height:0;flex:1;flex-direction:column;padding:10px 11px 12px}
+.stv .stv-chat-feed{flex:1;min-height:0;height:auto!important}
+.stv .stv-twitch-chat{flex:1;min-height:0;height:100%!important}
+.stv .stv-twitch-chat iframe{height:100%!important}
+.stv .stv-dock-queue{display:flex;flex-direction:column;flex:1;overflow-y:auto;min-height:0;scrollbar-width:thin}
+.stv .stv-rail-head{flex:0 0 auto;padding:13px 15px!important;min-height:0}
+.stv .stv-upnext{padding:12px 15px!important;min-height:0;flex:0 0 auto}
+.stv .stv-next-heading{align-items:baseline}
+.stv .stv-creator-inline{min-height:0;flex:0 0 auto}
+.stv .stv-creator-inline>summary{min-height:61px;padding:12px 15px}
+.stv .stv-creator-content{padding:0 15px 16px}
+.stv .stv-chat-status{line-height:1.4;margin:7px 2px 0;font-size:10px}
+.stv #stv-dock-toggle{display:none}
+.stv .stv-dock-scrim[hidden]{display:none!important}
+@media (max-width:1150px) and (min-width:981px){
+ .stv .stv-broadcast{grid-template-columns:minmax(0,1fr) 315px!important;gap:10px!important}
+ .stv .stv-dock{height:clamp(405px,46vw,540px);max-height:none}
+}
+@media (max-width:980px){
+ .stv .stv-broadcast{grid-template-columns:minmax(0,1fr)!important;gap:0!important}
+ .stv .stv-stage{grid-column:1/-1;min-width:0}
+ .stv #stv-dock-toggle{display:inline-flex;align-items:center;gap:6px;border:1px solid color-mix(in srgb,var(--tv-accent) 48%,transparent);border-radius:8px;color:#eaf9fc;background:#152b3e;padding:9px 10px;font-weight:800;font-size:11px}
+ .stv .stv-dock{position:fixed!important;z-index:202;top:max(12px,env(safe-area-inset-top));bottom:max(12px,env(safe-area-inset-bottom));right:12px;width:min(380px,calc(100vw - 24px));height:auto!important;max-height:none!important;grid-column:auto!important;border-radius:15px;visibility:hidden;opacity:0;pointer-events:none;transform:translateX(calc(100% + 18px));transition:transform .2s ease,opacity .2s ease,visibility .2s ease}
+ .stv .stv-dock.is-open{visibility:visible;opacity:1;pointer-events:auto;transform:translateX(0)}
+ .stv .stv-dock-close{display:block}
+ .stv .stv-dock-scrim:not([hidden]){display:block;position:fixed;inset:0;z-index:201;background:#050b17c9;backdrop-filter:blur(2px)}
+}
+@media (max-width:500px){
+ .stv .stv-dock{right:6px;top:6px;bottom:6px;width:calc(100vw - 12px)}
+ .stv .stv-dock-tabs button{font-size:11px}
+ .stv .stv-now-actions{flex-wrap:wrap}
+ .stv .stv-dock-top{min-height:46px}
+}
+@media (prefers-reduced-motion:reduce){.stv .stv-dock{transition:none!important}}
+
+/* Immersive mode keeps the screen only; the side dock never overlays video. */
+.stv.tv-immersive .stv-dock{display:none!important}
+.stv.tv-immersive .stv-dock-scrim{display:none!important}
+.stv.tv-immersive #stv-dock-toggle{display:none!important}
