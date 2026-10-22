@@ -190,12 +190,27 @@ export async function loadNewsRss(){
   dom.composer.hidden=true;
   setStatus('Connexion à SWAPP Actualité','Lecture du flux…');
   try{
-    const data=await fetchNewsFeed();
+    const [data,personal]=await Promise.all([
+      fetchNewsFeed(),
+      state.user?.handle?api('/api/pulse/users/'+encodeURIComponent(state.user.handle)).catch(()=>null):null
+    ]);
     if(!isCurrent(revision,'home')||state.feed!=='news')return;
     const items=(data.items||[]).filter(item=>item&&item.title).sort((a,b)=>Date.parse(b.publishedAt||0)-Date.parse(a.publishedAt||0)).slice(0,50);
+    const ownRelays=new Map();
+    for(const post of Array.isArray(personal?.posts)?personal.posts:[]){
+      if(!post?.id||!post.linkUrl||!post.linkTitle||String(post.body||'').trim()!==String(post.linkTitle).trim())continue;
+      if(!ownRelays.has(post.linkUrl))ownRelays.set(post.linkUrl,post.id);
+    }
     dom.feed.innerHTML=items.length
       ? '<section class="pulse-news-view"><div class="pulse-news-intro"><span>SWAPP ACTUALITÉ · FLUX</span><h2>Actualités à lire et à reposter</h2><p>Le flux SWAPP Actualité est intégré à SOCIAL. Un repost crée une publication avec le titre, la source, le lien et l’image.</p></div><div class="pulse-news-grid">'+items.map(renderNewsCard).join('')+'</div></section>'
       : '<div class="pulse-status"><strong>Flux vide</strong>Aucune actualité disponible pour le moment.</div>';
+    dom.feed.querySelectorAll('[data-news-repost]').forEach(button=>{
+      const id=ownRelays.get(button.dataset.newsUrl);
+      if(!id)return;
+      button.dataset.newsPostedId=id;
+      button.classList.add('done');
+      button.textContent='Annuler le repost';
+    });
   }catch(error){
     if(isCurrent(revision,'home')&&state.feed==='news')
       setStatus('SWAPP Actualité indisponible','Impossible de lire le flux pour le moment.');
