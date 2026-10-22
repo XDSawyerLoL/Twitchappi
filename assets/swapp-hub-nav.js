@@ -8,8 +8,8 @@
   {href:'/guides/aion-2',label:'Guides'},
   {href:'/social',label:'Social'},
   {href:'/bandes-annonces',label:'Vidéos'},
-  {href:'/tv',label:'SWAPP TV'},
-  {href:'/boutique',label:'Boutique'}
+  {href:'/boutique',label:'Boutique'},
+  {href:'/tv',label:'SWAPP TV'}
  ];
  const NAV=[
   ['/', 'Accueil'],['/decouvrir','Découvrir'],['/categories','Catégories'],
