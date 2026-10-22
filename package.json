@@ -15,7 +15,8 @@
     "cost:audit": "node tools/swapp-cost-audit.js",
     "deploy:zip": "node tools/swapp-hostinger-package.js",
     "test:social": "node --test test/swapp-social-*.test.js test/social-feed-tabs.test.js",
-    "verify:social": "node tools/swapp-social-smoke.js"
+    "verify:social": "node tools/swapp-social-smoke.js",
+    "audit:p0": "node tools/swapp-p0-audit.js"
   },
   "engines": {
     "node": ">=20"
