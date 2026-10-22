@@ -1,5 +1,5 @@
 import { TOKEN_KEY, state, dom, api, errorText } from './core.js';
-import { openAuth, closeAuth, updateAuthModal, updateAccount, requireAuth, applySession, clearSession, restoreSession } from './session.js';
+import { openAuth, closeAuth, updateAuthModal, updateAccount, requireAuth, applySession, clearSession, restoreSession } from './session.js?v=20261022-one-account-v1';
 import { setView, loadHome, loadExplore, loadCircles, loadNotifications, loadSaved, loadProfile, loadMessages, loadConversation, loadCirclePreview, loadNewsRss } from './views.js?v=20261021-rss-media-community-v2';
 import {setupVoiceNotes} from './dm-audio.js?v=20261018-audio-stage-v1';
 import {setupDirectCalls} from './dm-calls.js?v=20261018-audio-stage-v1';
@@ -230,6 +230,9 @@ window.addEventListener('quantic-gekkko-session',event=>{
 });
 
 function bindStaticEvents(){
+  // Guests can read the full feed. Trying to write opens the single SWAPP
+  // account dialog; no duplicate SOCIAL login or separate identity.
+  dom.textarea.addEventListener('focus',()=>{if(!state.user)openAuth()});
   dom.textarea.addEventListener('input',function(){
     dom.count.textContent=dom.textarea.value.length+' / 420';
     dom.publish.disabled=!dom.textarea.value.trim();
