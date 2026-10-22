@@ -24,8 +24,16 @@
       if(!user)return;
       if(label)label.textContent=String(user.display_name||user.login||'Compte').slice(0,40);
       const src=user.avatar_url||user.profile_image_url;
-      if(avatar && typeof src==='string'){
-        try{const u=new URL(src);if(u.protocol==='https:')avatar.src=u.href;}catch(_){}
+      if(avatar){
+        avatar.addEventListener('error',()=>avatar.removeAttribute('src'),{once:true});
+        if(typeof src==='string'&&src){
+          try{
+            const u=new URL(src,location.origin);
+            if(u.protocol==='https:'||(u.protocol==='http:'&&u.origin===location.origin)){
+              avatar.src=u.href;
+            }
+          }catch(_){}
+        }
       }
     }).catch(()=>{});
 })();
