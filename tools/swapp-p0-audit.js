@@ -26,7 +26,7 @@ const checks=[
  })},
  {key:'social',label:'SOCIAL MySQL',severity:'P0',judge:d=>{
    const active=d.active_backend==='mysql'&&d.mysql_reachable===true&&d.snapshot_present===true&&d.snapshot_type==='fresh'&&d.writes_frozen!==true;
-   const bootstrap=d.fresh_auto_init_requested===true||d.fresh_start_approved===true;
+   const bootstrap=d.fresh_auto_init_requested===true||d.fresh_bootstrap_authorized===true;
    return {
     ok:active&&!bootstrap,
     live:active,
