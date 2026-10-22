@@ -58,3 +58,15 @@ test('homepage excludes promotional X/Discord section; SOCIAl keeps its RSS imag
  assert.match(hubs,/swapp-social-native\/app\.js\?v=20261021-rss-media-community-v2/);
  assert.match(app,/views\.js\?v=20261021-rss-media-community-v2/);
 });
+
+test('news card titles link to articles, covers have descriptive alt text and credentials are rejected',()=>{
+ const source=read('assets/swapp-social-native/views.js');
+ assert.match(source,/\(url\?'<a href="'\+esc\(url\)/);
+ assert.match(source,/alt="Illustration de '\+esc\(title\)/);
+ const start=source.indexOf('function safeNewsUrl(value){');
+ const end=source.indexOf('\n}',start)+2;
+ const resolver=vm.runInNewContext(source.slice(start,end)+';safeNewsUrl',{URL,String});
+ assert.equal(resolver('https://user:secret@example.com/article'),'');
+ assert.equal(resolver('javascript:alert(1)'),'');
+ assert.equal(resolver('https://swapp.tv/actus/test'),'https://swapp.tv/actus/test');
+});
