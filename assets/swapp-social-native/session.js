@@ -92,7 +92,7 @@ export function updateAccount(){
 
   if(state.view==='home'){
     dom.composer.hidden=state.feed==='news';
-    dom.welcome.hidden=state.feed==='news'||!!user;
+    dom.welcome.hidden=true;
   }
 }
 
