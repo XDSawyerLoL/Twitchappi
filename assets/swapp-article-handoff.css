@@ -1,0 +1,21 @@
+/* SWAPP article continuity: one real image morph, never a fake loader.
+ * Both documents must opt in to same-origin cross-document transitions.
+ */
+@view-transition{navigation:auto}
+::view-transition-group(swapp-article-artwork){
+ animation-duration:320ms;
+ animation-timing-function:cubic-bezier(.2,.75,.2,1);
+}
+::view-transition-old(swapp-article-artwork),
+::view-transition-new(swapp-article-artwork){
+ object-fit:cover;
+ animation-duration:320ms;
+ animation-timing-function:cubic-bezier(.2,.75,.2,1);
+}
+/* The global SWAPP navigation keeps its position through native article loads. */
+header.top{view-transition-name:swapp-masthead}
+@media(prefers-reduced-motion:reduce){
+ ::view-transition-group(swapp-article-artwork),
+ ::view-transition-old(swapp-article-artwork),
+ ::view-transition-new(swapp-article-artwork){animation:none!important}
+}
