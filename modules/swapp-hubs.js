@@ -40,7 +40,7 @@ function community(){
     '<small>Authentification commune à tout SWAPP. Les publications et messages nécessitent un compte connecté.</small>'+
    '</div></div></div>';
  const scripts=assets+pageColors+'<link rel="stylesheet" href="/assets/swapp-social-access.css?v=20261022-one-account-v1"><script defer src="/assets/swapp-social-access.js?v=20261022-one-account-v1"></script>'+
-  '<link rel="stylesheet" href="/assets/swapp-social-native/social-swapp.css?v=20261022-one-account-v1">'+
+  '<link rel="stylesheet" href="/assets/swapp-social-native/social-swapp.css?v=20261022-quoted-reposts-v1">'+
   '<link rel="stylesheet" href="/assets/swapp-social-refinement.css?v=20261016-stories-search-v5">'+
   '<script defer src="/assets/swapp-social-reading.js?v=20261016-stories-search-v6"></script>'+
   '<script defer src="/assets/swapp-game-identity.js?v=20261019-game-synergy-v1"></script>'+
