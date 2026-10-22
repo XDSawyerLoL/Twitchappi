@@ -1311,9 +1311,23 @@ if(SWAPP_TV_DIRECTOR_ENABLED){
 
 app.get('/api/swapp-tv/queue/status',async(_req,res)=>{
  res.set('Cache-Control','no-store');
- if(!SWAPP_TV_QUEUE_ENABLED)return res.json({enabled:false,director_enabled:false,on_air:null,waiting:[]});
- try{res.json({enabled:true,director_enabled:SWAPP_TV_DIRECTOR_ENABLED,...await swappTvQueue.state()})}
- catch(_){res.status(503).json({enabled:false,error:'tv_queue_storage_unavailable',on_air:null,waiting:[]})}
+ const accounts_mysql=SWAPP_MYSQL_ACCOUNTS&&swappMysqlAccountsReady;
+ if(!SWAPP_TV_QUEUE_ENABLED)return res.json({
+  enabled:false,director_enabled:false,accounts_mysql,
+  reason:'tv_queue_disabled',on_air:null,waiting:[]
+ });
+ // A prematurely enabled Hostinger flag must never suggest bookings can run.
+ if(!accounts_mysql)return res.json({
+  enabled:false,director_enabled:false,accounts_mysql:false,
+  reason:'accounts_mysql_required',on_air:null,waiting:[]
+ });
+ try{
+  res.json({enabled:true,director_enabled:SWAPP_TV_DIRECTOR_ENABLED,
+   accounts_mysql:true,...await swappTvQueue.state()});
+ }catch(_){
+  res.status(503).json({enabled:false,director_enabled:false,accounts_mysql:true,
+   reason:'tv_queue_storage_unavailable',on_air:null,waiting:[]});
+ }
 });
 app.post('/api/swapp-tv/queue',mutationLimiter,async(req,res)=>{
  res.set('Cache-Control','no-store');
