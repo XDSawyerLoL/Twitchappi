@@ -149,25 +149,24 @@
 @media(prefers-reduced-motion:reduce){.stv .stv-chat *, .stv-program-dialog *{transition:none!important;animation:none!important}}
 
 
-/* TV V6: mini programme tab, desktop chats always alongside the player. */
+/* TV V7 — flat, coherent tabs and a compact programme window. */
 .stv .stv-broadcast{display:grid!important;grid-template-columns:minmax(0,1fr) clamp(300px,27vw,365px)!important;align-items:stretch!important;gap:12px!important}
 .stv .stv-stage{min-width:0}
-.stv .stv-dock{position:relative;display:flex!important;flex-direction:column!important;align-items:stretch;align-self:stretch!important;grid-column:auto!important;min-width:0;min-height:0;height:auto;max-height:none;overflow:hidden;background:linear-gradient(160deg,#17253d,#101a2c);border:1px solid #ffffff2e;border-radius:15px}
-.stv .stv-dock-top{display:flex;align-items:stretch;min-height:48px;flex:0 0 auto;border-bottom:1px solid #ffffff26;padding:6px}
-.stv .stv-dock-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;flex:1;min-width:0}
-.stv .stv-dock-tabs button{border:1px solid transparent;background:transparent;color:#aebed1;border-radius:8px;padding:9px 5px;cursor:pointer;font-size:12px;line-height:1.25;font-weight:830;white-space:nowrap}
-.stv .stv-dock-tabs button:hover{background:#ffffff12;color:#fff}
-.stv .stv-dock-tabs button[aria-selected=true]{background:color-mix(in srgb,var(--tv-accent) 16%,#102039);border-color:color-mix(in srgb,var(--tv-accent) 50%,transparent);color:#fff}
+.stv .stv-dock{position:relative;display:flex!important;flex-direction:column!important;align-items:stretch;align-self:stretch!important;grid-column:auto!important;min-width:0;min-height:0;height:auto;max-height:none;overflow:hidden;background:linear-gradient(155deg,#141f31,#0d1625);border:1px solid color-mix(in srgb,var(--tv-accent) 20%,#ffffff25);border-radius:12px}
+.stv .stv-dock-top{display:flex;align-items:stretch;gap:3px;min-height:49px;flex:0 0 auto;border-bottom:1px solid #ffffff1b;padding:7px 8px 0;background:#111b2a}
+.stv .stv-dock-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:3px;flex:1;min-width:0}
+.stv .stv-dock-tabs button,.stv .stv-dock-top .stv-programme-link{display:flex;align-items:center;justify-content:center;min-width:0;min-height:38px;padding:8px 5px;border:0;border-bottom:2px solid transparent;border-radius:7px 7px 0 0;background:transparent;color:#afbdd0;font-size:11px;font-weight:750;letter-spacing:.015em;line-height:1.2;white-space:nowrap;cursor:pointer;transition:background .16s ease,color .16s ease,border-color .16s ease}
+.stv .stv-dock-top .stv-programme-link{flex:0 0 69px;margin:0}
+.stv .stv-dock-tabs button:hover,.stv .stv-dock-top .stv-programme-link:hover{background:#ffffff0b;color:#fff}
+.stv .stv-dock-tabs button[aria-selected=true]{background:color-mix(in srgb,var(--tv-accent) 10%,#101c2d);color:#fff;border-bottom-color:var(--tv-accent)}
+.stv .stv-dock-top .stv-programme-link[aria-expanded=true]{background:color-mix(in srgb,var(--tv-accent) 10%,#101c2d);color:#fff;border-bottom-color:var(--tv-accent)}
 .stv .stv-dock-tabs .stv-queue-count{display:none}
-.stv .stv-dock-top .stv-programme-link{display:grid;place-items:center;flex:0 0 33px;width:33px;height:34px;margin:0;border:1px solid #ffffff30;border-radius:8px;background:#ffffff09;color:#d7eefa;font-size:20px;line-height:1;cursor:pointer}
-.stv .stv-dock-top .stv-programme-link:hover{background:color-mix(in srgb,var(--tv-accent) 18%,#102039);border-color:var(--tv-accent)}
-.stv .stv-dock-top .stv-programme-link:focus-visible{outline:2px solid var(--tv-accent);outline-offset:2px}
-.stv .stv-dock-close{display:none;border:0;background:transparent;color:#ecf8ff;font-size:18px;cursor:pointer;padding:0 9px}
+.stv .stv-dock-close{display:none}
 .stv .stv-chat{border:0;background:transparent;min-width:0;min-height:0;flex:1;display:flex!important;flex-direction:column;overflow:hidden}
 .stv .stv-chat[hidden],.stv .stv-dock-queue[hidden],.stv .stv-chat-pane[hidden]{display:none!important}
-.stv .stv-chat-pane{display:flex;min-width:0;min-height:0;flex:1;flex-direction:column;padding:10px 11px 12px}
+.stv .stv-chat-pane{display:flex;min-width:0;min-height:0;flex:1;flex-direction:column;padding:11px}
 .stv .stv-chat-feed{flex:1;min-height:0;height:auto!important}
-.stv .stv-twitch-chat{flex:1;min-height:0;height:100%!important}
+.stv .stv-twitch-chat{flex:1;min-height:0;height:100%!important;border-radius:8px}
 .stv .stv-twitch-chat iframe{height:100%!important}
 .stv .stv-dock-queue{display:flex;flex-direction:column;flex:1;overflow-y:auto;min-height:0;scrollbar-width:thin}
 .stv .stv-rail-head{flex:0 0 auto;padding:13px 15px!important;min-height:0}
@@ -179,28 +178,52 @@
 .stv .stv-chat-status{line-height:1.4;margin:7px 2px 0;font-size:10px}
 .stv #stv-dock-toggle{display:none}
 .stv .stv-dock-scrim[hidden]{display:none!important}
+.stv-program-dialog{width:min(990px,calc(100vw - 40px));height:min(760px,calc(100dvh - 48px));max-width:none;max-height:none;border-radius:15px;background:#0d1522;border:1px solid color-mix(in srgb,var(--swapp-page-accent,#22d3ee) 27%,#ffffff28);box-shadow:0 22px 88px #000d;overflow-y:auto;scrollbar-width:thin}
+.stv-program-dialog .stv-dialog-tools{position:sticky;top:0;z-index:25;display:flex;justify-content:space-between;align-items:center;gap:16px;padding:17px 21px;background:#111e30;border-bottom:1px solid #ffffff1d;letter-spacing:normal}
+.stv-program-dialog .stv-dialog-brand{display:grid;gap:4px;min-width:0}
+.stv-program-dialog .stv-dialog-kicker{font-size:10px;letter-spacing:.14em;font-weight:750;color:var(--swapp-page-accent,#22d3ee)}
+.stv-program-dialog .stv-dialog-brand strong{font-size:19px;letter-spacing:-.03em;font-weight:850;color:#f1f6fc}
+.stv-program-dialog .stv-dialog-tools button{border:1px solid #ffffff2c;background:#ffffff09;color:#e7f2ff;border-radius:7px;padding:9px 11px;white-space:nowrap;font-size:11px;font-weight:750;letter-spacing:0;cursor:pointer}
+.stv-program-dialog .stv-dialog-tools button:hover{border-color:var(--swapp-page-accent,#22d3ee);background:#ffffff15}
+.stv-program-dialog .scal{background:transparent;min-height:0;padding-bottom:0}
+.stv-program-dialog .scal-head,.stv-program-dialog .scal-foot,.stv-program-dialog .scal-aside-tv{display:none}
+.stv-program-dialog .scal-shell{padding:18px 19px 25px;max-width:none}
+.stv-program-dialog .scal-toolbar h2{font-size:clamp(24px,2.7vw,35px)}
+.stv-program-dialog .scal-tools button{padding:9px 12px}
+.stv-program-dialog .scal-filters{gap:9px;padding:9px 0 15px}
+.stv-program-dialog .scal-workspace{grid-template-columns:minmax(0,1fr) 250px;background:#111b2c}
+.stv-program-dialog .scal-day{min-height:63px;padding:7px 5px}
+.stv-program-dialog .scal-aside{padding:15px}
+.stv-program-dialog .scal-chip{font-size:10px}
+.stv :is(button,input,select,a):focus-visible,.stv-program-dialog :is(button,input,select,a):focus-visible{outline:2px solid var(--swapp-page-accent,#22d3ee);outline-offset:2px}
 @media (max-width:1150px) and (min-width:721px){
  .stv .stv-broadcast{grid-template-columns:minmax(0,1fr) 315px!important;gap:10px!important}
- .stv .stv-dock{min-height:0}
 }
 @media (max-width:720px){
  .stv .stv-broadcast{grid-template-columns:minmax(0,1fr)!important;gap:0!important}
  .stv .stv-stage{grid-column:1/-1;min-width:0}
  .stv #stv-dock-toggle{display:inline-flex;align-items:center;gap:6px;border:1px solid color-mix(in srgb,var(--tv-accent) 48%,transparent);border-radius:8px;color:#eaf9fc;background:#152b3e;padding:9px 10px;font-weight:800;font-size:11px}
- .stv .stv-dock{position:fixed!important;z-index:202;top:max(12px,env(safe-area-inset-top));bottom:max(12px,env(safe-area-inset-bottom));right:12px;width:min(380px,calc(100vw - 24px));height:auto!important;max-height:none!important;grid-column:auto!important;border-radius:15px;visibility:hidden;opacity:0;pointer-events:none;transform:translateX(calc(100% + 18px));transition:transform .2s ease,opacity .2s ease,visibility .2s ease}
+ .stv .stv-dock{position:fixed!important;z-index:202;top:max(10px,env(safe-area-inset-top));bottom:max(10px,env(safe-area-inset-bottom));right:10px;width:min(380px,calc(100vw - 20px));height:auto!important;max-height:none!important;grid-column:auto!important;visibility:hidden;opacity:0;pointer-events:none;transform:translateX(calc(100% + 15px));transition:transform .2s ease,opacity .2s ease,visibility .2s ease}
  .stv .stv-dock.is-open{visibility:visible;opacity:1;pointer-events:auto;transform:translateX(0)}
- .stv .stv-dock-close{display:block}
+ .stv .stv-dock-top{flex-wrap:wrap;padding:6px 8px 0}
+ .stv .stv-dock-close{display:block;order:-1;flex:0 0 100%;text-align:left;padding:7px 6px 10px;margin:0;border:0;border-bottom:1px solid #ffffff1d;background:transparent;color:#cbd8ea;font-size:11px;font-weight:750;cursor:pointer}
+ .stv .stv-dock-close:hover{color:#fff}
+ .stv .stv-dock-tabs{flex:1;min-width:0}
  .stv .stv-dock-scrim:not([hidden]){display:block;position:fixed;inset:0;z-index:201;background:#050b17c9;backdrop-filter:blur(2px)}
+ .stv-program-dialog{width:calc(100vw - 12px);height:calc(100dvh - 16px);border-radius:11px}
+ .stv-program-dialog .stv-dialog-tools{padding:13px 12px;gap:8px}
+ .stv-program-dialog .stv-dialog-brand strong{font-size:16px}
+ .stv-program-dialog .stv-dialog-tools button{padding:8px;font-size:10px}
+ .stv-program-dialog .scal-shell{padding:12px 8px}
+ .stv-program-dialog .scal-toolbar{gap:8px}
+ .stv-program-dialog .scal-toolbar h2{font-size:23px}
+ .stv-program-dialog .scal-workspace{grid-template-columns:minmax(0,1fr)}
+ .stv-program-dialog .scal-day{min-height:55px;padding:4px}
+ .stv-program-dialog .scal-chip{font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 }
-@media (max-width:500px){
- .stv .stv-dock{right:6px;top:6px;bottom:6px;width:calc(100vw - 12px)}
- .stv .stv-dock-tabs button{font-size:11px}
- .stv .stv-now-actions{flex-wrap:wrap}
- .stv .stv-dock-top{min-height:46px}
-}
-@media (prefers-reduced-motion:reduce){.stv .stv-dock{transition:none!important}}
-
-/* Immersive mode keeps the screen only; the side dock never overlays video. */
+/* Immersion remains a single video surface, regardless of chat tab layout. */
+.stv.tv-immersive .stv-broadcast{grid-template-columns:minmax(0,1fr)!important;gap:0!important;padding:0!important;max-width:none}
 .stv.tv-immersive .stv-dock{display:none!important}
 .stv.tv-immersive .stv-dock-scrim{display:none!important}
 .stv.tv-immersive #stv-dock-toggle{display:none!important}
+@media (prefers-reduced-motion:reduce){.stv .stv-dock,.stv .stv-dock-tabs button,.stv .stv-dock-top .stv-programme-link,.stv-program-dialog *{transition:none!important;animation:none!important}}

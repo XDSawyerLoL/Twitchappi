@@ -45,12 +45,19 @@ test('TV uses mini programme tab and side-by-side desktop chat',()=>{
  const dockTop=html.indexOf('class="stv-dock-top"');
  const programme=html.indexOf('id="stv-program-open"');
  assert.ok(dockTop>0&&programme>dockTop&&programme<html.indexOf('id="stv-dock-close"'));
+ assert.match(html,/id="stv-program-open"[^>]*>Agenda<\/button>/);
+ assert.doesNotMatch(html,/id="stv-dock-close"[^>]*>✕|id="stv-program-close"[^>]*>✕/);
+ assert.match(html,/id="stv-dialog-title">Agenda de la chaîne<\/strong>/);
+ assert.match(css,/\.stv \.stv-dock-top \.stv-programme-link\{flex:0 0 69px/);
  assert.equal((html.match(/id="stv-program-open"/g)||[]).length,1);
  assert.ok(css.includes('clamp(300px,27vw,365px)!important;align-items:stretch!important'));
  assert.ok(css.includes('align-self:stretch!important;grid-column:auto!important'));
  assert.ok(css.includes('@media (max-width:720px){'));
  assert.ok(!css.includes('@media (max-width:980px){'));
  assert.ok(js.includes("matchMedia('(max-width:720px)')"));
+ assert.match(css,/\.stv-program-dialog\{width:min\(990px/);
+ assert.match(css,/\.stv \.stv-dock-close\{display:none\}/);
+ assert.match(js,/programme\?\.addEventListener\('close'/);
 });
 test('disabled queue keeps the conductor visible while blocking enrollment',()=>{
  const js=read('assets/swapp-tv-broadcast.js');

@@ -26,15 +26,18 @@ test('queue replaces chat in the dock without creating another section under the
  assert.match(js,/x\.pane\.hidden=!active/);
  assert.match(js,/if\(kind==='twitch'\)updateTwitchChat\(\)/);
 });
-test('desktop uses two columns down to 981px, then a keyboard-accessible drawer rather than below-video chat',()=>{
+test('desktop keeps TV and chat alongside down to 721px, with a mobile drawer after that',()=>{
  const css=read('assets/swapp-program.css'),js=read('assets/swapp-tv-broadcast.js'),h=page('tv');
- assert.match(css,/\.stv \.stv-broadcast\{display:grid!important;grid-template-columns:minmax\(0,1fr\) clamp\(310px,27vw,365px\)!important/);
- assert.match(css,/@media \(max-width:1150px\) and \(min-width:981px\)/);
- assert.match(css,/@media \(max-width:980px\)/);
+ assert.match(css,/\.stv \.stv-broadcast\{display:grid!important;grid-template-columns:minmax\(0,1fr\) clamp\(300px,27vw,365px\)!important/);
+ assert.match(css,/@media \(max-width:1150px\) and \(min-width:721px\)/);
+ assert.match(css,/@media \(max-width:720px\)/);
  assert.match(css,/\.stv \.stv-dock\{position:fixed!important/);
  assert.match(css,/\.stv \.stv-dock\.is-open\{visibility:visible/);
  assert.match(css,/\.stv \.stv-dock-scrim:not\(\[hidden\]\)/);
  for(const id of ['stv-dock-toggle','stv-dock-close','stv-dock-scrim'])assert.match(h,new RegExp('id="'+id+'"'));
+ assert.match(h,/id="stv-program-open"[^>]*>Agenda<\/button>/);
+ assert.doesNotMatch(h,/title="Fermer">✕/);
+ assert.match(css,/\.stv \.stv-dock-top \.stv-programme-link\{flex:0 0 69px/);
  assert.match(js,/dock\.inert=mobile&&!open/);
  assert.match(js,/dockToggle\.setAttribute\('aria-expanded',String\(open\)\)/);
  assert.match(js,/if\(e\.key==='Escape'&&dock\.classList\.contains\('is-open'\)\)closeDock\(\)/);
