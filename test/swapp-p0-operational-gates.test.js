@@ -92,6 +92,7 @@ test('command is manual, with no CI, new cron or user account mutation',()=>{
  const pkg=JSON.parse(read('package.json'));
  assert.equal(pkg.scripts['audit:p0'],'node tools/swapp-p0-audit.js');
  const source=read('tools/swapp-p0-audit.js');
- assert.doesNotMatch(source,/\.post\(|method:'POST'|fetch\(.*/register|app\.use\(/);
+ assert.doesNotMatch(source,/\.post\(|method:'POST'|app\.use\(/);
+ assert.doesNotMatch(source,/\/register/);
  assert.match(source,/require\.main===module/);
 });
