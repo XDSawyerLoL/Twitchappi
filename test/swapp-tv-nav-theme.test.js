@@ -35,8 +35,8 @@ test('TV and programme follow existing SWAPP colors and layout',()=>{
  assert.doesNotMatch(tv,/href="\/jeux"/);
  assert.match(programme,/LE PROGRAMME/);
  assert.match(programme,/id="scal-grid"/);
- assert.match(tv,/20261022-unified-tv-v4/);
- assert.match(programme,/20261022-unified-tv-v4/);
+ assert.match(tv,/20261022-tv-side-dock-v5/);
+ assert.match(programme,/20261022-tv-side-dock-v5/);
 });
 test('Agenda legacy route safely redirects under TV and shared nav assets bust browser caches',()=>{
  const server=read('server.js'),shell=read('modules/swapp-news/site-shell.js'),home=read('index.html');
