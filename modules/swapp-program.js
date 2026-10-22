@@ -9,7 +9,7 @@ function page(kind){
  const content=tv?`<main id="swapp-tv" class="stv" aria-label="SWAPP TV">
   <header class="stv-mast">
    <div class="stv-brand"><span class="stv-brandline">SWAPP / GAME UNIVERSE</span><strong>SWAPP TV</strong><span class="stv-station-label">LA CHAÎNE</span></div>
-   <nav aria-label="Navigation SWAPP TV"><a href="/tv/programme">Programme TV</a><a href="/actus">Actualités</a><a href="/social">Social</a></nav>
+   <a class="stv-programme-link" href="/tv/programme">Voir le programme <span aria-hidden="true">↗</span></a>
   </header>
   <section class="stv-broadcast" aria-labelledby="stv-heading">
    <div class="stv-stage">
@@ -23,10 +23,30 @@ function page(kind){
     </div>
     <div class="stv-nowbar"><div><span class="stv-label">MAINTENANT</span><strong id="stv-now-name">Antenne en préparation</strong><span id="stv-now-game">En attente de programmation</span></div><div class="stv-now-actions"><button id="stv-watch" type="button" disabled>▶ REGARDER</button><button id="stv-immersive" type="button" aria-pressed="false">⛶ IMMERSION</button></div></div>
    </div>
-   <aside class="stv-rail" aria-label="Programme SWAPP TV"><div class="stv-rail-head"><span class="stv-label">LE CONDUCTEUR</span><span id="stv-air-state" class="stv-air-state">HORS ANTENNE</span></div><div class="stv-upnext"><span class="stv-label">À SUIVRE</span><div id="stv-next-list"><p>Le programme est en préparation.</p></div></div><div class="stv-queue-tease"><span class="stv-label">ACCÈS CRÉATEURS</span><h2>TA PLACE.<br>TON MOMENT.</h2><p>Une antenne commune. Une rotation équitable. Un vrai public à découvrir.</p><a href="#stv-queue" class="stv-join">REJOINDRE LA FILE <span>↗</span></a></div></aside>
+   <aside class="stv-rail" aria-label="Programme et accès créateurs">
+    <div class="stv-rail-head">
+     <span class="stv-label">LE CONDUCTEUR</span>
+     <span id="stv-air-state" class="stv-air-state">HORS ANTENNE</span>
+    </div>
+    <div class="stv-upnext">
+     <div class="stv-next-heading"><span id="stv-next-title" class="stv-label">À SUIVRE</span><span id="stv-queue-count" class="stv-queue-count"></span></div>
+     <div id="stv-next-list"><p>Le programme est en préparation.</p></div>
+    </div>
+    <details id="stv-creator-access" class="stv-creator-inline">
+     <summary><span class="stv-creator-summary-icon" aria-hidden="true">＋</span><span>Je suis créateur <small>Rejoindre la file SWAPP TV</small></span><span class="stv-creator-chevron" aria-hidden="true">⌄</span></summary>
+     <div class="stv-creator-content">
+      <p>Compte SWAPP et Twitch lié requis. Le jeu doit être couvert par la rédaction. L'inscription ne garantit pas un passage à l'antenne.</p>
+      <label for="stv-game">Jeu diffusé</label>
+      <select id="stv-game"><option value="">Chargement des jeux…</option></select>
+      <div class="stv-queue-buttons">
+       <button id="stv-join" type="button" disabled>Rejoindre la file</button>
+       <button id="stv-leave" type="button" disabled>Quitter</button>
+      </div>
+      <p id="stv-queue-status" role="status" aria-live="polite">Vérification du service…</p>
+     </div>
+    </details>
+   </aside>
   </section>
-  <section class="stv-bottom" id="stv-queue"><div class="stv-section-head"><span class="stv-label">SWAPP TV / CREATOR ACCESS</span><h2>ENTRE DANS <em>LE PROGRAMME.</em></h2><p>Compte SWAPP, chaîne Twitch liée et jeu couvert par la rédaction. Aucune place ou diffusion garantie avant vérification.</p></div><div class="stv-queue-grid"><div class="stv-queue-panel"><div class="stv-kicker">01 / INSCRIPTION</div><label for="stv-game">TON JEU</label><select id="stv-game"><option value="">Chargement des jeux…</option></select><div class="stv-queue-buttons"><button id="stv-join" type="button" disabled>REJOINDRE LA FILE ↗</button><button id="stv-leave" type="button" disabled>QUITTER LA FILE</button></div><p id="stv-queue-status" role="status" aria-live="polite">Vérification du service…</p></div><div class="stv-queue-panel"><div class="stv-kicker">02 / PROGRAMMATION</div><h3>LA FILE EN DIRECT</h3><ol id="stv-queue-list"><li>En attente des données de programmation.</li></ol></div></div></section>
-  <footer class="stv-footer"><span>SWAPP TV <span class="stv-dot">●</span> DISCOVERY FIRST</span><a href="/tv/programme">PROGRAMME ↗</a><a href="/social">SOCIAL ↗</a><a href="/actus">ACTUALITÉ ↗</a></footer>
  </main>`:`<main id="swapp-calendar" class="scal">
  <header class="scal-head"><div><span class="scal-kicker">SWAPP TV / PROGRAMMATION</span><h1>LE PROGRAMME <em>DE LA CHAÎNE.</em></h1><p>Les rendez-vous annoncés et confirmés, dans un calendrier directement relié à SWAPP TV.</p></div><div class="scal-head-side"><a href="/tv">◉ REJOINDRE SWAPP TV ↗</a></div></header>
  <section class="scal-shell" aria-label="Calendrier des événements SWAPP">
@@ -36,6 +56,6 @@ function page(kind){
  <aside class="scal-aside"><span class="scal-kicker">SÉLECTION DU JOUR</span><h3 id="scal-selected-label">Aujourd'hui</h3><div id="scal-day-events" aria-live="polite"><p>Sélectionne une date pour voir les rendez-vous.</p></div><div class="scal-aside-tv"><span class="scal-kicker">LA CHAÎNE</span><h3>LE LIVE<br>NE S'ARRÊTE PAS.</h3><p>Découvre les créateurs et les jeux à l'antenne.</p><a href="/tv">OUVRIR SWAPP TV ↗</a></div></aside></div></section>
  <footer class="scal-foot"><span>SWAPP / AGENDA</span><span>TOUTES LES HEURES SONT LOCALES · AUCUN ÉVÉNEMENT INVENTÉ</span></footer>
  </main>`;
- return layout({title:tv?'SWAPP TV — La chaîne du Game Universe':'Programme SWAPP TV',description:tv?'La chaîne gaming collective, découverte équitable et directs vérifiés':'Agenda des rendez-vous Spotlight SWAPP',content,active:tv?'tv':'agenda',extraCss:PROGRAM_CSS,scripts:'<link rel="stylesheet" href="/assets/swapp-program.css?v=20261022-unified-da-v3">'+(tv?'<script defer src="/assets/swapp-tv-broadcast.js?v=20261021-broadcast-v1"></script>':'<script defer src="/assets/swapp-calendar.js?v=20261021-calendar-health-v2"></script>')});
+ return layout({title:tv?'SWAPP TV — La chaîne du Game Universe':'Programme SWAPP TV',description:tv?'La chaîne gaming collective, découverte équitable et directs vérifiés':'Agenda des rendez-vous Spotlight SWAPP',content,active:tv?'tv':'agenda',extraCss:PROGRAM_CSS,scripts:'<link rel="stylesheet" href="/assets/swapp-program.css?v=20261022-integrated-creator-v1">'+(tv?'<script defer src="/assets/swapp-tv-broadcast.js?v=20261022-integrated-creator-v1"></script>':'<script defer src="/assets/swapp-calendar.js?v=20261021-calendar-health-v2"></script>')});
 }
 module.exports={page};

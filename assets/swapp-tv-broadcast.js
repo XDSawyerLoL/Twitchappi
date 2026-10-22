@@ -9,19 +9,21 @@ const gamesFrom=data=>[...new Set((Array.isArray(data.articles)?data.articles:[]
 const state={queue:null,selection:null,playing:null,discovery:[],index:0,consent:false,games:[],queueMode:false};
 const setText=(id,text)=>{$(id).textContent=text};
 function renderQueue(data){
- const rows=Array.isArray(data.waiting)?data.waiting:[],list=$('stv-queue-list');list.replaceChildren();
- for(const x of rows.slice(0,16)){const li=by('li',null,(x.creator_login||'Créateur')+' · '+(x.game||'Jeu'));list.append(li)}
- if(!rows.length)list.append(by('li',null,'Aucun créateur en attente.'));
- $('stv-join').disabled=!data.enabled||!state.games.length;
- $('stv-leave').disabled=!data.enabled;
- setText('stv-queue-status',!data.enabled?'Inscriptions non activées sur ce serveur.':data.director_enabled?'File ouverte et régie active. Les passages restent soumis à la vérification Twitch.':'File accessible ; régie TV non activée.');
+ const waiting=Array.isArray(data.waiting)?data.waiting:[],enabled=Boolean(data.enabled);
+ $('stv-join').disabled=!enabled||!state.games.length;
+ $('stv-leave').disabled=!enabled;
+ setText('stv-queue-status',!enabled?'La file n’est pas ouverte actuellement.':
+  data.director_enabled?'File accessible. Chaque direct est vérifié avant de passer à l’antenne.':
+  'File accessible, mais les passages à l’antenne sont actuellement suspendus.');
+ setText('stv-next-title',enabled?'CRÉATEURS EN ATTENTE':'À DÉCOUVRIR');
+ setText('stv-queue-count',enabled?(waiting.length>=100?'100+ en attente':waiting.length+' en attente'):'');
 }
 function rail(data){
  const list=$('stv-next-list');list.replaceChildren();
  let rows=[];
  if(data?.enabled)rows=(Array.isArray(data.waiting)?data.waiting:[]).slice(0,5).map(x=>({name:x.creator_login,game:x.game,desc:'En attente de vérification'}));
  else rows=state.discovery.slice(state.index+1,state.index+5).map(x=>({name:x.display_name||x.login,game:x.game,desc:'Découverte, non programmé'}));
- if(!rows.length){list.append(by('p',null,'Aucun prochain passage confirmé.'));return}
+ if(!rows.length){list.append(by('p',null,data?.enabled?'Aucune inscription en attente.':'Aucun direct découvert pour le moment.'));return}
  for(const x of rows){const card=by('div','stv-next-item');card.append(by('strong',null,x.name||'Créateur'),by('small',null,(x.game||'Jeu')+' · '+x.desc));list.append(card)}
 }
 function renderScreen(item,{onAir=false}={}){
@@ -34,7 +36,7 @@ function renderScreen(item,{onAir=false}={}){
  setText('stv-screen-game',state.selection?.game?.toUpperCase()||'GAME UNIVERSE');
  $('stv-watch').disabled=!state.selection;
  $('stv-air-state').textContent=onAir&&valid?'ANTENNE ACTIVE':valid?'DÉCOUVERTE':'HORS ANTENNE';
- $('stv-air-state').style.color=onAir&&valid?'#bdff6c':'';
+ $('stv-air-state').style.color=onAir&&valid?'var(--tv-accent,#67dce8)':'';
  setText('stv-stage-status',onAir&&valid?'Créateur sélectionné par la régie SWAPP TV.':valid?'Direct trouvé dans la découverte. Lecture volontaire, sans garantie de maintien en ligne.':'Aucun passage vérifié à cette heure.');
 }
 function play(){
