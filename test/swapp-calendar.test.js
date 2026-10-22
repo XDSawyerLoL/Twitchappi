@@ -26,5 +26,5 @@ test('calendar CSS is embedded in the delivered HTML, independent of browser cac
  assert.match(inline,/\.scal-grid\{display:grid;grid-template-columns:repeat\(7/);
  assert.match(inline,/\.scal-workspace\{display:grid/);
  assert.match(inline,/@media\(max-width:670px\)/);
- assert.match(html,/swapp-program\.css\?v=20261021-calendar-cssfix-v2/);
+ assert.match(html,/swapp-program\.css\?v=20261022-unified-da-v3/);
 });

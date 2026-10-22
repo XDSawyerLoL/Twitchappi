@@ -1286,8 +1286,9 @@ app.delete('/api/swapp-tv/queue',mutationLimiter,async(req,res)=>{
  catch(e){spotlightHandleError(e,res,req)}
 });
 
-app.get('/agenda',(_req,res)=>{res.set('Cache-Control','no-store');res.type('html').send(swappProgram.page('agenda'))});
-app.get('/tv',(_req,res)=>{res.set('Cache-Control','no-store');res.type('html').send(swappProgram.page('tv'))});
+app.get('/agenda',(req,res)=>{res.set('Cache-Control','no-store');return res.redirect(308,'/tv/programme'+(req.originalUrl?.includes('?')?req.originalUrl.slice(req.originalUrl.indexOf('?')):''));});
+app.get('/tv/programme',(_req,res)=>{res.set('Cache-Control','no-store');return res.type('html').send(swappProgram.page('agenda'))});
+app.get('/tv',(_req,res)=>{res.set('Cache-Control','no-store');return res.type('html').send(swappProgram.page('tv'))});
 app.get('/communaute',(req,res)=>{res.set('Cache-Control','no-store');return res.redirect(308,'/social'+(req.originalUrl.includes('?')?req.originalUrl.slice(req.originalUrl.indexOf('?')):''));});
 app.get('/social',(_req,res)=>{res.set('Cache-Control','no-store');res.type('html').send(swappHubs.community())});
 app.get('/bandes-annonces',async(_req,res)=>{
