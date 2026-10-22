@@ -4391,7 +4391,11 @@ app.get('/share-card/:login.jpg',async(req,res)=>{
     console.warn('[SWAPP SHARE CARD]',String(error?.message||error).slice(0,160));
     const {picture}=require('./modules/swapp-share-cards');
     const fallback=picture(creator.banner_url)||picture(creator.offline_image_url);
-    if(fallback){res.set('Cache-Control','public, max-age=60');res.type('image/jpeg');return res.send(fallback);}
+    if(fallback){
+     const format=fallback.subarray(0,3).toString('hex')==='ffd8ff'?'image/jpeg':
+      fallback.subarray(0,8).toString('hex')==='89504e470d0a1a0a'?'image/png':'image/webp';
+     res.set('Cache-Control','public, max-age=60');res.type(format);return res.send(fallback);
+    }
     return res.status(503).end();
    }
   }
