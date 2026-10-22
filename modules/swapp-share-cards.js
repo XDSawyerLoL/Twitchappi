@@ -38,7 +38,8 @@ function cardContext(creator,live={}){
   .digest('hex').slice(0,16);
  return {login,name,isLive,status,headline,description:clean(description,220),game,revision,
   image:ORIGIN+'/share-card/'+encodeURIComponent(login)+'.jpg?v='+revision,
-  url:ORIGIN+'/'+encodeURIComponent(login),title:isLive?name+' est en direct sur SWAPP':name+' · SWAPP'};
+  url:ORIGIN+'/'+encodeURIComponent(login),
+  title:isLive?(title?'🔴 '+name+' en direct — '+title.slice(0,68)+' | SWAPP':name+' est en direct sur SWAPP'):name+' · SWAPP'};
 }
 function wrapLabel(text,maxChars=31,maxLines=2){
  const words=clean(text,140).split(/\s+/).filter(Boolean),rows=[];let row='';
