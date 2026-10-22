@@ -143,7 +143,7 @@
   observer.observe(root,{childList:true});
   schedule();
  }
+ if(typeof module!=='undefined'&&module.exports){module.exports={planFor};return;}
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});
  else start();
- if(typeof module!=='undefined'&&module.exports)module.exports={planFor};
 })();
