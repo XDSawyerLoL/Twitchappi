@@ -4371,7 +4371,7 @@ function swappPublicShareContext(creator){
   startedAt:live?(room?.createdAt||creator.live_started_at||creator.local_agent_last_seen||0):0});
 }
 const SWAPP_SHARE_IMAGE_CACHE=new Map();
-app.get('/api/oryon/share-card/:login',async(req,res)=>{
+app.get('/share-card/:login.jpg',async(req,res)=>{
  res.set('X-Content-Type-Options','nosniff');
  try{
   await ORYON_USERS_READY.catch(()=>{});
