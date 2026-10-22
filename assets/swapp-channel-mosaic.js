@@ -33,11 +33,103 @@
   // Do not make an existing owner's legacy thumbnails disappear on upgrade.
   const server=p.channel_vignettes?.length?p.channel_vignettes:p.channel_panels;
   let source=Array.isArray(server)?server:[];
-  if(!source.length&&typeof oryonGetChannelVignettes==='function'){
-   try{source=oryonGetChannelVignettes(p)||[]}catch(_){}
+  if(!source.length){
+   source=localPanels(p.login);
+   if(!source.length&&typeof oryonGetChannelVignettes==='function'){
+    try{source=oryonGetChannelVignettes(p)||[]}catch(_){}
+   }
   }
   return source.filter(v=>v?.image_url||v?.image).slice(0,8).map(normalize);
  };
+ // Recover historic browser-only images from BOTH legacy SWAPP editors.
+ function localPanels(login){
+  const key=String(login||'').toLowerCase();
+  const merged=[];
+  try{
+   for(const prefix of ['oryon_channel_vignettes_250_','oryon_channel_vignettes_']){
+    const items=JSON.parse(localStorage.getItem(prefix+key)||'[]');
+    if(Array.isArray(items)&&items.some(p=>p?.image_url||p?.image)){
+     for(const item of items.slice(0,8))if(item?.image_url||item?.image)merged.push(item);
+     break;
+    }
+   }
+  }catch(_){}
+  return merged.slice(0,8).map(normalize);
+ }
+ const migrationAttempted=new Set();
+ async function verifiedPublish(panels,login){
+  const auth=await fetch('/api/oryon/session',{credentials:'same-origin',cache:'no-store'});
+  if(!auth.ok)throw Error('Session SWAPP indisponible.');
+  const session=await auth.json();
+  if(!session?.local?.id||session.local.login!==login||String(session.local.id)!==String(profile()?.id)){
+   throw Error('Reconnecte-toi à ton compte SWAPP pour publier les vignettes.');
+  }
+  const publish=await fetch('/api/oryon/profile',{
+   method:'POST',credentials:'same-origin',cache:'no-store',
+   headers:{'Content-Type':'application/json',Accept:'application/json'},
+   body:JSON.stringify({channel_vignettes:panels,channel_panels:panels}),
+   signal:AbortSignal.timeout(30000)
+  });
+  const result=await publish.json().catch(()=>({}));
+  if(!publish.ok||result.success!==true)throw Error(result.error||'Publication impossible.');
+  // We only report publication when an independent public, unauthenticated GET
+  // confirms the same number of panels with publicly downloadable images.
+  const verify=await fetch('/api/oryon/profile/'+encodeURIComponent(login),{cache:'no-store'});
+  if(!verify.ok)throw Error('Les images ont été enregistrées, mais la page publique ne répond pas.');
+  const publicData=await verify.json();
+  const publicPanels=publicData?.user?.channel_vignettes||[];
+  if(publicPanels.length!==panels.length)throw Error('Publication incomplète : '+publicPanels.length+'/'+panels.length+' visuels publics.');
+  for(const panel of publicPanels){
+   const url=String(panel.image_url||'');
+   if(url.startsWith('data:'))throw Error('Une image est encore privée et doit être transférée.');
+   if(url.startsWith('/api/oryon/panel-image/')){
+    const check=await fetch(url,{credentials:'omit',cache:'no-store'});
+    if(!check.ok||!String(check.headers.get('content-type')||'').startsWith('image/'))
+     throw Error('Une image enregistrée n’est pas accessible publiquement.');
+   }
+  }
+  return publicData.user;
+ }
+ function recoveryNotice(root,panelCount){
+  let banner=root.querySelector('[data-swapp-panel-recovery]');
+  if(!banner){
+   banner=node('div','swapp-panel-recovery');
+   banner.dataset.swappPanelRecovery='1';
+   banner.setAttribute('role','status');
+   root.querySelector('#channelAboutSection .vignetteHead')?.after(banner);
+  }
+  banner.hidden=false;
+  banner.replaceChildren(node('strong','','Publication de tes vignettes'),
+   node('p','','Les '+panelCount+' images existent dans ce navigateur, mais ne sont pas encore visibles publiquement.'));
+  return banner;
+ }
+ async function migrateLegacyPanels(root,panels,p){
+  const login=String(p?.login||'').toLowerCase();
+  if(!owner()||!login||!panels.length||migrationAttempted.has(login))return;
+  migrationAttempted.add(login);
+  const banner=recoveryNotice(root,panels.length);
+  const info=node('span','','Synchronisation avec SWAPP…');
+  banner.append(info);
+  try{
+   const publicProfile=await fetch('/api/oryon/profile/'+encodeURIComponent(login),{cache:'no-store'}).then(r=>r.json());
+   if((publicProfile?.user?.channel_vignettes||[]).length){banner.remove();return;}
+   const persisted=await verifiedPublish(panels,login);
+   if(typeof state!=='undefined')state.channelProfile=persisted;
+   info.textContent='Publication confirmée : '+panels.length+' vignettes désormais accessibles au public.';
+   banner.dataset.ok='true';
+   if(typeof renderChannel==='function')await renderChannel();
+  }catch(error){
+   banner.dataset.ok='false';
+   info.textContent=String(error?.message||'Publication impossible.');
+   const retry=node('button','','Réessayer la publication');
+   retry.type='button';
+   retry.addEventListener('click',()=>{migrationAttempted.delete(login);migrateLegacyPanels(root,panels,p)});
+   const edit=node('button','','Ouvrir l’éditeur');
+   edit.type='button';edit.addEventListener('click',()=>openEditor());
+   banner.append(retry,edit);
+  }
+ }
+
  const safeUrl=url=>{
   try{
    const u=new URL(url,location.origin);
@@ -135,6 +227,8 @@
   }
   // For legacy five image panels, 2 wide / 3 medium is more immersive by default.
   shell.classList.add('swapp-mosaic-wrap');
+  if(isOwner&&panels.length&&!((current?.channel_vignettes||[]).length||(current?.channel_panels||[]).length))
+   void migrateLegacyPanels(root,panels,current);
  }
  function labelInput(labelText,field){
   const wrap=node('label','swapp-editor-field');
@@ -304,7 +398,11 @@
     });
     const data=await response.json().catch(()=>({}));
     if(!response.ok||data.success!==true)throw Error(data.error||'Enregistrement impossible.');
-    if(typeof state!=='undefined'&&data.user)state.channelProfile=data.user;
+    const saved=await fetch('/api/oryon/profile/'+encodeURIComponent(String(profile()?.login||'')),{cache:'no-store'}).then(r=>r.json());
+    const publicItems=saved?.user?.channel_vignettes||[];
+    if(publicItems.length!==result.length||publicItems.some(p=>String(p.image_url).startsWith('data:')))
+     throw Error('Vignettes non confirmées publiquement : enregistrement à vérifier.');
+    if(typeof state!=='undefined')state.channelProfile=saved.user;
     closeEditor();
     if(typeof renderChannel==='function')await renderChannel();
    }catch(error){status(String(error.message||'Erreur de sauvegarde.'),true)}
