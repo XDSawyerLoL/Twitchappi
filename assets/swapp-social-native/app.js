@@ -540,23 +540,36 @@ function bindDelegatedEvents(){
     }
     const newsRepost=event.target.closest('[data-news-repost]');
     if(newsRepost){
-      if(!requireAuth())return;
+      if(!requireAuth()||newsRepost.disabled)return;
       const title=String(newsRepost.dataset.newsTitle||'Actualité').trim();
       const url=safeHttpsUrl(newsRepost.dataset.newsUrl);
       const image=safeHttpsUrl(newsRepost.dataset.newsImage);
-      // Structured preview already shows the source, title and cover. No duplicate text.
-      const body=title.slice(0,420);
-      const previous=newsRepost.textContent;
+      if(!url)return alert('Lien de l’actualité indisponible.');
+      const existingId=String(newsRepost.dataset.newsPostedId||'');
+      const original=newsRepost.textContent;
       newsRepost.disabled=true;
-      newsRepost.textContent='Repost…';
+      newsRepost.textContent=existingId?'Retrait…':'Repost…';
       try{
-        await api('/api/pulse/posts',{method:'POST',body:JSON.stringify({body,linkUrl:url,linkTitle:title,imageUrl:image})});
-        newsRepost.textContent='Reposté ✓';
-        newsRepost.classList.add('done');
+        if(existingId){
+          const result=await api('/api/pulse/posts/'+encodeURIComponent(existingId),{method:'DELETE',body:'{}'});
+          if(!result?.ok)throw Error(result?.error||'request_failed');
+          delete newsRepost.dataset.newsPostedId;
+          newsRepost.textContent='Reposter';
+          newsRepost.classList.remove('done');
+        }else{
+          // The card already renders the image, source and title once.
+          const result=await api('/api/pulse/posts',{method:'POST',body:JSON.stringify({body:title.slice(0,420),linkUrl:url,linkTitle:title,imageUrl:image})});
+          const createdId=result?.post?.id;
+          if(!createdId)throw Error('request_failed');
+          newsRepost.dataset.newsPostedId=createdId;
+          newsRepost.textContent='Annuler le repost';
+          newsRepost.classList.add('done');
+        }
       }catch(error){
-        newsRepost.disabled=false;
-        newsRepost.textContent=previous;
+        newsRepost.textContent=original;
         alert(errorText(error));
+      }finally{
+        newsRepost.disabled=false;
       }
       return;
     }
