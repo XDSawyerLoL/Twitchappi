@@ -61,8 +61,10 @@
   const auth=await fetch('/api/oryon/session',{credentials:'same-origin',cache:'no-store'});
   if(!auth.ok)throw Error('Session SWAPP indisponible.');
   const session=await auth.json();
-  if(!session?.local?.id||session.local.login!==login||String(session.local.id)!==String(profile()?.id)){
-   throw Error('Reconnecte-toi à ton compte SWAPP pour publier les vignettes.');
+  if(!session?.success||!session?.local?.id||
+     String(session.local.login||'').toLowerCase()!==String(login||'').toLowerCase()||
+     String(session.local.id)!==String(profile()?.id||'')){
+   throw Error('Connecte-toi au compte SWAPP propriétaire de cette chaîne pour modifier ses vignettes.');
   }
   const publish=await fetch('/api/oryon/profile',{
    method:'POST',credentials:'same-origin',cache:'no-store',
@@ -390,26 +392,10 @@
    }
    save.disabled=true;status('Enregistrement en cours…');
    try{
-    const response=await fetch('/api/oryon/profile',{
-     method:'POST',credentials:'same-origin',cache:'no-store',
-     headers:{Accept:'application/json','Content-Type':'application/json'},
-     body:JSON.stringify({channel_vignettes:result,channel_panels:result}),
-     signal:AbortSignal.timeout(25000)
-    });
-    const data=await response.json().catch(()=>({}));
-    if(!response.ok||data.success!==true)throw Error(data.error||'Enregistrement impossible.');
-    const saved=await fetch('/api/oryon/profile/'+encodeURIComponent(String(profile()?.login||'')),{cache:'no-store'}).then(r=>r.json());
-    const publicItems=saved?.user?.channel_vignettes||[];
-    if(publicItems.length!==result.length||publicItems.some(p=>String(p.image_url).startsWith('data:')))
-     throw Error('Vignettes non confirmées publiquement : enregistrement à vérifier.');
-    for(const item of publicItems){
-     if(String(item.image_url||'').startsWith('/api/oryon/panel-image/')){
-      const image=await fetch(item.image_url,{credentials:'omit',cache:'no-store'});
-      if(!image.ok||!String(image.headers.get('content-type')||'').startsWith('image/'))
-       throw Error('Une vignette enregistrée n’est pas visible depuis le site public.');
-     }
-    }
-    if(typeof state!=='undefined')state.channelProfile=saved.user;
+    // Shared publication path checks the active SWAPP owner session, persists,
+    // and verifies the public gallery before reporting success.
+    const savedUser=await verifiedPublish(result,String(profile()?.login||'').toLowerCase());
+    if(typeof state!=='undefined')state.channelProfile=savedUser;
     closeEditor();
     if(typeof renderChannel==='function')await renderChannel();
    }catch(error){status(String(error.message||'Erreur de sauvegarde.'),true)}
