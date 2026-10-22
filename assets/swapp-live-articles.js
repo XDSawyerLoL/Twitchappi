@@ -35,22 +35,23 @@ async function mount(){
  if(current===signature && document.querySelector('[data-swapp-live-articles]'))return;
  current=signature;const ticket=++request;
  const existing=document.querySelector('[data-swapp-live-articles]');if(existing)existing.remove();
- const shelf=node('section','swapp-live-articles');shelf.dataset.swappLiveArticles='1';
- shelf.append(node('h2','','Dans l’actualité du jeu'));const statusLine=node('p','swapp-live-articles-status','Recherche du jeu diffusé…'),grid=node('div','swapp-live-articles-grid');shelf.append(statusLine,grid);
- const placement=document.querySelector('.channelPage')||host.parentElement||host;placement.append(shelf);
+ // Never display a large empty editorial box beneath an offline channel.
+ const placement=document.querySelector('.channelPage')||host.parentElement||host;
  try{
   const channel=await json('/api/oryon/channel/'+encodeURIComponent(login)+'/status');
-  if(ticket!==request||!shelf.isConnected)return;
+  if(ticket!==request||!placement.isConnected)return;
   const game=String(channel.live?.category||channel.live?.game_name||'').trim();
-  if(!game){statusLine.textContent='Aucun jeu identifié pour ce live actuellement.';return}
-  shelf.querySelector('h2').textContent='À lire sur '+game;
-  statusLine.textContent='Recherche des articles liés…';
-  const data=await json('/api/actus');if(ticket!==request||!shelf.isConnected)return;
+  if(!channel.live?.is_live||!game)return;
+  const data=await json('/api/actus');if(ticket!==request||!placement.isConnected)return;
   const articles=(Array.isArray(data.articles)?data.articles:[])
    .filter(a=>gameMatch(game,a?.game)&&/^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/.test(String(a?.slug||''))&&String(a.title||'').trim())
    .slice(0,3);
-  grid.replaceChildren();
-  statusLine.textContent=articles.length?'Articles SWAPP consacrés à ce jeu':'Aucun article correspondant parmi les publications actuellement accessibles.';
+  if(!articles.length)return;
+  const shelf=node('section','swapp-live-articles');shelf.dataset.swappLiveArticles='1';
+  shelf.append(node('h2','','À lire sur '+game));
+  const statusLine=node('p','swapp-live-articles-status','Articles SWAPP consacrés à ce jeu');
+  const grid=node('div','swapp-live-articles-grid');
+  shelf.append(statusLine,grid);
   for(const a of articles){
    const link=node('a','swapp-live-article-card');link.href='/actus/'+encodeURIComponent(a.slug);
    link.setAttribute('aria-label','Lire sur SWAPP : '+a.title);
@@ -67,7 +68,8 @@ async function mount(){
     node('strong','',a.title),node('small','',a.summary||'Lire sur SWAPP'));
    link.append(info);grid.append(link);
   }
- }catch{if(ticket===request&&shelf.isConnected)statusLine.textContent='Actualités temporairement indisponibles.'}
+  if(ticket===request&&placement.isConnected)placement.append(shelf);
+ }catch{ /* Quietly omit recommendations if they cannot be verified. */ }
 }
 function schedule(){if(queued)return;queued=true;setTimeout(()=>{queued=false;mount()},250)}
 new MutationObserver(schedule).observe(document.body,{childList:true,subtree:false});addEventListener('popstate',schedule);addEventListener('pageshow',schedule);schedule();

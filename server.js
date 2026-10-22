@@ -4317,17 +4317,19 @@ app.post('/api/oryon/profile', mutationLimiter, async (req, res) => {
     const data = readOryonUsers();
     const user = data.users.find(u => u.id === cur.id);
     if(!user) return res.status(404).json({ success:false, error:'Utilisateur introuvable.' });
-    user.display_name = String(req.body?.display_name || user.display_name || user.login).trim().slice(0,40) || user.login;
-    user.bio = String(req.body?.bio || '').trim().slice(0,500);
-    user.avatar_url = String(req.body?.avatar_url || '').trim().slice(0,2000000);
-    user.banner_url = String(req.body?.banner_url || '').trim().slice(0,5000000);
-    user.offline_image_url = String(req.body?.offline_image_url || '').trim().slice(0,5000000);
-    user.language = String(req.body?.language || user.language || 'fr').trim().slice(0,16);
-    user.content_rating = String(req.body?.content_rating || user.content_rating || 'general').trim().slice(0,30);
-    user.tags = safeTags(req.body?.tags || user.tags || []);
-    user.raid_ready = String(req.body?.raid_ready || '').toLowerCase() === 'true' || !!user.raid_ready;
-    user.peertube_embed_url = String(req.body?.peertube_embed_url || '').trim().slice(0,1000);
-    user.peertube_watch_url = String(req.body?.peertube_watch_url || '').trim().slice(0,1000);
+    // A panel-only edit must not erase the channel's biography, artwork or live setup.
+    const supplied=key=>Object.prototype.hasOwnProperty.call(req.body||{},key);
+    if(supplied('display_name')) user.display_name=String(req.body.display_name||user.login).trim().slice(0,40)||user.login;
+    if(supplied('bio')) user.bio=String(req.body.bio||'').trim().slice(0,500);
+    if(supplied('avatar_url')) user.avatar_url=String(req.body.avatar_url||'').trim().slice(0,2000000);
+    if(supplied('banner_url')) user.banner_url=String(req.body.banner_url||'').trim().slice(0,5000000);
+    if(supplied('offline_image_url')) user.offline_image_url=String(req.body.offline_image_url||'').trim().slice(0,5000000);
+    if(supplied('language')) user.language=String(req.body.language||'fr').trim().slice(0,16);
+    if(supplied('content_rating')) user.content_rating=String(req.body.content_rating||'general').trim().slice(0,30);
+    if(supplied('tags')) user.tags=safeTags(req.body.tags||[]);
+    if(supplied('raid_ready')) user.raid_ready=String(req.body.raid_ready||'').toLowerCase()==='true'||req.body.raid_ready===true;
+    if(supplied('peertube_embed_url')) user.peertube_embed_url=String(req.body.peertube_embed_url||'').trim().slice(0,1000);
+    if(supplied('peertube_watch_url')) user.peertube_watch_url=String(req.body.peertube_watch_url||'').trim().slice(0,1000);
     if(Object.prototype.hasOwnProperty.call(req.body,'oryon_local_player_url')) user.oryon_local_player_url = String(req.body?.oryon_local_player_url || '').trim().slice(0,1000);
     if(Object.prototype.hasOwnProperty.call(req.body,'oryon_local_status_url')) user.oryon_local_status_url = String(req.body?.oryon_local_status_url || '').trim().slice(0,1000);
     if(Array.isArray(req.body?.channel_badges)){
@@ -4339,12 +4341,9 @@ app.post('/api/oryon/profile', mutationLimiter, async (req, res) => {
     }
     const incomingPanels = Array.isArray(req.body?.channel_vignettes) ? req.body.channel_vignettes : (Array.isArray(req.body?.channel_panels) ? req.body.channel_panels : null);
     if(incomingPanels){
-      const cleanPanels = incomingPanels.map((v, idx) => ({
-        image_url: String(v?.image_url || v?.image || '').trim().slice(0,1200000),
-        title: String(v?.title || '').trim().slice(0,60),
-        description: String(v?.description || v?.text || '').trim().slice(0,220),
-        link_url: sanitizePanelUrl(v?.link_url || v?.url || v?.href || '')
-      })).filter(v => v.image_url).slice(0,8);
+      const {normalizePanels}=require('./modules/swapp-channel-panels');
+      const cleanPanels=normalizePanels(incomingPanels)
+        .map(panel=>({...panel,link_url:sanitizePanelUrl(panel.link_url)}));
       user.channel_vignettes = cleanPanels;
       user.channel_panels = cleanPanels;
     }
