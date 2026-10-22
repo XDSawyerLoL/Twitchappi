@@ -72,10 +72,33 @@ test('owner editor exposes sizes, ratios, focal crop, ordering, import, upload a
  const js=read('assets/swapp-channel-mosaic.js');
  for(const x of ['Composer ma chaîne','Panoramique · 12 colonnes','Original · sans recadrage',
   'Afficher l’image entière','Remplir et recadrer','Position horizontale','Position verticale',
-  'Supprimer','Monter','Descendre','Ajouter un visuel','image/jpeg','data:image/jpeg;base64,']){
+  'Supprimer','Monter','Descendre','Ajouter un visuel','image/jpeg','image/webp','image/png']){
   assert.ok(js.includes(x),x);
  }
  assert.match(js,/selected>=0/);
+});
+test('HD images are not recompressed when below the existing storage limit',()=>{
+ const js=read('assets/swapp-channel-mosaic.js');
+ assert.match(js,/const maxBytes=1100000/);
+ assert.match(js,/if\(file\.size<=maxBytes/);
+ assert.match(js,/resolve\(source\);return/);
+ assert.match(js,/Math\.min\(longest,3200\)/);
+ assert.match(js,/imageSmoothingQuality='high'/);
+ assert.match(js,/canvas\.toDataURL\(codec,quality\)/);
+ assert.match(js,/\['image\/webp',/);
+ assert.match(js,/\^data:image\\\/\(\?:jpeg\|png\|webp\);base64,/);
+ assert.match(js,/verifiedPublish\(result,/);
+});
+test('owner can diagnose and replace an undersized legacy thumbnail without touching layout',()=>{
+ const js=read('assets/swapp-channel-mosaic.js'),css=read('assets/swapp-channel-mosaic.css');
+ assert.match(js,/img\.naturalWidth<cssWidth\*pixelRatio\*\.85/);
+ assert.match(js,/Image trop petite/);
+ assert.match(js,/Résolution faible pour cette taille/);
+ assert.match(js,/Importer \/ remplacer par l’image originale \(HD\)/);
+ assert.match(js,/size\.addEventListener\('change',\(\)=>\{p\.size=size\.value;showImageQuality\(\)\}\)/);
+ assert.match(css,/data-low-resolution="true"/);
+ assert.match(css,/swapp-mosaic-quality-note\[data-warning="true"\]/);
+ assert.doesNotMatch(css,/transform:scale\(1\.018\)/);
 });
 test('mosaic CSS uses 12-column full-width hierarchy without default giant boxes',()=>{
  const css=read('assets/swapp-channel-mosaic.css');
