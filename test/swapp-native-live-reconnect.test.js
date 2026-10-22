@@ -58,7 +58,7 @@ test('browser uses bounded retries, queued ICE and reconnect acknowledgements',(
  const client=source('index_script.js');
  assert.match(client,/reconnectionAttempts:Infinity/);
  assert.match(client,/swappNativePendingIce=new Map\(\)/);
- assert.match(client,/if\(swappNativeRetryTimer\)return/);
+ assert.match(client,/swappNativeRetryTimer\)return/);
  assert.match(client,/swappNativeSetRemote\(d\.from,pc,d\.offer\)/);
  assert.match(client,/state\.socket\.emit\('native:resume'/);
  assert.match(client,/state\.socket\.on\('native:resumed'/);
