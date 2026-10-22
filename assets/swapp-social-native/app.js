@@ -184,7 +184,7 @@ async function deleteOwnPost(postId,button){
   if(!requireAuth())return;
   const key=String(postId)+':delete';
   if(socialActionInFlight.has(key))return;
-  if(!window.confirm('Supprimer définitivement cette publication et ses partages ?'))return;
+  if(!window.confirm('Supprimer cette publication ? Elle disparaîtra du fil.'))return;
   socialActionInFlight.add(key);
   if(button)button.disabled=true;
   try{
@@ -546,6 +546,7 @@ function bindDelegatedEvents(){
       const image=safeHttpsUrl(newsRepost.dataset.newsImage);
       if(!url)return alert('Lien de l’actualité indisponible.');
       const existingId=String(newsRepost.dataset.newsPostedId||'');
+      newsRepost.dataset.newsTouched='1';
       const original=newsRepost.textContent;
       newsRepost.disabled=true;
       newsRepost.textContent=existingId?'Retrait…':'Repost…';
