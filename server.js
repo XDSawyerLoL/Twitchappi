@@ -8470,7 +8470,8 @@ function emitNativeStats(room){
 function cleanNativeRoom(room){
   const r = nativeLiveRooms.get(room);
   if(!r) return;
-  if(!r.host) nativeLiveRooms.delete(room);
+  // Viewers leaving during the host reconnect window must not kill the live.
+  if(!r.host&&!nativeHostAway(r))nativeLiveRooms.delete(room);
 }
 
 io.on('connection', async (socket) => {
