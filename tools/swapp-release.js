@@ -91,6 +91,8 @@ const RELEASE_FILES=Object.freeze([
  'assets/swapp-social-native/views.js',
  'assets/swapp-social-native/render.js',
  'assets/swapp-social-native/emotes.js',
+ 'assets/swapp-social-native/gif-picker.js',
+ 'modules/swapp-social-gifs.js',
  'modules/swapp-social-native/pulse.mjs',
  'modules/swapp-social-native-proxy.js',
  'ads.txt',
