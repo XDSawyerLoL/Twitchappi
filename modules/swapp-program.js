@@ -78,7 +78,7 @@ function page(kind){
    <div id="stv-dock-scrim" class="stv-dock-scrim" hidden></div>
   </section>
   <dialog id="stv-program-dialog" class="stv-program-dialog" aria-labelledby="stv-dialog-title">
-   <div class="stv-dialog-tools"><div class="stv-dialog-brand"><span class="stv-dialog-kicker">SWAPP TV / PROGRAMMATION</span><strong id="stv-dialog-title">Agenda de la chaîne</strong></div><button id="stv-program-close" type="button" aria-label="Retour au direct">← Retour à la TV</button></div>
+   <div class="stv-dialog-tools"><div class="stv-dialog-brand"><span class="stv-dialog-kicker">SWAPP TV / PROGRAMMATION</span><strong id="stv-dialog-title">Agenda de la chaîne</strong></div><button id="stv-program-close" type="button" aria-label="Fermer l’agenda">Fermer</button></div>
    ${calendar.replace(/^<main/,'<section').replace(/<\/main>$/,'</section>')}
   </dialog>
  </main>`:calendar;
