@@ -172,12 +172,21 @@ function rssXml(articles=[]){
   const summary=encodeXml(String(article.summary||'').slice(0,420));
   const when=new Date(article.publishedAt||article.updatedAt||'');
   const pub=Number.isFinite(when.getTime())?'<pubDate>'+when.toUTCString()+'</pubDate>':'';
+  // Match the editorial cover fields accepted by SOCIAL; never fabricate images.
+  const imageCandidate=article.thumbnail?.url||article.image?.url||article.imageUrl||
+   (typeof article.image==='string'?article.image:'');
+  let media='';
+  try{
+   const url=new URL(String(imageCandidate||''));
+   if(url.protocol==='https:'&&!url.username&&!url.password)
+    media='<media:content url="'+encodeXml(url.href)+'" medium="image" />';
+  }catch{/* Articles without a valid cover remain text-only. */}
   return '  <item><title>'+title+'</title><link>'+encodeXml(link)+
    '</link><guid isPermaLink="true">'+encodeXml(link)+'</guid><description>'+
-   summary+'</description>'+pub+'</item>';
+   summary+'</description>'+pub+media+'</item>';
  }).join('\n');
  return '<?xml version="1.0" encoding="UTF-8"?>\n'+
-  '<rss version="2.0"><channel><title>SWAPP — Actualité jeux vidéo</title>'+
+  '<rss version="2.0" xmlns:media="http://search.yahoo.com/mrss/"><channel><title>SWAPP — Actualité jeux vidéo</title>'+
   '<link>'+ORIGIN+'/actus</link><description>Les articles gaming publiés sur SWAPP.</description>'+
   '<language>fr-FR</language>\n'+items+'\n</channel></rss>\n';
 }

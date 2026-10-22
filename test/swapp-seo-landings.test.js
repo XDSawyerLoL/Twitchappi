@@ -50,7 +50,7 @@ test('RSS contains only published, valid, correctly escaped editorials',()=>{
   {slug:'brouillon-interne',title:'Interne',status:'draft'},
   {slug:'bad/slug',title:'Mauvais',status:'published'}
  ]);
- assert.match(rss,/<rss version="2.0">/);
+ assert.match(rss,/<rss version="2.0" xmlns:media="http:\/\/search.yahoo.com\/mrss\/">/);
  assert.match(rss,/Jeux &amp; nouveautés/);
  assert.match(rss,/Info &lt;brut&gt;/);
  assert.match(rss,/https:\/\/swapp\.tv\/actus\/jeux-sorties-2026/);
@@ -302,4 +302,15 @@ test('Search Console verification survives alternate Hostinger UI_FILE without d
  assert.match(joined,new RegExp(token));
  const file=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
  assert.equal((injectSpaMetadata(file,'/').match(/google-site-verification/g)||[]).length,1);
+});
+
+test('RSS exposes real HTTPS editorial covers and rejects unsafe media URLs',()=>{
+ const xml=rssXml([
+  {slug:'article-avec-image',status:'published',title:'Image',image:{url:'https://cdn.example.org/cover.jpg?a=1&b=2'}},
+  {slug:'article-invalide',status:'published',title:'Sans image',image:'javascript:alert(1)'},
+  {slug:'article-secret',status:'draft',title:'Brouillon',image:'https://cdn.example.org/draft.jpg'}
+ ]);
+ assert.match(xml,/xmlns:media="http:\/\/search.yahoo.com\/mrss\/"/);
+ assert.match(xml,/<media:content url="https:\/\/cdn.example.org\/cover.jpg\?a=1&amp;b=2" medium="image" \/>/);
+ assert.doesNotMatch(xml,/javascript:|draft.jpg/);
 });
