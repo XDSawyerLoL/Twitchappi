@@ -65,3 +65,29 @@ test('browser uses bounded retries, queued ICE and reconnect acknowledgements',(
  assert.match(client,/if\(pending\.length<48\)/);
  assert.match(client,/getVideoTracks\(\)\.forEach\(t=>t\.onended/);
 });
+
+test('viewer recovery coalesces multiple faults into one retry timer',()=>{
+ const client=source('index_script.js');
+ const a=client.indexOf('function retryWatch(){'),b=client.indexOf('async function peer(',a);
+ assert.ok(a>0&&b>a);
+ const socket={connected:true,emit(...args){this.sent.push(args);},sent:[]};
+ const state={watchRoom:'vnhz',stream:null,room:'vnhz',socket,peers:{}};
+ const timers=[],scope={module:{exports:{}},state,swappNativeRetryTimer:null,swappNativeRetryCount:0,
+  setTimeout:(fn,delay)=>{timers.push({fn,delay});return timers.length;},
+  setupSocket(){},swappNativeClosePeers(){},requestOffer(){}};
+ vm.runInNewContext(client.slice(a,b)+'\nmodule.exports=retryWatch;',scope);
+ const retry=scope.module.exports;
+ retry();retry();retry();
+ assert.equal(timers.length,1);
+ assert.ok(timers[0].delay>=1200);
+ timers[0].fn();
+ assert.equal(socket.sent.length,1);
+ assert.equal(socket.sent[0][0],'native:join');
+});
+test('readiness endpoint exposes TURN/SFU capability without credentials',()=>{
+ const server=source('server.js');
+ assert.match(server,/app\.get\('\/api\/swapp\/streaming\/readiness'/);
+ const p=server.slice(server.indexOf("app.get('/api/swapp/streaming/readiness'"),server.indexOf("app.get('/api/oryon/session'"));
+ assert.match(p,/hostReconnectGraceMs/);assert.match(p,/turnConfigured/);assert.match(p,/reconnectingRooms/);
+ assert.doesNotMatch(p,/TURN_CREDENTIAL|TURN_PASSWORD/);
+});
