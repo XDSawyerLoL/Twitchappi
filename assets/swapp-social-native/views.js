@@ -68,7 +68,7 @@ export function setView(view,title){
       tab.setAttribute('aria-pressed',String(active));
     });
   }
-  dom.composer.hidden=view!=='home'||state.feed==='news'||!state.user;
+  dom.composer.hidden=view!=='home'||state.feed==='news';
   dom.welcome.hidden=view!=='home'||state.feed==='news'||!!state.user;
   const stories=document.getElementById('swapp-social-stories');
   if(stories)stories.hidden=view!=='home'||state.feed==='news'||
