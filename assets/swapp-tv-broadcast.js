@@ -98,26 +98,61 @@ $('stv-program-open')?.addEventListener('click',()=>{
 });
 $('stv-program-close')?.addEventListener('click',()=>programme?.close());
 programme?.addEventListener('click',e=>{if(e.target===programme)programme.close()});
-const swappTab=$('stv-tab-swapp'),twitchTab=$('stv-tab-twitch');
+const dock=$('stv-dock'),dockToggle=$('stv-dock-toggle'),dockClose=$('stv-dock-close'),dockScrim=$('stv-dock-scrim');
+const dockMobile=window.matchMedia('(max-width:980px)');
+const tabs=[
+ {kind:'twitch',tab:$('stv-tab-twitch'),pane:$('stv-pane-twitch')},
+ {kind:'swapp',tab:$('stv-tab-swapp'),pane:$('stv-pane-swapp')},
+ {kind:'queue',tab:$('stv-tab-queue'),pane:$('stv-pane-queue')}
+];
+let activeDock='twitch';
+function synchronizeDock(){
+ const mobile=dockMobile.matches;
+ const open=dock.classList.contains('is-open')&&mobile;
+ dockToggle.setAttribute('aria-expanded',String(open));
+ dockScrim.hidden=!open;
+ dock.setAttribute('aria-hidden',String(mobile&&!open));
+ dock.inert=mobile&&!open;
+ if(!mobile)dock.classList.remove('is-open');
+}
+function closeDock(){
+ dock.classList.remove('is-open');synchronizeDock();
+ if(dockMobile.matches)dockToggle.focus();
+}
+dockToggle.addEventListener('click',()=>{
+ dock.classList.toggle('is-open');synchronizeDock();
+ if(dock.classList.contains('is-open'))tabs.find(x=>x.kind===activeDock)?.tab.focus();
+});
+dockClose.addEventListener('click',closeDock);
+dockScrim.addEventListener('click',closeDock);
+document.addEventListener('keydown',e=>{
+ if(e.key==='Escape'&&dock.classList.contains('is-open'))closeDock();
+});
+dockMobile.addEventListener?.('change',synchronizeDock);
+synchronizeDock();
 const showChat=kind=>{
- const isSwapp=kind==='swapp';
- swappTab.setAttribute('aria-selected',String(isSwapp));
- twitchTab.setAttribute('aria-selected',String(!isSwapp));
- swappTab.tabIndex=isSwapp?0:-1;twitchTab.tabIndex=isSwapp?-1:0;
- $('stv-pane-swapp').hidden=!isSwapp;
- $('stv-pane-twitch').hidden=isSwapp;
- if(!isSwapp)updateTwitchChat();else void refreshSwappChat();
+ activeDock=kind;
+ for(const x of tabs){
+  const active=x.kind===kind;
+  x.tab.setAttribute('aria-selected',String(active));
+  x.tab.tabIndex=active?0:-1;
+  x.pane.hidden=!active;
+ }
+ if(kind==='twitch')updateTwitchChat();
+ if(kind==='swapp')void refreshSwappChat();
 };
-swappTab.addEventListener('click',()=>showChat('swapp'));
-twitchTab.addEventListener('click',()=>showChat('twitch'));
-for(const [button,kind] of [[swappTab,'swapp'],[twitchTab,'twitch']]){
- button.addEventListener('keydown',e=>{
-  if(e.key!=='ArrowLeft'&&e.key!=='ArrowRight')return;
-  e.preventDefault();const next=kind==='swapp'?'twitch':'swapp';showChat(next);
-  (next==='swapp'?swappTab:twitchTab).focus();
+for(const [index,x] of tabs.entries()){
+ x.tab.addEventListener('click',()=>showChat(x.kind));
+ x.tab.addEventListener('keydown',e=>{
+  if(!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;
+  e.preventDefault();
+  const next=e.key==='Home'?0:e.key==='End'?tabs.length-1:
+   (index+(e.key==='ArrowRight'?1:tabs.length-1))%tabs.length;
+  showChat(tabs[next].kind);tabs[next].tab.focus();
  });
 }
 let embeddedTwitch='';
+showChat('twitch');
 function updateTwitchChat(){
  const target=$('stv-twitch-chat');
  if(!target)return;
