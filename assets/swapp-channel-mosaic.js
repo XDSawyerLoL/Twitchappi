@@ -256,28 +256,59 @@
  }
  function imageFromFile(file){
   return new Promise((resolve,reject)=>{
-   if(!file?.type?.startsWith('image/'))return reject(Error('Choisis une image valide.'));
+   if(!file||!['image/jpeg','image/png','image/webp'].includes(file.type))
+    return reject(Error('Utilise un fichier JPEG, PNG ou WebP.'));
    if(file.size>14*1024*1024)return reject(Error('Image trop lourde (14 Mo maximum).'));
    const reader=new FileReader();
    reader.onerror=()=>reject(Error('Image illisible.'));
    reader.onload=()=>{
+    const source=String(reader.result||'');
     const img=new Image();
     img.onerror=()=>reject(Error('Format image non pris en charge.'));
     img.onload=()=>{
-     const factor=Math.min(1,1500/Math.max(img.width,img.height));
-     const canvas=document.createElement('canvas');
-     canvas.width=Math.max(1,Math.round(img.width*factor));
-     canvas.height=Math.max(1,Math.round(img.height*factor));
-     canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
-     let output='';
-     for(const quality of [.86,.76,.65,.52]){
-      output=canvas.toDataURL('image/jpeg',quality);
-      if(output.length<1100000)break;
+     const maxBytes=1100000; // Current MySQL image storage limit.
+     // Preserve uploaded original pixels, transparency and JPEG detail whenever possible.
+     // Re-encoding a small source through canvas would discard detail for no benefit.
+     if(file.size<=maxBytes && /^data:image\/(jpeg|png|webp);base64,/i.test(source)){
+      resolve(source);return;
      }
-     if(output.length>1190000)return reject(Error('Cette image est trop lourde. Essaie un fichier moins grand.'));
-     resolve(output);
+     const width=img.naturalWidth,height=img.naturalHeight;
+     if(!width||!height)return reject(Error('Dimensions de l’image invalides.'));
+     const longest=Math.max(width,height);
+     const edges=[Math.min(longest,3200),2800,2400,2000,1600,1300,1000]
+      .filter((n,i,list)=>n<=longest&&list.indexOf(n)===i);
+     const canvas=document.createElement('canvas');
+     const ctx=canvas.getContext('2d',{alpha:true});
+     if(!ctx)return reject(Error('Conversion de l’image indisponible.'));
+     ctx.imageSmoothingEnabled=true;
+     ctx.imageSmoothingQuality='high';
+     const fitsLimit=data=>{
+      if(!/^data:image\/(webp|jpeg|png);base64,/i.test(data))return false;
+      const encoded=data.split(',')[1]||'';
+      const padding=encoded.endsWith('==')?2:(encoded.endsWith('=')?1:0);
+      return Math.floor(encoded.length*3/4)-padding<=maxBytes;
+     };
+     const codecs=['image/webp',...(file.type==='image/png'?[]:['image/jpeg'])];
+     for(const edge of edges){
+      const factor=edge/longest;
+      canvas.width=Math.max(1,Math.round(width*factor));
+      canvas.height=Math.max(1,Math.round(height*factor));
+      ctx.imageSmoothingEnabled=true;
+      ctx.imageSmoothingQuality='high';
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      ctx.drawImage(img,0,0,canvas.width,canvas.height);
+      for(const codec of codecs){
+       for(const quality of [.94,.90,.85,.79,.72]){
+        const encoded=canvas.toDataURL(codec,quality);
+        if(encoded.startsWith('data:'+codec+';base64,')&&fitsLimit(encoded)){
+         resolve(encoded);return;
+        }
+       }
+      }
+     }
+     reject(Error('Impossible de conserver une image nette sous la limite de stockage (1,1 Mo). Essaie un fichier plus léger.'));
     };
-    img.src=reader.result;
+    img.src=source;
    };
    reader.readAsDataURL(file);
   });
