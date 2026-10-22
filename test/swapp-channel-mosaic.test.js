@@ -93,10 +93,10 @@ test('mosaic CSS uses 12-column full-width hierarchy without default giant boxes
 });
 test('integration is versioned, releases track files and does not change player or chat',()=>{
  const html=read('index.html'),rel=read('tools/swapp-release.js');
- for(const file of ['assets/swapp-channel-mosaic.css','assets/swapp-channel-mosaic.js']){
-  assert.ok(html.includes('/'+file+'?v=20261022-public-v2'));
+ assert.ok(html.includes('/assets/swapp-channel-mosaic.css?v=20261022-public-v2'));
+ assert.ok(html.includes('/assets/swapp-channel-mosaic.js?v=20261022-session-v3'));
+ for(const file of ['assets/swapp-channel-mosaic.css','assets/swapp-channel-mosaic.js'])
   assert.ok(rel.includes("'"+file+"'"));
- }
  assert.ok(rel.includes("'modules/swapp-channel-panels.js'"));
  const js=read('assets/swapp-channel-mosaic.js');
  assert.doesNotMatch(js,/socket\.emit\(|updateLiveUi\(|setMiniLive\(/);
