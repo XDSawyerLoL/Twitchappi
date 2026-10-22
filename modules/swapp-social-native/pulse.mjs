@@ -223,8 +223,9 @@ export async function handlePulse(req,res,url,corsHeaders={}){
 
     if(route==='/api/pulse/posts'&&req.method==='POST'){
       if(!allowRate(req,'post',24,60000)){json(res,429,{error:'rate_limited'},corsHeaders);return true}
-      const b=await bodyJson(req),text=clean(b.body,420);if(!text){json(res,400,{error:'empty_post'},corsHeaders);return true}
+      const b=await bodyJson(req),text=clean(b.body,420);
       const linkUrl=safeHttpsUrl(b.linkUrl),linkTitle=clean(b.linkTitle,240),imageUrl=safeHttpsUrl(b.imageUrl),mediaUrl=safeHttpsUrl(b.mediaUrl),mediaType=clean(b.mediaType,20)==='gif'?'gif':'';
+      if(!text&&!(mediaType==='gif'&&mediaUrl)){json(res,400,{error:'empty_post'},corsHeaders);return true}
       const out=await mutateStore(store=>{const s=store.sessions[sha(bearer(req))],user=s&&store.users[s.userId];if(!user)return{error:'unauthorized'};const replyToId=clean(b.replyToId,80)||null,quotePostId=clean(b.quotePostId,80)||null,circleId=clean(b.circleId,80)||null;if(replyToId&&!store.posts[replyToId])return{error:'reply_target_not_found'};if(quotePostId&&!visibleTo(store,store.posts[quotePostId],user.id))return{error:'quote_target_not_found'};if(circleId&&!(store.circleMembers[circleId]||{})[user.id])return{error:'circle_forbidden'};const pid=id('p_'),post={id:pid,authorId:user.id,body:text,createdAt:now(),replyToId,quotePostId,circleId,linkUrl,linkTitle,imageUrl,mediaUrl,mediaType,deletedAt:null};store.posts[pid]=post;if(replyToId)notify(store,store.posts[replyToId].authorId,{actorId:user.id,type:'reply',objectId:pid});if(quotePostId)notify(store,store.posts[quotePostId].authorId,{actorId:user.id,type:'quote',objectId:pid});return{post:postView(post,store,user.id)}});
       json(res,out.error?(out.error==='unauthorized'?401:400):201,out,corsHeaders);return true
     }
