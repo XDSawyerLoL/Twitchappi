@@ -9,7 +9,7 @@ test('SOCIAL editorial sheet is loaded once, after the current timeline layer',(
  const hub=read('modules/swapp-hubs.js');
  const tail=hub.slice(hub.indexOf('function community('));
  const previous=tail.indexOf('/assets/swapp-social-timeline.css?v=');
- const newSheet=tail.indexOf('/assets/swapp-social-editorial-air.css?v=20261022-airy-social-v1');
+ const newSheet=tail.indexOf('/assets/swapp-social-editorial-air.css?v=20261022-large-tools-v1');
  assert.ok(previous>=0,'keep the current timeline');
  assert.ok(newSheet>previous,'new unboxed styles must win the CSS cascade');
  assert.equal(tail.split('swapp-social-editorial-air.css?v=').length-1,1);
