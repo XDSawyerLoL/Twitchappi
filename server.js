@@ -3935,7 +3935,7 @@ function publicOryonChannelUser(u){
 function swappSessionAvatarUrl(user){
   const raw=String(user?.avatar_url||'').trim();
   if(!raw)return '';
-  if(/^data:image\//i.test(raw)){
+  if(/^data:/i.test(raw)){
     if(!/^data:image\/(?:jpeg|png|webp);base64,/i.test(raw))return '';
     const login=normalizeOryonLogin(user?.login);
     return login?'/api/oryon/avatar/'+encodeURIComponent(login):'';
