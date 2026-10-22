@@ -222,7 +222,7 @@ $('stv-watch').addEventListener('click',play);
 $('stv-join').addEventListener('click',()=>mutate('POST'));
 $('stv-leave').addEventListener('click',()=>mutate('DELETE'));
 $('stv-immersive').addEventListener('click',()=>{
- const enabled=$('swapp-tv').classList.toggle('tv-immersive');$('stv-immersive').setAttribute('aria-pressed',String(enabled));$('stv-immersive').textContent=enabled?'✕ SORTIR':'⛶ IMMERSION';
+ const enabled=$('swapp-tv').classList.toggle('tv-immersive');if(enabled&&dock.classList.contains('is-open'))closeDock();$('stv-immersive').setAttribute('aria-pressed',String(enabled));$('stv-immersive').textContent=enabled?'✕ SORTIR':'⛶ IMMERSION';
 });
 async function init(){
  try{const data=await api('/api/actus');state.games=gamesFrom(data);const select=$('stv-game');select.replaceChildren();for(const g of state.games){const o=by('option',null,g);o.value=g;select.append(o)}
