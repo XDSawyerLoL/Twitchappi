@@ -1,0 +1,263 @@
+/* SWAPP creator pages — immersive media composition, not a stack of admin cards.
+   Color uses the user's existing global SWAPP theme; owner controls stay in editor. */
+#channel .creatorRefine.swapp-channel-mosaic{
+ max-width:1900px!important;
+ padding-inline:clamp(14px,2vw,38px)!important;
+}
+#channel .creatorRefine.swapp-channel-mosaic #channelAboutSection{
+ border:0!important;border-radius:0!important;box-shadow:none!important;
+ padding:10px 0 30px!important;margin:0!important;background:transparent!important;
+ display:block!important;
+}
+#channel .creatorRefine.swapp-channel-mosaic #channelAboutSection[hidden]{display:none!important;}
+#channel .creatorRefine.swapp-channel-mosaic .aboutMain{
+ min-width:0;width:100%;background:none!important;
+ border:0!important;padding:0!important;box-shadow:none!important;
+}
+#channel .creatorRefine.swapp-channel-mosaic .vignetteHead{
+ display:flex!important;align-items:center!important;justify-content:space-between!important;
+ flex-wrap:wrap!important;gap:12px!important;margin:0 0 clamp(18px,2vw,26px)!important;
+}
+#channel .creatorRefine.swapp-channel-mosaic .vignetteHead h2{
+ font-size:clamp(23px,2.7vw,40px)!important;letter-spacing:-.045em!important;
+ font-weight:800!important;line-height:1.04!important;
+}
+#channel .creatorRefine.swapp-channel-mosaic .vignetteHint{
+ color:#9da5b2!important;font-size:13px!important;font-weight:450!important;
+ margin:7px 0 0!important;
+}
+#channel .creatorRefine.swapp-channel-mosaic .vignetteHead .shareLine,
+#channel .creatorRefine.swapp-channel-mosaic .shareLine[hidden]{display:none!important;}
+#channel .creatorRefine.swapp-channel-mosaic .vignetteHead button{
+ border:1px solid rgba(255,255,255,.16)!important;
+ background:rgba(255,255,255,.055)!important;
+ border-radius:10px!important;min-height:40px!important;
+ box-shadow:none!important;font-size:12px!important;
+ padding:8px 14px!important;color:#f3f5f9!important;
+}
+#channel .creatorRefine.swapp-channel-mosaic .swapp-mosaic-grid,
+#channel .creatorRefine.swapp-channel-mosaic .vignetteGrid.swapp-mosaic-grid{
+ width:100%!important;max-width:none!important;
+ display:grid!important;grid-template-columns:repeat(12,minmax(0,1fr))!important;
+ gap:clamp(14px,1.65vw,25px)!important;align-items:start!important;
+ grid-auto-flow:row!important;overflow:visible!important;
+}
+#channel .creatorRefine.swapp-channel-mosaic .swapp-mosaic-card{
+ position:relative;grid-column:span 4;min-width:0;width:100%;
+ margin:0;display:flex;flex-direction:column;gap:10px;
+ background:none!important;box-shadow:none!important;
+ border:0!important;border-radius:0!important;overflow:visible!important;
+}
+#channel .creatorRefine.swapp-channel-mosaic .swapp-mosaic-card[data-size="hero"]{grid-column:span 12;}
+#channel .creatorRefine.swapp-channel-mosaic .swapp-mosaic-card[data-size="large"]{grid-column:span 6;}
+#channel .creatorRefine.swapp-channel-mosaic .swapp-mosaic-card[data-size="medium"]{grid-column:span 4;}
+#channel .creatorRefine.swapp-channel-mosaic .swapp-mosaic-card[data-size="small"]{grid-column:span 3;}
+#channel .creatorRefine.swapp-channel-mosaic .swapp-mosaic-hit{
+ position:relative;display:block;width:100%;overflow:hidden;
+ border-radius:clamp(10px,1.1vw,18px);
+ isolation:isolate;background:linear-gradient(135deg,#11161e,#080a0f);
+ border:1px solid rgba(255,255,255,.07);
+ box-shadow:none;text-decoration:none;color:inherit;
+}
+#channel .creatorRefine.swapp-channel-mosaic .swapp-mosaic-image{
+ position:relative;display:block;width:100%;overflow:hidden;
+ background:linear-gradient(120deg,
+ color-mix(in srgb,var(--channel-accent,var(--swapp-page-accent,#9bd5e5)) 8%,#10141b),#07090e);
+}
+#channel .creatorRefine.swapp-channel-mosaic .swapp-mosaic-image img{
+ display:block;width:100%;height:100%;object-fit:contain;
+ object-position:var(--panel-focus-x,50%) var(--panel-focus-y,50%);
+ border:0;border-radius:0!important;
+ transition:transform .28s ease;
+}
+#channel .creatorRefine.swapp-channel-mosaic .swapp-mosaic-card[data-fit="cover"] .swapp-mosaic-image img{
+ object-fit:cover;
+}
+#channel .creatorRefine.swapp-channel-mosaic .swapp-mosaic-card[data-ratio="auto"] .swapp-mosaic-image img{
+ height:auto;aspect-ratio:auto;object-fit:contain;
+}
+#channel .creatorRefine.swapp-channel-mosaic .swapp-mosaic-card[data-ratio="1:1"] .swapp-mosaic-image{aspect-ratio:1/1;}
+#channel .creatorRefine.swapp-channel-mosaic .swapp-mosaic-card[data-ratio="4:5"] .swapp-mosaic-image{aspect-ratio:4/5;}
+#channel .creatorRefine.swapp-channel-mosaic .swapp-mosaic-card[data-ratio="3:4"] .swapp-mosaic-image{aspect-ratio:3/4;}
+#channel .creatorRefine.swapp-channel-mosaic .swapp-mosaic-card[data-ratio="16:9"] .swapp-mosaic-image{aspect-ratio:16/9;}
+#channel .creatorRefine.swapp-channel-mosaic .swapp-mosaic-card[data-ratio="21:9"] .swapp-mosaic-image{aspect-ratio:21/9;}
+#channel .creatorRefine.swapp-channel-mosaic .swapp-mosaic-card[data-ratio="3:2"] .swapp-mosaic-image{aspect-ratio:3/2;}
+#channel .creatorRefine.swapp-channel-mosaic .swapp-mosaic-card[data-style="overlay"] .swapp-mosaic-copy{
+ position:absolute;z-index:2;left:0;bottom:0;width:100%;
+ padding:clamp(12px,1.5vw,24px);
+ background:linear-gradient(0deg,rgba(0,0,0,.90),rgba(0,0,0,0));
+ pointer-events:none;
+}
+/* A caption overlay belongs inside the media surface; the card is its boundary. */
+#channel .creatorRefine.swapp-channel-mosaic .swapp-mosaic-card[data-style="overlay"]{isolation:isolate;}
+#channel .creatorRefine.swapp-channel-mosaic .swapp-mosaic-card[data-style="overlay"] .swapp-mosaic-copy{
+ bottom:auto;top:0;inset:0;display:flex;flex-direction:column;justify-content:flex-end;
+ border-radius:clamp(10px,1.1vw,18px);z-index:1;
+}
+#channel .creatorRefine.swapp-channel-mosaic .swapp-mosaic-card[data-style="overlay"] .swapp-mosaic-copy strong,
+#channel .creatorRefine.swapp-channel-mosaic .swapp-mosaic-card[data-style="overlay"] .swapp-mosaic-copy span{color:#fff!important;}
+#channel .creatorRefine.swapp-channel-mosaic .swapp-mosaic-copy{
+ display:grid;gap:5px;min-width:0;
+}
+#channel .creatorRefine.swapp-channel-mosaic .swapp-mosaic-copy strong{
+ font-size:clamp(14px,1.18vw,18px);font-weight:790;letter-spacing:-.018em;
+ line-height:1.28;color:#f3f5f7;overflow-wrap:anywhere;
+}
+#channel .creatorRefine.swapp-channel-mosaic .swapp-mosaic-copy span{
+ font-size:clamp(12px,1vw,14px);font-weight:430;line-height:1.5;
+ color:#acb5c3;overflow-wrap:anywhere;
+}
+#channel .creatorRefine.swapp-channel-mosaic .swapp-mosaic-hit:focus-visible{
+ outline:2px solid var(--channel-accent,var(--swapp-page-accent,#9bd5e5));outline-offset:3px;
+}
+@media(hover:hover) and (prefers-reduced-motion:no-preference){
+ #channel .creatorRefine.swapp-channel-mosaic a.swapp-mosaic-hit:hover img{
+  transform:scale(1.018);
+ }
+}
+#channel .creatorRefine.swapp-channel-mosaic .swapp-mosaic-tools{
+ position:absolute;z-index:3;top:9px;right:9px;
+ opacity:0;transform:translateY(-3px);
+ transition:opacity .15s ease,transform .15s ease;
+}
+#channel .creatorRefine.swapp-channel-mosaic .swapp-mosaic-edit{
+ border:1px solid rgba(255,255,255,.28)!important;
+ border-radius:9px!important;min-height:34px!important;
+ padding:7px 12px!important;
+ font-size:12px!important;font-weight:700!important;
+ background:rgba(5,7,10,.87)!important;color:#fff!important;
+ box-shadow:none!important;backdrop-filter:blur(12px);
+}
+#channel .creatorRefine.swapp-channel-mosaic .swapp-mosaic-card:hover .swapp-mosaic-tools,
+#channel .creatorRefine.swapp-channel-mosaic .swapp-mosaic-card:focus-within .swapp-mosaic-tools{
+ opacity:1;transform:none;
+}
+#channel .creatorRefine.swapp-channel-mosaic .swapp-mosaic-edit:focus-visible,
+.swapp-mosaic-dialog button:focus-visible,.swapp-mosaic-dialog input:focus-visible,
+.swapp-mosaic-dialog textarea:focus-visible,.swapp-mosaic-dialog select:focus-visible{
+ outline:2px solid var(--swapp-page-accent,#9bd5e5)!important;outline-offset:2px;
+}
+#channel .creatorRefine.swapp-channel-mosaic .linksSide{
+ border:0!important;background:none!important;box-shadow:none!important;
+}
+#channel .creatorRefine.swapp-channel-mosaic .linksSide[hidden]{display:none!important;}
+body.swapp-mosaic-dialog-open{overflow:hidden;}
+.swapp-mosaic-overlay{
+ position:fixed;z-index:2147480000;inset:0;
+ background:rgba(0,0,0,.81);backdrop-filter:blur(13px);
+ display:grid;place-items:center;padding:clamp(10px,2.4vw,32px);
+}
+.swapp-mosaic-dialog{
+ --mosaic-accent:var(--swapp-page-accent,#b8dae7);
+ width:min(1100px,100%);height:min(93dvh,1040px);overflow:hidden;
+ display:grid;grid-template-rows:auto auto minmax(0,1fr) auto;
+ padding:0!important;color:#eff1f4;
+ background:#0d1016;border:1px solid rgba(255,255,255,.17);
+ border-radius:19px;box-shadow:0 30px 90px #0009;
+}
+.swapp-mosaic-dialog-head,.swapp-mosaic-dialog-foot{
+ display:flex;align-items:center;justify-content:space-between;
+ gap:14px;padding:clamp(15px,2.5vw,25px);
+ background:#0d1016;
+}
+.swapp-mosaic-dialog-head{border-bottom:1px solid #ffffff18;}
+.swapp-mosaic-dialog-head h2{font-size:clamp(22px,2.7vw,33px);letter-spacing:-.04em;margin:0;}
+.swapp-mosaic-dialog-head p{margin:7px 0 0;font-size:13px;color:#aeb9c9;}
+.swapp-mosaic-dialog button{cursor:pointer;font-family:inherit;}
+.swapp-mosaic-dismiss,.swapp-mosaic-cancel{
+ min-height:42px;padding:9px 16px;border-radius:10px;
+ color:#f3f5fa;background:#ffffff0f;border:1px solid #ffffff24;
+}
+.swapp-mosaic-feedback{margin:0;min-height:22px;padding:6px 24px;color:#c6d6de;font-size:12px;}
+.swapp-mosaic-feedback[data-error="true"]{color:#ffaaa3;}
+.swapp-mosaic-editor-content{
+ overflow-y:auto;overscroll-behavior:contain;display:grid;gap:14px;align-content:start;
+ padding:8px clamp(12px,2vw,25px) 20px;
+}
+.swapp-mosaic-editor-card{
+ background:#ffffff07;border:1px solid #ffffff1b;border-radius:14px;padding:16px;
+}
+.swapp-mosaic-editor-card-head{
+ display:flex;align-items:center;justify-content:space-between;
+ flex-wrap:wrap;gap:12px;margin-bottom:13px;
+}
+.swapp-mosaic-editor-card-head>strong{font-size:15px;font-weight:800;}
+.swapp-mosaic-editor-actions{display:flex;gap:5px;flex-wrap:wrap;}
+.swapp-mosaic-editor-actions button{
+ padding:6px 10px;min-height:35px;background:#ffffff0f;border:1px solid #ffffff18;
+ border-radius:8px;color:#ebeff6;font-size:12px;font-weight:670;
+}
+.swapp-mosaic-editor-actions .danger{color:#ffaaa7;}
+.swapp-mosaic-editor-actions button:disabled{opacity:.3;cursor:default;}
+.swapp-mosaic-editor-detail{
+ display:grid;grid-template-columns:minmax(145px,.31fr) minmax(0,1fr);
+ gap:clamp(13px,2vw,25px);align-items:start;
+}
+.swapp-mosaic-editor-preview{
+ min-height:175px;max-height:360px;display:grid;place-items:center;
+ background:#090c12;border-radius:10px;overflow:hidden;
+ border:1px solid #ffffff15;color:#8292a8;font-size:12px;
+}
+.swapp-mosaic-editor-preview img{width:100%;height:100%;max-height:360px;object-fit:contain;}
+.swapp-mosaic-editor-preview img[hidden],.swapp-mosaic-editor-preview span[hidden]{display:none!important;}
+.swapp-mosaic-editor-fields{display:grid;gap:12px;min-width:0;}
+.swapp-editor-field{display:grid;gap:6px;font-size:12px;font-weight:650;color:#ccd3de;min-width:0;}
+.swapp-editor-field>input,.swapp-editor-field>textarea,.swapp-editor-field>select{
+ border:1px solid #ffffff28;background:#090c12;color:#f7f8fc;
+ border-radius:8px;padding:11px 12px;font:inherit;font-size:13px;
+ min-height:42px;min-width:0;width:100%;box-sizing:border-box;
+}
+.swapp-editor-field>textarea{resize:vertical;}
+.swapp-editor-field>input[type=file]{padding:8px;font-size:11px;}
+.swapp-editor-field>input[type=range]{
+ min-height:20px;height:20px;padding:0;accent-color:var(--mosaic-accent);
+}
+.swapp-mosaic-editor-options{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;
+}
+.swapp-mosaic-editor-focal{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;}
+.swapp-mosaic-dialog-foot{
+ border-top:1px solid #ffffff16;flex-wrap:wrap;justify-content:flex-end;
+}
+.swapp-mosaic-add{
+ margin-right:auto;min-height:42px;padding:9px 14px;
+ background:#ffffff10;color:#fff;border:1px solid #ffffff22;border-radius:10px;
+}
+.swapp-mosaic-save{
+ min-height:42px;border:0;background:var(--mosaic-accent);
+ color:#060a0d;border-radius:10px;padding:10px 17px;font-weight:800;
+}
+.swapp-mosaic-dialog-foot button:disabled{opacity:.43;cursor:not-allowed;}
+@media(hover:none),(pointer:coarse){
+ #channel .creatorRefine.swapp-channel-mosaic .swapp-mosaic-tools{opacity:1!important;transform:none!important;}
+}
+@media(max-width:1000px){
+ #channel .creatorRefine.swapp-channel-mosaic .swapp-mosaic-card[data-size="small"]{grid-column:span 4;}
+ #channel .creatorRefine.swapp-channel-mosaic .swapp-mosaic-card[data-size="medium"]{grid-column:span 6;}
+}
+@media(max-width:680px){
+ #channel .creatorRefine.swapp-channel-mosaic .swapp-mosaic-grid,
+ #channel .creatorRefine.swapp-channel-mosaic .vignetteGrid.swapp-mosaic-grid{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:13px!important;
+ }
+ #channel .creatorRefine.swapp-channel-mosaic .swapp-mosaic-card[data-size="hero"],
+ #channel .creatorRefine.swapp-channel-mosaic .swapp-mosaic-card[data-size="large"]{grid-column:span 2;}
+ #channel .creatorRefine.swapp-channel-mosaic .swapp-mosaic-card[data-size="medium"],
+ #channel .creatorRefine.swapp-channel-mosaic .swapp-mosaic-card[data-size="small"]{grid-column:span 1;}
+ .swapp-mosaic-dialog{height:95dvh;max-height:none;border-radius:14px;}
+ .swapp-mosaic-dialog-head,.swapp-mosaic-dialog-foot{padding:14px;}
+ .swapp-mosaic-editor-detail{grid-template-columns:1fr;}
+ .swapp-mosaic-editor-preview{max-height:210px;min-height:160px;}
+ .swapp-mosaic-editor-content{padding:8px 12px 14px;}
+ .swapp-mosaic-editor-options,.swapp-mosaic-editor-focal{grid-template-columns:1fr 1fr;}
+ .swapp-mosaic-add{margin-right:0;}
+}
+@media(max-width:410px){
+ #channel .creatorRefine.swapp-channel-mosaic .swapp-mosaic-card[data-size="medium"]{grid-column:span 2;}
+ .swapp-mosaic-editor-options,.swapp-mosaic-editor-focal{grid-template-columns:1fr;}
+ .swapp-mosaic-dialog-foot button{flex:1 1 auto;}
+}
+@media(prefers-reduced-motion:reduce){
+ #channel .creatorRefine.swapp-channel-mosaic .swapp-mosaic-image img,
+ #channel .creatorRefine.swapp-channel-mosaic .swapp-mosaic-tools{transition:none!important;}
+}
