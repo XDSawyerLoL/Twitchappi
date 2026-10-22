@@ -37,11 +37,15 @@
   if(!link||link.target&&link.target!=='_self'||link.hasAttribute('download'))return;
   const slug=slugOf(link.href);
   if(!slug)return;
-  const img=link.matches?.(SOURCE_IMAGE)?link:link.querySelector(SOURCE_IMAGE);
+  const img=link.querySelector(SOURCE_IMAGE) ||
+    link.closest('.swapp-home-feature-bridge')?.parentElement?.querySelector('.swapp-home-hero-feature > img') ||
+    link.closest('.hero-side')?.querySelector('img');
   const src=artwork(img);
   clearOutgoing();
   clearStored();
   if(!src||!img.getClientRects?.().length)return;
+  const rect=img.getBoundingClientRect?.();
+  if(rect && (rect.bottom<=0||rect.right<=0||rect.top>=window.innerHeight||rect.left>=window.innerWidth))return;
   try{sessionStorage.setItem(KEY,JSON.stringify({slug,src,at:Date.now()}))}
   catch(_){return}
   outgoing=img;
