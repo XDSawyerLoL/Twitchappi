@@ -13,8 +13,8 @@
   Object.freeze({id:'actus',label:'Actualité',href:'/actus'}),
   Object.freeze({id:'guides',label:'Guides',href:'/guides/aion-2'}),
   Object.freeze({id:'community',label:'Social',href:'/social'}),
-  Object.freeze({id:'tv',label:'SWAPP TV',href:'/tv'}),
-  Object.freeze({id:'shop',label:'Boutique',href:'/boutique'})
+  Object.freeze({id:'shop',label:'Boutique',href:'/boutique'}),
+  Object.freeze({id:'tv',label:'SWAPP TV',href:'/tv'})
  ]);
  const video=Object.freeze({id:'trailers',label:'Vidéos',href:'/bandes-annonces'});
  const account=Object.freeze({id:'settings',label:'Compte',href:'/compte'});
@@ -23,8 +23,9 @@
  const isTv=active=>active==='tv'||active==='agenda'||active==='programme';
  function link(item,active){
   const selected=(item.id==='actus'&&isNews(active))||(item.id==='tv'&&isTv(active))||active===item.id;
+  const current=active===item.id||(item.id==='tv'&&isTv(active))||(item.id==='actus'&&active==='actus');
   const classes=[selected?'active':'',item.id==='tv'?'swapp-tv-nav-cta':''].filter(Boolean).join(' ');
-  return '<a href="'+htmlEscape(item.href)+'" class="'+classes+'"'+(selected?' aria-current="page"':'')+'>'+
+  return '<a href="'+htmlEscape(item.href)+'" class="'+classes+'"'+(current?' aria-current="page"':'')+'>'+
    (item.id==='tv'?'<span class="swapp-tv-nav-icon" aria-hidden="true">◉</span>':'')+htmlEscape(item.label)+'</a>';
  }
  function newsNav(active){
