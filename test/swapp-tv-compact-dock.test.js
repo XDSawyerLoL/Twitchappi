@@ -34,7 +34,8 @@ test('desktop keeps TV and chat alongside down to 721px, with a mobile drawer af
  assert.match(css,/\.stv \.stv-dock\{position:fixed!important/);
  assert.match(css,/\.stv \.stv-dock\.is-open\{visibility:visible/);
  assert.match(css,/\.stv \.stv-dock-scrim:not\(\[hidden\]\)/);
- for(const id of ['stv-dock-toggle','stv-dock-close','stv-dock-scrim'])assert.match(h,new RegExp('id="'+id+'"'));
+ for(const id of ['stv-dock-toggle','stv-dock-scrim'])assert.match(h,new RegExp('id="'+id+'"'));
+ assert.doesNotMatch(h,/id="stv-dock-close"|Retour à la TV/);
  assert.match(h,/id="stv-program-open"[^>]*>Agenda<\/button>/);
  assert.doesNotMatch(h,/title="Fermer">✕/);
  assert.match(css,/\.stv \.stv-dock-top \.stv-programme-link\{flex:0 0 69px/);
