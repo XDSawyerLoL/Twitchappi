@@ -221,4 +221,9 @@
  .stv-program-dialog .scal-day{min-height:55px;padding:4px}
  .stv-program-dialog .scal-chip{font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 }
+/* Immersion remains a single video surface, regardless of chat tab layout. */
+.stv.tv-immersive .stv-broadcast{grid-template-columns:minmax(0,1fr)!important;gap:0!important;padding:0!important;max-width:none}
+.stv.tv-immersive .stv-dock{display:none!important}
+.stv.tv-immersive .stv-dock-scrim{display:none!important}
+.stv.tv-immersive #stv-dock-toggle{display:none!important}
 @media (prefers-reduced-motion:reduce){.stv .stv-dock,.stv .stv-dock-tabs button,.stv .stv-dock-top .stv-programme-link,.stv-program-dialog *{transition:none!important;animation:none!important}}
