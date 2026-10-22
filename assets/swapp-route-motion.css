@@ -1,0 +1,32 @@
+/* SWAPP route transitions, applied to the existing pages only.
+ * No artificial waiting, animated loading blocks or changes to the global color selector.
+ */
+main.app > .view.active.swapp-route-enter{
+  animation:swapp-route-reveal 190ms cubic-bezier(.22,1,.36,1) both;
+}
+@keyframes swapp-route-reveal{
+  from{opacity:.52}
+  to{opacity:1}
+}
+
+/* Browsers that support same-origin document transitions also smooth out
+ * native navigation (articles, games). Others retain native navigation.
+ * The shared masthead stays in place instead of fading with each article.
+ */
+@view-transition{navigation:auto}
+header.top{view-transition-name:swapp-masthead}
+::view-transition-old(root){animation:swapp-document-out 100ms ease-in both}
+::view-transition-new(root){animation:swapp-document-in 190ms ease-out both}
+::view-transition-old(swapp-masthead),
+::view-transition-new(swapp-masthead){animation:none}
+@keyframes swapp-document-out{to{opacity:.56}}
+@keyframes swapp-document-in{from{opacity:.38}to{opacity:1}}
+
+/* Accessibility takes precedence, including inside supported View Transitions. */
+@media(prefers-reduced-motion:reduce){
+ main.app > .view.active.swapp-route-enter{animation:none!important}
+ ::view-transition-old(root),
+ ::view-transition-new(root),
+ ::view-transition-old(swapp-masthead),
+ ::view-transition-new(swapp-masthead){animation:none!important}
+}
