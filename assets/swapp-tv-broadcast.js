@@ -16,7 +16,7 @@ function renderQueue(data){
   data.director_enabled?'File accessible. Chaque direct est vérifié avant de passer à l’antenne.':
   'File accessible, mais les passages à l’antenne sont actuellement suspendus.');
  setText('stv-next-title',enabled?'CRÉATEURS EN ATTENTE':'À DÉCOUVRIR');
- setText('stv-queue-count',enabled?(waiting.length+' en attente'):'');
+ setText('stv-queue-count',enabled?(waiting.length>=100?'100+ en attente':waiting.length+' en attente'):'');
 }
 function rail(data){
  const list=$('stv-next-list');list.replaceChildren();
