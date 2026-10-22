@@ -5,9 +5,7 @@
  */
 (()=>{'use strict';
  const HUBS=[
-  {href:'/guides/aion-2',label:'Guides'},
   {href:'/social',label:'Social'},
-  {href:'/bandes-annonces',label:'Vidéos'},
   {href:'/boutique',label:'Boutique'},
   {href:'/tv',label:'SWAPP TV'}
  ];
