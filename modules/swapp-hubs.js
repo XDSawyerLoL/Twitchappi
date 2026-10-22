@@ -52,7 +52,7 @@ function community(){
    '<script defer src="/socket.io/socket.io.js"></script>'+
    '<script defer src="/assets/swapp-social-voice.js?v=20261018-channel-ux-v1"></script>'+
   '<link rel="stylesheet" href="/assets/swapp-social-product-v3.css?v=20261021-fixed-shell-v1">'+
-  '<link rel="stylesheet" href="/assets/swapp-social-appearance.css?v=20261019-no-top-gap-v3"><link rel="stylesheet" href="/assets/swapp-social-voice-premium.css?v=20261021-community-shell-v2"><link rel="stylesheet" href="/assets/swapp-social-timeline.css?v=20261021-community-rails-v2"><link rel="stylesheet" href="/assets/swapp-social-editorial-air.css?v=20261022-responsive-gifs-v1">';
+  '<link rel="stylesheet" href="/assets/swapp-social-appearance.css?v=20261019-no-top-gap-v3"><link rel="stylesheet" href="/assets/swapp-social-voice-premium.css?v=20261021-community-shell-v2"><link rel="stylesheet" href="/assets/swapp-social-timeline.css?v=20261021-community-rails-v2"><link rel="stylesheet" href="/assets/swapp-social-editorial-air.css?v=20261022-large-tools-v1">';
  return layout({title:'Social',description:'Le réseau SOCIAL complet intégré dans SWAPP : profils, publications, communautés et messagerie.',content,active:'community',scripts});
 }
 function verifiedTrailers(items=catalog.items){
