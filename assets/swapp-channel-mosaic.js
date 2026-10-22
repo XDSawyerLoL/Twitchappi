@@ -1,0 +1,342 @@
+/* SWAPP creator panels: immersive mosaic + persistent owner editor.
+ * The ordinary channel player, chat and identity continue to work independently.
+ */
+(function(){
+ 'use strict';
+ const SIZES=['hero','large','medium','small'];
+ const RATIOS=['auto','1:1','4:5','3:4','16:9','21:9','3:2'];
+ const FITS=['contain','cover'];
+ const STYLES=['image','overlay'];
+ const normalize=(p,i=0)=>({
+  image_url:String(p?.image_url||p?.image||''),
+  title:String(p?.title||'').slice(0,60),
+  description:String(p?.description||p?.text||'').slice(0,220),
+  link_url:String(p?.link_url||p?.url||p?.href||'').slice(0,1000),
+  size:SIZES.includes(p?.size)?p.size:(i<2?'large':'medium'),
+  ratio:RATIOS.includes(p?.ratio)?p.ratio:'auto',
+  fit:FITS.includes(p?.fit)?p.fit:'contain',
+  focal_x:Math.max(0,Math.min(100,Number(p?.focal_x??50)||0)),
+  focal_y:Math.max(0,Math.min(100,Number(p?.focal_y??50)||0)),
+  style:STYLES.includes(p?.style)?p.style:'image'
+ });
+ const node=(tag,cls,text)=>{
+  const el=document.createElement(tag);
+  if(cls)el.className=cls;
+  if(text!==undefined)el.textContent=text;
+  return el;
+ };
+ const profile=()=>typeof state==='undefined'?null:state.channelProfile;
+ const owner=()=>typeof state!=='undefined'&&Boolean(state.channelOwner);
+ const values=()=>((profile()?.channel_vignettes?.length?profile().channel_vignettes:profile()?.channel_panels)||[]).filter(v=>v?.image_url||v?.image).slice(0,8).map(normalize);
+ const safeUrl=url=>{
+  try{
+   const u=new URL(url,location.origin);
+   return ['http:','https:'].includes(u.protocol)?u.href:'';
+  }catch{return ''}
+ };
+ function media(panel){
+  const box=node('div','swapp-mosaic-image');
+  box.style.setProperty('--panel-focus-x',panel.focal_x+'%');
+  box.style.setProperty('--panel-focus-y',panel.focal_y+'%');
+  const img=node('img','');
+  img.loading='lazy';img.decoding='async';
+  img.alt=panel.title||'Visuel de chaîne';
+  img.src=panel.image_url;
+  box.append(img);
+  return box;
+ }
+ function mosaicCard(panel,index,isOwner){
+  const article=node('article','swapp-mosaic-card');
+  article.dataset.size=panel.size;
+  article.dataset.ratio=panel.ratio;
+  article.dataset.fit=panel.fit;
+  article.dataset.style=panel.style;
+  const href=safeUrl(panel.link_url);
+  const visual=href?node('a','swapp-mosaic-hit'):node('div','swapp-mosaic-hit');
+  if(href){
+   visual.href=href;
+   if(new URL(href).origin!==location.origin){visual.target='_blank';visual.rel='noopener noreferrer'}
+   visual.setAttribute('aria-label','Ouvrir '+(panel.title||'le lien du panneau'));
+  }
+  visual.append(media(panel));
+  if(panel.title||panel.description){
+   const copy=node('div','swapp-mosaic-copy');
+   if(panel.title)copy.append(node('strong','',panel.title));
+   if(panel.description)copy.append(node('span','',panel.description));
+   article.append(visual,copy);
+  }else article.append(visual);
+  if(isOwner){
+   const tools=node('div','swapp-mosaic-tools');
+   const edit=node('button','swapp-mosaic-edit','Modifier');
+   edit.type='button';
+   edit.setAttribute('aria-label','Modifier le panneau '+(index+1));
+   edit.addEventListener('click',e=>{e.preventDefault();openEditor(index)});
+   tools.append(edit);article.append(tools);
+  }
+  return article;
+ }
+ function decorate(root){
+  if(!root)return;
+  const current=profile(),panels=values();
+  const area=root.querySelector('#channelAboutSection');
+  if(!area)return;
+  const grid=area.querySelector('.vignetteGrid');
+  if(!grid)return;
+  root.classList.add('swapp-channel-mosaic');
+  root.dataset.mosaicCount=String(panels.length);
+  const isOwner=owner();
+  const shell=area.querySelector('.aboutMain')||area;
+  const heading=area.querySelector('.vignetteHead h2');
+  if(heading)heading.textContent='Les univers de '+String(current?.display_name||current?.login||'SWAPP');
+  const subtitle=area.querySelector('.vignetteHint');
+  if(subtitle)subtitle.textContent=panels.length?
+   'Images, créations et liens sélectionnés par le créateur.':
+   'Ta chaîne se construit ici. Ajoute une image pour commencer.';
+  const share=area.querySelector('.shareLine');
+  if(share)share.hidden=true; // Already accessible via the hero share action.
+  const original=area.querySelector('button[onclick*="openChannelVignettesEditor"]');
+  if(original&&!original.dataset.mosaicEditor){
+   original.dataset.mosaicEditor='true';
+   original.removeAttribute('onclick');
+   original.textContent='Composer ma page';
+   original.addEventListener('click',()=>openEditor());
+  }
+  if(!original&&isOwner&&!area.querySelector('[data-mosaic-add]')){
+   const action=node('button','swapp-mosaic-action','Composer ma page');
+   action.type='button';action.dataset.mosaicAdd='1';
+   action.addEventListener('click',()=>openEditor());
+   area.querySelector('.vignetteHead')?.append(action);
+  }
+  // Only real media is displayed. The original 8 fixed placeholder cells go away.
+  grid.hidden=false; grid.classList.add('swapp-mosaic-grid'); grid.replaceChildren();
+  for(let i=0;i<panels.length;i++)grid.append(mosaicCard(panels[i],i,isOwner));
+  if(!panels.length&&!isOwner){
+   area.hidden=true;
+  }else{
+   area.hidden=false;
+   const below=root.querySelector('.channelBelowLive');if(below)below.hidden=false;
+   const nav=root.querySelector('.channelSubNav');
+   if(nav&&!nav.querySelector('[data-mosaic-nav]')){
+    const tab=node('button','','Galerie');
+    tab.type='button';tab.dataset.mosaicNav='1';
+    tab.addEventListener('click',()=>area.scrollIntoView({behavior:'smooth',block:'start'}));
+    nav.hidden=false;nav.append(tab);
+   }
+  }
+  // For legacy five image panels, 2 wide / 3 medium is more immersive by default.
+  shell.classList.add('swapp-mosaic-wrap');
+ }
+ function labelInput(labelText,field){
+  const wrap=node('label','swapp-editor-field');
+  wrap.append(node('span','',labelText),field);
+  return wrap;
+ }
+ function textInput(value,placeholder,maxLength){
+  const input=node('input','');input.type='text';input.value=value;input.placeholder=placeholder;
+  input.maxLength=maxLength||220;
+  return input;
+ }
+ function selectInput(values,selected){
+  const select=node('select','');
+  for(const [value,name] of values){
+   const option=node('option','',name);option.value=value;option.selected=value===selected;select.append(option);
+  }
+  return select;
+ }
+ function fieldRange(label,value,change){
+  const slider=node('input','');slider.type='range';slider.min='0';slider.max='100';slider.value=String(value);
+  slider.addEventListener('input',()=>change(Number(slider.value)));
+  return labelInput(label,slider);
+ }
+ function imageFromFile(file){
+  return new Promise((resolve,reject)=>{
+   if(!file?.type?.startsWith('image/'))return reject(Error('Choisis une image valide.'));
+   if(file.size>14*1024*1024)return reject(Error('Image trop lourde (14 Mo maximum).'));
+   const reader=new FileReader();
+   reader.onerror=()=>reject(Error('Image illisible.'));
+   reader.onload=()=>{
+    const img=new Image();
+    img.onerror=()=>reject(Error('Format image non pris en charge.'));
+    img.onload=()=>{
+     const factor=Math.min(1,1500/Math.max(img.width,img.height));
+     const canvas=document.createElement('canvas');
+     canvas.width=Math.max(1,Math.round(img.width*factor));
+     canvas.height=Math.max(1,Math.round(img.height*factor));
+     canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+     let output='';
+     for(const quality of [.86,.76,.65,.52]){
+      output=canvas.toDataURL('image/jpeg',quality);
+      if(output.length<1100000)break;
+     }
+     if(output.length>1190000)return reject(Error('Cette image est trop lourde. Essaie un fichier moins grand.'));
+     resolve(output);
+    };
+    img.src=reader.result;
+   };
+   reader.readAsDataURL(file);
+  });
+ }
+ let active=null,returnFocus=null;
+ function closeEditor(){
+  if(!active)return;
+  active.remove();active=null;
+  document.body.classList.remove('swapp-mosaic-dialog-open');
+  returnFocus?.focus?.();returnFocus=null;
+ }
+ function openEditor(selected=-1){
+  if(!owner())return;
+  closeEditor();
+  returnFocus=document.activeElement;
+  const draft=values().map(p=>({...p}));
+  const overlay=node('div','swapp-mosaic-overlay');
+  const dialog=node('section','swapp-mosaic-dialog');
+  dialog.setAttribute('role','dialog');dialog.setAttribute('aria-modal','true');
+  dialog.setAttribute('aria-labelledby','swapp-mosaic-dialog-title');
+  const header=node('header','swapp-mosaic-dialog-head');
+  const title=node('div','');
+  title.append(node('h2','', 'Composer ma chaîne'),node('p','','Taille, format, cadrage et ordre. Tes images existantes sont conservées.'));
+  title.querySelector('h2').id='swapp-mosaic-dialog-title';
+  const dismiss=node('button','swapp-mosaic-dismiss','Fermer');
+  dismiss.type='button';dismiss.addEventListener('click',closeEditor);
+  header.append(title,dismiss);
+  const notice=node('p','swapp-mosaic-feedback','');
+  notice.setAttribute('role','status');
+  const content=node('div','swapp-mosaic-editor-content');
+  const footer=node('footer','swapp-mosaic-dialog-foot');
+  const add=node('button','swapp-mosaic-add','Ajouter un visuel');
+  const cancel=node('button','swapp-mosaic-cancel','Annuler');
+  const save=node('button','swapp-mosaic-save','Enregistrer la mise en page');
+  add.type='button';cancel.type='button';save.type='button';
+  cancel.addEventListener('click',closeEditor);
+  add.addEventListener('click',()=>{
+   if(draft.length>=8){notice.textContent='8 visuels maximum pour garder une page rapide.';return;}
+   draft.push(normalize({image_url:'',size:'medium',ratio:'auto'},draft.length));
+   redraw(draft.length-1);
+  });
+  const status=(message,error=false)=>{notice.textContent=message;notice.dataset.error=String(error)};
+  function redraw(focus=-1){
+   content.replaceChildren();
+   draft.forEach((p,i)=>{
+    const card=node('article','swapp-mosaic-editor-card');
+    const head=node('div','swapp-mosaic-editor-card-head');
+    head.append(node('strong','', 'Visuel '+(i+1)));
+    const actions=node('div','swapp-mosaic-editor-actions');
+    const up=node('button','','Monter'),down=node('button','','Descendre'),remove=node('button','danger','Supprimer');
+    for(const b of [up,down,remove])b.type='button';
+    up.disabled=i===0;down.disabled=i===draft.length-1;
+    up.addEventListener('click',()=>{[draft[i-1],draft[i]]=[draft[i],draft[i-1]];redraw(i-1)});
+    down.addEventListener('click',()=>{[draft[i+1],draft[i]]=[draft[i],draft[i+1]];redraw(i+1)});
+    remove.addEventListener('click',()=>{draft.splice(i,1);redraw(Math.max(0,i-1))});
+    actions.append(up,down,remove);head.append(actions);card.append(head);
+    const detail=node('div','swapp-mosaic-editor-detail');
+    const preview=node('div','swapp-mosaic-editor-preview');
+    const previewImg=node('img','');
+    previewImg.alt='Aperçu';
+    previewImg.hidden=!p.image_url;
+    if(p.image_url)previewImg.src=p.image_url;
+    preview.append(previewImg);
+    const placeholder=node('span','','Aucun visuel');placeholder.hidden=!!p.image_url;preview.append(placeholder);
+    const form=node('div','swapp-mosaic-editor-fields');
+    const url=textInput(p.image_url.startsWith('data:')?'':p.image_url,'https://… ou importer une image',2000);
+    url.addEventListener('change',()=>{
+     const v=url.value.trim();
+     if(v&&!safeUrl(v)){status('Image : utilise une URL http(s) valide.',true);return;}
+     if(v){p.image_url=v;previewImg.src=v;previewImg.hidden=false;placeholder.hidden=true;}
+     else if(!p.image_url.startsWith('data:')){p.image_url='';previewImg.hidden=true;placeholder.hidden=false;}
+    });
+    const file=node('input','');file.type='file';file.accept='image/jpeg,image/png,image/webp';
+    file.addEventListener('change',async()=>{
+     try{status('Préparation du visuel…');p.image_url=await imageFromFile(file.files?.[0]);previewImg.src=p.image_url;previewImg.hidden=false;placeholder.hidden=true;url.value='';status('Visuel prêt. Enregistre pour le publier.')}
+     catch(error){status(error.message||'Image non utilisable.',true)}
+    });
+    const name=textInput(p.title,'Titre facultatif',60);name.addEventListener('input',()=>{p.title=name.value});
+    const description=node('textarea','');description.rows=2;description.maxLength=220;
+    description.placeholder='Description facultative';description.value=p.description;
+    description.addEventListener('input',()=>{p.description=description.value});
+    const link=textInput(p.link_url,'https://… ou /jeux/…',1000);link.addEventListener('input',()=>{p.link_url=link.value});
+    const size=selectInput([['hero','Panoramique · 12 colonnes'],['large','Grand · 6 colonnes'],['medium','Moyen · 4 colonnes'],['small','Compact · 3 colonnes']],p.size);
+    size.addEventListener('change',()=>{p.size=size.value});
+    const ratio=selectInput([['auto','Original · sans recadrage'],['16:9','16:9 · paysage'],['21:9','21:9 · panoramique'],['3:2','3:2 · photo'],['1:1','1:1 · carré'],['4:5','4:5 · portrait'],['3:4','3:4 · vertical']],p.ratio);
+    ratio.addEventListener('change',()=>{p.ratio=ratio.value});
+    const fit=selectInput([['contain','Afficher l’image entière'],['cover','Remplir et recadrer']],p.fit);
+    fit.addEventListener('change',()=>{p.fit=fit.value});
+    const style=selectInput([['image','Image avec titre dessous'],['overlay','Texte sur l’image']],p.style);
+    style.addEventListener('change',()=>{p.style=style.value});
+    const options=node('div','swapp-mosaic-editor-options');
+    options.append(labelInput('Taille',size),labelInput('Proportions',ratio),labelInput('Cadrage',fit),labelInput('Présentation',style));
+    const focal=node('div','swapp-mosaic-editor-focal');
+    focal.append(fieldRange('Position horizontale',p.focal_x,value=>{p.focal_x=value;previewImg.style.objectPosition=p.focal_x+'% '+p.focal_y+'%'}),
+      fieldRange('Position verticale',p.focal_y,value=>{p.focal_y=value;previewImg.style.objectPosition=p.focal_x+'% '+p.focal_y+'%'}));
+    previewImg.style.objectPosition=p.focal_x+'% '+p.focal_y+'%';
+    form.append(labelInput('URL de l’image',url),labelInput('Ou importer depuis ton appareil',file),
+      labelInput('Titre',name),labelInput('Description',description),
+      labelInput('Lien au clic',link),options,focal);
+    detail.append(preview,form);card.append(detail);content.append(card);
+   });
+   add.disabled=draft.length>=8;
+   if(focus>=0)content.children[focus]?.scrollIntoView?.({block:'nearest'});
+  }
+  save.addEventListener('click',async()=>{
+   const result=draft.filter(p=>!!p.image_url?.trim());
+   for(const p of result){
+    if(!(p.image_url.startsWith('data:image/jpeg;base64,')||safeUrl(p.image_url))){
+     status('Chaque visuel doit être importé ou utiliser une URL valide.',true);return;
+    }
+    if(p.link_url.trim()&&!safeUrl(p.link_url)){status('Lien invalide : utilise une adresse http(s) ou un chemin SWAPP.',true);return;}
+   }
+   save.disabled=true;status('Enregistrement en cours…');
+   try{
+    const response=await fetch('/api/oryon/profile',{
+     method:'POST',credentials:'same-origin',cache:'no-store',
+     headers:{Accept:'application/json','Content-Type':'application/json'},
+     body:JSON.stringify({channel_vignettes:result,channel_panels:result}),
+     signal:AbortSignal.timeout(25000)
+    });
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok||data.success!==true)throw Error(data.error||'Enregistrement impossible.');
+    if(typeof state!=='undefined'&&data.user)state.channelProfile=data.user;
+    closeEditor();
+    if(typeof renderChannel==='function')await renderChannel();
+   }catch(error){status(String(error.message||'Erreur de sauvegarde.'),true)}
+   finally{save.disabled=false}
+  });
+  footer.append(add,cancel,save);
+  dialog.append(header,notice,content,footer);overlay.append(dialog);
+  overlay.addEventListener('click',event=>{if(event.target===overlay)closeEditor()});
+  overlay.addEventListener('keydown',event=>{
+   if(event.key==='Escape'){event.preventDefault();closeEditor();}
+   if(event.key==='Tab'){
+    const focusables=[...overlay.querySelectorAll('button:not([disabled]),input:not([disabled]),textarea,select')];
+    if(!focusables.length)return;
+    const first=focusables[0],last=focusables[focusables.length-1];
+    if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus()}
+    else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus()}
+   }
+  });
+  active=overlay;document.body.append(overlay);
+  document.body.classList.add('swapp-mosaic-dialog-open');
+  redraw();
+  dismiss.focus();
+  if(selected>=0)content.children[selected]?.scrollIntoView?.({block:'center'});
+ }
+ function init(){
+  const root=document.getElementById('channel');if(!root)return;
+  let scheduled=false;
+  const run=()=>{
+   if(scheduled)return;scheduled=true;
+   requestAnimationFrame(()=>{scheduled=false;const page=root.querySelector('.creatorRefine');
+    if(page&&!page.dataset.mosaicInitialized){
+     page.dataset.mosaicInitialized='1';
+     decorate(page);
+    }
+   });
+  };
+  new MutationObserver(changes=>{
+   if(changes.some(c=>c.target===root&&c.addedNodes.length))run();
+  }).observe(root,{childList:true});
+  run();
+ }
+ if(typeof module!=='undefined'&&module.exports){module.exports={normalize,safeUrl};return;}
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});
+ else init();
+})();
