@@ -3929,9 +3929,22 @@ function publicOryonChannelUser(u){
   delete pub.email_verified;
   return pub;
 }
+// Base64 image strings must never be cut: a truncated <img src> is invalid.
+// Serve the already-public account avatar as an image instead of copying it
+// into every session, navigation request and remembered session payload.
+function swappSessionAvatarUrl(user){
+  const raw=String(user?.avatar_url||'').trim();
+  if(!raw)return '';
+  if(/^data:image\//i.test(raw)){
+    if(!/^data:image\/(?:jpeg|png|webp);base64,/i.test(raw))return '';
+    const login=normalizeOryonLogin(user?.login);
+    return login?'/api/oryon/avatar/'+encodeURIComponent(login):'';
+  }
+  return raw.slice(0,200000);
+}
 function sessionOryonUser(u){
   if(!u) return null;
-  return { id:u.id, login:u.login, display_name:u.display_name || u.login, email:u.email || null, is_admin: !!u.is_admin, avatar_url: String(u.avatar_url||'').slice(0,200000), channel_badges:Array.isArray(u.channel_badges)?u.channel_badges.slice(0,8):[] };
+  return { id:u.id, login:u.login, display_name:u.display_name || u.login, email:u.email || null, is_admin: !!u.is_admin, avatar_url: swappSessionAvatarUrl(u), channel_badges:Array.isArray(u.channel_badges)?u.channel_badges.slice(0,8):[] };
 }
 function normalizeOryonEmail(v){ return String(v || '').trim().toLowerCase().slice(0, 160); }
 function isValidEmail(v){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v || '')); }
@@ -4059,7 +4072,14 @@ function getSessionIdentity(req){
   const tu = req.session?.twitchUser;
   const lu = req.session?.oryonUser;
   const local = publicOryonUser(lu);
-  if(local) local.is_admin = isOryonAdmin(req);
+  if(local){
+    // Sessions issued before this fix may still contain a truncated Base64
+    // avatar. Re-resolve from the durable existing account, without logging
+    // out the user or creating a replacement account.
+    const persisted=(readOryonUsers().users||[]).find(u=>String(u.id)===String(lu?.id));
+    local.avatar_url=persisted?swappSessionAvatarUrl(persisted):swappSessionAvatarUrl(lu);
+    local.is_admin = isOryonAdmin(req);
+  }
   const twitch = tu && (!tu.expiry || tu.expiry > Date.now()) ? {
     id: tu.id, login: tu.login, display_name: tu.display_name, profile_image_url: tu.profile_image_url, is_admin: false
   } : null;
@@ -4308,6 +4328,34 @@ app.get('/api/oryon/profile/:login', async (req, res) => {
     res.setHeader('Cache-Control','no-store');
     res.json({ success:true, public:true, requires_auth:false, user: pub });
   }catch(e){ res.status(500).json({ success:false, error:e.message, public:true }); }
+});
+
+// The avatar is already public on the channel. Serving it as binary avoids
+// truncating long Base64 URLs in compact SWAPP login sessions and header UI.
+app.get('/api/oryon/avatar/:login',async(req,res)=>{
+  res.set('X-Content-Type-Options','nosniff');
+  res.set('Cache-Control','no-store');
+  try{
+    await ORYON_USERS_READY.catch(()=>{});
+    const login=normalizeOryonLogin(req.params.login);
+    const user=(readOryonUsers().users||[]).find(u=>u.login===login);
+    if(!user)return res.status(404).end();
+    const raw=String(user.avatar_url||'');
+    const match=/^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+/]+={0,2})$/i.exec(raw);
+    if(!match||match[2].length>4000000)return res.status(404).end();
+    const bytes=Buffer.from(match[2],'base64');
+    const mime=match[1].toLowerCase();
+    if(!bytes.length||bytes.length>3000000)return res.status(404).end();
+    const jpeg=mime==='jpeg'&&bytes[0]===255&&bytes[1]===216&&bytes[2]===255;
+    const png=mime==='png'&&bytes.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10]));
+    const webp=mime==='webp'&&bytes.subarray(0,4).toString('ascii')==='RIFF'&&bytes.subarray(8,12).toString('ascii')==='WEBP';
+    if(!jpeg&&!png&&!webp)return res.status(404).end();
+    res.type('image/'+mime);
+    return res.send(bytes);
+  }catch(error){
+    console.warn('[SWAPP AVATAR]',String(error?.message||error).slice(0,160));
+    return res.status(503).end();
+  }
 });
 
 // Public images exist only when their owner has published the matching panel.
