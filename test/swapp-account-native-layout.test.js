@@ -102,7 +102,7 @@ test('planning fields have labels and never collapse into clipped one-line input
 test('new account code and styling are cache-busted and included in deploy checks',()=>{
  const html=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
  const smoke=fs.readFileSync(path.join(__dirname,'..','tools/swapp-deploy-smoke.js'),'utf8');
- for(const source of ['index_script.js?v=20261022-account-unified-v1','swapp-creator-workspace.css?v=20261022-account-unified-v1']){
+ for(const source of ['index_script.js?v=20261022-auth-single-v1','swapp-creator-workspace.css?v=20261022-auth-single-v1']){
   assert.ok(html.includes(source),source);
   assert.ok(smoke.includes(source),source);
  }
