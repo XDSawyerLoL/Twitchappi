@@ -132,6 +132,7 @@ dockMobile.addEventListener?.('change',synchronizeDock);
 synchronizeDock();
 const showChat=kind=>{
  activeDock=kind;
+ $('stv-chat-area').hidden=kind==='queue';
  for(const x of tabs){
   const active=x.kind===kind;
   x.tab.setAttribute('aria-selected',String(active));
