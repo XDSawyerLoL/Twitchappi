@@ -117,7 +117,7 @@ test('mosaic CSS uses 12-column full-width hierarchy without default giant boxes
 test('integration is versioned, releases track files and does not change player or chat',()=>{
  const html=read('index.html'),rel=read('tools/swapp-release.js');
  assert.ok(html.includes('/assets/swapp-channel-mosaic.css?v=20261022-image-hd-v4'));
- assert.ok(html.includes('/assets/swapp-channel-mosaic.js?v=20261022-image-hd-v4'));
+ assert.ok(html.includes('/assets/swapp-channel-mosaic.js?v=20261022-theatre-v3'));
  for(const file of ['assets/swapp-channel-mosaic.css','assets/swapp-channel-mosaic.js'])
   assert.ok(rel.includes("'"+file+"'"));
  assert.ok(rel.includes("'modules/swapp-channel-panels.js'"));
@@ -125,6 +125,11 @@ test('integration is versioned, releases track files and does not change player 
  assert.doesNotMatch(js,/socket\.emit\(|updateLiveUi\(|setMiniLive\(/);
 });
 
+test('creator gallery avoids duplicated navigation after channel polish',()=>{
+ const js=read('assets/swapp-channel-mosaic.js');
+ assert.match(js,/querySelectorAll\('button'\)/);
+ assert.match(js,/button\.textContent\.trim\(\)==='Galerie'/);
+});
 test('legacy local browser thumbnails remain visible until they are saved to MySQL',()=>{
  const js=read('assets/swapp-channel-mosaic.js');
  assert.match(js,/typeof oryonGetChannelVignettes==='function'/);
