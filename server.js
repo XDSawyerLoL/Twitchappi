@@ -4339,8 +4339,11 @@ app.get('/api/oryon/panel-image/:login/:hash',async(req,res)=>{
 
 app.post('/api/oryon/profile', mutationLimiter, async (req, res) => {
   try{
+    // Channel edits use the same SWAPP remember-cookie session as the account UI.
+    // Never recover/create an account during a write: the saved account must exist.
+    await restoreOryonSessionFromRememberCookie(req, res, {allowUserRecovery:false});
     const cur = req.session?.oryonUser;
-    if(!cur?.id) return res.status(401).json({ success:false, error:'Compte Oryon requis.' });
+    if(!cur?.id) return res.status(401).json({ success:false, error:'Session SWAPP expirée. Reconnecte-toi à ton compte SWAPP.' });
     const data = readOryonUsers();
     const user = data.users.find(u => u.id === cur.id);
     if(!user) return res.status(404).json({ success:false, error:'Utilisateur introuvable.' });
