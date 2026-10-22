@@ -14,7 +14,9 @@ export function renderPost(post){
   const bookmarked=post.viewer?.bookmarked;
   const ownPost=Boolean(post.viewer?.canDelete||(state.user?.id&&String(user.id)===String(state.user.id)));
   const isNewsRelay=Boolean(post.linkUrl&&post.linkTitle);
-  const cleanBody=String(post.body||'').trim().replace(/\s*Source\s*:\s*SWAPP(?:\s+Actualité)?\s*$/i,'').trim();
+  // Previous RSS relays stored an extra `Source : ...` line. Keep ordinary posts untouched.
+  const rawBody=String(post.body||'').trim();
+  const cleanBody=isNewsRelay?rawBody.replace(/(?:\n\s*){1,3}Source\s*:\s*[^\n]{1,130}\s*$/i,'').trim():rawBody;
   const hideDuplicateTitle=isNewsRelay&&cleanBody===String(post.linkTitle||'').trim();
   let quote='';
   let media='';
