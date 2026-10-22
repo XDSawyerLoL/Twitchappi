@@ -1,7 +1,7 @@
 import { state, dom, api, esc, icon, initials, timeAgo, setStatus, errorText } from './core.js';
 import { requireAuth } from './session.js';
 import {loadVoiceNotes,renderVoiceNote} from './dm-audio.js?v=20261018-direct-audio-v1';
-import { renderPost, renderPosts, notificationLabel } from './render.js?v=20261016-compact-card-1';
+import { renderPost, renderPosts, notificationLabel } from './render.js?v=20261022-quoted-reposts-v1';
 
 let dmRefreshTimer=null,dmLastSignature='';
 function stopDMRefresh(){
