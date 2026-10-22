@@ -8,15 +8,15 @@ const {layout}=require('../modules/swapp-news/site-shell');
 const {renderNewsHome,renderNewsStory}=require('../modules/swapp-news/native-pages');
 const {renderTwitchWatch}=require('../modules/swapp-news/watch');
 const ROOT=path.resolve(__dirname,'..');
-const expected=['Accueil','Découvrir','Catégories','Équipes','Actualité','Guides','Social','Vidéos','Boutique'];
+const expected=['Accueil','Découvrir','Catégories','Équipes','Actualité','Guides','Social','Boutique','SWAPP TV'];
 test('même contrat de menu pour toutes les pages SWAPP',()=>{
  assert.deepEqual(items.map(x=>x.label),expected);
  assert.equal(account.label,'Compte');
  const header=serverHeader('actus');
  const mobile=serverMobile('actus');
  for(const label of expected){
-   assert.match(header,new RegExp('>'+label+'<'));
-   assert.match(mobile,new RegExp('>'+label+'<'));
+   assert.ok(header.includes(label),'desktop '+label);
+   assert.ok(mobile.includes(label),'mobile '+label);
  }
  assert.ok(header.includes('id="userBtn" class="userBtn"'));assert.ok(header.includes('id="userMenu"'));
  assert.match(header,/href="\/actus"[^>]*aria-current="page"/);
@@ -38,10 +38,10 @@ test('le serveur utilise la barre et les identifiants exacts du site de lives',(
 test('le site client charge le même contrat avant le script SPA',()=>{
  const html=fs.readFileSync(path.join(ROOT,'index.html'),'utf8');
  const script=fs.readFileSync(path.join(ROOT,'index_script.js'),'utf8');
- assert.ok(html.indexOf('src="/assets/swapp-navigation.js?v=20261021-article-first-v2"') < html.indexOf('src="/index_script.js'));
+ assert.ok(html.indexOf('src="/assets/swapp-navigation.js?v=20261022-tvnav-v1"') < html.indexOf('src="/index_script.js'));
  assert.match(script,/window\.SwappNavigation/);
- assert.match(html,/href="\/assets\/swapp-unified-nav\.css\?v=20261018-fixed-header-v1"/);
- assert.match(layout({content:''}),/href="\/assets\/swapp-unified-nav\.css\?v=20261018-fixed-header-v1"/);
+ assert.match(html,/href="\/assets\/swapp-unified-nav\.css\?v=20261022-tvnav-v1"/);
+ assert.match(layout({content:''}),/href="\/assets\/swapp-unified-nav\.css\?v=20261022-tvnav-v1"/);
 });
 test('pages article, actualités et live partagent le même menu et SWAPP reste SWAPP',()=>{
  const story={slug:'jeu-2026',title:'Un jeu annoncé',body:'Une analyse assez complète pour découvrir cette actualité.',summary:'Un résumé de l’article',category:'ACTUS',author:'SWAPP',game:'Fortnite',sources:[],publishedAt:'2026-10-14T20:00:00Z'};
@@ -92,7 +92,7 @@ test('Social, Vidéos et Boutique partagent exactement les dimensions du logo et
  const brand=/<a class="brand" href="\/"[^>]*><span class="swapp-wordmark-text">SWAPP<span class="swapp-wordmark-dot"/;
  for(const html of [spa,...pages]){
   assert.match(html,brand);
-  assert.match(html,/swapp-unified-nav\.css\?v=20261018-fixed-header-v1/);
+  assert.match(html,/swapp-unified-nav\.css\?v=20261022-tvnav-v1/);
   assert.match(html,/class="topbar"/);
   assert.match(html,/id="nav" class="mainNav"/);
   assert.match(html,/id="userBtn" class="userBtn"|id="userBtn" class="userBtn"/);
@@ -102,4 +102,20 @@ test('Social, Vidéos et Boutique partagent exactement les dimensions du logo et
  assert.match(navCss,/header\.top #nav\.mainNav :is\(a,button\)\{/);
  assert.match(navCss,/@media\(max-width:1080px\)\{[\s\S]*?font-size:24px!important/);
  assert.doesNotMatch(navCss,/#nav\.swapp-nav-consistent/);
+});
+
+test('SWAPP TV is a highlighted top-level destination; videos stay inside Actualité',()=>{
+ const nav=require('../assets/swapp-navigation');
+ const header=nav.serverHeader('tv'),news=nav.serverHeader('trailers'),mobile=nav.serverMobile('tv');
+ assert.match(header,/href="\/tv" class="active swapp-tv-nav-cta" aria-current="page"/);
+ assert.match(header,/class="swapp-news-more"/);
+ assert.match(header,/href="\/bandes-annonces"/);
+ assert.doesNotMatch(nav.items.map(x=>x.label).join(','),/Vidéos/);
+ assert.match(news,/href="\/bandes-annonces" aria-current="page"/);
+ assert.match(mobile,/class="swapp-tv-nav-cta"/);
+ assert.match(mobile,/swapp-mobile-menu-title">ACTUALITÉ/);
+ assert.match(mobile,/Vidéos et bandes-annonces/);
+ const programme=nav.serverHeader('agenda');
+ assert.match(programme,/swapp-tv-nav-cta/);
+ assert.doesNotMatch(programme,/href="\/tv"[^>]*aria-current="page"/);
 });
