@@ -6,10 +6,19 @@ const path=require('node:path');
 const PROGRAM_CSS=fs.readFileSync(path.join(__dirname,'../assets/swapp-program.css'),'utf8');
 function page(kind){
  const tv=kind==='tv';
+ const calendar=`<main id="swapp-calendar" class="scal">
+ <header class="scal-head"><div><span class="scal-kicker">SWAPP TV / PROGRAMMATION</span><h1>LE PROGRAMME <em>DE LA CHAÎNE.</em></h1><p>Les rendez-vous annoncés et confirmés, dans un calendrier directement relié à SWAPP TV.</p></div><div class="scal-head-side"><a href="/tv">◉ REJOINDRE SWAPP TV ↗</a></div></header>
+ <section class="scal-shell" aria-label="Calendrier des événements SWAPP">
+ <div class="scal-toolbar"><div><span class="scal-kicker">PROGRAMMATION</span><h2 id="scal-month-label">Chargement…</h2></div><div class="scal-tools"><button id="scal-today" type="button">AUJOURD'HUI</button><button id="scal-prev" type="button" aria-label="Mois précédent">←</button><button id="scal-next" type="button" aria-label="Mois suivant">→</button></div></div>
+ <div class="scal-filters"><label for="scal-game">JEU</label><select id="scal-game"><option value="">Tous les jeux</option></select><span id="scal-status" role="status" aria-live="polite">Chargement des rendez-vous confirmés…</span></div>
+ <div class="scal-workspace"><div><div class="scal-weekdays" aria-hidden="true"><span>LUN</span><span>MAR</span><span>MER</span><span>JEU</span><span>VEN</span><span>SAM</span><span>DIM</span></div><div id="scal-grid" class="scal-grid" role="grid" aria-label="Jours du mois"></div></div>
+ <aside class="scal-aside"><span class="scal-kicker">SÉLECTION DU JOUR</span><h3 id="scal-selected-label">Aujourd'hui</h3><div id="scal-day-events" aria-live="polite"><p>Sélectionne une date pour voir les rendez-vous.</p></div><div class="scal-aside-tv"><span class="scal-kicker">LA CHAÎNE</span><h3>LE LIVE<br>NE S'ARRÊTE PAS.</h3><p>Découvre les créateurs et les jeux à l'antenne.</p><a href="/tv">OUVRIR SWAPP TV ↗</a></div></aside></div></section>
+ <footer class="scal-foot"><span>SWAPP / AGENDA</span><span>TOUTES LES HEURES SONT LOCALES · AUCUN ÉVÉNEMENT INVENTÉ</span></footer>
+ </main>`;
  const content=tv?`<main id="swapp-tv" class="stv" aria-label="SWAPP TV">
   <header class="stv-mast">
    <div class="stv-brand"><span class="stv-brandline">SWAPP / GAME UNIVERSE</span><strong>SWAPP TV</strong><span class="stv-station-label">LA CHAÎNE</span></div>
-   <a class="stv-programme-link" href="/tv/programme">Voir le programme <span aria-hidden="true">↗</span></a>
+   <button type="button" class="stv-programme-link" id="stv-program-open" aria-haspopup="dialog" aria-controls="stv-program-dialog">Programme de la chaîne <span aria-hidden="true">▦</span></button>
   </header>
   <section class="stv-broadcast" aria-labelledby="stv-heading">
    <div class="stv-stage">
@@ -45,17 +54,33 @@ function page(kind){
       <p id="stv-queue-status" role="status" aria-live="polite">Vérification du service…</p>
      </div>
     </details>
+    <section class="stv-chat" aria-label="Discussions de la chaîne">
+     <div class="stv-chat-heading"><span class="stv-label">DISCUSSIONS</span><span class="stv-chat-context">Antenne et communauté</span></div>
+     <div class="stv-chat-tabs" role="tablist" aria-label="Choisir un tchat">
+      <button type="button" id="stv-tab-swapp" role="tab" aria-selected="true" aria-controls="stv-pane-swapp">SWAPP</button>
+      <button type="button" id="stv-tab-twitch" role="tab" aria-selected="false" aria-controls="stv-pane-twitch" tabindex="-1">Twitch</button>
+     </div>
+     <div id="stv-pane-swapp" class="stv-chat-pane" role="tabpanel" aria-labelledby="stv-tab-swapp">
+      <div id="stv-swapp-messages" class="stv-chat-feed" role="log" aria-live="polite" aria-label="Messages SWAPP TV"><p>Connexion à la discussion SWAPP…</p></div>
+      <form id="stv-swapp-chat-form" class="stv-chat-form"><label class="stv-sr-only" for="stv-swapp-chat-input">Message SWAPP TV</label><input id="stv-swapp-chat-input" name="body" maxlength="160" autocomplete="off" placeholder="Discuter sur SWAPP…" required><button type="submit" aria-label="Envoyer sur SWAPP">↗</button></form>
+      <p id="stv-chat-status" class="stv-chat-status" role="status" aria-live="polite">Compte SWAPP requis pour écrire.</p>
+     </div>
+     <div id="stv-pane-twitch" class="stv-chat-pane" role="tabpanel" aria-labelledby="stv-tab-twitch" hidden>
+      <div id="stv-twitch-chat" class="stv-twitch-chat"><p>Sélectionne un créateur à regarder pour afficher son tchat Twitch.</p></div>
+      <p class="stv-chat-status">Le chat Twitch est celui du créateur sélectionné. Connexion Twitch éventuellement requise pour participer.</p>
+     </div>
+    </section>
    </aside>
   </section>
- </main>`:`<main id="swapp-calendar" class="scal">
- <header class="scal-head"><div><span class="scal-kicker">SWAPP TV / PROGRAMMATION</span><h1>LE PROGRAMME <em>DE LA CHAÎNE.</em></h1><p>Les rendez-vous annoncés et confirmés, dans un calendrier directement relié à SWAPP TV.</p></div><div class="scal-head-side"><a href="/tv">◉ REJOINDRE SWAPP TV ↗</a></div></header>
- <section class="scal-shell" aria-label="Calendrier des événements SWAPP">
- <div class="scal-toolbar"><div><span class="scal-kicker">PROGRAMMATION</span><h2 id="scal-month-label">Chargement…</h2></div><div class="scal-tools"><button id="scal-today" type="button">AUJOURD'HUI</button><button id="scal-prev" type="button" aria-label="Mois précédent">←</button><button id="scal-next" type="button" aria-label="Mois suivant">→</button></div></div>
- <div class="scal-filters"><label for="scal-game">JEU</label><select id="scal-game"><option value="">Tous les jeux</option></select><span id="scal-status" role="status" aria-live="polite">Chargement des rendez-vous confirmés…</span></div>
- <div class="scal-workspace"><div><div class="scal-weekdays" aria-hidden="true"><span>LUN</span><span>MAR</span><span>MER</span><span>JEU</span><span>VEN</span><span>SAM</span><span>DIM</span></div><div id="scal-grid" class="scal-grid" role="grid" aria-label="Jours du mois"></div></div>
- <aside class="scal-aside"><span class="scal-kicker">SÉLECTION DU JOUR</span><h3 id="scal-selected-label">Aujourd'hui</h3><div id="scal-day-events" aria-live="polite"><p>Sélectionne une date pour voir les rendez-vous.</p></div><div class="scal-aside-tv"><span class="scal-kicker">LA CHAÎNE</span><h3>LE LIVE<br>NE S'ARRÊTE PAS.</h3><p>Découvre les créateurs et les jeux à l'antenne.</p><a href="/tv">OUVRIR SWAPP TV ↗</a></div></aside></div></section>
- <footer class="scal-foot"><span>SWAPP / AGENDA</span><span>TOUTES LES HEURES SONT LOCALES · AUCUN ÉVÉNEMENT INVENTÉ</span></footer>
- </main>`;
- return layout({title:tv?'SWAPP TV — La chaîne du Game Universe':'Programme SWAPP TV',description:tv?'La chaîne gaming collective, découverte équitable et directs vérifiés':'Agenda des rendez-vous Spotlight SWAPP',content,active:tv?'tv':'agenda',extraCss:PROGRAM_CSS,scripts:'<link rel="stylesheet" href="/assets/swapp-program.css?v=20261022-integrated-creator-v1">'+(tv?'<script defer src="/assets/swapp-tv-broadcast.js?v=20261022-disabled-queue-v2"></script>':'<script defer src="/assets/swapp-calendar.js?v=20261021-calendar-health-v2"></script>')});
+  <dialog id="stv-program-dialog" class="stv-program-dialog" aria-label="Programme SWAPP TV">
+   <div class="stv-dialog-tools"><span>SWAPP TV · PROGRAMME</span><button id="stv-program-close" type="button" aria-label="Fermer le programme">✕ Fermer</button></div>
+   ${calendar.replace(/^<main/,'<section').replace(/<\/main>$/,'</section>')}
+  </dialog>
+ </main>`:calendar;
+ return layout({title:tv?'SWAPP TV — La chaîne du Game Universe':'Programme SWAPP TV',description:tv?'La chaîne gaming collective, découverte équitable et directs vérifiés':'Agenda des rendez-vous Spotlight SWAPP',content,active:tv?'tv':'agenda',extraCss:PROGRAM_CSS,scripts:'<link rel="stylesheet" href="/assets/swapp-program.css?v=20261022-unified-tv-v4">'+
+  '<link rel="stylesheet" href="/assets/swapp-page-colors.css?v=20261022-tv-theme-v1">'+
+  '<script defer src="/assets/swapp-page-colors.js?v=20261022-tv-theme-v1"></script>'+
+  (tv?'<script defer src="/assets/swapp-tv-broadcast.js?v=20261022-unified-tv-v4"></script>':'')+
+  '<script defer src="/assets/swapp-calendar.js?v=20261021-calendar-health-v2"></script>'});
 }
 module.exports={page};
