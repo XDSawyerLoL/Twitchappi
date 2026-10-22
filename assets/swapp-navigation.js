@@ -23,7 +23,7 @@
  const isTv=active=>active==='tv'||active==='agenda'||active==='programme';
  function link(item,active){
   const selected=(item.id==='actus'&&isNews(active))||(item.id==='tv'&&isTv(active))||active===item.id;
-  const current=active===item.id||(item.id==='tv'&&isTv(active))||(item.id==='actus'&&active==='actus');
+  const current=active===item.id;
   const classes=[selected?'active':'',item.id==='tv'?'swapp-tv-nav-cta':''].filter(Boolean).join(' ');
   return '<a href="'+htmlEscape(item.href)+'" class="'+classes+'"'+(current?' aria-current="page"':'')+'>'+
    (item.id==='tv'?'<span class="swapp-tv-nav-icon" aria-hidden="true">◉</span>':'')+htmlEscape(item.label)+'</a>';
