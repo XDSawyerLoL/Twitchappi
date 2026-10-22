@@ -111,10 +111,28 @@
    (links.length===1?'1 référence vérifiable':links.length+' références vérifiables')+
    '</summary><div class="swapp-editorial-source-links">'+links.join('')+'</div></details>';
  }
+ // Prevent editorial product mismatches: a confirmed Cyberpunk article should
+ // never promote an Instant Gaming link explicitly naming Crimson Desert.
+ // Only enforce where the merchant URL contains a meaningful product slug;
+ // preserve other merchants and brand/franchise variants such as Witcher 3.
+ function affiliateMatchesArticleGame(link,article){
+  let url;try{url=new URL(String(link?.url||''))}catch{return true}
+  if(!/^(?:www\.)?instant-gaming\.com$/i.test(url.hostname))return true;
+  const product=url.pathname.match(/\/\d+-acheter-([^/]+)/i);
+  if(!product)return true;
+  const game=typeof article?.game==='string'?article.game:String(article?.game?.name||article?.game?.title||'');
+  if(!game.trim())return true;
+  const tokens=text=>String(text).normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+  const stop=new Set(['deluxe','edition','enhanced','ultimate','complete','standard','remastered','remake','game','games','with','from','steam','digital','bundle']);
+  const gameParts=tokens(game).filter(t=>t.length>=5&&!stop.has(t));
+  if(!gameParts.length)return true;
+  const offerParts=new Set(tokens(decodeURIComponent(product[1])));
+  return gameParts.some(t=>offerParts.has(t));
+ }
  // Editor-supplied affiliate links use the same small purchase rail as
  // verified catalog offers. They are NOT separate advertising panels.
  function partnerOffersHtml(a){
-  return commercialLinks(a?.commercialLinks).map(link=>{
+  return commercialLinks(a?.commercialLinks).filter(link=>affiliateMatchesArticleGame(link,a)).map(link=>{
    let hostname='';
    try{hostname=new URL(link.url).hostname.toLowerCase()}catch(_){}
    const ig=hostname==='instant-gaming.com'||hostname==='www.instant-gaming.com';
