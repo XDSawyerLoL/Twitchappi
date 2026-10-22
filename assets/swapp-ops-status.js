@@ -10,7 +10,7 @@
   })},
   {name:'SOCIAL',url:'/api/swapp/social-native/backend-status',key:'social',describe:d=>{
    const ready=d.active_backend==='mysql'&&d.snapshot_present===true&&d.snapshot_type==='fresh'&&!d.writes_frozen;
-   const initStillOn=d.fresh_auto_init_requested===true||d.fresh_start_approved===true;
+   const initStillOn=d.fresh_auto_init_requested===true||d.fresh_bootstrap_authorized===true;
    return {ok:ready&&!initStillOn,live:ready,
     detail:ready?(initStillOn?'MySQL actif · autorisations d’initialisation temporaire à désactiver sur Hostinger':'MySQL actif · données conservées'):
      'Stockage non prêt : '+String(d.active_backend||'indisponible')};
