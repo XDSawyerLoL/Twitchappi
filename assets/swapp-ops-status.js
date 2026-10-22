@@ -16,8 +16,9 @@
      'Stockage non prêt : '+String(d.active_backend||'indisponible')};
   }},
   {name:'SWAPP TV',url:'/api/swapp-tv/queue/status',key:'tv',describe:d=>({
-   ok:d.enabled===true&&d.director_enabled===true,
-   detail:!d.enabled?'File désactivée sur Hostinger':!d.director_enabled?'Inscriptions ouvertes, régie automatique inactive':
+   ok:d.enabled===true&&d.director_enabled===true&&d.accounts_mysql===true,
+   detail:d.reason==='accounts_mysql_required'?'Ouverture impossible · comptes MySQL manquants':
+    !d.enabled?'File désactivée sur Hostinger':!d.director_enabled?'Inscriptions ouvertes, régie automatique inactive':
     'Régie active · '+(Array.isArray(d.waiting)?d.waiting.length:0)+' en attente'
   })},
   {name:'Spotlight',url:'/api/creator/spotlight/status',key:'spotlight',describe:d=>({
