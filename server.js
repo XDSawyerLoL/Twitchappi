@@ -4310,6 +4310,33 @@ app.get('/api/oryon/profile/:login', async (req, res) => {
   }catch(e){ res.status(500).json({ success:false, error:e.message, public:true }); }
 });
 
+// Public images exist only when their owner has published the matching panel.
+// Never serve arbitrary private blobs or browser-only data URL drafts.
+app.get('/api/oryon/panel-image/:login/:hash',async(req,res)=>{
+ res.set('X-Content-Type-Options','nosniff');
+ try{
+  await ORYON_USERS_READY.catch(()=>{});
+  if(!SWAPP_MYSQL_ACCOUNTS||!swappMysqlAccountsReady)return res.status(503).end();
+  const login=normalizeOryonLogin(req.params.login);
+  const hash=String(req.params.hash||'').toLowerCase();
+  if(!/^[0-9a-f]{64}$/.test(hash))return res.status(404).end();
+  const user=(readOryonUsers().users||[]).find(u=>u.login===login&&u.channel_public!==false);
+  if(!user)return res.status(404).end();
+  const {panelMediaUrl}=require('./modules/swapp-channel-panel-media');
+  const url=panelMediaUrl(login,hash);
+  const panels=user.channel_vignettes?.length?user.channel_vignettes:user.channel_panels;
+  if(!Array.isArray(panels)||!panels.some(p=>p.image_url===url))return res.status(404).end();
+  const media=await swappMysqlAccounts.getPanelImage(user.id,hash);
+  if(!media?.bytes)return res.status(404).end();
+  res.set('Cache-Control','public,max-age=300');
+  res.set('Content-Type',media.mime);
+  return res.end(media.bytes);
+ }catch(error){
+  console.warn('[SWAPP PANEL IMAGE]',String(error?.message||error).slice(0,180));
+  return res.status(503).end();
+ }
+});
+
 app.post('/api/oryon/profile', mutationLimiter, async (req, res) => {
   try{
     const cur = req.session?.oryonUser;
@@ -4342,8 +4369,20 @@ app.post('/api/oryon/profile', mutationLimiter, async (req, res) => {
     const incomingPanels = Array.isArray(req.body?.channel_vignettes) ? req.body.channel_vignettes : (Array.isArray(req.body?.channel_panels) ? req.body.channel_panels : null);
     if(incomingPanels){
       const {normalizePanels}=require('./modules/swapp-channel-panels');
-      const cleanPanels=normalizePanels(incomingPanels)
-        .map(panel=>({...panel,link_url:sanitizePanelUrl(panel.link_url)}));
+      const {panelMediaUrl}=require('./modules/swapp-channel-panel-media');
+      const cleanPanels=[];
+      for(const panel of normalizePanels(incomingPanels)){
+       let image_url=panel.image_url;
+       if(image_url.startsWith('data:')){
+        if(!swappMysqlAccountsReady||!swappMysqlAccounts)
+         return res.status(503).json({success:false,error:'Stockage MySQL des images indisponible.'});
+        const media=await swappMysqlAccounts.savePanelImage(user.id,image_url);
+        image_url=panelMediaUrl(user.login,media.hash);
+       }else if(!/^https?:\/\//i.test(image_url)&&!/^\/(?!\/)/.test(image_url)){
+        return res.status(400).json({success:false,error:'Adresse de vignette invalide.'});
+       }
+       cleanPanels.push({...panel,image_url,link_url:sanitizePanelUrl(panel.link_url)});
+      }
       user.channel_vignettes = cleanPanels;
       user.channel_panels = cleanPanels;
     }
@@ -4362,7 +4401,13 @@ app.post('/api/oryon/profile', mutationLimiter, async (req, res) => {
     const persistResult = await writeOryonUsersAndWait(data);
     req.session.oryonUser = sessionOryonUser(user);
     req.session.save(() => res.json({ success:true, user: publicOryonUser(user), persistence:persistResult||null }));
-  }catch(e){ res.status(500).json({ success:false, error:e.message }); }
+  }catch(e){
+  const issue=String(e?.message||'profile_write_failed');
+  const badImage=/^swapp_panel_image_(?:format_invalid|signature_invalid|too_large)$/.test(issue);
+  res.status(badImage?400:500).json({
+   success:false,error:badImage?'Image invalide ou trop volumineuse (1,1 Mo maximum après compression).':issue
+  });
+ }
 });
 
 function makeOryonStreamKey(){ return crypto.randomBytes(24).toString('hex'); }
