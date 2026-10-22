@@ -13,7 +13,7 @@ test('TV shows one conductor with integrated creator access, not a second produc
  for(const id of ['stv-game','stv-join','stv-leave']){
   assert.equal((html.match(new RegExp('id="'+id+'"','g'))||[]).length,1,'exactly one control '+id);
  }
- assert.doesNotMatch(html,/id="stv-queue-list"|class="stv-bottom"|id="stv-queue"|stv-queue-tease|SWAPP TV \/ CREATOR ACCESS|ENTRE DANS/);
+ assert.doesNotMatch(html,/id="stv-queue-list"|class="stv-bottom"|id="stv-queue"|stv-queue-tease|SWAPP TV \/ CREATOR ACCESS|ENTRE DANS|Retour à la TV|id="stv-dock-close"/);
  assert.doesNotMatch(html,/class="stv-footer"/);
 });
 test('public programme remains on the TV programme route and not inside broadcast screen',()=>{
