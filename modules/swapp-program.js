@@ -64,7 +64,7 @@ function page(kind){
      </div>
     </details>
     </div>
-    <section class="stv-chat" aria-label="Discussions de la chaîne">
+    <section class="stv-chat" id="stv-chat-area" aria-label="Discussions de la chaîne">
      <div id="stv-pane-swapp" class="stv-chat-pane" role="tabpanel" aria-labelledby="stv-tab-swapp" hidden>
       <div id="stv-swapp-messages" class="stv-chat-feed" role="log" aria-live="polite" aria-label="Messages SWAPP TV"><p>Connexion à la discussion SWAPP…</p></div>
       <form id="stv-swapp-chat-form" class="stv-chat-form"><label class="stv-sr-only" for="stv-swapp-chat-input">Message SWAPP TV</label><input id="stv-swapp-chat-input" name="body" maxlength="160" autocomplete="off" placeholder="Discuter sur SWAPP…" required><button type="submit" aria-label="Envoyer sur SWAPP">↗</button></form>
