@@ -13,7 +13,7 @@ test('TV shows one conductor with integrated creator access, not a second produc
  for(const id of ['stv-game','stv-join','stv-leave']){
   assert.equal((html.match(new RegExp('id="'+id+'"','g'))||[]).length,1,'exactly one control '+id);
  }
- assert.doesNotMatch(html,/id="stv-queue-list"|class="stv-bottom"|id="stv-queue"|stv-queue-tease|SWAPP TV \/ CREATOR ACCESS|ENTRE DANS/);
+ assert.doesNotMatch(html,/id="stv-queue-list"|class="stv-bottom"|id="stv-queue"|stv-queue-tease|SWAPP TV \/ CREATOR ACCESS|ENTRE DANS|Retour à la TV|id="stv-dock-close"/);
  assert.doesNotMatch(html,/class="stv-footer"/);
 });
 test('public programme remains on the TV programme route and not inside broadcast screen',()=>{
@@ -44,7 +44,7 @@ test('TV uses mini programme tab and side-by-side desktop chat',()=>{
  const html=page('tv'),css=read('assets/swapp-program.css'),js=read('assets/swapp-tv-broadcast.js');
  const dockTop=html.indexOf('class="stv-dock-top"');
  const programme=html.indexOf('id="stv-program-open"');
- assert.ok(dockTop>0&&programme>dockTop&&programme<html.indexOf('id="stv-dock-close"'));
+ assert.ok(dockTop>0&&programme>dockTop&&programme<html.indexOf('id="stv-pane-queue"'));
  assert.match(html,/id="stv-program-open"[^>]*>Agenda<\/button>/);
  assert.doesNotMatch(html,/id="stv-dock-close"[^>]*>✕|id="stv-program-close"[^>]*>✕/);
  assert.match(html,/id="stv-dialog-title">Agenda de la chaîne<\/strong>/);

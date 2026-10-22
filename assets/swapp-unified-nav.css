@@ -1,3 +1,5 @@
+/* One global accent token: SPA owns --brand; native routes restore its saved value. */
+:root{--swapp-page-accent:var(--brand,#22d3ee);--swapp-side-light:var(--swapp-page-accent)}
 /* Canonical SWAPP navigation shared by the streaming SPA and the editorial routes. */
 /* Canonical fixed header: body owns the offset, so scrolling cannot hide navigation. */
 body{padding-top:68px;scroll-padding-top:68px}

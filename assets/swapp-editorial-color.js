@@ -1,4 +1,4 @@
-/* SWAPP article pages share the SAME user's background-light choice as SPA.
+/* All SWAPP native pages share the SAME user's global accent choice as the SPA.
  * The home page stores it under oryon_viewer_accent. Never mutate storage here.
  * The reader's brand colors and partner purchase actions remain unchanged.
  */
@@ -16,6 +16,7 @@
   }catch(_){}
   root.style.setProperty('--swapp-light-accent',chosen);
   root.style.setProperty('--swapp-side-light',chosen);
+  root.style.setProperty('--swapp-page-accent',chosen);
   root.classList.add('swapp-editorial-theme');
  };
  // Apply before body paints: the native article does not load the SPA's JS.

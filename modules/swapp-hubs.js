@@ -9,7 +9,7 @@ const path=require('node:path');
 const {CATEGORIES,demoProducts,normalizeAll}=require('./swapp-shop-catalog');
 const {isAmazonLink,amazonDisclosure}=require('../assets/swapp-article-extras');
 const assets='<link rel="stylesheet" href="/assets/swapp-hubs.css?v=20261015-hubs-3">';
-const pageColors='<link rel="stylesheet" href="/assets/swapp-page-colors.css?v=20261017-appearance-v2"><script defer src="/assets/swapp-page-colors.js?v=20261017-appearance-v2"></script>';
+
 function heading(kicker,title,subtitle){
  return '<header class="swapp-hub-head"><span class="swapp-hub-eyebrow">'+e(kicker)+'</span><h1>'+e(title)+'</h1><p>'+e(subtitle)+'</p></header>';
 }
@@ -39,7 +39,7 @@ function community(){
     '<p id="swapp-social-session-error" role="status" hidden></p>'+
     '<small>Authentification commune à tout SWAPP. Les publications et messages nécessitent un compte connecté.</small>'+
    '</div></div></div>';
- const scripts=assets+pageColors+'<link rel="stylesheet" href="/assets/swapp-social-access.css?v=20261022-one-account-v1"><script defer src="/assets/swapp-social-access.js?v=20261022-one-account-v1"></script>'+
+ const scripts=assets+'<link rel="stylesheet" href="/assets/swapp-social-access.css?v=20261022-one-account-v1"><script defer src="/assets/swapp-social-access.js?v=20261022-one-account-v1"></script>'+
   '<link rel="stylesheet" href="/assets/swapp-social-native/social-swapp.css?v=20261022-quoted-reposts-v1">'+
   '<link rel="stylesheet" href="/assets/swapp-social-refinement.css?v=20261016-stories-search-v5">'+
   '<script defer src="/assets/swapp-social-reading.js?v=20261016-stories-search-v6"></script>'+
@@ -198,7 +198,7 @@ function shop(_products=demoProducts,{source:_source='demo'}={}){
   title:'Boutique — Sélection SWAPP du 16 octobre 2026',
   description:'Sélection SWAPP datée du 16 octobre 2026 avec liens vers Steam. Prix et classement non synchronisés.',
   content,active:'shop',
-  scripts:assets+pageColors+
+  scripts:assets+
    '<link rel="stylesheet" href="/assets/swapp-editorial-top.css?v=20261017-top10-only-v20">'
  });
 }

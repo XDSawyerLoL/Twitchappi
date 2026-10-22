@@ -32,13 +32,14 @@ test('both chats use genuine first-party and Twitch channels',()=>{
  assert.match(server,/social_origin_required/);
  assert.match(server,/swapp_account_required/);
 });
-test('TV and programme load the existing SWAPP theme picker',()=>{
- const picker=read('assets/swapp-page-colors.js'),css=read('assets/swapp-program.css');
- assert.match(picker,/swapp-tv-accent-v1/);
- assert.match(picker,/\.stv-mast,\.scal-head/);
- assert.match(picker,/tv\.append\(host\)/);
+test('TV and programme inherit the single global SWAPP accent without local picker',()=>{
+ const css=read('assets/swapp-program.css'),shell=read('modules/swapp-news/site-shell.js');
  assert.match(css,/--tv-accent:var\(--swapp-page-accent,#22d3ee\)/);
- for(const html of [page('tv'),page('agenda')])assert.match(html,/swapp-page-colors\.js\?v=20261022-tv-theme-v1/);
+ assert.match(shell,/swapp-editorial-color\.js/);
+ for(const html of [page('tv'),page('agenda')]){
+  assert.match(html,/swapp-program\.css/);
+  assert.doesNotMatch(html,/swapp-page-colors\.js|stv-dock-close/);
+ }
 });
 test('SWAPP chat permits public reading but protects all writes',async()=>{
  const server=read('server.js'),start=server.indexOf('// SWAPP TV discussion is one permanent public room'),end=server.indexOf('// Opt-in Fair Discovery pilot:',start);

@@ -20,6 +20,7 @@ test('native article restores the exact SWAPP homepage user accent without chang
  const app=run('#fb923c');
  assert.equal(app.vars.get('--swapp-side-light'),'#fb923c');
  assert.equal(app.vars.get('--swapp-light-accent'),'#fb923c');
+ assert.equal(app.vars.get('--swapp-page-accent'),'#fb923c');
  assert.ok(app.classes.has('swapp-editorial-theme'));
  assert.equal(app.vars.has('--brand'),false);
 });
@@ -33,6 +34,7 @@ test('updates from any SWAPP tab propagate on storage event and bfcache restore'
  app.storage.set('oryon_viewer_accent','#60a5fa');
  app.events.storage({key:'oryon_viewer_accent'});
  assert.equal(app.vars.get('--swapp-side-light'),'#60a5fa');
+ assert.equal(app.vars.get('--swapp-page-accent'),'#60a5fa');
  app.storage.set('oryon_viewer_accent','#22d3ee');
  app.events.pageshow({});
  assert.equal(app.vars.get('--swapp-side-light'),'#22d3ee');
@@ -40,9 +42,9 @@ test('updates from any SWAPP tab propagate on storage event and bfcache restore'
 test('native layout loads color before the body and article CSS does not tint actual player',()=>{
  const html=read('modules/swapp-news/site-shell.js');
  const css=read('assets/swapp-article-immersive.css');
- assert.match(html,/swapp-editorial-color\.js\?v=20261019-native-colors-v1/);
- assert.match(html,/swapp-article-immersive\.css\?v=20261019-native-colors-v8/);
- assert.ok(html.indexOf('swapp-editorial-color.js?v=20261019-native-colors-v1')<html.indexOf('</head><body'));
+ assert.match(html,/swapp-editorial-color\.js\?v=20261022-global-color-v1/);
+ assert.match(html,/swapp-article-immersive\.css\?v=20261021-compact-reading-v1/);
+ assert.ok(html.indexOf('swapp-editorial-color.js?v=20261022-global-color-v1')<html.indexOf('</head><body'));
  assert.match(css,/html\.swapp-editorial-theme body\.swapp-editorial-route \.article-wrap/);
  assert.match(css,/color-mix\(in srgb,var\(--swapp-side-light,#22d3ee\) 26%,transparent\)/);
  assert.doesNotMatch(src,/setItem\(/);

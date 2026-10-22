@@ -100,7 +100,7 @@ programmeTrigger?.addEventListener('click',()=>{
 $('stv-program-close')?.addEventListener('click',()=>programme?.close());
 programme?.addEventListener('close',()=>{programmeTrigger?.setAttribute('aria-expanded','false');programmeTrigger?.focus();});
 programme?.addEventListener('click',e=>{if(e.target===programme)programme.close()});
-const dock=$('stv-dock'),dockToggle=$('stv-dock-toggle'),dockClose=$('stv-dock-close'),dockScrim=$('stv-dock-scrim');
+const dock=$('stv-dock'),dockToggle=$('stv-dock-toggle'),dockScrim=$('stv-dock-scrim');
 const dockMobile=window.matchMedia('(max-width:720px)');
 const tabs=[
  {kind:'twitch',tab:$('stv-tab-twitch'),pane:$('stv-pane-twitch')},
@@ -125,7 +125,6 @@ dockToggle.addEventListener('click',()=>{
  dock.classList.toggle('is-open');synchronizeDock();
  if(dock.classList.contains('is-open'))tabs.find(x=>x.kind===activeDock)?.tab.focus();
 });
-dockClose.addEventListener('click',closeDock);
 dockScrim.addEventListener('click',closeDock);
 document.addEventListener('keydown',e=>{
  if(e.key==='Escape'&&dock.classList.contains('is-open'))closeDock();
