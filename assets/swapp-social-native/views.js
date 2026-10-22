@@ -69,7 +69,7 @@ export function setView(view,title){
     });
   }
   dom.composer.hidden=view!=='home'||state.feed==='news';
-  dom.welcome.hidden=view!=='home'||state.feed==='news'||!!state.user;
+  dom.welcome.hidden=true;
   const stories=document.getElementById('swapp-social-stories');
   if(stories)stories.hidden=view!=='home'||state.feed==='news'||
     !document.getElementById('swapp-social-stories-track')?.children.length;
