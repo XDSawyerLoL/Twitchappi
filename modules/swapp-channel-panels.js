@@ -9,7 +9,7 @@ const clamp=(n,fallback=50)=>Number.isFinite(Number(n))?Math.min(100,Math.max(0,
 const choice=(value,allowed,fallback)=>allowed.includes(value)?value:fallback;
 function normalizePanel(v,index=0){
  const panel=v&&typeof v==='object'?v:{};
- const image=String(panel.image_url||panel.image||'').trim().slice(0,1200000);
+ const image=String(panel.image_url||panel.image||'').trim().slice(0,1750000);
  if(!image)return null;
  return {
   image_url:image,
