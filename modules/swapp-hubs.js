@@ -17,7 +17,7 @@ function community(){
  // The actual SOCIAL user interface is vendored from Quantic Sillage.
  // SWAPP renders it directly inside the canonical site shell, not as an iframe.
  const socialBody=fs.readFileSync(path.join(__dirname,'../assets/swapp-social-native/social-body.html'),'utf8');
- const content='<div id="swapp-social-access" class="swapp-social-access is-pending" aria-label="SWAPP SOCIAL">'+
+ const content='<div id="swapp-social-access" class="swapp-social-access is-guest" aria-label="SWAPP SOCIAL">'+
   '<div class="swapp-social-access-content">'+socialBody+'</div>'+
   '<div class="swapp-social-access-gate" role="dialog" aria-modal="true" aria-labelledby="swapp-social-auth-title" hidden>'+
    '<div class="swapp-social-access-copy"><span>COMPTE SWAPP</span><h2 id="swapp-social-auth-title">Connecte-toi à SWAPP.</h2>'+
