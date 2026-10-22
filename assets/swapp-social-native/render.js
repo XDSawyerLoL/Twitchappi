@@ -45,6 +45,7 @@ export function renderPost(post){
       '<div class="pulse-actions">'+
         '<button class="pulse-action" data-action="reply" aria-label="Répondre" title="Répondre">'+icon('pi-reply')+'<span class="pulse-action-name">Répondre</span><span class="pulse-action-count">'+Number(post.counts?.replies||0)+'</span></button>'+
         '<button class="pulse-action '+(reposted?'active':'')+'" data-action="repost" aria-label="Reposter" aria-pressed="'+String(Boolean(reposted))+'" title="Relayer cette publication">'+icon('pi-relay')+'<span class="pulse-action-name">Relayer</span><span class="pulse-action-count">'+Number(post.counts?.reposts||0)+'</span></button>'+
+        '<button class="pulse-action" data-action="quote" aria-label="Reposter avec commentaire" title="Citer cette publication en ajoutant un commentaire">'+icon('pi-reply')+'<span class="pulse-action-name">Citer</span></button>'+
         '<button class="pulse-action '+(liked?'liked':'')+'" data-action="like" aria-label="J’aime" aria-pressed="'+String(Boolean(liked))+'" title="Aimer cette publication">'+icon('pi-pulse','pi-pulse')+'<span class="pulse-action-name">J’aime</span><span class="pulse-action-count">'+Number(post.counts?.likes||0)+'</span></button>'+
         '<button class="pulse-action '+(bookmarked?'active':'')+'" data-action="bookmark" aria-label="Enregistrer" aria-pressed="'+String(Boolean(bookmarked))+'" title="Enregistrer">'+icon('pi-bookmark')+'</button>'+
         '<button class="pulse-action" data-action="share" aria-label="Partager" title="Partager">'+icon('pi-share')+'</button>'+
