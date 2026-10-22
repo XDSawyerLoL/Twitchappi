@@ -39,7 +39,6 @@ function page(kind){
       <button type="button" id="stv-tab-queue" role="tab" aria-selected="false" aria-controls="stv-pane-queue" tabindex="-1">File <span id="stv-queue-count" class="stv-queue-count"></span></button>
      </div>
      <button type="button" class="stv-programme-link" id="stv-program-open" aria-haspopup="dialog" aria-controls="stv-program-dialog" title="Voir les rendez-vous de la chaîne">Agenda</button>
-     <button type="button" id="stv-dock-close" aria-label="Retour au direct" title="Retour au direct"><span aria-hidden="true">←</span> Retour à la TV</button>
     </div>
     <div id="stv-pane-queue" class="stv-dock-queue" role="tabpanel" aria-labelledby="stv-tab-queue" hidden>
     <div class="stv-rail-head">
@@ -84,8 +83,6 @@ function page(kind){
   </dialog>
  </main>`:calendar;
  return layout({title:tv?'SWAPP TV — La chaîne du Game Universe':'Programme SWAPP TV',description:tv?'La chaîne gaming collective, découverte équitable et directs vérifiés':'Agenda des rendez-vous Spotlight SWAPP',content,active:tv?'tv':'agenda',extraCss:PROGRAM_CSS,scripts:'<link rel="stylesheet" href="/assets/swapp-program.css?v=20261022-tv-side-dock-v7">'+
-  '<link rel="stylesheet" href="/assets/swapp-page-colors.css?v=20261022-tv-theme-v1">'+
-  '<script defer src="/assets/swapp-page-colors.js?v=20261022-tv-theme-v1"></script>'+
   (tv?'<script defer src="/assets/swapp-tv-broadcast.js?v=20261022-tv-side-dock-v7"></script>':'')+
   '<script defer src="/assets/swapp-calendar.js?v=20261021-calendar-health-v2"></script>'});
 }
