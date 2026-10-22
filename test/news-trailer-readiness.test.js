@@ -1,0 +1,22 @@
+'use strict';
+const test=require('node:test');
+const assert=require('node:assert/strict');
+const vm=require('node:vm');
+const fs=require('node:fs');
+test('the official poster remains until YouTube confirms playback, including load failures',()=>{
+ const windowEvents={},frameEvents={},classes=new Set();
+ let frame;
+ const poster={src:'https://img.youtube.com/vi/YLaTMaSX4ZE/hqdefault.jpg',addEventListener(){}};
+ const scene={isConnected:true,parentElement:{querySelector:()=>({})},getAttribute:n=>n==='data-swapp-trailer-id'?'YLaTMaSX4ZE':'Serious Sam',querySelector:()=>poster,append:f=>{frame=f},classList:{add:x=>classes.add(x),remove:x=>classes.delete(x),toggle:(x,on)=>on?classes.add(x):classes.delete(x)}};
+ const document={readyState:'complete',hidden:false,querySelectorAll:()=>[scene],addEventListener(){},createElement:()=>({setAttribute(){},addEventListener:(n,fn)=>{frameEvents[n]=fn},contentWindow:{postMessage(){}},remove(){}})};
+ const window={location:{origin:'https://swapp.tv'},addEventListener:(n,fn)=>{windowEvents[n]=fn}};
+ vm.runInNewContext(fs.readFileSync(require.resolve('../assets/swapp-article-trailer-bg'),'utf8'),{window,document,WeakSet,Set});
+ frameEvents.load();
+ assert.equal(classes.has('is-trailer-playing'),false);
+ windowEvents.message({source:frame.contentWindow,origin:'https://evil.example',data:{event:'infoDelivery',info:{playerState:1}}});
+ assert.equal(classes.has('is-trailer-playing'),false);
+ windowEvents.message({source:frame.contentWindow,origin:'https://www.youtube-nocookie.com',data:{event:'infoDelivery',info:{playerState:1}}});
+ assert.equal(classes.has('is-trailer-playing'),true);
+ windowEvents.message({source:frame.contentWindow,origin:'https://www.youtube-nocookie.com',data:{event:'onError',info:100}});
+ assert.equal(classes.has('is-trailer-playing'),false);
+});
