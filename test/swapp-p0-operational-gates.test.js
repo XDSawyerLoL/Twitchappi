@@ -5,7 +5,7 @@ const read=file=>fs.readFileSync(path.join(__dirname,'..',file),'utf8');
 const clean={
  release:{service:'swapp',complete:true,fingerprint:'a'.repeat(64)},
  accounts:{mysql:true,persistence:'mysql:swapp_oryon_accounts',users:2},
- social:{active_backend:'mysql',mysql_reachable:true,snapshot_present:true,snapshot_type:'fresh',fresh_auto_init_requested:false,fresh_start_approved:false,writes_frozen:false},
+ social:{active_backend:'mysql',mysql_reachable:true,snapshot_present:true,snapshot_type:'fresh',fresh_auto_init_requested:false,fresh_bootstrap_authorized:false,writes_frozen:false},
  tv:{enabled:true,director_enabled:true,waiting:[]},
  spotlight:{enabled:true,accounts_mysql:true},
  editorial:{releaseCount:6,editableCount:6},
@@ -32,7 +32,7 @@ test('real production-like Firestore and paused TV + Spotlight are blocked',()=>
  assert.match(r.statuses.find(s=>s.key==='spotlight').action,/SWAPP_SPOTLIGHT_ENABLED/);
 });
 test('SOCIAL can be live while temporary bootstrap permissions still need disabling',()=>{
- const r=evaluate({...clean,social:{...clean.social,fresh_auto_init_requested:true,fresh_start_approved:true}});
+ const r=evaluate({...clean,social:{...clean.social,fresh_auto_init_requested:true,fresh_bootstrap_authorized:true}});
  const social=r.statuses.find(s=>s.key==='social');
  assert.equal(social.ok,false);
  assert.equal(social.live,true);
