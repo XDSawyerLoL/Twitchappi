@@ -10,6 +10,8 @@ const state={queue:null,selection:null,playing:null,discovery:[],index:0,consent
 const setText=(id,text)=>{$(id).textContent=text};
 function renderQueue(data){
  const waiting=Array.isArray(data.waiting)?data.waiting:[],enabled=Boolean(data.enabled);
+ const access=$('stv-creator-access');
+ if(access){access.hidden=!enabled;if(!enabled)access.open=false;}
  $('stv-join').disabled=!enabled||!state.games.length;
  $('stv-leave').disabled=!enabled;
  setText('stv-queue-status',!enabled?'La file n’est pas ouverte actuellement.':
