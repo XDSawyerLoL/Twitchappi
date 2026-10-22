@@ -14,6 +14,8 @@ export function renderPost(post){
   const bookmarked=post.viewer?.bookmarked;
   const ownPost=Boolean(post.viewer?.canDelete||(state.user?.id&&String(user.id)===String(state.user.id)));
   const isNewsRelay=Boolean(post.linkUrl&&post.linkTitle);
+  const isGif=post.mediaType==='gif';
+  const gifIsGiphy=/^https:\/\/media\d*\.giphy\.com\//i.test(String(post.mediaUrl||''));
   // Previous RSS relays stored an extra `Source : ...` line. Keep ordinary posts untouched.
   const rawBody=String(post.body||'').trim();
   const cleanBody=isNewsRelay?rawBody.replace(/(?:\n\s*){1,3}Source\s*:\s*[^\n]{1,130}\s*$/i,'').trim():rawBody;
@@ -31,10 +33,10 @@ export function renderPost(post){
     '<strong>'+esc(linkTitle||'Découvrir cet article')+'</strong>'+
     '<span class="pulse-rich-host">'+esc(hostname||'Voir le lien')+'</span></div>';
   if(imageUrl){
-    const image='<img src="'+esc(imageUrl)+'" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">';
+    const image='<img src="'+esc(imageUrl)+'" alt="'+(isGif?'GIF animé':'')+'" loading="lazy" decoding="async" referrerpolicy="no-referrer">';
     media=linkUrl
       ? '<a class="pulse-rich-card pulse-rich-link-preview" href="'+esc(linkUrl)+'" target="_blank" rel="noopener noreferrer">'+image+previewText+'</a>'
-      : '<div class="pulse-rich-card pulse-rich-media">'+image+(post.mediaType==='gif'?'<div><strong>GIF</strong></div>':'')+'</div>';
+      : '<div class="pulse-rich-card pulse-rich-media'+(isGif?' pulse-gif-post':'')+'">'+image+(gifIsGiphy?'<a class="pulse-gif-post-credit" href="https://giphy.com" target="_blank" rel="noopener noreferrer">Powered by GIPHY</a>':'')+'</div>';
   }else if(linkUrl){
     media='<a class="pulse-rich-card pulse-rich-link-preview pulse-rich-text-preview" href="'+esc(linkUrl)+'" target="_blank" rel="noopener noreferrer">'+previewText+'</a>';
   }
@@ -56,7 +58,7 @@ export function renderPost(post){
       '<div class="pulse-post-head"><button data-profile="'+esc(user.handle)+'">'+esc(user.displayName||user.handle)+'</button>'+(user.verified?'<span class="pulse-badge" title="Compte vérifié">'+icon('pi-verified')+'</span>':'')+'<span>@'+esc(user.handle)+' · '+esc(timeAgo(post.createdAt))+'</span>'+
       (ownPost?'<button type="button" class="pulse-post-delete" data-action="delete" aria-label="Supprimer ma publication" title="Supprimer cette publication">'+icon('pi-trash')+'</button>':'')+'</div>'+
       (isNewsRelay?'<small class="pulse-relay-context">'+icon('pi-relay')+' Actualité partagée</small>':'')+
-      (hideDuplicateTitle?'':'<p class="pulse-post-body">'+esc(cleanBody)+'</p>')+media+quote+
+      (hideDuplicateTitle||!cleanBody?'':'<p class="pulse-post-body">'+esc(cleanBody)+'</p>')+media+quote+
       '<div class="pulse-actions">'+
         '<button class="pulse-action" data-action="reply" aria-label="Répondre" title="Répondre">'+icon('pi-reply')+'<span class="pulse-action-name">Répondre</span><span class="pulse-action-count">'+Number(post.counts?.replies||0)+'</span></button>'+
         '<button class="pulse-action '+(reposted?'active':'')+'" data-action="repost" aria-label="'+(reposted?'Annuler mon relais':'Relayer')+'" aria-pressed="'+String(Boolean(reposted))+'" title="'+(reposted?'Retirer mon relais':'Relayer cette publication')+'">'+icon('pi-relay')+'<span class="pulse-action-name">'+(reposted?'Annuler relais':'Relayer')+'</span><span class="pulse-action-count">'+Number(post.counts?.reposts||0)+'</span></button>'+

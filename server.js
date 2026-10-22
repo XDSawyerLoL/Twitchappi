@@ -885,6 +885,8 @@ const staticOptions = {
   }
 };
 // SOCIAL write actions use a dedicated origin-pinned, no-cookie bridge.
+// Native responsive GIF picker comes first; it needs no login or paid API.
+require('./modules/swapp-social-gifs').registerSocialGifs(app);
 const {createSocialRouter}=require('./modules/swapp-social-actions');
 app.use('/api/swapp/social',authLimiter,createSocialRouter({express,fetchImpl:fetchWithTimeout,isProd:IS_PROD}));
 
