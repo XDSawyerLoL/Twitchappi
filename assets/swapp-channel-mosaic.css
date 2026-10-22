@@ -290,3 +290,34 @@ body.swapp-mosaic-dialog-open{overflow:hidden;}
   grid-template-columns:1fr!important;
  }
 }
+
+/* Recover and publish legacy locally stored panels without an oversized admin card. */
+#channel .creatorRefine.swapp-channel-mosaic .swapp-panel-recovery{
+ display:flex;align-items:center;gap:11px;flex-wrap:wrap;
+ padding:11px 0 16px;margin:0 0 13px;
+ border-bottom:1px solid rgba(255,255,255,.14);
+ color:#e4e9f0;font-size:12px;line-height:1.5;
+}
+#channel .creatorRefine.swapp-channel-mosaic .swapp-panel-recovery[hidden]{display:none!important;}
+#channel .creatorRefine.swapp-channel-mosaic .swapp-panel-recovery strong{
+ color:var(--channel-accent,var(--swapp-page-accent,#b9dae4));font-weight:790;
+}
+#channel .creatorRefine.swapp-channel-mosaic .swapp-panel-recovery p{
+ margin:0;color:#bfc7d2;flex:1 1 250px;
+}
+#channel .creatorRefine.swapp-channel-mosaic .swapp-panel-recovery span{
+ color:#e4e8ed;flex:1 1 250px;
+}
+#channel .creatorRefine.swapp-channel-mosaic .swapp-panel-recovery[data-ok="false"] span{color:#ffaca8;}
+#channel .creatorRefine.swapp-channel-mosaic .swapp-panel-recovery button{
+ border:1px solid rgba(255,255,255,.18);border-radius:8px;min-height:38px;
+ background:rgba(255,255,255,.075);color:#f4f5f9;
+ padding:7px 11px;font-weight:700;font-size:12px;
+}
+#channel .creatorRefine.swapp-channel-mosaic #channelAboutSection .aboutMain{
+ width:100%!important;max-width:none!important;
+ grid-column:1/-1!important;
+}
+#channel .creatorRefine.swapp-channel-mosaic #channelAboutSection.aboutComposite{
+ grid-template-columns:minmax(0,1fr)!important;
+}

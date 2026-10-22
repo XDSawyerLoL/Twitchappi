@@ -51,6 +51,38 @@ function createMysqlAccountsRecovery({isReady,load,now=Date.now,retryDelayMs=500
 }
 function createMysqlAccountsStore({uri,pool,mysqlFactory}={}){
  let client=pool||null,initPromise=null,queue=Promise.resolve(),ready=false;
+ // Public creator media are blobs in MySQL, never giant data URLs in account JSON.
+ let panelInitPromise=null;
+ async function ensurePanelTable(){
+  await ensure();
+  if(!panelInitPromise){
+   const {DDL:panelDdl}=require('./swapp-channel-panel-media');
+   panelInitPromise=client.query(panelDdl).catch(error=>{panelInitPromise=null;throw error});
+  }
+  await panelInitPromise;
+ }
+ async function savePanelImage(ownerId,dataUrl){
+  if(!/^[a-zA-Z0-9_-]{3,80}$/.test(String(ownerId||'')))throw Error('invalid_panel_owner');
+  const {panelImagePayload}=require('./swapp-channel-panel-media');
+  const image=panelImagePayload(dataUrl);
+  await ensurePanelTable();
+  await client.execute(
+   'INSERT IGNORE INTO swapp_channel_panel_images (owner_id,image_hash,mime,image_data,created_at) VALUES (?,?,?,?,?)',
+   [ownerId,image.hash,image.mime,image.bytes,Date.now()]
+  );
+  return {hash:image.hash,mime:image.mime};
+ }
+ async function getPanelImage(ownerId,hash){
+  if(!/^[a-zA-Z0-9_-]{3,80}$/.test(String(ownerId||''))||!/^[0-9a-f]{64}$/.test(String(hash||'')))return null;
+  await ensurePanelTable();
+  const [rows]=await client.execute(
+   'SELECT mime,image_data FROM swapp_channel_panel_images WHERE owner_id=? AND image_hash=? LIMIT 1',
+   [ownerId,hash]
+  );
+  const row=rows?.[0];
+  return row?{mime:String(row.mime),bytes:row.image_data}:null;
+ }
+
  async function ensure(){
   if(!initPromise){
    initPromise=(async()=>{
@@ -120,6 +152,6 @@ function createMysqlAccountsStore({uri,pool,mysqlFactory}={}){
   await next;
   return {mysql:true,persistence:'mysql:swapp_oryon_accounts',users:records.length};
  }
- return {ensure,load,save,get ready(){return ready}};
+ return {ensure,load,save,savePanelImage,getPanelImage,get ready(){return ready}};
 }
 module.exports={createMysqlAccountsStore,createMysqlAccountsRecovery,accountRow,validateUri,DDL};
