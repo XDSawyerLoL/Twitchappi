@@ -50,7 +50,7 @@
    if(source&&!out.includes(source))out.push(source);
   }
   const id=trailerId(article?.trailerUrl);
-  if(id)out.push('https://i.ytimg.com/vi/'+id+'/hqdefault.jpg');
+  if(id)out.push('https://i.ytimg.com/vi/'+id+'/hqdefault.jpg','https://img.youtube.com/vi/'+id+'/hqdefault.jpg');
   return [...new Set(out)];
  }
  function isGameArticle(article){
@@ -188,6 +188,23 @@
   }finally{button.disabled=false}
  }
  if(typeof document!=='undefined'){
+  // YouTube's alternate thumbnail host serves the same official video image.
+  // Recover failed SSR posters and dynamically inserted RSS cards once,
+  // without rehosting media or substituting another game's artwork.
+  function recoverYouTubeThumbnail(img){
+   if(!img||img.tagName!=='IMG')return;
+   let url;try{url=new URL(String(img.src||''))}catch(_){return;}
+   if(url.protocol!=='https:'||url.hostname!=='i.ytimg.com'||
+      !/^\/vi\/[A-Za-z0-9_-]{11}\/[A-Za-z0-9_-]+\.jpg$/.test(url.pathname))return;
+   url.hostname='img.youtube.com';
+   img.src=url.href;
+  }
+  document.addEventListener('error',event=>recoverYouTubeThumbnail(event.target),true);
+  const recoverInitialThumbnails=()=>document.querySelectorAll('img').forEach(img=>{
+   if(img.complete&&img.naturalWidth===0)recoverYouTubeThumbnail(img);
+  });
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',recoverInitialThumbnails,{once:true});
+  else recoverInitialThumbnails();
   document.addEventListener('click',event=>{
    const target=event.target;
    const share=target.closest?.('[data-swapp-article-share]');
@@ -198,3 +215,4 @@
  }
  return Object.freeze({trailerId,heroTrailerId,isGameArticle,cardImageSources,commercialLinks,partnerOffersHtml,isAmazonLink,amazonDisclosure,renderServer,mount});
 });
+
