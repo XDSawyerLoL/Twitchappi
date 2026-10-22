@@ -59,6 +59,8 @@ const RELEASE_FILES=Object.freeze([
  'assets/swapp-channel-mosaic.css',
  'assets/swapp-channel-mosaic.js',
  'modules/swapp-channel-panels.js',
+ 'modules/swapp-channel-panel-media.js',
+ 'modules/swapp-oryon-mysql-accounts.js',
  'modules/swapp-news/game-identity.js',
  'modules/swapp-news/content-metadata.js',
  'assets/swapp-live-curation.js',
