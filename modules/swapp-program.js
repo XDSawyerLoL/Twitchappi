@@ -42,7 +42,7 @@ function page(kind){
      <div id="stv-next-list"><p>Le programme est en préparation.</p></div>
     </div>
     <details id="stv-creator-access" class="stv-creator-inline">
-     <summary><span class="stv-creator-summary-icon" aria-hidden="true">＋</span><span>Je suis créateur <small>Rejoindre la file SWAPP TV</small></span><span class="stv-creator-chevron" aria-hidden="true">⌄</span></summary>
+     <summary><span class="stv-creator-summary-icon" aria-hidden="true">＋</span><span>Je suis créateur <small id="stv-creator-hint">Rejoindre la file SWAPP TV</small></span><span class="stv-creator-chevron" aria-hidden="true">⌄</span></summary>
      <div class="stv-creator-content">
       <p>Compte SWAPP et Twitch lié requis. Le jeu doit être couvert par la rédaction. L'inscription ne garantit pas un passage à l'antenne.</p>
       <label for="stv-game">Jeu diffusé</label>
