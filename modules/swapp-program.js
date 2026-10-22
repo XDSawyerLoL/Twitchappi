@@ -18,7 +18,6 @@ function page(kind){
  const content=tv?`<main id="swapp-tv" class="stv" aria-label="SWAPP TV">
   <header class="stv-mast">
    <div class="stv-brand"><span class="stv-brandline">SWAPP / GAME UNIVERSE</span><strong>SWAPP TV</strong><span class="stv-station-label">LA CHAÎNE</span></div>
-   <button type="button" class="stv-programme-link" id="stv-program-open" aria-haspopup="dialog" aria-controls="stv-program-dialog">Programme de la chaîne <span aria-hidden="true">▦</span></button>
   </header>
   <section class="stv-broadcast" aria-labelledby="stv-heading">
    <div class="stv-stage">
@@ -39,6 +38,7 @@ function page(kind){
       <button type="button" id="stv-tab-swapp" role="tab" aria-selected="false" aria-controls="stv-pane-swapp" tabindex="-1">SWAPP</button>
       <button type="button" id="stv-tab-queue" role="tab" aria-selected="false" aria-controls="stv-pane-queue" tabindex="-1">File <span id="stv-queue-count" class="stv-queue-count"></span></button>
      </div>
+     <button type="button" class="stv-programme-link" id="stv-program-open" aria-haspopup="dialog" aria-controls="stv-program-dialog" aria-label="Ouvrir le programme SWAPP TV" title="Programme de la chaîne"><span aria-hidden="true">▦</span></button>
      <button type="button" id="stv-dock-close" aria-label="Fermer les tchats" title="Fermer">✕</button>
     </div>
     <div id="stv-pane-queue" class="stv-dock-queue" role="tabpanel" aria-labelledby="stv-tab-queue" hidden>
@@ -83,10 +83,10 @@ function page(kind){
    ${calendar.replace(/^<main/,'<section').replace(/<\/main>$/,'</section>')}
   </dialog>
  </main>`:calendar;
- return layout({title:tv?'SWAPP TV — La chaîne du Game Universe':'Programme SWAPP TV',description:tv?'La chaîne gaming collective, découverte équitable et directs vérifiés':'Agenda des rendez-vous Spotlight SWAPP',content,active:tv?'tv':'agenda',extraCss:PROGRAM_CSS,scripts:'<link rel="stylesheet" href="/assets/swapp-program.css?v=20261022-tv-side-dock-v5">'+
+ return layout({title:tv?'SWAPP TV — La chaîne du Game Universe':'Programme SWAPP TV',description:tv?'La chaîne gaming collective, découverte équitable et directs vérifiés':'Agenda des rendez-vous Spotlight SWAPP',content,active:tv?'tv':'agenda',extraCss:PROGRAM_CSS,scripts:'<link rel="stylesheet" href="/assets/swapp-program.css?v=20261022-tv-side-dock-v6">'+
   '<link rel="stylesheet" href="/assets/swapp-page-colors.css?v=20261022-tv-theme-v1">'+
   '<script defer src="/assets/swapp-page-colors.js?v=20261022-tv-theme-v1"></script>'+
-  (tv?'<script defer src="/assets/swapp-tv-broadcast.js?v=20261022-tv-side-dock-v5"></script>':'')+
+  (tv?'<script defer src="/assets/swapp-tv-broadcast.js?v=20261022-tv-side-dock-v6"></script>':'')+
   '<script defer src="/assets/swapp-calendar.js?v=20261021-calendar-health-v2"></script>'});
 }
 module.exports={page};

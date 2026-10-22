@@ -40,6 +40,18 @@ test('creator inline control follows SWAPP styling and supports mobile and keybo
  assert.doesNotMatch(css,/\.stv-queue-tease|\.stv-bottom\{|\.stv-queue-grid|\.stv-queue-panel/);
 });
 
+test('TV uses mini programme tab and side-by-side desktop chat',()=>{
+ const html=page('tv'),css=read('assets/swapp-program.css'),js=read('assets/swapp-tv-broadcast.js');
+ const dockTop=html.indexOf('class="stv-dock-top"');
+ const programme=html.indexOf('id="stv-program-open"');
+ assert.ok(dockTop>0&&programme>dockTop&&programme<html.indexOf('id="stv-dock-close"'));
+ assert.equal((html.match(/id="stv-program-open"/g)||[]).length,1);
+ assert.ok(css.includes('clamp(300px,27vw,365px)!important;align-items:stretch!important'));
+ assert.ok(css.includes('align-self:stretch!important;grid-column:auto!important'));
+ assert.ok(css.includes('@media (max-width:720px){'));
+ assert.ok(!css.includes('@media (max-width:980px){'));
+ assert.ok(js.includes("matchMedia('(max-width:720px)')"));
+});
 test('disabled queue keeps the conductor visible while blocking enrollment',()=>{
  const js=read('assets/swapp-tv-broadcast.js');
  assert.match(js,/access\.hidden=false/);

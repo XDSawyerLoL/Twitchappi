@@ -99,7 +99,7 @@ $('stv-program-open')?.addEventListener('click',()=>{
 $('stv-program-close')?.addEventListener('click',()=>programme?.close());
 programme?.addEventListener('click',e=>{if(e.target===programme)programme.close()});
 const dock=$('stv-dock'),dockToggle=$('stv-dock-toggle'),dockClose=$('stv-dock-close'),dockScrim=$('stv-dock-scrim');
-const dockMobile=window.matchMedia('(max-width:980px)');
+const dockMobile=window.matchMedia('(max-width:720px)');
 const tabs=[
  {kind:'twitch',tab:$('stv-tab-twitch'),pane:$('stv-pane-twitch')},
  {kind:'swapp',tab:$('stv-tab-swapp'),pane:$('stv-pane-swapp')},
