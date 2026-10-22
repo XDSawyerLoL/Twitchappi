@@ -44,7 +44,7 @@ test('TV uses mini programme tab and side-by-side desktop chat',()=>{
  const html=page('tv'),css=read('assets/swapp-program.css'),js=read('assets/swapp-tv-broadcast.js');
  const dockTop=html.indexOf('class="stv-dock-top"');
  const programme=html.indexOf('id="stv-program-open"');
- assert.ok(dockTop>0&&programme>dockTop&&programme<html.indexOf('id="stv-dock-close"'));
+ assert.ok(dockTop>0&&programme>dockTop&&programme<html.indexOf('id="stv-pane-queue"'));
  assert.match(html,/id="stv-program-open"[^>]*>Agenda<\/button>/);
  assert.doesNotMatch(html,/id="stv-dock-close"[^>]*>✕|id="stv-program-close"[^>]*>✕/);
  assert.match(html,/id="stv-dialog-title">Agenda de la chaîne<\/strong>/);
