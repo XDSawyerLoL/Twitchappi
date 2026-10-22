@@ -249,3 +249,78 @@
 #settings .swapp-ops-row small[data-status="ok"]{color:#90d9c4}
 #settings .swapp-ops-row small[data-status="action"]{color:#ffca9d}
 @media(max-width:640px){#settings .swapp-ops-row{grid-template-columns:1fr auto}#settings .swapp-ops-row span{grid-column:1/-1;grid-row:2}}
+
+/* /compte: one compact panel instead of separated activity / shortcuts blocks. */
+#settings .swapp-account-workspace-v2{padding-top:clamp(17px,2.5vw,34px)}
+#settings .swapp-acct-header{padding-bottom:18px}
+#settings .swapp-acct-monogram{width:clamp(49px,5vw,65px);font-size:26px}
+#settings .swapp-acct-identity h1{font-size:clamp(26px,3vw,39px)!important;margin-bottom:5px!important}
+#settings .swapp-acct-kicker{margin-bottom:5px}
+#settings .swapp-acct-nav{gap:clamp(16px,2.5vw,32px)}
+#settings .swapp-acct-nav button{min-height:45px;padding:12px 0 10px!important;font-size:13px}
+#settings .swapp-acct-pane{padding-top:clamp(15px,2.1vw,26px)}
+#settings .swapp-acct-overview-unified{
+ min-width:0;padding:clamp(17px,2.6vw,30px);background:rgba(14,25,40,.7);
+ border:1px solid var(--swapp-workspace-line);border-radius:7px;box-shadow:none
+}
+#settings .swapp-acct-unified-head{display:flex;align-items:center;justify-content:space-between;gap:18px}
+#settings .swapp-acct-unified-head h2{font-size:clamp(20px,2.25vw,28px)!important;letter-spacing:-.045em;margin:0!important}
+#settings .swapp-acct-unified-head>a{font-size:12px;font-weight:750;color:var(--swapp-workspace-accent);white-space:nowrap}
+#settings .swapp-acct-overview-unified .swapp-acct-metrics{
+ display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin:14px 0 0;padding:12px 0 16px;border:0
+}
+#settings .swapp-acct-overview-unified .swapp-acct-metrics>div{
+ display:flex;flex-direction:row;align-items:baseline;justify-content:flex-start;flex-wrap:wrap;gap:8px 12px;
+ padding:5px 16px;border:0;border-right:1px solid var(--swapp-workspace-line)
+}
+#settings .swapp-acct-overview-unified .swapp-acct-metrics>div:first-child{padding-left:0}
+#settings .swapp-acct-overview-unified .swapp-acct-metrics>div:last-child{border-right:0}
+#settings .swapp-acct-overview-unified .swapp-acct-metrics span{font-size:11px}
+#settings .swapp-acct-overview-unified .swapp-acct-metrics strong{font-size:19px;letter-spacing:-.025em}
+#settings .swapp-acct-unified-grid{
+ display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+ gap:clamp(22px,3vw,46px);border-top:1px solid var(--swapp-workspace-line);padding-top:20px
+}
+#settings .swapp-acct-unified-grid>div{min-width:0}
+#settings .swapp-acct-overview-unified .swapp-acct-list-head{padding-bottom:11px}
+#settings .swapp-acct-overview-unified .swapp-acct-list-head h3{font-size:15px!important}
+#settings .swapp-acct-overview-unified .swapp-acct-list-row{padding:12px 0}
+#settings .swapp-acct-unified-links .swapp-acct-quick{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 14px;border:0
+}
+#settings .swapp-acct-unified-links .swapp-acct-quick a{gap:4px;padding:12px 0;min-width:0}
+#settings .swapp-acct-unified-links .swapp-acct-quick a strong{font-size:13px}
+#settings .swapp-acct-unified-links .swapp-acct-quick a span{font-size:11px;line-height:1.4}
+#settings .swapp-acct-overview-unified .swapp-acct-empty{margin:12px 0 0;font-size:12px}
+#settings .swapp-acct-overview-unified .swapp-acct-management{
+ margin-top:14px;padding-top:12px;border-top:1px solid var(--swapp-workspace-line)
+}
+#settings .swapp-acct-overview-unified .swapp-acct-management summary{
+ cursor:pointer;color:var(--swapp-workspace-accent);font-size:12px;font-weight:750;
+ padding:7px 0;list-style-position:inside
+}
+#settings .swapp-acct-overview-unified .swapp-acct-management[open] .swapp-acct-quick{
+ display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0 14px
+}
+#settings .swapp-acct-overview-unified .swapp-acct-management .swapp-acct-quick a{padding:12px 0}
+#settings .swapp-acct-overview-unified .swapp-acct-general-admin{margin-top:10px}
+@media(max-width:880px){
+ #settings .swapp-acct-unified-grid{grid-template-columns:1fr;gap:18px}
+ #settings .swapp-acct-unified-links .swapp-acct-quick{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:760px){
+ #settings .swapp-acct-overview-unified .swapp-acct-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}
+ #settings .swapp-acct-overview-unified .swapp-acct-metrics>div:nth-child(2){border-right:1px solid var(--swapp-workspace-line)}
+ #settings .swapp-acct-overview-unified .swapp-acct-metrics>div:nth-child(3){grid-column:auto;border-top:0;padding-left:12px}
+}
+@media(max-width:480px){
+ #settings .swapp-acct-overview-unified{padding:16px 14px}
+ #settings .swapp-acct-unified-head{align-items:start;flex-wrap:wrap;gap:6px}
+ #settings .swapp-acct-unified-head>a{font-size:11px}
+ #settings .swapp-acct-overview-unified .swapp-acct-metrics>div{display:grid;gap:3px;padding:5px 7px}
+ #settings .swapp-acct-overview-unified .swapp-acct-metrics strong{font-size:17px}
+ #settings .swapp-acct-overview-unified .swapp-acct-metrics span{font-size:10px}
+ #settings .swapp-acct-overview-unified .swapp-acct-metrics>div:nth-child(3){padding-left:7px}
+ #settings .swapp-acct-unified-links .swapp-acct-quick{gap:0 10px}
+ #settings .swapp-acct-overview-unified .swapp-acct-management[open] .swapp-acct-quick{grid-template-columns:1fr}
+}
