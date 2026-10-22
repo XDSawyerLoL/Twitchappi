@@ -32,9 +32,10 @@ function cardContext(creator,live={}){
   ?(title?name+' est en direct : '+title+(game?' · '+game:'')+'. Rejoins le live sur SWAPP.'
    :name+' est en direct sur SWAPP. Rejoins le live maintenant.')
   :(clean(creator?.bio,165)||'Découvre la chaîne, les créations et la communauté de '+name+' sur SWAPP.');
- const raw=JSON.stringify([login,isLive,headline,game,Number(live.startedAt||0),creator?.banner_url?.length||0,
-  creator?.avatar_url?.length||0,creator?.channel_updatedAt||'']);
- const revision=crypto.createHash('sha256').update(raw).digest('hex').slice(0,16);
+ const raw=JSON.stringify([login,isLive,headline,game,Number(live.startedAt||0),creator?.channel_updatedAt||'']);
+ const revision=crypto.createHash('sha256').update(raw)
+  .update(String(creator?.banner_url||'')).update(String(creator?.avatar_url||''))
+  .digest('hex').slice(0,16);
  return {login,name,isLive,status,headline,description:clean(description,220),game,revision,
   image:ORIGIN+'/api/oryon/share-card/'+encodeURIComponent(login)+'?v='+revision,
   url:ORIGIN+'/'+encodeURIComponent(login),title:isLive?name+' est en direct sur SWAPP':name+' · SWAPP'};
