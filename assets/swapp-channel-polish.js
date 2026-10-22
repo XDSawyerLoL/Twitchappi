@@ -62,7 +62,7 @@
    const destinations=[];
    if(p.live)destinations.push({label:'Direct',target:page.querySelector('#channelPlayerTop')});
    if(p.bio)destinations.push({label:'Présentation',target:page.querySelector('#channelBioSection')});
-   if(p.panels||p.links||p.owner)destinations.push({label:p.owner?'Personnalisation':'Liens et panneaux',target:page.querySelector('#channelAboutSection')});
+   if(p.panels||p.links||p.owner)destinations.push({label:'Galerie',target:page.querySelector('#channelAboutSection')});
    nav.replaceChildren();
    for(const item of destinations){
     if(!item.target)continue;
@@ -79,13 +79,10 @@
    if(!nav.childElementCount)nav.hidden=true;
   }
   const bioArea=page.querySelector('#channelBioSection');
-  if(bioArea&&!p.bio){
-   if(p.owner){
-    const h=bioArea.querySelector('h2');if(h)h.textContent='Ta présentation';
-    const t=bioArea.querySelector('p');
-    if(t)t.textContent='Ajoute quelques mots sur ta chaîne dans les réglages de ton profil.';
-   }else bioArea.hidden=true;
-  }else if(bioArea){const h=bioArea.querySelector('h2');if(h)h.textContent='Présentation';}
+  // No empty "Ta présentation" card, even for the owner: profile settings
+  // are already accessible in the header.
+  if(bioArea&&!p.bio)bioArea.hidden=true;
+  else if(bioArea){const h=bioArea.querySelector('h2');if(h)h.textContent='Présentation';}
   const panel=page.querySelector('#channelAboutSection');
   if(panel){
    page.querySelectorAll('.vignetteGrid .vignetteEmpty').forEach(el=>el.hidden=true);
@@ -113,20 +110,25 @@
   }
   const offline=page.querySelector('.offlinePremium');
   if(offline){
+   // The old channel template reuses the header banner as the offline poster
+   // and overlays an enormous avatar. Never compose those unrelated images.
+   const current=typeof state!=='undefined'?state.channelProfile:null;
+   const hasDedicatedArt=!!String(current?.offline_image_url||'').trim();
+   page.dataset.channelOfflineArt=hasDedicatedArt?'true':'false';
+   offline.querySelector('.offlinePremiumAvatar')?.remove();
+   offline.querySelector('.offlineTags')?.remove();
+   if(!hasDedicatedArt)offline.querySelector('.offlinePremiumBg')?.remove();
    const heading=offline.querySelector('h2'),description=offline.querySelector('p');
-   if(heading)heading.textContent='Aucun direct en cours';
-   if(description)description.textContent='Lorsque cette chaîne diffusera, le lecteur apparaîtra ici.';
-   offline.querySelectorAll('.offlineTags span').forEach((el,i)=>{if(i>0&&!p.bio)el.hidden=true;});
-   if(p.owner){
-    // Gestionnaire is already in the primary header actions.
-    offline.querySelector('.offlinePremiumContent > button[onclick*="manager"]')?.remove();
-   }else if(!offline.querySelector('.swapp-channel-explore')){
-    const a=document.createElement('a');
-    a.className='swapp-channel-explore';
-    a.href='/decouvrir';
-    a.textContent='Découvrir les créateurs en direct';
-    offline.querySelector('.offlinePremiumContent')?.appendChild(a);
+   if(heading)heading.textContent='Hors live';
+   if(description){
+    description.textContent=p.owner
+     ?'Ajoute une image hors live dans Modifier profil pour personnaliser ce lecteur.'
+     :'Le lecteur diffusera automatiquement le prochain direct.';
    }
+   // Owner tools and Follow already exist in the header. Keep all stream/chat
+   // transport IDs untouched while removing duplicate offline buttons.
+   offline.querySelector('.offlinePremiumContent > button')?.remove();
+   offline.querySelector('.swapp-channel-explore')?.remove();
   }
  }
  function start(){
