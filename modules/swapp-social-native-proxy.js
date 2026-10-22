@@ -127,23 +127,33 @@ function createSocialNativeProxy(fetchImpl,{production=true,restoreLocalSession=
    }
   }
   const headers={Accept:'application/json'};
+  // Only public GETs are readable anonymously. Messages, notifications, user
+  // preferences and ALL writes continue to require a validated SWAPP session.
+  const publicRead=method==='GET'&&(
+   ['/feed','/search','/circles'].includes(path)||
+   new RegExp('^/posts/[a-zA-Z0-9_-]{3,90}(/replies)?$').test(path)||
+   new RegExp('^/users/[a-z0-9_-]{3,32}$').test(path)
+  );
   let swappUser=null;
   if(sessionSso&&path!=='/health'){
    if(path.startsWith('/auth/'))return res.status(403).json({error:'swapp_account_required'});
-   if(!ssoSecret||ssoSecret.length<24)return res.status(503).json({error:'social_sso_unconfigured'});
    let restoredUser=null;
    try{restoredUser=await restoreLocalSession(req,res)}
-   catch{return res.status(503).json({error:'swapp_session_unavailable'})}
-   // The session restoration helper returns the validated local account.
-   // Do not depend exclusively on a session object that might not yet have been
-   // persisted when the browser immediately opens SOCIAL after login.
+   catch{if(!publicRead)return res.status(503).json({error:'swapp_session_unavailable'})}
    swappUser=req.session?.oryonUser?.id?req.session.oryonUser:restoredUser;
-   if(!swappUser?.id||!swappUser?.login)return res.status(401).json({error:'swapp_account_required'});
-   try{headers.Authorization='Bearer '+await issueSocialToken(req,swappUser)}
-   catch(error){
-    const code=String(error?.message||'');
-    const allowed=['social_identity_conflict','social_sso_unconfigured','social_upstream_rate_limited','social_upstream_unavailable'];
-    return res.status(error.status||503).json({error:allowed.includes(code)?code:'social_sso_unavailable'});
+   if(!swappUser?.id||!swappUser?.login){
+    if(!publicRead)return res.status(401).json({error:'swapp_account_required'});
+   }else if(!ssoSecret||ssoSecret.length<24){
+    if(!publicRead)return res.status(503).json({error:'social_sso_unconfigured'});
+   }else{
+    try{headers.Authorization='Bearer '+await issueSocialToken(req,swappUser)}
+    catch(error){
+     if(!publicRead){
+      const code=String(error?.message||'');
+      const allowed=['social_identity_conflict','social_sso_unconfigured','social_upstream_rate_limited','social_upstream_unavailable'];
+      return res.status(error.status||503).json({error:allowed.includes(code)?code:'social_sso_unavailable'});
+     }
+    }
    }
   }else{
    const bearer=String(req.headers?.authorization||'').match(/^Bearer ([A-Za-z0-9_-]{20,256})$/);
@@ -156,7 +166,7 @@ function createSocialNativeProxy(fetchImpl,{production=true,restoreLocalSession=
   // on the server. Do not expose or trust an arbitrary user-provided account ID.
   const resolveHandle=input=>{
    const handle=String(input||'').trim().toLowerCase().replace(/^@/,'');
-   if(!sessionSso||typeof lookupLocalUser!=='function')return handle;
+   if(!sessionSso||!swappUser||typeof lookupLocalUser!=='function')return handle;
    if(!/^[a-z0-9_-]{3,32}$/.test(handle))return handle;
    const local=lookupLocalUser(handle);
    return local?.id&&local?.login?swappSocialCredentials(local,ssoSecret).handle:handle;

@@ -8,7 +8,7 @@ const {layout}=require('../modules/swapp-news/site-shell');
 const {renderNewsHome,renderNewsStory}=require('../modules/swapp-news/native-pages');
 const {renderTwitchWatch}=require('../modules/swapp-news/watch');
 const ROOT=path.resolve(__dirname,'..');
-const expected=['Accueil','Découvrir','Catégories','Équipes','Actualité','Guides','Social','Boutique','SWAPP TV'];
+const expected=['Accueil','Découvrir','Actualité','Social','Boutique','SWAPP TV'];
 test('même contrat de menu pour toutes les pages SWAPP',()=>{
  assert.deepEqual(items.map(x=>x.label),expected);
  assert.equal(account.label,'Compte');
@@ -38,7 +38,7 @@ test('le serveur utilise la barre et les identifiants exacts du site de lives',(
 test('le site client charge le même contrat avant le script SPA',()=>{
  const html=fs.readFileSync(path.join(ROOT,'index.html'),'utf8');
  const script=fs.readFileSync(path.join(ROOT,'index_script.js'),'utf8');
- assert.ok(html.indexOf('src="/assets/swapp-navigation.js?v=20261022-tvnav-v1"') < html.indexOf('src="/index_script.js'));
+ assert.ok(html.indexOf('src="/assets/swapp-navigation.js?v=20261022-one-account-menu-v2"') < html.indexOf('src="/index_script.js'));
  assert.match(script,/window\.SwappNavigation/);
  assert.match(html,/href="\/assets\/swapp-unified-nav\.css\?v=20261022-tvnav-v1"/);
  assert.match(layout({content:''}),/href="\/assets\/swapp-unified-nav\.css\?v=20261022-tvnav-v1"/);

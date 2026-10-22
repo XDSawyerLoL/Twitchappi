@@ -31,3 +31,19 @@
 .swapp-social-access .swapp-social-auth-error{color:#ffc1b8;border-left:2px solid #fb8c80;padding-left:10px;font-size:13px;margin:9px 0;line-height:1.5}
 .swapp-social-access .swapp-social-auth-error[hidden]{display:none!important}
 @media(max-width:650px){.swapp-social-access-gate{align-items:start;padding:18px 15px}.swapp-social-access-copy{max-height:calc(100dvh - 120px);width:100%}}
+
+
+/* One SWAPP account, guest reading and on-demand action dialog. */
+.swapp-social-access{min-height:0}
+.swapp-social-access-content{min-height:0}
+.swapp-social-access.is-guest .swapp-social-access-content,
+.swapp-social-access.is-pending .swapp-social-access-content,
+.swapp-social-access.is-locked .swapp-social-access-content{filter:none!important;opacity:1!important;pointer-events:auto!important;user-select:auto!important;overflow:visible!important;max-height:none!important}
+.swapp-social-access-gate[hidden]{display:none!important}
+.swapp-social-access-gate:not([hidden]){position:fixed;inset:0;z-index:2000;display:flex;align-items:center;justify-content:center;overflow:auto;padding:24px 14px;overscroll-behavior:contain;background:rgba(3,8,20,.82);backdrop-filter:blur(11px)}
+.swapp-social-access-copy{position:relative;width:min(460px,100%);max-height:calc(100dvh - 40px);overflow:auto;border:1px solid rgba(112,226,240,.3);border-top:2px solid var(--swapp-page-accent,#6ce4ed);border-radius:14px;padding:clamp(22px,4vw,32px);box-shadow:0 25px 90px rgba(0,0,0,.5);text-align:left}
+.swapp-social-access-copy h2{font-size:clamp(27px,4vw,37px)}
+.swapp-social-access-copy>p{font-size:13px}
+.swapp-social-access-copy .swapp-social-return-login{min-height:35px}
+body.swapp-account-auth-open{overflow:hidden}
+@media(max-width:500px){.swapp-social-access-gate:not([hidden]){padding:12px}.swapp-social-access-copy{max-height:calc(100dvh - 24px)}}

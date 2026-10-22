@@ -20,7 +20,7 @@ test('all three SWAPP hubs preserve the original navigation and design',()=>{
   assert.match(html,/href="\/boutique"/);
  }
  assert.match(routes[0][1],/aria-current="page">Social<\/a>/);
- assert.match(routes[1][1],/aria-current="page">Vidéos<\/a>/);
+ assert.match(routes[1][1],/aria-current="page">Vidéos et bandes-annonces<\/a>/);
  assert.match(routes[2][1],/aria-current="page">Boutique<\/a>/);
 });
 
@@ -29,7 +29,8 @@ test('SOCIAL is the complete Quantic network inside SWAPP, not an article previe
  assert.match(html,/id="swappSocialNative"/);
  assert.match(html,/id="pulse-feed"/);
  assert.match(html,/id="pulse-text"/);
- assert.match(html,/id="auth-modal"/);
+ assert.match(html,/class="swapp-social-access-gate"/);
+ assert.match(html,/aria-modal="true"/);
  assert.match(html,/data-view="circles"/);
  assert.match(html,/data-view="messages"/);
  assert.match(html,/data-view="notifications"/);

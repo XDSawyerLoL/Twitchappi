@@ -42,7 +42,7 @@ test('native and SPA navigation share the same four pinned destinations and Plus
   assert.ok(html.includes('href="'+route+'"'),route);
  }
  const spa=read('assets/swapp-hub-nav.js');
- assert.match(spa,/const pinned=\['\/','\/decouvrir','\/actus','\/social'\]/);
+ assert.match(spa,/const pinned=\['\/','\/decouvrir','\/actus','\/tv'\]/);
 });
 
 function mountedMenu(){
