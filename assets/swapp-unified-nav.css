@@ -160,3 +160,35 @@ header.top .userBtn{
 @media(max-width:490px){
   header.top .topbar{gap:8px!important}
 }
+
+
+/* SWAPP navigation V4: brand-consistent broadcast destination and editorial submenu. */
+header.top #nav.mainNav{overflow:visible!important}
+header.top #nav .navGroup{gap:3px!important;min-width:0;align-items:center}
+header.top #nav .swapp-news-nav{display:inline-flex;align-items:center;position:relative;min-width:0;border-radius:999px}
+header.top #nav .swapp-news-nav>a{padding-right:4px!important;border-radius:999px 0 0 999px!important}
+header.top #nav .swapp-news-more{position:relative;display:flex;align-items:center}
+header.top #nav .swapp-news-more>summary{cursor:pointer;list-style:none;display:grid;place-items:center;min-width:27px;height:36px;padding:0 7px;color:#b5c3d5;font-weight:900;font-size:15px;border-radius:0 999px 999px 0}
+header.top #nav .swapp-news-more>summary::-webkit-details-marker{display:none}
+header.top #nav .swapp-news-more[open]>summary,header.top #nav .swapp-news-more>summary:hover{background:#ffffff14;color:#fff}
+header.top #nav .swapp-news-menu{position:absolute;z-index:150;top:calc(100% + 14px);left:-94px;width:243px;padding:9px;display:grid;gap:3px;background:rgba(17,26,42,.98);border:1px solid #3b4964;border-radius:14px;box-shadow:0 23px 55px #050711c9;backdrop-filter:blur(18px)}
+header.top #nav .swapp-news-more:not([open])>.swapp-news-menu{display:none!important}
+header.top #nav .swapp-news-menu a{display:flex!important;justify-content:flex-start!important;padding:12px 14px!important;border-radius:9px!important;white-space:normal!important;font-size:12px!important;text-align:left}
+header.top #nav .swapp-news-menu a:hover,header.top #nav .swapp-news-menu a[aria-current=page]{background:rgba(89,210,230,.14)!important;color:#f9fcff}
+header.top #nav.mainNav .swapp-tv-nav-cta{position:relative;display:inline-flex!important;align-items:center;gap:7px!important;flex:none!important;border:1px solid rgba(87,214,237,.58)!important;border-radius:11px!important;padding:9px 14px!important;background:linear-gradient(117deg,rgba(70,204,223,.16),rgba(151,112,243,.19))!important;color:#f5fbff!important;box-shadow:inset 0 0 0 1px #ffffff0a;letter-spacing:.012em!important;font-weight:950!important}
+header.top #nav.mainNav .swapp-tv-nav-cta:before{content:'';position:absolute;left:-12px;top:5px;bottom:5px;width:1px;background:#ffffff27}
+header.top #nav.mainNav .swapp-tv-nav-cta:hover,header.top #nav.mainNav .swapp-tv-nav-cta.active{border-color:#70ecf6!important;background:linear-gradient(115deg,rgba(54,229,236,.34),rgba(164,137,255,.28))!important;box-shadow:0 0 23px rgba(54,229,236,.1),inset 0 0 0 1px #ffffff1a}
+header.top #nav .swapp-tv-nav-icon{color:#65eaf2;font-size:15px;text-shadow:0 0 11px #40e1ed7d}
+header.top #nav .swapp-news-more>summary:focus-visible{outline:2px solid #62e3ed;outline-offset:2px}
+#mobileNav .swapp-tv-nav-cta{border:1px solid #63dce76b!important;border-radius:12px!important;background:linear-gradient(145deg,#1b394e,#30284e)!important;color:#f0fbff!important;font-weight:950!important;gap:3px}
+#mobileNav .swapp-tv-nav-cta.active{background:linear-gradient(145deg,#286882,#51407d)!important;border-color:#73eff4!important}
+#mobileNav .swapp-tv-nav-icon{font-size:12px;color:#75eef7}
+#mobileNav .swapp-mobile-menu-title{display:block;padding:10px 12px 3px;color:#73dfe9;letter-spacing:.15em;font:850 10px/1.2 Inter,system-ui,sans-serif}
+#mobileNav .swapp-mobile-more-links a[aria-current=page]{background:#36e5ec22!important;color:#fff}
+@media(min-width:1081px) and (max-width:1270px){
+ header.top #nav.mainNav :is(a,button){padding:8px 8px!important;font-size:12px!important}
+ header.top #nav.mainNav .swapp-tv-nav-cta{padding:8px 11px!important}
+ header.top .topbar{gap:9px!important;padding:0 12px!important}
+}
+@media(max-width:1080px){header.top #nav.mainNav{display:none!important}}
+@media(prefers-reduced-motion:reduce){header.top .swapp-tv-nav-cta{transition:none!important}}
