@@ -62,6 +62,7 @@ export function errorText(e){
     weak_password:'Le mot de passe doit contenir au moins 10 caractères.',
     rate_limited:'Trop de requêtes. Réessaie plus tard.',
     not_found:'Élément introuvable.',
+    forbidden:'Tu ne peux supprimer que tes propres publications.',
     social_recipient_not_ready:'Impossible de préparer la messagerie de ce membre pour le moment. Réessaie plus tard.',
     blocked:'Cette conversation est bloquée.',
     social_upstream_rate_limited:'Trop de tentatives de liaison SOCIAL. Patiente quelques minutes avant de réessayer.',
