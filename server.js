@@ -954,6 +954,8 @@ app.get('/api/swapp/social-native/backend-status',async(_req,res)=>{
  res.json({success:true,mode:SOCIAL_MYSQL_SELECTED?'mysql':'render',
   migration_approved:Boolean(SOCIAL_MIGRATED_APPROVED&&SOCIAL_MYSQL_APPROVED),
   fresh_start_approved:Boolean(SOCIAL_FRESH_APPROVED&&SOCIAL_MYSQL_APPROVED),
+  // Separate persistent snapshot verification from one-shot bootstrap permission.
+  fresh_bootstrap_authorized:process.env.SWAPP_SOCIAL_FRESH_START_APPROVED==='1',
   fresh_auto_init_requested:process.env.SWAPP_SOCIAL_FRESH_AUTO_INIT==='1',
   fresh_bootstrap_state:socialFreshBootstrapState,
   writes_frozen:SOCIAL_MIGRATION_FREEZE,
