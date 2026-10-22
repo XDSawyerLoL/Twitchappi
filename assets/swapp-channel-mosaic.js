@@ -402,6 +402,13 @@
     const publicItems=saved?.user?.channel_vignettes||[];
     if(publicItems.length!==result.length||publicItems.some(p=>String(p.image_url).startsWith('data:')))
      throw Error('Vignettes non confirmées publiquement : enregistrement à vérifier.');
+    for(const item of publicItems){
+     if(String(item.image_url||'').startsWith('/api/oryon/panel-image/')){
+      const image=await fetch(item.image_url,{credentials:'omit',cache:'no-store'});
+      if(!image.ok||!String(image.headers.get('content-type')||'').startsWith('image/'))
+       throw Error('Une vignette enregistrée n’est pas visible depuis le site public.');
+     }
+    }
     if(typeof state!=='undefined')state.channelProfile=saved.user;
     closeEditor();
     if(typeof renderChannel==='function')await renderChannel();
