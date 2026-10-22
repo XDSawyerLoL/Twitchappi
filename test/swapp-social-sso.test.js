@@ -93,3 +93,31 @@ test('DM to a SWAPP username uses only the account-mapped backend handle',async(
  assert.equal(pathRes.statusCode,200);
  assert.equal(b.calls.at(-1).pathname,'/api/pulse/messages/'+swappSocialCredentials(recipient,secret).handle);
 });
+
+
+test('anonymous users can read the public feed without a duplicate SOCIAL account',async()=>{
+ const b=backend(),proxy=gate(b.fetchImpl);
+ const res=response();
+ await proxy(request('/feed','GET',false),res);
+ assert.equal(res.statusCode,200);
+ assert.equal(b.calls.length,1);
+ assert.equal(b.calls[0].authorization,'');
+ assert.equal(b.calls.filter(c=>c.pathname.includes('/auth/')).length,0);
+});
+test('private SOCIAL data and every write still require the SWAPP account',async()=>{
+ const b=backend(),proxy=gate(b.fetchImpl);
+ for(const [path,method] of [['/me','GET'],['/notifications','GET'],['/conversations','GET'],['/messages/member_02','GET'],['/posts','POST']]){
+  const res=response();await proxy(request(path,method,false),res);
+  assert.equal(res.statusCode,401,path);
+  assert.equal(res.data.error,'swapp_account_required',path);
+ }
+ assert.equal(b.calls.length,0,'guest cannot reach private upstream APIs');
+});
+test('public reading continues even if SWAPP session storage is unavailable',async()=>{
+ const b=backend();
+ const proxy=createSocialNativeProxy(b.fetchImpl,{production:true,restoreLocalSession:async()=>{throw Error('offline')}});
+ const feed=response();await proxy(request('/feed','GET',false),feed);
+ assert.equal(feed.statusCode,200);
+ const me=response();await proxy(request('/me','GET',false),me);
+ assert.equal(me.statusCode,503);
+});
