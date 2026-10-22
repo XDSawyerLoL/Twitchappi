@@ -93,10 +93,12 @@ async function mutate(method){
 // Channel UI: one modal programme + Twitch chat for the selected creator,
 // SWAPP's existing MySQL chat room for everyone on the platform.
 const programme=$('stv-program-dialog');
-$('stv-program-open')?.addEventListener('click',()=>{
- if(programme?.showModal)programme.showModal();
+const programmeTrigger=$('stv-program-open');
+programmeTrigger?.addEventListener('click',()=>{
+ if(programme?.showModal&&!programme.open){programmeTrigger.setAttribute('aria-expanded','true');programme.showModal();}
 });
 $('stv-program-close')?.addEventListener('click',()=>programme?.close());
+programme?.addEventListener('close',()=>{programmeTrigger?.setAttribute('aria-expanded','false');programmeTrigger?.focus();});
 programme?.addEventListener('click',e=>{if(e.target===programme)programme.close()});
 const dock=$('stv-dock'),dockToggle=$('stv-dock-toggle'),dockClose=$('stv-dock-close'),dockScrim=$('stv-dock-scrim');
 const dockMobile=window.matchMedia('(max-width:720px)');
@@ -222,7 +224,7 @@ $('stv-watch').addEventListener('click',play);
 $('stv-join').addEventListener('click',()=>mutate('POST'));
 $('stv-leave').addEventListener('click',()=>mutate('DELETE'));
 $('stv-immersive').addEventListener('click',()=>{
- const enabled=$('swapp-tv').classList.toggle('tv-immersive');if(enabled&&dock.classList.contains('is-open'))closeDock();$('stv-immersive').setAttribute('aria-pressed',String(enabled));$('stv-immersive').textContent=enabled?'✕ SORTIR':'⛶ IMMERSION';
+ const enabled=$('swapp-tv').classList.toggle('tv-immersive');if(enabled&&dock.classList.contains('is-open'))closeDock();$('stv-immersive').setAttribute('aria-pressed',String(enabled));$('stv-immersive').textContent=enabled?'← QUITTER':'⛶ IMMERSION';
 });
 async function init(){
  try{const data=await api('/api/actus');state.games=gamesFrom(data);const select=$('stv-game');select.replaceChildren();for(const g of state.games){const o=by('option',null,g);o.value=g;select.append(o)}
