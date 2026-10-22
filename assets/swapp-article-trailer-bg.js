@@ -41,6 +41,10 @@
    if(!frame||event.source!==frame.contentWindow||!youtubeOrigins.has(event.origin))return;
    let data=event.data;
    if(typeof data==='string'){try{data=JSON.parse(data)}catch(_){return}}
+   if(data?.event==='onError'){stop();return;}
+   const playerState=data?.event==='onStateChange'?data.info:
+    data?.event==='infoDelivery'?data.info?.playerState:undefined;
+   if(typeof playerState==='number')scene.classList.toggle('is-trailer-playing',playerState===1);
    if(data?.event!=='onReady')return;
    const player=frame.contentWindow;
    try{
@@ -69,7 +73,8 @@
    iframe.setAttribute('loading','eager');
    iframe.addEventListener('load',()=>{
     if(frame!==iframe)return;
-    scene.classList.add('is-trailer-playing');
+    // An iframe load is not proof of video playback. Keep the official poster
+    // visible until a validated YouTube player-state message confirms it.
     // Register YouTube's official postMessage listening protocol.
     try{iframe.contentWindow?.postMessage(JSON.stringify({event:'listening',id:'swapp-hero'}),
       'https://www.youtube-nocookie.com')}catch(_){}
