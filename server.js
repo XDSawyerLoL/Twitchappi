@@ -1263,9 +1263,10 @@ async function sendSwappPublicChannelUi(req, res, login){
     // Reuse the already loaded creator cache; do not query the database per crawler.
     try{await ORYON_USERS_READY}catch(_){}
     const creator=getOryonUserByLogin(clean);
+    const share=creator&&creator.channel_public!==false?swappPublicShareContext(creator):null;
     let html = fs.readFileSync(found, 'utf8');
     html=require('./modules/swapp-seo').injectCreatorMetadata(html,
-      creator&&creator.channel_public!==false?creator:null,clean);
+      creator&&creator.channel_public!==false?creator:null,clean,share);
     const inject = `<script>window.__SWAPP_INITIAL_PUBLIC_CHANNEL__=${JSON.stringify(clean)};window.__SWAPP_PUBLIC_CHANNEL_URL_LOCK__='/${clean}';try{if(location.pathname!=='/${clean}')history.replaceState({swappPublicChannel:true},'',('/${clean}')+(location.search||'')+(location.hash||''));}catch(_){}</script>`;
     if(html.includes('<script src="/index_script.js"></script>')) html = html.replace('<script src="/index_script.js"></script>', inject + '\n<script src="/index_script.js"></script>');
     else html = html.replace('</body>', inject + '\n</body>');
@@ -4356,6 +4357,67 @@ app.get('/api/oryon/avatar/:login',async(req,res)=>{
     console.warn('[SWAPP AVATAR]',String(error?.message||error).slice(0,160));
     return res.status(503).end();
   }
+});
+
+// Share cards follow the actual public native/Local live state; never infer
+// "EN DIRECT" just because the creator has a saved title or an offline image.
+function swappPublicShareContext(creator){
+ const {cardContext}=require('./modules/swapp-share-cards');
+ const room=(typeof nativeLiveRooms!=='undefined'&&nativeLiveRooms?.get)?nativeLiveRooms.get(creator.login):null;
+ const live=!!room?.host||isOryonLiveSignalFresh(creator);
+ return cardContext(creator,{active:live,
+  title:live?(room?.title||creator.current_live_title||''):'',
+  category:live?(room?.category||creator.current_live_category||''):'',
+  startedAt:live?(room?.createdAt||creator.live_started_at||creator.local_agent_last_seen||0):0});
+}
+const SWAPP_SHARE_IMAGE_CACHE=new Map();
+app.get('/api/oryon/share-card/:login',async(req,res)=>{
+ res.set('X-Content-Type-Options','nosniff');
+ try{
+  await ORYON_USERS_READY.catch(()=>{});
+  const login=normalizeOryonLogin(req.params.login);
+  const creator=getOryonUserByLogin(login);
+  if(!creator||creator.channel_public===false)return res.status(404).end();
+  const info=swappPublicShareContext(creator);
+  const key=info.login+':'+info.revision;
+  let cached=SWAPP_SHARE_IMAGE_CACHE.get(key);
+  if(!cached){
+   // Deduplicate simultaneous unfurls without creating ongoing polling.
+   const promise=require('./modules/swapp-share-cards').renderShareCard(creator,info);
+   SWAPP_SHARE_IMAGE_CACHE.set(key,{promise,time:Date.now()});
+   try{cached={buffer:await promise,time:Date.now()};SWAPP_SHARE_IMAGE_CACHE.set(key,cached);}
+   catch(error){
+    SWAPP_SHARE_IMAGE_CACHE.delete(key);
+    console.warn('[SWAPP SHARE CARD]',String(error?.message||error).slice(0,160));
+    const {picture}=require('./modules/swapp-share-cards');
+    const fallback=picture(creator.banner_url)||picture(creator.offline_image_url);
+    if(fallback){res.set('Cache-Control','public, max-age=60');res.type('image/jpeg');return res.send(fallback);}
+    return res.status(503).end();
+   }
+  }
+  if(cached.promise){try{cached={buffer:await cached.promise};}catch(_){return res.status(503).end();}}
+  const image=cached.buffer;
+  if(!Buffer.isBuffer(image))return res.status(503).end();
+  // Keep at most 40 cards in memory to protect the existing Hostinger instance.
+  if(SWAPP_SHARE_IMAGE_CACHE.size>40){
+   const oldest=SWAPP_SHARE_IMAGE_CACHE.keys().next().value;
+   SWAPP_SHARE_IMAGE_CACHE.delete(oldest);
+  }
+  res.set('Cache-Control','public, max-age=300, stale-while-revalidate=60');
+  res.type('image/jpeg');return res.send(image);
+ }catch(error){
+  console.warn('[SWAPP SHARE CARD]',String(error?.message||error).slice(0,160));
+  return res.status(503).end();
+ }
+});
+app.get('/api/oryon/share-context/:login',async(req,res)=>{
+ res.set('Cache-Control','no-store');
+ await ORYON_USERS_READY.catch(()=>{});
+ const creator=getOryonUserByLogin(normalizeOryonLogin(req.params.login));
+ if(!creator||creator.channel_public===false)return res.status(404).json({success:false});
+ const info=swappPublicShareContext(creator);
+ return res.json({success:true,live:info.isLive,title:info.title,
+  description:info.description,share_url:info.url+(info.isLive?'?live='+info.revision:'')});
 });
 
 // Public images exist only when their owner has published the matching panel.
