@@ -8507,7 +8507,25 @@ io.on('connection', async (socket) => {
     const existing = nativeLiveRooms.get(room);
     if(existing?.host && existing.host !== socket.id) return socket.emit('native:error', { message: 'Tu as déjà un live actif.' });
     if(nativeHostAway(existing)&&existing.hostUserId!==user.id)return socket.emit('native:error',{message:'Salon réservé à son diffuseur.'});
-    if(existing?.hostGraceTimer){clearTimeout(existing.hostGraceTimer);existing.hostGraceTimer=null;}
+    // A freshly granted capture after F5 must reuse the existing audience,
+    // not replace their live room with an empty one.
+    if(nativeHostAway(existing)&&existing.hostUserId===user.id){
+      clearTimeout(existing.hostGraceTimer);existing.hostGraceTimer=null;
+      existing.host=socket.id;existing.disconnectedAt=0;
+      socket.data.nativeRoom=room;socket.data.nativeRole='host';socket.join('native:'+room);
+      socket.emit('native:created',{room,title:existing.title,host_name:existing.hostName});
+      socket.emit('native:chat:history',{room,messages:getNativeChat(room).slice(-80)});
+      for(const id of [...existing.viewers]){
+        const viewer=io.sockets.sockets.get(id);
+        if(!viewer||viewer.data.nativeRoom!==room){existing.viewers.delete(id);continue;}
+        socket.emit('native:viewer',{room,viewerId:id,viewers:existing.viewers.size});
+        io.to(id).emit('native:resumed',{room});
+      }
+      io.emit('native:lives:update');emitNativeStats(room);return;
+    }
+    if(existing?.host===socket.id){
+      socket.emit('native:created',{room,title:existing.title,host_name:existing.hostName});return;
+    }
     const hostName = String(user.display_name || user.login).trim().slice(0, 40);
     const title = String(payload?.title || `Live de ${hostName}`).trim().slice(0, 120);
     nativeLiveRooms.set(room, { host: socket.id, viewers: new Set(), createdAt: Date.now(), title, hostName, hostLogin:user.login, hostUserId:user.id, category: String(payload?.category || '').trim().slice(0,60), tags: String(payload?.tags || '').split(',').map(x=>x.trim()).filter(Boolean).slice(0,8), peakViewers: 0, chatMessages: 0 });
