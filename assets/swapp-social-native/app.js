@@ -4,6 +4,7 @@ import { setView, loadHome, loadExplore, loadCircles, loadNotifications, loadSav
 import {setupVoiceNotes} from './dm-audio.js?v=20261018-audio-stage-v1';
 import {setupDirectCalls} from './dm-calls.js?v=20261018-audio-stage-v1';
 import {setupSocialEmotes} from './emotes.js?v=20261022-social-emotes-v1';
+import {setupSocialGifPicker} from './gif-picker.js?v=20261022-social-gif-picker-v1';
 
 /* Keep the SOCIAL sticky stack exactly beneath the real SWAPP header.
    Hostinger's server shell has different heights across phone sizes; a
@@ -101,7 +102,7 @@ function updateMediaPreview(){
   if(!image&&!link){box.hidden=true;box.innerHTML='';return}
   box.hidden=false;
   box.innerHTML=(image?'<img src="'+image.replace(/"/g,'&quot;')+'" alt="" referrerpolicy="no-referrer">':'')+
-    '<div><strong>'+String(media.linkTitle||media.mediaType||'Média').replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]))+'</strong>'+
+    '<div><strong>'+String(media.linkTitle||(media.mediaType==='gif'?'GIF animé':media.mediaType)||'Média').replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]))+'</strong>'+
     (link?'<span>'+link.replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]))+'</span>':'')+'</div>'+
     '<button type="button" data-remove-media aria-label="Retirer">×</button>';
 }
@@ -109,7 +110,7 @@ function updateMediaPreview(){
 async function publishPost(){
   if(!requireAuth()||dom.publish.disabled)return;
   const body=dom.textarea.value.trim();
-  if(!body)return;
+  if(!body&&!state.attachment?.mediaUrl)return;
   dom.publish.disabled=true;
   try{
     await api('/api/pulse/posts',{method:'POST',body:JSON.stringify({body,replyToId:state.replyTo,quotePostId:state.quotePostId,...(state.attachment||{})})});
@@ -285,23 +286,17 @@ function bindStaticEvents(){
   dom.textarea.addEventListener('focus',()=>{if(!state.user)openAuth()});
   dom.textarea.addEventListener('input',function(){
     dom.count.textContent=dom.textarea.value.length+' / 420';
-    dom.publish.disabled=!dom.textarea.value.trim();
+    dom.publish.disabled=!dom.textarea.value.trim()&&!state.attachment?.mediaUrl;
   });
 
   dom.publish.addEventListener('click',publishPost);
   document.querySelector('[data-tool="news"]')?.addEventListener('click',function(){loadNewsRss();});
-  document.querySelector('[data-tool="image"]')?.addEventListener('click',function(){
-    const raw=prompt('Adresse HTTPS de l’image');
-    if(raw===null)return;
-    const imageUrl=safeHttpsUrl(raw);
-    if(!imageUrl){alert('Utilise une adresse d’image HTTPS valide.');return}
-    state.attachment={imageUrl};
-    updateMediaPreview();
-  });
+
   document.getElementById('pulse-media-preview')?.addEventListener('click',function(event){
     if(!event.target.closest('[data-remove-media]'))return;
     state.attachment=null;
     updateMediaPreview();
+    dom.publish.disabled=!dom.textarea.value.trim();
   });
   document.getElementById('cancel-context').addEventListener('click',clearReply);
   document.getElementById('compose-focus').addEventListener('click',function(){
@@ -742,6 +737,7 @@ function applyIncomingShare(){
 async function init(){
   bindStaticEvents();
   setupSocialEmotes({requireAuth,dom});
+  setupSocialGifPicker({requireAuth,state,dom,updateMediaPreview});
   applyIncomingShare();
   bindDelegatedEvents();
   setupVoiceNotes({onConversationChange:loadConversation});
