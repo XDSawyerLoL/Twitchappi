@@ -37,7 +37,7 @@ function cardContext(creator,live={}){
   .update(String(creator?.banner_url||'')).update(String(creator?.avatar_url||''))
   .digest('hex').slice(0,16);
  return {login,name,isLive,status,headline,description:clean(description,220),game,revision,
-  image:ORIGIN+'/api/oryon/share-card/'+encodeURIComponent(login)+'?v='+revision,
+  image:ORIGIN+'/share-card/'+encodeURIComponent(login)+'?v='+revision,
   url:ORIGIN+'/'+encodeURIComponent(login),title:isLive?name+' est en direct sur SWAPP':name+' · SWAPP'};
 }
 function wrapLabel(text,maxChars=31,maxLines=2){
