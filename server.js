@@ -4133,6 +4133,19 @@ app.get('/api/webrtc/config', (req, res) => {
   res.json(getWebRtcConfigPayload());
 });
 
+// Read-only operational readiness: no stream secrets or TURN credentials.
+app.get('/api/swapp/streaming/readiness',(req,res)=>{
+ const cfg=getWebRtcConfigPayload();
+ const ice=cfg.iceServers||[];
+ const hasTurn=ice.some(s=>[s.urls].flat().some(url=>/^turns?:/i.test(String(url))));
+ const rooms=typeof nativeLiveRooms!=='undefined'?nativeLiveRooms:new Map();
+ res.set('Cache-Control','no-store');
+ res.json({success:true,mode:cfg.mode,turnConfigured:hasTurn,sfuEnabled:!!cfg.sfu.enabled,
+  hostReconnectGraceMs:typeof NATIVE_HOST_GRACE_MS!=='undefined'?NATIVE_HOST_GRACE_MS:0,
+  nativeRooms:rooms.size,reconnectingRooms:[...rooms.values()].filter(r=>!r.host&&!!r.hostGraceTimer).length,
+  warning:cfg.mode==='p2p'&&!hasTurn?'P2P without TURN can fail on restrictive networks.':null});
+});
+
 app.get('/api/oryon/session', async (req, res) => {
   try{
     await restoreOryonSessionFromRememberCookie(req, res);
