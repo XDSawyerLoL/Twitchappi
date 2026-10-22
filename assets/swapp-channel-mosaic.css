@@ -261,3 +261,32 @@ body.swapp-mosaic-dialog-open{overflow:hidden;}
  #channel .creatorRefine.swapp-channel-mosaic .swapp-mosaic-image img,
  #channel .creatorRefine.swapp-channel-mosaic .swapp-mosaic-tools{transition:none!important;}
 }
+
+/* Connected live articles are editorial links, not a floating blue card. */
+#channel .creatorRefine.swapp-channel-mosaic .swapp-live-articles{
+ width:100%!important;max-width:none!important;margin:18px 0 0!important;
+ padding:18px 0 0!important;background:none!important;border:0!important;
+ border-top:1px solid rgba(255,255,255,.12)!important;border-radius:0!important;
+ box-shadow:none!important;
+}
+#channel .creatorRefine.swapp-channel-mosaic .swapp-live-articles h2{
+ font-size:clamp(22px,2.5vw,32px)!important;letter-spacing:-.035em;
+ margin-bottom:6px!important;
+}
+#channel .creatorRefine.swapp-channel-mosaic .swapp-live-articles-grid{
+ grid-template-columns:repeat(3,minmax(0,1fr))!important;
+ gap:clamp(12px,1.4vw,20px)!important;
+}
+#channel .creatorRefine.swapp-channel-mosaic .swapp-live-article-card{
+ background:none!important;border:0!important;border-radius:0!important;
+ border-top:1px solid rgba(255,255,255,.10)!important;
+ padding:15px 0!important;box-shadow:none!important;
+}
+#channel .creatorRefine.swapp-channel-mosaic .swapp-live-article-card img{
+ width:clamp(94px,8vw,146px)!important;border-radius:9px!important;
+}
+@media(max-width:900px){
+ #channel .creatorRefine.swapp-channel-mosaic .swapp-live-articles-grid{
+  grid-template-columns:1fr!important;
+ }
+}
