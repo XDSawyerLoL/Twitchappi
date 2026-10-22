@@ -229,7 +229,7 @@
    area.hidden=false;
    const below=root.querySelector('.channelBelowLive');if(below)below.hidden=false;
    const nav=root.querySelector('.channelSubNav');
-   if(nav&&!nav.querySelector('[data-mosaic-nav]')){
+   if(nav&&!Array.from(nav.querySelectorAll('button')).some(button=>button.textContent.trim()==='Galerie')){
     const tab=node('button','','Galerie');
     tab.type='button';tab.dataset.mosaicNav='1';
     tab.addEventListener('click',()=>area.scrollIntoView({behavior:'smooth',block:'start'}));
