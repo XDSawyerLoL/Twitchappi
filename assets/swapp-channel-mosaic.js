@@ -440,7 +440,7 @@
   save.addEventListener('click',async()=>{
    const result=draft.filter(p=>!!p.image_url?.trim());
    for(const p of result){
-    if(!(p.image_url.startsWith('data:image/jpeg;base64,')||safeUrl(p.image_url))){
+    if(!(/^data:image\/(?:jpeg|png|webp);base64,/i.test(p.image_url)||safeUrl(p.image_url))){
      status('Chaque visuel doit être importé ou utiliser une URL valide.',true);return;
     }
     if(p.link_url.trim()&&!safeUrl(p.link_url)){status('Lien invalide : utilise une adresse http(s) ou un chemin SWAPP.',true);return;}
