@@ -70,11 +70,16 @@ async function verify(){
  check(socialAppearance.body.includes('body:has(#swappSocialNative) header.top')&&
   socialAppearance.body.includes('inset-block-start:0!important'),
   'SOCIAL header top gap defensive fix missing');
- check(social.body.includes('social-fixed-10'),'SOCIAL HTML uses an older CSS release');
- check(social.body.includes('social-fixed-js-10'),'SOCIAL HTML uses an older JS release');
+ check(social.body.includes('social-swapp.css?v=20261022-social-control-emotes-v1'),'SOCIAL CSS release is stale');
+ check(social.body.includes('app.js?v=20261022-social-control-emotes-v1'),'SOCIAL module release is stale');
  process.stdout.write('PASS /social HTML\n');
  const stylesheet=await request(origin,'/assets/swapp-social-native/social-swapp.css');
- check(stylesheet.body.includes('SOCIAL sticky stack v2'),'SOCIAL CSS is stale at the public asset path');
+ check(stylesheet.body.includes('pulse-post-relayed .pulse-rich-link-preview')&&
+   stylesheet.body.includes('.pulse-emoji-picker'),'SOCIAL CSS lacks compact relays or emotes');
+ const emojiScript=await request(origin,'/assets/swapp-social-native/emotes.js');
+ check(emojiScript.body.includes('setupSocialEmotes'),'SOCIAL emote module unavailable');
+ const renderer=await request(origin,'/assets/swapp-social-native/render.js');
+ check(renderer.body.includes('pulse-post-delete'),'SOCIAL delete control renderer unavailable');
  process.stdout.write('PASS SOCIAL public stylesheet\n');
  // Public Game Store intentionally contains only the dated Steam France top ten.
  // Protected administration and saved product records must remain untouched.

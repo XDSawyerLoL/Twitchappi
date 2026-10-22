@@ -1,8 +1,9 @@
 import { TOKEN_KEY, state, dom, api, errorText } from './core.js';
 import { openAuth, closeAuth, updateAuthModal, updateAccount, requireAuth, applySession, clearSession, restoreSession } from './session.js?v=20261022-one-account-v1';
-import { setView, loadHome, loadExplore, loadCircles, loadNotifications, loadSaved, loadProfile, loadMessages, loadConversation, loadCirclePreview, loadNewsRss } from './views.js?v=20261022-quoted-reposts-v1';
+import { setView, loadHome, loadExplore, loadCircles, loadNotifications, loadSaved, loadProfile, loadMessages, loadConversation, loadCirclePreview, loadNewsRss } from './views.js?v=20261022-social-posts-v2';
 import {setupVoiceNotes} from './dm-audio.js?v=20261018-audio-stage-v1';
 import {setupDirectCalls} from './dm-calls.js?v=20261018-audio-stage-v1';
+import {setupSocialEmotes} from './emotes.js?v=20261022-social-emotes-v1';
 
 /* Keep the SOCIAL sticky stack exactly beneath the real SWAPP header.
    Hostinger's server shell has different heights across phone sizes; a
@@ -143,9 +144,15 @@ async function toggleAction(postId,action,button){
     });
     if(button?.isConnected){
       const previous=button.getAttribute('aria-pressed')==='true';
-      const next=!previous;
+      const next=typeof result?.active==='boolean'?result.active:!previous;
       button.setAttribute('aria-pressed',String(next));
       button.classList.toggle(action==='like'?'liked':'active',next);
+      if(action==='repost'){
+        const label=button.querySelector('.pulse-action-name');
+        if(label)label.textContent=next?'Annuler relais':'Relayer';
+        button.setAttribute('aria-label',next?'Annuler mon relais':'Relayer');
+        button.title=next?'Retirer mon relais':'Relayer cette publication';
+      }
       const counter=button.querySelector('.pulse-action-count');
       if(counter){
         const fromServer=Number(result?.post?.counts?.[action==='like'?'likes':action==='repost'?'reposts':'bookmarks']);
@@ -170,6 +177,30 @@ async function toggleAction(postId,action,button){
   }finally{
     socialActionInFlight.delete(key);
     if(button?.isConnected)button.disabled=false;
+  }
+}
+
+async function deleteOwnPost(postId,button){
+  if(!requireAuth())return;
+  const key=String(postId)+':delete';
+  if(socialActionInFlight.has(key))return;
+  if(!window.confirm('Supprimer cette publication ? Elle disparaîtra du fil.'))return;
+  socialActionInFlight.add(key);
+  if(button)button.disabled=true;
+  try{
+    const result=await api('/api/pulse/posts/'+encodeURIComponent(postId),{method:'DELETE',body:'{}'});
+    if(!result?.ok)throw Error(result?.error||'request_failed');
+    document.querySelectorAll('.pulse-post[data-id]').forEach(card=>{
+      if(card.dataset.id===String(postId))card.remove();
+    });
+    // Refresh from storage on profile, saved, reply and main feed alike.
+    if(state.view==='home'&&state.feed!=='news')await loadHome();
+    else if(state.view==='profile')await loadProfile(state.user?.handle);
+  }catch(error){
+    if(button?.isConnected)button.disabled=false;
+    alert(errorText(error));
+  }finally{
+    socialActionInFlight.delete(key);
   }
 }
 
@@ -509,23 +540,37 @@ function bindDelegatedEvents(){
     }
     const newsRepost=event.target.closest('[data-news-repost]');
     if(newsRepost){
-      if(!requireAuth())return;
+      if(!requireAuth()||newsRepost.disabled)return;
       const title=String(newsRepost.dataset.newsTitle||'Actualité').trim();
       const url=safeHttpsUrl(newsRepost.dataset.newsUrl);
       const image=safeHttpsUrl(newsRepost.dataset.newsImage);
-      const source=String(newsRepost.dataset.newsSource||'SWAPP Actualité').trim();
-      const body=(title+(source?'\n\nSource : '+source:'')).slice(0,420);
-      const previous=newsRepost.textContent;
+      if(!url)return alert('Lien de l’actualité indisponible.');
+      const existingId=String(newsRepost.dataset.newsPostedId||'');
+      newsRepost.dataset.newsTouched='1';
+      const original=newsRepost.textContent;
       newsRepost.disabled=true;
-      newsRepost.textContent='Repost…';
+      newsRepost.textContent=existingId?'Retrait…':'Repost…';
       try{
-        await api('/api/pulse/posts',{method:'POST',body:JSON.stringify({body,linkUrl:url,linkTitle:title,imageUrl:image})});
-        newsRepost.textContent='Reposté ✓';
-        newsRepost.classList.add('done');
+        if(existingId){
+          const result=await api('/api/pulse/posts/'+encodeURIComponent(existingId),{method:'DELETE',body:'{}'});
+          if(!result?.ok)throw Error(result?.error||'request_failed');
+          delete newsRepost.dataset.newsPostedId;
+          newsRepost.textContent='Reposter';
+          newsRepost.classList.remove('done');
+        }else{
+          // The card already renders the image, source and title once.
+          const result=await api('/api/pulse/posts',{method:'POST',body:JSON.stringify({body:title.slice(0,420),linkUrl:url,linkTitle:title,imageUrl:image})});
+          const createdId=result?.post?.id;
+          if(!createdId)throw Error('request_failed');
+          newsRepost.dataset.newsPostedId=createdId;
+          newsRepost.textContent='Annuler le repost';
+          newsRepost.classList.add('done');
+        }
       }catch(error){
-        newsRepost.disabled=false;
-        newsRepost.textContent=previous;
+        newsRepost.textContent=original;
         alert(errorText(error));
+      }finally{
+        newsRepost.disabled=false;
       }
       return;
     }
@@ -547,6 +592,10 @@ function bindDelegatedEvents(){
     const action=event.target.closest('[data-action]');
     if(post&&action){
       const postId=post.dataset.id;
+      if(action.dataset.action==='delete'){
+        await deleteOwnPost(postId,action);
+        return;
+      }
       if(action.dataset.action==='quote'){
         const handle=post.querySelector('.pulse-post-head [data-profile]')?.dataset.profile||'membre';
         const excerpt=post.querySelector('.pulse-post-main > p')?.textContent?.trim()||'';
@@ -692,6 +741,7 @@ function applyIncomingShare(){
 
 async function init(){
   bindStaticEvents();
+  setupSocialEmotes({requireAuth,dom});
   applyIncomingShare();
   bindDelegatedEvents();
   setupVoiceNotes({onConversationChange:loadConversation});

@@ -88,6 +88,10 @@ const RELEASE_FILES=Object.freeze([
  'assets/swapp-social-native/core.js',
  'assets/swapp-social-native/session.js',
  'assets/swapp-social-native/views.js',
+ 'assets/swapp-social-native/render.js',
+ 'assets/swapp-social-native/emotes.js',
+ 'modules/swapp-social-native/pulse.mjs',
+ 'modules/swapp-social-native-proxy.js',
  'ads.txt',
  'robots.txt'
 ]);

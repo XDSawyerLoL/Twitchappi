@@ -1,4 +1,4 @@
-import { dom, esc, icon, initials, timeAgo, setStatus } from './core.js';
+import { state, dom, esc, icon, initials, timeAgo, setStatus } from './core.js';
 
 function secureMediaUrl(value){
   try{
@@ -12,6 +12,12 @@ export function renderPost(post){
   const liked=post.viewer?.liked;
   const reposted=post.viewer?.reposted;
   const bookmarked=post.viewer?.bookmarked;
+  const ownPost=Boolean(post.viewer?.canDelete||(state.user?.id&&String(user.id)===String(state.user.id)));
+  const isNewsRelay=Boolean(post.linkUrl&&post.linkTitle);
+  // Previous RSS relays stored an extra `Source : ...` line. Keep ordinary posts untouched.
+  const rawBody=String(post.body||'').trim();
+  const cleanBody=isNewsRelay?rawBody.replace(/(?:\n\s*){1,3}Source\s*:\s*[^\n]{1,130}\s*$/i,'').trim():rawBody;
+  const hideDuplicateTitle=isNewsRelay&&cleanBody===String(post.linkTitle||'').trim();
   let quote='';
   let media='';
   const imageUrl=secureMediaUrl(post.mediaUrl||post.imageUrl||'');
@@ -44,14 +50,16 @@ export function renderPost(post){
     '</div>';
   }
 
-  return '<article class="pulse-post" data-id="'+esc(post.id)+'">'+
+  return '<article class="pulse-post'+(isNewsRelay?' pulse-post-relayed':'')+'" data-id="'+esc(post.id)+'">'+
     '<div class="pulse-avatar">'+esc(initials(user))+'</div>'+
     '<div class="pulse-post-main">'+
-      '<div class="pulse-post-head"><button data-profile="'+esc(user.handle)+'">'+esc(user.displayName||user.handle)+'</button>'+(user.verified?'<span class="pulse-badge" title="Compte vérifié">'+icon('pi-verified')+'</span>':'')+'<span>@'+esc(user.handle)+' · '+esc(timeAgo(post.createdAt))+'</span></div>'+
-      (linkTitle && String(post.body||'').trim().replace(/\s*Source\s*:\s*SWAPP\s*$/i,'').trim()===String(linkTitle).trim() ? '' : '<p>'+esc(post.body)+'</p>')+media+quote+
+      '<div class="pulse-post-head"><button data-profile="'+esc(user.handle)+'">'+esc(user.displayName||user.handle)+'</button>'+(user.verified?'<span class="pulse-badge" title="Compte vérifié">'+icon('pi-verified')+'</span>':'')+'<span>@'+esc(user.handle)+' · '+esc(timeAgo(post.createdAt))+'</span>'+
+      (ownPost?'<button type="button" class="pulse-post-delete" data-action="delete" aria-label="Supprimer ma publication" title="Supprimer cette publication">'+icon('pi-trash')+'</button>':'')+'</div>'+
+      (isNewsRelay?'<small class="pulse-relay-context">'+icon('pi-relay')+' Actualité partagée</small>':'')+
+      (hideDuplicateTitle?'':'<p class="pulse-post-body">'+esc(cleanBody)+'</p>')+media+quote+
       '<div class="pulse-actions">'+
         '<button class="pulse-action" data-action="reply" aria-label="Répondre" title="Répondre">'+icon('pi-reply')+'<span class="pulse-action-name">Répondre</span><span class="pulse-action-count">'+Number(post.counts?.replies||0)+'</span></button>'+
-        '<button class="pulse-action '+(reposted?'active':'')+'" data-action="repost" aria-label="Reposter" aria-pressed="'+String(Boolean(reposted))+'" title="Relayer cette publication">'+icon('pi-relay')+'<span class="pulse-action-name">Relayer</span><span class="pulse-action-count">'+Number(post.counts?.reposts||0)+'</span></button>'+
+        '<button class="pulse-action '+(reposted?'active':'')+'" data-action="repost" aria-label="'+(reposted?'Annuler mon relais':'Relayer')+'" aria-pressed="'+String(Boolean(reposted))+'" title="'+(reposted?'Retirer mon relais':'Relayer cette publication')+'">'+icon('pi-relay')+'<span class="pulse-action-name">'+(reposted?'Annuler relais':'Relayer')+'</span><span class="pulse-action-count">'+Number(post.counts?.reposts||0)+'</span></button>'+
         '<button class="pulse-action" data-action="quote" aria-label="Reposter avec commentaire" title="Citer cette publication en ajoutant un commentaire">'+icon('pi-quote')+'<span class="pulse-action-name">Citer</span></button>'+
         '<button class="pulse-action '+(liked?'liked':'')+'" data-action="like" aria-label="J’aime" aria-pressed="'+String(Boolean(liked))+'" title="Aimer cette publication">'+icon('pi-pulse','pi-pulse')+'<span class="pulse-action-name">J’aime</span><span class="pulse-action-count">'+Number(post.counts?.likes||0)+'</span></button>'+
         '<button class="pulse-action '+(bookmarked?'active':'')+'" data-action="bookmark" aria-label="Enregistrer" aria-pressed="'+String(Boolean(bookmarked))+'" title="Enregistrer">'+icon('pi-bookmark')+'</button>'+

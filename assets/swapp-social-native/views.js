@@ -1,7 +1,7 @@
 import { state, dom, api, esc, icon, initials, timeAgo, setStatus, errorText } from './core.js';
 import { requireAuth } from './session.js';
 import {loadVoiceNotes,renderVoiceNote} from './dm-audio.js?v=20261018-direct-audio-v1';
-import { renderPost, renderPosts, notificationLabel } from './render.js?v=20261022-quoted-reposts-v1';
+import { renderPost, renderPosts, notificationLabel } from './render.js?v=20261022-social-posts-v2';
 
 let dmRefreshTimer=null,dmLastSignature='';
 function stopDMRefresh(){
@@ -194,8 +194,27 @@ export async function loadNewsRss(){
     if(!isCurrent(revision,'home')||state.feed!=='news')return;
     const items=(data.items||[]).filter(item=>item&&item.title).sort((a,b)=>Date.parse(b.publishedAt||0)-Date.parse(a.publishedAt||0)).slice(0,50);
     dom.feed.innerHTML=items.length
-      ? '<section class="pulse-news-view"><div class="pulse-news-intro"><span>SWAPP ACTUALITÉ · FLUX</span><h2>Actualités à lire et à reposter</h2><p>Le flux SWAPP Actualité est intégré à SOCIAL. Un repost crée une publication avec le titre, la source, le lien et l’image.</p></div><div class="pulse-news-grid">'+items.map(renderNewsCard).join('')+'</div></section>'
+      ? '<section class="pulse-news-view"><div class="pulse-news-intro"><span>SWAPP ACTUALITÉ · FLUX</span><h2>Actualités à lire et à reposter</h2><p>Partage une actualité avec son visuel et son lien, puis retire ton repost directement depuis le fil.</p></div><div class="pulse-news-grid">'+items.map(renderNewsCard).join('')+'</div></section>'
       : '<div class="pulse-status"><strong>Flux vide</strong>Aucune actualité disponible pour le moment.</div>';
+    // Reconcile the user's previous RSS shares AFTER displaying the articles.
+    // A slow MySQL session must never hold the public news feed hostage.
+    const userHandle=state.user?.handle;
+    if(userHandle)void api('/api/pulse/users/'+encodeURIComponent(userHandle)).then(personal=>{
+      if(!isCurrent(revision,'home')||state.feed!=='news')return;
+      const ownRelays=new Map();
+      for(const post of Array.isArray(personal?.posts)?personal.posts:[]){
+        if(!post?.id||!post.linkUrl||!post.linkTitle||String(post.body||'').trim()!==String(post.linkTitle).trim())continue;
+        if(!ownRelays.has(post.linkUrl))ownRelays.set(post.linkUrl,post.id);
+      }
+      dom.feed.querySelectorAll('[data-news-repost]').forEach(button=>{
+        if(button.dataset.newsTouched||button.dataset.newsPostedId)return;
+        const id=ownRelays.get(button.dataset.newsUrl);
+        if(!id)return;
+        button.dataset.newsPostedId=id;
+        button.classList.add('done');
+        button.textContent='Annuler le repost';
+      });
+    }).catch(()=>{});
   }catch(error){
     if(isCurrent(revision,'home')&&state.feed==='news')
       setStatus('SWAPP Actualité indisponible','Impossible de lire le flux pour le moment.');
@@ -491,7 +510,7 @@ export async function loadConversation(handle){
      '<button type="button" data-voice-cancel hidden>Effacer</button></div>'+
      '<audio data-voice-preview controls preload="none" hidden aria-label="Prévisualiser mon message vocal"></audio>'+
      '<p data-voice-status role="status" aria-live="polite">Ton micro ne sera activé qu’après avoir appuyé sur Enregistrer.</p></div>'+
-     '<form class="pulse-message-form" id="conversation-form" data-handle="'+esc(handle)+'"><input name="body" maxlength="2000" placeholder="Écrire un message…" required><button class="pulse-mini-button primary">Envoyer</button></form></section>';
+     '<form class="pulse-message-form" id="conversation-form" data-handle="'+esc(handle)+'"><input name="body" maxlength="2000" placeholder="Écrire un message…" required><button type="button" class="pulse-emoji-toggle pulse-dm-emoji" data-emoji-toggle aria-label="Insérer une emote dans le message" aria-haspopup="true" aria-expanded="false" title="Emotes SWAPP">☺</button><button class="pulse-mini-button primary">Envoyer</button></form></section>';
     dom.feed.innerHTML=html;
     // Conversation windows start at the newest message, including after send.
     const thread=dom.feed.querySelector('.pulse-message-list');
