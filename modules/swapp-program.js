@@ -30,15 +30,24 @@ function page(kind){
       <div class="stv-screen-bottom"><span id="stv-screen-game">GAME UNIVERSE</span><span id="stv-screen-clock">SWAPP / LIVE DISCOVERY</span></div>
      </div>
     </div>
-    <div class="stv-nowbar"><div><span class="stv-label">MAINTENANT</span><strong id="stv-now-name">Antenne en préparation</strong><span id="stv-now-game">En attente de programmation</span></div><div class="stv-now-actions"><button id="stv-watch" type="button" disabled>▶ REGARDER</button><button id="stv-immersive" type="button" aria-pressed="false">⛶ IMMERSION</button></div></div>
+    <div class="stv-nowbar"><div><span class="stv-label">MAINTENANT</span><strong id="stv-now-name">Antenne en préparation</strong><span id="stv-now-game">En attente de programmation</span></div><div class="stv-now-actions"><button id="stv-watch" type="button" disabled>▶ REGARDER</button><button id="stv-dock-toggle" type="button" aria-controls="stv-dock" aria-expanded="false">◧ TCHATS / FILE</button><button id="stv-immersive" type="button" aria-pressed="false">⛶ IMMERSION</button></div></div>
    </div>
-   <aside class="stv-rail" aria-label="Programme et accès créateurs">
+   <aside class="stv-rail stv-dock" id="stv-dock" aria-label="Tchats et file SWAPP TV">
+    <div class="stv-dock-top">
+     <div class="stv-dock-tabs" role="tablist" aria-label="Tchat et file de la chaîne">
+      <button type="button" id="stv-tab-twitch" role="tab" aria-selected="true" aria-controls="stv-pane-twitch">Twitch</button>
+      <button type="button" id="stv-tab-swapp" role="tab" aria-selected="false" aria-controls="stv-pane-swapp" tabindex="-1">SWAPP</button>
+      <button type="button" id="stv-tab-queue" role="tab" aria-selected="false" aria-controls="stv-pane-queue" tabindex="-1">File <span id="stv-queue-count" class="stv-queue-count"></span></button>
+     </div>
+     <button type="button" id="stv-dock-close" aria-label="Fermer les tchats" title="Fermer">✕</button>
+    </div>
+    <div id="stv-pane-queue" class="stv-dock-queue" role="tabpanel" aria-labelledby="stv-tab-queue" hidden>
     <div class="stv-rail-head">
      <span class="stv-label">LE CONDUCTEUR</span>
      <span id="stv-air-state" class="stv-air-state">HORS ANTENNE</span>
     </div>
     <div class="stv-upnext">
-     <div class="stv-next-heading"><span id="stv-next-title" class="stv-label">À SUIVRE</span><span id="stv-queue-count" class="stv-queue-count"></span></div>
+     <div class="stv-next-heading"><span id="stv-next-title" class="stv-label">À SUIVRE</span></div>
      <div id="stv-next-list"><p>Le programme est en préparation.</p></div>
     </div>
     <details id="stv-creator-access" class="stv-creator-inline">
@@ -54,33 +63,30 @@ function page(kind){
       <p id="stv-queue-status" role="status" aria-live="polite">Vérification du service…</p>
      </div>
     </details>
+    </div>
     <section class="stv-chat" aria-label="Discussions de la chaîne">
-     <div class="stv-chat-heading"><span class="stv-label">DISCUSSIONS</span><span class="stv-chat-context">Antenne et communauté</span></div>
-     <div class="stv-chat-tabs" role="tablist" aria-label="Choisir un tchat">
-      <button type="button" id="stv-tab-swapp" role="tab" aria-selected="true" aria-controls="stv-pane-swapp">SWAPP</button>
-      <button type="button" id="stv-tab-twitch" role="tab" aria-selected="false" aria-controls="stv-pane-twitch" tabindex="-1">Twitch</button>
-     </div>
-     <div id="stv-pane-swapp" class="stv-chat-pane" role="tabpanel" aria-labelledby="stv-tab-swapp">
+     <div id="stv-pane-swapp" class="stv-chat-pane" role="tabpanel" aria-labelledby="stv-tab-swapp" hidden>
       <div id="stv-swapp-messages" class="stv-chat-feed" role="log" aria-live="polite" aria-label="Messages SWAPP TV"><p>Connexion à la discussion SWAPP…</p></div>
       <form id="stv-swapp-chat-form" class="stv-chat-form"><label class="stv-sr-only" for="stv-swapp-chat-input">Message SWAPP TV</label><input id="stv-swapp-chat-input" name="body" maxlength="160" autocomplete="off" placeholder="Discuter sur SWAPP…" required><button type="submit" aria-label="Envoyer sur SWAPP">↗</button></form>
       <p id="stv-chat-status" class="stv-chat-status" role="status" aria-live="polite">Compte SWAPP requis pour écrire.</p>
      </div>
-     <div id="stv-pane-twitch" class="stv-chat-pane" role="tabpanel" aria-labelledby="stv-tab-twitch" hidden>
+     <div id="stv-pane-twitch" class="stv-chat-pane" role="tabpanel" aria-labelledby="stv-tab-twitch">
       <div id="stv-twitch-chat" class="stv-twitch-chat"><p>Sélectionne un créateur à regarder pour afficher son tchat Twitch.</p></div>
       <p class="stv-chat-status">Le chat Twitch est celui du créateur sélectionné. Connexion Twitch éventuellement requise pour participer.</p>
      </div>
     </section>
    </aside>
+   <div id="stv-dock-scrim" class="stv-dock-scrim" hidden></div>
   </section>
   <dialog id="stv-program-dialog" class="stv-program-dialog" aria-label="Programme SWAPP TV">
    <div class="stv-dialog-tools"><span>SWAPP TV · PROGRAMME</span><button id="stv-program-close" type="button" aria-label="Fermer le programme">✕ Fermer</button></div>
    ${calendar.replace(/^<main/,'<section').replace(/<\/main>$/,'</section>')}
   </dialog>
  </main>`:calendar;
- return layout({title:tv?'SWAPP TV — La chaîne du Game Universe':'Programme SWAPP TV',description:tv?'La chaîne gaming collective, découverte équitable et directs vérifiés':'Agenda des rendez-vous Spotlight SWAPP',content,active:tv?'tv':'agenda',extraCss:PROGRAM_CSS,scripts:'<link rel="stylesheet" href="/assets/swapp-program.css?v=20261022-unified-tv-v4">'+
+ return layout({title:tv?'SWAPP TV — La chaîne du Game Universe':'Programme SWAPP TV',description:tv?'La chaîne gaming collective, découverte équitable et directs vérifiés':'Agenda des rendez-vous Spotlight SWAPP',content,active:tv?'tv':'agenda',extraCss:PROGRAM_CSS,scripts:'<link rel="stylesheet" href="/assets/swapp-program.css?v=20261022-tv-side-dock-v5">'+
   '<link rel="stylesheet" href="/assets/swapp-page-colors.css?v=20261022-tv-theme-v1">'+
   '<script defer src="/assets/swapp-page-colors.js?v=20261022-tv-theme-v1"></script>'+
-  (tv?'<script defer src="/assets/swapp-tv-broadcast.js?v=20261022-unified-tv-v4"></script>':'')+
+  (tv?'<script defer src="/assets/swapp-tv-broadcast.js?v=20261022-tv-side-dock-v5"></script>':'')+
   '<script defer src="/assets/swapp-calendar.js?v=20261021-calendar-health-v2"></script>'});
 }
 module.exports={page};
