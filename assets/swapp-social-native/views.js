@@ -1,7 +1,7 @@
 import { state, dom, api, esc, icon, initials, timeAgo, setStatus, errorText } from './core.js';
 import { requireAuth } from './session.js';
 import {loadVoiceNotes,renderVoiceNote} from './dm-audio.js?v=20261018-direct-audio-v1';
-import { renderPost, renderPosts, notificationLabel } from './render.js?v=20261016-compact-card-1';
+import { renderPost, renderPosts, notificationLabel } from './render.js?v=20261022-quoted-reposts-v1';
 
 let dmRefreshTimer=null,dmLastSignature='';
 function stopDMRefresh(){
@@ -177,6 +177,7 @@ function renderNewsCard(item){
     '<div class="pulse-news-actions">'+
       (url?'<a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">Lire la source ↗</a>':'')+
       '<button type="button" data-news-repost data-news-title="'+esc(title)+'" data-news-source="'+esc(source)+'" data-news-url="'+esc(url)+'" data-news-image="'+esc(image)+'">Reposter</button>'+
+      '<button type="button" data-news-comment data-news-title="'+esc(title)+'" data-news-url="'+esc(url)+'" data-news-image="'+esc(image)+'">Reposter avec commentaire</button>'+
       (url?'<button type="button" data-news-share data-news-url="'+esc(url)+'" data-news-title="'+esc(title)+'">Partager</button>':'')+
       (item.game?'<button type="button" data-next-game="'+esc(item.game)+'">Discuter du jeu ↗</button>':'')+
     '</div></div></article>';

@@ -143,6 +143,7 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
   });
   router.get('/api/actus',available,async(req,res,next)=>{
     try {
+      res.set('Cache-Control','no-store');
       const list=await published();
       return res.json({articles:list.map(({body,...data})=>data)});
     }catch(e){next(e);}

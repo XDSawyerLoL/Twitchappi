@@ -1,6 +1,6 @@
 import { TOKEN_KEY, state, dom, api, errorText } from './core.js';
 import { openAuth, closeAuth, updateAuthModal, updateAccount, requireAuth, applySession, clearSession, restoreSession } from './session.js?v=20261022-one-account-v1';
-import { setView, loadHome, loadExplore, loadCircles, loadNotifications, loadSaved, loadProfile, loadMessages, loadConversation, loadCirclePreview, loadNewsRss } from './views.js?v=20261021-rss-media-community-v2';
+import { setView, loadHome, loadExplore, loadCircles, loadNotifications, loadSaved, loadProfile, loadMessages, loadConversation, loadCirclePreview, loadNewsRss } from './views.js?v=20261022-quoted-reposts-v1';
 import {setupVoiceNotes} from './dm-audio.js?v=20261018-audio-stage-v1';
 import {setupDirectCalls} from './dm-calls.js?v=20261018-audio-stage-v1';
 
@@ -54,6 +54,7 @@ function revealSocialContent(){
 
 
 function setReply(postId,handle){
+  clearReply();
   state.replyTo=postId;
   const context=document.getElementById('pulse-context');
   context.hidden=false;
@@ -64,8 +65,26 @@ function setReply(postId,handle){
 
 function clearReply(){
   state.replyTo=null;
+  state.quotePostId=null;
   document.getElementById('pulse-context').hidden=true;
   document.getElementById('cancel-context').hidden=true;
+  dom.textarea.placeholder='Partage ce qui t’intéresse avec la communauté…';
+}
+
+function setQuote(postId,handle,excerpt){
+  if(!requireAuth())return;
+  clearReply();
+  state.quotePostId=postId;
+  // The existing composer is reused: one account, one publishing flow.
+  if(state.feed==='news')state.feed='discover';
+  setView('home','Le fil');
+  const context=document.getElementById('pulse-context');
+  context.hidden=false;
+  context.textContent='Tu cites @'+handle+(excerpt?' · '+excerpt.slice(0,100):'');
+  document.getElementById('cancel-context').hidden=false;
+  dom.textarea.placeholder='Ajoute ton commentaire à cette publication…';
+  dom.textarea.focus();
+  dom.composer.scrollIntoView?.({block:'center',behavior:'smooth'});
 }
 
 function safeHttpsUrl(value){
@@ -92,7 +111,7 @@ async function publishPost(){
   if(!body)return;
   dom.publish.disabled=true;
   try{
-    await api('/api/pulse/posts',{method:'POST',body:JSON.stringify({body,replyToId:state.replyTo,...(state.attachment||{})})});
+    await api('/api/pulse/posts',{method:'POST',body:JSON.stringify({body,replyToId:state.replyTo,quotePostId:state.quotePostId,...(state.attachment||{})})});
     dom.textarea.value='';
     dom.count.textContent='0 / 420';
     clearReply();
@@ -471,6 +490,23 @@ function bindDelegatedEvents(){
       }
       return;
     }
+    const newsComment=event.target.closest('[data-news-comment]');
+    if(newsComment){
+      if(!requireAuth())return;
+      const title=String(newsComment.dataset.newsTitle||'Actualité SWAPP').trim().slice(0,240);
+      const url=safeHttpsUrl(newsComment.dataset.newsUrl);
+      const image=safeHttpsUrl(newsComment.dataset.newsImage);
+      if(!url)return;
+      clearReply();
+      state.attachment={linkUrl:url,linkTitle:title,imageUrl:image};
+      state.feed='discover';
+      setView('home','Le fil');
+      updateMediaPreview();
+      dom.textarea.placeholder='Que penses-tu de cette actualité ?';
+      dom.textarea.focus();
+      dom.composer.scrollIntoView?.({block:'center',behavior:'smooth'});
+      return;
+    }
     const newsRepost=event.target.closest('[data-news-repost]');
     if(newsRepost){
       if(!requireAuth())return;
@@ -511,6 +547,12 @@ function bindDelegatedEvents(){
     const action=event.target.closest('[data-action]');
     if(post&&action){
       const postId=post.dataset.id;
+      if(action.dataset.action==='quote'){
+        const handle=post.querySelector('.pulse-post-head [data-profile]')?.dataset.profile||'membre';
+        const excerpt=post.querySelector('.pulse-post-main > p')?.textContent?.trim()||'';
+        setQuote(postId,handle,excerpt);
+        return;
+      }
       if(['like','repost','bookmark'].includes(action.dataset.action)){
         toggleAction(postId,action.dataset.action,action);
         return;
