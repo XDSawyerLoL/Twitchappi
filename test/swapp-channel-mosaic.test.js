@@ -87,3 +87,17 @@ test('integration is versioned, releases track files and does not change player 
  const js=read('assets/swapp-channel-mosaic.js');
  assert.doesNotMatch(js,/socket\.emit\(|updateLiveUi\(|setMiniLive\(/);
 });
+
+test('legacy local browser thumbnails remain visible until they are saved to MySQL',()=>{
+ const js=read('assets/swapp-channel-mosaic.js');
+ assert.match(js,/typeof oryonGetChannelVignettes==='function'/);
+ assert.match(js,/source=oryonGetChannelVignettes\(p\)/);
+ assert.match(js,/source\.filter\(v=>v\?\.image_url\|\|v\?\.image\)/);
+});
+test('no fictitious news block when live is offline or no articles match the game',()=>{
+ const news=read('assets/swapp-live-articles.js');
+ assert.match(news,/if\(!channel\.live\?\.is_live\|\|!game\)return/);
+ assert.match(news,/if\(!articles\.length\)return/);
+ assert.match(news,/placement\.append\(shelf\)/);
+ assert.match(read('index.html'),/swapp-live-articles\.js\?v=20261022-no-empty-creator-news-v1/);
+});
