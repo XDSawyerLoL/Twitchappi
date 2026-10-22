@@ -33,7 +33,7 @@ function harness({missing=false,saved=false,invite=false}={}){
  };
  const inviteHost={
   nodes:[],
-  querySelector(s){return s==='.swapp-discover-creator-join'?this.nodes[0]||null:null},
+  querySelector(s){return s==='.swapp-discover-modes'?this.nodes[0]||null:null},
   appendChild(node){this.nodes.push(node)}
  };
  const discover={
@@ -64,7 +64,7 @@ function harness({missing=false,saved=false,invite=false}={}){
 test('current Discover V4 script loads after its legacy JS in the SPA',()=>{
  const html=read('index.html');
  const legacy=html.indexOf('<script src="/index_script.js?');
- const comfort=html.indexOf('<script defer src="/assets/swapp-discover-comfort.js?v=20261019-fair-discovery-v27"');
+ const comfort=html.indexOf('<script defer src="/assets/swapp-discover-comfort.js?v=20261022-single-journey-v1"');
  assert.ok(legacy>=0&&comfort>legacy);
  assert.equal((html.match(/swapp-discover-comfort\.js/g)||[]).length,1);
  assert.equal(fs.existsSync(path.join(root,'.github/workflows/swapp-quality.yml')),false);
@@ -229,23 +229,19 @@ test('stale saved-card image errors cannot damage a newly loaded preview',()=>{
  assert.equal(h.savedHolder.classList.contains('swapp-discover-no-image'),false);
 });
 
-test('Discover invites new creators through the existing account flow without a duplicate banner',()=>{
+test('Discover integrates games and teams in its existing hero with no second creator-signup panel',()=>{
  const h=harness({invite:true});
  assert.equal(h.inviteHost.nodes.length,1);
- const button=h.inviteHost.nodes[0];
- assert.equal(button.tag,'button');
- assert.equal(button.type,'button');
- assert.match(button.className,/swapp-discover-creator-join/);
- assert.match(button.textContent,/Créer ta chaîne sur SWAPP/);
- button.onclick();
- assert.equal(h.calls.view,'manager');
- // The decorated Discover view can be re-rendered without duplicate CTA.
+ const nav=h.inviteHost.nodes[0];
+ assert.equal(nav.tag,'nav');
+ assert.match(nav.className,/swapp-discover-modes/);
+ assert.match(nav.innerHTML,/href="\/decouvrir"/);
+ assert.match(nav.innerHTML,/href="\/categories"/);
+ assert.match(nav.innerHTML,/href="\/equipes"/);
+ assert.doesNotMatch(nav.innerHTML,/Créer ta chaîne/);
  h.observer().callback();
- assert.equal(h.inviteHost.nodes.length,1);
- // Guest visitors are routed to the existing registration/login screen.
- h.win.streamTargetView=undefined;
- button.onclick();
- assert.equal(h.calls.view,'settings');
+ assert.equal(h.inviteHost.nodes.length,1,'no duplicate subnavigation after rerender');
  const source=read('assets/swapp-discover-comfort.js');
+ assert.doesNotMatch(source,/swapp-discover-creator-join/);
  assert.doesNotMatch(source,/fetch\(|sendBeacon|localStorage|XMLHttpRequest/);
 });
