@@ -491,7 +491,7 @@ export async function loadConversation(handle){
      '<button type="button" data-voice-cancel hidden>Effacer</button></div>'+
      '<audio data-voice-preview controls preload="none" hidden aria-label="Prévisualiser mon message vocal"></audio>'+
      '<p data-voice-status role="status" aria-live="polite">Ton micro ne sera activé qu’après avoir appuyé sur Enregistrer.</p></div>'+
-     '<form class="pulse-message-form" id="conversation-form" data-handle="'+esc(handle)+'"><input name="body" maxlength="2000" placeholder="Écrire un message…" required><button class="pulse-mini-button primary">Envoyer</button></form></section>';
+     '<form class="pulse-message-form" id="conversation-form" data-handle="'+esc(handle)+'"><input name="body" maxlength="2000" placeholder="Écrire un message…" required><button type="button" class="pulse-emoji-toggle pulse-dm-emoji" data-emoji-toggle aria-label="Insérer une emote dans le message" aria-haspopup="true" aria-expanded="false" title="Emotes SWAPP">☺</button><button class="pulse-mini-button primary">Envoyer</button></form></section>';
     dom.feed.innerHTML=html;
     // Conversation windows start at the newest message, including after send.
     const thread=dom.feed.querySelector('.pulse-message-list');
