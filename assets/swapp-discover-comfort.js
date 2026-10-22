@@ -211,21 +211,14 @@ body.oryonDiscoverV4 #discover .v4FollowRail::-webkit-scrollbar{display:none!imp
  body.oryonDiscoverV4 #discover .v4DeckSlot:not(.empty){min-width:0!important}
  body.oryonDiscoverV4 #discover .v4FollowCard{min-width:min(70vw,260px)!important;height:128px!important}
 }
-/* A single discreet creator acquisition action; no homepage module,
-   popup, new endpoint or audience tracking. */
-body.oryonDiscoverV4 #discover .swapp-discover-creator-join{
- display:inline-flex;align-items:center;gap:6px;margin-top:14px;
- padding:6px 0;background:none;border:0;border-bottom:1px solid #ffffff44;
- color:#e8f6ee;font:700 13px/1.5 system-ui,sans-serif;
- text-decoration:none;cursor:pointer;max-width:100%;text-align:left;
-}
-body.oryonDiscoverV4 #discover .swapp-discover-creator-join:hover,
-body.oryonDiscoverV4 #discover .swapp-discover-creator-join:focus-visible{
- border-bottom-color:#c9f7dc;color:#fff;
-}
-body.oryonDiscoverV4 #discover .swapp-discover-creator-join:focus-visible{
- outline:2px solid #c9f7dc;outline-offset:4px;
-}
+/* The existing Discover hero carries all three ways to explore,
+   without a creator signup panel or a new destination. */
+body.oryonDiscoverV4 #discover .swapp-discover-modes{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:18px;padding:4px;border-radius:10px;border:1px solid #ffffff24;background:#111b2c86;width:fit-content;max-width:100%}
+body.oryonDiscoverV4 #discover .swapp-discover-modes a{display:inline-flex;align-items:center;justify-content:center;min-height:38px;padding:8px 13px;color:#bac8d9;text-decoration:none;border-radius:7px;font:750 12px/1.3 Inter,system-ui,sans-serif;white-space:nowrap}
+body.oryonDiscoverV4 #discover .swapp-discover-modes a[aria-current=page]{background:linear-gradient(115deg,#32668a,#352d63);color:#fff}
+body.oryonDiscoverV4 #discover .swapp-discover-modes a:hover{background:#ffffff19;color:#fff}
+body.oryonDiscoverV4 #discover .swapp-discover-modes a:focus-visible{outline:2px solid #6bdeeb;outline-offset:2px}
+@media(max-width:650px){body.oryonDiscoverV4 #discover .swapp-discover-modes{width:100%}body.oryonDiscoverV4 #discover .swapp-discover-modes a{flex:1;min-width:0;padding:9px 8px;font-size:11px}}
 /* SWAPP V17 DISCOVER — creator first, preferences second. */
 body.oryonDiscoverV4 #discover .v4Title{font-size:clamp(34px,4.5vw,62px)!important;line-height:1.03!important;letter-spacing:-.058em!important;text-wrap:balance}
 body.oryonDiscoverV4 #discover .v4Lead{max-width:58ch!important;font-size:15px!important;line-height:1.62!important}
@@ -270,17 +263,14 @@ body.oryonDiscoverV4 #discover .v4Deck.is-collapsed:after{display:none!important
    note.textContent='Découverte équitable : des suggestions pertinentes et une place pour les petits créateurs.';
    lead.appendChild(note);
   }
-  const inviteHost=area.querySelector('.v4Hero > div');
-  if(inviteHost&&!inviteHost.querySelector('.swapp-discover-creator-join')){
-   const invite=doc.createElement('button');
-   invite.type='button';
-   invite.className='swapp-discover-creator-join';
-   invite.textContent='Tu diffuses ? Créer ta chaîne sur SWAPP →';
-   invite.onclick=()=>{
-    const target=typeof root.streamTargetView==='function'?root.streamTargetView():'settings';
-    if(typeof root.setView==='function')root.setView(target);
-   };
-   inviteHost.appendChild(invite);
+  const modeHost=area.querySelector('.v4Hero > div');
+  if(modeHost&&!modeHost.querySelector('.swapp-discover-modes')){
+   const nav=doc.createElement('nav');
+   nav.className='swapp-discover-modes';
+   nav.setAttribute?.('aria-label','Parcourir les jeux et les créateurs');
+   nav.innerHTML='<a href="/decouvrir" aria-current="page">Créateurs</a>'+
+    '<a href="/categories">Jeux</a><a href="/equipes">Équipes</a>';
+   modeHost.appendChild(nav);
   }
   // Keep the existing V4 actions and persistence; change labels, never handlers.
   for(const btn of area.querySelectorAll?.('.v4Actions .v4Btn')||[]){
