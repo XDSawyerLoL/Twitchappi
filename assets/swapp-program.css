@@ -196,3 +196,8 @@
  .stv .stv-dock-top{min-height:46px}
 }
 @media (prefers-reduced-motion:reduce){.stv .stv-dock{transition:none!important}}
+
+/* Immersive mode keeps the screen only; the side dock never overlays video. */
+.stv.tv-immersive .stv-dock{display:none!important}
+.stv.tv-immersive .stv-dock-scrim{display:none!important}
+.stv.tv-immersive #stv-dock-toggle{display:none!important}
