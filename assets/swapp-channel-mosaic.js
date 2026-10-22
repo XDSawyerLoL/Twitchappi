@@ -27,7 +27,17 @@
  };
  const profile=()=>typeof state==='undefined'?null:state.channelProfile;
  const owner=()=>typeof state!=='undefined'&&Boolean(state.channelOwner);
- const values=()=>((profile()?.channel_vignettes?.length?profile().channel_vignettes:profile()?.channel_panels)||[]).filter(v=>v?.image_url||v?.image).slice(0,8).map(normalize);
+ const values=()=>{
+  const p=profile()||{};
+  // Before SWAPP MySQL cutover, older panel editors stored images locally.
+  // Do not make an existing owner's legacy thumbnails disappear on upgrade.
+  const server=p.channel_vignettes?.length?p.channel_vignettes:p.channel_panels;
+  let source=Array.isArray(server)?server:[];
+  if(!source.length&&typeof oryonGetChannelVignettes==='function'){
+   try{source=oryonGetChannelVignettes(p)||[]}catch(_){}
+  }
+  return source.filter(v=>v?.image_url||v?.image).slice(0,8).map(normalize);
+ };
  const safeUrl=url=>{
   try{
    const u=new URL(url,location.origin);
