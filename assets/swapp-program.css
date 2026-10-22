@@ -107,7 +107,7 @@
 .stv .stv-now-actions #stv-watch,.stv .stv-queue-buttons #stv-join,.scal .scal-aside-tv a{background:var(--tv-accent)!important;color:#071623!important;border-color:var(--tv-accent)!important}
 .stv .stv-now-actions #stv-watch:disabled,.stv .stv-queue-buttons #stv-join:disabled{opacity:.48;cursor:not-allowed}
 .stv .stv-creator-summary-icon,.stv .stv-creator-chevron,.stv .stv-station-label{color:var(--tv-accent);border-color:color-mix(in srgb,var(--tv-accent) 40%,transparent)}
-.stv .stv-creator-inline[hidden]{display:block!important}
+
 .stv .stv-rail{overflow:hidden;min-width:0}
 .stv .stv-upnext{flex:0 0 auto;min-height:135px;padding:20px 23px}
 .stv .stv-next-item{padding:9px 0}
