@@ -65,7 +65,10 @@ test('actions require logged in account, server-confirmed DELETE and undo-repost
  assert.match(app,/if\(!result\?\.ok\)throw Error/);
  assert.match(app,/data\.action==='delete'/);
  assert.match(app,/typeof result\?\.active==='boolean'\?result.active:!previous/);
- assert.match(app,/const body=title.slice\(0,420\)/);
+ assert.match(app,/body:title.slice\(0,420\)/);
+ assert.match(app,/newsRepost.dataset.newsPostedId/);
+ assert.match(app,/newsRepost.textContent='Annuler le repost'/);
+ assert.match(read('assets/swapp-social-native/views.js'),/const ownRelays=new Map\(\)/);
 });
 test('emoji picker is available in one compact composer and DMs with length limits',()=>{
  const markup=read('assets/swapp-social-native/social-body.html');
