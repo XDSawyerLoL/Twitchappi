@@ -43,7 +43,7 @@ test('native layout loads color before the body and article CSS does not tint ac
  const html=read('modules/swapp-news/site-shell.js');
  const css=read('assets/swapp-article-immersive.css');
  assert.match(html,/swapp-editorial-color\.js\?v=20261022-global-color-v1/);
- assert.match(html,/swapp-article-immersive\.css\?v=20261019-native-colors-v8/);
+ assert.match(html,/swapp-article-immersive\.css\?v=20261021-compact-reading-v1/);
  assert.ok(html.indexOf('swapp-editorial-color.js?v=20261022-global-color-v1')<html.indexOf('</head><body'));
  assert.match(css,/html\.swapp-editorial-theme body\.swapp-editorial-route \.article-wrap/);
  assert.match(css,/color-mix\(in srgb,var\(--swapp-side-light,#22d3ee\) 26%,transparent\)/);
