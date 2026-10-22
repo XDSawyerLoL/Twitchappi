@@ -79,7 +79,7 @@ async function verify(){
  check(stylesheet.body.includes('pulse-post-relayed .pulse-rich-link-preview')&&
    stylesheet.body.includes('.pulse-emoji-picker'),'SOCIAL CSS lacks compact relays or emotes');
  const air=await request(origin,'/assets/swapp-social-editorial-air.css?v=20261022-responsive-gifs-v1');
- check(air.status===200&&air.body.includes('SWAPP SOCIAL · editorial, unboxed layout'),
+ check(air.response.status===200&&air.body.includes('SWAPP SOCIAL · editorial, unboxed layout'),
    'SOCIAL still serves the boxed layout or lacks its new stylesheet');
  const emojiScript=await request(origin,'/assets/swapp-social-native/emotes.js');
  check(emojiScript.body.includes('setupSocialEmotes'),'SOCIAL emote module unavailable');
@@ -89,10 +89,10 @@ async function verify(){
  check(gifPicker.body.includes('setupSocialGifPicker'),'SOCIAL GIF picker missing');
  const gifs=await request(origin,'/api/swapp/social/gifs');
  const catalog=JSON.parse(gifs.body||'{}');
- check(gifs.status===200&&Array.isArray(catalog.items)&&catalog.items.length>=10,
+ check(gifs.response.status===200&&Array.isArray(catalog.items)&&catalog.items.length>=10,
    'SOCIAL native GIF catalogue unavailable');
  const firstGif=await request(origin,'/api/swapp/social/gifs/sticker/gg.gif');
- check(firstGif.status===200&&firstGif.headers['content-type']?.includes('image/gif'),
+ check(firstGif.response.status===200&&firstGif.response.headers.get('content-type')?.includes('image/gif'),
    'SOCIAL animated GIF endpoint unavailable');
  process.stdout.write('PASS SOCIAL public stylesheet\n');
  // Public Game Store intentionally contains only the dated Steam France top ten.
