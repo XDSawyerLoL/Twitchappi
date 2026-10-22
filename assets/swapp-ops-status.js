@@ -4,9 +4,26 @@
 (()=>{
  'use strict';
  const services=[
-  {name:'Comptes SWAPP',url:'/api/oryon/persistence-status',describe:d=>({ok:d.mysql===true&&String(d.persistence||'').startsWith('mysql:'),detail:d.mysql?'MySQL · '+(d.users??'—')+' comptes':'Firestore encore actif'})},
-  {name:'SOCIAL',url:'/api/swapp/social-native/backend-status',describe:d=>({ok:d.active_backend==='mysql'&&d.snapshot_present===true,detail:'Stockage : '+String(d.active_backend||'indisponible')})},
-  {name:'Spotlight',url:'/api/creator/spotlight/status',describe:d=>({ok:d.enabled===true,detail:d.enabled?'Créneaux activés':'Inactif · comptes MySQL '+(d.accounts_mysql?'prêts':'non prêts')})},
+  {name:'Comptes SWAPP',url:'/api/oryon/persistence-status',key:'accounts',describe:d=>({
+   ok:d.mysql===true&&String(d.persistence||'').startsWith('mysql:'),
+   detail:d.mysql===true?'MySQL · '+(d.users??'—')+' comptes':'Firestore · '+(d.users??'—')+' comptes. Migration à valider avant Spotlight.'
+  })},
+  {name:'SOCIAL',url:'/api/swapp/social-native/backend-status',key:'social',describe:d=>{
+   const ready=d.active_backend==='mysql'&&d.snapshot_present===true&&d.snapshot_type==='fresh'&&!d.writes_frozen;
+   const initStillOn=d.fresh_auto_init_requested===true||d.fresh_start_approved===true;
+   return {ok:ready&&!initStillOn,live:ready,
+    detail:ready?(initStillOn?'MySQL actif · autorisations d’initialisation temporaire à désactiver sur Hostinger':'MySQL actif · données conservées'):
+     'Stockage non prêt : '+String(d.active_backend||'indisponible')};
+  }},
+  {name:'SWAPP TV',url:'/api/swapp-tv/queue/status',key:'tv',describe:d=>({
+   ok:d.enabled===true&&d.director_enabled===true,
+   detail:!d.enabled?'File désactivée sur Hostinger':!d.director_enabled?'Inscriptions ouvertes, régie automatique inactive':
+    'Régie active · '+(Array.isArray(d.waiting)?d.waiting.length:0)+' en attente'
+  })},
+  {name:'Spotlight',url:'/api/creator/spotlight/status',key:'spotlight',describe:d=>({
+   ok:d.enabled===true&&d.accounts_mysql===true,
+   detail:d.enabled?'Créneaux activés':'Inactif · '+(d.accounts_mysql?'prérequis de comptes prêts':'comptes SWAPP MySQL requis')
+  })},
   {name:'Fair Discovery',url:'/api/discovery/fair-summary',describe:d=>({ok:d.enabled===true,detail:d.enabled?'Activé · échantillon '+String(d.sample||'indisponible'):'Désactivé'})},
   {name:'Actualités',url:'/api/actus/release-status',describe:d=>({ok:d.releaseCount>0&&d.releaseCount===d.editableCount,detail:String(d.editableCount||0)+' / '+String(d.releaseCount||0)+' articles du lot éditables'})},
   {name:'Discord',url:'/api/editor/actus/discord/status',describe:d=>({ok:d.discord?.enabled===true,detail:d.discord?.enabled?'Annonce automatique configurée':'À configurer sur Hostinger'})},
@@ -20,8 +37,9 @@
   host.replaceChildren();
   const title=document.createElement('h4');title.textContent='État des services SWAPP';
   const subtitle=document.createElement('p');subtitle.textContent='Diagnostics du serveur · lecture seule · aucun compte modifié.';
+  const launch=document.createElement('p');launch.className='swapp-ops-launch';launch.setAttribute('role','status');
   const list=document.createElement('div');list.className='swapp-ops-rows';
-  host.append(title,subtitle,list);
+  host.append(title,subtitle,launch,list);
   const results=await Promise.all(services.map(async service=>{
    const controller=new AbortController();
    const timer=setTimeout(()=>controller.abort(),6000);
@@ -34,6 +52,15 @@
    }finally{clearTimeout(timer);}
   }));
   if(!host.isConnected)return;
+  const readiness=Object.fromEntries(services.map((service,index)=>[service.key||service.name,results[index]]));
+  const required=['accounts','social','tv','spotlight'];
+  const missing=required.filter(key=>readiness[key]?.ok!==true);
+  launch.textContent=missing.length===0
+   ? 'Parcours P0 : prérequis techniques déclarés actifs. Tests réels de connexion, file et réservations encore nécessaires.'
+   : 'Lancement P0 bloqué · '+missing.length+' prérequis à traiter : '+
+      missing.map(key=>({accounts:'comptes MySQL',social:'SOCIAL / initialisation',tv:'régie TV',spotlight:'Spotlight'})[key]).join(', ')+
+      '. Ne pas basculer les comptes ou ouvrir les réservations sans test à deux comptes.';
+  launch.dataset.ready=missing.length===0?'candidate':'blocked';
   for(let i=0;i<services.length;i++){
    const row=document.createElement('div');row.className='swapp-ops-row';
    const name=document.createElement('strong');name.textContent=services[i].name;
