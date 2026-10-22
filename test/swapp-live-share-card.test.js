@@ -13,7 +13,7 @@ const creator={
 test('live embed uses actual stream title, branded large image, and status',()=>{
  const live=cardContext(creator,{active:true,title:'Découverte de Aion 2',category:'Aion 2',startedAt:123});
  const rendered=injectCreatorMetadata(html,creator,'vnhz',live);
- assert.match(rendered,/property="og:title" content="vnhz est en direct sur SWAPP"/);
+ assert.match(rendered,/property="og:title" content="🔴 vnhz en direct — Découverte de Aion 2 \| SWAPP"/);
  assert.match(rendered,/Découverte de Aion 2/);
  assert.match(rendered,/property="og:description"/);
  assert.match(rendered,/property="og:image:width" content="1200"/);
