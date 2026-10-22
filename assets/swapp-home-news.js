@@ -8,7 +8,7 @@
  const fetchItems=async(path,timeout)=>{
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),timeout);
   try{
-   const r=await fetch(path,{credentials:'same-origin',headers:{Accept:'application/json'},signal:controller.signal});
+   const r=await fetch(path,{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'},signal:controller.signal});
    if(!r.ok)throw Error('HTTP '+r.status);
    return await r.json();
   }finally{clearTimeout(timer)}
@@ -68,6 +68,12 @@
    const all=el('a','','Toutes les bandes-annonces →');all.href='/bandes-annonces';caption.append(all);
    wrap.append(trigger,caption);return wrap;
  }
+ // A newly published illustrated article takes priority over an older hero.
+ const articleDate=item=>Date.parse(item?.publishedAt||item?.originalPublishedAt||item?.updatedAt||'')||0;
+ const cover=item=>{
+   const sources=window.SwappArticleExtras?.cardImageSources?.(item);
+   return safeUrl((Array.isArray(sources)&&sources[0])||item?.image?.url||item?.thumbnail?.url||item?.imageUrl||'');
+ };
  const discussionHref=item=>'/social?share=news&title='+encodeURIComponent(item.game?item.game+' — '+item.title:item.title)+'&url='+encodeURIComponent('https://swapp.tv/actus/'+item.slug);
  const gameKey=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
  async function showVerifiedCreators(item,row){
@@ -104,8 +110,11 @@
    const hero=modern?.querySelector('.homeHeroInner1014');
    if(!hero)return null;
    const existing=hero.querySelector('.swapp-home-hero-feature');
-   if(existing)return existing.dataset.articleSlug||null;
-   const feature=articles.find(item=>slugOk(item.slug)&&safeUrl(item.image?.url||item.imageUrl));
+   const feature=articles.find(item=>slugOk(item.slug)&&cover(item));
+   if(existing&&feature&&existing.dataset.articleSlug===feature.slug)return feature.slug;
+   // Replace the old poster and its action rail in place. The video player
+   // observes tile disconnection and destroys itself without leaking audio.
+   if(existing){existing.remove();hero.querySelector('.swapp-home-feature-bridge')?.remove();}
    const placeholder=hero.querySelector('.swapp-home-hero-placeholder');
    if(!feature){
      placeholder?.remove();
@@ -119,7 +128,7 @@
    tile.dataset.articleSlug=feature.slug;
    tile.setAttribute('aria-label','Lire : '+feature.title);
    tile.addEventListener('click',event=>navigateArticle(event,feature.slug,feature.game));
-   const image=el('img');image.src=safeUrl(feature.image?.url||feature.imageUrl);image.alt='';
+   const image=el('img');image.src=cover(feature);image.alt='';
    image.decoding='async';image.loading='eager';
    const bridge=el('div','swapp-home-feature-bridge');
    bridge.dataset.swappFeatureGame=String(feature.game||'').slice(0,120);
@@ -154,9 +163,53 @@
    window.SwappHomeMotion?.attach?.(tile,feature);
    return feature.slug;
  }
+ function applyArticles(section,grid,modern,articles){
+     if(!section.isConnected)return;
+     section.setAttribute('aria-busy','false');
+     const valid=articles.filter(x=>slugOk(x.slug)&&String(x.title||'').trim())
+       .sort((a,b)=>articleDate(b)-articleDate(a)||String(b.slug).localeCompare(String(a.slug)))
+       .slice(0,12);
+     latestArticles=valid.slice(0,5);
+     // Matching reorders the existing live cards, not the article shelf.
+     window.dispatchEvent(new CustomEvent('swapp:home-news-ready',{detail:{articles:valid}}));
+     grid.replaceChildren();
+     if(!valid.length){
+       decorateHero(modern,[]);
+       const retryState=el('div','swapp-home-empty');
+       retryState.append(el('p','','Les actualités sont momentanément indisponibles.'));
+       const retry=el('button','swapp-home-retry','Réessayer');
+       retry.type='button';
+       retry.onclick=()=>{
+         newsPromise=null;newsFetchedAt=0;
+         section.remove();
+         queue();
+       };
+       retryState.append(retry);grid.append(retryState);return;
+     }
+     // The hero already links to its article; do not repeat the same story below.
+     // If its image fails, return the article to the grid instead of losing it.
+     const featuredSlug=decorateHero(modern,valid,()=>{
+       if(!section.isConnected)return;
+       grid.replaceChildren();
+       valid.forEach((item,i)=>grid.append(story(item,i)));
+     });
+     const visible=featuredSlug?valid.filter(item=>item.slug!==featuredSlug):valid;
+     visible.slice(0,modern?4:5).forEach((item,i)=>grid.append(story(item,featuredSlug?i+1:i)));
+
+ }
  function mount(){
    const home=document.getElementById('home');
-   if(!home||!home.classList.contains('active')||home.querySelector('[data-swapp-home-editorial]'))return;
+   if(!home||!home.classList.contains('active'))return;
+   const existingSection=home.querySelector('[data-swapp-home-editorial]');
+   if(existingSection){
+     if(Date.now()-Number(existingSection.dataset.swappEditorialChecked||0)<90000)return;
+     existingSection.dataset.swappEditorialChecked=String(Date.now());
+     news().then(articles=>{
+       if(articles.length&&existingSection.isConnected)
+         applyArticles(existingSection,existingSection.querySelector('.swapp-home-story-grid'),home.querySelector('.swappHome1014'),articles);
+     });
+     return;
+   }
    const modern=home.querySelector('.swappHome1014');
    const legacy=home.querySelector('.homeOnlyMain');
    const base=modern||legacy||home;
@@ -187,38 +240,8 @@
    if(liveShelf)modern.insertBefore(section,liveShelf);
    else if(legacy)legacy.insertBefore(section,legacy.firstChild);
    else base.append(section);
-   news().then(async articles=>{
-     if(!section.isConnected)return;
-     section.setAttribute('aria-busy','false');
-     const valid=articles.filter(x=>slugOk(x.slug)&&String(x.title||'').trim()).slice(0,5);
-     latestArticles=valid;
-     // Matching reorders the existing live cards, not the article shelf.
-     window.dispatchEvent(new CustomEvent('swapp:home-news-ready',{detail:{articles:valid}}));
-     grid.replaceChildren();
-     if(!valid.length){
-       decorateHero(modern,[]);
-       const retryState=el('div','swapp-home-empty');
-       retryState.append(el('p','','Les actualités sont momentanément indisponibles.'));
-       const retry=el('button','swapp-home-retry','Réessayer');
-       retry.type='button';
-       retry.onclick=()=>{
-         newsPromise=null;newsFetchedAt=0;
-         section.remove();
-         queue();
-       };
-       retryState.append(retry);grid.append(retryState);return;
-     }
-     // The hero already links to its article; do not repeat the same story below.
-     // If its image fails, return the article to the grid instead of losing it.
-     const featuredSlug=decorateHero(modern,valid,()=>{
-       if(!section.isConnected)return;
-       grid.replaceChildren();
-       valid.forEach((item,i)=>grid.append(story(item,i)));
-     });
-     const visible=featuredSlug?valid.filter(item=>item.slug!==featuredSlug):valid;
-     visible.forEach((item,i)=>grid.append(story(item,featuredSlug?i+1:i)));
-
-   });
+   section.dataset.swappEditorialChecked=String(Date.now());
+   news().then(articles=>applyArticles(section,grid,modern,articles));
  }
  // The SPA replaces #home's direct children when its view is rebuilt.
  // Watching every descendant catches every live thumbnail/card mutation and
@@ -239,6 +262,8 @@
    });
    queue();
  }
+ // Refresh the existing hero when the newsroom publishes without requiring F5.
+ window.setInterval(()=>{if(document.visibilityState==='visible'&&home?.classList.contains('active'))queue()},90000);
  window.addEventListener('pageshow',queue);
  window.addEventListener('popstate',queue);
  document.addEventListener('visibilitychange',()=>{
