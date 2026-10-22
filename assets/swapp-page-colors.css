@@ -1,37 +1,18 @@
-/* Shared hue for server-rendered Boutique and Communauté. No changes elsewhere. */
+/* Shared hue styling, driven exclusively by oryon_viewer_accent. No local pickers. */
 body:has(.swapp-store),body:has(.swapp-social-viewport){
- --swapp-page-accent:#22d3ee;
- --swapp-side-light:var(--swapp-page-accent);
- background:radial-gradient(ellipse 85% 65% at 5% 18%,color-mix(in srgb,var(--swapp-page-accent) 27%,transparent),transparent 75%),radial-gradient(ellipse 75% 65% at 98% 70%,color-mix(in srgb,var(--swapp-page-accent) 17%,transparent),transparent 80%),#0b101b!important;
+ background:radial-gradient(ellipse 85% 65% at 5% 18%,color-mix(in srgb,var(--swapp-page-accent,#22d3ee) 18%,transparent),transparent 75%),radial-gradient(ellipse 75% 65% at 98% 70%,color-mix(in srgb,var(--swapp-page-accent,#22d3ee) 10%,transparent),transparent 80%),#0b101b!important;
 }
-body:has(.swapp-store) .swapp-store-topline>span:first-child,body:has(.swapp-store) .swapp-editorial-top-masthead small,
+body:has(.swapp-store) .swapp-store-topline>span:first-child,
+body:has(.swapp-store) .swapp-editorial-top-masthead small,
 body:has(.swapp-store) .swapp-editorial-top-masthead h2 em,
 body:has(.swapp-store) .swapp-editorial-game-genre,
-body:has(.swapp-store) .swapp-editorial-game-foot a{color:var(--swapp-page-accent)!important}
-body:has(.swapp-store) .swapp-editorial-game-foot a{border-bottom-color:var(--swapp-page-accent)!important}
-body:has(.swapp-social-viewport) .swapp-social-viewport{--social-accent:var(--swapp-page-accent)!important;--pulse-cyan:var(--swapp-page-accent)!important;--pulse-teal:var(--swapp-page-accent)!important}
-.swapp-page-appearance{width:min(1510px,calc(100% - 48px));margin:8px auto 0;color:#e8eff6;font:12px system-ui,sans-serif;position:relative;z-index:11}
-.swapp-page-appearance details{width:max-content;max-width:100%}
-.swapp-page-appearance summary{cursor:pointer;list-style:none;border-bottom:1px solid var(--swapp-page-accent);padding:7px 1px;font-weight:700;color:#dce8f3}
-.swapp-page-appearance summary::-webkit-details-marker{display:none}
-.swapp-page-appearance-colors{display:flex;gap:10px;padding:12px 0;align-items:center;flex-wrap:wrap}
-.swapp-page-appearance-colors button{width:28px;height:28px;border-radius:50%;background:var(--color-chip);border:2px solid transparent;cursor:pointer;box-shadow:none}
-.swapp-page-appearance-colors button[aria-pressed="true"]{outline:2px solid #fff;outline-offset:2px}
-@media(max-width:640px){.swapp-page-appearance{width:calc(100% - 28px)}}
-
-/* SWAPP TV and its programme use exactly the same site accent picker. */
-body:has(.stv),body:has(.scal){
- --swapp-page-accent:#22d3ee;--swapp-side-light:var(--swapp-page-accent);
- background:radial-gradient(ellipse at 12% 11%,color-mix(in srgb,var(--swapp-page-accent) 18%,transparent),transparent 36%),#0b101b!important;
+body:has(.swapp-store) .swapp-editorial-game-foot a{color:var(--swapp-page-accent,#22d3ee)!important}
+body:has(.swapp-store) .swapp-editorial-game-foot a{border-bottom-color:var(--swapp-page-accent,#22d3ee)!important}
+body:has(.swapp-social-viewport) .swapp-social-viewport{
+ --social-accent:var(--swapp-page-accent,#22d3ee)!important;
+ --pulse-cyan:var(--swapp-page-accent,#22d3ee)!important;
+ --pulse-teal:var(--swapp-page-accent,#22d3ee)!important;
 }
-body:has(.stv) .swapp-page-appearance,
-body:has(.scal) .swapp-page-appearance{width:auto;max-width:100%;margin:0;flex-shrink:0}
-body:has(.stv) .swapp-page-appearance summary,
-body:has(.scal) .swapp-page-appearance summary{border:1px solid #ffffff28;border-radius:9px;padding:8px 12px;background:#ffffff09;font-size:11px;color:#e4eaf4}
-body:has(.stv) .swapp-page-appearance details,
-body:has(.scal) .swapp-page-appearance details{position:relative}
-body:has(.stv) .swapp-page-appearance-colors,
-body:has(.scal) .swapp-page-appearance-colors{position:absolute;z-index:90;right:0;top:calc(100% + 9px);width:228px;display:flex;padding:13px;border:1px solid #ffffff27;border-radius:12px;background:#152137;box-shadow:0 14px 40px #0009}
-body:has(.stv) .swapp-page-appearance details:not([open]) .swapp-page-appearance-colors,
-body:has(.scal) .swapp-page-appearance details:not([open]) .swapp-page-appearance-colors{display:none}
-@media(max-width:600px){body:has(.stv) .swapp-page-appearance summary,body:has(.scal) .swapp-page-appearance summary{padding:8px 10px}}
+body:has(.stv),body:has(.scal){
+ background:radial-gradient(ellipse at 12% 11%,color-mix(in srgb,var(--swapp-page-accent,#22d3ee) 13%,transparent),transparent 36%),#0b101b!important;
+}
