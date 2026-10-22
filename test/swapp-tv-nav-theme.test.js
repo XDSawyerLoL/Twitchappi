@@ -31,7 +31,7 @@ test('TV and programme follow existing SWAPP colors and layout',()=>{
  assert.match(css,/\.stv-rail\{border:1px solid #ffffff29/);
  assert.match(css,/\.scal-head\{min-height:220px/);
  const tv=page('tv'),programme=page('agenda');
- assert.match(tv,/href="\/tv\/programme"/);
+ assert.match(tv,/id="stv-program-open"/);
  assert.doesNotMatch(tv,/href="\/jeux"/);
  assert.match(programme,/LE PROGRAMME/);
  assert.match(programme,/id="scal-grid"/);
