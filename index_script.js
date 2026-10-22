@@ -10262,18 +10262,59 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
   function resetToken(){ return (typeof swappPasswordResetToken === 'function' ? swappPasswordResetToken() : (resetParams().get('reset_token') || resetParams().get('token') || '')); }
   function resetLoginHint(){ return (typeof swappPasswordResetLoginHint === 'function' ? swappPasswordResetLoginHint() : (resetParams().get('reset_login') || '')); }
   function forgotCardHtml(){
-    return `<form id="forgotPasswordForm" class="authCard"><h2>Mot de passe oublié</h2><p>Entre ton email ou ton pseudo. Si le compte existe, un lien de récupération sera envoyé par email.</p><input id="forgotIdentity" placeholder="email ou pseudo"><button class="btn">Envoyer le lien</button><p class="small muted">Le lien expire automatiquement. Aucun mot de passe n’est envoyé par email.</p></form>`;
+    return '<form id="forgotPasswordForm" class="swapp-auth-form" data-swapp-auth-panel="forgot" aria-label="Récupération du compte" hidden>'+
+      '<h2>Mot de passe oublié</h2><p>Indique ton email ou ton pseudo. Un lien de récupération sera envoyé si ce compte existe.</p>'+
+      '<label for="forgotIdentity">Email ou pseudo</label><input id="forgotIdentity" name="identity" autocomplete="username" placeholder="Email ou pseudo" required minlength="3">'+
+      '<button class="btn" type="submit">Envoyer le lien</button>'+
+      '<button class="swapp-auth-text-link" type="button" data-swapp-auth-switch="login">Retour à la connexion</button>'+
+      '<p class="swapp-auth-note">Le lien expire automatiquement. Aucun mot de passe n’est envoyé par email.</p></form>';
   }
   function resetCardHtml(token){
-    return `<form id="resetPasswordForm" class="authCard"><h2>Nouveau mot de passe</h2><p>Choisis un nouveau mot de passe pour ton compte Swapp${resetLoginHint()?` · ${safe(resetLoginHint())}`:''}.</p><input id="resetNewPassword" type="password" placeholder="nouveau mot de passe"><input id="resetNewPassword2" type="password" placeholder="confirmer le mot de passe"><input id="resetToken" type="hidden" value="${safe(token)}"><button class="btn">Réinitialiser</button><button type="button" class="btn secondary" onclick="history.replaceState(null,'','/compte'); setView('settings')">Annuler</button></form>`;
+    return '<div class="swapp-auth-single authCard"><form id="resetPasswordForm" class="swapp-auth-form" aria-label="Choisir un nouveau mot de passe">'+
+      '<h2>Nouveau mot de passe</h2><p>Choisis un nouveau mot de passe pour ton compte SWAPP'+(resetLoginHint()?' · '+safe(resetLoginHint()):'')+'.</p>'+
+      '<label for="resetNewPassword">Nouveau mot de passe</label><input id="resetNewPassword" type="password" autocomplete="new-password" required minlength="6">'+
+      '<label for="resetNewPassword2">Confirmer le mot de passe</label><input id="resetNewPassword2" type="password" autocomplete="new-password" required minlength="6">'+
+      '<input id="resetToken" type="hidden" value="'+safe(token)+'"><button class="btn" type="submit">Réinitialiser</button>'+
+      '<button class="swapp-auth-text-link" type="button" onclick="history.replaceState(null,\'\',\'/compte\'); setView(\'settings\')">Annuler</button></form></div>';
   }
-  const previousAuthSettings = window.authSettings || (typeof authSettings === 'function' ? authSettings : null);
-  const recoveryAuthSettings = function authSettingsWithPasswordRecovery(){
-    const token = resetToken();
-    if(token){
-      return `<div class="authCenterWrap"><div class="authCenterGrid">${resetCardHtml(token)}<form id="loginForm" class="authCard"><h2>Connexion Swapp</h2><p>Tu peux aussi te reconnecter si tu connais ton mot de passe.</p><input id="loginName" placeholder="pseudo"><input id="loginPass" type="password" placeholder="mot de passe"><button class="btn">Se connecter</button></form></div></div>`;
+  function swappAuthSelectMode(mode,focus){
+    const root=document.querySelector('[data-swapp-auth-root]');
+    if(!root)return;
+    const selected=['login','register','forgot'].includes(mode)?mode:'login';
+    root.dataset.swappAuthMode=selected;
+    root.querySelectorAll('[data-swapp-auth-panel]').forEach(panel=>{
+      panel.hidden=panel.dataset.swappAuthPanel!==selected;
+    });
+    root.querySelectorAll('[data-swapp-auth-switch][role="tab"]').forEach(button=>{
+      const active=button.dataset.swappAuthSwitch===selected;
+      button.setAttribute('aria-selected',String(active));
+      button.tabIndex=active?0:-1;
+      button.classList.toggle('is-active',active);
+    });
+    if(focus){
+      const field=root.querySelector('[data-swapp-auth-panel="'+selected+'"] input:not([type="hidden"])');
+      field?.focus();
     }
-    return `<div class="authCenterWrap"><div class="authCenterGrid"><form id="loginForm" class="authCard"><h2>Connexion Swapp</h2><p>Connecte-toi pour retrouver ta chaîne, ton profil viewer et ton menu stream.</p><input id="loginName" placeholder="pseudo"><input id="loginPass" type="password" placeholder="mot de passe"><button class="btn">Se connecter</button><button type="button" class="btn secondary" onclick="document.getElementById('forgotIdentity')?.focus()">Mot de passe oublié</button></form><form id="registerForm" class="authCard"><h2>Créer un compte</h2><p>Crée ton compte Swapp dans un espace propre et centré.</p><input id="regName" placeholder="pseudo"><input id="regEmail" type="email" placeholder="email"><input id="regPass" type="password" placeholder="mot de passe"><button class="btn">Créer</button></form>${forgotCardHtml()}</div></div>`;
+  }
+  const recoveryAuthSettings = function authSettingsWithPasswordRecovery(){
+    const token=resetToken();
+    if(token)return '<div class="authCenterWrap swapp-auth-center">'+resetCardHtml(token)+'</div>';
+    return '<div class="authCenterWrap swapp-auth-center"><section class="swapp-auth-single authCard" data-swapp-auth-root data-swapp-auth-mode="login" aria-label="Accès au compte SWAPP">'+
+      '<header class="swapp-auth-heading"><span class="swapp-acct-kicker">UN SEUL COMPTE SWAPP</span><h2>Bienvenue sur SWAPP</h2><p>Connecte-toi ou crée un compte depuis cet espace.</p></header>'+
+      '<nav class="swapp-auth-tabs" role="tablist" aria-label="Accès au compte">'+
+      '<button type="button" id="swapp-auth-tab-login" data-swapp-auth-switch="login" role="tab" aria-controls="loginForm" aria-selected="true" class="is-active">Connexion</button>'+
+      '<button type="button" id="swapp-auth-tab-register" data-swapp-auth-switch="register" role="tab" aria-controls="registerForm" aria-selected="false" tabindex="-1">Créer un compte</button></nav>'+
+      '<form id="loginForm" class="swapp-auth-form" data-swapp-auth-panel="login" role="tabpanel" aria-labelledby="swapp-auth-tab-login">'+
+      '<label for="loginName">Pseudo</label><input id="loginName" name="login" autocomplete="username" placeholder="Ton pseudo" required>'+
+      '<label for="loginPass">Mot de passe</label><input id="loginPass" name="password" type="password" autocomplete="current-password" placeholder="Ton mot de passe" required>'+
+      '<button class="btn" type="submit">Se connecter</button>'+
+      '<button type="button" class="swapp-auth-text-link" data-swapp-auth-switch="forgot">Mot de passe oublié ?</button></form>'+
+      '<form id="registerForm" class="swapp-auth-form" data-swapp-auth-panel="register" role="tabpanel" aria-labelledby="swapp-auth-tab-register" hidden>'+
+      '<label for="regName">Pseudo</label><input id="regName" name="login" autocomplete="username" placeholder="Choisir un pseudo" required>'+
+      '<label for="regEmail">Email</label><input id="regEmail" name="email" type="email" autocomplete="email" placeholder="ton@email.fr" required>'+
+      '<label for="regPass">Mot de passe</label><input id="regPass" name="password" type="password" autocomplete="new-password" placeholder="Créer un mot de passe" required minlength="6">'+
+      '<button class="btn" type="submit">Créer mon compte</button></form>'+
+      forgotCardHtml()+'</section></div>';
   };
   window.authSettings = recoveryAuthSettings;
   try{ authSettings = recoveryAuthSettings; }catch(_e){}
@@ -10281,6 +10322,29 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
   const previousBindSettingsForms = window.bindSettingsForms || (typeof bindSettingsForms === 'function' ? bindSettingsForms : null);
   const recoveryBindSettingsForms = function bindSettingsFormsWithPasswordRecovery(){
     if(typeof previousBindSettingsForms === 'function') previousBindSettingsForms.apply(this, arguments);
+    const authRoot=document.querySelector('[data-swapp-auth-root]');
+    if(authRoot && !authRoot.__swappAuthModesBound){
+      authRoot.__swappAuthModesBound=true;
+      authRoot.addEventListener('click',event=>{
+        const control=event.target.closest('[data-swapp-auth-switch]');
+        if(!control||!authRoot.contains(control))return;
+        swappAuthSelectMode(control.dataset.swappAuthSwitch,true);
+      });
+      authRoot.addEventListener('keydown',event=>{
+        if(!['ArrowRight','ArrowLeft','Home','End'].includes(event.key))return;
+        const current=event.target.closest('[role="tab"]');
+        if(!current||!authRoot.contains(current))return;
+        const tabs=[...authRoot.querySelectorAll('[role="tab"]')];
+        const index=tabs.indexOf(current);
+        if(index<0)return;
+        event.preventDefault();
+        const next=event.key==='Home'?0:event.key==='End'?tabs.length-1:
+          event.key==='ArrowRight'?(index+1)%tabs.length:(index+tabs.length-1)%tabs.length;
+        const tab=tabs[next];
+        swappAuthSelectMode(tab.dataset.swappAuthSwitch,false);
+        tab.focus();
+      });
+    }
     const forgot = document.getElementById('forgotPasswordForm');
     if(forgot && !forgot.__swappBound){
       forgot.__swappBound = true;
