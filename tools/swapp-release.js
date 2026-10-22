@@ -84,6 +84,7 @@ const RELEASE_FILES=Object.freeze([
  'modules/swapp-news/article-core.js',
  'assets/swapp-social-native/social-body.html',
  'assets/swapp-social-native/social-swapp.css',
+ 'assets/swapp-social-editorial-air.css',
  'assets/swapp-social-native/app.js',
  'assets/swapp-social-native/core.js',
  'assets/swapp-social-native/session.js',

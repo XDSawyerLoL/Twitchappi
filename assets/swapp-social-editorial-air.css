@@ -1,0 +1,491 @@
+/* SWAPP SOCIAL · editorial, unboxed layout (2026-10-22)
+ * Loaded AFTER the old product, appearance and timeline sheets.
+ * One uninterrupted reading canvas; hierarchy comes from type, space and
+ * thin dividers, not by nesting a bordered rectangle within another.
+ * Global --swapp-page-accent remains the sole color preference.
+ */
+#swappSocialNative{
+ --social-air-bg:var(--social-timeline-bg,#0c1320);
+ --social-air-line:rgba(196,216,239,.105);
+ --social-air-accent:var(--swapp-page-accent,var(--social-timeline-accent,#9ee5e0));
+ --social-air-muted:#aabbd1;
+ --social-air-ink:#f1f5fb;
+}
+#swappSocialNative .pulse-shell{
+ border-left:0!important;border-right:0!important;
+ background:var(--social-air-bg)!important;
+}
+#swappSocialNative :is(.pulse-sidebar,.pulse-main,.pulse-right,.pulse-feed){
+ background:var(--social-air-bg)!important;
+ box-shadow:none!important;
+}
+#swappSocialNative .pulse-main{border-left:0!important;border-right:0!important}
+#swappSocialNative .pulse-sidebar{border-right:1px solid var(--social-air-line)!important}
+#swappSocialNative .pulse-right{
+ border-left:1px solid var(--social-air-line)!important;
+ border-right:0!important;
+}
+#swappSocialNative .pulse-topbar,
+#swappSocialNative .pulse-tabs{
+ background:var(--social-air-bg)!important;
+ box-shadow:none!important;
+ border-color:var(--social-air-line)!important;
+}
+#swappSocialNative .pulse-topbar{
+ min-height:62px!important;
+}
+#swappSocialNative .pulse-topbar .swapp-social-topline-tag{
+ color:var(--social-air-muted)!important;
+ font-size:10px!important;
+ letter-spacing:.075em;
+}
+#swappSocialNative .pulse-tabs .pulse-tab.active{
+ background:transparent!important;
+ color:#f5f7fc!important;
+ border-bottom-color:var(--social-air-accent)!important;
+}
+#swappSocialNative .pulse-nav-item.active{
+ border-left:0!important;
+ box-shadow:none!important;
+ background:transparent!important;
+ color:var(--social-air-ink)!important;
+}
+#swappSocialNative .pulse-nav-item.active::before{
+ content:"";width:4px;height:4px;border-radius:50%;
+ flex:none;background:var(--social-air-accent);box-shadow:0 0 7px var(--social-air-accent)
+}
+#swappSocialNative .pulse-nav-item:hover:not(.active){
+ background:rgba(204,225,246,.045)!important;
+}
+
+/* Compact editorial preface instead of another full-width hero panel. */
+#swappSocialNative .pulse-welcome:not([hidden]){
+ display:block!important;
+ padding:15px 23px 12px!important;
+ border:0!important;
+ border-bottom:1px solid var(--social-air-line)!important;
+ background:transparent!important;
+ box-shadow:none!important;
+}
+#swappSocialNative .pulse-welcome-mark{display:none!important}
+#swappSocialNative .pulse-welcome-copy .pulse-kicker{
+ font-size:10px!important;color:var(--social-air-accent)!important;
+ letter-spacing:.115em;
+}
+#swappSocialNative .pulse-welcome-copy h2{
+ font:750 19px/1.2 system-ui,sans-serif!important;
+ letter-spacing:-.035em!important;
+ margin:5px 0 3px!important;
+ color:var(--social-air-ink)!important;
+}
+#swappSocialNative .pulse-welcome-copy p{
+ font-size:12px!important;line-height:1.5!important;
+ color:var(--social-air-muted)!important;
+ max-width:570px;
+}
+
+/* Composer belongs to the feed. No card around a card around a textarea. */
+#swappSocialNative[data-social-view="home"] .pulse-composer{
+ background:transparent!important;
+ border:0!important;
+ border-bottom:1px solid var(--social-air-line)!important;
+ box-shadow:none!important;
+ border-radius:0!important;
+ padding:21px 22px 17px!important;
+}
+#swappSocialNative[data-social-view="home"] .pulse-composer textarea{
+ border:0!important;border-radius:0!important;
+ box-shadow:none!important;outline-offset:1px;
+ background:transparent!important;
+ min-height:60px!important;
+ padding:10px 0!important;
+}
+#swappSocialNative .pulse-compose-tools{
+ border-top:1px solid var(--social-air-line)!important;
+}
+#swappSocialNative .pulse-toolset .pulse-tool-btn,
+#swappSocialNative .pulse-toolset .pulse-emoji-toggle{
+ border:0!important;border-radius:999px!important;
+ box-shadow:none!important;background:transparent!important;
+ color:var(--social-air-muted)!important;
+ min-height:36px;
+}
+#swappSocialNative .pulse-toolset .pulse-tool-btn:hover,
+#swappSocialNative .pulse-toolset .pulse-emoji-toggle:hover{
+ background:rgba(177,199,225,.09)!important;color:var(--social-air-ink)!important
+}
+#swappSocialNative .pulse-publish,
+#swappSocialNative .pulse-primary{
+ border-radius:999px!important;
+ box-shadow:none!important;
+ background:var(--social-air-accent)!important;
+ color:#0a1621!important;
+}
+#swappSocialNative .pulse-media-preview{
+ background:transparent!important;
+ border:0!important;border-left:2px solid var(--social-air-accent)!important;
+ border-radius:0!important;box-shadow:none!important;
+ padding:5px 9px!important;margin:8px 0!important;
+}
+#swappSocialNative .pulse-media-preview img{border-radius:9px!important}
+
+/* Posts are rows in the same editorial surface. Keep one hairline between them. */
+#swappSocialNative .pulse-post{
+ background:transparent!important;border-radius:0!important;
+ border:0!important;border-bottom:1px solid var(--social-air-line)!important;
+ box-shadow:none!important;
+ padding:22px 23px 18px!important;
+}
+#swappSocialNative .pulse-post:hover{
+ background:rgba(215,229,244,.018)!important;
+}
+#swappSocialNative .pulse-post .pulse-avatar,
+#swappSocialNative .pulse-avatar{
+ border-radius:50%!important;
+ border:1px solid color-mix(in srgb,var(--social-air-accent) 25%,transparent)!important;
+ background:color-mix(in srgb,var(--social-air-accent) 15%,#18283a)!important;
+ box-shadow:none!important;
+}
+#swappSocialNative .pulse-post-head{gap:6px!important;align-items:center!important}
+#swappSocialNative .pulse-post-head>span{
+ color:var(--social-air-muted)!important;font-size:12px!important
+}
+#swappSocialNative .pulse-post-main>p{
+ margin:9px 0 11px!important;
+ line-height:1.58!important;
+}
+#swappSocialNative .pulse-actions{
+ margin-top:11px!important;
+ padding-top:0!important;
+ border-top:0!important;
+}
+#swappSocialNative .pulse-action{
+ border:0!important;border-radius:999px!important;
+ background:transparent!important;
+ box-shadow:none!important;
+}
+#swappSocialNative .pulse-action:hover{
+ background:rgba(181,208,237,.09)!important;
+}
+#swappSocialNative .pulse-action.active,
+#swappSocialNative .pulse-action.liked{
+ color:var(--social-air-accent)!important;
+ background:color-mix(in srgb,var(--social-air-accent) 7%,transparent)!important;
+}
+#swappSocialNative .pulse-post-delete{
+ border-radius:50%!important;width:33px!important;height:33px!important;
+}
+
+/* A shared link is an inline editorial reference, not a second article card. */
+#swappSocialNative .pulse-post .pulse-rich-card{
+ box-shadow:none!important;
+ border:0!important;
+ background:transparent!important;
+ border-radius:0!important;
+}
+/* Standalone images remain visible but cannot dominate several screens. */
+#swappSocialNative .pulse-post .pulse-rich-media>img{
+ display:block!important;width:100%!important;height:auto!important;
+ max-height:380px!important;object-fit:contain!important;
+ border-radius:13px 5px 13px 5px!important;
+ background:rgba(187,202,230,.025)!important;
+}
+#swappSocialNative .pulse-post-relayed .pulse-rich-link-preview{
+ display:grid!important;
+ grid-template-columns:130px minmax(0,1fr)!important;
+ align-items:center!important;
+ gap:14px!important;
+ padding:10px 0!important;
+ margin-top:4px!important;
+ min-height:0!important;
+ background:transparent!important;
+ border:0!important;border-radius:0!important;
+}
+#swappSocialNative .pulse-post-relayed .pulse-rich-link-preview>img{
+ width:130px!important;height:90px!important;
+ max-height:90px!important;aspect-ratio:13/9!important;
+ border-radius:12px 5px 12px 5px!important;
+ object-fit:cover!important;
+}
+#swappSocialNative .pulse-post-relayed .pulse-rich-link-preview>.pulse-rich-details{
+ padding:0!important;min-width:0;
+}
+#swappSocialNative .pulse-post-relayed .pulse-rich-details strong{
+ font-weight:740!important;
+ font-size:15px!important;line-height:1.38!important;
+}
+#swappSocialNative .pulse-post-relayed .pulse-rich-card:hover{
+ background:transparent!important;
+}
+#swappSocialNative .pulse-post-relayed .pulse-rich-card:hover strong{
+ text-decoration:underline;text-decoration-color:var(--social-air-accent);
+ text-underline-offset:3px;
+}
+#swappSocialNative .pulse-post-relayed .pulse-rich-text-preview{
+ grid-template-columns:minmax(0,1fr)!important;
+ padding:8px 0!important;
+}
+#swappSocialNative .pulse-relay-context{
+ margin-top:5px!important;
+ font-size:10px!important;
+ color:var(--social-air-muted)!important;
+}
+#swappSocialNative .pulse-quoted-original{
+ border:0!important;
+ border-left:2px solid color-mix(in srgb,var(--social-air-accent) 65%,transparent)!important;
+ border-radius:0!important;
+ background:transparent!important;
+ box-shadow:none!important;
+ margin:12px 0!important;
+ padding:0 0 0 14px!important;
+}
+#swappSocialNative .pulse-quoted-original-copy{
+ padding:0!important;
+}
+#swappSocialNative .pulse-quoted-original img{
+ border-radius:9px!important;
+ max-width:280px!important;max-height:160px!important;
+ object-fit:cover!important;
+ margin:9px 0;
+}
+#swappSocialNative .pulse-quoted-original a{
+ margin:6px 0 0!important;
+ color:var(--social-air-accent)!important;
+}
+
+/* News timeline: illustration + copy, not a stack of bordered tiles. */
+#swappSocialNative .pulse-news-intro{
+ background:transparent!important;
+ border:0!important;border-bottom:1px solid var(--social-air-line)!important;
+ padding:21px 22px 13px!important;
+}
+#swappSocialNative .pulse-news-grid{
+ padding:0!important;gap:0!important;
+ background:transparent!important;
+}
+#swappSocialNative .pulse-news-card{
+ display:grid!important;grid-template-columns:148px minmax(0,1fr)!important;
+ align-items:start!important;gap:17px!important;
+ padding:21px 22px!important;
+ background:transparent!important;border:0!important;
+ border-bottom:1px solid var(--social-air-line)!important;
+ border-radius:0!important;box-shadow:none!important;
+}
+#swappSocialNative .pulse-news-card.is-text-only{
+ grid-template-columns:minmax(0,1fr)!important;
+}
+#swappSocialNative .pulse-news-card .pulse-news-media{
+ align-self:start;width:100%;height:114px!important;
+ aspect-ratio:auto!important;
+ border:0!important;border-radius:14px 5px 14px 5px!important;
+ background:transparent!important;
+}
+#swappSocialNative .pulse-news-card .pulse-news-media img{
+ display:block;width:100%!important;
+ height:114px!important;max-height:114px!important;
+ aspect-ratio:4/3!important;object-fit:cover!important;
+ border-radius:14px 5px 14px 5px!important;
+}
+#swappSocialNative .pulse-news-meta{
+ display:flex;flex-wrap:wrap;align-items:center;gap:6px!important;
+ color:var(--social-air-muted)!important;
+}
+#swappSocialNative .pulse-news-meta>span:first-child{
+ padding:0!important;
+ background:transparent!important;
+ border:0!important;
+ color:var(--social-air-accent)!important;
+}
+#swappSocialNative .pulse-news-body h2{
+ font-size:16px!important;line-height:1.38!important;
+ margin:2px 0 7px!important;
+}
+#swappSocialNative .pulse-news-body p{
+ display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;
+ overflow:hidden;
+ font-size:12px!important;line-height:1.5!important;
+ margin:0 0 7px!important;
+}
+#swappSocialNative .pulse-news-actions{
+ display:flex!important;flex-wrap:wrap!important;
+ align-items:center!important;justify-content:flex-start!important;
+ gap:4px 13px!important;
+ padding-top:7px!important;margin-top:5px!important;
+}
+#swappSocialNative .pulse-news-actions :is(button,a){
+ display:inline-flex!important;align-items:center!important;
+ min-height:36px!important;width:auto!important;
+ padding:7px 1px!important;
+ border:0!important;border-radius:0!important;
+ background:transparent!important;
+ color:var(--social-air-muted)!important;
+ box-shadow:none!important;
+ font-size:11px!important;font-weight:700!important;
+ white-space:normal;text-align:left;
+}
+#swappSocialNative .pulse-news-actions :is(button,a):hover{
+ color:var(--social-air-ink)!important;
+ text-decoration:underline;text-underline-offset:3px;
+}
+#swappSocialNative .pulse-news-actions [data-news-repost]{
+ color:var(--social-air-accent)!important;
+}
+#swappSocialNative .pulse-news-actions [data-news-repost].done{
+ color:var(--social-air-muted)!important;
+}
+#swappSocialNative .pulse-news-in-timeline .pulse-news-card{
+ padding:16px 20px!important;
+ gap:12px!important;
+}
+
+/* The right rail is a column of information, not a stack of cards. */
+#swappSocialNative .pulse-right :is(.pulse-search,.pulse-panel,.swapp-social-reading){
+ background:transparent!important;
+ border:0!important;border-radius:0!important;box-shadow:none!important;
+ margin:0!important;
+}
+#swappSocialNative .pulse-right :is(.pulse-panel,.swapp-social-reading){
+ padding:21px 0!important;
+ border-bottom:1px solid var(--social-air-line)!important;
+}
+#swappSocialNative .pulse-right .pulse-search{
+ display:flex;align-items:center;
+ padding:9px 12px!important;
+ border:1px solid var(--social-air-line)!important;
+ border-radius:999px!important;
+ background:rgba(190,208,234,.04)!important;
+}
+#swappSocialNative .pulse-right .pulse-search input{
+ border:0!important;background:transparent!important;box-shadow:none!important;
+ min-width:0;
+}
+#swappSocialNative .pulse-right .pulse-panel-head h2,
+#swappSocialNative .swapp-social-reading-header h2{
+ font-size:16px!important;line-height:1.35!important;
+ letter-spacing:-.03em!important;
+}
+#swappSocialNative .pulse-right :is(.circle,.trend,.pulse-guide-step){
+ background:transparent!important;border:0!important;
+ border-radius:0!important;box-shadow:none!important;
+}
+#swappSocialNative .pulse-right :is(.circle,.trend,.pulse-guide-step)+:is(.circle,.trend,.pulse-guide-step){
+ border-top:1px solid var(--social-air-line)!important;
+}
+#swappSocialNative .pulse-right .pulse-privacy{
+ margin-top:18px!important;
+ font-size:11px!important;color:var(--social-air-muted)!important;
+}
+
+/* Keep actual floating controls (emoji panel/dialog) visibly separated.
+ * They are overlays, not nested feed content. */
+#swappSocialNative .pulse-emoji-picker{
+ border-radius:18px!important;
+ box-shadow:0 16px 46px rgba(0,0,0,.35)!important;
+}
+#swappSocialNative .pulse-emoji-grid .pulse-emoji-choice{
+ border-radius:50%!important;
+}
+
+/* Private chat messages should read as conversation, not square forms. */
+#swappSocialNative .pulse-message-list{
+ padding:16px 0 18px!important;
+ background:transparent!important;
+}
+#swappSocialNative .pulse-message{
+ border:0!important;box-shadow:none!important;
+ border-radius:19px 19px 19px 6px!important;
+}
+#swappSocialNative .pulse-message.mine{
+ border-radius:19px 19px 6px 19px!important;
+ background:color-mix(in srgb,var(--social-air-accent) 17%,#142237)!important;
+}
+#swappSocialNative .pulse-message-form{
+ background:var(--social-air-bg)!important;
+ border-top:1px solid var(--social-air-line)!important;
+}
+#swappSocialNative .pulse-message-form input[name="body"]{
+ border-radius:999px!important;
+ border:1px solid var(--social-air-line)!important;
+ background:rgba(198,212,235,.05)!important;
+}
+#swappSocialNative .pulse-message-form .pulse-dm-emoji{
+ border:0!important;background:transparent!important;
+ border-radius:50%!important;color:var(--social-air-ink)!important;
+}
+@media(max-width:920px) and (orientation:portrait),(max-width:650px){
+ #swappSocialNative .pulse-shell{border:0!important}
+ #swappSocialNative .pulse-main{border:0!important}
+ #swappSocialNative .pulse-welcome:not([hidden]){padding:13px 16px!important}
+ #swappSocialNative[data-social-view="home"] .pulse-composer{padding:17px 16px 14px!important}
+ #swappSocialNative .pulse-post{padding:18px 16px 15px!important}
+ #swappSocialNative .pulse-news-card{padding:18px 16px!important;grid-template-columns:112px minmax(0,1fr)!important;gap:12px!important}
+ #swappSocialNative .pulse-news-card .pulse-news-media{height:98px!important}
+ #swappSocialNative .pulse-news-card .pulse-news-media img{height:98px!important;max-height:98px!important}
+ #swappSocialNative .pulse-news-intro{padding:18px 16px 12px!important}
+ #swappSocialNative .pulse-news-actions{gap:3px 12px!important}
+ #swappSocialNative .pulse-news-in-timeline .pulse-news-card{padding:14px 16px!important}
+}
+@media(max-width:390px){
+ #swappSocialNative .pulse-post-relayed .pulse-rich-link-preview{grid-template-columns:92px minmax(0,1fr)!important;gap:11px!important}
+ #swappSocialNative .pulse-post-relayed .pulse-rich-link-preview>img{width:92px!important;height:78px!important;max-height:78px!important}
+ #swappSocialNative .pulse-news-card{grid-template-columns:95px minmax(0,1fr)!important;gap:10px!important}
+ #swappSocialNative .pulse-news-card .pulse-news-media{height:85px!important}
+ #swappSocialNative .pulse-news-card .pulse-news-media img{height:85px!important;max-height:85px!important}
+ #swappSocialNative .pulse-news-actions{gap:2px 9px!important}
+}
+@media(prefers-reduced-motion:reduce){
+ #swappSocialNative .pulse-post,
+ #swappSocialNative .pulse-news-card,
+ #swappSocialNative .pulse-action{transition:none!important}
+}
+
+
+/* Profile, discovery and inbox: use reading sections, not nested dashboards.
+ * Keep important forms, data and actions visible and reachable. */
+#swappSocialNative :is(.pulse-view-head,.pulse-profile-hero){
+ background:transparent!important;
+ border:0!important;border-bottom:1px solid var(--social-air-line)!important;
+ border-radius:0!important;
+ box-shadow:none!important;
+}
+#swappSocialNative .pulse-view-head{padding:23px 23px 19px!important}
+#swappSocialNative .pulse-profile-hero{padding:29px 24px 25px!important}
+#swappSocialNative .pulse-profile-hero .pulse-avatar{border-radius:50%!important}
+#swappSocialNative .pulse-view-head h2,
+#swappSocialNative .pulse-profile-hero h2{
+ font-size:clamp(24px,3vw,33px)!important;
+ line-height:1.16!important;letter-spacing:-.045em!important;
+}
+#swappSocialNative .pulse-profile-hero .pulse-profile-stats{
+ border-top:1px solid var(--social-air-line)!important;
+}
+#swappSocialNative .pulse-card{
+ background:transparent!important;box-shadow:none!important;
+ border:0!important;border-bottom:1px solid var(--social-air-line)!important;
+ border-radius:0!important;
+}
+#swappSocialNative .pulse-card:hover{background:rgba(212,228,248,.028)!important}
+#swappSocialNative .pulse-community-shortcuts{
+ background:transparent!important;
+ border-bottom:1px solid var(--social-air-line)!important;
+ gap:6px!important;
+}
+#swappSocialNative .pulse-community-shortcuts button{
+ background:transparent!important;border:0!important;
+ box-shadow:none!important;border-radius:999px!important;
+ color:var(--social-air-muted)!important;
+}
+#swappSocialNative .pulse-community-shortcuts button:hover{
+ background:rgba(198,215,235,.08)!important;
+ color:var(--social-air-ink)!important;
+}
+#swappSocialNative .pulse-right .swapp-social-reading-item{
+ border-bottom:1px solid var(--social-air-line)!important;
+}
+#swappSocialNative .pulse-right .swapp-social-reading-item img{
+ border-radius:11px 4px 11px 4px!important;
+}
+@media(max-width:920px) and (orientation:portrait),(max-width:650px){
+ #swappSocialNative .pulse-view-head{padding:20px 16px 15px!important}
+ #swappSocialNative .pulse-profile-hero{padding:23px 16px!important}
+}

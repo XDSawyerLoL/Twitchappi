@@ -72,10 +72,15 @@ async function verify(){
   'SOCIAL header top gap defensive fix missing');
  check(social.body.includes('social-swapp.css?v=20261022-social-control-emotes-v1'),'SOCIAL CSS release is stale');
  check(social.body.includes('app.js?v=20261022-social-control-emotes-v1'),'SOCIAL module release is stale');
+ check(social.body.includes('swapp-social-editorial-air.css?v=20261022-airy-social-v1'),
+  'SOCIAL editorial stylesheet is missing from public markup');
  process.stdout.write('PASS /social HTML\n');
  const stylesheet=await request(origin,'/assets/swapp-social-native/social-swapp.css');
  check(stylesheet.body.includes('pulse-post-relayed .pulse-rich-link-preview')&&
    stylesheet.body.includes('.pulse-emoji-picker'),'SOCIAL CSS lacks compact relays or emotes');
+ const air=await request(origin,'/assets/swapp-social-editorial-air.css?v=20261022-airy-social-v1');
+ check(air.status===200&&air.body.includes('SWAPP SOCIAL · editorial, unboxed layout'),
+   'SOCIAL still serves the boxed layout or lacks its new stylesheet');
  const emojiScript=await request(origin,'/assets/swapp-social-native/emotes.js');
  check(emojiScript.body.includes('setupSocialEmotes'),'SOCIAL emote module unavailable');
  const renderer=await request(origin,'/assets/swapp-social-native/render.js');
