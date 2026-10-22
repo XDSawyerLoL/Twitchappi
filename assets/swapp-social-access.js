@@ -1,115 +1,121 @@
-/* SWAPP local login for SOCIAL. The only identity authority is /api/oryon/*. */
+/* One SWAPP identity for the whole site. SOCIAL is readable without signing in. */
 (()=>{'use strict';
- const box=document.getElementById('swapp-social-access');
- if(!box)return;
- const content=box.querySelector('.swapp-social-access-content');
- const gate=box.querySelector('.swapp-social-access-gate');
- const note=gate?.querySelector('p');
- const loginForm=document.getElementById('swapp-social-login-form');
- const registerForm=document.getElementById('swapp-social-register-form');
- const loginError=document.getElementById('swapp-social-auth-error');
- const registerError=document.getElementById('swapp-social-register-error');
- const loginToggle=document.getElementById('swapp-social-show-login');
- const registerToggle=document.getElementById('swapp-social-show-register');
- const retryCheck=document.getElementById('swapp-social-retry-check');
- if(!gate||!content||!loginForm||!registerForm)return;
-
- function setAccess(unlocked){
-   box.classList.remove('is-pending','is-locked','is-unlocked');
-   box.classList.add(unlocked?'is-unlocked':'is-locked');
-   content.setAttribute('aria-hidden',unlocked?'false':'true');
-   content.inert=!unlocked;
+ const root=document.getElementById('swapp-social-access');
+ if(!root)return;
+ const gate=root.querySelector('.swapp-social-access-gate');
+ const login=document.getElementById('swapp-social-login-form');
+ const register=document.getElementById('swapp-social-register-form');
+ const errorLogin=document.getElementById('swapp-social-auth-error');
+ const errorRegister=document.getElementById('swapp-social-register-error');
+ const loginLink=document.getElementById('swapp-social-show-login');
+ const registerLink=document.getElementById('swapp-social-show-register');
+ const closeButton=document.getElementById('swapp-social-close-auth');
+ const checkMessage=document.getElementById('swapp-social-session-error');
+ if(!gate||!login||!register)return;
+ let lastFocus=null,requestId=0;
+ const setRoot=status=>{
+  root.classList.remove('is-pending','is-guest','is-unlocked','is-locked');
+  root.classList.add(status);
+  // Never gate reading; the SWAPP backend still guards all writes.
+ };
+ const isMember=data=>Boolean(data?.success&&data?.local?.id);
+ async function checkSession(){
+  const r=await fetch('/api/oryon/session',{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'},signal:AbortSignal.timeout(9000)});
+  if(!r.ok)throw Error('session_unavailable');
+  return isMember(await r.json());
  }
- async function session(){
-   const response=await fetch('/api/oryon/session',{
-     method:'GET',credentials:'same-origin',cache:'no-store',
-     headers:{Accept:'application/json'},signal:AbortSignal.timeout(9000)
-   });
-   if(!response.ok)throw Error('session_unavailable');
-   const data=await response.json();
-   // Twitch alone does not authorize SOCIAL. Require a SWAPP local account.
-   return Boolean(data?.success&&data?.local?.id);
+ function toggleRegister(show){
+  register.hidden=!show;login.hidden=show;
+  registerLink.hidden=show;
+  errorLogin.hidden=true;errorRegister.hidden=true;
+  (show?document.getElementById('swapp-social-reg-login'):document.getElementById('swapp-social-login'))?.focus();
  }
- let checkNumber=0;
- async function check(){
-   const id=++checkNumber;
-   if(retryCheck)retryCheck.disabled=true;
-   try{
-     const valid=await session();
-     if(id!==checkNumber)return;
-     if(retryCheck){retryCheck.hidden=true;retryCheck.disabled=false}
-     setAccess(valid);
-   }catch{
-     if(id!==checkNumber)return;
-     if(note)note.textContent='La vérification du compte SWAPP a échoué. Réessaie avant de te reconnecter.';
-     if(retryCheck){retryCheck.hidden=false;retryCheck.disabled=false}
-     setAccess(false);
-   }
+ function open(){
+  if(!gate.hidden)return;
+  lastFocus=document.activeElement;
+  gate.hidden=false;
+  gate.classList.add('is-visible');
+  document.body.classList.add('swapp-account-auth-open');
+  toggleRegister(false);
  }
- function showRegister(show){
-   registerForm.hidden=!show;
-   loginForm.hidden=show;
-   registerToggle.hidden=show;
-   if(loginError)loginError.hidden=true;
-   if(registerError)registerError.hidden=true;
-   (show?document.getElementById('swapp-social-reg-login'):document.getElementById('swapp-social-login'))?.focus();
+ function close(){
+  gate.hidden=true;
+  gate.classList.remove('is-visible');
+  document.body.classList.remove('swapp-account-auth-open');
+  lastFocus?.focus?.();
  }
- registerToggle?.addEventListener('click',()=>showRegister(true));
- loginToggle?.addEventListener('click',()=>showRegister(false));
- retryCheck?.addEventListener('click',()=>void check());
-
+ // A single, first-party SWAPP account dialog; no SOCIAL-specific identity.
+ // Other SOCIAL actions dispatch this when requireAuth() fails.
+ document.addEventListener('swapp:login-required',()=>{open()});
+ closeButton?.addEventListener('click',close);
+ registerLink?.addEventListener('click',()=>toggleRegister(true));
+ loginLink?.addEventListener('click',()=>toggleRegister(false));
+ gate.addEventListener('click',e=>{if(e.target===gate)close()});
+ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!gate.hidden)close()});
  async function submit(form,url,body,error){
-   const button=form.querySelector('button[type="submit"]');
-   if(!button||button.disabled)return;
-   button.disabled=true;
-   const original=button.textContent;
-   button.textContent='Connexion en cours…';
-   error.hidden=true;
-   try{
-     const response=await fetch(url,{
-       method:'POST',credentials:'same-origin',cache:'no-store',
-       headers:{Accept:'application/json','Content-Type':'application/json'},
-       body:JSON.stringify(body),signal:AbortSignal.timeout(16000)
-     });
-     const data=await response.json().catch(()=>({}));
-     if(!response.ok||data?.success!==true){
-       if(response.status===401)throw Error('Identifiants SWAPP invalides.');
-       if(response.status===409)throw Error('Cet identifiant ou cet e-mail existe déjà.');
-       if(response.status>=500)throw Error('Connexion SWAPP temporairement indisponible.');
-       throw Error(typeof data?.error==='string'?data.error:'Impossible de se connecter.');
-     }
-     // Login endpoint saves the session cookie before responding. Verify local ID.
-     if(!await session())throw Error('Session SWAPP non reconnue après connexion. Réessaie.');
-     form.querySelector('input[type="password"]').value='';
-     setAccess(true);
-     // Refresh the SWAPP account header and SOCIAL using the new first-party session.
-     window.location.replace('/social');
-   }catch(e){
-     error.textContent=e?.name==='TimeoutError'?'Le serveur SWAPP ne répond pas. Réessaie.':String(e?.message||'Connexion impossible.');
-     error.hidden=false;
-   }finally{
-     button.disabled=false;
-     button.textContent=original;
+  const button=form.querySelector('[type="submit"]');
+  if(!button||button.disabled)return;
+  button.disabled=true;
+  const original=button.textContent;
+  button.textContent='Connexion en cours…';
+  error.hidden=true;
+  try{
+   const response=await fetch(url,{method:'POST',credentials:'same-origin',cache:'no-store',
+     headers:{Accept:'application/json','Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(16000)});
+   const data=await response.json().catch(()=>({}));
+   if(!response.ok||data?.success!==true){
+    if(response.status===401)throw Error('Identifiants SWAPP invalides.');
+    if(response.status===409)throw Error('Cet identifiant ou cet e-mail existe déjà.');
+    if(response.status>=500)throw Error('Le compte SWAPP est momentanément indisponible.');
+    throw Error(typeof data?.error==='string'?data.error:'Connexion impossible.');
    }
+   if(!await checkSession())throw Error('La session SWAPP ne peut pas être confirmée.');
+   form.querySelector('input[type="password"]').value='';
+   close();
+   setRoot('is-unlocked');
+   // Reload the one SWAPP session to initialise SOCIAL and the site header.
+   location.reload();
+  }catch(e){
+   error.textContent=e?.name==='TimeoutError'?'Le serveur SWAPP ne répond pas.':String(e.message||'Connexion impossible.');
+   error.hidden=false;
+  }finally{
+   button.disabled=false;
+   button.textContent=original;
+  }
  }
- loginForm.addEventListener('submit',event=>{
-   event.preventDefault();
-   if(!loginForm.reportValidity())return;
-   submit(loginForm,'/api/oryon/login',{
-     login:document.getElementById('swapp-social-login').value.trim(),
-     password:document.getElementById('swapp-social-password').value
-   },loginError);
+ login.addEventListener('submit',e=>{
+  e.preventDefault();if(!login.reportValidity())return;
+  void submit(login,'/api/oryon/login',{
+   login:document.getElementById('swapp-social-login').value.trim(),
+   password:document.getElementById('swapp-social-password').value
+  },errorLogin);
  });
- registerForm.addEventListener('submit',event=>{
-   event.preventDefault();
-   if(!registerForm.reportValidity())return;
-   const login=document.getElementById('swapp-social-reg-login').value.trim();
-   submit(registerForm,'/api/oryon/register',{
-     login,display_name:login,
-     email:document.getElementById('swapp-social-reg-email').value.trim(),
-     password:document.getElementById('swapp-social-reg-pass').value
-   },registerError);
+ register.addEventListener('submit',e=>{
+  e.preventDefault();if(!register.reportValidity())return;
+  const handle=document.getElementById('swapp-social-reg-login').value.trim();
+  void submit(register,'/api/oryon/register',{
+   login:handle,display_name:handle,email:document.getElementById('swapp-social-reg-email').value.trim(),
+   password:document.getElementById('swapp-social-reg-pass').value
+  },errorRegister);
  });
- check();
- window.addEventListener('pageshow',check);
+ async function refresh(){
+  const current=++requestId;
+  try{
+   const valid=await checkSession();
+   if(current!==requestId)return;
+   setRoot(valid?'is-unlocked':'is-guest');
+   if(checkMessage)checkMessage.hidden=true;
+  }catch{
+   if(current!==requestId)return;
+   // Connectivity failure is NOT proof of logout. Leave public content visible.
+   setRoot('is-guest');
+   if(checkMessage){
+    checkMessage.textContent='La session ne peut pas être vérifiée actuellement.';
+    checkMessage.hidden=false;
+   }
+  }
+ }
+ setRoot('is-guest');
+ void refresh();
+ window.addEventListener('pageshow',()=>void refresh());
 })();
