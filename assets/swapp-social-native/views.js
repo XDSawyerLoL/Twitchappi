@@ -177,6 +177,7 @@ function renderNewsCard(item){
     '<div class="pulse-news-actions">'+
       (url?'<a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">Lire la source ↗</a>':'')+
       '<button type="button" data-news-repost data-news-title="'+esc(title)+'" data-news-source="'+esc(source)+'" data-news-url="'+esc(url)+'" data-news-image="'+esc(image)+'">Reposter</button>'+
+      '<button type="button" data-news-comment data-news-title="'+esc(title)+'" data-news-url="'+esc(url)+'" data-news-image="'+esc(image)+'">Reposter avec commentaire</button>'+
       (url?'<button type="button" data-news-share data-news-url="'+esc(url)+'" data-news-title="'+esc(title)+'">Partager</button>':'')+
       (item.game?'<button type="button" data-next-game="'+esc(item.game)+'">Discuter du jeu ↗</button>':'')+
     '</div></div></article>';
