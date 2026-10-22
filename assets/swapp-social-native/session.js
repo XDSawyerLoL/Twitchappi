@@ -34,8 +34,8 @@ export function openAuth(){
  // The gate is the only real login authority. Do not show a duplicate login
  // dialog when SOCIAL upstream fails while the SWAPP account is valid.
  const gate=document.getElementById('swapp-social-access');
- if(gate?.classList.contains('is-locked')){
-  document.getElementById('swapp-social-login')?.focus();
+ if(gate&&!gate.classList.contains('is-unlocked')){
+  document.dispatchEvent(new CustomEvent('swapp:login-required'));
   return;
  }
  if(sessionRetryPromise)return;
@@ -49,8 +49,8 @@ export function openAuth(){
 }
 
 export function closeAuth(){
-  dom.authModal.hidden=true;
-  dom.authError.textContent='';
+  if(dom.authModal)dom.authModal.hidden=true;
+  if(dom.authError)dom.authError.textContent='';
 }
 
 export function updateAuthModal(){
@@ -85,13 +85,13 @@ export function updateAccount(){
     if(avatar)avatar.textContent='?';
     if(composerAvatar)composerAvatar.textContent='?';
     if(button)button.textContent='Compte SOCIAL';
-    dom.textarea.placeholder='Écrivez une publication…';
+    dom.textarea.placeholder='Connecte-toi à SWAPP pour participer…';
     dom.followingLabel.textContent='Récent';
     dom.followingHelp.textContent='Les publications les plus récentes';
   }
 
   if(state.view==='home'){
-    dom.composer.hidden=!user;
+    dom.composer.hidden=state.feed==='news';
     dom.welcome.hidden=state.feed==='news'||!!user;
   }
 }
