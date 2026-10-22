@@ -1,0 +1,117 @@
+{
+  "kind": "swapp-editorial-release",
+  "release": "2026-10-22-bioware-mycopunk",
+  "description": "Articles originaux vérifiés. Médias officiels YouTube intégrés sans réhébergement; teaser Mass Effect de 2020 explicitement présenté comme archive. Offre Mycopunk PC Steam vérifiée.",
+  "articles": [
+    {
+      "author": "Rédaction SWAPP",
+      "category": "Actualités JV",
+      "contentType": "article",
+      "status": "published",
+      "revision": 1,
+      "image": null,
+      "thumbnail": null,
+      "editorialVerdict": null,
+      "legacyUrl": null,
+      "originalPublishedAt": null,
+      "publishedAt": "2026-10-22T09:43:15.808Z",
+      "slug": "bioware-fermeture-prochain-mass-effect-developpement-arrete",
+      "title": "BioWare ferme : EA arrête le développement du prochain Mass Effect",
+      "summary": "EA et BioWare confirment la fermeture du studio et l’arrêt du prochain Mass Effect. Voici ce que l’annonce du 21 octobre établit, et ce qu’elle ne dit pas sur les jeux existants.",
+      "game": "Mass Effect — prochain jeu",
+      "games": [
+        "Mass Effect — prochain jeu"
+      ],
+      "tags": [
+        "BioWare",
+        "Mass Effect",
+        "Electronic Arts",
+        "industrie",
+        "RPG"
+      ],
+      "body": "Electronic Arts a annoncé le 21 octobre 2026 la fermeture de BioWare et de ses bureaux d’Edmonton. Le développement préliminaire du prochain Mass Effect s’arrête également. Le studio a confirmé ces deux décisions dans un message publié le même jour sur son propre blog.\n\nCette nouvelle met fin au projet sur lequel travaillait encore l’équipe de BioWare. La vidéo associée à cet article est le teaser officiel de 2020 : une archive du projet désormais arrêté, et non une nouvelle annonce ou une démonstration de gameplay.\n\n## Deux confirmations officielles, une décision sans ambiguïté\n\nDans sa communication aux salariés, rendue publique sous le titre « Building EA’s Next Chapter », EA explique qu’une petite équipe poursuivait les premières étapes du développement de Mass Effect. L’éditeur a décidé de ne pas continuer ce travail, avec pour conséquence la fermeture du studio et de son implantation d’Edmonton.\n\nBioWare reprend explicitement ces deux informations. Son message remercie les équipes et les joueurs qui ont accompagné ses univers pendant plus de trente ans. Il met aussi l’accent sur le soutien aux personnes concernées par cette transition.\n\nLes deux publications ne donnent pas de bilan chiffré précis des suppressions de postes chez BioWare. Cet article ne reprend donc pas les estimations qui circulent ailleurs comme s’il s’agissait d’un nombre confirmé par le studio.\n\n## Ce qui change pour ceux qui attendaient Mass Effect\n\nLe prochain jeu ne peut plus être présenté comme un titre dont il suffirait d’attendre une date de sortie. EA annonce l’arrêt du développement lui-même. Le teaser de 2020 documente l’intention passée du studio ; il ne constitue plus une promesse de commercialisation.\n\nAucun calendrier, prix ou ensemble de plateformes pour une éventuelle reprise du projet n’est annoncé dans ces communiqués. Rien ne permet non plus de désigner un studio repreneur ou de promettre qu’une autre équipe terminera ce travail. Un futur changement de décision demanderait une nouvelle confirmation officielle.\n\nIl faut également distinguer ce projet des jeux déjà sortis. Les textes lus n’annoncent ni leur retrait des boutiques ni la suppression des bibliothèques des joueurs. Ils ne donnent pas davantage de calendrier d’arrêt de leurs services. La fermeture de BioWare ne suffit pas, à elle seule, à établir de telles conséquences.\n\n## Le contexte donné par EA\n\nL’éditeur inscrit cette décision dans une réorganisation de son portefeuille. Pour l’action-aventure, il souhaite concentrer ses moyens sur moins de grands projets simultanés. Le communiqué cite toujours Marvel’s Iron Man et le prochain Star Wars Jedi parmi ses productions en cours.\n\nCe contexte exprime la stratégie d’EA. Il n’apporte pas de diagnostic détaillé sur les qualités du prochain Mass Effect, son budget ou les raisons créatives de son abandon. Attribuer l’arrêt à un seul jeu précédent ou à une décision précise de conception dépasserait les éléments publiés.\n\n## Le regard SWAPP : une histoire de joueurs interrompue\n\nL’enjeu pour les communautés dépasse l’attente d’une prochaine bande-annonce. Les univers de BioWare ont nourri des discussions autour des personnages, des choix et des parcours de chacun. La fermeture rompt la continuité entre ces souvenirs partagés et l’équipe qui devait leur donner une suite.\n\nCela justifie de raconter cette nouvelle à partir des personnes qui créent et jouent, sans transformer la nostalgie en pronostic. Les créations déjà accessibles peuvent continuer d’être découvertes et discutées ; l’avenir de la série, lui, reste sans projet de remplacement confirmé.\n\nLes prochaines informations utiles seraient une communication sur les équipes, le devenir du travail réalisé et d’éventuelles décisions concernant la licence. À ce stade, le fait établi reste la fermeture de BioWare et l’arrêt de ce prochain Mass Effect.",
+      "seo": {
+        "title": "BioWare ferme : le prochain Mass Effect est arrêté",
+        "description": "EA et BioWare confirment la fermeture du studio et l’arrêt du prochain Mass Effect. Faits établis, contexte et conséquences pour les joueurs."
+      },
+      "trailerUrl": "https://www.youtube.com/watch?v=Lg-Ctg6k_Ao",
+      "trailerPublishedAt": "2020-12-11T02:43:34Z",
+      "commercialLinks": [],
+      "sources": [
+        {
+          "label": "EA — Building EA’s Next Chapter, 21 octobre 2026",
+          "url": "https://www.ea.com/en/news/building-eas-next-chapter"
+        },
+        {
+          "label": "BioWare — confirmation officielle du 21 octobre 2026",
+          "url": "https://blog.bioware.com/2026/10/21/bioware-update/"
+        },
+        {
+          "label": "Mass Effect — teaser officiel de 2020 (archive du projet)",
+          "url": "https://www.youtube.com/watch?v=Lg-Ctg6k_Ao"
+        }
+      ]
+    },
+    {
+      "author": "Rédaction SWAPP",
+      "category": "Actualités JV",
+      "contentType": "article",
+      "status": "published",
+      "revision": 1,
+      "image": null,
+      "thumbnail": null,
+      "editorialVerdict": null,
+      "legacyUrl": null,
+      "originalPublishedAt": null,
+      "publishedAt": "2026-10-22T09:43:15.869Z",
+      "slug": "mycopunk-version-1-0-pc-ps5-nouveautes-cooperation",
+      "title": "Mycopunk passe en 1.0 sur PC et PS5 : ce qui attend votre escouade",
+      "summary": "Le FPS coopératif de Pigeons at Play quitte l’accès anticipé. Nouveau personnage, région X11-B, armes et missions : les changements à connaître avant de repartir chasser les champignons.",
+      "game": "Mycopunk",
+      "games": [
+        "Mycopunk"
+      ],
+      "tags": [
+        "Mycopunk",
+        "Pigeons at Play",
+        "Devolver Digital",
+        "coopération",
+        "PC",
+        "PS5"
+      ],
+      "body": "Mycopunk est disponible en version 1.0 depuis le 20 octobre 2026 sur PC et PlayStation 5. Pigeons at Play et Devolver Digital accompagnent cette sortie d’un ensemble de contenus supplémentaires. Pour les joueurs PC, elle marque la fin de l’accès anticipé ; sur PS5, elle ouvre l’accès au FPS coopératif pour la première fois.\n\nLe principe reste celui d’une équipe de robots envoyée combattre une infestation fongique sur New Atlas. L’intérêt de cette version complète se mesure surtout aux nouvelles possibilités de composition d’équipe et de personnalisation de l’équipement.\n\n## Une cinquième recrue et une nouvelle destination\n\nLes notes officielles présentent la Mycologist, une membre d’une ancienne expédition restée prisonnière sur place. Il faut la secourir dans Expedition Alpha pour l’intégrer à l’équipe. Ses capacités Sporelift et Fungal Skewer, ainsi qu’un effet passif d’infection, ajoutent une nouvelle manière d’aborder les affrontements.\n\nLa 1.0 introduit aussi X11-B, une région située sur un petit satellite de New Atlas. Le studio prévient que ses missions difficiles mettront les équipements à l’épreuve. La mission Population Control demande, de son côté, de nettoyer des secteurs particulièrement peuplés d’ennemis.\n\nLe H.U.B., où l’équipe se retrouve entre deux sorties, a été remanié. Une petite mission dédiée à la récupération d’un canapé, de nouvelles animations et des éléments cosmétiques viennent enrichir ces moments de pause.\n\n## Des outils qui changent la préparation des missions\n\nLe Diffraction Driver rejoint l’arsenal : cette arme projette des ions en cône, avec une fonction permettant de resserrer la dispersion et d’allonger la portée. Son déblocage demande des ressources une fois le niveau 10 atteint. La grenade cryogénique Snowball se récupère quant à elle à partir de X11-B.\n\nCes ajouts s’insèrent dans le système d’améliorations en grille de Mycopunk. Il invite à combiner les propriétés des armes et les capacités de chaque robot. Les notes détaillent également de nombreux rééquilibrages ; une ancienne configuration ne doit donc pas être considérée comme identique sans relire ses effets.\n\nLe système de défis « Fulfillments » suit différentes actions et peut récompenser les joueurs avec des cosmétiques. Le studio précise que la prise en compte des accomplissements antérieurs varie selon les statistiques déjà enregistrées.\n\n## PC, PS5 et coopération : les repères pratiques\n\nMycopunk propose de jouer seul ou en coopération jusqu’à quatre. Le communiqué de lancement confirme les versions PC et PS5, ainsi que sa disponibilité dans les offres PlayStation Plus Extra et Premium sur PS5. Cet accès dépend de l’abonnement et du catalogue applicable ; il ne faut pas le confondre avec un achat définitif du jeu.\n\nLes sources retenues ne confirment pas le jeu croisé entre PC et PS5. Avant d’organiser une session entre plateformes différentes, mieux vaut attendre une indication officielle explicite. La bande-annonce de lancement de Devolver, associée à cet article, présente bien Mycopunk.\n\nLe lancement ne signifie pas non plus qu’il ne reste aucun problème technique. Le studio a publié des correctifs après la 1.0 ; ses actualités Steam restent la référence pour suivre les problèmes connus et les ajustements.\n\n## Le regard SWAPP : revenir pour expérimenter ensemble\n\nLe meilleur angle pour découvrir cette version consiste à comparer les rôles et les équipements au sein d’une petite équipe. La Mycologist et les nouveaux outils donnent des raisons concrètes de revoir sa manière de jouer, au-delà du simple changement de numéro de version.\n\nC’est une piste intéressante pour les groupes qui aiment discuter de leurs configurations entre deux missions. Elle ne remplace pas un test : l’équilibrage, la difficulté et les performances doivent être appréciés en jeu, selon la plateforme et les attentes du groupe.\n\n## Avant un achat sur PC\n\nLa fiche Instant Gaming associée à cet article correspond à Mycopunk sur PC, avec activation Steam. Le vendeur indique une compatibilité mondiale ; sa description conserve toutefois une ancienne mention d’accès anticipé. Consultez les conditions actualisées du produit avant tout achat. Aucun tarif ni remise n’est garanti ici.",
+      "seo": {
+        "title": "Mycopunk 1.0 sur PC et PS5 : nouveautés et coopération",
+        "description": "Mycopunk quitte l’accès anticipé : Mycologist, X11-B, armes et missions. Ce que la version 1.0 change pour jouer seul ou en coopération."
+      },
+      "trailerUrl": "https://www.youtube.com/watch?v=KJ_vn5911jE",
+      "trailerPublishedAt": "2026-10-20T17:07:46Z",
+      "commercialLinks": [
+        {
+          "title": "Mycopunk — PC (Steam)",
+          "merchant": "Instant Gaming",
+          "kind": "affiliate",
+          "url": "https://www.instant-gaming.com/fr/20343-acheter-mycopunk-pc-steam/?igr=SANSAHD"
+        }
+      ],
+      "sources": [
+        {
+          "label": "Pigeons at Play — notes officielles de la version 1.0",
+          "url": "https://steamcommunity.com/games/3247750/announcements/detail/715667192644897020"
+        },
+        {
+          "label": "Devolver Digital / Cosmocover — communiqué de lancement du 20 octobre 2026",
+          "url": "https://www.cosmocover.com/newsroom/sci-fi-co-op-shooter-mycopunk-out-now-on-pc-and-playstation-5/"
+        },
+        {
+          "label": "Mycopunk — fiche officielle Steam",
+          "url": "https://store.steampowered.com/app/3247750/Mycopunk/"
+        },
+        {
+          "label": "Devolver Digital — bande-annonce officielle de lancement",
+          "url": "https://www.youtube.com/watch?v=KJ_vn5911jE"
+        }
+      ]
+    }
+  ]
+}
