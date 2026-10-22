@@ -86,3 +86,10 @@
 @media(max-width:1150px) and (min-width:761px){.stv-creator-inline{border-top:0;border-left:1px solid rgba(213,232,247,.19)}.stv-creator-inline>summary{min-height:73px}}
 @media(max-width:760px){.stv-creator-inline{border-top:1px solid rgba(213,232,247,.19)}}
 @media(prefers-reduced-motion:reduce){.stv-creator-inline *{transition:none!important}}
+
+
+/* A single contextual programme link replaces the duplicate TV mini-menu. */
+.stv-mast .stv-programme-link{display:inline-flex;align-items:center;gap:8px;flex:0 0 auto;color:#b8e9f1!important;text-decoration:none;font-size:12px;font-weight:800;padding:9px 2px;border-bottom:1px solid transparent}
+.stv-mast .stv-programme-link:hover{color:#f5fcff!important;border-bottom-color:#65dfea}
+.stv-mast .stv-programme-link:focus-visible{outline:2px solid #65dfea;outline-offset:4px}
+@media(max-width:500px){.stv-mast .stv-programme-link{font-size:11px}}
