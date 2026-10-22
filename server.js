@@ -8402,6 +8402,34 @@ app.get('/api/gifs/search', async (req, res) => {
 
 // Oryon native WebRTC rooms. The server only relays signaling messages; video stays peer-to-peer.
 const nativeLiveRooms = new Map();
+const NATIVE_HOST_GRACE_MS=Math.min(120000,Math.max(15000,Number(process.env.ORYON_NATIVE_RECONNECT_GRACE_MS||120000)||120000));
+function nativeHostAway(r){return !!r&&!r.host&&!!r.hostGraceTimer&&(Date.now()-r.disconnectedAt)<NATIVE_HOST_GRACE_MS;}
+function expireNativeHost(room,r){
+ if(nativeLiveRooms.get(room)!==r||r.host)return;
+ if(r.hostGraceTimer)clearTimeout(r.hostGraceTimer);
+ r.hostGraceTimer=null;nativeLiveRooms.delete(room);
+ for(const id of r.viewers)io.to(id).emit('native:stopped',{room,reason:'host_reconnect_timeout'});
+ persistOryonLiveStateByLogin(room,false,{localAgent:false,platform:'browser-webrtc'}).catch(()=>{});
+ io.emit('native:lives:update');
+}
+function holdNativeHost(room,r){
+ if(nativeLiveRooms.get(room)!==r)return;
+ if(r.hostGraceTimer)clearTimeout(r.hostGraceTimer);
+ r.host=null;r.disconnectedAt=Date.now();
+ r.hostGraceTimer=setTimeout(()=>expireNativeHost(room,r),NATIVE_HOST_GRACE_MS);
+ r.hostGraceTimer.unref?.();
+ for(const id of r.viewers)io.to(id).emit('native:reconnecting',{room,grace_ms:NATIVE_HOST_GRACE_MS});
+ io.emit('native:lives:update');
+}
+function relayNativeSignal(socket,payload,event,field){
+ const room=String(payload?.room||'').trim().toLowerCase().replace(/[^a-z0-9_-]/g,'').slice(0,40);
+ const r=nativeLiveRooms.get(room),to=String(payload?.to||'');
+ if(!r?.host||!to||socket.data.nativeRoom!==room)return;
+ if(!(socket.id===r.host&&r.viewers.has(to))&&!(r.viewers.has(socket.id)&&to===r.host))return;
+ const value=payload?.[field];
+ if(!value||typeof value!=='object'||JSON.stringify(value).length>20000)return;
+ io.to(to).emit(event,{from:socket.id,room,[field]:value});
+}
 const swappLiveSweepTimer = setInterval(() => {
   sweepStaleOryonLiveSignals().catch(e => console.warn('[SWAPP] live sweep failed:', e.message));
 }, Math.max(30000, oryonLiveSignalTimeoutMs() * 2));
@@ -8464,6 +8492,8 @@ io.on('connection', async (socket) => {
     const room = user.login;
     const existing = nativeLiveRooms.get(room);
     if(existing?.host && existing.host !== socket.id) return socket.emit('native:error', { message: 'Tu as déjà un live actif.' });
+    if(nativeHostAway(existing)&&existing.hostUserId!==user.id)return socket.emit('native:error',{message:'Salon réservé à son diffuseur.'});
+    if(existing?.hostGraceTimer){clearTimeout(existing.hostGraceTimer);existing.hostGraceTimer=null;}
     const hostName = String(user.display_name || user.login).trim().slice(0, 40);
     const title = String(payload?.title || `Live de ${hostName}`).trim().slice(0, 120);
     nativeLiveRooms.set(room, { host: socket.id, viewers: new Set(), createdAt: Date.now(), title, hostName, hostLogin:user.login, hostUserId:user.id, category: String(payload?.category || '').trim().slice(0,60), tags: String(payload?.tags || '').split(',').map(x=>x.trim()).filter(Boolean).slice(0,8), peakViewers: 0, chatMessages: 0 });
@@ -8480,7 +8510,7 @@ io.on('connection', async (socket) => {
     const room = String(payload?.room || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 40);
     const r = nativeLiveRooms.get(room);
     const localAgentLive = isOryonLocalLiveRoom(room);
-    if(!room || (!r?.host && !localAgentLive)) return socket.emit('native:error', { message: 'Aucun live actif dans ce salon.' });
+    if(!room || (!r?.host && !localAgentLive && !nativeHostAway(r))) return socket.emit('native:error', { message: 'Aucun live actif dans ce salon.' });
     const maxViewers = Number(process.env.MAX_NATIVE_VIEWERS || 300);
     if(r?.viewers && r.viewers.size >= maxViewers) return socket.emit('native:error', { message: 'Salon complet : limite ' + maxViewers + ' viewers atteinte.' });
     if(r?.viewers){
@@ -8490,15 +8520,37 @@ io.on('connection', async (socket) => {
     socket.data.nativeRoom = room; socket.data.nativeRole = 'viewer';
     socket.join('native:' + room);
     socket.emit('native:chat:history', { room, messages: getNativeChat(room).slice(-80) });
+    if(nativeHostAway(r))socket.emit('native:reconnecting',{room,grace_ms:NATIVE_HOST_GRACE_MS});
     if(r?.host) io.to(r.host).emit('native:viewer', { room, viewerId: socket.id, viewers: r.viewers.size });
     io.emit('native:lives:update');
     if(r) emitNativeStats(room);
   });
 
-  socket.on('native:request-offer', (payload) => { const room = String(payload?.room || socket.data.nativeRoom || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0,40); const r = nativeLiveRooms.get(room); if(r?.host) io.to(r.host).emit('native:request-offer', { room, viewerId: socket.id }); });
-  socket.on('native:offer', (payload) => { const to = String(payload?.to || ''); if(to) io.to(to).emit('native:offer', { from: socket.id, room: payload?.room, offer: payload?.offer }); });
-  socket.on('native:answer', (payload) => { const to = String(payload?.to || ''); if(to) io.to(to).emit('native:answer', { from: socket.id, room: payload?.room, answer: payload?.answer }); });
-  socket.on('native:ice', (payload) => { const to = String(payload?.to || ''); if(to) io.to(to).emit('native:ice', { from: socket.id, room: payload?.room, candidate: payload?.candidate }); });
+  socket.on('native:resume',()=>{
+    const user=getOryonSocketUser(socket),room=String(user?.login||'');
+    const r=nativeLiveRooms.get(room);
+    if(!user||!r||r.hostUserId!==user.id||!nativeHostAway(r))
+      return socket.emit('native:error',{message:'Reprise impossible. Relance le direct.'});
+    clearTimeout(r.hostGraceTimer);r.hostGraceTimer=null;r.disconnectedAt=0;r.host=socket.id;
+    socket.data.nativeRoom=room;socket.data.nativeRole='host';socket.join('native:'+room);
+    socket.emit('native:resumed',{room});
+    for(const viewerId of [...r.viewers]){
+      const viewer=io.sockets.sockets.get(viewerId);
+      if(!viewer||viewer.data.nativeRoom!==room){r.viewers.delete(viewerId);continue;}
+      socket.emit('native:viewer',{room,viewerId,viewers:r.viewers.size});
+      io.to(viewerId).emit('native:resumed',{room});
+    }
+    io.emit('native:lives:update');emitNativeStats(room);
+  });
+  socket.on('native:request-offer',payload=>{
+    const room=String(payload?.room||socket.data.nativeRoom||'').trim().toLowerCase().replace(/[^a-z0-9_-]/g,'').slice(0,40);
+    const r=nativeLiveRooms.get(room);
+    if(r?.host&&socket.data.nativeRoom===room&&r.viewers.has(socket.id))
+      io.to(r.host).emit('native:request-offer',{room,viewerId:socket.id});
+  });
+  socket.on('native:offer',p=>relayNativeSignal(socket,p,'native:offer','offer'));
+  socket.on('native:answer',p=>relayNativeSignal(socket,p,'native:answer','answer'));
+  socket.on('native:ice',p=>relayNativeSignal(socket,p,'native:ice','candidate'));
 
   socket.on('native:chat:history', (payload) => {
     const room = String(payload?.room || socket.data.nativeRoom || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 40);
@@ -8547,6 +8599,7 @@ io.on('connection', async (socket) => {
     if(r){
       if(role === 'host'){
         for(const viewerId of r.viewers){ io.to(viewerId).emit('native:error', { message: 'Le streamer a arrêté le live.' }); io.to(viewerId).emit('native:stopped', {room}); }
+        if(r.hostGraceTimer){clearTimeout(r.hostGraceTimer);r.hostGraceTimer=null;}
         nativeLiveRooms.delete(room);
         persistOryonLiveStateByLogin(room, false, { localAgent:false, platform:'browser-webrtc' }).catch(()=>{});
         io.emit('native:lives:update');
@@ -8704,10 +8757,8 @@ io.on('connection', async (socket) => {
     const r = nativeLiveRooms.get(room);
     if(r){
       if(role === 'host'){
-        for(const viewerId of r.viewers) io.to(viewerId).emit('native:error', { message: 'Le streamer a quitté le live.' });
-        nativeLiveRooms.delete(room);
-        persistOryonLiveStateByLogin(room, false, { localAgent:false, platform:'browser-webrtc' }).catch(()=>{});
-        io.emit('native:lives:update');
+        // Temporary Socket.IO losses do not terminate the audience's session.
+        if(r.host===socket.id)holdNativeHost(room,r);
       }else{
         r.viewers.delete(socket.id);
         if(r.host) io.to(r.host).emit('native:viewer-left', { room, viewerId: socket.id, viewers: r.viewers.size });
