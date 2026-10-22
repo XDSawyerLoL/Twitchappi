@@ -179,8 +179,8 @@ function steamTopSection(){
  }).join('');
  return '<section class="swapp-editorial-top" aria-labelledby="swapp-editorial-top-title">'+
   '<div class="swapp-editorial-top-masthead"><div><small>SWAPP / GAME STORE · FRANCE</small>'+
-  '<h1 id="swapp-editorial-top-title">LES 10 JEUX <em>DU MOMENT.</em></h1>'+
-  '<p>Les meilleures ventes Steam France, sélectionnées au 16 octobre 2026. Une vitrine gaming, des univers à explorer.</p></div>'+
+  '<h1 id="swapp-editorial-top-title">LA SÉLECTION <em>SWAPP.</em></h1>'+
+  '<p>Notre sélection datée du 16 octobre 2026. Consulte Steam pour le classement et les prix actuels.</p></div>'+
   '<a href="https://store.steampowered.com/charts/topselling/FR" target="_blank" rel="noopener noreferrer">Classement Steam ↗</a></div>'+
   '<div class="swapp-editorial-top-grid">'+cards+'</div>'+
   '<p class="swapp-editorial-top-disclaimer">Sélection éditoriale datée du 16/10/2026, non synchronisée en direct. Ordre du classement et prix à vérifier auprès de Steam France ; vérifier également l’édition, la région et la disponibilité. Liens marchands externes non affiliés. Les images promotionnelles appartiennent à leurs ayants droit.</p>'+
@@ -195,8 +195,8 @@ function shop(_products=demoProducts,{source:_source='demo'}={}){
   steamTopSection()+
   '</main>';
  return layout({
-  title:'Boutique — Les 10 jeux du moment',
-  description:'SWAPP Game Store France : les 10 jeux du moment, sélection Steam France du 16 octobre 2026, avec liens directs vers Steam.',
+  title:'Boutique — Sélection SWAPP du 16 octobre 2026',
+  description:'Sélection SWAPP datée du 16 octobre 2026 avec liens vers Steam. Prix et classement non synchronisés.',
   content,active:'shop',
   scripts:assets+pageColors+
    '<link rel="stylesheet" href="/assets/swapp-editorial-top.css?v=20261017-top10-only-v20">'
