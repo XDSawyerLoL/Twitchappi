@@ -50,10 +50,24 @@ test('panel editor saves against authenticated existing SWAPP route and no new p
  const js=read('assets/swapp-channel-mosaic.js');
  assert.match(js,/fetch\('\/api\/oryon\/profile'/);
  assert.match(js,/credentials:'same-origin'/);
- assert.match(js,/JSON\.stringify\(\{channel_vignettes:result,channel_panels:result\}\)/);
+ assert.match(js,/JSON\.stringify\(\{channel_vignettes:panels,channel_panels:panels\}\)/);
  assert.match(js,/requestAnimationFrame/);
  assert.doesNotMatch(js,/localStorage\.setItem|new WebSocket|GIPHY_API_KEY/);
 });
+test('gallery save restores the existing SWAPP session and rejects other channel owners',()=>{
+ const server=read('server.js');
+ const profileRoute=server.slice(server.indexOf("app.post('/api/oryon/profile'"),server.indexOf("function makeOryonStreamKey"));
+ assert.match(profileRoute,/restoreOryonSessionFromRememberCookie\(req, res, \{allowUserRecovery:false\}\)/);
+ assert.match(profileRoute,/Session SWAPP expirée/);
+ assert.doesNotMatch(profileRoute,/Compte Oryon requis/);
+ assert.match(profileRoute,/if\(!cur\?\.id\)/);
+ const js=read('assets/swapp-channel-mosaic.js');
+ assert.match(js,/fetch\('\/api\/oryon\/session'/);
+ assert.match(js,/String\(session.local.id\)!==String\(profile\(\)\?\.id\|\|''\)/);
+ assert.match(js,/const savedUser=await verifiedPublish\(result,/);
+ assert.match(js,/state.channelProfile=savedUser/);
+});
+
 test('owner editor exposes sizes, ratios, focal crop, ordering, import, upload and deletion',()=>{
  const js=read('assets/swapp-channel-mosaic.js');
  for(const x of ['Composer ma chaîne','Panoramique · 12 colonnes','Original · sans recadrage',
