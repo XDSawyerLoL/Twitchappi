@@ -39,3 +39,10 @@ test('creator inline control follows SWAPP styling and supports mobile and keybo
  assert.match(css,/@media\(max-width:760px\)/);
  assert.doesNotMatch(css,/\.stv-queue-tease|\.stv-bottom\{|\.stv-queue-grid|\.stv-queue-panel/);
 });
+
+test('disabled queue hides creator enrolment while keeping broadcast discovery available',()=>{
+ const js=read('assets/swapp-tv-broadcast.js');
+ assert.match(js,/access\.hidden=!enabled/);
+ assert.match(js,/if\(!enabled\)access\.open=false/);
+ assert.match(js,/enabled\?'CRÉATEURS EN ATTENTE':'À DÉCOUVRIR'/);
+});
