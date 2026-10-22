@@ -1,8 +1,9 @@
 import { TOKEN_KEY, state, dom, api, errorText } from './core.js';
 import { openAuth, closeAuth, updateAuthModal, updateAccount, requireAuth, applySession, clearSession, restoreSession } from './session.js?v=20261022-one-account-v1';
-import { setView, loadHome, loadExplore, loadCircles, loadNotifications, loadSaved, loadProfile, loadMessages, loadConversation, loadCirclePreview, loadNewsRss } from './views.js?v=20261022-quoted-reposts-v1';
+import { setView, loadHome, loadExplore, loadCircles, loadNotifications, loadSaved, loadProfile, loadMessages, loadConversation, loadCirclePreview, loadNewsRss } from './views.js?v=20261022-social-posts-v2';
 import {setupVoiceNotes} from './dm-audio.js?v=20261018-audio-stage-v1';
 import {setupDirectCalls} from './dm-calls.js?v=20261018-audio-stage-v1';
+import {setupSocialEmotes} from './emotes.js?v=20261022-social-emotes-v1';
 
 /* Keep the SOCIAL sticky stack exactly beneath the real SWAPP header.
    Hostinger's server shell has different heights across phone sizes; a
@@ -194,7 +195,7 @@ async function deleteOwnPost(postId,button){
     });
     // Refresh from storage on profile, saved, reply and main feed alike.
     if(state.view==='home'&&state.feed!=='news')await loadHome();
-    else if(state.view==='profile')await loadProfile(state.profileHandle||state.user?.handle);
+    else if(state.view==='profile')await loadProfile(state.user?.handle);
   }catch(error){
     if(button?.isConnected)button.disabled=false;
     alert(errorText(error));
@@ -726,6 +727,7 @@ function applyIncomingShare(){
 
 async function init(){
   bindStaticEvents();
+  setupSocialEmotes({requireAuth,dom});
   applyIncomingShare();
   bindDelegatedEvents();
   setupVoiceNotes({onConversationChange:loadConversation});
