@@ -42,7 +42,7 @@ test('single primary nav points at real sections, no decorative duplicate tabs',
  const js=read('assets/swapp-channel-polish.js');
  assert.match(js,/label:'Direct'/);
  assert.match(js,/label:'Présentation'/);
- assert.match(js,/label:p\.owner\?'Personnalisation':'Liens et panneaux'/);
+ assert.match(js,/label:'Galerie'/);
  assert.match(js,/if\(!nav\.childElementCount\)nav\.hidden=true/);
  assert.match(js,/nav\.replaceChildren\(\)/);
  assert.match(js,/btn\.addEventListener\('click'/);
@@ -65,10 +65,26 @@ test('SWAPP native color, mobile controls and no extra header/cart modules',()=>
  assert.match(css,/chatForm/);
  assert.match(css,/--channel-accent:/);
 });
+test('creator home separates banner, dedicated offline media and avatar',()=>{
+ const js=read('assets/swapp-channel-polish.js');
+ const css=read('assets/swapp-channel-polish.css');
+ assert.match(js,/hasDedicatedArt/);
+ assert.match(js,/if\(!hasDedicatedArt\)offline\.querySelector\('\.offlinePremiumBg'\)\?\.remove\(\)/);
+ assert.match(js,/offline\.querySelector\('\.offlinePremiumAvatar'\)\?\.remove\(\)/);
+ assert.match(js,/if\(bioArea&&!p\.bio\)bioArea\.hidden=true/);
+ assert.match(js,/heading\.textContent='Hors live'/);
+ assert.match(css,/\[data-channel-offline-art="false"\] \.offlinePremium/);
+ assert.match(css,/offlinePremiumBg\{/);
+ assert.match(css,/opacity:1!important;filter:none!important;transform:none!important/);
+ assert.match(css,/aspect-ratio:16\/9!important/);
+ assert.match(css,/grid-template-rows:auto minmax\(0,1fr\) auto auto!important/);
+ assert.match(css,/data-channel-banner="true"/);
+ assert.doesNotMatch(js,/socket\.emit|sendChat\(|fetch\(/);
+});
 test('index loads cache-busted assets and deployment fingerprints track both',()=>{
  const index=read('index.html'),release=read('tools/swapp-release.js');
  for(const name of ['swapp-channel-polish.css','swapp-channel-polish.js']){
-  assert.match(index,new RegExp(name.replaceAll('.','\\.')+'\\?v=20261022-channel-premium-v1'));
+  assert.match(index,new RegExp(name.replaceAll('.','\\.')+'\\?v=20261022-theatre-v3'));
   assert.match(release,new RegExp("assets/"+name.replaceAll('.','\\.')));
  }
 });
