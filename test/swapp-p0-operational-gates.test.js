@@ -96,3 +96,14 @@ test('command is manual, with no CI, new cron or user account mutation',()=>{
  assert.doesNotMatch(source,/\/register/);
  assert.match(source,/require\.main===module/);
 });
+
+test('production route refuses premature TV activation and reports transient SOCIAL flags accurately',()=>{
+ const server=read('server.js');
+ assert.match(server,/fresh_bootstrap_authorized:process\.env\.SWAPP_SOCIAL_FRESH_START_APPROVED==='1'/);
+ assert.match(server,/const SOCIAL_FRESH_APPROVED=process\.env\.SWAPP_SOCIAL_FRESH_START_VERIFIED==='1'/);
+ const tv=server.slice(server.indexOf("app.get('/api/swapp-tv/queue/status'"),server.indexOf("app.post('/api/swapp-tv/queue'"));
+ assert.match(tv,/const accounts_mysql=SWAPP_MYSQL_ACCOUNTS&&swappMysqlAccountsReady/);
+ assert.match(tv,/reason:'accounts_mysql_required'/);
+ assert.match(tv,/if\(!accounts_mysql\)return res\.json/);
+ assert.match(tv,/director_enabled:SWAPP_TV_DIRECTOR_ENABLED/);
+});
