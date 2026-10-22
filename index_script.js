@@ -780,6 +780,7 @@ async function createScreenCameraStream(video){
 }
 async function startLive(){
  if(!state.session.local)return setView('settings');
+ if(state.stream)return toast('Une capture est déjà en cours. Arrête le direct avant de relancer.');
  if(state.socket && state.socketLogin !== state.session.local.login){ try{state.socket.disconnect()}catch{} state.socket=null; state.socketLogin=null; }
  state.watchRoom=null; setupSocket();
  const q=$('#liveQuality')?.value||'1080'; const source=$('#liveSource')?.value||'screen';
@@ -788,6 +789,7 @@ async function startLive(){
  catch(e){toast('Impossible de capturer la source vidéo. Vérifie les permissions.');return}
  attachCurrentStream(); $('#localVideo')?.play?.().catch(()=>{}); state.nativeCreated=false;
  state.stream.getVideoTracks().forEach(t=>t.onended=()=>{if(state.stream)stopLive(true)});
+ state.stream._oryonSources?.forEach(src=>src.getVideoTracks().forEach(t=>t.onended=()=>{if(state.stream)stopLive(true)}));
  updateLiveUi(false);
  state.room=state.session.local.login;
  state.socket.emit('native:create',{title:$('#liveTitle')?.value||`Live de ${state.session.local.login}`,category:$('#liveCategory')?.value||'',tags:$('#liveTags')?.value||'',quality:q})
