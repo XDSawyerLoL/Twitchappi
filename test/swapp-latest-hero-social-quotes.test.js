@@ -55,6 +55,9 @@ test('quoting remains a real post linking to the original and does not leak rest
  assert.match(app,/quotePostId:state\.quotePostId/);
  assert.match(app,/data-action==='quote'/);
  assert.match(render,/data-action="quote"/);
+ assert.match(render,/pulse-quoted-original/);
+ assert.match(backend,/linkUrl:q\.linkUrl/);
+ assert.match(read('assets/swapp-social-native/social-swapp.css'),/pulse-quoted-original img/);
  assert.match(views,/data-news-comment/);
  assert.match(app,/\[data-news-comment\]/);
  assert.match(backend,/quote:q&&visibleTo\(store,q,viewerId\)/);
