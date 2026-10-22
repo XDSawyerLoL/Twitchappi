@@ -242,6 +242,9 @@
 #settings .swapp-ops-status{padding-top:18px;margin-top:16px;border-top:1px solid var(--swapp-workspace-line)}
 #settings .swapp-ops-status h4{font-size:17px;margin:0 0 6px;letter-spacing:-.02em}
 #settings .swapp-ops-status>p{font-size:12px;color:var(--swapp-workspace-muted);margin:0 0 8px}
+#settings .swapp-ops-status>p.swapp-ops-launch{max-width:750px;margin:13px 0 16px;font-size:12px;line-height:1.6;font-weight:670;color:var(--swapp-workspace-muted)}
+#settings .swapp-ops-status>p.swapp-ops-launch[data-ready="blocked"]{color:#e9c4a2}
+#settings .swapp-ops-status>p.swapp-ops-launch[data-ready="candidate"]{color:var(--swapp-page-accent,#90d9c4)}
 #settings .swapp-ops-row{display:grid;grid-template-columns:120px minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--swapp-workspace-line)}
 #settings .swapp-ops-row strong{font-size:12px}
 #settings .swapp-ops-row span{font-size:11px;color:var(--swapp-workspace-muted);overflow-wrap:anywhere}
