@@ -11,21 +11,22 @@ const setText=(id,text)=>{$(id).textContent=text};
 function renderQueue(data){
  const waiting=Array.isArray(data.waiting)?data.waiting:[],enabled=Boolean(data.enabled);
  const access=$('stv-creator-access');
- if(access){access.hidden=!enabled;if(!enabled)access.open=false;}
+ if(access)access.hidden=false; // Keep the queue visible even while enrollment is closed.
  $('stv-join').disabled=!enabled||!state.games.length;
  $('stv-leave').disabled=!enabled;
- setText('stv-queue-status',!enabled?'La file n’est pas ouverte actuellement.':
+ setText('stv-queue-status',!enabled?'Inscriptions suspendues pour le moment. La file reste visible et les inscriptions reprendront quand la régie sera prête.':
   data.director_enabled?'File accessible. Chaque direct est vérifié avant de passer à l’antenne.':
   'File accessible, mais les passages à l’antenne sont actuellement suspendus.');
- setText('stv-next-title',enabled?'CRÉATEURS EN ATTENTE':'À DÉCOUVRIR');
- setText('stv-queue-count',enabled?(waiting.length>=100?'100+ en attente':waiting.length+' en attente'):'');
+ setText('stv-creator-hint',enabled?'Rejoindre la file SWAPP TV':'Inscriptions fermées temporairement');
+ setText('stv-next-title',enabled?'CRÉATEURS EN ATTENTE':'FILE D’ATTENTE · PAUSE');
+ setText('stv-queue-count',enabled?(waiting.length>=100?'100+ en attente':waiting.length+' en attente'):'Inscriptions fermées');
 }
 function rail(data){
  const list=$('stv-next-list');list.replaceChildren();
  let rows=[];
- if(data?.enabled)rows=(Array.isArray(data.waiting)?data.waiting:[]).slice(0,5).map(x=>({name:x.creator_login,game:x.game,desc:'En attente de vérification'}));
- else rows=state.discovery.slice(state.index+1,state.index+5).map(x=>({name:x.display_name||x.login,game:x.game,desc:'Découverte, non programmé'}));
- if(!rows.length){list.append(by('p',null,data?.enabled?'Aucune inscription en attente.':'Aucun direct découvert pour le moment.'));return}
+ if(Array.isArray(data?.waiting)&&data.waiting.length)rows=data.waiting.slice(0,5).map(x=>({name:x.creator_login,game:x.game,desc:'En attente de vérification'}));
+ else if(!data?.enabled)rows=state.discovery.slice(state.index+1,state.index+5).map(x=>({name:x.display_name||x.login,game:x.game,desc:'Découverte, non programmé'}));
+ if(!rows.length){list.append(by('p',null,data?.enabled?'Aucune inscription en attente.':'File momentanément fermée. Aucun créateur en attente.'));return}
  for(const x of rows){const card=by('div','stv-next-item');card.append(by('strong',null,x.name||'Créateur'),by('small',null,(x.game||'Jeu')+' · '+x.desc));list.append(card)}
 }
 function renderScreen(item,{onAir=false}={}){
@@ -33,6 +34,7 @@ function renderScreen(item,{onAir=false}={}){
  state.selection=valid?{login,game:item.game||item.game_name||'Jeu',name:item.creator_login||item.display_name||login,onAir}:null;
  const same=state.playing===login&&state.consent&&valid;
  if(!same){state.consent=false;state.playing=null;const layer=$('stv-screen').querySelector('.stv-player-layer');if(layer)layer.remove();$('stv-screen-inner').hidden=false;}
+ if(typeof updateTwitchChat==='function')updateTwitchChat();
  const name=state.selection?.name||'Antenne en préparation';
  setText('stv-now-name',name);setText('stv-now-game',state.selection?.game||'En attente de programmation');
  setText('stv-screen-game',state.selection?.game?.toUpperCase()||'GAME UNIVERSE');
@@ -87,6 +89,99 @@ async function mutate(method){
   node.textContent=method==='POST'?'Inscription enregistrée. Le passage dépend de la disponibilité et de la régie.':response.left?'Inscription retirée.':'Aucune inscription en attente à retirer.';
  }catch(e){node.textContent=({'swapp_account_required':'Connecte-toi à SWAPP pour rejoindre la file.','verified_twitch_link_required':'Relie d’abord ton compte Twitch.','already_in_queue':'Tu es déjà dans la file.','spotlight_game_not_covered':'Aucun article publié ne couvre ce jeu.','game_not_found_on_twitch':'Jeu non reconnu exactement sur Twitch.'}[e.message]||'Action impossible actuellement : '+e.message)}
 }
+
+// Channel UI: one modal programme + Twitch chat for the selected creator,
+// SWAPP's existing MySQL chat room for everyone on the platform.
+const programme=$('stv-program-dialog');
+$('stv-program-open')?.addEventListener('click',()=>{
+ if(programme?.showModal)programme.showModal();
+});
+$('stv-program-close')?.addEventListener('click',()=>programme?.close());
+programme?.addEventListener('click',e=>{if(e.target===programme)programme.close()});
+const swappTab=$('stv-tab-swapp'),twitchTab=$('stv-tab-twitch');
+const showChat=kind=>{
+ const isSwapp=kind==='swapp';
+ swappTab.setAttribute('aria-selected',String(isSwapp));
+ twitchTab.setAttribute('aria-selected',String(!isSwapp));
+ swappTab.tabIndex=isSwapp?0:-1;twitchTab.tabIndex=isSwapp?-1:0;
+ $('stv-pane-swapp').hidden=!isSwapp;
+ $('stv-pane-twitch').hidden=isSwapp;
+ if(!isSwapp)updateTwitchChat();else void refreshSwappChat();
+};
+swappTab.addEventListener('click',()=>showChat('swapp'));
+twitchTab.addEventListener('click',()=>showChat('twitch'));
+for(const [button,kind] of [[swappTab,'swapp'],[twitchTab,'twitch']]){
+ button.addEventListener('keydown',e=>{
+  if(e.key!=='ArrowLeft'&&e.key!=='ArrowRight')return;
+  e.preventDefault();const next=kind==='swapp'?'twitch':'swapp';showChat(next);
+  (next==='swapp'?swappTab:twitchTab).focus();
+ });
+}
+let embeddedTwitch='';
+function updateTwitchChat(){
+ const target=$('stv-twitch-chat');
+ if(!target)return;
+ const login=state.selection?.login||'';
+ if($('stv-pane-twitch').hidden)return;
+ if(!safeLogin(login)){
+  embeddedTwitch='';target.replaceChildren(by('p',null,'Le tchat Twitch apparaîtra lorsqu’un direct sera sélectionné.'));return;
+ }
+ if(embeddedTwitch===login)return;
+ embeddedTwitch=login;target.replaceChildren();
+ const frame=by('iframe');frame.title='Tchat Twitch de '+login;
+ frame.src='https://www.twitch.tv/embed/'+encodeURIComponent(login)+'/chat?'+new URLSearchParams({parent:location.hostname,darkpopout:'true'});
+ frame.loading='lazy';frame.referrerPolicy='strict-origin-when-cross-origin';
+ frame.setAttribute('allow','fullscreen');target.append(frame);
+}
+let chatBusy=false,chatSignature='',chatKnown=false;
+function chatError(message){
+ const stream=$('stv-swapp-messages');
+ if(!chatKnown)stream.replaceChildren(by('p',null,message));
+ $('stv-chat-status').textContent=message;
+}
+async function refreshSwappChat(){
+ if(chatBusy||document.visibilityState==='hidden')return;
+ chatBusy=true;
+ try{
+  const data=await api('/api/swapp-tv/chat');
+  const messages=Array.isArray(data.messages)?data.messages:[];
+  const sig=messages.map(m=>m.id).join('|');
+  if(sig!==chatSignature||!chatKnown){
+   chatSignature=sig;chatKnown=true;
+   const container=$('stv-swapp-messages');
+   const pinned=container.scrollHeight-container.scrollTop-container.clientHeight<70;
+   container.replaceChildren();
+   if(!messages.length)container.append(by('p',null,'Pas encore de messages. Lance la discussion SWAPP TV.'));
+   for(const m of messages.slice(-80)){
+    const line=by('div','stv-chat-line');
+    line.append(by('strong',null,String(m.handle||'Membre SWAPP').slice(0,40)),by('span',null,String(m.body||'').slice(0,160)));
+    container.append(line);
+   }
+   if(pinned)container.scrollTop=container.scrollHeight;
+  }
+  $('stv-chat-status').textContent='Conversation SWAPP TV · compte SWAPP requis pour envoyer';
+ }catch(e){chatError('Discussion SWAPP indisponible actuellement. '+e.message)}
+ finally{chatBusy=false}
+}
+$('stv-swapp-chat-form').addEventListener('submit',async e=>{
+ e.preventDefault();
+ const field=$('stv-swapp-chat-input'),message=field.value.trim(),button=e.target.querySelector('button');
+ if(!message||button.disabled)return;
+ button.disabled=true;
+ try{
+  await api('/api/swapp-tv/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({body:message})});
+  field.value='';chatSignature='';await refreshSwappChat();
+ }catch(error){
+  $('stv-chat-status').replaceChildren();
+  if(error.message==='swapp_account_required'){
+   $('stv-chat-status').append('Connecte-toi à SWAPP pour écrire. ');
+   const link=by('a',null,'Connexion SWAPP ↗');link.href='/compte';$('stv-chat-status').append(link);
+  }else $('stv-chat-status').textContent='Envoi impossible : '+error.message;
+ }finally{button.disabled=false}
+});
+void refreshSwappChat();
+setInterval(()=>{if(!$('stv-pane-swapp').hidden)void refreshSwappChat()},7000);
+
 $('stv-watch').addEventListener('click',play);
 $('stv-join').addEventListener('click',()=>mutate('POST'));
 $('stv-leave').addEventListener('click',()=>mutate('DELETE'));

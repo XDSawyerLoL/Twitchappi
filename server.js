@@ -1121,6 +1121,54 @@ if(process.env.SWAPP_SOCIAL_FEATURES==='1'){
 }else{
  app.use('/api/swapp/interactions',(_req,res)=>res.status(503).json({error:'social_features_disabled'}));
 }
+// SWAPP TV discussion is one permanent public room in existing SOCIAL MySQL.
+const SWAPP_TV_ROOM_ID='00000000-0000-4000-8000-0000000000a7';
+let swappTvChatRoomReady=false;
+async function swappTvChatDb(){
+ await socialInteractionsInit;
+ if(socialInteractionsState==='unavailable'||!socialInteractionsPool)throw Error('social_storage_unavailable');
+ if(!swappTvChatRoomReady){
+  await socialInteractionsPool.query('INSERT IGNORE INTO swapp_social_rooms (id,owner_id,name,game,created_at) VALUES (?,?,?,?,?)',
+   [SWAPP_TV_ROOM_ID,'swapp-tv-system','SWAPP TV','SWAPP TV',Date.now()]);
+  swappTvChatRoomReady=true;
+ }
+ return socialInteractionsPool;
+}
+const tvChatReadLimiter=rateLimit({windowMs:60000,max:90,standardHeaders:true,legacyHeaders:false});
+const tvChatWriteLimiter=rateLimit({windowMs:60000,max:15,standardHeaders:true,legacyHeaders:false});
+app.get('/api/swapp-tv/chat',tvChatReadLimiter,async(_req,res)=>{
+ res.set('Cache-Control','no-store');
+ try{
+  const db=await swappTvChatDb();
+  const [rows]=await db.query('SELECT id,handle,body,created_at FROM swapp_social_room_messages WHERE room_id=? ORDER BY created_at DESC LIMIT 80',[SWAPP_TV_ROOM_ID]);
+  res.json({messages:rows.reverse().map(m=>({id:m.id,handle:m.handle,body:m.body,createdAt:Number(m.created_at)}))});
+ }catch(_){res.status(503).json({error:'social_storage_unavailable'})}
+});
+app.post('/api/swapp-tv/chat',tvChatWriteLimiter,async(req,res)=>{
+ res.set('Cache-Control','no-store');
+ const allowed=['https://swapp.tv','https://www.swapp.tv'];
+ if(process.env.NODE_ENV!=='production')allowed.push('http://localhost:3000','http://127.0.0.1:3000');
+ if(!allowed.includes(String(req.headers.origin||'')))return res.status(403).json({error:'social_origin_required'});
+ let restored;
+ try{restored=await restoreOryonSessionFromRememberCookie(req,res)}
+ catch{return res.status(503).json({error:'swapp_session_unavailable'})}
+ const user=req.session?.oryonUser?.id?req.session.oryonUser:restored;
+ if(!user?.id||!user?.login)return res.status(401).json({error:'swapp_account_required'});
+ const body=String(req.body?.body||'').trim();
+ if(!body||body.length>160||[...body].some(c=>c.charCodeAt(0)<32))
+  return res.status(400).json({error:'invalid_message'});
+ try{
+  const db=await swappTvChatDb(),now=Date.now();
+  const [recent]=await db.query('SELECT id FROM swapp_social_room_messages WHERE room_id=? AND user_id=? AND created_at>? LIMIT 1',
+   [SWAPP_TV_ROOM_ID,String(user.id),now-1600]);
+  if(recent.length)return res.status(429).json({error:'rate_limited'});
+  const message={id:crypto.randomUUID(),handle:String(user.login).slice(0,40),body,createdAt:now};
+  await db.query('INSERT INTO swapp_social_room_messages (id,room_id,user_id,handle,body,created_at) VALUES (?,?,?,?,?,?)',
+   [message.id,SWAPP_TV_ROOM_ID,String(user.id).slice(0,80),message.handle,message.body,now]);
+  res.status(201).json({message});
+ }catch(_){res.status(503).json({error:'social_storage_unavailable'})}
+});
+
 // Opt-in Fair Discovery pilot: verified card signals, no visitor identifiers.
 // Reuse the existing Hostinger MySQL pool, never create a second connection pool.
 const fairMetrics=require('./modules/swapp-fair-metrics').createFairMetrics({

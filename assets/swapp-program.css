@@ -93,3 +93,57 @@
 .stv-mast .stv-programme-link:hover{color:#f5fcff!important;border-bottom-color:#65dfea}
 .stv-mast .stv-programme-link:focus-visible{outline:2px solid #65dfea;outline-offset:4px}
 @media(max-width:500px){.stv-mast .stv-programme-link{font-size:11px}}
+
+
+/* One SWAPP visual language and color variable for player, queue, programme and chat. */
+.stv,.scal{--tv-accent:var(--swapp-page-accent,#22d3ee);--sc-lime:var(--swapp-page-accent,#22d3ee)}
+.stv{background:radial-gradient(ellipse at 9% 0%,color-mix(in srgb,var(--tv-accent) 10%,transparent),transparent 38%),#0b101b}
+.stv .stv-broadcast{grid-template-columns:minmax(0,1fr) minmax(310px,365px);align-items:start}
+.stv .stv-mast{justify-content:flex-start;flex-wrap:wrap;gap:13px 23px}
+.stv .stv-mast .stv-programme-link{margin-left:auto;padding:9px 14px!important;border:1px solid color-mix(in srgb,var(--tv-accent) 42%,transparent)!important;border-radius:9px;background:color-mix(in srgb,var(--tv-accent) 10%,transparent);color:#fff!important;cursor:pointer}
+.stv .stv-mast .stv-programme-link:hover{background:color-mix(in srgb,var(--tv-accent) 20%,transparent)}
+.stv .stv-brandline,.stv .stv-screen-eyebrow,.stv .stv-label,.stv .stv-screen-game,.scal .scal-kicker{color:var(--tv-accent)}
+.stv .stv-air-state{border-color:color-mix(in srgb,var(--tv-accent) 35%,#ffffff18)}
+.stv .stv-now-actions #stv-watch,.stv .stv-queue-buttons #stv-join,.scal .scal-aside-tv a{background:var(--tv-accent)!important;color:#071623!important;border-color:var(--tv-accent)!important}
+.stv .stv-now-actions #stv-watch:disabled,.stv .stv-queue-buttons #stv-join:disabled{opacity:.48;cursor:not-allowed}
+.stv .stv-creator-summary-icon,.stv .stv-creator-chevron,.stv .stv-station-label{color:var(--tv-accent);border-color:color-mix(in srgb,var(--tv-accent) 40%,transparent)}
+
+.stv .stv-rail{overflow:hidden;min-width:0}
+.stv .stv-upnext{flex:0 0 auto;min-height:135px;padding:20px 23px}
+.stv .stv-next-item{padding:9px 0}
+.stv .stv-chat{border-top:1px solid #ffffff20;background:#0c1729;display:flex;flex-direction:column;min-width:0}
+.stv .stv-chat-heading{display:flex;align-items:center;gap:8px;justify-content:space-between;padding:14px 18px 10px}
+.stv .stv-chat-context{font-size:10px;color:#a1afc2}
+.stv .stv-chat-tabs{display:flex;gap:3px;padding:0 12px 12px}
+.stv .stv-chat-tabs button{flex:1;border:1px solid #ffffff25;border-radius:7px;background:#ffffff08;color:#abb7c8;padding:9px 6px;font-size:12px;font-weight:850}
+.stv .stv-chat-tabs button[aria-selected=true]{color:#fff;border-color:var(--tv-accent);background:color-mix(in srgb,var(--tv-accent) 19%,transparent)}
+.stv .stv-chat-pane{min-width:0;padding:0 12px 13px}
+.stv .stv-chat-pane[hidden]{display:none!important}
+.stv .stv-chat-feed{height:clamp(230px,30vw,340px);overflow-y:auto;background:#081221;border:1px solid #ffffff1b;border-radius:9px;padding:12px;overscroll-behavior:contain;scrollbar-width:thin}
+.stv .stv-chat-feed>p,.stv .stv-twitch-chat>p{margin:0;color:#aebed2;font-size:12px;line-height:1.55}
+.stv .stv-chat-line{padding:8px 0;border-bottom:1px solid #ffffff10;display:grid;gap:3px;overflow-wrap:anywhere}
+.stv .stv-chat-line strong{font-size:11px;color:var(--tv-accent)}
+.stv .stv-chat-line span{font-size:12px;line-height:1.45;color:#e2ebf5}
+.stv .stv-chat-form{display:grid;grid-template-columns:minmax(0,1fr) 38px;gap:6px;margin-top:9px}
+.stv .stv-chat-form input{width:100%;min-width:0;border:1px solid #ffffff34;border-radius:9px;background:#19253c;color:#fff;padding:11px;font-size:12px}
+.stv .stv-chat-form button{border:0;border-radius:9px;background:var(--tv-accent);color:#071523;font-weight:900;font-size:19px}
+.stv .stv-chat-status{font-size:11px;line-height:1.4;color:#9bafc6;margin:9px 3px 0}
+.stv .stv-chat-status a{color:var(--tv-accent);text-decoration:underline}
+.stv .stv-twitch-chat{height:390px;min-height:250px;border-radius:9px;overflow:hidden;background:#0b101b;border:1px solid #ffffff25}
+.stv .stv-twitch-chat iframe{display:block;width:100%;height:100%;border:0}
+.stv .stv-twitch-chat>p{padding:20px}
+.stv .stv-sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.stv-program-dialog{position:fixed;inset:0;width:min(1380px,calc(100vw - 32px));height:min(900px,calc(100dvh - 32px));max-width:none;max-height:none;padding:0;background:#0b101b;color:#eff4fb;border:1px solid color-mix(in srgb,var(--swapp-page-accent,#22d3ee) 46%,#ffffff25);border-radius:17px;box-shadow:0 25px 100px #000e;overflow:auto}
+.stv-program-dialog::backdrop{background:rgba(4,9,20,.84);backdrop-filter:blur(7px)}
+.stv-program-dialog:not([open]){display:none}
+.stv-program-dialog .stv-dialog-tools{position:sticky;top:0;z-index:25;padding:14px 20px;background:#15233a;display:flex;align-items:center;justify-content:space-between;gap:14px;border-bottom:1px solid #ffffff25;font-size:12px;font-weight:900;letter-spacing:.1em}
+.stv-program-dialog .stv-dialog-tools button{border:1px solid #ffffff3c;background:#ffffff13;border-radius:9px;padding:9px 14px;color:#fff;font-size:12px}
+.stv-program-dialog .scal{min-height:0;padding:0 0 20px}
+.stv-program-dialog .scal-head,.stv-program-dialog .scal-foot,.stv-program-dialog .scal-aside-tv{display:none}
+.stv-program-dialog .scal-shell{padding:22px;max-width:none}
+.stv-program-dialog .scal-day{min-height:91px}
+.stv-program-dialog .scal-workspace{grid-template-columns:minmax(0,1fr) 275px}
+.stv :is(button,input,select,a):focus-visible,.stv-program-dialog :is(button,input,select,a):focus-visible{outline:2px solid var(--swapp-page-accent,#22d3ee);outline-offset:3px}
+@media(max-width:1150px){.stv .stv-broadcast{grid-template-columns:minmax(0,1fr)}.stv .stv-rail{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,1fr)}.stv .stv-rail-head{grid-column:1/-1}.stv .stv-chat{grid-column:1/-1}.stv .stv-chat-feed{height:260px}.stv-program-dialog .scal-workspace{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:760px){.stv .stv-rail{grid-template-columns:minmax(0,1fr)}.stv .stv-creator-inline{border-left:0}.stv .stv-chat{grid-column:1}.stv .stv-mast{align-items:center}.stv .stv-mast .stv-programme-link{margin-left:0}.stv-program-dialog{width:calc(100vw - 12px);height:calc(100dvh - 16px);border-radius:11px}.stv-program-dialog .scal-shell{padding:13px 8px}.stv-program-dialog .scal-day{min-height:70px;padding:5px}.stv-program-dialog .scal-chip{max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:9px}.stv-program-dialog .scal-toolbar{gap:8px}}
+@media(prefers-reduced-motion:reduce){.stv .stv-chat *, .stv-program-dialog *{transition:none!important;animation:none!important}}

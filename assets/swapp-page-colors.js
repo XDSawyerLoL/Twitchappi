@@ -5,9 +5,10 @@ const LEGACY_KEY='swapp-page-accent-v1';
 const colors=[['Cyan','#22d3ee'],['Turquoise','#2dd4bf'],['Violet','#a78bfa'],['Rose','#f472b6'],['Orange','#fb923c'],['Bleu','#60a5fa'],['Vert','#a3e635']];
 const valid=v=>colors.some(([,hex])=>hex===v);
 const social=document.querySelector('.swapp-social-viewport');
-const store=!social&&document.querySelector('.swapp-store-topline');
-if(!social&&!store)return;
-const KEY=social?'swapp-social-accent-v1':'swapp-store-accent-v1';
+const tv=!social&&document.querySelector('.stv-mast,.scal-head');
+const store=!social&&!tv&&document.querySelector('.swapp-store-topline');
+if(!social&&!store&&!tv)return;
+const KEY=social?'swapp-social-accent-v1':tv?'swapp-tv-accent-v1':'swapp-store-accent-v1';
 const root=document.documentElement;
 const apply=hex=>{
  if(hex!=='auto'&&!valid(hex))return;
@@ -40,7 +41,7 @@ if(social){
  const dot=document.createElement('span');dot.className='swapp-appearance-indicator';dot.setAttribute('aria-hidden','true');
  heading.append(dot);
 }
-const title=document.createElement('span');title.className='swapp-appearance-title';title.textContent=social?'Ambiance':'Couleur de la page';heading.append(title);
+const title=document.createElement('span');title.className='swapp-appearance-title';title.textContent=social?'Ambiance':tv?'Couleur SWAPP':'Couleur de la page';heading.append(title);
 summary.append(heading);
 summary.setAttribute('aria-label',social?'Personnaliser la couleur de SOCIAL':'Couleur de la page');
 details.append(summary);
@@ -104,6 +105,7 @@ if(social){
  document.addEventListener('pointerdown',event=>{
   if(!host.contains(event.target)&&(mobile.matches||collapsed.matches))details.open=false;
  });
+}else if(tv){tv.append(host);
 }else{
  store.insertAdjacentElement('afterend',host);
 }

@@ -31,12 +31,12 @@ test('TV and programme follow existing SWAPP colors and layout',()=>{
  assert.match(css,/\.stv-rail\{border:1px solid #ffffff29/);
  assert.match(css,/\.scal-head\{min-height:220px/);
  const tv=page('tv'),programme=page('agenda');
- assert.match(tv,/href="\/tv\/programme"/);
+ assert.match(tv,/id="stv-program-open"/);
  assert.doesNotMatch(tv,/href="\/jeux"/);
  assert.match(programme,/LE PROGRAMME/);
  assert.match(programme,/id="scal-grid"/);
- assert.match(tv,/20261022-unified-da-v3/);
- assert.match(programme,/20261022-unified-da-v3/);
+ assert.match(tv,/20261022-unified-tv-v4/);
+ assert.match(programme,/20261022-unified-tv-v4/);
 });
 test('Agenda legacy route safely redirects under TV and shared nav assets bust browser caches',()=>{
  const server=read('server.js'),shell=read('modules/swapp-news/site-shell.js'),home=read('index.html');
