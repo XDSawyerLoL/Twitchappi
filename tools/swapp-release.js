@@ -54,6 +54,8 @@ const RELEASE_FILES=Object.freeze([
  'assets/swapp-home-news.js',
  'assets/swapp-game-identity.js',
  'assets/swapp-creator-workspace.css',
+ 'assets/swapp-channel-polish.css',
+ 'assets/swapp-channel-polish.js',
  'modules/swapp-news/game-identity.js',
  'modules/swapp-news/content-metadata.js',
  'assets/swapp-live-curation.js',
