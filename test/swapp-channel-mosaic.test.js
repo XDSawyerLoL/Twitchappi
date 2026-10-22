@@ -86,7 +86,7 @@ test('HD images are not recompressed when below the existing storage limit',()=>
  assert.match(js,/imageSmoothingQuality='high'/);
  assert.match(js,/canvas\.toDataURL\(codec,quality\)/);
  assert.match(js,/\['image\/webp',/);
- assert.match(js,/\^data:image\\\/\(\?:jpeg\|png\|webp\);base64,/);
+ assert.match(js,/file\.size<=maxBytes && \/\^data:image/);
  assert.match(js,/verifiedPublish\(result,/);
 });
 test('owner can diagnose and replace an undersized legacy thumbnail without touching layout',()=>{
