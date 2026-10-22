@@ -143,9 +143,15 @@ async function toggleAction(postId,action,button){
     });
     if(button?.isConnected){
       const previous=button.getAttribute('aria-pressed')==='true';
-      const next=!previous;
+      const next=typeof result?.active==='boolean'?result.active:!previous;
       button.setAttribute('aria-pressed',String(next));
       button.classList.toggle(action==='like'?'liked':'active',next);
+      if(action==='repost'){
+        const label=button.querySelector('.pulse-action-name');
+        if(label)label.textContent=next?'Annuler relais':'Relayer';
+        button.setAttribute('aria-label',next?'Annuler mon relais':'Relayer');
+        button.title=next?'Retirer mon relais':'Relayer cette publication';
+      }
       const counter=button.querySelector('.pulse-action-count');
       if(counter){
         const fromServer=Number(result?.post?.counts?.[action==='like'?'likes':action==='repost'?'reposts':'bookmarks']);
@@ -170,6 +176,30 @@ async function toggleAction(postId,action,button){
   }finally{
     socialActionInFlight.delete(key);
     if(button?.isConnected)button.disabled=false;
+  }
+}
+
+async function deleteOwnPost(postId,button){
+  if(!requireAuth())return;
+  const key=String(postId)+':delete';
+  if(socialActionInFlight.has(key))return;
+  if(!window.confirm('Supprimer définitivement cette publication et ses partages ?'))return;
+  socialActionInFlight.add(key);
+  if(button)button.disabled=true;
+  try{
+    const result=await api('/api/pulse/posts/'+encodeURIComponent(postId),{method:'DELETE',body:'{}'});
+    if(!result?.ok)throw Error(result?.error||'request_failed');
+    document.querySelectorAll('.pulse-post[data-id]').forEach(card=>{
+      if(card.dataset.id===String(postId))card.remove();
+    });
+    // Refresh from storage on profile, saved, reply and main feed alike.
+    if(state.view==='home'&&state.feed!=='news')await loadHome();
+    else if(state.view==='profile')await loadProfile(state.profileHandle||state.user?.handle);
+  }catch(error){
+    if(button?.isConnected)button.disabled=false;
+    alert(errorText(error));
+  }finally{
+    socialActionInFlight.delete(key);
   }
 }
 
@@ -513,8 +543,8 @@ function bindDelegatedEvents(){
       const title=String(newsRepost.dataset.newsTitle||'Actualité').trim();
       const url=safeHttpsUrl(newsRepost.dataset.newsUrl);
       const image=safeHttpsUrl(newsRepost.dataset.newsImage);
-      const source=String(newsRepost.dataset.newsSource||'SWAPP Actualité').trim();
-      const body=(title+(source?'\n\nSource : '+source:'')).slice(0,420);
+      // Structured preview already shows the source, title and cover. No duplicate text.
+      const body=title.slice(0,420);
       const previous=newsRepost.textContent;
       newsRepost.disabled=true;
       newsRepost.textContent='Repost…';
@@ -547,6 +577,10 @@ function bindDelegatedEvents(){
     const action=event.target.closest('[data-action]');
     if(post&&action){
       const postId=post.dataset.id;
+      if(action.dataset.action==='delete'){
+        await deleteOwnPost(postId,action);
+        return;
+      }
       if(action.dataset.action==='quote'){
         const handle=post.querySelector('.pulse-post-head [data-profile]')?.dataset.profile||'membre';
         const excerpt=post.querySelector('.pulse-post-main > p')?.textContent?.trim()||'';
