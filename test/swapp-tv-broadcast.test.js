@@ -40,7 +40,7 @@ test('creator inline control follows SWAPP styling and supports mobile and keybo
  assert.doesNotMatch(css,/\.stv-queue-tease|\.stv-bottom\{|\.stv-queue-grid|\.stv-queue-panel/);
 });
 
-test('disabled queue hides creator enrolment while keeping broadcast discovery available',()=>{
+test('disabled queue keeps the conductor visible while blocking enrollment',()=>{
  const js=read('assets/swapp-tv-broadcast.js');
  assert.match(js,/access\.hidden=!enabled/);
  assert.match(js,/if\(!enabled\)access\.open=false/);
