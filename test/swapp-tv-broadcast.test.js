@@ -7,7 +7,7 @@ test('TV shows one conductor with integrated creator access, not a second produc
  const html=page('tv');
  for(const key of ['id="stv-screen"','id="stv-now-name"','id="stv-next-list"','id="stv-creator-access"','id="stv-queue-status"','id="stv-immersive"','swapp-tv-broadcast.js'])
   assert.ok(html.includes(key),key);
- assert.match(html,/<aside class="stv-rail"[\s\S]*?<details id="stv-creator-access"[\s\S]*?<\/details>[\s\S]*?<\/aside>/);
+ assert.match(html,/<aside class="stv-rail stv-dock"[\s\S]*?<div id="stv-pane-queue"[\s\S]*?<details id="stv-creator-access"[\s\S]*?<\/details>[\s\S]*?<\/aside>/);
  assert.match(html,/<summary>[\s\S]*?Je suis créateur/);
  assert.match(html,/id="stv-program-open"/);
  for(const id of ['stv-game','stv-join','stv-leave']){
