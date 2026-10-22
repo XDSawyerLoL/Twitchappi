@@ -605,3 +605,161 @@
 @media(prefers-reduced-motion:reduce){
  #swappSocialNative .pulse-gif-result{transition:none!important}
 }
+
+
+/* Composer actions · two deliberate, larger controls instead of tiny text links.
+ * Kept inline with the feed; no new card, no page-local color scheme.
+ */
+#swappSocialNative .pulse-toolset{
+ display:flex!important;
+ align-items:center!important;
+ flex-wrap:wrap!important;
+ gap:9px!important;
+ min-width:0!important;
+}
+#swappSocialNative .pulse-toolset button.pulse-compose-action{
+ box-sizing:border-box!important;
+ display:inline-flex!important;
+ flex:0 0 auto!important;
+ align-items:center!important;
+ justify-content:center!important;
+ gap:10px!important;
+ width:auto!important;
+ min-width:112px!important;
+ height:49px!important;
+ min-height:49px!important;
+ padding:0 17px 0 11px!important;
+ border:1px solid rgba(179,205,233,.22)!important;
+ border-radius:999px!important;
+ background:linear-gradient(135deg,rgba(194,214,238,.11),rgba(194,214,238,.035))!important;
+ color:var(--social-air-ink,#f1f5fb)!important;
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.055)!important;
+ font:740 14px/1.1 system-ui,sans-serif!important;
+ letter-spacing:-.015em!important;
+ white-space:nowrap!important;
+ cursor:pointer!important;
+ transition:border-color .17s ease,background .17s ease,transform .17s ease,box-shadow .17s ease!important;
+}
+#swappSocialNative .pulse-toolset button.pulse-emoji-toggle.pulse-compose-action{
+ min-width:135px!important;
+}
+#swappSocialNative .pulse-toolset button.pulse-compose-action .pulse-compose-action-icon{
+ display:inline-grid!important;
+ flex:0 0 30px!important;
+ place-items:center!important;
+ width:30px!important;
+ height:30px!important;
+ min-width:30px!important;
+ border-radius:50%!important;
+ background:color-mix(in srgb,var(--social-air-accent) 16%,#1b2b3b)!important;
+ color:var(--social-air-accent)!important;
+ line-height:1!important;
+}
+#swappSocialNative .pulse-toolset button.pulse-compose-action .pulse-compose-action-icon svg{
+ display:block;
+ width:20px!important;height:20px!important;
+ fill:none;stroke:currentColor;stroke-width:1.8;
+ stroke-linecap:round;stroke-linejoin:round;
+}
+#swappSocialNative .pulse-toolset button.pulse-compose-action .pulse-compose-action-label{
+ display:inline!important;
+ width:auto!important;
+ font:inherit!important;
+ font-size:14px!important;
+ font-weight:740!important;
+ line-height:1!important;
+ color:inherit!important;
+ letter-spacing:inherit!important;
+}
+#swappSocialNative .pulse-toolset button.pulse-compose-action:hover,
+#swappSocialNative .pulse-toolset button.pulse-compose-action[aria-expanded="true"]{
+ border-color:color-mix(in srgb,var(--social-air-accent) 54%,transparent)!important;
+ background:color-mix(in srgb,var(--social-air-accent) 12%,#141e2d)!important;
+ box-shadow:0 3px 18px color-mix(in srgb,var(--social-air-accent) 10%,transparent),
+  inset 0 1px 0 rgba(255,255,255,.065)!important;
+ transform:translateY(-1px)!important;
+}
+#swappSocialNative .pulse-toolset button.pulse-compose-action[aria-expanded="true"]{
+ color:var(--social-air-accent)!important;
+}
+#swappSocialNative .pulse-toolset button.pulse-compose-action:active{
+ transform:translateY(0)!important;
+}
+#swappSocialNative .pulse-toolset button.pulse-compose-action:focus-visible{
+ outline:2px solid var(--social-air-accent)!important;
+ outline-offset:3px!important;
+}
+/* Actualités remains a quiet tertiary tool, preserving its existing action. */
+#swappSocialNative .pulse-toolset [data-tool="news"]{
+ flex:0 0 auto!important;
+ width:auto!important;
+ min-width:0!important;
+ height:44px!important;min-height:44px!important;
+ padding:8px 10px!important;
+ border:0!important;border-radius:999px!important;
+ background:transparent!important;
+ color:var(--social-air-muted)!important;
+ box-shadow:none!important;
+ font-size:12px!important;
+}
+#swappSocialNative .pulse-toolset [data-tool="news"]:hover{
+ background:rgba(185,205,233,.07)!important;
+ color:var(--social-air-ink)!important;
+}
+/* Keep GIFs + Emotes together on narrow phones, and keep Publier accessible. */
+@media(max-width:650px){
+ #swappSocialNative .pulse-compose-tools{
+  display:flex!important;
+  flex-wrap:wrap!important;
+  align-items:center!important;
+  gap:10px!important;
+ }
+ #swappSocialNative .pulse-toolset{flex:1 1 100%!important;gap:7px!important}
+ #swappSocialNative .pulse-toolset button.pulse-compose-action{
+  min-width:101px!important;height:47px!important;min-height:47px!important;
+  gap:7px!important;padding:0 11px 0 8px!important;
+ }
+ #swappSocialNative .pulse-toolset button.pulse-emoji-toggle.pulse-compose-action{
+  min-width:120px!important;
+ }
+ #swappSocialNative .pulse-toolset button.pulse-compose-action .pulse-compose-action-icon{
+  width:28px!important;height:28px!important;min-width:28px!important;flex-basis:28px!important;
+ }
+ #swappSocialNative .pulse-toolset button.pulse-compose-action .pulse-compose-action-label{
+  display:inline!important;font-size:13px!important;
+ }
+ #swappSocialNative .pulse-toolset [data-tool="news"]{
+  width:38px!important;height:45px!important;min-height:45px!important;
+  padding:8px!important;justify-content:center!important;
+ }
+ #swappSocialNative .pulse-toolset [data-tool="news"] span{display:none!important}
+ #swappSocialNative .pulse-compose-right{
+  flex:1 1 100%!important;
+  width:100%!important;
+  justify-content:flex-end!important;
+  margin-left:auto!important;
+  gap:10px!important;
+ }
+}
+@media(max-width:365px){
+ #swappSocialNative .pulse-toolset{gap:5px!important}
+ #swappSocialNative .pulse-toolset button.pulse-compose-action{
+  min-width:0!important;padding:0 9px 0 7px!important;
+ }
+ #swappSocialNative .pulse-toolset button.pulse-compose-action .pulse-compose-action-label{
+  font-size:12px!important;
+ }
+ #swappSocialNative .pulse-toolset button.pulse-emoji-toggle.pulse-compose-action{
+  min-width:0!important;
+ }
+ #swappSocialNative .pulse-toolset [data-tool="news"]{width:35px!important;padding:6px!important}
+}
+@media(prefers-reduced-motion:reduce){
+ #swappSocialNative .pulse-toolset button.pulse-compose-action{
+  transition:none!important;transform:none!important;
+ }
+ #swappSocialNative .pulse-toolset button.pulse-compose-action:hover,
+ #swappSocialNative .pulse-toolset button.pulse-compose-action[aria-expanded="true"]{
+  transform:none!important;
+ }
+}
