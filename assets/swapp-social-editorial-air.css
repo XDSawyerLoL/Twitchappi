@@ -183,6 +183,13 @@
  background:transparent!important;
  border-radius:0!important;
 }
+/* Standalone images remain visible but cannot dominate several screens. */
+#swappSocialNative .pulse-post .pulse-rich-media>img{
+ display:block!important;width:100%!important;height:auto!important;
+ max-height:380px!important;object-fit:contain!important;
+ border-radius:13px 5px 13px 5px!important;
+ background:rgba(187,202,230,.025)!important;
+}
 #swappSocialNative .pulse-post-relayed .pulse-rich-link-preview{
  display:grid!important;
  grid-template-columns:130px minmax(0,1fr)!important;
