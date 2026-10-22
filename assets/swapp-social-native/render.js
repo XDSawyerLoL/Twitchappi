@@ -34,7 +34,14 @@ export function renderPost(post){
   }
 
   if(post.quote){
-    quote='<div class="pulse-post-link"><div><small>@'+esc(post.quote.author?.handle||'membre')+'</small><strong>'+esc(post.quote.body||'')+'</strong></div></div>';
+    const quotedImage=secureMediaUrl(post.quote.mediaUrl||post.quote.imageUrl||'');
+    const quotedUrl=secureMediaUrl(post.quote.linkUrl||'');
+    quote='<div class="pulse-post-link pulse-quoted-original">'+
+      '<div class="pulse-quoted-original-copy"><small>'+esc(post.quote.author?.displayName||post.quote.author?.handle||'Membre')+
+      ' · @'+esc(post.quote.author?.handle||'membre')+'</small><strong>'+esc(post.quote.body||'')+'</strong></div>'+
+      (quotedImage?'<img src="'+esc(quotedImage)+'" alt="Média de la publication citée" loading="lazy" decoding="async" referrerpolicy="no-referrer">':'')+
+      (quotedUrl?'<a href="'+esc(quotedUrl)+'" target="_blank" rel="noopener noreferrer">'+esc(post.quote.linkTitle||'Ouvrir le lien cité')+' ↗</a>':'')+
+    '</div>';
   }
 
   return '<article class="pulse-post" data-id="'+esc(post.id)+'">'+
