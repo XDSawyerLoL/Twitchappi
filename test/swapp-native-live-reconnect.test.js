@@ -91,3 +91,12 @@ test('readiness endpoint exposes TURN/SFU capability without credentials',()=>{
  assert.match(p,/hostReconnectGraceMs/);assert.match(p,/turnConfigured/);assert.match(p,/reconnectingRooms/);
  assert.doesNotMatch(p,/TURN_CREDENTIAL|TURN_PASSWORD/);
 });
+
+test('capture and offline settings preserve live source without accidental duplicate starts',()=>{
+ const client=source('index_script.js'),html=source('index.html'),server=source('server.js');
+ assert.match(client,/if\(state\.stream\)return toast\('Une capture est déjà en cours/);
+ assert.match(client,/state\.stream\._oryonSources\?\.forEach/);
+ assert.match(html,/index_script\.js\?v=20261022-auth-single-v1-live-reconnect-v2/);
+ assert.match(server,/A freshly granted capture after F5 must reuse the existing audience/);
+ assert.match(server,/nativeHostAway\(existing\)&&existing\.hostUserId===user\.id/);
+});
