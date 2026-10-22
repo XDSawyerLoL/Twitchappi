@@ -9,7 +9,7 @@ test('TV shows one conductor with integrated creator access, not a second produc
   assert.ok(html.includes(key),key);
  assert.match(html,/<aside class="stv-rail"[\s\S]*?<details id="stv-creator-access"[\s\S]*?<\/details>[\s\S]*?<\/aside>/);
  assert.match(html,/<summary>[\s\S]*?Je suis créateur/);
- assert.match(html,/href="\/tv\/programme"/);
+ assert.match(html,/id="stv-program-open"/);
  for(const id of ['stv-game','stv-join','stv-leave']){
   assert.equal((html.match(new RegExp('id="'+id+'"','g'))||[]).length,1,'exactly one control '+id);
  }
@@ -42,7 +42,7 @@ test('creator inline control follows SWAPP styling and supports mobile and keybo
 
 test('disabled queue keeps the conductor visible while blocking enrollment',()=>{
  const js=read('assets/swapp-tv-broadcast.js');
- assert.match(js,/access\.hidden=!enabled/);
- assert.match(js,/if\(!enabled\)access\.open=false/);
- assert.match(js,/enabled\?'CRÉATEURS EN ATTENTE':'À DÉCOUVRIR'/);
+ assert.match(js,/access\.hidden=false/);
+ assert.match(js,/Inscriptions fermées temporairement/);
+ assert.match(js,/FILE D’ATTENTE · PAUSE/);
 });
