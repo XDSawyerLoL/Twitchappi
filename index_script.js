@@ -3973,29 +3973,28 @@ async function renderSettings(){
    '</b><small>'+esc(x.game||x.category||x.game_name||(native?'SWAPP LIVE':'Twitch'))+
    '</small></span><span aria-hidden="true">↗</span></a>';
  }).join('');
- const viewer='<section class="swapp-acct-editorial swapp-acct-overview-main" aria-labelledby="swapp-account-discovery">'+
-  '<div class="swapp-acct-section-head"><div><span class="swapp-acct-kicker">TES ACTIVITÉS</span><h2 id="swapp-account-discovery">Découverte</h2><p>Les chaînes et les jeux que tu as choisis, sans statistiques inventées.</p></div>'+
-  '</div>'+metrics+
-  '<div class="swapp-acct-list-head"><h3>Chaînes aimées</h3><a href="/decouvrir">Découvrir des lives ↗</a></div>'+
-  (likedRows||'<p class="swapp-acct-empty">Tu n’as pas encore aimé de chaîne. Explore les directs SWAPP et Twitch pour constituer ta sélection.</p>')+
-  '</section>';
- const quick='<section class="swapp-acct-editorial swapp-acct-overview-side" aria-labelledby="swapp-account-next">'+
-  '<div class="swapp-acct-section-head"><div><span class="swapp-acct-kicker">UN SEUL COMPTE</span><h2 id="swapp-account-next">Mes accès SWAPP</h2><p>Retrouve tes jeux, tes activités et tes outils depuis cet espace.</p></div></div>'+
+ const viewer='<header class="swapp-acct-unified-head"><div><span class="swapp-acct-kicker">MON ESPACE</span><h2 id="swapp-account-discovery">Tableau de bord</h2></div>'+
+  '<a href="/decouvrir">Explorer les lives ↗</a></header>'+metrics+
+  '<div class="swapp-acct-unified-grid"><div class="swapp-acct-unified-favorites">'+
+  '<div class="swapp-acct-list-head"><h3>Mes chaînes favorites</h3><a href="/decouvrir">Découvrir ↗</a></div>'+
+  (likedRows||'<p class="swapp-acct-empty">Aucune chaîne favorite. Découvre les lives SWAPP et Twitch pour remplir ta sélection.</p>')+
+  '</div>';
+ const quick='<div class="swapp-acct-unified-links">'+
+  '<div class="swapp-acct-list-head"><h3>Accès rapides</h3></div>'+
   '<nav class="swapp-acct-quick" aria-label="Mes espaces">'+
-  '<a href="/mes-jeux"><strong>Mes jeux suivis <small data-swapp-favorites-count aria-label="Nombre de jeux suivis"></small></strong><span>Bibliothèque, envies et nouvelles publications ↗</span></a>'+
-  '<a href="/decouvrir"><strong>Découvrir les créateurs</strong><span>Chaînes et directs du moment ↗</span></a>'+
-  '<a href="/social"><strong>Mes discussions</strong><span>Communautés et messages SWAPP SOCIAL ↗</span></a>'+
-  '<a href="/boutique"><strong>Boutique SWAPP</strong><span>Jeux et produits à découvrir ↗</span></a></nav>'+
-  '<div class="swapp-acct-management" data-swapp-admin-tools hidden>'+
-  '<div class="swapp-acct-management-heading"><span class="swapp-acct-kicker">ACCÈS RÉSERVÉ</span><h3>Administration</h3><p>Rédaction, boutique et visibilité des créateurs au même endroit.</p></div>'+
+  '<a href="/mes-jeux"><strong>Mes jeux <small data-swapp-favorites-count aria-label="Nombre de jeux suivis"></small></strong><span>Bibliothèque et liste de souhaits ↗</span></a>'+
+  '<a href="/social"><strong>SOCIAL</strong><span>Discussions et communautés ↗</span></a>'+
+  '<a href="/decouvrir"><strong>Créateurs</strong><span>Directs et découvertes ↗</span></a>'+
+  '<a href="/boutique"><strong>Boutique</strong><span>Jeux et produits ↗</span></a></nav></div></div>'+
+  '<details class="swapp-acct-management" data-swapp-admin-tools hidden>'+
+  '<summary>Administration SWAPP</summary>'+
   '<nav class="swapp-acct-quick" aria-label="Administration SWAPP">'+
   '<a href="/actus/studio"><strong>Studio rédaction</strong><span>Articles et vidéos ↗</span></a>'+
   '<a href="/boutique/admin"><strong>Gestion Boutique</strong><span>Produits et vitrine ↗</span></a>'+
-  '<a href="/admin/fair-discovery"><strong>Fair Discovery</strong><span>Mesure de visibilité et équité ↗</span></a></nav>'+
-  '<section class="swapp-ops-status" data-swapp-ops-status hidden aria-label="État des services"></section></div>'+
+  '<a href="/admin/fair-discovery"><strong>Fair Discovery</strong><span>Équité et visibilité ↗</span></a></nav>'+
+  '<section class="swapp-ops-status" data-swapp-ops-status hidden aria-label="État des services"></section></details>'+
   (typeof isAdmin==='function'&&isAdmin()?
-    '<button class="swapp-acct-general-admin" type="button" onclick="setView(&quot;admin&quot;)">Administration générale ↗</button>':'')+
-  '</section>';
+    '<button class="swapp-acct-general-admin" type="button" onclick="setView(&quot;admin&quot;)">Administration générale ↗</button>':'');
  const accountActions='<section class="swapp-acct-connections" aria-labelledby="swapp-account-connections">'+
   '<div class="swapp-acct-section-head"><div><span class="swapp-acct-kicker">INTÉGRATIONS</span><h2 id="swapp-account-connections">Connexions</h2>'+
   '<p>Ton compte SWAPP suffit pour accéder à SOCIAL et à tes jeux.</p></div></div>'+
@@ -4011,7 +4010,7 @@ async function renderSettings(){
   '" oninput="setViewerThemeColor(this.value)" aria-label="Couleur d’accent"></div>'+
   '<div class="swapp-acct-history-setting" id="swapp-acct-history-settings" aria-live="polite"></div>';
  const sections=u?(
-  '<section data-account-panel="overview" id="swapp-acct-panel-overview" role="tabpanel" aria-labelledby="swapp-acct-tab-overview" class="swapp-acct-pane"><div class="swapp-acct-overview">'+viewer+quick+'</div></section>'+
+  '<section data-account-panel="overview" id="swapp-acct-panel-overview" role="tabpanel" aria-labelledby="swapp-acct-tab-overview" class="swapp-acct-pane"><section class="swapp-acct-overview-unified" aria-labelledby="swapp-account-discovery">'+viewer+quick+'</section></section>'+
   '<section data-account-panel="profile" id="swapp-acct-panel-profile" role="tabpanel" aria-labelledby="swapp-acct-tab-profile" class="swapp-acct-pane" hidden>'+
    '<div class="swapp-acct-section-head"><div><span class="swapp-acct-kicker">IDENTITÉ</span><h2>Mon profil public</h2><p>Modifie une seule fois les informations visibles sur ta chaîne.</p></div></div>'+
    '<div class="swapp-acct-profile-layout"><div class="swapp-acct-profile-form">'+profileSettings(u)+'</div><aside class="swapp-acct-account-side">'+accountActions+prefs+

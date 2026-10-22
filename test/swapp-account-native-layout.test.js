@@ -46,6 +46,13 @@ test('signed-in account renders one header, real local metrics and three unclutt
  assert.equal((html.match(/<h1/g)||[]).length,1);
  assert.equal((html.match(/data-account-panel=/g)||[]).length,3);
  assert.equal((html.match(/data-account-tab=/g)||[]).length,3);
+ assert.equal((html.match(/swapp-acct-overview-unified/g)||[]).length,1,'one shared overview panel');
+ assert.match(html,/<section class="swapp-acct-overview-unified"/);
+ assert.match(html,/swapp-acct-unified-grid/);
+ assert.match(html,/Mes chaînes favorites/);
+ assert.match(html,/Accès rapides/);
+ assert.match(html,/<details class="swapp-acct-management" data-swapp-admin-tools hidden>/);
+ assert.doesNotMatch(html,/swapp-acct-overview-main|swapp-acct-overview-side|swapp-acct-section-head"><div><span class="swapp-acct-kicker">TES ACTIVITÉS/);
  assert.match(html,/My Channel/);
  assert.match(html,/Minecraft/);
  assert.match(html,/id="planningSettings"/);
@@ -57,6 +64,14 @@ test('signed-in account renders one header, real local metrics and three unclutt
  x.view.swappAccountTab('stream');
  assert.deepEqual(x.panels.map(p=>p.hidden),[true,true,false]);
  assert.deepEqual(x.buttons.map(b=>b.attributes['aria-selected']),['false','false','true']);
+});
+test('compact overview styles are scoped and responsive while retaining the shared accent',()=>{
+ const stylesheet=css();
+ assert.match(stylesheet,/#settings \.swapp-acct-overview-unified\{/);
+ assert.match(stylesheet,/#settings \.swapp-acct-unified-grid\{/);
+ assert.match(stylesheet,/#settings \.swapp-acct-overview-unified \.swapp-acct-metrics/);
+ assert.match(stylesheet,/var\(--swapp-workspace-accent\)/);
+ assert.match(stylesheet,/@media\(max-width:480px\)/);
 });
 test('guest sees working auth route, but never profile settings or streaming controls',async()=>{
  const x=makeView(null);
@@ -87,7 +102,7 @@ test('planning fields have labels and never collapse into clipped one-line input
 test('new account code and styling are cache-busted and included in deploy checks',()=>{
  const html=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
  const smoke=fs.readFileSync(path.join(__dirname,'..','tools/swapp-deploy-smoke.js'),'utf8');
- for(const source of ['index_script.js?v=20261021-game-universe-ops-v1','swapp-creator-workspace.css?v=20261021-ops-v1']){
+ for(const source of ['index_script.js?v=20261022-account-unified-v1','swapp-creator-workspace.css?v=20261022-account-unified-v1']){
   assert.ok(html.includes(source),source);
   assert.ok(smoke.includes(source),source);
  }
