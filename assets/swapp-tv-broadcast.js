@@ -17,6 +17,7 @@ function renderQueue(data){
  setText('stv-queue-status',!enabled?'Inscriptions suspendues pour le moment. La file reste visible et les inscriptions reprendront quand la régie sera prête.':
   data.director_enabled?'File accessible. Chaque direct est vérifié avant de passer à l’antenne.':
   'File accessible, mais les passages à l’antenne sont actuellement suspendus.');
+ setText('stv-creator-hint',enabled?'Rejoindre la file SWAPP TV':'Inscriptions fermées temporairement');
  setText('stv-next-title',enabled?'CRÉATEURS EN ATTENTE':'FILE D’ATTENTE · PAUSE');
  setText('stv-queue-count',enabled?(waiting.length>=100?'100+ en attente':waiting.length+' en attente'):'Inscriptions fermées');
 }
