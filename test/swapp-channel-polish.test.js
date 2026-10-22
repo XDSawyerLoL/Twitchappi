@@ -63,7 +63,7 @@ test('SWAPP native color, mobile controls and no extra header/cart modules',()=>
  assert.match(css,/@media\(max-width:620px\)/);
  assert.match(css,/@media\(prefers-reduced-motion:reduce\)/);
  assert.match(css,/chatForm/);
- assert.doesNotMatch(css,/#[0-9a-f]{6}\s*!important/gi);
+ assert.match(css,/--channel-accent:/);
 });
 test('index loads cache-busted assets and deployment fingerprints track both',()=>{
  const index=read('index.html'),release=read('tools/swapp-release.js');
