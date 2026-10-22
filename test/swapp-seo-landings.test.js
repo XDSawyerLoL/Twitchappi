@@ -228,7 +228,7 @@ test('public streamer pages get a unique self-canonical, social preview and true
  const {injectCreatorMetadata,creatorSitemapXml,robotsText}=require('../modules/swapp-seo');
  const sample={login:'stream_fr',display_name:'Le & créateur <b>',bio:'Je diffuse mes jeux préférés.',avatar_url:'https://cdn.example.test/avatar.png',channel_public:true};
  const output=injectCreatorMetadata(html,sample,'stream_fr');
- assert.match(output,/<title>Le &amp; créateur &lt;b&gt; — Chaîne SWAPP<\/title>/);
+ assert.match(output,/<title>Le &amp; créateur &lt;b&gt; · SWAPP<\/title>/);
  assert.match(output,/<link rel="canonical" href="https:\/\/swapp.tv\/stream_fr">/);
  assert.equal((output.match(/rel="canonical"/g)||[]).length,1);
  assert.match(output,/"@type":"ProfilePage"/);
