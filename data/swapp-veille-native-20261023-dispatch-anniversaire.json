@@ -1,0 +1,64 @@
+{
+  "kind": "swapp-editorial-release",
+  "release": "2026-10-23-dispatch-anniversaire",
+  "description": "Anniversaire de Dispatch : nouvelle version mobile et modes Deluxe, avec sources primaires, vidéo officielle et lien produit PC vérifié.",
+  "articles": [
+    {
+      "author": "Rédaction SWAPP",
+      "category": "Actualités JV",
+      "contentType": "article",
+      "status": "published",
+      "revision": 1,
+      "image": null,
+      "thumbnail": null,
+      "editorialVerdict": null,
+      "legacyUrl": null,
+      "originalPublishedAt": null,
+      "slug": "dispatch-mobile-9-decembre-modes-deluxe-anniversaire",
+      "title": "Dispatch arrive sur mobile le 9 décembre et ouvre ses coulisses",
+      "summary": "AdHoc Studio annonce une version mobile et enrichit l’édition Deluxe. Voici les conditions d’accès et la limite à connaître pour les commentaires.",
+      "game": "Dispatch",
+      "games": [
+        "Dispatch"
+      ],
+      "tags": [
+        "Dispatch",
+        "AdHoc Studio",
+        "iOS",
+        "Android",
+        "PC",
+        "jeu narratif",
+        "mise à jour"
+      ],
+      "body": "AdHoc Studio a annoncé le 22 octobre 2026 l’arrivée de Dispatch sur iOS, Android et Google Play Games sur PC le 9 décembre. Les quatre premiers épisodes seront gratuits ; le déblocage complet est annoncé à 19,99 dollars, avec des tarifs régionaux encore à vérifier pour la France.\n\n## Une autre façon de suivre l’équipe\n\nLa fiche officielle Google Play présente deux affichages : Cinematic conserve un cadre large, tandis que Dynamic bascule verticalement lorsque l’on tourne le téléphone. Ce choix accompagne une aventure où la lecture des situations compte autant que les décisions prises.\n\nDispatch place le joueur dans la peau de Robert Robertson, alias Mecha Man. Privé de son armure après un affrontement, il rejoint un centre chargé d’envoyer des super-héros sur le terrain. Son équipe se compose d’anciens super-vilains à remettre sur le bon chemin.\n\nIl faut sélectionner les membres adaptés aux urgences, développer leurs capacités et gérer les relations au bureau. Les décisions influencent l’histoire et les liens entre personnages. La version mobile reprend donc un jeu mêlant narration et répartition des interventions, plutôt qu’un simple récit à parcourir passivement.\n\n## Deux modes réservés à la Deluxe\n\nDès maintenant, les détenteurs du DLC Digital Deluxe peuvent accéder aux modes Commentary et Storyboard. Le premier propose plus de seize heures de commentaires, réparties entre comédiens et équipe de création. Le second remplace l’animation finale par les animatiques d’origine.\n\nAttention : les commentaires sont uniquement en anglais, sans sous-titres. Les sous-titres des dialogues du jeu restent disponibles. Sur Switch, un nouveau pack DLC doit être téléchargé. L’ajout est annoncé gratuit pour les détenteurs Deluxe, avec une réserve concernant d’éventuels frais de distribution dans certaines régions.\n\n## Le regard SWAPP : découvrir, puis comparer\n\nPour quelqu’un qui hésite encore à commencer, les épisodes accessibles sans paiement constituent une occasion de se familiariser avec les personnages et les décisions. L’intérêt sera de pouvoir juger le rythme sur son propre téléphone avant d’acheter la suite. Il faudra cependant vérifier la compatibilité de son appareil lors de la sortie.\n\nPour les joueurs déjà investis, les coulisses ouvrent une autre discussion : comment une scène se construit-elle, et que change un choix dans sa mise en scène ? Comparer plusieurs parcours peut devenir un moyen d’échanger sur le travail des auteurs et des artistes. Cela ne remplace pas une nouvelle campagne, mais donne un autre objet à explorer ensemble.\n\n## Les bons repères avant de payer\n\nLes préinscriptions Google Play sont ouvertes ; celles de l’App Store sont annoncées à venir. Le lancement mobile couvre les territoires où les versions PC et consoles sont commercialisées, hors Chine et Japon.\n\nLe produit Instant Gaming lié en fin d’article est le jeu de base sur PC, activé sur Steam : ce n’est ni l’édition mobile ni une offre comprenant automatiquement le DLC Deluxe. La fiche le décrit comme compatible dans tous les pays et était hors stock lors du contrôle du 23 octobre. Vérifiez toujours l’édition, l’activation et les conditions affichées avant un achat.\n\nLa vidéo intégrée est la bande-annonce anniversaire d’AdHoc Studio publiée le 22 octobre. La miniature de cette vidéo illustre l’article.",
+      "seo": {
+        "title": "Dispatch sur mobile le 9 décembre : les nouveautés annoncées",
+        "description": "Dispatch prépare sa sortie iOS et Android et ajoute des modes Commentary et Storyboard à la Deluxe. Dates, accès et limites pour les joueurs français."
+      },
+      "trailerUrl": "https://www.youtube.com/watch?v=siM80qE5Y8E",
+      "commercialLinks": [
+        {
+          "title": "Dispatch — jeu de base PC (Steam), stock à vérifier",
+          "merchant": "Instant Gaming",
+          "kind": "affiliate",
+          "url": "https://www.instant-gaming.com/fr/18313-acheter-dispatch-pc-steam/?igr=SANSAHD"
+        }
+      ],
+      "sources": [
+        {
+          "label": "AdHoc Studio — annonce anniversaire et FAQ du 22 octobre 2026",
+          "url": "https://adhocstudio.com/news/dispatch-one-year-anniversary"
+        },
+        {
+          "label": "AdHoc Studio — fiche officielle Google Play et modes d’affichage",
+          "url": "https://play.google.com/store/apps/details?id=com.adhoc.dispatch"
+        },
+        {
+          "label": "AdHoc Studio — bande-annonce anniversaire officielle",
+          "url": "https://www.youtube.com/watch?v=siM80qE5Y8E"
+        }
+      ],
+      "publishedAt": "2026-10-23T03:56:14Z"
+    }
+  ]
+}
