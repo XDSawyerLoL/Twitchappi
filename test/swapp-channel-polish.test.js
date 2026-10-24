@@ -84,7 +84,7 @@ test('creator home separates banner, dedicated offline media and avatar',()=>{
 test('index loads cache-busted assets and deployment fingerprints track both',()=>{
  const index=read('index.html'),release=read('tools/swapp-release.js');
  for(const name of ['swapp-channel-polish.css','swapp-channel-polish.js']){
-  assert.match(index,new RegExp(name.replaceAll('.','\\.')+'\\?v=20261022-theatre-v3'));
+  assert.match(index,new RegExp(name.replaceAll('.','\\.')+'\\?v='+(name.endsWith('.css')?'20261024-video-playback-v1':'20261022-theatre-v3')));
   assert.match(release,new RegExp("assets/"+name.replaceAll('.','\\.')));
  }
 });

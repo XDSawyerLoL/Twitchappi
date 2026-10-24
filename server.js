@@ -4118,6 +4118,7 @@ function getWebRtcConfigPayload(){
     iceTransportPolicy: process.env.ICE_TRANSPORT_POLICY || 'all',
     maxNativeViewers: Number(process.env.MAX_NATIVE_VIEWERS || 300),
     iceServers: getWebRtcIceServers(),
+    turnConfigured: getWebRtcIceServers().some(x => (Array.isArray(x.urls)?x.urls:[x.urls]).some(u => /^turns?:/i.test(u))),
     sfu: {
       enabled: String(process.env.SFU_ENABLED || '').toLowerCase() === 'true',
       url: process.env.SFU_URL || null
@@ -8427,6 +8428,7 @@ function nativeStatsPayload(room, r){
   return {
     room,
     viewers: r?.viewers ? r.viewers.size : 0,
+    playing_viewers: r?.mediaViewers ? r.mediaViewers.size : 0,
     peak_viewers: r?.peakViewers || 0,
     chat_messages: r?.chatMessages || 0,
     oryon_score: computeNativeOryonScore(r),
@@ -8481,7 +8483,7 @@ io.on('connection', async (socket) => {
     }
     const hostName = String(user.display_name || user.login).trim().slice(0, 40);
     const title = String(payload?.title || `Live de ${hostName}`).trim().slice(0, 120);
-    nativeLiveRooms.set(room, { host: socket.id, viewers: resumed ? existing.viewers : new Set(), createdAt: resumed ? existing.createdAt : Date.now(), title, hostName, hostLogin:user.login, hostUserId:user.id, category: String(payload?.category || '').trim().slice(0,60), tags: String(payload?.tags || '').split(',').map(x=>x.trim()).filter(Boolean).slice(0,8), peakViewers: 0, chatMessages: 0 });
+    nativeLiveRooms.set(room, { host: socket.id, viewers: resumed ? existing.viewers : new Set(), mediaViewers:new Set(), createdAt: resumed ? existing.createdAt : Date.now(), title, hostName, hostLogin:user.login, hostUserId:user.id, category: String(payload?.category || '').trim().slice(0,60), tags: String(payload?.tags || '').split(',').map(x=>x.trim()).filter(Boolean).slice(0,8), peakViewers: 0, chatMessages: 0 });
     try{ const ud=readOryonUsers(); const uu=ud.users.find(x=>x.id===user.id); if(uu){ markOryonLiveFields(uu, true, { localAgent:false, platform:'browser-webrtc', title, category: payload?.category, tags: payload?.tags }); uu.best_chat_messages=Math.max(Number(uu.best_chat_messages||0),0); writeOryonUsers(ud); } pushOryonEvent('live_started', user.login, {room,title}); }catch(_e){}
     socket.data.nativeRoom = room; socket.data.nativeRole = 'host';
     socket.join('native:' + room);
@@ -8512,6 +8514,16 @@ io.on('connection', async (socket) => {
     if(r?.host) io.to(r.host).emit('native:viewer', { room, viewerId: socket.id, viewers: r.viewers.size });
     io.emit('native:lives:update');
     if(r) emitNativeStats(room);
+  });
+
+  // Count actual browser video playback, not just connected sockets.
+  socket.on('native:viewer:media', (payload) => {
+    const room=String(payload?.room||'').trim().toLowerCase().replace(/[^a-z0-9_-]/g,'').slice(0,40);
+    const r=nativeLiveRooms.get(room);
+    if(!r?.host || socket.data.nativeRoom!==room || socket.data.nativeRole!=='viewer' || !r.viewers.has(socket.id))return;
+    if(payload?.playing===true)r.mediaViewers.add(socket.id);
+    else r.mediaViewers.delete(socket.id);
+    emitNativeStats(room);
   });
 
   socket.on('native:request-offer', (payload) => { const room = String(payload?.room || socket.data.nativeRoom || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0,40); const r = nativeLiveRooms.get(room); if(r?.host) io.to(r.host).emit('native:request-offer', { room, viewerId: socket.id }); });
@@ -8571,6 +8583,7 @@ io.on('connection', async (socket) => {
         io.emit('native:lives:update');
       }else if(role === 'viewer'){
         r.viewers.delete(socket.id);
+        r.mediaViewers?.delete(socket.id);
         if(r.host) io.to(r.host).emit('native:viewer-left', { room, viewerId: socket.id, viewers: r.viewers.size });
         cleanNativeRoom(room);
         io.emit('native:lives:update');
@@ -8729,6 +8742,7 @@ io.on('connection', async (socket) => {
         io.emit('native:lives:update');
       }else if(role === 'viewer'){
         r.viewers.delete(socket.id);
+        r.mediaViewers?.delete(socket.id);
         if(r.host) io.to(r.host).emit('native:viewer-left', { room, viewerId: socket.id, viewers: r.viewers.size });
         cleanNativeRoom(room);
         io.emit('native:lives:update');
