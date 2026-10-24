@@ -32,6 +32,20 @@
    if(chat){if(!chat.id)chat.id='swapp-channel-live-chat';btnChat.setAttribute('aria-controls',chat.id);}
   }
  }
+ // Defensive bound for additional legacy styles injected after initial layout:
+ // never allow a channel card's right edge to exceed the actual viewport.
+ function fitViewport(page){
+  if(!page?.isConnected)return;
+  page.style.removeProperty('width');
+  page.style.removeProperty('max-width');
+  const rect=page.getBoundingClientRect();
+  const viewport=document.documentElement.clientWidth;
+  const room=Math.floor(viewport-Math.max(0,rect.left)-12);
+  if(room>320 && rect.width>room+2){
+   page.style.setProperty('width',room+'px','important');
+   page.style.setProperty('max-width',room+'px','important');
+  }
+ }
  function install(page){
   if(!page||page.querySelector('.swapp-watch-tools'))return;
   const main=page.querySelector('.channelMainPlayer');
@@ -60,6 +74,7 @@
   row.append(cinema,chat);
   main.appendChild(row);
   updateUI(page);
+  requestAnimationFrame(()=>fitViewport(page));
  }
  function start(){
   const root=document.getElementById('channel');
@@ -71,6 +86,7 @@
   };
   const schedule=()=>{if(queued)return;queued=true;requestAnimationFrame(scan)};
   new MutationObserver(schedule).observe(root,{subtree:true,childList:true,attributes:true,attributeFilter:['data-channel-live','class']});
+  window.addEventListener('resize',()=>root.querySelectorAll('.creatorRefine[data-channel-live="true"]').forEach(fitViewport),{passive:true});
   schedule();
  }
  function bootFallback(){

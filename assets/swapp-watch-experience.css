@@ -217,3 +217,64 @@ body:has(#channel.view.active) #oryonMiniPlayer{display:none!important}
   padding-top:8px!important
  }
 }
+
+/* The old channelPage and its hero were rendered as 100vw INSIDE a padded
+ * application container. This is the source of the right-side chat crop.
+ * Fit all three nesting levels inside the actual creator viewport. */
+#channel#channel,
+#channel#channel .channelPage,
+#channel#channel .channelPage.creatorRefine,
+#channel#channel .creatorRefine.swapp-channel-polish{
+ width:100%!important;max-width:100%!important;min-width:0!important;
+ box-sizing:border-box!important
+}
+#channel#channel .channelPage.creatorRefine .channelTopHero,
+#channel#channel .channelPage.creatorRefine .channelSubNav,
+#channel#channel .channelPage.creatorRefine .channelBelowLive{
+ width:100%!important;max-width:100%!important;box-sizing:border-box!important
+}
+#channel#channel .creatorRefine .channelLiveLayout{
+ width:100%!important;max-width:100%!important;min-width:0!important;
+ display:grid!important;grid-template-columns:minmax(0,1fr) minmax(280px,340px)!important;
+ padding:12px 0 0!important;margin:0!important;gap:12px!important;
+ box-sizing:border-box!important;
+}
+#channel#channel .creatorRefine .channelLiveLayout>*{min-width:0!important;max-width:100%!important}
+#channel#channel .creatorRefine .channelLiveSidebar{
+ width:auto!important;min-width:0!important;max-width:100%!important;
+ align-self:stretch!important;overflow:hidden!important
+}
+#channel#channel .creatorRefine .channelLiveSidebar .chatPanel{
+ width:100%!important;min-width:0!important;max-width:100%!important;
+ box-sizing:border-box!important
+}
+#channel#channel .creatorRefine .channelLiveSidebar .chatHeader,
+#channel#channel .creatorRefine .channelLiveSidebar .chatForm,
+#channel#channel .creatorRefine .channelLiveSidebar .chatAssist{
+ max-width:100%!important;min-width:0!important;box-sizing:border-box!important
+}
+#channel#channel .creatorRefine .channelLiveSidebar .chatHeader span{
+ min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap
+}
+#channel#channel .creatorRefine .channelLiveSidebar .chatAssist{
+ display:flex!important;flex-wrap:wrap!important
+}
+#channel#channel .creatorRefine .channelLiveSidebar .chatForm input{
+ min-width:0!important;max-width:100%!important
+}
+#channel#channel .creatorRefine .channelMainPlayer>.player{
+ width:100%!important;min-width:0!important;max-width:100%!important;
+ aspect-ratio:16/9!important;min-height:0!important;height:auto!important;
+}
+#channel#channel .creatorRefine[data-watch-chat="hidden"] .channelLiveLayout,
+#channel#channel .creatorRefine[data-watch-chat="hidden"][data-watch-theatre="on"] .channelLiveLayout{
+ grid-template-columns:minmax(0,1fr)!important;
+}
+@media(max-width:1080px){
+ #channel#channel .creatorRefine .channelLiveLayout{
+  grid-template-columns:minmax(0,1fr)!important
+ }
+ #channel#channel .creatorRefine .channelLiveSidebar{
+  width:100%!important
+ }
+}

@@ -8889,8 +8889,8 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
     #teams .teamsGridFull{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(280px,1fr))!important;gap:18px!important;}
     #teams .teamCardFull,#teams .empty,#teams .card{border-radius:28px!important;background:var(--swapp-panel)!important;border:1px solid var(--swapp-soft-line)!important;box-shadow:0 24px 70px rgba(0,0,0,.22)!important;}
 
-    #channel .channelPage,#channel .channelPage.creatorRefine{width:100vw!important;max-width:none!important;margin:0!important;padding:0 0 110px!important;overflow:hidden!important;background:#05070d!important;}
-    #channel .creatorRefine .channelTopHero,#channel .channelTopHero{width:100vw!important;min-height:clamp(440px,38vw,680px)!important;border-radius:0!important;border-left:0!important;border-right:0!important;margin:0!important;background:radial-gradient(circle at 18% 18%,rgba(139,92,246,.20),transparent 34%),linear-gradient(135deg,#08111f,#020617)!important;}
+    #channel .channelPage,#channel .channelPage.creatorRefine{width:100%!important;max-width:100%!important;box-sizing:border-box!important;margin:0!important;padding:0 0 110px!important;overflow:hidden!important;background:#05070d!important;}
+    #channel .creatorRefine .channelTopHero,#channel .channelTopHero{width:100%!important;max-width:100%!important;box-sizing:border-box!important;min-height:clamp(440px,38vw,680px)!important;border-radius:0!important;border-left:0!important;border-right:0!important;margin:0!important;background:radial-gradient(circle at 18% 18%,rgba(139,92,246,.20),transparent 34%),linear-gradient(135deg,#08111f,#020617)!important;}
     #channel .creatorRefine .channelHeroContent,#channel .channelHeroContent{left:0!important;right:0!important;bottom:0!important;padding:clamp(28px,4vw,72px) var(--swapp-page-pad)!important;display:flex!important;justify-content:space-between!important;align-items:flex-end!important;gap:24px!important;}
     #channel .creatorRefine .channelIdentity,#channel .channelIdentity{display:flex!important;align-items:flex-end!important;gap:22px!important;min-width:0!important;}
     #channel .creatorRefine .channelIdentity .avatar,#channel .channelIdentity .avatar{width:clamp(128px,9vw,190px)!important;height:clamp(128px,9vw,190px)!important;min-width:clamp(128px,9vw,190px)!important;border-radius:38px!important;}
@@ -8899,7 +8899,7 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
     #channel .creatorRefine .channelLiveLayout,#channel .channelLiveLayout{width:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box!important;margin:0!important;padding:24px var(--swapp-page-pad) 0!important;display:grid!important;grid-template-columns:minmax(0,1fr) clamp(340px,25vw,440px)!important;gap:20px!important;align-items:stretch!important;}
     #channel .creatorRefine .channelMainPlayer>.player,#channel .creatorRefine .channelMainPlayer>.premiumPlayer,#channel .creatorRefine .oryonMainPlayer{border-radius:30px!important;border:1px solid rgba(34,211,238,.20)!important;box-shadow:0 30px 96px rgba(0,0,0,.38)!important;max-height:none!important;}
     #channel .creatorRefine .channelLiveSidebar .chatPanel,#channel .channelLiveSidebar .chatPanel{border-radius:30px!important;background:linear-gradient(180deg,rgba(15,23,42,.94),rgba(6,11,22,.98))!important;border:1px solid rgba(148,163,184,.17)!important;}
-    #channel .creatorRefine .channelBelowLive,#channel .channelBelowLive{width:100vw!important;max-width:none!important;margin:0!important;padding:24px var(--swapp-page-pad) 0!important;box-sizing:border-box!important;}
+    #channel .creatorRefine .channelBelowLive,#channel .channelBelowLive{width:100%!important;max-width:100%!important;margin:0!important;padding:24px var(--swapp-page-pad) 0!important;box-sizing:border-box!important;}
     #channel .creatorRefine .bioPremium,#channel .creatorRefine .aboutComposite,#channel .creatorRefine .vignetteArea{border-radius:30px!important;background:var(--swapp-panel)!important;border:1px solid var(--swapp-soft-line)!important;box-shadow:0 24px 70px rgba(0,0,0,.24)!important;}
     #channel .swappShareBox{display:none!important;}
 
@@ -8911,9 +8911,18 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
   function activeView(){return document.querySelector('.view.active')?.id || (window.state && state.view) || '';}
   function applyPremiumFullWidth(){
     document.body.classList.add('swappPremiumFull');
+    // A nested public creator page cannot be 100vw when its parent is inset:
+    // the excess width clipped the entire right half of the live chat.
+    const onChannel=activeView()==='channel';
+    const viewWidth=onChannel?'100%':'100vw';
+    const viewMax=onChannel?'100%':'none';
     const app=document.querySelector('main.app,.app');
-    if(app){app.style.setProperty('width','100vw','important');app.style.setProperty('max-width','none','important');app.style.setProperty('margin','0','important');app.style.setProperty('padding','0','important');app.style.setProperty('overflow-x','hidden','important');}
-    document.querySelectorAll('.view.active').forEach(v=>{v.style.setProperty('width','100vw','important');v.style.setProperty('max-width','none','important');v.style.setProperty('margin','0','important');v.style.setProperty('overflow-x','hidden','important');});
+    if(app){app.style.setProperty('width',viewWidth,'important');app.style.setProperty('max-width',viewMax,'important');app.style.setProperty('margin','0','important');app.style.setProperty('padding','0','important');app.style.setProperty('overflow-x','hidden','important');}
+    document.querySelectorAll('.view.active').forEach(v=>{
+      v.style.setProperty('width',viewWidth,'important');v.style.setProperty('max-width',viewMax,'important');
+      v.style.setProperty('min-width','0','important');
+      v.style.setProperty('margin','0','important');v.style.setProperty('overflow-x','hidden','important');
+    });
   }
   function removeHomeArtifacts(){
     document.querySelectorAll('#home #swappHistoryPrompt,#home #homeSwappChannels,#home .homeSwappChannels,#home .deckLurkerWrap,#home [data-deck-lurker-slot],#home #multiWatchDock,#home .deckMount').forEach(el=>el.remove());
