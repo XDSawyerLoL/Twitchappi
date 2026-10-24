@@ -20,7 +20,9 @@ const DEFAULT_KEY = process.env.ORYON_STREAM_KEY || process.env.SWAPP_STREAM_KEY
 const DEFAULT_SWAPP_SITE_URL = process.env.ORYON_SITE_URL || process.env.SWAPP_SITE_URL || 'https://swapp.tv';
 const FFMPEG_PATH = process.env.FFMPEG_PATH || (bundledFfmpeg && bundledFfmpeg.replace('app.asar'+path.sep,'app.asar.unpacked'+path.sep)) || 'ffmpeg';
 const LOCAL_BASE_URL = `http://127.0.0.1:${HTTP_PORT}`;
-const TRANSCODE_MODE = String(process.env.SWAPP_LOCAL_TRANSCODE || process.env.ORYON_LOCAL_TRANSCODE || 'transcode').toLowerCase();
+// Source quality is mandatory by default: no second H.264 encode, resize, FPS
+// conversion or AAC recompression between OBS and a SWAPP viewer.
+const TRANSCODE_MODE = String(process.env.SWAPP_LOCAL_TRANSCODE || process.env.ORYON_LOCAL_TRANSCODE || 'copy').toLowerCase();
 const TUNNEL_RETRIES = Math.min(2, Math.max(1, Number(process.env.SWAPP_TUNNEL_RETRIES || process.env.ORYON_TUNNEL_RETRIES || 1)));
 const CLOUDFLARE_429_COOLDOWN_MS = 30 * 60 * 1000;
 const TUNNEL_CHECK_TIMEOUT_MS = Math.max(8000, Number(process.env.SWAPP_TUNNEL_CHECK_TIMEOUT_MS || 30000));
@@ -104,7 +106,13 @@ function publicStatusUrl() {
  if(publicTunnelInfo?.provider==='swapp-direct-hls')return `${publicTunnelInfo.url}/api/oryon/local-relay/${encodeURIComponent(publicTunnelInfo.login)}/state`;
  return publicTunnelInfo?.url ? `${publicTunnelInfo.url}/health` : '';
 }
-function ffmpegInfo() { return { path: FFMPEG_PATH, bundled: Boolean(bundledFfmpeg), exists: FFMPEG_PATH === 'ffmpeg' ? null : fs.existsSync(FFMPEG_PATH), mode: TRANSCODE_MODE }; }
+function ffmpegInfo() { return {
+ path: FFMPEG_PATH,bundled: Boolean(bundledFfmpeg),
+ exists: FFMPEG_PATH === 'ffmpeg' ? null : fs.existsSync(FFMPEG_PATH),
+ mode: TRANSCODE_MODE==='transcode'?'compatibility':'native',
+ native_quality:TRANSCODE_MODE!=='transcode',
+ note:TRANSCODE_MODE==='transcode'?'Mode de compatibilité H.264 ; réencodage actif.':'H.264/AAC transmis comme encodés par OBS, sans redimensionnement ni perte supplémentaire.'
+}; }
 function listFiles(dir) { try { return fs.readdirSync(dir); } catch (_) { return []; } }
 function streamStatus(key = currentConfiguredKey()) {
   const k = safeKey(key);
@@ -120,6 +128,7 @@ function streamStatus(key = currentConfiguredKey()) {
     started_at: active[k]?.startedAt || null,
     last_seen: active[k]?.lastSeen || null,
     public_player_url: publicPlayerUrl(k),
+    quality_mode: TRANSCODE_MODE==='transcode'?'compatibility':'native',
     public_status_url: publicStatusUrl(),
     audio_track: directRelayUplink?.getStatus?.().audioTrack||'unknown',
     discord_poster_at: directRelayUplink?.getStatus?.().lastPosterAt||null,
@@ -145,22 +154,30 @@ function startHlsTransmux(key) {
   const input = `rtmp://127.0.0.1:${RTMP_PORT}/live/${k}`;
   const output = hlsPath(k);
   const segmentPattern = path.join(dir, 'seg_%03d.ts');
-  const args = ['-hide_banner', '-loglevel', 'warning', '-fflags', 'nobuffer', '-i', input];
-  if (TRANSCODE_MODE === 'copy') {
-    // Legacy, unbounded mode for users with 2s OBS keyframes already configured.
-    args.push('-c:v','copy','-c:a','aac','-ar','44100','-b:a','96k');
-  } else {
-    // FFmpeg's HLS muxer only splits on keyframes. With video copy an OBS GOP
-    // can exceed 2 seconds and a single .ts can grow past the upload limit.
-    // Scale down without upscaling, cap bitrate and insert a keyframe every 2s.
-    args.push('-vf',"scale=w='min(1280,iw)':h='min(720,ih)':force_original_aspect_ratio=decrease:force_divisible_by=2",
-      '-c:v','libx264','-preset','veryfast','-tune','zerolatency',
-      '-pix_fmt','yuv420p','-b:v','1600k','-maxrate','2000k','-bufsize','4000k',
+  const args = ['-hide_banner','-loglevel','warning','-fflags','+genpts','-i',input,
+    '-map','0:v:0','-map','0:a:0?'];
+  if(TRANSCODE_MODE==='transcode'){
+    // Explicit compatibility mode only. Never downgrade streams implicitly.
+    args.push('-c:v','libx264','-preset','veryfast','-pix_fmt','yuv420p',
+      '-b:v','6000k','-maxrate','8000k','-bufsize','12000k',
       '-force_key_frames','expr:gte(t,n_forced*2)','-sc_threshold','0',
-      '-c:a','aac','-ar','44100','-b:a','96k');
+      '-c:a','aac','-b:a','160k','-ar','48000');
+  }else{
+    // Default quality-native passthrough: keep the exact OBS video and audio
+    // codec bitstreams, size, FPS and encoder quality. FFmpeg only packages TS.
+    // OBS must provide H.264 with a 2-second closed keyframe interval and AAC.
+    args.push('-c:v','copy','-c:a','copy');
   }
-  args.push('-f', 'hls', '-hls_time', '2', '-hls_list_size', '8', '-hls_flags', 'delete_segments+append_list+omit_endlist+independent_segments', '-hls_segment_filename', segmentPattern, output);
-  log('ffmpeg', 'Démarrage conversion RTMP → HLS', { key: k, input, output, ffmpeg: FFMPEG_PATH, mode: TRANSCODE_MODE, target_kbps: TRANSCODE_MODE==='copy'?null:1600, segment_seconds:2 });
+  args.push('-f','hls','-hls_time','2','-hls_list_size','8',
+    '-hls_flags','delete_segments+append_list+omit_endlist+independent_segments',
+    '-hls_segment_filename',segmentPattern,output);
+  log('ffmpeg', 'Flux OBS → HLS en qualité source', {
+    key:k,input,output,ffmpeg:FFMPEG_PATH,
+    mode:TRANSCODE_MODE==='transcode'?'compatibility':'native',
+    video_transcoded:TRANSCODE_MODE==='transcode',
+    segment_target_seconds:2,
+    requirement:'OBS H.264/AAC, images-clés toutes les 2s pour la diffusion native'
+  });
   const child = spawn(FFMPEG_PATH, args, { windowsHide: true });
   ffmpegJobs[k] = child;
   child.stderr.on('data', d => { const t = String(d).trim(); if (t) log('ffmpeg', t.slice(0, 1200), { key: k }); });
@@ -701,7 +718,7 @@ async function refreshDiag(){
   const publicLive=!!(ok&&st.public_player_url);
   const status=document.getElementById('simpleStatus');
   status.textContent=publicLive
-   ?('● En direct sur SWAPP'+(st.audio_track==='missing'?' · Aucune piste audio OBS détectée : vérifie le mixeur et la piste de diffusion.':st.audio_track==='present'?' · Piste audio détectée (active le haut-parleur du lecteur).':''))
+   ?('● En direct sur SWAPP · '+(st.quality_mode==='native'?'Qualité OBS native':'Mode compatibilité')+(st.audio_track==='missing'?' · Aucune piste audio OBS détectée : vérifie le mixeur et la piste de diffusion.':st.audio_track==='present'?' · Piste audio détectée (active le haut-parleur du lecteur).':''))
    :ok?'Flux OBS prêt · publication possible':st.active?'Flux OBS détecté · préparation vidéo…':'OBS hors ligne · lance ta diffusion.';
   const diag=document.getElementById('diag');
   if(diag)diag.textContent='OBS : '+(st.active?'connecté':'déconnecté')+'\nConversion vidéo : '+(st.ffmpeg_running?'active':'arrêtée')+'\nPlaylist HLS : '+(st.hls_exists?'prête':'absente')+'\nAudio OBS : '+(st.audio_track==='present'?'piste détectée':st.audio_track==='missing'?'aucune piste audio dans le segment':'analyse en attente')+'\nVignette Discord : '+(st.discord_poster_at?'disponible':'en attente')+'\nLecteur public : '+(st.public_player_url||'non publié');
