@@ -4577,7 +4577,10 @@ async function renderChannel(){
   const isOwner=!!viewer && viewer.login===targetLogin;
   const lives=await api('/api/native/lives').catch(()=>({items:[]}));
   const liveRoom=(lives.items||[]).find(x=>(x.host_login||x.room)===targetLogin);
-  const isLive=!!liveRoom || !!(p.local_agent_live && swappSafeLocalPlayerUrl(p.oryon_local_player_url)) || (isOwner && !!state.stream && !!state.nativeLiveConfirmed);
+  const livePing=await api('/api/oryon/channel/'+encodeURIComponent(targetLogin)+'/live-ping').catch(()=>null);
+  const isLive=(typeof livePing?.is_live==='boolean' ? livePing.is_live :
+    (!!liveRoom || !!(p.local_agent_live && swappSafeLocalPlayerUrl(p.oryon_local_player_url)))) ||
+    (isOwner && !!state.stream && !!state.nativeLiveConfirmed);
   state.channelProfile=p; state.channelOwner=isOwner;
   const banner=p.banner_url||p.offline_image_url||'';
   const tags=Array.isArray(p.tags)?p.tags:(String(p.tags||'').split(',').map(x=>x.trim()).filter(Boolean));
@@ -10251,18 +10254,29 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
     try{ loadHomeRecommendations = wrapped; }catch(_e){}
   }
 
+  let channelStatusChecking=false;
   async function refreshChannelStatus(){
-    const login = cleanLogin(state?.channelProfile?.login || state?.watchRoom || state?.session?.local?.login || '');
-    if(!login || state?.view !== 'channel') return;
+    const login=cleanLogin(state?.channelProfile?.login || state?.watchRoom || state?.session?.local?.login || '');
+    if(!login || state?.view!=='channel' || channelStatusChecking)return;
+    channelStatusChecking=true;
     try{
-      const r = await api('/api/oryon/channel/'+encodeURIComponent(login)+'/status');
-      if(!r?.success) return;
-      const badge = document.getElementById('channelLiveBadge');
-      if(badge) badge.textContent = r.live?.is_live ? '🔴 En direct' : 'Hors ligne';
-      state.channelStatus = r.live || null;
-      if(r.channel) state.channelProfile = {...(state.channelProfile||{}),...r.channel};
-    }catch(_e){}
+      const r=await api('/api/oryon/channel/'+encodeURIComponent(login)+'/live-ping');
+      if(!r?.success || state?.view!=='channel')return;
+      const isLive=!!r.is_live;
+      state.channelStatus={is_live:isLive,source:r.source||'offline'};
+      const badge=document.getElementById('channelLiveBadge');
+      if(badge)badge.textContent=isLive?'🔴 En direct':'Hors ligne';
+      // The player must transition too: a badge-only refresh leaves Firefox/mobile offline.
+      const channel=document.getElementById('channel');
+      const hasOfflineArt=!!channel?.querySelector('.offlinePremium');
+      const hasPlayer=!!channel?.querySelector('.oryonMainPlayer');
+      if(!state.stream && hasPlayer && ((isLive && hasOfflineArt) || (!isLive && !hasOfflineArt))){
+        await renderChannel();
+      }
+    }catch(_e){}finally{channelStatusChecking=false}
   }
+  // Quiet public presence check; does not reload the player while the state is unchanged.
+  setInterval(()=>{if(state?.view==='channel')refreshChannelStatus()},10000);
   const previousRenderChannel = window.renderChannel || (typeof renderChannel === 'function' ? renderChannel : null);
   if(typeof previousRenderChannel === 'function' && !previousRenderChannel.__swappStatusWrapped){
     const wrapped = async function renderChannelWithStatus(){
