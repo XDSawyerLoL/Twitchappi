@@ -69,3 +69,19 @@ test('public channel has early recovery independent from the large application s
  assert.match(early,/controller\.abort\(\)/);
  assert.match(early,/Ouvrir le direct/);
 });
+
+test('chat shares the player top edge and uses its actual measured height',()=>{
+ const js=read('assets/swapp-watch-experience.js');
+ const css=read('assets/swapp-watch-experience.css');
+ const index=read('index_script.js');
+ assert.match(js,/function syncChat\(page\)/);
+ assert.match(js,/video\.getBoundingClientRect\(\)\.height/);
+ assert.match(js,/new ResizeObserver/);
+ assert.match(js,/watcher\.observe\(video\)/);
+ assert.match(css,/column-gap:4px!important/);
+ assert.match(css,/grid-template-rows:auto minmax\(0,1fr\) auto auto auto auto/);
+ assert.match(css,/swapp-chat-player-height/);
+ assert.match(index,/const playerHeight=Math\.round\(rect\.height \|\| rect\.width\*9\/16\)/);
+ assert.doesNotMatch(index,/Math\.round\(window\.innerHeight\*\.44\)/,
+   'chat size must not be estimated from the viewport');
+});
