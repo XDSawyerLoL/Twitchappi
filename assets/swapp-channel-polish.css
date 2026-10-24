@@ -361,3 +361,54 @@
 }
 #channel .swapp-unmute-stream:focus-visible{outline:3px solid #fff;outline-offset:3px}
 @media(max-width:620px){#channel .swapp-unmute-stream{bottom:10px;left:10px;min-height:44px}}
+
+/* SWAPP theatre live — quiet integrated YouTube-style viewing surface.
+   Scoped to active creator live only; no route, chat logic or theme changes. */
+#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelLiveLayout{
+ gap:clamp(10px,1.25vw,18px)!important;align-items:stretch!important
+}
+#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelMainPlayer,
+#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelLiveSidebar{min-width:0!important}
+#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelMainPlayer .player{
+ background:#000!important;border:0!important;border-radius:9px!important;box-shadow:none!important;overflow:hidden!important
+}
+#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelMainPlayer iframe{
+ display:block!important;width:100%!important;border:0!important;background:#000!important
+}
+#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelLiveSidebar .chatPanel{
+ background:#090b10!important;border:1px solid rgba(255,255,255,.09)!important;
+ border-radius:9px!important;box-shadow:none!important;overflow:hidden!important
+}
+#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .chatPanel :is(button,input){
+ box-shadow:none!important;font-family:inherit!important
+}
+#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .chatPanel .chatAssist{
+ padding:6px 10px!important;gap:5px!important;background:transparent!important;
+ border-top:1px solid rgba(255,255,255,.06)!important
+}
+#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .chatAssist button{
+ min-height:29px!important;padding:4px 8px!important;border-radius:5px!important;
+ font-size:11px!important;font-weight:550!important;background:transparent!important;
+ border:1px solid rgba(255,255,255,.09)!important
+}
+#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .chatForm{
+ padding:9px!important;gap:6px!important;background:#090b10!important
+}
+#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .chatForm input{
+ border-radius:6px!important;background:#08090e!important;
+ min-height:40px!important;border:1px solid rgba(255,255,255,.14)!important
+}
+#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .chatForm button{
+ border-radius:6px!important;min-height:33px!important;font-size:11px!important;padding:5px 10px!important
+}
+#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .pulseDock{
+ border:0!important;background:transparent!important;box-shadow:none!important;
+ border-radius:0!important;padding:8px 0!important;margin:0!important
+}
+#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .pulseDock button{
+ border-radius:7px!important;box-shadow:none!important
+}
+@media(max-width:950px){
+ #channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelLiveLayout{grid-template-columns:minmax(0,1fr)!important}
+ #channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelLiveSidebar .chatPanel{min-height:350px!important}
+}
