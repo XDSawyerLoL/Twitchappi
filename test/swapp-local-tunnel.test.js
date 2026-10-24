@@ -22,7 +22,7 @@ function runLocalServer(){
  }
  fakeExpress.json=()=>()=>{};
  fakeExpress.static=()=>()=>{};
- const fakeFs={mkdirSync(){},existsSync(){return false},readFileSync(){throw Error('test config absent')},writeFileSync(){},readdirSync(){return []},unlinkSync(){}};
+ const fakeFs={mkdirSync(){},existsSync(){return false},readFileSync(file,encoding){if(path.basename(file)==='player.html')return fs.readFileSync(file,encoding);throw Error('test config absent')},writeFileSync(){},readdirSync(){return []},unlinkSync(){}};
  class FakeMediaServer{on(){}run(){}}
  vm.runInNewContext(server,{
   require(id){
@@ -50,6 +50,13 @@ test('remote SWAPP viewer receives relative HLS media and bundled decoder',()=>{
  assert.ok(html.includes('/hls/demo/index.m3u8'));
  assert.ok(html.includes('/assets/hls.min.js'));
  assert.ok(!html.includes('http://127.0.0.1'));
+ assert.ok(html.includes('id="audio"'),'viewer needs a sound toggle');
+ assert.ok(html.includes('id="volume"'),'viewer needs a volume slider');
+ assert.ok(html.includes('id="screen"'),'viewer needs fullscreen control');
+ assert.ok(html.includes('id="fit"'),'viewer needs fill/contain image control');
+ assert.ok(html.includes('requestFullscreen'),'fullscreen should use the browser fullscreen API');
+ assert.ok(html.includes('object-fit:cover'),'video should fill the player by default');
+ assert.ok(html.includes('object-fit:contain'),'viewer should be able to see un-cropped video');
 });
 test('public Cloudflare tunnel cannot access user settings or local control APIs',()=>{
  const [local,publicOnly]=runLocalServer();
@@ -61,14 +68,14 @@ test('public Cloudflare tunnel cannot access user settings or local control APIs
  assert.ok(server.includes('PUBLIC_HTTP_PORT'));
 });
 test('Windows executable bundles validated cloudflared and a local HLS player dependency',()=>{
- assert.equal(pkg.version,'1.0.1');
+ assert.equal(pkg.version,'1.0.2');
  assert.ok(pkg.dependencies['hls.js']);
  assert.ok(pkg.build.extraResources.some(x=>x.from==='bin/cloudflared.exe'&&x.to==='bin/cloudflared.exe'));
  assert.ok(server.includes('process.resourcesPath'));
  const workflow=read('.github/workflows/swapp-live-windows.yml');
  assert.ok(workflow.includes('Get-FileHash'));
  assert.ok(workflow.includes('cloudflared-windows-amd64.exe'));
- assert.ok(workflow.includes('swapp-live-windows-v1.0.1'));
+ assert.ok(workflow.includes('swapp-live-windows-v1.0.2'));
 });
 test('SWAPP only announces the tunnel once public playlist and segments respond',()=>{
  assert.ok(server.includes('async function validatePublicVideo'));
