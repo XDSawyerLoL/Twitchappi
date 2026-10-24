@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>SWAPP Live — lecteur</title>
+<style>
+:root{color-scheme:dark;font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;background:#020409;color:#f5f7fc}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#020409}
+#stage{width:100%;height:100%;position:relative;background:#020409;isolation:isolate}
+video{display:block;width:100%;height:100%;object-fit:cover;background:#020409;cursor:pointer}
+video.fit{object-fit:contain}
+#state{position:absolute;inset:0;display:grid;place-items:center;padding:24px;text-align:center;color:#dce4f4;background:#020409cc;pointer-events:none;font-size:14px}
+#state[hidden]{display:none}
+.toolbar{position:absolute;inset:auto 12px 12px;z-index:3;display:flex;align-items:center;gap:12px;min-height:48px;padding:9px 12px;border:1px solid #ffffff35;border-radius:12px;background:linear-gradient(95deg,#080d19e8,#10182bdc);box-shadow:0 7px 30px #0009;backdrop-filter:blur(12px)}
+.live{display:flex;align-items:center;gap:7px;white-space:nowrap;font-size:11px;letter-spacing:.09em;font-weight:800}
+.dot{width:7px;height:7px;border-radius:50%;background:#f04456;box-shadow:0 0 0 3px #f0445624}
+button{border:1px solid #ffffff29;border-radius:8px;background:#ffffff12;color:#f5f7fc;font:inherit;font-size:12px;padding:8px 11px;min-height:34px;cursor:pointer;white-space:nowrap}
+button:hover,button:focus-visible{background:#ffffff2c;outline:1px solid #8e9ef7}
+input[type=range]{width:105px;height:24px;accent-color:#8d79ff;cursor:pointer;flex-shrink:1;min-width:55px}
+.flex{flex:1}
+#screen{font-weight:700}
+@media(max-width:560px){.toolbar{inset:auto 6px 6px;gap:6px;padding:6px}.toolbar button{padding:8px;font-size:11px}.live{font-size:10px}input[type=range]{width:55px}.label-long{display:none}}
+</style>
+</head>
+<body>
+<div id="stage">
+ <video id="video" autoplay muted playsinline aria-label="Diffusion SWAPP en direct"></video>
+ <div id="state" role="status" aria-live="polite">Connexion au direct…</div>
+ <div class="toolbar" role="group" aria-label="Commandes du lecteur SWAPP">
+  <span class="live"><span class="dot"></span>LIVE</span>
+  <button id="audio" type="button" aria-label="Activer le son" aria-pressed="false">🔇 <span class="label-long">Activer le son</span></button>
+  <input id="volume" type="range" min="0" max="1" value="0.8" step="0.05" aria-label="Volume du direct">
+  <span class="flex"></span>
+  <button id="fit" type="button" aria-label="Afficher toute l'image sans recadrage" aria-pressed="true">Adapter</button>
+  <button id="screen" type="button" aria-label="Passer en plein écran">⛶ <span class="label-long">Plein écran</span></button>
+ </div>
+</div>
+<script src="/assets/hls.min.js"></script>
+<script>
+'use strict';
+const src = __SWAPP_HLS_SRC__;
+const v = document.getElementById('video');
+const status = document.getElementById('state');
+const audio = document.getElementById('audio');
+const volume = document.getElementById('volume');
+const fit = document.getElementById('fit');
+const screen = document.getElementById('screen');
+let h = null;
+let booted = false;
+let desiredVolume = 0.8;
+v.volume = desiredVolume;
+v.muted = true; // Browsers require muted autoplay until a real viewer click.
+
+function message(text){status.textContent=text;status.hidden=false;}
+function displayVideo(){status.hidden=true;}
+function syncAudio(){
+ const muted = v.muted || v.volume === 0;
+ audio.innerHTML = muted ? '🔇 <span class="label-long">Activer le son</span>' : '🔊 <span class="label-long">Couper le son</span>';
+ audio.setAttribute('aria-label',muted?'Activer le son':'Couper le son');
+ audio.setAttribute('aria-pressed',String(!muted));
+ volume.value=String(v.volume);
+}
+audio.addEventListener('click',()=>{
+ if(v.muted || v.volume === 0){
+  if(v.volume === 0)v.volume=desiredVolume||0.8;
+  v.muted=false;
+ }else{v.muted=true;}
+ syncAudio();
+ v.play().catch(()=>{});
+});
+volume.addEventListener('input',()=>{
+ const level=Number(volume.value);
+ v.volume=level;
+ if(level>0){desiredVolume=level;v.muted=false;}else{v.muted=true;}
+ syncAudio();
+ v.play().catch(()=>{});
+});
+v.addEventListener('volumechange',syncAudio);
+fit.addEventListener('click',()=>{
+ const fitted=v.classList.toggle('fit');
+ fit.textContent=fitted?'Remplir':'Adapter';
+ fit.setAttribute('aria-label',fitted?'Remplir le lecteur, quitte à recadrer':'Afficher toute l’image sans recadrage');
+ fit.setAttribute('aria-pressed',String(!fitted));
+});
+function updateFullscreen(){
+ const active=!!document.fullscreenElement;
+ screen.innerHTML=active?'⤢ <span class="label-long">Quitter</span>':'⛶ <span class="label-long">Plein écran</span>';
+ screen.setAttribute('aria-label',active?'Quitter le plein écran':'Passer en plein écran');
+}
+async function toggleFullscreen(){
+ try{
+  if(document.fullscreenElement){await document.exitFullscreen();}
+  else if(document.documentElement.requestFullscreen){await document.documentElement.requestFullscreen();}
+  else {message('Le plein écran est indisponible dans ce navigateur.');}
+ }catch(_){
+  message('Le plein écran est bloqué par le navigateur.');
+ }
+}
+screen.addEventListener('click',toggleFullscreen);
+v.addEventListener('dblclick',toggleFullscreen);
+document.addEventListener('fullscreenchange',updateFullscreen);
+v.addEventListener('playing',displayVideo);
+v.addEventListener('loadeddata',displayVideo);
+v.addEventListener('error',()=>message('Lecture vidéo indisponible. Reconnexion…'));
+
+async function playlistReady(){
+ try{const res=await fetch(src+'?t='+Date.now(),{cache:'no-store'});return res.ok;}
+ catch(_){return false;}
+}
+function restart(){
+ booted=false;
+ if(h){try{h.destroy();}catch(_){} h=null;}
+ v.removeAttribute('src');v.load();
+ message('Reconnexion au direct…');
+ setTimeout(boot,1400);
+}
+async function boot(){
+ if(booted)return;
+ if(!(await playlistReady())){message('En attente du flux OBS…');setTimeout(boot,1500);return;}
+ booted=true;
+ if(v.canPlayType('application/vnd.apple.mpegurl')){
+  v.src=src+'?t='+Date.now();
+  v.play().catch(()=>{});
+  return;
+ }
+ if(window.Hls && Hls.isSupported()){
+  h=new Hls({lowLatencyMode:true,liveSyncDurationCount:2,backBufferLength:15});
+  h.loadSource(src+'?t='+Date.now());
+  h.attachMedia(v);
+  h.on(Hls.Events.MANIFEST_PARSED,()=>v.play().catch(()=>{}));
+  h.on(Hls.Events.ERROR,(_event,data)=>{
+   if(data && data.fatal)restart();
+  });
+  return;
+ }
+ message('Ce navigateur ne prend pas en charge la lecture HLS.');
+}
+syncAudio();
+boot();
+setInterval(()=>{if(!booted)boot();},3000);
+</script>
+</body>
+</html>
