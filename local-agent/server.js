@@ -122,7 +122,8 @@ function streamStatus(key = currentConfiguredKey()) {
     public_player_url: publicPlayerUrl(k),
     public_status_url: publicStatusUrl(),
     audio_track: directRelayUplink?.getStatus?.().audioTrack||'unknown',
-    discord_poster_at: directRelayUplink?.getStatus?.().lastPosterAt||null
+    discord_poster_at: directRelayUplink?.getStatus?.().lastPosterAt||null,
+    discord_clip_at: directRelayUplink?.getStatus?.().lastClipAt||null
   };
 }
 
@@ -751,7 +752,7 @@ setInterval(refreshDiag,5000);loadAccount();refreshDiag();
 app.get('/', (req, res) => { const cfg = loadLocalConfig(); const key = safeKey(req.query.key || cfg.stream_key || DEFAULT_KEY); res.type('html').send(pageHtml(key)); });
 app.get('/api/setup/check', (_req, res) => {
   const cfg = loadLocalConfig();
-  res.json({ success:true, app:'Swapp Local', version:'1.0.7', site_url:cleanSiteUrl(cfg.site_url || DEFAULT_SWAPP_SITE_URL), account:cfg.user || null, connected:Boolean(cfg.token && cfg.stream_key), rtmp:`rtmp://127.0.0.1:${RTMP_PORT}/live`, stream_key:cfg.stream_key || DEFAULT_KEY, ffmpeg:ffmpegInfo(), media_root:MEDIA_ROOT, tunnel:publicTunnelInfo, localtunnel_disabled:true });
+  res.json({ success:true, app:'Swapp Local', version:'1.0.9', site_url:cleanSiteUrl(cfg.site_url || DEFAULT_SWAPP_SITE_URL), account:cfg.user || null, connected:Boolean(cfg.token && cfg.stream_key), rtmp:`rtmp://127.0.0.1:${RTMP_PORT}/live`, stream_key:cfg.stream_key || DEFAULT_KEY, ffmpeg:ffmpegInfo(), media_root:MEDIA_ROOT, tunnel:publicTunnelInfo, localtunnel_disabled:true });
 });
 app.get('/api/account/browser-callback', (req, res) => {
   try {
