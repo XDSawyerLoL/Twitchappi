@@ -313,3 +313,13 @@ test('public player boots without a blocking playlist preflight',async()=>{
  assert.ok(player.payload.includes('Hls.Events.MEDIA_ATTACHED'));
  assert.ok(player.payload.includes('Hls.Events.ERROR'));
 });
+
+test('HLS player prioritizes hls.js over unreliable native canPlayType report',()=>{
+ const html=fs.readFileSync(path.join(__dirname,'..','local-agent','player.html'),'utf8');
+ const hls=html.indexOf('if(window.Hls && Hls.isSupported())');
+ const native=html.indexOf("if(v.canPlayType('application/vnd.apple.mpegurl'))");
+ assert.ok(hls>0,'MSE support must be checked');
+ assert.ok(native>hls,'native playback is fallback, not the default');
+ assert.doesNotMatch(html,/async function playlistReady\(/,'no blocking manifest preflight');
+ assert.match(html,/Hls\.Events\.ERROR/,'HLS errors must remain visible');
+});
