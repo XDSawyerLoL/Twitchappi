@@ -58,6 +58,7 @@
   const v=viewer;viewer=null;
   if(!v)return;
   v.stopped=true;
+  v.cleanup?.();
   if(v.objectUrl)URL.revokeObjectURL(v.objectUrl);
   if(v.video && v.video.src===v.objectUrl){
    v.video.pause?.();
@@ -124,7 +125,7 @@
   video.addEventListener('timeupdate',onTime);
   v.cleanup=()=>video.removeEventListener('timeupdate',onTime);
   ms.addEventListener('sourceopen',async()=>{
-   let seq=0,failures=0;
+   let seq=0;
    try{
     const sb=ms.addSourceBuffer(meta.mime);
     sb.mode='segments';
@@ -143,7 +144,6 @@
       video.play?.().catch(()=>{});
      }
      onTime();
-     failures=0;
      await wait(800);
     }
    }catch(err){
@@ -156,7 +156,5 @@
   },16000);
   return true;
  }
- const previousStop=stopViewer;
- function safeStopViewer(){if(viewer?.cleanup)viewer.cleanup();previousStop()}
- window.SwappBrowserRelay={startPublisher,stopPublisher,startViewer,stopViewer:safeStopViewer,isViewing};
+ window.SwappBrowserRelay={startPublisher,stopPublisher,startViewer,stopViewer,isViewing};
 })();
