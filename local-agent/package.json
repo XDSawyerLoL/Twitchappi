@@ -25,16 +25,7 @@
     "directories": {
       "output": "dist"
     },
-    "files": [
-      "main.js",
-      "server.js",
-      "package.json",
-      "node_modules/**/*"
-    ],
-    "asar": true,
-    "asarUnpack": [
-      "**/node_modules/ffmpeg-static/**"
-    ],
+    "asar": false,
     "win": {
       "target": [
         {
@@ -58,6 +49,9 @@
       "allowToChangeInstallationDirectory": false,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true
+    },
+    "extraMetadata": {
+      "main": "main.js"
     }
   }
 }
