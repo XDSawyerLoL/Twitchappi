@@ -1265,12 +1265,14 @@ async function sendSwappPublicChannelUi(req, res, login){
     const creator=getOryonUserByLogin(clean);
     let html = fs.readFileSync(found, 'utf8');
     const poster=swappDirectRelay.posterForLogin(clean);
+    const clip=swappDirectRelay.clipForLogin(clean);
     const isPublic=!!creator&&creator.channel_public!==false;
-    const isLive=isPublic&&(isOryonLiveSignalFresh(creator)||!!poster);
+    const isLive=isPublic&&(isOryonLiveSignalFresh(creator)||!!poster||!!clip);
     html=require('./modules/swapp-seo').injectCreatorMetadata(html,
       isPublic?creator:null,clean,{
         live:isLive,
-        posterUrl:isLive&&poster?'https://swapp.tv'+poster.url+'?v='+Math.floor(poster.updatedAt/25000):''
+        posterUrl:isLive&&poster?'https://swapp.tv'+poster.url+'?v='+Math.floor(poster.updatedAt/25000):'',
+        clipUrl:isLive&&clip?'https://swapp.tv'+clip.url+'?v='+Math.floor(clip.updatedAt/90000):''
       });
     const inject = `<script>window.__SWAPP_INITIAL_PUBLIC_CHANNEL__=${JSON.stringify(clean)};window.__SWAPP_PUBLIC_CHANNEL_URL_LOCK__='/${clean}';try{if(location.pathname!=='/${clean}')history.replaceState({swappPublicChannel:true},'',('/${clean}')+(location.search||'')+(location.hash||''));}catch(_){}</script>`;
     if(html.includes('<script src="/index_script.js"></script>')) html = html.replace('<script src="/index_script.js"></script>', inject + '\n<script src="/index_script.js"></script>');
