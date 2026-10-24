@@ -82,3 +82,18 @@ test('browser publishes only after ack and republishes when its socket reconnect
   assert.equal(state.nativeLiveConfirmed,true);
  }finally{clearTimeout(state.nativeLiveAckTimer)}
 });
+
+test('public SSH tunnel hostnames play on SWAPP without exposing loopback players',()=>{
+ const source=extract('function swappSafeLocalPlayerUrl(url){','function swappChannelPath(login){');
+ const ctx={URL,swappIsBlockedTunnelUrl:()=>false};
+ vm.runInNewContext(source,ctx);
+ const sanitize=ctx.swappSafeLocalPlayerUrl;
+ assert.equal(sanitize('https://stream-abc.localhost.run/player/vnhz'),
+  'https://stream-abc.localhost.run/player/vnhz');
+ assert.equal(sanitize('https://stream-abc.lhr.life/player/vnhz'),
+  'https://stream-abc.lhr.life/player/vnhz');
+ assert.equal(sanitize('http://127.0.0.1:8082/player/vnhz'),'');
+ assert.equal(sanitize('https://localhost/player/vnhz'),'');
+ assert.equal(sanitize('https://user:password@stream-abc.lhr.life/player/vnhz'),'');
+ assert.equal(sanitize('javascript:alert(1)'),'');
+});
