@@ -646,6 +646,53 @@ function swappSetVideoPlayback(playing){
   const off=$('#offlinePanel');if(off)off.style.display='none';
  }
 }
+// Playback starts before frames on some browsers; verify decoded images first.
+function swappVerifyRemoteFrames(pc,video,id){
+ if(!pc||!video||state.stream)return;
+ const prior=state.remoteFrameProbe;
+ if(prior?.timer)clearTimeout(prior.timer);
+ const probe={pc,video,id,started:Date.now(),verified:false,timer:null};
+ state.remoteFrameProbe=probe;
+ const active=()=>state.remoteFrameProbe===probe && state.peers?.[id]===pc && video.isConnected!==false;
+ const mark=()=>{
+  if(!active()||probe.verified)return;
+  probe.verified=true;clearTimeout(probe.timer);
+  swappSetVideoPlayback(true);
+ };
+ if(typeof video.requestVideoFrameCallback==='function'){
+  try{video.requestVideoFrameCallback((_at,frame)=>{
+   if((Number(frame?.presentedFrames)||0)>0 && video.videoWidth>0)mark();
+  });}catch(_){}
+ }
+ const poll=async()=>{
+  if(!active()||probe.verified)return;
+  let decoded=false;
+  try{
+   if(typeof pc.getStats==='function'){
+    const stats=await pc.getStats();
+    stats?.forEach?.(s=>{
+     if(s?.type==='inbound-rtp' && (s.kind==='video'||s.mediaType==='video')
+       && Number(s.framesDecoded||0)>0)decoded=true;
+    });
+   }
+  }catch(_){}
+  if(!active()||probe.verified)return;
+  if(decoded){mark();return;}
+  if(typeof video.requestVideoFrameCallback!=='function' && video.readyState>=2 &&
+     video.videoWidth>0 && video.currentTime>0){mark();return;}
+  if(Date.now()-probe.started>=12000){
+   swappSetVideoPlayback(false);
+   swappVideoNotice('Écran noir : aucune image reçue',
+    state.swappTurnConfigured?
+    'Le salon est actif, mais aucune image vidéo n’a été décodée. Relance le lecteur ou vérifie la capture du diffuseur.':
+    'Le direct est détecté, mais aucune image ne passe sur cette connexion WebRTC. Vérifie la capture écran et le réseau : sans relais TURN, certains réseaux bloquent la vidéo.',
+    'Relancer la vidéo');
+   return;
+  }
+  probe.timer=setTimeout(poll,1300);
+ };
+ probe.timer=setTimeout(poll,1000);
+}
 function swappStartRemotePlayback(){
  const video=$('#remoteVideo');
  if(!video||!video.srcObject)return;
@@ -831,7 +878,6 @@ async function peer(id){
   else{let media=v.srcObject;if(!media){media=new MediaStream();v.srcObject=media;}media.addTrack(e.track);}
   v.muted=true;v.autoplay=true;v.playsInline=true;v.classList.remove('hidden');v.style.display='block';
   v.onplaying=()=>{
-   swappSetVideoPlayback(true);
    const parent=v.parentElement;
    if(parent && !parent.querySelector('[data-swapp-unmute]')){
     const btn=document.createElement('button');btn.type='button';
@@ -841,6 +887,7 @@ async function peer(id){
    }
   };
   v.onerror=()=>{swappSetVideoPlayback(false);swappVideoNotice('Lecture interrompue','Le navigateur ne parvient pas à décoder ce direct.','Relancer la vidéo');};
+  if(e.track?.kind==='video')swappVerifyRemoteFrames(pc,v,id);
   const playback=v.play?.();
   if(playback?.catch)playback.catch(()=>swappVideoNotice('Lecture en attente','Appuie pour lancer la vidéo sur ce navigateur.','Lancer la vidéo'));
  };
