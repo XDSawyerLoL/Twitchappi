@@ -79,13 +79,13 @@ v.volume = desiredVolume;
 v.muted = true; // Browsers require muted autoplay until a real viewer click.
 
 function message(text){status.textContent=text;status.hidden=false;}
-function displayVideo(){if(!manualStop&&v.readyState>=2&&v.videoWidth>0){lastFrameAt=Date.now();retries=0;status.hidden=true;playerStatus(userPaused?'paused':'playing');}}
+function displayVideo(){if(!manualStop&&v.readyState>=2&&v.videoWidth>0){lastFrameAt=Date.now();retries=0;everDecoded=true;status.hidden=true;playerStatus(userPaused?'paused':'playing');}}
 function playerStatus(kind){
  liveStatus.classList.toggle('paused',kind==='paused');
  liveStatus.classList.toggle('stopped',kind==='stopped');
  liveStatus.innerHTML='<span class="dot"></span>'+(kind==='paused'?'EN PAUSE':kind==='stopped'?'LECTURE ARRÊTÉE':kind==='connecting'?'CONNEXION':'LIVE');
  liveStatus.classList.toggle('playing',kind==='playing');
- playButton.disabled=kind==='playing'||kind==='connecting';
+ playButton.disabled=kind==='playing';
  pauseButton.disabled=kind!=='playing';
 }
 function liveEdge(){
@@ -170,54 +170,87 @@ v.addEventListener('playing',displayVideo);
 v.addEventListener('timeupdate',displayVideo);
 v.addEventListener('waiting',()=>{if(!manualStop&&!userPaused)message('Chargement de la vidéo…')});
 v.addEventListener('loadeddata',displayVideo);
-v.addEventListener('error',()=>message('Lecture vidéo indisponible. Reconnexion…'));
+v.addEventListener('error',()=>{if(!manualStop){failure('navigateur '+(v.error?.code||'erreur média'));restart()}});
 
-async function playlistReady(){
- // A full segment GET here delayed HLS startup and raced the short DVR window.
- // The media engine fetches fragments itself and reports the actual failure.
- try {
-  const res=await fetch(src+(src.includes('?')?'&':'?')+'t='+Date.now(),{cache:'no-store'});
-  if(!res.ok)return false;
-  const body=await res.text();
-  return body.startsWith('#EXTM3U') && /(?:^|\n)#EXTINF:/m.test(body) &&
-    body.split(/\r?\n/).some(line=>/^seg_[0-9]+\.ts$/.test(line.trim()));
- } catch(_) {return false;}
+// No separate playlist preflight: the player itself must own its network requests.
+// The old preflight could reject a healthy broadcast and block HLS forever.
+let booting=false, everDecoded=false, lastFailure='', startedAt=0, hlsStartedAt=0;
+function failure(reason){
+ lastFailure=String(reason||'erreur inconnue').slice(0,150);
+ message('Connexion vidéo : '+lastFailure);
 }
 function restart(){
- if(restarting)return;
- restarting=true;booted=false;retries++;playerStatus('connecting');
- if(retries>5){showFailure('Le lecteur ne parvient pas à décoder le direct.');setTimeout(()=>{retries=0;restarting=false;boot()},6000);return;}
- if(h){try{h.destroy();}catch(_){} h=null;}
- v.removeAttribute('src');v.load();
- if(!manualStop)message('Reconnexion au direct…');
- setTimeout(()=>{restarting=false;boot()},Math.min(6000,1400+retries*650));
+ if(restarting || manualStop)return;
+ restarting=true;booted=false;booting=false;retries++;
+ playerStatus('connecting');
+ if(h){try{h.destroy()}catch(_){} h=null}
+ v.pause();v.removeAttribute('src');v.load();
+ message(retries>4?'Le direct ne démarre pas. Nouvelle tentative…':'Reconnexion vidéo…');
+ const delay=Math.min(8000,1500+retries*800);
+ setTimeout(()=>{restarting=false;boot()},delay);
 }
 async function boot(){
- if(booted)return;
- if(!(await playlistReady())){playerStatus('connecting');message('Playlist vidéo indisponible pour le moment…');setTimeout(boot,2500);return;}
- await scriptFallback();
- booted=true;
- if(v.canPlayType('application/vnd.apple.mpegurl')){
-  v.src=src+'?t='+Date.now();
-  if(!manualStop&&!userPaused)v.play().catch(()=>{});
-  return;
- }
- if(window.Hls && Hls.isSupported()){
-  h=new Hls({lowLatencyMode:false,liveSyncDurationCount:3,backBufferLength:80,maxBufferLength:30,fragLoadingMaxRetry:5,manifestLoadingMaxRetry:5});
-  h.loadSource(src+'?t='+Date.now());
-  h.attachMedia(v);
-  h.on(Hls.Events.MANIFEST_PARSED,()=>{if(!manualStop&&!userPaused)v.play().catch(()=>{})});
-  h.on(Hls.Events.ERROR,(_event,data)=>{
-   if(data){lastHlsError=String(data.details||data.type||'erreur de lecture');if(data.fatal){showFailure('Impossible de lire le flux HLS');restart();}}
+ if(booted || booting || restarting || manualStop)return;
+ booting=true;startedAt=Date.now();
+ playerStatus('connecting');
+ try{
+  const source=src+(src.includes('?')?'&':'?')+'t='+Date.now();
+  if(v.canPlayType('application/vnd.apple.mpegurl')){
+   booted=true;v.src=source;
+   await v.play().catch(e=>{failure('lecture native : '+(e?.name||'erreur navigateur'))});
+   return;
+  }
+  if(!window.Hls)await scriptFallback();
+  if(!window.Hls || !Hls.isSupported()){
+   failure('moteur hls.js indisponible ou navigateur incompatible');
+   setTimeout(()=>{booting=false;boot()},4500);
+   return;
+  }
+  h=new Hls({
+   lowLatencyMode:false,liveSyncDurationCount:3,
+   backBufferLength:80,maxBufferLength:25,
+   manifestLoadingMaxRetry:4,levelLoadingMaxRetry:4,fragLoadingMaxRetry:4
   });
-  return;
- }
- message(window.Hls?'Ce navigateur ne prend pas en charge la lecture HLS.':'Moteur de lecture HLS inaccessible (script bloqué ou indisponible).');
+  booted=true;hlsStartedAt=Date.now();
+  h.on(Hls.Events.MEDIA_ATTACHED,()=>h.loadSource(source));
+  h.on(Hls.Events.MANIFEST_LOADED,()=>{
+   if(!manualStop)message('Connexion au flux vidéo…');
+  });
+  h.on(Hls.Events.FRAG_LOADED,()=>{
+   if(!manualStop)message('Chargement des images vidéo…');
+  });
+  h.on(Hls.Events.MANIFEST_PARSED,()=>{
+   if(!manualStop&&!userPaused)void v.play().catch(e=>{
+    if(e?.name==='NotAllowedError')message('Clique sur Lecture pour démarrer le direct.');
+    else failure('lecture : '+String(e?.name||e?.message||'échouée'));
+   });
+  });
+  h.on(Hls.Events.ERROR,(_ev,info)=>{
+   if(!info)return;
+   const response=info.response||info.networkDetails;
+   const code=response?.code||response?.status||response?.statusCode||'';
+   const detail=String(info.details||info.type||'erreur');
+   lastHlsError=detail+(code?' (HTTP '+code+')':'');
+   if(info.fatal){
+    failure(lastHlsError);
+    if(info.type===Hls.ErrorTypes.MEDIA_ERROR&&retries<2){
+     retries++;try{h.recoverMediaError();return}catch(_){}
+    }
+    restart();
+   }
+  });
+  h.attachMedia(v);
+  message('Connexion au direct…');
+ }catch(e){
+  failure('initialisation : '+String(e?.message||e));
+  booted=false;
+  setTimeout(()=>{booting=false;boot()},4500);
+ }finally{booting=false}
 }
 playerStatus('connecting');
 syncAudio();
 boot();
-setInterval(()=>{if(booted&&!manualStop&&!userPaused&&Date.now()-lastFrameAt>16000)restart()},5000);
+setInterval(()=>{if(booted&&!manualStop&&!userPaused&&Date.now()-(everDecoded?lastFrameAt:hlsStartedAt||startedAt)>45000){failure(lastHlsError||'aucune image décodée après 45 secondes');restart()}},5000);
 // Distinguish a muted browser player from an OBS stream with no audio track.
 async function refreshAudioTrack(){
  if(!src.startsWith('/api/oryon/local-relay/'))return;
@@ -232,7 +265,7 @@ async function refreshAudioTrack(){
 }
 refreshAudioTrack();
 setInterval(refreshAudioTrack,14000);
-setInterval(()=>{if(!booted)boot();},3000);
+setInterval(()=>{if(!booted&&!booting&&!restarting)boot();},7000);
 </script>
 </body>
 </html>
