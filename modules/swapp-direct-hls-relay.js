@@ -5,6 +5,7 @@
 const express=require('express');
 const fs=require('node:fs');
 const path=require('node:path');
+const {inspectTsMedia}=require('./swapp-ts-inspect');
 
 function attachSwappDirectRelay(app, opts={}){
  const lookupOwner=opts.lookupOwner;
@@ -197,7 +198,8 @@ function attachSwappDirectRelay(app, opts={}){
   res.json({success:true,active:!!r?.manifest,instance:process.pid,
    playlist_ready:!!r?.manifest,segment_ready:!!chunk,latest_segment:latest,
    latest_bytes:chunk?.length||0,ts_sync_byte:chunk?.[0]===0x47,
-   manifest_age_ms:r?.lastManifestAt?Date.now()-r.lastManifestAt:null});
+   manifest_age_ms:r?.lastManifestAt?Date.now()-r.lastManifestAt:null,
+   media:chunk?inspectTsMedia(chunk):null});
  });
  app.get('/api/oryon/local-relay/:login/index.m3u8',(req,res)=>{
   notCached(res);
