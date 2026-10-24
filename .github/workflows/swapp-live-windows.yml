@@ -7,6 +7,7 @@ on:
       - .github/workflows/swapp-live-windows.yml
       - 'local-agent/**'
       - test/swapp-local-tunnel.test.js
+      - test/swapp-native-obs-quality.test.js
       - test/swapp-discord-live-preview.test.js
       - modules/swapp-seo.js
       - local-agent/player.html
@@ -38,7 +39,7 @@ jobs:
           node-version: '20'
 
       - name: Run live transport regression tests
-        run: node --test test/swapp-native-webrtc-transport.test.js test/swapp-native-live-public.test.js test/swapp-browser-http-relay.test.js test/swapp-local-tunnel.test.js test/swapp-electron-runtime-package.test.js test/swapp-tunnel-fallback.test.js test/swapp-direct-hls-relay.test.js test/swapp-local-ui-simplify.test.js test/swapp-discord-live-preview.test.js
+        run: node --test test/swapp-native-webrtc-transport.test.js test/swapp-native-live-public.test.js test/swapp-browser-http-relay.test.js test/swapp-local-tunnel.test.js test/swapp-electron-runtime-package.test.js test/swapp-tunnel-fallback.test.js test/swapp-direct-hls-relay.test.js test/swapp-local-ui-simplify.test.js test/swapp-discord-live-preview.test.js test/swapp-native-obs-quality.test.js
 
       - name: Install local SWAPP Live dependencies
         run: npm install --prefix local-agent --no-audit --no-fund
@@ -68,8 +69,8 @@ jobs:
           if ((Get-Item $dll).Length -lt 102400) { throw "Critical: ffmpeg.dll appears truncated" }
           $dllHash = (Get-FileHash $dll -Algorithm SHA256).Hash
           Write-Host "Packaged Electron ffmpeg.dll SHA256: $dllHash"
-          $installer = "local-agent/dist/SWAPP-Live-Setup-1.0.9-x64.exe"
-          $portable = "local-agent/dist/SWAPP-Live-Portable-1.0.9-x64.exe"
+          $installer = "local-agent/dist/SWAPP-Live-Setup-1.1.0-x64.exe"
+          $portable = "local-agent/dist/SWAPP-Live-Portable-1.1.0-x64.exe"
           foreach ($artifact in @($installer, $portable)) {
             if (!(Test-Path $artifact)) { throw "Missing release executable: $artifact" }
           }
@@ -96,8 +97,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $tag = "swapp-live-windows-v1.0.9"
+          $tag = "swapp-live-windows-v1.1.0"
           $files = @(Get-ChildItem "local-agent/dist" -File -Filter "*.exe" | ForEach-Object { $_.FullName })
           if ($files.Count -lt 2) { throw "SWAPP Live installer and portable executable were not both produced" }
-          $notes = "SWAPP Live Windows v1.0.9: playback controls BELOW video (Play, Pause, Stop locally, Return to Live) with bounded 80s HLS rewind buffer, plus short playable MP4 clip in Discord with Watch Live button. Keeps HLS 720p, full-screen/volume controls, no paid tunnels. NSIS install and Electron ffmpeg.dll smoke-tested."
-          gh release create $tag $files --repo "$env:GITHUB_REPOSITORY" --target "$env:GITHUB_SHA" --title "SWAPP Live Windows v1.0.9" --notes $notes
+          $notes = "SWAPP Live Windows v1.1.0: NATIVE OBS SOURCE fidelity by default. No forced 720p, no video or audio re-encoding; FFmpeg remuxes original H.264/AAC directly to HLS. Resolutions and FPS preserved (1080p60/1440p60 when sent by OBS), source bitrate displayed. Hostinger relay now tolerates roughly 8-12 Mbps with larger bounded live buffers and true DVR segment durations. Requires H.264/AAC, OBS 2s keyframe interval; no adaptive qualities or CDN. Full sound, pause and Discord preview maintained. 20+ automated regression tests and NSIS ffmpeg.dll installation verified."
+          gh release create $tag $files --repo "$env:GITHUB_REPOSITORY" --target "$env:GITHUB_SHA" --title "SWAPP Live Windows v1.1.0" --notes $notes
