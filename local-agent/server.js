@@ -13,10 +13,10 @@ try { bundledFfmpeg = require('ffmpeg-static'); } catch (_) { bundledFfmpeg = nu
 
 const HTTP_PORT = Number(process.env.ORYON_LOCAL_HTTP_PORT || process.env.SWAPP_LOCAL_HTTP_PORT || 8081);
 const RTMP_PORT = Number(process.env.ORYON_LOCAL_RTMP_PORT || process.env.SWAPP_LOCAL_RTMP_PORT || 1935);
-const MEDIA_ROOT = process.env.ORYON_LOCAL_MEDIA_ROOT || process.env.SWAPP_LOCAL_MEDIA_ROOT || path.join(__dirname, 'media');
+const MEDIA_ROOT = process.env.ORYON_LOCAL_MEDIA_ROOT || process.env.SWAPP_LOCAL_MEDIA_ROOT || path.join(process.env.APPDATA || os.homedir(), 'SwappLocal', 'media');
 const DEFAULT_KEY = process.env.ORYON_STREAM_KEY || process.env.SWAPP_STREAM_KEY || 'ta-cle-swapp';
 const DEFAULT_SWAPP_SITE_URL = process.env.ORYON_SITE_URL || process.env.SWAPP_SITE_URL || 'https://swapp.tv';
-const FFMPEG_PATH = process.env.FFMPEG_PATH || bundledFfmpeg || 'ffmpeg';
+const FFMPEG_PATH = process.env.FFMPEG_PATH || (bundledFfmpeg && bundledFfmpeg.replace('app.asar'+path.sep,'app.asar.unpacked'+path.sep)) || 'ffmpeg';
 const LOCAL_BASE_URL = `http://127.0.0.1:${HTTP_PORT}`;
 const TRANSCODE_MODE = String(process.env.ORYON_LOCAL_TRANSCODE || process.env.SWAPP_LOCAL_TRANSCODE || 'copy').toLowerCase();
 const TUNNEL_RETRIES = Math.max(1, Number(process.env.SWAPP_TUNNEL_RETRIES || process.env.ORYON_TUNNEL_RETRIES || 4));
