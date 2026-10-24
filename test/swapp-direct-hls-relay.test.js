@@ -77,7 +77,7 @@ test('same-origin player keeps volume/fullscreen and does not expose streaming c
  assert.equal(player.status,200);
  assert.match(player.payload,/id="volume"/);
  assert.match(player.payload,/requestFullscreen/);
- assert.match(player.payload,/\/api\/oryon\/local-relay\/vnhz\/dvr\.m3u8/);
+ assert.match(player.payload,/\/api\/oryon\/local-relay\/vnhz\/index\.m3u8/);
  assert.ok(!player.payload.includes('VALID_TOKEN'));
  assert.match(player.payload,/hls\.js@1\.6\.15/);
  const supported=await b.call('get','/api/oryon/local-relay/capabilities');
@@ -221,7 +221,7 @@ test('DVR retains a bounded short timeshift window so Pause and Resume preserve 
  assert.equal(evicted.status,404,'old historical segments are evicted');
  assert.ok(b.relay.rooms.get('vnhz').bytes<=b.relay.MAX_ROOM_BYTES);
  const player=await b.call('get','/api/oryon/local-relay/:login/player');
- assert.match(player.payload,/\/vnhz\/dvr\.m3u8/);
+ assert.match(player.payload,/\/vnhz\/index\.m3u8/);
  for(const control of ['play','pause','stop','live'])assert.ok(player.payload.includes('id="'+control+'"'));
  assert.match(player.payload,/<\/div>\s*<div class="toolbar" role="group"/);
  assert.ok(!player.payload.includes('.toolbar{position:absolute'),'toolbar must never overlay video');
@@ -302,4 +302,14 @@ test('DVR HLS metadata respects the actual OBS keyframe interval, not invented 2
  assert.equal((dvr.payload.match(/#EXTINF:3\.500,/g)||[]).length,4);
  const state=await b.call('get','/api/oryon/local-relay/:login/state');
  assert.equal(state.payload.dvr_seconds,14);
+});
+
+test('public player boots without a blocking playlist preflight',async()=>{
+ const b=backend();
+ const player=await b.call('get','/api/oryon/local-relay/:login/player');
+ assert.equal(player.status,200);
+ assert.ok(player.payload.includes('/vnhz/index.m3u8'));
+ assert.ok(!player.payload.includes('playlistReady()'));
+ assert.ok(player.payload.includes('Hls.Events.MEDIA_ATTACHED'));
+ assert.ok(player.payload.includes('Hls.Events.ERROR'));
 });
