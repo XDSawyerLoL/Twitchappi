@@ -1,8 +1,8 @@
 {
   "name": "swapp-local-app",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "private": true,
-  "description": "SWAPP Live — OBS avec Cloudflare ou secours SSH gratuit automatique, lecteur volume/plein écran",
+  "description": "SWAPP Live — OBS vers swapp.tv directement en HTTPS, sans Cloudflare ni tunnel externe",
   "main": "main.js",
   "dependencies": {
     "express": "^4.21.2",

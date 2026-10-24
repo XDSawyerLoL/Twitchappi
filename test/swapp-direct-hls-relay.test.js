@@ -1,0 +1,105 @@
+'use strict';
+const test=require('node:test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const os=require('node:os');
+const path=require('node:path');
+const vm=require('node:vm');
+
+const source=fs.readFileSync(path.join(__dirname,'..','modules','swapp-direct-hls-relay.js'),'utf8');
+function backend(){
+ const routes={get:new Map(),post:new Map()};
+ const express={raw:()=>(_req,_res,next)=>next()};
+ const module={exports:{}};
+ vm.runInNewContext(source,{
+  require(id){if(id==='express')return express;return require(id)},
+  module,__dirname:path.join(__dirname,'..','modules'),
+  process:{env:{}},Buffer,Date,setInterval(){return{unref(){}}}
+ });
+ const app={
+  get(route,fn){routes.get.set(route,fn)},
+  post(route,...fns){routes.post.set(route,fns.at(-1))}
+ };
+ const relay=module.exports.attachSwappDirectRelay(app,{lookupOwner:async token=>token==='VALID_TOKEN'?{login:'vnhz'}:null});
+ async function call(method,route,{name,body,token='VALID_TOKEN',login='vnhz',segment}={}){
+  const fn=routes[method].get(route);
+  assert.ok(fn,'route missing: '+route);
+  let status=200,type='',payload=null,headers={};
+  const req={params:{login,segment},body, get(k){
+   if(k==='authorization')return token?'Bearer '+token:'';
+   if(k==='x-swapp-media-name')return name||'';
+   return '';
+  }};
+  const res={
+   set(k,v){headers[k]=v;return this},
+   status(code){status=code;return this},
+   type(v){type=v;return this},
+   json(v){payload=v;return this},
+   send(v){payload=v;return this},
+   sendStatus(code){status=code;payload=null;return this}
+  };
+  await fn(req,res);
+  return {status,type,payload,headers};
+ }
+ return {routes,relay,call};
+}
+test('OBS media push accepts owner token and publishes fragments before playlist',async()=>{
+ const b=backend();
+ const upload='/api/oryon/local-relay/upload';
+ const state='/api/oryon/local-relay/:login/state';
+ const manifest='/api/oryon/local-relay/:login/index.m3u8';
+ const ts='/api/oryon/local-relay/:login/:segment';
+ const playlist=Buffer.from('#EXTM3U\n#EXT-X-VERSION:3\n#EXTINF:2,\nseg_000.ts\n');
+ const segment=Buffer.alloc(188*3,0);
+ segment[0]=0x47;
+ assert.equal((await b.call('post',upload,{name:'seg_000.ts',body:segment,token:''})).status,401);
+ assert.equal((await b.call('post',upload,{name:'seg_000.ts',body:segment,token:'BAD'})).status,403);
+ assert.equal((await b.call('post',upload,{name:'../config.json',body:segment})).status,400);
+ assert.equal((await b.call('post',upload,{name:'index.m3u8',body:playlist})).status,409,'cannot announce missing media');
+ assert.equal((await b.call('post',upload,{name:'seg_000.ts',body:segment})).status,200);
+ assert.equal((await b.call('post',upload,{name:'index.m3u8',body:playlist})).status,200);
+ const live=await b.call('get',state);
+ assert.equal(live.payload.active,true);
+ assert.equal(live.payload.segment_count,1);
+ const m=await b.call('get',manifest);
+ assert.match(m.payload.toString(),'#EXTM3U');
+ const media=await b.call('get',ts,{segment:'seg_000.ts'});
+ assert.equal(media.status,200);
+ assert.deepEqual(Buffer.from(media.payload),segment);
+ const missing=await b.call('get',ts,{segment:'../../secret'});
+ assert.equal(missing.status,404);
+});
+test('same-origin player keeps volume/fullscreen and does not expose streaming credentials',async()=>{
+ const b=backend();
+ const player=await b.call('get','/api/oryon/local-relay/:login/player');
+ assert.equal(player.status,200);
+ assert.match(player.payload,/id="volume"/);
+ assert.match(player.payload,/requestFullscreen/);
+ assert.match(player.payload,/\/api\/oryon\/local-relay\/vnhz\/index\.m3u8/);
+ assert.ok(!player.payload.includes('VALID_TOKEN'));
+ assert.match(player.payload,/hls\.js@1\.6\.15/);
+ const supported=await b.call('get','/api/oryon/local-relay/capabilities');
+ assert.equal(supported.payload.transport,'swapp-direct-hls');
+});
+test('uplink pushes HLS media outbound and finishes with a valid playlist',async()=>{
+ const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'swapp-direct-test-'));
+ const module=require('../local-agent/swapp-direct-uplink.js');
+ const ts=Buffer.alloc(188*3,0);ts[0]=0x47;
+ fs.writeFileSync(path.join(tmp,'seg_000.ts'),ts);
+ fs.writeFileSync(path.join(tmp,'index.m3u8'),'#EXTM3U\n#EXT-X-VERSION:3\n#EXTINF:2,\nseg_000.ts\n');
+ const requests=[];
+ const service=module.startSwappHlsUplink({key:'test',login:'vnhz',siteUrl:'https://swapp.tv',token:'PRIVATE_TOKEN',mediaDir:tmp,
+  fetchFn:async(url,opts)=>{
+   requests.push({url:String(url),name:opts?.headers?.['X-Swapp-Media-Name'],authorization:opts?.headers?.Authorization});
+   if(String(url).endsWith('/state'))return {ok:true,json:async()=>({active:true,segment_count:1})};
+   return {ok:true,json:async()=>({success:true})};
+  }
+ });
+ try{
+  await service.ready;
+  assert.deepEqual(requests.filter(x=>x.name).map(x=>x.name),['seg_000.ts','index.m3u8']);
+  assert.ok(requests[0].url.startsWith('https://swapp.tv/'));
+  assert.equal(requests[0].authorization,'Bearer PRIVATE_TOKEN');
+  assert.equal(service.getStatus().published,true);
+ }finally{service.stop();fs.rmSync(tmp,{recursive:true,force:true})}
+});

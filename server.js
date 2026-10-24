@@ -4626,6 +4626,11 @@ function swappRejectBadLocalAgentUrl(raw){
   }catch(_){ return 'URL publique invalide.'; }
 }
 
+// Upload-only OBS transport: SWAPP Local sends bounded HLS to the existing
+// HTTPS site. Viewers never connect to the streamer PC or a temporary tunnel.
+const {attachSwappDirectRelay}=require('./modules/swapp-direct-hls-relay');
+attachSwappDirectRelay(app,{lookupOwner:async token=>findOryonUserByAgentToken(readOryonUsers(),token)});
+
 app.post('/api/oryon/local-agent/register-public-url', mutationLimiter, async (req, res) => {
   try {
     const token = bearerToken(req);
