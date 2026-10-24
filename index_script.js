@@ -603,34 +603,171 @@ async function logoutOryon(){await api('/api/oryon/logout',{method:'POST'}); sta
 async function renderAdmin(){if(!isAdmin())return setView('home'); $('#admin').innerHTML=`<div class="pageHead"><div><h1>Admin</h1><p>Réservé aux comptes configurés dans ORYON_ADMIN_LOGINS.</p></div></div><div id="adminBox" class="panel">Chargement…</div>`; const r=await api('/api/oryon/admin/summary'); $('#adminBox').innerHTML=r.success?`<div class="stats">${Object.entries(r.stats).map(([k,v])=>`<div class="stat"><span class="small">${k}</span><b>${v}</b></div>`).join('')}</div><h2 class="section">Signalements</h2>${(r.reports||[]).map(x=>`<p>${esc(x.user)} → ${esc(x.target||x.room)} : ${esc(x.reason)}</p>`).join('')||'<p class="muted">Aucun signalement.</p>'}`:esc(r.error)}
 function attachCurrentStream(){const v=$('#localVideo'); if(v&&state.stream){v.srcObject=state.stream; v.muted=true; v.playsInline=true; v.autoplay=true; v.classList.remove('hidden'); v.style.display='block'; v.play?.().catch(()=>{}); const e=$('#managerPreviewEmpty'); if(e){e.classList.add('hidden'); e.style.display='none';} const off=$('#offlinePanel'); if(off) off.style.display='none';} else {const e=$('#managerPreviewEmpty'); if(e){e.classList.remove('hidden'); e.style.display='grid';}}}
 function updateLiveUi(isLive){const start=$('#startLiveBtn'), stop=$('#stopLiveBtn'); if(start) start.classList.toggle('hidden',!!isLive); if(stop) stop.classList.toggle('hidden',!isLive); const badge=$('#streamStateBadge'); if(badge) badge.textContent=isLive?'🔴 En direct':'Hors ligne'; const cb=$('#channelLiveBadge'); if(cb) cb.textContent=isLive?'🔴 En direct':'Hors ligne'; const launch=$('#channelLaunchBtn'); if(launch) launch.textContent=isLive?'Gérer le live':'Préparer / lancer';}
+// Native WebRTC transport: bounded peer recovery, candidate queue and reconnect.
+const swappNativePendingIce=new Map(),swappNativeOffering=new Set();
+let swappNativeRetryTimer=null,swappNativeRetryCount=0,swappNativeIceConfig=null;
+async function swappNativeIceServers(){
+ if(swappNativeIceConfig&&Date.now()-swappNativeIceConfig.time<60000)return swappNativeIceConfig.servers;
+ try{
+  const cfg=await api('/api/webrtc/config');
+  const servers=Array.isArray(cfg.iceServers)&&cfg.iceServers.length?cfg.iceServers:[{urls:'stun:stun.l.google.com:19302'}];
+  swappNativeIceConfig={time:Date.now(),servers};return servers;
+ }catch(_){return [{urls:'stun:stun.l.google.com:19302'}];}
+}
+function swappNativeClosePeers(){
+ for(const pc of Object.values(state.peers||{}))try{pc.close()}catch(_){}
+ state.peers={};swappNativePendingIce.clear();swappNativeOffering.clear();
+}
+async function swappNativeSetRemote(id,pc,description){
+ if(!pc||pc.signalingState==='closed'||state.peers?.[id]!==pc)return;
+ await pc.setRemoteDescription(description);
+ const pending=swappNativePendingIce.get(id)||[];
+ swappNativePendingIce.delete(id);
+ for(const candidate of pending){
+  if(state.peers?.[id]!==pc)break;
+  await pc.addIceCandidate(candidate).catch(()=>{});
+ }
+}
 function setupSocket(){
- if(state.socket && state.socket.connected !== false)return;
- if(state.socket && state.socket.connected === false){try{state.socket.connect()}catch{}}
- if(state.socket)return;
+ if(state.socket){
+  if(!state.socket.connected)try{state.socket.connect()}catch(_){}
+  return;
+ }
  state.socketLogin=state.session.local?.login||'';
- state.socket=io({withCredentials:true,reconnection:true,reconnectionAttempts:8,reconnectionDelay:700});
- state.socket.on('connect',()=>{ if(state.view==='channel' && state.watchRoom && !state.stream){ state.socket.emit('native:join',{room:state.watchRoom}); setTimeout(()=>requestOffer(),450); }});
- state.socket.on('native:created',d=>{state.room=d.room;toast('Live lancé'); state.socket.emit('native:chat:history',{room:d.room}); if($('#offlinePanel'))$('#offlinePanel').style.display='none'; updateLiveUi(true)});
- state.socket.on('native:error',e=>toast(e.message||'Erreur live'));
- state.socket.on('native:stopped',()=>{toast('Le live est terminé'); updateLiveUi(false); const off=$('#offlinePanel'); if(off) off.style.display='grid';});
- state.socket.on('native:viewer',async d=>{if(!state.stream)return; await sendOfferToViewer(d.viewerId,d.room)});
- state.socket.on('native:request-offer',async d=>{if(!state.stream)return; await sendOfferToViewer(d.viewerId,d.room)});
- state.socket.on('native:offer',async d=>{const pc=await peer(d.from); await pc.setRemoteDescription(d.offer); const ans=await pc.createAnswer(); await pc.setLocalDescription(ans); state.socket.emit('native:answer',{to:d.from,room:d.room||state.room,answer:ans})});
- state.socket.on('native:answer',d=>state.peers[d.from]?.setRemoteDescription(d.answer));
- state.socket.on('native:ice',d=>state.peers[d.from]?.addIceCandidate(d.candidate).catch(()=>{}));
+ state.socket=io({withCredentials:true,reconnection:true,reconnectionAttempts:Infinity,reconnectionDelay:700,reconnectionDelayMax:7000,timeout:20000});
+ state.socket.on('connect',()=>{
+  if(state.stream&&state.nativeCreated&&state.session.local){
+   state.socket.emit('native:resume',{room:state.session.local.login});
+  }else if(state.view==='channel'&&state.watchRoom&&!state.stream){
+   state.room=state.watchRoom;
+   state.socket.emit('native:join',{room:state.room});
+   setTimeout(()=>requestOffer(),550);
+  }
+ });
+ state.socket.on('native:created',d=>{
+  state.nativeCreated=true;state.room=d.room;
+  toast('Live lancé');state.socket.emit('native:chat:history',{room:d.room});
+  const off=$('#offlinePanel');if(off)off.style.display='none';
+  updateLiveUi(true);
+ });
+ state.socket.on('native:resumed',d=>{
+  if(d?.room!==state.room)return;
+  if(state.stream){state.nativeCreated=true;updateLiveUi(true);}
+  else if(state.watchRoom){setTimeout(()=>requestOffer(),450);}
+ });
+ state.socket.on('native:reconnecting',d=>{
+  if(d?.room===state.room&&!state.stream)toast('Le streamer se reconnecte…');
+ });
+ state.socket.on('native:error',e=>{
+  const msg=e?.message||'Erreur live';
+  if(state.stream&&state.nativeCreated&&/Reprise impossible/.test(msg)){
+   state.nativeCreated=false;
+   state.socket.emit('native:create',{title:$('#liveTitle')?.value||'Live de '+(state.session.local?.login||''),category:$('#liveCategory')?.value||'',tags:$('#liveTags')?.value||''});
+  }else toast(msg);
+ });
+ state.socket.on('native:stopped',()=>{
+  toast('Le live est terminé');swappNativeClosePeers();updateLiveUi(false);
+  const off=$('#offlinePanel');if(off)off.style.display='grid';
+ });
+ state.socket.on('native:viewer',d=>{
+  if(state.stream&&d?.viewerId)sendOfferToViewer(d.viewerId,d.room).catch(()=>{});
+ });
+ state.socket.on('native:viewer-left',d=>{
+  const pc=state.peers?.[d.viewerId];if(pc)try{pc.close()}catch(_){}
+  if(state.peers)delete state.peers[d.viewerId];
+  swappNativePendingIce.delete(d.viewerId);
+ });
+ state.socket.on('native:request-offer',d=>{
+  if(state.stream&&d?.viewerId)sendOfferToViewer(d.viewerId,d.room).catch(()=>{});
+ });
+ state.socket.on('native:offer',async d=>{
+  if(!d?.from||!d.offer||d.room!==state.room||state.stream)return;
+  try{
+   const pc=await peer(d.from,true);
+   await swappNativeSetRemote(d.from,pc,d.offer);
+   if(pc.signalingState==='closed')return;
+   const answer=await pc.createAnswer();await pc.setLocalDescription(answer);
+   if(state.peers?.[d.from]===pc)state.socket.emit('native:answer',{to:d.from,room:state.room,answer});
+  }catch(_){retryWatch();}
+ });
+ state.socket.on('native:answer',async d=>{
+  if(!d?.from||!d.answer||d.room!==state.room)return;
+  const pc=state.peers?.[d.from];if(!pc)return;
+  await swappNativeSetRemote(d.from,pc,d.answer).catch(()=>{});
+ });
+ state.socket.on('native:ice',async d=>{
+  if(!d?.from||!d.candidate||d.room!==state.room)return;
+  const pc=state.peers?.[d.from];
+  if(pc&&pc.remoteDescription){await pc.addIceCandidate(d.candidate).catch(()=>{});return;}
+  const pending=swappNativePendingIce.get(d.from)||[];
+  if(pending.length<48){pending.push(d.candidate);swappNativePendingIce.set(d.from,pending);}
+ });
  state.socket.on('native:chat',m=>addMsg(m));
- state.socket.on('native:chat:history',d=>{$('#nativeChatLog')&&($('#nativeChatLog').innerHTML=(d.messages||[]).map(msgHtml).join(''),scrollChat())});
+ state.socket.on('native:chat:history',d=>{
+  if($('#nativeChatLog')){$('#nativeChatLog').innerHTML=(d.messages||[]).map(msgHtml).join('');scrollChat();}
+ });
 }
 async function sendOfferToViewer(viewerId,room){
- const pc=await peer(viewerId);
- state.stream.getTracks().forEach(t=>{try{pc.addTrack(t,state.stream)}catch{}});
- const offer=await pc.createOffer();
- await pc.setLocalDescription(offer);
- state.socket.emit('native:offer',{to:viewerId,room:room||state.room,offer});
+ if(!state.stream||!state.socket?.connected||swappNativeOffering.has(viewerId))return;
+ swappNativeOffering.add(viewerId);
+ try{
+  const pc=await peer(viewerId,true);
+  if(!state.stream)return;
+  state.stream.getTracks().filter(t=>t.readyState==='live').forEach(t=>pc.addTrack(t,state.stream));
+  const offer=await pc.createOffer();await pc.setLocalDescription(offer);
+  if(state.peers?.[viewerId]===pc&&state.socket?.connected)
+   state.socket.emit('native:offer',{to:viewerId,room:room||state.room,offer});
+ }finally{swappNativeOffering.delete(viewerId);}
 }
-function requestOffer(){ if(state.socket && state.room){ state.socket.emit('native:request-offer',{room:state.room}); }}
-function retryWatch(){ if(!state.watchRoom&&!state.room)return; state.room=state.watchRoom||state.room; Object.values(state.peers||{}).forEach(pc=>{try{pc.close()}catch{}}); state.peers={}; setupSocket(); state.socket.emit('native:join',{room:state.room}); setTimeout(()=>requestOffer(),450); toast('Reconnexion au live…'); }
-async function peer(id){const cfg=await api('/api/webrtc/config'); const pc=new RTCPeerConnection({iceServers:cfg.iceServers||[{urls:'stun:stun.l.google.com:19302'}]}); state.peers[id]=pc; pc.onicecandidate=e=>{if(e.candidate)state.socket.emit('native:ice',{to:id,room:state.room,candidate:e.candidate})}; pc.onconnectionstatechange=()=>{if(['failed','disconnected'].includes(pc.connectionState)&&state.watchRoom)setTimeout(()=>retryWatch(),900)}; pc.ontrack=e=>{const v=$('#remoteVideo'); if(v){v.srcObject=e.streams[0]; v.classList.remove('hidden'); v.style.display='block'; v.play?.().catch(()=>{}); $('#localVideo')?.classList.add('hidden'); const off=$('#offlinePanel'); if(off) off.style.display='none';}}; return pc}
+function requestOffer(){
+ if(state.socket?.connected&&state.room&&!state.stream)
+  state.socket.emit('native:request-offer',{room:state.room});
+}
+function retryWatch(){
+ if(!state.watchRoom||state.stream||swappNativeRetryTimer)return;
+ const room=state.watchRoom;
+ const delay=Math.min(9000,1200+swappNativeRetryCount*1400);
+ swappNativeRetryCount=Math.min(8,swappNativeRetryCount+1);
+ swappNativeRetryTimer=setTimeout(()=>{
+  swappNativeRetryTimer=null;
+  if(state.watchRoom!==room||state.stream)return;
+  swappNativeClosePeers();
+  setupSocket();
+  if(state.socket?.connected){
+   state.room=room;state.socket.emit('native:join',{room});
+   setTimeout(()=>requestOffer(),600);
+  }
+ },delay);
+}
+async function peer(id,replace=false){
+ if(!state.peers)state.peers={};
+ const prior=state.peers[id];
+ if(prior&&!replace&&prior.signalingState!=='closed')return prior;
+ if(prior)try{prior.close()}catch(_){}
+ const servers=await swappNativeIceServers();
+ const pc=new RTCPeerConnection({iceServers:servers});state.peers[id]=pc;
+ pc.onicecandidate=e=>{
+  if(e.candidate&&state.peers?.[id]===pc&&state.socket?.connected)
+   state.socket.emit('native:ice',{to:id,room:state.room,candidate:e.candidate});
+ };
+ pc.onconnectionstatechange=()=>{
+  if(state.peers?.[id]!==pc)return;
+  if(pc.connectionState==='connected'){
+   swappNativeRetryCount=0;
+   if(swappNativeRetryTimer){clearTimeout(swappNativeRetryTimer);swappNativeRetryTimer=null;}
+  }else if(pc.connectionState==='failed'&&state.watchRoom&&!state.stream)retryWatch();
+  else if(pc.connectionState==='disconnected'&&state.watchRoom&&!state.stream){
+   setTimeout(()=>{if(state.peers?.[id]===pc&&pc.connectionState==='disconnected')retryWatch();},3000);
+  }
+ };
+ pc.ontrack=e=>{
+  const v=$('#remoteVideo');if(!v||state.peers?.[id]!==pc)return;
+  v.srcObject=e.streams[0];v.classList.remove('hidden');v.style.display='block';v.play?.().catch(()=>{});
+  $('#localVideo')?.classList.add('hidden');
+  const off=$('#offlinePanel');if(off)off.style.display='none';
+ };
+ return pc;
+}
 async function createScreenCameraStream(video){
  const screen=await navigator.mediaDevices.getDisplayMedia({video,audio:true});
  let cam=null;
@@ -643,17 +780,23 @@ async function createScreenCameraStream(video){
 }
 async function startLive(){
  if(!state.session.local)return setView('settings');
+ if(state.stream)return toast('Une capture est déjà en cours. Arrête le direct avant de relancer.');
  if(state.socket && state.socketLogin !== state.session.local.login){ try{state.socket.disconnect()}catch{} state.socket=null; state.socketLogin=null; }
  state.watchRoom=null; setupSocket();
  const q=$('#liveQuality')?.value||'1080'; const source=$('#liveSource')?.value||'screen';
  const video=q==='720'?{width:{ideal:1280},height:{ideal:720},frameRate:{ideal:60,max:60}}:{width:{ideal:1920},height:{ideal:1080},frameRate:{ideal:60,max:60}};
  try{state.stream= source==='camera' ? await navigator.mediaDevices.getUserMedia({video,audio:true}) : (source==='screen-camera' ? await createScreenCameraStream(video) : await navigator.mediaDevices.getDisplayMedia({video,audio:true}))}
  catch(e){toast('Impossible de capturer la source vidéo. Vérifie les permissions.');return}
- attachCurrentStream(); $('#localVideo')?.play?.().catch(()=>{}); state.stream.getTracks().forEach(t=>t.onended=()=>stopLive(false)); updateLiveUi(true);
+ attachCurrentStream(); $('#localVideo')?.play?.().catch(()=>{}); state.nativeCreated=false;
+ state.stream.getVideoTracks().forEach(t=>t.onended=()=>{if(state.stream)stopLive(true)});
+ state.stream._oryonSources?.forEach(src=>src.getVideoTracks().forEach(t=>t.onended=()=>{if(state.stream)stopLive(true)}));
+ updateLiveUi(false);
  state.room=state.session.local.login;
  state.socket.emit('native:create',{title:$('#liveTitle')?.value||`Live de ${state.session.local.login}`,category:$('#liveCategory')?.value||'',tags:$('#liveTags')?.value||'',quality:q})
 }
-function stopLive(stopTracks=true){if(stopTracks){ state.stream?._oryonSources?.forEach(src=>src.getTracks().forEach(t=>t.stop())); state.stream?.getTracks().forEach(t=>t.stop()); } state.stream=null; if(state.socket) state.socket.emit('native:leave'); Object.values(state.peers||{}).forEach(pc=>{try{pc.close()}catch{}}); state.peers={}; updateLiveUi(false); const v=$('#localVideo'); if(v) v.srcObject=null; $('#offlinePanel')&&( $('#offlinePanel').style.display='block'); $('#managerPreviewEmpty')?.classList.remove('hidden'); toast('Live arrêté')}
+function stopLive(stopTracks=true){state.nativeCreated=false;
+ if(swappNativeRetryTimer){clearTimeout(swappNativeRetryTimer);swappNativeRetryTimer=null;}swappNativeClosePeers();
+ if(stopTracks){ state.stream?._oryonSources?.forEach(src=>src.getTracks().forEach(t=>t.stop())); state.stream?.getTracks().forEach(t=>t.stop()); } state.stream=null; if(state.socket) state.socket.emit('native:leave'); Object.values(state.peers||{}).forEach(pc=>{try{pc.close()}catch{}}); state.peers={}; updateLiveUi(false); const v=$('#localVideo'); if(v) v.srcObject=null; $('#offlinePanel')&&( $('#offlinePanel').style.display='block'); $('#managerPreviewEmpty')?.classList.remove('hidden'); toast('Live arrêté')}
 function openOryon(room){state.watchRoom=String(room||'').toLowerCase(); const item=(state.zap.items||[]).find(x=>(x.host_login||x.room)===state.watchRoom)||{platform:'oryon',host_login:state.watchRoom,host_name:state.watchRoom}; trackDiscovery(item); state.room=state.watchRoom; setMiniLive({type:'oryon',login:state.watchRoom,title:'Swapp · '+state.watchRoom}); setView('channel')}
 function sendChat(){if(!state.room)return toast('Aucun salon Swapp actif'); if(!state.socket)setupSocket(); if(!state.session.local)return toast('Connecte-toi à Swapp pour écrire dans le tchat natif.'); state.socket.emit('native:chat',{room:state.room,text:$('#chatInput').value,gif:state.selectedGif,emote:state.selectedEmote?{code:state.selectedEmote.code,image_url:state.selectedEmote.image_url}:null}); $('#chatInput').value=''; state.selectedGif=''; state.selectedEmote=null; $('#gifGrid')?.classList.add('hidden')}
 function msgHtml(m){return `<div class="msg"><b>${esc(m.user_display||m.user)}</b> <span class="small">${new Date(m.ts).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</span><div>${esc(m.text||'')}</div>${m.emote?`<img src="${esc(m.emote.image_url)}" title=":${esc(m.emote.code)}:">`:''}${m.gif?`<img src="${esc(m.gif)}">`:''}</div>`}
