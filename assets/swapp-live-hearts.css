@@ -74,3 +74,11 @@
  .swapp-heart-tap,.swapp-heart-more,.swapp-heart-option{transition:none!important}
  .swapp-heart-tap.swapp-heart-bump,.pulseHeart{animation:none!important}
 }
+/* The channel may insert its welcome card between player and Pulse: hide
+   only the exact legacy dock paired with an active inline-heart control. */
+#channel .pulseDock[data-swapp-pulse-hidden="1"],
+#discover .pulseDock[data-swapp-pulse-hidden="1"]{display:none!important}
+#discover .player[data-swapp-heart-ui="1"] > .pulseButton,
+#discover .oryonMainPlayer[data-swapp-heart-ui="1"] > .pulseButton{display:none!important}
+#discover .player[data-swapp-heart-ui="1"],
+#discover .oryonMainPlayer[data-swapp-heart-ui="1"]{position:relative!important}
