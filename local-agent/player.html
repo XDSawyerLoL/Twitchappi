@@ -14,7 +14,7 @@ video.fit{object-fit:contain}
 #state{position:absolute;inset:0;display:grid;place-items:center;padding:24px;text-align:center;color:#dce4f4;background:#020409cc;pointer-events:none;font-size:14px}
 #state[hidden]{display:none}
 .toolbar{position:absolute;inset:auto 12px 12px;z-index:3;display:flex;align-items:center;gap:12px;min-height:48px;padding:9px 12px;border:1px solid #ffffff35;border-radius:12px;background:linear-gradient(95deg,#080d19e8,#10182bdc);box-shadow:0 7px 30px #0009;backdrop-filter:blur(12px)}
-.live{display:flex;align-items:center;gap:7px;white-space:nowrap;font-size:11px;letter-spacing:.09em;font-weight:800}
+.live{display:flex;align-items:center;gap:7px;white-space:nowrap;font-size:11px;letter-spacing:.09em;font-weight:800}.audioHint{position:absolute;z-index:4;top:12px;left:12px;max-width:80%;padding:9px 12px;border-radius:9px;background:#320f18e8;color:#ffe5e7;border:1px solid #fa626b88;font-size:12px;font-weight:700}.audioHint[hidden]{display:none}
 .dot{width:7px;height:7px;border-radius:50%;background:#f04456;box-shadow:0 0 0 3px #f0445624}
 button{border:1px solid #ffffff29;border-radius:8px;background:#ffffff12;color:#f5f7fc;font:inherit;font-size:12px;padding:8px 11px;min-height:34px;cursor:pointer;white-space:nowrap}
 button:hover,button:focus-visible{background:#ffffff2c;outline:1px solid #8e9ef7}
@@ -28,6 +28,7 @@ input[type=range]{width:105px;height:24px;accent-color:#8d79ff;cursor:pointer;fl
 <div id="stage">
  <video id="video" autoplay muted playsinline aria-label="Diffusion SWAPP en direct"></video>
  <div id="state" role="status" aria-live="polite">Connexion au direct…</div>
+ <div id="audioHint" class="audioHint" role="status" aria-live="polite" hidden></div>
  <div class="toolbar" role="group" aria-label="Commandes du lecteur SWAPP">
   <span class="live"><span class="dot"></span>LIVE</span>
   <button id="audio" type="button" aria-label="Activer le son" aria-pressed="false">🔇 <span class="label-long">Activer le son</span></button>
@@ -47,6 +48,7 @@ const audio = document.getElementById('audio');
 const volume = document.getElementById('volume');
 const fit = document.getElementById('fit');
 const screen = document.getElementById('screen');
+const audioHint = document.getElementById('audioHint');
 let h = null;
 let booted = false;
 let desiredVolume = 0.8;
@@ -139,6 +141,20 @@ async function boot(){
 }
 syncAudio();
 boot();
+// Distinguish a muted browser player from an OBS stream with no audio track.
+async function refreshAudioTrack(){
+ if(!src.startsWith('/api/oryon/local-relay/'))return;
+ try{
+  const r=await fetch(src.replace(/\/index\.m3u8(?:\?.*)?$/,'/state')+'?t='+Date.now(),{cache:'no-store'});
+  if(!r.ok)return;
+  const state=await r.json();
+  const missing=state.active&&state.audio_track==='missing';
+  audioHint.hidden=!missing;
+  audioHint.textContent=missing?'OBS ne transmet aucune piste audio. Vérifie la piste 1 dans OBS.':'';
+ }catch(_){}
+}
+refreshAudioTrack();
+setInterval(refreshAudioTrack,14000);
 setInterval(()=>{if(!booted)boot();},3000);
 </script>
 </body>
