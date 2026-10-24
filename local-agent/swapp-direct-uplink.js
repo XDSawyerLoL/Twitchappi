@@ -4,7 +4,7 @@
 const fs=require('node:fs');
 const path=require('node:path');
 
-function startSwappHlsUplink({key,login,siteUrl,token,mediaDir,fetchFn=fetch,onLog=()=>{},isLive=()=>true}){
+function startSwappHlsUplink({key,login,siteUrl,token,mediaDir,maxSegmentBytes=8*1024*1024,fetchFn=fetch,onLog=()=>{},isLive=()=>true}){
  if(!/^[a-z0-9_-]{2,48}$/i.test(String(login||'')))throw Error('Identifiant de chaîne SWAPP manquant');
  if(!token)throw Error('Compte SWAPP non connecté');
  const base=new URL(siteUrl);
@@ -15,7 +15,7 @@ function startSwappHlsUplink({key,login,siteUrl,token,mediaDir,fetchFn=fetch,onL
  const ready=new Promise((resolve,reject)=>{readyResolve=resolve;readyReject=reject});
  const readyDeadline=setTimeout(()=>{
   if(!readySettled){readySettled=true;readyReject(new Error('Le site SWAPP ne reçoit pas le flux HLS. '+(error?.message||'Vérifie le déploiement Hostinger et ton débit OBS.')))}
- },35000);
+ },50000);
  function settle(){if(!readySettled){readySettled=true;clearTimeout(readyDeadline);readyResolve(true)}}
  function fail(e){error=e;if(running)onLog('warn','Envoi HLS SWAPP en attente',{error:String(e?.message||e).slice(0,220)})}
  function stop(){
@@ -28,7 +28,7 @@ function startSwappHlsUplink({key,login,siteUrl,token,mediaDir,fetchFn=fetch,onL
  async function upload(name,bytes){
   if(!running)return;
   const ctl=new AbortController();activeRequest=ctl;
-  const deadline=setTimeout(()=>ctl.abort(),13000);
+  const deadline=setTimeout(()=>ctl.abort(),22000);
   try{
    const r=await fetchFn(new URL('/api/oryon/local-relay/upload',base),{
     method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/octet-stream',
@@ -64,7 +64,8 @@ function startSwappHlsUplink({key,login,siteUrl,token,mediaDir,fetchFn=fetch,onL
     const filePath=path.join(mediaDir,name);
     if(!fs.existsSync(filePath))return;
     const st=fs.statSync(filePath);
-    if(st.size<188||st.size>3*1024*1024)throw Error('Segment OBS hors limite: '+name+'. Réduis le débit vidéo.');
+    if(st.size<188)return; // FFmpeg is still writing this HLS file.
+    if(st.size>maxSegmentBytes)throw Error('Segment '+name+' trop volumineux : '+(st.size/1048576).toFixed(1)+' Mo (limite '+(maxSegmentBytes/1048576).toFixed(1)+' Mo). Vérifie la conversion 720p automatique.');
     const signature=st.size+':'+st.mtimeMs;
     current.set(name,signature);
     if(uploaded.get(name)!==signature){
