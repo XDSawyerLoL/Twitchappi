@@ -112,7 +112,7 @@ test('a previously rejected 4.5 MiB OBS MPEG-TS segment can reach the SWAPP serv
  const posted=await b.call('post','/api/oryon/local-relay/upload',{name:'seg_001.ts',body:buffer});
  assert.equal(posted.status,200);
  const capability=await b.call('get','/api/oryon/local-relay/capabilities');
- assert.equal(capability.payload.version,2);
+ assert.equal(capability.payload.version,3);
  assert.ok(capability.payload.max_segment_bytes>=8*1024*1024);
  assert.ok(capability.payload.max_room_bytes>=24*1024*1024);
  const playlist=Buffer.from('#EXTM3U\n#EXT-X-VERSION:3\n#EXTINF:2,\nseg_001.ts\n');
