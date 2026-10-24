@@ -1,8 +1,8 @@
 {
   "name": "swapp-local-app",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "private": true,
-  "description": "SWAPP Live — OBS, HLS public isolé et Cloudflare Tunnel préinstallé sans console Windows",
+  "description": "SWAPP Live — OBS et lecteur public avec volume, plein écran et remplissage vidéo",
   "main": "main.js",
   "dependencies": {
     "express": "^4.21.2",
