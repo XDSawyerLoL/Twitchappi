@@ -1,8 +1,8 @@
 {
   "name": "swapp-local-app",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "private": true,
-  "description": "SWAPP Live — OBS audio diagnostic and automatic gameplay screenshot for Discord embeds",
+  "description": "SWAPP Live — lecteur sous vidéo, pause/reprise du direct et court aperçu vidéo jouable sur Discord",
   "main": "main.js",
   "dependencies": {
     "express": "^4.21.2",
