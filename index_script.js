@@ -712,10 +712,10 @@ function swappFlushIce(id){
  for(const ice of pending)pc.addIceCandidate(ice).catch(()=>{});
 }
 function swappShowViewerTransportWarning(){
- const relay=!!state.swappTurnConfigured;
- swappVideoNotice('Connexion vidéo impossible',relay?
-  'Le flux est annoncé en direct, mais le navigateur ne reçoit pas la vidéo. Vérifie le réseau ou relance le lecteur.':
-  'La connexion directe WebRTC ne passe pas sur ce réseau. Aucun relais TURN n’est configuré sur SWAPP. Le mode OBS avec SWAPP Live est conseillé pour un direct public stable.',
+ const relay=state.swappTurnConfigured;
+ swappVideoNotice('Connexion vidéo impossible',relay===false?
+  'La connexion directe WebRTC ne fonctionne pas sur ce réseau, et aucun relais TURN n’est configuré sur SWAPP. Le mode OBS avec SWAPP Live est conseillé pour un direct public stable.':
+  'Le direct est détecté, mais aucune image ne parvient au lecteur. Vérifie le réseau du spectateur, la capture du diffuseur ou relance la vidéo.',
   'Relancer la vidéo');
 }
 function setupSocket(){
@@ -4824,6 +4824,15 @@ async function renderChannel(){
   setupSocket?.(); state.room=targetLogin; state.socket?.emit('native:chat:history',{room:state.room});
   if(isOwner && state.stream){ attachCurrentStream?.(); }
   else if(isLive){ state.socket?.emit('native:join',{room:targetLogin}); if(transport==='browser-webrtc' || !swappSafeLocalPlayerUrl(p.oryon_local_player_url)){ setTimeout(()=>requestOffer?.(),500); } }
+  if(isLive && transport==='browser-webrtc' && !state.stream){
+   clearTimeout(state.remoteConnectionWatchdog);
+   state.remoteConnectionWatchdog=setTimeout(()=>{
+    if(state.view==='channel' && !state.remotePlaying && !state.stream
+       && (state.watchRoom||state.room)===targetLogin){
+      swappShowViewerTransportWarning();
+    }
+   },15000);
+  }
   updateLiveUi?.(isLive);
   refreshEmoteShelf?.(targetLogin);
 }
