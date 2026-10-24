@@ -21,7 +21,7 @@ function backend(){
   post(route,...fns){routes.post.set(route,fns.at(-1))}
  };
  const relay=module.exports.attachSwappDirectRelay(app,{lookupOwner:async token=>token==='VALID_TOKEN'?{login:'vnhz'}:null});
- async function call(method,route,{name,body,token='VALID_TOKEN',login='vnhz',segment,audioTrack}={}){
+ async function call(method,route,{name,body,token='VALID_TOKEN',login='vnhz',segment,audioTrack,range}={}){
   const fn=routes[method].get(route);
   assert.ok(fn,'route missing: '+route);
   let status=200,type='',payload=null,headers={};
@@ -29,6 +29,7 @@ function backend(){
    if(k==='authorization')return token?'Bearer '+token:'';
    if(k==='x-swapp-media-name')return name||'';
    if(k==='x-swapp-audio-track')return audioTrack||'';
+   if(k==='range')return range||'';
    return '';
   }};
   const res={
@@ -193,4 +194,77 @@ test('local uploader generates Discord JPEG in background without blocking HLS',
   assert.equal(service.getStatus().audioTrack,'missing');
   assert.ok(service.getStatus().lastPosterAt>0);
  }finally{service.stop();fs.rmSync(tmp,{recursive:true,force:true})}
+});
+
+test('DVR retains a bounded short timeshift window so Pause and Resume preserve recent content',async()=>{
+ const b=backend(),upload='/api/oryon/local-relay/upload';
+ for(let i=0;i<60;i++){
+  const name='seg_'+String(i).padStart(3,'0')+'.ts';
+  const data=Buffer.alloc(188*100,0);data[0]=0x47;
+  assert.equal((await b.call('post',upload,{name,body:data})).status,200);
+  const first=Math.max(0,i-7);
+  const playlist=Buffer.from('#EXTM3U\n#EXT-X-TARGETDURATION:2\n#EXT-X-MEDIA-SEQUENCE:'+first+'\n'+
+   Array.from({length:i-first+1},(_,j)=>'#EXTINF:2,\nseg_'+String(first+j).padStart(3,'0')+'.ts\n').join(''));
+  assert.equal((await b.call('post',upload,{name:'index.m3u8',body:playlist})).status,200);
+ }
+ const dvr=await b.call('get','/api/oryon/local-relay/:login/dvr.m3u8');
+ assert.equal(dvr.status,200);
+ const manifest=dvr.payload.toString();
+ const names=manifest.match(/seg_\d+\.ts/g)||[];
+ assert.ok(names.length>8&&names.length<=40);
+ assert.ok(manifest.includes('#EXT-X-MEDIA-SEQUENCE:20'));
+ assert.ok(!manifest.includes('seg_000.ts'));
+ const retained=await b.call('get','/api/oryon/local-relay/:login/:segment',{segment:'seg_021.ts'});
+ assert.equal(retained.status,200,'paused viewer can fetch an older segment');
+ const evicted=await b.call('get','/api/oryon/local-relay/:login/:segment',{segment:'seg_000.ts'});
+ assert.equal(evicted.status,404,'old historical segments are evicted');
+ assert.ok(b.relay.rooms.get('vnhz').bytes<=b.relay.MAX_ROOM_BYTES);
+ const player=await b.call('get','/api/oryon/local-relay/:login/player');
+ assert.match(player.payload,/\/vnhz\/dvr\.m3u8/);
+ for(const control of ['play','pause','stop','live'])assert.ok(player.payload.includes('id="'+control+'"'));
+ assert.ok(player.payload.indexOf('class="toolbar"')>player.payload.indexOf('</div>\\n <div class="toolbar"')-2);
+});
+test('Discord short MP4 gallery asset supports HTTP Range and rejects oversize or unauthenticated uploads',async()=>{
+ const b=backend(),upload='/api/oryon/local-relay/upload';
+ const bytes=Buffer.alloc(10000);bytes.write('ftyp',4,'ascii');
+ assert.equal((await b.call('post',upload,{name:'preview.mp4',body:bytes,token:'INVALID'})).status,403);
+ assert.equal((await b.call('post',upload,{name:'preview.mp4',body:Buffer.alloc(4*1024*1024+1)})).status,422);
+ // room only becomes public when an actual live manifest was sent
+ const media=Buffer.alloc(188*2);media[0]=0x47;
+ await b.call('post',upload,{name:'seg_001.ts',body:media});
+ await b.call('post',upload,{name:'index.m3u8',body:Buffer.from('#EXTM3U\n#EXTINF:2,\nseg_001.ts\n')});
+ assert.equal((await b.call('post',upload,{name:'preview.mp4',body:bytes})).status,200);
+ assert.ok(b.relay.clipForLogin('vnhz').url.endsWith('/preview.mp4'));
+ const range=await b.call('get','/api/oryon/local-relay/:login/preview.mp4',{range:'bytes=0-999'});
+ assert.equal(range.status,206);
+ assert.equal(range.payload.length,1000);
+ assert.equal(range.headers['Content-Range'],'bytes 0-999/10000');
+ const full=await b.call('get','/api/oryon/local-relay/:login/preview.mp4');
+ assert.equal(full.status,200);
+ assert.equal(full.type,'video/mp4');
+ assert.equal(full.payload.length,10000);
+});
+test('local OBS uplink periodically uploads a short MP4 teaser independently of the main HLS stream',async()=>{
+ const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'swapp-discord-mp4-test-'));
+ const {startSwappHlsUplink}=require('../local-agent/swapp-direct-uplink.js');
+ const names=Array.from({length:5},(_,i)=>'seg_'+String(i).padStart(3,'0')+'.ts');
+ for(const n of names){const data=Buffer.alloc(564);data[0]=0x47;fs.writeFileSync(path.join(tmp,n),data)}
+ fs.writeFileSync(path.join(tmp,'index.m3u8'),'#EXTM3U\n'+names.map(n=>'#EXTINF:2,\n'+n+'\n').join(''));
+ const mp4=Buffer.alloc(10000);mp4.write('ftyp',4,'ascii');
+ const requests=[];
+ const uploader=startSwappHlsUplink({key:'test',login:'vnhz',siteUrl:'https://swapp.tv',token:'TOKEN',mediaDir:tmp,
+  ffmpegPath:'ffmpeg',posterGenerator:async()=>({poster:null,audioTrack:'present'}),
+  clipGenerator:async paths=>{assert.equal(paths.length,5);return mp4},
+  fetchFn:async(url,opts)=>{
+   if(opts?.headers?.['X-Swapp-Media-Name'])requests.push(opts.headers['X-Swapp-Media-Name']);
+   if(String(url).endsWith('/state'))return{ok:true,json:async()=>({active:true,segment_count:5})};
+   return{ok:true,json:async()=>({success:true})};
+  }});
+ try{
+  await uploader.ready;
+  for(let i=0;i<30&&!requests.includes('preview.mp4');i++)await new Promise(r=>setTimeout(r,20));
+  assert.ok(requests.includes('preview.mp4'));
+  assert.equal(uploader.getStatus().lastClipAt>0,true);
+  assert.equal(requests.indexOf('preview.mp4')>requests.indexOf('index.m3u8'),true);
+ }finally{uploader.stop();fs.rmSync(tmp,{recursive:true,force:true})}
 });
