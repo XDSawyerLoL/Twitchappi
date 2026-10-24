@@ -392,7 +392,7 @@ async function verify(){
  const discover=await request(origin,'/decouvrir');
  check(discover.body.includes('swapp-discover-comfort.js?v=20261019-fair-discovery-v27'),
   'Discover has an old mobile UI release');
- check(discover.body.includes('index_script.js?v=20261024-native-live-public-v2'),
+ check(discover.body.includes('index_script.js?v=20261024-native-live-playback-v3'),
   'Discover still references an old V4 player script');
  const comfort=await request(origin,'/assets/swapp-discover-comfort.js');
  check(comfort.body.includes('swapp-discover-no-image')&&comfort.body.includes('v4SwipeCard')&&
