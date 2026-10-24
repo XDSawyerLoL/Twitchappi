@@ -88,7 +88,7 @@ function startSwappHlsUplink({key,login,siteUrl,token,mediaDir,ffmpegPath='',pos
  if(base.protocol!=='https:')throw Error('SWAPP HTTPS requis pour un direct sécurisé');
  let running=true,timer=null,activeRequest=null;
  let lastPlaylistSig='',lastManifestSent=0,uploaded=new Map(),error=null,published=false;
- let posterLastAttempt=0,posterBusy=false,audioTrack='unknown',lastPosterAt=0,videoInfo=null;
+ let posterLastAttempt=0,posterBusy=false,audioTrack='unknown',lastPosterAt=0,videoInfo=null,estimatedBitrateKbps=null;
  let clipLastAttempt=0,clipBusy=false,lastClipAt=0;
  let readyResolve,readyReject,readySettled=false;
  const ready=new Promise((resolve,reject)=>{readyResolve=resolve;readyReject=reject});
@@ -203,6 +203,18 @@ function startSwappHlsUplink({key,login,siteUrl,token,mediaDir,ffmpegPath='',pos
     }
    }
    uploaded=current;
+   // Report the actual source bitrate from received segment sizes and their
+   // exact playlist durations: informational only, never compress based on it.
+   const durations=new Map();
+   let seconds=null;
+   for(const line of lines){
+    const value=line.trim(),match=value.match(/^#EXTINF:(\d+(?:\.\d+)?),/);
+    if(match){seconds=Number(match[1]);continue}
+    if(current.has(value)){durations.set(value,seconds||2);seconds=null}
+   }
+   const measuredSeconds=names.reduce((total,n)=>total+(durations.get(n)||2),0);
+   const measuredBytes=names.reduce((total,n)=>total+Number((current.get(n)||'0').split(':')[0]),0);
+   if(measuredSeconds>0&&measuredBytes>0)estimatedBitrateKbps=Math.round(measuredBytes*8/measuredSeconds/1000);
    if(readySettled&&names.length){
     void sendPoster(path.join(mediaDir,names[names.length-1]));
     void sendClip(names);
@@ -214,6 +226,6 @@ function startSwappHlsUplink({key,login,siteUrl,token,mediaDir,ffmpegPath='',pos
  }
  // Avoid Promise unhandled-rejection if caller is about to await ready.
  void tick();
- return {ready,stop,getStatus(){return {running,published,error:error?.message||null,transport:'swapp-direct-hls',audioTrack,videoInfo,lastPosterAt,lastClipAt}}};
+ return {ready,stop,getStatus(){return {running,published,error:error?.message||null,transport:'swapp-direct-hls',audioTrack,videoInfo,estimatedBitrateKbps,lastPosterAt,lastClipAt}}};
 }
 module.exports={startSwappHlsUplink,createLivePoster,createDiscordClip};
