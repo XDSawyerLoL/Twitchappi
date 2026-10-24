@@ -130,6 +130,7 @@ function streamStatus(key = currentConfiguredKey()) {
     public_player_url: publicPlayerUrl(k),
     quality_mode: TRANSCODE_MODE==='transcode'?'compatibility':'native',
     source_video: directRelayUplink?.getStatus?.().videoInfo||null,
+    source_bitrate_kbps: directRelayUplink?.getStatus?.().estimatedBitrateKbps||null,
     public_status_url: publicStatusUrl(),
     audio_track: directRelayUplink?.getStatus?.().audioTrack||'unknown',
     discord_poster_at: directRelayUplink?.getStatus?.().lastPosterAt||null,
@@ -723,10 +724,10 @@ async function refreshDiag(){
    :ok?'Flux OBS prêt · publication possible':st.active?'Flux OBS détecté · préparation vidéo…':'OBS hors ligne · lance ta diffusion.';
   const q=document.getElementById('qualityDetails');
   if(q)q.textContent=st.quality_mode==='native'
-   ?('Qualité native (sans réencodage)'+(st.source_video?' · '+st.source_video.width+'×'+st.source_video.height+(st.source_video.fps?' · '+st.source_video.fps+' FPS':'')+(st.source_video.codec?' · '+st.source_video.codec.toUpperCase():''):' · analyse résolution en cours')+' · débit et fréquence conservés depuis OBS.')
+   ?('Qualité native (sans réencodage)'+(st.source_video?' · '+st.source_video.width+'×'+st.source_video.height+(st.source_video.fps?' · '+st.source_video.fps+' FPS':'')+(st.source_video.codec?' · '+st.source_video.codec.toUpperCase():''):' · analyse résolution en cours')+(st.source_bitrate_kbps?' · '+(st.source_bitrate_kbps/1000).toFixed(1)+' Mb/s estimés':'')+' · source OBS conservée sans compression supplémentaire.')
    :'Qualité compatibilité : réencodage H.264 actif, 6 Mb/s.';
   const diag=document.getElementById('diag');
-  if(diag)diag.textContent='OBS : '+(st.active?'connecté':'déconnecté')+'\nConversion vidéo : '+(st.ffmpeg_running?'active':'arrêtée')+'\nPlaylist HLS : '+(st.hls_exists?'prête':'absente')+'\nAudio OBS : '+(st.audio_track==='present'?'piste détectée':st.audio_track==='missing'?'aucune piste audio dans le segment':'analyse en attente')+'\nVignette Discord : '+(st.discord_poster_at?'disponible':'en attente')+'\nQualité : '+(st.quality_mode==='native'?'vidéo OBS native (copie H.264 / AAC)':'réencodage H.264')+'\nSource vidéo : '+(st.source_video?(st.source_video.width+'×'+st.source_video.height+' · '+(st.source_video.fps||'?')+' FPS'):'non mesurée')+'\nLecteur public : '+(st.public_player_url||'non publié');
+  if(diag)diag.textContent='OBS : '+(st.active?'connecté':'déconnecté')+'\nConversion vidéo : '+(st.ffmpeg_running?'active':'arrêtée')+'\nPlaylist HLS : '+(st.hls_exists?'prête':'absente')+'\nAudio OBS : '+(st.audio_track==='present'?'piste détectée':st.audio_track==='missing'?'aucune piste audio dans le segment':'analyse en attente')+'\nVignette Discord : '+(st.discord_poster_at?'disponible':'en attente')+'\nQualité : '+(st.quality_mode==='native'?'vidéo OBS native (copie H.264 / AAC)':'réencodage H.264')+'\nSource vidéo : '+(st.source_video?(st.source_video.width+'×'+st.source_video.height+' · '+(st.source_video.fps||'?')+' FPS'):'non mesurée')+'\nDébit source approximatif : '+(st.source_bitrate_kbps?st.source_bitrate_kbps+' kb/s':'en attente')+'\nLecteur public : '+(st.public_player_url||'non publié');
   if(publicLive&&!window.__liveResultDisplayed){
    window.__liveResultDisplayed=true;
    showLiveResult('Direct accessible sur ta chaîne SWAPP.');
