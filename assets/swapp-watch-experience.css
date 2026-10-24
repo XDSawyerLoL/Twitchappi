@@ -114,3 +114,8 @@
  text-decoration:none;cursor:pointer;
 }
 #home .swapp-watch-boot-actions :is(button,a):hover{background:rgba(255,255,255,.15)}
+
+/* Both switches can be active: hide chat remains authoritative in theatre. */
+#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"][data-watch-theatre="on"][data-watch-chat="hidden"] .channelLiveLayout{
+ grid-template-columns:minmax(0,1fr)!important;
+}
