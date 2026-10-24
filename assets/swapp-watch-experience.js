@@ -84,7 +84,7 @@
   setTimeout(async()=>{
    const home=document.getElementById('home');
    const boot=home?.querySelector('.swappBoot');
-   if(!boot||!home.classList.contains('active'))return;
+   if(!boot||boot.dataset.watchRecovery==='1'||!home.classList.contains('active'))return;
    if(document.getElementById('channel')?.querySelector('.creatorRefine'))return;
    let active=false;
    try{
