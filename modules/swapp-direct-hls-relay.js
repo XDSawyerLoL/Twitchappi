@@ -137,9 +137,9 @@ function attachSwappDirectRelay(app, opts={}){
     const sourceManifest=body.toString('utf8');
     const observedDurations=[...sourceManifest.matchAll(/^#EXTINF:(\d+(?:\.\d+)?),/gm)].map(m=>Number(m[1]));
     const targetDuration=Math.max(1,Math.ceil(Math.max(...observedDurations)));
-    const correctedManifest=/^#EXT-X-TARGETDURATION:\d+\s*$/m.test(sourceManifest)
-     ?sourceManifest.replace(/^#EXT-X-TARGETDURATION:\d+\s*$/m,'#EXT-X-TARGETDURATION:'+targetDuration)
-     :sourceManifest.replace(/^#EXTM3U\s*$/m,'#EXTM3U\n#EXT-X-TARGETDURATION:'+targetDuration);
+    const correctedManifest=/^#EXT-X-TARGETDURATION:\d+[ \t]*$/m.test(sourceManifest)
+     ?sourceManifest.replace(/^#EXT-X-TARGETDURATION:\d+[ \t]*$/m,'#EXT-X-TARGETDURATION:'+targetDuration)
+     :sourceManifest.replace(/^#EXTM3U[ \t]*$/m,'#EXTM3U\n#EXT-X-TARGETDURATION:'+targetDuration);
     room.manifest=Buffer.from(correctedManifest);
     room.playlistNames=names;
     // OBS keyframe interval determines HLS segment length in remux mode.
