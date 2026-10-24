@@ -130,7 +130,17 @@ function attachSwappDirectRelay(app, opts={}){
     const names=validatePlaylist(body);
     if(!names.length)return res.status(422).json({success:false,error:'Playlist HLS non valide.'});
     if(names.some(n=>!room.segments.has(n)))return res.status(409).json({success:false,error:'Un segment HLS de cette playlist manque.'});
-    room.manifest=Buffer.from(body);
+    // Keep the incoming H.264/AAC bytes untouched, but normalize an invalid
+    // TARGETDURATION (some OBS remux streams advertise 4 for 4.167s GOPs).
+    // HLS requires each EXTINF duration rounded to nearest integer not to
+    // exceed TARGETDURATION; ceil(max) is always a conservative valid choice.
+    const sourceManifest=body.toString('utf8');
+    const observedDurations=[...sourceManifest.matchAll(/^#EXTINF:(\d+(?:\.\d+)?),/gm)].map(m=>Number(m[1]));
+    const targetDuration=Math.max(1,Math.ceil(Math.max(...observedDurations)));
+    const correctedManifest=/^#EXT-X-TARGETDURATION:\d+\s*$/m.test(sourceManifest)
+     ?sourceManifest.replace(/^#EXT-X-TARGETDURATION:\d+\s*$/m,'#EXT-X-TARGETDURATION:'+targetDuration)
+     :sourceManifest.replace(/^#EXTM3U\s*$/m,'#EXTM3U\n#EXT-X-TARGETDURATION:'+targetDuration);
+    room.manifest=Buffer.from(correctedManifest);
     room.playlistNames=names;
     // OBS keyframe interval determines HLS segment length in remux mode.
     // Keep the exact #EXTINF durations, not a fabricated fixed 2 seconds.
