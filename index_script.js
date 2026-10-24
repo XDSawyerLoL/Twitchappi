@@ -11802,11 +11802,14 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
       chat.style.removeProperty('max-height');
       return;
     }
+    // Exact player box height, not a separate viewport-based estimate.
+    // One single layout measurement keeps chat aligned through theatre and resize.
     const mobile=window.matchMedia('(max-width:1080px)').matches;
-    const h=mobile?Math.max(300,Math.min(440,Math.round(window.innerHeight*.44))):Math.round(rect.width*9/16);
+    const playerHeight=Math.round(rect.height || rect.width*9/16);
+    const h=mobile?Math.max(300,Math.min(440,playerHeight)):Math.max(180,playerHeight);
     chat.style.setProperty('height',h+'px','important');
-    chat.style.setProperty('min-height',mobile?'300px':h+'px','important');
-    chat.style.setProperty('max-height',mobile?'440px':h+'px','important');
+    chat.style.setProperty('min-height',h+'px','important');
+    chat.style.setProperty('max-height',h+'px','important');
   }
   window.swappFitChat1014 = fitChat1014;
 
