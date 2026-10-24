@@ -117,39 +117,44 @@ function creatorSitemapXml(creators=[]){
  return '<?xml version="1.0" encoding="UTF-8"?>\n'+
   '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'+entries+'\n</urlset>\n';
 }
-function injectCreatorMetadata(html,creator,login){
+function injectCreatorMetadata(html,creator,login,share=null){
  let result=String(html||'').replace(/<link\s+rel=["']canonical["'][^>]*>\s*/gi,'');
  if(!result.includes('</head>'))return result;
  const slug=String(login||'').toLowerCase();
  if(!CREATOR_LOGIN.test(slug)||RESERVED_CREATOR_PATHS.has(slug)||!creator||creator.channel_public===false||
     String(creator.login||'').toLowerCase()!==slug)
   return result.replace('</head>','<meta name="robots" content="noindex,follow"></head>');
- const title=String(creator.display_name||slug).trim().slice(0,80)||slug;
- const about=String(creator.bio||'').trim().slice(0,180);
- const description=about||'Découvre la chaîne et les contenus du créateur '+title+' sur SWAPP.';
- const url=ORIGIN+'/'+encodeURIComponent(slug);
- let image='';
- try{
-  const src=String(creator.avatar_url||'').trim();
-  if(src.length<=2000){
-   const u=new URL(src);
-   if(u.protocol==='https:'&&!u.username&&!u.password)image=u.href;
-  }
- }catch(_){}
- const mainEntity={'@type':'Person',name:title,alternateName:slug,url,...(about?{description:about}:{}),
-  ...(image?{image}: {})};
+ const {cardContext}=require('./swapp-share-cards');
+ const card=share||cardContext(creator,{active:false});
+ const title=card.name;
+ const description=card.description;
+ const url=card.url;
+ const image=card.image;
+ const mainEntity={'@type':'Person',name:title,alternateName:slug,url,
+  ...(creator.bio?{description:String(creator.bio).trim().slice(0,180)}:{}),
+  image};
  const schema={'@context':'https://schema.org','@type':'ProfilePage',url,mainEntity};
  const tags='<meta name="description" content="'+encodeXml(description)+'">'+
   '<link rel="canonical" href="'+url+'">'+
-  '<meta property="og:type" content="profile">'+
+  '<meta property="og:type" content="website">'+
   '<meta property="og:site_name" content="SWAPP">'+
-  '<meta property="og:title" content="'+encodeXml(title+' · SWAPP')+'">'+
+  '<meta property="og:locale" content="fr_FR">'+
+  '<meta property="og:title" content="'+encodeXml(card.title)+'">'+
   '<meta property="og:description" content="'+encodeXml(description)+'">'+
   '<meta property="og:url" content="'+url+'">'+
-  '<meta name="twitter:card" content="'+(image?'summary_large_image':'summary')+'">'+
-  (image?'<meta property="og:image" content="'+encodeXml(image)+'">':'')+
+  '<meta property="og:image" content="'+encodeXml(image)+'">'+
+  '<meta property="og:image:secure_url" content="'+encodeXml(image)+'">'+
+  '<meta property="og:image:type" content="image/jpeg">'+
+  '<meta property="og:image:width" content="1200">'+
+  '<meta property="og:image:height" content="630">'+
+  '<meta property="og:image:alt" content="'+encodeXml(card.isLive?
+    title+' en direct sur SWAPP':title+' sur SWAPP')+'">'+
+  '<meta name="twitter:card" content="summary_large_image">'+
+  '<meta name="twitter:title" content="'+encodeXml(card.title)+'">'+
+  '<meta name="twitter:description" content="'+encodeXml(description)+'">'+
+  '<meta name="twitter:image" content="'+encodeXml(image)+'">'+
   '<script type="application/ld+json">'+JSON.stringify(schema).replace(/</g,'\\u003c')+'</script>';
- result=result.replace(/<title>[\s\S]*?<\/title>/i,'<title>'+encodeXml(title+' — Chaîne SWAPP')+'</title>');
+ result=result.replace(/<title>[\s\S]*?<\/title>/i,'<title>'+encodeXml(card.title)+'</title>');
  return result.replace('</head>',tags+'</head>');
 }
 

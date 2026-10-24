@@ -8419,7 +8419,28 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
   function historyLikes(){return Array.isArray(state?.swappHistory?.recent_likes)?state.swappHistory.recent_likes:[];}
   function mergedLikes(){const map=new Map();[...historyLikes(),...localViewerLikes()].forEach(x=>{const k=`${String(x.platform||'').toLowerCase()}:${String(x.login||'').toLowerCase()}`;if(k!==':'&&!map.has(k))map.set(k,x);});return [...map.values()].slice(0,8);}
 
-  window.swappShareChannel=function swappShareChannel(login){const url=profileUrl(login || state?.channelProfile?.login || state?.session?.local?.login || '');if(navigator.share){navigator.share({title:'Chaîne Swapp',url}).catch(()=>{});return;}navigator.clipboard?.writeText(url).then(()=>toast?.('Lien de chaîne copié.')).catch(()=>prompt('Lien de chaîne',url));};
+  window.swappShareChannel=async function swappShareChannel(login){
+   const selected=String(login||state?.channelProfile?.login||state?.session?.local?.login||'').toLowerCase();
+   let url=profileUrl(selected),title='Chaîne SWAPP',description='';
+   try{
+    const response=await fetch('/api/oryon/share-context/'+encodeURIComponent(selected),{
+      cache:'no-store',credentials:'same-origin',signal:AbortSignal.timeout(4500)});
+    if(response.ok){
+     const data=await response.json();
+     if(data?.success&&typeof data.share_url==='string'&&data.share_url.startsWith('https://swapp.tv/')){
+      url=data.share_url;title=data.title||title;description=data.description||'';
+     }
+    }
+   }catch(_){}
+   if(navigator.share){
+    try{await navigator.share({title,text:description,url});return;}
+    catch(error){if(error?.name==='AbortError')return;}
+   }
+   try{
+    await navigator.clipboard.writeText(url);
+    toast?.('Lien '+(url.includes('?live=')?'du direct':'de chaîne')+' copié.');
+   }catch(_){prompt('Lien de chaîne SWAPP',url);}
+  };
 
   // Shared exact local viewer data for the real account renderer.
   // No invented scores, no passive server-side profile upload.
