@@ -1,8 +1,8 @@
 {
   "name": "swapp-local-app",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "private": true,
-  "description": "SWAPP Live — OBS et lecteur public avec volume, plein écran et remplissage vidéo",
+  "description": "SWAPP Live — OBS avec lecteur public et paquet Windows Electron vérifié",
   "main": "main.js",
   "dependencies": {
     "express": "^4.21.2",
@@ -55,13 +55,15 @@
       "main": "main.js"
     },
     "portable": {
-      "artifactName": "SWAPP-Live-Portable-${version}-${arch}.${ext}"
+      "artifactName": "SWAPP-Live-Portable-${version}-${arch}.${ext}",
+      "unpackDirName": false
     },
     "extraResources": [
       {
         "from": "bin/cloudflared.exe",
         "to": "bin/cloudflared.exe"
       }
-    ]
+    ],
+    "afterPack": "./scripts/ensure-electron-runtime.cjs"
   }
 }
