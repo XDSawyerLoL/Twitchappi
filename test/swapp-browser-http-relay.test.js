@@ -72,3 +72,30 @@ test('desktop builds a native .exe without an end-user console and writes HLS ou
  assert.match(load('local-agent/main.js'),/waitForLocalServer/);
  assert.match(load('local-agent/server.js'),/SwappLocal', 'media'/);
 });
+
+test('late HTTP viewer seeks to the actual buffered live interval, not an empty gap',()=>{
+ const context={window:{},URL,console,setTimeout,clearTimeout};
+ vm.runInNewContext(relay,context);
+ const seek=context.window.SwappBrowserRelay.seekToLiveEdge;
+ const v={
+  currentTime:1.2,
+  buffered:{length:2,start:i=>i===0?0:70,end:i=>i===0?1.5:72}
+ };
+ assert.equal(seek(v),true);
+ assert.ok(v.currentTime>=70 && v.currentTime<72,'seek must be inside the newest buffered range');
+ const inside=v.currentTime;
+ assert.equal(seek(v),false,'do not repeatedly seek when already near the live edge');
+ assert.equal(v.currentTime,inside);
+});
+test('live edge seek covers timestamp jumps and safely skips unavailable buffers',()=>{
+ const context={window:{},URL,console,setTimeout,clearTimeout};
+ vm.runInNewContext(relay,context);
+ const seek=context.window.SwappBrowserRelay.seekToLiveEdge;
+ assert.equal(seek({currentTime:0,buffered:{length:0}}),false);
+ const v={currentTime:20,buffered:{length:1,start:()=>125,end:()=>128}};
+ assert.equal(seek(v),true);
+ assert.ok(v.currentTime>=125 && v.currentTime<128);
+ assert.doesNotMatch(relay,/end-video\\.currentTime>7 && end>3/);
+ assert.match(relay,/video\\.addEventListener\\('waiting',onStall\\)/);
+ assert.match(relay,/video\\.addEventListener\\('stalled',onStall\\)/);
+});

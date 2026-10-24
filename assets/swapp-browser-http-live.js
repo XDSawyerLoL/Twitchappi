@@ -54,6 +54,28 @@
    recorder.start(1500);
   }catch(err){console.warn('[SWAPP] MediaRecorder fallback unavailable:',err?.message||err)}
  }
+ // MediaRecorder chunks retain their original timeline. After late joining,
+ // initial MP4/WebM metadata may start at t=0 while current media is at t=60+.
+ // Seeking to end-2 without checking buffered ranges can land inside a hole
+ // and leave a black / stalled player indefinitely.
+ function latestBufferedRange(video){
+  const r=video?.buffered;
+  if(!r?.length)return null;
+  try{
+   const n=r.length-1, start=Number(r.start(n)),end=Number(r.end(n));
+   return Number.isFinite(start)&&Number.isFinite(end)&&end>start?{start,end}:null;
+  }catch(_){return null}
+ }
+ function seekToLiveEdge(video){
+  const range=latestBufferedRange(video);
+  if(!range)return false;
+  const now=Number(video.currentTime)||0;
+  const inRange=now>=range.start-0.08&&now<range.end;
+  if(inRange && range.end-now<=4)return false;
+  const target=Math.max(range.start,range.end-Math.min(.6,(range.end-range.start)*.5));
+  if(Math.abs(now-target)<.15)return false;
+  try{video.currentTime=target;return true}catch(_){return false}
+ }
  function stopViewer(){
   const v=viewer;viewer=null;
   if(!v)return;
@@ -107,11 +129,10 @@
   video.pause?.();video.srcObject=null;video.src=u;
   video.autoplay=true;video.playsInline=true;video.muted=true;
   video.classList.remove('hidden');video.style.display='block';
-  const onTime=()=>{
-   if(!active())return;
-   if(video.videoWidth>0&&video.readyState>=2&&!v.started){
-    v.started=true;
-    const parent=video.parentElement;
+  const markPlayback=()=>{
+   if(!active()||v.started||video.videoWidth<=0)return;
+   v.started=true;
+   const parent=video.parentElement;
     if(parent&&!parent.querySelector('[data-swapp-unmute]')){
      const button=document.createElement('button');
      button.type='button';button.className='btn swapp-unmute-stream';
@@ -119,11 +140,34 @@
      button.onclick=()=>{video.muted=false;video.play?.().catch(()=>{});button.remove()};
      parent.appendChild(button);v.button=button;
     }
-    opts.onPlayback?.();
-   }
+   opts.onPlayback?.();
+  };
+  const hasFrameCallback=typeof video.requestVideoFrameCallback==='function';
+  if(hasFrameCallback){
+   try{video.requestVideoFrameCallback((_now,frame)=>{
+    if(active()&&Number(frame?.presentedFrames||0)>0)markPlayback();
+   })}catch(_){}
+  }
+  const onTime=()=>{
+   if(!active())return;
+   const quality=video.getVideoPlaybackQuality?.();
+   if(Number(quality?.totalVideoFrames||0)>0)markPlayback();
+   else if(!hasFrameCallback && video.videoWidth>0 && video.readyState>=2 && video.currentTime>.1)markPlayback();
+  };
+  let lastRecover=0;
+  const onStall=()=>{
+   if(!active()||Date.now()-lastRecover<1300)return;
+   if(seekToLiveEdge(video))lastRecover=Date.now();
+   video.play?.().catch(()=>{});
   };
   video.addEventListener('timeupdate',onTime);
-  v.cleanup=()=>video.removeEventListener('timeupdate',onTime);
+  video.addEventListener('waiting',onStall);
+  video.addEventListener('stalled',onStall);
+  v.cleanup=()=>{
+   video.removeEventListener('timeupdate',onTime);
+   video.removeEventListener('waiting',onStall);
+   video.removeEventListener('stalled',onStall);
+  };
   ms.addEventListener('sourceopen',async()=>{
    let seq=0;
    try{
@@ -137,12 +181,11 @@
      if(seq<state.firstSeq)throw Error('Relay lagged');
      while(seq<=state.lastSeq && active()){
       await append(sb,await segment(room,seq++),active);
-      if(video.buffered?.length){
-       const end=video.buffered.end(video.buffered.length-1);
-       if(end-video.currentTime>7 && end>3)video.currentTime=end-2;
-      }
+      // Seek only to a time actually covered by the latest buffered range.
+      seekToLiveEdge(video);
       video.play?.().catch(()=>{});
      }
+     seekToLiveEdge(video);
      onTime();
      await wait(800);
     }
@@ -156,5 +199,5 @@
   },16000);
   return true;
  }
- window.SwappBrowserRelay={startPublisher,stopPublisher,startViewer,stopViewer,isViewing};
+ window.SwappBrowserRelay={startPublisher,stopPublisher,startViewer,stopViewer,isViewing,seekToLiveEdge};
 })();
