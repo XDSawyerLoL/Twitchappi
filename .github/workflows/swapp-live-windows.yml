@@ -7,6 +7,9 @@ on:
       - .github/workflows/swapp-live-windows.yml
       - 'local-agent/**'
       - test/swapp-local-tunnel.test.js
+      - test/swapp-browser-http-relay.test.js
+      - test/swapp-native-webrtc-transport.test.js
+      - test/swapp-native-live-public.test.js
   workflow_dispatch:
 
 permissions:
