@@ -49,5 +49,5 @@ test('embedded interface JavaScript compiles and is no longer dependent on user 
  assert.doesNotThrow(()=>new vm.Script(script,{filename:'swapp-local-ui-inline.js'}));
  assert.ok(!script.includes('site_url:document.getElementById'));
  assert.match(script,/JSON\.stringify\(\{key:currentKey\(\)\}\)/);
- assert.match(server,/version:'1\.0\.7'/);
+ assert.match(server,/version:'1\.0\.9'/);
 });
