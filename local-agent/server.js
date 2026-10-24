@@ -48,6 +48,7 @@ let sshTunnelProcess = null;
 let sshTunnelLastLog = '';
 let repairingTunnel = false;
 let tunnelStartPromise = null;
+let directRelayUplink = null;
 let cloudflareCooldownUntil = (()=>{try{return Number(JSON.parse(fs.readFileSync(TUNNEL_COOLDOWN_FILE,'utf8')).until)||0}catch(_){return 0}})();
 function noteCloudflare429(){
  cloudflareCooldownUntil=Date.now()+CLOUDFLARE_429_COOLDOWN_MS;
@@ -95,8 +96,14 @@ function hlsDir(key = currentConfiguredKey()) { return path.join(MEDIA_ROOT, 'li
 function hlsPath(key = currentConfiguredKey()) { return path.join(hlsDir(key), 'index.m3u8'); }
 function hlsUrl(key = currentConfiguredKey()) { return `${LOCAL_BASE_URL}/hls/${encodeURIComponent(safeKey(key))}/index.m3u8`; }
 function playerUrl(key = currentConfiguredKey()) { return `${LOCAL_BASE_URL}/player/${encodeURIComponent(safeKey(key))}`; }
-function publicPlayerUrl(key = currentConfiguredKey()) { return publicTunnelInfo?.url ? `${publicTunnelInfo.url}/player/${encodeURIComponent(safeKey(key))}` : ''; }
-function publicStatusUrl() { return publicTunnelInfo?.url ? `${publicTunnelInfo.url}/health` : ''; }
+function publicPlayerUrl(key = currentConfiguredKey()) {
+ if(publicTunnelInfo?.provider==='swapp-direct-hls')return `${publicTunnelInfo.url}/api/oryon/local-relay/${encodeURIComponent(publicTunnelInfo.login)}/player`;
+ return publicTunnelInfo?.url ? `${publicTunnelInfo.url}/player/${encodeURIComponent(safeKey(key))}` : '';
+}
+function publicStatusUrl() {
+ if(publicTunnelInfo?.provider==='swapp-direct-hls')return `${publicTunnelInfo.url}/api/oryon/local-relay/${encodeURIComponent(publicTunnelInfo.login)}/state`;
+ return publicTunnelInfo?.url ? `${publicTunnelInfo.url}/health` : '';
+}
 function ffmpegInfo() { return { path: FFMPEG_PATH, bundled: Boolean(bundledFfmpeg), exists: FFMPEG_PATH === 'ffmpeg' ? null : fs.existsSync(FFMPEG_PATH), mode: TRANSCODE_MODE }; }
 function listFiles(dir) { try { return fs.readdirSync(dir); } catch (_) { return []; } }
 function streamStatus(key = currentConfiguredKey()) {
@@ -176,7 +183,11 @@ nms.on('donePublish', (_id, streamPath) => {
   delete active[key];
   stopHlsTransmux(key);
   log('rtmp', 'Flux OBS arrêté', { streamPath, key });
-  if (publishedLiveKey === key) publishedLiveKey = null;
+  if (publishedLiveKey === key) {
+    publishedLiveKey = null;
+    if(directRelayUplink){try{directRelayUplink.stop()}catch(_){} directRelayUplink=null}
+    publicTunnelInfo=null;
+  }
   setTimeout(() => sendHeartbeatToSwapp(key, false).catch(()=>{}), 250);
 });
 try { nms.run(); log('system', 'Serveur RTMP lancé', { rtmp: `rtmp://127.0.0.1:${RTMP_PORT}/live`, ffmpeg: ffmpegInfo() }); } catch (e) { log('error', 'RTMP impossible', { error: e.message }); }
@@ -273,6 +284,13 @@ async function validatePublicTunnel(url, timeoutMs = TUNNEL_CHECK_TIMEOUT_MS) {
   const base = normalizePublicBaseUrl(url);
   if (isBlockedTunnelUrl(base)) throw new Error('Tunnel localtunnel/loca.lt refusé : page de sécurité non lisible par Swapp.');
   const parsed = new URL(base);
+  if(publicTunnelInfo?.provider==='swapp-direct-hls' && publicTunnelInfo.url===base){
+   const stateUrl=publicStatusUrl();
+   const result=await withTimeout(fetch(stateUrl,{cache:'no-store'}),8000,'Relais SWAPP inaccessible');
+   const body=await result.json().catch(()=>({}));
+   if(!result.ok||!body.active||!body.segment_count)throw new Error('Relais direct SWAPP inactif ou fragments vidéo manquants');
+   return {ok:true,url:base,health:body};
+  }
   const start = Date.now();
   let lastErr = '';
   while (Date.now() - start < timeoutMs) {
@@ -341,12 +359,52 @@ async function startCloudflaredProviderOnce() {
   });
 }
 async function stopPublicTunnel() {
+  if(directRelayUplink){try{directRelayUplink.stop()}catch(_){} directRelayUplink=null}
   if (sshTunnelProcess) { try { sshTunnelProcess.kill(); } catch (_) {} }
   sshTunnelProcess = null;
   if (cloudflaredProcess) { try { cloudflaredProcess.kill(); } catch (_) {} }
   cloudflaredProcess = null;
   publicTunnelInfo = null;
   return { success: true };
+}
+// Prefer the existing SWAPP hosting over any third-party temporary tunnel.
+// OBS/FFmpeg produce HLS locally, and only the media fragments go to swapp.tv
+// using the connected user's existing bearer token.
+async function trySwappDirectRelay(key){
+ const st=streamStatus(key);
+ if(!st.active||!st.hls_exists)return null;
+ const cfg=loadLocalConfig();
+ const login=String(cfg.user?.login||'').toLowerCase();
+ if(!cfg.token||!/^[a-z0-9_-]{2,48}$/.test(login))return null;
+ const siteUrl=cleanSiteUrl(cfg.site_url||DEFAULT_SWAPP_SITE_URL);
+ if(!siteUrl.startsWith('https://'))return null;
+ let response;
+ try{
+  response=await withTimeout(fetch(siteUrl+'/api/oryon/local-relay/capabilities',{cache:'no-store'}),8000,'Site SWAPP indisponible');
+ }catch(e){log('warn','Relais direct SWAPP non joignable',{error:e.message});return null}
+ const capabilities=await response.json().catch(()=>({}));
+ if(!response.ok||!capabilities.success||capabilities.transport!=='swapp-direct-hls'){
+  log('warn','Le déploiement Hostinger ne propose pas encore le relais direct',{http:response.status});
+  return null;
+ }
+ const {startSwappHlsUplink}=require('./swapp-direct-uplink');
+ if(directRelayUplink){try{directRelayUplink.stop()}catch(_){} directRelayUplink=null}
+ const uploader=startSwappHlsUplink({key,login,siteUrl,token:cfg.token,
+  mediaDir:hlsDir(key),fetchFn:fetch,
+  isLive:()=>!!streamStatus(key).active,
+  onLog:log});
+ directRelayUplink=uploader;
+ try{
+  await uploader.ready;
+  if(directRelayUplink!==uploader)throw new Error('Relais SWAPP remplacé');
+  publicTunnelInfo={url:siteUrl,startedAt:new Date().toISOString(),provider:'swapp-direct-hls',login};
+  log('publish','Relais vidéo direct actif : aucun tunnel externe nécessaire',{url:publicPlayerUrl(key)});
+  return publicTunnelInfo;
+ }catch(e){
+  log('warn','Relais direct SWAPP impossible, autres accès possibles',{error:e.message});
+  if(directRelayUplink===uploader){uploader.stop();directRelayUplink=null}
+  return null;
+ }
 }
 // Free, no-account SSH tunnel using the OpenSSH client shipped with Windows.
 // Only the isolated public video server on port 8082 is exposed.
@@ -397,7 +455,7 @@ async function startLocalhostRunProviderOnce(){
   throw e;
  });
 }
-async function actuallyStartPublicTunnel(provider){
+async function actuallyStartPublicTunnel(provider,key=currentConfiguredKey()){
  const requested=String(provider||'auto').toLowerCase();
  if(requested==='localtunnel'||requested==='loca.lt')
   throw new Error('localtunnel/loca.lt reste désactivé: sa page de sécurité bloque le lecteur.');
@@ -406,6 +464,11 @@ async function actuallyStartPublicTunnel(provider){
   catch(e){log('warn','Tunnel précédent inaccessible, changement de tunnel',{error:e.message});await stopPublicTunnel()}
  }
  const failures=[];
+ if(requested==='auto'||requested==='swapp-direct'){
+  const direct=await trySwappDirectRelay(key);
+  if(direct)return direct;
+  if(requested==='swapp-direct')throw new Error('Relais direct SWAPP indisponible : vérifie le déploiement Hostinger et les droits du compte.');
+ }
  if(requested==='auto'||requested==='cloudflared'||requested==='cloudflare'){
   if(cloudflareCooldownUntil>Date.now()){
    failures.push('Cloudflare 429: pause active jusqu’à '+new Date(cloudflareCooldownUntil).toLocaleTimeString('fr-FR'));
@@ -434,19 +497,19 @@ async function actuallyStartPublicTunnel(provider){
  throw new Error('Aucun tunnel public opérationnel. '+failures.join(' | ')+
   '. Le secours localhost.run est gratuit mais soumis à des limites de débit.');
 }
-async function startPublicTunnel(provider='auto'){
+async function startPublicTunnel(provider='auto',key=currentConfiguredKey()){
  if(tunnelStartPromise)return tunnelStartPromise;
- const pending=actuallyStartPublicTunnel(provider);
+ const pending=actuallyStartPublicTunnel(provider,key);
  tunnelStartPromise=pending;
  try{return await pending}finally{if(tunnelStartPromise===pending)tunnelStartPromise=null}
 }
 async function ensureValidTunnelForLive(key) {
-  if (!publicTunnelInfo?.url) return await startPublicTunnel('auto');
+  if (!publicTunnelInfo?.url) return await startPublicTunnel('auto',key);
   try { await validatePublicTunnel(publicTunnelInfo.url, 9000); return publicTunnelInfo; }
   catch (e) {
     log('warn', 'Tunnel mort pendant live, refresh automatique', { error: e.message });
     await stopPublicTunnel();
-    const info = await startPublicTunnel('auto');
+    const info = await startPublicTunnel('auto',key);
     if (key) await registerPublicUrlOnSwapp({ key });
     return info;
   }
@@ -455,7 +518,9 @@ async function ensureValidTunnelForLive(key) {
 // must both be available from the *public* tunnel before announcing live.
 async function validatePublicVideo(key) {
   const k=safeKey(key);
-  const manifestUrl=`${publicTunnelInfo.url}/hls/${encodeURIComponent(k)}/index.m3u8`;
+  const manifestUrl=publicTunnelInfo.provider==='swapp-direct-hls'
+   ? `${publicTunnelInfo.url}/api/oryon/local-relay/${encodeURIComponent(publicTunnelInfo.login)}/index.m3u8`
+   : `${publicTunnelInfo.url}/hls/${encodeURIComponent(k)}/index.m3u8`;
   const response=await withTimeout(fetch(manifestUrl,{cache:'no-store'}),10000,'Délai playlist HLS publique dépassé');
   if(!response.ok)throw new Error(`Playlist HLS inaccessible depuis Internet (HTTP ${response.status})`);
   const playlist=await response.text();
@@ -508,7 +573,7 @@ async function repairTunnelNow(key = currentConfiguredKey()) {
   repairingTunnel = true;
   try {
     // Keep an already valid URL; repair only if validation fails.
-    await startPublicTunnel('auto');
+    await startPublicTunnel('auto',key);
     const st=streamStatus(key);
     if(!st.active||!st.hls_exists){
       log('tunnel','Tunnel réparé : en attente du signal OBS avant publication');
@@ -624,7 +689,7 @@ app.post('/api/go-live', async (req, res) => {
     const st = await waitForHlsReady(key, 45000);
     if (!st.active) return res.status(400).json({ success:false, error:`Aucun flux OBS détecté. Mets OBS sur rtmp://127.0.0.1:${RTMP_PORT}/live avec ta clé Swapp.` });
     if (!st.hls_exists) return res.status(400).json({ success:false, error:'OBS est détecté, mais le player local n’est pas encore prêt. Attends 5 à 15 secondes puis réessaie.' });
-    await startPublicTunnel('auto');
+    await startPublicTunnel('auto',key);
     const result = await registerPublicUrlOnSwapp({ siteUrl: req.body?.site_url, key });
     const heartbeat=await sendHeartbeatToSwapp(key, true);
     if(!heartbeat)throw new Error('Le tunnel vidéo fonctionne, mais SWAPP ne confirme pas le statut En direct. Vérifie ta connexion au compte.');
@@ -650,7 +715,7 @@ app.get('/api/tunnel/status', async (req, res) => {
   }
   res.json({ success:true, active:Boolean(publicTunnelInfo?.url), valid, error, tunnel:publicTunnelInfo, player_url:valid?publicPlayerUrl(key):'', status_url:valid?publicStatusUrl():'', ...tunnelDiagnostics() });
 });
-app.post('/api/publish-to-oryon', async (req, res) => { try { const cfg = loadLocalConfig(); const key = safeKey(req.body?.key || cfg.stream_key || DEFAULT_KEY); if (!cfg.token) return res.status(401).json({ success:false, error:'Connecte d’abord ton compte Swapp.' }); if (!publicTunnelInfo?.url) await startPublicTunnel('auto'); const result = await registerPublicUrlOnSwapp({ siteUrl:req.body?.site_url, key }); res.json(result); } catch(e) { res.status(500).json({ success:false, error:e.message }); } });
+app.post('/api/publish-to-oryon', async (req, res) => { try { const cfg = loadLocalConfig(); const key = safeKey(req.body?.key || cfg.stream_key || DEFAULT_KEY); if (!cfg.token) return res.status(401).json({ success:false, error:'Connecte d’abord ton compte Swapp.' }); if (!publicTunnelInfo?.url) await startPublicTunnel('auto',key); const result = await registerPublicUrlOnSwapp({ siteUrl:req.body?.site_url, key }); res.json(result); } catch(e) { res.status(500).json({ success:false, error:e.message }); } });
 app.post('/api/heartbeat', async (req, res) => {
   try {
     const cfg = loadLocalConfig();
