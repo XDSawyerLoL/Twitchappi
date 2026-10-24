@@ -1,13 +1,14 @@
 {
   "name": "swapp-local-app",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
-  "description": "SWAPP Live — encodeur local OBS, lecteur HLS et tunnel public, sans console Windows",
+  "description": "SWAPP Live — OBS, HLS public isolé et Cloudflare Tunnel préinstallé sans console Windows",
   "main": "main.js",
   "dependencies": {
     "express": "^4.21.2",
     "node-media-server": "^2.7.0",
-    "ffmpeg-static": "^5.2.0"
+    "ffmpeg-static": "^5.2.0",
+    "hls.js": "^1.6.15"
   },
   "author": "Swapp",
   "productName": "Swapp Local",
@@ -55,6 +56,12 @@
     },
     "portable": {
       "artifactName": "SWAPP-Live-Portable-${version}-${arch}.${ext}"
-    }
+    },
+    "extraResources": [
+      {
+        "from": "bin/cloudflared.exe",
+        "to": "bin/cloudflared.exe"
+      }
+    ]
   }
 }
