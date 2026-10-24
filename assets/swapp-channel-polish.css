@@ -347,3 +347,17 @@
   font-size:11px!important;
  }
 }
+
+/* An active camera preview must not retain the offline overlay from the manager. */
+#manager #managerPreviewEmpty[hidden]{display:none!important;visibility:hidden!important;pointer-events:none!important}
+#manager #streamViewerReadiness{flex:1 1 250px;line-height:1.5;color:var(--muted,#a8b7cb)}
+#channel .oryonMainPlayer{position:relative}
+#channel .swapp-unmute-stream{
+ position:absolute;z-index:12;left:16px;bottom:16px;
+ display:inline-flex;align-items:center;justify-content:center;min-height:40px;
+ background:var(--brand,#b24af1);color:#fff;border:1px solid rgba(255,255,255,.22);
+ border-radius:10px;padding:8px 14px;font-weight:700;cursor:pointer;
+ box-shadow:0 8px 26px rgba(0,0,0,.45);
+}
+#channel .swapp-unmute-stream:focus-visible{outline:3px solid #fff;outline-offset:3px}
+@media(max-width:620px){#channel .swapp-unmute-stream{bottom:10px;left:10px;min-height:44px}}
