@@ -4807,7 +4807,7 @@ async function renderChannel(){
   const agentLive=!browserLive && (
     (!!liveRoom && liveRoom.local_agent===true) ||
     livePing?.source==='local-agent' ||
-    !!(p.local_agent_live && swappSafeLocalPlayerUrl(p.oryon_local_player_url)));
+    (!livePing?.success && !!(p.local_agent_live && swappSafeLocalPlayerUrl(p.oryon_local_player_url))));
   const transport=browserLive?'browser-webrtc':agentLive?'local-agent':'offline';
   const isLive=browserLive || agentLive || (!!liveRoom) || !!livePing?.is_live;
   state.channelProfile=p; state.channelOwner=isOwner;
