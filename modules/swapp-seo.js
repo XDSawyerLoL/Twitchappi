@@ -141,6 +141,7 @@ function injectCreatorMetadata(html,creator,login,opts={}){
   }catch(_){return ''}
  }
  const poster=live&&opts.posterUrl?safeImage(opts.posterUrl):'';
+ const clip=live&&opts.clipUrl?safeImage(opts.clipUrl):'';
  if(poster){
   image=poster;imageIsLive=true;
  }else{
@@ -169,8 +170,9 @@ function injectCreatorMetadata(html,creator,login,opts={}){
  // Discord Components link previews can provide a large screenshot plus a
  // clearly labeled Watch button. Ordinary OG tags above remain the fallback.
  if(live){
-  const components=[{type:10,content:'## 🔴 '+name+' est en direct sur SWAPP\nRejoins le live et le chat.'}];
-  if(image)components.push({type:12,items:[{media:{url:image},description:'Aperçu du direct de '+name}]});
+  const components=[{type:10,content:'## 🔴 '+name+' est en direct sur SWAPP\n'+(clip?'▶ Lance l’extrait vidéo ci-dessous puis rejoins le direct.':'Rejoins le live et le chat.')}];
+  if(clip)components.push({type:12,items:[{media:{url:clip},description:'▶ Extrait vidéo de 10 secondes du direct de '+name}]});
+  else if(image)components.push({type:12,items:[{media:{url:image},description:'Aperçu du direct de '+name}]});
   components.push({type:1,components:[{type:2,style:5,label:'Regarder le direct',url}]});
   const payload={component:{type:17,accent_color:8879087,components}};
   tags+='<script id="discord:component-embed" type="application/json">'+
