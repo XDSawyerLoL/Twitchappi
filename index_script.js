@@ -399,9 +399,12 @@ async function renderManager(){
  let local=await api('/api/oryon/local-agent/config').catch(()=>({success:false}));
  $('#manager').innerHTML=creatorShell('manager',`<div class="pageHead"><div><h1>Gestionnaire de stream</h1><p>Deux méthodes utiles : live navigateur rapide ou OBS avec Swapp Live.</p></div><span class="pill">Compte : ${esc(u.login)}</span></div>
  <div class="streamModeGrid section"><div class="modeCard active"><span class="pill">Navigateur</span><h2>Écran / caméra</h2><p class="muted">Sans installation. Idéal pour tester rapidement.</p></div><div class="modeCard active"><span class="pill">OBS</span><h2>Swapp Live</h2><p class="muted">L’app sur ton PC reçoit OBS et publie le live sur ta chaîne Swapp.</p></div></div>
- <div class="managerHero section"><div class="panel"><h2>Lancer un live navigateur</h2><p class="muted">Capture écran/caméra en 1080p idéal. Le live apparaît sur l’accueil et sur ta chaîne.</p><div class="three"><input id="liveTitle" placeholder="Titre du live" value="Live de ${esc(u.display_name||u.login)}"><input id="liveCategory" placeholder="Catégorie"><input id="liveTags" placeholder="tags : RP, chill, FR"></div><div class="three section"><select id="liveQuality"><option value="1080" selected>1080p recommandé</option><option value="720">720p léger</option></select><select id="liveSource"><option value="screen" selected>Partage écran</option><option value="screen-camera">Écran + caméra incrustée</option><option value="camera">Caméra</option><option value="obs">OBS avec Swapp Live</option></select><button id="startLiveBtn" class="btn good" onclick="if($('#liveSource')?.value==='obs'){document.getElementById('oryonLivePanel')?.scrollIntoView({behavior:'smooth'});toast('Lance Swapp Live puis OBS.')}else startLive()">Lancer en direct</button><button id="stopLiveBtn" class="btn bad hidden" onclick="stopLive()">Arrêter le live</button></div><div class="row section"><span id="streamStateBadge" class="pill">Hors ligne</span><button class="btn ghost" onclick="state.watchRoom=null;setView('channel')">Voir ma chaîne</button><button class="btn ghost" onclick="setView('settings')">Image hors live</button></div><div class="managerPreview section"><h2>Prévisualisation</h2><div class="player premiumPlayer"><video id="localVideo" autoplay muted playsinline></video><div id="managerPreviewEmpty" class="offlineOverlay"><div><h2>Hors ligne</h2><p class="muted">Choisis Navigateur pour prévisualiser ici. Choisis OBS avec Swapp Live pour utiliser l’app.</p></div></div></div></div></div>
+ <div class="managerHero section"><div class="panel"><h2>Lancer un live navigateur</h2><p class="muted">Capture écran/caméra en 1080p idéal. Le live apparaît sur l’accueil et sur ta chaîne.</p><div class="three"><input id="liveTitle" placeholder="Titre du live" value="Live de ${esc(u.display_name||u.login)}"><input id="liveCategory" placeholder="Catégorie"><input id="liveTags" placeholder="tags : RP, chill, FR"></div><div class="three section"><select id="liveQuality"><option value="1080" selected>1080p recommandé</option><option value="720">720p léger</option></select><select id="liveSource"><option value="screen" selected>Partage écran</option><option value="screen-camera">Écran + caméra incrustée</option><option value="camera">Caméra</option><option value="obs">OBS avec Swapp Live</option></select><button id="startLiveBtn" class="btn good" onclick="if($('#liveSource')?.value==='obs'){document.getElementById('oryonLivePanel')?.scrollIntoView({behavior:'smooth'});toast('Lance Swapp Live puis OBS.')}else startLive()">Lancer en direct</button><button id="stopLiveBtn" class="btn bad hidden" onclick="stopLive()">Arrêter le live</button></div><div class="row section"><span id="streamStateBadge" class="pill">Hors ligne</span><span id="streamViewerReadiness" class="small" role="status" aria-live="polite">Aucune diffusion publiée.</span><button class="btn ghost" onclick="state.watchRoom=null;setView('channel')">Voir ma chaîne</button><button class="btn ghost" onclick="setView('settings')">Image hors live</button></div><div class="managerPreview section"><h2>Prévisualisation</h2><div class="player premiumPlayer"><video id="localVideo" autoplay muted playsinline></video><div id="managerPreviewEmpty" class="offlineOverlay"><div><h2>Hors ligne</h2><p class="muted">Choisis Navigateur pour prévisualiser ici. Choisis OBS avec Swapp Live pour utiliser l’app.</p></div></div></div></div></div>
  <aside class="obsBox" id="oryonLivePanel"><h2>OBS avec Swapp Live</h2><p class="muted">Télécharge l’app, connecte ton compte Swapp, puis clique Démarrer sur Swapp dans l’app.</p><div class="summaryItem downloadAppCard"><b>Application Swapp Live</b><p class="small">Ton PC reçoit OBS et publie automatiquement le player sur ta chaîne.</p><a class="btn good" href="${esc(local.download_url||'/downloads/oryon-local-app.zip')}" download>Télécharger Swapp Live</a></div><div class="summaryItem section"><b>Réglage OBS</b><div class="codeBox" id="obsLocalConfig">Serveur : ${esc(local.local_rtmp_url||'rtmp://127.0.0.1:1935/live')}<br>Clé : ${esc(cfg.stream_key||local.stream_key||'ta_clé_oryon')}</div><button class="btn secondary section" onclick="copyText('#obsLocalConfig')">Copier config OBS</button><p class="small">Dans OBS : Service personnalisé. Désactive Vidéo multipiste.</p></div></aside></div>`);
- attachCurrentStream(); updateLiveUi(!!state.stream)
+ attachCurrentStream(); updateLiveUi(!!state.stream && !!state.nativeLiveConfirmed);
+ const status=$('#streamViewerReadiness');
+ if(status && state.stream && state.nativeLiveConfirmed)status.textContent='Diffusion publiée. En attente de validation vidéo côté spectateurs.';
+ else if(status && state.stream)status.textContent='Capture locale active. Connexion au serveur en cours…';
 }
 
 function copyText(sel){const el=$(sel); if(!el)return; navigator.clipboard?.writeText(el.textContent||''); toast('Copié')}
@@ -601,7 +604,18 @@ async function loadPlanning(){
 }
 async function logoutOryon(){await api('/api/oryon/logout',{method:'POST'}); state.session.local=null; if(state.socket){state.socket.disconnect();state.socket=null;state.socketLogin=null} await loadSession(); setView('home'); toast('Déconnecté')}
 async function renderAdmin(){if(!isAdmin())return setView('home'); $('#admin').innerHTML=`<div class="pageHead"><div><h1>Admin</h1><p>Réservé aux comptes configurés dans ORYON_ADMIN_LOGINS.</p></div></div><div id="adminBox" class="panel">Chargement…</div>`; const r=await api('/api/oryon/admin/summary'); $('#adminBox').innerHTML=r.success?`<div class="stats">${Object.entries(r.stats).map(([k,v])=>`<div class="stat"><span class="small">${k}</span><b>${v}</b></div>`).join('')}</div><h2 class="section">Signalements</h2>${(r.reports||[]).map(x=>`<p>${esc(x.user)} → ${esc(x.target||x.room)} : ${esc(x.reason)}</p>`).join('')||'<p class="muted">Aucun signalement.</p>'}`:esc(r.error)}
-function attachCurrentStream(){const v=$('#localVideo'); if(v&&state.stream){v.srcObject=state.stream; v.muted=true; v.playsInline=true; v.autoplay=true; v.classList.remove('hidden'); v.style.display='block'; v.play?.().catch(()=>{}); const e=$('#managerPreviewEmpty'); if(e){e.classList.add('hidden'); e.style.display='none';} const off=$('#offlinePanel'); if(off) off.style.display='none';} else {const e=$('#managerPreviewEmpty'); if(e){e.classList.remove('hidden'); e.style.display='grid';}}}
+function attachCurrentStream(){
+ const video=$('#localVideo'),empty=$('#managerPreviewEmpty');
+ if(video && state.stream){
+  video.srcObject=state.stream;video.muted=true;video.playsInline=true;video.autoplay=true;
+  video.classList.remove('hidden');video.style.display='block';video.play?.().catch(()=>{});
+  if(empty){empty.hidden=true;empty.setAttribute('aria-hidden','true');empty.classList.add('hidden');empty.style.setProperty('display','none','important');}
+  const off=$('#offlinePanel');if(off)off.style.display='none';
+ }else if(empty){
+  empty.hidden=false;empty.removeAttribute('aria-hidden');empty.classList.remove('hidden');
+  empty.style.setProperty('display','grid','important');
+ }
+}
 function updateLiveUi(isLive){const start=$('#startLiveBtn'), stop=$('#stopLiveBtn'); if(start) start.classList.toggle('hidden',!!isLive); if(stop) stop.classList.toggle('hidden',!isLive); const badge=$('#streamStateBadge'); if(badge) badge.textContent=isLive?'🔴 En direct':'Hors ligne'; const cb=$('#channelLiveBadge'); if(cb) cb.textContent=isLive?'🔴 En direct':'Hors ligne'; const launch=$('#channelLaunchBtn'); if(launch) launch.textContent=isLive?'Gérer le live':'Préparer / lancer';}
 // A published room is not a received video. These states are deliberately separate.
 function swappVideoNotice(heading,description,action){
@@ -616,7 +630,7 @@ function swappVideoNotice(heading,description,action){
   const btn=document.createElement('button');
   btn.type='button';btn.className='btn';btn.dataset.swappRetryVideo='1';
   btn.textContent=action;
-  btn.onclick=()=>retryWatch();
+  btn.onclick=action==='Lancer la vidéo'?swappStartRemotePlayback:retryWatch;
   (body?.parentNode||off).appendChild(btn);
  }
 }
@@ -666,6 +680,7 @@ function setupSocket(){
    state.nativeLiveConfirmed=false;state.nativeLivePending=true;updateLiveUi(false);
    $('#startLiveBtn')?.classList.add('hidden');$('#stopLiveBtn')?.classList.remove('hidden');
    const badge=$('#streamStateBadge');if(badge)badge.textContent='Connexion au serveur…';
+   const status=$('#streamViewerReadiness');if(status)status.textContent='Capture locale active. Diffusion publique en reconnexion…';
    state.socket.emit('native:create',state.nativeLiveInfo);
    return;
   }
@@ -824,7 +839,7 @@ async function peer(id){
   };
   v.onerror=()=>{swappSetVideoPlayback(false);swappVideoNotice('Lecture interrompue','Le navigateur ne parvient pas à décoder ce direct.','Relancer la vidéo');};
   const playback=v.play?.();
-  if(playback?.catch)playback.catch(()=>swappVideoNotice('Lecture en attente','Appuie pour lancer la vidéo sur ce navigateur.','Relancer la vidéo'));
+  if(playback?.catch)playback.catch(()=>swappVideoNotice('Lecture en attente','Appuie pour lancer la vidéo sur ce navigateur.','Lancer la vidéo'));
  };
  return pc;
 }
@@ -854,7 +869,7 @@ async function startLive(){
  clearTimeout(state.nativeLiveAckTimer);
  state.nativeLiveAckTimer=setTimeout(()=>{if(state.stream && !state.nativeLiveConfirmed){stopLive();toast('Impossible de confirmer la diffusion publique SWAPP.');}},20000);
 }
-function stopLive(stopTracks=true){clearTimeout(state.nativeLiveAckTimer);state.nativeLiveAckTimer=null;state.nativeLiveConfirmed=false;state.nativeLivePending=false;state.nativeLiveInfo=null;if(stopTracks){ state.stream?._oryonSources?.forEach(src=>src.getTracks().forEach(t=>t.stop())); state.stream?.getTracks().forEach(t=>t.stop()); } state.stream=null; if(state.socket) state.socket.emit('native:leave'); Object.values(state.peers||{}).forEach(pc=>{try{pc.close()}catch{}}); state.peers={}; updateLiveUi(false); const v=$('#localVideo'); if(v) v.srcObject=null; $('#offlinePanel')&&( $('#offlinePanel').style.display='block'); $('#managerPreviewEmpty')?.classList.remove('hidden'); toast('Live arrêté')}
+function stopLive(stopTracks=true){clearTimeout(state.nativeLiveAckTimer);state.nativeLiveAckTimer=null;state.nativeLiveConfirmed=false;state.nativeLivePending=false;state.nativeLiveInfo=null;if(stopTracks){ state.stream?._oryonSources?.forEach(src=>src.getTracks().forEach(t=>t.stop())); state.stream?.getTracks().forEach(t=>t.stop()); } state.stream=null; if(state.socket) state.socket.emit('native:leave'); Object.values(state.peers||{}).forEach(pc=>{try{pc.close()}catch{}}); state.peers={}; updateLiveUi(false); const v=$('#localVideo'); if(v) v.srcObject=null; $('#offlinePanel')&&( $('#offlinePanel').style.display='block'); (()=>{const e=$('#managerPreviewEmpty');if(e){e.hidden=false;e.removeAttribute('aria-hidden');e.classList.remove('hidden');e.style.setProperty('display','grid','important');}})();toast('Live arrêté')}
 function openOryon(room){state.watchRoom=String(room||'').toLowerCase(); const item=(state.zap.items||[]).find(x=>(x.host_login||x.room)===state.watchRoom)||{platform:'oryon',host_login:state.watchRoom,host_name:state.watchRoom}; trackDiscovery(item); state.room=state.watchRoom; setMiniLive({type:'oryon',login:state.watchRoom,title:'Swapp · '+state.watchRoom}); setView('channel')}
 function sendChat(){if(!state.room)return toast('Aucun salon Swapp actif'); if(!state.socket)setupSocket(); if(!state.session.local)return toast('Connecte-toi à Swapp pour écrire dans le tchat natif.'); state.socket.emit('native:chat',{room:state.room,text:$('#chatInput').value,gif:state.selectedGif,emote:state.selectedEmote?{code:state.selectedEmote.code,image_url:state.selectedEmote.image_url}:null}); $('#chatInput').value=''; state.selectedGif=''; state.selectedEmote=null; $('#gifGrid')?.classList.add('hidden')}
 function msgHtml(m){return `<div class="msg"><b>${esc(m.user_display||m.user)}</b> <span class="small">${new Date(m.ts).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</span><div>${esc(m.text||'')}</div>${m.emote?`<img src="${esc(m.emote.image_url)}" title=":${esc(m.emote.code)}:">`:''}${m.gif?`<img src="${esc(m.gif)}">`:''}</div>`}
