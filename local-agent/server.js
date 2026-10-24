@@ -394,12 +394,13 @@ async function trySwappDirectRelay(key){
   response=await withTimeout(fetch(siteUrl+'/api/oryon/local-relay/capabilities',{cache:'no-store'}),8000,'Site SWAPP indisponible');
  }catch(e){log('error','Relais direct SWAPP non joignable',{error:e.message});throw new Error('Le site SWAPP ne répond pas : '+e.message)}
  const capabilities=await response.json().catch(()=>({}));
- if(!response.ok||!capabilities.success||capabilities.transport!=='swapp-direct-hls'){
+ if(!response.ok||!capabilities.success||capabilities.transport!=='swapp-direct-hls'||Number(capabilities.version)<2){
   throw new Error('Le relais direct SWAPP est absent sur Hostinger (HTTP '+response.status+'). Il faut déployer la branche master sur swapp.tv avant de lancer OBS.');
  }
  const {startSwappHlsUplink}=require('./swapp-direct-uplink');
  if(directRelayUplink){try{directRelayUplink.stop()}catch(_){} directRelayUplink=null}
  const uploader=startSwappHlsUplink({key,login,siteUrl,token:cfg.token,
+  maxSegmentBytes:Math.min(8*1024*1024,Number(capabilities.max_segment_bytes)||8*1024*1024),
   mediaDir:hlsDir(key),fetchFn:fetch,
   isLive:()=>!!streamStatus(key).active,
   onLog:log});
