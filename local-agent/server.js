@@ -351,8 +351,8 @@ async function stopPublicTunnel() {
 // Free, no-account SSH tunnel using the OpenSSH client shipped with Windows.
 // Only the isolated public video server on port 8082 is exposed.
 async function startLocalhostRunProviderOnce(){
- const ssh=process.env.SWAPP_SSH_PATH || (process.platform==='win32'
-   ? path.join(process.env.WINDIR||'C:\\Windows','System32','OpenSSH','ssh.exe') : 'ssh');
+ const systemSsh=path.join(process.env.WINDIR||'C:\\Windows','System32','OpenSSH','ssh.exe');
+ const ssh=process.env.SWAPP_SSH_PATH || (process.platform==='win32'&&fs.existsSync(systemSsh)?systemSsh:'ssh');
  sshTunnelLastLog='';
  const args=['-T','-o','BatchMode=yes','-o','StrictHostKeyChecking=accept-new',
   '-o','ExitOnForwardFailure=yes','-o','ConnectTimeout=15',
