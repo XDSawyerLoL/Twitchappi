@@ -1,8 +1,8 @@
 {
   "name": "swapp-local-app",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "private": true,
-  "description": "SWAPP Live — OBS avec lecteur public et paquet Windows Electron vérifié",
+  "description": "SWAPP Live — OBS avec Cloudflare ou secours SSH gratuit automatique, lecteur volume/plein écran",
   "main": "main.js",
   "dependencies": {
     "express": "^4.21.2",
