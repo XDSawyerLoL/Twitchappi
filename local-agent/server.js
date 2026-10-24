@@ -20,7 +20,7 @@ const DEFAULT_KEY = process.env.ORYON_STREAM_KEY || process.env.SWAPP_STREAM_KEY
 const DEFAULT_SWAPP_SITE_URL = process.env.ORYON_SITE_URL || process.env.SWAPP_SITE_URL || 'https://swapp.tv';
 const FFMPEG_PATH = process.env.FFMPEG_PATH || (bundledFfmpeg && bundledFfmpeg.replace('app.asar'+path.sep,'app.asar.unpacked'+path.sep)) || 'ffmpeg';
 const LOCAL_BASE_URL = `http://127.0.0.1:${HTTP_PORT}`;
-const TRANSCODE_MODE = String(process.env.ORYON_LOCAL_TRANSCODE || process.env.SWAPP_LOCAL_TRANSCODE || 'copy').toLowerCase();
+const TRANSCODE_MODE = String(process.env.SWAPP_LOCAL_TRANSCODE || process.env.ORYON_LOCAL_TRANSCODE || 'transcode').toLowerCase();
 const TUNNEL_RETRIES = Math.min(2, Math.max(1, Number(process.env.SWAPP_TUNNEL_RETRIES || process.env.ORYON_TUNNEL_RETRIES || 1)));
 const CLOUDFLARE_429_COOLDOWN_MS = 30 * 60 * 1000;
 const TUNNEL_CHECK_TIMEOUT_MS = Math.max(8000, Number(process.env.SWAPP_TUNNEL_CHECK_TIMEOUT_MS || 30000));
@@ -143,10 +143,21 @@ function startHlsTransmux(key) {
   const output = hlsPath(k);
   const segmentPattern = path.join(dir, 'seg_%03d.ts');
   const args = ['-hide_banner', '-loglevel', 'warning', '-fflags', 'nobuffer', '-i', input];
-  if (TRANSCODE_MODE === 'transcode') args.push('-c:v', 'libx264', '-preset', 'veryfast', '-tune', 'zerolatency', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-ar', '44100', '-b:a', '128k');
-  else args.push('-c:v', 'copy', '-c:a', 'aac', '-ar', '44100', '-b:a', '128k');
-  args.push('-f', 'hls', '-hls_time', '2', '-hls_list_size', '8', '-hls_flags', 'delete_segments+append_list+omit_endlist', '-hls_segment_filename', segmentPattern, output);
-  log('ffmpeg', 'Démarrage conversion RTMP → HLS', { key: k, input, output, ffmpeg: FFMPEG_PATH });
+  if (TRANSCODE_MODE === 'copy') {
+    // Legacy, unbounded mode for users with 2s OBS keyframes already configured.
+    args.push('-c:v','copy','-c:a','aac','-ar','44100','-b:a','96k');
+  } else {
+    // FFmpeg's HLS muxer only splits on keyframes. With video copy an OBS GOP
+    // can exceed 2 seconds and a single .ts can grow past the upload limit.
+    // Scale down without upscaling, cap bitrate and insert a keyframe every 2s.
+    args.push('-vf',"scale=w='min(1280,iw)':h='min(720,ih)':force_original_aspect_ratio=decrease:force_divisible_by=2",
+      '-c:v','libx264','-preset','veryfast','-tune','zerolatency',
+      '-pix_fmt','yuv420p','-b:v','1600k','-maxrate','2000k','-bufsize','4000k',
+      '-force_key_frames','expr:gte(t,n_forced*2)','-sc_threshold','0',
+      '-c:a','aac','-ar','44100','-b:a','96k');
+  }
+  args.push('-f', 'hls', '-hls_time', '2', '-hls_list_size', '8', '-hls_flags', 'delete_segments+append_list+omit_endlist+independent_segments', '-hls_segment_filename', segmentPattern, output);
+  log('ffmpeg', 'Démarrage conversion RTMP → HLS', { key: k, input, output, ffmpeg: FFMPEG_PATH, mode: TRANSCODE_MODE, target_kbps: TRANSCODE_MODE==='copy'?null:1600, segment_seconds:2 });
   const child = spawn(FFMPEG_PATH, args, { windowsHide: true });
   ffmpegJobs[k] = child;
   child.stderr.on('data', d => { const t = String(d).trim(); if (t) log('ffmpeg', t.slice(0, 1200), { key: k }); });
