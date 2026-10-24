@@ -189,6 +189,16 @@ function attachSwappDirectRelay(app, opts={}){
   res.json({success:true,active:!!r?.manifest&&r.playlistNames.some(n=>r.segments.has(n)),segment_count:r?.segments?.size||0,
    last_manifest_at:r?.lastManifestAt||null,audio_track:r?.audioTrack||'unknown',dvr_seconds:r?Math.round(Math.min(80,historySeconds(r))):0,preview_ready:!!r?.clip});
  });
+ app.get('/api/oryon/local-relay/:login/probe',(req,res)=>{
+  notCached(res);
+  const login=cleanLogin(req.params.login),r=login&&liveRoom(login);
+  const latest=r?.playlistNames?.at(-1)||null;
+  const chunk=latest&&r.segments.get(latest);
+  res.json({success:true,active:!!r?.manifest,instance:process.pid,
+   playlist_ready:!!r?.manifest,segment_ready:!!chunk,latest_segment:latest,
+   latest_bytes:chunk?.length||0,ts_sync_byte:chunk?.[0]===0x47,
+   manifest_age_ms:r?.lastManifestAt?Date.now()-r.lastManifestAt:null});
+ });
  app.get('/api/oryon/local-relay/:login/index.m3u8',(req,res)=>{
   notCached(res);
   const login=cleanLogin(req.params.login),r=login&&liveRoom(login);
