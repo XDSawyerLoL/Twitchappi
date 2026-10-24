@@ -12,6 +12,7 @@ function attachSwappDirectRelay(app, opts={}){
  const rooms=new Map();
  const MAX_ROOMS=Math.max(1,Math.min(2,Number(process.env.SWAPP_DIRECT_RELAY_MAX_ROOMS||2)));
  const MAX_ROOM_BYTES=Math.min(32*1024*1024,Math.max(8*1024*1024,Number(process.env.SWAPP_DIRECT_RELAY_ROOM_BYTES||24*1024*1024)));
+ const MAX_POSTER_BYTES=600*1024;
  const MAX_UPLOAD_BYTES=Math.min(10*1024*1024,Math.max(512*1024,Number(process.env.SWAPP_DIRECT_RELAY_UPLOAD_BYTES||8*1024*1024)));
  const MAX_MINUTE_BYTES=Math.max(4*1024*1024,Math.min(60*1024*1024,Number(process.env.SWAPP_DIRECT_RELAY_MINUTE_BYTES||36*1024*1024)));
  const TTL_MS=55000;
@@ -22,7 +23,7 @@ function attachSwappDirectRelay(app, opts={}){
   res.set('Access-Control-Allow-Origin','*');
  };
  const cleanLogin=v=>/^[a-z0-9_-]{2,48}$/i.test(String(v||''))?String(v).toLowerCase():'';
- const cleanName=v=>/^(?:seg_[0-9]{1,14}\.ts|index\.m3u8)$/.test(String(v||''))?String(v):'';
+ const cleanName=v=>/^(?:seg_[0-9]{1,14}\.ts|index\.m3u8|poster\.jpg)$/.test(String(v||''))?String(v):'';
  function liveRoom(login){
   const room=rooms.get(login);
   if(!room)return null;
@@ -70,12 +71,20 @@ function attachSwappDirectRelay(app, opts={}){
    let room=rooms.get(login);
    if(!room){
     if(rooms.size>=MAX_ROOMS)return res.status(429).json({success:false,error:'Capacité du relais SWAPP atteinte.'});
-    room={segments:new Map(),manifest:null,playlistNames:[],bytes:0,lastManifestAt:now,minuteStarted:now,minuteBytes:0};
+    room={segments:new Map(),manifest:null,playlistNames:[],poster:null,posterAt:0,audioTrack:'unknown',bytes:0,lastManifestAt:now,minuteStarted:now,minuteBytes:0};
     rooms.set(login,room);
    }
    if(now-room.minuteStarted>60000){room.minuteStarted=now;room.minuteBytes=0}
    if(room.minuteBytes+body.length>MAX_MINUTE_BYTES)return res.status(429).json({success:false,error:'Débit du direct trop élevé pour l’hébergement SWAPP. Baisse le bitrate OBS.'});
-   if(name==='index.m3u8'){
+   if(name==='poster.jpg'){
+    // Small public poster only, not arbitrary image uploads or user-supplied paths.
+    if(body.length>MAX_POSTER_BYTES||body[0]!==0xff||body[1]!==0xd8||body[body.length-2]!==0xff||body[body.length-1]!==0xd9)
+     return res.status(422).json({success:false,error:'Vignette JPEG invalide (600 Ko maximum).'});
+    room.poster=Buffer.from(body);
+    room.posterAt=now;
+    const audio=String(req.get('x-swapp-audio-track')||'');
+    if(audio==='present'||audio==='missing')room.audioTrack=audio;
+   }else if(name==='index.m3u8'){
     const names=validatePlaylist(body);
     if(!names.length)return res.status(422).json({success:false,error:'Playlist HLS non valide.'});
     if(names.some(n=>!room.segments.has(n)))return res.status(409).json({success:false,error:'Un segment HLS de cette playlist manque.'});
@@ -98,13 +107,21 @@ function attachSwappDirectRelay(app, opts={}){
   notCached(res);
   const login=cleanLogin(req.params.login),r=login&&liveRoom(login);
   res.json({success:true,active:!!r?.manifest&&r.playlistNames.some(n=>r.segments.has(n)),segment_count:r?.segments?.size||0,
-   last_manifest_at:r?.lastManifestAt||null});
+   last_manifest_at:r?.lastManifestAt||null,audio_track:r?.audioTrack||'unknown'});
  });
  app.get('/api/oryon/local-relay/:login/index.m3u8',(req,res)=>{
   notCached(res);
   const login=cleanLogin(req.params.login),r=login&&liveRoom(login);
   if(!r?.manifest)return res.sendStatus(404);
   res.type('application/vnd.apple.mpegurl').send(r.manifest);
+ });
+ app.get('/api/oryon/local-relay/:login/poster.jpg',(req,res)=>{
+  const login=cleanLogin(req.params.login),r=login&&liveRoom(login);
+  if(!r?.poster)return res.sendStatus(404);
+  // Dynamic live frame: do not serve stale posters when OBS is offline.
+  res.set('Cache-Control','public, max-age=25, s-maxage=25');
+  res.set('X-Content-Type-Options','nosniff');
+  res.type('image/jpeg').send(r.poster);
  });
  app.get('/api/oryon/local-relay/:login/player',(req,res)=>{
   notCached(res);
@@ -124,6 +141,11 @@ function attachSwappDirectRelay(app, opts={}){
   res.type('video/mp2t').send(bytes);
  });
 
- return {rooms,reclaim,validatePlaylist,MAX_ROOMS,MAX_ROOM_BYTES};
+ return {rooms,reclaim,validatePlaylist,MAX_ROOMS,MAX_ROOM_BYTES,
+  posterForLogin(login){
+   const r=liveRoom(cleanLogin(login));
+   return r?.poster&&r?.manifest?{url:'/api/oryon/local-relay/'+encodeURIComponent(login)+'/poster.jpg',updatedAt:r.posterAt,bytes:r.poster.length}:null;
+  }
+ };
 }
 module.exports={attachSwappDirectRelay};

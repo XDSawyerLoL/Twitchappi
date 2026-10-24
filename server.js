@@ -1264,8 +1264,14 @@ async function sendSwappPublicChannelUi(req, res, login){
     try{await ORYON_USERS_READY}catch(_){}
     const creator=getOryonUserByLogin(clean);
     let html = fs.readFileSync(found, 'utf8');
+    const poster=swappDirectRelay.posterForLogin(clean);
+    const isPublic=!!creator&&creator.channel_public!==false;
+    const isLive=isPublic&&(isOryonLiveSignalFresh(creator)||!!poster);
     html=require('./modules/swapp-seo').injectCreatorMetadata(html,
-      creator&&creator.channel_public!==false?creator:null,clean);
+      isPublic?creator:null,clean,{
+        live:isLive,
+        posterUrl:isLive&&poster?'https://swapp.tv'+poster.url+'?v='+Math.floor(poster.updatedAt/25000):''
+      });
     const inject = `<script>window.__SWAPP_INITIAL_PUBLIC_CHANNEL__=${JSON.stringify(clean)};window.__SWAPP_PUBLIC_CHANNEL_URL_LOCK__='/${clean}';try{if(location.pathname!=='/${clean}')history.replaceState({swappPublicChannel:true},'',('/${clean}')+(location.search||'')+(location.hash||''));}catch(_){}</script>`;
     if(html.includes('<script src="/index_script.js"></script>')) html = html.replace('<script src="/index_script.js"></script>', inject + '\n<script src="/index_script.js"></script>');
     else html = html.replace('</body>', inject + '\n</body>');
@@ -4629,7 +4635,7 @@ function swappRejectBadLocalAgentUrl(raw){
 // Upload-only OBS transport: SWAPP Local sends bounded HLS to the existing
 // HTTPS site. Viewers never connect to the streamer PC or a temporary tunnel.
 const {attachSwappDirectRelay}=require('./modules/swapp-direct-hls-relay');
-attachSwappDirectRelay(app,{lookupOwner:async token=>findOryonUserByAgentToken(readOryonUsers(),token)});
+const swappDirectRelay=attachSwappDirectRelay(app,{lookupOwner:async token=>findOryonUserByAgentToken(readOryonUsers(),token)});
 
 app.post('/api/oryon/local-agent/register-public-url', mutationLimiter, async (req, res) => {
   try {

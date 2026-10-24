@@ -21,13 +21,14 @@ function backend(){
   post(route,...fns){routes.post.set(route,fns.at(-1))}
  };
  const relay=module.exports.attachSwappDirectRelay(app,{lookupOwner:async token=>token==='VALID_TOKEN'?{login:'vnhz'}:null});
- async function call(method,route,{name,body,token='VALID_TOKEN',login='vnhz',segment}={}){
+ async function call(method,route,{name,body,token='VALID_TOKEN',login='vnhz',segment,audioTrack}={}){
   const fn=routes[method].get(route);
   assert.ok(fn,'route missing: '+route);
   let status=200,type='',payload=null,headers={};
   const req={params:{login,segment},body, get(k){
    if(k==='authorization')return token?'Bearer '+token:'';
    if(k==='x-swapp-media-name')return name||'';
+   if(k==='x-swapp-audio-track')return audioTrack||'';
    return '';
   }};
   const res={
@@ -145,4 +146,51 @@ test('default FFmpeg HLS muxing forces 2s keyframes at a bounded 720p bitrate',(
  assert.match(source,/'-b:v','1600k','-maxrate','2000k','-bufsize','4000k'/);
  assert.match(source,/'-hls_time', '2'/);
  assert.match(source,/force_original_aspect_ratio=decrease/);
+});
+
+test('live 1200x630 JPEG poster is authenticated, bounded, served publicly and exposes audio status',async()=>{
+ const b=backend();
+ const jpg=Buffer.alloc(80*1024,7);jpg[0]=0xff;jpg[1]=0xd8;jpg[jpg.length-2]=0xff;jpg[jpg.length-1]=0xd9;
+ const upload='/api/oryon/local-relay/upload';
+ const poster='/api/oryon/local-relay/:login/poster.jpg';
+ const seg=Buffer.alloc(188*2);seg[0]=0x47;
+ const pl=Buffer.from('#EXTM3U\n#EXTINF:2,\nseg_001.ts\n');
+ assert.equal((await b.call('post',upload,{name:'poster.jpg',body:jpg,token:'BAD'})).status,403);
+ const big=Buffer.alloc(700*1024);big[0]=0xff;big[1]=0xd8;big[big.length-2]=0xff;big[big.length-1]=0xd9;
+ assert.equal((await b.call('post',upload,{name:'poster.jpg',body:big})).status,422);
+ assert.equal((await b.call('post',upload,{name:'seg_001.ts',body:seg})).status,200);
+ assert.equal((await b.call('post',upload,{name:'index.m3u8',body:pl})).status,200);
+ assert.equal((await b.call('post',upload,{name:'poster.jpg',body:jpg,audioTrack:'missing'})).status,200);
+ const photo=await b.call('get',poster);
+ assert.equal(photo.status,200);
+ assert.equal(photo.payload.length,jpg.length);
+ assert.equal(photo.type,'image/jpeg');
+ assert.ok(b.relay.posterForLogin('vnhz').url.endsWith('/poster.jpg'));
+ const st=await b.call('get','/api/oryon/local-relay/:login/state');
+ assert.equal(st.payload.audio_track,'missing');
+});
+test('local uploader generates Discord JPEG in background without blocking HLS',async()=>{
+ const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'swapp-discord-poster-test-'));
+ const {startSwappHlsUplink}=require('../local-agent/swapp-direct-uplink.js');
+ const bytes=Buffer.alloc(564);bytes[0]=0x47;
+ fs.writeFileSync(path.join(tmp,'seg_012.ts'),bytes);
+ fs.writeFileSync(path.join(tmp,'index.m3u8'),'#EXTM3U\n#EXTINF:2,\nseg_012.ts\n');
+ const jpeg=Buffer.alloc(10000,4);jpeg[0]=0xff;jpeg[1]=0xd8;jpeg[jpeg.length-2]=0xff;jpeg[jpeg.length-1]=0xd9;
+ const uploads=[],logs=[];
+ const service=startSwappHlsUplink({key:'test',login:'vnhz',siteUrl:'https://swapp.tv',token:'TOKEN',
+   mediaDir:tmp,ffmpegPath:'ffmpeg',posterGenerator:async()=>({poster:jpeg,audioTrack:'missing'}),
+   onLog:(...args)=>logs.push(args),
+   fetchFn:async(url,opts)=>{
+    if(opts?.method==='POST')uploads.push({name:opts.headers['X-Swapp-Media-Name'],audio:opts.headers['X-Swapp-Audio-Track']});
+    if(String(url).endsWith('/state'))return{ok:true,json:async()=>({active:true,segment_count:1})};
+    return{ok:true,json:async()=>({success:true})};
+   }});
+ try{
+  await service.ready;
+  for(let i=0;i<20&&!uploads.some(x=>x.name==='poster.jpg');i++)await new Promise(r=>setTimeout(r,20));
+  assert.deepEqual(uploads.map(x=>x.name),['seg_012.ts','index.m3u8','poster.jpg']);
+  assert.equal(uploads[2].audio,'missing');
+  assert.equal(service.getStatus().audioTrack,'missing');
+  assert.ok(service.getStatus().lastPosterAt>0);
+ }finally{service.stop();fs.rmSync(tmp,{recursive:true,force:true})}
 });
