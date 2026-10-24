@@ -5,7 +5,8 @@ on:
     branches: [master]
     paths:
       - .github/workflows/swapp-live-windows.yml
-      - local-agent/package.json
+      - 'local-agent/**'
+      - test/swapp-local-tunnel.test.js
   workflow_dispatch:
 
 permissions:
@@ -25,10 +26,21 @@ jobs:
           node-version: '20'
 
       - name: Run live transport regression tests
-        run: node --test test/swapp-native-webrtc-transport.test.js test/swapp-native-live-public.test.js test/swapp-browser-http-relay.test.js
+        run: node --test test/swapp-native-webrtc-transport.test.js test/swapp-native-live-public.test.js test/swapp-browser-http-relay.test.js test/swapp-local-tunnel.test.js
 
       - name: Install local SWAPP Live dependencies
         run: npm install --prefix local-agent --no-audit --no-fund
+
+      - name: Download and verify bundled Cloudflare Tunnel (official pinned binary)
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path "local-agent/bin" | Out-Null
+          $url = "https://github.com/cloudflare/cloudflared/releases/download/2026.10.2/cloudflared-windows-amd64.exe"
+          $dest = "local-agent/bin/cloudflared.exe"
+          Invoke-WebRequest -Uri $url -OutFile $dest
+          $sha = (Get-FileHash -Path $dest -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($sha -ne "12c7c887f8aaab779aef1dfa9b60673530a5adb88ecc55dd6df8f56e0b70f199") { throw "Cloudflared SHA256 mismatch: $sha" }
+          & $dest --version
 
       - name: Compile Windows installer and portable EXE
         run: npm run dist:win --prefix local-agent
@@ -38,8 +50,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $tag = "swapp-live-windows-v1.0.0"
+          $tag = "swapp-live-windows-v1.0.1"
           $files = @(Get-ChildItem "local-agent/dist" -File -Filter "*.exe" | ForEach-Object { $_.FullName })
           if ($files.Count -lt 2) { throw "SWAPP Live installer and portable executable were not both produced" }
-          $notes = "SWAPP Live local native OBS connector. Standalone graphical installer / portable EXE, no CMD at runtime. Uses free local FFmpeg and existing SWAPP architecture. Browser streaming works independently via swapp.tv."
-          gh release create $tag $files --repo "$env:GITHUB_REPOSITORY" --target "$env:GITHUB_SHA" --title "SWAPP Live Windows v1.0.0" --notes $notes
+          $notes = "SWAPP Live Windows v1.0.1: Cloudflare Tunnel included and SHA256-verified (no runtime download); public media origin isolated from private local APIs; HLS player uses relative URLs for external phones and browsers and bundled hls.js. OBS/FFmpeg local remains free. No CMD or extra subscription."
+          gh release create $tag $files --repo "$env:GITHUB_REPOSITORY" --target "$env:GITHUB_SHA" --title "SWAPP Live Windows v1.0.1" --notes $notes
