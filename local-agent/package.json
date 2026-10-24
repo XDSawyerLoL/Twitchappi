@@ -1,6 +1,6 @@
 {
   "name": "swapp-local-app",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "private": true,
   "description": "SWAPP Live — fidélité OBS native sans réencodage, résolution et FPS intacts, qualité source mesurée",
   "main": "main.js",

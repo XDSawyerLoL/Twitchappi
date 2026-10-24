@@ -168,7 +168,9 @@ function startHlsTransmux(key) {
     // Default quality-native passthrough: keep the exact OBS video and audio
     // codec bitstreams, size, FPS and encoder quality. FFmpeg only packages TS.
     // OBS must provide H.264 with a 2-second closed keyframe interval and AAC.
-    args.push('-c:v','copy','-c:a','copy');
+    // Repeat AVC SPS/PPS on every keyframe in each HLS segment without transcoding.
+    // The old stream had IDR frames but zero SPS/PPS, causing a black player.
+    args.push('-c:v','copy','-bsf:v','h264_mp4toannexb,extract_extradata,dump_extra=freq=keyframe','-c:a','copy');
   }
   args.push('-f','hls','-hls_time','2','-hls_list_size','8',
     '-hls_flags','delete_segments+append_list+omit_endlist+independent_segments',
@@ -775,7 +777,7 @@ setInterval(refreshDiag,5000);loadAccount();refreshDiag();
 app.get('/', (req, res) => { const cfg = loadLocalConfig(); const key = safeKey(req.query.key || cfg.stream_key || DEFAULT_KEY); res.type('html').send(pageHtml(key)); });
 app.get('/api/setup/check', (_req, res) => {
   const cfg = loadLocalConfig();
-  res.json({ success:true, app:'Swapp Local', version:'1.1.0', site_url:cleanSiteUrl(cfg.site_url || DEFAULT_SWAPP_SITE_URL), account:cfg.user || null, connected:Boolean(cfg.token && cfg.stream_key), rtmp:`rtmp://127.0.0.1:${RTMP_PORT}/live`, stream_key:cfg.stream_key || DEFAULT_KEY, ffmpeg:ffmpegInfo(), media_root:MEDIA_ROOT, tunnel:publicTunnelInfo, localtunnel_disabled:true });
+  res.json({ success:true, app:'Swapp Local', version:'1.1.1', site_url:cleanSiteUrl(cfg.site_url || DEFAULT_SWAPP_SITE_URL), account:cfg.user || null, connected:Boolean(cfg.token && cfg.stream_key), rtmp:`rtmp://127.0.0.1:${RTMP_PORT}/live`, stream_key:cfg.stream_key || DEFAULT_KEY, ffmpeg:ffmpegInfo(), media_root:MEDIA_ROOT, tunnel:publicTunnelInfo, localtunnel_disabled:true });
 });
 app.get('/api/account/browser-callback', (req, res) => {
   try {

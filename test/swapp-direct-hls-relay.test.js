@@ -143,7 +143,7 @@ test('uploader accepts an OBS segment above the former 3 MiB hard limit',async()
 test('default SWAPP stream is now native OBS without 720p and 1600kbps recompression',()=>{
  const source=fs.readFileSync(path.join(__dirname,'..','local-agent','server.js'),'utf8');
  assert.match(source,/SWAPP_LOCAL_TRANSCODE \|\| process\.env\.ORYON_LOCAL_TRANSCODE \|\| 'copy'/);
- assert.match(source,/args\.push\('-c:v','copy','-c:a','copy'\)/);
+ assert.match(source,/h264_mp4toannexb,extract_extradata,dump_extra=freq=keyframe/);
  assert.match(source,/'-hls_time','2'/);
  assert.doesNotMatch(source,/scale=w='min\(1280,iw\)'/);
  assert.doesNotMatch(source,/'-b:v','1600k'/);

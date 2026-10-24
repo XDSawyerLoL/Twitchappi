@@ -30,6 +30,8 @@ test('default video uses FFmpeg stream copy without re-encoding either OBS track
  const param=name=>args[args.indexOf(name)+1];
  assert.equal(param('-c:v'),'copy');
  assert.equal(param('-c:a'),'copy');
+ assert.equal(param('-bsf:v'),'h264_mp4toannexb,extract_extradata,dump_extra=freq=keyframe',
+  'every segment needs SPS/PPS for H264 keyframes without re-encoding');
  assert.equal(param('-f'),'hls');
  assert.equal(param('-hls_time'),'2');
  assert.equal(quality.mode,'native');

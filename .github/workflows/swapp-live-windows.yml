@@ -69,8 +69,8 @@ jobs:
           if ((Get-Item $dll).Length -lt 102400) { throw "Critical: ffmpeg.dll appears truncated" }
           $dllHash = (Get-FileHash $dll -Algorithm SHA256).Hash
           Write-Host "Packaged Electron ffmpeg.dll SHA256: $dllHash"
-          $installer = "local-agent/dist/SWAPP-Live-Setup-1.1.0-x64.exe"
-          $portable = "local-agent/dist/SWAPP-Live-Portable-1.1.0-x64.exe"
+          $installer = "local-agent/dist/SWAPP-Live-Setup-1.1.1-x64.exe"
+          $portable = "local-agent/dist/SWAPP-Live-Portable-1.1.1-x64.exe"
           foreach ($artifact in @($installer, $portable)) {
             if (!(Test-Path $artifact)) { throw "Missing release executable: $artifact" }
           }
@@ -97,8 +97,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $tag = "swapp-live-windows-v1.1.0"
+          $tag = "swapp-live-windows-v1.1.1"
           $files = @(Get-ChildItem "local-agent/dist" -File -Filter "*.exe" | ForEach-Object { $_.FullName })
           if ($files.Count -lt 2) { throw "SWAPP Live installer and portable executable were not both produced" }
-          $notes = "SWAPP Live Windows v1.1.0: NATIVE OBS SOURCE fidelity by default. No forced 720p, no video or audio re-encoding; FFmpeg remuxes original H.264/AAC directly to HLS. Resolutions and FPS preserved (1080p60/1440p60 when sent by OBS), source bitrate displayed. Hostinger relay now tolerates roughly 8-12 Mbps with larger bounded live buffers and true DVR segment durations. Requires H.264/AAC, OBS 2s keyframe interval; no adaptive qualities or CDN. Full sound, pause and Discord preview maintained. 20+ automated regression tests and NSIS ffmpeg.dll installation verified."
-          gh release create $tag $files --repo "$env:GITHUB_REPOSITORY" --target "$env:GITHUB_SHA" --title "SWAPP Live Windows v1.1.0" --notes $notes
+          $notes = "SWAPP Live Windows v1.1.1: NATIVE OBS SOURCE fidelity by default. No forced 720p and no video re-encoding; remux original H.264/AAC to HLS, repeating SPS/PPS parameter sets on each IDR via bitstream filters to fix external black video. Resolutions and FPS preserved (1080p60/1440p60 when sent by OBS), source bitrate displayed. Hostinger relay now tolerates roughly 8-12 Mbps with larger bounded live buffers and true DVR segment durations. Requires H.264/AAC, OBS 2s keyframe interval; no adaptive qualities or CDN. Full sound, pause and Discord preview maintained. 20+ automated regression tests and NSIS ffmpeg.dll installation verified."
+          gh release create $tag $files --repo "$env:GITHUB_REPOSITORY" --target "$env:GITHUB_SHA" --title "SWAPP Live Windows v1.1.1" --notes $notes
