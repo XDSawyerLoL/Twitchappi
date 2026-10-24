@@ -130,16 +130,17 @@ function attachSwappDirectRelay(app, opts={}){
     pruneHistory(room);
    }else{
     if(body[0]!==0x47)return res.status(422).json({success:false,error:'Segment MPEG-TS invalide.'});
-    const previous=room.segments.get(name);
+    let previous=room.segments.get(name);
     // On a restart from seg_000.ts, don't mix two disconnected HLS timelines.
     const newest=room.segmentTimeline.at(-1);
     if(newest&&sequence(name)<sequence(newest)-MAX_DVR_SEGMENTS){
      room.segments.clear();room.segmentTimeline=[];room.bytes=0;
      room.playlistNames=[];room.manifest=null;
+     previous=null;
     }
     if(!room.segments.has(name))room.segmentTimeline.push(name);
     room.segments.set(name,Buffer.from(body));
-    room.bytes+=body.length-(previous&&room.segments.has(name)?previous.length:0);
+    room.bytes+=body.length-(previous?.length||0);
     pruneHistory(room);
     if(room.bytes>MAX_ROOM_BYTES||!room.segments.has(name)){
      if(room.segments.has(name)){
