@@ -53,12 +53,14 @@
   cinema.addEventListener('click',()=>{
    const next=page.dataset.watchTheatre==='on'?'off':'on';
    page.dataset.watchTheatre=next;store(KEY,next);updateUI(page);
+   requestAnimationFrame(()=>window.swappFitChat1014?.());
    if(next==='on'&&!window.matchMedia?.('(prefers-reduced-motion:reduce)')?.matches)
     main.scrollIntoView?.({behavior:'smooth',block:'start'});
   });
   chat.addEventListener('click',()=>{
    const next=page.dataset.watchChat==='hidden'?'shown':'hidden';
    page.dataset.watchChat=next;store(CHAT_KEY,next);updateUI(page);
+   requestAnimationFrame(()=>window.swappFitChat1014?.());
   });
   row.append(cinema,chat);
   main.appendChild(row);
