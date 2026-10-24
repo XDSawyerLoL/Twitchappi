@@ -376,7 +376,7 @@ async function validatePublicVideo(key) {
   if(!response.ok)throw new Error(`Playlist HLS inaccessible depuis Internet (HTTP ${response.status})`);
   const playlist=await response.text();
   if(!playlist.startsWith('#EXTM3U')||!playlist.includes('#EXTINF'))throw new Error('Playlist HLS publique vide ou invalide');
-  const segment=playlist.split(/\r?\n/).map(line=>line.trim()).find(line=>line&&!line.startsWith('#')&&/^[A-Za-z0-9_.-]+\\.ts$/.test(line));
+  const segment=playlist.split(/\r?\n/).map(line=>line.trim()).find(line=>line&&!line.startsWith('#')&&/^[A-Za-z0-9_.-]+\.ts$/.test(line));
   if(!segment)throw new Error('Aucun segment vidéo HLS trouvé dans la playlist publique');
   const segmentResponse=await withTimeout(fetch(new URL(segment,manifestUrl),{method:'HEAD',cache:'no-store'}),10000,'Délai segment HLS public dépassé');
   if(!segmentResponse.ok)throw new Error(`Segment vidéo inaccessible depuis Internet (HTTP ${segmentResponse.status})`);
