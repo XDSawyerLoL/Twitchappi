@@ -68,8 +68,8 @@ jobs:
           if ((Get-Item $dll).Length -lt 102400) { throw "Critical: ffmpeg.dll appears truncated" }
           $dllHash = (Get-FileHash $dll -Algorithm SHA256).Hash
           Write-Host "Packaged Electron ffmpeg.dll SHA256: $dllHash"
-          $installer = "local-agent/dist/SWAPP-Live-Setup-1.0.8-x64.exe"
-          $portable = "local-agent/dist/SWAPP-Live-Portable-1.0.8-x64.exe"
+          $installer = "local-agent/dist/SWAPP-Live-Setup-1.0.9-x64.exe"
+          $portable = "local-agent/dist/SWAPP-Live-Portable-1.0.9-x64.exe"
           foreach ($artifact in @($installer, $portable)) {
             if (!(Test-Path $artifact)) { throw "Missing release executable: $artifact" }
           }
@@ -96,8 +96,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $tag = "swapp-live-windows-v1.0.8"
+          $tag = "swapp-live-windows-v1.0.9"
           $files = @(Get-ChildItem "local-agent/dist" -File -Filter "*.exe" | ForEach-Object { $_.FullName })
           if ($files.Count -lt 2) { throw "SWAPP Live installer and portable executable were not both produced" }
-          $notes = "SWAPP Live Windows v1.0.8: viewer audio/OBS track diagnostic, live game poster uploaded securely over the existing HTTPS HLS relay, and richer Discord share card with full-width image plus Watch Live button. Keeps HLS 720p, full-screen/volume controls, no paid tunnels. NSIS install and Electron ffmpeg.dll smoke-tested."
-          gh release create $tag $files --repo "$env:GITHUB_REPOSITORY" --target "$env:GITHUB_SHA" --title "SWAPP Live Windows v1.0.8" --notes $notes
+          $notes = "SWAPP Live Windows v1.0.9: playback controls BELOW video (Play, Pause, Stop locally, Return to Live) with bounded 80s HLS rewind buffer, plus short playable MP4 clip in Discord with Watch Live button. Keeps HLS 720p, full-screen/volume controls, no paid tunnels. NSIS install and Electron ffmpeg.dll smoke-tested."
+          gh release create $tag $files --repo "$env:GITHUB_REPOSITORY" --target "$env:GITHUB_SHA" --title "SWAPP Live Windows v1.0.9" --notes $notes

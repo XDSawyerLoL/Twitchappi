@@ -13,6 +13,8 @@ function attachSwappDirectRelay(app, opts={}){
  const MAX_ROOMS=Math.max(1,Math.min(2,Number(process.env.SWAPP_DIRECT_RELAY_MAX_ROOMS||2)));
  const MAX_ROOM_BYTES=Math.min(32*1024*1024,Math.max(8*1024*1024,Number(process.env.SWAPP_DIRECT_RELAY_ROOM_BYTES||24*1024*1024)));
  const MAX_POSTER_BYTES=600*1024;
+ const MAX_CLIP_BYTES=4*1024*1024; // eight-to-ten-second 480p MP4, not a VOD library
+ const MAX_DVR_SEGMENTS=40; // max ~80s at the default two-second HLS cadence
  const MAX_UPLOAD_BYTES=Math.min(10*1024*1024,Math.max(512*1024,Number(process.env.SWAPP_DIRECT_RELAY_UPLOAD_BYTES||8*1024*1024)));
  const MAX_MINUTE_BYTES=Math.max(4*1024*1024,Math.min(60*1024*1024,Number(process.env.SWAPP_DIRECT_RELAY_MINUTE_BYTES||36*1024*1024)));
  const TTL_MS=55000;
@@ -23,7 +25,7 @@ function attachSwappDirectRelay(app, opts={}){
   res.set('Access-Control-Allow-Origin','*');
  };
  const cleanLogin=v=>/^[a-z0-9_-]{2,48}$/i.test(String(v||''))?String(v).toLowerCase():'';
- const cleanName=v=>/^(?:seg_[0-9]{1,14}\.ts|index\.m3u8|poster\.jpg)$/.test(String(v||''))?String(v):'';
+ const cleanName=v=>/^(?:seg_[0-9]{1,14}\.ts|index\.m3u8|poster\.jpg|preview\.mp4)$/.test(String(v||''))?String(v):'';
  function liveRoom(login){
   const room=rooms.get(login);
   if(!room)return null;
@@ -36,6 +38,34 @@ function attachSwappDirectRelay(app, opts={}){
  }
  const interval=setInterval(reclaim,12000);
  interval.unref?.();
+ function sequence(name){return Number((String(name).match(/^seg_(\d+)\.ts$/)||[])[1])}
+ function pruneHistory(room){
+  const pinned=new Set(room.playlistNames);
+  // Preserve the live window while trimming only older DVR segments.
+  while(room.segmentTimeline.length>MAX_DVR_SEGMENTS||room.bytes>MAX_ROOM_BYTES){
+   const index=room.segmentTimeline.findIndex(n=>!pinned.has(n));
+   if(index<0)break;
+   const [gone]=room.segmentTimeline.splice(index,1);
+   const bytes=room.segments.get(gone);
+   if(bytes){room.bytes-=bytes.length;room.segments.delete(gone)}
+  }
+ }
+ function dvrManifest(room){
+  // The last contiguous suffix avoids advertising gaps after budget eviction
+  // or a broadcaster restarting FFmpeg and resetting segment numbers.
+  const numbers=room.segmentTimeline.filter(n=>room.segments.has(n))
+   .sort((a,b)=>sequence(a)-sequence(b));
+  const contiguous=[];
+  for(let i=numbers.length-1;i>=0;i--){
+   const candidate=numbers[i];
+   if(contiguous.length&&sequence(contiguous[0])!==sequence(candidate)+1)break;
+   contiguous.unshift(candidate);
+  }
+  if(!contiguous.length)return '';
+  return '#EXTM3U\n#EXT-X-VERSION:6\n#EXT-X-TARGETDURATION:2\n#EXT-X-INDEPENDENT-SEGMENTS\n'+
+   '#EXT-X-MEDIA-SEQUENCE:'+sequence(contiguous[0])+'\n'+
+   contiguous.map(n=>'#EXTINF:2.000,\n'+n+'\n').join('');
+ }
  function validatePlaylist(body){
   if(!Buffer.isBuffer(body)||body.length<15||body.length>maxPlaylistBytes)return [];
   const s=body.toString('utf8');
@@ -71,12 +101,18 @@ function attachSwappDirectRelay(app, opts={}){
    let room=rooms.get(login);
    if(!room){
     if(rooms.size>=MAX_ROOMS)return res.status(429).json({success:false,error:'Capacité du relais SWAPP atteinte.'});
-    room={segments:new Map(),manifest:null,playlistNames:[],poster:null,posterAt:0,audioTrack:'unknown',bytes:0,lastManifestAt:now,minuteStarted:now,minuteBytes:0};
+    room={segments:new Map(),segmentTimeline:[],manifest:null,playlistNames:[],poster:null,posterAt:0,clip:null,clipAt:0,audioTrack:'unknown',bytes:0,lastManifestAt:now,minuteStarted:now,minuteBytes:0};
     rooms.set(login,room);
    }
    if(now-room.minuteStarted>60000){room.minuteStarted=now;room.minuteBytes=0}
    if(room.minuteBytes+body.length>MAX_MINUTE_BYTES)return res.status(429).json({success:false,error:'Débit du direct trop élevé pour l’hébergement SWAPP. Baisse le bitrate OBS.'});
-   if(name==='poster.jpg'){
+   if(name==='preview.mp4'){
+    // Validate an MP4 file signature; client supplies a short video excerpt.
+    if(body.length>MAX_CLIP_BYTES||body.length<5000||body.toString('ascii',4,8)!=='ftyp')
+     return res.status(422).json({success:false,error:'Extrait MP4 invalide (4 Mo maximum).'});
+    room.clip=Buffer.from(body);
+    room.clipAt=now;
+   }else if(name==='poster.jpg'){
     // Small public poster only, not arbitrary image uploads or user-supplied paths.
     if(body.length>MAX_POSTER_BYTES||body[0]!==0xff||body[1]!==0xd8||body[body.length-2]!==0xff||body[body.length-1]!==0xd9)
      return res.status(422).json({success:false,error:'Vignette JPEG invalide (600 Ko maximum).'});
@@ -91,14 +127,29 @@ function attachSwappDirectRelay(app, opts={}){
     room.manifest=Buffer.from(body);
     room.playlistNames=names;
     room.lastManifestAt=now;
-    for(const [n,b] of room.segments)if(!names.includes(n)){room.bytes-=b.length;room.segments.delete(n)}
+    pruneHistory(room);
    }else{
     if(body[0]!==0x47)return res.status(422).json({success:false,error:'Segment MPEG-TS invalide.'});
-    const previous=room.segments.get(name);
-    const nextSize=room.bytes+body.length-(previous?.length||0);
-    if(nextSize>MAX_ROOM_BYTES)return res.status(413).json({success:false,error:'Mémoire vidéo SWAPP saturée : réduis le bitrate OBS.'});
+    let previous=room.segments.get(name);
+    // On a restart from seg_000.ts, don't mix two disconnected HLS timelines.
+    const newest=room.segmentTimeline.at(-1);
+    if(newest&&sequence(name)<sequence(newest)-MAX_DVR_SEGMENTS){
+     room.segments.clear();room.segmentTimeline=[];room.bytes=0;
+     room.playlistNames=[];room.manifest=null;
+     previous=null;
+    }
+    if(!room.segments.has(name))room.segmentTimeline.push(name);
     room.segments.set(name,Buffer.from(body));
-    room.bytes=nextSize;
+    room.bytes+=body.length-(previous?.length||0);
+    pruneHistory(room);
+    if(room.bytes>MAX_ROOM_BYTES||!room.segments.has(name)){
+     if(room.segments.has(name)){
+      room.bytes-=room.segments.get(name).length;
+      room.segments.delete(name);
+      room.segmentTimeline=room.segmentTimeline.filter(n=>n!==name);
+     }
+     return res.status(413).json({success:false,error:'Mémoire vidéo SWAPP saturée : réduis le bitrate OBS.'});
+    }
    }
    room.minuteBytes+=body.length;
    res.json({success:true,room:login,received:name,segment_count:room.segments.size});
@@ -107,13 +158,40 @@ function attachSwappDirectRelay(app, opts={}){
   notCached(res);
   const login=cleanLogin(req.params.login),r=login&&liveRoom(login);
   res.json({success:true,active:!!r?.manifest&&r.playlistNames.some(n=>r.segments.has(n)),segment_count:r?.segments?.size||0,
-   last_manifest_at:r?.lastManifestAt||null,audio_track:r?.audioTrack||'unknown'});
+   last_manifest_at:r?.lastManifestAt||null,audio_track:r?.audioTrack||'unknown',dvr_seconds:Math.min(80,(r?.segmentTimeline?.length||0)*2),preview_ready:!!r?.clip});
  });
  app.get('/api/oryon/local-relay/:login/index.m3u8',(req,res)=>{
   notCached(res);
   const login=cleanLogin(req.params.login),r=login&&liveRoom(login);
   if(!r?.manifest)return res.sendStatus(404);
   res.type('application/vnd.apple.mpegurl').send(r.manifest);
+ });
+ app.get('/api/oryon/local-relay/:login/dvr.m3u8',(req,res)=>{
+  notCached(res);
+  const login=cleanLogin(req.params.login),r=login&&liveRoom(login);
+  const manifest=r&&r.manifest?dvrManifest(r):'';
+  if(!manifest)return res.sendStatus(404);
+  res.type('application/vnd.apple.mpegurl').send(manifest);
+ });
+ app.get('/api/oryon/local-relay/:login/preview.mp4',(req,res)=>{
+  const login=cleanLogin(req.params.login),r=login&&liveRoom(login);
+  if(!r?.clip)return res.sendStatus(404);
+  res.set('Cache-Control','public, max-age=45, s-maxage=45');
+  res.set('X-Content-Type-Options','nosniff');
+  res.set('Accept-Ranges','bytes');
+  // Discord may request a small byte range to parse MP4 metadata.
+  const size=r.clip.length,range=String(req.get('range')||'');
+  const match=/^bytes=(\d+)-(\d*)$/.exec(range);
+  if(range&&!match){res.set('Content-Range','bytes */'+size);return res.sendStatus(416)}
+  if(match){
+   const first=Number(match[1]),last=match[2]?Number(match[2]):size-1;
+   if(first>=size||last<first){res.set('Content-Range','bytes */'+size);return res.sendStatus(416)}
+   const final=Math.min(last,size-1);
+   res.set('Content-Range','bytes '+first+'-'+final+'/'+size);
+   res.set('Content-Length',String(final-first+1));
+   return res.status(206).type('video/mp4').send(r.clip.subarray(first,final+1));
+  }
+  res.type('video/mp4').send(r.clip);
  });
  app.get('/api/oryon/local-relay/:login/poster.jpg',(req,res)=>{
   const login=cleanLogin(req.params.login),r=login&&liveRoom(login);
@@ -129,13 +207,13 @@ function attachSwappDirectRelay(app, opts={}){
   if(!login)return res.sendStatus(404);
   // Uses the existing OBS video player with sound, fullscreen and fit controls.
   const html=fs.readFileSync(path.join(__dirname,'..','local-agent','player.html'),'utf8')
-   .replace('__SWAPP_HLS_SRC__',JSON.stringify('/api/oryon/local-relay/'+login+'/index.m3u8'))
+   .replace('__SWAPP_HLS_SRC__',JSON.stringify('/api/oryon/local-relay/'+login+'/dvr.m3u8'))
    .replace('/assets/hls.min.js','https://cdn.jsdelivr.net/npm/hls.js@1.6.15/dist/hls.min.js');
   res.type('html').send(html);
  }); app.get('/api/oryon/local-relay/:login/:segment',(req,res)=>{
   notCached(res);
   const login=cleanLogin(req.params.login),name=cleanName(req.params.segment),r=login&&liveRoom(login);
-  if(!r||!name.endsWith('.ts')||!r.playlistNames.includes(name))return res.sendStatus(404);
+  if(!r||!name.endsWith('.ts')||!r.segments.has(name))return res.sendStatus(404);
   const bytes=r.segments.get(name);
   if(!bytes)return res.sendStatus(404);
   res.type('video/mp2t').send(bytes);
@@ -145,6 +223,10 @@ function attachSwappDirectRelay(app, opts={}){
   posterForLogin(login){
    const r=liveRoom(cleanLogin(login));
    return r?.poster&&r?.manifest?{url:'/api/oryon/local-relay/'+encodeURIComponent(login)+'/poster.jpg',updatedAt:r.posterAt,bytes:r.poster.length}:null;
+  },
+  clipForLogin(login){
+   const r=liveRoom(cleanLogin(login));
+   return r?.clip&&r?.manifest?{url:'/api/oryon/local-relay/'+encodeURIComponent(login)+'/preview.mp4',updatedAt:r.clipAt,bytes:r.clip.length}:null;
   }
  };
 }

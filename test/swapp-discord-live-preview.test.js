@@ -43,3 +43,18 @@ test('user-supplied characters in creator name are escaped in JSON and Open Grap
  assert.match(page,/&lt;video&gt; &amp; moi/);
  assert.doesNotMatch(page,/<script id="discord:component-embed"[^>]*>\s*.*<video>/);
 });
+
+test('Discord embed uses native playable MP4 gallery when a ten-second teaser is available',()=>{
+ const clip='https://swapp.tv/api/oryon/local-relay/vnhz/preview.mp4?v=305';
+ const poster='https://swapp.tv/api/oryon/local-relay/vnhz/poster.jpg?v=305';
+ const page=injectCreatorMetadata(base,creator,'vnhz',{live:true,clipUrl:clip,posterUrl:poster});
+ const match=page.match(/<script id="discord:component-embed" type="application\/json">([^<]+)<\/script>/);
+ assert.ok(match);
+ const rich=JSON.parse(match[1]);
+ const gallery=rich.component.components.find(x=>x.type===12);
+ assert.equal(gallery.items[0].media.url,clip,'Discord video must use MP4, not HLS iframe');
+ assert.match(gallery.items[0].description,/Extrait vidéo/);
+ assert.match(page,/og:image" content="https:\/\/swapp\.tv\/api\/oryon\/local-relay\/vnhz\/poster\.jpg/,'other networks keep wide image');
+ const action=rich.component.components.find(x=>x.type===1);
+ assert.ok(action.components.some(x=>x.label==='Regarder le direct'));
+});

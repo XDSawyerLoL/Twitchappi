@@ -3,6 +3,7 @@
 // Files are produced by OBS -> local FFmpeg and sent to the existing swapp.tv.
 const fs=require('node:fs');
 const path=require('node:path');
+const os=require('node:os');
 const {spawn}=require('node:child_process');
 
 async function createLivePoster(segment,ffmpegPath,{spawnFn=spawn,timeoutMs=6500}={}){
@@ -36,7 +37,42 @@ async function createLivePoster(segment,ffmpegPath,{spawnFn=spawn,timeoutMs=6500
   });
  });
 }
-function startSwappHlsUplink({key,login,siteUrl,token,mediaDir,ffmpegPath='',posterGenerator=createLivePoster,
+// Short MP4 teaser for Discord Media Gallery's native Play button.
+// Uses completed MPEG-TS HLS segments, remuxes video without re-encoding;
+// the full live remains hosted exclusively in the SWAPP HLS player.
+async function createDiscordClip(segmentPaths,ffmpegPath,{spawnFn=spawn,timeoutMs=18000}={}){
+ if(!ffmpegPath||!Array.isArray(segmentPaths)||segmentPaths.length<4)return null;
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'swapp-live-clip-'));
+ const input=path.join(dir,'preview.ts'),output=path.join(dir,'preview.mp4');
+ try{
+  let total=0,parts=[];
+  for(const file of segmentPaths.slice(-5)){
+   const part=fs.readFileSync(file);total+=part.length;
+   if(total>18*1024*1024)return null;
+   parts.push(part);
+  }
+  fs.writeFileSync(input,Buffer.concat(parts));
+  const args=['-hide_banner','-nostdin','-loglevel','error','-y','-i',input,
+   '-t','10','-map','0:v:0','-map','0:a:0?','-c:v','copy','-c:a','aac','-b:a','64k',
+   '-movflags','+faststart','-f','mp4',output];
+  const success=await new Promise(resolve=>{
+   let child,done=false,timer;
+   const finish=ok=>{if(done)return;done=true;clearTimeout(timer);resolve(ok)};
+   try{child=spawnFn(ffmpegPath,args,{windowsHide:true,stdio:['ignore','ignore','pipe']})}
+   catch(_){return finish(false)}
+   timer=setTimeout(()=>{try{child.kill()}catch(_){}finish(false)},timeoutMs);
+   child.on('error',()=>finish(false));
+   child.on('close',code=>finish(code===0));
+  });
+  if(!success||!fs.existsSync(output))return null;
+  const st=fs.statSync(output);
+  if(st.size<5000||st.size>4*1024*1024)return null;
+  const data=fs.readFileSync(output);
+  return data.toString('ascii',4,8)==='ftyp'?data:null;
+ }catch(_){return null}
+ finally{fs.rmSync(dir,{recursive:true,force:true})}
+}
+function startSwappHlsUplink({key,login,siteUrl,token,mediaDir,ffmpegPath='',posterGenerator=createLivePoster,clipGenerator=createDiscordClip,
  maxSegmentBytes=8*1024*1024,fetchFn=fetch,onLog=()=>{},isLive=()=>true}){
  if(!/^[a-z0-9_-]{2,48}$/i.test(String(login||'')))throw Error('Identifiant de chaîne SWAPP manquant');
  if(!token)throw Error('Compte SWAPP non connecté');
@@ -45,6 +81,7 @@ function startSwappHlsUplink({key,login,siteUrl,token,mediaDir,ffmpegPath='',pos
  let running=true,timer=null,activeRequest=null;
  let lastPlaylistSig='',lastManifestSent=0,uploaded=new Map(),error=null,published=false;
  let posterLastAttempt=0,posterBusy=false,audioTrack='unknown',lastPosterAt=0;
+ let clipLastAttempt=0,clipBusy=false,lastClipAt=0;
  let readyResolve,readyReject,readySettled=false;
  const ready=new Promise((resolve,reject)=>{readyResolve=resolve;readyReject=reject});
  const readyDeadline=setTimeout(()=>{
@@ -91,6 +128,20 @@ function startSwappHlsUplink({key,login,siteUrl,token,mediaDir,ffmpegPath='',pos
    }
   }catch(e){onLog('warn','Aperçu Discord indisponible, diffusion vidéo préservée',{error:String(e.message||e).slice(0,170)})}
   finally{posterBusy=false}
+ }
+ async function sendClip(names){
+  if(clipBusy||!running||!ffmpegPath||!clipGenerator||names.length<4)return;
+  if(Date.now()-clipLastAttempt<90000)return; // 10-second teaser at most every 90 seconds
+  clipLastAttempt=Date.now();clipBusy=true;
+  try{
+   const segments=names.slice(-5).map(n=>path.join(mediaDir,n));
+   const bytes=await clipGenerator(segments,ffmpegPath);
+   if(!running||!bytes||bytes.length>4*1024*1024)return;
+   await upload('preview.mp4',bytes);
+   lastClipAt=Date.now();
+   onLog('preview','Extrait vidéo de 10 secondes disponible dans les liens Discord',{bytes:bytes.length});
+  }catch(e){onLog('warn','Extrait vidéo Discord indisponible : live HLS non affecté',{error:String(e.message||e).slice(0,170)})}
+  finally{clipBusy=false}
  }
  async function tick(){
   if(!running)return;
@@ -143,7 +194,10 @@ function startSwappHlsUplink({key,login,siteUrl,token,mediaDir,ffmpegPath='',pos
     }
    }
    uploaded=current;
-   if(readySettled&&names.length)void sendPoster(path.join(mediaDir,names[names.length-1]));
+   if(readySettled&&names.length){
+    void sendPoster(path.join(mediaDir,names[names.length-1]));
+    void sendClip(names);
+   }
   }catch(e){fail(e)}
   finally{
    if(running)timer=setTimeout(tick,1100);
@@ -151,6 +205,6 @@ function startSwappHlsUplink({key,login,siteUrl,token,mediaDir,ffmpegPath='',pos
  }
  // Avoid Promise unhandled-rejection if caller is about to await ready.
  void tick();
- return {ready,stop,getStatus(){return {running,published,error:error?.message||null,transport:'swapp-direct-hls',audioTrack,lastPosterAt}}};
+ return {ready,stop,getStatus(){return {running,published,error:error?.message||null,transport:'swapp-direct-hls',audioTrack,lastPosterAt,lastClipAt}}};
 }
-module.exports={startSwappHlsUplink,createLivePoster};
+module.exports={startSwappHlsUplink,createLivePoster,createDiscordClip};
