@@ -69,5 +69,5 @@ test('viewers report playing video, not mere socket connection; TURN readiness e
  assert.match(server,/socket\.data\.nativeRoom!==room/);
  assert.match(server,/turnConfigured:/);
  const index=fs.readFileSync(path.join(root,'index.html'),'utf8');
- assert.match(index,/index_script\.js\?v=20261024-native-live-playback-v3/);
+ assert.match(index,/index_script\.js\?v=20261024-browser-http-fallback-v5/);
 });
