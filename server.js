@@ -8549,10 +8549,11 @@ io.on('connection', async (socket) => {
     if(!user) return socket.emit('native:error', { message: 'Compte Oryon requis pour lancer un live.' });
     const room = user.login;
     const existing = nativeLiveRooms.get(room);
-    const resumed = !!existing?.host && existing.host !== socket.id && existing.hostUserId === user.id;
+    const resumed = !!existing && existing.host !== socket.id && existing.hostUserId === user.id;
     if(existing?.host && existing.host !== socket.id && !resumed)
       return socket.emit('native:error', { message: 'Tu as déjà un live actif.' });
     if(resumed){
+      if(existing.reconnectTimer)clearTimeout(existing.reconnectTimer);
       // On brief network drops, the previous socket can still be alive.
       // Allow only its authenticated owner to resume, and disarm its later disconnect.
       const prior = io.sockets.sockets.get(existing.host);
@@ -8689,6 +8690,7 @@ io.on('connection', async (socket) => {
     if(r){
       if(role === 'host' && r.host === socket.id){
         for(const viewerId of r.viewers){ io.to(viewerId).emit('native:error', { message: 'Le streamer a arrêté le live.' }); io.to(viewerId).emit('native:stopped', {room}); }
+        if(r.reconnectTimer)clearTimeout(r.reconnectTimer);
         nativeLiveRooms.delete(room);
         nativeBrowserRelays.delete(room);
         persistOryonLiveStateByLogin(room, false, { localAgent:false, platform:'browser-webrtc' }).catch(()=>{});
@@ -8848,10 +8850,20 @@ io.on('connection', async (socket) => {
     const r = nativeLiveRooms.get(room);
     if(r){
       if(role === 'host' && r.host === socket.id){
-        for(const viewerId of r.viewers) io.to(viewerId).emit('native:error', { message: 'Le streamer a quitté le live.' });
-        nativeLiveRooms.delete(room);
-        persistOryonLiveStateByLogin(room, false, { localAgent:false, platform:'browser-webrtc' }).catch(()=>{});
-        io.emit('native:lives:update');
+        // A brief Hostinger long-poll disconnect must not end a real stream.
+        // The authenticated publisher can reconnect with the same account.
+        r.host=null;
+        for(const viewerId of r.viewers)io.to(viewerId).emit('native:reconnecting',{room});
+        if(r.reconnectTimer)clearTimeout(r.reconnectTimer);
+        r.reconnectTimer=setTimeout(()=>{
+          if(nativeLiveRooms.get(room)!==r || r.host)return;
+          for(const viewerId of r.viewers)io.to(viewerId).emit('native:stopped',{room});
+          nativeLiveRooms.delete(room);
+          nativeBrowserRelays.delete(room);
+          persistOryonLiveStateByLogin(room,false,{localAgent:false,platform:'browser-webrtc'}).catch(()=>{});
+          io.emit('native:lives:update');
+        },30000);
+        r.reconnectTimer.unref?.();
       }else if(role === 'viewer'){
         r.viewers.delete(socket.id);
         r.mediaViewers?.delete(socket.id);
