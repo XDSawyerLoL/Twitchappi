@@ -10054,6 +10054,24 @@ app.get('/api/oryon/channels', async (req, res) => {
 });
 
 
+// Tiny uncached public heartbeat: status polling must not retransmit profile media.
+app.get('/api/oryon/channel/:login/live-ping', async (req, res) => {
+  try{
+    await ORYON_USERS_READY.catch(()=>{});
+    const login=normalizeOryonLogin(req.params.login);
+    const user=(readOryonUsers().users||[]).find(u=>u.login===login);
+    res.setHeader('Cache-Control','no-store');
+    if(!user)return res.status(404).json({success:false,error:'Chaîne introuvable.'});
+    const room=nativeLiveRooms.get(login);
+    const localLiveFresh=isOryonLiveSignalFresh(user);
+    res.json({
+      success:true,
+      is_live:!!room||localLiveFresh,
+      source:room?'browser-webrtc':(localLiveFresh?'local-agent':'offline')
+    });
+  }catch(e){res.status(500).json({success:false,error:'Statut indisponible.'});}
+});
+
 app.get('/api/oryon/channel/:login/status', async (req, res) => {
   try{
     await ORYON_USERS_READY.catch(()=>{});
