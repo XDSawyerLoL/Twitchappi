@@ -8403,6 +8403,90 @@ app.get('/api/gifs/search', async (req, res) => {
 
 // Oryon native WebRTC rooms. The server only relays signaling messages; video stays peer-to-peer.
 const nativeLiveRooms = new Map();
+/*
+ * SWAPP native HTTP video bridge.
+ * Optional last-resort fallback when a direct WebRTC connection cannot traverse NAT.
+ * Publishes short MediaRecorder fragments over authenticated same-origin HTTPS,
+ * with bounded in-memory retention; never stores a VOD, creates a paid account,
+ * or exposes RTMP / non-HTTPS ingest ports on Hostinger.
+ */
+const nativeBrowserRelays = new Map();
+const SWAPP_RELAY_MAX_ROOMS = Math.max(1, Math.min(5, Number(process.env.SWAPP_HTTP_RELAY_MAX_ROOMS || 2)));
+const SWAPP_RELAY_MAX_BYTES = 10 * 1024 * 1024; // per publishing room
+function swappRelayRoomName(raw){
+ return String(raw||'').trim().toLowerCase().replace(/[^a-z0-9_-]/g,'').slice(0,40);
+}
+function swappRelayLive(room){
+ const r=nativeLiveRooms.get(room);
+ const b=nativeBrowserRelays.get(room);
+ if(!r?.host || !b || Date.now()-b.updatedAt>18000)return null;
+ return b;
+}
+function swappRelayNotCached(res){
+ res.set('Cache-Control','no-store, no-cache, must-revalidate');
+ res.set('X-Content-Type-Options','nosniff');
+}
+app.post('/api/native/browser-relay/:room/chunk',
+ express.raw({type:'application/octet-stream',limit:'2mb'}), (req,res)=>{
+  swappRelayNotCached(res);
+  const room=swappRelayRoomName(req.params.room);
+  const live=nativeLiveRooms.get(room);
+  const user=getSessionIdentity(req).local;
+  if(!room || !live?.host || !user || user.login!==room || String(user.id)!==String(live.hostUserId))
+   return res.status(403).json({success:false,error:'Diffusion non autorisée.'});
+  const origin=String(req.get('origin')||'');
+  if(origin){
+   try{const u=new URL(origin);if(u.host!==req.get('host') || u.protocol!=='https:')return res.sendStatus(403);}
+   catch(_){return res.sendStatus(403);}
+  }
+  const seq=Number(req.get('x-swapp-relay-seq'));
+  const mime=String(req.get('x-swapp-relay-mime')||'').trim().slice(0,100);
+  const data=req.body;
+  if(!Number.isSafeInteger(seq)||seq<0 || !Buffer.isBuffer(data)||!data.length)
+   return res.status(400).json({success:false,error:'Fragment invalide.'});
+  if(!/^video\/(webm|mp4)(;[a-zA-Z0-9.,\-=" ]+)?$/.test(mime))
+   return res.status(415).json({success:false,error:'Format média non accepté.'});
+  let b=nativeBrowserRelays.get(room);
+  if(seq===0){
+   if(!b && nativeBrowserRelays.size>=SWAPP_RELAY_MAX_ROOMS)
+    return res.status(429).json({success:false,error:'Relais SWAPP temporairement saturé.'});
+   b={mime,chunks:new Map(),init:data,bytes:data.length,firstSeq:1,lastSeq:0,updatedAt:Date.now()};
+   nativeBrowserRelays.set(room,b);
+   return res.json({success:true,seq});
+  }
+  if(!b||b.mime!==mime||b.lastSeq!==seq-1)
+   return res.status(409).json({success:false,error:'Séquence désynchronisée.'});
+  b.chunks.set(seq,data);
+  b.bytes+=data.length;b.lastSeq=seq;b.updatedAt=Date.now();
+  while(b.bytes>SWAPP_RELAY_MAX_BYTES && b.chunks.size>2){
+   const first=b.chunks.keys().next().value;
+   b.bytes-=b.chunks.get(first).length;
+   b.chunks.delete(first);b.firstSeq=first+1;
+  }
+  res.json({success:true,seq});
+ });
+app.get('/api/native/browser-relay/:room/state',(req,res)=>{
+ swappRelayNotCached(res);
+ const room=swappRelayRoomName(req.params.room),b=swappRelayLive(room);
+ if(!b)return res.json({success:true,active:false});
+ res.json({success:true,active:true,mime:b.mime,firstSeq:b.firstSeq,lastSeq:b.lastSeq});
+});
+app.get('/api/native/browser-relay/:room/segment/:seq',(req,res)=>{
+ swappRelayNotCached(res);
+ const room=swappRelayRoomName(req.params.room),b=swappRelayLive(room);
+ const seq=Number(req.params.seq);
+ if(!b || !Number.isSafeInteger(seq) || seq<0)return res.sendStatus(404);
+ const data=seq===0?b.init:b.chunks.get(seq);
+ if(!data)return res.sendStatus(410);
+ res.type('application/octet-stream').send(data);
+});
+const swappBrowserRelaySweep=setInterval(()=>{
+ for(const [room,b] of nativeBrowserRelays){
+  if(!nativeLiveRooms.has(room)||Date.now()-b.updatedAt>22000)nativeBrowserRelays.delete(room);
+ }
+},25000);
+swappBrowserRelaySweep.unref?.();
+
 const swappLiveSweepTimer = setInterval(() => {
   sweepStaleOryonLiveSignals().catch(e => console.warn('[SWAPP] live sweep failed:', e.message));
 }, Math.max(30000, oryonLiveSignalTimeoutMs() * 2));
@@ -8483,6 +8567,7 @@ io.on('connection', async (socket) => {
     }
     const hostName = String(user.display_name || user.login).trim().slice(0, 40);
     const title = String(payload?.title || `Live de ${hostName}`).trim().slice(0, 120);
+    if(!resumed)nativeBrowserRelays.delete(room);
     nativeLiveRooms.set(room, { host: socket.id, viewers: resumed ? existing.viewers : new Set(), mediaViewers:new Set(), createdAt: resumed ? existing.createdAt : Date.now(), title, hostName, hostLogin:user.login, hostUserId:user.id, category: String(payload?.category || '').trim().slice(0,60), tags: String(payload?.tags || '').split(',').map(x=>x.trim()).filter(Boolean).slice(0,8), peakViewers: 0, chatMessages: 0 });
     try{ const ud=readOryonUsers(); const uu=ud.users.find(x=>x.id===user.id); if(uu){ markOryonLiveFields(uu, true, { localAgent:false, platform:'browser-webrtc', title, category: payload?.category, tags: payload?.tags }); uu.best_chat_messages=Math.max(Number(uu.best_chat_messages||0),0); writeOryonUsers(ud); } pushOryonEvent('live_started', user.login, {room,title}); }catch(_e){}
     socket.data.nativeRoom = room; socket.data.nativeRole = 'host';
@@ -8526,10 +8611,36 @@ io.on('connection', async (socket) => {
     emitNativeStats(room);
   });
 
-  socket.on('native:request-offer', (payload) => { const room = String(payload?.room || socket.data.nativeRoom || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0,40); const r = nativeLiveRooms.get(room); if(r?.host) io.to(r.host).emit('native:request-offer', { room, viewerId: socket.id }); });
-  socket.on('native:offer', (payload) => { const to = String(payload?.to || ''); if(to) io.to(to).emit('native:offer', { from: socket.id, room: payload?.room, offer: payload?.offer }); });
-  socket.on('native:answer', (payload) => { const to = String(payload?.to || ''); if(to) io.to(to).emit('native:answer', { from: socket.id, room: payload?.room, answer: payload?.answer }); });
-  socket.on('native:ice', (payload) => { const to = String(payload?.to || ''); if(to) io.to(to).emit('native:ice', { from: socket.id, room: payload?.room, candidate: payload?.candidate }); });
+  // Only the room's host and joined viewers may exchange SDP/ICE.
+  function nativeSignalTarget(payload,allowedRole){
+   const room=swappRelayRoomName(payload?.room || socket.data.nativeRoom);
+   const live=nativeLiveRooms.get(room),to=String(payload?.to||'');
+   const target=io.sockets.sockets.get(to);
+   if(!live?.host || !to || !target || socket.data.nativeRoom!==room || socket.data.nativeRole!==allowedRole)return null;
+   if(allowedRole==='host'){
+    if(live.host!==socket.id || !live.viewers.has(to) || target.data.nativeRoom!==room || target.data.nativeRole!=='viewer')return null;
+   }else{
+    if(!live.viewers.has(socket.id) || to!==live.host || target.data.nativeRoom!==room || target.data.nativeRole!=='host')return null;
+   }
+   return {room,to};
+  }
+  socket.on('native:request-offer',payload=>{
+   const room=swappRelayRoomName(payload?.room || socket.data.nativeRoom),r=nativeLiveRooms.get(room);
+   if(socket.data.nativeRole!=='viewer'||socket.data.nativeRoom!==room||!r?.viewers?.has(socket.id)||!r.host)return;
+   io.to(r.host).emit('native:request-offer',{room,viewerId:socket.id});
+  });
+  socket.on('native:offer',payload=>{
+   const t=nativeSignalTarget(payload,'host');
+   if(t && payload?.offer?.type==='offer')io.to(t.to).emit('native:offer',{from:socket.id,room:t.room,offer:payload.offer});
+  });
+  socket.on('native:answer',payload=>{
+   const t=nativeSignalTarget(payload,'viewer');
+   if(t && payload?.answer?.type==='answer')io.to(t.to).emit('native:answer',{from:socket.id,room:t.room,answer:payload.answer});
+  });
+  socket.on('native:ice',payload=>{
+   const t=nativeSignalTarget(payload,socket.data.nativeRole);
+   if(t && payload?.candidate)io.to(t.to).emit('native:ice',{from:socket.id,room:t.room,candidate:payload.candidate});
+  });
 
   socket.on('native:chat:history', (payload) => {
     const room = String(payload?.room || socket.data.nativeRoom || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 40);
@@ -8579,6 +8690,7 @@ io.on('connection', async (socket) => {
       if(role === 'host' && r.host === socket.id){
         for(const viewerId of r.viewers){ io.to(viewerId).emit('native:error', { message: 'Le streamer a arrêté le live.' }); io.to(viewerId).emit('native:stopped', {room}); }
         nativeLiveRooms.delete(room);
+        nativeBrowserRelays.delete(room);
         persistOryonLiveStateByLogin(room, false, { localAgent:false, platform:'browser-webrtc' }).catch(()=>{});
         io.emit('native:lives:update');
       }else if(role === 'viewer'){
