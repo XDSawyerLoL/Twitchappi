@@ -31,9 +31,10 @@
   }
   if(btnChat){
    btnChat.setAttribute('aria-pressed',String(hide));
+   btnChat.setAttribute('aria-expanded',String(!hide));
    btnChat.querySelector('span').textContent=hide?'Afficher le chat':'Masquer le chat';
    const chat=page.querySelector('.channelLiveSidebar');
-   if(chat?.id)btnChat.setAttribute('aria-controls',chat.id);
+   if(chat){if(!chat.id)chat.id='swapp-channel-live-chat';btnChat.setAttribute('aria-controls',chat.id);}
   }
  }
  function install(page){
