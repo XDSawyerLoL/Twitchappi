@@ -157,7 +157,7 @@ async function setView(id){
  if(id==='admin'&&!isAdmin())id='home';
  if(['manager','dashboard','studio'].includes(id)&&!state.session.local)id='settings';
  if(id==='channel'&&!state.session.local&&!state.watchRoom)id='settings';
- if(id!=='channel') state.watchRoom=null;
+ if(id!=='channel'){state.watchRoom=null;globalThis.SwappBrowserRelay?.stopViewer?.();state.remotePlaying=false;}
  state.view=id;
  $$(".view").forEach(v=>v.classList.toggle("active",v.id===id));
  renderNav(); renderUserMenu();
@@ -350,20 +350,23 @@ async function renderChannel(){
  const isOwner=!!viewer && viewer.login===targetLogin;
  const lives=await api('/api/native/lives');
  const liveRoom=(lives.items||[]).find(x=>(x.host_login||x.room)===targetLogin);
- const isLive=!!liveRoom || !!(p.local_agent_live && swappSafeLocalPlayerUrl(p.oryon_local_player_url)) || (isOwner && !!state.stream && !!state.nativeLiveConfirmed);
+ // Never prefer a persisted/stale OBS iframe over a live browser WebRTC room.
+ const nativeBrowserLive=(!!liveRoom && !liveRoom.local_agent) || (isOwner && !!state.stream && !!state.nativeLiveConfirmed);
+ const publicLocalPlayerUrl=(!nativeBrowserLive && liveRoom?.local_agent) ? swappSafeLocalPlayerUrl(liveRoom.player_url||p.oryon_local_player_url) : '';
+ const isLive=!!nativeBrowserLive || !!publicLocalPlayerUrl;
  state.channelProfile=p; state.channelOwner=isOwner;
  const offlineImg=p.offline_image_url||p.banner_url||'';
  const tags=Array.isArray(p.tags)?p.tags:(String(p.tags||'').split(',').map(x=>x.trim()).filter(Boolean));
  const supporters=(support.first_supporters||[]).slice(0,8);
  const channelBadges=channelBadgesFor(p,support,isOwner);
  const ownerActions=isOwner?`<div class="row"><button class="btn" onclick="setView('manager')">Gestionnaire de stream</button><button class="btn secondary" onclick="setView('settings')">Modifier profil</button></div>`:`<div class="row"><button class="btn" onclick="followOryon('${esc(targetLogin)}')">Suivre</button><button id="likeBtn" class="btn secondary" onclick="likeOryon('${esc(targetLogin)}')">Aimer</button>${supportButton(targetLogin,support)}<button class="btn ghost" onclick="quickGem()">Autre</button></div>`;
- const liveMode=p.oryon_local_player_url?'Swapp Live / OBS actif':(isLive?'Live navigateur actif':'Hors live');
+ const liveMode=publicLocalPlayerUrl?'SWAPP Live / OBS actif':(isLive?'Live navigateur actif':'Hors live');
  const whyEnter=`<div class="livePrelude section"><div><div class="row"><span class="eyebrow"><i class="dot"></i>${isLive?'En direct':'Salon'}</span><span class="pill">${esc(liveMode)}</span><span class="pill">${esc(tags.slice(0,2).join(' · ')||'chill')}</span></div><h2 style="margin:10px 0 0">Entrée douce</h2><div class="reasonChips section"><span class="reasonChip">chat lisible</span><span class="reasonChip">nouveaux bienvenus</span><span class="reasonChip">réactions rapides</span></div></div><div class="comfortRing" style="--score:${Number(liveRoom?.viewers||0)<=50?92:74}%">${Number(liveRoom?.viewers||0)<=50?92:74}</div></div><div class="panel section"><h2>Badges de chaîne</h2><div class="channelBadgeRail">${channelBadges.map(b=>`<div class="channelBadgeBig"><strong>${esc(b.icon)}</strong><b>${esc(b.label)}</b><span class="small">${esc(b.note)}</span></div>`).join('')}</div></div><div class="panel section"><div class="pageHead"><div><h2>Premiers soutiens</h2></div></div><div class="supporters">${supporters.length?supporters.map(s=>`<span class="supportChip">⭐ ${esc(s.display_name||s.login)}</span>`).join(''):'<span class="small">Aucun encore.</span>'}</div></div>`;
- $('#channel').innerHTML=`<div class="channelPage publicChannel"><div class="pageHead"><div><h1>${isOwner?'Ma chaîne':esc(p.display_name||p.login)}</h1><p>${isOwner?'Ta page publique persistante.':'Page publique du streamer.'}</p></div>${ownerActions}</div><div class="channelBanner">${p.banner_url?`<img src="${esc(p.banner_url)}" alt="">`:`<div class="bannerFallback"></div>`}</div><div class="channelMeta"><img class="avatar" src="${esc(p.avatar_url||'')}" alt=""><div><h1>${esc(p.display_name||p.login)}</h1><p class="muted">${esc(p.bio||'Chaîne Swapp')}</p><div class="row"><span id="channelLiveBadge" class="pill">${isLive?'🔴 En direct':'Hors ligne'}</span><span class="pill">${esc(p.login)}</span><span class="pill">${Number(p.followers_count||0)} followers</span>${support?.count?`<span class="pill">${support.count} premiers soutiens</span>`:''}</div></div>${isOwner?`<button id="channelLaunchBtn" class="btn good" onclick="setView('manager')">${isLive?'Gérer le live':'Préparer / lancer'}</button>`:''}</div>${whyEnter}<div class="watchShell channelWatch section"><div class="watchMain"><div class="player premiumPlayer oryonMainPlayer">${swappSafeLocalPlayerUrl(p.oryon_local_player_url) ? `<iframe allowfullscreen sandbox="allow-same-origin allow-scripts allow-popups allow-forms" src="${esc(swappSafeLocalPlayerUrl(p.oryon_local_player_url))}"></iframe>` : ((p.peertube_embed_url||p.peertube_watch_url) && !isLive ? `<iframe allowfullscreen sandbox="allow-same-origin allow-scripts allow-popups allow-forms" src="${esc(normalizePeerTubeEmbed(p.peertube_embed_url,p.peertube_watch_url))}"></iframe>` : `<video id="localVideo" autoplay muted playsinline class="${isOwner&&state.stream?'':'hidden'}"></video><video id="remoteVideo" autoplay playsinline class="hidden"></video><div id="offlinePanel" class="emptyStatePlayer" style="display:${(isOwner&&state.stream)?'none':'grid'}">${offlineImg?`<img class="offlinePoster" src="${esc(offlineImg)}" alt="">`:''}<div class="offlineOverlay"><div><h2>${isLive?'Connexion au live…':'Chaîne hors ligne'}</h2><p class="muted">${isLive?'Si la vidéo tarde, utilise le bouton Relancer ou recharge cette page.':'Image hors live ou bannière configurée.'}</p>${isOwner?`<button class="btn" onclick="setView('manager')">Ouvrir le gestionnaire</button>`:`<button class="btn" onclick="quickGem()">Trouver une autre pépite</button>`}</div></div></div>`)}</div><div class="tabs"><button class="tabBtn active" onclick="chanTab(this,'about')">À propos</button><button class="tabBtn" onclick="chanTab(this,'planning')">Planning</button><button class="tabBtn" onclick="chanTab(this,'clips')">Clips</button></div><div id="channelTab" class="panel"></div></div><aside class="chatPanel nativeFixedChat" data-chat="oryon"><div class="chatHeader"><span>Tchat Swapp · ${esc(p.display_name||p.login)}</span><button class="btn ghost" onclick="reportRoom()">Signaler</button></div><div id="nativeChatLog" class="chatLog"></div><div id="customEmoteShelf" class="emotePanel hidden"></div><div id="gifGrid" class="gifGrid hidden"></div><div class="chatAssist"><button onclick="chatQuick('question')">Question</button><button onclick="chatQuick('new')">Nouveau ici</button><button onclick="chatQuick('react')">Réagir</button></div><div class="chatForm"><input id="chatInput" placeholder="Écrire sur Swapp…"><button class="btn secondary" onclick="toggleEmotes()">Emotes</button><button class="btn secondary" onclick="toggleGifs()">GIF</button><button class="btn" onclick="sendChat()">Envoyer</button></div></aside></div></div>`;
+ $('#channel').innerHTML=`<div class="channelPage publicChannel"><div class="pageHead"><div><h1>${isOwner?'Ma chaîne':esc(p.display_name||p.login)}</h1><p>${isOwner?'Ta page publique persistante.':'Page publique du streamer.'}</p></div>${ownerActions}</div><div class="channelBanner">${p.banner_url?`<img src="${esc(p.banner_url)}" alt="">`:`<div class="bannerFallback"></div>`}</div><div class="channelMeta"><img class="avatar" src="${esc(p.avatar_url||'')}" alt=""><div><h1>${esc(p.display_name||p.login)}</h1><p class="muted">${esc(p.bio||'Chaîne Swapp')}</p><div class="row"><span id="channelLiveBadge" class="pill">${isLive?'🔴 En direct':'Hors ligne'}</span><span class="pill">${esc(p.login)}</span><span class="pill">${Number(p.followers_count||0)} followers</span>${support?.count?`<span class="pill">${support.count} premiers soutiens</span>`:''}</div></div>${isOwner?`<button id="channelLaunchBtn" class="btn good" onclick="setView('manager')">${isLive?'Gérer le live':'Préparer / lancer'}</button>`:''}</div>${whyEnter}<div class="watchShell channelWatch section"><div class="watchMain"><div class="player premiumPlayer oryonMainPlayer">${publicLocalPlayerUrl ? `<iframe allowfullscreen sandbox="allow-same-origin allow-scripts allow-popups allow-forms" src="${esc(publicLocalPlayerUrl)}"></iframe>` : ((p.peertube_embed_url||p.peertube_watch_url) && !isLive ? `<iframe allowfullscreen sandbox="allow-same-origin allow-scripts allow-popups allow-forms" src="${esc(normalizePeerTubeEmbed(p.peertube_embed_url,p.peertube_watch_url))}"></iframe>` : `<video id="localVideo" autoplay muted playsinline class="${isOwner&&state.stream?'':'hidden'}"></video><video id="remoteVideo" autoplay playsinline class="hidden"></video><div id="offlinePanel" class="emptyStatePlayer" style="display:${(isOwner&&state.stream)?'none':'grid'}">${offlineImg?`<img class="offlinePoster" src="${esc(offlineImg)}" alt="">`:''}<div class="offlineOverlay"><div><h2>${isLive?'Connexion au live…':'Chaîne hors ligne'}</h2><p class="muted">${isLive?'Si la vidéo tarde, utilise le bouton Relancer ou recharge cette page.':'Image hors live ou bannière configurée.'}</p>${isOwner?`<button class="btn" onclick="setView('manager')">Ouvrir le gestionnaire</button>`:`<button class="btn" onclick="quickGem()">Trouver une autre pépite</button>`}</div></div></div>`)}</div><div class="tabs"><button class="tabBtn active" onclick="chanTab(this,'about')">À propos</button><button class="tabBtn" onclick="chanTab(this,'planning')">Planning</button><button class="tabBtn" onclick="chanTab(this,'clips')">Clips</button></div><div id="channelTab" class="panel"></div></div><aside class="chatPanel nativeFixedChat" data-chat="oryon"><div class="chatHeader"><span>Tchat Swapp · ${esc(p.display_name||p.login)}</span><button class="btn ghost" onclick="reportRoom()">Signaler</button></div><div id="nativeChatLog" class="chatLog"></div><div id="customEmoteShelf" class="emotePanel hidden"></div><div id="gifGrid" class="gifGrid hidden"></div><div class="chatAssist"><button onclick="chatQuick('question')">Question</button><button onclick="chatQuick('new')">Nouveau ici</button><button onclick="chatQuick('react')">Réagir</button></div><div class="chatForm"><input id="chatInput" placeholder="Écrire sur Swapp…"><button class="btn secondary" onclick="toggleEmotes()">Emotes</button><button class="btn secondary" onclick="toggleGifs()">GIF</button><button class="btn" onclick="sendChat()">Envoyer</button></div></aside></div></div>`;
  if(isLive)setMiniLive({type:'oryon',login:targetLogin,title:'Swapp · '+(p.display_name||p.login)});
  chanTab(null,'about'); setupSocket(); state.room=targetLogin; state.socket.emit('native:chat:history',{room:state.room});
  if(isOwner && state.stream){ attachCurrentStream(); }
- else if(isLive){ state.socket.emit('native:join',{room:targetLogin}); if(!swappSafeLocalPlayerUrl(p.oryon_local_player_url)){ setTimeout(()=>requestOffer(),500); setTimeout(()=>{ if($('#remoteVideo') && !$('#remoteVideo').srcObject) toast('Connexion vidéo en attente. Clique sur Relancer si besoin.'); },3500); } }
+ else if(isLive){ state.socket.emit('native:join',{room:targetLogin}); if(!publicLocalPlayerUrl){ setTimeout(()=>requestOffer(),500); setTimeout(()=>{ if($('#remoteVideo') && !$('#remoteVideo').srcObject) toast('Connexion vidéo en attente. Clique sur Relancer si besoin.'); },3500); setTimeout(()=>{if(state.view==='channel' && !state.remotePlaying && !state.stream && (state.watchRoom||state.room)===targetLogin)swappTryHttpPlayback().catch(()=>{});},9000); } }
  updateLiveUi(isLive);
  refreshEmoteShelf(targetLogin);
 }
@@ -682,6 +685,7 @@ function swappVerifyRemoteFrames(pc,video,id){
      video.videoWidth>0 && video.currentTime>0){mark();return;}
   if(Date.now()-probe.started>=12000){
    swappSetVideoPlayback(false);
+   if(await swappTryHttpPlayback())return;
    swappVideoNotice('Écran noir : aucune image reçue',
     state.swappTurnConfigured?
     'Le salon est actif, mais aucune image vidéo n’a été décodée. Relance le lecteur ou vérifie la capture du diffuseur.':
@@ -695,7 +699,7 @@ function swappVerifyRemoteFrames(pc,video,id){
 }
 function swappStartRemotePlayback(){
  const video=$('#remoteVideo');
- if(!video||!video.srcObject)return;
+ if(!video||(!video.srcObject&&!video.currentSrc))return;
  video.muted=false;
  const action=document.querySelector('[data-swapp-unmute]');
  action?.remove();
@@ -718,13 +722,36 @@ function swappShowViewerTransportWarning(){
   'Le direct est détecté, mais aucune image ne parvient au lecteur. Vérifie le réseau du spectateur, la capture du diffuseur ou relance la vidéo.',
   'Relancer la vidéo');
 }
+async function swappTryHttpPlayback(){
+ const room=state.watchRoom||state.room,video=$('#remoteVideo');
+ if(!room || !video || state.stream || state.view!=='channel' || state.remotePlaying)return false;
+ if(globalThis.SwappBrowserRelay?.isViewing?.(room))return true;
+ if(typeof globalThis.SwappBrowserRelay?.startViewer!=='function')return false;
+ const allowed=()=>state.view==='channel' && !state.stream && (state.watchRoom||state.room)===room;
+ const ok=await globalThis.SwappBrowserRelay.startViewer(room,video,{
+  isActive:allowed,
+  onPlayback:()=>{
+   if(!allowed())return;
+   swappSetVideoPlayback(true);
+   Object.values(state.peers||{}).forEach(pc=>{try{pc.close()}catch(_){}});
+   state.peers={};
+  },
+  onError:()=>{if(allowed()&&!state.remotePlaying)
+   swappVideoNotice('Vidéo indisponible sur ce navigateur',
+    'La connexion directe a échoué et le navigateur ne peut pas décoder le relais HTTP. Réessaie ou utilise un navigateur compatible H.264/WebM.','Relancer la vidéo');
+  }
+ });
+ if(ok && !state.remotePlaying)
+  swappVideoNotice('Connexion vidéo en cours','Le réseau bloque la connexion directe. SWAPP essaie son relais vidéo HTTP intégré, sans service externe.');
+ return !!ok;
+}
 function setupSocket(){
  if(state.socket){
   if(!state.socket.connected)try{state.socket.connect()}catch(_){}
   return;
  }
  state.socketLogin=state.session.local?.login||'';
- state.socket=io({withCredentials:true,reconnection:true,reconnectionAttempts:Infinity,reconnectionDelay:700,reconnectionDelayMax:5000,timeout:15000});
+ state.socket=io({withCredentials:true,transports:['polling'],upgrade:false,reconnection:true,reconnectionAttempts:Infinity,reconnectionDelay:700,reconnectionDelayMax:5000,timeout:15000});
  state.socket.on('connect',()=>{
   if(state.stream && state.nativeLiveInfo){
    state.nativeLiveConfirmed=false;state.nativeLivePending=true;updateLiveUi(false);
@@ -755,6 +782,7 @@ function setupSocket(){
   const status=$('#streamViewerReadiness');
   if(status)status.textContent='Diffusion publiée. Lecture chez les spectateurs non encore confirmée.';
   toast('Direct publié sur SWAPP');
+  globalThis.SwappBrowserRelay?.startPublisher?.(d.room,state.stream);
   state.socket.emit('native:chat:history',{room:d.room});
  });
  state.socket.on('native:stats',d=>{
@@ -843,10 +871,10 @@ function requestOffer(){
   state.socket.emit('native:request-offer',{room:state.watchRoom||state.room});
 }
 function retryWatch(){
- if(state.stream || (!state.watchRoom && !state.room) || state.view!=='channel')return;
+ if(state.stream || globalThis.SwappBrowserRelay?.isViewing?.(state.watchRoom||state.room) || (!state.watchRoom && !state.room) || state.view!=='channel')return;
  if(state.remoteRetryTimer)return;
  state.remoteRetryCount=(state.remoteRetryCount||0)+1;
- if(state.remoteRetryCount>3){swappShowViewerTransportWarning();return;}
+ if(state.remoteRetryCount>3){swappTryHttpPlayback().then(ok=>{if(!ok)swappShowViewerTransportWarning()});return;}
  swappSetVideoPlayback(false);
  const delay=1200*state.remoteRetryCount;
  state.remoteRetryTimer=setTimeout(()=>{
@@ -869,10 +897,11 @@ async function peer(id){
  pc.onconnectionstatechange=()=>{
   if(state.peers?.[id]!==pc)return;
   if(pc.connectionState==='failed' || pc.connectionState==='disconnected'){
-   if(!state.stream){swappSetVideoPlayback(false);retryWatch();}
+   if(!state.stream){swappSetVideoPlayback(false);retryWatch();swappTryHttpPlayback().catch(()=>{});}
   }
  };
  pc.ontrack=e=>{
+  if(globalThis.SwappBrowserRelay?.isViewing?.(state.watchRoom||state.room))return;
   const v=$('#remoteVideo');if(!v || state.peers?.[id]!==pc)return;
   if(e.streams?.[0])v.srcObject=e.streams[0];
   else{let media=v.srcObject;if(!media){media=new MediaStream();v.srcObject=media;}media.addTrack(e.track);}
@@ -906,7 +935,7 @@ async function createScreenCameraStream(video){
 async function startLive(){
  if(!state.session.local)return setView('settings');
  if(state.socket && state.socketLogin !== state.session.local.login){ try{state.socket.disconnect()}catch{} state.socket=null; state.socketLogin=null; }
- state.watchRoom=null; setupSocket();
+ state.watchRoom=null;globalThis.SwappBrowserRelay?.stopViewer?.(); setupSocket();
  const q=$('#liveQuality')?.value||'1080'; const source=$('#liveSource')?.value||'screen';
  const video=q==='720'?{width:{ideal:1280},height:{ideal:720},frameRate:{ideal:60,max:60}}:{width:{ideal:1920},height:{ideal:1080},frameRate:{ideal:60,max:60}};
  try{state.stream= source==='camera' ? await navigator.mediaDevices.getUserMedia({video,audio:true}) : (source==='screen-camera' ? await createScreenCameraStream(video) : await navigator.mediaDevices.getDisplayMedia({video,audio:true}))}
@@ -919,7 +948,7 @@ async function startLive(){
  clearTimeout(state.nativeLiveAckTimer);
  state.nativeLiveAckTimer=setTimeout(()=>{if(state.stream && !state.nativeLiveConfirmed){stopLive();toast('Impossible de confirmer la diffusion publique SWAPP.');}},20000);
 }
-function stopLive(stopTracks=true){clearTimeout(state.nativeLiveAckTimer);state.nativeLiveAckTimer=null;state.nativeLiveConfirmed=false;state.nativeLivePending=false;state.nativeLiveInfo=null;if(stopTracks){ state.stream?._oryonSources?.forEach(src=>src.getTracks().forEach(t=>t.stop())); state.stream?.getTracks().forEach(t=>t.stop()); } state.stream=null; if(state.socket) state.socket.emit('native:leave'); Object.values(state.peers||{}).forEach(pc=>{try{pc.close()}catch{}}); state.peers={}; updateLiveUi(false); const v=$('#localVideo'); if(v) v.srcObject=null; $('#offlinePanel')&&( $('#offlinePanel').style.display='block'); (()=>{const e=$('#managerPreviewEmpty');if(e){e.hidden=false;e.removeAttribute('aria-hidden');e.classList.remove('hidden');e.style.setProperty('display','grid','important');}})();toast('Live arrêté')}
+function stopLive(stopTracks=true){globalThis.SwappBrowserRelay?.stopPublisher?.();clearTimeout(state.nativeLiveAckTimer);state.nativeLiveAckTimer=null;state.nativeLiveConfirmed=false;state.nativeLivePending=false;state.nativeLiveInfo=null;if(stopTracks){ state.stream?._oryonSources?.forEach(src=>src.getTracks().forEach(t=>t.stop())); state.stream?.getTracks().forEach(t=>t.stop()); } state.stream=null; if(state.socket) state.socket.emit('native:leave'); Object.values(state.peers||{}).forEach(pc=>{try{pc.close()}catch{}}); state.peers={}; updateLiveUi(false); const v=$('#localVideo'); if(v) v.srcObject=null; $('#offlinePanel')&&( $('#offlinePanel').style.display='block'); (()=>{const e=$('#managerPreviewEmpty');if(e){e.hidden=false;e.removeAttribute('aria-hidden');e.classList.remove('hidden');e.style.setProperty('display','grid','important');}})();toast('Live arrêté')}
 function openOryon(room){state.watchRoom=String(room||'').toLowerCase(); const item=(state.zap.items||[]).find(x=>(x.host_login||x.room)===state.watchRoom)||{platform:'oryon',host_login:state.watchRoom,host_name:state.watchRoom}; trackDiscovery(item); state.room=state.watchRoom; setMiniLive({type:'oryon',login:state.watchRoom,title:'Swapp · '+state.watchRoom}); setView('channel')}
 function sendChat(){if(!state.room)return toast('Aucun salon Swapp actif'); if(!state.socket)setupSocket(); if(!state.session.local)return toast('Connecte-toi à Swapp pour écrire dans le tchat natif.'); state.socket.emit('native:chat',{room:state.room,text:$('#chatInput').value,gif:state.selectedGif,emote:state.selectedEmote?{code:state.selectedEmote.code,image_url:state.selectedEmote.image_url}:null}); $('#chatInput').value=''; state.selectedGif=''; state.selectedEmote=null; $('#gifGrid')?.classList.add('hidden')}
 function msgHtml(m){return `<div class="msg"><b>${esc(m.user_display||m.user)}</b> <span class="small">${new Date(m.ts).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</span><div>${esc(m.text||'')}</div>${m.emote?`<img src="${esc(m.emote.image_url)}" title=":${esc(m.emote.code)}:">`:''}${m.gif?`<img src="${esc(m.gif)}">`:''}</div>`}
@@ -1487,7 +1516,7 @@ async function renderChannel(){
  if(isLive)setMiniLive({type:'oryon',login:targetLogin,title:'Swapp · '+(p.display_name||p.login)});
  chanTab(null,'about'); setupSocket(); state.room=targetLogin; state.socket.emit('native:chat:history',{room:state.room});
  if(isOwner && state.stream){ attachCurrentStream(); }
- else if(isLive){ state.socket.emit('native:join',{room:targetLogin}); if(!swappSafeLocalPlayerUrl(p.oryon_local_player_url)){ setTimeout(()=>requestOffer(),500); setTimeout(()=>{ if($('#remoteVideo') && !$('#remoteVideo').srcObject) toast('Connexion vidéo en attente. Clique sur Relancer si besoin.'); },3500); } }
+ else if(isLive){ state.socket.emit('native:join',{room:targetLogin}); if(!swappSafeLocalPlayerUrl(p.oryon_local_player_url)){ setTimeout(()=>requestOffer(),500); setTimeout(()=>{ if($('#remoteVideo') && !$('#remoteVideo').srcObject) toast('Connexion vidéo en attente. Clique sur Relancer si besoin.'); },3500); setTimeout(()=>{if(state.view==='channel' && !state.remotePlaying && !state.stream && (state.watchRoom||state.room)===targetLogin)swappTryHttpPlayback().catch(()=>{});},9000); } }
  updateLiveUi(isLive);
  refreshEmoteShelf(targetLogin);
 }
