@@ -104,14 +104,6 @@ function attachSwappDirectRelay(app, opts={}){
   if(!r?.manifest)return res.sendStatus(404);
   res.type('application/vnd.apple.mpegurl').send(r.manifest);
  });
- app.get('/api/oryon/local-relay/:login/:segment',(req,res)=>{
-  notCached(res);
-  const login=cleanLogin(req.params.login),name=cleanName(req.params.segment),r=login&&liveRoom(login);
-  if(!r||!name.endsWith('.ts')||!r.playlistNames.includes(name))return res.sendStatus(404);
-  const bytes=r.segments.get(name);
-  if(!bytes)return res.sendStatus(404);
-  res.type('video/mp2t').send(bytes);
- });
  app.get('/api/oryon/local-relay/:login/player',(req,res)=>{
   notCached(res);
   const login=cleanLogin(req.params.login);
@@ -121,7 +113,15 @@ function attachSwappDirectRelay(app, opts={}){
    .replace('__SWAPP_HLS_SRC__',JSON.stringify('/api/oryon/local-relay/'+login+'/index.m3u8'))
    .replace('/assets/hls.min.js','https://cdn.jsdelivr.net/npm/hls.js@1.6.15/dist/hls.min.js');
   res.type('html').send(html);
+ }); app.get('/api/oryon/local-relay/:login/:segment',(req,res)=>{
+  notCached(res);
+  const login=cleanLogin(req.params.login),name=cleanName(req.params.segment),r=login&&liveRoom(login);
+  if(!r||!name.endsWith('.ts')||!r.playlistNames.includes(name))return res.sendStatus(404);
+  const bytes=r.segments.get(name);
+  if(!bytes)return res.sendStatus(404);
+  res.type('video/mp2t').send(bytes);
  });
+
  return {rooms,reclaim,validatePlaylist,MAX_ROOMS,MAX_ROOM_BYTES};
 }
 module.exports={attachSwappDirectRelay};
