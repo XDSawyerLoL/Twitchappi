@@ -103,3 +103,46 @@ test('uplink pushes HLS media outbound and finishes with a valid playlist',async
   assert.equal(service.getStatus().published,true);
  }finally{service.stop();fs.rmSync(tmp,{recursive:true,force:true})}
 });
+
+test('a previously rejected 4.5 MiB OBS MPEG-TS segment can reach the SWAPP server',async()=>{
+ const b=backend();
+ const buffer=Buffer.alloc(Math.floor(4.5*1024*1024),0); buffer[0]=0x47;
+ const posted=await b.call('post','/api/oryon/local-relay/upload',{name:'seg_001.ts',body:buffer});
+ assert.equal(posted.status,200);
+ const capability=await b.call('get','/api/oryon/local-relay/capabilities');
+ assert.equal(capability.payload.version,2);
+ assert.ok(capability.payload.max_segment_bytes>=8*1024*1024);
+ assert.ok(capability.payload.max_room_bytes>=24*1024*1024);
+ const playlist=Buffer.from('#EXTM3U\n#EXT-X-VERSION:3\n#EXTINF:2,\nseg_001.ts\n');
+ assert.equal((await b.call('post','/api/oryon/local-relay/upload',{name:'index.m3u8',body:playlist})).status,200);
+ const res=await b.call('get','/api/oryon/local-relay/:login/:segment',{segment:'seg_001.ts'});
+ assert.equal(res.status,200);
+ assert.equal(res.payload.length,buffer.length);
+});
+test('uploader accepts an OBS segment above the former 3 MiB hard limit',async()=>{
+ const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'swapp-hls-oversize-'));
+ const {startSwappHlsUplink}=require('../local-agent/swapp-direct-uplink.js');
+ const segment=Buffer.alloc(4*1024*1024,0);segment[0]=0x47;
+ fs.writeFileSync(path.join(tmp,'seg_001.ts'),segment);
+ fs.writeFileSync(path.join(tmp,'index.m3u8'),'#EXTM3U\n#EXTINF:2,\nseg_001.ts\n');
+ const calls=[];
+ const uplink=startSwappHlsUplink({key:'test',login:'vnhz',siteUrl:'https://swapp.tv',token:'TEST_TOKEN',mediaDir:tmp,
+   fetchFn:async(url,opts)=>{
+    if(opts?.body)calls.push({name:opts.headers['X-Swapp-Media-Name'],bytes:opts.body.length});
+    if(String(url).endsWith('/state'))return{ok:true,json:async()=>({active:true,segment_count:1})};
+    return{ok:true,json:async()=>({success:true})};
+   }});
+ try{
+  await uplink.ready;
+  assert.deepEqual(calls.map(x=>x.name),['seg_001.ts','index.m3u8']);
+  assert.equal(calls[0].bytes,4*1024*1024);
+ }finally{uplink.stop();fs.rmSync(tmp,{recursive:true,force:true})}
+});
+test('default FFmpeg HLS muxing forces 2s keyframes at a bounded 720p bitrate',()=>{
+ const source=fs.readFileSync(path.join(__dirname,'..','local-agent','server.js'),'utf8');
+ assert.match(source,/SWAPP_LOCAL_TRANSCODE \|\| process\.env\.ORYON_LOCAL_TRANSCODE \|\| 'transcode'/);
+ assert.match(source,/force_key_frames','expr:gte\(t,n_forced\*2\)'/);
+ assert.match(source,/'-b:v','1600k','-maxrate','2000k','-bufsize','4000k'/);
+ assert.match(source,/'-hls_time', '2'/);
+ assert.match(source,/force_original_aspect_ratio=decrease/);
+});
