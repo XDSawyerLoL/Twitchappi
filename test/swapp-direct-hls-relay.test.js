@@ -12,7 +12,7 @@ function backend(){
  const express={raw:()=>(_req,_res,next)=>next()};
  const module={exports:{}};
  vm.runInNewContext(source,{
-  require(id){if(id==='express')return express;return require(id)},
+  require(id){if(id==='express')return express;if(id==='./swapp-ts-inspect')return require('../modules/swapp-ts-inspect');return require(id)},
   module,__dirname:path.join(__dirname,'..','modules'),
   process:{env:{}},Buffer,Date,setInterval(){return{unref(){}}}
  });
