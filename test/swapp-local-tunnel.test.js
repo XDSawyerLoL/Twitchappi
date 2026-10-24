@@ -68,14 +68,14 @@ test('public Cloudflare tunnel cannot access user settings or local control APIs
  assert.ok(server.includes('PUBLIC_HTTP_PORT'));
 });
 test('Windows executable bundles validated cloudflared and a local HLS player dependency',()=>{
- assert.equal(pkg.version,'1.0.6');
+ assert.equal(pkg.version,'1.0.7');
  assert.ok(pkg.dependencies['hls.js']);
  assert.ok(pkg.build.extraResources.some(x=>x.from==='bin/cloudflared.exe'&&x.to==='bin/cloudflared.exe'));
  assert.ok(server.includes('process.resourcesPath'));
  const workflow=read('.github/workflows/swapp-live-windows.yml');
  assert.ok(workflow.includes('Get-FileHash'));
  assert.ok(workflow.includes('cloudflared-windows-amd64.exe'));
- assert.ok(workflow.includes('swapp-live-windows-v1.0.6'));
+ assert.ok(workflow.includes('swapp-live-windows-v1.0.7'));
 });
 test('SWAPP only announces the tunnel once public playlist and segments respond',()=>{
  assert.ok(server.includes('async function validatePublicVideo'));
