@@ -13,6 +13,8 @@ try { bundledFfmpeg = require('ffmpeg-static'); } catch (_) { bundledFfmpeg = nu
 
 const HTTP_PORT = Number(process.env.ORYON_LOCAL_HTTP_PORT || process.env.SWAPP_LOCAL_HTTP_PORT || 8081);
 const RTMP_PORT = Number(process.env.ORYON_LOCAL_RTMP_PORT || process.env.SWAPP_LOCAL_RTMP_PORT || 1935);
+// A different loopback-only origin is exposed by the public tunnel. Never expose local account/config APIs.
+const PUBLIC_HTTP_PORT = Number(process.env.SWAPP_LOCAL_PUBLIC_HTTP_PORT || (HTTP_PORT+1));
 const MEDIA_ROOT = process.env.ORYON_LOCAL_MEDIA_ROOT || process.env.SWAPP_LOCAL_MEDIA_ROOT || path.join(process.env.APPDATA || os.homedir(), 'SwappLocal', 'media');
 const DEFAULT_KEY = process.env.ORYON_STREAM_KEY || process.env.SWAPP_STREAM_KEY || 'ta-cle-swapp';
 const DEFAULT_SWAPP_SITE_URL = process.env.ORYON_SITE_URL || process.env.SWAPP_SITE_URL || 'https://swapp.tv';
@@ -192,6 +194,8 @@ function withTimeout(promise, ms, label) {
 }
 function cloudflaredBundledPath() {
   const exe = process.platform === 'win32' ? 'cloudflared.exe' : 'cloudflared';
+  const packaged = process.resourcesPath ? path.join(process.resourcesPath, 'bin', exe) : '';
+  if (packaged && fs.existsSync(packaged)) return packaged;
   return path.join(__dirname, 'bin', exe);
 }
 function cloudflaredManagedPath() {
@@ -283,7 +287,7 @@ async function startCloudflaredProviderOnce() {
   const exe = await ensureCloudflaredExecutable();
   cloudflaredLastLog = '';
   return await withTimeout(new Promise((resolve, reject) => {
-    const child = spawn(exe, ['tunnel', '--no-autoupdate', '--url', `http://127.0.0.1:${HTTP_PORT}`], { windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
+    const child = spawn(exe, ['tunnel', '--no-autoupdate', '--url', `http://127.0.0.1:${PUBLIC_HTTP_PORT}`], { windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
     cloudflaredProcess = child;
     let resolved = false;
     const onData = async buf => {
@@ -296,6 +300,7 @@ async function startCloudflaredProviderOnce() {
         log('tunnel', 'URL Cloudflare reçue, validation en cours', candidate);
         try {
           await validatePublicTunnel(candidate.url, TUNNEL_CHECK_TIMEOUT_MS);
+          if (child.exitCode !== null || child.signalCode !== null) throw new Error('cloudflared est arrêté avant validation du tunnel');
           publicTunnelInfo = candidate;
           log('tunnel', 'Cloudflare Tunnel validé', publicTunnelInfo);
           resolve(publicTunnelInfo);
@@ -315,7 +320,12 @@ async function startCloudflaredProviderOnce() {
       cloudflaredProcess = null;
       if (!resolved) reject(new Error(`cloudflared arrêté sans URL. Code=${code || ''} Signal=${signal || ''}. ${cloudflaredLastLog.slice(-1200)}`));
     });
-  }), 65000, 'Cloudflare Tunnel ne donne pas d’URL valide après 65 secondes');
+  }), 65000, 'Cloudflare Tunnel ne donne pas d’URL valide après 65 secondes').catch(err => {
+    if(cloudflaredProcess){try{cloudflaredProcess.kill()}catch(_){}}
+    cloudflaredProcess=null;
+    publicTunnelInfo=null;
+    throw err;
+  });
 }
 async function stopPublicTunnel() {
   if (cloudflaredProcess) { try { cloudflaredProcess.kill(); } catch (_) {} }
@@ -357,12 +367,28 @@ async function ensureValidTunnelForLive(key) {
     return info;
   }
 }
+// Health alone is not a sufficient signal: the remote video manifest and segments
+// must both be available from the *public* tunnel before announcing live.
+async function validatePublicVideo(key) {
+  const k=safeKey(key);
+  const manifestUrl=`${publicTunnelInfo.url}/hls/${encodeURIComponent(k)}/index.m3u8`;
+  const response=await withTimeout(fetch(manifestUrl,{cache:'no-store'}),10000,'Délai playlist HLS publique dépassé');
+  if(!response.ok)throw new Error(`Playlist HLS inaccessible depuis Internet (HTTP ${response.status})`);
+  const playlist=await response.text();
+  if(!playlist.startsWith('#EXTM3U')||!playlist.includes('#EXTINF'))throw new Error('Playlist HLS publique vide ou invalide');
+  const segment=playlist.split(/\r?\n/).map(line=>line.trim()).find(line=>line&&!line.startsWith('#')&&/^[A-Za-z0-9_.-]+\\.ts$/.test(line));
+  if(!segment)throw new Error('Aucun segment vidéo HLS trouvé dans la playlist publique');
+  const segmentResponse=await withTimeout(fetch(new URL(segment,manifestUrl),{method:'HEAD',cache:'no-store'}),10000,'Délai segment HLS public dépassé');
+  if(!segmentResponse.ok)throw new Error(`Segment vidéo inaccessible depuis Internet (HTTP ${segmentResponse.status})`);
+  return true;
+}
 async function registerPublicUrlOnSwapp({ siteUrl, key }) {
   const cfg = loadLocalConfig();
   const base = cleanSiteUrl(siteUrl || cfg.site_url || DEFAULT_SWAPP_SITE_URL);
   if (!base || !/^https?:\/\//i.test(base)) throw new Error('URL du site Swapp invalide');
   if (!publicTunnelInfo?.url) throw new Error('Tunnel public non lancé');
   await validatePublicTunnel(publicTunnelInfo.url, 12000);
+  await validatePublicVideo(key);
   const player = publicPlayerUrl(key);
   if (!player || /localhost|127\.0\.0\.1/i.test(player)) throw new Error('URL publique invalide : le tunnel n’a pas fourni d’adresse publique.');
   if (isBlockedTunnelUrl(player)) throw new Error('URL loca.lt refusée : elle affiche une page de sécurité et casse le lecteur.');
@@ -406,6 +432,9 @@ async function repairTunnelNow(key = currentConfiguredKey()) {
 }
 
 const app = express();
+// Public routes deliberately live on a separate HTTP listener. Quick Tunnel otherwise
+// exposes /api/account/status (stream key), tunnel controls and pairing callback.
+const publicApp = express();
 app.use(express.json({ limit: '1mb' }));
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -414,7 +443,7 @@ app.use((req, res, next) => {
   if (req.method === 'OPTIONS') return res.status(204).end();
   next();
 });
-app.use('/hls', express.static(path.join(MEDIA_ROOT, 'live'), {
+const hlsStatic = express.static(path.join(MEDIA_ROOT, 'live'), {
   fallthrough: true,
   setHeaders(res, filePath) {
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -426,7 +455,14 @@ app.use('/hls', express.static(path.join(MEDIA_ROOT, 'live'), {
       res.setHeader('Cache-Control', 'public, max-age=10');
     }
   }
-}));
+});
+app.use('/hls',hlsStatic);
+publicApp.use('/hls',hlsStatic);
+const hlsJsPath=path.join(__dirname,'node_modules','hls.js','dist','hls.min.js');
+function serveHlsJs(_req,res){res.sendFile(hlsJsPath)}
+app.get('/assets/hls.min.js',serveHlsJs);
+publicApp.get('/assets/hls.min.js',serveHlsJs);
+publicApp.get('/health',(_req,res)=>res.json({success:true,name:'SWAPP Public Video'}));
 
 function pageHtml(key){
   const cfg = loadLocalConfig();
@@ -531,18 +567,24 @@ app.post('/api/heartbeat', async (req, res) => {
     const key = safeKey(req.body?.key || cfg.stream_key || DEFAULT_KEY);
     const live = !!req.body?.live_active;
     const j = await sendHeartbeatToSwapp(key, live);
+    if(!j)return res.status(502).json({success:false,error:'Heartbeat vers SWAPP non confirmé'});
     return res.json({ success:true, live, response:j });
   } catch(e) { return res.status(500).json({ success:false, error:e.message }); }
 });
 
 app.get('/health', (_req, res) => res.json({ success:true, name:'Swapp Local', rtmp:`rtmp://127.0.0.1:${RTMP_PORT}/live`, local_base_url:LOCAL_BASE_URL, media_root:MEDIA_ROOT, ffmpeg:ffmpegInfo(), active:Object.values(active), ffmpeg_jobs:Object.keys(ffmpegJobs), tunnel:publicTunnelInfo, account: loadLocalConfig().user || null, localtunnel_disabled:true }));
 app.get('/api/status', (req, res) => res.json({ success:true, ffmpeg:ffmpegInfo(), media_root:MEDIA_ROOT, stream:streamStatus(req.query.key || currentConfiguredKey()), active:Object.values(active), ffmpeg_jobs:Object.keys(ffmpegJobs), events }));
-app.get('/player/:key', (req, res) => {
+function servePlayer(req, res) {
   const key = safeKey(req.params.key);
-  const hls = hlsUrl(key);
-  const html = "<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>Swapp Live Player</title><style>html,body{margin:0;width:100%;height:100%;background:#030508;color:white;font-family:system-ui;overflow:hidden}video{width:100%;height:100%;object-fit:contain;background:#030508;pointer-events:none}.state{position:absolute;inset:0;display:grid;place-items:center;text-align:center;color:#9ba7bb;padding:20px}</style></head><body><video id=\"v\" autoplay muted playsinline></video><div id=\"s\" class=\"state\">Connexion au flux…</div><script src=\"https://cdn.jsdelivr.net/npm/hls.js@latest\"></script><script>const src=" + JSON.stringify(hls) + ",v=document.getElementById(\"v\"),s=document.getElementById(\"s\");let h=null,booted=false;v.controls=false;function ok(){s.style.display=\"none\"}function msg(t){s.style.display=\"grid\";s.textContent=t}async function ready(){try{const r=await fetch(src+\"?t=\"+Date.now(),{cache:\"no-store\"});return r.ok}catch(e){return false}}async function boot(){if(booted)return;if(!await ready()){msg(\"Connexion au flux…\");setTimeout(boot,1500);return}booted=true;if(v.canPlayType(\"application/vnd.apple.mpegurl\")){v.src=src+\"?t=\"+Date.now();v.addEventListener(\"loadedmetadata\",ok,{once:true});v.play().catch(()=>{});return}if(window.Hls&&Hls.isSupported()){h=new Hls({lowLatencyMode:true,liveSyncDurationCount:2});h.loadSource(src+\"?t=\"+Date.now());h.attachMedia(v);h.on(Hls.Events.MANIFEST_PARSED,()=>{ok();v.play().catch(()=>{})});h.on(Hls.Events.ERROR,(_e,d)=>{if(d&&d.fatal){booted=false;try{h.destroy()}catch(e){};h=null;msg(\"Reconnexion…\");setTimeout(boot,1500)}});return}msg(\"Navigateur non compatible HLS.\")}boot();setInterval(async()=>{if(!booted)boot()},3000);</script></body></html>";
+  // Relative path is essential: remote viewers must request HLS via trycloudflare.com,
+  // not 127.0.0.1 on their own computers.
+  const hls = `/hls/${encodeURIComponent(key)}/index.m3u8`;
+  const html = "<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>Swapp Live Player</title><style>html,body{margin:0;width:100%;height:100%;background:#030508;color:white;font-family:system-ui;overflow:hidden}video{width:100%;height:100%;object-fit:contain;background:#030508;pointer-events:none}.state{position:absolute;inset:0;display:grid;place-items:center;text-align:center;color:#9ba7bb;padding:20px}</style></head><body><video id=\"v\" autoplay muted playsinline></video><div id=\"s\" class=\"state\">Connexion au flux…</div><script src=\"/assets/hls.min.js\"></script><script>const src=" + JSON.stringify(hls) + ",v=document.getElementById(\"v\"),s=document.getElementById(\"s\");let h=null,booted=false;v.controls=false;function ok(){s.style.display=\"none\"}function msg(t){s.style.display=\"grid\";s.textContent=t}async function ready(){try{const r=await fetch(src+\"?t=\"+Date.now(),{cache:\"no-store\"});return r.ok}catch(e){return false}}async function boot(){if(booted)return;if(!await ready()){msg(\"Connexion au flux…\");setTimeout(boot,1500);return}booted=true;if(v.canPlayType(\"application/vnd.apple.mpegurl\")){v.src=src+\"?t=\"+Date.now();v.addEventListener(\"loadedmetadata\",ok,{once:true});v.play().catch(()=>{});return}if(window.Hls&&Hls.isSupported()){h=new Hls({lowLatencyMode:true,liveSyncDurationCount:2});h.loadSource(src+\"?t=\"+Date.now());h.attachMedia(v);h.on(Hls.Events.MANIFEST_PARSED,()=>{ok();v.play().catch(()=>{})});h.on(Hls.Events.ERROR,(_e,d)=>{if(d&&d.fatal){booted=false;try{h.destroy()}catch(e){};h=null;msg(\"Reconnexion…\");setTimeout(boot,1500)}});return}msg(\"Navigateur non compatible HLS.\")}boot();setInterval(async()=>{if(!booted)boot()},3000);</script></body></html>";
   res.type('html').send(html);
-});
+}
+app.get('/player/:key',servePlayer);
+publicApp.get('/player/:key',servePlayer);
+publicApp.use((_req,res)=>res.status(404).json({success:false,error:'Route publique non autorisée'}));
 
 setInterval(async () => {
   const key = publishedLiveKey || currentConfiguredKey();
@@ -555,4 +597,5 @@ setInterval(async () => {
   }
 }, 15000);
 
-app.listen(HTTP_PORT, () => { console.log(`[Swapp Local] Interface: http://localhost:${HTTP_PORT}`); console.log(`[Swapp Local] OBS server: rtmp://127.0.0.1:${RTMP_PORT}/live`); });
+app.listen(HTTP_PORT,'127.0.0.1', () => { console.log(`[Swapp Local] Interface: http://127.0.0.1:${HTTP_PORT}`); console.log(`[Swapp Local] OBS server: rtmp://127.0.0.1:${RTMP_PORT}/live`); });
+publicApp.listen(PUBLIC_HTTP_PORT,'127.0.0.1',()=>{log('system','Origine vidéo publique distincte lancée',{url:`http://127.0.0.1:${PUBLIC_HTTP_PORT}`})});
