@@ -57,3 +57,15 @@ test('one stable grid and unhidden chat are the default on a live channel',()=>{
  assert.match(js,/chat:'shown'/);
  assert.doesNotMatch(js,/sessionStorage/);
 });
+
+test('public channel has early recovery independent from the large application script',()=>{
+ const html=read('index.html');
+ const early=read('assets/swapp-watch-early-recovery.js');
+ new Function(early);
+ assert.ok(html.indexOf('/assets/swapp-watch-early-recovery.js')>0);
+ assert.ok(html.indexOf('/assets/swapp-watch-early-recovery.js')<html.indexOf('/index_script.js'));
+ assert.match(early,/segment_count/);
+ assert.match(early,/boot\.replaceChildren\(outer\)/);
+ assert.match(early,/controller\.abort\(\)/);
+ assert.match(early,/Ouvrir le direct/);
+});
