@@ -630,7 +630,7 @@ function swappVideoNotice(heading,description,action){
   const btn=document.createElement('button');
   btn.type='button';btn.className='btn';btn.dataset.swappRetryVideo='1';
   btn.textContent=action;
-  btn.onclick=action==='Lancer la vidéo'?swappStartRemotePlayback:retryWatch;
+  btn.onclick=action==='Lancer la vidéo'?swappStartRemotePlayback:()=>{state.remoteRetryCount=0;retryWatch();};
   (body?.parentNode||off).appendChild(btn);
  }
 }
