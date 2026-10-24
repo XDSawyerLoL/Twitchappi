@@ -163,3 +163,57 @@ body:has(#channel.view.active) #oryonMiniPlayer{display:none!important}
   grid-template-columns:minmax(0,1fr)!important;
  }
 }
+
+/* SWAPP layout regression fix: earlier injected rules used 100vw inside an
+   already inset creator page, pushing the chat and owner actions off-screen.
+   Two #channel IDs intentionally outrank those late-injected !important rules. */
+#channel#channel{min-width:0!important;max-width:100%!important;width:100%!important;box-sizing:border-box!important}
+#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"]{
+ width:100%!important;max-width:min(1800px,100%)!important;
+ min-width:0!important;box-sizing:border-box!important;
+ margin-inline:auto!important;padding-inline:clamp(10px,1.55vw,24px)!important
+}
+#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelLiveLayout{
+ display:grid!important;grid-template-columns:minmax(0,1fr) minmax(270px,340px)!important;
+ width:100%!important;max-width:100%!important;min-width:0!important;
+ padding:12px 0 0!important;margin:0!important;
+ gap:clamp(10px,1vw,16px)!important;box-sizing:border-box!important;align-items:start!important
+}
+#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelMainPlayer,
+#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelLiveSidebar{
+ width:auto!important;max-width:100%!important;min-width:0!important;box-sizing:border-box!important
+}
+#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelMainPlayer .premiumPlayer,
+#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelMainPlayer .oryonMainPlayer{
+ position:relative!important;width:100%!important;max-width:100%!important;
+ height:auto!important;min-height:0!important;aspect-ratio:16/9!important
+}
+#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelLiveSidebar .chatPanel{
+ box-sizing:border-box!important;width:100%!important;max-width:100%!important;min-width:0!important;
+ overflow:hidden!important
+}
+#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"][data-watch-chat="hidden"] .channelLiveLayout{
+ grid-template-columns:minmax(0,1fr)!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"][data-watch-chat="hidden"] .channelLiveSidebar{
+ display:none!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .watchShell.channelWatch{
+ display:grid!important;grid-template-columns:minmax(0,1fr) minmax(270px,340px)!important;
+ width:100%!important;max-width:100%!important;min-width:0!important;
+ box-sizing:border-box!important
+}
+@media(max-width:1080px){
+ #channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelLiveLayout,
+ #channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .watchShell.channelWatch{
+  grid-template-columns:minmax(0,1fr)!important;
+ }
+}
+@media(max-width:680px){
+ #channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"]{
+  padding-inline:8px!important
+ }
+ #channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelLiveLayout{
+  padding-top:8px!important
+ }
+}
