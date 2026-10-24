@@ -11,7 +11,8 @@ test('live theatre and chat controls keep the existing HLS and chat transports',
  assert.match(js,/swapp-watch-theatre-btn/);
  assert.match(js,/swapp-watch-chat-btn/);
  assert.match(js,/aria-expanded/);
- assert.match(js,/sessionStorage/);
+ assert.doesNotMatch(js,/sessionStorage/,'a previous hidden chat preference must not survive a fresh watch session');
+ assert.match(js,/const mode=\{theatre:'off',chat:'shown'\}/);
  assert.doesNotMatch(js,/new Hls\(|MediaSource|WebSocket|socket\.emit|innerHTML\s*=\s*.*iframe/);
 });
 test('live style puts video first and theatre hides chrome without removing chat messages',()=>{
@@ -37,4 +38,22 @@ test('channel loads watch refinements after original player and Pulse enhancemen
  assert.match(html,/swapp-watch-experience\.js\?v=/);
  assert.ok(html.indexOf('/index_script.js')<html.indexOf('swapp-watch-experience.js'));
  assert.ok(html.indexOf('swapp-live-hearts.js')<html.indexOf('swapp-watch-experience.js'));
+});
+
+test('main creator viewer is the only active player on its own channel',()=>{
+ const script=read('index_script.js');
+ assert.match(script,/if\(state\.view==='channel'\)\{host\?\.remove\(\);return\}/,
+  'mini player must be removed rather than covering the active channel');
+ assert.match(script,/player\.style\.setProperty\('aspect-ratio','16\/9','important'\)/);
+ assert.doesNotMatch(script,/const h = clamp\(420, Math\.min\(natural, available\), 760\)/,
+  'remove forced height which distorts the player');
+});
+test('one stable grid and unhidden chat are the default on a live channel',()=>{
+ const css=read('assets/swapp-watch-experience.css');
+ assert.match(css,/grid-template-columns:minmax\(0,1fr\) minmax\(286px,336px\)/);
+ assert.match(css,/#oryonMiniPlayer\{display:none!important\}/);
+ assert.match(css,/aspect-ratio:16\/9!important/);
+ const js=read('assets/swapp-watch-experience.js');
+ assert.match(js,/chat:'shown'/);
+ assert.doesNotMatch(js,/sessionStorage/);
 });
