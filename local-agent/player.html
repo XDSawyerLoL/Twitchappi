@@ -181,7 +181,7 @@ function failure(reason){
 }
 function restart(){
  if(restarting || manualStop)return;
- restarting=true;booted=false;booting=false;retries++;
+ restarting=true;booted=false;booting=false;everDecoded=false;retries++;
  playerStatus('connecting');
  if(h){try{h.destroy()}catch(_){} h=null}
  v.pause();v.removeAttribute('src');v.load();
@@ -195,17 +195,11 @@ async function boot(){
  playerStatus('connecting');
  try{
   const source=src+(src.includes('?')?'&':'?')+'t='+Date.now();
-  if(v.canPlayType('application/vnd.apple.mpegurl')){
-   booted=true;v.src=source;
-   await v.play().catch(e=>{failure('lecture native : '+(e?.name||'erreur navigateur'))});
-   return;
-  }
+  // A nonempty canPlayType(HLS) is not a reliable guarantee of native
+  // MPEG-TS playback (the reported black-screen returned NotSupportedError).
+  // Prefer MSE+hls.js on capable browsers, as recommended by hls.js.
   if(!window.Hls)await scriptFallback();
-  if(!window.Hls || !Hls.isSupported()){
-   failure('moteur hls.js indisponible ou navigateur incompatible');
-   setTimeout(()=>{booting=false;boot()},4500);
-   return;
-  }
+  if(window.Hls && Hls.isSupported()){
   h=new Hls({
    lowLatencyMode:false,liveSyncDurationCount:3,
    backBufferLength:80,maxBufferLength:25,
@@ -241,6 +235,18 @@ async function boot(){
   });
   h.attachMedia(v);
   message('Connexion au direct…');
+  return;
+  }
+  // Safari/iOS native HLS fallback only if MediaSource+hls.js is unavailable.
+  if(v.canPlayType('application/vnd.apple.mpegurl')){
+   booted=true;v.src=source;
+   try{await v.play()}
+   catch(e){failure('lecture HLS native : '+(e?.name||'erreur navigateur'));booted=false}
+   return;
+  }
+  failure('moteur hls.js indisponible ou navigateur incompatible');
+  booted=false;
+  setTimeout(()=>{booting=false;boot()},4500);
  }catch(e){
   failure('initialisation : '+String(e?.message||e));
   booted=false;
