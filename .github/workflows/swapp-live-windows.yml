@@ -7,6 +7,7 @@ on:
       - .github/workflows/swapp-live-windows.yml
       - 'local-agent/**'
       - test/swapp-local-tunnel.test.js
+      - test/swapp-tunnel-fallback.test.js
       - test/swapp-electron-runtime-package.test.js
       - test/swapp-browser-http-relay.test.js
       - test/swapp-native-webrtc-transport.test.js
@@ -30,7 +31,7 @@ jobs:
           node-version: '20'
 
       - name: Run live transport regression tests
-        run: node --test test/swapp-native-webrtc-transport.test.js test/swapp-native-live-public.test.js test/swapp-browser-http-relay.test.js test/swapp-local-tunnel.test.js test/swapp-electron-runtime-package.test.js
+        run: node --test test/swapp-native-webrtc-transport.test.js test/swapp-native-live-public.test.js test/swapp-browser-http-relay.test.js test/swapp-local-tunnel.test.js test/swapp-electron-runtime-package.test.js test/swapp-tunnel-fallback.test.js
 
       - name: Install local SWAPP Live dependencies
         run: npm install --prefix local-agent --no-audit --no-fund
@@ -60,8 +61,8 @@ jobs:
           if ((Get-Item $dll).Length -lt 102400) { throw "Critical: ffmpeg.dll appears truncated" }
           $dllHash = (Get-FileHash $dll -Algorithm SHA256).Hash
           Write-Host "Packaged Electron ffmpeg.dll SHA256: $dllHash"
-          $installer = "local-agent/dist/SWAPP-Live-Setup-1.0.3-x64.exe"
-          $portable = "local-agent/dist/SWAPP-Live-Portable-1.0.3-x64.exe"
+          $installer = "local-agent/dist/SWAPP-Live-Setup-1.0.4-x64.exe"
+          $portable = "local-agent/dist/SWAPP-Live-Portable-1.0.4-x64.exe"
           foreach ($artifact in @($installer, $portable)) {
             if (!(Test-Path $artifact)) { throw "Missing release executable: $artifact" }
           }
@@ -88,8 +89,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $tag = "swapp-live-windows-v1.0.3"
+          $tag = "swapp-live-windows-v1.0.4"
           $files = @(Get-ChildItem "local-agent/dist" -File -Filter "*.exe" | ForEach-Object { $_.FullName })
           if ($files.Count -lt 2) { throw "SWAPP Live installer and portable executable were not both produced" }
-          $notes = "SWAPP Live Windows v1.0.3: Electron ffmpeg.dll validated and automatically restored from matching official Electron package if missing. Installer smoke-tested on Windows for DLL next to EXE; portable uses isolated fresh extraction. Keeps free OBS tunnel, sound controls, fullscreen and HLS playback. Use the SETUP installer, not the raw internal SWAPP Live.exe."
-          gh release create $tag $files --repo "$env:GITHUB_REPOSITORY" --target "$env:GITHUB_SHA" --title "SWAPP Live Windows v1.0.3" --notes $notes
+          $notes = "SWAPP Live Windows v1.0.4: Automatic fallback to free SSH localhost.run tunnel on Cloudflare HTTP 429, without repeating failed requests; official Electron ffmpeg.dll validated and automatically restored from matching official Electron package if missing. Installer smoke-tested on Windows for DLL next to EXE; portable uses isolated fresh extraction. Keeps free OBS tunnel, sound controls, fullscreen and HLS playback. Use the SETUP installer, not the raw internal SWAPP Live.exe."
+          gh release create $tag $files --repo "$env:GITHUB_REPOSITORY" --target "$env:GITHUB_SHA" --title "SWAPP Live Windows v1.0.4" --notes $notes
