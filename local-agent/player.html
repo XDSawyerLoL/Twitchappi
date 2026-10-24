@@ -89,7 +89,7 @@ async function playVideo({jumpToLive=false}={}){
  if(h&&stopped)h.startLoad(-1);
  if(jumpToLive||stopped)seekLive();
  try{await v.play()}catch(_){message('Clique sur Lecture pour démarrer la vidéo.');return}
- playerStatus('playing');displayVideo();
+ displayVideo();
 }
 playButton.addEventListener('click',()=>{void playVideo()});
 pauseButton.addEventListener('click',()=>{
@@ -104,7 +104,7 @@ stopButton.addEventListener('click',()=>{
 });
 liveButton.addEventListener('click',()=>{void playVideo({jumpToLive:true})});
 v.addEventListener('pause',()=>{if(!manualStop){userPaused=true;playerStatus('paused')}});
-v.addEventListener('playing',()=>{if(!manualStop){userPaused=false;playerStatus('playing')}});
+v.addEventListener('playing',()=>{if(!manualStop){userPaused=false;displayVideo()}});
 
 function syncAudio(){
  const muted = v.muted || v.volume === 0;
