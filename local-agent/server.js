@@ -21,7 +21,8 @@ const DEFAULT_SWAPP_SITE_URL = process.env.ORYON_SITE_URL || process.env.SWAPP_S
 const FFMPEG_PATH = process.env.FFMPEG_PATH || (bundledFfmpeg && bundledFfmpeg.replace('app.asar'+path.sep,'app.asar.unpacked'+path.sep)) || 'ffmpeg';
 const LOCAL_BASE_URL = `http://127.0.0.1:${HTTP_PORT}`;
 const TRANSCODE_MODE = String(process.env.ORYON_LOCAL_TRANSCODE || process.env.SWAPP_LOCAL_TRANSCODE || 'copy').toLowerCase();
-const TUNNEL_RETRIES = Math.max(1, Number(process.env.SWAPP_TUNNEL_RETRIES || process.env.ORYON_TUNNEL_RETRIES || 4));
+const TUNNEL_RETRIES = Math.min(2, Math.max(1, Number(process.env.SWAPP_TUNNEL_RETRIES || process.env.ORYON_TUNNEL_RETRIES || 1)));
+const CLOUDFLARE_429_COOLDOWN_MS = 30 * 60 * 1000;
 const TUNNEL_CHECK_TIMEOUT_MS = Math.max(8000, Number(process.env.SWAPP_TUNNEL_CHECK_TIMEOUT_MS || 30000));
 
 const APPDATA_DIR = process.env.APPDATA || os.homedir();
@@ -30,6 +31,7 @@ const LEGACY_CONFIG_DIR = path.join(APPDATA_DIR, 'OryonLocal');
 const CONFIG_FILE = path.join(CONFIG_DIR, 'config.json');
 const LEGACY_CONFIG_FILE = path.join(LEGACY_CONFIG_DIR, 'config.json');
 const BIN_DIR = path.join(CONFIG_DIR, 'bin');
+const TUNNEL_COOLDOWN_FILE = path.join(CONFIG_DIR, 'cloudflare-cooldown.json');
 
 fs.mkdirSync(path.join(MEDIA_ROOT, 'live'), { recursive: true });
 fs.mkdirSync(BIN_DIR, { recursive: true });
@@ -42,7 +44,18 @@ let publishedLiveKey = null;
 let lastHeartbeatLive = false;
 let cloudflaredProcess = null;
 let cloudflaredLastLog = '';
+let sshTunnelProcess = null;
+let sshTunnelLastLog = '';
 let repairingTunnel = false;
+let tunnelStartPromise = null;
+let cloudflareCooldownUntil = (()=>{try{return Number(JSON.parse(fs.readFileSync(TUNNEL_COOLDOWN_FILE,'utf8')).until)||0}catch(_){return 0}})();
+function noteCloudflare429(){
+ cloudflareCooldownUntil=Date.now()+CLOUDFLARE_429_COOLDOWN_MS;
+ try{fs.writeFileSync(TUNNEL_COOLDOWN_FILE,JSON.stringify({until:cloudflareCooldownUntil}))}catch(e){log('warn','Impossible de mémoriser la pause Cloudflare',{error:e.message})}
+ log('warn','Cloudflare refuse les nouveaux tunnels (429). Pause de 30 minutes et essai du secours SSH gratuit.');
+}
+function tunnelDiagnostics(){return {cloudflare_log:cloudflaredLastLog.slice(-1000),ssh_log:sshTunnelLastLog.slice(-1000),cloudflare_retry_after:cloudflareCooldownUntil>Date.now()?new Date(cloudflareCooldownUntil).toISOString():null}}
+function isLoopbackPublicUrl(value){try{const u=new URL(value);const h=u.hostname.toLowerCase();return h==='localhost'||h.endsWith('.localhost')||h==='127.0.0.1'||h==='[::1]'}catch(_){return true}}
 
 function log(type, message, data = {}) {
   const entry = { at: new Date().toISOString(), type, message, data };
@@ -171,7 +184,7 @@ try { nms.run(); log('system', 'Serveur RTMP lancé', { rtmp: `rtmp://127.0.0.1:
 function normalizePublicBaseUrl(value) {
   const url = String(value || '').trim().replace(/\/$/, '');
   if (!/^https:\/\//i.test(url)) throw new Error('URL publique invalide : elle doit commencer par https://');
-  if (/localhost|127\.0\.0\.1/i.test(url)) throw new Error('URL locale refusée. Il faut une URL publique HTTPS.');
+  if (isLoopbackPublicUrl(url)) throw new Error('URL locale refusée. Il faut une URL publique HTTPS.');
   return url;
 }
 function isBlockedTunnelUrl(url) {
@@ -328,33 +341,104 @@ async function startCloudflaredProviderOnce() {
   });
 }
 async function stopPublicTunnel() {
+  if (sshTunnelProcess) { try { sshTunnelProcess.kill(); } catch (_) {} }
+  sshTunnelProcess = null;
   if (cloudflaredProcess) { try { cloudflaredProcess.kill(); } catch (_) {} }
   cloudflaredProcess = null;
   publicTunnelInfo = null;
   return { success: true };
 }
-async function startPublicTunnel(provider = 'auto') {
-  const requested = String(provider || 'auto').toLowerCase();
-  if (requested === 'localtunnel' || requested === 'loca.lt') {
-    throw new Error('localtunnel/loca.lt est désactivé : il affiche une page de sécurité qui casse le lecteur Swapp.');
-  }
-  if (publicTunnelInfo?.url) {
-    try { await validatePublicTunnel(publicTunnelInfo.url, 9000); return publicTunnelInfo; }
-    catch (e) { log('warn', 'Tunnel existant invalide, reconstruction', { error: e.message, tunnel: publicTunnelInfo }); await stopPublicTunnel(); }
-  }
-  const errors = [];
-  for (let i = 1; i <= TUNNEL_RETRIES; i++) {
-    try {
-      await stopPublicTunnel();
-      log('tunnel', `Démarrage Cloudflare Tunnel tentative ${i}/${TUNNEL_RETRIES}`);
-      return await startCloudflaredProviderOnce();
-    } catch (e) {
-      errors.push(`tentative ${i}: ${e.message}`);
-      log('error', 'Tunnel Cloudflare impossible', { attempt: i, error: e.message });
-      await sleep(2000 + i * 1000);
+// Free, no-account SSH tunnel using the OpenSSH client shipped with Windows.
+// Only the isolated public video server on port 8082 is exposed.
+async function startLocalhostRunProviderOnce(){
+ const ssh=process.env.SWAPP_SSH_PATH || (process.platform==='win32'
+   ? path.join(process.env.WINDIR||'C:\\Windows','System32','OpenSSH','ssh.exe') : 'ssh');
+ sshTunnelLastLog='';
+ const args=['-T','-o','BatchMode=yes','-o','StrictHostKeyChecking=accept-new',
+  '-o','ExitOnForwardFailure=yes','-o','ConnectTimeout=15',
+  '-o','ServerAliveInterval=30','-o','ServerAliveCountMax=3',
+  '-R','80:127.0.0.1:'+PUBLIC_HTTP_PORT,'nokey@localhost.run'];
+ return withTimeout(new Promise((resolve,reject)=>{
+  const child=spawn(ssh,args,{windowsHide:true,stdio:['ignore','pipe','pipe']});
+  sshTunnelProcess=child;
+  let urlFound=false,settled=false;
+  const rejectOnce=e=>{if(settled)return;settled=true;reject(e)};
+  const readLog=async buf=>{
+   sshTunnelLastLog=(sshTunnelLastLog+String(buf||'')).slice(-9000);
+   if(urlFound||settled)return;
+   const matches=sshTunnelLastLog.match(/https:\/\/(?:[a-z0-9-]+\.)+(?:lhr\.life|localhost\.run|lhr\.rocks)/gi);
+   if(!matches?.length)return;
+   const url=matches[0];
+   urlFound=true;
+   const candidate={url,startedAt:new Date().toISOString(),provider:'localhost-run'};
+   log('tunnel','Secours HTTPS localhost.run reçu; validation du lecteur public',candidate);
+   try{
+    await validatePublicTunnel(url,TUNNEL_CHECK_TIMEOUT_MS);
+    if(child.exitCode!==null||child.signalCode!==null)throw new Error('Tunnel SSH arrêté avant validation');
+    publicTunnelInfo=candidate;
+    settled=true;
+    resolve(candidate);
+   }catch(e){rejectOnce(e)}
+  };
+  child.stdout.on('data',readLog);
+  child.stderr.on('data',readLog);
+  child.on('error',e=>rejectOnce(new Error('Secours SSH indisponible: '+e.message+'. Vérifie que le client OpenSSH Windows est installé.')));
+  child.on('exit',(code,signal)=>{
+   if(sshTunnelProcess===child){
+     sshTunnelProcess=null;
+     if(publicTunnelInfo?.provider==='localhost-run')publicTunnelInfo=null;
+   }
+   if(!settled)rejectOnce(new Error('Secours localhost.run arrêté sans tunnel valide (code '+code+', signal '+signal+'): '+sshTunnelLastLog.slice(-850)));
+  });
+ }),60000,'Secours SSH localhost.run sans URL publique après 60 secondes').catch(e=>{
+  if(sshTunnelProcess){try{sshTunnelProcess.kill()}catch(_){}}
+  sshTunnelProcess=null;
+  if(publicTunnelInfo?.provider==='localhost-run')publicTunnelInfo=null;
+  throw e;
+ });
+}
+async function actuallyStartPublicTunnel(provider){
+ const requested=String(provider||'auto').toLowerCase();
+ if(requested==='localtunnel'||requested==='loca.lt')
+  throw new Error('localtunnel/loca.lt reste désactivé: sa page de sécurité bloque le lecteur.');
+ if(publicTunnelInfo?.url){
+  try{await validatePublicTunnel(publicTunnelInfo.url,9000);return publicTunnelInfo}
+  catch(e){log('warn','Tunnel précédent inaccessible, changement de tunnel',{error:e.message});await stopPublicTunnel()}
+ }
+ const failures=[];
+ if(requested==='auto'||requested==='cloudflared'||requested==='cloudflare'){
+  if(cloudflareCooldownUntil>Date.now()){
+   failures.push('Cloudflare 429: pause active jusqu’à '+new Date(cloudflareCooldownUntil).toLocaleTimeString('fr-FR'));
+  }else{
+   for(let i=1;i<=TUNNEL_RETRIES;i++){
+    try{
+     log('tunnel','Demande Cloudflare temporaire ('+i+'/'+TUNNEL_RETRIES+')');
+     return await startCloudflaredProviderOnce();
+    }catch(e){
+     failures.push('Cloudflare: '+e.message);
+     log('error','Création Cloudflare échouée',{error:e.message});
+     if(/(?:status\s*429|\bhttp\s*429\b|too many requests)/i.test(e.message)){
+      noteCloudflare429();break;
+     }
+     if(i<TUNNEL_RETRIES)await sleep(3500);
     }
+   }
   }
-  throw new Error(`Aucun tunnel public valide. ${errors.join(' | ')}`);
+ }
+ if(requested==='auto'||requested==='localhost-run'||requested==='ssh'){
+  try{
+   log('tunnel','Tentative de secours gratuit localhost.run via SSH Windows');
+   return await startLocalhostRunProviderOnce();
+  }catch(e){failures.push('Secours SSH: '+e.message);log('error','Tunnel SSH de secours impossible',{error:e.message})}
+ }
+ throw new Error('Aucun tunnel public opérationnel. '+failures.join(' | ')+
+  '. Le secours localhost.run est gratuit mais soumis à des limites de débit.');
+}
+async function startPublicTunnel(provider='auto'){
+ if(tunnelStartPromise)return tunnelStartPromise;
+ const pending=actuallyStartPublicTunnel(provider);
+ tunnelStartPromise=pending;
+ try{return await pending}finally{if(tunnelStartPromise===pending)tunnelStartPromise=null}
 }
 async function ensureValidTunnelForLive(key) {
   if (!publicTunnelInfo?.url) return await startPublicTunnel('auto');
@@ -390,7 +474,7 @@ async function registerPublicUrlOnSwapp({ siteUrl, key }) {
   await validatePublicTunnel(publicTunnelInfo.url, 12000);
   await validatePublicVideo(key);
   const player = publicPlayerUrl(key);
-  if (!player || /localhost|127\.0\.0\.1/i.test(player)) throw new Error('URL publique invalide : le tunnel n’a pas fourni d’adresse publique.');
+  if (!player || isLoopbackPublicUrl(player)) throw new Error('URL publique invalide : le tunnel n’a pas fourni d’adresse publique.');
   if (isBlockedTunnelUrl(player)) throw new Error('URL loca.lt refusée : elle affiche une page de sécurité et casse le lecteur.');
   const payload = { stream_key: safeKey(key), public_base_url: publicTunnelInfo.url, player_url: player, status_url: publicStatusUrl(), provider: publicTunnelInfo.provider || 'cloudflared' };
   const headers = { 'Content-Type': 'application/json' };
@@ -547,15 +631,15 @@ app.post('/api/go-live', async (req, res) => {
     return res.json({ success:true, ...result, stream: streamStatus(key), tunnel: publicTunnelInfo });
   } catch (e) {
     log('error', 'Go live auto impossible', { error: e.message });
-    return res.status(500).json({ success:false, error:e.message, stream: streamStatus(key), tunnel: publicTunnelInfo, log: cloudflaredLastLog.slice(-1600) });
+    return res.status(500).json({ success:false, error:e.message, stream: streamStatus(key), tunnel: publicTunnelInfo, ...tunnelDiagnostics() });
   }
 });
 app.post('/api/tunnel/start', async (req, res) => {
-  try { const key = safeKey(req.body?.key || currentConfiguredKey()); const info = await startPublicTunnel(req.body?.provider || 'auto'); res.json({ success:true, ...info, player_url: publicPlayerUrl(key), status_url: publicStatusUrl(), log: cloudflaredLastLog.slice(-1600) }); }
-  catch(e) { log('error', 'Tunnel impossible', { error: e.message }); res.status(500).json({ success:false, error:e.message, log: cloudflaredLastLog.slice(-1600) }); }
+  try { const key = safeKey(req.body?.key || currentConfiguredKey()); const info = await startPublicTunnel(req.body?.provider || 'auto'); res.json({ success:true, ...info, player_url: publicPlayerUrl(key), status_url: publicStatusUrl(), ...tunnelDiagnostics() }); }
+  catch(e) { log('error', 'Tunnel impossible', { error: e.message }); res.status(500).json({ success:false, error:e.message, ...tunnelDiagnostics() }); }
 });
 app.post('/api/tunnel/manual', async (req, res) => { try { const key = safeKey(req.body?.key || currentConfiguredKey()); const info = setManualPublicUrl(req.body?.url); await validatePublicTunnel(info.url, 12000); res.json({ success:true, ...info, player_url: publicPlayerUrl(key), status_url: publicStatusUrl() }); } catch(e) { res.status(400).json({ success:false, error:e.message }); } });
-app.post('/api/tunnel/repair', async (req, res) => { try { const key = safeKey(req.body?.key || currentConfiguredKey()); const out = await repairTunnelNow(key); res.json(out); } catch(e) { res.status(500).json({ success:false, error:e.message, log:cloudflaredLastLog.slice(-1600) }); } });
+app.post('/api/tunnel/repair', async (req, res) => { try { const key = safeKey(req.body?.key || currentConfiguredKey()); const out = await repairTunnelNow(key); res.json(out); } catch(e) { res.status(500).json({ success:false, error:e.message, ...tunnelDiagnostics() }); } });
 app.post('/api/tunnel/stop', async (_req, res) => { try { await sendHeartbeatToSwapp(publishedLiveKey || currentConfiguredKey(), false); publishedLiveKey = null; await stopPublicTunnel(); res.json({ success:true }); } catch(e) { res.status(500).json({ success:false, error:e.message }); } });
 app.get('/api/tunnel/status', async (req, res) => {
   const key = safeKey(req.query.key || currentConfiguredKey());
@@ -564,7 +648,7 @@ app.get('/api/tunnel/status', async (req, res) => {
   if (publicTunnelInfo?.url) {
     try { await validatePublicTunnel(publicTunnelInfo.url, 5000); valid = true; } catch(e) { error = e.message; }
   }
-  res.json({ success:true, active:Boolean(publicTunnelInfo?.url), valid, error, tunnel:publicTunnelInfo, player_url:valid?publicPlayerUrl(key):'', status_url:valid?publicStatusUrl():'', cloudflared_log:cloudflaredLastLog.slice(-1600) });
+  res.json({ success:true, active:Boolean(publicTunnelInfo?.url), valid, error, tunnel:publicTunnelInfo, player_url:valid?publicPlayerUrl(key):'', status_url:valid?publicStatusUrl():'', ...tunnelDiagnostics() });
 });
 app.post('/api/publish-to-oryon', async (req, res) => { try { const cfg = loadLocalConfig(); const key = safeKey(req.body?.key || cfg.stream_key || DEFAULT_KEY); if (!cfg.token) return res.status(401).json({ success:false, error:'Connecte d’abord ton compte Swapp.' }); if (!publicTunnelInfo?.url) await startPublicTunnel('auto'); const result = await registerPublicUrlOnSwapp({ siteUrl:req.body?.site_url, key }); res.json(result); } catch(e) { res.status(500).json({ success:false, error:e.message }); } });
 app.post('/api/heartbeat', async (req, res) => {
