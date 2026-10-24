@@ -71,7 +71,7 @@ function attachSwappDirectRelay(app, opts={}){
    let room=rooms.get(login);
    if(!room){
     if(rooms.size>=MAX_ROOMS)return res.status(429).json({success:false,error:'Capacité du relais SWAPP atteinte.'});
-    room={segments:new Map(),manifest:null,playlistNames:[],poster:null,posterAt:0,bytes:0,lastManifestAt:now,minuteStarted:now,minuteBytes:0};
+    room={segments:new Map(),manifest:null,playlistNames:[],poster:null,posterAt:0,audioTrack:'unknown',bytes:0,lastManifestAt:now,minuteStarted:now,minuteBytes:0};
     rooms.set(login,room);
    }
    if(now-room.minuteStarted>60000){room.minuteStarted=now;room.minuteBytes=0}
@@ -82,6 +82,8 @@ function attachSwappDirectRelay(app, opts={}){
      return res.status(422).json({success:false,error:'Vignette JPEG invalide (600 Ko maximum).'});
     room.poster=Buffer.from(body);
     room.posterAt=now;
+    const audio=String(req.get('x-swapp-audio-track')||'');
+    if(audio==='present'||audio==='missing')room.audioTrack=audio;
    }else if(name==='index.m3u8'){
     const names=validatePlaylist(body);
     if(!names.length)return res.status(422).json({success:false,error:'Playlist HLS non valide.'});
@@ -105,7 +107,7 @@ function attachSwappDirectRelay(app, opts={}){
   notCached(res);
   const login=cleanLogin(req.params.login),r=login&&liveRoom(login);
   res.json({success:true,active:!!r?.manifest&&r.playlistNames.some(n=>r.segments.has(n)),segment_count:r?.segments?.size||0,
-   last_manifest_at:r?.lastManifestAt||null});
+   last_manifest_at:r?.lastManifestAt||null,audio_track:r?.audioTrack||'unknown'});
  });
  app.get('/api/oryon/local-relay/:login/index.m3u8',(req,res)=>{
   notCached(res);
