@@ -40,18 +40,21 @@
             "x64"
           ]
         }
-      ],
-      "artifactName": "SWAPP-Live-${version}-${arch}.${ext}"
+      ]
     },
     "nsis": {
       "oneClick": true,
       "perMachine": false,
       "allowToChangeInstallationDirectory": false,
       "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
+      "createStartMenuShortcut": true,
+      "artifactName": "SWAPP-Live-Setup-${version}-${arch}.${ext}"
     },
     "extraMetadata": {
       "main": "main.js"
+    },
+    "portable": {
+      "artifactName": "SWAPP-Live-Portable-${version}-${arch}.${ext}"
     }
   }
 }
