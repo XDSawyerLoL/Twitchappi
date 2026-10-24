@@ -117,39 +117,69 @@ function creatorSitemapXml(creators=[]){
  return '<?xml version="1.0" encoding="UTF-8"?>\n'+
   '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'+entries+'\n</urlset>\n';
 }
-function injectCreatorMetadata(html,creator,login){
+function injectCreatorMetadata(html,creator,login,opts={}){
  let result=String(html||'').replace(/<link\s+rel=["']canonical["'][^>]*>\s*/gi,'');
  if(!result.includes('</head>'))return result;
  const slug=String(login||'').toLowerCase();
  if(!CREATOR_LOGIN.test(slug)||RESERVED_CREATOR_PATHS.has(slug)||!creator||creator.channel_public===false||
     String(creator.login||'').toLowerCase()!==slug)
   return result.replace('</head>','<meta name="robots" content="noindex,follow"></head>');
- const title=String(creator.display_name||slug).trim().slice(0,80)||slug;
+ const name=String(creator.display_name||slug).trim().replace(/[\r\n]+/g,' ').slice(0,80)||slug;
  const about=String(creator.bio||'').trim().slice(0,180);
- const description=about||'Découvre la chaîne et les contenus du créateur '+title+' sur SWAPP.';
+ const live=opts.live===true;
+ const title=live?'🔴 EN DIRECT · '+name+' sur SWAPP':name+' · SWAPP';
+ const description=live?'Regarde '+name+' en direct sur SWAPP. Rejoins le live, le chat et la communauté gaming.':
+  (about||'Découvre la chaîne et les contenus du créateur '+name+' sur SWAPP.');
  const url=ORIGIN+'/'+encodeURIComponent(slug);
- let image='';
- try{
-  const src=String(creator.avatar_url||'').trim();
-  if(src.length<=2000){
-   const u=new URL(src);
-   if(u.protocol==='https:'&&!u.username&&!u.password)image=u.href;
-  }
- }catch(_){}
- const mainEntity={'@type':'Person',name:title,alternateName:slug,url,...(about?{description:about}:{}),
+ let image='',imageIsLive=false;
+ function safeImage(value){
+  try{
+   const src=String(value||'').trim();
+   if(src.length>2048)return '';
+   const u=new URL(src,ORIGIN);
+   return u.protocol==='https:'&&!u.username&&!u.password?u.href:'';
+  }catch(_){return ''}
+ }
+ const poster=live&&opts.posterUrl?safeImage(opts.posterUrl):'';
+ if(poster){
+  image=poster;imageIsLive=true;
+ }else{
+  // Real existing creator banner preferred to small square avatar.
+  image=safeImage(creator.banner_url||creator.offline_image_url||creator.avatar_url);
+ }
+ const mainEntity={'@type':'Person',name,alternateName:slug,url,...(about?{description:about}:{}),
   ...(image?{image}: {})};
- const schema={'@context':'https://schema.org','@type':'ProfilePage',url,mainEntity};
- const tags='<meta name="description" content="'+encodeXml(description)+'">'+
+ const schema={'@context':'https://schema.org','@type':'ProfilePage',url,mainEntity,
+  ...(live?{about:{'@type':'BroadcastEvent',name:name+' en direct',isLiveBroadcast:true,url}}:{})};
+ let tags='<meta name="description" content="'+encodeXml(description)+'">'+
   '<link rel="canonical" href="'+url+'">'+
-  '<meta property="og:type" content="profile">'+
+  '<meta property="og:type" content="website">'+
   '<meta property="og:site_name" content="SWAPP">'+
-  '<meta property="og:title" content="'+encodeXml(title+' · SWAPP')+'">'+
+  '<meta property="og:locale" content="fr_FR">'+
+  '<meta property="og:title" content="'+encodeXml(title)+'">'+
   '<meta property="og:description" content="'+encodeXml(description)+'">'+
   '<meta property="og:url" content="'+url+'">'+
   '<meta name="twitter:card" content="'+(image?'summary_large_image':'summary')+'">'+
-  (image?'<meta property="og:image" content="'+encodeXml(image)+'">':'')+
-  '<script type="application/ld+json">'+JSON.stringify(schema).replace(/</g,'\\u003c')+'</script>';
- result=result.replace(/<title>[\s\S]*?<\/title>/i,'<title>'+encodeXml(title+' — Chaîne SWAPP')+'</title>');
+  '<meta name="twitter:title" content="'+encodeXml(title)+'">'+
+  '<meta name="twitter:description" content="'+encodeXml(description)+'">'+
+  (image?'<meta property="og:image" content="'+encodeXml(image)+'">'+
+    '<meta name="twitter:image" content="'+encodeXml(image)+'">'+
+    '<meta property="og:image:alt" content="'+encodeXml(imageIsLive?'Aperçu vidéo du live de '+name:'Image de la chaîne '+name)+'">'+
+    (imageIsLive?'<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:image:type" content="image/jpeg">':''):'');
+ // Discord Components link previews can provide a large screenshot plus a
+ // clearly labeled Watch button. Ordinary OG tags above remain the fallback.
+ if(live){
+  const components=[{type:10,content:'## 🔴 '+name+' est en direct sur SWAPP\nRejoins le live et le chat.'}];
+  if(image)components.push({type:12,items:[{media:{url:image},description:'Aperçu du direct de '+name}]});
+  components.push({type:1,components:[{type:2,style:5,label:'Regarder le direct',url}]});
+  const payload={component:{type:17,accent_color:8879087,components}};
+  tags+='<script id="discord:component-embed" type="application/json">'+
+    JSON.stringify(payload).replace(/</g,'\\u003c')+'</script>';
+ }
+ tags+='<script type="application/ld+json">'+JSON.stringify(schema).replace(/</g,'\\u003c')+'</script>';
+ // Avoid duplicate default metadata on host UI variants.
+ result=result.replace(/<meta\s+name=["']description["'][^>]*>\s*/gi,'');
+ result=result.replace(/<title>[\s\S]*?<\/title>/i,'<title>'+encodeXml(title)+'</title>');
  return result.replace('</head>',tags+'</head>');
 }
 
