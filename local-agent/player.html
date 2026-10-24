@@ -197,7 +197,7 @@ boot();
 async function refreshAudioTrack(){
  if(!src.startsWith('/api/oryon/local-relay/'))return;
  try{
-  const r=await fetch(src.replace(/\/index\.m3u8(?:\?.*)?$/,'/state')+'?t='+Date.now(),{cache:'no-store'});
+  const r=await fetch(src.replace(/\/(?:index|dvr)\.m3u8(?:\?.*)?$/,'/state')+'?t='+Date.now(),{cache:'no-store'});
   if(!r.ok)return;
   const state=await r.json();
   const missing=state.active&&state.audio_track==='missing';
