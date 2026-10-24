@@ -1,0 +1,21 @@
+'use strict';
+const test=require('node:test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
+const vm=require('node:vm');
+const source=fs.readFileSync(path.join(__dirname,'..','index_script.js'),'utf8');
+test('SWAPP allows public free localhost.run player but never private loopback address',()=>{
+ const begin=source.indexOf('function swappSafeLocalPlayerUrl(url){');
+ const end=source.indexOf('function swappChannelPath(login){',begin);
+ assert.ok(begin>=0&&end>begin);
+ const ctx={URL,swappIsBlockedTunnelUrl:()=>false};
+ vm.runInNewContext(source.slice(begin,end),ctx);
+ const safe=ctx.swappSafeLocalPlayerUrl;
+ assert.equal(safe('https://stream-abc.localhost.run/player/vnhz'),'https://stream-abc.localhost.run/player/vnhz');
+ assert.equal(safe('https://stream-abc.lhr.life/player/vnhz'),'https://stream-abc.lhr.life/player/vnhz');
+ assert.equal(safe('http://127.0.0.1:8081/player/vnhz'),'');
+ assert.equal(safe('https://localhost/player/vnhz'),'');
+ assert.equal(safe('https://user:secret@stream-abc.lhr.life/player/vnhz'),'');
+ assert.equal(safe('javascript:alert(1)'),'');
+});
