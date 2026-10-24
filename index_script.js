@@ -350,7 +350,7 @@ async function renderChannel(){
  const isOwner=!!viewer && viewer.login===targetLogin;
  const lives=await api('/api/native/lives');
  const liveRoom=(lives.items||[]).find(x=>(x.host_login||x.room)===targetLogin);
- const isLive=!!liveRoom || !!(p.local_agent_live && swappSafeLocalPlayerUrl(p.oryon_local_player_url)) || (isOwner && !!state.stream);
+ const isLive=!!liveRoom || !!(p.local_agent_live && swappSafeLocalPlayerUrl(p.oryon_local_player_url)) || (isOwner && !!state.stream && !!state.nativeLiveConfirmed);
  state.channelProfile=p; state.channelOwner=isOwner;
  const offlineImg=p.offline_image_url||p.banner_url||'';
  const tags=Array.isArray(p.tags)?p.tags:(String(p.tags||'').split(',').map(x=>x.trim()).filter(Boolean));
@@ -608,7 +608,7 @@ function setupSocket(){
  if(state.socket && state.socket.connected === false){try{state.socket.connect()}catch{}}
  if(state.socket)return;
  state.socketLogin=state.session.local?.login||'';
- state.socket=io({withCredentials:true,reconnection:true,reconnectionAttempts:8,reconnectionDelay:700});
+ state.socket=io({withCredentials:true,reconnection:true,reconnectionAttempts:Infinity,reconnectionDelay:700,reconnectionDelayMax:5000});
  state.socket.on('connect',()=>{ if(state.view==='channel' && state.watchRoom && !state.stream){ state.socket.emit('native:join',{room:state.watchRoom}); setTimeout(()=>requestOffer(),450); }});
  state.socket.on('native:created',d=>{state.room=d.room;toast('Live lancé'); state.socket.emit('native:chat:history',{room:d.room}); if($('#offlinePanel'))$('#offlinePanel').style.display='none'; updateLiveUi(true)});
  state.socket.on('native:error',e=>toast(e.message||'Erreur live'));
@@ -620,6 +620,46 @@ function setupSocket(){
  state.socket.on('native:ice',d=>state.peers[d.from]?.addIceCandidate(d.candidate).catch(()=>{}));
  state.socket.on('native:chat',m=>addMsg(m));
  state.socket.on('native:chat:history',d=>{$('#nativeChatLog')&&($('#nativeChatLog').innerHTML=(d.messages||[]).map(msgHtml).join(''),scrollChat())});
+ // Keep the source preview separate from the server-confirmed public broadcast.
+ state.socket.on('connect',()=>{
+  if(!state.stream || !state.nativeLiveInfo)return;
+  state.nativeLiveConfirmed=false;state.nativeLivePending=true;
+  updateLiveUi(false);
+  $('#startLiveBtn')?.classList.add('hidden');$('#stopLiveBtn')?.classList.remove('hidden');
+  const badge=$('#streamStateBadge');if(badge)badge.textContent='Connexion au serveur…';
+  state.socket.emit('native:create',state.nativeLiveInfo);
+ });
+ state.socket.on('disconnect',()=>{
+  if(!state.stream || !state.nativeLiveInfo)return;
+  state.nativeLiveConfirmed=false;state.nativeLivePending=true;
+  updateLiveUi(false);
+  const badge=$('#streamStateBadge');if(badge)badge.textContent='Reconnexion au serveur…';
+ });
+ state.socket.on('native:replaced',d=>{
+  if(!state.stream || d?.room!==state.room)return;
+  stopLive();
+  toast('Ce live a été repris depuis une autre connexion.');
+ });
+ state.socket.on('native:reconnecting',d=>{
+  if(!state.watchRoom || d?.room!==state.watchRoom)return;
+  Object.values(state.peers||{}).forEach(pc=>{try{pc.close()}catch{}});
+  state.peers={};
+  setTimeout(()=>requestOffer(),600);
+ });
+ state.socket.on('native:viewer-left',d=>{
+  const pc=state.peers?.[d?.viewerId];
+  if(pc){try{pc.close()}catch{}delete state.peers[d.viewerId];}
+ });
+ state.socket.on('native:created',d=>{
+  if(!state.stream || d?.room!==state.room){state.socket.emit('native:leave');return;}
+  state.nativeLiveConfirmed=true;state.nativeLivePending=false;
+  clearTimeout(state.nativeLiveAckTimer);state.nativeLiveAckTimer=null;
+ });
+ state.socket.on('native:error',e=>{
+  if(!state.nativeLivePending || state.nativeLiveConfirmed || !state.stream)return;
+  stopLive();toast('Publication refusée : '+(e?.message||'serveur indisponible'));
+ });
+
 }
 async function sendOfferToViewer(viewerId,room){
  const pc=await peer(viewerId);
@@ -649,11 +689,15 @@ async function startLive(){
  const video=q==='720'?{width:{ideal:1280},height:{ideal:720},frameRate:{ideal:60,max:60}}:{width:{ideal:1920},height:{ideal:1080},frameRate:{ideal:60,max:60}};
  try{state.stream= source==='camera' ? await navigator.mediaDevices.getUserMedia({video,audio:true}) : (source==='screen-camera' ? await createScreenCameraStream(video) : await navigator.mediaDevices.getDisplayMedia({video,audio:true}))}
  catch(e){toast('Impossible de capturer la source vidéo. Vérifie les permissions.');return}
- attachCurrentStream(); $('#localVideo')?.play?.().catch(()=>{}); state.stream.getTracks().forEach(t=>t.onended=()=>stopLive(false)); updateLiveUi(true);
+ attachCurrentStream(); $('#localVideo')?.play?.().catch(()=>{}); state.stream.getTracks().forEach(t=>t.onended=()=>stopLive(false)); updateLiveUi(false); $('#startLiveBtn')?.classList.add('hidden'); $('#stopLiveBtn')?.classList.remove('hidden'); const pendingBadge=$('#streamStateBadge'); if(pendingBadge)pendingBadge.textContent='Connexion au serveur…';
  state.room=state.session.local.login;
- state.socket.emit('native:create',{title:$('#liveTitle')?.value||`Live de ${state.session.local.login}`,category:$('#liveCategory')?.value||'',tags:$('#liveTags')?.value||'',quality:q})
+ state.nativeLiveConfirmed=false; state.nativeLivePending=true;
+ state.nativeLiveInfo={title:$('#liveTitle')?.value||`Live de ${state.session.local.login}`,category:$('#liveCategory')?.value||'',tags:$('#liveTags')?.value||'',quality:q};
+ if(state.socket.connected)state.socket.emit('native:create',state.nativeLiveInfo);
+ clearTimeout(state.nativeLiveAckTimer);
+ state.nativeLiveAckTimer=setTimeout(()=>{if(state.stream && !state.nativeLiveConfirmed){stopLive();toast('Impossible de confirmer la diffusion publique SWAPP.');}},20000);
 }
-function stopLive(stopTracks=true){if(stopTracks){ state.stream?._oryonSources?.forEach(src=>src.getTracks().forEach(t=>t.stop())); state.stream?.getTracks().forEach(t=>t.stop()); } state.stream=null; if(state.socket) state.socket.emit('native:leave'); Object.values(state.peers||{}).forEach(pc=>{try{pc.close()}catch{}}); state.peers={}; updateLiveUi(false); const v=$('#localVideo'); if(v) v.srcObject=null; $('#offlinePanel')&&( $('#offlinePanel').style.display='block'); $('#managerPreviewEmpty')?.classList.remove('hidden'); toast('Live arrêté')}
+function stopLive(stopTracks=true){clearTimeout(state.nativeLiveAckTimer);state.nativeLiveAckTimer=null;state.nativeLiveConfirmed=false;state.nativeLivePending=false;state.nativeLiveInfo=null;if(stopTracks){ state.stream?._oryonSources?.forEach(src=>src.getTracks().forEach(t=>t.stop())); state.stream?.getTracks().forEach(t=>t.stop()); } state.stream=null; if(state.socket) state.socket.emit('native:leave'); Object.values(state.peers||{}).forEach(pc=>{try{pc.close()}catch{}}); state.peers={}; updateLiveUi(false); const v=$('#localVideo'); if(v) v.srcObject=null; $('#offlinePanel')&&( $('#offlinePanel').style.display='block'); $('#managerPreviewEmpty')?.classList.remove('hidden'); toast('Live arrêté')}
 function openOryon(room){state.watchRoom=String(room||'').toLowerCase(); const item=(state.zap.items||[]).find(x=>(x.host_login||x.room)===state.watchRoom)||{platform:'oryon',host_login:state.watchRoom,host_name:state.watchRoom}; trackDiscovery(item); state.room=state.watchRoom; setMiniLive({type:'oryon',login:state.watchRoom,title:'Swapp · '+state.watchRoom}); setView('channel')}
 function sendChat(){if(!state.room)return toast('Aucun salon Swapp actif'); if(!state.socket)setupSocket(); if(!state.session.local)return toast('Connecte-toi à Swapp pour écrire dans le tchat natif.'); state.socket.emit('native:chat',{room:state.room,text:$('#chatInput').value,gif:state.selectedGif,emote:state.selectedEmote?{code:state.selectedEmote.code,image_url:state.selectedEmote.image_url}:null}); $('#chatInput').value=''; state.selectedGif=''; state.selectedEmote=null; $('#gifGrid')?.classList.add('hidden')}
 function msgHtml(m){return `<div class="msg"><b>${esc(m.user_display||m.user)}</b> <span class="small">${new Date(m.ts).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</span><div>${esc(m.text||'')}</div>${m.emote?`<img src="${esc(m.emote.image_url)}" title=":${esc(m.emote.code)}:">`:''}${m.gif?`<img src="${esc(m.gif)}">`:''}</div>`}
@@ -1077,7 +1121,7 @@ async function renderChannel(){
  const isOwner=!!viewer && viewer.login===targetLogin;
  const lives=await api('/api/native/lives');
  const liveRoom=(lives.items||[]).find(x=>(x.host_login||x.room)===targetLogin);
- const isLive=!!liveRoom || !!(p.local_agent_live && swappSafeLocalPlayerUrl(p.oryon_local_player_url)) || (isOwner && !!state.stream);
+ const isLive=!!liveRoom || !!(p.local_agent_live && swappSafeLocalPlayerUrl(p.oryon_local_player_url)) || (isOwner && !!state.stream && !!state.nativeLiveConfirmed);
  state.channelProfile=p; state.channelOwner=isOwner;
  const offlineImg=p.offline_image_url||p.banner_url||'';
  const tags=Array.isArray(p.tags)?p.tags:(String(p.tags||'').split(',').map(x=>x.trim()).filter(Boolean));
@@ -1208,7 +1252,7 @@ async function renderChannel(){
  const isOwner=!!viewer && viewer.login===targetLogin;
  const lives=await api('/api/native/lives');
  const liveRoom=(lives.items||[]).find(x=>(x.host_login||x.room)===targetLogin);
- const isLive=!!liveRoom || !!(p.local_agent_live && swappSafeLocalPlayerUrl(p.oryon_local_player_url)) || (isOwner && !!state.stream);
+ const isLive=!!liveRoom || !!(p.local_agent_live && swappSafeLocalPlayerUrl(p.oryon_local_player_url)) || (isOwner && !!state.stream && !!state.nativeLiveConfirmed);
  state.channelProfile=p; state.channelOwner=isOwner;
  const offlineImg=p.offline_image_url||p.banner_url||'';
  const tags=Array.isArray(p.tags)?p.tags:(String(p.tags||'').split(',').map(x=>x.trim()).filter(Boolean));
@@ -3357,7 +3401,7 @@ async function renderChannel(){
   const isOwner=!!viewer && viewer.login===targetLogin;
   const lives=await api('/api/native/lives').catch(()=>({items:[]}));
   const liveRoom=(lives.items||[]).find(x=>(x.host_login||x.room)===targetLogin);
-  const isLive=!!liveRoom || !!(p.local_agent_live && swappSafeLocalPlayerUrl(p.oryon_local_player_url)) || (isOwner && !!state.stream);
+  const isLive=!!liveRoom || !!(p.local_agent_live && swappSafeLocalPlayerUrl(p.oryon_local_player_url)) || (isOwner && !!state.stream && !!state.nativeLiveConfirmed);
   state.channelProfile=p; state.channelOwner=isOwner;
   const banner=p.banner_url||p.offline_image_url||'';
   const offlineImg=p.offline_image_url||p.banner_url||'';
@@ -4073,7 +4117,7 @@ async function renderChannel(){
   const isOwner=!!viewer && viewer.login===targetLogin;
   const lives=await api('/api/native/lives').catch(()=>({items:[]}));
   const liveRoom=(lives.items||[]).find(x=>(x.host_login||x.room)===targetLogin);
-  const isLive=!!liveRoom || !!(p.local_agent_live && swappSafeLocalPlayerUrl(p.oryon_local_player_url)) || (isOwner && !!state.stream);
+  const isLive=!!liveRoom || !!(p.local_agent_live && swappSafeLocalPlayerUrl(p.oryon_local_player_url)) || (isOwner && !!state.stream && !!state.nativeLiveConfirmed);
   state.channelProfile=p; state.channelOwner=isOwner;
   const banner=p.banner_url||p.offline_image_url||'';
   const offlineImg=p.offline_image_url||p.banner_url||'';
@@ -4207,7 +4251,7 @@ async function renderChannel(){
   const isOwner=!!viewer && viewer.login===targetLogin;
   const lives=await api('/api/native/lives').catch(()=>({items:[]}));
   const liveRoom=(lives.items||[]).find(x=>(x.host_login||x.room)===targetLogin);
-  const isLive=!!liveRoom || !!(p.local_agent_live && swappSafeLocalPlayerUrl(p.oryon_local_player_url)) || (isOwner && !!state.stream);
+  const isLive=!!liveRoom || !!(p.local_agent_live && swappSafeLocalPlayerUrl(p.oryon_local_player_url)) || (isOwner && !!state.stream && !!state.nativeLiveConfirmed);
   state.channelProfile=p; state.channelOwner=isOwner;
   const banner=p.banner_url||p.offline_image_url||'';
   const offlineImg=p.offline_image_url||p.banner_url||'';
@@ -4533,7 +4577,10 @@ async function renderChannel(){
   const isOwner=!!viewer && viewer.login===targetLogin;
   const lives=await api('/api/native/lives').catch(()=>({items:[]}));
   const liveRoom=(lives.items||[]).find(x=>(x.host_login||x.room)===targetLogin);
-  const isLive=!!liveRoom || !!(p.local_agent_live && swappSafeLocalPlayerUrl(p.oryon_local_player_url)) || (isOwner && !!state.stream);
+  const livePing=await api('/api/oryon/channel/'+encodeURIComponent(targetLogin)+'/live-ping').catch(()=>null);
+  const isLive=(typeof livePing?.is_live==='boolean' ? livePing.is_live :
+    (!!liveRoom || !!(p.local_agent_live && swappSafeLocalPlayerUrl(p.oryon_local_player_url)))) ||
+    (isOwner && !!state.stream && !!state.nativeLiveConfirmed);
   state.channelProfile=p; state.channelOwner=isOwner;
   const banner=p.banner_url||p.offline_image_url||'';
   const tags=Array.isArray(p.tags)?p.tags:(String(p.tags||'').split(',').map(x=>x.trim()).filter(Boolean));
@@ -4758,7 +4805,7 @@ renderChannel = async function(){
   const isOwner=!!viewer && viewer.login===targetLogin;
   const lives=await api('/api/native/lives').catch(()=>({items:[]}));
   const liveRoom=(lives.items||[]).find(x=>(x.host_login||x.room)===targetLogin);
-  const isLive=!!liveRoom || !!(p.local_agent_live && swappSafeLocalPlayerUrl(p.oryon_local_player_url)) || (isOwner && !!state.stream);
+  const isLive=!!liveRoom || !!(p.local_agent_live && swappSafeLocalPlayerUrl(p.oryon_local_player_url)) || (isOwner && !!state.stream && !!state.nativeLiveConfirmed);
   state.channelProfile=p; state.channelOwner=isOwner;
   if(viewer)saveOryonLocalBackup(viewer);
   const banner=p.banner_url||p.offline_image_url||'';
@@ -4945,7 +4992,7 @@ renderChannel = async function(){
   const isOwner=!!viewer && viewer.login===targetLogin;
   const lives=await api('/api/native/lives').catch(()=>({items:[]}));
   const liveRoom=(lives.items||[]).find(x=>(x.host_login||x.room)===targetLogin);
-  const isLive=!!liveRoom || !!(p.local_agent_live && swappSafeLocalPlayerUrl(p.oryon_local_player_url)) || (isOwner && !!state.stream);
+  const isLive=!!liveRoom || !!(p.local_agent_live && swappSafeLocalPlayerUrl(p.oryon_local_player_url)) || (isOwner && !!state.stream && !!state.nativeLiveConfirmed);
   state.channelProfile=p; state.channelOwner=isOwner; if(viewer)oryonSaveBackupUser(viewer);
   const banner=p.banner_url||p.offline_image_url||'';
   const tags=Array.isArray(p.tags)?p.tags:(String(p.tags||'').split(',').map(x=>x.trim()).filter(Boolean));
@@ -10207,18 +10254,29 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
     try{ loadHomeRecommendations = wrapped; }catch(_e){}
   }
 
+  let channelStatusChecking=false;
   async function refreshChannelStatus(){
-    const login = cleanLogin(state?.channelProfile?.login || state?.watchRoom || state?.session?.local?.login || '');
-    if(!login || state?.view !== 'channel') return;
+    const login=cleanLogin(state?.channelProfile?.login || state?.watchRoom || state?.session?.local?.login || '');
+    if(!login || state?.view!=='channel' || channelStatusChecking)return;
+    channelStatusChecking=true;
     try{
-      const r = await api('/api/oryon/channel/'+encodeURIComponent(login)+'/status');
-      if(!r?.success) return;
-      const badge = document.getElementById('channelLiveBadge');
-      if(badge) badge.textContent = r.live?.is_live ? '🔴 En direct' : 'Hors ligne';
-      state.channelStatus = r.live || null;
-      if(r.channel) state.channelProfile = {...(state.channelProfile||{}),...r.channel};
-    }catch(_e){}
+      const r=await api('/api/oryon/channel/'+encodeURIComponent(login)+'/live-ping');
+      if(!r?.success || state?.view!=='channel')return;
+      const isLive=!!r.is_live;
+      state.channelStatus={is_live:isLive,source:r.source||'offline'};
+      const badge=document.getElementById('channelLiveBadge');
+      if(badge)badge.textContent=isLive?'🔴 En direct':'Hors ligne';
+      // The player must transition too: a badge-only refresh leaves Firefox/mobile offline.
+      const channel=document.getElementById('channel');
+      const hasOfflineArt=!!channel?.querySelector('.offlinePremium');
+      const hasPlayer=!!channel?.querySelector('.oryonMainPlayer');
+      if(!state.stream && hasPlayer && ((isLive && hasOfflineArt) || (!isLive && !hasOfflineArt))){
+        await renderChannel();
+      }
+    }catch(_e){}finally{channelStatusChecking=false}
   }
+  // Quiet public presence check; does not reload the player while the state is unchanged.
+  setInterval(()=>{if(state?.view==='channel')refreshChannelStatus()},10000);
   const previousRenderChannel = window.renderChannel || (typeof renderChannel === 'function' ? renderChannel : null);
   if(typeof previousRenderChannel === 'function' && !previousRenderChannel.__swappStatusWrapped){
     const wrapped = async function renderChannelWithStatus(){
