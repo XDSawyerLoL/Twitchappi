@@ -62,7 +62,7 @@ test('OBS media push accepts owner token and publishes fragments before playlist
  assert.equal(live.payload.active,true);
  assert.equal(live.payload.segment_count,1);
  const m=await b.call('get',manifest);
- assert.match(m.payload.toString(),'#EXTM3U');
+ assert.match(m.payload.toString(),/#EXTM3U/);
  const media=await b.call('get',ts,{segment:'seg_000.ts'});
  assert.equal(media.status,200);
  assert.deepEqual(Buffer.from(media.payload),segment);
