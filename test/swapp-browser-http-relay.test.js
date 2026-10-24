@@ -95,7 +95,7 @@ test('live edge seek covers timestamp jumps and safely skips unavailable buffers
  const v={currentTime:20,buffered:{length:1,start:()=>125,end:()=>128}};
  assert.equal(seek(v),true);
  assert.ok(v.currentTime>=125 && v.currentTime<128);
- assert.doesNotMatch(relay,/end-video\\.currentTime>7 && end>3/);
- assert.match(relay,/video\\.addEventListener\\('waiting',onStall\\)/);
- assert.match(relay,/video\\.addEventListener\\('stalled',onStall\\)/);
+ assert.ok(!relay.includes('end-video.currentTime>7 && end>3'));
+ assert.ok(relay.includes("video.addEventListener('waiting',onStall)"));
+ assert.ok(relay.includes("video.addEventListener('stalled',onStall)"));
 });
