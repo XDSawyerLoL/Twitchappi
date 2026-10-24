@@ -363,7 +363,7 @@ async function renderChannel(){
  if(isLive)setMiniLive({type:'oryon',login:targetLogin,title:'Swapp · '+(p.display_name||p.login)});
  chanTab(null,'about'); setupSocket(); state.room=targetLogin; state.socket.emit('native:chat:history',{room:state.room});
  if(isOwner && state.stream){ attachCurrentStream(); }
- else if(isLive){ state.socket.emit('native:join',{room:targetLogin}); if(!swappSafeLocalPlayerUrl(p.oryon_local_player_url)){ setTimeout(()=>requestOffer(),500); setTimeout(()=>{ if($('#remoteVideo') && !$('#remoteVideo').srcObject) toast('Connexion vidéo en attente. Clique sur Relancer si besoin.'); },3500); } }
+ else if(isLive){ state.socket.emit('native:join',{room:targetLogin}); if(!swappSafeLocalPlayerUrl(p.oryon_local_player_url)){ setTimeout(()=>requestOffer(),500); setTimeout(()=>{ if($('#remoteVideo') && !$('#remoteVideo').srcObject) toast('Connexion vidéo en attente. Clique sur Relancer si besoin.'); },3500); setTimeout(()=>{if(state.view==='channel' && !state.remotePlaying && !state.stream && (state.watchRoom||state.room)===targetLogin)swappTryHttpPlayback().catch(()=>{});},9000); } }
  updateLiveUi(isLive);
  refreshEmoteShelf(targetLogin);
 }
@@ -682,6 +682,7 @@ function swappVerifyRemoteFrames(pc,video,id){
      video.videoWidth>0 && video.currentTime>0){mark();return;}
   if(Date.now()-probe.started>=12000){
    swappSetVideoPlayback(false);
+   if(await swappTryHttpPlayback())return;
    swappVideoNotice('Écran noir : aucune image reçue',
     state.swappTurnConfigured?
     'Le salon est actif, mais aucune image vidéo n’a été décodée. Relance le lecteur ou vérifie la capture du diffuseur.':
@@ -695,7 +696,7 @@ function swappVerifyRemoteFrames(pc,video,id){
 }
 function swappStartRemotePlayback(){
  const video=$('#remoteVideo');
- if(!video||!video.srcObject)return;
+ if(!video||(!video.srcObject&&!video.currentSrc))return;
  video.muted=false;
  const action=document.querySelector('[data-swapp-unmute]');
  action?.remove();
@@ -718,13 +719,36 @@ function swappShowViewerTransportWarning(){
   'Le direct est détecté, mais aucune image ne parvient au lecteur. Vérifie le réseau du spectateur, la capture du diffuseur ou relance la vidéo.',
   'Relancer la vidéo');
 }
+async function swappTryHttpPlayback(){
+ const room=state.watchRoom||state.room,video=$('#remoteVideo');
+ if(!room || !video || state.stream || state.view!=='channel' || state.remotePlaying)return false;
+ if(window.SwappBrowserRelay?.isViewing?.(room))return true;
+ if(typeof window.SwappBrowserRelay?.startViewer!=='function')return false;
+ const allowed=()=>state.view==='channel' && !state.stream && (state.watchRoom||state.room)===room;
+ const ok=await window.SwappBrowserRelay.startViewer(room,video,{
+  isActive:allowed,
+  onPlayback:()=>{
+   if(!allowed())return;
+   swappSetVideoPlayback(true);
+   Object.values(state.peers||{}).forEach(pc=>{try{pc.close()}catch(_){}});
+   state.peers={};
+  },
+  onError:()=>{if(allowed()&&!state.remotePlaying)
+   swappVideoNotice('Vidéo indisponible sur ce navigateur',
+    'La connexion directe a échoué et le navigateur ne peut pas décoder le relais HTTP. Réessaie ou utilise un navigateur compatible H.264/WebM.','Relancer la vidéo');
+  }
+ });
+ if(ok && !state.remotePlaying)
+  swappVideoNotice('Connexion vidéo en cours','Le réseau bloque la connexion directe. SWAPP essaie son relais vidéo HTTP intégré, sans service externe.');
+ return !!ok;
+}
 function setupSocket(){
  if(state.socket){
   if(!state.socket.connected)try{state.socket.connect()}catch(_){}
   return;
  }
  state.socketLogin=state.session.local?.login||'';
- state.socket=io({withCredentials:true,reconnection:true,reconnectionAttempts:Infinity,reconnectionDelay:700,reconnectionDelayMax:5000,timeout:15000});
+ state.socket=io({withCredentials:true,transports:['polling'],upgrade:false,reconnection:true,reconnectionAttempts:Infinity,reconnectionDelay:700,reconnectionDelayMax:5000,timeout:15000});
  state.socket.on('connect',()=>{
   if(state.stream && state.nativeLiveInfo){
    state.nativeLiveConfirmed=false;state.nativeLivePending=true;updateLiveUi(false);
@@ -755,6 +779,7 @@ function setupSocket(){
   const status=$('#streamViewerReadiness');
   if(status)status.textContent='Diffusion publiée. Lecture chez les spectateurs non encore confirmée.';
   toast('Direct publié sur SWAPP');
+  window.SwappBrowserRelay?.startPublisher?.(d.room,state.stream);
   state.socket.emit('native:chat:history',{room:d.room});
  });
  state.socket.on('native:stats',d=>{
@@ -843,10 +868,10 @@ function requestOffer(){
   state.socket.emit('native:request-offer',{room:state.watchRoom||state.room});
 }
 function retryWatch(){
- if(state.stream || (!state.watchRoom && !state.room) || state.view!=='channel')return;
+ if(state.stream || window.SwappBrowserRelay?.isViewing?.(state.watchRoom||state.room) || (!state.watchRoom && !state.room) || state.view!=='channel')return;
  if(state.remoteRetryTimer)return;
  state.remoteRetryCount=(state.remoteRetryCount||0)+1;
- if(state.remoteRetryCount>3){swappShowViewerTransportWarning();return;}
+ if(state.remoteRetryCount>3){swappTryHttpPlayback().then(ok=>{if(!ok)swappShowViewerTransportWarning()});return;}
  swappSetVideoPlayback(false);
  const delay=1200*state.remoteRetryCount;
  state.remoteRetryTimer=setTimeout(()=>{
@@ -869,10 +894,11 @@ async function peer(id){
  pc.onconnectionstatechange=()=>{
   if(state.peers?.[id]!==pc)return;
   if(pc.connectionState==='failed' || pc.connectionState==='disconnected'){
-   if(!state.stream){swappSetVideoPlayback(false);retryWatch();}
+   if(!state.stream){swappSetVideoPlayback(false);retryWatch();swappTryHttpPlayback().catch(()=>{});}
   }
  };
  pc.ontrack=e=>{
+  if(window.SwappBrowserRelay?.isViewing?.(state.watchRoom||state.room))return;
   const v=$('#remoteVideo');if(!v || state.peers?.[id]!==pc)return;
   if(e.streams?.[0])v.srcObject=e.streams[0];
   else{let media=v.srcObject;if(!media){media=new MediaStream();v.srcObject=media;}media.addTrack(e.track);}
@@ -919,7 +945,7 @@ async function startLive(){
  clearTimeout(state.nativeLiveAckTimer);
  state.nativeLiveAckTimer=setTimeout(()=>{if(state.stream && !state.nativeLiveConfirmed){stopLive();toast('Impossible de confirmer la diffusion publique SWAPP.');}},20000);
 }
-function stopLive(stopTracks=true){clearTimeout(state.nativeLiveAckTimer);state.nativeLiveAckTimer=null;state.nativeLiveConfirmed=false;state.nativeLivePending=false;state.nativeLiveInfo=null;if(stopTracks){ state.stream?._oryonSources?.forEach(src=>src.getTracks().forEach(t=>t.stop())); state.stream?.getTracks().forEach(t=>t.stop()); } state.stream=null; if(state.socket) state.socket.emit('native:leave'); Object.values(state.peers||{}).forEach(pc=>{try{pc.close()}catch{}}); state.peers={}; updateLiveUi(false); const v=$('#localVideo'); if(v) v.srcObject=null; $('#offlinePanel')&&( $('#offlinePanel').style.display='block'); (()=>{const e=$('#managerPreviewEmpty');if(e){e.hidden=false;e.removeAttribute('aria-hidden');e.classList.remove('hidden');e.style.setProperty('display','grid','important');}})();toast('Live arrêté')}
+function stopLive(stopTracks=true){window.SwappBrowserRelay?.stopPublisher?.();clearTimeout(state.nativeLiveAckTimer);state.nativeLiveAckTimer=null;state.nativeLiveConfirmed=false;state.nativeLivePending=false;state.nativeLiveInfo=null;if(stopTracks){ state.stream?._oryonSources?.forEach(src=>src.getTracks().forEach(t=>t.stop())); state.stream?.getTracks().forEach(t=>t.stop()); } state.stream=null; if(state.socket) state.socket.emit('native:leave'); Object.values(state.peers||{}).forEach(pc=>{try{pc.close()}catch{}}); state.peers={}; updateLiveUi(false); const v=$('#localVideo'); if(v) v.srcObject=null; $('#offlinePanel')&&( $('#offlinePanel').style.display='block'); (()=>{const e=$('#managerPreviewEmpty');if(e){e.hidden=false;e.removeAttribute('aria-hidden');e.classList.remove('hidden');e.style.setProperty('display','grid','important');}})();toast('Live arrêté')}
 function openOryon(room){state.watchRoom=String(room||'').toLowerCase(); const item=(state.zap.items||[]).find(x=>(x.host_login||x.room)===state.watchRoom)||{platform:'oryon',host_login:state.watchRoom,host_name:state.watchRoom}; trackDiscovery(item); state.room=state.watchRoom; setMiniLive({type:'oryon',login:state.watchRoom,title:'Swapp · '+state.watchRoom}); setView('channel')}
 function sendChat(){if(!state.room)return toast('Aucun salon Swapp actif'); if(!state.socket)setupSocket(); if(!state.session.local)return toast('Connecte-toi à Swapp pour écrire dans le tchat natif.'); state.socket.emit('native:chat',{room:state.room,text:$('#chatInput').value,gif:state.selectedGif,emote:state.selectedEmote?{code:state.selectedEmote.code,image_url:state.selectedEmote.image_url}:null}); $('#chatInput').value=''; state.selectedGif=''; state.selectedEmote=null; $('#gifGrid')?.classList.add('hidden')}
 function msgHtml(m){return `<div class="msg"><b>${esc(m.user_display||m.user)}</b> <span class="small">${new Date(m.ts).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</span><div>${esc(m.text||'')}</div>${m.emote?`<img src="${esc(m.emote.image_url)}" title=":${esc(m.emote.code)}:">`:''}${m.gif?`<img src="${esc(m.gif)}">`:''}</div>`}
@@ -1487,7 +1513,7 @@ async function renderChannel(){
  if(isLive)setMiniLive({type:'oryon',login:targetLogin,title:'Swapp · '+(p.display_name||p.login)});
  chanTab(null,'about'); setupSocket(); state.room=targetLogin; state.socket.emit('native:chat:history',{room:state.room});
  if(isOwner && state.stream){ attachCurrentStream(); }
- else if(isLive){ state.socket.emit('native:join',{room:targetLogin}); if(!swappSafeLocalPlayerUrl(p.oryon_local_player_url)){ setTimeout(()=>requestOffer(),500); setTimeout(()=>{ if($('#remoteVideo') && !$('#remoteVideo').srcObject) toast('Connexion vidéo en attente. Clique sur Relancer si besoin.'); },3500); } }
+ else if(isLive){ state.socket.emit('native:join',{room:targetLogin}); if(!swappSafeLocalPlayerUrl(p.oryon_local_player_url)){ setTimeout(()=>requestOffer(),500); setTimeout(()=>{ if($('#remoteVideo') && !$('#remoteVideo').srcObject) toast('Connexion vidéo en attente. Clique sur Relancer si besoin.'); },3500); setTimeout(()=>{if(state.view==='channel' && !state.remotePlaying && !state.stream && (state.watchRoom||state.room)===targetLogin)swappTryHttpPlayback().catch(()=>{});},9000); } }
  updateLiveUi(isLive);
  refreshEmoteShelf(targetLogin);
 }
