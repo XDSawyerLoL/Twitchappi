@@ -76,10 +76,16 @@ function swappIsBlockedTunnelUrl(url){
 }
 function swappSafeLocalPlayerUrl(url){
  const raw=String(url||'').trim();
- if(!raw || !/^https?:\/\//i.test(raw)) return '';
- if(/localhost|127\.0\.0\.1/i.test(raw)) return '';
- if(swappIsBlockedTunnelUrl(raw)) return '';
- return raw;
+ try{
+  const parsed=new URL(raw);
+  if(parsed.protocol!=='https:')return '';
+  const host=parsed.hostname.toLowerCase();
+  // Reject real loopback addresses, not a public hostname such as *.localhost.run.
+  if(host==='localhost'||host.endsWith('.localhost')||host==='127.0.0.1'||host==='[::1]')return '';
+  if(parsed.username||parsed.password)return '';
+  if(swappIsBlockedTunnelUrl(raw))return '';
+  return parsed.href;
+ }catch(_){return ''}
 }
 function swappChannelPath(login){const clean=swappCleanLogin(login);return clean?('/'+encodeURIComponent(clean)):'/compte'}
 function swappPathForView(id){if(id==='channel')return swappChannelPath(state.watchRoom||state.session?.local?.login||state.lastChannelLogin);return SWAPP_VIEW_PATHS[id]||'/'}
