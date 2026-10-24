@@ -1,8 +1,8 @@
 {
   "name": "swapp-local-app",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "private": true,
-  "description": "SWAPP Live — OBS vers swapp.tv en HTTPS, HLS 720p 2s optimisé sans tunnel",
+  "description": "SWAPP Live — interface compacte avec état du direct visible, compte simplifié et aperçu OBS",
   "main": "main.js",
   "dependencies": {
     "express": "^4.21.2",
