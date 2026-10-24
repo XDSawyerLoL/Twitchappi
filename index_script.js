@@ -635,6 +635,21 @@ function setupSocket(){
   updateLiveUi(false);
   const badge=$('#streamStateBadge');if(badge)badge.textContent='Reconnexion au serveur…';
  });
+ state.socket.on('native:replaced',d=>{
+  if(!state.stream || d?.room!==state.room)return;
+  stopLive();
+  toast('Ce live a été repris depuis une autre connexion.');
+ });
+ state.socket.on('native:reconnecting',d=>{
+  if(!state.watchRoom || d?.room!==state.watchRoom)return;
+  Object.values(state.peers||{}).forEach(pc=>{try{pc.close()}catch{}});
+  state.peers={};
+  setTimeout(()=>requestOffer(),600);
+ });
+ state.socket.on('native:viewer-left',d=>{
+  const pc=state.peers?.[d?.viewerId];
+  if(pc){try{pc.close()}catch{}delete state.peers[d.viewerId];}
+ });
  state.socket.on('native:created',d=>{
   if(!state.stream || d?.room!==state.room){state.socket.emit('native:leave');return;}
   state.nativeLiveConfirmed=true;state.nativeLivePending=false;
