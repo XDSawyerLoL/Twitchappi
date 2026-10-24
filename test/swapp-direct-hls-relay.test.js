@@ -9,7 +9,7 @@ const vm=require('node:vm');
 const source=fs.readFileSync(path.join(__dirname,'..','modules','swapp-direct-hls-relay.js'),'utf8');
 function backend(){
  const routes={get:new Map(),post:new Map()};
- const express={raw:()=>(_req,_res,next)=>next()};
+ const express={raw:()=>(_req,_res,next)=>next(),json:()=>(_req,_res,next)=>next()};
  const module={exports:{}};
  vm.runInNewContext(source,{
   require(id){if(id==='express')return express;if(id==='./swapp-ts-inspect')return require('../modules/swapp-ts-inspect');return require(id)},
@@ -322,4 +322,45 @@ test('HLS player prioritizes hls.js over unreliable native canPlayType report',(
  assert.ok(native>hls,'native playback is fallback, not the default');
  assert.doesNotMatch(html,/async function playlistReady\(/,'no blocking manifest preflight');
  assert.match(html,/Hls\.Events\.ERROR/,'HLS errors must remain visible');
+});
+
+test('Swappers audience counts active playback sessions, never an invented figure',async()=>{
+ const b=backend(),base='/api/oryon/local-relay/:login';
+ const audience=base+'/audience',beat=audience+'/heartbeat',leave=audience+'/leave';
+ const onlineBefore=await b.call('get',audience);
+ assert.equal(onlineBefore.payload.swappers,0);
+ assert.equal(onlineBefore.payload.live,false);
+ const seg=Buffer.alloc(188*3);seg[0]=0x47;
+ await b.call('post','/api/oryon/local-relay/upload',{name:'seg_001.ts',body:seg});
+ await b.call('post','/api/oryon/local-relay/upload',{name:'index.m3u8',
+  body:Buffer.from('#EXTM3U\n#EXTINF:2,\nseg_001.ts\n')});
+ const alice='a'.repeat(32),bob='b'.repeat(32);
+ assert.equal((await b.call('post',beat,{body:{session:'not-a-token'}})).status,400);
+ assert.equal((await b.call('post',beat,{body:{session:alice}})).payload.swappers,1);
+ assert.equal((await b.call('post',beat,{body:{session:alice}})).payload.swappers,1,
+  'refreshing one player must not double-count it');
+ assert.equal((await b.call('post',beat,{body:{session:bob}})).payload.swappers,2);
+ const live=await b.call('get',audience);
+ assert.equal(live.payload.swappers,2);
+ assert.equal(live.payload.live,true);
+ await b.call('post',leave,{body:{session:alice}});
+ assert.equal((await b.call('get',audience)).payload.swappers,1);
+ const room=b.relay.rooms.get('vnhz');
+ room.viewers.set(bob,Date.now()-46000);
+ assert.equal((await b.call('get',audience)).payload.swappers,0,'inactive playback expires');
+});
+test('embedded SWAPP player can export a vertical Short without affecting HLS transport',async()=>{
+ const b=backend();
+ const player=await b.call('get','/api/oryon/local-relay/:login/player');
+ assert.match(player.payload,/swapp-live-enhancements\.js/);
+ assert.match(player.payload,/swapp-short-toggle/);
+ assert.match(player.payload,/class="toolbar"/);
+ const short=fs.readFileSync(path.join(__dirname,'..','assets','swapp-live-enhancements.js'),'utf8');
+ new Function(short);
+ assert.match(short,/preview\.width=540;preview\.height=960/);
+ assert.match(short,/new MediaRecorder\(mixed,/);
+ assert.match(short,/15000/);
+ assert.match(short,/URL\.createObjectURL\(blob\)/);
+ assert.match(short,/captureStream/);
+ assert.doesNotMatch(short,/getUserMedia/);
 });
