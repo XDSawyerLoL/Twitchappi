@@ -7,6 +7,7 @@ on:
       - .github/workflows/swapp-live-windows.yml
       - 'local-agent/**'
       - test/swapp-local-tunnel.test.js
+      - test/swapp-electron-runtime-package.test.js
       - test/swapp-browser-http-relay.test.js
       - test/swapp-native-webrtc-transport.test.js
       - test/swapp-native-live-public.test.js
@@ -29,7 +30,7 @@ jobs:
           node-version: '20'
 
       - name: Run live transport regression tests
-        run: node --test test/swapp-native-webrtc-transport.test.js test/swapp-native-live-public.test.js test/swapp-browser-http-relay.test.js test/swapp-local-tunnel.test.js
+        run: node --test test/swapp-native-webrtc-transport.test.js test/swapp-native-live-public.test.js test/swapp-browser-http-relay.test.js test/swapp-local-tunnel.test.js test/swapp-electron-runtime-package.test.js
 
       - name: Install local SWAPP Live dependencies
         run: npm install --prefix local-agent --no-audit --no-fund
@@ -48,13 +49,47 @@ jobs:
       - name: Compile Windows installer and portable EXE
         run: npm run dist:win --prefix local-agent
 
+      - name: Verify Electron DLLs in packaged app and installed NSIS executable
+        shell: pwsh
+        run: |
+          $output = "local-agent/dist/win-unpacked"
+          $exe = Join-Path $output "SWAPP Live.exe"
+          $dll = Join-Path $output "ffmpeg.dll"
+          if (!(Test-Path $exe)) { throw "Critical: SWAPP Live.exe missing from the Windows package" }
+          if (!(Test-Path $dll)) { throw "Critical: ffmpeg.dll missing next to SWAPP Live.exe" }
+          if ((Get-Item $dll).Length -lt 102400) { throw "Critical: ffmpeg.dll appears truncated" }
+          $dllHash = (Get-FileHash $dll -Algorithm SHA256).Hash
+          Write-Host "Packaged Electron ffmpeg.dll SHA256: $dllHash"
+          $installer = "local-agent/dist/SWAPP-Live-Setup-1.0.3-x64.exe"
+          $portable = "local-agent/dist/SWAPP-Live-Portable-1.0.3-x64.exe"
+          foreach ($artifact in @($installer, $portable)) {
+            if (!(Test-Path $artifact)) { throw "Missing release executable: $artifact" }
+          }
+          # Test what the user actually receives: install the self-contained NSIS
+          # EXE without a terminal or download of a separate runtime dependency.
+          $install = Start-Process -FilePath (Resolve-Path $installer) -ArgumentList '/S' -PassThru -WindowStyle Hidden
+          if (!$install.WaitForExit(90000)) {
+            try { $install.Kill() } catch {}
+            throw "NSIS smoke installation did not finish within 90 seconds"
+          }
+          if ($install.ExitCode -ne 0) { throw "NSIS installation failed with exit code $($install.ExitCode)" }
+          $programs = Join-Path $env:LOCALAPPDATA "Programs"
+          $installedExe = @(Get-ChildItem -Path $programs -Recurse -File -Filter "SWAPP Live.exe" -ErrorAction SilentlyContinue)
+          if ($installedExe.Count -eq 0) { throw "NSIS finished but installed SWAPP Live.exe was not found" }
+          $matching = @($installedExe | Where-Object {
+            $installedDll = Join-Path $_.DirectoryName "ffmpeg.dll"
+            (Test-Path $installedDll) -and ((Get-FileHash $installedDll -Algorithm SHA256).Hash -eq $dllHash)
+          })
+          if ($matching.Count -eq 0) { throw "NSIS installed SWAPP Live.exe without the matching ffmpeg.dll" }
+          Write-Host "NSIS smoke test PASS: matching Electron ffmpeg.dll is installed next to SWAPP Live.exe"
+
       - name: Publish installers as public GitHub Release (not paid Actions artifact storage)
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $tag = "swapp-live-windows-v1.0.2"
+          $tag = "swapp-live-windows-v1.0.3"
           $files = @(Get-ChildItem "local-agent/dist" -File -Filter "*.exe" | ForEach-Object { $_.FullName })
           if ($files.Count -lt 2) { throw "SWAPP Live installer and portable executable were not both produced" }
-          $notes = "SWAPP Live Windows v1.0.2: OBS stream public player now includes volume slider, mute toggle, fullscreen, and adjustable Fit/Fill controls with no distortion. Autoplay stays muted until explicit user action. Cloudflared and HLS.js bundled, private API isolated. No new paid service or console."
-          gh release create $tag $files --repo "$env:GITHUB_REPOSITORY" --target "$env:GITHUB_SHA" --title "SWAPP Live Windows v1.0.2" --notes $notes
+          $notes = "SWAPP Live Windows v1.0.3: Electron ffmpeg.dll validated and automatically restored from matching official Electron package if missing. Installer smoke-tested on Windows for DLL next to EXE; portable uses isolated fresh extraction. Keeps free OBS tunnel, sound controls, fullscreen and HLS playback. Use the SETUP installer, not the raw internal SWAPP Live.exe."
+          gh release create $tag $files --repo "$env:GITHUB_REPOSITORY" --target "$env:GITHUB_SHA" --title "SWAPP Live Windows v1.0.3" --notes $notes
