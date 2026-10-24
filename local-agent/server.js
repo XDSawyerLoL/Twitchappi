@@ -632,35 +632,122 @@ publicApp.get('/health',(_req,res)=>res.json({success:true,name:'SWAPP Public Vi
 
 function pageHtml(key){
   const cfg = loadLocalConfig();
-  const site = cleanSiteUrl(cfg.site_url || DEFAULT_SWAPP_SITE_URL);
   const login = cfg.user?.login || '';
   const purl = playerUrl(key);
   const rtmp = `rtmp://127.0.0.1:${RTMP_PORT}/live`;
   return String.raw`<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Swapp Local</title><style>
-:root{color-scheme:dark;background:#070914;color:#f6f7fb;font-family:Inter,system-ui,Segoe UI,Arial,sans-serif}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 20% 0%,#3b1b7a55,transparent 35%),#070914}.wrap{max-width:1160px;margin:auto;padding:26px}.card{border:1px solid #262b42;background:#101423cc;border-radius:24px;padding:22px;box-shadow:0 20px 60px #0008}.hero{display:grid;grid-template-columns:.92fr 1.08fr;gap:18px}.tag{display:inline-flex;padding:7px 10px;border-radius:999px;background:#7c3aed22;border:1px solid #7c3aed66;color:#d7c6ff;font-size:13px}.btn{border:0;border-radius:14px;padding:13px 16px;background:#7c3aed;color:white;font-weight:900;cursor:pointer}.btn.secondary{background:#1d2335}.btn.good{background:#18bf72}.btn.warn{background:#b45309}.btn.big{font-size:18px;padding:16px 22px}.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.small{color:#aab3c7;font-size:14px;line-height:1.5}.player{aspect-ratio:16/9;background:#02040a;border-radius:22px;overflow:hidden;border:1px solid #30364f}iframe{width:100%;height:100%;border:0;overflow:hidden}input{width:100%;background:#070914;border:1px solid #30364f;color:white;border-radius:12px;padding:12px;margin:6px 0}.status{margin-top:12px;padding:12px;border:1px solid #30364f;border-radius:14px;background:#070914;color:#cfe5ff;font-size:14px;white-space:pre-wrap}.code{background:#050710;border:1px solid #30364f;border-radius:14px;padding:13px;word-break:break-all;font-family:ui-monospace,monospace;color:#cfe5ff}.muted{color:#aab3c7}.ok{color:#86efac}.warnText{color:#fde68a}.hidden{display:none!important}.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}.center{text-align:center}.topConnect{margin-bottom:18px}.previewHint{margin-top:10px}.mini{font-size:12px;color:#7e8aa3}@media(max-width:900px){.hero,.steps{grid-template-columns:1fr}.wrap{padding:14px}}</style></head><body><div class="wrap">
-<section class="card topConnect"><span class="tag">Swapp Local</span><h1>Connecte ton compte Swapp</h1><p class="small">L’application récupère ta clé de stream et publie ton direct automatiquement. Aucun terminal à ouvrir.</p><label class="small">Adresse du site Swapp</label><input id="oryonSite" value="${site}"><div class="row"><button class="btn big" onclick="connectWithBrowser()">Connecter avec mon compte Swapp</button><button class="btn secondary" onclick="disconnectAccount()">Déconnecter</button><button class="btn secondary" onclick="loadAccount()">Actualiser</button></div><div id="accountStatus" class="status">${login ? '✅ Connecté à '+login : 'Non connecté'}</div></section>
-<div class="hero"><section class="card"><h1>Diffuser avec OBS</h1><p class="small">Laisse cette app ouverte. Dans OBS, utilise le serveur et la clé ci-dessous.</p><h3>Serveur OBS</h3><div class="code" id="rtmp">${rtmp}</div><h3>Clé de stream</h3><input id="key" value="${key}" oninput="updateKey()"><div class="row"><button class="btn secondary" onclick="copy('rtmp')">Copier serveur</button><button class="btn secondary" onclick="copyKey()">Copier clé</button></div><p class="small">OBS → Paramètres → Diffusion → Service personnalisé. Désactive la vidéo multipiste.</p><div id="simpleStatus" class="status">En attente d’OBS.</div><div class="row"><button class="btn good big" onclick="goLive()">Démarrer sur Swapp</button><button class="btn warn" onclick="repairTunnel()">Réparer le tunnel</button><button class="btn secondary" onclick="stopTunnel()">Arrêter</button></div></section><section class="card"><h2>Prévisualisation locale</h2><div class="player"><iframe id="frame" src="${purl}"></iframe></div><p class="small previewHint">Aperçu local. Le public lit la vidéo directement sur swapp.tv : aucun tunnel temporaire n’est nécessaire.</p></section></div>
-<div class="steps"><div class="card"><h3>1. Connecte</h3><p class="small">Swapp Local récupère ta clé.</p></div><div class="card"><h3>2. Lance OBS</h3><p class="small">Serveur personnalisé + clé Swapp.</p></div><div class="card"><h3>3. Démarre</h3><p class="small">La vidéo OBS est envoyée en HTTPS vers SWAPP, puis publiée sur ta chaîne.</p></div></div>
-<details class="card" style="margin-top:16px" open><summary class="small" style="cursor:pointer">Diagnostic technique</summary><div id="diag" class="status">Diagnostic en cours…</div><div id="publicUrl" class="status">Tunnel non lancé.</div></details>
+:root{color-scheme:dark;background:#070914;color:#f6f7fb;font-family:Inter,system-ui,Segoe UI,Arial,sans-serif}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 20% 0%,#3b1b7a55,transparent 35%),#070914}.wrap{max-width:1160px;margin:auto;padding:26px}.card{border:1px solid #262b42;background:#101423cc;border-radius:24px;padding:22px;box-shadow:0 20px 60px #0008}.hero{display:grid;grid-template-columns:.92fr 1.08fr;gap:18px}.tag{display:inline-flex;padding:7px 10px;border-radius:999px;background:#7c3aed22;border:1px solid #7c3aed66;color:#d7c6ff;font-size:13px}.btn{border:0;border-radius:14px;padding:13px 16px;background:#7c3aed;color:white;font-weight:900;cursor:pointer}.btn.secondary{background:#1d2335}.btn.good{background:#18bf72}.btn.warn{background:#b45309}.btn.big{font-size:18px;padding:16px 22px}.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.small{color:#aab3c7;font-size:14px;line-height:1.5}.player{aspect-ratio:16/9;background:#02040a;border-radius:22px;overflow:hidden;border:1px solid #30364f}iframe{width:100%;height:100%;border:0;overflow:hidden}input{width:100%;background:#070914;border:1px solid #30364f;color:white;border-radius:12px;padding:12px;margin:6px 0}.status{margin-top:12px;padding:12px;border:1px solid #30364f;border-radius:14px;background:#070914;color:#cfe5ff;font-size:14px;white-space:pre-wrap}.code{background:#050710;border:1px solid #30364f;border-radius:14px;padding:13px;word-break:break-all;font-family:ui-monospace,monospace;color:#cfe5ff}.muted{color:#aab3c7}.ok{color:#86efac}.warnText{color:#fde68a}.hidden{display:none!important}.center{text-align:center}.topConnect{margin-bottom:18px}.accountCompact{padding:14px 20px}.connectBar{justify-content:space-between;gap:18px}.accountLabel{display:flex;align-items:center;gap:14px;flex-wrap:wrap}.accountState{color:#a9f3bf;font-weight:650;font-size:14px}.accountState.offline{color:#aab3c7}.accountCompact .btn{min-height:40px}.liveActions{margin-top:12px}.liveResult{border-color:#286c61;background:#081d1b;color:#d7fff2}.liveResult.error{border-color:#a33b48;color:#ffd7de}.previewCard h2{margin-top:0}.technicalPanel{margin-top:16px}.mini{font-size:12px;color:#7e8aa3}@media(max-width:900px){.hero{grid-template-columns:1fr}.wrap{padding:14px}.connectBar{align-items:flex-start}}</style></head><body><div class="wrap">
+<section class="card topConnect accountCompact" aria-label="Compte SWAPP"><div class="row connectBar"><div class="accountLabel"><span class="tag">SWAPP Live</span><span id="accountStatus" class="accountState" role="status">${login ? 'Connecté à '+login : 'Non connecté'}</span></div><div class="row"><button id="connectBtn" class="btn${login?' hidden':''}" onclick="connectWithBrowser()">Se connecter</button><button id="disconnectBtn" class="btn secondary${login?'':' hidden'}" onclick="disconnectAccount()">Se déconnecter</button></div></div></section>
+<div class="hero"><section class="card"><h1>Diffuser avec OBS</h1><p class="small">Configure une seule fois OBS avec ces informations.</p><h3>Serveur OBS</h3><div class="code" id="rtmp">${rtmp}</div><h3>Clé de stream</h3><input id="key" value="${key}" oninput="updateKey()"><div class="row"><button class="btn secondary" onclick="copy('rtmp')">Copier le serveur</button><button class="btn secondary" onclick="copyKey()">Copier la clé</button></div><p class="small">OBS → Paramètres → Diffusion → Service personnalisé. Désactive la vidéo multipiste.</p><div id="simpleStatus" class="status" role="status" aria-live="polite">En attente d’OBS.</div><div class="row liveActions"><button class="btn good big" onclick="goLive()">Démarrer sur SWAPP</button><button class="btn secondary" onclick="repairTunnel()">Vérifier la diffusion</button><button class="btn secondary" onclick="stopTunnel()">Arrêter le direct</button></div><div id="publicUrl" class="status liveResult hidden" role="status" aria-live="polite"></div></section><section class="card previewCard"><h2>Aperçu</h2><div class="player"><iframe id="frame" src="${purl}" title="Aperçu vidéo OBS"></iframe></div></section></div>
+<details class="card technicalPanel"><summary class="small" style="cursor:pointer">Diagnostic technique</summary><div id="diag" class="status">Diagnostic en cours…</div></details>
 </div><script>
-function copy(id){navigator.clipboard.writeText(document.getElementById(id).textContent)}function copyKey(){navigator.clipboard.writeText(document.getElementById('key').value)}function currentKey(){return document.getElementById('key').value.replace(/[^a-zA-Z0-9_-]/g,'')||'${DEFAULT_KEY}'}
+function copy(id){navigator.clipboard.writeText(document.getElementById(id).textContent)}
+function setConnectedUi(connected,login){
+ const box=document.getElementById('accountStatus');
+ box.textContent=connected?'Connecté à '+(login||'SWAPP'):'Non connecté';
+ box.classList.toggle('offline',!connected);
+ document.getElementById('connectBtn').classList.toggle('hidden',!!connected);
+ document.getElementById('disconnectBtn').classList.toggle('hidden',!connected);
+}
+function showLiveResult(text,isError=false){
+ const box=document.getElementById('publicUrl');
+ box.classList.remove('hidden');
+ box.textContent=text;
+ box.classList.toggle('error',!!isError);
+}
+function copyKey(){navigator.clipboard.writeText(document.getElementById('key').value)}function currentKey(){return document.getElementById('key').value.replace(/[^a-zA-Z0-9_-]/g,'')||'${DEFAULT_KEY}'}
 function updateKey(){const u='/player/'+encodeURIComponent(currentKey());const f=document.getElementById('frame'); if(!f.src.endsWith(u)) f.src=u; refreshDiag();}
-async function loadAccount(){try{const r=await fetch('/api/account/status?t='+Date.now());const d=await r.json();if(d.connected){document.getElementById('key').value=d.stream_key;document.getElementById('oryonSite').value=d.site_url||document.getElementById('oryonSite').value;document.getElementById('accountStatus').innerHTML='✅ Connecté à <b>'+(d.user?.login||'Swapp')+'</b>';updateKey();return true}else{document.getElementById('accountStatus').textContent='Non connecté';return false}}catch(e){return false}}
-async function connectWithBrowser(){const box=document.getElementById('accountStatus');const raw=(document.getElementById('oryonSite').value||'').trim();const site=/^https?:\/\//i.test(raw)?raw.replace(/\/$/,''):'https://'+raw.replace(/\/$/,'');document.getElementById('oryonSite').value=site;const cb='http://127.0.0.1:${HTTP_PORT}/api/account/browser-callback';const url=site+'/api/oryon/local-agent/browser-connect?callback='+encodeURIComponent(cb);box.textContent='Ouverture du navigateur…';window.open(url,'_blank');let attempts=0;const timer=setInterval(async()=>{attempts++;if(await loadAccount()){clearInterval(timer);box.innerHTML='✅ Compte connecté. Tu peux lancer OBS.'}if(attempts>120){clearInterval(timer);box.textContent='Connexion non confirmée. Vérifie que tu es connecté à Swapp puis réessaie.'}},1000)}
-async function disconnectAccount(){await fetch('/api/account/disconnect',{method:'POST'});document.getElementById('accountStatus').textContent='Non connecté'}
+async function loadAccount(){
+ try{
+  const r=await fetch('/api/account/status?t='+Date.now());
+  const d=await r.json();
+  setConnectedUi(!!d.connected,d.user?.login);
+  if(d.connected){
+   document.getElementById('key').value=d.stream_key;
+   updateKey();
+   return true;
+  }
+  return false;
+ }catch(e){setConnectedUi(false);return false}
+}
+async function connectWithBrowser(){
+ const box=document.getElementById('accountStatus');
+ const site='${DEFAULT_SWAPP_SITE_URL}';
+ const cb='http://127.0.0.1:${HTTP_PORT}/api/account/browser-callback';
+ const url=site+'/api/oryon/local-agent/browser-connect?callback='+encodeURIComponent(cb);
+ box.textContent='Connexion SWAPP dans le navigateur…';
+ window.open(url,'_blank');
+ let attempts=0;
+ const timer=setInterval(async()=>{
+  attempts++;
+  if(await loadAccount()){clearInterval(timer)}
+  if(attempts>120){clearInterval(timer);setConnectedUi(false)}
+ },1000);
+}
+async function disconnectAccount(){
+ await fetch('/api/account/disconnect',{method:'POST'});
+ setConnectedUi(false);
+}
 async function sendHeartbeat(live){try{const key=currentKey();const tun=await fetch('/api/tunnel/status?key='+encodeURIComponent(key)+'&t='+Date.now()).then(r=>r.json()).catch(()=>({}));await fetch('/api/heartbeat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key,live_active:!!live,player_url:tun.player_url||'',status_url:tun.status_url||''})})}catch(e){}}
-async function refreshDiag(){try{const r=await fetch('/api/status?key='+encodeURIComponent(currentKey())+'&t='+Date.now());const d=await r.json();const st=d.stream||{};const ok=st.active&&st.ffmpeg_running&&st.hls_exists;document.getElementById('simpleStatus').innerHTML=ok?'✅ Flux prêt. Tu peux démarrer sur Swapp.':(st.active?'⏳ Flux reçu. Préparation…':'En attente d’OBS.'); const diag=document.getElementById('diag'); if(diag) diag.innerHTML=(ok?'Flux prêt.':'')+'\nOBS actif: '+!!st.active+'\nFFmpeg: '+!!st.ffmpeg_running+'\nHLS: '+!!st.hls_exists+'\nTunnel: '+(st.public_player_url||'non publié'); if(window.__publishedLiveKey){ await sendHeartbeat(ok); }}catch(e){document.getElementById('simpleStatus').textContent='Diagnostic indisponible.'}}
-async function goLive(){const box=document.getElementById('publicUrl');box.textContent='Vérification OBS → envoi vidéo HTTPS vers SWAPP → publication du direct…';try{const r=await fetch('/api/go-live',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:currentKey(),site_url:document.getElementById('oryonSite').value.trim()})});const d=await r.json();if(!d.success)throw new Error([d.error||'Publication impossible',(d.ssh_log||d.cloudflare_log||d.log||'').slice(-650)].filter(Boolean).join('\n'));window.__publishedLiveKey=currentKey(); box.textContent='✅ Live en ligne sur ta chaîne Swapp.\n'+(d.player_url||'')+'\nRelais : '+(d.tunnel?.provider==='swapp-direct-hls'?'SWAPP HTTPS direct':(d.tunnel?.provider||'indisponible')); document.getElementById('simpleStatus').textContent='✅ Live en ligne sur Swapp.'; await sendHeartbeat(true)}catch(e){box.textContent='❌ '+(e.message||e)}}
-async function repairTunnel(){const box=document.getElementById('publicUrl');box.textContent='Vérification du relais vidéo direct SWAPP…';try{const r=await fetch('/api/tunnel/repair',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:currentKey(),site_url:document.getElementById('oryonSite').value.trim()})});const d=await r.json();if(!d.success)throw new Error([d.error||'Réparation impossible',(d.ssh_log||d.cloudflare_log||d.log||'').slice(-650)].filter(Boolean).join('\n'));box.textContent=d.waiting_for_obs?'✅ Relais opérationnel ('+(d.tunnel?.provider||'auto')+'). Lance OBS puis clique sur Démarrer sur Swapp.':'✅ Relais vérifié ('+(d.tunnel?.provider||'auto')+').\n'+(d.register?.player_url||d.tunnel?.url||'');if(!d.waiting_for_obs)window.__publishedLiveKey=currentKey();}catch(e){box.textContent='❌ '+(e.message||e)}}
-async function stopTunnel(){try{await sendHeartbeat(false); window.__publishedLiveKey=null; await fetch('/api/tunnel/stop',{method:'POST'});document.getElementById('publicUrl').textContent='Diffusion arrêtée.'}catch(e){document.getElementById('publicUrl').textContent='Erreur: '+e.message}}
-setInterval(refreshDiag,3000);loadAccount();refreshDiag();
+async function refreshDiag(){
+ try{
+  const r=await fetch('/api/status?key='+encodeURIComponent(currentKey())+'&t='+Date.now());
+  const d=await r.json();
+  const st=d.stream||{};
+  const ok=!!(st.active&&st.ffmpeg_running&&st.hls_exists);
+  const publicLive=!!(ok&&st.public_player_url);
+  const status=document.getElementById('simpleStatus');
+  status.textContent=publicLive?'● En direct sur SWAPP':ok?'Flux OBS prêt · publication possible':st.active?'Flux OBS détecté · préparation vidéo…':'OBS hors ligne · lance ta diffusion.';
+  const diag=document.getElementById('diag');
+  if(diag)diag.textContent='OBS : '+(st.active?'connecté':'déconnecté')+'\nConversion vidéo : '+(st.ffmpeg_running?'active':'arrêtée')+'\nPlaylist HLS : '+(st.hls_exists?'prête':'absente')+'\nLecteur public : '+(st.public_player_url||'non publié');
+  if(publicLive&&!window.__liveResultDisplayed){
+   window.__liveResultDisplayed=true;
+   showLiveResult('Direct accessible sur ta chaîne SWAPP.');
+  }else if(!publicLive)window.__liveResultDisplayed=false;
+ }catch(e){document.getElementById('simpleStatus').textContent='État du flux indisponible.'}
+}
+async function goLive(){
+ showLiveResult('Publication du direct sur SWAPP…');
+ try{
+  const r=await fetch('/api/go-live',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:currentKey()})});
+  const d=await r.json();
+  if(!d.success)throw new Error([d.error||'Publication impossible',(d.ssh_log||d.cloudflare_log||d.log||'').slice(-650)].filter(Boolean).join('\n'));
+  window.__publishedLiveKey=currentKey();
+  window.__liveResultDisplayed=true;
+  showLiveResult('Direct accessible sur ta chaîne SWAPP.');
+  await refreshDiag();
+ }catch(e){showLiveResult('Échec de la publication : '+(e.message||e),true)}
+}
+async function repairTunnel(){
+ showLiveResult('Vérification de la diffusion SWAPP…');
+ try{
+  const r=await fetch('/api/tunnel/repair',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:currentKey()})});
+  const d=await r.json();
+  if(!d.success)throw new Error([d.error||'Vérification impossible',(d.ssh_log||d.cloudflare_log||d.log||'').slice(-650)].filter(Boolean).join('\n'));
+  if(!d.waiting_for_obs)window.__publishedLiveKey=currentKey();
+  showLiveResult(d.waiting_for_obs?'Relais SWAPP prêt · lance OBS.':'Direct vérifié · accessible sur ta chaîne SWAPP.');
+  await refreshDiag();
+ }catch(e){showLiveResult('Vérification impossible : '+(e.message||e),true)}
+}
+async function stopTunnel(){
+ try{
+  await sendHeartbeat(false);
+  window.__publishedLiveKey=null;
+  window.__liveResultDisplayed=false;
+  const r=await fetch('/api/tunnel/stop',{method:'POST'});
+  if(!r.ok)throw new Error('arrêt refusé');
+  showLiveResult('Diffusion arrêtée.');
+  await refreshDiag();
+ }catch(e){showLiveResult('Arrêt impossible : '+e.message,true)}
+}
+setInterval(refreshDiag,5000);loadAccount();refreshDiag();
 </script></body></html>`;
 }
 
 app.get('/', (req, res) => { const cfg = loadLocalConfig(); const key = safeKey(req.query.key || cfg.stream_key || DEFAULT_KEY); res.type('html').send(pageHtml(key)); });
 app.get('/api/setup/check', (_req, res) => {
   const cfg = loadLocalConfig();
-  res.json({ success:true, app:'Swapp Local', version:'1.0.5', site_url:cleanSiteUrl(cfg.site_url || DEFAULT_SWAPP_SITE_URL), account:cfg.user || null, connected:Boolean(cfg.token && cfg.stream_key), rtmp:`rtmp://127.0.0.1:${RTMP_PORT}/live`, stream_key:cfg.stream_key || DEFAULT_KEY, ffmpeg:ffmpegInfo(), media_root:MEDIA_ROOT, tunnel:publicTunnelInfo, localtunnel_disabled:true });
+  res.json({ success:true, app:'Swapp Local', version:'1.0.7', site_url:cleanSiteUrl(cfg.site_url || DEFAULT_SWAPP_SITE_URL), account:cfg.user || null, connected:Boolean(cfg.token && cfg.stream_key), rtmp:`rtmp://127.0.0.1:${RTMP_PORT}/live`, stream_key:cfg.stream_key || DEFAULT_KEY, ffmpeg:ffmpegInfo(), media_root:MEDIA_ROOT, tunnel:publicTunnelInfo, localtunnel_disabled:true });
 });
 app.get('/api/account/browser-callback', (req, res) => {
   try {

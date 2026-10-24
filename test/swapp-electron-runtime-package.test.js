@@ -41,7 +41,7 @@ test('afterPack refuses Windows installer without matching Electron runtime and 
  }finally{fs.rmSync(dir,{recursive:true,force:true})}
 });
 test('the portable EXE avoids reusing an incomplete Windows extraction directory',()=>{
- assert.equal(pkg.version,'1.0.6');
+ assert.equal(pkg.version,'1.0.7');
  assert.equal(pkg.build.portable.unpackDirName,false);
  assert.match(pkg.build.afterPack,/ensure-electron-runtime/);
 });
