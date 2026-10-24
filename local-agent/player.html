@@ -5,23 +5,20 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>SWAPP Live — lecteur</title>
 <style>
-:root{color-scheme:dark;font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;background:#020409;color:#f5f7fc}
-*{box-sizing:border-box}
-html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#020409}
-#stage{width:100%;height:100%;display:flex;flex-direction:column;background:#020409;isolation:isolate}.media{position:relative;flex:1;min-height:0;width:100%;overflow:hidden;background:#020409}
-video{display:block;width:100%;height:100%;object-fit:cover;background:#020409;cursor:pointer}
-video.fit{object-fit:contain}
-#state{position:absolute;inset:0;display:grid;place-items:center;padding:24px;text-align:center;color:#dce4f4;background:#020409cc;pointer-events:none;font-size:14px}
-#state[hidden]{display:none}
-.toolbar{position:relative;flex:none;display:flex;align-items:center;flex-wrap:wrap;gap:9px;min-height:54px;padding:8px 12px;border-top:1px solid #293248;background:#0b111e}.toolbar .live{color:#ff687c}.toolbar .live.paused{color:#f3c66b}.toolbar .live.stopped{color:#9aa6bd}
-.live{display:flex;align-items:center;gap:7px;white-space:nowrap;font-size:11px;letter-spacing:.09em;font-weight:800}.audioHint{position:absolute;z-index:4;top:12px;left:12px;max-width:80%;padding:9px 12px;border-radius:9px;background:#320f18e8;color:#ffe5e7;border:1px solid #fa626b88;font-size:12px;font-weight:700}.audioHint[hidden]{display:none}
-.dot{width:7px;height:7px;border-radius:50%;background:#f04456;box-shadow:0 0 0 3px #f0445624}
-button{border:1px solid #ffffff29;border-radius:8px;background:#ffffff12;color:#f5f7fc;font:inherit;font-size:12px;padding:8px 11px;min-height:34px;cursor:pointer;white-space:nowrap}
-button:hover,button:focus-visible{background:#ffffff2c;outline:1px solid #8e9ef7}
-input[type=range]{width:105px;height:24px;accent-color:#8d79ff;cursor:pointer;flex-shrink:1;min-width:55px}
-.flex{flex:1}
-#screen{font-weight:700}
-@media(max-width:560px){.toolbar{gap:6px;padding:6px 8px}.toolbar button{padding:6px 8px;font-size:11px;min-height:30px}.live{font-size:10px}input[type=range]{width:55px}.label-long{display:none}}
+:root{color-scheme:dark;font-family:Inter,system-ui,sans-serif;background:#050507;color:#fff}*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#050507}
+#stage{height:100%;display:flex;flex-direction:column;background:#050507}.media{position:relative;flex:1;min-height:0;overflow:hidden;background:#000}
+video{display:block;width:100%;height:100%;object-fit:cover;background:#000;cursor:pointer}video.fit{object-fit:contain}
+#state{position:absolute;inset:0;display:grid;place-items:center;text-align:center;background:#000d;color:#c9cbd3;font-size:14px;padding:24px}
+#state[hidden],.audioHint[hidden]{display:none}.audioHint{position:absolute;z-index:4;top:12px;left:12px;max-width:80%;padding:9px 12px;border-radius:5px;background:#521b2c;color:#fff;font-size:12px}
+.toolbar{height:48px;min-height:48px;flex:none;display:flex;align-items:center;gap:8px;padding:0 12px;background:#0a0a0e;border-top:1px solid #23232b}
+.toolbar button{padding:0;min-height:34px;width:35px;flex:none;border:0;border-radius:4px;background:transparent;color:#f6f6f8;font-size:17px;cursor:pointer}
+.toolbar button:hover,.toolbar button:focus-visible{background:#ffffff1a;outline:none}.toolbar button:disabled{opacity:.35;cursor:default}
+.toolbar .live{display:flex;align-items:center;gap:6px;font-size:10px;font-weight:800;letter-spacing:.05em;color:#92929e;white-space:nowrap}
+.toolbar .live.playing{color:#ff475e}.dot{height:6px;width:6px;border-radius:50%;background:currentColor}
+.toolbar .live.paused{color:#dfb45d}.toolbar .live.stopped{color:#92929e}
+#volume{width:64px;accent-color:#ddd;cursor:pointer}.flex{flex:1}.label-long{display:none}#fit{font-size:10px;width:auto;padding:0 7px;color:#bbb}
+@media(max-width:460px){.toolbar{gap:4px;padding:0 7px}.toolbar button{width:29px}#volume{width:42px}#fit{display:none}}
 </style>
 </head>
 <body>
@@ -33,15 +30,15 @@ input[type=range]{width:105px;height:24px;accent-color:#8d79ff;cursor:pointer;fl
  </div>
  <div class="toolbar" role="group" aria-label="Commandes du lecteur SWAPP">
   <span id="liveStatus" class="live"><span class="dot"></span>LIVE</span>
-  <button id="play" type="button" aria-label="Lire ou reprendre le direct">▶ <span class="label-long">Lecture</span></button>
-  <button id="pause" type="button" aria-label="Mettre le direct en pause">⏸ <span class="label-long">Pause</span></button>
-  <button id="stop" type="button" aria-label="Arrêter la lecture sans arrêter le diffuseur">■ <span class="label-long">Stop</span></button>
-  <button id="live" type="button" aria-label="Revenir à la diffusion en direct">↪ <span class="label-long">Direct</span></button>
-  <button id="audio" type="button" aria-label="Activer le son" aria-pressed="false">🔇 <span class="label-long">Activer le son</span></button>
+  <button id="play" type="button" aria-label="Lire ou reprendre le direct">▶</button>
+  <button id="pause" type="button" aria-label="Mettre le direct en pause">⏸</button>
+  <button id="stop" type="button" aria-label="Arrêter la lecture sans arrêter le diffuseur">■</button>
+  <button id="live" type="button" aria-label="Revenir à la diffusion en direct">↪</button>
+  <button id="audio" type="button" aria-label="Activer le son" aria-pressed="false">🔇</button>
   <input id="volume" type="range" min="0" max="1" value="0.8" step="0.05" aria-label="Volume du direct">
   <span class="flex"></span>
   <button id="fit" type="button" aria-label="Afficher toute l'image sans recadrage" aria-pressed="true">Adapter</button>
-  <button id="screen" type="button" aria-label="Passer en plein écran">⛶ <span class="label-long">Plein écran</span></button>
+  <button id="screen" type="button" aria-label="Passer en plein écran">⛶</button>
  </div>
 </div>
 <script src="/assets/hls.min.js"></script>
@@ -62,17 +59,18 @@ const liveButton = document.getElementById('live');
 const liveStatus = document.getElementById('liveStatus');
 let manualStop = false, userPaused = false;
 let h = null;
-let booted = false;
+let booted = false, lastFrameAt = Date.now(), retries = 0, restarting = false;
 let desiredVolume = 0.8;
 v.volume = desiredVolume;
 v.muted = true; // Browsers require muted autoplay until a real viewer click.
 
 function message(text){status.textContent=text;status.hidden=false;}
-function displayVideo(){if(!manualStop)status.hidden=true;}
+function displayVideo(){if(!manualStop&&v.readyState>=2&&v.videoWidth>0){lastFrameAt=Date.now();retries=0;status.hidden=true;}}
 function playerStatus(kind){
  liveStatus.classList.toggle('paused',kind==='paused');
  liveStatus.classList.toggle('stopped',kind==='stopped');
  liveStatus.innerHTML='<span class="dot"></span>'+(kind==='paused'?'EN PAUSE':kind==='stopped'?'LECTURE ARRÊTÉE':'LIVE');
+ liveStatus.classList.toggle('playing',kind==='playing');
  playButton.disabled=kind==='playing';
  pauseButton.disabled=kind!=='playing';
 }
@@ -155,23 +153,36 @@ screen.addEventListener('click',toggleFullscreen);
 v.addEventListener('dblclick',toggleFullscreen);
 document.addEventListener('fullscreenchange',updateFullscreen);
 v.addEventListener('playing',displayVideo);
+v.addEventListener('timeupdate',displayVideo);
+v.addEventListener('waiting',()=>{if(!manualStop&&!userPaused)message('Chargement de la vidéo…')});
 v.addEventListener('loadeddata',displayVideo);
 v.addEventListener('error',()=>message('Lecture vidéo indisponible. Reconnexion…'));
 
 async function playlistReady(){
- try{const res=await fetch(src+'?t='+Date.now(),{cache:'no-store'});return res.ok;}
- catch(_){return false;}
+ try{
+  const res=await fetch(src+(src.includes('?')?'&':'?')+'t='+Date.now(),{cache:'no-store'});
+  if(!res.ok)return false;
+  const body=await res.text();
+  const parts=body.split(/\r?\n/).filter(x=>x.trim()&&!x.startsWith('#'));
+  if(!body.startsWith('#EXTM3U')||!parts.length)return false;
+  const segment=new URL(parts[parts.length-1],new URL(src,location.href));
+  if(segment.origin!==location.origin)return false;
+  const check=await fetch(segment.href,{cache:'no-store'});
+  return check.ok && (check.headers.get('content-type')||'').includes('video');
+ }catch(_){return false;}
 }
 function restart(){
- booted=false;
+ if(restarting)return;
+ restarting=true;booted=false;retries++;
+ if(retries>5){message('Flux vidéo indisponible. Vérifie OBS et le relais SWAPP.');setTimeout(()=>{retries=0;restarting=false;boot()},6000);return;}
  if(h){try{h.destroy();}catch(_){} h=null;}
  v.removeAttribute('src');v.load();
  if(!manualStop)message('Reconnexion au direct…');
- setTimeout(boot,1400);
+ setTimeout(()=>{restarting=false;boot()},Math.min(6000,1400+retries*650));
 }
 async function boot(){
  if(booted)return;
- if(!(await playlistReady())){message('En attente du flux OBS…');setTimeout(boot,1500);return;}
+ if(!(await playlistReady())){message('En attente des segments vidéo OBS…');setTimeout(boot,2500);return;}
  booted=true;
  if(v.canPlayType('application/vnd.apple.mpegurl')){
   v.src=src+'?t='+Date.now();
@@ -184,15 +195,16 @@ async function boot(){
   h.attachMedia(v);
   h.on(Hls.Events.MANIFEST_PARSED,()=>{if(!manualStop&&!userPaused)v.play().catch(()=>{})});
   h.on(Hls.Events.ERROR,(_event,data)=>{
-   if(data && data.fatal)restart();
+   if(data && data.fatal){message('Erreur HLS : '+String(data.details||data.type||'segment indisponible'));restart();}
   });
   return;
  }
  message('Ce navigateur ne prend pas en charge la lecture HLS.');
 }
-playerStatus('playing');
+playerStatus('stopped');
 syncAudio();
 boot();
+setInterval(()=>{if(booted&&!manualStop&&!userPaused&&Date.now()-lastFrameAt>16000)restart()},5000);
 // Distinguish a muted browser player from an OBS stream with no audio track.
 async function refreshAudioTrack(){
  if(!src.startsWith('/api/oryon/local-relay/'))return;
