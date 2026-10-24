@@ -58,24 +58,21 @@ function mockTunnelApp(){
  vm.runInNewContext(server+'\n;globalThis.testTunnel={startPublicTunnel,stopPublicTunnel,isLoopbackPublicUrl,normalizePublicBaseUrl,tunnelDiagnostics};',ctx,{timeout:5000});
  return {ctx,calls,cooldowns};
 }
-test('a Cloudflare 429 stops retries immediately and switches automatically to a verified free SSH tunnel',async()=>{
+test('Cloudflare 429 is rate-limited and manual SSH remains available, while auto never retries broken tunnels',async()=>{
  const {ctx,calls,cooldowns}=mockTunnelApp();
- const [a,b]=await Promise.all([ctx.testTunnel.startPublicTunnel('auto'),ctx.testTunnel.startPublicTunnel('auto')]);
- assert.equal(a.url,'https://stream-abc.lhr.life');
- assert.equal(a.provider,'localhost-run');
- assert.equal(b.url,a.url);
- assert.deepEqual(calls.map(c=>c.provider),['cloudflared','ssh']);
- const args=calls[1].args.join(' ');
- assert.match(args,/BatchMode=yes/);
- assert.match(args,/StrictHostKeyChecking=accept-new/);
- assert.match(args,/80:127\.0\.0\.1:8082/);
- assert.ok(cooldowns.size>0,'429 cooldown survives application restarts');
- assert.ok(ctx.testTunnel.tunnelDiagnostics().cloudflare_retry_after);
+ await assert.rejects(ctx.testTunnel.startPublicTunnel('cloudflare'),/429|Cloudflare/i);
+ assert.equal(calls.filter(x=>x.provider==='cloudflared').length,1);
+ assert.ok(cooldowns.size>0,'429 cooldown survives a process restart');
+ await assert.rejects(ctx.testTunnel.startPublicTunnel('cloudflare'),/pause active|429/i);
+ assert.equal(calls.filter(x=>x.provider==='cloudflared').length,1,'no Cloudflare retry during cooldown');
+ const ssh=await ctx.testTunnel.startPublicTunnel('localhost-run');
+ assert.equal(ssh.url,'https://stream-abc.lhr.life');
+ assert.equal(ssh.provider,'localhost-run');
+ assert.match(calls.at(-1).args.join(' '),/80:127\.0\.0\.1:8082/);
  await ctx.testTunnel.stopPublicTunnel();
- await ctx.testTunnel.startPublicTunnel('auto');
- assert.equal(calls.filter(c=>c.provider==='cloudflared').length,1,'no Cloudflare request during cooldown');
- assert.equal(calls.filter(c=>c.provider==='ssh').length,2);
- await ctx.testTunnel.stopPublicTunnel();
+ await assert.rejects(ctx.testTunnel.startPublicTunnel('auto'),/OBS ne fournit pas encore/);
+ assert.equal(calls.filter(x=>x.provider==='cloudflared').length,1,'auto must not fall back to Cloudflare');
+ assert.equal(calls.filter(x=>x.provider==='ssh').length,1,'auto must not fall back to SSH');
 });
 test('free localhost.run domains are permitted while actual localhost is rejected',()=>{
  const {ctx}=mockTunnelApp();
