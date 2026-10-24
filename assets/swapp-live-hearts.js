@@ -3,7 +3,7 @@
 (function(){
  'use strict';
  const CHANNEL='#channel .creatorRefine[data-channel-live="true"] .channelMainPlayer .premiumPlayer';
- const DISCOVER='#discover .premiumPlayer,#discover .hfLivePlayer,#discover .twitchPlayer';
+ const DISCOVER='#discover .premiumPlayer,#discover .player,#discover .oryonMainPlayer,#discover .hfLivePlayer,#discover .twitchPlayer';
  const liveSelectors=CHANNEL+','+DISCOVER;
  const observed=new Map();
  const reactions=[['fire','🔥','Flamme'],['wow','😮','Surprise'],['laugh','😂','Rire'],['here','👀','Je regarde']];
@@ -21,7 +21,13 @@
  function decorate(player){
   if(player.dataset.swappHeartUi==='1')return;
   // Wait for the original Pulse lifecycle to build its counter and buttons.
-  const dock=player.nextElementSibling;
+  // Other legacy widgets can be inserted between the video and the Pulse dock.
+  // Keep looking through nearby siblings rather than depending on adjacency.
+  let dock=player.nextElementSibling,checked=0;
+  while(dock&&checked++<5&&!dock.classList.contains('pulseDock')){
+   if(dock.matches('.premiumPlayer,.player,.oryonMainPlayer,.hfLivePlayer,.twitchPlayer'))break;
+   dock=dock.nextElementSibling;
+  }
   if(!dock?.classList.contains('pulseDock')||!player.querySelector('.pulseButton'))return;
   if(!player.querySelector('iframe,video'))return;
   const rail=create('div','swapp-heart-rail');
@@ -67,6 +73,7 @@
   rail.append(heart,count,more,picker);
   player.appendChild(rail);
   player.dataset.swappHeartUi='1';
+  dock.dataset.swappPulseHidden='1';
 
   function refresh(){
    const raw=Number(dock.querySelector('[data-pulse-count]')?.textContent||0);
