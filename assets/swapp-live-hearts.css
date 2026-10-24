@@ -91,3 +91,84 @@
 #channel .channelMainPlayer :is(.premiumPlayer,.oryonMainPlayer,.player)[data-swapp-heart-ui="1"] .pulseLayer{
  z-index:18!important;pointer-events:none!important;
 }
+
+
+/* Channel overlay Pulse 2.0: button, intensity and hot state live IN video.
+   Specific selectors win over early injected Pulse/creator rules. */
+#channel .creatorRefine[data-channel-live="true"] .channelMainPlayer
+ :is(.premiumPlayer,.oryonMainPlayer,.player)[data-swapp-heart-ui="1"]{
+ position:relative!important;overflow:hidden!important;
+}
+#channel .creatorRefine[data-channel-live="true"] .channelMainPlayer
+ :is(.premiumPlayer,.oryonMainPlayer,.player)[data-swapp-heart-ui="1"] > .swapp-heart-rail{
+ position:absolute!important;
+ z-index:35!important;right:12px!important;bottom:58px!important;
+ width:72px;max-width:calc(100% - 20px);height:auto!important;
+ padding:8px 6px 6px!important;display:flex!important;flex-direction:column!important;
+ align-items:center!important;gap:5px!important;box-sizing:border-box!important;
+ background:rgba(7,10,17,.56)!important;
+ border:1px solid rgba(255,255,255,.16)!important;border-radius:16px!important;
+ backdrop-filter:blur(16px);
+ box-shadow:0 7px 22px rgba(0,0,0,.35)!important;
+ pointer-events:auto!important;filter:none!important;color:white!important;
+}
+#channel .swapp-heart-rail .swapp-heart-tap{
+ display:grid!important;place-items:center!important;
+ width:44px!important;height:44px!important;min-width:44px!important;min-height:44px!important;
+ padding:8px!important;border-radius:50%!important;color:#ff4973!important;
+ background:rgba(255,255,255,.09)!important;
+ border:1px solid rgba(255,255,255,.16)!important;
+}
+#channel .swapp-heart-rail .swapp-heart-tap svg{width:27px!important;height:27px!important}
+#channel .swapp-heart-rail .swapp-heart-count{
+ color:#fff!important;font:750 12px/1.15 Inter,system-ui,sans-serif!important;
+ min-height:13px;white-space:nowrap
+}
+#channel .swapp-heart-rail .swapp-heart-meter{
+ display:block!important;width:56px!important;height:5px!important;
+ min-width:0!important;max-width:100%!important;
+ background:rgba(255,255,255,.18)!important;border-radius:999px!important;
+ overflow:hidden!important;flex:none!important
+}
+#channel .swapp-heart-rail .swapp-heart-meter-fill{
+ display:block;height:100%;width:var(--swapp-pulse-pct,4%);
+ border-radius:inherit;background:linear-gradient(90deg,#ff477b,#b758ff)!important;
+ transition:width .24s ease;
+}
+#channel .swapp-heart-rail .swapp-heart-hot{
+ position:absolute;right:80px;bottom:43px;white-space:nowrap;
+ background:rgba(28,12,23,.87);border:1px solid rgba(255,92,148,.35);
+ border-radius:8px;padding:5px 8px;color:#ffc9df;
+ font:700 11px/1.2 Inter,system-ui,sans-serif;
+}
+#channel .swapp-heart-rail .swapp-heart-hot[hidden]{display:none!important}
+#channel .swapp-heart-rail .swapp-heart-more{
+ display:grid!important;place-items:center!important;
+ width:24px!important;min-height:24px!important;
+ padding:0!important;background:rgba(255,255,255,.07)!important;
+ border:0!important;border-radius:50%!important;color:#fff!important;
+ font-size:18px!important
+}
+#channel .swapp-heart-rail .swapp-heart-picker{right:71px!important;bottom:11px!important}
+#channel .creatorRefine[data-channel-live="true"] .pulseDock[data-swapp-pulse-hidden="1"]{
+ display:none!important
+}
+#channel .creatorRefine[data-channel-live="true"]
+ :is(.premiumPlayer,.oryonMainPlayer,.player)[data-swapp-heart-ui="1"] > .pulseButton{
+ display:none!important
+}
+@media(max-width:680px){
+ #channel .creatorRefine[data-channel-live="true"] .channelMainPlayer
+  :is(.premiumPlayer,.oryonMainPlayer,.player)[data-swapp-heart-ui="1"] > .swapp-heart-rail{
+  right:6px!important;bottom:49px!important;width:58px;padding:5px!important;gap:3px!important;
+  border-radius:12px!important
+ }
+ #channel .swapp-heart-rail .swapp-heart-tap{
+  width:36px!important;min-width:36px!important;height:36px!important;min-height:36px!important
+ }
+ #channel .swapp-heart-rail .swapp-heart-meter{width:44px!important}
+ #channel .swapp-heart-rail .swapp-heart-picker{right:59px!important}
+}
+@media(prefers-reduced-motion:reduce){
+ #channel .swapp-heart-rail .swapp-heart-meter-fill{transition:none}
+}
