@@ -11,9 +11,9 @@ function attachSwappDirectRelay(app, opts={}){
  if(typeof lookupOwner!=='function')throw Error('Direct HLS relay owner resolver required');
  const rooms=new Map();
  const MAX_ROOMS=Math.max(1,Math.min(2,Number(process.env.SWAPP_DIRECT_RELAY_MAX_ROOMS||2)));
- const MAX_ROOM_BYTES=Math.min(20*1024*1024,Math.max(4*1024*1024,Number(process.env.SWAPP_DIRECT_RELAY_ROOM_BYTES||12*1024*1024)));
- const MAX_UPLOAD_BYTES=Math.min(4*1024*1024,Math.max(512*1024,Number(process.env.SWAPP_DIRECT_RELAY_UPLOAD_BYTES||3*1024*1024)));
- const MAX_MINUTE_BYTES=Math.max(4*1024*1024,Math.min(50*1024*1024,Number(process.env.SWAPP_DIRECT_RELAY_MINUTE_BYTES||25*1024*1024)));
+ const MAX_ROOM_BYTES=Math.min(32*1024*1024,Math.max(8*1024*1024,Number(process.env.SWAPP_DIRECT_RELAY_ROOM_BYTES||24*1024*1024)));
+ const MAX_UPLOAD_BYTES=Math.min(10*1024*1024,Math.max(512*1024,Number(process.env.SWAPP_DIRECT_RELAY_UPLOAD_BYTES||8*1024*1024)));
+ const MAX_MINUTE_BYTES=Math.max(4*1024*1024,Math.min(60*1024*1024,Number(process.env.SWAPP_DIRECT_RELAY_MINUTE_BYTES||36*1024*1024)));
  const TTL_MS=55000;
  const maxPlaylistBytes=65536;
  const notCached=res=>{
@@ -46,7 +46,7 @@ function attachSwappDirectRelay(app, opts={}){
  }
  app.get('/api/oryon/local-relay/capabilities',(_req,res)=>{
   notCached(res);
-  res.json({success:true,transport:'swapp-direct-hls',version:1,max_rooms:MAX_ROOMS,max_room_bytes:MAX_ROOM_BYTES,
+  res.json({success:true,transport:'swapp-direct-hls',version:2,max_rooms:MAX_ROOMS,max_room_bytes:MAX_ROOM_BYTES,max_segment_bytes:MAX_UPLOAD_BYTES,max_minute_bytes:MAX_MINUTE_BYTES,
    recommended_video_kbps:1500,recommended_audio_kbps:96,warning:'Usage limité aux tests et petites audiences sur hébergement SWAPP existant.'});
  });
  app.post('/api/oryon/local-relay/upload',
@@ -61,8 +61,10 @@ function attachSwappDirectRelay(app, opts={}){
    if(!login)return res.status(403).json({success:false,error:'Compte SWAPP non autorisé.'});
    const name=cleanName(req.get('x-swapp-media-name'));
    const body=req.body;
-   if(!name||!Buffer.isBuffer(body)||!body.length||body.length>MAX_UPLOAD_BYTES)
-    return res.status(400).json({success:false,error:'Fragment HLS invalide ou trop volumineux.'});
+   if(!name||!Buffer.isBuffer(body)||!body.length)
+    return res.status(400).json({success:false,error:'Fragment HLS invalide.'});
+   if(body.length>MAX_UPLOAD_BYTES)
+    return res.status(413).json({success:false,error:'Segment HLS dépassant '+Math.round(MAX_UPLOAD_BYTES/1048576)+' Mo : vérifie la conversion 720p automatique dans SWAPP Local.'});
    const now=Date.now();
    reclaim();
    let room=rooms.get(login);
