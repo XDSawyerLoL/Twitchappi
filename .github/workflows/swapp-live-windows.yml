@@ -53,8 +53,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $tag = "swapp-live-windows-v1.0.1"
+          $tag = "swapp-live-windows-v1.0.2"
           $files = @(Get-ChildItem "local-agent/dist" -File -Filter "*.exe" | ForEach-Object { $_.FullName })
           if ($files.Count -lt 2) { throw "SWAPP Live installer and portable executable were not both produced" }
-          $notes = "SWAPP Live Windows v1.0.1: Cloudflare Tunnel included and SHA256-verified (no runtime download); public media origin isolated from private local APIs; HLS player uses relative URLs for external phones and browsers and bundled hls.js. OBS/FFmpeg local remains free. No CMD or extra subscription."
-          gh release create $tag $files --repo "$env:GITHUB_REPOSITORY" --target "$env:GITHUB_SHA" --title "SWAPP Live Windows v1.0.1" --notes $notes
+          $notes = "SWAPP Live Windows v1.0.2: OBS stream public player now includes volume slider, mute toggle, fullscreen, and adjustable Fit/Fill controls with no distortion. Autoplay stays muted until explicit user action. Cloudflared and HLS.js bundled, private API isolated. No new paid service or console."
+          gh release create $tag $files --repo "$env:GITHUB_REPOSITORY" --target "$env:GITHUB_SHA" --title "SWAPP Live Windows v1.0.2" --notes $notes

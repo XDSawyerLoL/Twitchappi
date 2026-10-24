@@ -586,7 +586,11 @@ function servePlayer(req, res) {
   // Relative path is essential: remote viewers must request HLS via trycloudflare.com,
   // not 127.0.0.1 on their own computers.
   const hls = `/hls/${encodeURIComponent(key)}/index.m3u8`;
-  const html = "<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>Swapp Live Player</title><style>html,body{margin:0;width:100%;height:100%;background:#030508;color:white;font-family:system-ui;overflow:hidden}video{width:100%;height:100%;object-fit:contain;background:#030508;pointer-events:none}.state{position:absolute;inset:0;display:grid;place-items:center;text-align:center;color:#9ba7bb;padding:20px}</style></head><body><video id=\"v\" autoplay muted playsinline></video><div id=\"s\" class=\"state\">Connexion au flux…</div><script src=\"/assets/hls.min.js\"></script><script>const src=" + JSON.stringify(hls) + ",v=document.getElementById(\"v\"),s=document.getElementById(\"s\");let h=null,booted=false;v.controls=false;function ok(){s.style.display=\"none\"}function msg(t){s.style.display=\"grid\";s.textContent=t}async function ready(){try{const r=await fetch(src+\"?t=\"+Date.now(),{cache:\"no-store\"});return r.ok}catch(e){return false}}async function boot(){if(booted)return;if(!await ready()){msg(\"Connexion au flux…\");setTimeout(boot,1500);return}booted=true;if(v.canPlayType(\"application/vnd.apple.mpegurl\")){v.src=src+\"?t=\"+Date.now();v.addEventListener(\"loadedmetadata\",ok,{once:true});v.play().catch(()=>{});return}if(window.Hls&&Hls.isSupported()){h=new Hls({lowLatencyMode:true,liveSyncDurationCount:2});h.loadSource(src+\"?t=\"+Date.now());h.attachMedia(v);h.on(Hls.Events.MANIFEST_PARSED,()=>{ok();v.play().catch(()=>{})});h.on(Hls.Events.ERROR,(_e,d)=>{if(d&&d.fatal){booted=false;try{h.destroy()}catch(e){};h=null;msg(\"Reconnexion…\");setTimeout(boot,1500)}});return}msg(\"Navigateur non compatible HLS.\")}boot();setInterval(async()=>{if(!booted)boot()},3000);</script></body></html>";
+  // Serve the same responsive player to the local preview and external iframe.
+  // Keep HLS URLs relative so Cloudflare routes requests to this streamer's PC.
+  // The token is a literal, never executable HTML: key was sanitized by safeKey.
+  const html = fs.readFileSync(path.join(__dirname,'player.html'),'utf8')
+    .replace('__SWAPP_HLS_SRC__',JSON.stringify(hls));
   res.type('html').send(html);
 }
 app.get('/player/:key',servePlayer);
