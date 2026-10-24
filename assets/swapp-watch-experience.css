@@ -1,0 +1,116 @@
+/* SWAPP live 2026: video-first hierarchy without touching iframe/HLS. */
+#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"]{
+ max-width:1740px!important;
+ padding-top:clamp(8px,1.35vw,19px)!important;
+}
+#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelTopHero{
+ min-height:136px!important;border-radius:11px!important;
+}
+#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelHeroContent{
+ min-height:136px!important;
+}
+#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelLiveLayout{
+ padding-top:clamp(8px,1vw,13px)!important;
+ grid-template-columns:minmax(0,1fr) minmax(290px,340px)!important;
+ gap:clamp(9px,1vw,14px)!important;
+}
+#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelMainPlayer{
+ display:flex!important;flex-direction:column;min-width:0!important;
+}
+#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelMainPlayer > :is(.premiumPlayer,.oryonMainPlayer,.player){
+ order:0;
+}
+#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .swapp-watch-tools{
+ order:1;display:flex;align-items:center;gap:9px;
+ margin:0!important;padding:8px 1px!important;
+ background:transparent!important;border:0!important;box-shadow:none!important;
+}
+#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .swapp-watch-tools button{
+ display:inline-flex;align-items:center;justify-content:center;gap:7px;
+ min-height:34px;padding:6px 10px;border:1px solid transparent;
+ border-radius:7px;background:transparent;color:#b9bfcb;
+ font:550 12px/1.2 Inter,system-ui,sans-serif;cursor:pointer;
+ box-shadow:none;transition:background .16s ease,color .16s ease;
+}
+#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .swapp-watch-tools button:hover,
+#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .swapp-watch-tools button[aria-pressed="true"]{
+ background:rgba(255,255,255,.08);color:#fff;border-color:rgba(255,255,255,.09);
+}
+#channel .swapp-watch-tools button svg{
+ width:15px;height:15px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;
+ stroke-linecap:round;stroke-linejoin:round;
+}
+#channel .swapp-watch-tools button:focus-visible{outline:2px solid var(--channel-accent,#fff)!important;outline-offset:2px}
+#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelMainPlayer > :not(.swapp-watch-tools):not(.premiumPlayer):not(.oryonMainPlayer):not(.player){
+ order:2;
+}
+#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"][data-watch-chat="hidden"] .channelLiveLayout{
+ grid-template-columns:minmax(0,1fr)!important;
+}
+#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"][data-watch-chat="hidden"] .channelLiveSidebar{
+ display:none!important;
+}
+#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"][data-watch-theatre="on"]{
+ width:100%!important;max-width:none!important;padding:8px clamp(8px,1.2vw,23px) 48px!important;
+}
+#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"][data-watch-theatre="on"] .channelTopHero,
+#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"][data-watch-theatre="on"] .channelSubNav{
+ display:none!important;
+}
+#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"][data-watch-theatre="on"] .channelLiveLayout{
+ padding:0!important;margin:0!important;
+ grid-template-columns:minmax(0,1fr) minmax(270px,320px)!important;
+}
+#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelMainPlayer :is(iframe,video){
+ object-fit:contain!important;
+}
+#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .chatAssist{
+ flex-wrap:wrap;
+}
+@media(max-width:1080px){
+ #channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelLiveLayout,
+ #channel .creatorRefine.swapp-channel-polish[data-channel-live="true"][data-watch-theatre="on"] .channelLiveLayout{
+  grid-template-columns:minmax(0,1fr)!important;
+ }
+ #channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelLiveSidebar .chatPanel{
+  position:relative!important;top:auto!important;min-height:285px!important;max-height:450px!important;
+ }
+}
+@media(max-width:680px){
+ #channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelTopHero,
+ #channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelHeroContent{
+  min-height:98px!important;
+ }
+ #channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .swapp-watch-tools{padding:8px 0!important;gap:2px}
+ #channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .swapp-watch-tools button{
+  min-height:40px;font-size:11px;padding:7px 9px;
+ }
+ #channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelLiveSidebar .chatPanel{
+  min-height:290px!important;
+ }
+}
+@media(prefers-reduced-motion:reduce){
+ #channel .swapp-watch-tools button{transition:none!important}
+}
+/* A direct creator URL must never strand the viewer behind a perpetual boot overlay. */
+#home .swappBoot[data-watch-recovery="1"]{
+ min-height:calc(100svh - 68px);padding:18px;
+}
+#home .swapp-watch-boot-recovery{
+ width:min(960px,100%);display:flex;flex-direction:column;align-items:stretch;
+ gap:12px;text-align:left;font-weight:450;letter-spacing:0;color:#e8ecf4;
+}
+#home .swapp-watch-boot-recovery strong{font:750 clamp(20px,3vw,30px)/1.2 Inter,system-ui,sans-serif}
+#home .swapp-watch-boot-recovery p{font:450 13px/1.45 Inter,system-ui,sans-serif;color:#a8b4c7;margin:0}
+#home .swapp-watch-boot-recovery iframe{
+ width:100%;aspect-ratio:16/9;min-height:190px;border:1px solid rgba(255,255,255,.11);
+ border-radius:10px;background:#000;
+}
+#home .swapp-watch-boot-actions{display:flex;gap:10px;flex-wrap:wrap}
+#home .swapp-watch-boot-actions :is(button,a){
+ display:inline-flex;align-items:center;min-height:40px;padding:8px 13px;
+ background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.12);
+ color:#fff;font:650 13px/1.2 Inter,system-ui,sans-serif;border-radius:7px;
+ text-decoration:none;cursor:pointer;
+}
+#home .swapp-watch-boot-actions :is(button,a):hover{background:rgba(255,255,255,.15)}
