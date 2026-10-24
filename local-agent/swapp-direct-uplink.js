@@ -59,14 +59,14 @@ function startSwappHlsUplink({key,login,siteUrl,token,mediaDir,ffmpegPath='',pos
   clearTimeout(readyDeadline);
   if(!readySettled){readySettled=true;readyReject(new Error('Relais direct arrêté'))}
  }
- async function upload(name,bytes){
+ async function upload(name,bytes,extras={}){
   if(!running)return;
   const ctl=new AbortController();activeRequest=ctl;
   const deadline=setTimeout(()=>ctl.abort(),22000);
   try{
    const r=await fetchFn(new URL('/api/oryon/local-relay/upload',base),{
     method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/octet-stream',
-     'X-Swapp-Media-Name':name},
+     'X-Swapp-Media-Name':name,...extras},
     body:bytes,signal:ctl.signal
    });
    if(!r.ok){
@@ -85,7 +85,7 @@ function startSwappHlsUplink({key,login,siteUrl,token,mediaDir,ffmpegPath='',pos
    if(!running||!result)return;
    if(result.audioTrack==='present'||result.audioTrack==='missing')audioTrack=result.audioTrack;
    if(result.poster&&result.poster.length<600*1024){
-    await upload('poster.jpg',result.poster);
+    await upload('poster.jpg',result.poster,{'X-Swapp-Audio-Track':audioTrack});
     lastPosterAt=Date.now();
     onLog('poster','Vignette du direct disponible pour les partages Discord',{bytes:result.poster.length,audioTrack});
    }
