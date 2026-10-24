@@ -157,7 +157,7 @@ async function setView(id){
  if(id==='admin'&&!isAdmin())id='home';
  if(['manager','dashboard','studio'].includes(id)&&!state.session.local)id='settings';
  if(id==='channel'&&!state.session.local&&!state.watchRoom)id='settings';
- if(id!=='channel'){state.watchRoom=null;window.SwappBrowserRelay?.stopViewer?.();state.remotePlaying=false;}
+ if(id!=='channel'){state.watchRoom=null;globalThis.SwappBrowserRelay?.stopViewer?.();state.remotePlaying=false;}
  state.view=id;
  $$(".view").forEach(v=>v.classList.toggle("active",v.id===id));
  renderNav(); renderUserMenu();
@@ -725,10 +725,10 @@ function swappShowViewerTransportWarning(){
 async function swappTryHttpPlayback(){
  const room=state.watchRoom||state.room,video=$('#remoteVideo');
  if(!room || !video || state.stream || state.view!=='channel' || state.remotePlaying)return false;
- if(window.SwappBrowserRelay?.isViewing?.(room))return true;
- if(typeof window.SwappBrowserRelay?.startViewer!=='function')return false;
+ if(globalThis.SwappBrowserRelay?.isViewing?.(room))return true;
+ if(typeof globalThis.SwappBrowserRelay?.startViewer!=='function')return false;
  const allowed=()=>state.view==='channel' && !state.stream && (state.watchRoom||state.room)===room;
- const ok=await window.SwappBrowserRelay.startViewer(room,video,{
+ const ok=await globalThis.SwappBrowserRelay.startViewer(room,video,{
   isActive:allowed,
   onPlayback:()=>{
    if(!allowed())return;
@@ -782,7 +782,7 @@ function setupSocket(){
   const status=$('#streamViewerReadiness');
   if(status)status.textContent='Diffusion publiée. Lecture chez les spectateurs non encore confirmée.';
   toast('Direct publié sur SWAPP');
-  window.SwappBrowserRelay?.startPublisher?.(d.room,state.stream);
+  globalThis.SwappBrowserRelay?.startPublisher?.(d.room,state.stream);
   state.socket.emit('native:chat:history',{room:d.room});
  });
  state.socket.on('native:stats',d=>{
@@ -871,7 +871,7 @@ function requestOffer(){
   state.socket.emit('native:request-offer',{room:state.watchRoom||state.room});
 }
 function retryWatch(){
- if(state.stream || window.SwappBrowserRelay?.isViewing?.(state.watchRoom||state.room) || (!state.watchRoom && !state.room) || state.view!=='channel')return;
+ if(state.stream || globalThis.SwappBrowserRelay?.isViewing?.(state.watchRoom||state.room) || (!state.watchRoom && !state.room) || state.view!=='channel')return;
  if(state.remoteRetryTimer)return;
  state.remoteRetryCount=(state.remoteRetryCount||0)+1;
  if(state.remoteRetryCount>3){swappTryHttpPlayback().then(ok=>{if(!ok)swappShowViewerTransportWarning()});return;}
@@ -901,7 +901,7 @@ async function peer(id){
   }
  };
  pc.ontrack=e=>{
-  if(window.SwappBrowserRelay?.isViewing?.(state.watchRoom||state.room))return;
+  if(globalThis.SwappBrowserRelay?.isViewing?.(state.watchRoom||state.room))return;
   const v=$('#remoteVideo');if(!v || state.peers?.[id]!==pc)return;
   if(e.streams?.[0])v.srcObject=e.streams[0];
   else{let media=v.srcObject;if(!media){media=new MediaStream();v.srcObject=media;}media.addTrack(e.track);}
@@ -935,7 +935,7 @@ async function createScreenCameraStream(video){
 async function startLive(){
  if(!state.session.local)return setView('settings');
  if(state.socket && state.socketLogin !== state.session.local.login){ try{state.socket.disconnect()}catch{} state.socket=null; state.socketLogin=null; }
- state.watchRoom=null;window.SwappBrowserRelay?.stopViewer?.(); setupSocket();
+ state.watchRoom=null;globalThis.SwappBrowserRelay?.stopViewer?.(); setupSocket();
  const q=$('#liveQuality')?.value||'1080'; const source=$('#liveSource')?.value||'screen';
  const video=q==='720'?{width:{ideal:1280},height:{ideal:720},frameRate:{ideal:60,max:60}}:{width:{ideal:1920},height:{ideal:1080},frameRate:{ideal:60,max:60}};
  try{state.stream= source==='camera' ? await navigator.mediaDevices.getUserMedia({video,audio:true}) : (source==='screen-camera' ? await createScreenCameraStream(video) : await navigator.mediaDevices.getDisplayMedia({video,audio:true}))}
@@ -948,7 +948,7 @@ async function startLive(){
  clearTimeout(state.nativeLiveAckTimer);
  state.nativeLiveAckTimer=setTimeout(()=>{if(state.stream && !state.nativeLiveConfirmed){stopLive();toast('Impossible de confirmer la diffusion publique SWAPP.');}},20000);
 }
-function stopLive(stopTracks=true){window.SwappBrowserRelay?.stopPublisher?.();clearTimeout(state.nativeLiveAckTimer);state.nativeLiveAckTimer=null;state.nativeLiveConfirmed=false;state.nativeLivePending=false;state.nativeLiveInfo=null;if(stopTracks){ state.stream?._oryonSources?.forEach(src=>src.getTracks().forEach(t=>t.stop())); state.stream?.getTracks().forEach(t=>t.stop()); } state.stream=null; if(state.socket) state.socket.emit('native:leave'); Object.values(state.peers||{}).forEach(pc=>{try{pc.close()}catch{}}); state.peers={}; updateLiveUi(false); const v=$('#localVideo'); if(v) v.srcObject=null; $('#offlinePanel')&&( $('#offlinePanel').style.display='block'); (()=>{const e=$('#managerPreviewEmpty');if(e){e.hidden=false;e.removeAttribute('aria-hidden');e.classList.remove('hidden');e.style.setProperty('display','grid','important');}})();toast('Live arrêté')}
+function stopLive(stopTracks=true){globalThis.SwappBrowserRelay?.stopPublisher?.();clearTimeout(state.nativeLiveAckTimer);state.nativeLiveAckTimer=null;state.nativeLiveConfirmed=false;state.nativeLivePending=false;state.nativeLiveInfo=null;if(stopTracks){ state.stream?._oryonSources?.forEach(src=>src.getTracks().forEach(t=>t.stop())); state.stream?.getTracks().forEach(t=>t.stop()); } state.stream=null; if(state.socket) state.socket.emit('native:leave'); Object.values(state.peers||{}).forEach(pc=>{try{pc.close()}catch{}}); state.peers={}; updateLiveUi(false); const v=$('#localVideo'); if(v) v.srcObject=null; $('#offlinePanel')&&( $('#offlinePanel').style.display='block'); (()=>{const e=$('#managerPreviewEmpty');if(e){e.hidden=false;e.removeAttribute('aria-hidden');e.classList.remove('hidden');e.style.setProperty('display','grid','important');}})();toast('Live arrêté')}
 function openOryon(room){state.watchRoom=String(room||'').toLowerCase(); const item=(state.zap.items||[]).find(x=>(x.host_login||x.room)===state.watchRoom)||{platform:'oryon',host_login:state.watchRoom,host_name:state.watchRoom}; trackDiscovery(item); state.room=state.watchRoom; setMiniLive({type:'oryon',login:state.watchRoom,title:'Swapp · '+state.watchRoom}); setView('channel')}
 function sendChat(){if(!state.room)return toast('Aucun salon Swapp actif'); if(!state.socket)setupSocket(); if(!state.session.local)return toast('Connecte-toi à Swapp pour écrire dans le tchat natif.'); state.socket.emit('native:chat',{room:state.room,text:$('#chatInput').value,gif:state.selectedGif,emote:state.selectedEmote?{code:state.selectedEmote.code,image_url:state.selectedEmote.image_url}:null}); $('#chatInput').value=''; state.selectedGif=''; state.selectedEmote=null; $('#gifGrid')?.classList.add('hidden')}
 function msgHtml(m){return `<div class="msg"><b>${esc(m.user_display||m.user)}</b> <span class="small">${new Date(m.ts).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</span><div>${esc(m.text||'')}</div>${m.emote?`<img src="${esc(m.emote.image_url)}" title=":${esc(m.emote.code)}:">`:''}${m.gif?`<img src="${esc(m.gif)}">`:''}</div>`}
