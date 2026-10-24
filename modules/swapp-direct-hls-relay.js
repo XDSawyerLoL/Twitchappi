@@ -36,7 +36,10 @@ function attachSwappDirectRelay(app, opts={}){
  }
  function reclaim(){
   const now=Date.now();
-  for(const [login,r] of rooms)if(now-r.lastManifestAt>TTL_MS)rooms.delete(login);
+  for(const [login,r] of rooms){
+   if(now-r.lastManifestAt>TTL_MS){rooms.delete(login);continue}
+   for(const [id,seen] of (r.viewers||new Map()))if(now-seen>45000)r.viewers.delete(id);
+  }
  }
  const interval=setInterval(reclaim,12000);
  interval.unref?.();
@@ -108,7 +111,7 @@ function attachSwappDirectRelay(app, opts={}){
    let room=rooms.get(login);
    if(!room){
     if(rooms.size>=MAX_ROOMS)return res.status(429).json({success:false,error:'Capacité du relais SWAPP atteinte.'});
-    room={segments:new Map(),segmentTimeline:[],segmentDurations:new Map(),manifest:null,playlistNames:[],poster:null,posterAt:0,clip:null,clipAt:0,audioTrack:'unknown',bytes:0,lastManifestAt:now,minuteStarted:now,minuteBytes:0};
+    room={segments:new Map(),viewers:new Map(),segmentTimeline:[],segmentDurations:new Map(),manifest:null,playlistNames:[],poster:null,posterAt:0,clip:null,clipAt:0,audioTrack:'unknown',bytes:0,lastManifestAt:now,minuteStarted:now,minuteBytes:0};
     rooms.set(login,room);
    }
    if(now-room.minuteStarted>60000){room.minuteStarted=now;room.minuteBytes=0}
@@ -183,6 +186,48 @@ function attachSwappDirectRelay(app, opts={}){
    }
    room.minuteBytes+=body.length;
    res.json({success:true,room:login,received:name,segment_count:room.segments.size});
+  });
+ // Presence counts active playback sessions, not page visits or fabricated viewers.
+ // Only the player sends a heartbeat after video frames are decoded.
+ function activeSwappers(room){
+  if(!room)return 0;
+  if(!room.viewers)room.viewers=new Map();
+  const now=Date.now();
+  for(const [session,seen] of room.viewers)if(now-seen>45000)room.viewers.delete(session);
+  return room.viewers.size;
+ }
+ app.get('/api/oryon/local-relay/:login/audience',(req,res)=>{
+  notCached(res);
+  const login=cleanLogin(req.params.login),room=login&&liveRoom(login);
+  const live=!!room?.manifest&&room.playlistNames.some(n=>room.segments.has(n));
+  res.json({success:true,live,swappers:live?activeSwappers(room):0});
+ });
+ app.post('/api/oryon/local-relay/:login/audience/heartbeat',
+  express.json({limit:'1kb'}),(req,res)=>{
+   notCached(res);
+   // Do not accept cross-site form posts as fake audience.
+   const origin=String(req.get('origin')||'');
+   if(origin){let sameOrigin=false;try{sameOrigin=new URL(origin).host===req.get('host')}catch(_){}if(!sameOrigin)return res.sendStatus(403)}
+   const login=cleanLogin(req.params.login),session=String(req.body?.session||'');
+   if(!/^[a-f0-9]{32}$/.test(session))return res.status(400).json({success:false,error:'Session invalide.'});
+   const room=login&&liveRoom(login);
+   if(!room?.manifest||!room.playlistNames.some(n=>room.segments.has(n)))
+    return res.json({success:true,live:false,swappers:0});
+   activeSwappers(room);
+   if(!room.viewers.has(session)&&room.viewers.size>=2000)return res.sendStatus(429);
+   room.viewers.set(session,Date.now());
+   res.json({success:true,live:true,swappers:activeSwappers(room)});
+  });
+ app.post('/api/oryon/local-relay/:login/audience/leave',
+  express.json({limit:'1kb'}),(req,res)=>{
+   notCached(res);
+   const origin=String(req.get('origin')||'');
+   if(origin){let sameOrigin=false;try{sameOrigin=new URL(origin).host===req.get('host')}catch(_){}if(!sameOrigin)return res.sendStatus(403)}
+   const login=cleanLogin(req.params.login),session=String(req.body?.session||'');
+   if(!/^[a-f0-9]{32}$/.test(session))return res.sendStatus(400);
+   const room=login&&liveRoom(login);
+   room?.viewers?.delete(session);
+   res.json({success:true,swappers:activeSwappers(room)});
   });
  app.get('/api/oryon/local-relay/:login/state',(req,res)=>{
   notCached(res);
