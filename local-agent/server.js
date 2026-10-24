@@ -120,7 +120,9 @@ function streamStatus(key = currentConfiguredKey()) {
     started_at: active[k]?.startedAt || null,
     last_seen: active[k]?.lastSeen || null,
     public_player_url: publicPlayerUrl(k),
-    public_status_url: publicStatusUrl()
+    public_status_url: publicStatusUrl(),
+    audio_track: directRelayUplink?.getStatus?.().audioTrack||'unknown',
+    discord_poster_at: directRelayUplink?.getStatus?.().lastPosterAt||null
   };
 }
 
@@ -401,7 +403,7 @@ async function trySwappDirectRelay(key){
  if(directRelayUplink){try{directRelayUplink.stop()}catch(_){} directRelayUplink=null}
  const uploader=startSwappHlsUplink({key,login,siteUrl,token:cfg.token,
   maxSegmentBytes:Math.min(8*1024*1024,Number(capabilities.max_segment_bytes)||8*1024*1024),
-  mediaDir:hlsDir(key),fetchFn:fetch,
+  mediaDir:hlsDir(key),ffmpegPath:FFMPEG_PATH,fetchFn:fetch,
   isLive:()=>!!streamStatus(key).active,
   onLog:log});
  directRelayUplink=uploader;
@@ -697,9 +699,11 @@ async function refreshDiag(){
   const ok=!!(st.active&&st.ffmpeg_running&&st.hls_exists);
   const publicLive=!!(ok&&st.public_player_url);
   const status=document.getElementById('simpleStatus');
-  status.textContent=publicLive?'● En direct sur SWAPP':ok?'Flux OBS prêt · publication possible':st.active?'Flux OBS détecté · préparation vidéo…':'OBS hors ligne · lance ta diffusion.';
+  status.textContent=publicLive
+   ?('● En direct sur SWAPP'+(st.audio_track==='missing'?' · Aucune piste audio OBS détectée : vérifie le mixeur et la piste de diffusion.':st.audio_track==='present'?' · Piste audio détectée (active le haut-parleur du lecteur).':''))
+   :ok?'Flux OBS prêt · publication possible':st.active?'Flux OBS détecté · préparation vidéo…':'OBS hors ligne · lance ta diffusion.';
   const diag=document.getElementById('diag');
-  if(diag)diag.textContent='OBS : '+(st.active?'connecté':'déconnecté')+'\nConversion vidéo : '+(st.ffmpeg_running?'active':'arrêtée')+'\nPlaylist HLS : '+(st.hls_exists?'prête':'absente')+'\nLecteur public : '+(st.public_player_url||'non publié');
+  if(diag)diag.textContent='OBS : '+(st.active?'connecté':'déconnecté')+'\nConversion vidéo : '+(st.ffmpeg_running?'active':'arrêtée')+'\nPlaylist HLS : '+(st.hls_exists?'prête':'absente')+'\nAudio OBS : '+(st.audio_track==='present'?'piste détectée':st.audio_track==='missing'?'aucune piste audio dans le segment':'analyse en attente')+'\nVignette Discord : '+(st.discord_poster_at?'disponible':'en attente')+'\nLecteur public : '+(st.public_player_url||'non publié');
   if(publicLive&&!window.__liveResultDisplayed){
    window.__liveResultDisplayed=true;
    showLiveResult('Direct accessible sur ta chaîne SWAPP.');
