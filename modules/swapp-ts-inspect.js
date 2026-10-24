@@ -44,8 +44,37 @@ function inspectTsMedia(data){
    }
   }
  }
+ const nals={sps:0,pps:0,idr:0,non_idr:0,aud:0};
+ if(videoPid>=0){
+  let zeros=0,expectNal=false,expectProfile=false;
+  for(let start=0;start+188<=data.length;start+=188){
+   if(data[start]!==0x47)continue;
+   const pid=((data[start+1]&0x1f)<<8)|data[start+2];
+   if(pid!==videoPid)continue;
+   const afc=(data[start+3]>>4)&3;if(!(afc&1))continue;
+   let offset=start+4;
+   if(afc&2)offset+=1+data[offset];
+   if(offset>=start+188)continue;
+   for(let i=offset;i<start+188;i++){
+    const b=data[i];
+    if(expectProfile){spsProfile=b;expectProfile=false}
+    if(expectNal){
+     const nal=b&0x1f;
+     if(nal===7){nals.sps++;expectProfile=true}
+     if(nal===8)nals.pps++;
+     if(nal===5)nals.idr++;
+     if(nal===1)nals.non_idr++;
+     if(nal===9)nals.aud++;
+     expectNal=false;
+     zeros=b===0?1:0;continue;
+    }
+    if(zeros>=2&&b===1){expectNal=true;zeros=0;continue}
+    zeros=b===0?Math.min(zeros+1,4):0;
+   }
+  }
+ }
  return {valid:data[0]===0x47,pat:seenPat,pmt:seenPmt,
-  tracks:tracks.slice(0,12),h264_sps_profile_idc:spsProfile,
+  tracks:tracks.slice(0,12),h264_sps_profile_idc:spsProfile,h264_nal_units:nals,
   video_browser_compatible:tracks.some(t=>t.type===0x1b),
   audio_browser_compatible:tracks.some(t=>t.type===0x0f||t.type===0x11)};
 }
