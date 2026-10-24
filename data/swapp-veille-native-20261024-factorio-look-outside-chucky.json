@@ -1,0 +1,185 @@
+{
+  "kind": "swapp-editorial-release",
+  "release": "2026-10-24-factorio-look-outside-chucky",
+  "description": "Factorio 2.1 stable, date console de Look Outside et fin annoncée des ventes de Chucky. Sources primaires et vidéos officielles avec miniatures authentifiées.",
+  "articles": [
+    {
+      "author": "Rédaction SWAPP",
+      "category": "Actualités JV",
+      "contentType": "article",
+      "status": "published",
+      "revision": 1,
+      "image": null,
+      "thumbnail": null,
+      "editorialVerdict": null,
+      "legacyUrl": null,
+      "originalPublishedAt": null,
+      "publishedAt": "2026-10-24T03:53:43.000Z",
+      "slug": "factorio-2-1-stable-logistique-circuits-sauvegardes",
+      "title": "Factorio 2.1 est stable : l’usine gagne en souplesse, les sauvegardes demandent de l’attention",
+      "summary": "Wube ouvre la version 2.1 à la branche stable le 23 octobre. Logistique spatiale, circuits et confort évoluent, avec des précautions pour les usines existantes.",
+      "game": "Factorio",
+      "games": [
+        "Factorio"
+      ],
+      "tags": [
+        "Factorio",
+        "Wube Software",
+        "PC",
+        "Space Age",
+        "gestion",
+        "mise à jour"
+      ],
+      "seo": {
+        "title": "Factorio 2.1 stable : nouveautés et sauvegardes à protéger",
+        "description": "Factorio 2.1 passe en stable. Fusées mixtes, transferts orbitaux, circuits et compatibilité : les changements utiles avant de reprendre son usine."
+      },
+      "trailerUrl": "https://www.youtube.com/watch?v=oF1zCD7NwNY",
+      "body": "Factorio 2.1 passe en version stable le 23 octobre 2026. Wube Software l’annonce dans son journal de développement Friday Facts #449, après plusieurs mois sur la branche expérimentale. Pour les joueurs restés en 2.0, cette étape rend disponible un ensemble important d’améliorations des installations et des outils de construction.\n\n## Les flux spatiaux deviennent plus faciles à organiser\n\nDans Space Age, les fusées peuvent emporter plusieurs types d’objets au cours d’un même lancement. Le système de livraison rassemble les demandes au lieu d’imposer de remplir chaque cargaison avec une seule ressource. Le studio avait détaillé cette révision dans Friday Facts #441.\n\nLes plateformes peuvent aussi échanger entre elles lorsqu’elles sont en orbite autour d’une planète. Le joueur choisit si une demande doit être satisfaite depuis la surface, depuis d’autres plateformes ou depuis ces deux sources. Il peut ainsi organiser des réserves orbitales et ravitailler une construction sans tout faire remonter du sol.\n\nLe champ d’origine peut rester vide pour demander un approvisionnement depuis toutes les destinations. Enfin, les radars disposent d’un canal partagé pour transporter des signaux entre planètes et plateformes. Ces outils donnent davantage de possibilités pour coordonner les besoins d’une flotte.\n\n## Circuits et déchargement : des changements très concrets\n\nFriday Facts #443 explique une autre évolution : les signaux lus et écrits par une machine peuvent utiliser des couleurs de fils distinctes. Cette séparation rend explicite un comportement auparavant pris en charge automatiquement par le jeu.\n\nLes laboratoires peuvent choisir une recherche en fonction de conditions du réseau logique. Lorsqu’un laboratoire pilote ce choix, l’interface indique pourquoi la file de recherche manuelle est bloquée et permet de retrouver l’installation concernée.\n\nUne baie de déchargement autorise également les bras à prélever les cargaisons reçues pour alimenter trains, coffres ou tapis. Elle se construit dans une zone limitée autour de la plateforme d’atterrissage, sur une planète ; elle ne s’installe pas sur les plateformes spatiales. La restriction conserve l’intérêt de leurs réseaux de tapis.\n\n## Avant d’ouvrir une ancienne usine\n\nWube précise que les sauvegardes 2.0 restent chargeables. Certaines constructions, notamment les circuits, peuvent toutefois demander des adaptations. Les sauvegardes et plans convertis ne peuvent pas revenir en 2.0 : conserver une copie avant la migration est donc la recommandation officielle.\n\nLes mods méritent aussi un contrôle. Le studio indique que beaucoup de projets populaires ont été adaptés pendant les essais, sans garantir la compatibilité de chacun.\n\nLes fonctions orbitales concernent l’extension Space Age. Aucun déploiement Switch n’est confirmé par ce billet.\n\n## Le regard SWAPP : une occasion de revoir ses habitudes\n\nL’intérêt de cette version se trouve dans les problèmes que les joueurs résolvent chaque soir : alimenter une installation, comprendre un signal ou déplacer une ressource. Une modification modeste en apparence peut changer toute la manière de concevoir un réseau.\n\nPour une partie à plusieurs, le bon point de départ consiste à mettre en commun les versions et les mods utilisés avant de rouvrir une usine partagée. Expliquer pourquoi un plan a changé sera également plus utile que diffuser un modèle sans son contexte. La mise à jour offre de nouvelles solutions, mais ne garantit pas que chaque ancienne installation fonctionne sans intervention.\n\n## La vidéo et le jeu de base\n\nLa vidéo intégrée est la nouvelle bande-annonce officielle « Factorio - Trailer 2026 », publiée par Wube le 23 octobre. Le studio précise qu’elle utilise une véritable partie, prolongée et mise en scène avec l’éditeur et les outils de scripts du jeu.\n\nLe lien commercial ci-dessous correspond à Factorio sur Steam, pour PC et Mac. Il ne comprend pas l’extension Space Age. Aucun prix ni réduction n’est garanti dans cet article.\n\nCrédit vidéo et miniature : Wube Software / chaîne officielle Factorio.",
+      "sources": [
+        {
+          "label": "Wube — Friday Facts #449, passage en version stable et précautions (23 octobre 2026)",
+          "url": "https://www.factorio.com/blog/post/fff-449"
+        },
+        {
+          "label": "Wube — Friday Facts #441, fonctionnement de la logistique spatiale",
+          "url": "https://www.factorio.com/blog/post/fff-441"
+        },
+        {
+          "label": "Wube — Friday Facts #443, circuits et déchargement",
+          "url": "https://www.factorio.com/blog/post/fff-443"
+        },
+        {
+          "label": "Wube — bande-annonce officielle Factorio 2026",
+          "url": "https://www.youtube.com/watch?v=oF1zCD7NwNY"
+        }
+      ],
+      "commercialLinks": [
+        {
+          "title": "Factorio — jeu de base PC et Mac (Steam)",
+          "merchant": "Instant Gaming",
+          "kind": "affiliate",
+          "url": "https://www.instant-gaming.com/fr/2157-acheter-jeu-steam-factorio/?igr=SANSAHD"
+        }
+      ]
+    },
+    {
+      "author": "Rédaction SWAPP",
+      "category": "Actualités JV",
+      "contentType": "article",
+      "status": "published",
+      "revision": 1,
+      "image": null,
+      "thumbnail": null,
+      "editorialVerdict": null,
+      "legacyUrl": null,
+      "originalPublishedAt": null,
+      "publishedAt": "2026-10-24T03:53:43.000Z",
+      "slug": "look-outside-sortie-30-octobre-switch-2-switch-ps5-ps4",
+      "title": "Look Outside arrive le 30 octobre sur Switch 2, Switch, PS5 et PS4",
+      "summary": "Devolver confirme quatre versions consoles pour son RPG d’horreur. L’occasion de découvrir un immeuble où chaque expédition et chaque rencontre peuvent bouleverser la partie.",
+      "game": "Look Outside",
+      "games": [
+        "Look Outside"
+      ],
+      "tags": [
+        "Look Outside",
+        "Devolver Digital",
+        "Francis Coulombe",
+        "Nintendo Switch 2",
+        "Nintendo Switch",
+        "PS5",
+        "PS4",
+        "horreur",
+        "indépendant"
+      ],
+      "seo": {
+        "title": "Look Outside : sortie consoles le 30 octobre 2026",
+        "description": "Look Outside arrive sur Switch 2, Switch, PS5 et PS4 le 30 octobre. Le principe du RPG d’horreur, ses langues et les limites de l’annonce."
+      },
+      "trailerUrl": "https://www.youtube.com/watch?v=bJOEQQYigxY",
+      "body": "Look Outside sortira le 30 octobre 2026 sur Nintendo Switch 2, Nintendo Switch, PlayStation 5 et PlayStation 4. Devolver Digital a annoncé ces quatre versions le 23 octobre sur son compte officiel Bluesky. Le jeu de Francis Coulombe était déjà disponible sur PC : cette date concerne son arrivée sur consoles.\n\n## Un immeuble comme terrain d’exploration\n\nLook Outside est un RPG d’horreur et de survie. Son point de départ tient dans une interdiction inquiétante : regarder dehors transforme les habitants en créatures monstrueuses. Le joueur explore un immeuble pour trouver nourriture, outils et armes, puis revient dans son appartement avec de quoi tenir et quelques éléments de réponse.\n\nLe refuge ne sert pas seulement de point de passage. Cuisiner, fabriquer du matériel et rencontrer les voisins rythment les retours. Certains personnages peuvent rejoindre le groupe ou être accueillis chez soi. Ce va-et-vient entre expédition et quotidien fait partie du principe présenté par l’éditeur.\n\nLes combats se déroulent au tour par tour et tiennent compte de la distance entre les adversaires. Les ressources récupérées et les armes improvisées participent à ces affrontements. Le jeu réserve aussi plusieurs fins : nous évitons d’en détailler les conditions pour laisser intacte la découverte.\n\n## Ce que cette annonce confirme — et ce qu’elle laisse ouvert\n\nLe message de Devolver fixe une date commune aux quatre consoles citées. Il n’annonce ni version Xbox, ni tarif français, ni édition physique. Il ne détaille pas non plus les performances, les caractéristiques propres à chaque machine ou un éventuel transfert des sauvegardes PC.\n\nPour les lecteurs francophones, un point mérite vérification avant l’achat : la fiche Steam consultée indique actuellement l’anglais pour l’interface et les sous-titres. L’annonce console ne confirme pas de traduction française. Il serait donc prématuré de déduire les langues de ces nouvelles versions à partir de leur simple disponibilité sur PlayStation ou Nintendo.\n\nSur PC, la sortie d’origine est datée du 21 mars 2025 par Steam et le communiqué de lancement. L’arrivée sur consoles constitue ici le fait nouveau, sans être présentée comme un lancement inédit du jeu sur toutes les plateformes.\n\n## Le regard SWAPP : partager une découverte sans raconter ses surprises\n\nL’intérêt de Look Outside pour de nouveaux joueurs tient à son cadre resserré. Un immeuble peut sembler facile à comprendre ; le risque, les rencontres et les décisions lui donnent une autre dimension. Ce format invite à comparer les expériences sans nécessairement dévoiler toutes les issues possibles.\n\nPour en discuter, décrire une stratégie de gestion ou une impression d’ambiance sera souvent plus accueillant que raconter directement le destin d’un voisin. C’est aussi un angle utile pour faire découvrir un indépendant : expliquer ce que le joueur fait, avant d’en révéler ce qu’il finit par apprendre. Cette lecture est notre analyse éditoriale, pas une promesse de contenu supplémentaire sur consoles.\n\n## Une bande-annonce de la version PC\n\nLa vidéo intégrée est la bande-annonce officielle de lancement PC publiée par Devolver Digital le 21 mars 2025. Elle illustre le jeu et son univers ; elle ne permet pas de juger les performances des portages annoncés pour octobre 2026.\n\nLe lien commercial proposé en fin d’article mène uniquement à Look Outside sur PC, activé sur Steam. Il ne correspond à aucune des quatre versions consoles annoncées. Aucun prix ni stock futur n’est garanti.\n\nCrédit vidéo et miniature : Francis Coulombe / Devolver Digital, via la chaîne officielle DevolverDigital.",
+      "sources": [
+        {
+          "label": "Devolver Digital — annonce des quatre versions consoles et du 30 octobre",
+          "url": "https://bsky.app/profile/devolverdigital.com/post/3mykkgan24r2k"
+        },
+        {
+          "label": "Steam — fiche officielle, date PC, langues et présentation du jeu",
+          "url": "https://store.steampowered.com/app/3373660/Look_Outside/"
+        },
+        {
+          "label": "Devolver Digital / Cosmocover — communiqué de lancement PC du 21 mars 2025",
+          "url": "https://www.cosmocover.com/newsroom/francis-coulombe-devolver-beckon-you-to-look-outside-today/"
+        },
+        {
+          "label": "DevolverDigital — bande-annonce de lancement PC (archive)",
+          "url": "https://www.youtube.com/watch?v=bJOEQQYigxY"
+        }
+      ],
+      "commercialLinks": [
+        {
+          "title": "Look Outside — version PC (Steam), hors consoles",
+          "merchant": "Instant Gaming",
+          "kind": "affiliate",
+          "url": "https://www.instant-gaming.com/fr/18994-acheter-look-outside-pc-jeu-steam/?igr=SANSAHD"
+        }
+      ]
+    },
+    {
+      "author": "Rédaction SWAPP",
+      "category": "Actualités JV",
+      "contentType": "article",
+      "status": "published",
+      "revision": 1,
+      "image": null,
+      "thumbnail": null,
+      "editorialVerdict": null,
+      "legacyUrl": null,
+      "originalPublishedAt": null,
+      "publishedAt": "2026-10-24T03:53:43.000Z",
+      "slug": "dead-by-daylight-chucky-retrait-vente-24-novembre-acces-conserve",
+      "title": "Dead by Daylight : Chucky quittera la vente le 24 novembre, les propriétaires garderont l’accès",
+      "summary": "Behaviour détaille le retrait du chapitre et de ses cosmétiques. Le personnage restera jouable pour les propriétaires, tandis que ses compétences rejoindront le catalogue général.",
+      "game": "Dead by Daylight",
+      "games": [
+        "Dead by Daylight"
+      ],
+      "tags": [
+        "Dead by Daylight",
+        "Chucky",
+        "Behaviour Interactive",
+        "multijoueur",
+        "DLC"
+      ],
+      "seo": {
+        "title": "Dead by Daylight : retrait de Chucky le 24 novembre 2026",
+        "description": "Chucky quittera la vente dans Dead by Daylight le 24 novembre. Accès conservé, compétences, progression : ce que confirme la FAQ de Behaviour."
+      },
+      "trailerUrl": "https://www.youtube.com/watch?v=78JQFN4NLKk",
+      "body": "Chucky et ses cosmétiques ne pourront plus être acquis dans Dead by Daylight après le 24 novembre 2026 à 11 heures sur la côte est américaine, soit 17 heures à Paris. Cette échéance figure dans la FAQ officielle de Behaviour, datée du 21 octobre. Le DLC doit disparaître des boutiques des plateformes.\n\n## L’accès déjà obtenu reste valable\n\nLes propriétaires conserveront le personnage et les éléments débloqués avant l’échéance. La progression, le Prestige et les accessoires resteront accessibles. Behaviour confirme aussi le maintien du support pour les éventuels bugs et l’absence de restriction de diffusion en direct pour ce contenu.\n\nPour les joueurs qui ne possèdent pas Chucky, ses trois compétences rejoindront le groupe des compétences générales sous de nouveaux noms. Les tenues encore manquantes ne pourront plus être acquises après le retrait ; aucune nouvelle tenue n’est prévue.\n\nLe studio ne donne pas, dans cette FAQ, de motif précis au retrait. Nous ne l’attribuons donc pas à un désaccord de licence ou à un conflit entre entreprises.\n\n## Pourquoi ce personnage occupe une place particulière\n\nLors de sa présentation en novembre 2023, Behaviour soulignait un changement de perspective : Chucky était son premier tueur doté d’une caméra à la troisième personne. Sa taille avait obligé l’équipe à repenser sa présence dans les situations propres au jeu, notamment le transport des survivants.\n\nLe comédien Brad Dourif avait enregistré de nouvelles répliques pour reprendre le rôle de la poupée. Le chapitre proposait aussi une tenue inspirée de Tiffany Valentine, interprétée par Jennifer Tilly. Ces éléments replacent le personnage dans son contexte d’origine ; ils ne constituent pas de nouvelles annonces de contenu en 2026.\n\n## Le regard SWAPP : distinguer achat, accès et rencontre en partie\n\nPour une communauté, la conséquence mérite d’être formulée précisément. Une fin de commercialisation modifie la manière dont de nouveaux joueurs peuvent rejoindre une expérience. Elle ne signifie pas automatiquement que ceux qui la possèdent doivent organiser leur dernière partie avec ce personnage.\n\nAvant d’envisager un achat, chacun peut donc partir de son usage réel : souhaite-t-il jouer ce tueur, compléter une collection de tenues ou simplement comprendre les compétences rencontrées en partie ? Ce sont des besoins différents. L’échéance ne dispense pas de vérifier la bonne plateforme et le contenu déjà présent dans son compte.\n\nL’angle éditorial retenu ici est celui de la continuité de jeu. Pour suivre l’évolution de Dead by Daylight, les conditions d’accès comptent autant que l’arrivée d’un nouveau personnage. Un titre qui annoncerait seulement la disparition de Chucky laisserait de côté l’information la plus utile aux propriétaires.\n\n## Vidéo d’archive et informations pratiques\n\nLa vidéo intégrée provient de la chaîne officielle Dead by Daylight et date du 8 novembre 2023. Il s’agit de la bande-annonce de présentation du chapitre, pas d’une nouvelle vidéo annonçant le retrait de 2026.\n\nLe lien commercial ci-dessous correspond au DLC Chucky pour PC sur Steam, proposé pour la région Europe et compatible avec la France lors de la vérification. Le jeu de base Dead by Daylight est nécessaire. Aucun prix, réduction ou maintien du stock n’est garanti.\n\nCrédit vidéo et miniature : Behaviour Interactive / Universal, via la chaîne officielle Dead by Daylight.",
+      "sources": [
+        {
+          "label": "Behaviour — FAQ officielle sur le retrait de Chucky, datée du 21 octobre 2026",
+          "url": "https://support.deadbydaylight.com/hc/en-us/articles/54828377613076-FAQ-THE-CHUCKY-CONTENT"
+        },
+        {
+          "label": "Behaviour — présentation originale de Chucky du 8 novembre 2023",
+          "url": "https://deadbydaylight.com/news/welcome-horror-icon-chucky/"
+        },
+        {
+          "label": "Dead by Daylight — bande-annonce officielle de présentation (archive 2023)",
+          "url": "https://www.youtube.com/watch?v=78JQFN4NLKk"
+        }
+      ],
+      "commercialLinks": [
+        {
+          "title": "Dead by Daylight — DLC Chucky, PC Steam, Europe",
+          "merchant": "Instant Gaming",
+          "kind": "affiliate",
+          "url": "https://www.instant-gaming.com/fr/15306-acheter-dead-by-daylight-chucky-pc-steam/?igr=SANSAHD"
+        }
+      ]
+    }
+  ]
+}
