@@ -65,13 +65,13 @@ v.volume = desiredVolume;
 v.muted = true; // Browsers require muted autoplay until a real viewer click.
 
 function message(text){status.textContent=text;status.hidden=false;}
-function displayVideo(){if(!manualStop&&v.readyState>=2&&v.videoWidth>0){lastFrameAt=Date.now();retries=0;status.hidden=true;}}
+function displayVideo(){if(!manualStop&&v.readyState>=2&&v.videoWidth>0){lastFrameAt=Date.now();retries=0;status.hidden=true;playerStatus(userPaused?'paused':'playing');}}
 function playerStatus(kind){
  liveStatus.classList.toggle('paused',kind==='paused');
  liveStatus.classList.toggle('stopped',kind==='stopped');
- liveStatus.innerHTML='<span class="dot"></span>'+(kind==='paused'?'EN PAUSE':kind==='stopped'?'LECTURE ARRÊTÉE':'LIVE');
+ liveStatus.innerHTML='<span class="dot"></span>'+(kind==='paused'?'EN PAUSE':kind==='stopped'?'LECTURE ARRÊTÉE':kind==='connecting'?'CONNEXION':'LIVE');
  liveStatus.classList.toggle('playing',kind==='playing');
- playButton.disabled=kind==='playing';
+ playButton.disabled=kind==='playing'||kind==='connecting';
  pauseButton.disabled=kind!=='playing';
 }
 function liveEdge(){
@@ -173,7 +173,7 @@ async function playlistReady(){
 }
 function restart(){
  if(restarting)return;
- restarting=true;booted=false;retries++;
+ restarting=true;booted=false;retries++;playerStatus('connecting');
  if(retries>5){message('Flux vidéo indisponible. Vérifie OBS et le relais SWAPP.');setTimeout(()=>{retries=0;restarting=false;boot()},6000);return;}
  if(h){try{h.destroy();}catch(_){} h=null;}
  v.removeAttribute('src');v.load();
@@ -182,7 +182,7 @@ function restart(){
 }
 async function boot(){
  if(booted)return;
- if(!(await playlistReady())){message('En attente des segments vidéo OBS…');setTimeout(boot,2500);return;}
+ if(!(await playlistReady())){playerStatus('connecting');message('En attente des segments vidéo OBS…');setTimeout(boot,2500);return;}
  booted=true;
  if(v.canPlayType('application/vnd.apple.mpegurl')){
   v.src=src+'?t='+Date.now();
@@ -201,7 +201,7 @@ async function boot(){
  }
  message('Ce navigateur ne prend pas en charge la lecture HLS.');
 }
-playerStatus('stopped');
+playerStatus('connecting');
 syncAudio();
 boot();
 setInterval(()=>{if(booted&&!manualStop&&!userPaused&&Date.now()-lastFrameAt>16000)restart()},5000);
