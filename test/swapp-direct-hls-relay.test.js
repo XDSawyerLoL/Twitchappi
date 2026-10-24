@@ -140,13 +140,14 @@ test('uploader accepts an OBS segment above the former 3 MiB hard limit',async()
   assert.equal(calls[0].bytes,4*1024*1024);
  }finally{uplink.stop();fs.rmSync(tmp,{recursive:true,force:true})}
 });
-test('default FFmpeg HLS muxing forces 2s keyframes at a bounded 720p bitrate',()=>{
+test('default SWAPP stream is now native OBS without 720p and 1600kbps recompression',()=>{
  const source=fs.readFileSync(path.join(__dirname,'..','local-agent','server.js'),'utf8');
- assert.match(source,/SWAPP_LOCAL_TRANSCODE \|\| process\.env\.ORYON_LOCAL_TRANSCODE \|\| 'transcode'/);
- assert.match(source,/force_key_frames','expr:gte\(t,n_forced\*2\)'/);
- assert.match(source,/'-b:v','1600k','-maxrate','2000k','-bufsize','4000k'/);
- assert.match(source,/'-hls_time', '2'/);
- assert.match(source,/force_original_aspect_ratio=decrease/);
+ assert.match(source,/SWAPP_LOCAL_TRANSCODE \|\| process\.env\.ORYON_LOCAL_TRANSCODE \|\| 'copy'/);
+ assert.match(source,/args\.push\('-c:v','copy','-c:a','copy'\)/);
+ assert.match(source,/'-hls_time','2'/);
+ assert.doesNotMatch(source,/scale=w='min\(1280,iw\)'/);
+ assert.doesNotMatch(source,/'-b:v','1600k'/);
+ assert.match(source,/mode:TRANSCODE_MODE==='transcode'\?'compatibility':'native'/);
 });
 
 test('live 1200x630 JPEG poster is authenticated, bounded, served publicly and exposes audio status',async()=>{
@@ -268,4 +269,37 @@ test('local OBS uplink periodically uploads a short MP4 teaser independently of 
   assert.equal(uploader.getStatus().lastClipAt>0,true);
   assert.equal(requests.indexOf('preview.mp4')>requests.indexOf('index.m3u8'),true);
  }finally{uploader.stop();fs.rmSync(tmp,{recursive:true,force:true})}
+});
+
+
+test('SWAPP accepts a sustained native 8 Mbps stream well above the former 5 Mbps per-minute cap',async()=>{
+ const b=backend();
+ const capabilities=await b.call('get','/api/oryon/local-relay/capabilities');
+ assert.equal(capabilities.payload.version,3);
+ assert.equal(capabilities.payload.native_passthrough,true);
+ assert.ok(capabilities.payload.max_room_bytes>=48*1024*1024);
+ assert.ok(capabilities.payload.max_minute_bytes>=120*1024*1024);
+ const segment=Buffer.alloc(3*1024*1024);segment[0]=0x47;
+ for(let i=0;i<16;i++){
+  const res=await b.call('post','/api/oryon/local-relay/upload',{
+   name:'seg_'+String(i).padStart(3,'0')+'.ts',body:segment
+  });
+  assert.equal(res.status,200,'native 48 MiB per minute should not hit 429: segment '+i);
+ }
+ assert.ok(b.relay.rooms.get('vnhz').bytes<=b.relay.MAX_ROOM_BYTES);
+});
+
+test('DVR HLS metadata respects the actual OBS keyframe interval, not invented 2.0s fragments',async()=>{
+ const b=backend(),upload='/api/oryon/local-relay/upload';
+ const ts=Buffer.alloc(188*2);ts[0]=0x47;
+ const parts=Array.from({length:4},(_,i)=>'seg_'+String(i).padStart(3,'0')+'.ts');
+ for(const name of parts)assert.equal((await b.call('post',upload,{name,body:ts})).status,200);
+ const playlist=Buffer.from('#EXTM3U\n#EXT-X-TARGETDURATION:4\n'+parts.map(n=>'#EXTINF:3.500,\n'+n+'\n').join(''));
+ assert.equal((await b.call('post',upload,{name:'index.m3u8',body:playlist})).status,200);
+ const dvr=await b.call('get','/api/oryon/local-relay/:login/dvr.m3u8');
+ assert.equal(dvr.status,200);
+ assert.match(dvr.payload,/#EXT-X-TARGETDURATION:4/);
+ assert.equal((dvr.payload.match(/#EXTINF:3\.500,/g)||[]).length,4);
+ const state=await b.call('get','/api/oryon/local-relay/:login/state');
+ assert.equal(state.payload.dvr_seconds,14);
 });

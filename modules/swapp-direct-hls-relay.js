@@ -11,12 +11,13 @@ function attachSwappDirectRelay(app, opts={}){
  if(typeof lookupOwner!=='function')throw Error('Direct HLS relay owner resolver required');
  const rooms=new Map();
  const MAX_ROOMS=Math.max(1,Math.min(2,Number(process.env.SWAPP_DIRECT_RELAY_MAX_ROOMS||2)));
- const MAX_ROOM_BYTES=Math.min(32*1024*1024,Math.max(8*1024*1024,Number(process.env.SWAPP_DIRECT_RELAY_ROOM_BYTES||24*1024*1024)));
+ const MAX_ROOM_BYTES=Math.min(64*1024*1024,Math.max(12*1024*1024,Number(process.env.SWAPP_DIRECT_RELAY_ROOM_BYTES||48*1024*1024)));
  const MAX_POSTER_BYTES=600*1024;
  const MAX_CLIP_BYTES=4*1024*1024; // eight-to-ten-second 480p MP4, not a VOD library
- const MAX_DVR_SEGMENTS=40; // max ~80s at the default two-second HLS cadence
+ const MAX_DVR_SEGMENTS=40; // at most ~80s when OBS keyframes are set to 2 seconds
+ const MAX_DVR_SECONDS=80;
  const MAX_UPLOAD_BYTES=Math.min(10*1024*1024,Math.max(512*1024,Number(process.env.SWAPP_DIRECT_RELAY_UPLOAD_BYTES||8*1024*1024)));
- const MAX_MINUTE_BYTES=Math.max(4*1024*1024,Math.min(60*1024*1024,Number(process.env.SWAPP_DIRECT_RELAY_MINUTE_BYTES||36*1024*1024)));
+ const MAX_MINUTE_BYTES=Math.max(10*1024*1024,Math.min(160*1024*1024,Number(process.env.SWAPP_DIRECT_RELAY_MINUTE_BYTES||120*1024*1024)));
  const TTL_MS=55000;
  const maxPlaylistBytes=65536;
  const notCached=res=>{
@@ -39,15 +40,19 @@ function attachSwappDirectRelay(app, opts={}){
  const interval=setInterval(reclaim,12000);
  interval.unref?.();
  function sequence(name){return Number((String(name).match(/^seg_(\d+)\.ts$/)||[])[1])}
+ function historySeconds(room){
+  return room.segmentTimeline.reduce((sum,n)=>sum+(room.segmentDurations.get(n)||2),0);
+ }
  function pruneHistory(room){
   const pinned=new Set(room.playlistNames);
   // Preserve the live window while trimming only older DVR segments.
-  while(room.segmentTimeline.length>MAX_DVR_SEGMENTS||room.bytes>MAX_ROOM_BYTES){
+  while(room.segmentTimeline.length>MAX_DVR_SEGMENTS||room.bytes>MAX_ROOM_BYTES||historySeconds(room)>MAX_DVR_SECONDS){
    const index=room.segmentTimeline.findIndex(n=>!pinned.has(n));
    if(index<0)break;
    const [gone]=room.segmentTimeline.splice(index,1);
    const bytes=room.segments.get(gone);
    if(bytes){room.bytes-=bytes.length;room.segments.delete(gone)}
+   room.segmentDurations.delete(gone);
   }
  }
  function dvrManifest(room){
@@ -62,9 +67,10 @@ function attachSwappDirectRelay(app, opts={}){
    contiguous.unshift(candidate);
   }
   if(!contiguous.length)return '';
-  return '#EXTM3U\n#EXT-X-VERSION:6\n#EXT-X-TARGETDURATION:2\n#EXT-X-INDEPENDENT-SEGMENTS\n'+
+  const maxDuration=Math.ceil(Math.max(2,...contiguous.map(n=>room.segmentDurations.get(n)||2)));
+  return '#EXTM3U\n#EXT-X-VERSION:6\n#EXT-X-TARGETDURATION:'+maxDuration+'\n#EXT-X-INDEPENDENT-SEGMENTS\n'+
    '#EXT-X-MEDIA-SEQUENCE:'+sequence(contiguous[0])+'\n'+
-   contiguous.map(n=>'#EXTINF:2.000,\n'+n+'\n').join('');
+   contiguous.map(n=>'#EXTINF:'+(room.segmentDurations.get(n)||2).toFixed(3)+',\n'+n+'\n').join('');
  }
  function validatePlaylist(body){
   if(!Buffer.isBuffer(body)||body.length<15||body.length>maxPlaylistBytes)return [];
@@ -77,8 +83,8 @@ function attachSwappDirectRelay(app, opts={}){
  }
  app.get('/api/oryon/local-relay/capabilities',(_req,res)=>{
   notCached(res);
-  res.json({success:true,transport:'swapp-direct-hls',version:2,max_rooms:MAX_ROOMS,max_room_bytes:MAX_ROOM_BYTES,max_segment_bytes:MAX_UPLOAD_BYTES,max_minute_bytes:MAX_MINUTE_BYTES,
-   recommended_video_kbps:1500,recommended_audio_kbps:96,warning:'Usage limité aux tests et petites audiences sur hébergement SWAPP existant.'});
+  res.json({success:true,transport:'swapp-direct-hls',version:3,max_rooms:MAX_ROOMS,max_room_bytes:MAX_ROOM_BYTES,max_segment_bytes:MAX_UPLOAD_BYTES,max_minute_bytes:MAX_MINUTE_BYTES,native_passthrough:true,
+   recommended_video_kbps:8000,recommended_audio_kbps:160,warning:'Qualité OBS source H.264/AAC préservée ; flux unique sans qualité adaptative. Hébergement limité en bande passante : petites audiences uniquement.'});
  });
  app.post('/api/oryon/local-relay/upload',
   express.raw({type:'application/octet-stream',limit:MAX_UPLOAD_BYTES}),async(req,res)=>{
@@ -101,11 +107,11 @@ function attachSwappDirectRelay(app, opts={}){
    let room=rooms.get(login);
    if(!room){
     if(rooms.size>=MAX_ROOMS)return res.status(429).json({success:false,error:'Capacité du relais SWAPP atteinte.'});
-    room={segments:new Map(),segmentTimeline:[],manifest:null,playlistNames:[],poster:null,posterAt:0,clip:null,clipAt:0,audioTrack:'unknown',bytes:0,lastManifestAt:now,minuteStarted:now,minuteBytes:0};
+    room={segments:new Map(),segmentTimeline:[],segmentDurations:new Map(),manifest:null,playlistNames:[],poster:null,posterAt:0,clip:null,clipAt:0,audioTrack:'unknown',bytes:0,lastManifestAt:now,minuteStarted:now,minuteBytes:0};
     rooms.set(login,room);
    }
    if(now-room.minuteStarted>60000){room.minuteStarted=now;room.minuteBytes=0}
-   if(room.minuteBytes+body.length>MAX_MINUTE_BYTES)return res.status(429).json({success:false,error:'Débit du direct trop élevé pour l’hébergement SWAPP. Baisse le bitrate OBS.'});
+   if(room.minuteBytes+body.length>MAX_MINUTE_BYTES)return res.status(429).json({success:false,error:'Débit du direct trop élevé pour ce relais SWAPP (limite '+Math.round(MAX_MINUTE_BYTES/1048576)+' Mo/min). La qualité OBS ne sera pas réduite automatiquement : ajuste le débit OBS ou augmente la capacité du relais.'});
    if(name==='preview.mp4'){
     // Validate an MP4 file signature; client supplies a short video excerpt.
     if(body.length>MAX_CLIP_BYTES||body.length<5000||body.toString('ascii',4,8)!=='ftyp')
@@ -126,6 +132,19 @@ function attachSwappDirectRelay(app, opts={}){
     if(names.some(n=>!room.segments.has(n)))return res.status(409).json({success:false,error:'Un segment HLS de cette playlist manque.'});
     room.manifest=Buffer.from(body);
     room.playlistNames=names;
+    // OBS keyframe interval determines HLS segment length in remux mode.
+    // Keep the exact #EXTINF durations, not a fabricated fixed 2 seconds.
+    const lines=body.toString('utf8').split(/\r?\n/);
+    let pendingDuration=null;
+    for(const line of lines){
+     const value=line.trim();
+     const extinf=value.match(/^#EXTINF:(\d+(?:\.\d+)?),/);
+     if(extinf){pendingDuration=Math.max(0.1,Math.min(20,Number(extinf[1])));continue}
+     if(names.includes(value)){
+      room.segmentDurations.set(value,pendingDuration||2);
+      pendingDuration=null;
+     }
+    }
     room.lastManifestAt=now;
     pruneHistory(room);
    }else{
@@ -134,7 +153,7 @@ function attachSwappDirectRelay(app, opts={}){
     // On a restart from seg_000.ts, don't mix two disconnected HLS timelines.
     const newest=room.segmentTimeline.at(-1);
     if(newest&&sequence(name)<sequence(newest)-MAX_DVR_SEGMENTS){
-     room.segments.clear();room.segmentTimeline=[];room.bytes=0;
+     room.segments.clear();room.segmentTimeline=[];room.segmentDurations.clear();room.bytes=0;
      room.playlistNames=[];room.manifest=null;
      previous=null;
     }
@@ -158,7 +177,7 @@ function attachSwappDirectRelay(app, opts={}){
   notCached(res);
   const login=cleanLogin(req.params.login),r=login&&liveRoom(login);
   res.json({success:true,active:!!r?.manifest&&r.playlistNames.some(n=>r.segments.has(n)),segment_count:r?.segments?.size||0,
-   last_manifest_at:r?.lastManifestAt||null,audio_track:r?.audioTrack||'unknown',dvr_seconds:Math.min(80,(r?.segmentTimeline?.length||0)*2),preview_ready:!!r?.clip});
+   last_manifest_at:r?.lastManifestAt||null,audio_track:r?.audioTrack||'unknown',dvr_seconds:r?Math.round(Math.min(80,historySeconds(r))):0,preview_ready:!!r?.clip});
  });
  app.get('/api/oryon/local-relay/:login/index.m3u8',(req,res)=>{
   notCached(res);
