@@ -159,17 +159,15 @@ v.addEventListener('loadeddata',displayVideo);
 v.addEventListener('error',()=>message('Lecture vidéo indisponible. Reconnexion…'));
 
 async function playlistReady(){
- try{
+ // A full segment GET here delayed HLS startup and raced the short DVR window.
+ // The media engine fetches fragments itself and reports the actual failure.
+ try {
   const res=await fetch(src+(src.includes('?')?'&':'?')+'t='+Date.now(),{cache:'no-store'});
   if(!res.ok)return false;
   const body=await res.text();
-  const parts=body.split(/\r?\n/).filter(x=>x.trim()&&!x.startsWith('#'));
-  if(!body.startsWith('#EXTM3U')||!parts.length)return false;
-  const segment=new URL(parts[parts.length-1],new URL(src,location.href));
-  if(segment.origin!==location.origin)return false;
-  const check=await fetch(segment.href,{cache:'no-store'});
-  return check.ok && (check.headers.get('content-type')||'').includes('video');
- }catch(_){return false;}
+  return body.startsWith('#EXTM3U') && /(?:^|\n)#EXTINF:/m.test(body) &&
+    body.split(/\r?\n/).some(line=>/^seg_[0-9]+\.ts$/.test(line.trim()));
+ } catch(_) {return false;}
 }
 function restart(){
  if(restarting)return;
