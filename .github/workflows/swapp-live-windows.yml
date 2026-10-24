@@ -64,8 +64,8 @@ jobs:
           if ((Get-Item $dll).Length -lt 102400) { throw "Critical: ffmpeg.dll appears truncated" }
           $dllHash = (Get-FileHash $dll -Algorithm SHA256).Hash
           Write-Host "Packaged Electron ffmpeg.dll SHA256: $dllHash"
-          $installer = "local-agent/dist/SWAPP-Live-Setup-1.0.5-x64.exe"
-          $portable = "local-agent/dist/SWAPP-Live-Portable-1.0.5-x64.exe"
+          $installer = "local-agent/dist/SWAPP-Live-Setup-1.0.6-x64.exe"
+          $portable = "local-agent/dist/SWAPP-Live-Portable-1.0.6-x64.exe"
           foreach ($artifact in @($installer, $portable)) {
             if (!(Test-Path $artifact)) { throw "Missing release executable: $artifact" }
           }
@@ -92,8 +92,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $tag = "swapp-live-windows-v1.0.5"
+          $tag = "swapp-live-windows-v1.0.6"
           $files = @(Get-ChildItem "local-agent/dist" -File -Filter "*.exe" | ForEach-Object { $_.FullName })
           if ($files.Count -lt 2) { throw "SWAPP Live installer and portable executable were not both produced" }
-          $notes = "SWAPP Live Windows v1.0.5: outgoing OBS/HLS upload over HTTPS to swapp.tv; no Quick Tunnel needed by default and no new subscription; official Electron ffmpeg.dll validated and automatically restored from matching official Electron package if missing. Installer smoke-tested on Windows for DLL next to EXE; portable uses isolated fresh extraction. Keeps free OBS tunnel, sound controls, fullscreen and HLS playback. Use the SETUP installer, not the raw internal SWAPP Live.exe."
-          gh release create $tag $files --repo "$env:GITHUB_REPOSITORY" --target "$env:GITHUB_SHA" --title "SWAPP Live Windows v1.0.5" --notes $notes
+          $notes = "SWAPP Live Windows v1.0.6: forced 2s 720p H.264 1600kbps HLS segments; accepts up to 8MiB per fragment and keeps Hostinger memory bounded; outgoing OBS/HLS upload over HTTPS to swapp.tv; no Quick Tunnel needed by default and no new subscription; official Electron ffmpeg.dll validated and automatically restored from matching official Electron package if missing. Installer smoke-tested on Windows for DLL next to EXE; portable uses isolated fresh extraction. Keeps free OBS tunnel, sound controls, fullscreen and HLS playback. Use the SETUP installer, not the raw internal SWAPP Live.exe."
+          gh release create $tag $files --repo "$env:GITHUB_REPOSITORY" --target "$env:GITHUB_SHA" --title "SWAPP Live Windows v1.0.6" --notes $notes
