@@ -30,10 +30,18 @@ async function createLivePoster(segment,ffmpegPath,{spawnFn=spawn,timeoutMs=6500
   proc.on('close',code=>{
    if(done)return;
    const hasAudio=/Stream\s+#\d+:\d+[^\n]{0,160}Audio:/i.test(info);
+   const videoLine=info.split(/\r?\n/).find(line=>/Stream\s+#\d+:\d+[^\n]{0,160}Video:/i.test(line))||'';
+   const dimension=videoLine.match(/\b(\d{3,5})x(\d{3,5})\b/);
+   const rate=videoLine.match(/\b(\d+(?:\.\d+)?)\s+fps\b/);
+   const codec=videoLine.match(/Video:\s*([a-z0-9_]+)/i);
+   const videoInfo=dimension?{
+    width:Number(dimension[1]),height:Number(dimension[2]),
+    fps:rate?Number(rate[1]):null,codec:codec?.[1]||null
+   }:null;
    const poster=code===0&&length>1000&&length<=600*1024?Buffer.concat(output):null;
    if(!poster||poster[0]!==0xff||poster[1]!==0xd8||poster[poster.length-2]!==0xff||poster[poster.length-1]!==0xd9)
-    return finish({poster:null,audioTrack:hasAudio?'present':'missing'});
-   finish({poster,audioTrack:hasAudio?'present':'missing'});
+    return finish({poster:null,audioTrack:hasAudio?'present':'missing',videoInfo});
+   finish({poster,audioTrack:hasAudio?'present':'missing',videoInfo});
   });
  });
 }
@@ -80,7 +88,7 @@ function startSwappHlsUplink({key,login,siteUrl,token,mediaDir,ffmpegPath='',pos
  if(base.protocol!=='https:')throw Error('SWAPP HTTPS requis pour un direct sécurisé');
  let running=true,timer=null,activeRequest=null;
  let lastPlaylistSig='',lastManifestSent=0,uploaded=new Map(),error=null,published=false;
- let posterLastAttempt=0,posterBusy=false,audioTrack='unknown',lastPosterAt=0;
+ let posterLastAttempt=0,posterBusy=false,audioTrack='unknown',lastPosterAt=0,videoInfo=null;
  let clipLastAttempt=0,clipBusy=false,lastClipAt=0;
  let readyResolve,readyReject,readySettled=false;
  const ready=new Promise((resolve,reject)=>{readyResolve=resolve;readyReject=reject});
@@ -121,6 +129,7 @@ function startSwappHlsUplink({key,login,siteUrl,token,mediaDir,ffmpegPath='',pos
    const result=await posterGenerator(segmentPath,ffmpegPath);
    if(!running||!result)return;
    if(result.audioTrack==='present'||result.audioTrack==='missing')audioTrack=result.audioTrack;
+   if(result.videoInfo&&result.videoInfo.width>0&&result.videoInfo.height>0)videoInfo=result.videoInfo;
    if(result.poster&&result.poster.length<600*1024){
     await upload('poster.jpg',result.poster,{'X-Swapp-Audio-Track':audioTrack});
     lastPosterAt=Date.now();
@@ -205,6 +214,6 @@ function startSwappHlsUplink({key,login,siteUrl,token,mediaDir,ffmpegPath='',pos
  }
  // Avoid Promise unhandled-rejection if caller is about to await ready.
  void tick();
- return {ready,stop,getStatus(){return {running,published,error:error?.message||null,transport:'swapp-direct-hls',audioTrack,lastPosterAt,lastClipAt}}};
+ return {ready,stop,getStatus(){return {running,published,error:error?.message||null,transport:'swapp-direct-hls',audioTrack,videoInfo,lastPosterAt,lastClipAt}}};
 }
 module.exports={startSwappHlsUplink,createLivePoster,createDiscordClip};
