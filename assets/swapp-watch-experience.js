@@ -2,14 +2,9 @@
 (function(){
  'use strict';
  const WATCH='#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"]';
- const KEY='swapp:watch:theatre';
- const CHAT_KEY='swapp:watch:chat';
- function stored(key){
-  try{return sessionStorage.getItem(key)}catch(_){return null}
- }
- function store(key,value){
-  try{sessionStorage.setItem(key,value)}catch(_){}
- }
+ // Viewing controls apply only to the current page session. They must not
+ // reopen a future live in cinema mode or silently hide the chat.
+ const mode={theatre:'off',chat:'shown'};
  const icons={
   theatre:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h6M4 5v6m16-6h-6m6 0v6M4 19h6m-6 0v-6m16 6h-6m6 0v-6"/></svg>',
   chat:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 0 1-8 8 8.2 8.2 0 0 1-3-.6L4 21l1.6-5A8 8 0 1 1 20 12Z"/></svg>'
@@ -42,8 +37,8 @@
   const main=page.querySelector('.channelMainPlayer');
   const video=main?.querySelector('.premiumPlayer,.oryonMainPlayer,.player');
   if(!main||!video)return;
-  page.dataset.watchTheatre=stored(KEY)==='on'?'on':'off';
-  page.dataset.watchChat=stored(CHAT_KEY)==='hidden'?'hidden':'shown';
+  page.dataset.watchTheatre=mode.theatre;
+  page.dataset.watchChat=mode.chat;
   const row=document.createElement('div');
   row.className='swapp-watch-tools';
   row.setAttribute('role','group');
@@ -52,14 +47,14 @@
   const chat=button('swapp-watch-chat-btn',icons.chat,'Masquer le chat');
   cinema.addEventListener('click',()=>{
    const next=page.dataset.watchTheatre==='on'?'off':'on';
-   page.dataset.watchTheatre=next;store(KEY,next);updateUI(page);
+   page.dataset.watchTheatre=next;mode.theatre=next;updateUI(page);
    requestAnimationFrame(()=>window.swappFitChat1014?.());
    if(next==='on'&&!window.matchMedia?.('(prefers-reduced-motion:reduce)')?.matches)
     main.scrollIntoView?.({behavior:'smooth',block:'start'});
   });
   chat.addEventListener('click',()=>{
    const next=page.dataset.watchChat==='hidden'?'shown':'hidden';
-   page.dataset.watchChat=next;store(CHAT_KEY,next);updateUI(page);
+   page.dataset.watchChat=next;mode.chat=next;updateUI(page);
    requestAnimationFrame(()=>window.swappFitChat1014?.());
   });
   row.append(cinema,chat);

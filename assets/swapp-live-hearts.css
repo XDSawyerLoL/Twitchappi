@@ -82,3 +82,12 @@
 #discover .oryonMainPlayer[data-swapp-heart-ui="1"] > .pulseButton{display:none!important}
 #discover .player[data-swapp-heart-ui="1"],
 #discover .oryonMainPlayer[data-swapp-heart-ui="1"]{position:relative!important}
+
+/* Player variants in current channel templates must receive the same floating-heart UI. */
+#channel .channelMainPlayer :is(.premiumPlayer,.oryonMainPlayer,.player)[data-swapp-heart-ui="1"] > .pulseButton{display:none!important}
+#channel .channelMainPlayer :is(.premiumPlayer,.oryonMainPlayer,.player)[data-swapp-heart-ui="1"]{
+ position:relative!important
+}
+#channel .channelMainPlayer :is(.premiumPlayer,.oryonMainPlayer,.player)[data-swapp-heart-ui="1"] .pulseLayer{
+ z-index:18!important;pointer-events:none!important;
+}

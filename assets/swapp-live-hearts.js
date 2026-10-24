@@ -2,7 +2,7 @@
    Only presentation changes; no additional reactions API or authentication. */
 (function(){
  'use strict';
- const CHANNEL='#channel .creatorRefine[data-channel-live="true"] .channelMainPlayer .premiumPlayer';
+ const CHANNEL='#channel .creatorRefine[data-channel-live="true"] .channelMainPlayer :is(.premiumPlayer,.oryonMainPlayer,.player)';
  const DISCOVER='#discover .premiumPlayer,#discover .player,#discover .oryonMainPlayer,#discover .hfLivePlayer,#discover .twitchPlayer';
  const liveSelectors=CHANNEL+','+DISCOVER;
  const observed=new Map();

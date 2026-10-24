@@ -119,3 +119,47 @@
 #channel .creatorRefine.swapp-channel-polish[data-channel-live="true"][data-watch-theatre="on"][data-watch-chat="hidden"] .channelLiveLayout{
  grid-template-columns:minmax(0,1fr)!important;
 }
+
+/* Live layout stability: one grid owner, no horizontal overflow, no ghost column. */
+#channel,#channel.view,#channel .creatorRefine.swapp-channel-polish{min-width:0!important;max-width:100%!important;box-sizing:border-box!important}
+#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"]{
+ width:100%!important;max-width:1800px!important;margin-inline:auto!important;
+ padding-inline:clamp(10px,2.2vw,30px)!important;
+}
+#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelLiveLayout{
+ width:100%!important;max-width:100%!important;min-width:0!important;
+ box-sizing:border-box!important;margin-inline:0!important;
+ padding:clamp(8px,1vw,12px) 0 0!important;
+ grid-template-columns:minmax(0,1fr) minmax(286px,336px)!important;
+}
+#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelMainPlayer,
+#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelLiveSidebar{
+ min-width:0!important;max-width:100%!important;box-sizing:border-box!important;
+}
+#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelMainPlayer > :is(.premiumPlayer,.oryonMainPlayer,.player){
+ width:100%!important;max-width:100%!important;height:auto!important;aspect-ratio:16/9!important;
+ min-width:0!important;box-sizing:border-box!important;flex:0 0 auto!important;
+}
+#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelMainPlayer > :is(.premiumPlayer,.oryonMainPlayer,.player) > iframe{
+ position:absolute;inset:0;width:100%!important;height:100%!important;
+}
+#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelLiveSidebar .chatPanel{
+ width:100%!important;max-width:100%!important;min-width:0!important;
+ box-sizing:border-box!important;
+}
+#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"][data-watch-chat="hidden"] .channelLiveLayout,
+#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"][data-watch-chat="hidden"][data-watch-theatre="on"] .channelLiveLayout{
+ grid-template-columns:minmax(0,1fr)!important;
+}
+#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"][data-watch-theatre="on"] .channelLiveLayout{
+ grid-template-columns:minmax(0,1fr) minmax(280px,320px)!important;
+ padding-top:0!important;
+}
+/* Mini-player is for browsing other sections, never the channel already being watched. */
+body:has(#channel.view.active) #oryonMiniPlayer{display:none!important}
+@media(max-width:1080px){
+ #channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelLiveLayout,
+ #channel .creatorRefine.swapp-channel-polish[data-channel-live="true"][data-watch-theatre="on"] .channelLiveLayout{
+  grid-template-columns:minmax(0,1fr)!important;
+ }
+}

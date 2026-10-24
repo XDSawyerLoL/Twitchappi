@@ -252,7 +252,7 @@ function chatQuick(kind){const input=$('#chatInput'); if(!input)return; const pr
 function setMiniLive(data){state.mini=data; renderMiniPlayer()}
 function closeMini(){state.mini=null; $('#oryonMiniPlayer')?.remove()}
 function expandMini(){const m=state.mini; if(!m)return; if(m.type==='twitch')openTwitch(m.login); else if(m.login)openOryon(m.login)}
-function renderMiniPlayer(){let host=$('#oryonMiniPlayer'); const m=state.mini; if(!m){host?.remove();return} if(!host){host=document.createElement('div'); host.id='oryonMiniPlayer'; host.className='miniPlayer'; document.body.appendChild(host)} const title=esc(m.title||m.login||'Live en cours'); const parent=location.hostname; host.innerHTML=`<div class="miniHead"><span>▶ ${title}</span><div class="row"><button class="btn ghost" onclick="expandMini()">Ouvrir</button><button class="btn ghost" onclick="closeMini()">×</button></div></div>${m.type==='twitch'?`<iframe allowfullscreen src="https://player.twitch.tv/?channel=${encodeURIComponent(m.login)}&parent=${encodeURIComponent(parent)}&muted=false"></iframe>`:`<div class="miniBody"><p class="muted">Live Swapp actif. La base mini-player garde le live accessible pendant la navigation.</p><button class="btn" onclick="expandMini()">Revenir au live</button></div>`}`}
+function renderMiniPlayer(){let host=$('#oryonMiniPlayer'); const m=state.mini; if(state.view==='channel'){host?.remove();return} if(!m){host?.remove();return} if(!host){host=document.createElement('div'); host.id='oryonMiniPlayer'; host.className='miniPlayer'; document.body.appendChild(host)} const title=esc(m.title||m.login||'Live en cours'); const parent=location.hostname; host.innerHTML=`<div class="miniHead"><span>▶ ${title}</span><div class="row"><button class="btn ghost" onclick="expandMini()">Ouvrir</button><button class="btn ghost" onclick="closeMini()">×</button></div></div>${m.type==='twitch'?`<iframe allowfullscreen src="https://player.twitch.tv/?channel=${encodeURIComponent(m.login)}&parent=${encodeURIComponent(parent)}&muted=false"></iframe>`:`<div class="miniBody"><p class="muted">Live Swapp actif. La base mini-player garde le live accessible pendant la navigation.</p><button class="btn" onclick="expandMini()">Revenir au live</button></div>`}`}
 async function renderHome(){
  const current=window.renderHome;
  if(typeof current==='function'&&current!==renderHome)return current();
@@ -11771,33 +11771,33 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
   window.loadHomeRecommendations = async function(){ addStyle1014(); await loadLives(true); };
   try{ loadHomeRecommendations = window.loadHomeRecommendations; }catch(_e){}
 
+  // Keep the same 16:9 image in every layout, instead of injecting a
+  // viewport-clamped height which stretches the stream when the chat changes.
   function fitChat1014(){
     if(state?.view && state.view !== 'channel') return;
-    addStyle1014();
-    const layout = document.querySelector('#channel .creatorRefine .channelLiveLayout, #channel .channelLiveLayout, #channel .watchShell.channelWatch');
-    const player = document.querySelector('#channel .creatorRefine .oryonMainPlayer, #channel .channelMainPlayer .premiumPlayer, #channel .oryonMainPlayer, #channel .premiumPlayer');
-    const chat = document.querySelector('#channel .creatorRefine .nativeFixedChat, #channel .channelLiveSidebar .chatPanel, #channel .nativeFixedChat, #channel .chatPanel');
-    if(!layout || !player || !chat) return;
-    const mobile = window.matchMedia('(max-width:980px)').matches;
-    if(mobile){
-      player.style.setProperty('height','auto','important');
-      player.style.setProperty('aspect-ratio','16/9','important');
-      const ch = clamp(320, Math.round(window.innerHeight * 0.48), 520);
-      chat.style.setProperty('height', ch + 'px', 'important');
-      chat.style.setProperty('min-height', '320px', 'important');
-      chat.style.setProperty('max-height', '520px', 'important');
+    const page=document.querySelector('#channel .creatorRefine[data-channel-live="true"]');
+    if(!page)return;
+    const layout=page.querySelector('.channelLiveLayout');
+    const player=page.querySelector('.channelMainPlayer .oryonMainPlayer,.channelMainPlayer .premiumPlayer,.channelMainPlayer .player');
+    const chat=page.querySelector('.channelLiveSidebar .chatPanel');
+    if(!layout||!player||!chat)return;
+    const rect=player.getBoundingClientRect();
+    if(!Number.isFinite(rect.width)||rect.width<100)return;
+    player.style.setProperty('width','100%','important');
+    player.style.setProperty('max-width','100%','important');
+    player.style.setProperty('height','auto','important');
+    player.style.setProperty('aspect-ratio','16/9','important');
+    if(page.dataset.watchChat==='hidden'){
+      chat.style.removeProperty('height');
+      chat.style.removeProperty('min-height');
+      chat.style.removeProperty('max-height');
       return;
     }
-    const rect = player.getBoundingClientRect();
-    const top = Math.max(80, rect.top || layout.getBoundingClientRect().top || 100);
-    const available = Math.max(420, window.innerHeight - top - 24);
-    const natural = Math.round((rect.width || 900) * 9 / 16);
-    const h = clamp(420, Math.min(natural, available), 760);
-    player.style.setProperty('height', h + 'px', 'important');
-    player.style.setProperty('aspect-ratio', 'auto', 'important');
-    chat.style.setProperty('height', h + 'px', 'important');
-    chat.style.setProperty('min-height', h + 'px', 'important');
-    chat.style.setProperty('max-height', h + 'px', 'important');
+    const mobile=window.matchMedia('(max-width:1080px)').matches;
+    const h=mobile?Math.max(300,Math.min(440,Math.round(window.innerHeight*.44))):Math.round(rect.width*9/16);
+    chat.style.setProperty('height',h+'px','important');
+    chat.style.setProperty('min-height',mobile?'300px':h+'px','important');
+    chat.style.setProperty('max-height',mobile?'440px':h+'px','important');
   }
   window.swappFitChat1014 = fitChat1014;
 
