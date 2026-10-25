@@ -83,6 +83,25 @@ const CSS=[
  '.game-portal .cards.index .game-index-link:focus-visible,.game-portal .cards.index .game-index-actions button:focus-visible{outline:2px solid #a8e9ff;outline-offset:-2px}',
  '@media(max-width:1000px){.game-portal .cards.index{grid-template-columns:repeat(2,minmax(0,1fr))}}',
  '@media(max-width:620px){.game-portal .cards.index{grid-template-columns:minmax(0,1fr);gap:13px}.game-portal .cards.index .game-index-media{aspect-ratio:16/9}.game-portal .cards.index .game-index-details h3{font-size:20px}}',
+ ".game-portal{max-width:1520px;padding:30px clamp(16px,3.4vw,54px) 72px;--universe-accent:var(--swapp-page-accent,var(--brand,#8ee2e0))}",
+ ".game-portal .hero{min-height:clamp(345px,40vw,580px);display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-end;isolation:isolate;padding:clamp(25px,4vw,60px);border:0;border-radius:clamp(11px,1.2vw,18px);background:linear-gradient(125deg,#101c2a,#111221);box-shadow:0 25px 75px rgba(0,0,0,.26)}",
+ ".game-portal .hero:has(.hero-cover)::after{content:\"\";position:absolute;z-index:-1;inset:0;border-radius:inherit;background:linear-gradient(90deg,rgba(5,10,18,.95),rgba(5,10,18,.49) 75%),linear-gradient(0deg,rgba(5,10,18,.9),transparent 75%)}",
+ ".game-portal .hero-cover{position:absolute;z-index:-2;inset:0;width:100%;height:100%;max-width:none;float:none;margin:0;border:0;border-radius:inherit;object-fit:cover;opacity:.82;filter:saturate(1.13) contrast(1.08)}",
+ ".game-portal .hero h1{font-size:clamp(37px,5.1vw,76px);max-width:20ch;line-height:1.01;letter-spacing:-.057em;text-wrap:balance}",
+ ".game-portal .hero>p{max-width:67ch;font-size:clamp(14px,1.45vw,18px);line-height:1.55;text-wrap:pretty}",
+ ".game-portal .universe-kicker{color:var(--universe-accent);letter-spacing:.14em}",
+ ".game-portal .hero .actions{gap:8px;margin-top:20px;position:relative;z-index:2}",
+ ".game-portal .hero .actions :is(a,button){min-height:42px;border-radius:9px;background:rgba(13,22,36,.72);border-color:rgba(217,233,248,.26);backdrop-filter:blur(9px)}",
+ ".game-portal .hero .actions :is(a,button):focus-visible{outline:3px solid var(--universe-accent);outline-offset:2px}",
+ ".game-portal .cards:not(.index){grid-template-columns:repeat(auto-fit,minmax(min(100%,310px),1fr));gap:clamp(15px,2vw,28px)}",
+ ".game-portal .cards:not(.index) .card{border:0;border-top:1px solid #ffffff25;border-radius:0;background:transparent;box-shadow:none}",
+ ".game-portal .cards:not(.index) .card img{height:auto;aspect-ratio:16/9;object-fit:cover;border-radius:10px}",
+ ".game-portal .cards:not(.index) .card div{padding:17px 2px 15px}",
+ ".game-portal .game-universe-share{border:0;border-top:1px solid #ffffff25;border-bottom:1px solid #ffffff25;border-radius:0;background:transparent;padding:24px 0;box-shadow:none}",
+ ".game-portal .game-universe-share .actions a{border-radius:8px;background:#ffffff0b;border-color:#ffffff22}",
+ ".game-portal .game-universe-share .actions a:focus-visible{outline:2px solid var(--universe-accent);outline-offset:2px}",
+ "@media(max-width:720px){.game-portal{padding:16px 12px 48px}.game-portal .hero{min-height:355px;padding:28px 20px}.game-portal .hero-cover{width:100%;margin:0;float:none}.game-portal .hero h1{font-size:clamp(32px,8vw,52px)}.game-portal .hero .actions :is(a,button){font-size:12px;min-height:44px}}",
+ "@media(prefers-reduced-motion:reduce){.game-portal .cards.index>.game-index-card{transition:none;transform:none!important}}",
 ].join('');
 function safeCover(a){return cardImageSources(a)[0]||'';}
 
@@ -120,7 +139,8 @@ function renderGamePage(group){
    '@type':'ListItem',position:i+1,name:String(a.title||'').slice(0,180),
    url:ORIGIN+'/actus/'+encodeURIComponent(a.slug)
   }))}};
- const meta='<link rel="canonical" href="'+url+'"><meta property="og:type" content="website"><meta property="og:url" content="'+url+'"><meta property="og:title" content="'+html(title)+'"><meta property="og:description" content="'+html(description)+'">'+
+ const meta=(group.count<2?'<meta name="robots" content="noindex,follow">':'')+
+  '<link rel="canonical" href="'+url+'"><meta property="og:type" content="website"><meta property="og:url" content="'+url+'"><meta property="og:title" content="'+html(title)+'"><meta property="og:description" content="'+html(description)+'>'+
   (cover?'<meta property="og:image" content="'+html(cover)+'"><meta name="twitter:card" content="summary_large_image">':'<meta name="twitter:card" content="summary">')+structuredData(pageSchema);
  const channels=publicCommunityLinks();
  const xShare='https://x.com/intent/tweet?'+new URLSearchParams({
