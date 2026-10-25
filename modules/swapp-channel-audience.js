@@ -8,8 +8,9 @@ const fs=require('node:fs');
 const path=require('node:path');
 const cleanRoom=value=>{const v=String(value||'').trim().toLowerCase();return /^[a-z0-9_][a-z0-9_-]{1,39}$/.test(v)&&!['__proto__','prototype','constructor'].includes(v)?v:'';};
 const DATE=now=>new Date(now).toISOString().slice(0,10);
-function installChannelAudience({app,io,getUser,getNativeRoom,isLocalLive,storageFile=path.join(process.cwd(),'.swapp-channel-loyalty.json'),clock=Date}){
+function installChannelAudience({app,io,getUser,getNativeRoom,isLocalLive,mysqlUri='',storageFile=path.join(process.cwd(),'.swapp-channel-loyalty.json'),clock=Date}){
  if(!app||!io||!getUser||!getNativeRoom||!isLocalLive)throw Error('missing channel audience dependency');
+ const sql=mysqlUri?require('./swapp-channel-points-mysql').createChannelPointsMysql({uri:mysqlUri,now:()=>clock.now()}):null;
  let wallets={};
  try{
   if(fs.existsSync(storageFile)){
@@ -20,6 +21,7 @@ function installChannelAudience({app,io,getUser,getNativeRoom,isLocalLive,storag
  const watches=new Map();
  const MAX_DAILY=300,PTS_PER_MINUTE=5,TICK_MAX_MS=25000;
  const lookup=(room,id)=>wallets[room]?.[id]||null;
+ async function hydrate(room){if(sql)wallets[room]=await sql.getRoom(room);}
  function persist(){
   const target=storageFile, tmp=target+'.'+process.pid+'.tmp';
   try{fs.writeFileSync(tmp,JSON.stringify({version:1,rooms:wallets}),{mode:0o600});fs.renameSync(tmp,target)}
@@ -53,10 +55,11 @@ function installChannelAudience({app,io,getUser,getNativeRoom,isLocalLive,storag
   }
   return members.sort((a,b)=>Number(b.watching)-Number(a.watching)||b.points-a.points||a.login.localeCompare(b.login));
  }
- app.get('/api/swapp/channel-audience/:room',(req,res)=>{
+ app.get('/api/swapp/channel-audience/:room',async(req,res)=>{
   res.set('Cache-Control','private, no-store');
   const room=cleanRoom(req.params.room);
   if(!room||!owner(req,room))return res.status(403).json({success:false,error:'Accès réservé au créateur.'});
+  try{await hydrate(room)}catch(_){return res.status(503).json({success:false,error:'Points MySQL indisponibles.'})}
   const r=getNativeRoom(room),users=active(room);
   const leaderboard=Object.values(wallets[room]||{}).filter(v=>v&&typeof v==='object')
    .sort((a,b)=>Number(b.points||0)-Number(a.points||0))
@@ -72,17 +75,22 @@ function installChannelAudience({app,io,getUser,getNativeRoom,isLocalLive,storag
    rule:{points_per_minute:PTS_PER_MINUTE,daily_cap:MAX_DAILY,rewards_enabled:false}
   });
  });
- app.get('/api/swapp/channel-points/:room',(req,res)=>{
+ app.get('/api/swapp/channel-points/:room',async(req,res)=>{
   res.set('Cache-Control','private, no-store');
   const room=cleanRoom(req.params.room),who=identity(req.session);
   if(!room||!who)return res.status(401).json({success:false,error:'Compte SWAPP requis.'});
   if(!getUser(room))return res.status(404).json({success:false,error:'Chaîne inconnue.'});
+  try{await hydrate(room)}catch(_){return res.status(503).json({success:false,error:'Points MySQL indisponibles.'})}
   const w=lookup(room,who.id);
   return res.json({success:true,room,points:Number(w?.points||0),
    points_per_minute:PTS_PER_MINUTE,daily_cap:MAX_DAILY,
    rewards_enabled:false,rule:'Lecture active, connecté et onglet visible. Les points ne sont pas échangeables actuellement.'});
  });
  function award(room,who,ms,now){
+  if(sql)return sql.credit(room,who,DATE(now),MAX_DAILY,PTS_PER_MINUTE).then(result=>{
+   if(result?.row){wallets[room]??={};wallets[room][who.id]=result.row;}
+   return !!result?.awarded;
+  }).catch(e=>{console.warn('[SWAPP CHANNEL LOYALTY] mysql credit failed:',String(e?.code||e?.name||'error'));return false;});
   const prev=lookup(room,who.id)||{points:0,minutes:0,date:DATE(now),earnedToday:0};
   const date=DATE(now),used=prev.date===date?Number(prev.earnedToday)||0:0;
   if(used>=MAX_DAILY)return false;
@@ -119,7 +127,12 @@ function installChannelAudience({app,io,getUser,getNativeRoom,isLocalLive,storag
   const remainder=completed?elapsed-60000:elapsed;
   watches.set(key,{socketId:socket.id,lastAt:now,elapsed:remainder});
   socket.data.swappLoyaltyWatch={room,playing:true,lastAt:now};
-  if(completed&&award(room,who,60000,now))socket.emit('swapp:channel:points',{room,points:lookup(room,who.id).points,added:PTS_PER_MINUTE});
+  if(completed){
+   const announce=awarded=>{if(awarded)socket.emit('swapp:channel:points',{room,points:lookup(room,who.id).points,added:PTS_PER_MINUTE})};
+   const result=award(room,who,60000,now);
+   if(result&&typeof result.then==='function')void result.then(announce);
+   else announce(result);
+  }
   if(watches.size>3000)for(const [k,v] of watches)if(now-v.lastAt>90000)watches.delete(k);
  }
  io.on('connection',socket=>{
