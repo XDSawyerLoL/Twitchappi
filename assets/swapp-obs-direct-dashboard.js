@@ -171,6 +171,22 @@ async function refresh(){
    ' ('+failedMedia+') : '+(errorReason[result.last_error_reason]||errors[result.last_error_code]||'voir les journaux serveur.'):'')+
    (result.last_put_at?' · Dernier contact OBS : '+new Date(result.last_put_at).toLocaleTimeString('fr-FR'):'');
   detail.dataset.stage=result.stage||'unknown';
+  // "HLS reçu" only proves segments and a playlist exist. MPEG-TS may still
+  // contain HEVC/AV1 instead of browser-decodable H.264.
+  if(result.active){
+   try{
+    const playback=await json('/api/oryon/local-relay/'+encodeURIComponent(user.login)+'/probe');
+    if(!panel.isConnected)return;
+    const tracks=playback.media;
+    if(tracks?.pmt && tracks.video_browser_compatible===false){
+     const detected=(tracks.tracks||[]).map(x=>x.codec).filter(Boolean).join(', ');
+     message.textContent+=' Attention : la piste vidéo détectée ('+(detected||'inconnue')+
+      ') n’est pas H.264. Sélectionne H.264 dans OBS pour assurer la lecture.';
+    }else if(tracks?.valid && tracks?.pat===false){
+     message.textContent+=' Attention : les segments MPEG-TS reçus ne contiennent pas de table PAT reconnue. Vérifie le format HLS MPEG-TS dans OBS.';
+    }
+   }catch(_){}
+  }
  }catch(error){if(panel.isConnected){
    badge.textContent='Diagnostic de réception indisponible';
    const detail=$('.swapp-obs-direct-diagnostic',panel);
