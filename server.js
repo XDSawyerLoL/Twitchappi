@@ -332,7 +332,7 @@ app.use((req, res, next) => {
         t: new Date().toISOString(),
         rid,
         m: req.method,
-        p: req.originalUrl,
+        p: String(req.originalUrl||'').replace(/([?&](?:cid|stream_key|key|token|password)=)[^&#]*/gi,'$1[REDACTED]'),
         s: res.statusCode,
         ms,
         ip
@@ -4712,8 +4712,41 @@ swappLivePush.register(app);
 // Upload-only OBS transport: SWAPP Local sends bounded HLS to the existing
 // HTTPS site. Viewers never connect to the streamer PC or a temporary tunnel.
 const {attachSwappDirectRelay}=require('./modules/swapp-direct-hls-relay');
+const swappObsHlsPersistAt=new Map();
 const swappDirectRelay=attachSwappDirectRelay(app,{
  lookupOwner:async token=>findOryonUserByAgentToken(readOryonUsers(),token),
+ lookupObsOwner:async streamKey=>{
+  // Compare hashed values to avoid leaking the OBS stream key to application logs.
+  if(!/^[0-9a-f]{48}$/i.test(String(streamKey||'')))return null;
+  const supplied=crypto.createHash('sha256').update(streamKey).digest();
+  for(const user of readOryonUsers().users||[]){
+   if(!/^[0-9a-f]{48}$/i.test(String(user.stream_key||'')))continue;
+   const expected=crypto.createHash('sha256').update(user.stream_key).digest();
+   if(crypto.timingSafeEqual(supplied,expected))return user;
+  }
+  return null;
+ },
+ onVerifiedObsIngest:async login=>{
+  const now=Date.now();
+  if(now-(swappObsHlsPersistAt.get(login)||0)<18000)return;
+  swappObsHlsPersistAt.set(login,now);
+  try{
+   const data=readOryonUsers(),user=(data.users||[]).find(u=>u.login===login);
+   if(!user)return;
+   // A completed, playable playlist is required before a public live appears.
+   markOryonLiveFields(user,true,{
+    localAgent:true,platform:'swapp-obs-hls',
+    title:user.current_live_title||'Live de '+(user.display_name||login),
+    category:user.current_live_category||'',tags:user.current_live_tags||[]
+   });
+   user.oryon_local_player_url='/api/oryon/local-relay/'+encodeURIComponent(login)+'/player';
+   user.oryon_local_provider='obs-hls';
+   await writeOryonUsersAndWait(data);
+  }catch(error){
+   swappObsHlsPersistAt.delete(login);
+   console.warn('[SWAPP OBS] verified stream metadata persistence unavailable',String(error?.code||error?.name||'error'));
+  }
+ },
  onPublishedLive:(login,eventId)=>swappLivePush.notifyLive(login,eventId,
   (readOryonUsers().users||[]).find(x=>x.login===login)?.current_live_title||'')
 });
