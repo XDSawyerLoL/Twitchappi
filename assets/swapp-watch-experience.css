@@ -367,7 +367,7 @@ body:has(#channel.view.active) #oryonMiniPlayer{display:none!important}
 }
 .swapp-immersion-dimmer>div{
  position:absolute!important;pointer-events:none!important;
- background:rgba(2,4,12,.73)!important;
+ background:rgba(2,4,12,.93)!important;
  box-shadow:none!important;margin:0!important;padding:0!important;
 }
 @keyframes swapp-immersion-reveal{
