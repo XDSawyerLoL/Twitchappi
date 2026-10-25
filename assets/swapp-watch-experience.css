@@ -475,7 +475,8 @@ body:has(#channel.view.active) #oryonMiniPlayer{display:none!important}
 
 /* The broadcast headline is above the player rather than overlaid on video. */
 #channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .swapp-watch-headline{
- order:-1;display:flex;align-items:center;min-width:0;gap:11px;
+ order:-1!important;flex:0 0 auto!important;width:100%!important;
+ display:flex;align-items:center;min-width:0;gap:11px;
  padding:5px 1px 10px;margin:0;background:transparent;
 }
 #channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .swapp-watch-live-pill{
