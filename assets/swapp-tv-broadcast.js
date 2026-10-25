@@ -12,7 +12,7 @@ function tvTime(value){
  if(value instanceof Date)return value.getTime();
  const str=String(value||'').trim().replace(' ','T');
  if(!str)return NaN;
- return Date.parse(/(?:Z|[+-]\\d\\d:?\\d\\d)$/.test(str)?str:str+'Z');
+ return Date.parse(/(?:Z|[+-]\d\d:?\d\d)$/.test(str)?str:str+'Z');
 }
 function updateSlotClock(now=Date.now()){
  const node=$('stv-slot-clock');
