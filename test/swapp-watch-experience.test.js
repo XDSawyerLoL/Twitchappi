@@ -166,7 +166,7 @@ test('offline sync measures player but NEVER adds a translation to the chat',()=
  const b=script.indexOf('\n function installOfflineAlignment(page){',a);
  assert.ok(a>=0&&b>a,'offline sync boundaries found');
  const win={matchMedia:()=>({matches:false})};
- const sync=new Function('window',script.slice(a,b)+'return syncChat')(win);
+ const sync=new Function('window',script.slice(a,b)+'\nreturn syncChat;')(win);
  const values={},removed=[];
  const video={getBoundingClientRect:()=>({top:170,left:0,right:1240,width:1240,height:696})};
  const chat={dataset:{swappAlignShift:'-160'},style:{
