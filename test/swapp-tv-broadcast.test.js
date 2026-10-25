@@ -161,3 +161,26 @@ test('automatic discovery refresh does not discard an already watched creator',a
  assert.equal(renderCount,1,'an actual disappearance should select a new creator');
  assert.equal(railCount,2);
 });
+
+test('conductor clock measures the actual verified slot, not queue position estimates',()=>{
+ const code=read('assets/swapp-tv-broadcast.js');
+ const start=code.indexOf('const TV_SLOT_SECONDS=');
+ const end=code.indexOf('const setText=',start);
+ assert.ok(start>=0&&end>start);
+ const nodes={'stv-slot-clock':{hidden:true,textContent:''}};
+ const state={queue:{enabled:true,director_enabled:true,
+  on_air:{started_at:'2026-10-25T18:00:00Z'}}};
+ const make=new Function('state','$','Date',code.slice(start,end)+
+  'return {updateSlotClock,tvTime,TV_SLOT_SECONDS};')(state,id=>nodes[id],Date);
+ assert.equal(make.TV_SLOT_SECONDS,require('../modules/swapp-tv-director').MAX_AIR_SECONDS);
+ make.updateSlotClock(Date.parse('2026-10-25T18:02:31Z'));
+ assert.equal(nodes['stv-slot-clock'].textContent,'PROCHAIN RELAIS · 07:29');
+ assert.equal(nodes['stv-slot-clock'].hidden,false);
+ make.updateSlotClock(Date.parse('2026-10-25T18:10:01Z'));
+ assert.equal(nodes['stv-slot-clock'].textContent,'RELAIS EN PRÉPARATION');
+ state.queue.enabled=false;
+ make.updateSlotClock(Date.parse('2026-10-25T18:10:03Z'));
+ assert.equal(nodes['stv-slot-clock'].hidden,true);
+ assert.match(page('tv'),/id="stv-slot-clock"[^>]*aria-live="off" hidden/);
+ assert.match(read('assets/swapp-program.css'),/\.stv-slot-clock\[hidden\]/);
+});
