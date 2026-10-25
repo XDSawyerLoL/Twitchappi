@@ -136,3 +136,12 @@ test('the newest published article supplies its own video and destination',async
  assert.equal(tile.querySelector('.swapp-video-open').dataset.videoYoutube,'Qwerty12345');
  assert.equal(tile.querySelector('.swapp-video-caption').children.find(node=>node.tagName==='H3').textContent,'Gaming news 1');
 });
+
+test('the editorial video rejects lookalike hosts and unpublished teasers',async()=>{
+ const fake={...make(0),trailerUrl:'https://notyoutube.com/watch?v=AbcdEfgh012'};
+ const draft={...make(1),status:'draft',trailerUrl:'https://www.youtube.com/watch?v=AbcdEfgh012'};
+ const view=await render([fake,draft]);
+ const top=view.shelf.querySelector('.swapp-home-editorial-top');
+ assert.equal(top.classList.contains('swapp-home-has-video'),false);
+ assert.equal(top.querySelector('.swapp-home-video-feature'),null);
+});
