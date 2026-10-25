@@ -353,3 +353,37 @@ body:has(#channel.view.active) #oryonMiniPlayer{display:none!important}
   border-radius:10px!important;
  }
 }
+
+
+/* Mode Immersion: a geometric, pointer-transparent dimming frame.
+   The hole is the ENTIRE live layout, keeping player/Pulse, chat and tools
+   fully bright. No filters or overlays are applied to decoded video pixels. */
+.swapp-immersion-dimmer[hidden]{display:none!important}
+.swapp-immersion-dimmer{
+ position:fixed!important;inset:0!important;
+ z-index:2147483000!important;pointer-events:none!important;
+ overflow:hidden!important;touch-action:auto;
+ animation:swapp-immersion-reveal .22s ease-out both;
+}
+.swapp-immersion-dimmer>div{
+ position:absolute!important;pointer-events:none!important;
+ background:rgba(2,4,12,.73)!important;
+ box-shadow:none!important;margin:0!important;padding:0!important;
+}
+@keyframes swapp-immersion-reveal{
+ from{opacity:0}
+ to{opacity:1}
+}
+#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .swapp-watch-immersion-btn[aria-pressed="true"]{
+ background:rgba(150,88,255,.20)!important;
+ border-color:rgba(167,121,255,.38)!important;
+ color:#fff!important
+}
+#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .swapp-watch-immersion-btn{
+ white-space:nowrap
+}
+/* Immersion is deliberately NOT the legacy theatre mode: keep the channel
+   header and navigation in the DOM and visible behind the dimming frame. */
+@media(prefers-reduced-motion:reduce){
+ .swapp-immersion-dimmer{animation:none!important}
+}
