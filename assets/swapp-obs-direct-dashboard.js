@@ -1,0 +1,127 @@
+/* SWAPP OBS Direct: no SWAPP Local program, one-time OBS HLS service setup. */
+(function(){
+'use strict';
+const $=(s,root=document)=>root.querySelector(s);
+const make=(tag,cls,label)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(label!==undefined)e.textContent=label;return e};
+let lastPanel=null,lastRefresh=0,refreshing=false;
+const serviceName='SWAPP Live (HTTPS HLS)';
+const presetUrl='/assets/swapp-obs-hls-preset.json';
+const setupUrl='https://github.com/XDSawyerLoL/Twitchappi/blob/master/tools/configurer-obs-swapp-hls.ps1';
+const validRoom=s=>/^[a-z0-9_][a-z0-9_-]{1,39}$/.test(String(s||''));
+function manager(){
+ const page=$('#manager');
+ return page?.classList.contains('active')?page:null;
+}
+function account(){
+ try{return typeof state!=='undefined'?state.session?.local:null}catch(_){return null}
+}
+async function json(url){
+ const response=await fetch(url,{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}});
+ const data=await response.json().catch(()=>({}));
+ if(!response.ok||data.success===false)throw Error(data.error||'Configuration indisponible');
+ return data;
+}
+function button(text,cls,callback){
+ const b=make('button',cls,text);b.type='button';b.addEventListener('click',callback);return b;
+}
+function card(){
+ const page=manager(),user=account();
+ if(!page||!user||!validRoom(user.login))return null;
+ const hero=$('.managerHero',page),workspace=$('.swapp-creator-main',page);
+ if(!hero||!workspace)return null;
+ let panel=$('#swapp-obs-direct',page);
+ if(panel)return panel;
+ panel=make('section','swapp-obs-direct');
+ panel.id='swapp-obs-direct';
+ const top=make('header','swapp-obs-direct-header');
+ const title=make('div','');
+ title.append(make('span','swapp-obs-direct-overline','DIFFUSION OBS NATIVE'),
+  make('h2','', 'Diffuser depuis OBS, directement sur SWAPP'),
+  make('p','', 'Plus besoin de SWAPP Local. OBS envoie les segments HLS vers swapp.tv en HTTPS.'));
+ top.append(title,make('span','swapp-obs-direct-live','Vérification…'));
+ panel.append(top);
+ const fields=make('div','swapp-obs-direct-grid');
+ const server=make('section','swapp-obs-direct-setup');
+ server.append(make('h3','','1. Configuration OBS (une seule fois)'),
+  make('p','','Ajoute le service SWAPP Live (HTTPS HLS) à OBS, puis sélectionne-le dans Paramètres > Stream. La méthode native utilise le protocole HLS, pas RTMP.'));
+ const setup=make('div','swapp-obs-direct-actions');
+ const download=make('a','btn secondary','Configurer OBS sur Windows');
+ download.href=setupUrl;download.target='_blank';download.rel='noopener noreferrer';
+ const preset=make('a','btn secondary','Voir le préréglage HLS');
+ preset.href=presetUrl;preset.target='_blank';preset.rel='noopener noreferrer';
+ setup.append(download,preset);
+ server.append(setup);
+ const key=make('section','swapp-obs-direct-secret');
+ key.append(make('h3','','2. Clé personnelle OBS'),
+  make('p','','Copie ta clé dans le champ « Clé de stream » d’OBS. Ne la partage jamais.'));
+ const hidden=make('input','swapp-obs-key');hidden.type='password';hidden.readOnly=true;
+ hidden.value='Chargement…';hidden.setAttribute('aria-label','Clé privée OBS');
+ hidden.setAttribute('autocomplete','off');
+ const line=make('div','swapp-obs-direct-keyline');
+ const reveal=button('Afficher','',()=>{hidden.type=hidden.type==='password'?'text':'password';reveal.textContent=hidden.type==='password'?'Afficher':'Masquer'});
+ const copy=button('Copier','',()=>{
+  if(!/^[a-f0-9]{48}$/i.test(hidden.value))return;
+  void navigator.clipboard?.writeText(hidden.value);
+ });
+ line.append(hidden,reveal,copy);key.append(line);
+ const status=make('p','swapp-obs-direct-status','');
+ status.setAttribute('role','status');
+ key.append(status);
+ fields.append(server,key);panel.append(fields);
+ const ready=make('div','swapp-obs-direct-ready');
+ ready.append(make('strong','','3. Dans OBS : Démarrer le streaming'),
+  make('span','', 'SWAPP publiera automatiquement le direct dès réception de segments vidéo valides. Le titre et la catégorie se changent dans le dashboard.'));
+ panel.append(ready);
+ workspace.insertBefore(panel,hero);
+ // This old OBS/local card is still used by legacy streamers but no longer
+ // appears as a required installation in the direct OBS workflow.
+ const old=page.querySelector('#oryonLivePanel');
+ if(old){old.hidden=true;old.style.display='none';}
+ const modes=page.querySelectorAll('.streamModeGrid .modeCard');
+ if(modes.length>=2){
+  const heading=modes[0]?.querySelector('h2');
+  if(heading)heading.textContent='OBS → SWAPP (direct)';
+  const details=modes[0]?.querySelector('p');
+  if(details)details.textContent='OBS seul. Aucun agent intermédiaire.';
+  const browser=modes[1]?.querySelector('h2');
+  if(browser)browser.textContent='Capture navigateur (option)';
+  const other=modes[1]?.querySelector('p');
+  if(other)other.textContent='Partager ton écran ou ta caméra sans OBS.';
+ }
+ const managerHead=page.querySelector('.pageHead h1');
+ if(managerHead)managerHead.textContent='Gestionnaire de diffusion SWAPP';
+ const sub=page.querySelector('.pageHead p');
+ if(sub)sub.textContent='Choisis OBS pour diffuser directement sur ta chaîne, ou la capture navigateur en alternative.';
+ void getKey(panel);
+ return panel;
+}
+async function getKey(panel){
+ const target=$('.swapp-obs-key',panel),notice=$('.swapp-obs-direct-status',panel);
+ try{
+  const response=await json('/api/oryon/stream-key');
+  if(!panel.isConnected)return;
+  const key=String(response.stream_key||'');
+  if(!/^[a-f0-9]{48}$/i.test(key))throw Error('Clé de stream non valide');
+  target.value=key;
+  notice.textContent='Clé SWAPP prête. Elle ne doit être saisie qu’une seule fois dans OBS.';
+ }catch(e){if(panel.isConnected){target.value='Indisponible';notice.textContent=e.message}}
+}
+async function refresh(){
+ const panel=card(),user=account();
+ if(!panel||!user||refreshing||Date.now()-lastRefresh<7000)return;
+ lastRefresh=Date.now();refreshing=true;
+ const badge=$('.swapp-obs-direct-live',panel);
+ try{
+  const result=await json('/api/oryon/local-relay/'+encodeURIComponent(user.login)+'/state');
+  if(!panel.isConnected)return;
+  badge.textContent=result.active?'En direct sur SWAPP':'En attente du flux OBS';
+  badge.dataset.live=result.active?'true':'false';
+ }catch(_){if(panel.isConnected)badge.textContent='État du flux indisponible'}
+ finally{refreshing=false}
+}
+const timer=setInterval(()=>{if(manager())void refresh()},4500);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){lastRefresh=0;void refresh()}});
+window.addEventListener('popstate',()=>{lastRefresh=0;void refresh()});
+window.addEventListener('pagehide',()=>clearInterval(timer),{once:true});
+void refresh();
+})();
