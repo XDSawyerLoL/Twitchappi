@@ -93,6 +93,9 @@
   refresh.type='button';refresh.addEventListener('click',()=>void refreshAudience(true));
   head.append(titles,refresh);
   panel.append(head,node('p','swapp-audience-summary','Récupération des spectateurs…'),node('div','swapp-audience-list'));
+  const loyal=node('section','swapp-audience-loyal');
+  loyal.append(node('h3','','Fidèles de la chaîne'),node('div','swapp-audience-leaderboard'));
+  panel.appendChild(loyal);
   const note=node('p','swapp-audience-note',
    '5 points par minute de lecture active signalée, maximum 300 points par jour et par chaîne. Les lecteurs externes non vérifiables ne donnent pas de points. Aucune récompense échangeable activée.');
   panel.appendChild(note);main.appendChild(panel);
@@ -139,6 +142,17 @@
    }
    if(!(stats.users||[]).length)list.appendChild(node('p','swapp-audience-empty',
     stats.live?'Aucun compte identifié dans le salon pour le moment.':'Aucun spectateur connecté. La liste est vide hors direct.'));
+   const leaderboard=$('.swapp-audience-leaderboard',panel);
+   leaderboard.replaceChildren();
+   for(const member of stats.leaderboard||[]){
+    const row=node('div','swapp-audience-row');
+    const who=node('span','swapp-audience-user');
+    who.append(node('strong','',member.display_name||member.login),node('small','', '@'+member.login));
+    row.append(who,node('span','',Number(member.minutes||0).toLocaleString('fr-FR')+' min cumulées'),
+     node('span','swapp-audience-score',Number(member.points||0).toLocaleString('fr-FR')+' pts'));
+    leaderboard.appendChild(row);
+   }
+   if(!leaderboard.childElementCount)leaderboard.appendChild(node('p','swapp-audience-empty','Aucun point distribué sur cette chaîne.'));
   }catch(e){summary.textContent=e.message;list.replaceChildren()}
   finally{audienceBusy=false}
  }
