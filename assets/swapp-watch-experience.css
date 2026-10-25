@@ -438,3 +438,53 @@ body:has(#channel.view.active) #oryonMiniPlayer{display:none!important}
   top:0!important;
  }
 }
+
+/* 2026-10-25 — offline channels keep the same video/chat alignment contract
+ * as live channels. A legacy 100%-height flex sidebar stretched the chat. */
+#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="false"] .channelLiveLayout{
+ display:grid!important;grid-template-columns:minmax(0,1fr) minmax(286px,336px)!important;
+ column-gap:4px!important;align-items:start!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="false"] .channelMainPlayer{
+ min-width:0!important;align-self:start!important;margin-top:0!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="false"] .channelMainPlayer > .player{
+ display:block!important;width:100%!important;min-height:0!important;
+ height:auto!important;aspect-ratio:16/9!important;margin:0!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="false"] .channelLiveSidebar{
+ position:relative!important;inset-block-start:0!important;top:0!important;
+ align-self:start!important;height:auto!important;min-height:0!important;margin:0!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="false"] .channelLiveSidebar > .chatPanel{
+ position:relative!important;top:0!important;inset-block-start:0!important;
+ bottom:auto!important;transform:none!important;
+ align-self:start!important;margin:0!important;
+ box-sizing:border-box!important;width:100%!important;
+ height:var(--swapp-chat-player-height,auto)!important;
+ min-height:0!important;max-height:none!important;
+}
+@media(max-width:1080px){
+ #channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="false"] .channelLiveLayout{
+  grid-template-columns:minmax(0,1fr)!important;
+ }
+ #channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="false"] .channelLiveSidebar > .chatPanel{
+  min-height:300px!important;max-height:440px!important;
+ }
+}
+
+/* The broadcast headline is above the player rather than overlaid on video. */
+#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .swapp-watch-headline{
+ order:-1!important;flex:0 0 auto!important;width:100%!important;
+ display:flex;align-items:center;min-width:0;gap:11px;
+ padding:5px 1px 10px;margin:0;background:transparent;
+}
+#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .swapp-watch-live-pill{
+ flex:0 0 auto;background:#c83650;color:#fff;border-radius:4px;
+ padding:5px 7px;font:800 10px/1 system-ui,sans-serif;letter-spacing:.06em;
+}
+#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .swapp-watch-live-title{
+ margin:0!important;min-width:0;overflow:hidden;text-overflow:ellipsis;
+ color:#f5f2fa;font:750 clamp(15px,1.45vw,21px)/1.35 system-ui,sans-serif;
+ white-space:normal;overflow-wrap:anywhere;
+}
