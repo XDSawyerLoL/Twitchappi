@@ -6,7 +6,7 @@
  */
 const fs=require('node:fs');
 const path=require('node:path');
-const cleanRoom=value=>/^[a-z0-9_][a-z0-9_-]{1,39}$/.test(String(value||'').toLowerCase())?String(value).toLowerCase():'';
+const cleanRoom=value=>{const v=String(value||'').trim().toLowerCase();return /^[a-z0-9_][a-z0-9_-]{1,39}$/.test(v)&&!['__proto__','prototype','constructor'].includes(v)?v:'';};
 const DATE=now=>new Date(now).toISOString().slice(0,10);
 function installChannelAudience({app,io,getUser,getNativeRoom,isLocalLive,storageFile=path.join(process.cwd(),'.swapp-channel-loyalty.json'),clock=Date}){
  if(!app||!io||!getUser||!getNativeRoom||!isLocalLive)throw Error('missing channel audience dependency');
