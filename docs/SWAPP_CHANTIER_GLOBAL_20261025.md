@@ -58,3 +58,31 @@
 
 **Le chantier global n'est pas à 100 % sans essais réels, capacité média,
 validation commerciale et déploiement. Ne pas communiquer comme tel.**
+
+
+## Lot suivant — expérience visible et cohérence de publication
+- Créateur : l'éditeur de mosaïque présente désormais une grille d'aperçu
+  réactive (format original / portrait / carré / cinéma, focales, ordre,
+  titres et description). Les cases encore sans image ne sont pas prévisualisées
+  comme si elles allaient être publiées.
+- Sauvegarde : le retour de la route publique doit confirmer les métadonnées
+  effectivement enregistrées (taille, ratio, cadrage, texte et ordre), et pas
+  seulement le nombre de panneaux. Les images doivent toujours être
+  publiquement servies et non des data URLs privées.
+- Accueil : l'ancien trailer CODE VEIN II figé a été retiré de la une.
+  Le bandeau vidéo choisit un article réellement retourné par le CMS, avec
+  image et lien YouTube HTTPS autorisé ; aucun espace fantôme si aucun trailer
+  valide n'existe. Les liens ouvrent le dossier correspondant.
+- Accueil : lorsque aucune illustration ne permet une grande une, la grille
+  conserve cinq articles au lieu d'en perdre un.
+- Clés de version actualisées pour l'accueil, la galerie et les routes Vidéos ;
+  les smoke tests vérifient qu'un ancien trailer figé n'est plus servi.
+
+### Vérification de code de ce lot
+- 8 tests d'interface éditoriale exécutés dans un simulateur DOM isolé : OK.
+- 18 tests de mosaïque exécutés sur fonctions réelles et sources : OK.
+- 2 tests mosaïque dépendant du gros serveur Node non exécutés ici.
+- Syntaxe JS des modules modifiés et équilibre CSS : OK.
+- Ces essais ne prouvent ni la persistance effective Hostinger ni l'absence
+  de régressions sur les navigateurs réels. Aucun test navigateur réel ou
+  npm test complet n'a été exécuté pendant cette session.
