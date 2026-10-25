@@ -66,6 +66,16 @@ video{display:block;width:100%;height:100%;object-fit:cover;background:#000;curs
 @media(max-width:360px){#stop{display:none}.toolbar .live{font-size:8px}}
 @media(prefers-reduced-motion:reduce){.swapp-short-toggle{transition:none!important}}
 
+
+.latencyMonitor{
+ position:absolute;z-index:5;top:11px;right:10px;padding:5px 8px;
+ border:1px solid rgba(255,255,255,.12);border-radius:5px;
+ background:rgba(7,9,17,.70);color:#cbd0dc;
+ font:600 10px/1.2 Inter,system-ui,sans-serif;
+ pointer-events:none;white-space:nowrap
+}
+.latencyMonitor[hidden]{display:none!important}
+@media(max-width:620px){.latencyMonitor{right:5px;top:5px;font-size:9px;padding:4px 5px}}
 </style>
 </head>
 <body>
@@ -74,6 +84,7 @@ video{display:block;width:100%;height:100%;object-fit:cover;background:#000;curs
   <video id="video" autoplay muted playsinline aria-label="Diffusion SWAPP en direct"></video>
   <div id="state" role="status" aria-live="polite">Connexion au direct…</div>
   <div id="audioHint" class="audioHint" role="status" aria-live="polite" hidden></div>
+  <output id="latency" class="latencyMonitor" aria-label="Retard du lecteur par rapport au flux disponible" title="Retard estimé du lecteur uniquement, sans le délai OBS et Internet" hidden></output>
  </div>
  <div class="toolbar" role="group" aria-label="Commandes du lecteur SWAPP">
   <span id="liveStatus" class="live"><span class="dot"></span>LIVE</span>
@@ -104,7 +115,9 @@ const pauseButton = document.getElementById('pause');
 const stopButton = document.getElementById('stop');
 const liveButton = document.getElementById('live');
 const liveStatus = document.getElementById('liveStatus');
+const latencyMonitor = document.getElementById('latency');
 let manualStop = false, userPaused = false;
+let intentionalTimeshift = false, lastLiveCorrection = 0;
 let h = null;
 let booted = false, lastFrameAt = Date.now(), retries = 0, restarting = false;
 let lastHlsError = '';
@@ -141,6 +154,7 @@ function liveEdge(){
  return NaN;
 }
 function seekLive(){
+ intentionalTimeshift=false;
  const edge=liveEdge();
  if(Number.isFinite(edge)){try{v.currentTime=edge}catch(_){}}
 }
@@ -155,16 +169,17 @@ async function playVideo({jumpToLive=false}={}){
 playButton.addEventListener('click',()=>{void playVideo()});
 pauseButton.addEventListener('click',()=>{
  if(manualStop)return;
+ intentionalTimeshift=true;
  userPaused=true;v.pause();playerStatus('paused');
 });
 stopButton.addEventListener('click',()=>{
- manualStop=true;userPaused=false;v.pause();
+ manualStop=true;userPaused=false;intentionalTimeshift=false;v.pause();
  if(h)h.stopLoad();
  message('Lecture arrêtée sur cet appareil. Le direct continue sur SWAPP.');
  playerStatus('stopped');
 });
 liveButton.addEventListener('click',()=>{void playVideo({jumpToLive:true})});
-v.addEventListener('pause',()=>{if(!manualStop){userPaused=true;playerStatus('paused')}});
+v.addEventListener('pause',()=>{if(!manualStop&&!restarting&&booted){userPaused=true;playerStatus('paused')}});
 v.addEventListener('playing',()=>{if(!manualStop){userPaused=false;displayVideo()}});
 
 function syncAudio(){
@@ -228,7 +243,7 @@ function failure(reason){
 }
 function restart(){
  if(restarting || manualStop)return;
- restarting=true;booted=false;booting=false;everDecoded=false;retries++;
+ restarting=true;booted=false;booting=false;everDecoded=false;userPaused=false;retries++;
  playerStatus('connecting');
  if(h){try{h.destroy()}catch(_){} h=null}
  v.pause();v.removeAttribute('src');v.load();
@@ -248,8 +263,13 @@ async function boot(){
   if(!window.Hls)await scriptFallback();
   if(window.Hls && Hls.isSupported()){
   h=new Hls({
-   lowLatencyMode:false,liveSyncDurationCount:3,
-   backBufferLength:80,maxBufferLength:25,
+   // Standard HLS/MPEG-TS: 2 completed segments instead of the old 3.
+   // The lowLatencyMode flag only helps true LL-HLS playlists with PART tags.
+   lowLatencyMode:false,
+   liveSyncDurationCount:2,
+   liveMaxLatencyDurationCount:5,
+   maxLiveSyncPlaybackRate:1.10,
+   backBufferLength:80,maxBufferLength:12,
    manifestLoadingMaxRetry:4,levelLoadingMaxRetry:4,fragLoadingMaxRetry:4
   });
   booted=true;hlsStartedAt=Date.now();
@@ -300,9 +320,36 @@ async function boot(){
   setTimeout(()=>{booting=false;boot()},4500);
  }finally{booting=false}
 }
+// hls.js knows the latest advertised playlist edge. This indicator is the
+// *player-side delay*, NOT the end-to-end OBS-to-viewer delay.
+function refreshLiveLatency(){
+ if(!booted || manualStop || !h || !v.videoWidth || userPaused){
+  latencyMonitor.hidden=true;return;
+ }
+ const delay=Number(h.latency);
+ if(!Number.isFinite(delay)||delay<0){
+  latencyMonitor.hidden=true;return;
+ }
+ latencyMonitor.hidden=false;
+ latencyMonitor.textContent='Retard lecteur ≈ '+Math.round(delay)+' s';
+ // Do not destroy the viewer's paused/replayed DVR position.
+ if(intentionalTimeshift || v.paused || v.seeking || v.readyState<2)return;
+ const target=Number(h.targetLatency);
+ const pos=Number(h.liveSyncPosition);
+ if(!Number.isFinite(pos)||!Number.isFinite(target)||pos<=v.currentTime+1)return;
+ const threshold=Math.max(9,target+6);
+ const now=Date.now();
+ if(delay>threshold && now-lastLiveCorrection>12000){
+  try{
+   v.currentTime=pos;
+   lastLiveCorrection=now;
+  }catch(_){}
+ }
+}
 playerStatus('connecting');
 syncAudio();
 boot();
+setInterval(refreshLiveLatency,1500);
 setInterval(()=>{if(booted&&!manualStop&&!userPaused&&Date.now()-(everDecoded?lastFrameAt:hlsStartedAt||startedAt)>45000){failure(lastHlsError||'aucune image décodée après 45 secondes');restart()}},5000);
 // Distinguish a muted browser player from an OBS stream with no audio track.
 async function refreshAudioTrack(){
