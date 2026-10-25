@@ -7,6 +7,7 @@ const crypto=require('node:crypto');
 const fs=require('node:fs');
 const path=require('node:path');
 const {inspectTsMedia}=require('./swapp-ts-inspect');
+const {normalizeObsPlaylist,playableObsManifest}=require('./swapp-obs-hls-playlist');
 
 function attachSwappDirectRelay(app, opts={}){
  const lookupOwner=opts.lookupOwner;
@@ -15,7 +16,7 @@ function attachSwappDirectRelay(app, opts={}){
  const rooms=new Map();
  // Per-owner, ephemeral diagnostics: never include a stream key, URL query or IP.
  const obsIngestTelemetry=new Map();
- function obsTrack(login,name,res){
+ function obsTrack(login,name,res,req){
   const stamp=Date.now();
   const prev=obsIngestTelemetry.get(login)||{};
   const current={...prev,last_put_at:stamp,total_puts:(prev.total_puts||0)+1,last_file_type:name==='index.m3u8'?'playlist':'segment'};
@@ -30,8 +31,11 @@ function attachSwappDirectRelay(app, opts={}){
     if(name==='index.m3u8')current.last_playlist_ok_at=Date.now();
     else current.last_segment_ok_at=Date.now();
     current.last_error_code=null;
+    current.last_error_reason=null;
    }else{
     current.last_error_code=code;
+    current.last_error_file_type=name==='index.m3u8'?'playlist':'segment';
+    current.last_error_reason=String(req?.swappObsError||'').slice(0,55)||null;
     current.last_error_at=Date.now();
    }
   };
@@ -134,6 +138,19 @@ function attachSwappDirectRelay(app, opts={}){
    '#EXT-X-MEDIA-SEQUENCE:'+sequence(contiguous[0])+'\n'+
    contiguous.map(n=>'#EXTINF:'+(room.segmentDurations.get(n)||2).toFixed(3)+',\n'+n+'\n').join('');
  }
+ function publishPendingObsPlaylist(room){
+  if(!Array.isArray(room.pendingObsPlaylist)||!room.pendingObsPlaylist.length)return false;
+  const ready=playableObsManifest(room.pendingObsPlaylist,room.segments);
+  if(!ready)return false;
+  // This manifest is rebuilt from validated segment IDs only and cannot
+  // expose OBS's ?cid= private key to viewers.
+  room.manifest=ready.manifest;
+  room.playlistNames=ready.names;
+  for(const entry of ready.entries)room.segmentDurations.set(entry.name,entry.duration);
+  room.lastManifestAt=Date.now();
+  pruneHistory(room);
+  return true;
+ }
  function validatePlaylist(body){
   if(!Buffer.isBuffer(body)||body.length<15||body.length>maxPlaylistBytes)return [];
   const s=body.toString('utf8');
@@ -175,7 +192,7 @@ function attachSwappDirectRelay(app, opts={}){
    if(!room){
     if(rooms.size>=MAX_ROOMS)return res.status(429).json({success:false,error:'Capacité du relais SWAPP atteinte.'});
     room={segments:new Map(),viewers:new Map(),segmentTimeline:[],segmentDurations:new Map(),manifest:null,playlistNames:[],poster:null,posterAt:0,clip:null,clipAt:0,audioTrack:'unknown',bytes:0,lastManifestAt:now,
-     broadcastId:crypto.randomBytes(12).toString('hex'),pushDispatched:false,
+     broadcastId:crypto.randomBytes(12).toString('hex'),pushDispatched:false,pendingObsPlaylist:null,
      lastSegmentAt:0,minuteStarted:now,minuteBytes:0};
     rooms.set(login,room);
    }
@@ -196,6 +213,13 @@ function attachSwappDirectRelay(app, opts={}){
     const audio=String(req.get('x-swapp-audio-track')||'');
     if(audio==='present'||audio==='missing')room.audioTrack=audio;
    }else if(name==='index.m3u8'){
+    if(Array.isArray(req.swappObsEntries)){
+     // FFmpeg writes the HLS playlist BEFORE the referenced final .ts segment.
+     // Accept it, retain it in memory and promote whenever media arrives.
+     room.pendingObsPlaylist=req.swappObsEntries;
+     room.lastManifestAt=now;
+     publishPendingObsPlaylist(room);
+    }else{
     const names=validatePlaylist(body);
     if(!names.length)return res.status(422).json({success:false,error:'Playlist HLS non valide.'});
     if(names.some(n=>!room.segments.has(n)))return res.status(409).json({success:false,error:'Un segment HLS de cette playlist manque.'});
@@ -234,15 +258,19 @@ function attachSwappDirectRelay(app, opts={}){
       Promise.resolve().then(()=>onPublishedLive(login,room.broadcastId))
        .catch(error=>console.warn('[SWAPP PUSH] live event deferred',String(error?.name||'error')));
     }
+    }
    }else{
-    if(body[0]!==0x47)return res.status(422).json({success:false,error:'Segment MPEG-TS invalide.'});
+    if(body[0]!==0x47){
+     req.swappObsError='mpegts_sync_byte_missing';
+     return res.status(422).json({success:false,error:'Segment MPEG-TS invalide.'});
+    }
     let previous=room.segments.get(name);
     let genuinelyNew=!previous||previous.length!==body.length||!previous.equals(body);
     // On a restart from seg_000.ts, don't mix two disconnected HLS timelines.
     const newest=room.segmentTimeline.at(-1);
     if(newest&&sequence(name)<sequence(newest)-MAX_DVR_SEGMENTS){
      room.segments.clear();room.segmentTimeline=[];room.segmentDurations.clear();room.bytes=0;
-     room.playlistNames=[];room.manifest=null;
+     room.playlistNames=[];room.manifest=null;room.pendingObsPlaylist=null;
      room.broadcastId=crypto.randomBytes(12).toString('hex');room.pushDispatched=false;
      previous=null;genuinelyNew=true;
     }
@@ -259,6 +287,20 @@ function attachSwappDirectRelay(app, opts={}){
      return res.status(413).json({success:false,error:'Mémoire vidéo SWAPP saturée : réduis le bitrate OBS.'});
     }
     if(genuinelyNew)room.lastSegmentAt=now;
+    if(room.pendingObsPlaylist)publishPendingObsPlaylist(room);
+   }
+   // Only a playable playlist and genuine MPEG-TS bytes publish a live.
+   // Crucially this also runs after the segment following an early OBS playlist.
+   if(authorizedOwner&&hasFreshVideo(room)){
+    if(!room.pushDispatched){
+     room.pushDispatched=true;
+     if(typeof onPublishedLive==='function')
+      Promise.resolve().then(()=>onPublishedLive(login,room.broadcastId))
+       .catch(error=>console.warn('[SWAPP PUSH] live event deferred',String(error?.name||'error')));
+    }
+    if(typeof opts.onVerifiedObsIngest==='function')
+     Promise.resolve().then(()=>opts.onVerifiedObsIngest(login))
+      .catch(error=>console.warn('[SWAPP OBS] live state update failed',String(error?.code||error?.name||'error')));
    }
    room.minuteBytes+=body.length;
    res.json({success:true,room:login,received:name,segment_count:room.segments.size});
@@ -300,25 +342,21 @@ function attachSwappDirectRelay(app, opts={}){
    if(!cleanLogin(user?.login))return res.status(403).json({success:false,error:'Clé OBS non autorisée.'});
    // Record even a missing body: Hostinger may reject/strip chunked HTTP PUT,
    // and OBS itself can continue broadcasting while ignoring HTTP errors.
-   const recordObs=obsTrack(cleanLogin(user.login),name,res);
+   const recordObs=obsTrack(cleanLogin(user.login),name,res,req);
    if(!Buffer.isBuffer(req.body)||!req.body.length){
     const result=res.status(400).json({success:false,error:'Corps HTTP PUT vide ou non décodé. Vérifie le transfert chunked/HTTPS Hostinger.'});
     if(typeof res.on!=='function')recordObs();
     return result;
    }
    if(name==='index.m3u8'){
-    // Normalize exact segment identifiers to match SWAPP's verified HLS relay.
-    const source=req.body.toString('utf8');
-    if(!source.startsWith('#EXTM3U')||source.length>65536)return res.status(422).json({success:false,error:'Playlist OBS invalide.'});
-    const lines=source.split(/\r?\n/);
-    for(let i=0;i<lines.length;i++){
-     const v=lines[i].trim();
-     if(!v||v.startsWith('#'))continue;
-     const match=/^index([0-9]{1,14})\.ts$/.exec(v);
-     if(!match)return res.status(422).json({success:false,error:'Segment OBS inconnu dans la playlist.'});
-     lines[i]='seg_'+String(Number(match[1]))+'.ts';
+    try{req.swappObsEntries=normalizeObsPlaylist(req.body,cid)}
+    catch(error){
+     const reason=String(error?.message||'playlist_invalid').slice(0,55);
+     req.swappObsError=reason;
+     const result=res.status(422).json({success:false,error:'Playlist HLS OBS invalide.',reason});
+     if(typeof res.on!=='function')recordObs();
+     return result;
     }
-    req.body=Buffer.from(lines.join('\n'),'utf8');
    }
    // Reuse *exactly* the existing validation, RAM budgets and public player.
    req.headers['x-swapp-media-name']=name;
@@ -357,6 +395,9 @@ function attachSwappDirectRelay(app, opts={}){
    backend:'swapp-direct-hls',single_node_process:true,
    last_put_at:t.last_put_at||null,last_file_type:t.last_file_type||null,
    last_status:t.last_status||null,last_error_code:t.last_error_code||null,
+   last_error_file_type:t.last_error_file_type||null,
+   last_error_reason:t.last_error_reason||null,
+   pending_obs_segments:r?.pendingObsPlaylist?.length||0,
    last_segment_ok_at:t.last_segment_ok_at||null,last_playlist_ok_at:t.last_playlist_ok_at||null,
    segment_age_ms:segmentAge,playlist_age_ms:playlistAge,segment_count:r?.segments?.size||0,
    has_playlist:!!r?.manifest,max_rooms:MAX_ROOMS,used_rooms:rooms.size,
