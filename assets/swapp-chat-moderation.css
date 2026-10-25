@@ -69,3 +69,13 @@
 .swapp-mod-dialog .swapp-mod-message-controls{display:flex;flex:0 0 auto;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
 .swapp-mod-dialog .swapp-mod-message-controls button{font-size:11px;flex:0 0 auto}
 @media(max-width:620px){.swapp-mod-dialog .swapp-mod-message-controls{max-width:100px}}
+
+/* Keep moderation trigger pinned outside dynamically rebuilt chat header. */
+#channel .creatorRefine .channelLiveSidebar{position:relative!important}
+#channel#channel .creatorRefine .channelLiveSidebar > .swapp-mod-open{
+ position:absolute!important;inset:auto 10px auto auto!important;top:8px!important;
+ z-index:8!important;width:34px!important;height:31px!important;min-height:31px!important;
+ display:grid!important;place-items:center!important;padding:0!important;
+ border-radius:9px!important;font:800 18px/1 system-ui!important;
+ box-shadow:0 2px 9px #0008!important;transform:none!important;
+}
