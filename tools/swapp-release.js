@@ -77,6 +77,7 @@ const RELEASE_FILES=Object.freeze([
  'assets/swapp-chat-moderation.css',
  'modules/swapp-channel-moderation.js',
  'modules/swapp-channel-audience.js',
+ 'modules/swapp-channel-points-mysql.js',
  'assets/swapp-channel-audience.js',
  'assets/swapp-channel-audience.css',
  'assets/swapp-channel-follow.js',
