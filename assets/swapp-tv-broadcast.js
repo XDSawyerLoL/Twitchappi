@@ -82,6 +82,40 @@ async function refreshQueue(){
   return data;
  }catch{const data={enabled:false,director_enabled:false,waiting:[]};state.queue=data;state.queueMode=false;renderQueue(data);rail(data);return data}
 }
+// Rotate discovery across games and creators without using viewer counts.
+// Input from the game-live endpoint may be ordered by popularity; that
+// provider order must not decide who appears first on SWAPP TV.
+function fairDiscovery(candidates,rotation=Math.floor(Date.now()/600000)){
+ const hash=value=>{
+  let n=2166136261;
+  for(const ch of String(value)){n=Math.imul(n^ch.charCodeAt(0),16777619)}
+  return n>>>0;
+ };
+ const buckets=new Map();
+ for(const item of Array.isArray(candidates)?candidates:[]){
+  const game=String(item?.game||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+   .toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+  if(!game)continue;
+  if(!buckets.has(game))buckets.set(game,[]);
+  buckets.get(game).push(item);
+ }
+ const gameKeys=[...buckets.keys()].sort((a,b)=>
+  hash(rotation+':'+a)-hash(rotation+':'+b)||a.localeCompare(b));
+ for(const key of gameKeys){
+  buckets.get(key).sort((a,b)=>
+   hash(rotation+':'+String(a.login))-hash(rotation+':'+String(b.login))||
+   String(a.login).localeCompare(String(b.login)));
+ }
+ const result=[];
+ while(gameKeys.length){
+  for(let i=gameKeys.length-1;i>=0;i--){
+   const group=buckets.get(gameKeys[i]);
+   if(group.length)result.push(group.shift());
+   if(!group.length)gameKeys.splice(i,1);
+  }
+ }
+ return result;
+}
 async function discovery(){
  if(state.queueMode)return;
  const found=[],keys=new Set();
@@ -95,8 +129,16 @@ async function discovery(){
    }
   }catch{}
  }
- state.discovery=found;state.index=0;
- if(!state.queueMode){renderScreen(found[0]||null);rail(null)}
+ const ordered=fairDiscovery(found);
+ const active=!state.selection?.onAir&&ordered.find(item=>item.login===state.selection?.login);
+ state.discovery=ordered;
+ state.index=active?ordered.indexOf(active):0;
+ // Periodic discovery refresh must never tear down a stream the viewer
+ // deliberately launched if its login is still in the verified result set.
+ if(!state.queueMode){
+  if(!active)renderScreen(ordered[0]||null);
+  rail(null);
+ }
 }
 async function mutate(method){
  const node=$('stv-queue-status');node.textContent='Vérification de ton compte…';
