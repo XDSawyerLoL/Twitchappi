@@ -31,6 +31,15 @@ const RELEASE_FILES=Object.freeze([
  'assets/swapp-fair-v3.css',
  'migrations/mysql/010_swapp_fair_exposure_daily.sql',
  'modules/swapp-seo.js',
+ // SWAPP TV is a native station: changing its conductors, queue or UI
+ // must invalidate the release fingerprint, not merely the homepage.
+ 'modules/swapp-program.js',
+ 'modules/swapp-tv-director.js',
+ 'modules/swapp-tv-queue.js',
+ 'assets/swapp-program.css',
+ 'assets/swapp-tv-broadcast.js',
+ 'assets/swapp-tv-rotation.js',
+ 'assets/swapp-calendar.js',
  'modules/swapp-game-pages.js',
  'modules/swapp-news/site-shell.js',
  'modules/swapp-news/router.js',
