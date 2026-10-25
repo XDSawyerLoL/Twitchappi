@@ -43,7 +43,7 @@ function page(kind){
     <div id="stv-pane-queue" class="stv-dock-queue" role="tabpanel" aria-labelledby="stv-tab-queue" hidden>
     <div class="stv-rail-head">
      <span class="stv-label">LE CONDUCTEUR</span>
-     <span id="stv-air-state" class="stv-air-state">HORS ANTENNE</span>
+     <div class="stv-air-meta"><span id="stv-air-state" class="stv-air-state">HORS ANTENNE</span><span id="stv-slot-clock" class="stv-slot-clock" aria-live="off" hidden></span></div>
     </div>
     <div class="stv-upnext">
      <div class="stv-next-heading"><span id="stv-next-title" class="stv-label">À SUIVRE</span></div>
