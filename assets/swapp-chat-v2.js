@@ -40,8 +40,8 @@
   const start=typeof input.selectionStart==='number'?input.selectionStart:value.length;
   const end=typeof input.selectionEnd==='number'?input.selectionEnd:start;
   const before=value.slice(0,start),after=value.slice(end);
-  const spacerBefore=before && !/\\s$/.test(before)?' ':'';
-  const spacerAfter=after && !/^\\s/.test(after)?' ':'';
+  const spacerBefore=before && !/\s$/.test(before)?' ':'';
+  const spacerAfter=after && !/^\s/.test(after)?' ':'';
   const inserted=spacerBefore+emoji+spacerAfter;
   if(typeof input.setRangeText==='function')input.setRangeText(inserted,start,end,'end');
   else input.value=before+inserted+after;
