@@ -426,3 +426,30 @@ test('native TV inventory lists only actual fresh OBS media, never a stalled rel
  assert.equal((await b.call('post',upload,{name:'seg_001.ts',body:changed})).status,200);
  assert.equal(b.relay.activeStreams().length,1,'fresh video returns to verified native TV');
 });
+
+test('native broadcast capacity shows measured per-process HLS load without inventing a CDN',async()=>{
+ const b=backend(),cap='/api/oryon/local-relay/capacity',upload='/api/oryon/local-relay/upload';
+ const fresh=await b.call('get',cap);
+ assert.equal(fresh.status,200);
+ assert.equal(fresh.payload.scope,'single_node_process');
+ assert.equal(fresh.payload.verified_live_rooms,0);
+ assert.equal(fresh.payload.available_slots,fresh.payload.max_rooms);
+ const segment=Buffer.alloc(188*3);segment[0]=0x47;
+ assert.equal((await b.call('post',upload,{name:'seg_001.ts',body:segment})).status,200);
+ const before=await b.call('get',cap);
+ assert.equal(before.payload.verified_live_rooms,0,'media must be playlist-verified');
+ assert.equal((await b.call('post',upload,{
+  name:'index.m3u8',body:Buffer.from('#EXTM3U\\n#EXTINF:2,\\nseg_001.ts\\n')
+ })).status,200);
+ const ready=await b.call('get',cap);
+ assert.equal(ready.payload.verified_live_rooms,1);
+ assert.equal(ready.payload.available_slots,Math.max(0,ready.payload.max_rooms-1));
+ assert.ok(ready.payload.video_bytes_in_memory>=segment.length);
+ const got=await b.call('get','/api/oryon/local-relay/:login/:segment',{segment:'seg_001.ts'});
+ assert.equal(got.status,200);
+ const measured=await b.call('get',cap);
+ assert.ok(measured.payload.segment_response_bytes_60s>=segment.length,
+  'count actually served segment response bytes');
+ assert.ok(measured.payload.estimated_segment_mbps>=0);
+ assert.match(measured.payload.note,/processus Node/);
+});
