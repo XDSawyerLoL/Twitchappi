@@ -133,16 +133,10 @@ let booted = false, lastFrameAt = Date.now(), retries = 0, restarting = false;
 let lastHlsError = '';
 function showFailure(label){message(label+(lastHlsError?' · '+lastHlsError:''));}
 function scriptFallback(){
- if(window.Hls)return Promise.resolve(true);
- if(window.__swappHlsFallback)return window.__swappHlsFallback;
- window.__swappHlsFallback=new Promise(resolve=>{
-  const js=document.createElement('script');
-  js.src='https://unpkg.com/hls.js@1.6.15/dist/hls.min.js';
-  js.onload=()=>resolve(Boolean(window.Hls));
-  js.onerror=()=>resolve(false);
-  document.head.append(js);
- });
- return window.__swappHlsFallback;
+ // This player must never fetch executable code from third-party CDNs.
+ // A pinned hls.js build is served by the SWAPP domain. On Safari native
+ // HLS remains available if the local engine fails to load.
+ return Promise.resolve(Boolean(window.Hls));
 }
 let desiredVolume = 0.8;
 v.volume = desiredVolume;
