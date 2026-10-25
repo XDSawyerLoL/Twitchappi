@@ -65,3 +65,7 @@
  .swapp-mod-dialog .swapp-mod-scroll{max-height:calc(94dvh - 106px);padding:0 13px 16px}
  .swapp-mod-dialog .swapp-mod-top{padding:14px}
 }
+
+.swapp-mod-dialog .swapp-mod-message-controls{display:flex;flex:0 0 auto;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.swapp-mod-dialog .swapp-mod-message-controls button{font-size:11px;flex:0 0 auto}
+@media(max-width:620px){.swapp-mod-dialog .swapp-mod-message-controls{max-width:100px}}
