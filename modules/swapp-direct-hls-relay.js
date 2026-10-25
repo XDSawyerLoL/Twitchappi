@@ -3,12 +3,14 @@
 // existing SWAPP Node backend: no publicly reachable PC, TURN, tunnel or VPS.
 // This is a bounded single-process relay, NOT a scalable CDN/SFU.
 const express=require('express');
+const crypto=require('node:crypto');
 const fs=require('node:fs');
 const path=require('node:path');
 const {inspectTsMedia}=require('./swapp-ts-inspect');
 
 function attachSwappDirectRelay(app, opts={}){
  const lookupOwner=opts.lookupOwner;
+ const onPublishedLive=opts.onPublishedLive;
  if(typeof lookupOwner!=='function')throw Error('Direct HLS relay owner resolver required');
  const rooms=new Map();
  const MAX_ROOMS=Math.max(1,Math.min(2,Number(process.env.SWAPP_DIRECT_RELAY_MAX_ROOMS||2)));
@@ -111,7 +113,9 @@ function attachSwappDirectRelay(app, opts={}){
    let room=rooms.get(login);
    if(!room){
     if(rooms.size>=MAX_ROOMS)return res.status(429).json({success:false,error:'Capacité du relais SWAPP atteinte.'});
-    room={segments:new Map(),viewers:new Map(),segmentTimeline:[],segmentDurations:new Map(),manifest:null,playlistNames:[],poster:null,posterAt:0,clip:null,clipAt:0,audioTrack:'unknown',bytes:0,lastManifestAt:now,minuteStarted:now,minuteBytes:0};
+    room={segments:new Map(),viewers:new Map(),segmentTimeline:[],segmentDurations:new Map(),manifest:null,playlistNames:[],poster:null,posterAt:0,clip:null,clipAt:0,audioTrack:'unknown',bytes:0,lastManifestAt:now,
+     broadcastId:crypto.randomBytes(12).toString('hex'),pushDispatched:false,
+     minuteStarted:now,minuteBytes:0};
     rooms.set(login,room);
    }
    if(now-room.minuteStarted>60000){room.minuteStarted=now;room.minuteBytes=0}
@@ -161,6 +165,14 @@ function attachSwappDirectRelay(app, opts={}){
     }
     room.lastManifestAt=now;
     pruneHistory(room);
+    // Dispatch once after a playlist references actual server-side TS bytes.
+    // A bare "en direct" badge or poster never creates a Push alert.
+    if(!room.pushDispatched&&room.playlistNames.some(n=>room.segments.has(n))){
+     room.pushDispatched=true;
+     if(typeof onPublishedLive==='function')
+      Promise.resolve().then(()=>onPublishedLive(login,room.broadcastId))
+       .catch(error=>console.warn('[SWAPP PUSH] live event deferred',String(error?.name||'error')));
+    }
    }else{
     if(body[0]!==0x47)return res.status(422).json({success:false,error:'Segment MPEG-TS invalide.'});
     let previous=room.segments.get(name);
@@ -169,6 +181,7 @@ function attachSwappDirectRelay(app, opts={}){
     if(newest&&sequence(name)<sequence(newest)-MAX_DVR_SEGMENTS){
      room.segments.clear();room.segmentTimeline=[];room.segmentDurations.clear();room.bytes=0;
      room.playlistNames=[];room.manifest=null;
+     room.broadcastId=crypto.randomBytes(12).toString('hex');room.pushDispatched=false;
      previous=null;
     }
     if(!room.segments.has(name))room.segmentTimeline.push(name);
