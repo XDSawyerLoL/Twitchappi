@@ -66,7 +66,7 @@ async function verify(){
  const station=await request(origin,'/tv');
  check(station.body.includes('id="stv-slot-clock"')&&
   station.body.includes('id="stv-watch"')&&
-  station.body.includes('swapp-tv-broadcast.js?v=20261025-native-first-v5'),
+  station.body.includes('swapp-tv-broadcast.js?v=20261025-native-independent-v6'),
   'SWAPP TV station layout or rotation script is stale');
  const stationJs=await request(origin,'/assets/swapp-tv-broadcast.js');
  check(stationJs.body.includes('function maybeAdvanceDiscovery(')&&
