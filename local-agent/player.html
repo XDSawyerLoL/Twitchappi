@@ -10,7 +10,16 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#050507}
 #stage{height:100%;display:flex;flex-direction:column;background:#050507}.media{position:relative;flex:1;min-height:0;overflow:hidden;background:#000}
 video{display:block;width:100%;height:100%;object-fit:cover;background:#000;cursor:pointer}video.fit{object-fit:contain}
 #state{position:absolute;inset:0;display:grid;place-items:center;text-align:center;background:#000d;color:#c9cbd3;font-size:14px;padding:24px}
-#state[hidden],.audioHint[hidden]{display:none}.audioHint{position:absolute;z-index:4;top:12px;left:12px;max-width:80%;padding:9px 12px;border-radius:5px;background:#521b2c;color:#fff;font-size:12px}
+#state[hidden],.audioHint[hidden]{display:none}
+/* During a real mid-stream stall, show a small non-obscuring status, not a
+   full-screen black veil over the last decoded image. */
+#state.soft-buffering{
+ inset:auto auto 14px 50%;transform:translateX(-50%);width:max-content;
+ max-width:calc(100% - 24px);padding:7px 12px;
+ background:rgba(7,9,16,.82);border:1px solid rgba(255,255,255,.14);
+ border-radius:7px;backdrop-filter:blur(9px);
+ color:#d2d7e1;font-size:11px;pointer-events:none;z-index:6
+}.audioHint{position:absolute;z-index:4;top:12px;left:12px;max-width:80%;padding:9px 12px;border-radius:5px;background:#521b2c;color:#fff;font-size:12px}
 .toolbar{height:48px;min-height:48px;flex:none;display:flex;align-items:center;gap:8px;padding:0 12px;background:#0a0a0e;border-top:1px solid #23232b}
 .toolbar button{padding:0;min-height:34px;width:35px;flex:none;border:0;border-radius:4px;background:transparent;color:#f6f6f8;font-size:17px;cursor:pointer}
 .toolbar button:hover,.toolbar button:focus-visible{background:#ffffff1a;outline:none}.toolbar button:disabled{opacity:.35;cursor:default}
@@ -117,6 +126,7 @@ const liveButton = document.getElementById('live');
 const liveStatus = document.getElementById('liveStatus');
 const latencyMonitor = document.getElementById('latency');
 let manualStop = false, userPaused = false;
+let pendingBufferingTimer = null;
 let intentionalTimeshift = false, lastLiveCorrection = 0;
 let h = null;
 let booted = false, lastFrameAt = Date.now(), retries = 0, restarting = false;
@@ -138,8 +148,38 @@ let desiredVolume = 0.8;
 v.volume = desiredVolume;
 v.muted = true; // Browsers require muted autoplay until a real viewer click.
 
-function message(text){status.textContent=text;status.hidden=false;}
-function displayVideo(){if(!manualStop&&v.readyState>=2&&v.videoWidth>0){lastFrameAt=Date.now();retries=0;everDecoded=true;status.hidden=true;playerStatus(userPaused?'paused':'playing');}}
+function message(text){
+ clearTimeout(pendingBufferingTimer);pendingBufferingTimer=null;
+ status.classList.remove('soft-buffering');
+ status.textContent=text;status.hidden=false;
+}
+function displayVideo(){
+ if(!manualStop && v.readyState>=2 && v.videoWidth>0){
+  clearTimeout(pendingBufferingTimer);pendingBufferingTimer=null;
+  lastFrameAt=Date.now();retries=0;everDecoded=true;
+  status.hidden=true;status.classList.remove('soft-buffering');
+  playerStatus(userPaused?'paused':'playing');
+ }
+}
+function showStartupProgress(text){
+ // HLS refreshes its manifest and loads a fragment every few seconds.
+ // Never cover an already playing image when these background events fire.
+ if(!everDecoded&&!manualStop)message(text);
+}
+function handleVideoWaiting(){
+ if(manualStop||userPaused)return;
+ if(!everDecoded){message('Chargement de la vidéo…');return}
+ clearTimeout(pendingBufferingTimer);
+ // A short wait between MPEG-TS fragments is normal; avoid visible flashes.
+ pendingBufferingTimer=setTimeout(()=>{
+  pendingBufferingTimer=null;
+  if(!manualStop&&!userPaused&&!v.paused&&v.readyState<3){
+   status.textContent='Mise en mémoire tampon…';
+   status.classList.add('soft-buffering');
+   status.hidden=false;
+  }
+ },3000);
+}
 function playerStatus(kind){
  liveStatus.classList.toggle('paused',kind==='paused');
  liveStatus.classList.toggle('stopped',kind==='stopped');
@@ -169,6 +209,7 @@ async function playVideo({jumpToLive=false}={}){
 playButton.addEventListener('click',()=>{void playVideo()});
 pauseButton.addEventListener('click',()=>{
  if(manualStop)return;
+ clearTimeout(pendingBufferingTimer);pendingBufferingTimer=null;
  intentionalTimeshift=true;
  userPaused=true;v.pause();playerStatus('paused');
 });
@@ -230,7 +271,7 @@ v.addEventListener('dblclick',toggleFullscreen);
 document.addEventListener('fullscreenchange',updateFullscreen);
 v.addEventListener('playing',displayVideo);
 v.addEventListener('timeupdate',displayVideo);
-v.addEventListener('waiting',()=>{if(!manualStop&&!userPaused)message('Chargement de la vidéo…')});
+v.addEventListener('waiting',handleVideoWaiting);
 v.addEventListener('loadeddata',displayVideo);
 v.addEventListener('error',()=>{if(!manualStop){failure('navigateur '+(v.error?.code||'erreur média'));restart()}});
 
@@ -243,6 +284,7 @@ function failure(reason){
 }
 function restart(){
  if(restarting || manualStop)return;
+ clearTimeout(pendingBufferingTimer);pendingBufferingTimer=null;
  restarting=true;booted=false;booting=false;everDecoded=false;userPaused=false;retries++;
  playerStatus('connecting');
  if(h){try{h.destroy()}catch(_){} h=null}
@@ -275,10 +317,10 @@ async function boot(){
   booted=true;hlsStartedAt=Date.now();
   h.on(Hls.Events.MEDIA_ATTACHED,()=>h.loadSource(source));
   h.on(Hls.Events.MANIFEST_LOADED,()=>{
-   if(!manualStop)message('Connexion au flux vidéo…');
+   showStartupProgress('Connexion au flux vidéo…');
   });
   h.on(Hls.Events.FRAG_LOADED,()=>{
-   if(!manualStop)message('Chargement des images vidéo…');
+   showStartupProgress('Chargement des images vidéo…');
   });
   h.on(Hls.Events.MANIFEST_PARSED,()=>{
    if(!manualStop&&!userPaused)void v.play().catch(e=>{
