@@ -66,14 +66,21 @@ async function verify(){
  const station=await request(origin,'/tv');
  check(station.body.includes('id="stv-slot-clock"')&&
   station.body.includes('id="stv-watch"')&&
-  station.body.includes('swapp-tv-broadcast.js?v=20261025-full-rotation-v4'),
+  station.body.includes('swapp-tv-broadcast.js?v=20261025-native-first-v5'),
   'SWAPP TV station layout or rotation script is stale');
  const stationJs=await request(origin,'/assets/swapp-tv-broadcast.js');
  check(stationJs.body.includes('function maybeAdvanceDiscovery(')&&
   stationJs.body.includes('function fairDiscovery(')&&
-  stationJs.body.includes("state.autoSource=item.onAir?'queue':'discovery'"),
+  stationJs.body.includes("state.autoSource=item.platform==='swapp'?'native'")&&
+  stationJs.body.includes("frame.src='/'+encodeURIComponent(item.login)+'?swapp_tv_embed=1'")&&
+  stationJs.body.includes("api('/api/native/lives')"),
   'SWAPP TV does not expose the verified opt-in rotation logic');
- process.stdout.write('PASS /tv station and consent-based relay\n');
+ process.stdout.write('PASS /tv station native-first and consent-based relay\n');
+ const independence=await request(origin,'/independance');
+ check(independence.body.includes('/api/oryon/independence/export')&&
+  independence.body.includes('SWAPP / INDÉPENDANCE'),
+  'SWAPP Independence landing and authenticated export route are missing');
+ process.stdout.write('PASS /independance owner-export entrypoint\n');
  const social=await request(origin,'/social');
  check(social.body.includes('swapp-social-reading.js?v=20261025-verified-visuals-v1'),
   'SOCIAL editorial cards are using stale image fallback code');
