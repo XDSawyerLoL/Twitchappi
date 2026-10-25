@@ -4715,6 +4715,12 @@ const {attachSwappDirectRelay}=require('./modules/swapp-direct-hls-relay');
 const swappObsHlsPersistAt=new Map();
 const swappDirectRelay=attachSwappDirectRelay(app,{
  lookupOwner:async token=>findOryonUserByAgentToken(readOryonUsers(),token),
+ lookupDashboardOwner:async req=>{
+  const session=req.session?.oryonUser;
+  if(!session?.id||!session.login)return null;
+  const stored=getOryonUserByLogin(String(session.login).toLowerCase());
+  return stored&&String(stored.id)===String(session.id)?stored:null;
+ },
  lookupObsOwner:async streamKey=>{
   // Compare hashed values to avoid leaking the OBS stream key to application logs.
   if(!/^[0-9a-f]{48}$/i.test(String(streamKey||'')))return null;
