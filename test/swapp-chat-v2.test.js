@@ -45,14 +45,44 @@ test('GIF provider and message transport remain original, channel emotes are cop
  assert.match(script,/button\[onclick\*="toggleGifs"\]/);
  assert.match(script,/button\[onclick\*="sendChat"\]/);
  assert.doesNotMatch(script,/send\.removeAttribute\('onclick'\)/);
- assert.doesNotMatch(script,/new WebSocket|socket\.emit|fetch\(/);
+ assert.doesNotMatch(script,/new WebSocket|socket\.emit/);
+ assert.match(script,/\/api\/gifs\/search\?q=/);
+ assert.match(script,/\/api\/gifs\/trending\?limit=/);
  assert.match(script,/data-swapp-avatar/);
  assert.match(style,/\.chatLog \.msg\.swapp-chat-fresh-message/);
 });
 test('mobile is constrained, no legacy chat v2 stylesheet cache can leak',()=>{
  assert.match(style,/@media\(max-width:680px\)/);
  assert.match(style,/grid-template-columns:minmax\(0,1fr\) 33px 29px 35px/);
- assert.match(html,/swapp-chat-v2\.css\?v=20261025-chat-stability-v3/);
- assert.match(html,/swapp-chat-v2\.js\?v=20261025-chat-stability-v3/);
+ assert.match(html,/swapp-chat-v2\.css\?v=20261025-gif-search-v1/);
+ assert.match(html,/swapp-chat-v2\.js\?v=20261025-gif-search-v1/);
  assert.match(html,/swapp-watch-experience\.css\?v=20261025-immersion-93-v2/);
+});
+
+test('French moods and accents map to useful GIF search queries',()=>{
+ const start=script.indexOf(' const synonyms=[');
+ const end=script.indexOf('\n function initGifSearch(',start);
+ assert.ok(start>0&&end>start);
+ const normalize=new Function(script.slice(start,end)+'return gifQuery')();
+ for(const [input,expected] of [
+  ['fâché','angry'],['FACHÉ','angry'],['en colère','angry'],
+  ['fâchée','angry'],['MDR','laughing'],['rire','laughing'],
+  ['Bravo','applause'],['triste','crying'],['cœur','love'],
+  ['surpris','shocked'],['cyberpunk','cyberpunk']
+ ])assert.equal(normalize(input),expected,input);
+});
+test('GIF picker searches existing backend and does not affect player or chat layout',()=>{
+ assert.match(script,/function initGifSearch\(panel,trigger,hideEmoji\)/);
+ assert.match(script,/fetch\(url,\{cache:'no-store',signal:abort\?\.signal\}\)/);
+ assert.match(script,/320\)/,'debounced typing should avoid a request per keystroke');
+ assert.match(script,/seq!==sequence/,'stale requests must be discarded');
+ assert.match(script,/cache\.set\(url/,'repeat terms should be cached');
+ assert.match(script,/state\.selectedGif=url/,'selection uses the original native sendChat state');
+ assert.match(script,/catalogue GIF non configuré/,'lack of provider must be explained');
+ assert.match(script,/tray\.replaceChildren\(content\)/);
+ assert.doesNotMatch(script,/new WebSocket|socket\.emit/);
+ assert.doesNotMatch(style,/\.channelLiveLayout\s*\{/);
+ assert.doesNotMatch(style,/grid-template-rows/);
+ assert.match(style,/\.gifGrid\[data-swapp-gif-search="v1"\]/);
+ assert.match(style,/max-height:min\(330px,calc\(100% - 68px\)\)/);
 });
