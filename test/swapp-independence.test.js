@@ -1,6 +1,6 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict');
-const {buildArchive,safeUrl,page}=require('../modules/swapp-independence');
+const {buildArchive,followingCsv,safeUrl,page}=require('../modules/swapp-independence');
 test('independence archive exports only the owner profile and own following list',()=>{
  const user={login:'creator_one',email:'creator@example.test',display_name:'Creator',bio:'Test',
   following:['alpha','beta','alpha'],followers_count:42,tags:['fps'],
@@ -42,4 +42,31 @@ test('independence endpoint never exports data about arbitrary users',()=>{
  assert.doesNotMatch(route,/req\.query\.(?:login|user|id)/);
  assert.match(route,/Content-Disposition/);
  assert.match(route,/no-store/);
+});
+test('CSV export is owned and formula-safe, without leaking follower identities',()=>{
+ const owner={login:'owner_01',following:['valid_streamer','alpha_02','=HYPERLINK("https://evil")','valid_streamer'],
+  followers:[{email:'victim@example.com',id:'private'}],
+  password_hash:'dont-export',stream_key:'SECRET_STREAM'};
+ const csv=followingCsv(owner);
+ assert.match(csv,/platform,channel,profile_url/);
+ assert.match(csv,/SWAPP,valid_streamer,https:\/\/swapp.tv\/valid_streamer/);
+ assert.match(csv,/SWAPP,alpha_02,https:\/\/swapp.tv\/alpha_02/);
+ assert.equal(csv.split('valid_streamer').length,3,'only one row per followed streamer');
+ assert.doesNotMatch(csv,/HYPERLINK|victim@example.com|SECRET_STREAM|dont-export/);
+ assert.throws(()=>followingCsv({login:'%unexpected'}),/invalid_owner/);
+ assert.match(page(),/export\?format=csv/);
+});
+test('CSV and JSON downloads are guarded by one authenticated owner-only API',()=>{
+ const fs=require('node:fs'),path=require('node:path');
+ const code=fs.readFileSync(path.join(__dirname,'../server.js'),'utf8');
+ const pos=code.indexOf("app.get('/api/oryon/independence/export'");
+ const end=code.indexOf("app.get('/tv'",pos);
+ const route=code.slice(pos,end);
+ assert.ok(pos>=0&&end>pos);
+ assert.match(route,/const ownerId=req.session\?\.oryonUser\?\.id/);
+ assert.match(route,/\.find\(u=>u\.id===ownerId\)/);
+ assert.match(route,/format==='csv'/);
+ assert.match(route,/\.followingCsv\(user\)/);
+ assert.match(route,/Content-Disposition/);
+ assert.doesNotMatch(route,/req\.query\.(?:user|login|id)/);
 });
