@@ -32,3 +32,7 @@
  #manager .swapp-audience-panel{padding:14px 12px}
  #manager .swapp-audience-row{grid-template-columns:minmax(100px,1.1fr) minmax(82px,1fr) 70px;padding:9px 6px;gap:6px;font-size:11px}
 }
+
+#manager .swapp-audience-loyal{margin-top:18px;padding-top:12px;border-top:1px solid rgba(255,255,255,.09)}
+#manager .swapp-audience-loyal h3{font-size:15px;margin:3px 0 10px}
+#manager .swapp-audience-leaderboard{max-height:330px;overflow:auto;scrollbar-width:thin}
