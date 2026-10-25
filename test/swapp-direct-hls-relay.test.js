@@ -12,7 +12,7 @@ function backend(){
  const express={raw:()=>(_req,_res,next)=>next(),json:()=>(_req,_res,next)=>next()};
  const module={exports:{}};
  vm.runInNewContext(source,{
-  require(id){if(id==='express')return express;if(id==='./swapp-ts-inspect')return require('../modules/swapp-ts-inspect');return require(id)},
+  require(id){if(id==='express')return express;if(id==='./swapp-ts-inspect')return require('../modules/swapp-ts-inspect');if(id==='./swapp-obs-hls-playlist')return require('../modules/swapp-obs-hls-playlist');return require(id)},
   module,__dirname:path.join(__dirname,'..','modules'),
   process:{env:{}},Buffer,Date,setInterval(){return{unref(){}}}
  });
@@ -465,10 +465,11 @@ test('native OBS HLS PUT receives MPEG-TS segments without SWAPP Local',async()=
  const dest='/api/swapp/obs-hls/put';
  const streamKey='a'.repeat(48);
  const video=Buffer.alloc(188*4);video[0]=0x47;
- const manifest=Buffer.from('#EXTM3U\\n#EXT-X-TARGETDURATION:2\\n#EXTINF:2.0,\\nindex0.ts\\n');
+ const manifest=Buffer.from('#EXTM3U\n#EXT-X-TARGETDURATION:2\n#EXTINF:2.0,\nindex0.ts\n');
  assert.equal((await b.call('put',dest,{name:'index0.ts',body:video,token:'b'.repeat(48)})).status,403);
  assert.equal((await b.call('put',dest,{name:'../passwd',body:video,token:streamKey})).status,400);
- assert.equal((await b.call('put',dest,{name:'index.m3u8',body:manifest,token:streamKey})).status,409);
+ assert.equal((await b.call('put',dest,{name:'index.m3u8',body:manifest,token:streamKey})).status,200);
+ assert.equal((await b.call('get','/api/oryon/local-relay/:login/state')).payload.active,false,'live needs a playable segment');
  assert.equal((await b.call('put',dest,{name:'index0.ts',body:video,token:streamKey})).status,200);
  assert.equal((await b.call('put',dest,{name:'index.m3u8',body:manifest,token:streamKey})).status,200);
  const st=await b.call('get','/api/oryon/local-relay/:login/state');
@@ -514,4 +515,44 @@ test('owner diagnostics report missing decoded HLS PUT request bodies',async()=>
  assert.equal(status.payload.stage,'rejected');
  assert.equal(status.payload.last_status,400);
  assert.equal(status.payload.last_file_type,'segment');
+});
+
+
+test('OBS/FFmpeg uploads a playlist with query-bearing segment URI; no stream key leaks',async()=>{
+ const b=backend(),url='/api/swapp/obs-hls/put',key='a'.repeat(48);
+ const manifest=Buffer.from('#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-TARGETDURATION:2\n#EXT-X-MEDIA-SEQUENCE:0\n#EXTINF:1.920000,\nput?cid='+key+'&file=index0.ts\n');
+ const premature=await b.call('put',url,{token:key,name:'index.m3u8',body:manifest});
+ assert.equal(premature.status,200,'FFmpeg can send playlist before the TS file');
+ assert.equal((await b.call('get','/api/oryon/local-relay/:login/state')).payload.active,false);
+ const media=Buffer.alloc(188*5);media[0]=0x47;
+ const uploaded=await b.call('put',url,{token:key,name:'index0.ts',body:media});
+ assert.equal(uploaded.status,200);
+ const state=await b.call('get','/api/oryon/local-relay/:login/state');
+ assert.equal(state.payload.active,true);
+ const pl=await b.call('get','/api/oryon/local-relay/:login/index.m3u8');
+ const txt=pl.payload.toString('utf8');
+ assert.match(txt,/#EXTINF:1\.920000/);
+ assert.match(txt,/seg_0\.ts/);
+ assert.doesNotMatch(txt,/cid=|index0\.ts|put\?|aaaaaaaa/);
+ const diagnostic=await b.call('get','/api/swapp/obs-hls/diagnostics');
+ assert.equal(diagnostic.payload.stage,'live');
+ assert.equal(diagnostic.payload.last_status,200);
+});
+
+test('OBS playlist rejects forged credentials and unsupported URLs or encryption',async()=>{
+ const b=backend(),url='/api/swapp/obs-hls/put',key='a'.repeat(48);
+ for(const badRef of [
+  'put?cid='+'b'.repeat(48)+'&file=index0.ts',
+  'http://remote.example/media.ts','../../etc/passwd','put?cid='+key+'&file=../secret'
+ ]){
+  const manifest=Buffer.from('#EXTM3U\n#EXTINF:2,\n'+badRef+'\n');
+  const rejected=await b.call('put',url,{token:key,name:'index.m3u8',body:manifest});
+  assert.equal(rejected.status,422);
+  assert.equal(rejected.payload.reason,'playlist_segment_uri');
+ }
+ const encrypted=Buffer.from('#EXTM3U\n#EXT-X-KEY:METHOD=AES-128,URI="private.key"\n#EXTINF:2,\nindex0.ts\n');
+ assert.equal((await b.call('put',url,{token:key,name:'index.m3u8',body:encrypted})).status,422);
+ const d=await b.call('get','/api/swapp/obs-hls/diagnostics');
+ assert.equal(d.payload.last_error_file_type,'playlist');
+ assert.doesNotMatch(JSON.stringify(d.payload),/a{48}|b{48}/);
 });
