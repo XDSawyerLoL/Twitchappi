@@ -109,7 +109,7 @@ function structuredData(object){
  return '<script type="application/ld+json">'+JSON.stringify(object).replace(/</g,'\\u003c')+'</script>';
 }
 function renderGameIndex(groups){
- const url=ORIGIN+'/jeux',title='Jeux vidéo : articles et lives';
+ const url=ORIGIN+'/univers',title='Jeux vidéo : articles et lives';
  const indexSchema={'@context':'https://schema.org','@type':'CollectionPage',name:title,url,
   mainEntity:{'@type':'ItemList',itemListElement:groups.map((g,i)=>({
    '@type':'ListItem',position:i+1,name:g.game,url:ORIGIN+'/jeux/'+encodeURIComponent(g.slug)
