@@ -8,6 +8,8 @@ const crypto=require('node:crypto');
 const RELEASE_FILES=Object.freeze([
  'server.js',
  'app.js',
+ 'package.json',
+ 'package-lock.json',
  'index.html',
  'index_script.js',
  'modules/swapp-hubs.js',
