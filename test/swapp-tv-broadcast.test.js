@@ -119,3 +119,45 @@ test('TV preserves viewer opt-in when an on-air session ends and restarts',()=>{
  app.renderScreen({login:'discovery_live',game:'Aion 2',platform:'twitch'});
  assert.equal(state.playing,null,'discovery must never start automatically');
 });
+
+test('fallback TV discovery interleaves game communities rather than ranking by audience',()=>{
+ const js=read('assets/swapp-tv-broadcast.js');
+ const start=js.indexOf('function fairDiscovery('),end=js.indexOf('async function discovery(',start);
+ assert.ok(start>=0&&end>start);
+ const fair=new Function(js.slice(start,end)+'return fairDiscovery;')();
+ const viewers=[
+  {login:'huge_stream',game:'Fortnite',viewer_count:90000},
+  {login:'small_stream',game:'Fortnite',viewer_count:20},
+  {login:'fortnite_two',game:'Fortnite',viewer_count:5000},
+  {login:'aion_stream1',game:'Aion 2',viewer_count:50},
+  {login:'aion_stream2',game:'Aion 2',viewer_count:700}
+ ];
+ const a=fair(viewers,42),b=fair([...viewers].reverse(),42);
+ assert.deepEqual(a.map(x=>x.login),b.map(x=>x.login),
+  'Twitch provider ordering and size cannot determine SWAPP TV exposure');
+ assert.equal(new Set(a.map(x=>x.login)).size,5);
+ assert.notEqual(a[0].game,a[1].game,'alternate between game communities');
+ assert.notEqual(a[1].game,a[2].game,'avoid one-game dominance');
+});
+test('automatic discovery refresh does not discard an already watched creator',async()=>{
+ const source=read('assets/swapp-tv-broadcast.js');
+ const helper=source.slice(source.indexOf('function fairDiscovery('),source.indexOf('async function discovery('));
+ const body=source.slice(source.indexOf('async function discovery('),source.indexOf('async function mutate('));
+ const fair=new Function(helper+'return fairDiscovery;')();
+ const state={queueMode:false,discovery:[],index:0,games:['Fortnite'],
+  selection:{login:'small_stream',onAir:false}};
+ let renderCount=0,railCount=0,items=[
+  {login:'huge_stream',game_name:'Fortnite',game:'Fortnite',platform:'twitch',viewer_count:12000},
+  {login:'small_stream',game_name:'Fortnite',game:'Fortnite',platform:'twitch',viewer_count:30}
+ ];
+ const discovery=new Function('state','api','safeLogin','fairDiscovery','renderScreen','rail',
+  body+'return discovery;')(state,async()=>({items}),
+   x=>/^[a-z0-9_]{3,25}$/.test(x),fair,()=>{renderCount++},()=>{railCount++});
+ await discovery();
+ assert.equal(renderCount,0,'refresh must preserve a valid, manually selected Twitch stream');
+ assert.equal(state.discovery[state.index].login,'small_stream');
+ items=[{login:'new_stream',game_name:'Fortnite',game:'Fortnite',platform:'twitch'}];
+ await discovery();
+ assert.equal(renderCount,1,'an actual disappearance should select a new creator');
+ assert.equal(railCount,2);
+});
