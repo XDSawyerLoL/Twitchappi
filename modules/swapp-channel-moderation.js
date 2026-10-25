@@ -4,7 +4,7 @@
 // .oryon-moderation.json; privileges are always resolved from server sessions.
 const cleanLogin=value=>{
  const s=String(value||'').trim().toLowerCase();
- return /^[a-z0-9_][a-z0-9_-]{1,39}$/.test(s)?s:'';
+ return /^[a-z0-9_][a-z0-9_-]{1,39}$/.test(s)&&!['__proto__','prototype','constructor'].includes(s)?s:'';
 };
 const safeString=(value,max)=>String(value||'').trim().slice(0,max);
 const limitedArray=value=>Array.isArray(value)?value:[];
@@ -31,6 +31,7 @@ function postAllowed(req){
 function installChannelModeration({app,io,getModState,saveModState,getNativeChat,getAnySocketDisplay,getOryonUserByLogin}){
  if(!app||!io||!getModState||!saveModState||!getNativeChat||!getAnySocketDisplay||!getOryonUserByLogin)throw Error('missing channel moderation dependencies');
  const lastSent=new Map();
+ const actionRate=new Map();
  const cooldownKey=(room,u)=>room+':'+String(u.type)+':'+String(u.id);
  function role(req,room,state){return actorRole(req.session,room,state,getOryonUserByLogin);}
  function overview(room,state,identity){
@@ -65,6 +66,12 @@ function installChannelModeration({app,io,getModState,saveModState,getNativeChat
   const identity=role(req,room,state);
   if(identity==='viewer')return res.status(403).json({success:false,error:'Modération réservée à la chaîne.'});
   const actor=cleanLogin(req.session.oryonUser.login);
+  const actionKey=room+':'+String(req.session.oryonUser.id);
+  const time=Date.now();
+  const requests=(actionRate.get(actionKey)||[]).filter(at=>time-at<10000);
+  if(requests.length>=25)return res.status(429).json({success:false,error:'Trop de commandes, réessaie dans quelques secondes.'});
+  requests.push(time);actionRate.set(actionKey,requests);
+  if(actionRate.size>2000)for(const [key,stamps] of actionRate){if(stamps.every(at=>time-at>10000))actionRate.delete(key);}
   const action=safeString(req.body?.action,25);
   const target=cleanLogin(req.body?.target);
   const privileged=['add_mod','remove_mod','words','slow'];
