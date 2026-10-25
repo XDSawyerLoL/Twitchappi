@@ -176,7 +176,7 @@ test('offline chat alignment needs no negative translation even with stale legac
  const video={getBoundingClientRect:()=>({top:170,left:0,right:1000,width:1000,height:563})};
  const chat={dataset:{swappAlignShift:'-160'},style:{setProperty(k,v){style.set(k,v)},removeProperty(k){removed.push(k);style.delete(k)}},getBoundingClientRect:()=>({top:330,left:1004,width:320,height:563})};
  f({isConnected:true,dataset:{channelLive:'false'},querySelector:q=>q.includes('.channelMainPlayer >')?video:q.includes('.chatPanel')?chat:null});
- assert.equal(style.get('height'),'563px');assert.deepEqual(removed,['translate']);assert.equal(chat.dataset.swappAlignShift,'0');
+ assert.equal(style.get('min-height'),'563px');assert.equal(style.get('height'),undefined);assert.deepEqual(removed,['height','max-height','translate']);assert.equal(chat.dataset.swappAlignShift,'0');
  assert.match(read('assets/swapp-watch-experience.css'),/OFFLINE ROW ALIGNMENT/);
 });
 
