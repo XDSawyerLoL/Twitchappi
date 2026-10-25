@@ -123,7 +123,7 @@ test('chat vertical correction remains stable across retries, and clears on mobi
  const b=script.indexOf('\n function install(page){',a);
  assert.ok(a>=0&&b>a);
  const win={matchMedia:()=>({matches:false})};
- const sync=new Function('window',script.slice(a,b)+'return syncChat')(win);
+ const sync=new Function('window',script.slice(a,b)+'\nreturn syncChat;')(win);
  const video={getBoundingClientRect:()=>({top:430,left:200,right:1190,width:990,height:557})};
  const values={};const style={setProperty(k,v){values[k]=v}};
  const chat={dataset:{},style,
@@ -142,4 +142,43 @@ test('chat vertical correction remains stable across retries, and clears on mobi
  win.matchMedia=()=>({matches:true});
  sync(page);
  assert.equal(values.translate,'0 0px','mobile uses stacked positioning');
+});
+
+
+test('offline creator chat is the same grid row as the player, without sticky 122px',()=>{
+ const css=read('assets/swapp-watch-experience.css');
+ const js=read('assets/swapp-watch-experience.js');
+ const index=read('index.html');
+ assert.match(css,/OFFLINE ROW ALIGNMENT/);
+ assert.match(css,/data-channel-live="false"\] \.channelMainPlayer\s*\{\s*grid-column:1!important;\s*grid-row:1!important/);
+ assert.match(css,/data-channel-live="false"\] \.channelLiveSidebar\s*\{\s*grid-column:2!important;\s*grid-row:1!important/);
+ assert.match(css,/data-channel-live="false"\] \.channelLiveSidebar > \.chatPanel\s*\{[\s\S]*?position:relative!important;[\s\S]*?top:0!important;/);
+ assert.match(css,/height:var\(--swapp-chat-player-height,100%\)!important/);
+ assert.match(css,/@media\(max-width:1080px\)/);
+ assert.match(js,/forEach\(installOfflineAlignment\)/);
+ assert.match(js,/function installOfflineAlignment\(page\)/);
+ assert.match(js,/ro\.observe\(player\)/);
+ assert.equal((index.match(/20261025-offline-row-v2/g)||[]).length,2);
+});
+test('offline sync measures player but NEVER adds a translation to the chat',()=>{
+ const script=read('assets/swapp-watch-experience.js');
+ const a=script.indexOf(' function syncChat(page){');
+ const b=script.indexOf('\n function installOfflineAlignment(page){',a);
+ assert.ok(a>=0&&b>a,'offline sync boundaries found');
+ const win={matchMedia:()=>({matches:false})};
+ const sync=new Function('window',script.slice(a,b)+'\nreturn syncChat;')(win);
+ const values={},removed=[];
+ const video={getBoundingClientRect:()=>({top:170,left:0,right:1240,width:1240,height:696})};
+ const chat={dataset:{swappAlignShift:'-160'},style:{
+  setProperty(key,value){values[key]=value},
+  removeProperty(key){removed.push(key);delete values[key]}
+ },getBoundingClientRect:()=>({top:330,left:1252,width:384,height:696})};
+ const page={isConnected:true,dataset:{channelLive:'false',watchChat:'shown'},
+  querySelector(q){return q.includes('.channelMainPlayer >')?video:
+   q.includes('.channelLiveSidebar .chatPanel')?chat:null}};
+ sync(page);
+ assert.equal(values.height,'696px');
+ assert.deepEqual(removed,['translate']);
+ assert.equal(chat.dataset.swappAlignShift,'0');
+ assert.equal(values.translate,undefined);
 });
