@@ -194,3 +194,20 @@ header.top #nav .swapp-news-more>summary:focus-visible{outline:2px solid #62e3ed
 }
 @media(max-width:1080px){header.top #nav.mainNav{display:none!important}}
 @media(prefers-reduced-motion:reduce){header.top .swapp-tv-nav-cta{transition:none!important}}
+/* SWAPP DESIGN FOUNDATION 2026-10-25 — shared SPA / editorial / creator.
+   Prefer tokens for new UI, keeping the existing user-selected accent. */
+:root{
+ --swapp-space-1:4px;--swapp-space-2:8px;--swapp-space-3:12px;
+ --swapp-space-4:16px;--swapp-space-6:24px;--swapp-space-8:32px;
+ --swapp-radius-control:10px;--swapp-radius-panel:14px;
+ --swapp-border-muted:rgba(187,207,234,.16);
+ --swapp-accent-focus:var(--swapp-page-accent,var(--brand,#22d3ee));
+ --swapp-text-muted-accessible:#bdc9dc;
+}
+:where(header.top,#mobileNav) :is(a,button,summary,input,select,textarea):focus-visible{
+ outline:2px solid #fff;outline-offset:3px;
+ box-shadow:0 0 0 5px color-mix(in srgb,var(--swapp-accent-focus) 55%,transparent);
+}
+@media(pointer:coarse){#mobileNav :is(a,button,summary){min-height:44px}header.top .userBtn{min-height:44px}}
+@media(forced-colors:active){:where(header.top,#mobileNav) :is(a,button,summary):focus-visible{outline:2px solid Highlight;box-shadow:none}}
+@media(prefers-reduced-motion:reduce){:where(header.top,#mobileNav) :is(a,button,summary){transition:none!important}}

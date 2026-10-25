@@ -136,6 +136,12 @@
   chat.style.setProperty('--swapp-chat-player-height',actual+'px');
   for(const prop of ['height','min-height','max-height'])
    chat.style.setProperty(prop,actual+'px','important');
+  // On an offline channel the grid aligns the chat without translations.
+  if(page.dataset.channelLive==='false'){
+   chat.style.removeProperty('translate');
+   chat.dataset.swappAlignShift='0';
+   return;
+  }
   // The legacy channel CSS also pushed the chat away via sticky top:122px.
   // Defensively match the actual pixel top, not only the video height.
   // Independent CSS translate is out-of-flow; it cannot disturb grid columns.

@@ -120,7 +120,7 @@ test('direct chat has no legacy sticky offset and follows the video top at deskt
 test('chat vertical correction remains stable across retries, and clears on mobile',()=>{
  const script=read('assets/swapp-watch-experience.js');
  const a=script.indexOf(' function syncChat(page){');
- const b=script.indexOf('\n function install(page){',a);
+ const b=script.indexOf('\n  // Prefer actual broadcast metadata;',a);
  assert.ok(a>=0&&b>a);
  const win={matchMedia:()=>({matches:false})};
  const sync=new Function('window',script.slice(a,b)+'return syncChat')(win);
@@ -164,4 +164,17 @@ test('broadcast title renders above the player without replacing HLS',()=>{
  assert.match(js,/main\.insertBefore\(header,video\)/);
  assert.match(css,/\.swapp-watch-live-title/);
  assert.match(css,/order:-1!important/);
+});
+
+test('offline chat alignment needs no negative translation even with stale legacy offsets',()=>{
+ const s=read('assets/swapp-watch-experience.js');
+ const a=s.indexOf('function syncChat(page){'),b=s.indexOf('// Prefer actual broadcast metadata;',a);
+ assert.ok(a>=0&&b>a);
+ const f=new Function('window',s.slice(a,b)+'\nreturn syncChat;')({matchMedia:()=>({matches:false})});
+ const style=new Map(),removed=[];
+ const video={getBoundingClientRect:()=>({top:170,left:0,right:1000,width:1000,height:563})};
+ const chat={dataset:{swappAlignShift:'-160'},style:{setProperty(k,v){style.set(k,v)},removeProperty(k){removed.push(k);style.delete(k)}},getBoundingClientRect:()=>({top:330,left:1004,width:320,height:563})};
+ f({isConnected:true,dataset:{channelLive:'false'},querySelector:q=>q.includes('.channelMainPlayer >')?video:q.includes('.chatPanel')?chat:null});
+ assert.equal(style.get('height'),'563px');assert.deepEqual(removed,['translate']);assert.equal(chat.dataset.swappAlignShift,'0');
+ assert.match(read('assets/swapp-watch-experience.css'),/OFFLINE ROW ALIGNMENT/);
 });
