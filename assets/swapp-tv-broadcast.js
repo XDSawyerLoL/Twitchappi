@@ -109,7 +109,7 @@ function play(){
 }
 // Existing native live registry is independently verified by SWAPP heartbeat
 // and active WebRTC rooms. Never represent an offline profile as a live stream.
-function mapNativeLives(payload){
+function mapNativeLives(payload,rotation=Math.floor(Date.now()/600000)){
  if(payload?.success!==true||!Array.isArray(payload.items))return [];
  const unique=new Set(),result=[];
  for(const x of payload.items){
@@ -121,7 +121,7 @@ function mapNativeLives(payload){
  }
  // Shuffle by verified game and a stable time window, never viewer counts.
  // This also neutralises API order (currently newest stream first).
- return fairDiscovery(result);
+ return fairDiscovery(result,rotation);
 }
 async function refreshQueue(){
  try{
