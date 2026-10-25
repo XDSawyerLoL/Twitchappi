@@ -59,7 +59,7 @@ function installChannelAudience({app,io,getUser,getNativeRoom,isLocalLive,mysqlU
   res.set('Cache-Control','private, no-store');
   const room=cleanRoom(req.params.room);
   if(!room||!owner(req,room))return res.status(403).json({success:false,error:'Accès réservé au créateur.'});
-  try{await hydrate(room)}catch(_){return res.status(503).json({success:false,error:'Points MySQL indisponibles.'})}
+  try{if(sql)await hydrate(room)}catch(_){return res.status(503).json({success:false,error:'Points MySQL indisponibles.'})}
   const r=getNativeRoom(room),users=active(room);
   const leaderboard=Object.values(wallets[room]||{}).filter(v=>v&&typeof v==='object')
    .sort((a,b)=>Number(b.points||0)-Number(a.points||0))
@@ -80,7 +80,7 @@ function installChannelAudience({app,io,getUser,getNativeRoom,isLocalLive,mysqlU
   const room=cleanRoom(req.params.room),who=identity(req.session);
   if(!room||!who)return res.status(401).json({success:false,error:'Compte SWAPP requis.'});
   if(!getUser(room))return res.status(404).json({success:false,error:'Chaîne inconnue.'});
-  try{await hydrate(room)}catch(_){return res.status(503).json({success:false,error:'Points MySQL indisponibles.'})}
+  try{if(sql)await hydrate(room)}catch(_){return res.status(503).json({success:false,error:'Points MySQL indisponibles.'})}
   const w=lookup(room,who.id);
   return res.json({success:true,room,points:Number(w?.points||0),
    points_per_minute:PTS_PER_MINUTE,daily_cap:MAX_DAILY,
