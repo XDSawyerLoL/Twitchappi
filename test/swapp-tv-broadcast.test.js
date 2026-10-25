@@ -219,18 +219,18 @@ test('TV native-first mapping ignores fake/offline entries and invalid logins',(
   js.slice(start,end)+'return mapNativeLives;')(
   x=>/^[a-z0-9_-]{2,32}$/.test(x),fair);
  const result=map({success:true,items:[
-  {native:true,room:'independent',host_login:'independent',host_name:'Indépendant',category:'Aion 2'},
-  {native:true,room:'independent',host_login:'independent'},
-  {native:true,room:'wrong login'},
-  {native:false,room:'fake_offline'}
+  {login:'independent',platform:'swapp',media:'hls',media_verified:true,player_url:'/api/oryon/local-relay/independent/player',display_name:'Indépendant',game:'Aion 2'},
+  {login:'independent',platform:'swapp',media:'hls',media_verified:true,player_url:'/api/oryon/local-relay/independent/player'},
+  {login:'wrong login',platform:'swapp',media:'hls',media_verified:true,player_url:'/api/oryon/local-relay/wrong login/player'},
+  {login:'fake_offline',platform:'swapp',media:'hls',media_verified:false,player_url:'/api/oryon/local-relay/fake_offline/player'}
  ]});
  assert.deepEqual(result.map(x=>x.login),['independent']);
  assert.equal(result[0].platform,'swapp');
  assert.deepEqual(map({success:false,items:[]}),[]);
  const items=[
-  {native:true,room:'creator_a',host_login:'creator_a',category:'Fortnite',viewers:5000},
-  {native:true,room:'creator_b',host_login:'creator_b',category:'Fortnite',viewers:20},
-  {native:true,room:'creator_c',host_login:'creator_c',category:'Aion 2',viewers:100}
+  {login:'creator_a',platform:'swapp',media:'hls',media_verified:true,player_url:'/api/oryon/local-relay/creator_a/player',game:'Fortnite',viewers:5000},
+  {login:'creator_b',platform:'swapp',media:'hls',media_verified:true,player_url:'/api/oryon/local-relay/creator_b/player',game:'Fortnite',viewers:20},
+  {login:'creator_c',platform:'swapp',media:'hls',media_verified:true,player_url:'/api/oryon/local-relay/creator_c/player',game:'Aion 2',viewers:100}
  ];
  const forward=map({success:true,items},42);
  const reverse=map({success:true,items:[...items].reverse()},42);
@@ -266,7 +266,7 @@ test('TV native player resolves only to the first-party SWAPP channel',()=>{
  assert.equal(state.playing,null,'native playback must not start without consent');
  app.play();
  const frame=screen.querySelector('.stv-player-layer')?.children[0];
- assert.equal(frame.src,'/independent?swapp_tv_embed=1');
+ assert.equal(frame.src,'/api/oryon/local-relay/independent/player');
  assert.equal(state.playingPlatform,'swapp');
  assert.equal(state.autoSource,'native');
  assert.equal(watch['aria-pressed'],'true');
@@ -296,8 +296,22 @@ test('TV native rotation requires opt-in and ignores Twitch queue',()=>{
 test('native SWAPP candidate cache expires after failed API refresh',()=>{
  const js=read('assets/swapp-tv-broadcast.js');
  assert.match(js,/nativeFetchedAt:0/);
- assert.match(js,/Date\.now\(\)-state\.nativeFetchedAt>90000/);
+ assert.match(js,/Date\.now\(\)-state\.nativeFetchedAt>25000/);
  assert.match(js,/state\.native=\[\]/);
- assert.match(js,/api\('\/api\/native\/lives'\)/);
+ assert.match(js,/api\('\/api\/swapp-tv\/native-lineup'\)/);
  assert.match(js,/return fairDiscovery\(result,rotation\)/);
+});
+test('Native TV cannot accept unverifiable profiles or external player URLs',()=>{
+ const js=read('assets/swapp-tv-broadcast.js');
+ const fair=new Function(js.slice(js.indexOf('function fairDiscovery('),js.indexOf('async function discovery('))+'return fairDiscovery;')();
+ const native=js.slice(js.indexOf('function mapNativeLives('),js.indexOf('async function refreshQueue('));
+ const mapper=new Function('safeNativeLogin','fairDiscovery',native+'return mapNativeLives;')(
+   x=>/^[a-z0-9_-]{2,32}$/.test(x),fair);
+ const variants=[
+  {login:'profile_only',platform:'swapp',media:'hls',media_verified:false,player_url:'/api/oryon/local-relay/profile_only/player'},
+  {login:'webrtc_only',platform:'swapp',media:'webrtc',media_verified:true,player_url:'/api/oryon/local-relay/webrtc_only/player'},
+  {login:'external',platform:'swapp',media:'hls',media_verified:true,player_url:'https://twitch.tv/external'},
+  {login:'safe',platform:'swapp',media:'hls',media_verified:true,player_url:'/api/oryon/local-relay/safe/player'}
+ ];
+ assert.deepEqual(mapper({success:true,items:variants},42).map(x=>x.login),['safe']);
 });
