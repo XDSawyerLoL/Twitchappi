@@ -110,3 +110,9 @@ test('native HLS player dependency participates in release drift checks',()=>{
  assert.match(smoke,/request\(origin,'\/assets\/hls\.min\.js'\)/);
  assert.match(smoke,/engine\.body\.length>100000/);
 });
+test('production smoke verifies actual Hostinger HLS capacity telemetry',()=>{
+ const source=fs.readFileSync(path.join(__dirname,'..','tools/swapp-deploy-smoke.js'),'utf8');
+ assert.match(source,/api\/oryon\/local-relay\/capacity/);
+ assert.match(source,/capacity\.scope==='single_node_process'/);
+ assert.match(source,/Number\.isFinite\(capacity\.estimated_segment_mbps\)/);
+});
