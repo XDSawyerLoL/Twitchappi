@@ -22,6 +22,9 @@ function attachSwappDirectRelay(app, opts={}){
  const MAX_UPLOAD_BYTES=Math.min(10*1024*1024,Math.max(512*1024,Number(process.env.SWAPP_DIRECT_RELAY_UPLOAD_BYTES||8*1024*1024)));
  const MAX_MINUTE_BYTES=Math.max(10*1024*1024,Math.min(160*1024*1024,Number(process.env.SWAPP_DIRECT_RELAY_MINUTE_BYTES||120*1024*1024)));
  const TTL_MS=55000;
+ const VIDEO_STALE_MS=30000;
+ const hasFreshVideo=room=>Boolean(room?.manifest&&room?.lastSegmentAt&&
+  Date.now()-room.lastSegmentAt<VIDEO_STALE_MS&&room.playlistNames.some(name=>room.segments.has(name)));
  const maxPlaylistBytes=65536;
  const notCached=res=>{
   res.set('Cache-Control','no-store, no-cache, must-revalidate, max-age=0');
@@ -115,7 +118,7 @@ function attachSwappDirectRelay(app, opts={}){
     if(rooms.size>=MAX_ROOMS)return res.status(429).json({success:false,error:'Capacité du relais SWAPP atteinte.'});
     room={segments:new Map(),viewers:new Map(),segmentTimeline:[],segmentDurations:new Map(),manifest:null,playlistNames:[],poster:null,posterAt:0,clip:null,clipAt:0,audioTrack:'unknown',bytes:0,lastManifestAt:now,
      broadcastId:crypto.randomBytes(12).toString('hex'),pushDispatched:false,
-     minuteStarted:now,minuteBytes:0};
+     lastSegmentAt:0,minuteStarted:now,minuteBytes:0};
     rooms.set(login,room);
    }
    if(now-room.minuteStarted>60000){room.minuteStarted=now;room.minuteBytes=0}
@@ -176,13 +179,14 @@ function attachSwappDirectRelay(app, opts={}){
    }else{
     if(body[0]!==0x47)return res.status(422).json({success:false,error:'Segment MPEG-TS invalide.'});
     let previous=room.segments.get(name);
+    let genuinelyNew=!previous||previous.length!==body.length||!previous.equals(body);
     // On a restart from seg_000.ts, don't mix two disconnected HLS timelines.
     const newest=room.segmentTimeline.at(-1);
     if(newest&&sequence(name)<sequence(newest)-MAX_DVR_SEGMENTS){
      room.segments.clear();room.segmentTimeline=[];room.segmentDurations.clear();room.bytes=0;
      room.playlistNames=[];room.manifest=null;
      room.broadcastId=crypto.randomBytes(12).toString('hex');room.pushDispatched=false;
-     previous=null;
+     previous=null;genuinelyNew=true;
     }
     if(!room.segments.has(name))room.segmentTimeline.push(name);
     room.segments.set(name,Buffer.from(body));
@@ -196,6 +200,7 @@ function attachSwappDirectRelay(app, opts={}){
      }
      return res.status(413).json({success:false,error:'Mémoire vidéo SWAPP saturée : réduis le bitrate OBS.'});
     }
+    if(genuinelyNew)room.lastSegmentAt=now;
    }
    room.minuteBytes+=body.length;
    res.json({success:true,room:login,received:name,segment_count:room.segments.size});
@@ -212,7 +217,7 @@ function attachSwappDirectRelay(app, opts={}){
  app.get('/api/oryon/local-relay/:login/audience',(req,res)=>{
   notCached(res);
   const login=cleanLogin(req.params.login),room=login&&liveRoom(login);
-  const live=!!room?.manifest&&room.playlistNames.some(n=>room.segments.has(n));
+  const live=hasFreshVideo(room);
   res.json({success:true,live,swappers:live?activeSwappers(room):0});
  });
  app.post('/api/oryon/local-relay/:login/audience/heartbeat',
@@ -224,7 +229,7 @@ function attachSwappDirectRelay(app, opts={}){
    const login=cleanLogin(req.params.login),session=String(req.body?.session||'');
    if(!/^[a-f0-9]{32}$/.test(session))return res.status(400).json({success:false,error:'Session invalide.'});
    const room=login&&liveRoom(login);
-   if(!room?.manifest||!room.playlistNames.some(n=>room.segments.has(n)))
+   if(!hasFreshVideo(room))
     return res.json({success:true,live:false,swappers:0});
    activeSwappers(room);
    if(!room.viewers.has(session)&&room.viewers.size>=2000)return res.sendStatus(429);
@@ -245,16 +250,20 @@ function attachSwappDirectRelay(app, opts={}){
  app.get('/api/oryon/local-relay/:login/state',(req,res)=>{
   notCached(res);
   const login=cleanLogin(req.params.login),r=login&&liveRoom(login);
-  res.json({success:true,active:!!r?.manifest&&r.playlistNames.some(n=>r.segments.has(n)),segment_count:r?.segments?.size||0,
-   last_manifest_at:r?.lastManifestAt||null,audio_track:r?.audioTrack||'unknown',dvr_seconds:r?Math.round(Math.min(80,historySeconds(r))):0,preview_ready:!!r?.clip});
+  res.json({success:true,active:hasFreshVideo(r),segment_count:r?.segments?.size||0,
+   last_manifest_at:r?.lastManifestAt||null,last_segment_at:r?.lastSegmentAt||null,
+   segment_age_ms:r?.lastSegmentAt?Math.max(0,Date.now()-r.lastSegmentAt):null,
+   media_fresh:hasFreshVideo(r),audio_track:r?.audioTrack||'unknown',dvr_seconds:r?Math.round(Math.min(80,historySeconds(r))):0,preview_ready:!!r?.clip});
  });
  app.get('/api/oryon/local-relay/:login/probe',(req,res)=>{
   notCached(res);
   const login=cleanLogin(req.params.login),r=login&&liveRoom(login);
   const latest=r?.playlistNames?.at(-1)||null;
   const chunk=latest&&r.segments.get(latest);
-  res.json({success:true,active:!!r?.manifest,instance:process.pid,
-   playlist_ready:!!r?.manifest,segment_ready:!!chunk,latest_segment:latest,
+  res.json({success:true,active:hasFreshVideo(r),instance:process.pid,
+   playlist_ready:!!r?.manifest,segment_ready:!!chunk,media_fresh:hasFreshVideo(r),
+   segment_age_ms:r?.lastSegmentAt?Math.max(0,Date.now()-r.lastSegmentAt):null,
+   latest_segment:latest,
    latest_bytes:chunk?.length||0,ts_sync_byte:chunk?.[0]===0x47,
    manifest_age_ms:r?.lastManifestAt?Date.now()-r.lastManifestAt:null,
    media:chunk?inspectTsMedia(chunk):null});
