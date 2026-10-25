@@ -447,7 +447,7 @@ const LANDING_CONTENT=Object.freeze({
  '/equipes':{heading:'Équipes de streamers et communautés gaming',intro:'Parcours les équipes et découvre les créateurs réunis autour des mêmes jeux et centres d’intérêt.',detail:'SWAPP relie la découverte des créateurs à celle des communautés.'},
  '/actus':{heading:'Actualité du jeu vidéo et du streaming',intro:'Lis les dernières informations sur les jeux vidéo, les annonces, les sorties et les bandes-annonces publiées sur SWAPP.',detail:'Chaque article disponible possède son adresse dédiée, pour retrouver les informations et découvrir les créateurs en direct.'}
 });
-const LANDING_LINKS=Object.freeze([['/actus','Actualité'],['/decouvrir','Lives et créateurs'],['/categories','Jeux et catégories'],['/equipes','Équipes'],['/bandes-annonces','Bandes-annonces'],['/social','Social'],['/plan-du-site','Plan du site']]);
+const LANDING_LINKS=Object.freeze([['/actus','Actualité'],['/decouvrir','Lives et créateurs'],['/categories','Jeux et catégories'],['/equipes','Équipes'],['/bandes-annonces','Bandes-annonces'],['/univers','Univers de jeux'],['/social','Social'],['/plan-du-site','Plan du site']]);
 function landingMarkup(path){
  const item=LANDING_CONTENT[path];
  if(!item)return '';
