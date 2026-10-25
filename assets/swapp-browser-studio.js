@@ -186,12 +186,14 @@
   if(!page||!active(page))return;
   const s=current();
   if(!s||!info||info.room!==currentRoom())return;
-  const main=page.querySelector('.channelMainPlayer');
-  if(!main)return;
+  const layout=page.querySelector('.channelLiveLayout');
+  if(!layout?.parentNode)return;
   const isLive=Boolean(s.channelProfile?.is_live||s.channelOwner&&s.stream||info.live||info.is_live);
-  let heading=main.querySelector(':scope > .swapp-stream-public-heading');
+  let heading=layout.previousElementSibling;
+  if(!heading?.classList.contains('swapp-stream-public-heading'))heading=null;
   if(!isLive){heading?.remove();return}
-  if(!heading){heading=make('div','swapp-stream-public-heading');main.prepend(heading)}
+  // Place the title ABOVE the entire video/chat grid so both stay top-aligned.
+  if(!heading){heading=make('div','swapp-stream-public-heading');layout.parentNode.insertBefore(heading,layout)}
   heading.replaceChildren();
   const title=make('strong','',info.title||'Direct SWAPP');
   const category=make('span','',info.category||'Gaming');
