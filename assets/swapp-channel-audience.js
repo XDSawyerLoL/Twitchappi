@@ -25,8 +25,15 @@
   const panel=$('#channel');
   if(!panel?.classList.contains('active')||document.hidden)return false;
   try{if(state.channelOwner===true||state.view!=='channel')return false}catch(_){return false}
-  const video=panel.querySelector('.channelMainPlayer video');
-  const html5=!!video&&!video.paused&&!video.ended&&video.readyState>=2&&video.videoWidth>159;
+  const videos=Array.from(panel.querySelectorAll('.channelMainPlayer video'));
+  // Self-hosted, same-origin HLS may play inside an iframe. Inspect its real
+  // video element; cross-origin Twitch/Kick iframes remain uncredited.
+  for(const frame of panel.querySelectorAll('.channelMainPlayer iframe')){
+   try{if(frame.contentWindow?.location.origin===location.origin)
+    videos.push(...frame.contentDocument.querySelectorAll('video'))}catch(_){}
+  }
+  const html5=videos.some(video=>!!video&&!video.paused&&!video.ended&&!video.seeking&&
+   video.readyState>=2&&video.videoWidth>159&&video.currentTime>0);
   let verified=false;try{verified=state.remotePlaying===true}catch(_){}
   return html5||verified;
  }
@@ -87,7 +94,7 @@
   head.append(titles,refresh);
   panel.append(head,node('p','swapp-audience-summary','Récupération des spectateurs…'),node('div','swapp-audience-list'));
   const note=node('p','swapp-audience-note',
-   '5 points par minute de lecture active signalée, maximum 300 points par jour et par chaîne. La vidéo externe intégrée ne donne pas encore de points. Aucune récompense échangeable activée.');
+   '5 points par minute de lecture active signalée, maximum 300 points par jour et par chaîne. Les lecteurs externes non vérifiables ne donnent pas de points. Aucune récompense échangeable activée.');
   panel.appendChild(note);main.appendChild(panel);
   return panel;
  }
