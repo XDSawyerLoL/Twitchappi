@@ -126,14 +126,15 @@ function attachSwappDirectRelay(app, opts={}){
   res.json({success:true,transport:'swapp-direct-hls',version:3,max_rooms:MAX_ROOMS,max_room_bytes:MAX_ROOM_BYTES,max_segment_bytes:MAX_UPLOAD_BYTES,max_minute_bytes:MAX_MINUTE_BYTES,native_passthrough:true,
    recommended_video_kbps:8000,recommended_audio_kbps:160,warning:'Qualité OBS source H.264/AAC préservée ; flux unique sans qualité adaptative. Hébergement limité en bande passante : petites audiences uniquement.'});
  });
- app.post('/api/oryon/local-relay/upload',
-  express.raw({type:'application/octet-stream',limit:MAX_UPLOAD_BYTES}),async(req,res)=>{
+ async function receiveMedia(req,res,authorizedOwner=null){
    notCached(res);
-   const auth=String(req.get('authorization')||'');
-   const token=auth.toLowerCase().startsWith('bearer ')?auth.slice(7).trim():'';
-   if(!token)return res.status(401).json({success:false,error:'Connexion SWAPP nécessaire.'});
-   let user;
-   try{user=await lookupOwner(token)}catch(_){return res.status(503).json({success:false,error:'Authentification SWAPP temporairement indisponible.'})}
+   let user=authorizedOwner;
+   if(!user){
+    const auth=String(req.get('authorization')||'');
+    const token=auth.toLowerCase().startsWith('bearer ')?auth.slice(7).trim():'';
+    if(!token)return res.status(401).json({success:false,error:'Connexion SWAPP nécessaire.'});
+    try{user=await lookupOwner(token)}catch(_){return res.status(503).json({success:false,error:'Authentification SWAPP temporairement indisponible.'})}
+   }
    const login=cleanLogin(user?.login);
    if(!login)return res.status(403).json({success:false,error:'Compte SWAPP non autorisé.'});
    const name=cleanName(req.get('x-swapp-media-name'));
@@ -235,6 +236,56 @@ function attachSwappDirectRelay(app, opts={}){
    }
    room.minuteBytes+=body.length;
    res.json({success:true,room:login,received:name,segment_count:room.segments.size});
+ }
+ app.post('/api/oryon/local-relay/upload',
+  express.raw({type:'application/octet-stream',limit:MAX_UPLOAD_BYTES}), (req,res)=>receiveMedia(req,res));
+
+ // OBS Studio native HLS output sends HTTP PUT for MPEG-TS + playlist.
+ // The stream key in cid is never displayed in public API responses or logs.
+ // Accept only OBS-generated 'indexNN.ts' and 'index.m3u8' names.
+ app.put('/api/swapp/obs-hls/put',
+  express.raw({type:()=>true,limit:MAX_UPLOAD_BYTES}), async(req,res)=>{
+   notCached(res);
+   if(typeof opts.lookupObsOwner!=='function')return res.status(503).json({success:false,error:'Ingestion OBS indisponible.'});
+   const cid=String(req.query?.cid||'');
+   if(!/^[0-9a-f]{48}$/i.test(cid))return res.status(403).json({success:false,error:'Clé OBS incorrecte.'});
+   const file=String(req.query?.file||'');
+   let name;
+   if(file==='index.m3u8')name='index.m3u8';
+   else {
+    const match=/^index([0-9]{1,14})\.ts$/.exec(file);
+    if(!match)return res.status(400).json({success:false,error:'Format HLS OBS non pris en charge.'});
+    name='seg_'+String(Number(match[1]))+'.ts';
+   }
+   // Reject giant bodies before lookup so the stream key can't bypass limits.
+   if(!Buffer.isBuffer(req.body)||!req.body.length)return res.status(400).json({success:false,error:'Fragment absent.'});
+   let user=null;
+   try{user=await opts.lookupObsOwner(cid)}catch(_){}
+   if(!cleanLogin(user?.login))return res.status(403).json({success:false,error:'Clé OBS non autorisée.'});
+   if(name==='index.m3u8'){
+    // Normalize exact segment identifiers to match SWAPP's verified HLS relay.
+    const source=req.body.toString('utf8');
+    if(!source.startsWith('#EXTM3U')||source.length>65536)return res.status(422).json({success:false,error:'Playlist OBS invalide.'});
+    const lines=source.split(/\r?\n/);
+    for(let i=0;i<lines.length;i++){
+     const v=lines[i].trim();
+     if(!v||v.startsWith('#'))continue;
+     const match=/^index([0-9]{1,14})\.ts$/.exec(v);
+     if(!match)return res.status(422).json({success:false,error:'Segment OBS inconnu dans la playlist.'});
+     lines[i]='seg_'+String(Number(match[1]))+'.ts';
+    }
+    req.body=Buffer.from(lines.join('\n'),'utf8');
+   }
+   // Reuse *exactly* the existing validation, RAM budgets and public player.
+   req.headers['x-swapp-media-name']=name;
+   await receiveMedia(req,res,user);
+   // Credit only verified playable manifests, never a token-only heartbeat.
+   if(name==='index.m3u8'&&res.statusCode<300&&hasFreshVideo(rooms.get(cleanLogin(user.login)))){
+    if(typeof opts.onVerifiedObsIngest==='function'){
+     Promise.resolve().then(()=>opts.onVerifiedObsIngest(cleanLogin(user.login)))
+      .catch(error=>console.warn('[SWAPP OBS] owner live state update failed',String(error?.code||error?.name||'error')));
+    }
+   }
   });
  // Presence counts active playback sessions, not page visits or fabricated viewers.
  // Only the player sends a heartbeat after video frames are decoded.
