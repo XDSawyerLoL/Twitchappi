@@ -5,6 +5,7 @@
  */
 const crypto=require('node:crypto');
 const {URL}=require('node:url');
+const path=require('node:path');
 
 const LOGIN=/^[a-z0-9_-]{2,48}$/i;
 const PUBLIC_KEY=String(process.env.SWAPP_PUSH_VAPID_PUBLIC_KEY||'').trim();
@@ -132,6 +133,11 @@ function makeLivePush({isFollowing=()=>false,send=globalThis.fetch,logger=consol
   try{return await ready}finally{ready=null}
  }
  function register(app){
+  app.get('/swapp-live-sw.js',(_req,res)=>{
+   res.set('Cache-Control','no-store');
+   res.set('Service-Worker-Allowed','/');
+   return res.type('application/javascript').sendFile(path.join(__dirname,'..','swapp-live-sw.js'));
+  });
   app.get('/api/swapp/live-alerts/config',(_req,res)=>{
    noCache(res);
    res.json({success:true,available:configOkay,public_key:configOkay?PUBLIC_KEY:null});
