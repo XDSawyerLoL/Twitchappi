@@ -149,8 +149,8 @@
    current=name;role='viewer';snapshot=null;accessRoom='';accessUntil=0;
    if(dialog?.open)dialog.close();
   }
-  if(launch?.isConnected&&launch.parentElement===sidebar&&launch.dataset.room===name)return;
-  launch?.remove();launch=null;
+  const mounted=!!launch?.isConnected&&launch.parentElement===sidebar&&launch.dataset.room===name;
+  if(!mounted){launch?.remove();launch=null;}
   if(accessRoom!==name||Date.now()>accessUntil){
    if(accessCheck)return;
    accessCheck=request(name);
@@ -161,7 +161,8 @@
    }catch(_){accessUntil=Date.now()+3000;return}
    finally{accessCheck=null}
   }
-  if(role==='viewer')return;
+  if(role==='viewer'){launch?.remove();launch=null;return;}
+  if(mounted)return;
   const existing=sidebar.querySelector(':scope > .swapp-mod-open');
   if(existing){launch=existing;return}
   launch=el('button','swapp-mod-open','⚑');
