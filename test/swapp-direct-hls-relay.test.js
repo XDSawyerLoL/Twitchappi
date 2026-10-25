@@ -385,3 +385,20 @@ test('live status requires fresh accepted video segments rather than only a cach
  room.lastSegmentAt=last;
  assert.equal((await b.call('get','/api/oryon/local-relay/:login/state')).payload.active,true);
 });
+
+
+test('re-uploading the same stalled MPEG-TS bytes cannot fake fresh playback',async()=>{
+ const b=backend(),upload='/api/oryon/local-relay/upload';
+ const bytes=Buffer.alloc(564);bytes[0]=0x47;
+ assert.equal((await b.call('post',upload,{name:'seg_004.ts',body:bytes})).status,200);
+ const playlist=Buffer.from('#EXTM3U\n#EXTINF:2,\nseg_004.ts\n');
+ assert.equal((await b.call('post',upload,{name:'index.m3u8',body:playlist})).status,200);
+ const room=b.relay.rooms.get('vnhz');
+ room.lastSegmentAt=Date.now()-31000;
+ assert.equal((await b.call('post',upload,{name:'seg_004.ts',body:bytes})).status,200);
+ const state=(await b.call('get','/api/oryon/local-relay/:login/state')).payload;
+ assert.equal(state.active,false,'identical retransmission must not reactivate a frozen live');
+ const changed=Buffer.from(bytes);changed[1]=1;
+ assert.equal((await b.call('post',upload,{name:'seg_004.ts',body:changed})).status,200);
+ assert.equal((await b.call('get','/api/oryon/local-relay/:login/state')).payload.active,true);
+});
