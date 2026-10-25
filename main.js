@@ -335,6 +335,14 @@ async function maintainPublishedLive(){
 setInterval(() => maintainPublishedLive().catch(()=>{}), 10000);
 
 const app = express();
+// Legacy/local SWAPP player also loads the pinned first-party JS engine.
+app.get('/assets/hls.min.js',(_req,res)=>{
+ const local=path.join(__dirname,'node_modules','hls.js','dist','hls.min.js');
+ res.setHeader('X-Content-Type-Options','nosniff');
+ if(!fs.existsSync(local))return res.status(503).type('text').send('SWAPP HLS engine unavailable');
+ res.setHeader('Cache-Control','public, max-age=3600');
+ return res.type('application/javascript').sendFile(local);
+});
 app.use(express.json({ limit: '1mb' }));
 app.use((_, res, next) => { res.setHeader('Access-Control-Allow-Origin', '*'); res.setHeader('Cache-Control', 'no-store'); next(); });
 
@@ -419,7 +427,7 @@ app.get('/hls/:key/:file', (req, res) => {
 app.get('/player/:key', (req, res) => {
   const key = safeKey(req.params.key);
   const hls = hlsRelativeUrl(key);
-  const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Swapp Live Player</title><style>html,body{margin:0;width:100%;height:100%;background:#030508;color:white;font-family:system-ui;overflow:hidden}video{width:100%;height:100%;object-fit:contain;background:#030508;pointer-events:none}.state{position:absolute;inset:0;display:grid;place-items:center;text-align:center;color:#9ba7bb;padding:20px;line-height:1.45}.state b{color:white}</style></head><body><video id="v" autoplay muted playsinline></video><div id="s" class="state">Connexion au flux…</div><script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script><script>
+  const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Swapp Live Player</title><style>html,body{margin:0;width:100%;height:100%;background:#030508;color:white;font-family:system-ui;overflow:hidden}video{width:100%;height:100%;object-fit:contain;background:#030508;pointer-events:none}.state{position:absolute;inset:0;display:grid;place-items:center;text-align:center;color:#9ba7bb;padding:20px;line-height:1.45}.state b{color:white}</style></head><body><video id="v" autoplay muted playsinline></video><div id="s" class="state">Connexion au flux…</div><script src="/assets/hls.min.js"></script><script>
 const src=${JSON.stringify(hls)},v=document.getElementById('v'),s=document.getElementById('s');let h=null,booting=false,lastOk=0;v.controls=false;function ok(){lastOk=Date.now();s.style.display='none'}function msg(t){s.style.display='grid';s.innerHTML=t}async function ready(){try{const r=await fetch(src+'?t='+Date.now(),{cache:'no-store'});if(!r.ok)return false;const txt=await r.text();return /\\.ts/.test(txt)}catch(e){return false}}async function boot(){if(booting)return;booting=true;if(!await ready()){booting=false;msg('Connexion au flux…<br><small>OBS est peut-être encore en préparation.</small>');setTimeout(boot,1800);return}if(h){try{h.destroy()}catch(e){}h=null}if(v.canPlayType('application/vnd.apple.mpegurl')){v.src=src+'?t='+Date.now();v.addEventListener('loadedmetadata',ok,{once:true});v.addEventListener('playing',ok,{once:true});v.play().catch(()=>{});booting=false;return}if(window.Hls&&Hls.isSupported()){h=new Hls({lowLatencyMode:true,liveSyncDurationCount:2,maxLiveSyncPlaybackRate:1.2,enableWorker:true});h.loadSource(src+'?t='+Date.now());h.attachMedia(v);h.on(Hls.Events.MANIFEST_PARSED,()=>{ok();v.play().catch(()=>{})});h.on(Hls.Events.ERROR,(_e,d)=>{if(d&&d.fatal){try{h.destroy()}catch(e){}h=null;booting=false;msg('Reconnexion au flux…');setTimeout(boot,1500)}});booting=false;return}booting=false;msg('Navigateur non compatible HLS.')}setInterval(()=>{if(lastOk&&Date.now()-lastOk>15000){msg('Reconnexion au flux…');boot()}},5000);boot();
 </script></body></html>`;
   res.type('html').send(html);
