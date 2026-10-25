@@ -33,3 +33,19 @@
 @media(max-width:480px){#manager .swapp-obs-direct{padding:15px 12px}
  #manager .swapp-obs-direct-keyline{flex-wrap:wrap}
  #manager .swapp-obs-key{flex-basis:100%;width:100%}}
+
+#manager .swapp-obs-direct-diagnostic{
+ margin-top:16px;padding:13px 15px;border:1px solid rgba(255,255,255,.13);
+ border-radius:10px;background:rgba(0,0,0,.19);line-height:1.45
+}
+#manager .swapp-obs-direct-diagnostic strong{display:block;font-size:13px;margin-bottom:4px}
+#manager .swapp-obs-direct-diagnostic p{font-size:12px;color:var(--muted,#bbc4d0);margin:0;overflow-wrap:anywhere}
+#manager .swapp-obs-direct-diagnostic[data-stage="rejected"]{
+ border-color:rgba(229,115,97,.5);background:rgba(153,52,40,.12)
+}
+#manager .swapp-obs-direct-diagnostic[data-stage="segments_only"]{
+ border-color:rgba(224,180,72,.35);background:rgba(148,100,37,.08)
+}
+#manager .swapp-obs-direct-diagnostic[data-stage="live"]{
+ border-color:rgba(49,197,126,.4);background:rgba(21,141,88,.09)
+}
