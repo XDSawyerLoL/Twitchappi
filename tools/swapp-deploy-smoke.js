@@ -333,14 +333,17 @@ async function verify(){
  const newsScript=await request(origin,'/assets/swapp-home-news.js');
  check(!newsScript.body.includes('signal:AbortSignal.timeout(')&&
    newsScript.body.includes('new AbortController()')&&
-   home.body.includes('swapp-home-news.js?v=20261019-single-reader-v8'),
+   home.body.includes('swapp-home-news.js?v=20261025-latest-video-v1'),
    'Homepage editorial script is stale or incompatible with older Safari');
+ check(newsScript.body.includes('function updateVideoTeaser(section,articles)')&&
+  !newsScript.body.includes('trailer-code-vein-2-story-trailer'),
+  'Homepage still has pinned video unrelated to current published articles');
  check(newsScript.body.includes('function navigateArticle(event,slug,game)')&&
   !newsScript.body.includes("event.preventDefault();window.setView('actus');window.SwappActus.open(slug)"),
   'Homepage still intercepts canonical editorial links with the SPA route');
  const motionPath='/assets/swapp-home-motion.js?v=20261018-followed-session-v27';
  check(home.body.includes(motionPath)&&
-   home.body.indexOf(motionPath)<home.body.indexOf('swapp-home-news.js?v=20261019-single-reader-v8'),
+   home.body.indexOf(motionPath)<home.body.indexOf('swapp-home-news.js?v=20261025-latest-video-v1'),
    'No cinematic hero helper before the editorial client');
  const motion=await request(origin,'/assets/swapp-home-motion.js');
  check(motion.body.includes('window.SwappHomeMotion')&&
@@ -481,7 +484,7 @@ async function verify(){
  // Verify the actual mobile reading and video assets, not just HTML shell CSS.
  const articleClient='/assets/swapp-actus-app.js?v=20261019-manual-commerce-v10';
  const videoClient='/assets/swapp-video-player.js?v=20261016-ios-journey-1';
- const videoStyle='/assets/swapp-video-gallery.css?v=20261016-ios-journey-1';
+ const videoStyle='/assets/swapp-video-gallery.css?v=20261025-latest-video-v1';
  for(const name of [articleClient,videoClient,videoStyle])
   check(home.body.includes(name),'Home has an outdated mobile media asset: '+name);
  const newsClient=await request(origin,'/assets/swapp-actus-app.js');

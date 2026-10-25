@@ -118,7 +118,7 @@ function trailers(published=[]){
  (recent.length>1?'<div class="swapp-video-section-title"><h2>Dernières vidéos</h2></div><section class="swapp-video-grid" aria-label="Dernières vidéos">'+recent.filter(x=>x!==featured).map(x=>videoCard(x)).join('')+'</section>':'')+
  '<p class="swapp-hub-small">Les lecteurs SWAPP utilisent exclusivement des vidéos officielles intégrables. Les archives dont le lecteur ne peut pas être intégré restent consultables à leur adresse originale.</p></main>';
  return layout({title:'Vidéos',description:'Les vidéos et bandes-annonces du magazine SWAPP.',content:main,active:'trailers',
-  scripts:assets+'<link rel="stylesheet" href="/assets/swapp-video-gallery.css?v=20261016-ios-journey-1">'+
+  scripts:assets+'<link rel="stylesheet" href="/assets/swapp-video-gallery.css?v=20261025-latest-video-v1">'+
    '<script defer src="/assets/swapp-video-player.js?v=20261016-ios-journey-1"></script>'});
 }
 function safeProducts(items){
