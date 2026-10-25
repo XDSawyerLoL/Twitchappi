@@ -402,3 +402,26 @@ test('re-uploading the same stalled MPEG-TS bytes cannot fake fresh playback',as
  assert.equal((await b.call('post',upload,{name:'seg_004.ts',body:changed})).status,200);
  assert.equal((await b.call('get','/api/oryon/local-relay/:login/state')).payload.active,true);
 });
+
+test('native TV inventory lists only actual fresh OBS media, never a stalled relay',async()=>{
+ const b=backend(),upload='/api/oryon/local-relay/upload';
+ assert.deepEqual(b.relay.activeStreams(),[]);
+ const seg=Buffer.alloc(188*3,0);seg[0]=0x47;
+ const playlist=Buffer.from('#EXTM3U\n#EXT-X-TARGETDURATION:2\n#EXTINF:2,\nseg_001.ts\n');
+ assert.equal((await b.call('post',upload,{name:'seg_001.ts',body:seg})).status,200);
+ assert.deepEqual(b.relay.activeStreams(),[],'a segment without a manifest is not playable');
+ assert.equal((await b.call('post',upload,{name:'index.m3u8',body:playlist})).status,200);
+ const streams=b.relay.activeStreams();
+ assert.equal(streams.length,1);
+ assert.equal(streams[0].login,'vnhz');
+ assert.equal(streams[0].media,'hls');
+ assert.equal(streams[0].media_verified,true);
+ assert.equal(streams[0].player_url,'/api/oryon/local-relay/vnhz/player');
+ assert.match(streams[0].broadcast_id,/^[a-f0-9]{24}$/);
+ const room=b.relay.rooms.get('vnhz');
+ room.lastSegmentAt=Date.now()-31000;
+ assert.deepEqual(b.relay.activeStreams(),[],'stalled media cannot remain on SWAPP TV');
+ const changed=Buffer.from(seg);changed[1]=1;
+ assert.equal((await b.call('post',upload,{name:'seg_001.ts',body:changed})).status,200);
+ assert.equal(b.relay.activeStreams().length,1,'fresh video returns to verified native TV');
+});
