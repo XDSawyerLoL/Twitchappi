@@ -1,0 +1,35 @@
+/* SWAPP OBS Direct; style honors the global SWAPP theme. */
+#manager .swapp-obs-direct{margin:14px 0 18px;padding:18px 20px;
+ border:1px solid color-mix(in srgb,var(--brand,#8b5cf6) 25%,rgba(255,255,255,.12));
+ border-radius:14px;background:color-mix(in srgb,var(--brand,#8b5cf6) 5%,rgba(12,15,24,.9));
+ min-width:0;
+}
+#manager .swapp-obs-direct-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px}
+#manager .swapp-obs-direct-overline{display:block;letter-spacing:.11em;font-size:10px;color:var(--muted,#b0b7c6);font-weight:800;margin-bottom:5px}
+#manager .swapp-obs-direct h2{margin:0 0 6px;font-size:clamp(19px,2vw,25px);letter-spacing:-.025em}
+#manager .swapp-obs-direct-header p{margin:0;color:var(--muted,#bec3d1);font-size:13px;max-width:62ch}
+#manager .swapp-obs-direct-live{border:1px solid rgba(180,185,198,.25);border-radius:9px;padding:8px 11px;
+ color:var(--text,#e8e5f0);font-size:12px;font-weight:750;background:rgba(255,255,255,.04)}
+#manager .swapp-obs-direct-live[data-live="true"]{color:#9cf3ca;border-color:rgba(57,207,139,.4)}
+#manager .swapp-obs-direct-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:19px;min-width:0}
+#manager .swapp-obs-direct-setup,#manager .swapp-obs-direct-secret{min-width:0;border-top:1px solid rgba(255,255,255,.12);padding-top:15px}
+#manager .swapp-obs-direct h3{font-size:14px;margin:0 0 8px}
+#manager .swapp-obs-direct-setup p,#manager .swapp-obs-direct-secret p{color:var(--muted,#bbc0cb);font-size:12px;line-height:1.5;margin:0 0 11px}
+#manager .swapp-obs-direct-actions{display:flex;gap:8px;flex-wrap:wrap}
+#manager .swapp-obs-direct-actions .btn{font-size:12px;min-height:35px;padding:8px 11px}
+#manager .swapp-obs-direct-keyline{display:flex;align-items:stretch;gap:7px;min-width:0}
+#manager .swapp-obs-key{min-width:0;flex:1 1 auto;font:12px/1.3 monospace;letter-spacing:.015em;background:rgba(0,0,0,.24);
+ border:1px solid rgba(255,255,255,.2);border-radius:8px;color:var(--text,#faf9fe);padding:9px;max-width:100%}
+#manager .swapp-obs-direct-keyline button{flex:0 0 auto;padding:6px 10px;border:1px solid rgba(255,255,255,.18);
+ border-radius:8px;background:rgba(255,255,255,.06);color:var(--text,#faf9fe);cursor:pointer}
+#manager .swapp-obs-direct-keyline button:hover{background:rgba(255,255,255,.12)}
+#manager .swapp-obs-direct-status{margin:8px 0 0;font-size:11px;color:var(--muted,#b8bac9)}
+#manager .swapp-obs-direct-ready{display:flex;flex-wrap:wrap;gap:8px;align-items:baseline;
+ margin-top:17px;padding-top:14px;border-top:1px solid rgba(255,255,255,.12);font-size:12px}
+#manager .swapp-obs-direct-ready strong{font-weight:800}
+#manager .swapp-obs-direct-ready span{color:var(--muted,#babaca);line-height:1.5}
+#manager #oryonLivePanel[hidden]{display:none!important}
+@media(max-width:850px){#manager .swapp-obs-direct-grid{grid-template-columns:1fr;gap:6px}}
+@media(max-width:480px){#manager .swapp-obs-direct{padding:15px 12px}
+ #manager .swapp-obs-direct-keyline{flex-wrap:wrap}
+ #manager .swapp-obs-key{flex-basis:100%;width:100%}}
