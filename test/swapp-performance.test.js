@@ -90,7 +90,9 @@ test('video feature is in the existing editorial header, preserving all article 
  const home=read('assets/swapp-home-news.js');
  const html=read('index.html');
  assert.ok(home.includes('function videoTeaser()'));
- assert.ok(home.includes('actions.append(videoTeaser());title.append(all)'));
+ assert.ok(home.includes('function updateVideoTeaser(section,articles)'));
+ assert.ok(home.includes('updateVideoTeaser(section,valid)'));
+ assert.ok(!home.includes('trailer-code-vein-2-story-trailer'));
  assert.ok(home.includes('swappVideoPlay'));
  assert.ok(html.includes('swapp-video-player.js?v=20261016-ios-journey-1'));
 });

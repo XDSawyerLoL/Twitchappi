@@ -49,24 +49,51 @@
    body.append(el('small','swapp-home-story-cta','Lire l’article →'));
    a.append(image,body);return a;
  }
- // One verified video inside the existing editorial grid, not a new homepage section.
- function videoTeaser(){
-   const wrap=el('article','swapp-home-video-feature swapp-video-item');
-   const trigger=el('button','swapp-video-open');trigger.type='button';
-   trigger.dataset.swappVideoPlay='1';
-   trigger.dataset.videoSource='https://justplayer.fr/supporters/video_embeds/trailer-code-vein-2-story-trailer';
-   trigger.dataset.videoYoutube='Z9SaRLSibak'; // verified official Bandai Namco trailer
-   trigger.dataset.videoTitle='CODE VEIN II — Story Trailer';
-   trigger.setAttribute('aria-label','Regarder la bande-annonce CODE VEIN II');
-   const image=el('img');image.src='https://storage.googleapis.com/popshopprod-membership-assets-single-b5px4371/c0guw748anp9vi4crwdjcg19kils';
-   image.alt='';image.loading='lazy';image.decoding='async';
-   const overlay=el('span','swapp-video-shade');
-   overlay.append(el('span','swapp-video-play-icon','▶'),el('span','swapp-video-action','Lancer la bande-annonce'));
-   trigger.append(image,overlay);
-   const caption=el('div','swapp-video-caption');
-   caption.append(el('small','','SWAPP · VIDÉOS'),el('h3','','CODE VEIN II — Story Trailer'));
-   const all=el('a','','Toutes les bandes-annonces →');all.href='/bandes-annonces';caption.append(all);
-   wrap.append(trigger,caption);return wrap;
+ // A playable trailer must come from a published article, not a pinned campaign.
+ const youtubeId=item=>{
+  const raw=String(item?.trailerUrl||item?.trailer?.url||item?.videoUrl||item?.video?.url||'').trim();
+  if(!raw)return null;
+  try{
+   const url=new URL(raw);
+   if(url.protocol!=='https:'||url.username||url.password)return null;
+   const host=url.hostname.toLowerCase();
+   let video='';
+   if(host==='youtu.be')video=url.pathname.split('/')[1]||'';
+   else if(['youtube.com','www.youtube.com','m.youtube.com','www.youtube-nocookie.com'].includes(host)){
+    if(url.pathname==='/watch')video=url.searchParams.get('v')||'';
+    else if(/^\/(?:embed|shorts)\//.test(url.pathname))video=url.pathname.split('/')[2]||'';
+   }
+   return /^[a-z0-9_-]{11}$/i.test(video)?video:null;
+  }catch{return null}
+ };
+ function videoTeaser(item){
+  const video=youtubeId(item),imageUrl=cover(item);
+  if(!video||!imageUrl)return null;
+  const wrap=el('article','swapp-home-video-feature swapp-video-item');
+  const trigger=el('button','swapp-video-open');trigger.type='button';
+  trigger.dataset.swappVideoPlay='1';trigger.dataset.videoYoutube=video;
+  const name=String(item.game||item.title||'Jeu vidéo').trim().slice(0,110);
+  trigger.dataset.videoTitle='Bande-annonce · '+name;
+  trigger.setAttribute('aria-label','Regarder la bande-annonce de '+name);
+  const image=el('img');image.src=imageUrl;image.alt='';
+  image.loading='lazy';image.decoding='async';
+  const overlay=el('span','swapp-video-shade');
+  overlay.append(el('span','swapp-video-play-icon','▶'),el('span','swapp-video-action','Lancer la bande-annonce'));
+  trigger.append(image,overlay);
+  const caption=el('div','swapp-video-caption');
+  caption.append(el('small','','SWAPP · BANDE-ANNONCE'),el('h3','',String(item.title||name).slice(0,150)));
+  const article=el('a','','Lire le dossier →');article.href='/actus/'+encodeURIComponent(item.slug);
+  caption.append(article);wrap.append(trigger,caption);return wrap;
+ }
+ function updateVideoTeaser(section,articles){
+  const top=section.querySelector('.swapp-home-editorial-top');
+  const actions=top?.querySelector('.swapp-home-hero-actions');
+  if(!top||!actions)return;
+  actions.replaceChildren();
+  const featured=articles.find(item=>String(item.status||'published').toLowerCase()==='published'&&youtubeId(item)&&cover(item));
+  const tile=featured?videoTeaser(featured):null;
+  if(tile){actions.append(tile);top.classList.add('swapp-home-has-video')}
+  else top.classList.remove('swapp-home-has-video');
  }
  // A newly published illustrated article takes priority over an older hero.
  const articleDate=item=>Date.parse(item?.publishedAt||item?.originalPublishedAt||item?.updatedAt||'')||0;
@@ -170,6 +197,7 @@
        .sort((a,b)=>articleDate(b)-articleDate(a)||String(b.slug).localeCompare(String(a.slug)))
        .slice(0,12);
      latestArticles=valid.slice(0,5);
+     updateVideoTeaser(section,valid);
      // Matching reorders the existing live cards, not the article shelf.
      window.dispatchEvent(new CustomEvent('swapp:home-news-ready',{detail:{articles:valid}}));
      grid.replaceChildren();
@@ -219,7 +247,7 @@
    title.append(el('small','','SWAPP · LE GAMING EN DIRECT'),el('h2','','À la une sur SWAPP'),el('p','','L’actualité des jeux et les créateurs qui y jouent, au même endroit.'));
    const all=el('a','swapp-media-button primary','Toute l’actualité →');all.href='/actus';
    all.onclick=e=>{if(e.button||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey||typeof window.setView!=='function')return;e.preventDefault();window.setView('actus');window.SwappActus?.home()};
-   const actions=el('div','swapp-home-hero-actions');actions.append(videoTeaser());title.append(all);top.append(title,actions);section.append(top);
+   const actions=el('div','swapp-home-hero-actions');title.append(all);top.append(title,actions);section.append(top);
    const grid=el('div','swapp-home-story-grid');
    for(let i=0;i<(modern?4:5);i++){const skeleton=el('div','swapp-home-story swapp-home-story-skeleton'+(!modern&&i===0?' swapp-home-story-featured':''));skeleton.setAttribute('aria-hidden','true');skeleton.append(el('div','swapp-home-story-image'),el('div','swapp-home-story-body'));grid.append(skeleton)}section.setAttribute('aria-busy','true');section.append(grid);
    // Reserve the visual column before fetching articles to avoid a layout jump.
