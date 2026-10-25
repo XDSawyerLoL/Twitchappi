@@ -75,7 +75,8 @@ test('chat shares the player top edge and uses its actual measured height',()=>{
  const css=read('assets/swapp-watch-experience.css');
  const index=read('index_script.js');
  assert.match(js,/function syncChat\(page\)/);
- assert.match(js,/video\.getBoundingClientRect\(\)\.height/);
+ assert.match(js,/const videoRect=video\.getBoundingClientRect\(\)/);
+ assert.match(js,/const h=Math\.round\(videoRect\.height\)/);
  assert.match(js,/new ResizeObserver/);
  assert.match(js,/watcher\.observe\(video\)/);
  assert.match(css,/column-gap:4px!important/);
@@ -100,4 +101,45 @@ test('immersion keeps the entire media and chat bright and its scrim cannot bloc
  assert.match(css,/pointer-events:none!important/);
  assert.match(css,/@media\(prefers-reduced-motion:reduce\)/);
  assert.doesNotMatch(js,/watchTheatre|Mode cinéma/);
+});
+
+test('direct chat has no legacy sticky offset and follows the video top at desktop resolutions',()=>{
+ const css=read('assets/swapp-watch-experience.css');
+ const js=read('assets/swapp-watch-experience.js');
+ assert.match(css,/LIVE ALIGNMENT FIX/);
+ assert.match(css,/\.channelLiveSidebar > \.chatPanel\s*\{\s*position:relative!important/);
+ assert.match(css,/top:0!important/);
+ assert.match(css,/inset-block-start:0!important/);
+ assert.match(js,/const baselineTop=chatRect\.top-previousShift/);
+ assert.match(js,/videoRect\.top-baselineTop/);
+ assert.match(js,/const besideVideo=!mobile/);
+ assert.match(js,/chat\.style\.setProperty\('translate'/);
+ // This must not re-parent the chat or alter the iframe transport.
+ assert.doesNotMatch(js,/appendChild\(chat\)|replaceChildren\(chat\)|new Hls\(/);
+});
+test('chat vertical correction remains stable across retries, and clears on mobile',()=>{
+ const script=read('assets/swapp-watch-experience.js');
+ const a=script.indexOf(' function syncChat(page){');
+ const b=script.indexOf('\n function install(page){',a);
+ assert.ok(a>=0&&b>a);
+ const win={matchMedia:()=>({matches:false})};
+ const sync=new Function('window',script.slice(a,b)+'return syncChat')(win);
+ const video={getBoundingClientRect:()=>({top:430,left:200,right:1190,width:990,height:557})};
+ const values={};const style={setProperty(k,v){values[k]=v}};
+ const chat={dataset:{},style,
+  getBoundingClientRect(){const shift=Number(this.dataset.swappAlignShift||0);
+   return {top:540+shift,left:1194,width:290,height:557}}
+ };
+ const page={isConnected:true,dataset:{watchChat:'shown'},
+  querySelector(selector){return selector.includes('.channelMainPlayer >')?video:
+   selector.includes('.channelLiveSidebar .chatPanel')?chat:null}
+ };
+ sync(page);
+ assert.equal(values.translate,'0 -110px');
+ assert.equal(values.height,'557px');
+ sync(page);
+ assert.equal(values.translate,'0 -110px','rechecks must not oscillate');
+ win.matchMedia=()=>({matches:true});
+ sync(page);
+ assert.equal(values.translate,'0 0px','mobile uses stacked positioning');
 });
