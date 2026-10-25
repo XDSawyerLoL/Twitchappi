@@ -10,6 +10,7 @@ const {makePublicCatalog}=require('./public-catalog');
 const {recommend}=require('./content-metadata');
 const catalog=require('../../data/justplayer-public-catalog.json');
 const {createEditorialReleaseSync,loadEditorialReleases}=require('./editorial-release-sync');
+const {createVerifiedPublishedCache}=require('./verified-cache');
 const {createDiscordPublisher}=require('./discord-publisher');
 const swappReleaseArticles=loadEditorialReleases();
 const swappReleaseBySlug=new Map(swappReleaseArticles.map(article=>[article.slug,article]));
@@ -26,6 +27,20 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
   }
   const router=express.Router();
   const justPlayerCache = new Map();
+  // Cache ONLY the last successful CMS-published snapshot; never rediscover
+  // releases during an outage, which could resurrect a deliberately withdrawn post.
+  const verifiedPublished=createVerifiedPublishedCache({ttlMs:10*60*1000});
+  function fromVerifiedCache(res,slug=null,html=false){
+    const fallback=slug?verifiedPublished.get(slug):verifiedPublished.all();
+    if(!fallback)return false;
+    res.set('Cache-Control','no-store');
+    res.set('X-SWAPP-Editorial-State','verified-stale');
+    if(slug){
+      if(html)return res.type('html').send(renderNewsStory(fallback,{baseUrl,relatedArticles:[]}));
+      return res.json(fallback);
+    }
+    return res.json({articles:fallback.map(({body,...data})=>data),degraded:true});
+  }
   // No scheduler: signal free IndexNow only after an editor's committed publication.
   // Never block an editorial action if the external indexing service is unreachable.
   const signalIndexing=slugs=>{
@@ -141,14 +156,29 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
       return res.json({releaseCount:states.length,editableCount:states.filter(x=>x.editableInStudio).length,articles:states});
     }catch(error){next(error);}
   });
-  router.get('/api/actus',available,async(req,res,next)=>{
-    try {
+  router.get('/api/actus',async(req,res,next)=>{
+    // The magazine stays readable during a short CMS outage, provided this
+    // process already fetched a genuine published snapshot while healthy.
+    if(!isReady()){
+      if(fromVerifiedCache(res))return;
+      return res.status(503).set('Cache-Control','no-store').json({error:'news_storage_unavailable'});
+    }
+    try{
       res.set('Cache-Control','no-store');
       const list=await published();
+      verifiedPublished.remember(list);
       return res.json({articles:list.map(({body,...data})=>data)});
-    }catch(e){next(e);}
+    }catch(e){
+      if(fromVerifiedCache(res))return;
+      next(e);
+    }
   });
-  router.get('/api/actus/:slug',available,async(req,res,next)=>{
+  router.get('/api/actus/:slug',async(req,res,next)=>{
+    if(!slugOk(req.params.slug))return res.status(404).json({error:'Article introuvable'});
+    if(!isReady()){
+      if(fromVerifiedCache(res,String(req.params.slug)))return;
+      return res.status(503).set('Cache-Control','no-store').json({error:'news_storage_unavailable'});
+    }
     try{
       if(!slugOk(req.params.slug)) return res.status(404).json({error:'Article introuvable'});
       const slug=String(req.params.slug);
@@ -167,7 +197,7 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
       const historicalSlug=slug.startsWith('justplayer-')?slug:'justplayer-'+slug;
       const original=await publicNews.get(historicalSlug);
       return original?res.json(recoveredArticle(original)):res.status(404).json({error:'Article introuvable'});
-    }catch(e){next(e);}
+    }catch(e){if(fromVerifiedCache(res,String(req.params.slug)))return;next(e);}
   });
   // One canonical UI for direct navigation and SPA navigation.
   router.get('/actus',(req,res,next)=>{
@@ -230,7 +260,12 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
   });
   router.get('/actus/studio',...editor,(req,res)=>res.set('Cache-Control','private, no-store').type('html').send(renderStudio()));
   router.get('/actus/studio.js',...editor,(req,res)=>res.set('Cache-Control','private, no-store').type('application/javascript').send(studioJs));
-  router.get('/actus/:slug',available,async(req,res,next)=>{
+  router.get('/actus/:slug',async(req,res,next)=>{
+    if(!slugOk(req.params.slug))return res.status(404).send('Article introuvable');
+    if(!isReady()){
+      if(fromVerifiedCache(res,String(req.params.slug),true))return;
+      return res.status(503).set('Cache-Control','no-store').send('Magazine temporairement indisponible');
+    }
     try{
       if(!slugOk(req.params.slug)) return res.status(404).send('Article introuvable');
       const slug=String(req.params.slug);
@@ -257,7 +292,7 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
       const original=await publicNews.get(historicalSlug);
       return original?res.type('html').send(await storyHtml(recoveredArticle(original))):
         res.status(404).send('Article introuvable');
-    }catch(e){next(e);}
+    }catch(e){if(fromVerifiedCache(res,String(req.params.slug),true))return;next(e);}
   });
   // Suggest games and tags without external APIs or tracking.
   // Only authenticated editors may submit unpublished text for analysis.
@@ -397,7 +432,7 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
         tx.update(ref,{...a,revision,updatedAt,status:old.status,publishedAt:old.publishedAt||null});
         return {code:200,slug,status:old.status,revision};
       });
-      if(result.code===200&&result.status==='published')signalIndexing([slug]);
+      if(result.code===200){verifiedPublished.invalidate();if(result.status==='published')signalIndexing([slug]);}
       return res.status(result.code).json(result);
     }catch(e){if(isValidation(e)) return sendError(res,e);next(e);}
   });
@@ -422,6 +457,7 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
         return {code:200,slug,status:'published',eventId,social:'paused'};
       });
       if(result.code===200&&!result.alreadyPublished&&result.status==='published'){
+        verifiedPublished.invalidate();
         signalIndexing([slug]);
         discordPublisher.kick();
       }
@@ -440,7 +476,7 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
         tx.update(ref,{status:'draft',revision,updatedAt:new Date().toISOString(),legacySuppressRecovery:!!snap.data().legacyUrl});
         return {code:200,slug,status:'draft',revision};
       });
-      if(result.code===200&&result.status==='draft')signalIndexing([slug]);
+      if(result.code===200&&result.status==='draft'){verifiedPublished.invalidate();signalIndexing([slug]);}
       return res.status(result.code).json(result);
     }catch(e){next(e);}
   });
