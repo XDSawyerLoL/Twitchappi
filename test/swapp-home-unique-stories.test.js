@@ -54,6 +54,7 @@ async function render(articles){
 
 const make=(n,hasImage=true)=>({
  slug:'game-release-'+n,title:'Gaming news '+n,game:'Game '+n,
+ publishedAt:'2026-10-'+String(25-n).padStart(2,'0')+'T10:00:00Z',
  image:hasImage?{url:'https://example.com/game-'+n+'.jpg'}:null,
  trailerUrl:'https://www.youtube.com/watch?v=AbcdEfgh012'
 });
@@ -133,5 +134,5 @@ test('the newest published article supplies its own video and destination',async
  const view=await render(data);
  const tile=view.shelf.querySelector('.swapp-home-video-feature');
  assert.equal(tile.querySelector('.swapp-video-open').dataset.videoYoutube,'Qwerty12345');
- assert.equal(tile.querySelector('.swapp-video-caption').querySelector('h3').textContent,'Gaming news 1');
+ assert.equal(tile.querySelector('.swapp-video-caption').children.find(node=>node.tagName==='H3').textContent,'Gaming news 1');
 });
