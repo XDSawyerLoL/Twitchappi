@@ -137,30 +137,49 @@
   try{snapshot=await request(current);if(snapshot.role==='viewer'){dialog.close();return}render();report('')}
   catch(e){report(e.message,true)}
  }
+ // The chat header is re-rendered by the main application; never mount
+ // moderator controls inside it or they disappear whenever messages update.
+ let accessRoom='',accessUntil=0,accessCheck=null;
  async function scan(){
   wireMessages();wireSocket();
   if(!root.classList.contains('active'))return;
-  const pane=root.querySelector('.nativeFixedChat[data-chat="oryon"]');
-  const name=room();if(!pane||!name)return;
-  if(current!==name){current=name;role='viewer';snapshot=null;if(dialog?.open)dialog.close()}
-  if(launch?.isConnected&&launch.dataset.room===name)return;
+  const sidebar=root.querySelector('.channelLiveSidebar'),name=room();
+  if(!sidebar||!name)return;
+  if(current!==name){
+   current=name;role='viewer';snapshot=null;accessRoom='';accessUntil=0;
+   if(dialog?.open)dialog.close();
+  }
+  if(launch?.isConnected&&launch.parentElement===sidebar&&launch.dataset.room===name)return;
   launch?.remove();launch=null;
-  try{
-   const response=await request(name);
-   if(room()!==name||!pane.isConnected)return;
-   role=response.role;
-   if(role==='viewer')return;
-   const target=pane.querySelector('.chatHeader')||pane;
-   launch=el('button','swapp-mod-open','Modération');launch.type='button';launch.dataset.room=name;
-   launch.addEventListener('click',openDesk);target.appendChild(launch);
-  }catch(_){}
+  if(accessRoom!==name||Date.now()>accessUntil){
+   if(accessCheck)return;
+   accessCheck=request(name);
+   try{
+    const response=await accessCheck;
+    if(room()!==name||!sidebar.isConnected)return;
+    role=response.role;accessRoom=name;accessUntil=Date.now()+15000;
+   }catch(_){accessUntil=Date.now()+3000;return}
+   finally{accessCheck=null}
+  }
+  if(role==='viewer')return;
+  const existing=sidebar.querySelector(':scope > .swapp-mod-open');
+  if(existing){launch=existing;return}
+  launch=el('button','swapp-mod-open','⚑');
+  launch.type='button';launch.dataset.room=name;
+  launch.title='Modération du tchat';launch.setAttribute('aria-label','Ouvrir la modération du tchat');
+  launch.addEventListener('click',openDesk);
+  sidebar.appendChild(launch);
  }
  let timer=null;
- const schedule=()=>{if(timer)return;timer=setTimeout(()=>{timer=null;void scan()},350)};
+ const schedule=()=>{if(timer)return;timer=setTimeout(()=>{timer=null;void scan()},220)};
  new MutationObserver(records=>{
   if(records.some(r=>Array.from(r.addedNodes).some(n=>n.nodeType===1&&
-   (n.matches?.('.creatorRefine,.nativeFixedChat')||n.querySelector?.('.nativeFixedChat')))))schedule();
+    (n.matches?.('.creatorRefine,.channelLiveSidebar,.nativeFixedChat')||
+     n.querySelector?.('.channelLiveSidebar')))))schedule();
  }).observe(root,{childList:true,subtree:true});
+ // Guard against a chat widget that replaces only its own header.
+ const keepStable=setInterval(()=>{if(root.classList.contains('active'))schedule()},2500);
+ window.addEventListener('pagehide',()=>clearInterval(keepStable),{once:true});
  window.addEventListener('popstate',schedule);
  document.addEventListener('visibilitychange',()=>{if(!document.hidden)schedule()});
  schedule();
