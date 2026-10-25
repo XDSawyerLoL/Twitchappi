@@ -102,3 +102,11 @@ test('public smoke requires real media evidence, not mere creator heartbeats',()
  assert.match(source,/x\.player_url===/);
  assert.ok(RELEASE_FILES.includes('modules/swapp-direct-hls-relay.js'));
 });
+
+test('native HLS player dependency participates in release drift checks',()=>{
+ for(const name of ['package.json','package-lock.json','modules/swapp-direct-hls-relay.js'])
+  assert.ok(RELEASE_FILES.includes(name),name);
+ const smoke=fs.readFileSync(path.join(__dirname,'..','tools/swapp-deploy-smoke.js'),'utf8');
+ assert.match(smoke,/request\(origin,'\/assets\/hls\.min\.js'\)/);
+ assert.match(smoke,/engine\.body\.length>100000/);
+});
