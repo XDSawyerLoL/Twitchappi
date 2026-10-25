@@ -4,21 +4,21 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
 const read=file=>fs.readFileSync(path.join(__dirname,'..',file),'utf8');
-test('live theatre and chat controls keep the existing HLS and chat transports',()=>{
+test('live immersion and chat controls keep the existing HLS and chat transports',()=>{
  const js=read('assets/swapp-watch-experience.js');
  new Function(js);
  assert.match(js,/data-channel-live="true"/);
- assert.match(js,/swapp-watch-theatre-btn/);
+ assert.match(js,/swapp-watch-immersion-btn/);
  assert.match(js,/swapp-watch-chat-btn/);
  assert.match(js,/aria-expanded/);
  assert.doesNotMatch(js,/sessionStorage/,'a previous hidden chat preference must not survive a fresh watch session');
- assert.match(js,/const mode=\{theatre:'off',chat:'shown'\}/);
+ assert.match(js,/const mode=\{immersion:'off',chat:'shown'\}/);
  assert.doesNotMatch(js,/new Hls\(|MediaSource|WebSocket|socket\.emit|innerHTML\s*=\s*.*iframe/);
 });
-test('live style puts video first and theatre hides chrome without removing chat messages',()=>{
+test('live style puts video first and immersion dims outside without touching chat messages',()=>{
  const css=read('assets/swapp-watch-experience.css');
  assert.match(css,/\.channelLiveLayout/);
- assert.match(css,/data-watch-theatre="on"/);
+ assert.match(css,/swapp-immersion-dimmer/);
  assert.match(css,/data-watch-chat="hidden"/);
  assert.match(css,/prefers-reduced-motion:reduce/);
  assert.doesNotMatch(css,/\.chatLog\s*\{display:none/);
@@ -84,4 +84,20 @@ test('chat shares the player top edge and uses its actual measured height',()=>{
  assert.match(index,/const playerHeight=Math\.round\(rect\.height \|\| rect\.width\*9\/16\)/);
  assert.doesNotMatch(index,/Math\.round\(window\.innerHeight\*\.44\)/,
    'chat size must not be estimated from the viewport');
+});
+
+test('immersion keeps the entire media and chat bright and its scrim cannot block any controls',()=>{
+ const js=read('assets/swapp-watch-experience.js');
+ const css=read('assets/swapp-watch-experience.css');
+ assert.match(js,/Mode Immersion/);
+ assert.match(js,/Quitter Immersion/);
+ assert.match(js,/swapp-immersion-dimmer/);
+ assert.match(js,/const focus=page\.querySelector\('\.channelLiveLayout'\)/);
+ assert.match(js,/document\.body\.appendChild\(wrapper\)/);
+ assert.match(js,/disableImmersion\(\)/);
+ assert.match(js,/event\.key==='Escape'/);
+ assert.match(css,/\.swapp-immersion-dimmer>div/);
+ assert.match(css,/pointer-events:none!important/);
+ assert.match(css,/@media\(prefers-reduced-motion:reduce\)/);
+ assert.doesNotMatch(js,/watchTheatre|Mode cinéma/);
 });
