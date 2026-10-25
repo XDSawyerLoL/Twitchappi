@@ -1,0 +1,45 @@
+/* SWAPP Live Web — keep existing layout and theme, no floating video layers. */
+#manager .swapp-studio-editor{
+ padding:14px 16px;margin:12px 0 6px;border-radius:11px;
+ border:1px solid color-mix(in srgb,var(--brand,#8b5cf6) 25%,transparent);
+ background:color-mix(in srgb,var(--brand,#8b5cf6) 6%,transparent);
+}
+#manager .swapp-studio-editor h2{font-size:17px;margin:0 0 5px}
+#manager .swapp-studio-editor p,
+#manager .swapp-studio-device-note{font-size:12px;color:var(--muted,#b1b4c1);line-height:1.5;margin:5px 0 9px}
+#manager .swapp-studio-editor-actions{display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+#manager .swapp-studio-feedback{font-size:12px;color:var(--text,#e4e4e8)}
+#manager .swapp-studio-device-note{padding:8px 2px}
+#manager .swapp-studio-editor button{min-height:36px}
+#channel .swapp-stream-public-heading{
+ display:flex;align-items:baseline;gap:10px;justify-content:space-between;flex-wrap:wrap;
+ padding:11px 15px;margin:0;min-width:0;border-bottom:1px solid rgba(255,255,255,.12);
+ background:rgba(9,12,20,.97);color:var(--text,#f8f8fc);
+}
+#channel .swapp-stream-public-heading strong{
+ font-weight:800;font-size:15px;line-height:1.4;overflow-wrap:anywhere;min-width:0;
+}
+#channel .swapp-stream-public-heading span{
+ color:var(--muted,#b5b1c4);font-size:12px;white-space:normal;
+}
+#channel .swapp-studio-owner-edit{min-height:35px!important;border-radius:10px!important}
+.swapp-studio-dialog{
+ border:1px solid rgba(173,158,211,.4);border-radius:16px;background:#11131e;color:#f3f2f8;
+ width:min(490px,calc(100vw - 24px));max-height:92dvh;padding:0;
+ box-shadow:0 20px 90px #0009;position:fixed;inset:0;margin:auto;
+}
+.swapp-studio-dialog::backdrop{background:rgba(0,0,0,.74);backdrop-filter:blur(4px)}
+.swapp-studio-dialog-content{display:grid;gap:14px;padding:23px;position:relative}
+.swapp-studio-dialog h2{font-size:20px;margin:0 30px 7px 0}
+.swapp-studio-dialog .swapp-studio-dialog-close{
+ position:absolute;right:12px;top:11px;border:0;background:transparent;color:inherit;
+ font-size:24px;cursor:pointer;
+}
+.swapp-studio-dialog label{display:grid;gap:6px;font:600 12px/1.5 system-ui,sans-serif}
+.swapp-studio-dialog input{
+ width:100%;min-width:0;min-height:43px;padding:10px 12px;
+ border-radius:9px;border:1px solid #484158;background:#1b1d2a;color:#fff;font:14px/1.4 system-ui,sans-serif;
+}
+.swapp-studio-dialog-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.swapp-studio-dialog-status{font-size:12px;color:#d3c6df;line-height:1.4}
+.swapp-studio-dialog :focus-visible{outline:2px solid #c4a6ff;outline-offset:2px}
