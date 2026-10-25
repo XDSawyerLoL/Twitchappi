@@ -8493,6 +8493,14 @@ require('./modules/swapp-channel-moderation').installChannelModeration({
   saveModState: data => fs.writeFileSync(oryonModFile, JSON.stringify(data,null,2))
 });
 
+// Authenticated creator viewers and channel-local points (zero paid services).
+require('./modules/swapp-channel-audience').installChannelAudience({
+  app, io, getUser:getOryonUserByLogin,
+  getNativeRoom:room=>nativeLiveRooms.get(room),
+  isLocalLive:isOryonLocalLiveRoom,
+  storageFile:path.join(__dirname,'.swapp-channel-loyalty.json')
+});
+
 // SWAPP SOCIAL: voice signalling. Socket.IO transports only SDP/ICE metadata.
 // Actual audio uses WebRTC between members, is never recorded by SWAPP.
 require('./modules/swapp-social-voice').installSocialVoice({
