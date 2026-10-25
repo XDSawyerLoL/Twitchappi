@@ -159,7 +159,7 @@
   const labels=[
    page.dataset.liveTitle,page.dataset.streamTitle,
    page.querySelector('[data-live-title]')?.getAttribute('data-live-title'),
-   profile?.live_title,profile?.stream_title,profile?.live?.title,
+   profile?.current_live_title,profile?.live_title,profile?.stream_title,profile?.live?.title,
    profile?.current_live?.title,profile?.broadcast?.title
   ];
   return labels.map(value=>String(value||'').trim()).find(value=>value.length>0&&value.length<=180)||'';
