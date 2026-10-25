@@ -22,12 +22,13 @@ function backend(){
   put(route,...fns){routes.put.set(route,fns.at(-1))}
  };
  const relay=module.exports.attachSwappDirectRelay(app,{lookupOwner:async token=>token==='VALID_TOKEN'?{login:'vnhz'}:null,
- lookupObsOwner:async key=>key==='a'.repeat(48)?{login:'vnhz'}:null});
+ lookupObsOwner:async key=>key==='a'.repeat(48)?{login:'vnhz'}:null,
+ lookupDashboardOwner:async req=>req.session?.oryonUser?.login==='vnhz'?{login:'vnhz'}:null});
  async function call(method,route,{name,body,token='VALID_TOKEN',login='vnhz',segment,audioTrack,range}={}){
   const fn=routes[method].get(route);
   assert.ok(fn,'route missing: '+route);
   let status=200,type='',payload=null,headers={};
-  const req={params:{login,segment},query:{cid:token,file:name},headers:{},body, get(k){
+  const req={params:{login,segment},session:{oryonUser:{id:'test-owner',login:'vnhz'}},query:{cid:token,file:name},headers:{},body, get(k){
    if(k==='x-swapp-media-name')return this.headers['x-swapp-media-name']||name||'';
    if(k==='authorization')return token?'Bearer '+token:'';
    if(k==='x-swapp-media-name')return name||'';
@@ -477,4 +478,29 @@ test('native OBS HLS PUT receives MPEG-TS segments without SWAPP Local',async()=
  const ts=await b.call('get','/api/oryon/local-relay/:login/:segment',{segment:'seg_0.ts'});
  assert.equal(ts.status,200);
  assert.deepEqual(Buffer.from(ts.payload),video);
+});
+
+test('owner-only OBS diagnostics separate missing ingress, segment reception and verified playlist',async()=>{
+ const b=backend();
+ const path='/api/swapp/obs-hls/diagnostics';
+ const ping=await b.call('put','/api/swapp/obs-hls/ping');
+ assert.equal(ping.status,200);
+ assert.equal(ping.payload.http_put_forwarded,true);
+ const initial=await b.call('get',path);
+ assert.equal(initial.payload.stage,'no_upload');
+ assert.equal(initial.payload.transport,'obs-hls-http-put');
+ assert.equal(Object.keys(initial.payload).some(k=>/token|key|secret|cid/i.test(k)),false);
+ const bytes=Buffer.alloc(188*3);bytes[0]=0x47;
+ const seg=await b.call('put','/api/swapp/obs-hls/put',{name:'index0.ts',token:'a'.repeat(48),body:bytes});
+ assert.equal(seg.status,200);
+ const partial=await b.call('get',path);
+ assert.equal(partial.payload.stage,'segments_only');
+ assert.equal(partial.payload.last_file_type,'segment');
+ const manifest=Buffer.from('#EXTM3U\n#EXT-X-TARGETDURATION:2\n#EXTINF:2,\nindex0.ts\n');
+ assert.equal((await b.call('put','/api/swapp/obs-hls/put',{name:'index.m3u8',token:'a'.repeat(48),body:manifest})).status,200);
+ const done=await b.call('get',path);
+ assert.equal(done.payload.stage,'live');
+ assert.equal(done.payload.has_playlist,true);
+ assert.equal(done.payload.segment_count,1);
+ assert.equal(done.payload.last_status,200);
 });
