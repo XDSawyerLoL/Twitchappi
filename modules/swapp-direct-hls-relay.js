@@ -176,7 +176,6 @@ function attachSwappDirectRelay(app, opts={}){
     }
     if(!room.segments.has(name))room.segmentTimeline.push(name);
     room.segments.set(name,Buffer.from(body));
-    room.lastSegmentAt=now;
     room.bytes+=body.length-(previous?.length||0);
     pruneHistory(room);
     if(room.bytes>MAX_ROOM_BYTES||!room.segments.has(name)){
@@ -187,6 +186,8 @@ function attachSwappDirectRelay(app, opts={}){
      }
      return res.status(413).json({success:false,error:'Mémoire vidéo SWAPP saturée : réduis le bitrate OBS.'});
     }
+    // Only successfully accepted TS bytes count as fresh video.
+    room.lastSegmentAt=now;
    }
    room.minuteBytes+=body.length;
    res.json({success:true,room:login,received:name,segment_count:room.segments.size});
