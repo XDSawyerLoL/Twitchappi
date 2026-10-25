@@ -412,3 +412,20 @@
  #channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelLiveLayout{grid-template-columns:minmax(0,1fr)!important}
  #channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelLiveSidebar .chatPanel{min-height:350px!important}
 }
+
+/* FREE follow state: channel color palette, never a paid subscribe badge. */
+#channel .creatorRefine .channelActionDock .swapp-channel-follow-btn{
+ border-color:color-mix(in srgb,var(--channel-accent,var(--brand,#a166e4)) 45%,transparent)!important;
+ transition:background .15s ease,border-color .15s ease;
+}
+#channel .creatorRefine .channelActionDock .swapp-channel-follow-btn[aria-pressed="true"]{
+ background:color-mix(in srgb,var(--channel-accent,var(--brand,#a166e4)) 19%,#121523)!important;
+ border-color:var(--channel-accent,var(--brand,#a166e4))!important;
+ color:#fff!important;
+}
+#channel .creatorRefine .channelActionDock .swapp-channel-follow-btn[disabled]{
+ opacity:.65!important;cursor:wait!important;
+}
+@media(prefers-reduced-motion:reduce){
+ #channel .creatorRefine .channelActionDock .swapp-channel-follow-btn{transition:none!important}
+}
