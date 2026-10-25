@@ -4742,6 +4742,46 @@ app.post('/api/oryon/stream-key/regenerate', mutationLimiter, async (req, res) =
   }catch(e){ res.status(500).json({ success:false, error:e.message }); }
 });
 
+// Public login lookup, private viewer-follow state. No list of another
+// user's follows is ever exposed to an unauthenticated viewer.
+app.get('/api/oryon/follow/:login', async(req,res)=>{
+  try{
+    await ORYON_USERS_READY.catch(()=>{});
+    const target=normalizeOryonLogin(req.params.login);
+    if(!target)return res.status(400).json({success:false,error:'Créateur invalide.'});
+    const data=readOryonUsers();
+    const creator=(data.users||[]).find(u=>u.login===target);
+    if(!creator)return res.status(404).json({success:false,error:'Chaîne introuvable.'});
+    const viewerId=req.session?.oryonUser?.id;
+    const viewer=viewerId?(data.users||[]).find(u=>u.id===viewerId):null;
+    const isFollowing=Boolean(viewer&&Array.isArray(viewer.following)&&viewer.following.includes(target));
+    res.setHeader('Cache-Control','private, no-store');
+    res.json({success:true,authenticated:!!viewer,following:isFollowing,
+      followers_count:Math.max(0,Number(creator.followers_count||0))});
+  }catch(e){res.status(503).json({success:false,error:'Suivi temporairement indisponible.'})}
+});
+
+app.delete('/api/oryon/follow/:login',mutationLimiter,async(req,res)=>{
+  try{
+    const cur=req.session?.oryonUser;
+    if(!cur?.id)return res.status(401).json({success:false,error:'Compte SWAPP requis.'});
+    const target=normalizeOryonLogin(req.params.login);
+    if(!target)return res.status(400).json({success:false,error:'Créateur invalide.'});
+    const data=readOryonUsers();
+    const viewer=(data.users||[]).find(u=>u.id===cur.id);
+    const creator=(data.users||[]).find(u=>u.login===target);
+    if(!viewer||!creator)return res.status(404).json({success:false,error:'Utilisateur introuvable.'});
+    viewer.following=Array.isArray(viewer.following)?viewer.following:[];
+    if(viewer.following.includes(target)){
+      viewer.following=viewer.following.filter(login=>login!==target);
+      creator.followers_count=Math.max(0,Number(creator.followers_count||0)-1);
+      await writeOryonUsersAndWait(data);
+    }
+    return res.json({success:true,following:false,
+      followers_count:Math.max(0,Number(creator.followers_count||0))});
+  }catch(e){res.status(503).json({success:false,error:'Suivi temporairement indisponible.'})}
+});
+
 app.post('/api/oryon/follow/:login', mutationLimiter, async (req, res) => {
   try{
     const cur = req.session?.oryonUser;
@@ -4753,13 +4793,17 @@ app.post('/api/oryon/follow/:login', mutationLimiter, async (req, res) => {
     const creator = data.users.find(u => u.login === target);
     if(!user || !creator) return res.status(404).json({ success:false, error:'Utilisateur introuvable.' });
     user.following = Array.isArray(user.following) ? user.following : [];
+    if(user.login===target)return res.status(400).json({success:false,error:'Tu ne peux pas suivre ta propre chaîne.'});
     const already = user.following.includes(target);
+    if(!already&&user.following.length>=500)
+      return res.status(422).json({success:false,error:'Limite de 500 chaînes suivies atteinte.'});
     if(!already){
       user.following.push(target);
       creator.followers_count = Math.max(Number(creator.followers_count || 0), 0) + 1;
     }
     const persistResult = await writeOryonUsersAndWait(data);
-    res.json({ success:true, following:user.following, persistence:persistResult||null });
+    res.json({ success:true, following:user.following, is_following:true,
+      followers_count:Math.max(0,Number(creator.followers_count||0)),persistence:persistResult||null });
   }catch(e){ res.status(500).json({ success:false, error:e.message }); }
 });
 
