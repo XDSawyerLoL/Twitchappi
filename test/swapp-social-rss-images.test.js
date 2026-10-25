@@ -55,6 +55,6 @@ test('homepage excludes promotional X/Discord section; SOCIAl keeps its RSS imag
  const hubs=read('modules/swapp-hubs.js'),app=read('assets/swapp-social-native/app.js');
  assert.doesNotMatch(index,/swapp-social-bridge\.js|swapp-social-bridge\.css/);
  assert.doesNotMatch(home,/SwappSocialBridge\?\.mount/);
- assert.match(hubs,/swapp-social-native\/app\.js\?v=20261021-rss-media-community-v2/);
- assert.match(app,/views\.js\?v=20261021-rss-media-community-v2/);
+ assert.match(hubs,/swapp-social-native\/app\.js\?v=20261025-dm-workspace-v1/);
+ assert.match(app,/views\.js\?v=20261025-dm-workspace-v1/);
 });

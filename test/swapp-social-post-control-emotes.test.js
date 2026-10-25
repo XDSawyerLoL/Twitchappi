@@ -89,7 +89,7 @@ test('new JS and CSS asset versions are linked by SWAPP /social',()=>{
  const css=read('assets/swapp-social-native/social-swapp.css');
  assert.match(hubs,/app\.js\?v=20261022-social-control-emotes-v1/);
  assert.match(hubs,/social-swapp\.css\?v=20261022-social-control-emotes-v1/);
- assert.match(app,/views\.js\?v=20261022-social-posts-v2/);
+ assert.match(app,/views\.js\?v=20261025-dm-workspace-v1/);
  assert.match(views,/render\.js\?v=20261022-social-posts-v2/);
  assert.match(app,/emotes\.js\?v=20261022-social-emotes-v1/);
  assert.match(css,/pulse-post-relayed \.pulse-rich-link-preview/);
