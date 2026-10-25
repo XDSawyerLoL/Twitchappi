@@ -1362,6 +1362,37 @@ app.delete('/api/swapp-tv/queue',mutationLimiter,async(req,res)=>{
 
 app.get('/agenda',(req,res)=>{res.set('Cache-Control','no-store');return res.redirect(308,'/tv/programme'+(req.originalUrl?.includes('?')?req.originalUrl.slice(req.originalUrl.indexOf('?')):''));});
 app.get('/tv/programme',(_req,res)=>{res.set('Cache-Control','no-store');return res.type('html').send(swappProgram.page('agenda'))});
+// Independence is a first-party, authenticated export: no follower PII, no
+// credential material, and no reliance on a third-party platform or API.
+app.get('/independance',(_req,res)=>{
+ res.set('Cache-Control','private, no-store');
+ return res.type('html').send(require('./modules/swapp-independence').page());
+});
+app.get('/api/oryon/independence/export',async(req,res)=>{
+ res.set('Cache-Control','private, no-store, max-age=0');
+ res.set('Pragma','no-cache');
+ res.set('X-Content-Type-Options','nosniff');
+ res.set('Referrer-Policy','no-referrer');
+ if(String(req.headers['sec-fetch-site']||'')==='cross-site')
+  return res.status(403).json({success:false,error:'same_origin_required'});
+ try{
+  // The user can only download their own state; never select a target from
+  // query params or request body, never include credentials or follower PII.
+  if(!req.session?.oryonUser?.id)await restoreOryonSessionFromRememberCookie(req,res);
+  const ownerId=req.session?.oryonUser?.id;
+  if(!ownerId)return res.status(401).json({success:false,error:'swapp_account_required'});
+  await ORYON_USERS_READY;
+  const user=(readOryonUsers().users||[]).find(u=>u.id===ownerId);
+  if(!user)return res.status(401).json({success:false,error:'swapp_account_required'});
+  const data=require('./modules/swapp-independence').buildArchive(user);
+  const login=String(user.login).replace(/[^a-z0-9_-]/g,'').slice(0,40);
+  res.set('Content-Disposition','attachment; filename="swapp-'+login+'-independance.json"');
+  return res.type('json').send(JSON.stringify(data,null,2));
+ }catch(error){
+  console.warn('[SWAPP INDEPENDENCE] export unavailable:',String(error?.name||'error'));
+  return res.status(503).json({success:false,error:'swapp_export_unavailable'});
+ }
+});
 app.get('/tv',(_req,res)=>{res.set('Cache-Control','no-store');return res.type('html').send(swappProgram.page('tv'))});
 app.get('/communaute',(req,res)=>{res.set('Cache-Control','no-store');return res.redirect(308,'/social'+(req.originalUrl.includes('?')?req.originalUrl.slice(req.originalUrl.indexOf('?')):''));});
 app.get('/social',(_req,res)=>{res.set('Cache-Control','no-store');res.type('html').send(swappHubs.community())});
