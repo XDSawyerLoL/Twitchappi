@@ -29,7 +29,7 @@ function page(kind){
       <div class="stv-screen-bottom"><span id="stv-screen-game">GAME UNIVERSE</span><span id="stv-screen-clock">SWAPP / LIVE DISCOVERY</span></div>
      </div>
     </div>
-    <div class="stv-nowbar"><div><span class="stv-label">MAINTENANT</span><strong id="stv-now-name">Antenne en préparation</strong><span id="stv-now-game">En attente de programmation</span></div><div class="stv-now-actions"><button id="stv-watch" type="button" disabled>▶ REGARDER</button><button id="stv-dock-toggle" type="button" aria-controls="stv-dock" aria-expanded="false">◧ TCHATS / FILE</button><button id="stv-immersive" type="button" aria-pressed="false">⛶ IMMERSION</button></div></div>
+    <div class="stv-nowbar"><div><span class="stv-label">MAINTENANT</span><strong id="stv-now-name">Antenne en préparation</strong><span id="stv-now-game">En attente de programmation</span></div><div class="stv-now-actions"><button id="stv-watch" type="button" aria-pressed="false" disabled>▶ REGARDER</button><button id="stv-dock-toggle" type="button" aria-controls="stv-dock" aria-expanded="false">◧ TCHATS / FILE</button><button id="stv-immersive" type="button" aria-pressed="false">⛶ IMMERSION</button></div></div>
    </div>
    <aside class="stv-rail stv-dock" id="stv-dock" aria-label="Tchats et file SWAPP TV">
     <div class="stv-dock-top">
