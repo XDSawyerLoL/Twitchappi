@@ -167,12 +167,13 @@ function attachSwappDirectRelay(app, opts={}){
    }else{
     if(body[0]!==0x47)return res.status(422).json({success:false,error:'Segment MPEG-TS invalide.'});
     let previous=room.segments.get(name);
+    let genuinelyNew=!previous||previous.length!==body.length||!previous.equals(body);
     // On a restart from seg_000.ts, don't mix two disconnected HLS timelines.
     const newest=room.segmentTimeline.at(-1);
     if(newest&&sequence(name)<sequence(newest)-MAX_DVR_SEGMENTS){
      room.segments.clear();room.segmentTimeline=[];room.segmentDurations.clear();room.bytes=0;
      room.playlistNames=[];room.manifest=null;
-     previous=null;
+     previous=null;genuinelyNew=true;
     }
     if(!room.segments.has(name))room.segmentTimeline.push(name);
     room.segments.set(name,Buffer.from(body));
@@ -186,8 +187,8 @@ function attachSwappDirectRelay(app, opts={}){
      }
      return res.status(413).json({success:false,error:'Mémoire vidéo SWAPP saturée : réduis le bitrate OBS.'});
     }
-    // Only successfully accepted TS bytes count as fresh video.
-    room.lastSegmentAt=now;
+    // A repeated identical TS upload is not evidence of progressing video.
+    if(genuinelyNew)room.lastSegmentAt=now;
    }
    room.minuteBytes+=body.length;
    res.json({success:true,room:login,received:name,segment_count:room.segments.size});
