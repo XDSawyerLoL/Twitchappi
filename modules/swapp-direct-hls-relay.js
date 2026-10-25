@@ -21,6 +21,33 @@ function attachSwappDirectRelay(app, opts={}){
  const MAX_DVR_SECONDS=80;
  const MAX_UPLOAD_BYTES=Math.min(10*1024*1024,Math.max(512*1024,Number(process.env.SWAPP_DIRECT_RELAY_UPLOAD_BYTES||8*1024*1024)));
  const MAX_MINUTE_BYTES=Math.max(10*1024*1024,Math.min(160*1024*1024,Number(process.env.SWAPP_DIRECT_RELAY_MINUTE_BYTES||120*1024*1024)));
+ // Per-process, in-memory sampling; these are application-level response
+ // bytes, not guaranteed billable network egress. No third-party analytics.
+ const outgoingBuckets=Array.from({length:60},()=>({second:0,bytes:0}));
+ function recordSegmentResponse(bytes,now=Date.now()){
+  const second=Math.floor(now/1000),bucket=outgoingBuckets[second%60];
+  if(bucket.second!==second){bucket.second=second;bucket.bytes=0;}
+  bucket.bytes+=Math.max(0,Number(bytes)||0);
+ }
+ function outputBytes60s(now=Date.now()){
+  const nowSecond=Math.floor(now/1000);
+  return outgoingBuckets.reduce((sum,b)=>
+   sum+(nowSecond-b.second>=0&&nowSecond-b.second<60?b.bytes:0),0);
+ }
+ const capacitySnapshot=()=>{
+  reclaim();
+  const active=[...rooms.values()].filter(hasFreshVideo).length;
+  const served=outputBytes60s();
+  return {
+   success:true,scope:'single_node_process',
+   max_rooms:MAX_ROOMS,rooms_in_memory:rooms.size,verified_live_rooms:active,
+   available_slots:Math.max(0,MAX_ROOMS-rooms.size),
+   video_bytes_in_memory:[...rooms.values()].reduce((n,r)=>n+Math.max(0,Number(r.bytes)||0),0),
+   segment_response_bytes_60s:served,
+   estimated_segment_mbps:Number((served*8/(60*1000000)).toFixed(3)),
+   note:'Indicateur par processus Node, basé sur les réponses de segments préparées. Ne mesure pas exactement la bande passante réseau ni les autres processus.'
+  };
+ };
  const TTL_MS=55000;
  const VIDEO_STALE_MS=30000;
  const hasFreshVideo=room=>Boolean(room?.manifest&&room?.lastSegmentAt&&
@@ -90,6 +117,10 @@ function attachSwappDirectRelay(app, opts={}){
   if(!names.length||names.length>18||names.some(v=>!/^seg_[0-9]{1,14}\.ts$/.test(v)))return [];
   return names;
  }
+ app.get('/api/oryon/local-relay/capacity',(_req,res)=>{
+  notCached(res);
+  res.json(capacitySnapshot());
+ });
  app.get('/api/oryon/local-relay/capabilities',(_req,res)=>{
   notCached(res);
   res.json({success:true,transport:'swapp-direct-hls',version:3,max_rooms:MAX_ROOMS,max_room_bytes:MAX_ROOM_BYTES,max_segment_bytes:MAX_UPLOAD_BYTES,max_minute_bytes:MAX_MINUTE_BYTES,native_passthrough:true,
@@ -323,10 +354,11 @@ function attachSwappDirectRelay(app, opts={}){
   if(!r||!name.endsWith('.ts')||!r.segments.has(name))return res.sendStatus(404);
   const bytes=r.segments.get(name);
   if(!bytes)return res.sendStatus(404);
+  recordSegmentResponse(bytes.length);
   res.type('video/mp2t').send(bytes);
  });
 
- return {rooms,reclaim,validatePlaylist,MAX_ROOMS,MAX_ROOM_BYTES,
+ return {rooms,reclaim,validatePlaylist,MAX_ROOMS,MAX_ROOM_BYTES,capacitySnapshot,
   // A real HLS playlist AND recently arrived playable segments are required
   // before SWAPP TV advertises a creator as live. Mere account heartbeats
   // and posters are NOT proof of video.
