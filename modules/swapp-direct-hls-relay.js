@@ -266,6 +266,18 @@ function attachSwappDirectRelay(app, opts={}){
  app.post('/api/oryon/local-relay/upload',
   express.raw({type:'application/octet-stream',limit:MAX_UPLOAD_BYTES}), (req,res)=>receiveMedia(req,res));
 
+ // Test the Hostinger proxy's ability to forward HTTP PUT before changing
+ // anything in the live room; no stream key and no media are involved.
+ app.put('/api/swapp/obs-hls/ping',async(req,res)=>{
+  res.set('Cache-Control','private, no-store');
+  if(typeof opts.lookupDashboardOwner!=='function')
+   return res.status(503).json({success:false,error:'Test HTTP PUT indisponible.'});
+  let user=null;
+  try{user=await opts.lookupDashboardOwner(req)}catch(_){}
+  if(!cleanLogin(user?.login))return res.status(401).json({success:false,error:'Connexion SWAPP requise.'});
+  res.set('X-Swapp-Obs-Put','reachable');
+  res.json({success:true,http_put_forwarded:true,transport:'obs-hls-http-put',room:user.login});
+ });
  // OBS Studio native HLS output sends HTTP PUT for MPEG-TS + playlist.
  // The stream key in cid is never displayed in public API responses or logs.
  // Accept only OBS-generated 'indexNN.ts' and 'index.m3u8' names.
