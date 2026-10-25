@@ -315,8 +315,7 @@ function attachSwappDirectRelay(app, opts={}){
   if(!login)return res.sendStatus(404);
   // Uses the existing OBS video player with sound, fullscreen and fit controls.
   const html=fs.readFileSync(path.join(__dirname,'..','local-agent','player.html'),'utf8')
-   .replace('__SWAPP_HLS_SRC__',JSON.stringify('/api/oryon/local-relay/'+login+'/index.m3u8'))
-   .replace('/assets/hls.min.js','https://cdn.jsdelivr.net/npm/hls.js@1.6.15/dist/hls.min.js');
+   .replace('__SWAPP_HLS_SRC__',JSON.stringify('/api/oryon/local-relay/'+login+'/index.m3u8'));
   res.type('html').send(html);
  }); app.get('/api/oryon/local-relay/:login/:segment',(req,res)=>{
   notCached(res);
