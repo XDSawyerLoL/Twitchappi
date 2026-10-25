@@ -1,26 +1,9 @@
 name: SWAPP Live Windows (free public runner)
 
+# The Windows packaging job installs tools and may consume billable
+# hosted-runner minutes. It must never run automatically on pushes or merges.
+# The maintainer may trigger it manually when an updated installer is needed.
 on:
-  push:
-    branches: [master]
-    paths:
-      - .github/workflows/swapp-live-windows.yml
-      - 'local-agent/**'
-      - test/swapp-local-tunnel.test.js
-      - test/swapp-native-obs-quality.test.js
-      - test/swapp-ts-inspect.test.js
-      - test/swapp-discord-live-preview.test.js
-      - modules/swapp-seo.js
-      - local-agent/player.html
-      - test/swapp-local-ui-simplify.test.js
-      - test/swapp-direct-hls-relay.test.js
-      - 'modules/swapp-direct-hls-relay.js'
-      - server.js
-      - test/swapp-tunnel-fallback.test.js
-      - test/swapp-electron-runtime-package.test.js
-      - test/swapp-browser-http-relay.test.js
-      - test/swapp-native-webrtc-transport.test.js
-      - test/swapp-native-live-public.test.js
   workflow_dispatch:
 
 permissions:
