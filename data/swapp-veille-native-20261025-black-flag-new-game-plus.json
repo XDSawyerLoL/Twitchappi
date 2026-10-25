@@ -1,0 +1,63 @@
+{
+  "kind": "swapp-editorial-release",
+  "release": "2026-10-25-black-flag-new-game-plus",
+  "articles": [
+    {
+      "slug": "black-flag-resynced-new-game-plus-semaine-26-octobre",
+      "title": "Black Flag Resynced : le New Game+ annoncé pour la semaine du 26 octobre",
+      "summary": "Ubisoft annonce le New Game+ de Black Flag Resynced pour la semaine du 26 octobre 2026. La fenêtre est confirmée, mais le jour exact, la progression conservée et le détail du déploiement restent à préciser.",
+      "body": "Ubisoft précise enfin quand les joueurs pourront retrouver Edward Kenway en New Game+. Dans une annonce publiée sur la page Steam officielle d’Assassin’s Creed Black Flag Resynced le 22 octobre 2026, l’équipe indique que ce mode arrivera « la semaine prochaine ». Rapportée à la date du message, cette fenêtre correspond à la semaine du 26 octobre. Aucun jour précis n’est annoncé.\n\n## Une fenêtre de sortie, après une première annonce en juillet\n\nL’existence du New Game+ n’est pas la nouveauté : Ubisoft l’évoquait déjà dans son communiqué du 17 juillet consacré au lancement du remake. Le message du 22 octobre apporte un calendrier plus concret. Il ne constitue toutefois ni des notes de mise à jour détaillées ni une confirmation que le mode est déjà disponible.\n\nLa communication est très courte. Elle remercie les joueurs pour leur patience et annonce cette arrivée prochaine, sans numéro de version, horaire de maintenance ou taille de téléchargement. C’est donc cette fenêtre hebdomadaire, et elle seule, que l’on peut retenir à ce stade.\n\n## Progression conservée et conditions d’accès : les précisions manquent\n\nUbisoft ne détaille pas encore les éléments transférés dans une nouvelle partie. Équipement d’Edward, améliorations du Jackdaw, ressources, collectibles ou progression des activités : aucune liste officielle n’accompagne ce message. Les conditions pour débloquer le mode et les éventuels changements de difficulté restent également à préciser.\n\nLe jeu de base est disponible sur PS5, Xbox Series X|S et PC. En revanche, cette annonce publiée sur Steam ne donne pas de calendrier distinct par plateforme et ne confirme pas explicitement un déploiement simultané sur tous les supports. Elle ne précise pas non plus les conditions tarifaires de cet ajout.\n\n## Le contexte : le remake de l’aventure d’Edward Kenway\n\nSorti le 9 juillet 2026, Black Flag Resynced reprend l’aventure pirate d’Assassin’s Creed IV Black Flag, paru en 2013. Ubisoft Singapore dirige ce remake, qui retravaille notamment les combats autour de la parade, l’infiltration, le parkour et les affrontements navals. Ces caractéristiques appartiennent au jeu existant ; elles ne sont pas de nouvelles fonctionnalités annoncées pour le New Game+.\n\n## Analyse SWAPP : une raison de revenir, à juger sur ses règles\n\nPour les joueurs ayant terminé l’histoire, une nouvelle traversée des Caraïbes peut offrir l’occasion d’aborder les rencontres avec davantage d’expérience. Mais l’intérêt concret de ce retour dépendra des règles encore inconnues : que pourra-t-on conserver, et quels défis seront renouvelés ? La fenêtre annoncée permet de situer ce rendez-vous ; elle ne suffit pas à promettre une expérience plus difficile ou une progression entièrement transférable.\n\n## La vidéo et le repère d’achat\n\nLa vidéo intégrée est la présentation officielle du jeu publiée le 23 avril 2026 par Assassin’s Creed et Ubisoft. Elle montre du gameplay et des cinématiques d’une version alors en développement. Elle illustre le remake, sans présenter ni démontrer le New Game+ annoncé en octobre. Crédit vidéo et miniature : Ubisoft / Assassin’s Creed, via YouTube.\n\nL’offre liée en fin d’article correspond à l’édition standard PC pour Ubisoft Connect, région Europe, indiquée comme activable en France lors de notre vérification. Il ne s’agit pas d’une clé Steam ni d’une version console. Prix et disponibilité sont à consulter directement sur la fiche du marchand.",
+      "game": "Assassin’s Creed Black Flag Resynced",
+      "games": [
+        "Assassin’s Creed Black Flag Resynced"
+      ],
+      "tags": [
+        "Assassin’s Creed Black Flag Resynced",
+        "Ubisoft",
+        "New Game+",
+        "mise à jour",
+        "PS5",
+        "Xbox Series X|S",
+        "PC"
+      ],
+      "seo": {
+        "title": "Black Flag Resynced : New Game+ annoncé semaine du 26 octobre",
+        "description": "Le New Game+ de Black Flag Resynced arrive la semaine du 26 octobre 2026 selon Ubisoft. Date précise, progression conservée : ce qui reste à confirmer."
+      },
+      "author": "Rédaction SWAPP",
+      "category": "Actualités JV",
+      "contentType": "article",
+      "status": "published",
+      "revision": 1,
+      "image": null,
+      "thumbnail": null,
+      "editorialVerdict": null,
+      "legacyUrl": null,
+      "originalPublishedAt": null,
+      "publishedAt": "2026-10-25T22:49:23.364Z",
+      "trailerUrl": "https://www.youtube.com/watch?v=PhQ3yQjUgAc",
+      "commercialLinks": [
+        {
+          "title": "Assassin’s Creed Black Flag Resynced — PC, Ubisoft Connect, édition standard Europe",
+          "merchant": "Instant Gaming",
+          "kind": "affiliate",
+          "url": "https://www.instant-gaming.com/fr/18993-acheter-assassin-s-creed-black-flag-resynced-pc-ubisoft-connect/?igr=SANSAHD"
+        }
+      ],
+      "sources": [
+        {
+          "label": "Ubisoft sur Steam — annonce New Game+ du 22 octobre 2026",
+          "url": "https://store.steampowered.com/news/app/3751950/view/692023929008558875"
+        },
+        {
+          "label": "Ubisoft — communiqué du 17 juillet : jeu, plateformes et première annonce du mode",
+          "url": "https://news.ubisoft.com/en-us/article/3FcqYa0y8K39sboBSUfXzk/assassins-creed-black-flag-resynced-sells-over-3-million-copies-in-a-week"
+        },
+        {
+          "label": "Assassin’s Creed / Ubisoft — présentation officielle du jeu du 23 avril 2026",
+          "url": "https://www.youtube.com/watch?v=PhQ3yQjUgAc"
+        }
+      ]
+    }
+  ]
+}
