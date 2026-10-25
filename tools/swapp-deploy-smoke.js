@@ -61,6 +61,19 @@ async function verify(){
  check(ads.body.trim()==='google.com, pub-6082969821681414, DIRECT, f08c47fec0942fa0','AdSense ads.txt seller declaration differs');
  check((ads.response.headers.get('content-type')||'').startsWith('text/plain'),'AdSense ads.txt is not served as text/plain');
  process.stdout.write('PASS /ads.txt\n');
+ // Native TV is a real route, not an iframe shell. Verify both the markup
+ // and the exact JS payload of the continuous, opt-in broadcast rotation.
+ const station=await request(origin,'/tv');
+ check(station.body.includes('id="stv-slot-clock"')&&
+  station.body.includes('id="stv-watch"')&&
+  station.body.includes('swapp-tv-broadcast.js?v=20261025-full-rotation-v4'),
+  'SWAPP TV station layout or rotation script is stale');
+ const stationJs=await request(origin,'/assets/swapp-tv-broadcast.js');
+ check(stationJs.body.includes('function maybeAdvanceDiscovery(')&&
+  stationJs.body.includes('function fairDiscovery(')&&
+  stationJs.body.includes("state.autoSource=item.onAir?'queue':'discovery'"),
+  'SWAPP TV does not expose the verified opt-in rotation logic');
+ process.stdout.write('PASS /tv station and consent-based relay\\n');
  const social=await request(origin,'/social');
  check(social.body.includes('swapp-social-reading.js?v=20261025-verified-visuals-v1'),
   'SOCIAL editorial cards are using stale image fallback code');
