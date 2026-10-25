@@ -227,3 +227,9 @@
 .stv.tv-immersive .stv-dock-scrim{display:none!important}
 .stv.tv-immersive #stv-dock-toggle{display:none!important}
 @media (prefers-reduced-motion:reduce){.stv .stv-dock,.stv .stv-dock-tabs button,.stv .stv-dock-top .stv-programme-link,.stv-program-dialog *{transition:none!important;animation:none!important}}
+/* TV conductor: an honest 10-minute turn countdown based on the server's
+   started_at, not a fabricated slot estimate for queued creators. */
+.stv-air-meta{display:flex;align-items:flex-end;flex-direction:column;gap:7px;min-width:0}
+.stv-slot-clock{font-size:11px;letter-spacing:.06em;font-weight:800;color:var(--tv-accent,#67dce8);font-variant-numeric:tabular-nums;white-space:nowrap}
+.stv-slot-clock[hidden]{display:none!important}
+@media(max-width:420px){.stv-rail-head{flex-wrap:wrap}.stv-air-meta{align-items:flex-start}.stv-slot-clock{font-size:10px}}
