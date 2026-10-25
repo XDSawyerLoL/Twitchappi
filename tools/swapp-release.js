@@ -56,6 +56,7 @@ const RELEASE_FILES=Object.freeze([
  'assets/swapp-creator-workspace.css',
  'assets/swapp-channel-polish.css',
  'assets/swapp-channel-polish.js',
+ 'assets/swapp-channel-follow.js',
  'assets/swapp-channel-mosaic.css',
  'assets/swapp-channel-mosaic.js',
  'modules/swapp-channel-panels.js',
