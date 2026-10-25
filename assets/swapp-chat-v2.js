@@ -39,8 +39,12 @@
   const value=String(input.value||'');
   const start=typeof input.selectionStart==='number'?input.selectionStart:value.length;
   const end=typeof input.selectionEnd==='number'?input.selectionEnd:start;
-  if(typeof input.setRangeText==='function')input.setRangeText(emoji,start,end,'end');
-  else input.value=value.slice(0,start)+emoji+value.slice(end);
+  const before=value.slice(0,start),after=value.slice(end);
+  const spacerBefore=before && !/\\s$/.test(before)?' ':'';
+  const spacerAfter=after && !/^\\s/.test(after)?' ':'';
+  const inserted=spacerBefore+emoji+spacerAfter;
+  if(typeof input.setRangeText==='function')input.setRangeText(inserted,start,end,'end');
+  else input.value=before+inserted+after;
   input.dispatchEvent(new Event('input',{bubbles:true}));
   input.focus();
  }
