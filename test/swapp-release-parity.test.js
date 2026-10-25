@@ -85,5 +85,12 @@ test('release fingerprints include the SWAPP TV director, player and programme',
  ])assert.ok(RELEASE_FILES.includes(asset),asset);
  const source=fs.readFileSync(path.join(__dirname,'..','tools/swapp-deploy-smoke.js'),'utf8');
  assert.match(source,/stationJs\.body\.includes\('function maybeAdvanceDiscovery\('/);
- assert.match(source,/swapp-tv-broadcast\.js\?v=20261025-full-rotation-v4/);
+ assert.match(source,/swapp-tv-broadcast\.js\?v=20261025-native-first-v5/);
+});
+
+test('release fingerprint includes the portable SWAPP independence module',()=>{
+ assert.ok(RELEASE_FILES.includes('modules/swapp-independence.js'));
+ const source=fs.readFileSync(path.join(__dirname,'..','tools/swapp-deploy-smoke.js'),'utf8');
+ assert.match(source,/api\/oryon\/independence\/export/);
+ assert.match(source,/api\/native\/lives/);
 });
