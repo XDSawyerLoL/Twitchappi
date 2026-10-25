@@ -232,8 +232,8 @@ test('TV native-first mapping ignores fake/offline entries and invalid logins',(
   {native:true,room:'creator_b',host_login:'creator_b',category:'Fortnite',viewers:20},
   {native:true,room:'creator_c',host_login:'creator_c',category:'Aion 2',viewers:100}
  ];
- const forward=map({success:true,items});
- const reverse=map({success:true,items:[...items].reverse()});
+ const forward=map({success:true,items},42);
+ const reverse=map({success:true,items:[...items].reverse()},42);
  assert.deepEqual(forward.map(x=>x.login),reverse.map(x=>x.login),
   'native creator visibility must not depend on API order or audience size');
 });
@@ -299,5 +299,5 @@ test('native SWAPP candidate cache expires after failed API refresh',()=>{
  assert.match(js,/Date\.now\(\)-state\.nativeFetchedAt>90000/);
  assert.match(js,/state\.native=\[\]/);
  assert.match(js,/api\('\/api\/native\/lives'\)/);
- assert.match(js,/return fairDiscovery\(result\)/);
+ assert.match(js,/return fairDiscovery\(result,rotation\)/);
 });
