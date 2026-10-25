@@ -71,3 +71,25 @@ Si OBS semble diffuser mais le dashboard affiche « En attente du flux OBS » :
 Le diagnostic ne retourne jamais la clé OBS, l'IP ou l'URL portant le paramètre secret. Ne partage jamais de journaux contenant ta clé de diffusion sans la masquer.
 
 **Important :** ces tests de code et ces écrans ne prouvent pas que l'instance de production Hostinger a déployé la version actuelle ou autorise le transfert HTTP PUT avec corps chunked. Le seul critère final reste la lecture audio/vidéo observée depuis un autre navigateur.
+
+
+## Correction du rejet HTTP 422 — 26 octobre 2026
+
+**Cause reproduite avec FFmpeg 7.1** : pour le service HLS HTTPS PUT
+\`https://swapp.tv/api/swapp/obs-hls/put?cid={stream_key}&file=index.m3u8\`,
+FFmpeg génère des URI de segments dans la playlist comme
+\`put?cid=<clé-privée>&file=index0.ts\`, et non \`index0.ts\`.
+Le validateur SWAPP précédent rejetait ces lignes avec HTTP 422.
+
+**Correction** :
+- Normalisation dans \`modules/swapp-obs-hls-playlist.js\` de ces références en \`seg_0.ts\`, \`seg_1.ts\` et suivantes.
+- Rejet des URI externes, des chemins de traversée, des clés ne correspondant pas à la chaîne, et des playlists chiffrées ou non prises en charge.
+- Reconstruction de la playlist publique **sans aucune URL ou clé OBS**.
+- Acceptation d'une playlist envoyée avant les segments qu'elle référence, comme observé dans un vrai flux FFmpeg ; SWAPP n'annonce le live qu'après réception des fragments valides.
+- La diffusion SWAPP Local HLS préexistante reste inchangée ; tests de compatibilité simulés réussis.
+- Diagnostic OBS enrichi avec \`last_error_file_type\`, \`last_error_reason\` et \`pending_obs_segments\`.
+- Les nouveaux fichiers nécessitent un redémarrage Node Hostinger pour charger le module ajouté.
+
+Tests : \`node --test test/swapp-obs-hls-playlist.test.js test/swapp-direct-hls-relay.test.js\`.
+
+Le correctif est dans le dépôt GitHub. Une validation réelle OBS → Hostinger → lecteur sur réseau externe reste nécessaire ; les tests locaux ne la remplacent pas.
