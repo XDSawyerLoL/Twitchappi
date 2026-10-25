@@ -4,9 +4,10 @@ if(!$('swapp-tv'))return;
 const by=(tag,cls,value)=>{const node=document.createElement(tag);if(cls)node.className=cls;if(value!==undefined)node.textContent=value;return node};
 const api=async(path,options={})=>{const r=await fetch(path,{credentials:'same-origin',cache:'no-store',...options});const data=await r.json().catch(()=>({}));if(!r.ok)throw Error(data.error||'service_unavailable');return data};
 const safeLogin=s=>/^[a-z0-9_]{3,25}$/.test(String(s||'').toLowerCase());
+const safeNativeLogin=s=>/^[a-z0-9_-]{2,32}$/.test(String(s||'').toLowerCase());
 const gameOf=a=>typeof a?.game==='string'?a.game.trim():String(a?.game?.name||a?.game?.title||'').trim();
 const gamesFrom=data=>[...new Set((Array.isArray(data.articles)?data.articles:[]).filter(x=>x?.slug&&x.status!=='draft').map(gameOf).filter(x=>x.length>1))].slice(0,16);
-const state={queue:null,selection:null,playing:null,discovery:[],index:0,consent:false,autoAdvance:false,autoSource:null,playStartedAt:0,games:[],queueMode:false};
+const state={queue:null,selection:null,playing:null,discovery:[],native:[],nativeIndex:0,index:0,consent:false,autoAdvance:false,autoSource:null,playStartedAt:0,games:[],queueMode:false};
 const TV_SLOT_SECONDS=600; // 10-minute SWAPP TV slot; keep aligned with swapp-tv-director.MAX_AIR_SECONDS.
 function tvTime(value){
  if(value instanceof Date)return value.getTime();
@@ -46,65 +47,108 @@ function renderQueue(data){
 function rail(data){
  const list=$('stv-next-list');list.replaceChildren();
  let rows=[];
- if(Array.isArray(data?.waiting)&&data.waiting.length)rows=data.waiting.slice(0,5).map(x=>({name:x.creator_login,game:x.game,desc:'En attente de vérification'}));
+ if(state.native.length)rows=state.native.filter(x=>x.login!==state.selection?.login).slice(0,5).map(x=>({name:x.display_name||x.login,game:x.game,desc:'Direct SWAPP natif'}));
+ else if(Array.isArray(data?.waiting)&&data.waiting.length)rows=data.waiting.slice(0,5).map(x=>({name:x.creator_login,game:x.game,desc:'En attente de vérification'}));
  else if(!data?.enabled)rows=state.discovery.slice(state.index+1,state.index+5).map(x=>({name:x.display_name||x.login,game:x.game,desc:'Découverte, non programmé'}));
  if(!rows.length){list.append(by('p',null,data?.enabled?'Aucune inscription en attente.':'File momentanément fermée. Aucun créateur en attente.'));return}
  for(const x of rows){const card=by('div','stv-next-item');card.append(by('strong',null,x.name||'Créateur'),by('small',null,(x.game||'Jeu')+' · '+x.desc));list.append(card)}
 }
 function renderScreen(item,{onAir=false}={}){
- const login=String(item?.twitch_login||item?.login||'').toLowerCase(),valid=safeLogin(login)&&String(item?.platform||'twitch')==='twitch';
- state.selection=valid?{login,game:item.game||item.game_name||'Jeu',name:item.creator_login||item.display_name||login,onAir}:null;
- const same=state.playing===login&&state.consent&&valid;
- if(!same){state.consent=false;state.playing=null;const layer=$('stv-screen').querySelector('.stv-player-layer');if(layer)layer.remove();$('stv-screen-inner').hidden=false;}
+ const login=String(item?.login||item?.twitch_login||'').toLowerCase();
+ const platform=String(item?.platform||'twitch').toLowerCase();
+ const valid=platform==='swapp'?safeNativeLogin(login):platform==='twitch'&&safeLogin(login);
+ state.selection=valid?{login,platform,game:item.game||item.game_name||'Jeu',name:item.creator_login||item.display_name||login,onAir}:null;
+ const same=state.playing===login&&state.playingPlatform===platform&&state.consent&&valid;
+ if(!same){state.consent=false;state.playing=null;state.playingPlatform=null;const layer=$('stv-screen').querySelector('.stv-player-layer');if(layer)layer.remove();$('stv-screen-inner').hidden=false;}
  if(typeof updateTwitchChat==='function')updateTwitchChat();
  const name=state.selection?.name||'Antenne en préparation';
  setText('stv-now-name',name);setText('stv-now-game',state.selection?.game||'En attente de programmation');
  setText('stv-screen-game',state.selection?.game?.toUpperCase()||'GAME UNIVERSE');
  $('stv-watch').disabled=!state.selection;
- $('stv-air-state').textContent=onAir&&valid?'ANTENNE ACTIVE':valid?'DÉCOUVERTE':'HORS ANTENNE';
+ $('stv-air-state').textContent=valid&&platform==='swapp'?'ANTENNE NATIVE SWAPP':onAir&&valid?'ANTENNE ACTIVE':valid?'DÉCOUVERTE':'HORS ANTENNE';
  $('stv-air-state').style.color=onAir&&valid?'var(--tv-accent,#67dce8)':'';
- setText('stv-stage-status',onAir&&valid?'Créateur sélectionné par la régie SWAPP TV.':valid?'Direct trouvé dans la découverte. Lecture volontaire, sans garantie de maintien en ligne.':'Aucun passage vérifié à cette heure.');
+ setText('stv-stage-status',valid&&platform==='swapp'?'Diffusion native SWAPP, indépendante du lecteur Twitch.':onAir&&valid?'Créateur sélectionné par la régie SWAPP TV.':valid?'Direct trouvé dans la découverte. Lecture volontaire, sans garantie de maintien en ligne.':'Aucun passage vérifié à cette heure.');
  // A single voluntary Play authorises subsequent verified TV transitions.
  // Do not auto-start public discovery or silently start before first consent.
- if(state.autoAdvance&&state.autoSource===(onAir?'queue':'discovery')&&valid&&!same)play();
+ if(state.autoAdvance&&state.autoSource===(platform==='swapp'?'native':onAir?'queue':'discovery')&&valid&&!same)play();
  else syncWatchButton();
 }
 function syncWatchButton(){
- const watching=Boolean(state.selection&&state.playing===state.selection.login&&state.consent);
+ const watching=Boolean(state.selection&&state.playing===state.selection.login&&state.playingPlatform===state.selection.platform&&state.consent);
  setText('stv-watch',watching?'■ ARRÊTER':'▶ REGARDER');
  $('stv-watch').setAttribute('aria-pressed',String(watching));
 }
 function stopPlayback(){
- state.consent=false;state.playing=null;state.autoAdvance=false;state.autoSource=null;state.playStartedAt=0;
+ state.consent=false;state.playing=null;state.playingPlatform=null;state.autoAdvance=false;state.autoSource=null;state.playStartedAt=0;
  $('stv-screen').querySelector('.stv-player-layer')?.remove();
  $('stv-screen-inner').hidden=false;
  syncWatchButton();
 }
 function play(){
- const item=state.selection;if(!item||!safeLogin(item.login))return;
+ const item=state.selection;if(!item||(item.platform==='swapp'?!safeNativeLogin(item.login):!safeLogin(item.login)))return;
  const screen=$('stv-screen');screen.querySelector('.stv-player-layer')?.remove();
- const layer=by('div','stv-player-layer');const frame=by('iframe');frame.title='Direct Twitch de '+item.name;const parent=location.hostname;
- frame.src='https://player.twitch.tv/?'+new URLSearchParams({channel:item.login,parent,autoplay:'true',muted:'true'});
+ const layer=by('div','stv-player-layer');const frame=by('iframe');
+ frame.title='Direct '+(item.platform==='swapp'?'SWAPP':'Twitch')+' de '+item.name;
+ if(item.platform==='swapp'){
+  // First-party channel, no Amazon domain or Twitch cookies involved.
+  frame.src='/'+encodeURIComponent(item.login)+'?swapp_tv_embed=1';
+ }else{
+  const parent=location.hostname;
+  frame.src='https://player.twitch.tv/?'+new URLSearchParams({channel:item.login,parent,autoplay:'true',muted:'true'});
+ }
  frame.allow='autoplay; fullscreen';frame.allowFullscreen=true;frame.referrerPolicy='strict-origin-when-cross-origin';
  layer.append(frame,by('div','stv-player-overlay','SWAPP TV  /  '+(item.onAir?'À L’ANTENNE':'DÉCOUVERTE')));
- screen.append(layer);$('stv-screen-inner').hidden=true;state.playing=item.login;state.consent=true;
+ screen.append(layer);$('stv-screen-inner').hidden=true;state.playing=item.login;state.playingPlatform=item.platform;state.consent=true;
  // Resume subsequent 10-minute TV slots only if the user started an actual
  // on-air relay. Browser embedding is muted to respect autoplay policy.
  state.autoAdvance=true;
- state.autoSource=item.onAir?'queue':'discovery';
+ state.autoSource=item.platform==='swapp'?'native':item.onAir?'queue':'discovery';
  state.playStartedAt=Date.now();
  syncWatchButton();
 }
+// Existing native live registry is independently verified by SWAPP heartbeat
+// and active WebRTC rooms. Never represent an offline profile as a live stream.
+function mapNativeLives(payload){
+ if(payload?.success!==true||!Array.isArray(payload.items))return [];
+ const unique=new Set(),result=[];
+ for(const x of payload.items){
+  const login=String(x.host_login||x.room||'').toLowerCase();
+  if(x.native!==true||!safeNativeLogin(login)||unique.has(login))continue;
+  unique.add(login);
+  result.push({login,platform:'swapp',display_name:String(x.host_name||login).slice(0,80),
+    game:String(x.category||'Jeu vidéo').slice(0,100),title:String(x.title||'').slice(0,180)});
+ }
+ return result;
+}
 async function refreshQueue(){
  try{
-  const data=await api('/api/swapp-tv/queue/status');state.queue=data;state.queueMode=Boolean(data.enabled);
-  renderQueue(data);rail(data);updateSlotClock();
-  if(data.enabled){const item=data.director_enabled?data.on_air:null;
+  // Native is tried first, independent from Twitch credentials and the
+  // optional MySQL TV queue. A failed native request keeps the last set.
+  const nativeData=await api('/api/native/lives').catch(()=>null);
+  if(nativeData?.success===true)state.native=mapNativeLives(nativeData);
+  const data=await api('/api/swapp-tv/queue/status');
+  state.queue=data;state.queueMode=Boolean(data.enabled)||state.native.length>0;
+  renderQueue(data);updateSlotClock();
+  if(state.native.length){
+   const active=state.native.find(x=>x.login===state.selection?.login&&state.selection?.platform==='swapp');
+   const item=active||state.native[state.nativeIndex%state.native.length];
+   state.nativeIndex=state.native.indexOf(item);
+   if(!active)renderScreen(item,{onAir:true});
+  }else if(data.enabled){
+   const item=data.director_enabled?data.on_air:null;
    if(!item||!safeLogin(item.twitch_login))renderScreen(null);
-   else if(!state.selection||state.selection.login!==String(item.twitch_login).toLowerCase()||!state.selection.onAir)renderScreen(item,{onAir:true});
+   else if(!state.selection||state.selection.login!==String(item.twitch_login).toLowerCase()||state.selection.platform!=='twitch'||!state.selection.onAir)renderScreen(item,{onAir:true});
+  }else if(state.selection?.platform==='swapp'){
+   renderScreen(null);
   }
+  rail(data);
   return data;
- }catch{const data={enabled:false,director_enabled:false,waiting:[]};state.queue=data;state.queueMode=false;renderQueue(data);rail(data);updateSlotClock();return data}
+ }catch{
+  const data={enabled:false,director_enabled:false,waiting:[]};state.queue=data;
+  state.queueMode=state.native.length>0;
+  if(state.native.length&&!state.selection?.login)renderScreen(state.native[0],{onAir:true});
+  renderQueue(data);rail(data);updateSlotClock();return data;
+ }
 }
 // Rotate discovery across games and creators without using viewer counts.
 // Input from the game-live endpoint may be ordered by popularity; that
@@ -178,6 +222,17 @@ function maybeAdvanceDiscovery(now=Date.now()){
  state.index=((current<0?0:current)+1)%candidates.length;
  renderScreen(candidates[state.index],{onAir:false});
  rail(null);
+ return true;
+}
+// Rotate native SWAPP creators in the verified first-party pool.
+function maybeAdvanceNative(now=Date.now()){
+ if(!state.autoAdvance||state.autoSource!=='native'||!state.consent||
+    now-state.playStartedAt<DISCOVERY_SLOT_MS)return false;
+ if(state.native.length<2){state.playStartedAt=now;return false;}
+ const current=state.native.findIndex(x=>x.login===state.selection?.login);
+ state.nativeIndex=((current<0?0:current)+1)%state.native.length;
+ renderScreen(state.native[state.nativeIndex],{onAir:true});
+ rail(state.queue);
  return true;
 }
 async function mutate(method){
@@ -260,6 +315,9 @@ function updateTwitchChat(){
  if(!target)return;
  const login=state.selection?.login||'';
  if($('stv-pane-twitch').hidden)return;
+ if(state.selection?.platform==='swapp'){
+  embeddedTwitch='';target.replaceChildren(by('p',null,'Ce direct est diffusé directement sur SWAPP. Utilise le tchat SWAPP pour discuter.'));return;
+ }
  if(!safeLogin(login)){
   embeddedTwitch='';target.replaceChildren(by('p',null,'Le tchat Twitch apparaîtra lorsqu’un direct sera sélectionné.'));return;
  }
@@ -320,9 +378,10 @@ void refreshSwappChat();
 setInterval(()=>{if(!$('stv-pane-swapp').hidden)void refreshSwappChat()},7000);
 setInterval(updateSlotClock,1000);
 setInterval(maybeAdvanceDiscovery,30000);
+setInterval(maybeAdvanceNative,30000);
 
 $('stv-watch').addEventListener('click',()=>{
- if(state.selection&&state.playing===state.selection.login&&state.consent)stopPlayback();
+ if(state.selection&&state.playing===state.selection.login&&state.playingPlatform===state.selection.platform&&state.consent)stopPlayback();
  else play();
 });
 $('stv-join').addEventListener('click',()=>mutate('POST'));
