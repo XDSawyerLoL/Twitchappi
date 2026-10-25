@@ -127,6 +127,9 @@ function installChannelModeration({app,io,getModState,saveModState,getNativeChat
     const history=getNativeChat(room);
     const index=history.findIndex(m=>m.id===id);
     if(index<0)return res.status(404).json({success:false,error:'Message introuvable dans le tchat récent.'});
+    const author=cleanLogin(history[index].user);
+    if(identity==='moderator'&&(author===room||limitedArray(state.moderators).includes(author)))
+     return res.status(403).json({success:false,error:'Tu ne peux pas supprimer les messages du propriétaire ou d’un autre modérateur.'});
     removed=history[index];
     history.splice(index,1);
     break;
