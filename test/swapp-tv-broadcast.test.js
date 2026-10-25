@@ -65,3 +65,57 @@ test('disabled queue keeps the conductor visible while blocking enrollment',()=>
  assert.match(js,/Inscriptions fermées temporairement/);
  assert.match(js,/FILE D’ATTENTE · PAUSE/);
 });
+
+test('TV continues to the next verified creator only after a viewer starts the station',()=>{
+ const script=read('assets/swapp-tv-broadcast.js');
+ assert.match(script,/autoAdvance:false/);
+ assert.match(script,/if\(state\.autoAdvance&&onAir&&valid&&!same\)play\(\)/);
+ assert.match(script,/state\.autoAdvance=Boolean\(item\.onAir\)/);
+ assert.match(script,/function stopPlayback\(\)/);
+ assert.match(script,/state\.autoAdvance=false/);
+ assert.match(script,/syncWatchButton\(\)/);
+ assert.match(script,/muted:'true'/);
+ assert.match(page('tv'),/id="stv-watch" type="button" aria-pressed="false" disabled/);
+});
+test('TV preserves viewer opt-in when an on-air session ends and restarts',()=>{
+ const source=read('assets/swapp-tv-broadcast.js');
+ const begin=source.indexOf('function renderScreen(');
+ const end=source.indexOf('async function refreshQueue(',begin);
+ assert.ok(begin>=0&&end>begin);
+ const make=(tag,cls,text)=>({
+  tag,cls,text,className:cls,children:[],removed:false,hidden:false,
+  append(...children){this.children.push(...children)},
+  remove(){this.removed=true},setAttribute(k,v){this[k]=v}
+ });
+ const watch=make('button'),inner=make('div'),stage=make('div'),screen=make('section');
+ screen.querySelector=()=>screen.children.find(x=>x.cls==='stv-player-layer'&&!x.removed)||null;
+ const nodes={'stv-screen':screen,'stv-screen-inner':inner,'stv-watch':watch,'stv-air-state':make('span'),
+ 'stv-now-name':make('span'),'stv-now-game':make('span'),'stv-screen-game':make('span'),'stv-stage-status':stage};
+ const $=id=>nodes[id];
+ const state={selection:null,playing:null,consent:false,autoAdvance:false};
+ const URLSearchParams=class{constructor(obj){this.map=obj}toString(){return Object.entries(this.map).map(([k,v])=>k+'='+v).join('&')}};
+ const run=new Function('state','$','by','setText','safeLogin','location','URLSearchParams','updateTwitchChat',
+  source.slice(begin,end)+'return {renderScreen,play,stopPlayback};');
+ const app=run(state,$,make,(id,value)=>{nodes[id].textContent=value},x=>/^[a-z0-9_]{3,25}$/.test(x),
+  {hostname:'swapp.tv'},URLSearchParams,()=>{});
+ const first={twitch_login:'creator_one',creator_login:'Un',game:'Fortnite'};
+ const next={twitch_login:'creator_two',creator_login:'Deux',game:'Fortnite'};
+ app.renderScreen(first,{onAir:true});
+ assert.equal(state.playing,null,'initial selection must not autoplay without opt-in');
+ app.play();
+ assert.equal(state.playing,'creator_one');
+ assert.equal(watch['aria-pressed'],'true');
+ app.renderScreen(null);
+ assert.equal(state.playing,null);
+ assert.equal(state.autoAdvance,true,'temporary off-air transition preserves viewer TV consent');
+ app.renderScreen(next,{onAir:true});
+ assert.equal(state.playing,'creator_two','automatic handoff starts only verified on-air replacement');
+ assert.match(String(screen.querySelector('.stv-player-layer')?.children[0]?.src),/creator_two/);
+ app.stopPlayback();
+ assert.equal(state.autoAdvance,false);
+ assert.equal(watch['aria-pressed'],'false');
+ app.renderScreen(first,{onAir:true});
+ assert.equal(state.playing,null,'manual stop disables all subsequent automatic transitions');
+ app.renderScreen({login:'discovery_live',game:'Aion 2',platform:'twitch'});
+ assert.equal(state.playing,null,'discovery must never start automatically');
+});
