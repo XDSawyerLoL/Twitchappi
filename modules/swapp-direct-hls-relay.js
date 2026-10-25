@@ -328,6 +328,24 @@ function attachSwappDirectRelay(app, opts={}){
  });
 
  return {rooms,reclaim,validatePlaylist,MAX_ROOMS,MAX_ROOM_BYTES,
+  // A real HLS playlist AND recently arrived playable segments are required
+  // before SWAPP TV advertises a creator as live. Mere account heartbeats
+  // and posters are NOT proof of video.
+  activeStreams(){
+   reclaim();
+   return [...rooms.entries()]
+    .filter(([login,room])=>Boolean(cleanLogin(login))&&hasFreshVideo(room))
+    .map(([login,room])=>({
+     login,
+     media:'hls',
+     media_verified:true,
+     broadcast_id:room.broadcastId,
+     last_segment_at:room.lastSegmentAt,
+     audio_track:room.audioTrack,
+     // Same-origin streaming; no CDN and no Twitch player.
+     player_url:'/api/oryon/local-relay/'+encodeURIComponent(login)+'/player'
+    }));
+  },
   posterForLogin(login){
    const r=liveRoom(cleanLogin(login));
    return r?.poster&&r?.manifest?{url:'/api/oryon/local-relay/'+encodeURIComponent(login)+'/poster.jpg',updatedAt:r.posterAt,bytes:r.poster.length}:null;
