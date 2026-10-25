@@ -52,3 +52,24 @@ test('both SWAPP public and local playback paths use the pinned HLS runtime',()=
  assert.match(local,/node_modules','hls\.js','dist','hls\.min\.js'/);
  assert.equal(localPackage.dependencies['hls.js'],'^1.6.15');
 });
+test('legacy SWAPP local player embeds no live third-party CDN dependency',()=>{
+ for(const file of ['main.js','env.quickstart']){
+  const code=read(file);
+  assert.match(code,/app\.get\('\/assets\/hls\.min\.js'/);
+  assert.match(code,/node_modules','hls\.js','dist','hls\.min\.js'/);
+  assert.doesNotMatch(code,/cdn\.jsdelivr\.net\/npm\/hls|unpkg\.com\/hls|hls\.js@latest/);
+ }
+});
+
+test('capacity telemetry is honest about process scope and tracks segment responses',()=>{
+ const relay=read('modules/swapp-direct-hls-relay.js');
+ const server=read('server.js');
+ assert.match(relay,/app\.get\('\/api\/oryon\/local-relay\/capacity'/);
+ assert.match(relay,/scope:'single_node_process'/);
+ assert.match(relay,/segment_response_bytes_60s/);
+ assert.match(relay,/recordSegmentResponse\(bytes\.length\)/);
+ assert.match(relay,/verified_live_rooms:active/);
+ assert.match(relay,/Math\.max\(0,MAX_ROOMS-rooms\.size\)/);
+ assert.doesNotMatch(relay,/https?:\/\/(?:google|aws|amazon)/);
+ assert.match(server,/SWAPP_HLS_LOCAL_DIST/);
+});
