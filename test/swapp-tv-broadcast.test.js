@@ -213,8 +213,11 @@ test('TV native-first mapping ignores fake/offline entries and invalid logins',(
  const js=read('assets/swapp-tv-broadcast.js');
  const start=js.indexOf('function mapNativeLives('),end=js.indexOf('async function refreshQueue(',start);
  assert.ok(start>0&&end>start);
- const map=new Function('safeNativeLogin',js.slice(start,end)+'return mapNativeLives;')(
-  x=>/^[a-z0-9_-]{2,32}$/.test(x));
+ const fair=new Function(js.slice(js.indexOf('function fairDiscovery('),
+   js.indexOf('async function discovery('))+'return fairDiscovery;')();
+ const map=new Function('safeNativeLogin','fairDiscovery',
+  js.slice(start,end)+'return mapNativeLives;')(
+  x=>/^[a-z0-9_-]{2,32}$/.test(x),fair);
  const result=map({success:true,items:[
   {native:true,room:'independent',host_login:'independent',host_name:'Indépendant',category:'Aion 2'},
   {native:true,room:'independent',host_login:'independent'},
@@ -224,6 +227,15 @@ test('TV native-first mapping ignores fake/offline entries and invalid logins',(
  assert.deepEqual(result.map(x=>x.login),['independent']);
  assert.equal(result[0].platform,'swapp');
  assert.deepEqual(map({success:false,items:[]}),[]);
+ const items=[
+  {native:true,room:'creator_a',host_login:'creator_a',category:'Fortnite',viewers:5000},
+  {native:true,room:'creator_b',host_login:'creator_b',category:'Fortnite',viewers:20},
+  {native:true,room:'creator_c',host_login:'creator_c',category:'Aion 2',viewers:100}
+ ];
+ const forward=map({success:true,items});
+ const reverse=map({success:true,items:[...items].reverse()});
+ assert.deepEqual(forward.map(x=>x.login),reverse.map(x=>x.login),
+  'native creator visibility must not depend on API order or audience size');
 });
 test('TV native player resolves only to the first-party SWAPP channel',()=>{
  const js=read('assets/swapp-tv-broadcast.js');
