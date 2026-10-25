@@ -8498,6 +8498,7 @@ require('./modules/swapp-channel-audience').installChannelAudience({
   app, io, getUser:getOryonUserByLogin,
   getNativeRoom:room=>nativeLiveRooms.get(room),
   isLocalLive:isOryonLocalLiveRoom,
+  mysqlUri:SWAPP_MYSQL_ACCOUNTS?(process.env.SWAPP_ACCOUNT_MYSQL_URL||process.env.SWAPP_MYSQL_URL||process.env.DATABASE_URL||''):'',
   storageFile:path.join(__dirname,'.swapp-channel-loyalty.json')
 });
 
