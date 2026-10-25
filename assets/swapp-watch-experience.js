@@ -132,7 +132,9 @@
   const h=Math.round(videoRect.height);
   if(!Number.isFinite(h)||h<140)return;
   const mobile=window.matchMedia('(max-width:1080px)').matches;
-  const actual=mobile?Math.max(300,Math.min(440,h)):h;
+  // Keep the chat composer and suggestion actions visible when the video is short.
+  // On desktop, preserve exact player height whenever it is sufficiently tall.
+  const actual=mobile?Math.max(400,Math.min(440,h)):Math.max(400,h);
   chat.style.setProperty('--swapp-chat-player-height',actual+'px');
   for(const prop of ['height','min-height','max-height'])
    chat.style.setProperty(prop,actual+'px','important');
