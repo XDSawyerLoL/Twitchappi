@@ -76,6 +76,16 @@ async function verify(){
   stationJs.body.includes("api('/api/swapp-tv/native-lineup')"),
   'SWAPP TV does not expose the verified opt-in rotation logic');
  process.stdout.write('PASS /tv station native-first and consent-based relay\n');
+ const liveProof=await request(origin,'/api/swapp-tv/native-lineup');
+ let liveInventory;
+ try{liveInventory=JSON.parse(liveProof.body)}catch{throw Error('SWAPP TV native inventory is not JSON')}
+ check(liveInventory.success===true&&liveInventory.source==='swapp-direct-hls'&&Array.isArray(liveInventory.items),
+  'SWAPP TV native lineup is missing or invalid');
+ check(liveInventory.items.every(x=>x.platform==='swapp'&&x.media==='hls'&&
+  x.media_verified===true&&/^[a-z0-9_-]{2,32}$/.test(x.login)&&
+  x.player_url==='/api/oryon/local-relay/'+encodeURIComponent(x.login)+'/player'),
+  'SWAPP TV native lineup advertises unverified or externally embedded video');
+ process.stdout.write('PASS /api/swapp-tv/native-lineup HLS proof\n');
  const independence=await request(origin,'/independance');
  check(independence.body.includes('/api/oryon/independence/export')&&
   independence.body.includes('SWAPP / INDÉPENDANCE'),
