@@ -312,7 +312,7 @@
      animation=requestAnimationFrame(render);
     };
     render();
-    composite=canvas.captureStream(30);
+    composite=canvas.captureStream(Math.min(60,Math.max(24,Number(video.frameRate?.ideal||30))));
     videoTracks=composite.getVideoTracks();
    }
    const sources=[...screen.getAudioTracks(),...(camera||microphone)?.getAudioTracks?.()||[]];
@@ -327,7 +327,9 @@
       const gain=audioContext.createGain();gain.gain.value=i===0?0.75:0.88;
       src.connect(gain);gain.connect(destination);
      }
-     await audioContext.resume();
+     // A browser may defer audio context activation until another gesture;
+     // never freeze video publication while waiting for it.
+     void audioContext.resume().catch(()=>{});
      for(const track of destination.stream.getAudioTracks())outgoing.addTrack(track);
     }else outgoing.addTrack(sources[0]);
    }else if(sources.length===1)outgoing.addTrack(sources[0]);
