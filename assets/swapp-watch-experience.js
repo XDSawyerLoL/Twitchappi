@@ -136,6 +136,13 @@
   chat.style.setProperty('--swapp-chat-player-height',actual+'px');
   for(const prop of ['height','min-height','max-height'])
    chat.style.setProperty(prop,actual+'px','important');
+  // Offline is a structural two-column grid. Never apply a translation:
+  // the player and chat must start on the identical CSS grid line.
+  if(page.dataset.channelLive==='false'){
+   chat.style.removeProperty('translate');
+   chat.dataset.swappAlignShift='0';
+   return;
+  }
   // The legacy channel CSS also pushed the chat away via sticky top:122px.
   // Defensively match the actual pixel top, not only the video height.
   // Independent CSS translate is out-of-flow; it cannot disturb grid columns.
@@ -151,6 +158,26 @@
    chat.dataset.swappAlignShift=String(shift);
   }
  }
+ // Same measured-height contract for offline channels. These pages have no
+ // live controls, so they were never handled by install(page) previously.
+ function installOfflineAlignment(page){
+  if(page.dataset.swappOfflineChatSync==='1')return;
+  const player=page.querySelector('.channelMainPlayer > :is(.player,.premiumPlayer,.oryonMainPlayer)');
+  const chat=page.querySelector('.channelLiveSidebar .chatPanel');
+  if(!player||!chat)return;
+  page.dataset.swappOfflineChatSync='1';
+  const align=()=>{if(page.isConnected&&page.dataset.channelLive==='false')syncChat(page)};
+  requestAnimationFrame(align);
+  for(const ms of [100,420,1100])setTimeout(align,ms);
+  if(typeof ResizeObserver==='function'){
+   const ro=new ResizeObserver(()=>{
+    if(!page.isConnected||page.dataset.channelLive!=='false'){ro.disconnect();return}
+    align();
+   });
+   ro.observe(player);
+  }
+ }
+
  function install(page){
   if(!page||page.querySelector('.swapp-watch-tools'))return;
   const main=page.querySelector('.channelMainPlayer');
@@ -212,10 +239,11 @@
    if(activeImmersivePage && (!activeImmersivePage.isConnected || !root.classList.contains('active')))
     disableImmersion();
    root.querySelectorAll('.creatorRefine.swapp-channel-polish[data-channel-live="true"]').forEach(install);
+   root.querySelectorAll('.creatorRefine.swapp-channel-polish[data-channel-live="false"]').forEach(installOfflineAlignment);
   };
   const schedule=()=>{if(queued)return;queued=true;requestAnimationFrame(scan)};
   new MutationObserver(schedule).observe(root,{subtree:true,childList:true,attributes:true,attributeFilter:['data-channel-live','class']});
-  window.addEventListener('resize',()=>root.querySelectorAll('.creatorRefine[data-channel-live="true"]').forEach(page=>{
+  window.addEventListener('resize',()=>root.querySelectorAll('.creatorRefine[data-channel-live]').forEach(page=>{
    fitViewport(page);
    requestAnimationFrame(()=>{window.swappFitChat1014?.();syncChat(page);scheduleImmersion()});
   }),{passive:true});
