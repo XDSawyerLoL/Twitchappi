@@ -44,7 +44,7 @@ function sitemapEntries(articles=[]){
 
  const games=gameHubs(articles,{minArticles:2,maxGames:90});
  if(games.length){
-  entries.push({loc:ORIGIN+'/jeux',lastmod:''});
+  entries.push({loc:ORIGIN+'/univers',lastmod:''});
   for(const game of games)entries.push({loc:ORIGIN+'/jeux/'+encodeURIComponent(game.slug),
    lastmod:isoDate(game.lastmod)});
  }
@@ -222,7 +222,7 @@ function rssXml(articles=[]){
 function sitemapHtml(articles=[]){
  const indexLinks=[
   ['/','Accueil'],['/actus','Actualité jeux vidéo'],['/decouvrir','Découvrir des streamers'],
-  ['/categories','Jeux et catégories'],['/jeux','Univers de jeux'],['/equipes','Équipes'],['/bandes-annonces','Bandes-annonces'],
+  ['/categories','Jeux et catégories'],['/univers','Univers de jeux'],['/equipes','Équipes'],['/bandes-annonces','Bandes-annonces'],
   ['/social','Social'],['/boutique','Boutique']
  ];
  const index=indexLinks.map(([url,name])=>
@@ -364,7 +364,7 @@ function registerSeoRoutes(app,{getPublished=async()=>[],getCreators=async()=>[]
  });
  // GAME UNIVERSE: genuine editorial hubs, not shortcuts to one article.
  // The existing shared published-content cache is read once per request.
- app.get('/jeux',async(_req,res)=>{
+ const serveGameDirectory=async(_req,res)=>{
   await ensureCache();
   if(!hasVerifiedArticles){
    res.set('Cache-Control','no-store');res.set('Retry-After','60');
@@ -372,7 +372,9 @@ function registerSeoRoutes(app,{getPublished=async()=>[],getCreators=async()=>[]
   }
   res.set('Cache-Control','public, max-age=300');
   return res.status(200).type('html').send(renderGameIndex(gameHubs(articles)));
- });
+ };
+ app.get('/univers',serveGameDirectory);
+ app.get('/jeux',serveGameDirectory);
  app.get('/jeux/:slug',async(req,res)=>{
   const slug=String(req.params.slug||'');
   if(!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)||slug.length>90)
