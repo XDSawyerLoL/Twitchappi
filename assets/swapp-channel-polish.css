@@ -429,3 +429,15 @@
 @media(prefers-reduced-motion:reduce){
  #channel .creatorRefine .channelActionDock .swapp-channel-follow-btn{transition:none!important}
 }
+/* Per-channel Push opt-in bell: shown only with configured browser support. */
+#channel .creatorRefine .channelActionDock .swapp-live-alert-bell{
+ min-width:45px!important;width:45px!important;height:45px!important;
+ padding:0!important;display:inline-flex!important;align-items:center;justify-content:center;
+ border-radius:10px!important;font-size:20px!important;
+ background:transparent!important;border:1px solid rgba(255,255,255,.2)!important;
+}
+#channel .creatorRefine .channelActionDock .swapp-live-alert-bell[hidden]{display:none!important}
+#channel .creatorRefine .channelActionDock .swapp-live-alert-bell[aria-pressed="true"]{
+ border-color:var(--viewer-accent,var(--brand,#a166e4))!important;
+ background:color-mix(in srgb,var(--viewer-accent,var(--brand,#a166e4)) 24%,transparent)!important;
+}

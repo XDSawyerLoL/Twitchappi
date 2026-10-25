@@ -4634,10 +4634,23 @@ function swappRejectBadLocalAgentUrl(raw){
   }catch(_){ return 'URL publique invalide.'; }
 }
 
+// Opt-in live browser notifications. Disabled without explicit Hostinger
+// MySQL + VAPID configuration; uses free standard Push endpoints, no paid API.
+const {makeLivePush}=require('./modules/swapp-live-push');
+const swappLivePush=makeLivePush({isFollowing:(viewerId,creator)=>{
+ const user=(readOryonUsers().users||[]).find(x=>String(x.id)===String(viewerId));
+ return Boolean(Array.isArray(user?.following)&&user.following.includes(creator));
+}});
+swappLivePush.register(app);
+
 // Upload-only OBS transport: SWAPP Local sends bounded HLS to the existing
 // HTTPS site. Viewers never connect to the streamer PC or a temporary tunnel.
 const {attachSwappDirectRelay}=require('./modules/swapp-direct-hls-relay');
-const swappDirectRelay=attachSwappDirectRelay(app,{lookupOwner:async token=>findOryonUserByAgentToken(readOryonUsers(),token)});
+const swappDirectRelay=attachSwappDirectRelay(app,{
+ lookupOwner:async token=>findOryonUserByAgentToken(readOryonUsers(),token),
+ onPublishedLive:(login,eventId)=>swappLivePush.notifyLive(login,eventId,
+  (readOryonUsers().users||[]).find(x=>x.login===login)?.current_live_title||'')
+});
 
 app.post('/api/oryon/local-agent/register-public-url', mutationLimiter, async (req, res) => {
   try {
@@ -8626,7 +8639,10 @@ io.on('connection', async (socket) => {
     const hostName = String(user.display_name || user.login).trim().slice(0, 40);
     const title = String(payload?.title || `Live de ${hostName}`).trim().slice(0, 120);
     if(!resumed)nativeBrowserRelays.delete(room);
-    nativeLiveRooms.set(room, { host: socket.id, viewers: resumed ? existing.viewers : new Set(), mediaViewers:new Set(), createdAt: resumed ? existing.createdAt : Date.now(), title, hostName, hostLogin:user.login, hostUserId:user.id, category: String(payload?.category || '').trim().slice(0,60), tags: String(payload?.tags || '').split(',').map(x=>x.trim()).filter(Boolean).slice(0,8), peakViewers: 0, chatMessages: 0 });
+    nativeLiveRooms.set(room, { host: socket.id, viewers: resumed ? existing.viewers : new Set(), mediaViewers:new Set(), createdAt: resumed ? existing.createdAt : Date.now(),
+     pushId:resumed?existing.pushId:crypto.randomBytes(12).toString('hex'),
+     pushDispatched:resumed?existing.pushDispatched:false,
+     title, hostName, hostLogin:user.login, hostUserId:user.id, category: String(payload?.category || '').trim().slice(0,60), tags: String(payload?.tags || '').split(',').map(x=>x.trim()).filter(Boolean).slice(0,8), peakViewers: 0, chatMessages: 0 });
     try{ const ud=readOryonUsers(); const uu=ud.users.find(x=>x.id===user.id); if(uu){ markOryonLiveFields(uu, true, { localAgent:false, platform:'browser-webrtc', title, category: payload?.category, tags: payload?.tags }); uu.best_chat_messages=Math.max(Number(uu.best_chat_messages||0),0); writeOryonUsers(ud); } pushOryonEvent('live_started', user.login, {room,title}); }catch(_e){}
     socket.data.nativeRoom = room; socket.data.nativeRole = 'host';
     socket.join('native:' + room);
@@ -8664,8 +8680,16 @@ io.on('connection', async (socket) => {
     const room=String(payload?.room||'').trim().toLowerCase().replace(/[^a-z0-9_-]/g,'').slice(0,40);
     const r=nativeLiveRooms.get(room);
     if(!r?.host || socket.data.nativeRoom!==room || socket.data.nativeRole!=='viewer' || !r.viewers.has(socket.id))return;
-    if(payload?.playing===true)r.mediaViewers.add(socket.id);
-    else r.mediaViewers.delete(socket.id);
+    if(payload?.playing===true){
+      r.mediaViewers.add(socket.id);
+      // A real decoder-confirmed remote viewer is stronger evidence than
+      // "created" or WebRTC signaling alone. Notify only on this transition.
+      if(!r.pushDispatched){
+       r.pushDispatched=true;
+       swappLivePush.notifyLive(room,r.pushId,r.title)
+        .catch(e=>console.warn('[SWAPP PUSH] browser stream alert deferred',String(e?.name||'error')));
+      }
+    }else r.mediaViewers.delete(socket.id);
     emitNativeStats(room);
   });
 
