@@ -197,3 +197,22 @@ test('game index uses full-width artwork, readable titles and responsive card ac
  assert.doesNotMatch(html,/\.game-portal \.index a\{display:flex/);
  assert.doesNotMatch(html,/aria-current="page">Jeux<\/a>/);
 });
+
+test('fresh /univers path bypasses historic browser-cached /jeux permanent redirects',async()=>{
+ const routes=new Map();
+ registerSeoRoutes({get:(path,handler)=>routes.set(path,handler)},{
+  getPublished:async()=>published
+ });
+ const result=()=>({statusCode:200,body:'',set(){return this},type(){return this},
+  status(code){this.statusCode=code;return this},send(value){this.body=value;return this}});
+ const index=result(),legacy=result();
+ await routes.get('/univers')({},index);
+ await routes.get('/jeux')({},legacy);
+ assert.equal(index.statusCode,200);
+ assert.equal(legacy.statusCode,200);
+ assert.match(index.body,/rel="canonical" href="https:\/\/swapp.tv\/univers"/);
+ assert.match(index.body,/href="\/jeux\/grand-theft-auto-vi"/);
+ const xml=sitemapXml(published);
+ assert.match(xml,/https:\/\/swapp.tv\/univers/);
+ assert.doesNotMatch(xml,/<loc>https:\/\/swapp.tv\/jeux<\/loc>/);
+});
