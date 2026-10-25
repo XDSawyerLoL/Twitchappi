@@ -94,8 +94,8 @@ function mountImageEnhancement(){
  // Display-only SDR adjustment. The OBS H264/AAC bitstream remains unchanged.
  const looks={
   original:{brightness:100,contrast:100,saturation:100},
-  balanced:{brightness:108,contrast:110,saturation:106},
-  vivid:{brightness:115,contrast:118,saturation:110}
+  balanced:{brightness:108,contrast:114,saturation:106},
+  vivid:{brightness:115,contrast:122,saturation:110}
  };
  const key='swapp:live:picture:v1';
  const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
@@ -103,9 +103,14 @@ function mountImageEnhancement(){
   try{
    const data=JSON.parse(localStorage.getItem(key)||'null');
    if(!data||typeof data!=='object')return {...looks.balanced};
+   // Upgrade only the exact previous presets: never overwrite custom sliders.
+   if(Number(data.brightness)===108&&Number(data.contrast)===110&&Number(data.saturation)===106)
+    return {...looks.balanced};
+   if(Number(data.brightness)===115&&Number(data.contrast)===118&&Number(data.saturation)===110)
+    return {...looks.vivid};
    return {
     brightness:clamp(Number(data.brightness)||108,90,130),
-    contrast:clamp(Number(data.contrast)||110,90,135),
+    contrast:clamp(Number(data.contrast)||114,90,135),
     saturation:clamp(Number(data.saturation)||106,90,125)
    };
   }catch(_){return {...looks.balanced}}
