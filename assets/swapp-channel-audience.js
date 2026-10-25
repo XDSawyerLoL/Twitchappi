@@ -35,12 +35,12 @@
   let socket=null;try{socket=state.socket}catch(_){}
   const playing=!!user&&!!socket?.connected&&valid(name)&&playback();
   if(!socket?.connected)return;
-  if(!playing&&(!lastPulseOn||lastPulseRoom!==name))return;
+  if(!playing&&!lastPulseOn)return;
   socket.emit('swapp:channel:watch',{room:playing?name:lastPulseRoom,playing,visible:!document.hidden,player:'html5'});
   lastPulseOn=playing;lastPulseRoom=playing?name:'';
  }
  document.addEventListener('visibilitychange',pulse);
- window.addEventListener('pagehide',()=>{if(lastPulseOn)pulse()});
+ window.addEventListener('pagehide',()=>{try{if(lastPulseOn&&state.socket?.connected)state.socket.emit('swapp:channel:watch',{room:lastPulseRoom,playing:false,visible:false,player:'html5'});}catch(_){}});
  const sockets=new WeakSet();
  function wire(){
   let s=null;try{s=state.socket}catch(_){}
