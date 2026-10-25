@@ -71,5 +71,19 @@ test('release check verifies SOCIAL, ads.txt, home and Actualité separately',()
  assert.equal(pkg.scripts['release:info'],'node tools/swapp-release.js');
  assert.equal(pkg.scripts['verify:production'],'node tools/swapp-deploy-smoke.js');
  // No GitHub Actions: Hostinger runs these checks on demand.
- assert.equal(fs.existsSync(path.join(__dirname,'..','.github/workflows/swapp-quality.yml')),false);
+ const quality=fs.readFileSync(path.join(__dirname,'..','.github/workflows/swapp-quality.yml'),'utf8');
+ assert.match(quality,/^on:\\s*\\n\\s+workflow_dispatch:/m);
+ assert.doesNotMatch(quality,/^\\s+(?:push|pull_request|schedule):/m,
+  'quality checks must not launch paid workflows automatically');
+});
+
+test('release fingerprints include the SWAPP TV director, player and programme',()=>{
+ for(const asset of [
+  'modules/swapp-program.js','modules/swapp-tv-director.js','modules/swapp-tv-queue.js',
+  'assets/swapp-program.css','assets/swapp-tv-broadcast.js','assets/swapp-tv-rotation.js',
+  'assets/swapp-calendar.js'
+ ])assert.ok(RELEASE_FILES.includes(asset),asset);
+ const source=fs.readFileSync(path.join(__dirname,'..','tools/swapp-deploy-smoke.js'),'utf8');
+ assert.match(source,/stationJs\.body\.includes\('function maybeAdvanceDiscovery\('/);
+ assert.match(source,/swapp-tv-broadcast\.js\?v=20261025-full-rotation-v4/);
 });
