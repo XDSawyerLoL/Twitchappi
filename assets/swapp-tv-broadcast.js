@@ -7,7 +7,7 @@ const safeLogin=s=>/^[a-z0-9_]{3,25}$/.test(String(s||'').toLowerCase());
 const safeNativeLogin=s=>/^[a-z0-9_-]{2,32}$/.test(String(s||'').toLowerCase());
 const gameOf=a=>typeof a?.game==='string'?a.game.trim():String(a?.game?.name||a?.game?.title||'').trim();
 const gamesFrom=data=>[...new Set((Array.isArray(data.articles)?data.articles:[]).filter(x=>x?.slug&&x.status!=='draft').map(gameOf).filter(x=>x.length>1))].slice(0,16);
-const state={queue:null,selection:null,playing:null,discovery:[],native:[],nativeIndex:0,index:0,consent:false,autoAdvance:false,autoSource:null,playStartedAt:0,games:[],queueMode:false};
+const state={queue:null,selection:null,playing:null,discovery:[],native:[],nativeIndex:0,nativeFetchedAt:0,index:0,consent:false,autoAdvance:false,autoSource:null,playStartedAt:0,games:[],queueMode:false};
 const TV_SLOT_SECONDS=600; // 10-minute SWAPP TV slot; keep aligned with swapp-tv-director.MAX_AIR_SECONDS.
 function tvTime(value){
  if(value instanceof Date)return value.getTime();
@@ -128,7 +128,13 @@ async function refreshQueue(){
   // Native is tried first, independent from Twitch credentials and the
   // optional MySQL TV queue. A failed native request keeps the last set.
   const nativeData=await api('/api/native/lives').catch(()=>null);
-  if(nativeData?.success===true)state.native=mapNativeLives(nativeData);
+  if(nativeData?.success===true){
+   state.native=mapNativeLives(nativeData);
+   state.nativeFetchedAt=Date.now();
+  }else if(Date.now()-state.nativeFetchedAt>90000){
+   // Short grace for API glitches, never continue advertising stale streams.
+   state.native=[];
+  }
   const data=await api('/api/swapp-tv/queue/status');
   state.queue=data;state.queueMode=Boolean(data.enabled)||state.native.length>0;
   renderQueue(data);updateSlotClock();
