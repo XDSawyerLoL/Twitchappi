@@ -28,7 +28,7 @@ test('independence landing explains privacy and requests auth by download',()=>{
  const html=page();
  assert.match(html,/Télécharger mes données/);
  assert.match(html,/api\/oryon\/independence\/export/);
- assert.match(html,/données privées de tes abonnés/);
+ assert.match(html,/donnée privée de tes abonnés/);
 });
 test('independence endpoint never exports data about arbitrary users',()=>{
  const fs=require('node:fs'),path=require('node:path');
