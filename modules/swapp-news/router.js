@@ -521,6 +521,7 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
         }
       }
       const newlyPublished=results.filter(r=>r.status==='published').map(r=>r.slug);
+      if(results.some(r=>r.status==='published'))verifiedPublished.invalidate();
       if(newlyPublished.length)signalIndexing(newlyPublished);
       return res.status(201).json({dryRun:false,results});
     }catch(e){if(isValidation(e))return sendError(res,e);next(e);}
