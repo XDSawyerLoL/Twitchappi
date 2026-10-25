@@ -53,7 +53,7 @@
   [/^(honte|genant|gene)$/,'facepalm']
  ];
  function gifQuery(text){
-  const value=String(text||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+  const value=String(text||'').replace(/œ/g,'oe').replace(/æ/g,'ae').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
    .toLowerCase().replace(/[^\p{L}\p{N}\s'-]/gu,' ').replace(/\s+/g,' ').trim().slice(0,75);
   return synonyms.find(pair=>pair[0].test(value))?.[1]||value;
  }
