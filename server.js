@@ -8487,6 +8487,12 @@ io.use((socket, next) => {
   sessionMiddleware(socket.request, {}, next);
 });
 
+// SWAPP channel moderation: registered before the native chat socket handlers.
+require('./modules/swapp-channel-moderation').installChannelModeration({
+  app, io, getModState, getNativeChat, getAnySocketDisplay, getOryonUserByLogin,
+  saveModState: data => fs.writeFileSync(oryonModFile, JSON.stringify(data,null,2))
+});
+
 // SWAPP SOCIAL: voice signalling. Socket.IO transports only SDP/ICE metadata.
 // Actual audio uses WebRTC between members, is never recorded by SWAPP.
 require('./modules/swapp-social-voice').installSocialVoice({
