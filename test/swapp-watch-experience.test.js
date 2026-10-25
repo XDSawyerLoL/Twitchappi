@@ -120,7 +120,7 @@ test('direct chat has no legacy sticky offset and follows the video top at deskt
 test('chat vertical correction remains stable across retries, and clears on mobile',()=>{
  const script=read('assets/swapp-watch-experience.js');
  const a=script.indexOf(' function syncChat(page){');
- const b=script.indexOf('\n  // Prefer actual broadcast metadata;',a);
+ const b=script.indexOf('\n // Prefer actual broadcast metadata;',a);
  assert.ok(a>=0&&b>a);
  const win={matchMedia:()=>({matches:false})};
  const sync=new Function('window',script.slice(a,b)+'return syncChat')(win);
