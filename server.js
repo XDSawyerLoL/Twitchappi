@@ -4697,6 +4697,39 @@ const swappDirectRelay=attachSwappDirectRelay(app,{
   (readOryonUsers().users||[]).find(x=>x.login===login)?.current_live_title||'')
 });
 
+// Media-verified SWAPP TV inventory. Account heartbeats and offline posters
+// cannot enter this feed: a playlist and fresh HLS segments must both exist.
+app.get('/api/swapp-tv/native-lineup',(_req,res)=>{
+ res.set('Cache-Control','no-store');
+ res.set('X-Content-Type-Options','nosniff');
+ try{
+  const published=swappDirectRelay.activeStreams();
+  const users=readOryonUsers().users||[];
+  const byLogin=new Map(users.filter(u=>u?.login&&u.channel_public!==false)
+   .map(u=>[String(u.login).toLowerCase(),u]));
+  const streams=[];
+  for(const item of published){
+   const creator=byLogin.get(item.login);
+   if(!creator)continue;
+   streams.push({
+    login:item.login,
+    platform:'swapp',
+    media:'hls',
+    media_verified:true,
+    player_url:item.player_url,
+    broadcast_id:item.broadcast_id,
+    title:String(creator.current_live_title||'Direct SWAPP').slice(0,140),
+    display_name:String(creator.display_name||item.login).slice(0,70),
+    game:String(creator.current_live_category||creator.current_category||creator.category||'Jeu vidéo').slice(0,100),
+    audio_track:item.audio_track
+   });
+  }
+  return res.json({success:true,verified:true,source:'swapp-direct-hls',items:streams});
+ }catch(err){
+  console.warn('[SWAPP TV] Native inventory failed:',String(err?.name||'error'));
+  return res.status(503).json({success:false,error:'native_lineup_unavailable',items:[]});
+ }
+});
 app.post('/api/oryon/local-agent/register-public-url', mutationLimiter, async (req, res) => {
   try {
     const token = bearerToken(req);
