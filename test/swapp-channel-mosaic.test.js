@@ -95,7 +95,7 @@ test('owner can diagnose and replace an undersized legacy thumbnail without touc
  assert.match(js,/Image trop petite/);
  assert.match(js,/Résolution faible pour cette taille/);
  assert.match(js,/Importer \/ remplacer par l’image originale \(HD\)/);
- assert.match(js,/size\.addEventListener\('change',\(\)=>\{p\.size=size\.value;showImageQuality\(\)\}\)/);
+ assert.match(js,/size\.addEventListener\('change',\(\)=>\{p\.size=size\.value;showImageQuality\(\);refreshPreviewCard\(i\)\}\)/);
  assert.match(css,/data-low-resolution="true"/);
  assert.match(css,/swapp-mosaic-quality-note\[data-warning="true"\]/);
  assert.doesNotMatch(css,/transform:scale\(1\.018\)/);
@@ -166,4 +166,17 @@ test('composer previews the whole published mosaic before saving',()=>{
  assert.match(css,/swapp-mosaic-preview-tile\[data-size="hero"\]/);
  assert.match(css,/swapp-mosaic-preview-tile\[data-ratio="21:9"\]/);
  assert.match(css,/@media\(max-width:680px\)/);
+});
+
+test('composer preview excludes panels without an image, matching actual published layout',()=>{
+ const js=read('assets/swapp-channel-mosaic.js');
+ assert.match(js,/const published=draft\.map\(/);
+ assert.match(js,/\.filter\(item=>String\(item\.panel\.image_url/);
+ assert.match(js,/\[data-preview-index=/);
+});
+test('confirmed backend layout accepts normalized whitespace and integer focal points',()=>{
+ const {publishedLayoutMatches}=require('../assets/swapp-channel-mosaic');
+ const requested={...legacy('Visuel '),focal_x:33.4,focal_y:66.4};
+ const published={...requested,title:'Visuel',focal_x:33,focal_y:66};
+ assert.equal(publishedLayoutMatches([requested],[published]),true);
 });
