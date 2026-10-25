@@ -222,7 +222,8 @@
        valid.forEach((item,i)=>grid.append(story(item,i)));
      });
      const visible=featuredSlug?valid.filter(item=>item.slug!==featuredSlug):valid;
-     visible.slice(0,modern?4:5).forEach((item,i)=>grid.append(story(item,featuredSlug?i+1:i)));
+     // Without a valid illustrated lead, do not discard the fifth article.
+     visible.slice(0,modern&&featuredSlug?4:5).forEach((item,i)=>grid.append(story(item,featuredSlug?i+1:i)));
 
  }
  function mount(){
