@@ -118,7 +118,9 @@ function mapNativeLives(payload){
   result.push({login,platform:'swapp',display_name:String(x.host_name||login).slice(0,80),
     game:String(x.category||'Jeu vidéo').slice(0,100),title:String(x.title||'').slice(0,180)});
  }
- return result;
+ // Shuffle by verified game and a stable time window, never viewer counts.
+ // This also neutralises API order (currently newest stream first).
+ return fairDiscovery(result);
 }
 async function refreshQueue(){
  try{
