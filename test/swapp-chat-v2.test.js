@@ -54,9 +54,9 @@ test('GIF provider and message transport remain original, channel emotes are cop
 test('mobile is constrained, no legacy chat v2 stylesheet cache can leak',()=>{
  assert.match(style,/@media\(max-width:680px\)/);
  assert.match(style,/grid-template-columns:minmax\(0,1fr\) 33px 29px 35px/);
- assert.match(html,/swapp-chat-v2\.css\?v=20261025-gif-search-v1/);
- assert.match(html,/swapp-chat-v2\.js\?v=20261025-gif-search-v1/);
- assert.match(html,/swapp-watch-experience\.css\?v=20261025-immersion-93-v2/);
+ assert.match(html,/swapp-chat-v2\.css\?v=20261025-gif-grid-v2/);
+ assert.match(html,/swapp-chat-v2\.js\?v=20261025-gif-grid-v2/);
+ assert.match(html,/swapp-watch-experience\.css\?v=20261025-offline-title-v1/);
 });
 
 test('French moods and accents map to useful GIF search queries',()=>{
@@ -85,4 +85,13 @@ test('GIF picker searches existing backend and does not affect player or chat la
  assert.doesNotMatch(style,/grid-template-rows/);
  assert.match(style,/\.gifGrid\[data-swapp-gif-search="v1"\]/);
  assert.match(style,/max-height:min\(330px,calc\(100% - 68px\)\)/);
+});
+
+test('GIF results have fixed rows, bounded image boxes and their own scroll area',()=>{
+ assert.match(style,/grid-auto-rows:112px!important/);
+ assert.match(style,/grid-auto-rows:96px!important/);
+ assert.match(style,/\.swapp-chat-gif-results > \.swapp-chat-gif-item/);
+ assert.match(style,/max-height:112px!important/);
+ assert.match(style,/position:absolute!important;inset:0!important/);
+ assert.match(style,/overscroll-behavior:contain/);
 });
