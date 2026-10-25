@@ -76,6 +76,11 @@ function swappIsBlockedTunnelUrl(url){
 }
 function swappSafeLocalPlayerUrl(url){
  const raw=String(url||'').trim();
+ // OBS Direct serves the trusted player on this same SWAPP origin. The
+ // old absolute-only URL parser rejected /api/.../player, leaving /vnhz
+ // with a black, empty WebRTC placeholder despite valid incoming HLS.
+ // Match the exact player route and nothing else (no queries or traversal).
+ if(/^\/api\/oryon\/local-relay\/[a-z0-9_-]{2,48}\/player$/i.test(raw))return raw;
  try{
   const parsed=new URL(raw);
   if(parsed.protocol!=='https:')return '';
