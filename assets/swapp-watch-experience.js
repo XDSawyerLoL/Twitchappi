@@ -136,8 +136,10 @@
   // On desktop, preserve exact player height whenever it is sufficiently tall.
   const actual=mobile?Math.max(400,Math.min(440,h)):Math.max(400,h);
   chat.style.setProperty('--swapp-chat-player-height',actual+'px');
-  for(const prop of ['height','min-height','max-height'])
-   chat.style.setProperty(prop,actual+'px','important');
+  // Minimum height follows the player, but the composer must remain in flow.
+  chat.style.removeProperty('height');
+  chat.style.removeProperty('max-height');
+  chat.style.setProperty('min-height',actual+'px','important');
   // On an offline channel the grid aligns the chat without translations.
   if(page.dataset.channelLive==='false'){
    chat.style.removeProperty('translate');
