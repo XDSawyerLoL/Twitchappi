@@ -292,3 +292,12 @@ test('TV native rotation requires opt-in and ignores Twitch queue',()=>{
  state.autoSource='queue';
  assert.equal(advance(1600000),false,'Twitch queue must never drive native rotation');
 });
+
+test('native SWAPP candidate cache expires after failed API refresh',()=>{
+ const js=read('assets/swapp-tv-broadcast.js');
+ assert.match(js,/nativeFetchedAt:0/);
+ assert.match(js,/Date\.now\(\)-state\.nativeFetchedAt>90000/);
+ assert.match(js,/state\.native=\[\]/);
+ assert.match(js,/api\('\/api\/native\/lives'\)/);
+ assert.match(js,/return fairDiscovery\(result\)/);
+});
