@@ -1,0 +1,34 @@
+/* SWAPP streamer audience. Integrated into existing creator workspace. */
+#manager .swapp-audience-panel{
+ scroll-margin-top:100px;margin-top:20px;padding:18px 20px 20px;
+ border:1px solid rgba(255,255,255,.13);background:rgba(15,18,28,.8);
+ border-radius:16px;min-width:0;
+}
+#manager .swapp-audience-head{display:flex;justify-content:space-between;align-items:center;gap:15px;flex-wrap:wrap}
+#manager .swapp-audience-head h2{font-size:21px;margin:0 0 4px}
+#manager .swapp-audience-head p{margin:0;color:var(--muted,#a0a9b7);font-size:12px;max-width:68ch}
+#manager .swapp-audience-summary{font-size:13px;margin:16px 0 9px;font-weight:700}
+#manager .swapp-audience-list{max-height:380px;overflow:auto;scrollbar-width:thin}
+#manager .swapp-audience-row{
+ display:grid;grid-template-columns:minmax(140px,1.4fr) minmax(100px,1fr) 90px;gap:8px;
+ align-items:center;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.075);
+ font-size:12px;min-width:0;
+}
+#manager .swapp-audience-thead{background:rgba(255,255,255,.045);font-weight:800;font-size:11px;color:#d2cadf}
+#manager .swapp-audience-user{display:grid;min-width:0;gap:2px;overflow-wrap:anywhere}
+#manager .swapp-audience-user strong{font-size:13px;font-weight:750}
+#manager .swapp-audience-user small{color:var(--muted,#a0a9b7)}
+#manager .swapp-audience-playing{color:#66d4b3}
+#manager .swapp-audience-score{text-align:right;font-variant-numeric:tabular-nums;font-weight:800}
+#manager .swapp-audience-note,#manager .swapp-audience-empty{color:var(--muted,#9faabc);font-size:12px;line-height:1.5}
+#channel .swapp-channel-points-chip{
+ display:inline-flex;align-items:center;white-space:nowrap;min-height:32px;
+ padding:6px 10px;border-radius:8px;font:700 12px/1.2 system-ui,sans-serif;
+ color:var(--text,#e8e4ef);background:rgba(160,121,211,.1);
+ border:1px solid rgba(181,146,221,.2);
+}
+.creatorSide nav [data-swapp-audience-link]{border-left:2px solid color-mix(in srgb,var(--brand,#8b5cf6) 60%,transparent)}
+@media(max-width:650px){
+ #manager .swapp-audience-panel{padding:14px 12px}
+ #manager .swapp-audience-row{grid-template-columns:minmax(100px,1.1fr) minmax(82px,1fr) 70px;padding:9px 6px;gap:6px;font-size:11px}
+}
