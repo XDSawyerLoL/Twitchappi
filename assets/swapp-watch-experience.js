@@ -4,9 +4,9 @@
  const WATCH='#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"]';
  // Viewing controls apply only to the current page session. They must not
  // reopen a future live in cinema mode or silently hide the chat.
- const mode={theatre:'off',chat:'shown'};
+ const mode={immersion:'off',chat:'shown'};
  const icons={
-  theatre:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h6M4 5v6m16-6h-6m6 0v6M4 19h6m-6 0v-6m16 6h-6m6 0v-6"/></svg>',
+  immersion:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9V5h4m6 0h4v4M5 15v4h4m6 0h4v-4"/><circle cx="12" cy="12" r="2.25"/></svg>',
   chat:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 0 1-8 8 8.2 8.2 0 0 1-3-.6L4 21l1.6-5A8 8 0 1 1 20 12Z"/></svg>'
  };
  function button(cls,svg,label){
@@ -16,13 +16,15 @@
   return el;
  }
  function updateUI(page){
-  const theatre=page.dataset.watchTheatre==='on';
+  const immersion=page.dataset.watchImmersion==='on';
   const hide=page.dataset.watchChat==='hidden';
-  const btnTheatre=page.querySelector('.swapp-watch-theatre-btn');
+  const btnImmersion=page.querySelector('.swapp-watch-immersion-btn');
   const btnChat=page.querySelector('.swapp-watch-chat-btn');
-  if(btnTheatre){
-   btnTheatre.setAttribute('aria-pressed',String(theatre));
-   btnTheatre.querySelector('span').textContent=theatre?'Quitter le mode cinéma':'Mode cinéma';
+  if(btnImmersion){
+   btnImmersion.setAttribute('aria-pressed',String(immersion));
+   btnImmersion.setAttribute('aria-label',immersion?'Désactiver le mode Immersion':'Activer le mode Immersion');
+   btnImmersion.title=immersion?'Quitter le mode Immersion (Échap)':'Assombrir la page autour du direct';
+   btnImmersion.querySelector('span').textContent=immersion?'Quitter Immersion':'Mode Immersion';
   }
   if(btnChat){
    btnChat.setAttribute('aria-pressed',String(hide));
@@ -31,6 +33,79 @@
    const chat=page.querySelector('.channelLiveSidebar');
    if(chat){if(!chat.id)chat.id='swapp-channel-live-chat';btnChat.setAttribute('aria-controls',chat.id);}
   }
+ }
+
+ // Four fixed, non-interactive dark panels frame a clear rectangle around
+ // video + chat + controls. Unlike a full-screen backdrop, they NEVER darken
+ // pixels inside the stream, obscure interactive chat, or trap pointer events.
+ let scrim=null,activeImmersivePage=null,dimFrame=0;
+ function ensureScrim(){
+  if(scrim)return scrim;
+  const wrapper=document.createElement('div');
+  wrapper.className='swapp-immersion-dimmer';
+  wrapper.setAttribute('aria-hidden','true');
+  wrapper.hidden=true;
+  const sections={};
+  for(const side of ['top','right','bottom','left']){
+   const panel=document.createElement('div');
+   panel.className='swapp-immersion-dimmer-'+side;
+   wrapper.appendChild(panel);sections[side]=panel;
+  }
+  wrapper._sections=sections;
+  document.body.appendChild(wrapper);
+  scrim=wrapper;
+  return wrapper;
+ }
+ function disableImmersion(){
+  if(activeImmersivePage?.isConnected){
+   activeImmersivePage.dataset.watchImmersion='off';
+   updateUI(activeImmersivePage);
+  }
+  activeImmersivePage=null;mode.immersion='off';
+  if(scrim)scrim.hidden=true;
+  cancelAnimationFrame(dimFrame);dimFrame=0;
+ }
+ function updateImmersion(){
+  dimFrame=0;
+  const page=activeImmersivePage;
+  if(!page?.isConnected||page.dataset.watchImmersion!=='on'){
+   disableImmersion();return;
+  }
+  const root=document.getElementById('channel');
+  if(!root?.classList.contains('active')){disableImmersion();return}
+  const focus=page.querySelector('.channelLiveLayout');
+  if(!focus){disableImmersion();return}
+  const rect=focus.getBoundingClientRect();
+  const vw=document.documentElement.clientWidth,vh=window.innerHeight;
+  const margin=8;
+  // Keep the immersion while the media/chat region intersects the viewport.
+  // Scrolling past the media returns to an ordinary readable page.
+  if(rect.bottom<48 || rect.top>vh-48){disableImmersion();return}
+  const bound=(v,max)=>Math.max(0,Math.min(max,Math.round(v)));
+  const x1=bound(rect.left-margin,vw),x2=bound(rect.right+margin,vw);
+  const y1=bound(rect.top-margin,vh),y2=bound(rect.bottom+margin,vh);
+  const {top,right,bottom,left}=ensureScrim()._sections;
+  const place=(el,x,y,w,h)=>{
+   el.style.left=x+'px';el.style.top=y+'px';
+   el.style.width=Math.max(0,w)+'px';el.style.height=Math.max(0,h)+'px';
+  };
+  place(top,0,0,vw,y1);
+  place(bottom,0,y2,vw,vh-y2);
+  place(left,0,y1,x1,Math.max(0,y2-y1));
+  place(right,x2,y1,vw-x2,Math.max(0,y2-y1));
+ }
+ function scheduleImmersion(){
+  if(!activeImmersivePage||dimFrame)return;
+  dimFrame=requestAnimationFrame(updateImmersion);
+ }
+ function setImmersion(page,on){
+  if(!on){disableImmersion();return}
+  if(activeImmersivePage&&activeImmersivePage!==page)disableImmersion();
+  activeImmersivePage=page;
+  page.dataset.watchImmersion='on';mode.immersion='on';
+  ensureScrim().hidden=false;
+  updateUI(page);
+  scheduleImmersion();
  }
  // Defensive bound for additional legacy styles injected after initial layout:
  // never allow a channel card's right edge to exceed the actual viewport.
@@ -66,27 +141,32 @@
   const main=page.querySelector('.channelMainPlayer');
   const video=main?.querySelector('.premiumPlayer,.oryonMainPlayer,.player');
   if(!main||!video)return;
-  page.dataset.watchTheatre=mode.theatre;
+  page.dataset.watchImmersion=mode.immersion;
   page.dataset.watchChat=mode.chat;
   const row=document.createElement('div');
   row.className='swapp-watch-tools';
   row.setAttribute('role','group');
   row.setAttribute('aria-label','Affichage du direct');
-  const cinema=button('swapp-watch-theatre-btn',icons.theatre,'Mode cinéma');
+  const immersion=button('swapp-watch-immersion-btn',icons.immersion,'Mode Immersion');
   const chat=button('swapp-watch-chat-btn',icons.chat,'Masquer le chat');
-  cinema.addEventListener('click',()=>{
-   const next=page.dataset.watchTheatre==='on'?'off':'on';
-   page.dataset.watchTheatre=next;mode.theatre=next;updateUI(page);
-   requestAnimationFrame(()=>{window.swappFitChat1014?.();syncChat(page)});
-   if(next==='on'&&!window.matchMedia?.('(prefers-reduced-motion:reduce)')?.matches)
-    main.scrollIntoView?.({behavior:'smooth',block:'start'});
+  immersion.addEventListener('click',()=>{
+   const next=page.dataset.watchImmersion!=='on';
+   setImmersion(page,next);
+   requestAnimationFrame(()=>{window.swappFitChat1014?.();syncChat(page);scheduleImmersion()});
+   if(next){
+    // Move the player into view before refining the dark surround.
+    main.scrollIntoView?.({
+     behavior:window.matchMedia?.('(prefers-reduced-motion:reduce)')?.matches?'instant':'smooth',
+     block:'center'
+    });
+   }
   });
   chat.addEventListener('click',()=>{
    const next=page.dataset.watchChat==='hidden'?'shown':'hidden';
    page.dataset.watchChat=next;mode.chat=next;updateUI(page);
    requestAnimationFrame(()=>{window.swappFitChat1014?.();syncChat(page)});
   });
-  row.append(cinema,chat);
+  row.append(immersion,chat);
   main.appendChild(row);
   updateUI(page);
   requestAnimationFrame(()=>{
@@ -97,9 +177,10 @@
   if(typeof ResizeObserver==='function'){
    const watcher=new ResizeObserver(()=>{
     if(!page.isConnected){watcher.disconnect();return}
-    syncChat(page);
+    syncChat(page);scheduleImmersion();
    });
    watcher.observe(video);
+   if(page.querySelector('.channelLiveLayout'))watcher.observe(page.querySelector('.channelLiveLayout'));
   }
  }
  function start(){
@@ -108,14 +189,20 @@
   let queued=false;
   const scan=()=>{
    queued=false;
+   if(activeImmersivePage && (!activeImmersivePage.isConnected || !root.classList.contains('active')))
+    disableImmersion();
    root.querySelectorAll('.creatorRefine.swapp-channel-polish[data-channel-live="true"]').forEach(install);
   };
   const schedule=()=>{if(queued)return;queued=true;requestAnimationFrame(scan)};
   new MutationObserver(schedule).observe(root,{subtree:true,childList:true,attributes:true,attributeFilter:['data-channel-live','class']});
   window.addEventListener('resize',()=>root.querySelectorAll('.creatorRefine[data-channel-live="true"]').forEach(page=>{
    fitViewport(page);
-   requestAnimationFrame(()=>{window.swappFitChat1014?.();syncChat(page)});
+   requestAnimationFrame(()=>{window.swappFitChat1014?.();syncChat(page);scheduleImmersion()});
   }),{passive:true});
+  window.addEventListener('scroll',scheduleImmersion,{capture:true,passive:true});
+  document.addEventListener('keydown',event=>{
+   if(event.key==='Escape' && activeImmersivePage)disableImmersion();
+  });
   schedule();
  }
  function bootFallback(){
