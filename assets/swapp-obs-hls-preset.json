@@ -1,5 +1,7 @@
 {
   "name": "SWAPP Live (HTTPS HLS)",
+  "common": false,
+  "protocol": "HLS",
   "servers": [
     {
       "name": "SWAPP Direct - France",
