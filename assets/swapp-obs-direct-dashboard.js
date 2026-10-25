@@ -76,7 +76,24 @@ function card(){
  diag.setAttribute('role','status');diag.setAttribute('aria-live','polite');
  diag.append(make('strong','','Réception OBS : en attente des premiers fragments'),
   make('p','','Le diagnostic distinguera les requêtes reçues, les segments, la playlist et les erreurs serveur.'));
- panel.append(diag);
+ const probe=make('div','swapp-obs-direct-probe');
+ const testButton=button('Tester la connexion HTTPS OBS','btn secondary',async()=>{
+  testButton.disabled=true;
+  const output=$('.swapp-obs-direct-probe-result',probe);
+  output.textContent='Vérification de HTTP PUT…';
+  try{
+   const reply=await fetch('/api/swapp/obs-hls/ping',{
+    method:'PUT',credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}
+   });
+   const data=await reply.json().catch(()=>({}));
+   if(!reply.ok||!data.http_put_forwarded||reply.headers.get('X-Swapp-Obs-Put')!=='reachable')
+    throw Error('Le test HTTP PUT ne traverse pas correctement le serveur (HTTP '+reply.status+').');
+   output.textContent='Connexion HTTP PUT opérationnelle. Vérifie maintenant la clé et les segments OBS.';
+  }catch(error){output.textContent='Échec du test : '+String(error.message||error)+'. Vérifie la version déployée et les règles HTTP PUT Hostinger.'}
+  finally{testButton.disabled=false}
+ });
+ probe.append(testButton,make('span','swapp-obs-direct-probe-result',''));
+ panel.append(diag,probe);
  workspace.insertBefore(panel,hero);
  // This old OBS/local card is still used by legacy streamers but no longer
  // appears as a required installation in the direct OBS workflow.
