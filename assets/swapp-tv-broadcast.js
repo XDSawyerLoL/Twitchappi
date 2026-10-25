@@ -92,7 +92,7 @@ function play(){
  frame.title='Direct '+(item.platform==='swapp'?'SWAPP':'Twitch')+' de '+item.name;
  if(item.platform==='swapp'){
   // First-party channel, no Amazon domain or Twitch cookies involved.
-  frame.src='/'+encodeURIComponent(item.login)+'?swapp_tv_embed=1';
+  frame.src='/api/oryon/local-relay/'+encodeURIComponent(item.login)+'/player';
  }else{
   const parent=location.hostname;
   frame.src='https://player.twitch.tv/?'+new URLSearchParams({channel:item.login,parent,autoplay:'true',muted:'true'});
@@ -107,17 +107,24 @@ function play(){
  state.playStartedAt=Date.now();
  syncWatchButton();
 }
-// Existing native live registry is independently verified by SWAPP heartbeat
-// and active WebRTC rooms. Never represent an offline profile as a live stream.
+// Verified first-party stream registry: ONLY HLS with a fresh manifest
+// and real media segments. WebRTC signalling and account heartbeats are
+// not enough to claim the channel has playable video.
 function mapNativeLives(payload,rotation=Math.floor(Date.now()/600000)){
  if(payload?.success!==true||!Array.isArray(payload.items))return [];
  const unique=new Set(),result=[];
  for(const x of payload.items){
-  const login=String(x.host_login||x.room||'').toLowerCase();
-  if(x.native!==true||!safeNativeLogin(login)||unique.has(login))continue;
+  const login=String(x.login||'').toLowerCase();
+  if(x.platform!=='swapp'||x.media!=='hls'||x.media_verified!==true||
+     !safeNativeLogin(login)||unique.has(login))continue;
+  const expected='/api/oryon/local-relay/'+encodeURIComponent(login)+'/player';
+  if(x.player_url!==expected)continue; // refuse external or unverified URLs
   unique.add(login);
-  result.push({login,platform:'swapp',display_name:String(x.host_name||login).slice(0,80),
-    game:String(x.category||'Jeu vidéo').slice(0,100),title:String(x.title||'').slice(0,180)});
+  result.push({login,platform:'swapp',media:'hls',media_verified:true,
+    display_name:String(x.display_name||login).slice(0,80),
+    game:String(x.game||'Jeu vidéo').slice(0,100),
+    title:String(x.title||'').slice(0,180),
+    broadcast_id:String(x.broadcast_id||'').slice(0,40)});
  }
  // Shuffle by verified game and a stable time window, never viewer counts.
  // This also neutralises API order (currently newest stream first).
@@ -127,11 +134,11 @@ async function refreshQueue(){
  try{
   // Native is tried first, independent from Twitch credentials and the
   // optional MySQL TV queue. A failed native request keeps the last set.
-  const nativeData=await api('/api/native/lives').catch(()=>null);
+  const nativeData=await api('/api/swapp-tv/native-lineup').catch(()=>null);
   if(nativeData?.success===true){
    state.native=mapNativeLives(nativeData);
    state.nativeFetchedAt=Date.now();
-  }else if(Date.now()-state.nativeFetchedAt>90000){
+  }else if(Date.now()-state.nativeFetchedAt>25000){
    // Short grace for API glitches, never continue advertising stale streams.
    state.native=[];
   }
@@ -402,7 +409,7 @@ async function init(){
  try{const data=await api('/api/actus');state.games=gamesFrom(data);const select=$('stv-game');select.replaceChildren();for(const g of state.games){const o=by('option',null,g);o.value=g;select.append(o)}
  if(!state.games.length){const o=by('option',null,'Aucun jeu éditorial disponible');o.value='';select.append(o)}
  await refreshQueue();if(!state.queueMode)await discovery();
- setInterval(refreshQueue,45000);
+ setInterval(refreshQueue,15000);
  setInterval(async()=>{if(!state.queueMode){await discovery()}},180000);
  }catch(e){setText('stv-stage-status','Programmation indisponible pour le moment.');setText('stv-queue-status','Les données éditoriales sont indisponibles.');$('stv-join').disabled=true}
 }
