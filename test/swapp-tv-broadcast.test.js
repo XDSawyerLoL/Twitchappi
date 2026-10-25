@@ -69,8 +69,8 @@ test('disabled queue keeps the conductor visible while blocking enrollment',()=>
 test('TV continues to the next verified creator only after a viewer starts the station',()=>{
  const script=read('assets/swapp-tv-broadcast.js');
  assert.match(script,/autoAdvance:false/);
- assert.match(script,/if\(state\.autoAdvance&&onAir&&valid&&!same\)play\(\)/);
- assert.match(script,/state\.autoAdvance=Boolean\(item\.onAir\)/);
+ assert.match(script,/state\.autoSource===\(onAir\?'queue':'discovery'\)/);
+ assert.match(script,/state\.autoSource=item\.onAir\?'queue':'discovery'/);
  assert.match(script,/function stopPlayback\(\)/);
  assert.match(script,/state\.autoAdvance=false/);
  assert.match(script,/syncWatchButton\(\)/);
@@ -186,4 +186,25 @@ test('conductor clock measures the actual verified slot, not queue position esti
  assert.equal(nodes['stv-slot-clock'].hidden,true);
  assert.match(page('tv'),/id="stv-slot-clock"[^>]*aria-live="off" hidden/);
  assert.match(read('assets/swapp-program.css'),/\.stv-slot-clock\[hidden\]/);
+});
+
+test('verified fallback channel rotates after opt-in but not after stop',()=>{
+ const source=read('assets/swapp-tv-broadcast.js');
+ const start=source.indexOf('const DISCOVERY_SLOT_MS=');
+ const end=source.indexOf('async function mutate(',start);
+ assert.ok(start>=0&&end>start);
+ const stream=[{login:'first_live',game:'Fortnite'},{login:'second_live',game:'Fortnite'}];
+ const state={queueMode:false,consent:true,autoAdvance:true,autoSource:'discovery',
+  playStartedAt:1000,discovery:stream,selection:{login:'first_live'},index:0};
+ let played=[],rails=0;
+ const advance=new Function('state','renderScreen','rail',source.slice(start,end)+
+  'return maybeAdvanceDiscovery;')(state,(item)=>{played.push(item.login);state.selection={login:item.login};state.playStartedAt=600000+1000},()=>rails++);
+ assert.equal(advance(1000+500000),false,'no early handoff');
+ assert.equal(advance(1000+601000),true);
+ assert.deepEqual(played,['second_live']);
+ assert.equal(rails,1);
+ state.consent=false;state.autoAdvance=false;
+ assert.equal(advance(1000+1300000),false,'a manual stop prevents another auto-handoff');
+ state.consent=true;state.autoAdvance=true;state.autoSource='queue';
+ assert.equal(advance(1000+1300000),false,'queue mode must not call the discovery scheduler');
 });
