@@ -30,7 +30,7 @@
  function show(button,enabled){
   button.dataset.swappAlertEnabled=String(enabled);
   button.setAttribute('aria-pressed',String(enabled));
-  button.textContent=enabled?'🔔':'♧';
+  button.textContent=enabled?'🔔':'🔕';
   button.setAttribute('aria-label',enabled?'Désactiver les alertes de mise en direct':'Activer les alertes de mise en direct');
   button.title=enabled?'Alertes activées — cliquer pour désactiver':'M’avertir quand ce streamer démarre un direct';
  }
@@ -89,7 +89,7 @@
      // on page load, after a timer, or as a side effect of following someone.
      const permission=await Notification.requestPermission();
      if(permission!=='granted'){notice('Notifications refusées dans le navigateur.');return}
-     const registration=await navigator.serviceWorker.register('/swapp-live-sw.js',{scope:'/'});
+     await navigator.serviceWorker.register('/swapp-live-sw.js',{scope:'/'});
      const ready=await navigator.serviceWorker.ready;
      const old=await ready.pushManager.getSubscription();
      const subscription=old||await ready.pushManager.subscribe({
