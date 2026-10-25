@@ -504,3 +504,14 @@ test('owner-only OBS diagnostics separate missing ingress, segment reception and
  assert.equal(done.payload.segment_count,1);
  assert.equal(done.payload.last_status,200);
 });
+
+test('owner diagnostics report missing decoded HLS PUT request bodies',async()=>{
+ const b=backend();
+ const response=await b.call('put','/api/swapp/obs-hls/put',{name:'index0.ts',token:'a'.repeat(48),body:undefined});
+ assert.equal(response.status,400);
+ assert.match(response.payload.error,/PUT vide|chunked/i);
+ const status=await b.call('get','/api/swapp/obs-hls/diagnostics');
+ assert.equal(status.payload.stage,'rejected');
+ assert.equal(status.payload.last_status,400);
+ assert.equal(status.payload.last_file_type,'segment');
+});
