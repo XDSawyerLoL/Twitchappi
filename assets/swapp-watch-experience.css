@@ -438,3 +438,90 @@ body:has(#channel.view.active) #oryonMiniPlayer{display:none!important}
   top:0!important;
  }
 }
+
+
+/* OFFLINE ROW ALIGNMENT — gallery/hero is not part of the video/chat grid.
+ * The original dynamic creator CSS used sticky top:122px on the chat, which
+ * made it begin well below the 16:9 offline player at desktop widths.
+ * Video and chat occupy the SAME FIRST GRID ROW; neither may be sticky.
+ * Uses the real player height, not 100vh or a fabricated viewport offset. */
+#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="false"] .channelLiveLayout{
+ display:grid!important;
+ grid-template-columns:minmax(0,1fr) minmax(280px,384px)!important;
+ align-items:start!important;
+ justify-items:stretch!important;
+ gap:12px!important;
+ padding-top:12px!important;
+ min-width:0!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="false"] .channelMainPlayer{
+ grid-column:1!important;
+ grid-row:1!important;
+ display:block!important;
+ min-width:0!important;
+ align-self:start!important;
+ position:relative!important;
+ margin:0!important;
+ padding:0!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="false"] .channelMainPlayer > :is(.player,.premiumPlayer,.oryonMainPlayer){
+ display:block!important;
+ position:relative!important;
+ width:100%!important;
+ height:auto!important;
+ min-height:0!important;
+ max-height:none!important;
+ aspect-ratio:16/9!important;
+ margin:0!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="false"] .channelLiveSidebar{
+ grid-column:2!important;
+ grid-row:1!important;
+ align-self:start!important;
+ justify-self:stretch!important;
+ display:block!important;
+ position:relative!important;
+ inset:auto!important;
+ top:0!important;
+ min-width:0!important;
+ height:auto!important;
+ margin:0!important;
+ padding:0!important;
+ transform:none!important;
+ translate:none!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="false"] .channelLiveSidebar > .chatPanel{
+ display:grid!important;
+ grid-template-rows:auto minmax(0,1fr) auto auto auto!important;
+ position:relative!important;
+ inset:auto!important;
+ top:0!important;
+ bottom:auto!important;
+ width:100%!important;
+ box-sizing:border-box!important;
+ height:var(--swapp-chat-player-height,100%)!important;
+ min-height:0!important;
+ max-height:none!important;
+ margin:0!important;
+ padding:0!important;
+ translate:none!important;
+ transform:none!important;
+ align-self:start!important;
+ overflow:hidden!important;
+}
+@media(max-width:1080px){
+ #channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="false"] .channelLiveLayout{
+  grid-template-columns:minmax(0,1fr)!important;
+ }
+ #channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="false"] .channelMainPlayer{
+  grid-column:1!important;grid-row:1!important;
+ }
+ #channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="false"] .channelLiveSidebar{
+  grid-column:1!important;grid-row:2!important;
+ }
+ #channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="false"] .channelLiveSidebar > .chatPanel{
+  height:var(--swapp-chat-player-height,360px)!important;
+  min-height:300px!important;
+  max-height:440px!important;
+ }
+}
