@@ -1218,6 +1218,19 @@ app.use('/api/swapp/direct-audio',(req,res,next)=>req.method==='GET'?pulseReadLi
   }));
 // Social client changes must propagate rapidly; its ES imports do not carry cache query tags.
 app.use('/assets/swapp-social-native', express.static(path.join(__dirname, 'assets/swapp-social-native'), {...staticOptions,maxAge:0,setHeaders(res,file){staticOptions.setHeaders(res,file);res.setHeader('Cache-Control','no-store')}}));
+// First-party HLS player engine, pinned in package-lock.json. This path
+// resolves only into the installed, audited npm package; it never redirects
+// a viewer to jsDelivr, unpkg, or another third-party CDN.
+const SWAPP_HLS_LOCAL_DIST=path.join(__dirname,'node_modules','hls.js','dist','hls.min.js');
+app.get('/assets/hls.min.js',(_req,res)=>{
+ res.set('X-Content-Type-Options','nosniff');
+ res.set('Cache-Control','public,max-age=3600');
+ if(!fs.existsSync(SWAPP_HLS_LOCAL_DIST)){
+  res.set('Cache-Control','no-store');
+  return res.status(503).type('text').send('SWAPP HLS engine is not installed');
+ }
+ return res.type('application/javascript').sendFile(SWAPP_HLS_LOCAL_DIST);
+});
 app.use('/assets', express.static(path.join(__dirname, 'assets'), staticOptions));
 function sendPublicFile(res, file, type){
   const full = path.join(__dirname, file);
