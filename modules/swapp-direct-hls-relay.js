@@ -295,12 +295,17 @@ function attachSwappDirectRelay(app, opts={}){
     if(!match)return res.status(400).json({success:false,error:'Format HLS OBS non pris en charge.'});
     name='seg_'+String(Number(match[1]))+'.ts';
    }
-   // Reject giant bodies before lookup so the stream key can't bypass limits.
-   if(!Buffer.isBuffer(req.body)||!req.body.length)return res.status(400).json({success:false,error:'Fragment absent.'});
    let user=null;
    try{user=await opts.lookupObsOwner(cid)}catch(_){}
    if(!cleanLogin(user?.login))return res.status(403).json({success:false,error:'Clé OBS non autorisée.'});
+   // Record even a missing body: Hostinger may reject/strip chunked HTTP PUT,
+   // and OBS itself can continue broadcasting while ignoring HTTP errors.
    const recordObs=obsTrack(cleanLogin(user.login),name,res);
+   if(!Buffer.isBuffer(req.body)||!req.body.length){
+    const result=res.status(400).json({success:false,error:'Corps HTTP PUT vide ou non décodé. Vérifie le transfert chunked/HTTPS Hostinger.'});
+    if(typeof res.on!=='function')recordObs();
+    return result;
+   }
    if(name==='index.m3u8'){
     // Normalize exact segment identifiers to match SWAPP's verified HLS relay.
     const source=req.body.toString('utf8');
