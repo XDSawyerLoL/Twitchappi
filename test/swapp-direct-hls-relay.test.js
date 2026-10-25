@@ -364,3 +364,24 @@ test('embedded SWAPP player can export a vertical Short without affecting HLS tr
  assert.match(short,/captureStream/);
  assert.doesNotMatch(short,/getUserMedia/);
 });
+
+test('live status requires fresh accepted video segments rather than only a cached playlist',async()=>{
+ const b=backend();
+ const upload='/api/oryon/local-relay/upload';
+ const seg=Buffer.alloc(188*3);seg[0]=0x47;
+ const playlist=Buffer.from('#EXTM3U\\n#EXT-X-TARGETDURATION:2\\n#EXTINF:2,\\nseg_123.ts\\n');
+ assert.equal((await b.call('post',upload,{name:'seg_123.ts',body:seg})).status,200);
+ assert.equal((await b.call('post',upload,{name:'index.m3u8',body:playlist})).status,200);
+ const room=b.relay.rooms.get('vnhz');
+ assert.equal((await b.call('get','/api/oryon/local-relay/:login/state')).payload.active,true);
+ const last=room.lastSegmentAt;
+ room.lastSegmentAt=Date.now()-31000;
+ const stale=await b.call('get','/api/oryon/local-relay/:login/state');
+ assert.equal(stale.payload.active,false,'a frozen live must not be reported as active');
+ assert.equal(stale.payload.media_fresh,false);
+ assert.ok(stale.payload.segment_age_ms>=30000);
+ assert.equal((await b.call('get','/api/oryon/local-relay/:login/audience')).payload.live,false);
+ assert.equal((await b.call('get','/api/oryon/local-relay/:login/probe')).payload.active,false);
+ room.lastSegmentAt=last;
+ assert.equal((await b.call('get','/api/oryon/local-relay/:login/state')).payload.active,true);
+});
