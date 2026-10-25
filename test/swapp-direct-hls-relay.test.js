@@ -8,7 +8,7 @@ const vm=require('node:vm');
 
 const source=fs.readFileSync(path.join(__dirname,'..','modules','swapp-direct-hls-relay.js'),'utf8');
 function backend(){
- const routes={get:new Map(),post:new Map()};
+ const routes={get:new Map(),post:new Map(),put:new Map()};
  const express={raw:()=>(_req,_res,next)=>next(),json:()=>(_req,_res,next)=>next()};
  const module={exports:{}};
  vm.runInNewContext(source,{
@@ -18,14 +18,17 @@ function backend(){
  });
  const app={
   get(route,fn){routes.get.set(route,fn)},
-  post(route,...fns){routes.post.set(route,fns.at(-1))}
+  post(route,...fns){routes.post.set(route,fns.at(-1))},
+  put(route,...fns){routes.put.set(route,fns.at(-1))}
  };
- const relay=module.exports.attachSwappDirectRelay(app,{lookupOwner:async token=>token==='VALID_TOKEN'?{login:'vnhz'}:null});
+ const relay=module.exports.attachSwappDirectRelay(app,{lookupOwner:async token=>token==='VALID_TOKEN'?{login:'vnhz'}:null,
+ lookupObsOwner:async key=>key==='a'.repeat(48)?{login:'vnhz'}:null});
  async function call(method,route,{name,body,token='VALID_TOKEN',login='vnhz',segment,audioTrack,range}={}){
   const fn=routes[method].get(route);
   assert.ok(fn,'route missing: '+route);
   let status=200,type='',payload=null,headers={};
-  const req={params:{login,segment},body, get(k){
+  const req={params:{login,segment},query:{cid:token,file:name},headers:{},body, get(k){
+   if(k==='x-swapp-media-name')return this.headers['x-swapp-media-name']||name||'';
    if(k==='authorization')return token?'Bearer '+token:'';
    if(k==='x-swapp-media-name')return name||'';
    if(k==='x-swapp-audio-track')return audioTrack||'';
@@ -33,8 +36,9 @@ function backend(){
    return '';
   }};
   const res={
+   statusCode:200,
    set(k,v){headers[k]=v;return this},
-   status(code){status=code;return this},
+   status(code){status=code;this.statusCode=code;return this},
    type(v){type=v;return this},
    json(v){payload=v;return this},
    send(v){payload=v;return this},
@@ -452,4 +456,25 @@ test('native broadcast capacity shows measured per-process HLS load without inve
   'count actually served segment response bytes');
  assert.ok(measured.payload.estimated_segment_mbps>=0);
  assert.match(measured.payload.note,/processus Node/);
+});
+
+
+test('native OBS HLS PUT receives MPEG-TS segments without SWAPP Local',async()=>{
+ const b=backend();
+ const dest='/api/swapp/obs-hls/put';
+ const streamKey='a'.repeat(48);
+ const video=Buffer.alloc(188*4);video[0]=0x47;
+ const manifest=Buffer.from('#EXTM3U\\n#EXT-X-TARGETDURATION:2\\n#EXTINF:2.0,\\nindex0.ts\\n');
+ assert.equal((await b.call('put',dest,{name:'index0.ts',body:video,token:'b'.repeat(48)})).status,403);
+ assert.equal((await b.call('put',dest,{name:'../passwd',body:video,token:streamKey})).status,400);
+ assert.equal((await b.call('put',dest,{name:'index.m3u8',body:manifest,token:streamKey})).status,409);
+ assert.equal((await b.call('put',dest,{name:'index0.ts',body:video,token:streamKey})).status,200);
+ assert.equal((await b.call('put',dest,{name:'index.m3u8',body:manifest,token:streamKey})).status,200);
+ const st=await b.call('get','/api/oryon/local-relay/:login/state');
+ assert.equal(st.payload.active,true);
+ const list=await b.call('get','/api/oryon/local-relay/:login/index.m3u8');
+ assert.match(list.payload.toString(),/seg_0\\.ts/);
+ const ts=await b.call('get','/api/oryon/local-relay/:login/:segment',{segment:'seg_0.ts'});
+ assert.equal(ts.status,200);
+ assert.deepEqual(Buffer.from(ts.payload),video);
 });
