@@ -84,6 +84,14 @@ async function verify(){
   !engine.body.includes('SWAPP HLS engine is not installed'),
   'SWAPP native player dependency is not being served by the site');
  process.stdout.write('PASS /assets/hls.min.js installed local engine\n');
+ const liveCapacity=await request(origin,'/api/oryon/local-relay/capacity');
+ let capacity;
+ try{capacity=JSON.parse(liveCapacity.body)}catch{throw Error('SWAPP Live capacity status is not JSON')}
+ check(capacity.success===true&&capacity.scope==='single_node_process'&&
+  Number.isInteger(capacity.max_rooms)&&Number.isInteger(capacity.verified_live_rooms)&&
+  Number.isInteger(capacity.available_slots)&&Number.isFinite(capacity.estimated_segment_mbps),
+  'SWAPP Live does not expose bounded native relay load');
+ process.stdout.write('PASS /api/oryon/local-relay/capacity locally measured limits\n');
  const liveProof=await request(origin,'/api/swapp-tv/native-lineup');
  let liveInventory;
  try{liveInventory=JSON.parse(liveProof.body)}catch{throw Error('SWAPP TV native inventory is not JSON')}
