@@ -29,3 +29,10 @@ test('merged rollout has a real free follow and opt-in notification path without
  assert.match(video,/currentBroadcastTitle\(page\)/);
  assert.match(video,/function installOfflineAlignment\(page\)/);
 });
+
+test('release fingerprint tracks the public player and GIF UI as well as the central theme',()=>{
+ const {RELEASE_FILES}=require('../tools/swapp-release');
+ for(const p of ['assets/swapp-watch-experience.js','assets/swapp-watch-experience.css',
+  'assets/swapp-chat-v2.js','assets/swapp-chat-v2.css','assets/swapp-unified-nav.css'])
+  assert.ok(RELEASE_FILES.includes(p),'not fingerprinted: '+p);
+});
