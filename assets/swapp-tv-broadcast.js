@@ -6,7 +6,7 @@ const api=async(path,options={})=>{const r=await fetch(path,{credentials:'same-o
 const safeLogin=s=>/^[a-z0-9_]{3,25}$/.test(String(s||'').toLowerCase());
 const gameOf=a=>typeof a?.game==='string'?a.game.trim():String(a?.game?.name||a?.game?.title||'').trim();
 const gamesFrom=data=>[...new Set((Array.isArray(data.articles)?data.articles:[]).filter(x=>x?.slug&&x.status!=='draft').map(gameOf).filter(x=>x.length>1))].slice(0,16);
-const state={queue:null,selection:null,playing:null,discovery:[],index:0,consent:false,games:[],queueMode:false};
+const state={queue:null,selection:null,playing:null,discovery:[],index:0,consent:false,autoAdvance:false,games:[],queueMode:false};
 const setText=(id,text)=>{$(id).textContent=text};
 function renderQueue(data){
  const waiting=Array.isArray(data.waiting)?data.waiting:[],enabled=Boolean(data.enabled);
@@ -42,6 +42,21 @@ function renderScreen(item,{onAir=false}={}){
  $('stv-air-state').textContent=onAir&&valid?'ANTENNE ACTIVE':valid?'DÉCOUVERTE':'HORS ANTENNE';
  $('stv-air-state').style.color=onAir&&valid?'var(--tv-accent,#67dce8)':'';
  setText('stv-stage-status',onAir&&valid?'Créateur sélectionné par la régie SWAPP TV.':valid?'Direct trouvé dans la découverte. Lecture volontaire, sans garantie de maintien en ligne.':'Aucun passage vérifié à cette heure.');
+ // A single voluntary Play authorises subsequent verified TV transitions.
+ // Do not auto-start public discovery or silently start before first consent.
+ if(state.autoAdvance&&onAir&&valid&&!same)play();
+ else syncWatchButton();
+}
+function syncWatchButton(){
+ const watching=Boolean(state.selection&&state.playing===state.selection.login&&state.consent);
+ setText('stv-watch',watching?'■ ARRÊTER':'▶ REGARDER');
+ $('stv-watch').setAttribute('aria-pressed',String(watching));
+}
+function stopPlayback(){
+ state.consent=false;state.playing=null;state.autoAdvance=false;
+ $('stv-screen').querySelector('.stv-player-layer')?.remove();
+ $('stv-screen-inner').hidden=false;
+ syncWatchButton();
 }
 function play(){
  const item=state.selection;if(!item||!safeLogin(item.login))return;
@@ -51,7 +66,10 @@ function play(){
  frame.allow='autoplay; fullscreen';frame.allowFullscreen=true;frame.referrerPolicy='strict-origin-when-cross-origin';
  layer.append(frame,by('div','stv-player-overlay','SWAPP TV  /  '+(item.onAir?'À L’ANTENNE':'DÉCOUVERTE')));
  screen.append(layer);$('stv-screen-inner').hidden=true;state.playing=item.login;state.consent=true;
- setText('stv-watch','▶ EN LECTURE');
+ // Resume subsequent 10-minute TV slots only if the user started an actual
+ // on-air relay. Browser embedding is muted to respect autoplay policy.
+ state.autoAdvance=Boolean(item.onAir);
+ syncWatchButton();
 }
 async function refreshQueue(){
  try{
@@ -219,7 +237,10 @@ $('stv-swapp-chat-form').addEventListener('submit',async e=>{
 void refreshSwappChat();
 setInterval(()=>{if(!$('stv-pane-swapp').hidden)void refreshSwappChat()},7000);
 
-$('stv-watch').addEventListener('click',play);
+$('stv-watch').addEventListener('click',()=>{
+ if(state.selection&&state.playing===state.selection.login&&state.consent)stopPlayback();
+ else play();
+});
 $('stv-join').addEventListener('click',()=>mutate('POST'));
 $('stv-leave').addEventListener('click',()=>mutate('DELETE'));
 $('stv-immersive').addEventListener('click',()=>{
