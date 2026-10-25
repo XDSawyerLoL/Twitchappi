@@ -315,3 +315,39 @@ test('Native TV cannot accept unverifiable profiles or external player URLs',()=
  ];
  assert.deepEqual(mapper({success:true,items:variants},42).map(x=>x.login),['safe']);
 });
+
+test('new HLS broadcast ID on same SWAPP channel forces a fresh player, not a stale iframe',()=>{
+ const js=read('assets/swapp-tv-broadcast.js');
+ assert.match(js,/playingBroadcastId/);
+ assert.match(js,/broadcastId:item\.broadcast_id\|\|null/);
+ assert.match(js,/x\.broadcast_id===\(state\.selection\?\.broadcastId\|\|null\)/);
+ const begin=js.indexOf('function renderScreen('),end=js.indexOf('function mapNativeLives(',begin);
+ const make=(tag,cls,text)=>({
+  tag,cls,text,className:cls,children:[],removed:false,hidden:false,style:{},
+  append(...children){this.children.push(...children)},
+  remove(){this.removed=true},setAttribute(k,v){this[k]=v}
+ });
+ const screen=make('section'),watch=make('button');
+ screen.querySelector=()=>screen.children.find(x=>x.cls==='stv-player-layer'&&!x.removed)||null;
+ const nodes={'stv-screen':screen,'stv-screen-inner':make('div'),'stv-watch':watch,
+   'stv-air-state':make('span'),'stv-now-name':make('span'),
+   'stv-now-game':make('span'),'stv-screen-game':make('span'),
+   'stv-stage-status':make('span')};
+ const state={selection:null,playing:null,playingPlatform:null,playingBroadcastId:null,
+   consent:false,autoAdvance:false,autoSource:null};
+ const app=new Function('state','$','by','setText','safeLogin','safeNativeLogin','location',
+  'URLSearchParams','updateTwitchChat',js.slice(begin,end)+
+  'return {renderScreen,play};')(
+  state,id=>nodes[id],make,(id,v)=>{nodes[id].textContent=v},
+  x=>/^[a-z0-9_]{3,25}$/.test(x),x=>/^[a-z0-9_-]{2,32}$/.test(x),
+  {hostname:'swapp.tv'},URLSearchParams,()=>{});
+ const first={login:'native_one',platform:'swapp',broadcast_id:'broadcast_alpha'};
+ app.renderScreen(first,{onAir:true});
+ app.play();
+ assert.equal(state.playingBroadcastId,'broadcast_alpha');
+ const original=screen.querySelector('.stv-player-layer');
+ app.renderScreen({...first,broadcast_id:'broadcast_beta'},{onAir:true});
+ assert.equal(state.playingBroadcastId,'broadcast_beta');
+ assert.equal(original.removed,true,'old HLS player must be torn down for a restarted broadcast');
+ assert.notEqual(screen.querySelector('.stv-player-layer'),original);
+});
