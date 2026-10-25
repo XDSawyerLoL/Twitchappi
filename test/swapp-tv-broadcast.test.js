@@ -83,7 +83,7 @@ test('TV preserves viewer opt-in when an on-air session ends and restarts',()=>{
  const end=source.indexOf('async function refreshQueue(',begin);
  assert.ok(begin>=0&&end>begin);
  const make=(tag,cls,text)=>({
-  tag,cls,text,className:cls,children:[],removed:false,hidden:false,
+  tag,cls,text,className:cls,children:[],removed:false,hidden:false,style:{},
   append(...children){this.children.push(...children)},
   remove(){this.removed=true},setAttribute(k,v){this[k]=v}
  });
