@@ -1,4 +1,5 @@
 'use strict';
+const {URL}=require('node:url');
 // Native SWAPP Live metadata — owner-only server-side writes.
 function cleanTitle(value){
  const input=String(value??'').replace(/[\u0000-\u001f\u007f]/g,' ').replace(/\s+/g,' ').trim();
