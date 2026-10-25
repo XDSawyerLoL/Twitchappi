@@ -946,7 +946,7 @@ async function startLive(){
  const video=q==='720'?{width:{ideal:1280},height:{ideal:720},frameRate:{ideal:60,max:60}}:{width:{ideal:1920},height:{ideal:1080},frameRate:{ideal:60,max:60}};
  try{state.stream=globalThis.SwappBrowserStudio?.capture ? await globalThis.SwappBrowserStudio.capture({source,video}) : (source==='camera' ? await navigator.mediaDevices.getUserMedia({video,audio:true}) : (source==='screen-camera' ? await createScreenCameraStream(video) : await navigator.mediaDevices.getDisplayMedia({video,audio:true})))}
  catch(e){toast('Impossible de capturer la source vidéo. Vérifie les permissions.');return}
- attachCurrentStream(); $('#localVideo')?.play?.().catch(()=>{}); state.stream.getTracks().forEach(t=>t.onended=()=>stopLive(false)); updateLiveUi(false); $('#startLiveBtn')?.classList.add('hidden'); $('#stopLiveBtn')?.classList.remove('hidden'); const pendingBadge=$('#streamStateBadge'); if(pendingBadge)pendingBadge.textContent='Connexion au serveur…';
+ attachCurrentStream(); $('#localVideo')?.play?.().catch(()=>{}); state.stream.getVideoTracks().forEach(t=>t.onended=()=>stopLive()); updateLiveUi(false); $('#startLiveBtn')?.classList.add('hidden'); $('#stopLiveBtn')?.classList.remove('hidden'); const pendingBadge=$('#streamStateBadge'); if(pendingBadge)pendingBadge.textContent='Connexion au serveur…';
  state.room=state.session.local.login;
  state.nativeLiveConfirmed=false; state.nativeLivePending=true;
  state.nativeLiveInfo={title:$('#liveTitle')?.value||`Live de ${state.session.local.login}`,category:$('#liveCategory')?.value||'',tags:$('#liveTags')?.value||'',quality:q};
