@@ -40,9 +40,9 @@ function renderQueue(data){
  setText('stv-queue-status',!enabled?'Inscriptions suspendues pour le moment. La file reste visible et les inscriptions reprendront quand la régie sera prête.':
   data.director_enabled?'File accessible. Chaque direct est vérifié avant de passer à l’antenne.':
   'File accessible, mais les passages à l’antenne sont actuellement suspendus.');
- setText('stv-creator-hint',enabled?'Rejoindre la file SWAPP TV':'Inscriptions fermées temporairement');
- setText('stv-next-title',enabled?'CRÉATEURS EN ATTENTE':'FILE D’ATTENTE · PAUSE');
- setText('stv-queue-count',enabled?(waiting.length>=100?'100+ en attente':waiting.length+' en attente'):'Inscriptions fermées');
+ setText('stv-creator-hint',state.native.length?'Chaînes SWAPP diffusées sans Twitch':enabled?'Rejoindre la file SWAPP TV':'Inscriptions fermées temporairement');
+ setText('stv-next-title',state.native.length?'À SUIVRE SUR SWAPP':enabled?'CRÉATEURS EN ATTENTE':'FILE D’ATTENTE · PAUSE');
+ setText('stv-queue-count',state.native.length?state.native.length+' directs SWAPP':enabled?(waiting.length>=100?'100+ en attente':waiting.length+' en attente'):'Inscriptions fermées');
 }
 function rail(data){
  const list=$('stv-next-list');list.replaceChildren();
@@ -50,7 +50,7 @@ function rail(data){
  if(state.native.length)rows=state.native.filter(x=>x.login!==state.selection?.login).slice(0,5).map(x=>({name:x.display_name||x.login,game:x.game,desc:'Direct SWAPP natif'}));
  else if(Array.isArray(data?.waiting)&&data.waiting.length)rows=data.waiting.slice(0,5).map(x=>({name:x.creator_login,game:x.game,desc:'En attente de vérification'}));
  else if(!data?.enabled)rows=state.discovery.slice(state.index+1,state.index+5).map(x=>({name:x.display_name||x.login,game:x.game,desc:'Découverte, non programmé'}));
- if(!rows.length){list.append(by('p',null,data?.enabled?'Aucune inscription en attente.':'File momentanément fermée. Aucun créateur en attente.'));return}
+ if(!rows.length){list.append(by('p',null,state.native.length?'Ce direct SWAPP est seul à l’antenne pour le moment.':data?.enabled?'Aucune inscription en attente.':'File momentanément fermée. Aucun créateur en attente.'));return}
  for(const x of rows){const card=by('div','stv-next-item');card.append(by('strong',null,x.name||'Créateur'),by('small',null,(x.game||'Jeu')+' · '+x.desc));list.append(card)}
 }
 function renderScreen(item,{onAir=false}={}){
@@ -60,6 +60,7 @@ function renderScreen(item,{onAir=false}={}){
  state.selection=valid?{login,platform,game:item.game||item.game_name||'Jeu',name:item.creator_login||item.display_name||login,onAir}:null;
  const same=state.playing===login&&state.playingPlatform===platform&&state.consent&&valid;
  if(!same){state.consent=false;state.playing=null;state.playingPlatform=null;const layer=$('stv-screen').querySelector('.stv-player-layer');if(layer)layer.remove();$('stv-screen-inner').hidden=false;}
+ if(platform==='swapp'&&typeof showChat==='function'&&activeDock==='twitch')showChat('swapp');
  if(typeof updateTwitchChat==='function')updateTwitchChat();
  const name=state.selection?.name||'Antenne en préparation';
  setText('stv-now-name',name);setText('stv-now-game',state.selection?.game||'En attente de programmation');
