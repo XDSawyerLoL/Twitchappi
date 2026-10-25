@@ -79,7 +79,8 @@ test('same-origin player keeps volume/fullscreen and does not expose streaming c
  assert.match(player.payload,/requestFullscreen/);
  assert.match(player.payload,/\/api\/oryon\/local-relay\/vnhz\/index\.m3u8/);
  assert.ok(!player.payload.includes('VALID_TOKEN'));
- assert.match(player.payload,/hls\.js@1\.6\.15/);
+ assert.match(player.payload,/src="\/assets\/hls\.min\.js"/);
+ assert.doesNotMatch(player.payload,/cdn\.jsdelivr\.net|unpkg\.com/);
  const supported=await b.call('get','/api/oryon/local-relay/capabilities');
  assert.equal(supported.payload.transport,'swapp-direct-hls');
 });
