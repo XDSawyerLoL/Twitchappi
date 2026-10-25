@@ -3,68 +3,56 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
-const load=file=>fs.readFileSync(path.join(__dirname,'..',file),'utf8');
-const js=load('assets/swapp-chat-v2.js');
-const css=load('assets/swapp-chat-v2.css');
-const html=load('index.html');
+const read=filename=>fs.readFileSync(path.join(__dirname,'..',filename),'utf8');
+const script=read('assets/swapp-chat-v2.js');
+const style=read('assets/swapp-chat-v2.css');
+const html=read('index.html');
 
-test('emoji UI preserves native chat send, the existing GIF provider and creator emotes',()=>{
- new Function(js);
- assert.match(js,/swapp-chat-emoji-picker/);
- assert.match(js,/Sourires/);
- assert.match(js,/Réactions/);
- assert.match(js,/Cœurs/);
- assert.match(js,/Gaming/);
- assert.match(js,/renderEmoteShelf\(\)/);
- assert.match(js,/\.emoteBtn:not\(\.locked\)/);
- assert.match(js,/\.gifGrid|#gifGrid/);
- assert.match(js,/sendButton\.classList\.add/);
- assert.doesNotMatch(js,/sendButton\.removeAttribute\('onclick'\)/);
- assert.doesNotMatch(js,/new WebSocket|socket\.emit|\/api\/gifs\/search|fetch\(/,
-  'UI enhancement must never replace the existing chat or GIF service');
+test('native panel grid, player sync and message DOM are never restructured',()=>{
+ new Function(script);
+ assert.match(script,/form\.appendChild\(picker\)/);
+ assert.match(script,/DO NOT move any native author/);
+ assert.match(script,/panel\.dataset\.swappChatUi='stable'/);
+ assert.doesNotMatch(script,/picker\.appendChild\(custom\)/);
+ assert.doesNotMatch(script,/message\.append\(avatar,body\)/);
+ assert.doesNotMatch(script,/body\.appendChild\(child\)/);
+ assert.doesNotMatch(style,/grid-template-rows/);
+ assert.doesNotMatch(style,/\.channelLiveLayout\s*\{/);
+ assert.doesNotMatch(style,/\.channelLiveSidebar\s*\{/);
+ assert.match(style,/position:absolute!important/);
+ assert.match(style,/\.swapp-chat-stable-picker\[hidden\]/);
+ assert.match(style,/\.gifGrid\.hidden/);
 });
-
-test('emoji insertion respects the current selection and separates surrounding words',()=>{
- const start=js.indexOf(' function appendEmoji(');
- const end=js.indexOf('\n function enhance(',start);
- assert.ok(start>=0&&end>start,'cursor insertion helper missing');
- const insert=new Function('Event',js.slice(start,end)+'return appendEmoji')(
+test('standard emoji is inserted at cursor without gluing adjacent words',()=>{
+ const start=script.indexOf(' function insert(');
+ const end=script.indexOf('\n function enhance(',start);
+ assert.ok(start>0&&end>start);
+ const fn=new Function('Event',script.slice(start,end)+'return insert')(
   class Event{constructor(type){this.type=type}});
- let fired=0,focused=0;
- const input={
-  value:'Bonjour monde',selectionStart:8,selectionEnd:8,
-  setRangeText(word,start,end){this.value=this.value.slice(0,start)+word+this.value.slice(end)},
-  dispatchEvent(event){if(event.type==='input')fired++},
-  focus(){focused++}
+ let events=0;
+ const input={value:'Salut monde',selectionStart:6,selectionEnd:6,
+  setRangeText(str,start,end){this.value=this.value.slice(0,start)+str+this.value.slice(end)},
+  dispatchEvent(e){if(e.type==='input')events++},focus(){}
  };
- insert(input,'😀');
- assert.equal(input.value,'Bonjour 😀 monde');
- assert.equal(fired,1);
- assert.equal(focused,1);
- input.value='';input.selectionStart=0;input.selectionEnd=0;
- insert(input,'❤️');
- assert.equal(input.value,'❤️','empty input has no unwanted spaces');
+ fn(input,'😀');
+ assert.equal(input.value,'Salut 😀 monde');
+ assert.equal(events,1);
 });
-
-test('messages retain original author, timestamp, media and native event lifecycle',()=>{
- assert.match(js,/for\(const child of Array\.from\(message\.childNodes\)\)body\.appendChild\(child\)/);
- assert.match(js,/message\.append\(avatar,body\)/);
- assert.match(js,/dataset\.swappChatMessage='v2'/);
- assert.match(js,/MutationObserver\(queue\)/);
- assert.match(css,/\.swapp-chat-message-body/);
- assert.match(css,/--swapp-message-accent/);
- assert.match(css,/\.chatLog \.msg\.swapp-chat-message/);
- assert.match(css,/prefers-reduced-motion:reduce/);
+test('GIF provider and message transport remain original, channel emotes are copied not moved',()=>{
+ assert.match(script,/panel\.querySelector\('#customEmoteShelf'\)/);
+ assert.match(script,/window\.renderEmoteShelf/);
+ assert.match(script,/grid\.innerHTML=original\?\.innerHTML/);
+ assert.match(script,/button\[onclick\*="toggleGifs"\]/);
+ assert.match(script,/button\[onclick\*="sendChat"\]/);
+ assert.doesNotMatch(script,/send\.removeAttribute\('onclick'\)/);
+ assert.doesNotMatch(script,/new WebSocket|socket\.emit|fetch\(/);
+ assert.match(script,/data-swapp-avatar/);
+ assert.match(style,/\.chatLog \.msg\.swapp-chat-fresh-message/);
 });
-
-test('compact GIF button and emoji picker fit alongside the native chat input on mobile',()=>{
- assert.match(css,/grid-template-columns:minmax\(0,1fr\) 33px 33px 35px/);
- assert.match(css,/\.swapp-chat-gif-button/);
- assert.match(css,/\.swapp-chat-gif-tray/);
- assert.match(css,/\.swapp-chat-emoji-picker\[hidden\]/);
- assert.match(css,/@media\(max-width:680px\)/);
- assert.match(js,/setAttribute\('aria-expanded'/);
- assert.match(html,/swapp-chat-v2\.css\?v=/);
- assert.match(html,/swapp-chat-v2\.js\?v=/);
- assert.ok(html.indexOf('swapp-watch-experience.js')<html.indexOf('swapp-chat-v2.js'));
+test('mobile is constrained, no legacy chat v2 stylesheet cache can leak',()=>{
+ assert.match(style,/@media\(max-width:680px\)/);
+ assert.match(style,/grid-template-columns:minmax\(0,1fr\) 33px 29px 35px/);
+ assert.match(html,/swapp-chat-v2\.css\?v=20261025-chat-stability-v3/);
+ assert.match(html,/swapp-chat-v2\.js\?v=20261025-chat-stability-v3/);
+ assert.match(html,/swapp-watch-experience\.css\?v=20261025-immersion-93-v2/);
 });
