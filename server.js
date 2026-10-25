@@ -4388,16 +4388,21 @@ app.get('/api/oryon/profile/:login', async (req, res) => {
     if(!user) return res.status(404).json({ success:false, error:'Chaîne introuvable.', public:true });
     ensureOryonUserShape(user, { ensureStreamKey:true });
     const room = (typeof nativeLiveRooms !== 'undefined' && nativeLiveRooms?.get) ? nativeLiveRooms.get(login) : null;
-    const localLiveFresh = isOryonLiveSignalFresh(user);
+    // OBS HLS is real media held by the relay, not a persisted heartbeat.
+    // Read the verified stream first so /vnhz does not render a black
+    // WebRTC placeholder while OBS successfully uploads MPEG-TS fragments.
+    const verifiedObsHls = swappDirectRelay.activeStreams().find(s=>s.login===login);
+    const localLiveFresh = isOryonLiveSignalFresh(user) &&
+      (user.oryon_local_provider!=='obs-hls'||!!verifiedObsHls);
     const pub = publicOryonChannelUser(user);
     pub.tags = Array.isArray(user.tags) ? user.tags : [];
     pub.channel_exists = true;
     pub.public_url = swappChannelPathForLogin(login);
     pub.public_abs_url = (swappPublicBase(req)||'').replace(/\/$/,'') + pub.public_url;
-    pub.is_live = !!room || localLiveFresh;
+    pub.is_live = !!room || localLiveFresh || !!verifiedObsHls;
     pub.live_status = pub.is_live ? 'live' : 'offline';
-    pub.oryon_local_player_url = localLiveFresh ? String(user.oryon_local_player_url || '') : '';
-    pub.oryon_local_status_url = localLiveFresh ? String(user.oryon_local_status_url || '') : '';
+    pub.oryon_local_player_url = verifiedObsHls?.player_url || (localLiveFresh ? String(user.oryon_local_player_url || '') : '');
+    pub.oryon_local_status_url = verifiedObsHls ? '/api/oryon/local-relay/'+encodeURIComponent(login)+'/state' : (localLiveFresh ? String(user.oryon_local_status_url || '') : '');
     pub.current_live_title = room?.title || user.current_live_title || '';
     pub.current_live_category = room?.category || user.current_live_category || '';
     res.setHeader('Cache-Control','no-store');
@@ -5116,7 +5121,28 @@ app.get('/api/native/lives', (req, res) => {
     native: true
   }));
   const users = readOryonUsers().users || [];
-  const localAgentItems = users.filter(u => isOryonLiveSignalFresh(u)).map(u => ({
+  // Active OBS HLS is sourced directly from verified MPEG-TS+playlist.
+  // This avoids waiting for the asynchronously persisted local-agent flag.
+  const verifiedHlsItems=swappDirectRelay.activeStreams().map(stream=>{
+    const owner=users.find(u=>u.login===stream.login&&u.channel_public!==false);
+    if(!owner)return null;
+    return {
+      room:stream.login,title:owner.current_live_title||('Live de '+(owner.display_name||stream.login)),
+      host_name:owner.display_name||stream.login,host_login:stream.login,
+      host_user_id:owner.id,viewers:0,
+      limit:Number(process.env.MAX_NATIVE_VIEWERS||300),
+      createdAt:stream.last_segment_at||Date.now(),
+      category:owner.current_live_category||'Jeux vidéo',
+      tags:Array.isArray(owner.tags)?owner.tags:[],native:true,local_agent:true,
+      media_verified:true,transport:'obs-hls',player_url:stream.player_url,
+      embed_url:stream.player_url,status_url:'/api/oryon/local-relay/'+encodeURIComponent(stream.login)+'/state',
+      public_url:swappChannelPathForLogin(stream.login),
+      thumbnail_url:owner.offline_image_url||owner.banner_url||owner.avatar_url||''
+    };
+  }).filter(Boolean);
+  const activeHlsLogins=new Set(verifiedHlsItems.map(x=>x.host_login));
+  const localAgentItems = users.filter(u => isOryonLiveSignalFresh(u)&&
+    (u.oryon_local_provider!=='obs-hls'||activeHlsLogins.has(u.login))).map(u => ({
     room: u.login,
     title: u.current_live_title || `Live de ${u.display_name || u.login}`,
     host_name: u.display_name || u.login,
@@ -5139,7 +5165,7 @@ app.get('/api/native/lives', (req, res) => {
     thumbnail_url: u.offline_image_url || u.banner_url || u.avatar_url || ''
   }));
   const seen = new Set();
-  const items = [...nativeItems, ...localAgentItems].filter(x => { const k=x.host_login||x.room; if(seen.has(k)) return false; seen.add(k); return true; }).sort((a,b) => (b.createdAt||0) - (a.createdAt||0));
+  const items = [...verifiedHlsItems, ...nativeItems, ...localAgentItems].filter(x => { const k=x.host_login||x.room; if(seen.has(k)) return false; seen.add(k); return true; }).sort((a,b) => (b.createdAt||0) - (a.createdAt||0));
   res.json({ success:true, items });
 });
 
@@ -10456,11 +10482,13 @@ app.get('/api/oryon/channel/:login/live-ping', async (req, res) => {
     res.setHeader('Cache-Control','no-store');
     if(!user)return res.status(404).json({success:false,error:'Chaîne introuvable.'});
     const room=nativeLiveRooms.get(login);
-    const localLiveFresh=isOryonLiveSignalFresh(user);
+    const directHls=swappDirectRelay.activeStreams().some(s=>s.login===login);
+    const localLiveFresh=isOryonLiveSignalFresh(user)&&
+      (user.oryon_local_provider!=='obs-hls'||directHls);
     res.json({
       success:true,
-      is_live:!!room||localLiveFresh,
-      source:room?'browser-webrtc':(localLiveFresh?'local-agent':'offline')
+      is_live:!!room||localLiveFresh||directHls,
+      source:directHls?'local-agent':(room?'browser-webrtc':(localLiveFresh?'local-agent':'offline'))
     });
   }catch(e){res.status(500).json({success:false,error:'Statut indisponible.'});}
 });
