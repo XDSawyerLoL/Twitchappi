@@ -22,7 +22,7 @@ function sameOrigin(req){
  if(!origin)return false;
  try{
   const url=new URL(origin);
-  return url.protocol==='https:'&&url.host===req.get('host');
+  return url.protocol==='https:'&&['swapp.tv','www.swapp.tv'].includes(url.hostname)&&url.host===req.get('host');
  }catch{return false}
 }
 function validEndpoint(value){
@@ -151,9 +151,11 @@ function makeLivePush({isFollowing=()=>false,send=globalThis.fetch,logger=consol
    const following=Boolean(isFollowing(viewerId,creator));
    if(!configOkay)return res.json({success:true,authenticated:true,available:false,following,enabled:false});
    try{
-    const [rows]=await (await db()).execute('SELECT enabled FROM swapp_live_push_preferences WHERE viewer_id=? AND creator_login=?',[viewerId,creator]);
+    const [rows]=await (await db()).execute(
+     'SELECT p.enabled,(SELECT COUNT(*) FROM swapp_live_push_devices d WHERE d.viewer_id=p.viewer_id) AS devices FROM swapp_live_push_preferences p WHERE p.viewer_id=? AND p.creator_login=?',
+     [viewerId,creator]);
     return res.json({success:true,authenticated:true,available:true,following,
-     enabled:following&&rows[0]?.enabled===1});
+     enabled:following&&rows[0]?.enabled===1&&Number(rows[0]?.devices)>0});
    }catch(e){return res.status(503).json({success:false,error:'Alertes temporairement indisponibles.'})}
   });
   app.post('/api/swapp/live-alerts/enable',async(req,res)=>{
