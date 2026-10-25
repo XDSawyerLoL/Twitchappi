@@ -55,3 +55,19 @@ node --test test/swapp-direct-hls-relay.test.js
 ```
 
 Un jeu de vérifications simulées sur la route PUT a validé le rejet d'une clé invalide, le rejet de chemins interdits, le refus des playlists sans médias, la réception des segments et du manifeste et la publication du lecteur. Il ne remplace pas un essai OBS réel.
+
+
+## Diagnostic de réception (26 octobre 2026)
+
+Si OBS semble diffuser mais le dashboard affiche « En attente du flux OBS » :
+
+1. Vérifier que la dernière version de SWAPP est déployée sur Hostinger et recharger le dashboard. La nouvelle rubrique « Réception OBS » affiche l'état exact du relais.
+2. Cliquer **Tester la connexion HTTPS OBS** : cette requête PUT est effectuée sans clé ni vidéo. En cas d'échec HTTP 404/405/403, vérifier la route Node déployée et les règles Hostinger/proxy/WAF sur la méthode PUT.
+3. Lire le diagnostic authentifié `GET /api/swapp/obs-hls/diagnostics` depuis le dashboard : `no_upload` (rien reçu), `upload_detected` (premier contact), `segments_only` (MPEG-TS reçus mais playlist absente/invalide), `rejected` (statut HTTP), `upload_stale` (flux interrompu), `live` (segments et playlist validés).
+4. Si `no_upload` après un test PUT réussi, vérifier OBS : service SWAPP **HLS** sélectionné (pas RTMP personnalisé), clé présente, démarrage réel, journal OBS. Le muxer HLS OBS peut ignorer des erreurs HTTP, donc le voyant OBS « émission » seul ne prouve pas que SWAPP reçoit de la vidéo.
+5. Si `rejected`, regarder le code HTTP : 400 corps ou nom invalide (souvent proxy / transfert chunked), 409 playlist avant les segments, 413 taille trop grande, 422 média/playlist incorrect, 429 capacité / débit dépassé, 503 service indisponible.
+6. Si `live` mais que le lecteur reste noir, vérifier séparément le player, la compatibilité H.264/AAC et la réception depuis un navigateur/réseau externe.
+
+Le diagnostic ne retourne jamais la clé OBS, l'IP ou l'URL portant le paramètre secret. Ne partage jamais de journaux contenant ta clé de diffusion sans la masquer.
+
+**Important :** ces tests de code et ces écrans ne prouvent pas que l'instance de production Hostinger a déployé la version actuelle ou autorise le transfert HTTP PUT avec corps chunked. Le seul critère final reste la lecture audio/vidéo observée depuis un autre navigateur.
