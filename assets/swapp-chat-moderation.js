@@ -110,7 +110,15 @@
    const remove=el('button','','Supprimer');remove.type='button';
    remove.dataset.action='delete';remove.dataset.id=m.id;
    remove.setAttribute('aria-label','Supprimer le message de '+(m.user_display||m.user||'Utilisateur'));
-   row.append(body,remove);msgs.appendChild(row);
+   const select=el('button','swapp-mod-select','Sanctionner');
+   select.type='button';select.setAttribute('aria-label','Sanctionner '+(m.user_display||m.user||'Utilisateur'));
+   select.addEventListener('click',()=>{
+    const field=$('[name="target"]',dialog);
+    field.value=String(m.user||'').toLowerCase();
+    field.focus();field.scrollIntoView({block:'center',behavior:'smooth'});
+   });
+   const controls=el('div','swapp-mod-message-controls');controls.append(select,remove);
+   row.append(body,controls);msgs.appendChild(row);
   }
   if(!msgs.childElementCount)msgs.appendChild(el('p','swapp-mod-empty','Pas de messages récents.'));
   const audit=$('.swapp-mod-audit',dialog);audit.replaceChildren();
