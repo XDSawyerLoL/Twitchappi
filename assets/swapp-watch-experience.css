@@ -574,3 +574,21 @@ body:has(#channel.view.active) #oryonMiniPlayer{display:none!important}
   max-height:440px!important;
  }
 }
+
+/* Channel chat: preserve composer, reactions and suggestions beneath the log.
+ * The media height is only a minimum, never a clipping boundary. */
+#channel#channel .creatorRefine.swapp-channel-polish .channelLiveSidebar > .chatPanel{
+ height:auto!important;
+ max-height:none!important;
+ grid-template-rows:auto minmax(120px,1fr) repeat(4,auto)!important;
+ overflow:visible!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .channelLiveSidebar .chatLog{
+ min-height:120px!important;
+ overflow-y:auto!important;
+ overflow-x:hidden!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .channelLiveSidebar :is(.chatForm,.chatAssist){
+ min-height:max-content!important;
+ overflow:visible!important;
+}
