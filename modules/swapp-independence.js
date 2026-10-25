@@ -60,13 +60,21 @@ function buildArchive(user,{now=new Date()}={}){
   }
  };
 }
+function followingCsv(user){
+ if(!user||!LOGIN.test(String(user.login||'')))throw Error('swapp_export_invalid_owner');
+ const logins=strings(user.following,500,40).filter(x=>LOGIN.test(x));
+ // Spreadsheet-formula injection is impossible with the strict handle
+ // allowlist; omit emails, follower identities and other private records.
+ return '\uFEFFplatform,channel,profile_url\r\n'+
+  logins.map(login=>'SWAPP,'+login+',https://swapp.tv/'+login+'\r\n').join('');
+}
 function page(){
  const content=`<main class="swapp-independence" style="max-width:930px;margin:48px auto 110px;padding:0 24px;color:inherit">
  <header style="padding:40px 0 25px;border-bottom:1px solid #9ca3af44"><span style="letter-spacing:.2em;font-size:12px">SWAPP / INDÉPENDANCE</span><h1 style="font-size:clamp(36px,6vw,70px);line-height:1.05;margin:16px 0">Ta chaîne. Tes données. <em>Ta liberté.</em></h1><p style="font-size:17px;max-width:62ch;line-height:1.7">Tu peux récupérer les informations de ton profil et la liste des chaînes que tu suis sur SWAPP. Aucune obligation de rester sur une plateforme pour retrouver tes propres données.</p></header>
  <section aria-labelledby="swapp-independent-export" style="padding:28px 0"><h2 id="swapp-independent-export">Exporter mes données SWAPP</h2>
  <p>Un fichier JSON lisible contenant ton profil public, la personnalisation de ta chaîne, tes liens et les chaînes que tu suis. Aucune clé de diffusion, aucun mot de passe, aucun jeton d’accès et aucune donnée privée de tes abonnés.</p>
- <p><a href="/api/oryon/independence/export" download="swapp-independence.json" style="display:inline-block;background:var(--swapp-page-accent,#67dce8);color:#061013;text-decoration:none;font-weight:800;padding:13px 20px;border-radius:6px">Télécharger mes données</a> <a href="/compte" style="margin-left:12px">Mon compte</a></p>
+ <p><a href="/api/oryon/independence/export" download="swapp-independence.json" style="display:inline-block;background:var(--swapp-page-accent,#67dce8);color:#061013;text-decoration:none;font-weight:800;padding:13px 20px;border-radius:6px">Télécharger mes données</a> <a href="/api/oryon/independence/export?format=csv" style="display:inline-block;margin:8px 0 0 12px">Exporter les chaînes suivies (CSV)</a></p><p><a href="/compte">Mon compte</a></p>
  <p style="font-size:13px;opacity:.72">Connexion SWAPP requise. L’export n’efface rien. Les images hébergées ailleurs ne sont pas copiées. Pour une demande RGPD couvrant d'autres données, utilise la page Contact.</p></section></main>`;
  return layout({title:'SWAPP Indépendance — Export de mes données',description:'Télécharger une copie portable de son profil et de ses abonnements SWAPP.',content,active:'compte'});
 }
-module.exports={buildArchive,page,safeUrl};
+module.exports={buildArchive,followingCsv,page,safeUrl};
