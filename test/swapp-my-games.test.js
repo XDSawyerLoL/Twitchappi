@@ -58,8 +58,8 @@ test('Mes jeux reuses only published data from the existing cache and never goes
  assert.equal(my.code,200);
  assert.equal(my.headers['Cache-Control'],'private, no-store');
  assert.match(my.body,/Mes jeux/);
- assert.equal(games.code,301);
- assert.equal(games.redirectLocation,'/actus');
+ assert.equal(games.code,200);
+ assert.match(games.body,/Jeux vidéo : actualités et créateurs/);
  assert.equal(reads,1,'same public editorial cache');
  assert.doesNotMatch(sitemapXml(articles),/mes-jeux/,'personal preferences never indexed');
 });
