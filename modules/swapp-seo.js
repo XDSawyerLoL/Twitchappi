@@ -42,6 +42,12 @@ function sitemapEntries(articles=[]){
   if(entries.length>=CORE_PATHS.length+500)break;
  }
 
+ const games=gameHubs(articles,{minArticles:2,maxGames:90});
+ if(games.length){
+  entries.push({loc:ORIGIN+'/jeux',lastmod:''});
+  for(const game of games)entries.push({loc:ORIGIN+'/jeux/'+encodeURIComponent(game.slug),
+   lastmod:isoDate(game.lastmod)});
+ }
  return entries;
 }
 function sitemapXml(articles=[]){
@@ -216,7 +222,7 @@ function rssXml(articles=[]){
 function sitemapHtml(articles=[]){
  const indexLinks=[
   ['/','Accueil'],['/actus','Actualité jeux vidéo'],['/decouvrir','Découvrir des streamers'],
-  ['/categories','Jeux et catégories'],['/equipes','Équipes'],['/bandes-annonces','Bandes-annonces'],
+  ['/categories','Jeux et catégories'],['/jeux','Univers de jeux'],['/equipes','Équipes'],['/bandes-annonces','Bandes-annonces'],
   ['/social','Social'],['/boutique','Boutique']
  ];
  const index=indexLinks.map(([url,name])=>
@@ -246,6 +252,11 @@ function sitemapHtml(articles=[]){
   '<p>Accède aux principales rubriques de SWAPP et aux articles vérifiés publiés par la rédaction.</p>'+
   '<section><h2>Explorer SWAPP</h2><ul>'+index+'</ul></section>'+
 
+  '<section><h2>Univers de jeux</h2>'+
+  (gameHubs(articles,{minArticles:2,maxGames:90}).map(g=>
+    '<p><a href="/jeux/'+encodeURIComponent(g.slug)+'">'+encodeXml(g.game)+'</a> · '+g.count+' articles vérifiés</p>').join('')||
+    '<p>Les univers complets apparaissent dès deux dossiers publiés.</p>')+
+  '</section>'+
   '<section><h2>Articles publiés</h2>'+
   (items?'<ul>'+items+'</ul>':'<p>Les publications seront listées ici dès qu’elles seront accessibles.</p>')+
   '</section></main></body></html>';
@@ -276,8 +287,7 @@ function registerSeoRoutes(app,{getPublished=async()=>[],getCreators=async()=>[]
  let cached=null,articles=[],expires=0,inflight=null,revision=0,loadedRevision=-1,hasVerifiedArticles=false,lastReadSuccessful=false;
  const TTL=6*60*60*1000;
  invalidateRegisteredSeoCache=()=>{revision++;expires=0};
- // Retired /jeux hubs are no longer promoted from articles.
- // Only a genuinely indexed, published editorial game can award discovery XP.
+ // Game discovery and page rendering use the same verified published cache.
  // This resolver shares the sitemap's six-hour content cache and its invalidation.
  resolveIndexedGame=async slug=>{
   if(typeof slug!=='string'||!SLUG.test(slug))return null;
@@ -352,26 +362,30 @@ function registerSeoRoutes(app,{getPublished=async()=>[],getCreators=async()=>[]
   await ensureCache();
   return res.status(200).send(sitemapHtml(articles));
  });
- // Game hubs only exist for topics with at least two distinct published
- // editorials. Share the existing six-hour cache and immediate invalidation.
- // The old game directory is now an editorial shortcut, not a second destination.
- app.get('/jeux',(_req,res)=>{
-  res.set('Cache-Control','no-store');
-  return res.redirect(301,'/actus');
+ // GAME UNIVERSE: genuine editorial hubs, not shortcuts to one article.
+ // The existing shared published-content cache is read once per request.
+ app.get('/jeux',async(_req,res)=>{
+  await ensureCache();
+  if(!hasVerifiedArticles){
+   res.set('Cache-Control','no-store');res.set('Retry-After','60');
+   return res.status(503).type('text/plain').send('Univers de jeux momentanément indisponibles.');
+  }
+  res.set('Cache-Control','public, max-age=300');
+  return res.status(200).type('html').send(renderGameIndex(gameHubs(articles)));
  });
- // Preserve historic links without presenting a redundant game hub.
- // Link a valid game to its most recent *published* editorial; unknown games 404.
- // Temporary redirect avoids permanently binding future game coverage to one story.
  app.get('/jeux/:slug',async(req,res)=>{
   const slug=String(req.params.slug||'');
   if(!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)||slug.length>90)
    return res.status(404).send('Jeu introuvable.');
   await ensureCache();
-  const game=gameHubs(articles).find(g=>g.slug===slug);
-  const article=game?.articles?.find(a=>SLUG.test(String(a.slug||'')));
-  if(!article)return res.status(404).send('Jeu introuvable.');
-  res.set('Cache-Control','no-store');
-  return res.redirect(302,'/actus/'+encodeURIComponent(article.slug));
+  if(!hasVerifiedArticles){
+   res.set('Cache-Control','no-store');res.set('Retry-After','60');
+   return res.status(503).type('text/plain').send('Univers de jeux momentanément indisponibles.');
+  }
+  const group=gameHubs(articles).find(g=>g.slug===slug);
+  if(!group)return res.status(404).send('Jeu introuvable.');
+  res.set('Cache-Control','public, max-age=300');
+  return res.status(200).type('html').send(renderGamePage(group));
  });
  // Personal "Mes jeux" is a preference manager and remains available.
  app.get('/mes-jeux',async(_req,res)=>{
