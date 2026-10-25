@@ -55,7 +55,8 @@
  min-width:0!important;flex-wrap:wrap!important;
  margin-bottom:3px!important;
 }
-#channel#channel .creatorRefine .nativeFixedChat[data-swapp-chat-ui="v2"] .swapp-chat-message-body :is(.chatNameLine b,> b){
+#channel#channel .creatorRefine .nativeFixedChat[data-swapp-chat-ui="v2"] .swapp-chat-message-body .chatNameLine b,
+#channel#channel .creatorRefine .nativeFixedChat[data-swapp-chat-ui="v2"] .swapp-chat-message-body > b{
  color:var(--swapp-message-accent,#c6b9ff)!important;
  font-size:11px!important;line-height:1.25!important;
  letter-spacing:.01em!important;font-weight:820!important;
