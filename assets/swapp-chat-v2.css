@@ -333,3 +333,54 @@
   filter:none!important;
  }
 }
+
+/* 2026-10-25 — GIF gallery uses explicit tracks: image intrinsic size must never
+ * define or overlap adjacent rows. Only the popup scrolls, never the chat. */
+#channel#channel .creatorRefine .nativeFixedChat[data-swapp-chat-ui="stable"] .gifGrid[data-swapp-gif-search="v1"]{
+ box-sizing:border-box!important;
+ height:min(340px,calc(100% - 68px))!important;
+ max-height:min(340px,calc(100% - 68px))!important;
+ width:min(360px,100%)!important;
+}
+#channel#channel .creatorRefine .nativeFixedChat[data-swapp-chat-ui="stable"] .swapp-chat-gif-layout{
+ flex:1 1 auto!important;height:100%!important;max-height:100%!important;
+ overflow:hidden!important;
+}
+#channel#channel .creatorRefine .nativeFixedChat[data-swapp-chat-ui="stable"] .swapp-chat-gif-results{
+ display:grid!important;
+ grid-template-columns:repeat(2,minmax(0,1fr))!important;
+ grid-auto-rows:112px!important;
+ grid-auto-flow:row!important;
+ align-content:start!important;align-items:stretch!important;
+ gap:8px!important;min-height:0!important;
+ width:100%!important;max-width:100%!important;
+ overflow-y:auto!important;overflow-x:hidden!important;
+ overscroll-behavior:contain;
+}
+#channel#channel .creatorRefine .nativeFixedChat[data-swapp-chat-ui="stable"] .swapp-chat-gif-results > .swapp-chat-gif-item{
+ display:block!important;position:relative!important;
+ box-sizing:border-box!important;
+ width:100%!important;height:112px!important;
+ min-width:0!important;min-height:0!important;max-height:112px!important;
+ aspect-ratio:auto!important;margin:0!important;padding:0!important;
+ overflow:hidden!important;isolation:isolate!important;
+}
+#channel#channel .creatorRefine .nativeFixedChat[data-swapp-chat-ui="stable"] .swapp-chat-gif-item > img{
+ display:block!important;position:absolute!important;inset:0!important;
+ width:100%!important;height:100%!important;
+ max-width:100%!important;max-height:100%!important;
+ object-fit:cover!important;object-position:center!important;
+ margin:0!important;padding:0!important;
+}
+@media(max-width:680px){
+ #channel#channel .creatorRefine .nativeFixedChat[data-swapp-chat-ui="stable"] .gifGrid[data-swapp-gif-search="v1"]{
+  height:min(330px,calc(100% - 63px))!important;
+  max-height:min(330px,calc(100% - 63px))!important;
+ }
+ #channel#channel .creatorRefine .nativeFixedChat[data-swapp-chat-ui="stable"] .swapp-chat-gif-results{
+  grid-auto-rows:96px!important;
+ }
+ #channel#channel .creatorRefine .nativeFixedChat[data-swapp-chat-ui="stable"] .swapp-chat-gif-results > .swapp-chat-gif-item{
+  height:96px!important;max-height:96px!important;
+ }
+}
