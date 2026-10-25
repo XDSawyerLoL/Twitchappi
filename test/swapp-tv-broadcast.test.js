@@ -69,8 +69,8 @@ test('disabled queue keeps the conductor visible while blocking enrollment',()=>
 test('TV continues to the next verified creator only after a viewer starts the station',()=>{
  const script=read('assets/swapp-tv-broadcast.js');
  assert.match(script,/autoAdvance:false/);
- assert.match(script,/state\.autoSource===\(onAir\?'queue':'discovery'\)/);
- assert.match(script,/state\.autoSource=item\.onAir\?'queue':'discovery'/);
+ assert.match(script,/state\.autoSource===\(platform==='swapp'\?'native':onAir\?'queue':'discovery'\)/);
+ assert.match(script,/state\.autoSource=item\.platform==='swapp'\?'native':item\.onAir\?'queue':'discovery'/);
  assert.match(script,/function stopPlayback\(\)/);
  assert.match(script,/state\.autoAdvance=false/);
  assert.match(script,/syncWatchButton\(\)/);
@@ -207,4 +207,76 @@ test('verified fallback channel rotates after opt-in but not after stop',()=>{
  assert.equal(advance(1000+1300000),false,'a manual stop prevents another auto-handoff');
  state.consent=true;state.autoAdvance=true;state.autoSource='queue';
  assert.equal(advance(1000+1300000),false,'queue mode must not call the discovery scheduler');
+});
+
+test('TV native-first mapping ignores fake/offline entries and invalid logins',()=>{
+ const js=read('assets/swapp-tv-broadcast.js');
+ const start=js.indexOf('function mapNativeLives('),end=js.indexOf('async function refreshQueue(',start);
+ assert.ok(start>0&&end>start);
+ const map=new Function('safeNativeLogin',js.slice(start,end)+'return mapNativeLives;')(
+  x=>/^[a-z0-9_-]{2,32}$/.test(x));
+ const result=map({success:true,items:[
+  {native:true,room:'independent',host_login:'independent',host_name:'Indépendant',category:'Aion 2'},
+  {native:true,room:'independent',host_login:'independent'},
+  {native:true,room:'wrong login'},
+  {native:false,room:'fake_offline'}
+ ]});
+ assert.deepEqual(result.map(x=>x.login),['independent']);
+ assert.equal(result[0].platform,'swapp');
+ assert.deepEqual(map({success:false,items:[]}),[]);
+});
+test('TV native player resolves only to the first-party SWAPP channel',()=>{
+ const js=read('assets/swapp-tv-broadcast.js');
+ const begin=js.indexOf('function renderScreen('),end=js.indexOf('function mapNativeLives(',begin);
+ assert.ok(begin>=0&&end>begin);
+ const make=(tag,cls,text)=>({
+  tag,cls,text,className:cls,children:[],removed:false,hidden:false,style:{},
+  append(...children){this.children.push(...children)},
+  remove(){this.removed=true},setAttribute(k,v){this[k]=v}
+ });
+ const screen=make('section'),watch=make('button');
+ screen.querySelector=()=>screen.children.find(x=>x.cls==='stv-player-layer'&&!x.removed)||null;
+ const nodes={
+  'stv-screen':screen,'stv-screen-inner':make('div'),'stv-watch':watch,
+  'stv-air-state':make('span'),'stv-now-name':make('span'),
+  'stv-now-game':make('span'),'stv-screen-game':make('span'),
+  'stv-stage-status':make('span')
+ };
+ const state={selection:null,playing:null,consent:false,autoAdvance:false,autoSource:null,playingPlatform:null};
+ const run=new Function('state','$','by','setText','safeLogin','safeNativeLogin','location',
+  'URLSearchParams','updateTwitchChat',js.slice(begin,end)+
+  'return {renderScreen,play,stopPlayback};');
+ const app=run(state,id=>nodes[id],make,(id,value)=>{nodes[id].textContent=value},
+  x=>/^[a-z0-9_]{3,25}$/.test(x),
+  x=>/^[a-z0-9_-]{2,32}$/.test(x),{hostname:'swapp.tv'},
+  URLSearchParams,()=>{});
+ app.renderScreen({login:'independent',platform:'swapp',game:'Aion 2'},{onAir:true});
+ assert.equal(state.playing,null,'native playback must not start without consent');
+ app.play();
+ const frame=screen.querySelector('.stv-player-layer')?.children[0];
+ assert.equal(frame.src,'/independent?swapp_tv_embed=1');
+ assert.equal(state.playingPlatform,'swapp');
+ assert.equal(state.autoSource,'native');
+ assert.equal(watch['aria-pressed'],'true');
+ app.stopPlayback();
+ assert.equal(state.autoSource,null);
+});
+test('TV native rotation requires opt-in and ignores Twitch queue',()=>{
+ const js=read('assets/swapp-tv-broadcast.js');
+ const start=js.indexOf('function maybeAdvanceNative('),end=js.indexOf('async function mutate(',start);
+ assert.ok(start>=0&&end>start);
+ const natives=[{login:'creator_one',platform:'swapp'},{login:'creator_two',platform:'swapp'}];
+ const state={autoAdvance:false,autoSource:'native',consent:false,playStartedAt:0,
+  native:natives,selection:{login:'creator_one',platform:'swapp'},nativeIndex:0,queueMode:true};
+ const changed=[];
+ const advance=new Function('state','DISCOVERY_SLOT_MS','renderScreen','rail',
+  js.slice(start,end)+'return maybeAdvanceNative;')(
+  state,600000,(item)=>{changed.push(item.login);state.selection=item;state.playStartedAt=900000},()=>{});
+ assert.equal(advance(700000),false);
+ state.autoAdvance=true;state.consent=true;
+ assert.equal(advance(500000),false,'no early rotation');
+ assert.equal(advance(900000),true);
+ assert.deepEqual(changed,['creator_two']);
+ state.autoSource='queue';
+ assert.equal(advance(1600000),false,'Twitch queue must never drive native rotation');
 });
