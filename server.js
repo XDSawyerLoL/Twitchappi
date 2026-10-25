@@ -1398,8 +1398,16 @@ app.get('/api/oryon/independence/export',async(req,res)=>{
   await ORYON_USERS_READY;
   const user=(readOryonUsers().users||[]).find(u=>u.id===ownerId);
   if(!user)return res.status(401).json({success:false,error:'swapp_account_required'});
-  const data=require('./modules/swapp-independence').buildArchive(user);
+  const independent=require('./modules/swapp-independence');
   const login=String(user.login).replace(/[^a-z0-9_-]/g,'').slice(0,40);
+  const format=String(req.query?.format||'json').toLowerCase();
+  if(format==='csv'){
+   const csv=independent.followingCsv(user);
+   res.set('Content-Disposition','attachment; filename="swapp-'+login+'-abonnements.csv"');
+   return res.type('text/csv; charset=utf-8').send(csv);
+  }
+  if(format!=='json')return res.status(400).json({success:false,error:'export_format_unsupported'});
+  const data=independent.buildArchive(user);
   res.set('Content-Disposition','attachment; filename="swapp-'+login+'-independance.json"');
   return res.type('json').send(JSON.stringify(data,null,2));
  }catch(error){
