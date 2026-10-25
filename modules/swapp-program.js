@@ -52,7 +52,8 @@ function page(kind){
     <details id="stv-creator-access" class="stv-creator-inline">
      <summary><span class="stv-creator-summary-icon" aria-hidden="true">＋</span><span>Je suis créateur <small id="stv-creator-hint">Rejoindre la file SWAPP TV</small></span><span class="stv-creator-chevron" aria-hidden="true">⌄</span></summary>
      <div class="stv-creator-content">
-      <p>Compte SWAPP et Twitch lié requis. Le jeu doit être couvert par la rédaction. L'inscription ne garantit pas un passage à l'antenne.</p>
+      <p>Les directs natifs SWAPP apparaissent automatiquement dans la régie sans compte Twitch. La file externe ci-dessous nécessite un compte SWAPP relié à Twitch et un jeu couvert par la rédaction.</p>
+      <p><a href="/independance">Récupérer les données de ma chaîne SWAPP</a></p>
       <label for="stv-game">Jeu diffusé</label>
       <select id="stv-game"><option value="">Chargement des jeux…</option></select>
       <div class="stv-queue-buttons">
@@ -83,7 +84,7 @@ function page(kind){
   </dialog>
  </main>`:calendar;
  return layout({title:tv?'SWAPP TV — La chaîne du Game Universe':'Programme SWAPP TV',description:tv?'La chaîne gaming collective, découverte équitable et directs vérifiés':'Agenda des rendez-vous Spotlight SWAPP',content,active:tv?'tv':'agenda',extraCss:PROGRAM_CSS,scripts:'<link rel="stylesheet" href="/assets/swapp-program.css?v=20261025-tv-station-clock-v3">'+
-  (tv?'<script defer src="/assets/swapp-tv-broadcast.js?v=20261025-full-rotation-v4"></script>':'')+
+  (tv?'<script defer src="/assets/swapp-tv-broadcast.js?v=20261025-native-first-v5"></script>':'')+
   '<script defer src="/assets/swapp-calendar.js?v=20261021-calendar-health-v2"></script>'});
 }
 module.exports={page};
