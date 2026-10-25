@@ -76,6 +76,14 @@ async function verify(){
   stationJs.body.includes("api('/api/swapp-tv/native-lineup')"),
   'SWAPP TV does not expose the verified opt-in rotation logic');
  process.stdout.write('PASS /tv station native-first and consent-based relay\n');
+ // Viewers must receive a real SWAPP-hosted HLS engine; returning a 404,
+ // an old external script, or an empty placeholder is a failed release.
+ const engine=await request(origin,'/assets/hls.min.js');
+ check((engine.response.headers.get('content-type')||'').includes('javascript')&&
+  engine.body.length>100000&&engine.body.includes('Hls')&&
+  !engine.body.includes('SWAPP HLS engine is not installed'),
+  'SWAPP native player dependency is not being served by the site');
+ process.stdout.write('PASS /assets/hls.min.js installed local engine\n');
  const liveProof=await request(origin,'/api/swapp-tv/native-lineup');
  let liveInventory;
  try{liveInventory=JSON.parse(liveProof.body)}catch{throw Error('SWAPP TV native inventory is not JSON')}
