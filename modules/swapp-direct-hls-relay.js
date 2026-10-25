@@ -220,6 +220,8 @@ function attachSwappDirectRelay(app, opts={}){
      room.lastManifestAt=now;
      publishPendingObsPlaylist(room);
     }else{
+    // Legacy SWAPP Local manifest supersedes any earlier OBS pending stream.
+    room.pendingObsPlaylist=null;
     const names=validatePlaylist(body);
     if(!names.length)return res.status(422).json({success:false,error:'Playlist HLS non valide.'});
     if(names.some(n=>!room.segments.has(n)))return res.status(409).json({success:false,error:'Un segment HLS de cette playlist manque.'});
@@ -363,13 +365,8 @@ function attachSwappDirectRelay(app, opts={}){
    await receiveMedia(req,res,user);
    // Test harnesses may not model Express 'finish', so record synchronously too.
    if(typeof res.on!=='function')recordObs();
-   // Credit only verified playable manifests, never a token-only heartbeat.
-   if(name==='index.m3u8'&&res.statusCode<300&&hasFreshVideo(rooms.get(cleanLogin(user.login)))){
-    if(typeof opts.onVerifiedObsIngest==='function'){
-     Promise.resolve().then(()=>opts.onVerifiedObsIngest(cleanLogin(user.login)))
-      .catch(error=>console.warn('[SWAPP OBS] owner live state update failed',String(error?.code||error?.name||'error')));
-    }
-   }
+   // onVerifiedObsIngest runs inside receiveMedia only after actual
+   // playable media, including a segment arriving after its playlist.
   });
  // Authenticated diagnostics allow the owner to distinguish: no PUT, media-only,
  // rejected playlist or playable HLS. No stream key, tokens, user list or IP.
