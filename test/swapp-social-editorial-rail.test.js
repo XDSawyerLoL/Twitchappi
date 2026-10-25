@@ -23,9 +23,13 @@ test('SOCIAL editorial rail is scoped to /social and wired once',()=>{
 });
 
 function dom(){
- const make=tag=>({tag,hidden:true,children:[],append(...x){this.children.push(...x)},
-  replaceChildren(f){this.children=f.children},addEventListener(){},remove(){this.removed=true},
-  setAttribute(){},scrollBy(){},querySelector(){return null},clientWidth:600,scrollLeft:0,scrollWidth:900});
+ const make=tag=>({tag,hidden:true,className:'',children:[],listeners:{},
+  append(...x){this.children.push(...x)},
+  replaceChildren(f){this.children=f.children},
+  addEventListener(type,fn){this.listeners[type]=fn},
+  remove(){this.removed=true},
+  setAttribute(){},scrollBy(){},querySelector(){return null},
+  clientWidth:600,scrollLeft:0,scrollWidth:900});
  const section=make('section'),list=make('div'),stories=make('section'),track=make('div');
  const prev=make('button'),next=make('button'),tabs=make('nav');
  tabs.hidden=false;
@@ -75,4 +79,33 @@ test('news stories are real SWAPP article links, never generated from empty imag
  assert.equal(track.children.length,1);
  assert.equal(track.children[0].href,'/actus/article-avec-image');
  assert.equal(track.children[0].children[0].tag,'img');
+});
+
+test('SOCIAL editorial images use real article thumbnail before other media',async()=>{
+ const {track}=await mount([{slug:'verified-thumb',title:'Image officielle',
+  thumbnail:{url:'https://cdn.example.org/article-thumb.jpg'},
+  image:{url:'https://cdn.example.org/article-other.jpg'},
+  trailerUrl:'https://www.youtube.com/watch?v=Qwerty12345'}]);
+ assert.equal(track.children.length,1);
+ const image=track.children[0].children[0];
+ assert.equal(image.src,'https://cdn.example.org/article-thumb.jpg');
+ image.listeners.error();
+ assert.equal(image.src,'https://cdn.example.org/article-other.jpg');
+ image.listeners.error();
+ assert.equal(image.src,'https://i.ytimg.com/vi/Qwerty12345/hqdefault.jpg');
+ image.listeners.error();
+ assert.equal(image.removed,true);
+ assert.match(track.children[0].className,/swapp-social-story-no-image/);
+ assert.equal(track.children[0].href,'/actus/verified-thumb');
+});
+test('SOCIAL uses a verified trailer poster only for that same article',async()=>{
+ const {track,stories}=await mount([
+  {slug:'trailer-only',title:'Article sans vignette',image:null,
+   trailerUrl:'https://youtu.be/Qwerty12345'},
+  {slug:'not-a-video',title:'Mauvais domaine',image:null,
+   trailerUrl:'https://youtube.com.attacker.invalid/watch?v=Qwerty12345'}
+ ]);
+ assert.equal(track.children.length,1);
+ assert.equal(stories.hidden,false);
+ assert.equal(track.children[0].children[0].src,'https://i.ytimg.com/vi/Qwerty12345/hqdefault.jpg');
 });

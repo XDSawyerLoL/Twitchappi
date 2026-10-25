@@ -62,6 +62,8 @@ async function verify(){
  check((ads.response.headers.get('content-type')||'').startsWith('text/plain'),'AdSense ads.txt is not served as text/plain');
  process.stdout.write('PASS /ads.txt\n');
  const social=await request(origin,'/social');
+ check(social.body.includes('swapp-social-reading.js?v=20261025-verified-visuals-v1'),
+  'SOCIAL editorial cards are using stale image fallback code');
  check(social.body.includes('class="swapp-social-sticky-stack"'),'SOCIAL HTML does not contain the unified sticky stack');
  check(social.body.includes('id="feed-tabs"'),'SOCIAL feed controls missing');
  check(social.body.includes('swapp-social-appearance.css?v=20261019-no-top-gap-v3'),
