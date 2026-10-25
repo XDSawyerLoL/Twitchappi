@@ -94,3 +94,11 @@ test('release fingerprint includes the portable SWAPP independence module',()=>{
  assert.match(source,/api\/oryon\/independence\/export/);
  assert.match(source,/api\/native\/lives/);
 });
+test('public smoke requires real media evidence, not mere creator heartbeats',()=>{
+ const source=fs.readFileSync(path.join(__dirname,'..','tools/swapp-deploy-smoke.js'),'utf8');
+ assert.match(source,/api\/swapp-tv\/native-lineup/);
+ assert.match(source,/liveInventory\.source==='swapp-direct-hls'/);
+ assert.match(source,/x\.media_verified===true/);
+ assert.match(source,/x\.player_url===/);
+ assert.ok(RELEASE_FILES.includes('modules/swapp-direct-hls-relay.js'));
+});
