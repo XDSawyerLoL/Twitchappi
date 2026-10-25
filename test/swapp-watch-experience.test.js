@@ -143,3 +143,25 @@ test('chat vertical correction remains stable across retries, and clears on mobi
  sync(page);
  assert.equal(values.translate,'0 0px','mobile uses stacked positioning');
 });
+
+test('offline chat shares the measured 16:9 player and does not use sticky offsets',()=>{
+ const js=read('assets/swapp-watch-experience.js');
+ const css=read('assets/swapp-watch-experience.css');
+ assert.match(js,/function installOfflineAlignment\(page\)/);
+ assert.match(js,/\[data-channel-live="false"\]'\)\.forEach\(installOfflineAlignment\)/);
+ assert.match(js,/watcher\.observe\(video\)/);
+ assert.match(css,/\[data-channel-live="false"\] \.channelLiveSidebar > \.chatPanel/);
+ assert.match(css,/height:var\(--swapp-chat-player-height,auto\)!important/);
+ assert.match(css,/grid-template-columns:minmax\(0,1fr\) minmax\(286px,336px\)/);
+});
+test('broadcast title renders above the player without replacing HLS',()=>{
+ const js=read('assets/swapp-watch-experience.js');
+ const css=read('assets/swapp-watch-experience.css');
+ assert.match(js,/function installBroadcastHeadline\(page,main,video\)/);
+ assert.match(js,/currentBroadcastTitle\(page\)/);
+ assert.match(js,/\.current_live\?\.title|current_live\?\.title/);
+ assert.match(js,/\+encodeURIComponent\(login\)\+'\/status'/);
+ assert.match(js,/main\.insertBefore\(header,video\)/);
+ assert.match(css,/\.swapp-watch-live-title/);
+ assert.match(css,/order:-1!important/);
+});
