@@ -4784,7 +4784,13 @@ app.post('/api/oryon/local-agent/register-public-url', mutationLimiter, async (r
     user.oryon_local_status_url = statusUrl;
     user.oryon_local_public_base_url = publicBaseUrl;
     user.oryon_local_provider = String(req.body?.provider || 'tunnel').slice(0, 80);
-    markOryonLiveFields(user, true, { localAgent:true, platform:'oryon-live', title:req.body?.title || req.body?.live_title, category:req.body?.category, tags:req.body?.tags });
+    // A creator's mid-stream dashboard edit takes priority over stale OBS-agent heartbeats.
+      const dashboardEdited=Number(user.live_metadata_dashboard_updated_at||0)>Number(user.live_started_at||0)
+        && Number(user.live_started_at||0)>0 && user.live_status==='live';
+      markOryonLiveFields(user, true, { localAgent:true, platform:'oryon-live',
+        title:dashboardEdited?user.current_live_title:(req.body?.title||req.body?.live_title),
+        category:dashboardEdited?user.current_live_category:req.body?.category,
+        tags:req.body?.tags });
     await writeOryonUsersAndWait(data);
     res.json({ success:true, login:user.login, public_url:swappChannelPathForLogin(user.login), public_abs_url:(swappPublicBase(req)||'').replace(/\/$/,'') + swappChannelPathForLogin(user.login), live:true, user:publicOryonUser(user), message:'Live Swapp Local publié sur la page publique.' });
   } catch(e) { res.status(500).json({ success:false, error:e.message }); }
@@ -4815,7 +4821,13 @@ app.post('/api/oryon/local-agent/heartbeat', mutationLimiter, async (req, res) =
         user.oryon_local_player_url = normalizedPlayerUrl;
       }
       if(statusUrl && /^https?:\/\//i.test(statusUrl)) user.oryon_local_status_url = statusUrl;
-      markOryonLiveFields(user, true, { localAgent:true, platform:'oryon-live', title:req.body?.title || req.body?.live_title, category:req.body?.category, tags:req.body?.tags });
+      // A creator's mid-stream dashboard edit takes priority over stale OBS-agent heartbeats.
+      const dashboardEdited=Number(user.live_metadata_dashboard_updated_at||0)>Number(user.live_started_at||0)
+        && Number(user.live_started_at||0)>0 && user.live_status==='live';
+      markOryonLiveFields(user, true, { localAgent:true, platform:'oryon-live',
+        title:dashboardEdited?user.current_live_title:(req.body?.title||req.body?.live_title),
+        category:dashboardEdited?user.current_live_category:req.body?.category,
+        tags:req.body?.tags });
     } else {
       markOryonLiveFields(user, false, { localAgent:true });
     }
@@ -5067,14 +5079,14 @@ app.get('/api/native/lives', (req, res) => {
   const users = readOryonUsers().users || [];
   const localAgentItems = users.filter(u => isOryonLiveSignalFresh(u)).map(u => ({
     room: u.login,
-    title: `Live Oryon de ${u.display_name || u.login}`,
+    title: u.current_live_title || `Live de ${u.display_name || u.login}`,
     host_name: u.display_name || u.login,
     host_login: u.login,
     host_user_id: u.id,
     viewers: 0,
     limit: Number(process.env.MAX_NATIVE_VIEWERS || 300),
     createdAt: u.local_agent_last_seen || u.updatedAt || Date.now(),
-    category: 'Oryon Live',
+    category: u.current_live_category || 'Oryon Live',
     tags: Array.isArray(u.tags) ? u.tags : [],
     peak_viewers: 0,
     chat_messages: 0,
@@ -8502,6 +8514,13 @@ require('./modules/swapp-channel-audience').installChannelAudience({
   storageFile:path.join(__dirname,'.swapp-channel-loyalty.json')
 });
 
+// SWAPP live control: owner edits persist without ending the live.
+require('./modules/swapp-live-metadata').installLiveMetadata({
+  app, io, getUsers:readOryonUsers, findUser:getOryonUserByLogin,
+  saveUsers:writeOryonUsersAndWait, getRoom:room=>nativeLiveRooms.get(room),
+  limiter:mutationLimiter
+});
+
 // SWAPP SOCIAL: voice signalling. Socket.IO transports only SDP/ICE metadata.
 // Actual audio uses WebRTC between members, is never recorded by SWAPP.
 require('./modules/swapp-social-voice').installSocialVoice({
@@ -8751,13 +8770,15 @@ io.on('connection', async (socket) => {
         io.to(viewerId).emit('native:reconnecting', { room });
     }
     const hostName = String(user.display_name || user.login).trim().slice(0, 40);
-    const title = String(payload?.title || `Live de ${hostName}`).trim().slice(0, 120);
+    // Preserve changed metadata when the browser publisher reconnects.
+    const title = resumed ? existing.title : String(payload?.title || `Live de ${hostName}`).trim().slice(0, 120);
+    const category = resumed ? existing.category : String(payload?.category || '').trim().slice(0, 60);
     if(!resumed)nativeBrowserRelays.delete(room);
     nativeLiveRooms.set(room, { host: socket.id, viewers: resumed ? existing.viewers : new Set(), mediaViewers:new Set(), createdAt: resumed ? existing.createdAt : Date.now(),
      pushId:resumed?existing.pushId:crypto.randomBytes(12).toString('hex'),
      pushDispatched:resumed?existing.pushDispatched:false,
-     title, hostName, hostLogin:user.login, hostUserId:user.id, category: String(payload?.category || '').trim().slice(0,60), tags: String(payload?.tags || '').split(',').map(x=>x.trim()).filter(Boolean).slice(0,8), peakViewers: 0, chatMessages: 0 });
-    try{ const ud=readOryonUsers(); const uu=ud.users.find(x=>x.id===user.id); if(uu){ markOryonLiveFields(uu, true, { localAgent:false, platform:'browser-webrtc', title, category: payload?.category, tags: payload?.tags }); uu.best_chat_messages=Math.max(Number(uu.best_chat_messages||0),0); writeOryonUsers(ud); } pushOryonEvent('live_started', user.login, {room,title}); }catch(_e){}
+     title, hostName, hostLogin:user.login, hostUserId:user.id, category, tags: String(payload?.tags || '').split(',').map(x=>x.trim()).filter(Boolean).slice(0,8), peakViewers: 0, chatMessages: 0 });
+    try{ const ud=readOryonUsers(); const uu=ud.users.find(x=>x.id===user.id); if(uu){ markOryonLiveFields(uu, true, { localAgent:false, platform:'browser-webrtc', title, category, tags: payload?.tags }); uu.best_chat_messages=Math.max(Number(uu.best_chat_messages||0),0); writeOryonUsers(ud); } pushOryonEvent('live_started', user.login, {room,title}); }catch(_e){}
     socket.data.nativeRoom = room; socket.data.nativeRole = 'host';
     socket.join('native:' + room);
     socket.emit('native:created', { room, title, host_name: hostName });
