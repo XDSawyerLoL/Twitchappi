@@ -123,7 +123,7 @@ test('chat vertical correction remains stable across retries, and clears on mobi
  const b=script.indexOf('\n function install(page){',a);
  assert.ok(a>=0&&b>a);
  const win={matchMedia:()=>({matches:false})};
- const sync=new Function('window',script.slice(a,b)+'return syncChat')(win);
+ const sync=new Function('window',script.slice(a,b)+'\nreturn syncChat;')(win);
  const video={getBoundingClientRect:()=>({top:430,left:200,right:1190,width:990,height:557})};
  const values={};const style={setProperty(k,v){values[k]=v}};
  const chat={dataset:{},style,
