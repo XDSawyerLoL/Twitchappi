@@ -592,3 +592,21 @@ body:has(#channel.view.active) #oryonMiniPlayer{display:none!important}
  min-height:max-content!important;
  overflow:visible!important;
 }
+
+/* 2026-10-25 — expose the chat composer beyond the video-height clipping ancestors. */
+#channel#channel .creatorRefine.swapp-channel-polish .channelLiveLayout{
+ overflow:visible!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .channelLiveSidebar{
+ height:auto!important;
+ min-height:0!important;
+ max-height:none!important;
+ overflow:visible!important;
+ align-self:start!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .channelLiveSidebar > .chatPanel{
+ height:auto!important;
+ min-height:max(420px,var(--swapp-chat-player-height,420px))!important;
+ max-height:none!important;
+ overflow:visible!important;
+}
