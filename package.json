@@ -33,6 +33,7 @@
     "express-session": "^1.18.2",
     "firebase-admin": "^13.5.0",
     "helmet": "^8.1.0",
+    "hls.js": "1.6.15",
     "memorystore": "^1.6.7",
     "mysql2": "^3.23.1",
     "node-fetch": "^2.7.0",
