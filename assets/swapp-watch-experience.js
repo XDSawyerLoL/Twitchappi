@@ -136,8 +136,7 @@
   chat.style.setProperty('--swapp-chat-player-height',actual+'px');
   for(const prop of ['height','min-height','max-height'])
    chat.style.setProperty(prop,actual+'px','important');
-  // Offline is a structural two-column grid. Never apply a translation:
-  // the player and chat must start on the identical CSS grid line.
+  // On an offline channel the grid aligns the chat without translations.
   if(page.dataset.channelLive==='false'){
    chat.style.removeProperty('translate');
    chat.dataset.swappAlignShift='0';
@@ -158,23 +157,76 @@
    chat.dataset.swappAlignShift=String(shift);
   }
  }
- // Same measured-height contract for offline channels. These pages have no
- // live controls, so they were never handled by install(page) previously.
+
+ // Prefer actual broadcast metadata; a creator's channel name is NOT their
+ // live title. Data may arrive after the channel layout has rendered.
+ function currentBroadcastTitle(page){
+  const profile=typeof state!=='undefined'?state?.channelProfile:null;
+  const labels=[
+   page.dataset.liveTitle,page.dataset.streamTitle,
+   page.querySelector('[data-live-title]')?.getAttribute('data-live-title'),
+   profile?.current_live_title,profile?.live_title,profile?.stream_title,profile?.live?.title,
+   profile?.current_live?.title,profile?.broadcast?.title
+  ];
+  return labels.map(value=>String(value||'').trim()).find(value=>value.length>0&&value.length<=180)||'';
+ }
+ function broadcastLogin(page){
+  const profile=typeof state!=='undefined'?state?.channelProfile:null;
+  const found=String(profile?.login||profile?.username||page.dataset.channelLogin||'').trim();
+  if(/^[a-z0-9_-]{2,48}$/i.test(found))return found.toLowerCase();
+  const match=(location.pathname||'').match(/^\/(?:c\/)?([a-z0-9_-]{2,48})\/?$/i);
+  return match?match[1].toLowerCase():'';
+ }
+ function installBroadcastHeadline(page,main,video){
+  const header=document.createElement('div');header.className='swapp-watch-headline';
+  const pill=document.createElement('span');pill.className='swapp-watch-live-pill';pill.textContent='EN DIRECT';
+  const title=document.createElement('h2');title.className='swapp-watch-live-title';
+  title.textContent=currentBroadcastTitle(page)||'Direct en cours';
+  header.append(pill,title);
+  if(video.parentElement===main)main.insertBefore(header,video);
+  else main.prepend(header);
+  const login=broadcastLogin(page);
+  let remoteTitle='';
+  const refresh=async()=>{
+   if(!page.isConnected)return;
+   const local=currentBroadcastTitle(page);
+   title.textContent=local||remoteTitle||'Direct en cours';
+   if(!login)return;
+   try{
+    const response=await fetch('/api/oryon/channel/'+encodeURIComponent(login)+'/status',
+     {cache:'no-store',signal:AbortSignal.timeout(5500)});
+    if(!response.ok)return;
+    const data=await response.json();
+    if(!page.isConnected)return;
+    const value=[data?.live?.title,data?.stream?.title,data?.broadcast?.title,
+     data?.live_title,data?.stream_title,data?.title]
+     .map(s=>String(s||'').trim()).find(s=>s.length>0&&s.length<=180);
+    if(value){remoteTitle=value;title.textContent=currentBroadcastTitle(page)||remoteTitle}
+   }catch(_){/* A temporary status failure must never remove the player. */}
+  };
+  void refresh();
+  const timer=setInterval(()=>{
+   if(!page.isConnected){clearInterval(timer);return}
+   void refresh();
+  },45000);
+ }
+ // Offline channels share the same measured media/chat alignment.
+ // Keep the native chat element in place; only position and size it.
  function installOfflineAlignment(page){
   if(page.dataset.swappOfflineChatSync==='1')return;
-  const player=page.querySelector('.channelMainPlayer > :is(.player,.premiumPlayer,.oryonMainPlayer)');
+  const video=page.querySelector('.channelMainPlayer > :is(.player,.premiumPlayer,.oryonMainPlayer)');
   const chat=page.querySelector('.channelLiveSidebar .chatPanel');
-  if(!player||!chat)return;
+  if(!video||!chat)return;
   page.dataset.swappOfflineChatSync='1';
-  const align=()=>{if(page.isConnected&&page.dataset.channelLive==='false')syncChat(page)};
-  requestAnimationFrame(align);
-  for(const ms of [100,420,1100])setTimeout(align,ms);
+  requestAnimationFrame(()=>syncChat(page));
+  for(const ms of [180,720])setTimeout(()=>{if(page.isConnected)syncChat(page)},ms);
   if(typeof ResizeObserver==='function'){
-   const ro=new ResizeObserver(()=>{
-    if(!page.isConnected||page.dataset.channelLive!=='false'){ro.disconnect();return}
-    align();
+   const watcher=new ResizeObserver(()=>{
+    if(!page.isConnected){watcher.disconnect();return}
+    if(page.dataset.channelLive!=='false'){watcher.disconnect();return}
+    syncChat(page);
    });
-   ro.observe(player);
+   watcher.observe(video);
   }
  }
 
@@ -185,6 +237,7 @@
   if(!main||!video)return;
   page.dataset.watchImmersion=mode.immersion;
   page.dataset.watchChat=mode.chat;
+  installBroadcastHeadline(page,main,video);
   const row=document.createElement('div');
   row.className='swapp-watch-tools';
   row.setAttribute('role','group');

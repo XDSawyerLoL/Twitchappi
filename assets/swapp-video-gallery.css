@@ -167,3 +167,10 @@
  .swapp-video-dialog-head{padding:8px 12px;}
  .swapp-video-stage-fallback{padding:11px 13px;}
 }
+/* Unavailable editorial video must not reserve half the headline width. */
+#home .swapp-home-editorial-top:not(.swapp-home-has-video){
+ grid-template-columns:minmax(0,1fr)!important;
+}
+#home .swapp-home-editorial-top:not(.swapp-home-has-video) .swapp-home-hero-actions{
+ display:none!important;
+}

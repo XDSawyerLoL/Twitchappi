@@ -17,8 +17,45 @@
    return url.protocol==='https:'&&url.href.length<1600?url.href:'';
   }catch{return ''}
  };
- const getImage=item=>validImage(typeof item.image==='object'?item.image?.url:
-   (typeof item.image==='string'?item.image:item.imageUrl));
+ // Use the same ordered editorial sources as the main SWAPP reader.
+ // Hotlink-blocked images should fall back to the NEXT source, not disappear.
+ const youtubePoster=item=>{
+  try{
+   const u=new URL(String(item?.trailerUrl||''));let id='';
+   if(u.protocol!=='https:'||u.username||u.password)return '';
+   if(['youtube.com','www.youtube.com','m.youtube.com','www.youtube-nocookie.com'].includes(u.hostname)){
+    if(u.pathname==='/watch')id=u.searchParams.get('v')||'';
+    else if(/^\/(embed|shorts)\/[A-Za-z0-9_-]{11}$/.test(u.pathname))id=u.pathname.split('/')[2];
+   }else if(u.hostname==='youtu.be'&&/^\/[A-Za-z0-9_-]{11}$/.test(u.pathname))id=u.pathname.slice(1);
+   return /^[A-Za-z0-9_-]{11}$/.test(id)?'https://i.ytimg.com/vi/'+id+'/hqdefault.jpg':'';
+  }catch{return ''}
+ };
+ const imageSources=item=>{
+  const shared=window.SwappArticleExtras?.cardImageSources?.(item);
+  const candidates=[
+   ...(Array.isArray(shared)?shared:[]),
+   item?.thumbnail?.url,item?.image?.url,
+   typeof item?.image==='string'?item.image:'',
+   item?.imageUrl,item?.thumbnailUrl,item?.coverUrl,
+   youtubePoster(item)
+  ];
+  const sources=[];
+  for(const entry of candidates){
+   const safe=validImage(entry);
+   if(safe&&!sources.includes(safe))sources.push(safe);
+  }
+  return sources;
+ };
+ const useImage=(img,sources,onEmpty)=>{
+  let index=0;
+  img.addEventListener('error',()=>{
+   index++;
+   if(index<sources.length){img.src=sources[index];return}
+   img.remove();
+   onEmpty?.();
+  });
+  img.src=sources[0];
+ };
  const make=(tag,cls,value)=>{
   const node=document.createElement(tag);
   if(cls)node.className=cls;
@@ -64,14 +101,14 @@
     const link=make('a','swapp-social-reading-item');
     link.href=articleLink(item);
     const visual=make('span','swapp-social-reading-visual');
-    const image=getImage(item);
-    if(image){
+    const candidates=imageSources(item);
+    if(candidates.length){
      const img=make('img');
-     img.src=image;img.alt='';img.loading='lazy';img.decoding='async';
+     img.alt='';img.loading='lazy';img.decoding='async';
      img.referrerPolicy='no-referrer';
-     img.addEventListener('error',()=>img.remove(),{once:true});
+     useImage(img,candidates,()=>{visual.className+=' swapp-social-image-fallback'});
      visual.append(img);
-    }
+    }else visual.className+=' swapp-social-image-fallback';
     visual.append(make('span','swapp-social-reading-number',String(index+1).padStart(2,'0')));
     const copy=make('span','swapp-social-reading-copy');
     const date=formatted(dateOf(item));
@@ -83,7 +120,7 @@
    readingList.replaceChildren(readingFragment);
    sidebar.hidden=false;
 
-   const featured=articles.filter(item=>Boolean(getImage(item))).slice(0,8);
+   const featured=articles.filter(item=>imageSources(item).length>0).slice(0,8);
    if(!featured.length)return;
    const storyFragment=document.createDocumentFragment();
    featured.forEach(item=>{
@@ -91,9 +128,12 @@
     card.href=articleLink(item);
     card.setAttribute('aria-label','Lire : '+item.title);
     const img=make('img');
-    img.src=getImage(item);img.alt='';
-    img.loading='lazy';img.decoding='async';img.referrerPolicy='no-referrer';
-    img.addEventListener('error',()=>card.remove(),{once:true});
+    img.alt='';img.loading='lazy';img.decoding='async';img.referrerPolicy='no-referrer';
+    useImage(img,imageSources(item),()=>{
+     // Keep the genuine article link/caption visible even when a remote
+     // publisher denies every image. Never invent another game's art.
+     card.className+=' swapp-social-story-no-image';
+    });
     const gradient=make('span','swapp-social-story-overlay');
     const info=make('span','swapp-social-story-info');
     const date=formatted(dateOf(item));

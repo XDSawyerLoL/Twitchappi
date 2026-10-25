@@ -108,7 +108,7 @@ test('GIFs remain animated, compact and proportional in posts, preview and phone
  assert.match(css,/max-height:310px!important/);
  assert.match(css,/max-width:100%!important/);
  assert.match(css,/@media\(max-width:500px\)/);
- assert.match(hubs,/app\.js\?v=20261022-responsive-gifs-v1/);
+ assert.match(hubs,/app\.js\?v=20261025-dm-workspace-v1/);
  assert.match(hubs,/swapp-social-editorial-air\.css\?v=20261022-large-tools-v1/);
  assert.ok(server.indexOf('registerSocialGifs(app)')<server.indexOf("app.use('/api/swapp/social',authLimiter"),'read endpoints must precede auth writes');
 });

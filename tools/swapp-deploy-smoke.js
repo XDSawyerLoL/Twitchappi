@@ -62,6 +62,8 @@ async function verify(){
  check((ads.response.headers.get('content-type')||'').startsWith('text/plain'),'AdSense ads.txt is not served as text/plain');
  process.stdout.write('PASS /ads.txt\n');
  const social=await request(origin,'/social');
+ check(social.body.includes('swapp-social-reading.js?v=20261025-verified-visuals-v1'),
+  'SOCIAL editorial cards are using stale image fallback code');
  check(social.body.includes('class="swapp-social-sticky-stack"'),'SOCIAL HTML does not contain the unified sticky stack');
  check(social.body.includes('id="feed-tabs"'),'SOCIAL feed controls missing');
  check(social.body.includes('swapp-social-appearance.css?v=20261019-no-top-gap-v3'),
@@ -71,7 +73,9 @@ async function verify(){
   socialAppearance.body.includes('inset-block-start:0!important'),
   'SOCIAL header top gap defensive fix missing');
  check(social.body.includes('social-swapp.css?v=20261022-social-control-emotes-v1'),'SOCIAL CSS release is stale');
- check(social.body.includes('app.js?v=20261022-responsive-gifs-v1'),'SOCIAL module release is stale');
+ check(social.body.includes('app.js?v=20261025-dm-workspace-v1')&&
+  social.body.includes('swapp-social-product-v3.css?v=20261025-dm-workspace-v1'),
+  'SOCIAL module/workspace assets are stale');
  check(social.body.includes('swapp-social-editorial-air.css?v=20261022-large-tools-v1'),
   'SOCIAL editorial stylesheet is missing from public markup');
  process.stdout.write('PASS /social HTML\n');
@@ -333,14 +337,17 @@ async function verify(){
  const newsScript=await request(origin,'/assets/swapp-home-news.js');
  check(!newsScript.body.includes('signal:AbortSignal.timeout(')&&
    newsScript.body.includes('new AbortController()')&&
-   home.body.includes('swapp-home-news.js?v=20261019-single-reader-v8'),
+   home.body.includes('swapp-home-news.js?v=20261025-latest-video-v1'),
    'Homepage editorial script is stale or incompatible with older Safari');
+ check(newsScript.body.includes('function updateVideoTeaser(section,articles)')&&
+  !newsScript.body.includes('trailer-code-vein-2-story-trailer'),
+  'Homepage still has pinned video unrelated to current published articles');
  check(newsScript.body.includes('function navigateArticle(event,slug,game)')&&
   !newsScript.body.includes("event.preventDefault();window.setView('actus');window.SwappActus.open(slug)"),
   'Homepage still intercepts canonical editorial links with the SPA route');
  const motionPath='/assets/swapp-home-motion.js?v=20261018-followed-session-v27';
  check(home.body.includes(motionPath)&&
-   home.body.indexOf(motionPath)<home.body.indexOf('swapp-home-news.js?v=20261019-single-reader-v8'),
+   home.body.indexOf(motionPath)<home.body.indexOf('swapp-home-news.js?v=20261025-latest-video-v1'),
    'No cinematic hero helper before the editorial client');
  const motion=await request(origin,'/assets/swapp-home-motion.js');
  check(motion.body.includes('window.SwappHomeMotion')&&
@@ -481,7 +488,7 @@ async function verify(){
  // Verify the actual mobile reading and video assets, not just HTML shell CSS.
  const articleClient='/assets/swapp-actus-app.js?v=20261019-manual-commerce-v10';
  const videoClient='/assets/swapp-video-player.js?v=20261016-ios-journey-1';
- const videoStyle='/assets/swapp-video-gallery.css?v=20261016-ios-journey-1';
+ const videoStyle='/assets/swapp-video-gallery.css?v=20261025-latest-video-v1';
  for(const name of [articleClient,videoClient,videoStyle])
   check(home.body.includes(name),'Home has an outdated mobile media asset: '+name);
  const newsClient=await request(origin,'/assets/swapp-actus-app.js');

@@ -42,7 +42,7 @@ test('Vocal button navigates through existing SOCIAL room view and works on mobi
  assert.match(app,/setView\('rooms','Communautés'\)/);
  assert.match(css,/\.swapp-social-voice-shortcut/);
  assert.match(css,/@media\(max-width:350px\)/);
- assert.match(hub,/app\.js\?v=20261021-rss-media-community-v2/);
+ assert.match(hub,/app\.js\?v=20261025-dm-workspace-v1/);
  assert.match(hub,/swapp-social-voice\.js\?v=20261018-channel-ux-v1/);
  assert.match(hub,/swapp-social-appearance\.css\?v=20261019-no-top-gap-v3/);
 });

@@ -54,7 +54,9 @@ async function render(articles){
 
 const make=(n,hasImage=true)=>({
  slug:'game-release-'+n,title:'Gaming news '+n,game:'Game '+n,
- image:hasImage?{url:'https://example.com/game-'+n+'.jpg'}:null
+ publishedAt:'2026-10-'+String(25-n).padStart(2,'0')+'T10:00:00Z',
+ image:hasImage?{url:'https://example.com/game-'+n+'.jpg'}:null,
+ trailerUrl:'https://www.youtube.com/watch?v=AbcdEfgh012'
 });
 test('large hero and article grid contain five unique stories, without duplicate first card',async()=>{
  const view=await render([0,1,2,3,4].map(i=>make(i)));
@@ -99,7 +101,7 @@ test('large editorial video has its own column and the news CTA stays beside the
  const trailer=videoColumn.querySelector('.swapp-home-video-feature');
  assert.ok(trailer,'trailer remains in the current editorial section');
  const launch=trailer.querySelector('.swapp-video-open');
- assert.equal(launch.dataset.videoYoutube,'Z9SaRLSibak','existing verified trailer remains playable');
+ assert.equal(launch.dataset.videoYoutube,'AbcdEfgh012','latest article trailer remains playable');
  assert.equal(launch.dataset.swappVideoPlay,'1');
  assert.equal(view.main.children.length,3,'no new homepage sections');
 });
@@ -113,6 +115,33 @@ test('trailer is full-width cinematic 16:9 and responsive rather than 290px wide
  assert.match(css,/@media\(max-width:980px\)/);
  assert.match(css,/@media\(max-width:600px\)/);
  assert.doesNotMatch(css,/width:clamp\(190px,19vw,290px\)/);
- assert.match(html,/swapp-home-news\.js\?v=20261018-followed-session-v27/);
- assert.match(html,/swapp-video-gallery\.css\?v=20261016-ios-journey-1/);
+ assert.match(html,/swapp-home-news\.js\?v=20261025-latest-video-v1/);
+ assert.match(html,/swapp-video-gallery\.css\?v=20261025-latest-video-v1/);
+});
+
+test('no usable article trailer leaves no empty video column or historical campaign',async()=>{
+ const data=[0,1,2].map(i=>({...make(i),trailerUrl:''}));
+ const view=await render(data);
+ const top=view.shelf.querySelector('.swapp-home-editorial-top');
+ assert.equal(top.classList.contains('swapp-home-has-video'),false);
+ assert.equal(top.querySelector('.swapp-home-video-feature'),null);
+});
+test('the newest published article supplies its own video and destination',async()=>{
+ const data=[
+  {...make(0),publishedAt:'2026-10-20T10:00:00Z'},
+  {...make(1),publishedAt:'2026-10-25T10:00:00Z',trailerUrl:'https://youtu.be/Qwerty12345'}
+ ];
+ const view=await render(data);
+ const tile=view.shelf.querySelector('.swapp-home-video-feature');
+ assert.equal(tile.querySelector('.swapp-video-open').dataset.videoYoutube,'Qwerty12345');
+ assert.equal(tile.querySelector('.swapp-video-caption').children.find(node=>node.tagName==='H3').textContent,'Gaming news 1');
+});
+
+test('the editorial video rejects lookalike hosts and unpublished teasers',async()=>{
+ const fake={...make(0),trailerUrl:'https://notyoutube.com/watch?v=AbcdEfgh012'};
+ const draft={...make(1),status:'draft',trailerUrl:'https://www.youtube.com/watch?v=AbcdEfgh012'};
+ const view=await render([fake,draft]);
+ const top=view.shelf.querySelector('.swapp-home-editorial-top');
+ assert.equal(top.classList.contains('swapp-home-has-video'),false);
+ assert.equal(top.querySelector('.swapp-home-video-feature'),null);
 });

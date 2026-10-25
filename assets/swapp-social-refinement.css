@@ -1149,3 +1149,22 @@ body:has(#swapp-social-access){
 @media(prefers-reduced-motion:reduce){
  .swapp-social-viewport .swapp-social-story img{transition:none!important}
 }
+/* Native SOCIAL editorial preview: preserve story/link dimensions when
+   publisher-hosted images block cross-origin rendering. No fake thumbnails. */
+.swapp-social-viewport .swapp-social-story.swapp-social-story-no-image{
+ background:linear-gradient(135deg,
+  color-mix(in srgb,var(--swapp-page-accent,#22d3ee) 16%,#121b2b),
+  #111827 82%)!important;
+}
+.swapp-social-viewport .swapp-social-story.swapp-social-story-no-image .swapp-social-story-overlay{
+ background:linear-gradient(to top,rgba(3,7,17,.95),rgba(3,7,17,.24))!important;
+}
+.swapp-social-viewport .swapp-social-reading-visual.swapp-social-image-fallback{
+ background:linear-gradient(135deg,
+  color-mix(in srgb,var(--swapp-page-accent,#22d3ee) 12%,#182437),#0c1421);
+}
+.swapp-social-viewport .swapp-social-story:focus-visible,
+.swapp-social-viewport .swapp-social-reading-item:focus-visible{
+ outline:2px solid var(--swapp-page-accent,#22d3ee)!important;
+ outline-offset:3px!important;
+}

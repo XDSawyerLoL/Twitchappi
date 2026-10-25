@@ -56,7 +56,7 @@ test('CSS and module versions are refreshed to avoid stale Hostinger/browser ass
  const hub=read('modules/swapp-hubs.js');
  const app=read('assets/swapp-social-native/app.js');
  for(const name of ['swapp-social-timeline.css?v=20261021-community-rails-v2',
-  'swapp-social-native/app.js?v=20261021-rss-media-community-v2',
-  'swapp-social-product-v3.css?v=20261021-fixed-shell-v1'])assert.ok(hub.includes(name),name);
- assert.match(app,/views\.js\?v=20261021-rss-media-community-v2/);
+  'swapp-social-native/app.js?v=20261025-dm-workspace-v1',
+  'swapp-social-product-v3.css?v=20261025-dm-workspace-v1'])assert.ok(hub.includes(name),name);
+ assert.match(app,/views\.js\?v=20261025-dm-workspace-v1/);
 });

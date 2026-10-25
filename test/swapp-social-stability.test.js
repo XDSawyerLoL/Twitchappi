@@ -83,3 +83,32 @@ test('guest read-only smoke uses the actual database readiness state',()=>{
  assert.ok(smoke.includes("upstream_social"));
  assert.ok(!smoke.includes('configured_not_verified'));
 });
+
+test('stale conversation refresh is rate-limited and cannot release a newer refresh guard',async()=>{
+ const code=read('assets/swapp-social-native/views.js');
+ const start=code.indexOf('let dmRefreshTimer=null');
+ const end=code.indexOf('let viewRevision=0;',start);
+ assert.ok(start>=0&&end>start);
+ let tick,calls=0,release;
+ const held=new Promise(resolve=>{release=resolve});
+ const document={visibilityState:'visible',querySelector:()=>({scrollHeight:100,clientHeight:50,scrollTop:50,innerHTML:''})};
+ const env={document,setInterval:fn=>{tick=fn;return 1},clearInterval(){},
+  isCurrent:()=>true,
+  api:async()=>{calls++;await held;return {messages:[]}},
+  loadVoiceNotes:async()=>[],
+  renderVoiceNote:()=>'',esc:x=>String(x),timeAgo:()=>'',state:{},dom:{}};
+ const runner=new Function(...Object.keys(env),code.slice(start,end)+
+  '\nreturn {startDMRefresh,stopDMRefresh};')(...Object.values(env));
+ runner.startDMRefresh('friend',1,'user',[],[]);
+ const first=tick();
+ await tick();
+ assert.equal(calls,1,'overlapping ten-second ticks must not start another request');
+ runner.stopDMRefresh();
+ runner.startDMRefresh('new-friend',2,'user',[],[]);
+ const next=tick();
+ assert.equal(calls,2,'navigation must allow a new conversation to poll');
+ release();
+ await Promise.all([first,next]);
+ await tick();
+ assert.equal(calls,3,'old completion must not trap or re-enable a busy newer thread');
+});

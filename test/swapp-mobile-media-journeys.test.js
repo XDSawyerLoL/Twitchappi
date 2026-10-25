@@ -121,9 +121,9 @@ test('video player closes on browser back without losing its former overflow set
 test('native video route and SPA load the same mobile video assets',()=>{
  const home=read('index.html'),hubs=read('modules/swapp-hubs.js');
  const js='swapp-video-player.js?v=20261016-ios-journey-1';
- const css='swapp-video-gallery.css?v=20261016-ios-journey-1';
+ const css='swapp-video-gallery.css?v=20261025-latest-video-v1';
  for(const source of [home,hubs]){assert.ok(source.includes(js));assert.ok(source.includes(css))}
- assert.match(home,/swapp-actus-app\.js\?v=20261016-ios-journey-1/);
+ assert.match(home,/swapp-actus-app\.js\?v=20261019-manual-commerce-v10/);
  const smoke=read('tools/swapp-deploy-smoke.js');
  assert.match(smoke,/Article reader lacks older-iPhone timeout compatibility/);
  assert.match(smoke,/Video player lacks focus, scroll-lock restoration/);

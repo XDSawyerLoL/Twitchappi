@@ -111,7 +111,7 @@ test('cleaner homepage has no legacy first-paint masking and mounts cinematic cl
  const helper='swapp-home-motion.js?v=20261018-followed-session-v27';
  assert.match(html,/swapp-home-news\.js\?v=20261018-followed-session-v27/);
  assert.ok(html.includes(helper));
- assert.ok(html.indexOf(helper)<html.indexOf('swapp-home-news.js?v=20261018-followed-session-v27'));
+ assert.ok(html.indexOf(helper)<html.indexOf('swapp-home-news.js?v=20261025-latest-video-v1'));
  assert.match(read('assets/swapp-home-news.js'),/SwappHomeMotion\?\.attach\?\.\(tile,feature\)/);
 });
 

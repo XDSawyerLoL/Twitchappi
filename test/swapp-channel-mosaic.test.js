@@ -95,7 +95,7 @@ test('owner can diagnose and replace an undersized legacy thumbnail without touc
  assert.match(js,/Image trop petite/);
  assert.match(js,/Résolution faible pour cette taille/);
  assert.match(js,/Importer \/ remplacer par l’image originale \(HD\)/);
- assert.match(js,/size\.addEventListener\('change',\(\)=>\{p\.size=size\.value;showImageQuality\(\)\}\)/);
+ assert.match(js,/size\.addEventListener\('change',\(\)=>\{p\.size=size\.value;showImageQuality\(\);refreshPreviewCard\(i\)\}\)/);
  assert.match(css,/data-low-resolution="true"/);
  assert.match(css,/swapp-mosaic-quality-note\[data-warning="true"\]/);
  assert.doesNotMatch(css,/transform:scale\(1\.018\)/);
@@ -116,8 +116,8 @@ test('mosaic CSS uses 12-column full-width hierarchy without default giant boxes
 });
 test('integration is versioned, releases track files and does not change player or chat',()=>{
  const html=read('index.html'),rel=read('tools/swapp-release.js');
- assert.ok(html.includes('/assets/swapp-channel-mosaic.css?v=20261022-image-hd-v4'));
- assert.ok(html.includes('/assets/swapp-channel-mosaic.js?v=20261022-theatre-v3'));
+ assert.ok(html.includes('/assets/swapp-channel-mosaic.css?v=20261025-preview-grid-v1'));
+ assert.ok(html.includes('/assets/swapp-channel-mosaic.js?v=20261025-preview-grid-v1'));
  for(const file of ['assets/swapp-channel-mosaic.css','assets/swapp-channel-mosaic.js'])
   assert.ok(rel.includes("'"+file+"'"));
  assert.ok(rel.includes("'modules/swapp-channel-panels.js'"));
@@ -142,4 +142,41 @@ test('no fictitious news block when live is offline or no articles match the gam
  assert.match(news,/if\(!articles\.length\)return/);
  assert.match(news,/placement\.append\(shelf\)/);
  assert.match(read('index.html'),/swapp-live-articles\.js\?v=20261022-no-empty-creator-news-v1/);
+});
+
+test('gallery publish verifies metadata and real stored layouts, not just counts',()=>{
+ const {publishedLayoutMatches}=require('../assets/swapp-channel-mosaic');
+ const p={...legacy('Affiche'),size:'hero',ratio:'21:9',fit:'cover',style:'overlay',focal_x:28,focal_y:70};
+ assert.equal(publishedLayoutMatches([p],[{...p,image_url:'/api/oryon/panel-image/abc'}]),true);
+ assert.equal(publishedLayoutMatches([p],[{...p,size:'medium',image_url:'/api/oryon/panel-image/abc'}]),false);
+ assert.equal(publishedLayoutMatches([p],[{...p,image_url:'data:image/png;base64,aGVsbG8='}]),false);
+ assert.equal(publishedLayoutMatches([p],[]),false);
+});
+test('composer previews the whole published mosaic before saving',()=>{
+ const js=read('assets/swapp-channel-mosaic.js');
+ const css=read('assets/swapp-channel-mosaic.css');
+ assert.match(js,/swapp-mosaic-editor-live-preview/);
+ assert.match(js,/function renderPreview\(\)/);
+ assert.match(js,/function refreshPreviewCard\(index\)/);
+ assert.match(js,/function updatePreviewFocus\(index\)/);
+ assert.match(js,/cardsArea\.append\(card\)/);
+ assert.match(js,/renderPreview\(\);/);
+ for(const attr of ['size','ratio','fit','style'])assert.match(js,new RegExp("tile\\.dataset\\."+attr));
+ assert.match(css,/swapp-mosaic-editor-live-grid/);
+ assert.match(css,/swapp-mosaic-preview-tile\[data-size="hero"\]/);
+ assert.match(css,/swapp-mosaic-preview-tile\[data-ratio="21:9"\]/);
+ assert.match(css,/@media\(max-width:680px\)/);
+});
+
+test('composer preview excludes panels without an image, matching actual published layout',()=>{
+ const js=read('assets/swapp-channel-mosaic.js');
+ assert.match(js,/const published=draft\.map\(/);
+ assert.match(js,/\.filter\(item=>String\(item\.panel\.image_url/);
+ assert.match(js,/\[data-preview-index=/);
+});
+test('confirmed backend layout accepts normalized whitespace and integer focal points',()=>{
+ const {publishedLayoutMatches}=require('../assets/swapp-channel-mosaic');
+ const requested={...legacy('Visuel '),focal_x:33.4,focal_y:66.4};
+ const published={...requested,title:'Visuel',focal_x:33,focal_y:66};
+ assert.equal(publishedLayoutMatches([requested],[published]),true);
 });

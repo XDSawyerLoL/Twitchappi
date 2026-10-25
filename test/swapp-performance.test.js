@@ -46,7 +46,7 @@ test('both page shells use latest batched menu script with no stale assets',()=>
   assert.match(source,/swapp-hub-nav\.js\?v=20261020-guides-native-v2/);
   assert.doesNotMatch(source,/swapp-hub-nav\.js\?v=20261015-community-restore-10/);
  }
- assert.match(spa,/swapp-home-news\.js\?v=20261018-followed-session-v27/);
+ assert.match(spa,/swapp-home-news\.js\?v=20261025-latest-video-v1/);
 });
 
 test('SOCIAL remains mounted on its full native page and uses an independent backend',()=>{
@@ -89,8 +89,10 @@ test('AdSense verifier loads in public HTML while ad placements require TCF cons
 test('video feature is in the existing editorial header, preserving all article cards',()=>{
  const home=read('assets/swapp-home-news.js');
  const html=read('index.html');
- assert.ok(home.includes('function videoTeaser()'));
- assert.ok(home.includes('actions.append(videoTeaser());title.append(all)'));
+ assert.ok(home.includes('function videoTeaser(item)'));
+ assert.ok(home.includes('function updateVideoTeaser(section,articles)'));
+ assert.ok(home.includes('updateVideoTeaser(section,valid)'));
+ assert.ok(!home.includes('trailer-code-vein-2-story-trailer'));
  assert.ok(home.includes('swappVideoPlay'));
  assert.ok(html.includes('swapp-video-player.js?v=20261016-ios-journey-1'));
 });
