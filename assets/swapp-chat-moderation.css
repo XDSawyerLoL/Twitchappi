@@ -1,0 +1,67 @@
+/* Channel moderation: compact chat access + isolated modal, no player sizing. */
+#channel .nativeFixedChat .swapp-mod-open{
+ flex:0 0 auto!important;width:auto!important;min-height:28px!important;
+ padding:5px 9px!important;font-size:11px!important;border-radius:9px!important;
+ border:1px solid color-mix(in srgb,var(--brand,#8b5cf6) 40%,transparent)!important;
+ color:var(--text,#f6f8ff)!important;background:rgba(135,92,199,.15)!important;
+}
+.swapp-mod-dialog{
+ position:fixed;inset:0;margin:auto;width:min(760px,calc(100vw - 24px));
+ max-height:min(88dvh,820px);padding:0;border:1px solid rgba(177,161,211,.3);
+ border-radius:16px;background:#10131e;color:#f3f0fa;box-shadow:0 28px 90px #000a;
+ font:14px/1.4 Inter,system-ui,sans-serif;overflow:hidden;
+}
+.swapp-mod-dialog::backdrop{background:rgba(0,0,0,.76);backdrop-filter:blur(4px)}
+.swapp-mod-dialog .swapp-mod-top{
+ display:flex;align-items:center;justify-content:space-between;gap:12px;
+ padding:16px 20px;border-bottom:1px solid #313143;
+}
+.swapp-mod-dialog .swapp-mod-top b{display:block;font-size:19px;letter-spacing:-.02em}
+.swapp-mod-dialog .swapp-mod-top small{color:#aaa7ba}
+.swapp-mod-dialog .swapp-mod-top button{font-size:23px;min-width:35px}
+.swapp-mod-dialog .swapp-mod-scroll{overflow-y:auto;max-height:calc(min(88dvh,820px) - 106px);overscroll-behavior:contain;padding:0 20px 22px}
+.swapp-mod-dialog .swapp-mod-status{min-height:20px;margin:7px 20px;color:#bdb2ce;font-size:12px}
+.swapp-mod-dialog .swapp-mod-status[data-error="1"]{color:#ffaaa8}
+.swapp-mod-dialog section{padding:17px 0;border-bottom:1px solid rgba(255,255,255,.09)}
+.swapp-mod-dialog section:last-child{border-bottom:0}
+.swapp-mod-dialog section[hidden]{display:none!important}
+.swapp-mod-dialog h3{margin:0 0 11px;font-size:14px;font-weight:750}
+.swapp-mod-dialog h3 small{font-size:11px;font-weight:400}
+.swapp-mod-dialog label{display:block;font-size:12px;color:#d5d1e0}
+.swapp-mod-dialog :is(input,select,textarea){
+ border:1px solid #404056!important;background:#191c2b!important;color:#f6f3ff!important;
+ border-radius:8px!important;padding:8px 10px!important;min-height:35px;min-width:0;
+ font:inherit!important;
+}
+.swapp-mod-dialog .swapp-mod-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.swapp-mod-dialog .swapp-mod-row input{flex:1 1 160px;width:auto}
+.swapp-mod-dialog .swapp-mod-row select{flex:0 0 115px;width:auto}
+.swapp-mod-dialog button{
+ cursor:pointer;min-height:32px;border:1px solid #494055;background:#252139;
+ color:#eee9f8;padding:6px 11px;border-radius:8px;font:inherit;
+}
+.swapp-mod-dialog button:hover{background:#39304f;border-color:#70628a}
+.swapp-mod-dialog button:focus-visible{outline:2px solid #c4a1ff;outline-offset:2px}
+.swapp-mod-dialog .swapp-mod-buttons{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px}
+.swapp-mod-dialog .swapp-mod-block{margin-top:14px}
+.swapp-mod-dialog .swapp-mod-block textarea{display:block;width:100%;margin:6px 0 9px;resize:vertical}
+.swapp-mod-dialog .swapp-mod-row + button,.swapp-mod-dialog select[name="slow"]+button{margin-top:8px}
+.swapp-mod-dialog .swapp-mod-pill{
+ display:inline-block;border-radius:6px;padding:5px 8px;margin:0 5px 5px 0;
+ font-size:12px;background:#262339;border:1px solid #413956;
+}
+.swapp-mod-dialog .swapp-mod-empty{font-size:12px;color:#aaa5b6;margin:6px 0}
+.swapp-mod-dialog .swapp-mod-message{
+ display:flex;gap:12px;align-items:center;justify-content:space-between;
+ padding:9px 0;border-bottom:1px solid rgba(255,255,255,.06);
+}
+.swapp-mod-dialog .swapp-mod-message-text{flex:1 1 auto;min-width:0;display:grid;gap:2px}
+.swapp-mod-dialog .swapp-mod-message-text b{font-size:12px}
+.swapp-mod-dialog .swapp-mod-message-text span{font-size:12px;color:#beb9cb;overflow-wrap:anywhere}
+.swapp-mod-dialog .swapp-mod-message button{font-size:11px;flex:0 0 auto}
+.swapp-mod-dialog .swapp-mod-audit p{font-size:11px;color:#bbb5c9;margin:5px 0}
+@media(max-width:620px){
+ .swapp-mod-dialog{width:calc(100vw - 12px);max-height:94dvh}
+ .swapp-mod-dialog .swapp-mod-scroll{max-height:calc(94dvh - 106px);padding:0 13px 16px}
+ .swapp-mod-dialog .swapp-mod-top{padding:14px}
+}
