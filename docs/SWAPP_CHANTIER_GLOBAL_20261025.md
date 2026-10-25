@@ -86,3 +86,47 @@ validation commerciale et déploiement. Ne pas communiquer comme tel.**
 - Ces essais ne prouvent ni la persistance effective Hostinger ni l'absence
   de régressions sur les navigateurs réels. Aucun test navigateur réel ou
   npm test complet n'a été exécuté pendant cette session.
+
+
+## Lot SOCIAL — images éditoriales et messagerie à deux colonnes
+
+### Code livré sur la branche
+- Flux des articles dans SOCIAL : recherche d'illustration à partir des champs
+  éditoriaux contrôlés, bascule vers une autre image du même article et
+  miniature du trailer YouTube officiel lorsque celui-ci existe.
+  Un éditeur externe qui bloque ses images ne supprime plus le lien, le
+  titre et le contexte de l'article ; aucun visuel d'un autre jeu n'est inventé.
+- Messagerie privée : affichage en deux panneaux desktop (liste des fils
+  et conversation active). Repli une colonne sous 1120 px.
+  Le navigateur garde les contrôles existants et la navigation via
+  `data-conversation`.
+- Les fils de messages se chargent indépendamment de la conversation
+  pour ne pas retarder son ouverture sur un serveur lent.
+- Rafraîchissement anti-chevauchement : une seule requête active par
+  conversation ; le jeton de génération bloque tout retour obsolète après
+  navigation ou changement de contact.
+- Références de fichiers harmonisées pour les scripts natifs SOCIAL, les
+  CSS et les vérifications du déploiement.
+
+### Contrôles faits dans un environnement isolé
+- 6 tests de la galerie éditoriale SOCIAL : réussis.
+- 10 tests de messagerie / stabilité : réussis ; 1 test lié au proxy serveur
+  non exécuté dans le simulateur.
+- 15 vérifications sur Social, navigation et RSS : réussies après simulation
+  des composants Node/browser pertinents.
+- Vérification de la syntaxe JS des modules modifiés et équilibre CSS.
+- Les suites ci-dessus ne constituent **pas** un test réel MySQL/Hostinger,
+  ni un test mobile navigateur, ni l'exécution complète `npm test`.
+
+### Blocage extérieur observé
+La PR #156 est techniquement fusionnable sur `master` (pas de divergence)
+mais GitHub signale un contrôle externe Netlify de prévisualisation en
+échec (`netlify/sensational-chaja-2acd75/deploy-preview`).
+Ne pas le considérer comme une validation Hostinger, ne pas lancer
+d'actions payantes pour compenser. Aucun workflow Actions lié à la dernière
+révision n'a été observé.
+
+Les endpoints de statut public Hostinger (`/api/release`,
+`/api/oryon/persistence-status`, `/api/swapp/social-native/backend-status`)
+n'ont pas pu être inspectés par le lecteur web de cette session.
+Leur état réel reste **non vérifié**.
