@@ -7,7 +7,7 @@ const safeLogin=s=>/^[a-z0-9_]{3,25}$/.test(String(s||'').toLowerCase());
 const safeNativeLogin=s=>/^[a-z0-9_-]{2,32}$/.test(String(s||'').toLowerCase());
 const gameOf=a=>typeof a?.game==='string'?a.game.trim():String(a?.game?.name||a?.game?.title||'').trim();
 const gamesFrom=data=>[...new Set((Array.isArray(data.articles)?data.articles:[]).filter(x=>x?.slug&&x.status!=='draft').map(gameOf).filter(x=>x.length>1))].slice(0,16);
-const state={queue:null,selection:null,playing:null,discovery:[],native:[],nativeIndex:0,nativeFetchedAt:0,index:0,consent:false,autoAdvance:false,autoSource:null,playStartedAt:0,games:[],queueMode:false};
+const state={queue:null,selection:null,playing:null,playingPlatform:null,playingBroadcastId:null,discovery:[],native:[],nativeIndex:0,nativeFetchedAt:0,index:0,consent:false,autoAdvance:false,autoSource:null,playStartedAt:0,games:[],queueMode:false};
 const TV_SLOT_SECONDS=600; // 10-minute SWAPP TV slot; keep aligned with swapp-tv-director.MAX_AIR_SECONDS.
 function tvTime(value){
  if(value instanceof Date)return value.getTime();
@@ -57,9 +57,9 @@ function renderScreen(item,{onAir=false}={}){
  const login=String(item?.login||item?.twitch_login||'').toLowerCase();
  const platform=String(item?.platform||'twitch').toLowerCase();
  const valid=platform==='swapp'?safeNativeLogin(login):platform==='twitch'&&safeLogin(login);
- state.selection=valid?{login,platform,game:item.game||item.game_name||'Jeu',name:item.creator_login||item.display_name||login,onAir}:null;
- const same=state.playing===login&&state.playingPlatform===platform&&state.consent&&valid;
- if(!same){state.consent=false;state.playing=null;state.playingPlatform=null;const layer=$('stv-screen').querySelector('.stv-player-layer');if(layer)layer.remove();$('stv-screen-inner').hidden=false;}
+ state.selection=valid?{login,platform,game:item.game||item.game_name||'Jeu',name:item.creator_login||item.display_name||login,onAir,broadcastId:item.broadcast_id||null}:null;
+ const same=state.playing===login&&state.playingPlatform===platform&&state.playingBroadcastId===(state.selection?.broadcastId||null)&&state.consent&&valid;
+ if(!same){state.consent=false;state.playing=null;state.playingPlatform=null;state.playingBroadcastId=null;const layer=$('stv-screen').querySelector('.stv-player-layer');if(layer)layer.remove();$('stv-screen-inner').hidden=false;}
  if(platform==='swapp'&&typeof showChat==='function'&&activeDock==='twitch')showChat('swapp');
  if(typeof updateTwitchChat==='function')updateTwitchChat();
  const name=state.selection?.name||'Antenne en préparation';
@@ -99,7 +99,7 @@ function play(){
  }
  frame.allow='autoplay; fullscreen';frame.allowFullscreen=true;frame.referrerPolicy='strict-origin-when-cross-origin';
  layer.append(frame,by('div','stv-player-overlay','SWAPP TV  /  '+(item.onAir?'À L’ANTENNE':'DÉCOUVERTE')));
- screen.append(layer);$('stv-screen-inner').hidden=true;state.playing=item.login;state.playingPlatform=item.platform;state.consent=true;
+ screen.append(layer);$('stv-screen-inner').hidden=true;state.playing=item.login;state.playingPlatform=item.platform;state.playingBroadcastId=item.broadcastId||null;state.consent=true;
  // Resume subsequent 10-minute TV slots only if the user started an actual
  // on-air relay. Browser embedding is muted to respect autoplay policy.
  state.autoAdvance=true;
@@ -146,7 +146,7 @@ async function refreshQueue(){
   state.queue=data;state.queueMode=Boolean(data.enabled)||state.native.length>0;
   renderQueue(data);updateSlotClock();
   if(state.native.length){
-   const active=state.native.find(x=>x.login===state.selection?.login&&state.selection?.platform==='swapp');
+   const active=state.native.find(x=>x.login===state.selection?.login&&state.selection?.platform==='swapp'&&x.broadcast_id===(state.selection?.broadcastId||null));
    const item=active||state.native[state.nativeIndex%state.native.length];
    state.nativeIndex=state.native.indexOf(item);
    if(!active)renderScreen(item,{onAir:true});
