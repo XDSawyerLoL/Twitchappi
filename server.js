@@ -4634,10 +4634,23 @@ function swappRejectBadLocalAgentUrl(raw){
   }catch(_){ return 'URL publique invalide.'; }
 }
 
+// Opt-in live browser notifications. Disabled without explicit Hostinger
+// MySQL + VAPID configuration; uses free standard Push endpoints, no paid API.
+const {makeLivePush}=require('./modules/swapp-live-push');
+const swappLivePush=makeLivePush({isFollowing:(viewerId,creator)=>{
+ const user=(readOryonUsers().users||[]).find(x=>String(x.id)===String(viewerId));
+ return Boolean(Array.isArray(user?.following)&&user.following.includes(creator));
+}});
+swappLivePush.register(app);
+
 // Upload-only OBS transport: SWAPP Local sends bounded HLS to the existing
 // HTTPS site. Viewers never connect to the streamer PC or a temporary tunnel.
 const {attachSwappDirectRelay}=require('./modules/swapp-direct-hls-relay');
-const swappDirectRelay=attachSwappDirectRelay(app,{lookupOwner:async token=>findOryonUserByAgentToken(readOryonUsers(),token)});
+const swappDirectRelay=attachSwappDirectRelay(app,{
+ lookupOwner:async token=>findOryonUserByAgentToken(readOryonUsers(),token),
+ onPublishedLive:(login,eventId)=>swappLivePush.notifyLive(login,eventId,
+  (readOryonUsers().users||[]).find(x=>x.login===login)?.current_live_title||'')
+});
 
 app.post('/api/oryon/local-agent/register-public-url', mutationLimiter, async (req, res) => {
   try {
