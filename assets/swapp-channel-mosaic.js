@@ -27,7 +27,13 @@
    if(!value?.image_url||!actual[index]?.image_url||
       String(actual[index].image_url).startsWith('data:'))return false;
    const desired=normalize(value,index),stored=normalize(actual[index],index);
-   return fields.every(key=>desired[key]===stored[key]);
+   return fields.every(key=>{
+    if(['title','description','link_url'].includes(key))
+     return String(desired[key]).trim()===String(stored[key]).trim();
+    if(key==='focal_x'||key==='focal_y')
+     return Math.round(desired[key])===Math.round(stored[key]);
+    return desired[key]===stored[key];
+   });
   });
  };
  const node=(tag,cls,text)=>{
@@ -404,19 +410,22 @@
   }
   function renderPreview(){
    previewGrid.replaceChildren();
-   if(!draft.length){
+   const published=draft.map((panel,index)=>({panel,index}))
+    .filter(item=>String(item.panel.image_url||'').trim());
+   if(!published.length){
     previewGrid.append(node('p','swapp-mosaic-preview-empty','Ajoute une image pour composer ta chaîne.'));
     return;
    }
-   draft.forEach((panel,index)=>previewGrid.append(previewTile(panel,index)));
+   for(const {panel,index} of published)previewGrid.append(previewTile(panel,index));
   }
   function refreshPreviewCard(index){
-   const existing=previewGrid.children[index];
-   if(existing&&draft[index])existing.replaceWith(previewTile(draft[index],index));
+   if(!String(draft[index]?.image_url||'').trim()){renderPreview();return}
+   const existing=previewGrid.querySelector('[data-preview-index="'+index+'"]');
+   if(existing)existing.replaceWith(previewTile(draft[index],index));
    else renderPreview();
   }
   function updatePreviewFocus(index){
-   const image=previewGrid.children[index]?.querySelector('img');
+   const image=previewGrid.querySelector('[data-preview-index="'+index+'"] img');
    if(image)image.style.objectPosition=draft[index].focal_x+'% '+draft[index].focal_y+'%';
   }
   function redraw(focus=-1){
