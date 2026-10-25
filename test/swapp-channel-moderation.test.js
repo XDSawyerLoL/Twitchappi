@@ -58,6 +58,9 @@ test('creator may delegate; moderator may remove posts but cannot edit privilege
  assert.equal(f.request('POST','helper',{action:'delete',id:'msg1'}).statusCode,200);
  assert.equal(f.history.length,0);
  assert.ok(f.emits.some(e=>e.name==='native:chat:deleted'&&e.payload.id==='msg1'));
+ f.history.push({id:'owner-msg',room:'owner',user:'owner',text:'Annonce',ts:100});
+ assert.equal(f.request('POST','helper',{action:'delete',id:'owner-msg'}).statusCode,403);
+ assert.equal(f.history.length,1);
  assert.equal(f.request('POST','owner',{action:'remove_mod',target:'helper'}).statusCode,200);
  assert.equal(f.request('POST','helper',{action:'ban',target:'viewer'}).statusCode,403);
 });
