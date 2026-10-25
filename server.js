@@ -1264,6 +1264,20 @@ async function sendSwappPublicChannelUi(req, res, login){
     try{await ORYON_USERS_READY}catch(_){}
     const creator=getOryonUserByLogin(clean);
     let html = fs.readFileSync(found, 'utf8');
+    // SWAPP TV embeds first-party channels; the video surface must fill the
+    // player rather than nesting an entire website in the theatre screen.
+    // Only permit same-origin frames on the opt-in TV embed route.
+    if(req.query?.swapp_tv_embed==='1'){
+      res.setHeader('X-Frame-Options','SAMEORIGIN');
+      const embedStyle=`<style>
+html.swapp-tv-embed,html.swapp-tv-embed body{margin:0!important;overflow:hidden!important;background:#030508!important}
+html.swapp-tv-embed #channel{display:block!important;position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;margin:0!important;padding:0!important;overflow:hidden!important;z-index:1000}
+html.swapp-tv-embed #channel .oryonMainPlayer,html.swapp-tv-embed #channel .premiumPlayer{position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;min-height:100vh!important;max-width:none!important;z-index:1001!important;background:#030508!important}
+html.swapp-tv-embed #channel .oryonMainPlayer video,html.swapp-tv-embed #channel .premiumPlayer video{object-fit:contain!important;width:100%!important;height:100%!important}
+html.swapp-tv-embed #channel .twitchChat,html.swapp-tv-embed #channel .channelChat{display:none!important}
+</style><script>document.documentElement.classList.add('swapp-tv-embed');</script>`;
+      html=html.replace('</head>',embedStyle+'</head>');
+    }
     const poster=swappDirectRelay.posterForLogin(clean);
     const clip=swappDirectRelay.clipForLogin(clean);
     const isPublic=!!creator&&creator.channel_public!==false;
