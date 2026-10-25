@@ -6,7 +6,7 @@ const api=async(path,options={})=>{const r=await fetch(path,{credentials:'same-o
 const safeLogin=s=>/^[a-z0-9_]{3,25}$/.test(String(s||'').toLowerCase());
 const gameOf=a=>typeof a?.game==='string'?a.game.trim():String(a?.game?.name||a?.game?.title||'').trim();
 const gamesFrom=data=>[...new Set((Array.isArray(data.articles)?data.articles:[]).filter(x=>x?.slug&&x.status!=='draft').map(gameOf).filter(x=>x.length>1))].slice(0,16);
-const state={queue:null,selection:null,playing:null,discovery:[],index:0,consent:false,autoAdvance:false,games:[],queueMode:false};
+const state={queue:null,selection:null,playing:null,discovery:[],index:0,consent:false,autoAdvance:false,autoSource:null,playStartedAt:0,games:[],queueMode:false};
 const TV_SLOT_SECONDS=600; // 10-minute SWAPP TV slot; keep aligned with swapp-tv-director.MAX_AIR_SECONDS.
 function tvTime(value){
  if(value instanceof Date)return value.getTime();
@@ -66,7 +66,7 @@ function renderScreen(item,{onAir=false}={}){
  setText('stv-stage-status',onAir&&valid?'Créateur sélectionné par la régie SWAPP TV.':valid?'Direct trouvé dans la découverte. Lecture volontaire, sans garantie de maintien en ligne.':'Aucun passage vérifié à cette heure.');
  // A single voluntary Play authorises subsequent verified TV transitions.
  // Do not auto-start public discovery or silently start before first consent.
- if(state.autoAdvance&&onAir&&valid&&!same)play();
+ if(state.autoAdvance&&state.autoSource===(onAir?'queue':'discovery')&&valid&&!same)play();
  else syncWatchButton();
 }
 function syncWatchButton(){
@@ -75,7 +75,7 @@ function syncWatchButton(){
  $('stv-watch').setAttribute('aria-pressed',String(watching));
 }
 function stopPlayback(){
- state.consent=false;state.playing=null;state.autoAdvance=false;
+ state.consent=false;state.playing=null;state.autoAdvance=false;state.autoSource=null;state.playStartedAt=0;
  $('stv-screen').querySelector('.stv-player-layer')?.remove();
  $('stv-screen-inner').hidden=false;
  syncWatchButton();
@@ -90,7 +90,9 @@ function play(){
  screen.append(layer);$('stv-screen-inner').hidden=true;state.playing=item.login;state.consent=true;
  // Resume subsequent 10-minute TV slots only if the user started an actual
  // on-air relay. Browser embedding is muted to respect autoplay policy.
- state.autoAdvance=Boolean(item.onAir);
+ state.autoAdvance=true;
+ state.autoSource=item.onAir?'queue':'discovery';
+ state.playStartedAt=Date.now();
  syncWatchButton();
 }
 async function refreshQueue(){
@@ -161,6 +163,22 @@ async function discovery(){
   if(!active)renderScreen(ordered[0]||null);
   rail(null);
  }
+}
+// Fallback channel: genuine live discovery also rotates after one explicit
+// viewer action. Never promote stale input without the API discovery refresh.
+const DISCOVERY_SLOT_MS=10*60*1000;
+function maybeAdvanceDiscovery(now=Date.now()){
+ if(state.queueMode||!state.consent||!state.autoAdvance||
+    state.autoSource!=='discovery'||now-state.playStartedAt<DISCOVERY_SLOT_MS)return false;
+ const candidates=state.discovery;
+ if(candidates.length<2){
+  state.playStartedAt=now;return false;
+ }
+ const current=candidates.findIndex(x=>x.login===state.selection?.login);
+ state.index=((current<0?0:current)+1)%candidates.length;
+ renderScreen(candidates[state.index],{onAir:false});
+ rail(null);
+ return true;
 }
 async function mutate(method){
  const node=$('stv-queue-status');node.textContent='Vérification de ton compte…';
@@ -301,6 +319,7 @@ $('stv-swapp-chat-form').addEventListener('submit',async e=>{
 void refreshSwappChat();
 setInterval(()=>{if(!$('stv-pane-swapp').hidden)void refreshSwappChat()},7000);
 setInterval(updateSlotClock,1000);
+setInterval(maybeAdvanceDiscovery,30000);
 
 $('stv-watch').addEventListener('click',()=>{
  if(state.selection&&state.playing===state.selection.login&&state.consent)stopPlayback();
