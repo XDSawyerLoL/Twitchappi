@@ -246,7 +246,7 @@ function makeLivePush({isFollowing=()=>false,send=globalThis.fetch,logger=consol
       url:'/'+encodeURIComponent(login),tag:'swapp-live-'+login
      });
      const response=await send(row.endpoint,{method:'POST',headers:request.headers,
-      body:request.body,signal:AbortSignal.timeout(8000)});
+      body:request.body,redirect:'error',signal:AbortSignal.timeout(8000)});
      if(response.ok)sent++;
      else if(response.status===404||response.status===410)
       await p.execute('DELETE FROM swapp_live_push_devices WHERE endpoint_hash=?',[row.endpoint_hash]);
