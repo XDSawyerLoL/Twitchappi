@@ -128,13 +128,28 @@
   const video=page.querySelector('.channelMainPlayer > :is(.player,.premiumPlayer,.oryonMainPlayer)');
   const chat=page.querySelector('.channelLiveSidebar .chatPanel');
   if(!video||!chat)return;
-  const h=Math.round(video.getBoundingClientRect().height);
+  const videoRect=video.getBoundingClientRect();
+  const h=Math.round(videoRect.height);
   if(!Number.isFinite(h)||h<140)return;
   const mobile=window.matchMedia('(max-width:1080px)').matches;
   const actual=mobile?Math.max(300,Math.min(440,h)):h;
   chat.style.setProperty('--swapp-chat-player-height',actual+'px');
   for(const prop of ['height','min-height','max-height'])
    chat.style.setProperty(prop,actual+'px','important');
+  // The legacy channel CSS also pushed the chat away via sticky top:122px.
+  // Defensively match the actual pixel top, not only the video height.
+  // Independent CSS translate is out-of-flow; it cannot disturb grid columns.
+  const previousShift=Number(chat.dataset.swappAlignShift||0);
+  const chatRect=chat.getBoundingClientRect();
+  const besideVideo=!mobile && chatRect.left+20>=videoRect.right &&
+   chatRect.width>120 && videoRect.width>200;
+  const baselineTop=chatRect.top-previousShift;
+  const delta=besideVideo?Math.max(-240,Math.min(240,Math.round(videoRect.top-baselineTop))):0;
+  const shift=Math.abs(delta)>2?delta:0;
+  if(shift!==previousShift){
+   chat.style.setProperty('translate','0 '+shift+'px','important');
+   chat.dataset.swappAlignShift=String(shift);
+  }
  }
  function install(page){
   if(!page||page.querySelector('.swapp-watch-tools'))return;
@@ -174,6 +189,11 @@
    window.swappFitChat1014?.();
    syncChat(page);
   });
+  // Channel styles/fonts/player dimensions may finish settling after mount.
+  // Repeat alignment without altering the original video or its iframe.
+  for(const ms of [150,700,1600])setTimeout(()=>{
+   if(page.isConnected)syncChat(page);
+  },ms);
   if(typeof ResizeObserver==='function'){
    const watcher=new ResizeObserver(()=>{
     if(!page.isConnected){watcher.disconnect();return}
