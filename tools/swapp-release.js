@@ -92,6 +92,7 @@ const RELEASE_FILES=Object.freeze([
  'modules/swapp-live-push.js',
  'swapp-live-sw.js',
  'modules/swapp-direct-hls-relay.js',
+ 'modules/swapp-obs-hls-playlist.js',
  'assets/swapp-channel-mosaic.css',
  'assets/swapp-channel-mosaic.js',
  'modules/swapp-channel-panels.js',
