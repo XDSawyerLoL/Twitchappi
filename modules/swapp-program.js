@@ -83,7 +83,7 @@ function page(kind){
   </dialog>
  </main>`:calendar;
  return layout({title:tv?'SWAPP TV — La chaîne du Game Universe':'Programme SWAPP TV',description:tv?'La chaîne gaming collective, découverte équitable et directs vérifiés':'Agenda des rendez-vous Spotlight SWAPP',content,active:tv?'tv':'agenda',extraCss:PROGRAM_CSS,scripts:'<link rel="stylesheet" href="/assets/swapp-program.css?v=20261022-tv-side-dock-v8">'+
-  (tv?'<script defer src="/assets/swapp-tv-broadcast.js?v=20261022-tv-side-dock-v8"></script>':'')+
+  (tv?'<script defer src="/assets/swapp-tv-broadcast.js?v=20261025-tv-continuity-v1"></script>':'')+
   '<script defer src="/assets/swapp-calendar.js?v=20261021-calendar-health-v2"></script>'});
 }
 module.exports={page};
