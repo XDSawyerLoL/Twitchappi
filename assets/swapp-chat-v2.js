@@ -43,9 +43,18 @@
   const form=panel.querySelector('.chatForm');
   const input=form?.querySelector('#chatInput');
   const emoji=form?.querySelector('button[onclick*="toggleEmotes"]');
-  const gif=form?.querySelector('button[onclick*="toggleGifs"]');
+  let gif=form?.querySelector('button[onclick*="toggleGifs"]');
   const send=form?.querySelector('button[onclick*="sendChat"]');
-  if(!form||!input||!emoji||!gif||!send)return;
+  if(!form||!input||!emoji||!send)return;
+  // Some older channel templates omit the GIF button entirely, causing the
+  // whole enhancement to silently abort. Supply just that missing control.
+  if(!gif && panel.querySelector('#gifGrid')){
+   gif=node('button','btn secondary','GIF');
+   gif.type='button';
+   gif.setAttribute('onclick','toggleGifs()');
+   form.insertBefore(gif,send);
+  }
+  if(!gif)return;
   panel.dataset.swappChatUi='stable';
   form.classList.add('swapp-chat-stable-composer');
   input.placeholder='Écris dans le chat…';
