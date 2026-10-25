@@ -36,12 +36,14 @@ test('game hub HTML contains real editorial links, canonical, shared live shelf 
  assert.match(landing, /href="\/jeux\/grand-theft-auto-vi"/);
  assert.match(landing, /<h1>Jeux vidéo : actualités et créateurs<\/h1>/);
 });
-test('sitemaps include the original articles but exclude retired game hub URLs',()=>{
+test('sitemaps index substantial multi-story universes without duplicating single-article pages',()=>{
  const xml=sitemapXml(published),html=sitemapHtml(published);
  assert.match(xml,/\/actus\/article-gta-first/);
  assert.match(xml,/\/actus\/article-hades-only/);
- assert.doesNotMatch(xml,/\/jeux(?:\/|<|%2F)/);
- assert.doesNotMatch(html,/href="\/jeux(?:\/|")/);
+ assert.match(xml,/\/jeux\/grand-theft-auto-vi/);
+ assert.doesNotMatch(xml,/\/jeux\/hades-ii/);
+ assert.match(html,/href="\/jeux\/grand-theft-auto-vi"/);
+ assert.doesNotMatch(html,/href="\/jeux\/hades-ii"/);
 });
 test('unpublished, empty, duplicate, invalid and malicious stories do not create a game hub',()=>{
  const input=[
@@ -58,10 +60,13 @@ test('unpublished, empty, duplicate, invalid and malicious stories do not create
  assert.equal(gameHubs(input.slice(0,1)).length,1);
  assert.equal(gameHubs([{...input[0],slug:'article-a'}, {...input[0],slug:'article-b'}])[0].count,1, 'duplicate headlines count only once');
 });
-test('old game URLs redirect to published editorials; My Games stays available',async()=>{
+test('native GAME UNIVERSE routes render real articles, private preferences and conservative indexing',async()=>{
  const handlers=new Map();let reads=0;
  registerSeoRoutes({get:(route,handler)=>handlers.set(route,handler)},{getPublished:async()=>{reads++;return published}});
- const res=()=>({statusCode:200,body:'',redirectLocation:'',set(){return this},type(){return this},status(v){this.statusCode=v;return this},send(v){this.body=v;return this},redirect(code,url){this.statusCode=code;this.redirectLocation=url;return this}});
+ const res=()=>({statusCode:200,body:'',redirectLocation:'',headers:{},
+  set(name,value){this.headers[name]=value;return this},type(){return this},
+  status(v){this.statusCode=v;return this},send(v){this.body=v;return this},
+  redirect(code,url){this.statusCode=code;this.redirectLocation=url;return this}});
  const index=res(),visible=res(),solo=res(),unknown=res(),privateHub=res(),xml=res();
  await handlers.get('/jeux')({},index);
  await handlers.get('/jeux/:slug')({params:{slug:'grand-theft-auto-vi'}},visible);
@@ -69,13 +74,30 @@ test('old game URLs redirect to published editorials; My Games stays available',
  await handlers.get('/jeux/:slug')({params:{slug:'unknown-game'}},unknown);
  await handlers.get('/mes-jeux')({},privateHub);
  await handlers.get('/sitemap.xml')({},xml);
- assert.equal(index.statusCode,301);assert.equal(index.redirectLocation,'/actus');
- assert.equal(visible.statusCode,302);assert.equal(visible.redirectLocation,'/actus/article-gta-second');
- assert.equal(solo.statusCode,302);assert.equal(solo.redirectLocation,'/actus/article-hades-only');
+ assert.equal(index.statusCode,200);assert.match(index.body,/href="\/jeux\/grand-theft-auto-vi"/);
+ assert.equal(visible.statusCode,200);assert.match(visible.body,/data-swapp-live-shelf data-game="Grand Theft Auto VI"/);
+ assert.match(visible.body,/rel="canonical" href="https:\/\/swapp.tv\/jeux\/grand-theft-auto-vi"/);
+ assert.doesNotMatch(visible.body,/name="robots" content="noindex,follow"/);
+ assert.equal(solo.statusCode,200);assert.match(solo.body,/name="robots" content="noindex,follow"/);
  assert.equal(unknown.statusCode,404);
  assert.equal(privateHub.statusCode,200);assert.match(privateHub.body,/Mes jeux/);
- assert.doesNotMatch(xml.body,/\/jeux\//);
+ assert.match(xml.body,/\/jeux\/grand-theft-auto-vi/);
+ assert.doesNotMatch(xml.body,/\/jeux\/hades-ii/);
  assert.equal(reads,1,'shared editorial cache');
+});
+test('missing published source does not claim a live game directory',async()=>{
+ const handlers=new Map();
+ registerSeoRoutes({get:(route,handler)=>handlers.set(route,handler)},{
+  getPublished:async()=>{throw Error('editorial unavailable')}
+ });
+ const res=()=>({code:200,body:'',headers:{},set(k,v){this.headers[k]=v;return this},
+  type(){return this},status(n){this.code=n;return this},send(v){this.body=v;return this}});
+ const index=res(),detail=res();
+ await handlers.get('/jeux')({},index);
+ await handlers.get('/jeux/:slug')({params:{slug:'grand-theft-auto-vi'}},detail);
+ assert.equal(index.code,503);
+ assert.equal(detail.code,503);
+ assert.equal(index.headers['Retry-After'],'60');
 });
 test('topic hubs do not add features to homepage or launch paid providers',()=>{
  const server=fs.readFileSync(path.join(__dirname,'../server.js'),'utf8');
