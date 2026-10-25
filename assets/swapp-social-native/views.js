@@ -3,9 +3,11 @@ import { requireAuth } from './session.js';
 import {loadVoiceNotes,renderVoiceNote} from './dm-audio.js?v=20261018-direct-audio-v1';
 import { renderPost, renderPosts, notificationLabel } from './render.js?v=20261022-social-posts-v2';
 
-let dmRefreshTimer=null,dmLastSignature='';
+let dmRefreshTimer=null,dmLastSignature='',dmRefreshInFlight=false,dmRefreshGeneration=0;
 function stopDMRefresh(){
+ dmRefreshGeneration++;
  if(dmRefreshTimer!==null){clearInterval(dmRefreshTimer);dmRefreshTimer=null}
+ dmRefreshInFlight=false;
  dmLastSignature='';
 }
 function renderDMMessages(messages,userId,notes=[]){
@@ -23,16 +25,19 @@ function renderDMMessages(messages,userId,notes=[]){
   .map(entry=>entry.html).join('');
 }
 function startDMRefresh(handle,revision,userId,initialMessages,initialNotes=[]){
+ const generation=dmRefreshGeneration;
  let lastNotes=initialNotes;
  dmLastSignature=JSON.stringify({messages:(initialMessages||[]).map(m=>[m.id,m.createdAt,m.body]),notes:initialNotes.map(n=>n.id)});
  // Reading the thread never replaces the composer or discards an unsent draft.
  dmRefreshTimer=setInterval(async()=>{
-  if(!isCurrent(revision,'messages')||document.visibilityState==='hidden')return;
+  if(dmRefreshInFlight||generation!==dmRefreshGeneration||
+   !isCurrent(revision,'messages')||document.visibilityState==='hidden')return;
+  dmRefreshInFlight=true;
   try{
    const [result,notesResult]=await Promise.all([
     api('/api/pulse/messages/'+encodeURIComponent(handle)),loadVoiceNotes(handle)
    ]);
-   if(!isCurrent(revision,'messages'))return;
+   if(generation!==dmRefreshGeneration||!isCurrent(revision,'messages'))return;
    const messages=Array.isArray(result.messages)?result.messages:[];
    if(Array.isArray(notesResult))lastNotes=notesResult;
    const signature=JSON.stringify({messages:messages.map(m=>[m.id,m.createdAt,m.body]),notes:lastNotes.map(n=>n.id)});
@@ -45,6 +50,10 @@ function startDMRefresh(handle,revision,userId,initialMessages,initialNotes=[]){
    if(atEnd)list.scrollTop=list.scrollHeight;
   }catch{
    // Keep the last readable messages and any draft when the backend is slow.
+  }finally{
+   // A stale request may finish after navigation; it must not release the
+   // in-flight guard owned by a newer conversation.
+   if(generation===dmRefreshGeneration)dmRefreshInFlight=false;
   }
  },10000);
 }
@@ -490,6 +499,26 @@ export async function loadMessages(){
   }
 }
 
+
+function renderDMConversationLinks(conversations,currentHandle){
+ const rows=Array.isArray(conversations)?conversations:[];
+ return rows.map(conversation=>{
+  const user=conversation?.user;
+  if(!user?.handle)return '';
+  const active=String(user.handle).toLowerCase()===String(currentHandle||'').toLowerCase();
+  const count=Math.min(99,Math.max(0,Number(conversation.unreadCount||0)||0));
+  const last=conversation.lastMessage||{};
+  return '<button type="button" class="pulse-card pulse-user-card pulse-conversation'+(active?' is-active':'')+
+   (count&&!active?' is-unread':'')+'" data-conversation="'+esc(user.handle)+'"'+
+   (active?' aria-current="true"':'')+'>'+
+   '<div class="pulse-avatar">'+esc(initials(user))+'</div>'+
+   '<div class="pulse-conversation-preview"><strong>'+esc(user.displayName||user.handle)+'</strong>'+
+   '<small>'+esc(last.body||'Nouvelle conversation')+'</small></div>'+
+   '<span class="pulse-conversation-meta">'+(last.createdAt?'<time>'+esc(timeAgo(last.createdAt))+'</time>':'')+
+   (count&&!active?'<b class="pulse-unread-count">'+count+'</b>':'')+'</span></button>';
+ }).join('');
+}
+
 export async function loadConversation(handle){
   if(!requireAuth())return;
   const revision=setView('messages','@'+handle);
@@ -499,7 +528,14 @@ export async function loadConversation(handle){
       api('/api/pulse/messages/'+encodeURIComponent(handle)),loadVoiceNotes(handle)
     ]);
     if(!isCurrent(revision,'messages'))return;
-    let html='<section class="pulse-view social-dm-view"><div class="pulse-view-head social-dm-head"><button type="button" class="social-dm-back" data-social-back-messages aria-label="Retour aux messages">←</button><div class="social-dm-identity"><div class="social-dm-avatar" aria-hidden="true">'+esc(initials(data.user))+'</div><div><h2>'+esc(data.user.displayName)+'</h2><p>@'+esc(data.user.handle)+'</p></div></div><button type="button" class="pulse-dm-call-button" data-call-handle="'+esc(handle)+'" aria-label="Appeler '+esc(handle)+' en audio"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3a16 16 0 0 0 15 15l-3 4c-7 0-16-9-16-16l4-3Z" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>Appeler</button></div><div class="pulse-message-list">';
+    let html='<section class="pulse-view social-dm-workspace">'+
+     '<aside class="social-dm-conversations" aria-label="Conversations SWAPP">'+
+      '<div class="social-dm-conversations-head"><strong>Messages</strong>'+
+      '<button type="button" data-social-back-messages aria-label="Voir toutes les conversations">Tout voir</button></div>'+
+      '<div class="social-dm-conversations-list" data-dm-conversations-list aria-live="polite">'+
+      '<p class="social-dm-loading">Chargement des conversations…</p></div></aside>'+
+      '<div class="social-dm-active-thread"><section class="pulse-view social-dm-view">'+
+      '<div class="pulse-view-head social-dm-head"><button type="button" class="social-dm-back" data-social-back-messages aria-label="Retour aux messages">←</button><div class="social-dm-identity"><div class="social-dm-avatar" aria-hidden="true">'+esc(initials(data.user))+'</div><div><h2>'+esc(data.user.displayName)+'</h2><p>@'+esc(data.user.handle)+'</p></div></div><button type="button" class="pulse-dm-call-button" data-call-handle="'+esc(handle)+'" aria-label="Appeler '+esc(handle)+' en audio"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3a16 16 0 0 0 15 15l-3 4c-7 0-16-9-16-16l4-3Z" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>Appeler</button></div><div class="pulse-message-list">';
     html+=renderDMMessages(data.messages,state.user.id,notes);
     html+='</div><div class="pulse-dm-audio-controls" data-handle="'+esc(handle)+'" aria-label="Enregistrement vocal">'+
      '<div class="pulse-audio-composer-head"><span class="pulse-audio-composer-icon" aria-hidden="true">▥</span><span><strong>Message vocal</strong><small>30 secondes maximum · écoute avant envoi</small></span><time data-voice-timer aria-label="Durée du message">0:00</time></div>'+
@@ -510,12 +546,23 @@ export async function loadConversation(handle){
      '<button type="button" data-voice-cancel hidden>Effacer</button></div>'+
      '<audio data-voice-preview controls preload="none" hidden aria-label="Prévisualiser mon message vocal"></audio>'+
      '<p data-voice-status role="status" aria-live="polite">Ton micro ne sera activé qu’après avoir appuyé sur Enregistrer.</p></div>'+
-     '<form class="pulse-message-form" id="conversation-form" data-handle="'+esc(handle)+'"><input name="body" maxlength="2000" placeholder="Écrire un message…" required><button type="button" class="pulse-emoji-toggle pulse-dm-emoji" data-emoji-toggle aria-label="Insérer une emote dans le message" aria-haspopup="true" aria-expanded="false" title="Emotes SWAPP">☺</button><button class="pulse-mini-button primary">Envoyer</button></form></section>';
+     '<form class="pulse-message-form" id="conversation-form" data-handle="'+esc(handle)+'"><input name="body" maxlength="2000" placeholder="Écrire un message…" required><button type="button" class="pulse-emoji-toggle pulse-dm-emoji" data-emoji-toggle aria-label="Insérer une emote dans le message" aria-haspopup="true" aria-expanded="false" title="Emotes SWAPP">☺</button><button class="pulse-mini-button primary">Envoyer</button></form></section></div></section>';
     dom.feed.innerHTML=html;
     // Conversation windows start at the newest message, including after send.
     const thread=dom.feed.querySelector('.pulse-message-list');
     if(thread)thread.scrollTop=thread.scrollHeight;
     startDMRefresh(handle,revision,state.user.id,data.messages,notes);
+    // Secondary list is non-blocking: opening a direct message does not
+    // depend on a second backend request to load the conversation index.
+    const threads=dom.feed.querySelector('[data-dm-conversations-list]');
+    void api('/api/pulse/conversations').then(result=>{
+      if(!isCurrent(revision,'messages')||!threads?.isConnected)return;
+      const html=renderDMConversationLinks(result.conversations,handle);
+      threads.innerHTML=html||'<p class="social-dm-loading">Aucune autre conversation.</p>';
+    }).catch(()=>{
+      if(isCurrent(revision,'messages')&&threads?.isConnected)
+       threads.innerHTML='<p class="social-dm-loading">Liste momentanément indisponible.</p>';
+    });
   }catch(error){
     if(!isCurrent(revision,'messages'))return;
     const accountIsValid=await socialAuthRecovery(error,'Conversation');

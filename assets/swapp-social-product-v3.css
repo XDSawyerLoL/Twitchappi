@@ -379,3 +379,72 @@
  #swappSocialNative .pulse-dm-call-button{margin-left:8px}
  #swappSocialNative .pulse-audio-message audio{min-width:0;max-width:100%}
 }
+
+/* Native SOCIAL DMs — stable two-pane desktop layout.
+   Live message refresh replaces only .pulse-message-list; the composer
+   and side navigation remain mounted and interactive. */
+#swappSocialNative[data-social-view="messages"] .social-dm-workspace{
+ display:grid;grid-template-columns:minmax(188px,29%) minmax(0,1fr);
+ min-width:0;align-items:start;
+ background:var(--social-air-bg,#0c1320);
+}
+#swappSocialNative[data-social-view="messages"] .social-dm-conversations{
+ position:sticky;top:var(--social-stack-height,0px);
+ min-width:0;max-height:calc(100dvh - 130px);
+ overflow-y:auto;overscroll-behavior:contain;
+ border-right:1px solid var(--social-air-line,rgba(196,216,239,.105));
+ background:transparent;
+}
+#swappSocialNative[data-social-view="messages"] .social-dm-conversations-head{
+ display:flex;align-items:center;justify-content:space-between;gap:7px;
+ padding:16px 11px;border-bottom:1px solid var(--social-air-line,rgba(196,216,239,.105));
+}
+#swappSocialNative[data-social-view="messages"] .social-dm-conversations-head strong{
+ font-size:14px;letter-spacing:-.01em;
+}
+#swappSocialNative[data-social-view="messages"] .social-dm-conversations-head button{
+ border:0;background:none;padding:8px 2px;
+ color:var(--swapp-page-accent,#22d3ee);font-size:12px;cursor:pointer;
+}
+#swappSocialNative[data-social-view="messages"] .social-dm-conversations-list{
+ padding:7px;display:grid;gap:1px;min-width:0;
+}
+#swappSocialNative[data-social-view="messages"] .social-dm-conversations-list .pulse-card.pulse-conversation{
+ display:grid;grid-template-columns:34px minmax(0,1fr);
+ align-items:center;gap:10px;min-width:0;padding:10px 7px;
+ border:0;border-bottom:1px solid var(--social-air-line,rgba(196,216,239,.105));
+ border-radius:6px;box-shadow:none;background:transparent;
+ text-align:left;color:inherit;
+}
+#swappSocialNative[data-social-view="messages"] .social-dm-conversations-list .pulse-conversation-meta{
+ grid-column:2;display:flex;align-items:center;justify-content:space-between;
+ min-width:0;
+}
+#swappSocialNative[data-social-view="messages"] .social-dm-conversations-list .pulse-conversation.is-active{
+ background:color-mix(in srgb,var(--swapp-page-accent,#22d3ee) 12%,transparent);
+}
+#swappSocialNative[data-social-view="messages"] .social-dm-conversations-list .pulse-conversation:focus-visible{
+ outline:2px solid var(--swapp-page-accent,#22d3ee);outline-offset:-2px;
+}
+#swappSocialNative[data-social-view="messages"] .social-dm-active-thread{
+ min-width:0;max-width:100%;
+}
+#swappSocialNative[data-social-view="messages"] .social-dm-active-thread .social-dm-view{
+ min-width:0;
+}
+#swappSocialNative[data-social-view="messages"] .social-dm-loading{
+ padding:13px;color:#b6c5d5;font-size:12px;line-height:1.5;
+}
+@media(max-width:1120px){
+ #swappSocialNative[data-social-view="messages"] .social-dm-workspace{
+  grid-template-columns:minmax(0,1fr);
+ }
+ #swappSocialNative[data-social-view="messages"] .social-dm-conversations{
+  display:none;
+ }
+}
+@media(prefers-reduced-motion:reduce){
+ #swappSocialNative[data-social-view="messages"] .social-dm-conversations-list .pulse-conversation{
+  transition:none;
+ }
+}
