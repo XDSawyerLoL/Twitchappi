@@ -177,7 +177,8 @@
   const title=document.createElement('h2');title.className='swapp-watch-live-title';
   title.textContent=currentBroadcastTitle(page)||'Direct en cours';
   header.append(pill,title);
-  main.insertBefore(header,video);
+  if(video.parentElement===main)main.insertBefore(header,video);
+  else main.prepend(header);
   const login=broadcastLogin(page);
   let remoteTitle='';
   const refresh=async()=>{
