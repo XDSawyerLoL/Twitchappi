@@ -13,6 +13,32 @@ function attachSwappDirectRelay(app, opts={}){
  const onPublishedLive=opts.onPublishedLive;
  if(typeof lookupOwner!=='function')throw Error('Direct HLS relay owner resolver required');
  const rooms=new Map();
+ // Per-owner, ephemeral diagnostics: never include a stream key, URL query or IP.
+ const obsIngestTelemetry=new Map();
+ function obsTrack(login,name,res){
+  const stamp=Date.now();
+  const prev=obsIngestTelemetry.get(login)||{};
+  const current={...prev,last_put_at:stamp,total_puts:(prev.total_puts||0)+1,last_file_type:name==='index.m3u8'?'playlist':'segment'};
+  obsIngestTelemetry.set(login,current);
+  let recorded=false;
+  const done=()=>{
+   if(recorded)return;recorded=true;
+   const code=Number(res.statusCode||200);
+   current.last_status=code;
+   current.last_status_at=Date.now();
+   if(code>=200&&code<300){
+    if(name==='index.m3u8')current.last_playlist_ok_at=Date.now();
+    else current.last_segment_ok_at=Date.now();
+    current.last_error_code=null;
+   }else{
+    current.last_error_code=code;
+    current.last_error_at=Date.now();
+   }
+  };
+  if(typeof res.on==='function')res.on('finish',done);
+  return done;
+ }
+
  const MAX_ROOMS=Math.max(1,Math.min(2,Number(process.env.SWAPP_DIRECT_RELAY_MAX_ROOMS||2)));
  const MAX_ROOM_BYTES=Math.min(64*1024*1024,Math.max(12*1024*1024,Number(process.env.SWAPP_DIRECT_RELAY_ROOM_BYTES||48*1024*1024)));
  const MAX_POSTER_BYTES=600*1024;
@@ -262,6 +288,7 @@ function attachSwappDirectRelay(app, opts={}){
    let user=null;
    try{user=await opts.lookupObsOwner(cid)}catch(_){}
    if(!cleanLogin(user?.login))return res.status(403).json({success:false,error:'Clé OBS non autorisée.'});
+   const recordObs=obsTrack(cleanLogin(user.login),name,res);
    if(name==='index.m3u8'){
     // Normalize exact segment identifiers to match SWAPP's verified HLS relay.
     const source=req.body.toString('utf8');
@@ -279,6 +306,8 @@ function attachSwappDirectRelay(app, opts={}){
    // Reuse *exactly* the existing validation, RAM budgets and public player.
    req.headers['x-swapp-media-name']=name;
    await receiveMedia(req,res,user);
+   // Test harnesses may not model Express 'finish', so record synchronously too.
+   if(typeof res.on!=='function')recordObs();
    // Credit only verified playable manifests, never a token-only heartbeat.
    if(name==='index.m3u8'&&res.statusCode<300&&hasFreshVideo(rooms.get(cleanLogin(user.login)))){
     if(typeof opts.onVerifiedObsIngest==='function'){
@@ -287,6 +316,35 @@ function attachSwappDirectRelay(app, opts={}){
     }
    }
   });
+ // Authenticated diagnostics allow the owner to distinguish: no PUT, media-only,
+ // rejected playlist or playable HLS. No stream key, tokens, user list or IP.
+ app.get('/api/swapp/obs-hls/diagnostics',async(req,res)=>{
+  res.set('Cache-Control','private, no-store');
+  if(typeof opts.lookupDashboardOwner!=='function')
+   return res.status(503).json({success:false,error:'Diagnostic OBS indisponible.'});
+  let owner=null;
+  try{owner=await opts.lookupDashboardOwner(req)}catch(_){}
+  const login=cleanLogin(owner?.login);
+  if(!login)return res.status(401).json({success:false,error:'Connexion propriétaire SWAPP requise.'});
+  const now=Date.now(),r=rooms.get(login),t=obsIngestTelemetry.get(login)||{};
+  const segmentAge=r?.lastSegmentAt?Math.max(0,now-r.lastSegmentAt):null;
+  const playlistAge=r?.lastManifestAt?Math.max(0,now-r.lastManifestAt):null;
+  const active=hasFreshVideo(r),seen=!!t.last_put_at;
+  let stage='no_upload';
+  if(active)stage='live';
+  else if(t.last_error_code&&now-(t.last_error_at||0)<60000)stage='rejected';
+  else if(r?.lastSegmentAt&&now-r.lastSegmentAt<60000)stage='segments_only';
+  else if(seen&&now-t.last_put_at<60000)stage='upload_detected';
+  else if(seen)stage='upload_stale';
+  res.json({success:true,room:login,stage,active,transport:'obs-hls-http-put',
+   backend:'swapp-direct-hls',single_node_process:true,
+   last_put_at:t.last_put_at||null,last_file_type:t.last_file_type||null,
+   last_status:t.last_status||null,last_error_code:t.last_error_code||null,
+   last_segment_ok_at:t.last_segment_ok_at||null,last_playlist_ok_at:t.last_playlist_ok_at||null,
+   segment_age_ms:segmentAge,playlist_age_ms:playlistAge,segment_count:r?.segments?.size||0,
+   has_playlist:!!r?.manifest,max_rooms:MAX_ROOMS,used_rooms:rooms.size,
+   protocol_hint:'OBS doit utiliser le service HLS et HTTP PUT; les ports RTMP ne fonctionnent pas ici.'});
+ });
  // Presence counts active playback sessions, not page visits or fabricated viewers.
  // Only the player sends a heartbeat after video frames are decoded.
  function activeSwappers(room){
