@@ -66,14 +66,14 @@ async function verify(){
  const station=await request(origin,'/tv');
  check(station.body.includes('id="stv-slot-clock"')&&
   station.body.includes('id="stv-watch"')&&
-  station.body.includes('swapp-tv-broadcast.js?v=20261025-native-independent-v6'),
+  station.body.includes('swapp-tv-broadcast.js?v=20261025-media-verified-v7'),
   'SWAPP TV station layout or rotation script is stale');
  const stationJs=await request(origin,'/assets/swapp-tv-broadcast.js');
  check(stationJs.body.includes('function maybeAdvanceDiscovery(')&&
   stationJs.body.includes('function fairDiscovery(')&&
   stationJs.body.includes("state.autoSource=item.platform==='swapp'?'native'")&&
-  stationJs.body.includes("frame.src='/'+encodeURIComponent(item.login)+'?swapp_tv_embed=1'")&&
-  stationJs.body.includes("api('/api/native/lives')"),
+  stationJs.body.includes("frame.src='/api/oryon/local-relay/'+encodeURIComponent(item.login)+'/player'")&&
+  stationJs.body.includes("api('/api/swapp-tv/native-lineup')"),
   'SWAPP TV does not expose the verified opt-in rotation logic');
  process.stdout.write('PASS /tv station native-first and consent-based relay\n');
  const independence=await request(origin,'/independance');
