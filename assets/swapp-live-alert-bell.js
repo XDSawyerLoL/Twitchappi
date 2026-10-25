@@ -23,6 +23,16 @@
   }
   return data;
  }
+ function decodeKey(value){
+  const normalized=String(value||'').replace(/-/g,'+').replace(/_/g,'/');
+  const padded=normalized+'='.repeat((4-normalized.length%4)%4);
+  return Uint8Array.from(atob(padded),c=>c.charCodeAt(0));
+ }
+ function sameKey(a,b){
+  if(!a||!b)return false;
+  const x=new Uint8Array(a);
+  return x.length===b.length&&x.every((byte,i)=>byte===b[i]);
+ }
  function supported(){
   return typeof Notification!=='undefined'&&'serviceWorker' in navigator&&
    'PushManager' in window&&window.isSecureContext===true;
@@ -91,9 +101,15 @@
      if(permission!=='granted'){notice('Notifications refusées dans le navigateur.');return}
      await navigator.serviceWorker.register('/swapp-live-sw.js',{scope:'/'});
      const ready=await navigator.serviceWorker.ready;
-     const old=await ready.pushManager.getSubscription();
+     const configuredKey=decodeKey(key);
+     if(configuredKey.length!==65)throw Error('Clé Push invalide.');
+     let old=await ready.pushManager.getSubscription();
+     // Key rotation requires a new subscription, not a silently broken bell.
+     if(old&&!sameKey(old.options?.applicationServerKey,configuredKey)){
+      await old.unsubscribe();old=null;
+     }
      const subscription=old||await ready.pushManager.subscribe({
-      userVisibleOnly:true,applicationServerKey:key
+      userVisibleOnly:true,applicationServerKey:configuredKey
      });
      const result=await request('/api/swapp/live-alerts/enable','POST',
       {creator:login,subscription:subscription.toJSON()});
