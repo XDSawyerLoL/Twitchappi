@@ -27,7 +27,7 @@ test('existing SWAPP queue and player work without a second duplicate waiting li
  const code=read('assets/swapp-tv-broadcast.js');
  for(const pattern of [/\/api\/swapp-tv\/queue\/status/,/\/api\/swapp-tv\/queue/,/data\.director_enabled\?data\.on_air:null/,/player\.twitch\.tv/,/muted:'true'/,/\$\('stv-watch'\)\.addEventListener\('click',\(\)=>\{/,/\$\('stv-join'\)\.addEventListener/ ,/\$\('stv-leave'\)\.addEventListener/])
   assert.match(code,pattern);
- assert.match(code,/setText\('stv-next-title',enabled\?'CRÉATEURS EN ATTENTE'/);
+ assert.match(code,/setText\('stv-next-title',state\.native\.length\?'À SUIVRE SUR SWAPP'/);
  assert.match(code,/waiting\.length>=100\?'100\+ en attente'/);
  assert.doesNotMatch(code,/stv-queue-list|Math\.random/);
 });
