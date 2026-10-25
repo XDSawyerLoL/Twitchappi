@@ -173,6 +173,9 @@ test('conductor clock measures the actual verified slot, not queue position esti
  const make=new Function('state','$','Date',code.slice(start,end)+
   'return {updateSlotClock,tvTime,TV_SLOT_SECONDS};')(state,id=>nodes[id],Date);
  assert.equal(make.TV_SLOT_SECONDS,require('../modules/swapp-tv-director').MAX_AIR_SECONDS);
+ assert.equal(make.tvTime('2026-10-25T20:00:00+02:00'),Date.parse('2026-10-25T18:00:00Z'));
+ assert.equal(make.tvTime('2026-10-25 18:00:00'),Date.parse('2026-10-25T18:00:00Z'));
+ assert.ok(Number.isNaN(make.tvTime('not a time')));
  make.updateSlotClock(Date.parse('2026-10-25T18:02:31Z'));
  assert.equal(nodes['stv-slot-clock'].textContent,'PROCHAIN RELAIS · 07:29');
  assert.equal(nodes['stv-slot-clock'].hidden,false);
