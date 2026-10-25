@@ -387,3 +387,54 @@ body:has(#channel.view.active) #oryonMiniPlayer{display:none!important}
 @media(prefers-reduced-motion:reduce){
  .swapp-immersion-dimmer{animation:none!important}
 }
+
+
+/* LIVE ALIGNMENT FIX — the older dynamic channel stylesheet sets
+ * .channelLiveSidebar .chatPanel { position:sticky; top:122px; }
+ * That detaches the chat from the actual video top edge as the page scrolls.
+ * This structural rule applies EVEN before chat emoji enhancements load.
+ * Do not rely on [data-swapp-chat-ui], which is absent in some chat variants. */
+#channel#channel .creatorRefine[data-channel-live="true"] .channelLiveSidebar,
+#channel#channel .creatorRefine[data-channel-live="true"] .channelLiveSidebar > .chatPanel{
+ position:relative!important;
+ top:0!important;
+ inset-block-start:0!important;
+ bottom:auto!important;
+ transform:none!important;
+ margin-block-start:0!important;
+ align-self:start!important;
+}
+#channel#channel .creatorRefine[data-channel-live="true"] .channelLiveLayout{
+ align-items:start!important;
+}
+#channel#channel .creatorRefine[data-channel-live="true"] .channelMainPlayer{
+ align-self:start!important;
+ margin-top:0!important;
+}
+#channel#channel .creatorRefine[data-channel-live="true"] .channelLiveSidebar > .chatPanel{
+ width:100%!important;
+ min-width:0!important;
+ max-width:100%!important;
+ margin-top:0!important;
+ margin-bottom:0!important;
+}
+/* Keep player first even when a channel variation inserts a toolbar or
+ * informational strip ahead of it in the DOM. */
+#channel#channel .creatorRefine[data-channel-live="true"] .channelMainPlayer{
+ display:flex!important;
+ flex-direction:column!important;
+}
+#channel#channel .creatorRefine[data-channel-live="true"] .channelMainPlayer > :is(.player,.premiumPlayer,.oryonMainPlayer){
+ order:0!important;
+}
+#channel#channel .creatorRefine[data-channel-live="true"] .channelMainPlayer > .swapp-watch-tools{
+ order:1!important;
+}
+@media(max-width:1080px){
+ /* Stacked mode: chat stays in normal flow below the video; never
+  * emulate an adjacent fixed/sticky column on mobile. */
+ #channel#channel .creatorRefine[data-channel-live="true"] .channelLiveSidebar{
+  position:relative!important;
+  top:0!important;
+ }
+}
