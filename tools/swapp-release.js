@@ -33,6 +33,7 @@ const RELEASE_FILES=Object.freeze([
  'modules/swapp-seo.js',
  // SWAPP TV is a native station: changing its conductors, queue or UI
  // must invalidate the release fingerprint, not merely the homepage.
+ 'modules/swapp-independence.js',
  'modules/swapp-program.js',
  'modules/swapp-tv-director.js',
  'modules/swapp-tv-queue.js',
