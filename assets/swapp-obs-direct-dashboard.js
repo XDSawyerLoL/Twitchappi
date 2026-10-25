@@ -72,6 +72,11 @@ function card(){
  ready.append(make('strong','','3. Dans OBS : Démarrer le streaming'),
   make('span','', 'SWAPP publiera automatiquement le direct dès réception de segments vidéo valides. Le titre et la catégorie se changent dans le dashboard.'));
  panel.append(ready);
+ const diag=make('div','swapp-obs-direct-diagnostic');
+ diag.setAttribute('role','status');diag.setAttribute('aria-live','polite');
+ diag.append(make('strong','','Réception OBS : en attente des premiers fragments'),
+  make('p','','Le diagnostic distinguera les requêtes reçues, les segments, la playlist et les erreurs serveur.'));
+ panel.append(diag);
  workspace.insertBefore(panel,hero);
  // This old OBS/local card is still used by legacy streamers but no longer
  // appears as a required installation in the direct OBS workflow.
@@ -112,11 +117,44 @@ async function refresh(){
  lastRefresh=Date.now();refreshing=true;
  const badge=$('.swapp-obs-direct-live',panel);
  try{
-  const result=await json('/api/oryon/local-relay/'+encodeURIComponent(user.login)+'/state');
+  const result=await json('/api/swapp/obs-hls/diagnostics');
   if(!panel.isConnected)return;
   badge.textContent=result.active?'En direct sur SWAPP':'En attente du flux OBS';
   badge.dataset.live=result.active?'true':'false';
- }catch(_){if(panel.isConnected)badge.textContent='État du flux indisponible'}
+  const detail=$('.swapp-obs-direct-diagnostic',panel);
+  const heading=$('strong',detail),message=$('p',detail);
+  const messages={
+   live:['Signal vidéo reçu','La playlist et les segments vidéo sont valides. Le lecteur public peut récupérer le flux.'],
+   no_upload:['Aucune requête OBS reçue','OBS signale peut-être une émission, mais SWAPP ne reçoit aucun envoi HLS. Vérifie que le service OBS est bien « SWAPP Live (HTTPS HLS) », que la clé correspond et que le proxy Hostinger autorise HTTP PUT.'],
+   upload_detected:['Connexion OBS détectée','Le serveur reçoit les requêtes. Il attend le premier segment vidéo et une playlist HLS complète.'],
+   segments_only:['Segments reçus, playlist manquante','Les fragments vidéo arrivent, mais aucune playlist valide ne permet encore de les lire. Vérifie le débit, l’encodeur H.264/AAC et l’intervalle d’images clés de deux secondes.'],
+   upload_stale:['Transmission OBS interrompue','SWAPP a reçu un envoi auparavant, mais aucun nouveau fragment depuis plus d’une minute. Vérifie le journal OBS et la connexion.'],
+   rejected:['Requête refusée par SWAPP','Le serveur a reçu des fragments, mais a refusé une requête. Le code HTTP ci-dessous permet de localiser la cause.']
+  };
+  const lines=messages[result.stage]||['État du relais inconnu','Actualise cette page et vérifie la réception.'];
+  const errors={
+   400:'Nom de fichier HLS ou contenu invalide.',
+   401:'Jeton manquant.',
+   403:'Clé OBS refusée.',
+   409:'La playlist référence des fragments vidéo qui ne sont pas encore présents.',
+   413:'Fragment trop volumineux ou mémoire du relais saturée.',
+   422:'Segment ou playlist HLS invalide.',
+   429:'Capacité ou débit autorisé dépassé.',
+   503:'Service d’authentification ou de relais indisponible.'
+  };
+  heading.textContent=lines[0];
+  message.textContent=lines[1]+(result.last_error_code?' Dernier refus HTTP '+result.last_error_code+' : '+(errors[result.last_error_code]||'voir les journaux serveur.'):'')+
+   (result.last_put_at?' · Dernier contact OBS : '+new Date(result.last_put_at).toLocaleTimeString('fr-FR'):'');
+  detail.dataset.stage=result.stage||'unknown';
+ }catch(error){if(panel.isConnected){
+   badge.textContent='Diagnostic de réception indisponible';
+   const detail=$('.swapp-obs-direct-diagnostic',panel);
+   if(detail){
+    const head=$('strong',detail),msg=$('p',detail);
+    head.textContent='Impossible de lire le diagnostic OBS';
+    msg.textContent='Le serveur n’expose pas encore la nouvelle route de diagnostic, ou la session a expiré. Vérifie le déploiement Hostinger. '+String(error.message||'');
+   }
+  }}
  finally{refreshing=false}
 }
 const timer=setInterval(()=>{if(manager())void refresh()},4500);
