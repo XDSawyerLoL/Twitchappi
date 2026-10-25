@@ -155,12 +155,20 @@ async function refresh(){
    403:'Clé OBS refusée.',
    409:'La playlist référence des fragments vidéo qui ne sont pas encore présents.',
    413:'Fragment trop volumineux ou mémoire du relais saturée.',
-   422:'Segment ou playlist HLS invalide.',
+   422:'La validation HLS a rejeté un segment ou une playlist. Le détail ci-dessous précise lequel.',
    429:'Capacité ou débit autorisé dépassé.',
    503:'Service d’authentification ou de relais indisponible.'
   };
   heading.textContent=lines[0];
-  message.textContent=lines[1]+(result.last_error_code?' Dernier refus HTTP '+result.last_error_code+' : '+(errors[result.last_error_code]||'voir les journaux serveur.'):'')+
+  const failedMedia=result.last_error_file_type==='playlist'?'playlist HLS':result.last_error_file_type==='segment'?'segment vidéo':'fichier';
+  const errorReason={
+   playlist_segment_uri:'L’URL d’un segment dans la playlist ne correspond pas au format OBS SWAPP.',
+   playlist_unsupported_feature:'Playlist chiffrée ou fonctionnalités HLS non compatibles avec le relais actuel.',
+   playlist_duration:'Durée de segment incorrecte.',playlist_header:'En-tête HLS invalide.',
+   playlist_empty:'Playlist sans segment.',mpegts_sync_byte_missing:'Segment MPEG-TS non reconnu.'
+  };
+  message.textContent=lines[1]+(result.last_error_code?' Dernier refus HTTP '+result.last_error_code+
+   ' ('+failedMedia+') : '+(errorReason[result.last_error_reason]||errors[result.last_error_code]||'voir les journaux serveur.'):'')+
    (result.last_put_at?' · Dernier contact OBS : '+new Date(result.last_put_at).toLocaleTimeString('fr-FR'):'');
   detail.dataset.stage=result.stage||'unknown';
  }catch(error){if(panel.isConnected){
