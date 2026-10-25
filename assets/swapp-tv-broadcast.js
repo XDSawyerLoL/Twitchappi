@@ -7,6 +7,28 @@ const safeLogin=s=>/^[a-z0-9_]{3,25}$/.test(String(s||'').toLowerCase());
 const gameOf=a=>typeof a?.game==='string'?a.game.trim():String(a?.game?.name||a?.game?.title||'').trim();
 const gamesFrom=data=>[...new Set((Array.isArray(data.articles)?data.articles:[]).filter(x=>x?.slug&&x.status!=='draft').map(gameOf).filter(x=>x.length>1))].slice(0,16);
 const state={queue:null,selection:null,playing:null,discovery:[],index:0,consent:false,autoAdvance:false,games:[],queueMode:false};
+const TV_SLOT_SECONDS=600; // 10-minute SWAPP TV slot; keep aligned with swapp-tv-director.MAX_AIR_SECONDS.
+function tvTime(value){
+ if(value instanceof Date)return value.getTime();
+ const str=String(value||'').trim().replace(' ','T');
+ if(!str)return NaN;
+ return Date.parse(/(?:Z|[+-]\\d\\d:?\\d\\d)$/.test(str)?str:str+'Z');
+}
+function updateSlotClock(now=Date.now()){
+ const node=$('stv-slot-clock');
+ if(!node)return;
+ const data=state.queue;
+ const stamp=data?.enabled&&data?.director_enabled?tvTime(data.on_air?.started_at):NaN;
+ if(!Number.isFinite(stamp)||stamp>now+5000||now-stamp>3*3600000){
+  node.hidden=true;node.textContent='';return;
+ }
+ const seconds=Math.max(0,Math.ceil((stamp+TV_SLOT_SECONDS*1000-now)/1000));
+ node.hidden=false;
+ node.textContent=seconds>0
+  ?'PROCHAIN RELAIS · '+String(Math.floor(seconds/60)).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0')
+  :'RELAIS EN PRÉPARATION';
+}
+
 const setText=(id,text)=>{$(id).textContent=text};
 function renderQueue(data){
  const waiting=Array.isArray(data.waiting)?data.waiting:[],enabled=Boolean(data.enabled);
@@ -74,13 +96,13 @@ function play(){
 async function refreshQueue(){
  try{
   const data=await api('/api/swapp-tv/queue/status');state.queue=data;state.queueMode=Boolean(data.enabled);
-  renderQueue(data);rail(data);
+  renderQueue(data);rail(data);updateSlotClock();
   if(data.enabled){const item=data.director_enabled?data.on_air:null;
    if(!item||!safeLogin(item.twitch_login))renderScreen(null);
    else if(!state.selection||state.selection.login!==String(item.twitch_login).toLowerCase()||!state.selection.onAir)renderScreen(item,{onAir:true});
   }
   return data;
- }catch{const data={enabled:false,director_enabled:false,waiting:[]};state.queue=data;state.queueMode=false;renderQueue(data);rail(data);return data}
+ }catch{const data={enabled:false,director_enabled:false,waiting:[]};state.queue=data;state.queueMode=false;renderQueue(data);rail(data);updateSlotClock();return data}
 }
 // Rotate discovery across games and creators without using viewer counts.
 // Input from the game-live endpoint may be ordered by popularity; that
@@ -278,6 +300,7 @@ $('stv-swapp-chat-form').addEventListener('submit',async e=>{
 });
 void refreshSwappChat();
 setInterval(()=>{if(!$('stv-pane-swapp').hidden)void refreshSwappChat()},7000);
+setInterval(updateSlotClock,1000);
 
 $('stv-watch').addEventListener('click',()=>{
  if(state.selection&&state.playing===state.selection.login&&state.consent)stopPlayback();
