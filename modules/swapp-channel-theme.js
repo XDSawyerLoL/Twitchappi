@@ -4,7 +4,7 @@
 const cleanInt=(v,fallback,min,max)=>{
  const n=Number(v);return Number.isFinite(n)?Math.max(min,Math.min(max,Math.round(n))):fallback;
 };
-const cleanColor=v=>/^#[0-9a-f]{6}$/i.test(String(v||''))?String(v).toLowerCase():'#9b78f4';
+const cleanColor=v=>/^#[0-9a-f]{6}$/i.test(String(v||''))?String(v).toLowerCase():'';
 const safeImage=(value,login)=>{
  const url=String(value||'');
  const expected='/api/oryon/panel-image/'+encodeURIComponent(String(login||'').toLowerCase())+'/';
