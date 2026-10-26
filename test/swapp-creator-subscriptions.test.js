@@ -55,7 +55,7 @@ test('all payment routes fail closed without pricing, signing secret and legal a
  assert.ok(routes['GET /api/swapp/subscriptions/config']);
  assert.ok(routes['POST /api/swapp/subscriptions/stripe-webhook']);
  let httpCode=0,payload=null;
- const res={status(code){httpCode=code;return this},json(data){payload=data;return this}};
+ const res={set(){return this},status(code){httpCode=code;return this},json(data){payload=data;return this}};
  return routes['POST /api/swapp/subscriptions/checkout']({
   get:key=>key==='origin'?'https://swapp.tv':key==='host'?'swapp.tv':'',
   session:{oryonUser:{id:'viewer',login:'viewer'}},
