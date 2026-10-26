@@ -93,7 +93,10 @@ function card(){
   finally{testButton.disabled=false}
  });
  probe.append(testButton,make('span','swapp-obs-direct-probe-result',''));
- panel.append(diag,probe);
+ const delivery=make('div','swapp-obs-public-readiness','Lecture publique non vérifiée : démarre OBS puis consulte ce contrôle.');
+ delivery.setAttribute('role','status');
+ delivery.setAttribute('aria-live','polite');
+ panel.append(diag,delivery,probe);
  workspace.insertBefore(panel,hero);
  // This old OBS/local card is still used by legacy streamers but no longer
  // appears as a required installation in the direct OBS workflow.
@@ -157,7 +160,7 @@ async function refresh(){
   const detail=$('.swapp-obs-direct-diagnostic',panel);
   const heading=$('strong',detail),message=$('p',detail);
   const messages={
-   live:['Signal vidéo reçu','La playlist et les segments vidéo sont valides. Le lecteur public peut récupérer le flux.'],
+   live:['Signal vidéo reçu','Playlist et fragments présents en mémoire sur SWAPP. La lecture réelle sur un autre appareil reste à vérifier.'],
    no_upload:['Aucune requête OBS reçue','OBS signale peut-être une émission, mais SWAPP ne reçoit aucun envoi HLS. Vérifie que le service OBS est bien « SWAPP Live (HTTPS HLS) », que la clé correspond et que le proxy Hostinger autorise HTTP PUT.'],
    upload_detected:['Connexion OBS détectée','Le serveur reçoit les requêtes. Il attend le premier segment vidéo et une playlist HLS complète.'],
    segments_only:['Segments reçus, playlist manquante','Les fragments vidéo arrivent, mais aucune playlist valide ne permet encore de les lire. Vérifie le débit, l’encodeur H.264/AAC et l’intervalle d’images clés de deux secondes.'],
@@ -183,10 +186,40 @@ async function refresh(){
    playlist_duration:'Durée de segment incorrecte.',playlist_header:'En-tête HLS invalide.',
    playlist_empty:'Playlist sans segment.',mpegts_sync_byte_missing:'Segment MPEG-TS non reconnu.'
   };
-  message.textContent=lines[1]+(result.last_error_code?' Dernier refus HTTP '+result.last_error_code+
+  message.textContent=lines[1]+(result.stage==='rejected'&&result.last_error_code?' Dernier refus HTTP '+result.last_error_code+
    ' ('+failedMedia+') : '+(errorReason[result.last_error_reason]||errors[result.last_error_code]||'voir les journaux serveur.'):'')+
    (result.last_put_at?' · Dernier contact OBS : '+new Date(result.last_put_at).toLocaleTimeString('fr-FR'):'');
   detail.dataset.stage=result.stage||'unknown';
+  const delivery=$('.swapp-obs-public-readiness',panel);
+  if(delivery){
+   // A real segment and playlist must be available, not just the owner's LIVE badge.
+   // This small JSON probe reads server memory only: it never downloads a video segment.
+   if(!result.active){
+    delivery.dataset.status='waiting';
+    delivery.textContent='Lecture publique : aucun flux vidéo frais à contrôler.';
+   }else{
+    delivery.dataset.status='checking';
+    delivery.textContent='Vérification des fragments accessibles côté serveur…';
+    const login=String(user.login||'').toLowerCase();
+    if(validRoom(login)){
+     try{
+      const probe=await json('/api/oryon/local-relay/'+encodeURIComponent(login)+'/probe');
+      if(!panel.isConnected||account()?.login?.toLowerCase()!==login)return;
+      const video=probe.media?.video_browser_compatible===true;
+      const audio=probe.media?.audio_browser_compatible===true;
+      const readable=probe.active===true&&probe.playlist_ready===true&&
+       probe.segment_ready===true&&probe.ts_sync_byte===true&&video;
+      delivery.dataset.status=readable?'ready':'warning';
+      delivery.textContent=readable
+       ?'Côté serveur : playlist et vidéo H.264 présentes · '+(audio?'audio AAC détecté.':'audio AAC non identifié.')+
+        ' Teste malgré tout le son et l’image sur un autre appareil/réseau.'
+       :'Attention : le serveur affiche un direct, mais la playlist, le segment ou la piste H.264 n’est pas confirmé. Vérifie le flux OBS avant de partager la chaîne.';
+     }catch(_){
+      if(panel.isConnected){delivery.dataset.status='unknown';delivery.textContent='Contrôle public indisponible. Impossible de confirmer le flux depuis le serveur.';}
+     }
+    }
+   }
+  }
  }catch(error){if(panel.isConnected){
    badge.textContent='Diagnostic de réception indisponible';
    const detail=$('.swapp-obs-direct-diagnostic',panel);

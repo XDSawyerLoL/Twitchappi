@@ -49,3 +49,10 @@
 #manager .swapp-obs-direct-diagnostic[data-stage="live"]{
  border-color:rgba(49,197,126,.4);background:rgba(21,141,88,.09)
 }
+
+#manager .swapp-obs-public-readiness{margin-top:8px;padding:10px 12px;border-left:3px solid rgba(157,181,204,.4);
+ background:rgba(255,255,255,.028);font-size:12px;line-height:1.5;color:var(--muted,#c2ced9);
+ overflow-wrap:anywhere}
+#manager .swapp-obs-public-readiness[data-status="ready"]{border-left-color:#34c98a;color:#bcebd8}
+#manager .swapp-obs-public-readiness[data-status="warning"]{border-left-color:#e6a257;color:#f5d6a7}
+#manager .swapp-obs-public-readiness[data-status="unknown"]{border-left-color:#a8b1c1}
