@@ -80,7 +80,7 @@
 #channel#channel .creatorRefine.swapp-channel-polish details[open] .swapp-showcase-summary:after{content:'⌃'}
 #channel#channel .creatorRefine.swapp-channel-polish .swapp-showcase-menu-content{
  display:flex;flex-direction:column;gap:6px;min-width:175px;
- position:static!important;margin-top:7px;z-index:100;
+ position:static!important;margin-top:7px;z-index:100; /* closed state only: portal takes over on open */
  border:1px solid var(--showcase-border);border-radius:9px;
  background:#131825;padding:7px;
  box-shadow:0 16px 35px rgba(0,0,0,.45);
@@ -178,4 +178,55 @@
 @media(prefers-reduced-motion:reduce){
  #channel#channel .creatorRefine.swapp-channel-polish .vignetteCard,
  #channel#channel .creatorRefine.swapp-channel-polish .linkCard{transition:none!important}
+}
+
+/* Menus float at document level. Toggling Gérer ma chaîne MUST NOT resize
+   or reposition other actions, the banner, the chat or the live player. */
+.swapp-showcase-floating-menu{
+ position:fixed!important;
+ display:flex!important;flex-direction:column!important;gap:5px!important;
+ margin:0!important;padding:8px!important;
+ overflow-x:hidden!important;overflow-y:auto!important;
+ box-sizing:border-box!important;overscroll-behavior:contain!important;
+ z-index:2147483000!important;border:1px solid rgba(221,224,243,.22)!important;
+ border-radius:9px!important;background:#131825!important;
+ box-shadow:0 20px 52px rgba(0,0,0,.68)!important;
+}
+.swapp-showcase-floating-menu > button,
+.swapp-showcase-floating-menu > a{
+ display:flex;align-items:center;text-align:left;width:100%!important;
+ min-height:37px!important;flex:0 0 auto!important;
+ margin:0!important;border-radius:6px!important;padding:8px 10px!important;
+ color:#f3f5fa!important;background:rgba(255,255,255,.035)!important;
+ border:0!important;font:650 12px/1.4 system-ui,sans-serif!important;
+ text-decoration:none!important;white-space:normal!important;
+}
+.swapp-showcase-floating-menu > button:hover,
+.swapp-showcase-floating-menu > a:hover{background:rgba(255,255,255,.13)!important}
+.swapp-showcase-floating-menu :focus-visible{outline:2px solid #ffa05e!important;outline-offset:1px}
+#channel#channel .creatorRefine.swapp-channel-polish[data-channel-owner="true"] .channelActionDock{
+ display:flex!important;align-items:center!important;flex-wrap:nowrap!important;
+ gap:8px!important;min-height:38px!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish[data-channel-owner="true"] .channelActionDock > .swapp-studio-owner-edit{
+ order:0!important;flex:0 0 auto!important;margin:0!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish[data-channel-owner="true"] .channelActionDock > .swapp-showcase-owner-menu{
+ order:1!important;flex:0 0 auto!important;margin:0!important;
+}
+@media(max-width:600px){
+ #channel#channel .creatorRefine.swapp-channel-polish[data-channel-owner="true"] .channelActionDock{
+  display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;
+  width:100%!important;gap:7px!important;
+ }
+ #channel#channel .creatorRefine.swapp-channel-polish[data-channel-owner="true"] .channelActionDock > .swapp-studio-owner-edit,
+ #channel#channel .creatorRefine.swapp-channel-polish[data-channel-owner="true"] .channelActionDock > .swapp-showcase-owner-menu{
+  width:100%!important;min-width:0!important;max-width:100%!important;
+  margin:0!important;
+ }
+ #channel#channel .creatorRefine.swapp-channel-polish[data-channel-owner="true"] .channelActionDock > .swapp-studio-owner-edit,
+ #channel#channel .creatorRefine.swapp-channel-polish[data-channel-owner="true"] .channelActionDock > .swapp-showcase-owner-menu > summary{
+  padding:8px 5px!important;white-space:nowrap!important;min-width:0!important;
+  font-size:11px!important;min-height:38px!important;
+ }
 }
