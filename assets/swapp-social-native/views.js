@@ -100,7 +100,7 @@ function showRecoverableError(title,error,retry,handle=''){
 const NEWS_FEEDS=['/api/actus'];
 
 function safeNewsUrl(value){
-  try{const url=new URL(String(value||''));return url.protocol==='https:'?url.href:''}catch{return''}
+  try{const url=new URL(String(value||''));return url.protocol==='https:'&&!url.username&&!url.password?url.href:''}catch{return''}
 }
 
 // Same media order as SWAPP editorial: article illustration, then that
@@ -179,9 +179,9 @@ function renderNewsCard(item){
   const image=safeNewsUrl(item.image);
   const summary=String(item.summary||'').slice(0,280);
   return '<article class="pulse-news-card'+(image?'':' is-text-only')+'">'+
-    (image?'<a class="pulse-news-media" href="'+esc(url||image)+'" target="_blank" rel="noopener noreferrer"><img src="'+esc(image)+'" alt="" loading="lazy" referrerpolicy="no-referrer"></a>':'')+
+    (image?'<a class="pulse-news-media" href="'+esc(url||image)+'" target="_blank" rel="noopener noreferrer" aria-label="Lire : '+esc(title)+'"><img src="'+esc(image)+'" alt="Illustration de '+esc(title)+'" loading="lazy" referrerpolicy="no-referrer"></a>':'')+
     '<div class="pulse-news-body"><div class="pulse-news-meta"><span>SWAPP</span><strong>'+esc(source)+'</strong><span>'+esc(newsTime(item.publishedAt))+'</span></div>'+
-    '<h2>'+esc(title)+'</h2>'+
+    '<h2>'+(url?'<a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">'+esc(title)+'</a>':esc(title))+'</h2>'+
     (summary?'<p>'+esc(summary)+(String(item.summary||'').length>280?'…':'')+'</p>':'')+
     '<div class="pulse-news-actions">'+
       (url?'<a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">Lire la source ↗</a>':'')+
