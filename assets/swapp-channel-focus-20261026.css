@@ -1,0 +1,328 @@
+/* SWAPP Channel Focus — actual on-site premium styling, not a mockup.
+ * Final scoped stylesheet. Keep the 16:9 media, JS-measured chat height,
+ * player/iframe DOM, native chat state and channel theme unchanged.
+ */
+#channel .creatorRefine.swapp-channel-polish{
+ --swapp-focus-accent:var(--channel-accent,var(--showcase-accent,var(--brand,#9c70ee)));
+ --swapp-focus-edge:color-mix(in srgb,var(--swapp-focus-accent) 21%,rgba(211,218,236,.18));
+ --swapp-focus-panel:#0c101a;
+ color:var(--text,#e9edf6);
+}
+#channel#channel .creatorRefine.swapp-channel-polish .channelTopHero{
+ border-radius:12px!important;
+ border:1px solid var(--swapp-focus-edge)!important;
+ background:linear-gradient(115deg,color-mix(in srgb,var(--swapp-focus-accent) 13%,#090d19),#06090f 77%)!important;
+ box-shadow:0 18px 48px rgba(0,0,0,.22)!important;
+ overflow:hidden!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelTopHero{
+ min-height:150px!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelHeroContent{
+ min-height:150px!important;
+ padding:18px clamp(14px,2vw,28px)!important;
+ gap:14px!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .channelTopHero:after{
+ background:linear-gradient(90deg,rgba(4,6,14,.91) 0%,rgba(5,8,19,.68) 47%,rgba(5,8,17,.20) 100%),
+ linear-gradient(0deg,rgba(4,5,13,.67),transparent 78%)!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .channelTitleBlock h1{
+ font-weight:800!important;letter-spacing:-.04em!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .channelBadgesBar .pill{
+ border-radius:6px!important;
+ background:rgba(6,10,20,.62)!important;
+ border-color:rgba(220,226,243,.16)!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .channelSubNav{
+ display:flex!important;align-items:center!important;
+ flex-wrap:wrap!important;gap:clamp(12px,2vw,28px)!important;
+ min-height:46px!important;
+ padding:0 3px!important;
+ margin-block:8px 2px!important;
+ border-top:0!important;border-bottom:1px solid rgba(206,219,239,.16)!important;
+ background:transparent!important;
+ backdrop-filter:none!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .channelSubNav button{
+ position:relative!important;
+ min-height:43px!important;padding:10px 4px!important;
+ font-size:13px!important;font-weight:700!important;
+ border:0!important;border-radius:0!important;background:transparent!important;
+ color:#aab6cb!important;
+ transition:color .15s ease!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .channelSubNav button:hover,
+#channel#channel .creatorRefine.swapp-channel-polish .channelSubNav button.active{
+ color:#f7f6ff!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .channelSubNav button.active:after{
+ content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;
+ background:var(--swapp-focus-accent);border-radius:999px;
+ box-shadow:0 0 12px color-mix(in srgb,var(--swapp-focus-accent) 45%,transparent);
+}
+#channel#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelLiveLayout{
+ display:grid!important;
+ grid-template-columns:minmax(0,1fr) clamp(320px,27vw,430px)!important;
+ grid-auto-rows:max-content!important;
+ align-items:start!important;
+ column-gap:clamp(10px,1.2vw,18px)!important;
+ row-gap:10px!important;
+ padding-top:8px!important;
+ overflow:visible!important;
+ min-width:0!important;
+}
+#channel#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelLiveLayout > .swapp-watch-headline{
+ grid-column:1/-1!important;grid-row:1!important;
+ align-self:stretch!important;
+ order:0!important;
+ display:flex!important;gap:11px!important;align-items:center!important;
+ margin:0!important;padding:2px 2px 12px!important;
+ width:100%!important;min-height:58px!important;
+ border:0!important;border-bottom:1px solid rgba(202,214,234,.14)!important;
+ background:transparent!important;box-sizing:border-box!important;
+}
+#channel .creatorRefine.swapp-channel-polish .swapp-watch-live-pill{
+ display:inline-flex;align-items:center;gap:6px;
+ border-radius:6px!important;padding:7px 9px!important;
+ font-size:10px!important;font-weight:850!important;letter-spacing:.035em!important;
+ background:#df3154!important;color:#fff!important;
+}
+#channel .creatorRefine.swapp-channel-polish .swapp-watch-live-pill:before{
+ content:"";display:block;width:6px;height:6px;flex:none;border-radius:50%;
+ background:#fff;box-shadow:0 0 7px rgba(255,255,255,.8);
+}
+#channel .creatorRefine.swapp-channel-polish .swapp-watch-headline-details{
+ min-width:0!important;flex:1 1 auto!important;gap:3px!important;
+}
+#channel .creatorRefine.swapp-channel-polish .swapp-watch-live-title{
+ font-size:clamp(18px,1.7vw,25px)!important;line-height:1.2!important;
+ font-weight:850!important;letter-spacing:-.035em!important;
+ color:#f6f7ff!important;
+}
+#channel .creatorRefine.swapp-channel-polish .swapp-watch-live-category{
+ color:color-mix(in srgb,var(--swapp-focus-accent) 50%,#f0ecff)!important;
+ font-size:12px!important;font-weight:650!important;
+}
+#channel .creatorRefine.swapp-channel-polish .swapp-watch-edit{
+ border-radius:8px!important;border:1px solid rgba(221,230,246,.24)!important;
+ color:#e9eafb!important;background:rgba(255,255,255,.045)!important;
+ font-size:12px!important;font-weight:700!important;
+ padding:8px 12px!important;min-height:36px!important;
+ box-shadow:none!important;white-space:nowrap!important;
+}
+#channel .creatorRefine.swapp-channel-polish .swapp-watch-edit:hover{
+ border-color:var(--swapp-focus-accent)!important;background:rgba(255,255,255,.1)!important;
+}
+/* The second grid row starts at EXACTLY the same top offset for the
+   real stream video and the real native chat; no fixed or sticky tricks. */
+#channel#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelLiveLayout > .channelMainPlayer{
+ grid-column:1!important;grid-row:2!important;
+ order:0!important;min-width:0!important;
+ align-self:start!important;position:relative!important;
+ transform:none!important;translate:none!important;
+}
+#channel#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelLiveLayout > .channelLiveSidebar{
+ grid-column:2!important;grid-row:2!important;
+ order:0!important;min-width:0!important;
+ align-self:start!important;position:relative!important;
+ top:0!important;inset-block-start:0!important;
+ transform:none!important;translate:none!important;
+}
+/* Intentional: do NOT assign video or chat heights here. The proven
+   width-derived 16:9 measure in swapp-watch-experience owns them. */
+#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelMainPlayer > :is(.premiumPlayer,.oryonMainPlayer,.player){
+ border:1px solid rgba(201,211,237,.17)!important;
+ border-radius:11px!important;background:#000!important;
+ box-shadow:0 0 0 1px color-mix(in srgb,var(--swapp-focus-accent) 12%,transparent),
+ 0 16px 42px rgba(0,0,0,.34)!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .channelLiveSidebar > .chatPanel{
+ background:linear-gradient(180deg,#121524 0%,#0d101b 33%,#090c16 100%)!important;
+ border:1px solid var(--swapp-focus-edge)!important;
+ border-radius:11px!important;
+ box-shadow:0 16px 42px rgba(0,0,0,.28)!important;
+ overflow:hidden!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .channelLiveSidebar .chatHeader{
+ flex:0 0 auto!important;
+ padding:12px 13px!important;
+ border-bottom:1px solid rgba(214,220,246,.10)!important;
+ background:rgba(132,95,204,.045)!important;
+ min-width:0!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .channelLiveSidebar .chatHeader :is(b,strong,h3){
+ color:#f2f2fe!important;letter-spacing:-.02em!important;font-weight:750!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .channelLiveSidebar .chatHeader button{
+ border:1px solid rgba(220,225,240,.15)!important;
+ background:rgba(255,255,255,.03)!important;
+ border-radius:8px!important;box-shadow:none!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .channelLiveSidebar .chatLog{
+ padding:10px 9px 12px!important;
+ background:transparent!important;
+ scrollbar-color:rgba(182,155,221,.33) transparent;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .nativeFixedChat[data-chat="oryon"] .chatLog .msg.swapp-chat-fresh-message{
+ border:1px solid transparent!important;
+ background:transparent!important;
+ padding:8px 10px 8px 38px!important;
+ margin:0 0 3px!important;
+ border-radius:8px!important;
+ line-height:1.46!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .nativeFixedChat[data-chat="oryon"] .chatLog .msg.swapp-chat-fresh-message:hover{
+ border-color:rgba(202,181,231,.14)!important;
+ background:color-mix(in srgb,var(--swapp-chat-author-color,#bda4ff) 8%,#111523)!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .nativeFixedChat[data-chat="oryon"] .chatLog .msg.swapp-chat-fresh-message::before{
+ top:8px!important;left:8px!important;width:22px!important;height:22px!important;
+ border-radius:7px!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .nativeFixedChat[data-chat="oryon"] .chatLog:not(:has(.msg,.swapp-redeemed-message))::after{
+ content:"Le tchat commence ici. Lance la conversation.";
+ display:block;margin:20px 8px;padding:16px 10px;
+ color:#8690a7;text-align:center;font:550 12px/1.5 system-ui,sans-serif;
+ border-block:1px solid rgba(255,255,255,.055);
+}
+#channel#channel .creatorRefine.swapp-channel-polish .nativeFixedChat[data-chat="oryon"] .chatAssist{
+ display:flex!important;flex-wrap:wrap!important;align-items:center!important;
+ gap:5px!important;
+ padding:8px 9px!important;
+ background:rgba(255,255,255,.022)!important;
+ border-top:1px solid rgba(214,223,242,.08)!important;
+ overflow:visible!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .nativeFixedChat[data-chat="oryon"] .chatAssist > button{
+ display:inline-flex!important;align-items:center!important;justify-content:center!important;
+ flex:0 1 auto!important;min-width:0!important;
+ padding:6px 10px!important;min-height:32px!important;
+ border:1px solid rgba(175,166,216,.2)!important;
+ border-radius:8px!important;
+ color:#d4cceb!important;background:rgba(144,97,212,.075)!important;
+ font-size:11px!important;font-weight:680!important;
+ white-space:nowrap!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .nativeFixedChat[data-chat="oryon"] .chatAssist > button:hover{
+ color:#fff!important;border-color:var(--swapp-focus-accent)!important;
+}
+/* The rewards action is now an ordinary item in the suggestion row.
+   Its panel opens upward *inside* the chat rather than over input/buttons. */
+#channel#channel .creatorRefine.swapp-channel-polish .nativeFixedChat[data-chat="oryon"] .swapp-rewards-anchor{
+ position:relative!important;inset:auto!important;right:auto!important;top:auto!important;bottom:auto!important;
+ flex:0 0 auto!important;margin-left:auto!important;
+ min-width:0!important;max-width:100%!important;z-index:30!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .nativeFixedChat[data-chat="oryon"] .swapp-rewards-trigger{
+ min-height:32px!important;max-width:100%!important;
+ padding:6px 9px!important;border:1px solid color-mix(in srgb,var(--swapp-focus-accent) 40%,transparent)!important;
+ border-radius:8px!important;
+ background:color-mix(in srgb,var(--swapp-focus-accent) 13%,#141321)!important;
+ display:inline-flex!important;gap:6px!important;
+ align-items:center!important;justify-content:center!important;
+ font-size:11px!important;color:#efe4ff!important;
+ white-space:nowrap!important;box-shadow:none!important;
+}
+#channel .creatorRefine.swapp-channel-polish .swapp-rewards-balance{font-weight:800;font-variant-numeric:tabular-nums}
+#channel .creatorRefine.swapp-channel-polish .swapp-rewards-hint{font-size:11px;color:#c8b2f5!important}
+#channel#channel .creatorRefine.swapp-channel-polish .nativeFixedChat[data-chat="oryon"] .swapp-rewards-drawer{
+ position:absolute!important;right:0!important;left:auto!important;
+ top:auto!important;bottom:calc(100% + 7px)!important;
+ z-index:100!important;width:min(348px,calc(100vw - 40px))!important;
+ border:1px solid var(--swapp-focus-edge)!important;
+ background:#171728!important;border-radius:11px!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .nativeFixedChat[data-chat="oryon"] .chatForm.swapp-chat-stable-composer{
+ border-top:1px solid rgba(215,220,241,.1)!important;
+ padding:10px 9px!important;
+ background:#0c101b!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .nativeFixedChat[data-chat="oryon"] .chatForm.swapp-chat-stable-composer input{
+ min-height:39px!important;height:39px!important;
+ border-radius:9px!important;background:#151727!important;
+ border-color:rgba(215,220,244,.18)!important;
+ color:#f5f6fa!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .nativeFixedChat[data-chat="oryon"] .chatForm.swapp-chat-stable-composer input:focus{
+ border-color:var(--swapp-focus-accent)!important;
+ outline:none!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .swapp-watch-tools{
+ padding:5px 0!important;gap:7px!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .swapp-watch-tools button{
+ border-radius:7px!important;border:1px solid rgba(210,216,236,.10)!important;
+ padding:6px 9px!important;
+ background:rgba(255,255,255,.015)!important;
+ color:#b5bfd1!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .swapp-watch-tools button[aria-pressed="true"],
+#channel#channel .creatorRefine.swapp-channel-polish .swapp-watch-tools button:hover{
+ border-color:color-mix(in srgb,var(--swapp-focus-accent) 45%,transparent)!important;
+ background:color-mix(in srgb,var(--swapp-focus-accent) 12%,#0b0f18)!important;
+ color:#eee9fa!important;
+}
+#channel .creatorRefine.swapp-channel-polish .channelActionDock .swapp-studio-owner-edit{
+ display:none!important; /* same action is in the shared live heading */
+}
+@media(max-width:1080px){
+ #channel#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelLiveLayout{
+  grid-template-columns:minmax(0,1fr)!important;
+  row-gap:10px!important;
+ }
+ #channel#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelLiveLayout > .swapp-watch-headline{
+  grid-column:1!important;grid-row:1!important;
+ }
+ #channel#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelLiveLayout > .channelMainPlayer{
+  grid-column:1!important;grid-row:2!important;
+ }
+ #channel#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelLiveLayout > .channelLiveSidebar{
+  grid-column:1!important;grid-row:3!important;
+ }
+}
+@media(max-width:700px){
+ #channel#channel .creatorRefine.swapp-channel-polish .channelSubNav{gap:13px!important;min-height:44px!important}
+ #channel#channel .creatorRefine.swapp-channel-polish .channelSubNav button{font-size:12px!important;min-height:42px!important}
+ #channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelTopHero,
+ #channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelHeroContent{
+  min-height:170px!important;
+ }
+ #channel#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelLiveLayout > .swapp-watch-headline{
+  flex-wrap:wrap!important;gap:8px!important;
+ }
+ #channel .creatorRefine.swapp-channel-polish .swapp-watch-live-title{font-size:18px!important}
+ #channel .creatorRefine.swapp-channel-polish .swapp-watch-edit{min-height:32px!important;padding:6px 9px!important}
+ #channel#channel .creatorRefine.swapp-channel-polish .nativeFixedChat[data-chat="oryon"] .chatAssist{
+  padding:7px!important;gap:5px!important;
+ }
+ #channel#channel .creatorRefine.swapp-channel-polish .nativeFixedChat[data-chat="oryon"] .swapp-rewards-anchor{
+  margin-left:0!important;
+ }
+}
+@media(prefers-reduced-motion:reduce){
+ #channel#channel .creatorRefine.swapp-channel-polish .channelSubNav button,
+ #channel#channel .creatorRefine.swapp-channel-polish .swapp-watch-tools button{transition:none!important}
+}
+
+/* Keep existing hide-chat and cinema modes functional despite the stronger
+   desktop grid selector used to guarantee exact media/chat alignment. */
+#channel#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"][data-watch-chat="hidden"] .channelLiveLayout,
+#channel#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"][data-watch-theatre="on"][data-watch-chat="hidden"] .channelLiveLayout{
+ grid-template-columns:minmax(0,1fr)!important;
+}
+#channel#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"][data-watch-chat="hidden"] .channelLiveSidebar{
+ display:none!important;
+}
+#channel#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"][data-watch-theatre="on"]:not([data-watch-chat="hidden"]) .channelLiveLayout{
+ grid-template-columns:minmax(0,1fr) clamp(292px,26vw,380px)!important;
+}
+@media(max-width:1080px){
+ #channel#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"][data-watch-theatre="on"]:not([data-watch-chat="hidden"]) .channelLiveLayout{
+  grid-template-columns:minmax(0,1fr)!important;
+ }
+}
+
+/* Never reveal an empty navigation that the channel router intentionally hides. */
+#channel#channel .creatorRefine.swapp-channel-polish .channelSubNav[hidden]{display:none!important}

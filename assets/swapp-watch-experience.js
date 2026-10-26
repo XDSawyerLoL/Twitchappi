@@ -199,7 +199,12 @@
     edit.addEventListener('click',()=>globalThis.SwappBrowserStudio?.editLive?.());
     header.appendChild(edit);
   }
-  if(video.parentElement===main)main.insertBefore(header,video);
+  // Full-width stream metadata sits in the grid row ABOVE both columns.
+  // Player and native chat now start at the exact same vertical coordinate.
+  // Move only this heading: never move/recreate the iframe or chat nodes.
+  const layout=main.parentElement?.classList?.contains('channelLiveLayout')?main.parentElement:null;
+  if(layout)layout.insertBefore(header,main);
+  else if(video.parentElement===main)main.insertBefore(header,video);
   else main.prepend(header);
   // The owner may have edited the metadata without restarting OBS.
   const update=(titleValue,categoryValue)=>{

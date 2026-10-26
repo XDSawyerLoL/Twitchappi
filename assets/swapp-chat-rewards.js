@@ -101,10 +101,10 @@
   if(!pane||!form||!valid(name))return;
   if(pane.querySelector('[data-swapp-rewards-root]'))return;
   const container=el('div','swapp-rewards-anchor');container.dataset.swappRewardsRoot='1';
-  trigger=el('button','swapp-rewards-trigger','◇ 0 pts');
+  trigger=el('button','swapp-rewards-trigger','Récompenses');
   trigger.type='button';trigger.setAttribute('aria-label','Mes points de chaîne et récompenses');
   trigger.setAttribute('aria-expanded','false');
-  amount=el('span','swapp-rewards-balance','Mes points : …');
+  amount=el('span','swapp-rewards-balance',session()?'Points : …':'Connecte-toi');
   const caption=el('span','swapp-rewards-hint','Récompenses');
   trigger.replaceChildren(amount,caption);
   drawer=el('section','swapp-rewards-drawer');drawer.hidden=true;
@@ -127,7 +127,11 @@
    trigger.setAttribute('aria-expanded',String(!drawer.hidden));
    if(!drawer.hidden){render(defaultRewards);void balance(true)}
   });
-  container.append(trigger,drawer);form.append(container);
+  container.append(trigger,drawer);
+  // Rewards belong to the quick-actions line, not an absolute overlay
+  // competing with the chat input and overflowing at desktop/mobile widths.
+  const assist=pane.querySelector('.chatAssist');
+  (assist||form).append(container);
   void balance(true);
  }
  const seen=new WeakSet();
