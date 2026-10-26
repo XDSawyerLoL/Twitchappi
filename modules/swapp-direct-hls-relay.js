@@ -37,7 +37,7 @@ function attachSwappDirectRelay(app, opts={}){
    if(Date.now()-stat.mtimeMs>55000)return null;
    const bytes=fs.readFileSync(sharedPath(login,name));
    if(name==='index.m3u8'){
-    const names=bytes.toString('utf8').split(/\\r?\\n/).filter(n=>/^seg_[0-9]{1,14}\\.ts$/.test(n));
+    const names=bytes.toString('utf8').split(/\r?\n/).filter(n=>/^seg_[0-9]{1,14}\.ts$/.test(n));
     if(!names.length||!names.every(n=>fs.existsSync(sharedPath(login,n))))return null;
    }
    return bytes;
@@ -60,10 +60,10 @@ function attachSwappDirectRelay(app, opts={}){
   }
   // Bound disk usage; keep the advertised window plus a modest DVR margin.
   const dir=path.join(sharedRoot,login);
-  const entries=fs.readdirSync(dir).filter(n=>/^seg_[0-9]{1,14}\\.ts$/.test(n));
+  const entries=fs.readdirSync(dir).filter(n=>/^seg_[0-9]{1,14}\.ts$/.test(n));
   if(entries.length>65){
    const pinned=new Set(room.playlistNames);
-   for(const n of entries.sort((a,b)=>Number(a.match(/\\d+/)[0])-Number(b.match(/\\d+/)[0])).slice(0,entries.length-55)){
+   for(const n of entries.sort((a,b)=>Number(a.match(/\d+/)[0])-Number(b.match(/\d+/)[0])).slice(0,entries.length-55)){
     if(!pinned.has(n))try{fs.unlinkSync(sharedPath(login,n))}catch(_){}
    }
   }
