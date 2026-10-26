@@ -323,3 +323,6 @@
   grid-template-columns:minmax(0,1fr)!important;
  }
 }
+
+/* Never reveal an empty navigation that the channel router intentionally hides. */
+#channel#channel .creatorRefine.swapp-channel-polish .channelSubNav[hidden]{display:none!important}
