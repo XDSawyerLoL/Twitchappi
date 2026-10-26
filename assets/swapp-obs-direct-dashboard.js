@@ -156,6 +156,18 @@ async function refresh(){
   message.textContent=lines[1]+(result.stage==='rejected'&&result.last_error_code?' Dernier refus HTTP '+result.last_error_code+
    ' ('+failedMedia+') : '+(errorReason[result.last_error_reason]||errors[result.last_error_code]||'voir les journaux serveur.'):'')+
    (result.last_put_at?' · Dernier contact OBS : '+new Date(result.last_put_at).toLocaleTimeString('fr-FR'):'');
+  const memory=Number(result.segment_bytes_in_memory)||0;
+  const budget=Number(result.segment_memory_budget)||0;
+  const missed=Math.max(0,Number(result.missing_segment_requests)||0);
+  if(budget>0&&memory>0){
+   const percent=Math.round(memory/budget*100);
+   message.textContent+=' · Mémoire vidéo : '+percent+' % de la capacité';
+   if(percent>=85)message.textContent+=' (risque de fragments expirés)';
+  }
+  if(missed>0){
+   message.textContent+=' · '+missed+' requête'+(missed>1?'s':'')+
+    ' de fragments expirés : un spectateur peut avoir rencontré une coupure.';
+  }
   detail.dataset.stage=result.stage||'unknown';
   const delivery=$('.swapp-obs-public-readiness',panel);
   if(delivery){

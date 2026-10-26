@@ -155,6 +155,20 @@ let pendingBufferingTimer = null;
 let intentionalTimeshift = false, lastLiveCorrection = 0;
 let h = null;
 let booted = false, lastFrameAt = Date.now(), retries = 0, restarting = false;
+// Distinguish a changing video clock from a frozen decoded frame. Merely
+// having readyState>=2 or a nonzero videoWidth does not mean playback advances.
+let lastProgressTime=NaN, healthySince=0, mediaRecoveries=0, networkRecoveries=0, lastSoftRecovery=0;
+let relayFresh=null, relayAgeMs=null;
+let lastRenderedFrameAt=0;
+const canObserveFrames=typeof v.requestVideoFrameCallback==='function';
+function observeRenderedFrames(){
+ if(!canObserveFrames)return;
+ v.requestVideoFrameCallback(()=>{
+  if(!manualStop&&!userPaused)lastRenderedFrameAt=Date.now();
+  observeRenderedFrames();
+ });
+}
+observeRenderedFrames();
 let lastHlsError = '';
 function showFailure(label){message(label+(lastHlsError?' · '+lastHlsError:''));}
 function scriptFallback(){
@@ -173,9 +187,21 @@ function message(text){
  status.textContent=text;status.hidden=false;
 }
 function displayVideo(){
- if(!manualStop && v.readyState>=2 && v.videoWidth>0){
+ if(manualStop||v.readyState<2||v.videoWidth<=0)return;
+ const now=Date.now(),time=Number(v.currentTime);
+ const advancing=Number.isFinite(time)&&( !Number.isFinite(lastProgressTime) ||
+  time-lastProgressTime>=0.12 || time-lastProgressTime < -4 );
+ if(advancing){
+  lastProgressTime=time;
+  lastFrameAt=now;
+  if(!healthySince)healthySince=now;
+  // An image must play for a sustained period before recovery budgets reset.
+  // Previously one 'loadeddata' event reset the retry counter every time.
+  if(now-healthySince>30000){retries=0;mediaRecoveries=0;networkRecoveries=0;lastHlsError=''}
+ }
+ everDecoded=true;
+ if(advancing||userPaused){
   clearTimeout(pendingBufferingTimer);pendingBufferingTimer=null;
-  lastFrameAt=Date.now();retries=0;everDecoded=true;
   status.hidden=true;status.classList.remove('soft-buffering');
   playerStatus(userPaused?'paused':'playing');
  }
@@ -305,11 +331,15 @@ function restart(){
  if(restarting || manualStop)return;
  clearTimeout(pendingBufferingTimer);pendingBufferingTimer=null;
  restarting=true;booted=false;booting=false;everDecoded=false;userPaused=false;retries++;
+ healthySince=0;lastProgressTime=NaN;lastRenderedFrameAt=0;
  playerStatus('connecting');
  if(h){try{h.destroy()}catch(_){} h=null}
  v.pause();v.removeAttribute('src');v.load();
- message(retries>4?'Le direct ne démarre pas. Nouvelle tentative…':'Reconnexion vidéo…');
- const delay=Math.min(8000,1500+retries*800);
+ const offline=relayFresh===false;
+ message(offline?'Flux OBS interrompu : reprise automatique à la réception des segments…':
+  retries>4?'Flux instable : nouvelle tentative espacée…':'Reconnexion vidéo…');
+ // Do not spam Hostinger or rebuild the MSE engine several times a second.
+ const delay=Math.min(15000,2000+retries*1700);
  setTimeout(()=>{restarting=false;boot()},delay);
 }
 async function boot(){
@@ -327,10 +357,12 @@ async function boot(){
    // Standard HLS/MPEG-TS: 2 completed segments instead of the old 3.
    // The lowLatencyMode flag only helps true LL-HLS playlists with PART tags.
    lowLatencyMode:false,
-   liveSyncDurationCount:2,
-   liveMaxLatencyDurationCount:5,
-   maxLiveSyncPlaybackRate:1.10,
-   backBufferLength:80,maxBufferLength:12,
+   // A 2-segment live edge is fragile when multiple viewers share a small
+   // HLS relay. 3 completed fragments plus a 20s buffer tolerates jitter.
+   liveSyncDurationCount:3,
+   liveMaxLatencyDurationCount:7,
+   maxLiveSyncPlaybackRate:1.05,
+   backBufferLength:30,maxBufferLength:20,
    manifestLoadingMaxRetry:4,levelLoadingMaxRetry:4,fragLoadingMaxRetry:4
   });
   booted=true;hlsStartedAt=Date.now();
@@ -356,8 +388,18 @@ async function boot(){
    lastHlsError=detail+(code?' (HTTP '+code+')':'');
    if(info.fatal){
     failure(lastHlsError);
-    if(info.type===Hls.ErrorTypes.MEDIA_ERROR&&retries<2){
-     retries++;try{h.recoverMediaError();return}catch(_){}
+    const now=Date.now();
+    if(info.type===Hls.ErrorTypes.MEDIA_ERROR&&mediaRecoveries<2&&now-lastSoftRecovery>6000){
+     mediaRecoveries++;lastSoftRecovery=now;
+     try{h.recoverMediaError();return}catch(_){}
+    }
+    // Prefer a bounded in-place network resync before destroying the
+    // decoder and throwing away the already buffered live fragments.
+    const transient=info.type===Hls.ErrorTypes.NETWORK_ERROR&&
+      /(?:fragLoadError|fragLoadTimeOut|levelLoadError|levelLoadTimeOut|manifestLoadError|manifestLoadTimeOut)/i.test(detail);
+    if(transient&&networkRecoveries<2&&now-lastSoftRecovery>6000){
+     networkRecoveries++;lastSoftRecovery=now;
+     try{h.startLoad(-1);return}catch(_){}
     }
     restart();
    }
@@ -401,7 +443,7 @@ function refreshLiveLatency(){
  if(!Number.isFinite(pos)||!Number.isFinite(target)||pos<=v.currentTime+1)return;
  const threshold=Math.max(9,target+6);
  const now=Date.now();
- if(delay>threshold && now-lastLiveCorrection>12000){
+ if(delay>Math.max(20,threshold) && now-lastLiveCorrection>30000){
   try{
    v.currentTime=pos;
    lastLiveCorrection=now;
@@ -412,7 +454,26 @@ playerStatus('connecting');
 syncAudio();
 boot();
 setInterval(refreshLiveLatency,1500);
-setInterval(()=>{if(booted&&!manualStop&&!userPaused&&Date.now()-(everDecoded?lastFrameAt:hlsStartedAt||startedAt)>45000){failure(lastHlsError||'aucune image décodée après 45 secondes');restart()}},5000);
+setInterval(()=>{
+ if(!booted||manualStop||userPaused||restarting||v.paused||document.hidden)return;
+ const progressAt=canObserveFrames&&lastRenderedFrameAt>0?lastRenderedFrameAt:lastFrameAt;
+ const elapsed=Date.now()-(everDecoded?progressAt:hlsStartedAt||startedAt);
+ if(elapsed<18000)return;
+ // First attempt to resume the EXISTING decoder near the live edge.
+ if(elapsed<42000&&h&&Date.now()-lastSoftRecovery>20000){
+  lastSoftRecovery=Date.now();
+  const edge=Number(h.liveSyncPosition);
+  if(Number.isFinite(edge)&&edge>v.currentTime+2&&!intentionalTimeshift){
+   try{v.currentTime=edge;return}catch(_){}
+  }
+  try{h.startLoad(-1);return}catch(_){}
+ }
+ if(elapsed>=45000){
+  failure(relayFresh===false?'OBS ne fournit plus de segments récents':
+   lastHlsError||'image figée depuis 45 secondes');
+  restart();
+ }
+},5000);
 // Distinguish a muted browser player from an OBS stream with no audio track.
 async function refreshAudioTrack(){
  if(!src.startsWith('/api/oryon/local-relay/'))return;
@@ -420,10 +481,12 @@ async function refreshAudioTrack(){
   const r=await fetch(src.replace(/\/(?:index|dvr)\.m3u8(?:\?.*)?$/,'/state')+'?t='+Date.now(),{cache:'no-store'});
   if(!r.ok)return;
   const state=await r.json();
+  relayFresh=state.media_fresh===true;
+  relayAgeMs=Number.isFinite(Number(state.segment_age_ms))?Number(state.segment_age_ms):null;
   const missing=state.active&&state.audio_track==='missing';
   audioHint.hidden=!missing;
   audioHint.textContent=missing?'OBS ne transmet aucune piste audio. Vérifie la piste 1 dans OBS.':'';
- }catch(_){}
+ }catch(_){relayFresh=null;relayAgeMs=null}
 }
 refreshAudioTrack();
 setInterval(refreshAudioTrack,14000);

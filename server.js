@@ -4770,7 +4770,9 @@ const swappDirectRelay=attachSwappDirectRelay(app,{
  },
  onVerifiedObsIngest:async login=>{
   const now=Date.now();
-  if(now-(swappObsHlsPersistAt.get(login)||0)<18000)return;
+  // Avoid rewriting the whole account collection for every HLS fragment.
+  // 45s is comfortably below the default 120s OBS liveness timeout.
+  if(now-(swappObsHlsPersistAt.get(login)||0)<45000)return;
   swappObsHlsPersistAt.set(login,now);
   try{
    const data=readOryonUsers(),user=(data.users||[]).find(u=>u.login===login);
@@ -4785,7 +4787,9 @@ const swappDirectRelay=attachSwappDirectRelay(app,{
    user.oryon_local_provider='obs-hls';
    await writeOryonUsersAndWait(data);
   }catch(error){
-   swappObsHlsPersistAt.delete(login);
+   // On DB outage, back off instead of attempting a costly write on every
+   // 2-second OBS segment and starving media GET requests.
+   swappObsHlsPersistAt.set(login,Date.now()-15000);
    console.warn('[SWAPP OBS] verified stream metadata persistence unavailable',String(error?.code||error?.name||'error'));
   }
  },
