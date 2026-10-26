@@ -16,7 +16,7 @@ function setup(){
   other:{id:'v2',login:'other',display_name:'Autre'}};
  const live={host:'socket-host',viewers:new Set(['sock-1']),mediaViewers:new Set(['sock-1'])};
  const handlers={},connections=[],emitted=[],sockets=new Map();
- const app={get(path,fn){handlers[path]=fn}};
+ const app={get(path,fn){handlers[path]=fn},post(path,fn){handlers['POST '+path]=fn}};
  const io={sockets:{sockets},
   on(name,fn){if(name==='connection')connections.push(fn)}};
  const model=installChannelAudience({app,io,getUser:name=>users[name],
