@@ -193,7 +193,8 @@ function attachSwappDirectRelay(app, opts={}){
     if(rooms.size>=MAX_ROOMS)return res.status(429).json({success:false,error:'Capacité du relais SWAPP atteinte.'});
     room={segments:new Map(),viewers:new Map(),segmentTimeline:[],segmentDurations:new Map(),manifest:null,playlistNames:[],poster:null,posterAt:0,clip:null,clipAt:0,audioTrack:'unknown',bytes:0,lastManifestAt:now,
      broadcastId:crypto.randomBytes(12).toString('hex'),pushDispatched:false,pendingObsPlaylist:null,
-     lastSegmentAt:0,minuteStarted:now,minuteBytes:0};
+     lastSegmentAt:0,minuteStarted:now,minuteBytes:0,
+     missingSegmentRequests:0,lastMissingSegmentAt:0};
     rooms.set(login,room);
    }
    if(now-room.minuteStarted>60000){room.minuteStarted=now;room.minuteBytes=0}
@@ -397,6 +398,9 @@ function attachSwappDirectRelay(app, opts={}){
    pending_obs_segments:r?.pendingObsPlaylist?.length||0,
    last_segment_ok_at:t.last_segment_ok_at||null,last_playlist_ok_at:t.last_playlist_ok_at||null,
    segment_age_ms:segmentAge,playlist_age_ms:playlistAge,segment_count:r?.segments?.size||0,
+   segment_bytes_in_memory:r?.bytes||0,segment_memory_budget:MAX_ROOM_BYTES,
+   missing_segment_requests:r?.missingSegmentRequests||0,
+   last_missing_segment_at:r?.lastMissingSegmentAt||null,
    has_playlist:!!r?.manifest,max_rooms:MAX_ROOMS,used_rooms:rooms.size,
    protocol_hint:'OBS doit utiliser le service HLS et HTTP PUT; les ports RTMP ne fonctionnent pas ici.'});
  });
@@ -448,7 +452,9 @@ function attachSwappDirectRelay(app, opts={}){
   res.json({success:true,active:hasFreshVideo(r),segment_count:r?.segments?.size||0,
    last_manifest_at:r?.lastManifestAt||null,last_segment_at:r?.lastSegmentAt||null,
    segment_age_ms:r?.lastSegmentAt?Math.max(0,Date.now()-r.lastSegmentAt):null,
-   media_fresh:hasFreshVideo(r),audio_track:r?.audioTrack||'unknown',dvr_seconds:r?Math.round(Math.min(80,historySeconds(r))):0,preview_ready:!!r?.clip});
+   media_fresh:hasFreshVideo(r),audio_track:r?.audioTrack||'unknown',dvr_seconds:r?Math.round(Math.min(80,historySeconds(r))):0,preview_ready:!!r?.clip,
+   segment_bytes_in_memory:r?.bytes||0,segment_memory_budget:MAX_ROOM_BYTES,
+   missing_segment_requests:r?.missingSegmentRequests||0});
  });
  app.get('/api/oryon/local-relay/:login/probe',(req,res)=>{
   notCached(res);
@@ -515,9 +521,16 @@ function attachSwappDirectRelay(app, opts={}){
  }); app.get('/api/oryon/local-relay/:login/:segment',(req,res)=>{
   notCached(res);
   const login=cleanLogin(req.params.login),name=cleanName(req.params.segment),r=login&&liveRoom(login);
-  if(!r||!name.endsWith('.ts')||!r.segments.has(name))return res.sendStatus(404);
+  if(!r||!name.endsWith('.ts'))return res.sendStatus(404);
   const bytes=r.segments.get(name);
-  if(!bytes)return res.sendStatus(404);
+  if(!bytes){
+   // A slow viewer can fall outside a bounded in-memory HLS window.
+   // Surface this to the owner without logging IPs or private keys.
+   r.missingSegmentRequests=(r.missingSegmentRequests||0)+1;
+   r.lastMissingSegmentAt=Date.now();
+   res.set('X-SWAPP-HLS-Window','expired');
+   return res.sendStatus(404);
+  }
   recordSegmentResponse(bytes.length);
   res.type('video/mp2t').send(bytes);
  });
