@@ -110,11 +110,8 @@
  // Defensive bound for additional legacy styles injected after initial layout:
  // never allow a channel card's right edge to exceed the actual viewport.
  function fitViewport(page){
-  // Never write viewport-dependent widths on scroll or resize: it produces
-  // a feedback loop with the 16:9 media frame and makes it jump.
+  // CSS alone owns the player's dimensions. No JS writes page/player widths.
   if(!page?.isConnected)return;
-  page.style.removeProperty('width');
-  page.style.removeProperty('max-width');
  }
  // Chat follows the visible video surface, not the surrounding controls/Pulse.
  // ResizeObserver accounts for theatre mode, sidebar toggles and window resize.
@@ -124,18 +121,25 @@
   const chat=page.querySelector('.channelLiveSidebar .chatPanel');
   if(!video||!chat)return;
   const videoRect=video.getBoundingClientRect();
-  const h=Math.round(videoRect.height);
+  // Use the stable inline width instead of measuring the current height.
+  // Height can momentarily change when legacy chat/viewport rules reflow.
+  const width=video.clientWidth||videoRect.width;
+  const h=Math.round(width*9/16);
   if(!Number.isFinite(h)||h<140)return;
   const mobile=window.matchMedia('(max-width:1080px)').matches;
   // Keep the chat composer and suggestion actions visible when the video is short.
   // On desktop, preserve exact player height whenever it is sufficiently tall.
   const actual=mobile?Math.max(400,Math.min(440,h)):Math.max(400,h);
-  chat.style.setProperty('--swapp-chat-player-height',actual+'px');
-  // Lock the complete chat panel to the video height; only the message log
-  // scrolls. Previous min-height-only sizing let the composer overflow below it.
-  chat.style.setProperty('height',actual+'px','important');
-  chat.style.setProperty('min-height','0','important');
-  chat.style.setProperty('max-height',actual+'px','important');
+  const value=actual+'px';
+  // Only update changed values. This avoids ResizeObserver/layout feedback
+  // whenever legacy code or scrolling triggers redundant measurements.
+  if(chat.dataset.swappMeasuredHeight!==value){
+   chat.dataset.swappMeasuredHeight=value;
+   chat.style.setProperty('--swapp-chat-player-height',value);
+   chat.style.setProperty('height',value,'important');
+   chat.style.setProperty('min-height','0','important');
+   chat.style.setProperty('max-height',value,'important');
+  }
   // On an offline channel the grid aligns the chat without translations.
   if(page.dataset.channelLive==='false'){
    chat.style.removeProperty('translate');
@@ -251,7 +255,7 @@
   immersion.addEventListener('click',()=>{
    const next=page.dataset.watchImmersion!=='on';
    setImmersion(page,next);
-   requestAnimationFrame(()=>{window.swappFitChat1014?.();syncChat(page);scheduleImmersion()});
+   requestAnimationFrame(()=>{syncChat(page);scheduleImmersion()});
    if(next){
     // Move the player into view before refining the dark surround.
     main.scrollIntoView?.({
@@ -263,14 +267,14 @@
   chat.addEventListener('click',()=>{
    const next=page.dataset.watchChat==='hidden'?'shown':'hidden';
    page.dataset.watchChat=next;mode.chat=next;updateUI(page);
-   requestAnimationFrame(()=>{window.swappFitChat1014?.();syncChat(page)});
+   requestAnimationFrame(()=>{syncChat(page)});
   });
   row.append(immersion,chat);
   main.appendChild(row);
   updateUI(page);
   requestAnimationFrame(()=>{
    fitViewport(page);
-   window.swappFitChat1014?.();
+   
    syncChat(page);
   });
   // Channel styles/fonts/player dimensions may finish settling after mount.
@@ -279,12 +283,17 @@
    if(page.isConnected)syncChat(page);
   },ms);
   if(typeof ResizeObserver==='function'){
+   let lastWidth=0;
    const watcher=new ResizeObserver(()=>{
     if(!page.isConnected){watcher.disconnect();return}
+    // Ignore height-only changes, including scroll-induced transient reflows.
+    // Only a real change of player width can alter a fixed 16:9 frame.
+    const width=Math.round(video.getBoundingClientRect().width);
+    if(!Number.isFinite(width)||width<100||width===lastWidth)return;
+    lastWidth=width;
     syncChat(page);scheduleImmersion();
    });
    watcher.observe(video);
-   if(page.querySelector('.channelLiveLayout'))watcher.observe(page.querySelector('.channelLiveLayout'));
   }
  }
  function start(){
@@ -302,7 +311,7 @@
   new MutationObserver(schedule).observe(root,{subtree:true,childList:true,attributes:true,attributeFilter:['data-channel-live','class']});
   window.addEventListener('resize',()=>root.querySelectorAll('.creatorRefine[data-channel-live]').forEach(page=>{
    fitViewport(page);
-   requestAnimationFrame(()=>{window.swappFitChat1014?.();syncChat(page);scheduleImmersion()});
+   requestAnimationFrame(()=>{syncChat(page);scheduleImmersion()});
   }),{passive:true});
   window.addEventListener('scroll',scheduleImmersion,{capture:true,passive:true});
   document.addEventListener('keydown',event=>{

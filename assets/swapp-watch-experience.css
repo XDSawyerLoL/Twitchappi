@@ -674,3 +674,60 @@ body:has(#channel.view.active) #oryonMiniPlayer{display:none!important}
  max-height:440px!important;min-height:320px!important;
  }
 }
+
+
+/* Stable 16:9 live stage: prevent legacy viewport-height, chat resize and
+   scroll-driven style rules from altering the public HLS frame. */
+#channel#channel#channel .creatorRefine.swapp-channel-polish .channelLiveLayout{
+ display:grid!important;
+ grid-template-columns:minmax(0,1fr) minmax(280px,384px)!important;
+ grid-auto-rows:max-content!important;
+ align-items:start!important;
+ width:100%!important;min-width:0!important;box-sizing:border-box!important;
+}
+#channel#channel#channel .creatorRefine.swapp-channel-polish .channelMainPlayer{
+ display:flex!important;flex-direction:column!important;min-width:0!important;
+ width:100%!important;max-width:100%!important;
+ align-self:start!important;position:relative!important;
+ transform:none!important;translate:none!important;
+}
+#channel#channel#channel .creatorRefine.swapp-channel-polish .channelMainPlayer > :is(.player,.premiumPlayer,.oryonMainPlayer){
+ display:block!important;position:relative!important;
+ flex:0 0 auto!important;
+ width:100%!important;min-width:0!important;max-width:100%!important;
+ height:auto!important;min-height:0!important;max-height:none!important;
+ aspect-ratio:16 / 9!important;
+ box-sizing:border-box!important;
+ overflow:hidden!important;transform:none!important;translate:none!important;
+ transition-property:none!important;animation:none!important;
+ contain:layout!important;
+}
+#channel#channel#channel .creatorRefine.swapp-channel-polish .channelMainPlayer > :is(.player,.premiumPlayer,.oryonMainPlayer) > iframe{
+ position:absolute!important;inset:0!important;
+ width:100%!important;height:100%!important;
+ min-width:0!important;max-width:100%!important;
+ min-height:0!important;max-height:100%!important;
+ border:0!important;display:block!important;
+ transform:none!important;
+}
+#channel#channel#channel .creatorRefine.swapp-channel-polish .channelLiveSidebar,
+#channel#channel#channel .creatorRefine.swapp-channel-polish .channelLiveSidebar > .chatPanel{
+ min-width:0!important;max-width:100%!important;width:100%!important;
+ resize:none!important;transform:none!important;translate:none!important;
+ position:relative!important;top:0!important;
+ box-sizing:border-box!important;
+}
+#channel#channel#channel .creatorRefine.swapp-channel-polish .channelLiveSidebar > .chatPanel{
+ height:var(--swapp-chat-player-height,400px)!important;
+ max-height:var(--swapp-chat-player-height,400px)!important;
+ min-height:0!important;overflow:hidden!important;
+}
+@media(max-width:1080px){
+ #channel#channel#channel .creatorRefine.swapp-channel-polish .channelLiveLayout{
+  grid-template-columns:minmax(0,1fr)!important;
+ }
+ #channel#channel#channel .creatorRefine.swapp-channel-polish .channelLiveSidebar > .chatPanel{
+  height:clamp(320px,var(--swapp-chat-player-height,400px),440px)!important;
+  max-height:440px!important;
+ }
+}

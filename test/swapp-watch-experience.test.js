@@ -76,7 +76,7 @@ test('chat shares the player top edge and uses its actual measured height',()=>{
  const index=read('index_script.js');
  assert.match(js,/function syncChat\(page\)/);
  assert.match(js,/const videoRect=video\.getBoundingClientRect\(\)/);
- assert.match(js,/const h=Math\.round\(videoRect\.height\)/);
+ assert.match(js,/const h=Math\.round\(width\*9\/16\)/);
  assert.match(js,/new ResizeObserver/);
  assert.match(js,/watcher\.observe\(video\)/);
  assert.match(css,/column-gap:4px!important/);
@@ -185,8 +185,53 @@ test('channel chat is not clipped by its parent and watch assets have refreshed 
  assert.match(css,/expose the chat composer beyond the video-height clipping ancestors/);
  assert.match(css,/\.channelLiveSidebar\{\s*height:auto!important;\s*min-height:0!important;\s*max-height:none!important;\s*overflow:visible!important;/);
  assert.match(css,/min-height:max\(420px,var\(--swapp-chat-player-height,420px\)\)!important/);
- assert.match(js,/chat\.style\.setProperty\('height',actual\+'px','important'\)/);
- assert.match(js,/chat\.style\.setProperty\('max-height',actual\+'px','important'\)/);
- assert.match(html,/swapp-watch-experience\.css\?v=20261026-chat-height-v2/);
- assert.match(html,/swapp-watch-experience\.js\?v=20261026-chat-height-v2/);
+ assert.match(js,/chat\.style\.setProperty\('height',value,'important'\)/);
+ assert.match(js,/chat\.style\.setProperty\('max-height',value,'important'\)/);
+ assert.match(html,/swapp-watch-experience\.css\?v=20261026-static-169-v3/);
+ assert.match(html,/swapp-watch-experience\.js\?v=20261026-static-169-v3/);
+});
+
+
+test('scroll position cannot feed back into player width or chat height',()=>{
+ const js=read('assets/swapp-watch-experience.js');
+ const css=read('assets/swapp-watch-experience.css');
+ assert.match(js,/const width=video\.clientWidth\|\|videoRect\.width/);
+ assert.match(js,/const h=Math\.round\(width\*9\/16\)/);
+ assert.match(js,/chat\.dataset\.swappMeasuredHeight!==value/);
+ assert.doesNotMatch(js,/window\.swappFitChat1014\?\.\(\)/);
+ assert.match(js,/width===lastWidth\)return/);
+ assert.doesNotMatch(js,/watcher\.observe\(page\.querySelector\('\.channelLiveLayout'\)\)/);
+ assert.match(css,/resize:none!important/);
+ assert.match(css,/grid-auto-rows:max-content!important/);
+ assert.match(css,/aspect-ratio:16 \/ 9!important/);
+ assert.match(css,/transition-property:none!important/);
+});
+test('chat measured height remains unchanged even when video reports different heights',()=>{
+ const js=read('assets/swapp-watch-experience.js');
+ const a=js.indexOf(' function syncChat(page){');
+ const b=js.indexOf('\n // Prefer actual broadcast metadata;',a);
+ assert.ok(a>=0&&b>a);
+ const sync=new Function('window',js.slice(a,b)+'return syncChat')({
+  matchMedia:()=>({matches:false})
+ });
+ let renderedHeight=450,writes=0;
+ const video={clientWidth:800,getBoundingClientRect:()=>({width:800,height:renderedHeight})};
+ const props={};
+ const chat={dataset:{},style:{
+  setProperty(k,v){props[k]=v;writes++},
+  removeProperty(k){delete props[k]}
+ }};
+ const page={isConnected:true,dataset:{watchChat:'shown',channelLive:'true'},
+  querySelector:q=>q.includes('.channelMainPlayer >')?video:q.includes('.chatPanel')?chat:null};
+ sync(page);
+ assert.equal(props.height,'450px');
+ const initial=writes;
+ for(const newHeight of [390,510,420,449]){
+  renderedHeight=newHeight;
+  sync(page);
+ }
+ assert.equal(writes,initial,'height-only changes must never trigger new layout writes');
+ video.clientWidth=960;
+ sync(page);
+ assert.equal(props.height,'540px','real width changes still update height');
 });
