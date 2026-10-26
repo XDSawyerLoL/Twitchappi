@@ -41,11 +41,11 @@
   try{
    const data=await request('/api/swapp/channel-points/'+encodeURIComponent(name));
    if(id!==seq||room()!==name||!amount.isConnected)return;
-   amount.textContent=Number(data.points||0).toLocaleString('fr-FR')+' pts';
+   amount.textContent=Number(data.points||0).toLocaleString('fr-FR')+' pts de chaîne';
    amount.dataset.points=String(Number(data.points||0));
    const items=Array.isArray(data.rewards)?data.rewards:defaultRewards;
    if(drawer&&!drawer.hidden)render(items);
-  }catch(_){if(id===seq&&amount?.isConnected)amount.textContent='Points indisponibles'}
+  }catch(_){if(id===seq&&amount?.isConnected)amount.textContent='Pts de chaîne indisponibles'}
  }
  function render(rewards=defaultRewards){
   if(!drawer)return;
@@ -55,7 +55,7 @@
   for(const reward of known){
    const card=el('div','swapp-rewards-item');
    const description=el('div','swapp-rewards-info');
-   description.append(el('strong','',reward.label),el('small','',reward.cost+' points'));
+   description.append(el('strong','',reward.label),el('small','',reward.cost+' pts de chaîne'));
    const button=el('button','','Utiliser');
    button.type='button';button.disabled=busy;button.dataset.reward=reward.id;
    card.append(description,button);
@@ -75,7 +75,7 @@
   const reward=button.dataset.reward;
   if(!defaultRewards.some(r=>r.id===reward))return;
   if(reward!=='cheer'&&message.length<2){status('Écris un message de 2 caractères minimum.');return}
-  if(!window.confirm('Dépenser '+defaultRewards.find(r=>r.id===reward).cost+' points pour '+rewardLabels[reward]+' ?'))return;
+  if(!window.confirm('Dépenser '+defaultRewards.find(r=>r.id===reward).cost+' pts de chaîne pour '+rewardLabels[reward]+' ?'))return;
   busy=true;
   const buttons=drawer.querySelectorAll('button[data-reward]');
   buttons.forEach(b=>b.disabled=true);
@@ -86,7 +86,7 @@
     reward,message,request_id:crypto.randomUUID()
    });
    if(room()!==name)return;
-   amount.textContent=Number(result.points).toLocaleString('fr-FR')+' pts';
+   amount.textContent=Number(result.points).toLocaleString('fr-FR')+' pts de chaîne';
    amount.dataset.points=String(result.points);lastBalance=Date.now();
    status('Récompense activée dans le tchat.');
    if(item?.querySelector('input'))item.querySelector('input').value='';
@@ -101,19 +101,19 @@
   if(!pane||!form||!valid(name))return;
   if(pane.querySelector('[data-swapp-rewards-root]'))return;
   const container=el('div','swapp-rewards-anchor');container.dataset.swappRewardsRoot='1';
-  trigger=el('button','swapp-rewards-trigger','Récompenses');
+  trigger=el('button','swapp-rewards-trigger','Échanger');
   trigger.type='button';trigger.setAttribute('aria-label','Mes points de chaîne et récompenses');
   trigger.setAttribute('aria-expanded','false');
-  amount=el('span','swapp-rewards-balance',session()?'Points : …':'Connecte-toi');
-  const caption=el('span','swapp-rewards-hint','Récompenses');
+  amount=el('span','swapp-rewards-balance',session()?'… pts de chaîne':'Mes pts de chaîne');
+  const caption=el('span','swapp-rewards-hint','Échanger');
   trigger.replaceChildren(amount,caption);
   drawer=el('section','swapp-rewards-drawer');drawer.hidden=true;
-  drawer.setAttribute('aria-label','Dépenser mes points de chaîne');
+  drawer.setAttribute('aria-label','Dépenser mes pts de chaîne');
   const top=el('div','swapp-rewards-top');
-  top.append(el('strong','','Récompenses de chaîne'));
+  top.append(el('strong','','Mes pts de chaîne'));
   const quit=el('button','','×');quit.type='button';quit.setAttribute('aria-label','Fermer les récompenses');
   quit.addEventListener('click',close);top.append(quit);
-  const info=el('p','', 'Gagne des points en regardant le direct, puis utilise-les ici. Les points sont propres à cette chaîne.');
+  const info=el('p','', 'Gagne des pts de chaîne en regardant le direct et utilise-les pour réagir, poser une question ou mettre un message en avant.');
   const list=el('div','');list.dataset.rewardsList='1';
   const notice=el('p','swapp-rewards-status','');notice.dataset.rewardsStatus='1';
   notice.setAttribute('role','status');notice.setAttribute('aria-live','polite');
