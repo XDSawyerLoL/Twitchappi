@@ -570,6 +570,8 @@ test('shared HLS directory serves actual playlist and segment across isolated No
   assert.equal((await writer.call('post',push,{name:'seg_007.ts',body:media})).status,200);
   assert.equal((await writer.call('post',push,{name:'index.m3u8',body:playlist})).status,200);
   assert.equal(reader.relay.rooms.size,0,'independent process has no in-memory room');
+  const remoteState=await reader.call('get','/api/oryon/local-relay/:login/state');
+  assert.equal(remoteState.payload.active,true,'remote worker must not incorrectly mark live offline');
   const external=await reader.call('get',manifest);
   assert.equal(external.status,200,'second process can serve shared manifest');
   assert.match(external.payload.toString('utf8'),/seg_007\\.ts/);
