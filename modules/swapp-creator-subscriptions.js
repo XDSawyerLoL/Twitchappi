@@ -210,7 +210,7 @@ function createCreatorSubscriptions({
     if(!enabled||!stripe||!allowed.has(creator))
       return res.status(503).json({success:false,error:'Paiement indisponible pour cette chaîne.'});
     if(!existsCreator(creator))return res.status(404).json({success:false,error:'Chaîne introuvable.'});
-    if(viewer.login===creator)return res.status(400).json({success:false,error:'Tu ne peux pas t’abonner à ta propre chaîne.'});
+    if(viewer.login===creator&&kind==='self')return res.status(400).json({success:false,error:'Tu ne peux pas t’abonner à ta propre chaîne.'});
     const qty=kind==='gift'?count(req.body?.quantity):kind==='self'?1:null;
     if(!qty)return res.status(400).json({success:false,error:'Quantité invalide (1 à 100).'});
     const nonce=String(req.body?.nonce||'');
@@ -244,7 +244,8 @@ function createCreatorSubscriptions({
         };
       }else{
         shared.payment_intent_data={
-          metadata,application_fee_amount:Math.round(pricing.totalCents*feePercent/100),
+          metadata,
+          ...(feePercent>0?{application_fee_amount:Math.round(pricing.totalCents*feePercent/100)}:{}),
           transfer_data:{destination:account.stripe_account_id}
         };
       }
