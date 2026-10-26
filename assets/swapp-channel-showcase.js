@@ -48,7 +48,6 @@
    if(!details.contains(event.target)&&!content.contains(event.target))details.open=false;
   };
   const onKeys=event=>{if(event.key==='Escape'){details.open=false;summary.focus()}};
-  const onNavigate=()=>{if(!details.isConnected)close()};
   const close=()=>{
    if(!floating)return;
    floating=false;activeMenus.delete(entry);
@@ -115,6 +114,8 @@
    for(const node of Array.from(dock.children)){
     if(eligible(node))group.content.append(node);
    }
+   // No empty Plus menu for viewers. Late actions reveal it automatically.
+   if(!owner)group.details.hidden=group.content.childElementCount===0;
   };
   gather();
   dock.dataset.swappShowcaseOrganized='1';
