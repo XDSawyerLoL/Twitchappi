@@ -113,6 +113,7 @@
    catField.setAttribute('aria-label','Jeu ou catégorie du direct');
    catField.maxLength=60;
    bindTwitchCategories(catField);
+   detectionButton(catField,editor);
   }
   const launch=$('#startLiveBtn',manager);
   if(launch)launch.textContent='Démarrer SWAPP Live';
@@ -173,6 +174,46 @@
     },300);
   });
  }
+ // Suggest the game configured on the linked Twitch channel, not a fake
+ // visual recognition of OBS frames. Never overwrite a recent manual edit.
+ async function detectGame(input,status,{force=false}={}){
+  if(!input?.isConnected)return;
+  const before=String(input.value||'').trim();
+  const generic=!before||/^(gaming|jeux?|jeu vidéo|just chatting|autre)$/i.test(before);
+  if(!force&&!generic)return;
+  if(status)status.textContent='Recherche du jeu sur Twitch…';
+  try{
+   const response=await fetch('/api/swapp/live/auto-game',{
+    credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'},
+    signal:AbortSignal.timeout(7000)
+   });
+   if(!response.ok)throw Error('Recherche indisponible');
+   const data=await response.json();
+   if(!input.isConnected)return;
+   if(!data?.game){
+    if(status)status.textContent='Aucun jeu détecté. Lie Twitch ou choisis une catégorie.';
+    return;
+   }
+   if(input.value.trim()!==before)return;
+   input.value=data.game;
+   input.dispatchEvent(new Event('change',{bubbles:true}));
+   if(status)status.textContent=data.confirmed_live
+    ?'Jeu récupéré depuis ton direct Twitch. Enregistre pour appliquer.'
+    :'Catégorie Twitch configurée : vérifie puis enregistre.';
+  }catch(_){if(status)status.textContent='Recherche indisponible. Tu peux saisir le jeu.'}
+ }
+ function detectionButton(input,container){
+  if(!input||!container||input.dataset.swappDetectGame)return;
+  input.dataset.swappDetectGame='1';
+  const row=make('div','swapp-game-detection-actions');
+  const btn=make('button','btn secondary','Détecter le jeu');btn.type='button';
+  const status=make('span','swapp-game-detection-status','');status.setAttribute('role','status');
+  btn.addEventListener('click',()=>void detectGame(input,status,{force:true}));
+  row.append(btn,status);
+  const actions=container.querySelector?.('.swapp-studio-dialog-actions');
+  if(actions)container.insertBefore(row,actions);else container.append(row);
+  return status;
+ }
  function ensureDialog(){
   if(dialog)return dialog;
   dialog=make('dialog','swapp-studio-dialog');
@@ -194,6 +235,7 @@
   const saveButton=make('button','btn good','Enregistrer');saveButton.type='submit';
   const status=make('span','swapp-studio-dialog-status','');status.setAttribute('role','status');
   actions.append(saveButton,status);frame.append(heading,close,titleLabel,catLabel,actions);
+  detectionButton(category,frame);
   frame.addEventListener('submit',event=>{
    event.preventDefault();
    void save(title.value,category.value,status).then(result=>{if(result)dialog.close()});
@@ -214,6 +256,7 @@
    const latest=await metadata();
    if(modal.open && ownRoom()){title.value=latest.title;cat.value=latest.category;}
   }catch(error){$('.swapp-studio-dialog-status',modal).textContent=error.message;}
+  void detectGame(cat,modal.querySelector('.swapp-game-detection-status'));
  }
  function publicHeading(info){
   const page=$('#channel');
