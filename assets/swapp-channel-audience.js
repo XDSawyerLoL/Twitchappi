@@ -70,7 +70,7 @@
   const dock=$('.channelActionDock',channel);
   if(!dock)return;
   let chip=$('[data-swapp-channel-points]',dock);
-  if(!chip){chip=node('span','swapp-channel-points-chip','Points de chaîne : …');
+  if(!chip){chip=node('span','swapp-channel-points-chip','Pts de chaîne : …');
    chip.dataset.swappChannelPoints='1';chip.title='Points propres à cette chaîne, gagnés par visionnage actif';
    dock.appendChild(chip);
   }
@@ -78,8 +78,8 @@
   balanceRoom=name;lastBalanceAt=Date.now();
   try{
    const result=await get('/api/swapp/channel-points/'+encodeURIComponent(name));
-   if(room()===name&&chip.isConnected)chip.textContent='Points de chaîne : '+result.points.toLocaleString('fr-FR');
-  }catch(_){if(chip.isConnected)chip.textContent='Points indisponibles'}
+   if(room()===name&&chip.isConnected)chip.textContent='Pts de chaîne : '+result.points.toLocaleString('fr-FR');
+  }catch(_){if(chip.isConnected)chip.textContent='Pts de chaîne indisponibles'}
  }
  function managerPanel(){
   const page=$('#manager');
@@ -142,7 +142,7 @@
     const identity=node('span','swapp-audience-user');
     identity.append(node('strong','',member.display_name),node('small','', '@'+member.login));
     row.append(identity,node('span',member.watching?'swapp-audience-playing':'',''+(member.watching?'Lecture signalée':'Dans le salon')),
-      node('span','swapp-audience-score',Number(member.points||0).toLocaleString('fr-FR')+' pts'));
+      node('span','swapp-audience-score',Number(member.points||0).toLocaleString('fr-FR')+' pts de chaîne'));
     list.appendChild(row);
    }
    if(!(stats.users||[]).length)list.appendChild(node('p','swapp-audience-empty',
@@ -154,7 +154,7 @@
     const who=node('span','swapp-audience-user');
     who.append(node('strong','',member.display_name||member.login),node('small','', '@'+member.login));
     row.append(who,node('span','',Number(member.minutes||0).toLocaleString('fr-FR')+' min cumulées'),
-     node('span','swapp-audience-score',Number(member.points||0).toLocaleString('fr-FR')+' pts'));
+     node('span','swapp-audience-score',Number(member.points||0).toLocaleString('fr-FR')+' pts de chaîne'));
     leaderboard.appendChild(row);
    }
    if(!leaderboard.childElementCount)leaderboard.appendChild(node('p','swapp-audience-empty','Aucun point distribué sur cette chaîne.'));

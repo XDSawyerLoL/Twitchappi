@@ -23,7 +23,7 @@
   if(!mounted||activeRoom!==data.room)return;
   const summary=$('.swapp-followers-summary',mounted),body=$('.swapp-followers-rows',mounted);
   const pages=$('.swapp-followers-pager',mounted);
-  summary.textContent=data.total+' follower'+(data.total===1?'':'s')+(data.points_available?' · points de chaîne':' · points momentanément indisponibles');
+  summary.textContent=data.total+' follower'+(data.total===1?'':'s')+(data.points_available?' · pts de chaîne':' · points momentanément indisponibles');
   body.replaceChildren();
   const header=el('div','swapp-followers-row swapp-followers-column-head');
   for(const name of ['Compte SWAPP','Points / temps','Statut','Actions'])header.append(el('span','',name));
@@ -36,7 +36,7 @@
    const profile=el('a','',member.display_name||member.login);profile.href='/'+encodeURIComponent(member.login);
    who.append(profile,el('small','','@'+member.login));
    const loyalty=el('div','swapp-followers-points');
-   loyalty.append(el('strong','',member.points===null?'Non mesuré':fmt(member.points)+' pts'),
+   loyalty.append(el('strong','',member.points===null?'Non mesuré':fmt(member.points)+' pts de chaîne'),
     el('small','',member.minutes===null?'Points indisponibles':fmt(member.minutes)+' min comptabilisées'));
    const flags=el('div','swapp-followers-flags');
    if(member.moderator)flags.append(el('span','swapp-followers-mod','Modérateur'));

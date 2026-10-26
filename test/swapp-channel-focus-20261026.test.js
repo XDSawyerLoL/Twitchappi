@@ -49,5 +49,5 @@ test('new finishing stylesheet loads last after prior channel styles',()=>{
  assert.ok(html.indexOf(stylesheet)>html.indexOf('swapp-channel-showcase.css'));
  assert.ok(html.indexOf(stylesheet)<html.indexOf('</head>'));
  assert.match(html,/swapp-watch-experience\.js\?v=20261026-grid-header-v5/);
- assert.match(html,/swapp-chat-rewards\.js\?v=20261026-action-bar-v2/);
+ assert.match(html,/swapp-chat-rewards\.js\?v=20261026-social-v3/);
 });
