@@ -17,7 +17,8 @@
  const current=()=>{try{return typeof state!=='undefined'?state:null}catch(_){return null}};
  const currentRoom=()=>{
   const stateNow=current();
-  return String(stateNow?.channelProfile?.login||stateNow?.watchRoom||stateNow?.lastChannelLogin||'').trim().toLowerCase();
+  return String(stateNow?.channelProfile?.login||stateNow?.watchRoom||stateNow?.lastChannelLogin||
+   ($('#manager')?.classList.contains('active')?stateNow?.session?.local?.login:'')||'').trim().toLowerCase();
  };
  const ownRoom=()=>{
   const s=current();
@@ -177,7 +178,7 @@
  // Automatic game sync uses the linked Twitch stream/channel metadata.
  // OBS HLS contains pixels and audio, not a trusted process/game identity.
  const automatic={running:false,last:0,room:'',source:''};
- const isGeneric=value=>!/^(?!$).+/.test(String(value||'').trim())||
+ const isGeneric=value=>!String(value||'').trim()||
   /^(gaming|jeux?|jeu vidéo|just chatting|autre|non défini)$/i.test(String(value||'').trim());
  async function detectGame(input,status){
   if(!input?.isConnected||automatic.running||!ownRoom())return;
