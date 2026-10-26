@@ -229,7 +229,7 @@ function createCreatorSubscriptions({
       const url='https://swapp.tv/'+encodeURIComponent(creator);
       const shared={
         mode:kind==='gift'?'payment':'subscription',
-        line_items:[{price_data:{currency:'eur',unit_amount:pricing.unitCents,
+        line_items:[{price_data:{currency:'eur',unit_amount:pricing.unitCents,tax_behavior:'inclusive',
           product_data:{name:kind==='gift'?'SWAPP · '+qty+' abonnement(s) cadeau · '+creator:
             'SWAPP · Abonnement mensuel · '+creator},
           ...(kind==='self'?{recurring:{interval:'month'}}:{})},quantity:qty}],
