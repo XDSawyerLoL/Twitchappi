@@ -17,8 +17,8 @@
  const current=()=>{try{return typeof state!=='undefined'?state:null}catch(_){return null}};
  const currentRoom=()=>{
   const stateNow=current();
-  return String(stateNow?.channelProfile?.login||stateNow?.watchRoom||stateNow?.lastChannelLogin||
-   ($('#manager')?.classList.contains('active')?stateNow?.session?.local?.login:'')||'').trim().toLowerCase();
+  return String(($('#manager')?.classList.contains('active')?stateNow?.session?.local?.login:'')||
+   stateNow?.channelProfile?.login||stateNow?.watchRoom||stateNow?.lastChannelLogin||'').trim().toLowerCase();
  };
  const ownRoom=()=>{
   const s=current();
