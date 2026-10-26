@@ -511,10 +511,13 @@ function attachSwappDirectRelay(app, opts={}){
  app.get('/api/oryon/local-relay/:login/state',(req,res)=>{
   notCached(res);
   const login=cleanLogin(req.params.login),r=login&&liveRoom(login);
-  res.json({success:true,active:hasFreshVideo(r),segment_count:r?.segments?.size||0,
+  const sharedManifest=sharedRead(login,'index.m3u8');
+  const sharedNames=sharedManifest?sharedManifest.toString('utf8').split(/\r?\n/).filter(n=>/^seg_[0-9]{1,14}\.ts$/.test(n)):[];
+  const sharedActive=sharedNames.length>0;
+  res.json({success:true,active:sharedActive||hasFreshVideo(r),segment_count:sharedActive?sharedNames.length:r?.segments?.size||0,
    last_manifest_at:r?.lastManifestAt||null,last_segment_at:r?.lastSegmentAt||null,
    segment_age_ms:r?.lastSegmentAt?Math.max(0,Date.now()-r.lastSegmentAt):null,
-   media_fresh:hasFreshVideo(r),audio_track:r?.audioTrack||'unknown',dvr_seconds:r?Math.round(Math.min(80,historySeconds(r))):0,preview_ready:!!r?.clip,
+   media_fresh:sharedActive||hasFreshVideo(r),audio_track:r?.audioTrack||'unknown',dvr_seconds:r?Math.round(Math.min(80,historySeconds(r))):0,preview_ready:!!r?.clip,
    segment_bytes_in_memory:r?.bytes||0,segment_memory_budget:MAX_ROOM_BYTES,
    missing_segment_requests:r?.missingSegmentRequests||0});
  });
