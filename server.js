@@ -343,11 +343,21 @@ app.use((req, res, next) => {
 });
 
 // Rate limit par d\u00E9faut sur /api (\u00E9vite spam)
+// Playback requests are high-frequency, read-only media deliveries. Counting
+// them against the global API/IP quota causes hls.js levelLoadError (429)
+// and penalizes viewers behind a shared IP/NAT. Keep OBS PUT/POST, auth and
+// every other API endpoint rate limited.
+function isSwappHlsPlaybackRequest(req){
+  if(req.method!=='GET' && req.method!=='HEAD')return false;
+  const route=String(req.originalUrl||req.url||'').split('?')[0];
+  return /^\/api\/oryon\/local-relay\/[a-z0-9_-]{2,48}\/(?:index\.m3u8|dvr\.m3u8|seg_[0-9]{1,14}\.ts)$/i.test(route);
+}
 const apiLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 300,
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
+  skip:isSwappHlsPlaybackRequest
 });
 app.use('/api', apiLimiter);
 // Read-only proof of concept: only public SOCIAL posts, no SWAPP credentials passed.
