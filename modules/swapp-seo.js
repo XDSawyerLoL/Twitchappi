@@ -15,7 +15,7 @@ function verifiedIndexedGame(slug){return resolveIndexedGame(slug)}
 function invalidateSeoCache(){invalidateRegisteredSeoCache()}
 function cachedGameHubForArticle(article){return lookupRegisteredGameHub(article)}
 const CORE_PATHS=Object.freeze([
- '/', '/decouvrir', '/categories', '/equipes', '/actus',
+ '/', '/a-propos', '/alternative-twitch', '/decouvrir', '/categories', '/equipes', '/actus',
  '/social', '/bandes-annonces', '/boutique', '/plan-du-site',
  ...require('./swapp-aion2-guides').PUBLIC_PATHS
 ]);
@@ -107,7 +107,7 @@ function newsSitemapXml(articles=[],currentTime=Date.now()){
 
 
 const CREATOR_LOGIN=/^[a-z0-9_][a-z0-9_-]{1,31}$/;
-const RESERVED_CREATOR_PATHS=new Set(['communaute','jeux','actus','api','assets','boutique','communaute','bandes-annonces','pricing','contact','confidentialite','mentions-legales','cgu','cookies','reset-password']);
+const RESERVED_CREATOR_PATHS=new Set(['a-propos','alternative-twitch','communaute','jeux','actus','api','assets','boutique','communaute','bandes-annonces','pricing','contact','confidentialite','mentions-legales','cgu','cookies','reset-password']);
 function creatorSitemapXml(creators=[]){
  const seen=new Set(),rows=[];
  for(const creator of Array.isArray(creators)?creators:[]){
@@ -221,7 +221,7 @@ function rssXml(articles=[]){
 }
 function sitemapHtml(articles=[]){
  const indexLinks=[
-  ['/','Accueil'],['/actus','Actualité jeux vidéo'],['/decouvrir','Découvrir des streamers'],
+  ['/','Accueil'],['/a-propos','Qu’est-ce que SWAPP.tv ?'],['/alternative-twitch','SWAPP, Twitch et Kick : comparatif'],['/actus','Actualité jeux vidéo'],['/decouvrir','Découvrir des streamers'],
   ['/categories','Jeux et catégories'],['/univers','Univers de jeux'],['/equipes','Équipes'],['/bandes-annonces','Bandes-annonces'],
   ['/social','Social'],['/boutique','Boutique']
  ];
@@ -284,6 +284,8 @@ async function notifyIndexNow(slugs=[],{fetchImpl=globalThis.fetch,enabled=proce
 
 function registerSeoRoutes(app,{getPublished=async()=>[],getCreators=async()=>[],now=()=>Date.now()}={}){
  if(!app||typeof app.get!=='function')throw Error('Express app required');
+ // Register before the generic creator-slug route in server.js.
+ require('./swapp-geo-pages').registerGeoRoutes(app);
  let cached=null,articles=[],expires=0,inflight=null,revision=0,loadedRevision=-1,hasVerifiedArticles=false,lastReadSuccessful=false;
  const TTL=6*60*60*1000;
  invalidateRegisteredSeoCache=()=>{revision++;expires=0};
@@ -442,12 +444,12 @@ const SPA_INFO=Object.freeze({
 });
 
 const LANDING_CONTENT=Object.freeze({
- '/decouvrir':{heading:'Découvrir des streamers et des lives gaming',intro:'Explore des diffusions en direct, découvre de nouveaux créateurs et retrouve les jeux qui t’intéressent sur SWAPP.',detail:'La découverte privilégie les jeux, les créateurs et les communautés, sans imposer un compte pour commencer à explorer.'},
+ '/decouvrir':{heading:'Découvrir des streamers gaming, par jeu et par catégorie',intro:'SWAPP propose de découvrir des chaînes gaming et des diffusions en direct, en reliant les créateurs aux jeux vidéo et à leurs communautés.',detail:'Parcours les catégories ou les univers de jeux pour trouver des streamers. Découvrir les contenus publics ne nécessite pas de compte.'},
  '/categories':{heading:'Jeux vidéo et catégories en direct',intro:'Retrouve les catégories de jeux vidéo et passe des actualités aux lives des créateurs qui y jouent.',detail:'Explore les univers gaming et découvre des streamers par jeu ou par catégorie.'},
  '/equipes':{heading:'Équipes de streamers et communautés gaming',intro:'Parcours les équipes et découvre les créateurs réunis autour des mêmes jeux et centres d’intérêt.',detail:'SWAPP relie la découverte des créateurs à celle des communautés.'},
  '/actus':{heading:'Actualité du jeu vidéo et du streaming',intro:'Lis les dernières informations sur les jeux vidéo, les annonces, les sorties et les bandes-annonces publiées sur SWAPP.',detail:'Chaque article disponible possède son adresse dédiée, pour retrouver les informations et découvrir les créateurs en direct.'}
 });
-const LANDING_LINKS=Object.freeze([['/actus','Actualité'],['/decouvrir','Lives et créateurs'],['/categories','Jeux et catégories'],['/equipes','Équipes'],['/bandes-annonces','Bandes-annonces'],['/univers','Univers de jeux'],['/social','Social'],['/plan-du-site','Plan du site']]);
+const LANDING_LINKS=Object.freeze([['/a-propos','À propos de SWAPP'],['/alternative-twitch','Comparer les plateformes'],['/actus','Actualité'],['/decouvrir','Lives et créateurs'],['/categories','Jeux et catégories'],['/equipes','Équipes'],['/bandes-annonces','Bandes-annonces'],['/univers','Univers de jeux'],['/social','Social'],['/plan-du-site','Plan du site']]);
 function landingMarkup(path){
  const item=LANDING_CONTENT[path];
  if(!item)return '';
