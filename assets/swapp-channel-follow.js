@@ -83,7 +83,7 @@
  function scan(){
   if(!root.classList.contains('active'))return;
   for(const page of root.querySelectorAll('.creatorRefine')){
-   const button=page.querySelector('.channelActionDock button[onclick*="followOryon"]');
+   const button=page.querySelector('.channelActionDock button[onclick*="followOryon"],.swapp-channel-follow-btn');
    if(button)attach(button,page);
   }
  }

@@ -128,7 +128,7 @@
  function scan(){
   if(!root.classList.contains('active'))return;
   for(const page of root.querySelectorAll('.creatorRefine')){
-   const follow=page.querySelector('.channelActionDock .swapp-channel-follow-btn');
+   const follow=page.querySelector('.swapp-channel-follow-btn');
    if(follow)attach(page,follow);
   }
  }

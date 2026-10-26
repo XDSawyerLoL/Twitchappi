@@ -24,7 +24,7 @@ test('the follow button is a single inline action; its state is server-provided'
  assert.match(source,/request\(path\)/);
  assert.match(source,/request\(path,following\?'DELETE':'POST'\)/);
  assert.match(source,/aria-pressed/);
- assert.match(html,/swapp-channel-follow\.js\?v=20261025-follow-toggle-v1/);
+ assert.match(html,/swapp-channel-follow\.js\?v=20261026-follow-near-player-v2/);
  assert.match(style,/swapp-channel-follow-btn\[aria-pressed="true"\]/);
 });
 function harness(authenticated){
