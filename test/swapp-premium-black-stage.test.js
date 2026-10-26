@@ -37,7 +37,7 @@ test('16:9 player and chat alignment, cinema, hide-chat, mobile remain unchanged
  assert.doesNotMatch(css,/\.chatPanel\s*\{[^}]*height:\s*\d+px/i);
 });
 test('browser loads the new stage palette, not stale cached CSS',()=>{
- const updated='swapp-chat-social-glass.css?v=20261026-black-stage-v2';
+ const updated='swapp-chat-social-glass.css?v=20261026-flat-chat-v3';
  assert.equal(html.split(updated).length-1,1);
  assert.ok(html.indexOf(updated)>html.indexOf('swapp-channel-focus-20261026.css'));
 });
