@@ -76,6 +76,11 @@ function swappIsBlockedTunnelUrl(url){
 }
 function swappSafeLocalPlayerUrl(url){
  const raw=String(url||'').trim();
+ // OBS Direct serves the trusted player on this same SWAPP origin. The
+ // old absolute-only URL parser rejected /api/.../player, leaving /vnhz
+ // with a black, empty WebRTC placeholder despite valid incoming HLS.
+ // Match the exact player route and nothing else (no queries or traversal).
+ if(/^\/api\/oryon\/local-relay\/[a-z0-9_-]{2,48}\/player$/i.test(raw))return raw;
  try{
   const parsed=new URL(raw);
   if(parsed.protocol!=='https:')return '';
@@ -3641,7 +3646,7 @@ applyViewerThemeColor();
 
 function fwLiveMediaHtml(p,isOwner,isLive,offlineImg,transport=''){
   const localPlayerUrl=swappSafeLocalPlayerUrl(p.oryon_local_player_url);
-  if(localPlayerUrl && isLive && transport==='local-agent') return `<iframe allowfullscreen sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-downloads" src="${esc(localPlayerUrl)}"></iframe>`;
+  if(localPlayerUrl && isLive && transport==='local-agent') return `<iframe title="Lecteur SWAPP Live" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-downloads" src="${esc(localPlayerUrl)}"></iframe>`;
   if((p.peertube_embed_url||p.peertube_watch_url) && !isLive) return `<iframe allowfullscreen sandbox="allow-same-origin allow-scripts allow-popups allow-forms" src="${esc(normalizePeerTubeEmbed(p.peertube_embed_url,p.peertube_watch_url))}"></iframe>`;
   return `<video id="localVideo" autoplay muted playsinline class="${isOwner&&state.stream?'':'hidden'}"></video><video id="remoteVideo" autoplay playsinline class="hidden"></video><div id="offlinePanel" class="emptyStatePlayer" style="display:${(isOwner&&state.stream)?'none':'grid'}">${offlineImg?`<img class="offlinePoster" src="${esc(offlineImg)}" alt="">`:''}<div class="offlineOverlay"><div><h2>${isLive?'Connexion au live…':'Chaîne hors ligne'}</h2><p class="muted">${isLive?'Connexion vidéo en attente.':'Bannière hors live, planning et infos de chaîne restent visibles.'}</p>${isOwner?`<button class="btn" onclick="setView('manager')">Ouvrir le gestionnaire</button>`:`<button class="btn" onclick="quickGem()">Trouver une pépite</button>`}</div></div></div>`;
 }
