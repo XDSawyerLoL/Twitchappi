@@ -301,7 +301,15 @@
   const page=root.querySelector('.creatorRefine.swapp-channel-polish');
   const nav=page?.querySelector('.channelSubNav'),name=login();
   if(!nav||!name)return;
-  if(mounted?.page===page&&mounted.button?.isConnected)return;
+  // The state is stored as {tab}, never {button}. Checking mounted.button
+  // previously failed forever and an observer reinjected tabs on every change.
+  if(mounted?.page===page&&mounted.nav===nav&&mounted.model?.name===name&&
+     mounted.tab?.isConnected&&mounted.model.panel?.isConnected)return;
+  // Dispose of stale listeners before replacing a detached SPA channel view.
+  mounted?.dispose?.();
+  // Recover if a previous buggy runtime left duplicate navigation/panels.
+  nav.querySelectorAll('[data-swapp-programme-tab]').forEach(node=>node.remove());
+  page.querySelectorAll('[data-swapp-programme-page]').forEach(node=>node.remove());
   const tab=make('button','','Programme');tab.type='button';
   tab.dataset.swappProgrammeTab='1';tab.setAttribute('aria-label','Agenda de la chaîne');
   nav.append(tab);nav.hidden=false;
@@ -322,6 +330,7 @@
    show(page,nav,model,tab,new URLSearchParams(location.search).get('tab')==='programme');
   };
   window.addEventListener('popstate',navigate);
+  mounted.dispose=()=>window.removeEventListener('popstate',navigate);
   navigate();
  }
  let scheduled=false;
@@ -329,7 +338,14 @@
   if(scheduled)return;scheduled=true;
   requestAnimationFrame(()=>{scheduled=false;install()});
  };
- new MutationObserver(schedule).observe(root,{childList:true,subtree:true});
+ // Ignore mutations from the agenda's own calendar or the live chat.
+ // Only a new/detached channel view needs reinstallation.
+ new MutationObserver(()=>{
+  if(mounted?.page===root.querySelector('.creatorRefine.swapp-channel-polish')&&
+     mounted?.model?.name===login()&&mounted?.tab?.isConnected&&
+     mounted?.nav?.isConnected&&mounted?.model?.panel?.isConnected)return;
+  schedule();
+ }).observe(root,{childList:true,subtree:true});
  window.addEventListener('popstate',schedule);
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',schedule,{once:true});
  else schedule();
