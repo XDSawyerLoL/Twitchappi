@@ -87,7 +87,7 @@
   panel.id='swapp-channel-audience';
   const head=node('div','swapp-audience-head');
   const titles=node('div');
-  titles.append(node('h2','', 'Spectateurs & points de chaîne'),
+  titles.append(node('h2','', 'Communauté de la chaîne'),
    node('p','', 'Comptes SWAPP présents dans ton salon. Les visiteurs anonymes ne sont pas identifiés.'));
   const refresh=node('button','btn secondary','Actualiser');
   refresh.type='button';refresh.addEventListener('click',()=>void refreshAudience(true));
@@ -104,7 +104,7 @@
  function navigation(){
   const nav=document.querySelector('.creatorSide nav[aria-label="Navigation créateur"]');
   if(!nav||nav.querySelector('[data-swapp-audience-link]'))return;
-  const link=node('button','','Spectateurs & points');
+  const link=node('button','','Communauté');
   link.type='button';link.dataset.swappAudienceLink='1';
   link.addEventListener('click',async()=>{
    if(!$('#manager')?.classList.contains('active')){
