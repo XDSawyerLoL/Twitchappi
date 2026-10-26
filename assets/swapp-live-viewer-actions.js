@@ -94,12 +94,21 @@
   const owner=page.dataset.channelOwner==='true';
   if(!owner){
    const follow=page.querySelector('.swapp-channel-follow-btn');
-   // Follow is a real native toggle. Move it ONLY after the owner-authenticated
-   // follow module has bound its click handler and initial state.
+   // Preserve the real auth-bound Follow button and its existing click handler.
    if(follow?.dataset.swappFollowBound==='true'&&follow.parentElement!==toolbar)
     toolbar.prepend(follow);
    const bell=page.querySelector('.swapp-live-alert-bell');
    if(bell&&bell.parentElement!==toolbar)toolbar.append(bell);
+   if(bell)toolbar.querySelector('.swapp-live-alert-preview')?.remove();
+  }
+  // Owners need to see how their channel looks to viewers. Until the real
+  // bell mounts, show a clearly non-functional preview instead of a blank gap.
+  if(!toolbar.querySelector('.swapp-live-alert-bell')&&!toolbar.querySelector('.swapp-live-alert-preview')){
+   const preview=el('button','swapp-live-alert-preview','🔔');
+   preview.type='button';preview.disabled=true;
+   preview.setAttribute('aria-label',owner?'Notifications visibles aux spectateurs':'Notifications en cours de chargement');
+   preview.title=owner?'Cloche affichée aux spectateurs. Active le service Push SWAPP pour rendre les alertes disponibles.':'Chargement des notifications SWAPP…';
+   toolbar.append(preview);
   }
   const subscribe=buttonFor(page);
   if(subscribe.parentElement!==toolbar)toolbar.append(subscribe);
