@@ -1,0 +1,117 @@
+/* Per-creator atmospheric channel background — independent of the header banner.
+ * Public user preference is persisted server-side; no local-only mock settings.
+ * Isolate to the creator channel page (not other SWAPP routes).
+ */
+#channel.view.active{
+ position:relative!important;isolation:isolate!important;
+ --swapp-background-opacity:0;--swapp-background-blur:0px;
+ --swapp-background-x:50%;--swapp-background-y:30%;
+ --swapp-background-fit:cover;
+}
+#channel.view.active[data-swapp-has-background="true"]::before{
+ content:"";position:fixed;inset:68px 0 0;
+ pointer-events:none;z-index:0;
+ background-image:var(--swapp-background-image,none);
+ background-size:var(--swapp-background-fit,cover);
+ background-position:var(--swapp-background-x,50%) var(--swapp-background-y,30%);
+ background-repeat:no-repeat;
+ opacity:var(--swapp-background-opacity,.35);
+ filter:blur(var(--swapp-background-blur,0px));
+ transform:translateZ(0) scale(1.03);
+}
+#channel.view.active[data-swapp-has-background="true"]::after{
+ content:"";position:fixed;inset:68px 0 0;
+ pointer-events:none;z-index:0;
+ background:linear-gradient(180deg,rgba(5,8,15,.54),rgba(5,7,13,.35) 18%,
+ rgba(6,9,16,.76) 76%,rgba(6,9,16,.94));
+}
+#channel.view.active .creatorRefine.swapp-channel-polish{
+ position:relative;z-index:1;
+}
+/* Live banner never displaces the actual video. Full artwork survives offline.
+   Make no changes to player/chat measured dimensions. */
+#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelTopHero{
+ min-height:190px!important;height:190px!important;
+ max-height:190px!important;overflow:hidden!important;
+ border-radius:12px!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelHeroContent{
+ min-height:190px!important;height:190px!important;max-height:190px!important;
+ align-items:center!important;
+ padding:clamp(12px,1.4vw,22px)!important;
+ box-sizing:border-box!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelTopHero > img{
+ width:100%;height:100%;object-fit:cover!important;
+ object-position:center 38%;
+}
+#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="false"] .channelTopHero{
+ min-height:260px!important;
+}
+/* The public retains Follow and Notifications; owner controls remain within
+   the existing Gérer ma chaîne dropdown. */
+#channel .creatorRefine.swapp-channel-polish .swapp-atmosphere-open{
+ display:inline-flex;align-items:center;justify-content:flex-start;
+ border:1px solid rgba(194,197,223,.21);background:rgba(122,99,186,.1);
+ color:#e9e0fa;border-radius:8px;min-height:36px;padding:8px 11px;
+ font:700 12px/1.3 Inter,system-ui,sans-serif;cursor:pointer;
+}
+#channel .creatorRefine.swapp-channel-polish .swapp-atmosphere-open:hover{
+ border-color:var(--channel-accent,#ad8bf3);background:rgba(166,119,227,.17);
+}
+#manager .swapp-atmosphere-open{margin:0 0 14px}
+/* Appearance editor shares the established owner session, no iframe or files hosted externally. */
+.swapp-atmosphere-dialog{
+ position:fixed!important;top:50%!important;left:50%!important;
+ transform:translate(-50%,-50%)!important;
+ width:min(650px,calc(100vw - 22px))!important;
+ max-height:min(87dvh,790px)!important;
+ box-sizing:border-box;overflow:auto;
+ padding:22px!important;margin:0!important;
+ border-radius:16px!important;border:1px solid rgba(204,190,237,.3)!important;
+ background:linear-gradient(165deg,#1c1b32,#0c111d 72%)!important;
+ box-shadow:0 28px 70px rgba(0,0,0,.72);
+ color:#f5f1ff;font:13px/1.45 Inter,system-ui,sans-serif;
+ z-index:9999;
+}
+.swapp-atmosphere-dialog::backdrop{background:rgba(4,6,12,.78);backdrop-filter:blur(6px)}
+.swapp-atmosphere-head{display:flex;flex-wrap:wrap;align-items:flex-start;gap:8px 14px;margin-bottom:14px}
+.swapp-atmosphere-head h2{flex:1 1 450px;font-size:clamp(21px,2.5vw,28px);margin:0;letter-spacing:-.04em}
+.swapp-atmosphere-head p{margin:0;order:3;color:#b3bfd1;font-size:12px;flex-basis:100%}
+.swapp-atmosphere-close{margin-left:auto;background:rgba(255,255,255,.08);color:#fff;border:0;
+ border-radius:9px;min-height:32px;min-width:32px;font-size:21px}
+.swapp-atmosphere-upload{display:grid;gap:8px;border:1px dashed rgba(190,166,241,.45);
+ border-radius:12px;padding:13px 16px;background:rgba(164,124,234,.08);cursor:pointer}
+.swapp-atmosphere-upload strong{font-size:13px}
+.swapp-atmosphere-upload span{font-size:11px;color:#b9bfd4}
+.swapp-atmosphere-upload input[type=file]{font-size:12px;max-width:100%}
+.swapp-atmosphere-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 20px;
+ margin:18px 0}
+.swapp-atmosphere-field{display:grid;gap:9px;min-width:0}
+.swapp-atmosphere-field span{font-size:12px;font-weight:700;color:#e4deef}
+.swapp-atmosphere-field input[type=range]{width:100%;accent-color:#a578e9;cursor:pointer}
+.swapp-atmosphere-field input[type=color]{width:85px;min-height:36px;border:0;padding:0;background:transparent}
+.swapp-atmosphere-field select{width:100%;min-height:36px;border-radius:8px;
+ border:1px solid rgba(185,201,228,.24);background:#1c1c2e;color:#f5f0ff;padding:5px 10px}
+.swapp-atmosphere-status{min-height:23px;color:#c4cae1;font-size:12px}
+.swapp-atmosphere-buttons{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:8px}
+.swapp-atmosphere-buttons button{
+ border:1px solid rgba(198,196,227,.2);background:#25243b;color:#fff;
+ padding:9px 12px;min-height:39px;border-radius:8px;font-weight:730;font-size:12px;
+}
+.swapp-atmosphere-buttons .swapp-atmosphere-reset{margin-right:auto;background:transparent;color:#ffbdbd}
+.swapp-atmosphere-buttons .swapp-atmosphere-save{background:#9561d9;border-color:#b98af1}
+.swapp-atmosphere-buttons .swapp-atmosphere-save:disabled{opacity:.5}
+@media(max-width:720px){
+ #channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelTopHero{
+  height:175px!important;min-height:175px!important;max-height:175px!important;
+ }
+ #channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelHeroContent{
+  height:175px!important;min-height:175px!important;max-height:175px!important;
+ }
+ .swapp-atmosphere-fields{grid-template-columns:minmax(0,1fr)}
+ .swapp-atmosphere-dialog{padding:15px!important}
+}
+@media(prefers-reduced-motion:reduce){
+ #channel.view.active[data-swapp-has-background="true"]::before{transform:none}
+}
