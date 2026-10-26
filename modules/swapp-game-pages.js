@@ -101,6 +101,7 @@ const CSS=[
  ".game-portal .game-universe-share .actions a{border-radius:8px;background:#ffffff0b;border-color:#ffffff22}",
  ".game-portal .game-universe-share .actions a:focus-visible{outline:2px solid var(--universe-accent);outline-offset:2px}",
  "@media(max-width:720px){.game-portal{padding:16px 12px 48px}.game-portal .hero{min-height:355px;padding:28px 20px}.game-portal .hero-cover{width:100%;margin:0;float:none}.game-portal .hero h1{font-size:clamp(32px,8vw,52px)}.game-portal .hero .actions :is(a,button){font-size:12px;min-height:44px}}",
+ '.game-portal #game-live,.game-portal #game-actus{scroll-margin-top:92px}',
  "@media(prefers-reduced-motion:reduce){.game-portal .cards.index>.game-index-card{transition:none;transform:none!important}}",
 ].join('');
 function safeCover(a){return cardImageSources(a)[0]||'';}
@@ -163,12 +164,12 @@ function renderGamePage(group){
    '<div><small>'+html(a.category||'Actualité')+'</small><h3>'+html(a.title)+'</h3><p>'+html(excerpt)+'</p></div></a>';
  }).join('');
  const body='<main class="game-portal"><p class="breadcrumb"><a href="/">SWAPP</a> / <a href="/jeux">Jeux</a> / '+html(group.game)+'</p>'+
-  '<header class="hero">'+(cover?'<img class="hero-cover" src="'+html(cover)+'" alt="Visuel de '+html(group.game)+'" loading="eager">':'')+'<span class="universe-kicker">SWAPP / GAME UNIVERSE</span><h1>'+html(group.game)+' : actualités et lives</h1><p>'+html(description)+'</p><div class="journey"><span>Actualités</span><span>Créateurs</span><span>Communauté</span><span>Mes jeux</span></div><div class="actions"><button type="button" data-swapp-wishlist-game data-game-slug="'+html(group.slug)+'" data-game-name="'+html(group.game)+'" aria-pressed="false">♡ Ajouter aux envies</button><button type="button" data-swapp-follow-game data-game-slug="'+html(group.slug)+'" data-game-name="'+html(group.game)+'" aria-pressed="false">＋ Suivre ce jeu</button><a href="/mes-jeux">Mes jeux</a><a href="/actus">Toutes les actualités</a><a href="/decouvrir">Explorer les créateurs</a><a href="/social?game='+encodeURIComponent(group.game)+'">Salons du jeu</a><a href="/boutique">Consulter la boutique</a></div></header>'+
-  '<section><h2>À lire sur '+html(group.game)+'</h2><div class="cards">'+cards+'</div></section>'+
-  communityActions+
+  '<header class="hero">'+(cover?'<img class="hero-cover" src="'+html(cover)+'" alt="Visuel de '+html(group.game)+'" loading="eager">':'')+'<span class="universe-kicker">SWAPP / GAME UNIVERSE</span><h1>'+html(group.game)+' : actualités et lives</h1><p>'+html(description)+'</p><div class="journey"><span>Actualités</span><span>Créateurs</span><span>Communauté</span><span>Mes jeux</span></div><div class="actions"><button type="button" data-swapp-wishlist-game data-game-slug="'+html(group.slug)+'" data-game-name="'+html(group.game)+'" aria-pressed="false">♡ Ajouter aux envies</button><button type="button" data-swapp-follow-game data-game-slug="'+html(group.slug)+'" data-game-name="'+html(group.game)+'" aria-pressed="false">＋ Suivre ce jeu</button><a href="#game-live">Voir les lives ↓</a><a href="#game-actus">Lire les articles ↓</a><a href="/mes-jeux">Mes jeux</a><a href="/actus">Toutes les actualités</a><a href="/decouvrir">Explorer les créateurs</a><a href="/social?game='+encodeURIComponent(group.game)+'">Salons du jeu</a><a href="/boutique">Consulter la boutique</a></div></header>'+
+  '<section id="game-live" class="swapp-media-section" data-swapp-live-shelf data-game="'+html(group.game)+'"><div class="swapp-media-heading"><h2>En direct sur '+html(group.game)+'</h2></div>'+
+  '<div class="swapp-live-grid" data-live-results><p class="swapp-live-notice">Recherche des lives actuellement disponibles…</p></div></section>'+
   '<section class="swapp-spotlight-public" data-spotlight-game="'+html(group.game)+'" aria-label="Créateurs Spotlight"></section>'+
-  '<section class="swapp-media-section" data-swapp-live-shelf data-game="'+html(group.game)+'"><div class="swapp-media-heading"><h2>En direct sur '+html(group.game)+'</h2></div>'+
-  '<div class="swapp-live-grid" data-live-results><p class="swapp-live-notice">Recherche des lives actuellement disponibles…</p></div></section></main>';
+  '<section id="game-actus"><h2>À lire sur '+html(group.game)+'</h2><div class="cards">'+cards+'</div></section>'+
+  communityActions+'</main>';
  return layout({title,description,content:body,metadata:meta,extraCss:CSS,active:'games'});
 }
 
