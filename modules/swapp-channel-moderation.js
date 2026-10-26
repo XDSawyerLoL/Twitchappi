@@ -15,6 +15,8 @@ function actorRole(session,room,state,lookup){
  if(!stored||String(stored.id)!==String(local.id))return 'viewer';
  const login=cleanLogin(stored.login);
  if(login===room)return 'owner';
+ // A ban always removes moderation authority, even for stale sessions.
+ if(limitedArray(state.banned).includes(login))return 'viewer';
  return limitedArray(state.moderators).includes(login)?'moderator':'viewer';
 }
 function postAllowed(req){
@@ -86,6 +88,7 @@ function installChannelModeration({app,io,getModState,saveModState,getNativeChat
   let removed=null;
   switch(action){
    case 'add_mod':
+    if(limitedArray(state.banned).includes(target))return res.status(409).json({success:false,error:'Débannis ce compte avant de le promouvoir.'});
     if(!getOryonUserByLogin(target))return res.status(404).json({success:false,error:'Compte SWAPP introuvable.'});
     state.moderators=limitedArray(state.moderators);
     if(!state.moderators.includes(target)){
@@ -97,6 +100,8 @@ function installChannelModeration({app,io,getModState,saveModState,getNativeChat
    case 'ban':
     state.banned=limitedArray(state.banned);
     if(!state.banned.includes(target))state.banned.push(target);
+    // Banning an existing moderator must revoke any remaining moderation rights.
+    state.moderators=limitedArray(state.moderators).filter(login=>login!==target);
     break;
    case 'unban':state.banned=limitedArray(state.banned).filter(x=>x!==target);break;
    case 'mute':
