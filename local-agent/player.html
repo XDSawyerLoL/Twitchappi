@@ -159,6 +159,16 @@ let booted = false, lastFrameAt = Date.now(), retries = 0, restarting = false;
 // having readyState>=2 or a nonzero videoWidth does not mean playback advances.
 let lastProgressTime=NaN, healthySince=0, mediaRecoveries=0, networkRecoveries=0, lastSoftRecovery=0;
 let relayFresh=null, relayAgeMs=null;
+let lastRenderedFrameAt=0;
+const canObserveFrames=typeof v.requestVideoFrameCallback==='function';
+function observeRenderedFrames(){
+ if(!canObserveFrames)return;
+ v.requestVideoFrameCallback(()=>{
+  if(!manualStop&&!userPaused)lastRenderedFrameAt=Date.now();
+  observeRenderedFrames();
+ });
+}
+observeRenderedFrames();
 let lastHlsError = '';
 function showFailure(label){message(label+(lastHlsError?' · '+lastHlsError:''));}
 function scriptFallback(){
@@ -321,7 +331,7 @@ function restart(){
  if(restarting || manualStop)return;
  clearTimeout(pendingBufferingTimer);pendingBufferingTimer=null;
  restarting=true;booted=false;booting=false;everDecoded=false;userPaused=false;retries++;
- healthySince=0;lastProgressTime=NaN;
+ healthySince=0;lastProgressTime=NaN;lastRenderedFrameAt=0;
  playerStatus('connecting');
  if(h){try{h.destroy()}catch(_){} h=null}
  v.pause();v.removeAttribute('src');v.load();
@@ -446,7 +456,8 @@ boot();
 setInterval(refreshLiveLatency,1500);
 setInterval(()=>{
  if(!booted||manualStop||userPaused||restarting||v.paused||document.hidden)return;
- const elapsed=Date.now()-(everDecoded?lastFrameAt:hlsStartedAt||startedAt);
+ const progressAt=canObserveFrames&&lastRenderedFrameAt>0?lastRenderedFrameAt:lastFrameAt;
+ const elapsed=Date.now()-(everDecoded?progressAt:hlsStartedAt||startedAt);
  if(elapsed<18000)return;
  // First attempt to resume the EXISTING decoder near the live edge.
  if(elapsed<42000&&h&&Date.now()-lastSoftRecovery>20000){
