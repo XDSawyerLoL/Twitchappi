@@ -8550,7 +8550,7 @@ require('./modules/swapp-channel-moderation').installChannelModeration({
 
 // Authenticated creator viewers and channel-local points (zero paid services).
 require('./modules/swapp-channel-audience').installChannelAudience({
-  app, io, getUser:getOryonUserByLogin,
+  app, io, getUser:getOryonUserByLogin, getUsers:readOryonUsers, getModState,
   getNativeRoom:room=>nativeLiveRooms.get(room),
   isLocalLive:isOryonLocalLiveRoom,
   mysqlUri:SWAPP_MYSQL_ACCOUNTS?(process.env.SWAPP_ACCOUNT_MYSQL_URL||process.env.SWAPP_MYSQL_URL||process.env.DATABASE_URL||''):'',
