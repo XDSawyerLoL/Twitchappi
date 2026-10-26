@@ -305,3 +305,21 @@
  #channel#channel .creatorRefine.swapp-channel-polish .channelSubNav button,
  #channel#channel .creatorRefine.swapp-channel-polish .swapp-watch-tools button{transition:none!important}
 }
+
+/* Keep existing hide-chat and cinema modes functional despite the stronger
+   desktop grid selector used to guarantee exact media/chat alignment. */
+#channel#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"][data-watch-chat="hidden"] .channelLiveLayout,
+#channel#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"][data-watch-theatre="on"][data-watch-chat="hidden"] .channelLiveLayout{
+ grid-template-columns:minmax(0,1fr)!important;
+}
+#channel#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"][data-watch-chat="hidden"] .channelLiveSidebar{
+ display:none!important;
+}
+#channel#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"][data-watch-theatre="on"]:not([data-watch-chat="hidden"]) .channelLiveLayout{
+ grid-template-columns:minmax(0,1fr) clamp(292px,26vw,380px)!important;
+}
+@media(max-width:1080px){
+ #channel#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"][data-watch-theatre="on"]:not([data-watch-chat="hidden"]) .channelLiveLayout{
+  grid-template-columns:minmax(0,1fr)!important;
+ }
+}
