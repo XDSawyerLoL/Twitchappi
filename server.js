@@ -3564,6 +3564,8 @@ const swappMysqlAccountsRecovery=SWAPP_MYSQL_ACCOUNTS
 // channel data so every account has a stable public channel and reliable live status.
 const SWAPP_CHANNEL_SCHEMA_VERSION = 3;
 const {normalizeChannelTheme}=require('./modules/swapp-channel-theme');
+// Publicly report monetisation unavailability, never claim unverified paid credits.
+require('./modules/swapp-eclats').installEclatsStatus({app});
 function swappChannelPathForLogin(login){
   const clean = normalizeOryonLogin(login);
   return clean ? '/' + encodeURIComponent(clean) : '';
