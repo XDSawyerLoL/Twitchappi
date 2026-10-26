@@ -17,6 +17,7 @@ function normalizeChannelTheme(value,login){
  const v=value&&typeof value==='object'&&!Array.isArray(value)?value:{};
  return {
   background_url:safeImage(v.background_url,login),
+  background_preset:['none','nebula','aurora','ember'].includes(v.background_preset)?v.background_preset:'none',
   background_opacity:cleanInt(v.background_opacity,35,0,70),
   background_blur:cleanInt(v.background_blur,0,0,20),
   background_x:cleanInt(v.background_x,50,0,100),
