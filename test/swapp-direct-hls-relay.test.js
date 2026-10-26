@@ -7,14 +7,14 @@ const path=require('node:path');
 const vm=require('node:vm');
 
 const source=fs.readFileSync(path.join(__dirname,'..','modules','swapp-direct-hls-relay.js'),'utf8');
-function backend(){
+function backend(env={}){
  const routes={get:new Map(),post:new Map(),put:new Map()};
  const express={raw:()=>(_req,_res,next)=>next(),json:()=>(_req,_res,next)=>next()};
  const module={exports:{}};
  vm.runInNewContext(source,{
   require(id){if(id==='express')return express;if(id==='./swapp-ts-inspect')return require('../modules/swapp-ts-inspect');if(id==='./swapp-obs-hls-playlist')return require('../modules/swapp-obs-hls-playlist');return require(id)},
   module,__dirname:path.join(__dirname,'..','modules'),
-  process:{env:{}},Buffer,Date,setInterval(){return{unref(){}}}
+  process:{env,pid:process.pid},Buffer,Date,setInterval(){return{unref(){}}}
  });
  const app={
   get(route,fn){routes.get.set(route,fn)},
@@ -555,4 +555,27 @@ test('OBS playlist rejects forged credentials and unsupported URLs or encryption
  const d=await b.call('get','/api/swapp/obs-hls/diagnostics');
  assert.equal(d.payload.last_error_file_type,'playlist');
  assert.doesNotMatch(JSON.stringify(d.payload),/a{48}|b{48}/);
+});
+
+test('shared HLS directory serves actual playlist and segment across isolated Node relay instances',async()=>{
+ const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'swapp-shared-hls-'));
+ try{
+  const env={SWAPP_DIRECT_RELAY_SHARED_DIR:tmp};
+  const writer=backend(env),reader=backend(env);
+  const push='/api/oryon/local-relay/upload';
+  const manifest='/api/oryon/local-relay/:login/index.m3u8';
+  const segment='/api/oryon/local-relay/:login/:segment';
+  const media=Buffer.alloc(188*4,0);media[0]=0x47;
+  const playlist=Buffer.from('#EXTM3U\\n#EXT-X-TARGETDURATION:2\\n#EXTINF:2,\\nseg_007.ts\\n');
+  assert.equal((await writer.call('post',push,{name:'seg_007.ts',body:media})).status,200);
+  assert.equal((await writer.call('post',push,{name:'index.m3u8',body:playlist})).status,200);
+  assert.equal(reader.relay.rooms.size,0,'independent process has no in-memory room');
+  const external=await reader.call('get',manifest);
+  assert.equal(external.status,200,'second process can serve shared manifest');
+  assert.match(external.payload.toString('utf8'),/seg_007\\.ts/);
+  const chunk=await reader.call('get',segment,{segment:'seg_007.ts'});
+  assert.equal(chunk.status,200,'second process can serve shared media');
+  assert.deepEqual(Buffer.from(chunk.payload),media);
+  assert.equal((await reader.call('get',segment,{segment:'../secret'})).status,404);
+ }finally{fs.rmSync(tmp,{recursive:true,force:true})}
 });
