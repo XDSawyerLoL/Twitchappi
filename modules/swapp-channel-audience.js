@@ -70,7 +70,8 @@ function installChannelAudience({app,io,getUser,getUsers,getModState,getNativeRo
   try{if(sql)await hydrate(room)}catch(_){return res.status(503).json({success:false,error:'Points MySQL indisponibles.'})}
   const r=getNativeRoom(room),users=active(room);
   const leaderboard=Object.values(wallets[room]||{}).filter(v=>v&&typeof v==='object')
-   .sort((a,b)=>Number(b.points||0)-Number(a.points||0))
+   // Lifetime watch minutes remain fair when available points are spent.
+   .sort((a,b)=>Number(b.minutes||0)-Number(a.minutes||0)||Number(b.points||0)-Number(a.points||0))
    .slice(0,30).map(v=>({login:String(v.login||''),display_name:String(v.display_name||'').slice(0,50),
     points:Number(v.points||0),minutes:Number(v.minutes||0)}));
   return res.json({
@@ -219,8 +220,11 @@ function installChannelAudience({app,io,getUser,getUsers,getModState,getNativeRo
    const notice={room,reward:item.id,label:item.label,cost:item.cost,
     user:who.login,user_display:who.display_name,message:item.requires_message?message:'',
     redeemed_at:now,id:crypto.randomUUID()};
-   io.to('native:'+room).emit('swapp:channel:redeemed',notice);
-   return res.json({success:true,room,points:outcome.points,reward:item.id,cost:item.cost});
+   let broadcast=true;
+   try{io.to('native:'+room).emit('swapp:channel:redeemed',notice)}
+   catch(_){broadcast=false}
+   // Committed debits must not be reported as failed when Socket.IO delivery errors.
+   return res.json({success:true,room,points:outcome.points,reward:item.id,cost:item.cost,broadcast});
   }catch(_){
    purchaseCooldown.delete(key);
    return res.status(503).json({success:false,error:'Dépense indisponible : aucun succès confirmé.'});
