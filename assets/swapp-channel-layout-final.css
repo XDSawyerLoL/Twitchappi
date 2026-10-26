@@ -1,0 +1,23 @@
+/* SWAPP channel layout final owner: intentionally last-loaded stylesheet. */
+@media(min-width:1081px){
+ #channel#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"]:not([data-watch-chat="hidden"]) .channelLiveLayout{
+  display:grid!important;grid-template-columns:minmax(0,1fr) clamp(320px,27vw,410px)!important;
+  grid-template-rows:auto auto!important;align-items:start!important;gap:10px 12px!important;
+ }
+ #channel#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelLiveLayout > .channelMainPlayer{grid-column:1!important;grid-row:2!important;min-width:0!important;align-self:start!important;position:relative!important;top:auto!important;transform:none!important}
+ #channel#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelLiveLayout > .channelLiveSidebar{grid-column:2!important;grid-row:2!important;align-self:start!important;min-width:0!important;top:0!important;transform:none!important}
+}
+#channel#channel#channel .creatorRefine.swapp-channel-polish .channelMainPlayer > :is(.player,.premiumPlayer,.oryonMainPlayer){
+ aspect-ratio:16/9!important;width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;overflow:hidden!important;background:#000!important;
+}
+#channel#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelLiveSidebar > .chatPanel{
+ min-height:0!important;max-height:none!important;box-sizing:border-box!important;
+}
+#channel#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"][data-watch-chat="hidden"] .channelLiveSidebar{display:none!important}
+@media(max-width:1080px){
+ #channel#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelLiveLayout{
+  grid-template-columns:minmax(0,1fr)!important;
+ }
+ #channel#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelLiveLayout > .channelMainPlayer{grid-column:1!important;grid-row:2!important}
+ #channel#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelLiveLayout > .channelLiveSidebar{grid-column:1!important;grid-row:3!important}
+}
