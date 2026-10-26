@@ -8570,6 +8570,13 @@ require('./modules/swapp-channel-programme').installChannelProgramme({
  findUser:getOryonUserByLogin,limiter:mutationLimiter,twitchAPI
 });
 
+// Server-side game sync during native lives, even with dashboard closed.
+// Twitch linked metadata is used only when the SWAPP category is generic.
+require('./modules/swapp-native-auto-game').createNativeAutoGameSync({
+ twitchAPI,getUsers:readOryonUsers,saveUsers:writeOryonUsersAndWait,
+ getNativeRoom:login=>nativeLiveRooms.get(login),isLocalLive:isOryonLocalLiveRoom,io
+});
+
 // SWAPP SOCIAL: voice signalling. Socket.IO transports only SDP/ICE metadata.
 // Actual audio uses WebRTC between members, is never recorded by SWAPP.
 require('./modules/swapp-social-voice').installSocialVoice({
