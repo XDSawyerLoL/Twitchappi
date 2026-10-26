@@ -566,7 +566,7 @@ test('shared HLS directory serves actual playlist and segment across isolated No
   const manifest='/api/oryon/local-relay/:login/index.m3u8';
   const segment='/api/oryon/local-relay/:login/:segment';
   const media=Buffer.alloc(188*4,0);media[0]=0x47;
-  const playlist=Buffer.from('#EXTM3U\\n#EXT-X-TARGETDURATION:2\\n#EXTINF:2,\\nseg_007.ts\\n');
+  const playlist=Buffer.from('#EXTM3U\n#EXT-X-TARGETDURATION:2\n#EXTINF:2,\nseg_007.ts\n');
   assert.equal((await writer.call('post',push,{name:'seg_007.ts',body:media})).status,200);
   assert.equal((await writer.call('post',push,{name:'index.m3u8',body:playlist})).status,200);
   assert.equal(reader.relay.rooms.size,0,'independent process has no in-memory room');
@@ -574,7 +574,7 @@ test('shared HLS directory serves actual playlist and segment across isolated No
   assert.equal(remoteState.payload.active,true,'remote worker must not incorrectly mark live offline');
   const external=await reader.call('get',manifest);
   assert.equal(external.status,200,'second process can serve shared manifest');
-  assert.match(external.payload.toString('utf8'),/seg_007\\.ts/);
+  assert.match(external.payload.toString('utf8'),/seg_007\.ts/);
   const chunk=await reader.call('get',segment,{segment:'seg_007.ts'});
   assert.equal(chunk.status,200,'second process can serve shared media');
   assert.deepEqual(Buffer.from(chunk.payload),media);
