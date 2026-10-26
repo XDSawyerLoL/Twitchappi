@@ -126,6 +126,22 @@ function createCreatorSubscriptions({
       kind:found.kind,expiresAt:Number(found.expires_at)||0,cancelPending:found.status==='cancel_pending'}:
       {active:false,status:'none',kind:null,expiresAt:0,cancelPending:false};
   }
+  // Authoritative entitlement for chat badges and subscriber-only emotes.
+  // Inactive or unconfigured payments never grant premium access.
+  const entitlementCache=new Map();
+  async function entitlement(viewerId,creator){
+    const login=loginOf(creator),viewer=String(viewerId||'').slice(0,80);
+    if(!enabled||!login||!viewer||!allowed.has(login))
+      return {active:false,status:'none',kind:null,expiresAt:0};
+    const key=viewer+'|'+login,t=now(),cached=entitlementCache.get(key);
+    if(cached&&cached.until>t&&cached.value.expiresAt>t)return cached.value;
+    try{
+      const value=await member(viewer,login);
+      if(entitlementCache.size>1500)entitlementCache.delete(entitlementCache.keys().next().value);
+      entitlementCache.set(key,{value,until:Math.min(t+15000,value.expiresAt||t+15000)});
+      return value;
+    }catch{return {active:false,status:'unavailable',kind:null,expiresAt:0}}
+  }
   async function pendingGifts(login){
     const [r]=await (await db()).execute(
       'SELECT COALESCE(SUM(quantity-allocated),0) AS available FROM swapp_subs_gift_orders '+
@@ -392,7 +408,7 @@ function createCreatorSubscriptions({
           }
         }
       }
-      await conn.commit();return {processed:true};
+      await conn.commit();entitlementCache.clear();return {processed:true};
     }catch(e){await conn.rollback().catch(()=>{});throw e}
     finally{conn.release()}
   }
@@ -438,7 +454,7 @@ function createCreatorSubscriptions({
         [batch[0].session_id,viewer.id,now()]);
       await conn.execute('UPDATE swapp_subs_gift_orders SET allocated=allocated+1 WHERE session_id=?',
         [batch[0].session_id]);
-      await conn.commit();return res.json({success:true,claimed:true});
+      await conn.commit();entitlementCache.delete(viewer.id+'|'+creator);return res.json({success:true,claimed:true});
     }catch(e){await conn.rollback().catch(()=>{});return res.status(503).json({success:false,error:'Cadeau temporairement indisponible.'})}
     finally{conn.release()}
   }
@@ -484,6 +500,6 @@ function createCreatorSubscriptions({
     app.get('/api/swapp/subscriptions/creator/dashboard',dashboard);
     app.post('/api/swapp/subscriptions/stripe-webhook',webhook);
   }
-  return {register,enabled:()=>enabled,processStripeEvent};
+  return {register,enabled:()=>enabled,entitlement,processStripeEvent};
 }
 module.exports={createCreatorSubscriptions,priceFor,membershipActive,periodEnd,DISCOUNT_DEFAULTS,GIFT_PRESETS,originAllowed};
