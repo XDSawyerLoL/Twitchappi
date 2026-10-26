@@ -15,7 +15,8 @@ function backend(){
   put:(p,...fns)=>routes.put.set(p,fns.at(-1))};
  mod.exports.attachSwappDirectRelay(app,{
   lookupOwner:async()=>({login:'vnhz'}),
-  lookupObsOwner:async key=>key==='a'.repeat(48)?{login:'vnhz'}:null
+  lookupObsOwner:async key=>key==='a'.repeat(48)?{login:'vnhz'}:null,
+  lookupDashboardOwner:async()=>({login:'vnhz'})
  });
  const call=async(method,route,options={})=>{
   const fn=routes[method].get(route);assert.ok(fn,'missing '+route);
