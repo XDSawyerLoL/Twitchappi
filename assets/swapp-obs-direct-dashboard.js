@@ -99,21 +99,37 @@ function card(){
  // appears as a required installation in the direct OBS workflow.
  const old=page.querySelector('#oryonLivePanel');
  if(old){old.hidden=true;old.style.display='none';}
+ // Existing mode cards are ordered Navigateur, then OBS in the page template.
+ // Keep their labels accurate and turn the redundant tall cards into compact
+ // keyboard-accessible jumps to their REAL settings, without touching OBS.
  const modes=page.querySelectorAll('.streamModeGrid .modeCard');
  if(modes.length>=2){
-  const heading=modes[0]?.querySelector('h2');
-  if(heading)heading.textContent='OBS → SWAPP (direct)';
-  const details=modes[0]?.querySelector('p');
-  if(details)details.textContent='OBS seul. Aucun agent intermédiaire.';
-  const browser=modes[1]?.querySelector('h2');
-  if(browser)browser.textContent='Capture navigateur (option)';
-  const other=modes[1]?.querySelector('p');
-  if(other)other.textContent='Partager ton écran ou ta caméra sans OBS.';
+  const destinations=[
+   {name:'Capture navigateur',tag:'Navigateur',target:hero},
+   {name:'OBS direct',tag:'OBS',target:panel}
+  ];
+  modes.forEach((mode,i)=>{
+   const config=destinations[i];if(!config)return;
+   const heading=mode.querySelector('h2');
+   if(heading)heading.textContent=config.name;
+   const pill=mode.querySelector('.pill');
+   if(pill)pill.textContent=config.tag;
+   mode.classList.remove('active');
+   mode.classList.add('swapp-manager-mode-jump');
+   mode.setAttribute('role','button');
+   mode.setAttribute('tabindex','0');
+   mode.setAttribute('aria-label','Aller aux réglages '+config.name);
+   const jump=()=>config.target?.scrollIntoView({behavior:'smooth',block:'start'});
+   mode.addEventListener('click',jump);
+   mode.addEventListener('keydown',event=>{
+    if(event.key==='Enter'||event.key===' '){event.preventDefault();jump()}
+   });
+  });
  }
  const managerHead=page.querySelector('.pageHead h1');
- if(managerHead)managerHead.textContent='Gestionnaire de diffusion SWAPP';
+ if(managerHead)managerHead.textContent='Diffusion SWAPP';
  const sub=page.querySelector('.pageHead p');
- if(sub)sub.textContent='Choisis OBS pour diffuser directement sur ta chaîne, ou la capture navigateur en alternative.';
+ if(sub)sub.textContent='OBS direct ou capture navigateur.';
  void getKey(panel);
  return panel;
 }

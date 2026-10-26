@@ -73,17 +73,17 @@
   if(managerBound===panel&&existing)return;
   managerBound=panel;
   const head=manager.querySelector('.pageHead h1');
-  if(head)head.textContent='SWAPP Live — Studio navigateur';
+  if(head)head.textContent='Diffusion SWAPP';
   const intro=manager.querySelector('.pageHead p');
-  if(intro)intro.textContent='Diffuse ton écran, ta caméra et ton microphone directement sur SWAPP, sans logiciel à installer.';
+  if(intro)intro.textContent='OBS direct ou capture navigateur.';
   const modes=manager.querySelectorAll('.streamModeGrid .modeCard');
   if(modes[0]){
-   const h=modes[0].querySelector('h2');if(h)h.textContent='SWAPP Live Web';
+   const h=modes[0].querySelector('h2');if(h)h.textContent='Capture navigateur';
    const p=modes[0].querySelector('p');if(p)p.textContent='Méthode principale : diffusion depuis ce navigateur.';
   }
   if(modes[1]){
    modes[1].classList.remove('active');
-   const h=modes[1].querySelector('h2');if(h)h.textContent='OBS — option avancée';
+   const h=modes[1].querySelector('h2');if(h)h.textContent='OBS direct';
    const p=modes[1].querySelector('p');if(p)p.textContent='Pour les scènes et plugins OBS, l’application PC reste une option. Un navigateur ne capte pas directement le RTMP local d’OBS.';
   }
   const editor=make('section','swapp-studio-editor');
