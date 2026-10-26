@@ -17,7 +17,8 @@
  const current=()=>{try{return typeof state!=='undefined'?state:null}catch(_){return null}};
  const currentRoom=()=>{
   const stateNow=current();
-  return String(stateNow?.channelProfile?.login||stateNow?.watchRoom||stateNow?.lastChannelLogin||'').trim().toLowerCase();
+  return String(($('#manager')?.classList.contains('active')?stateNow?.session?.local?.login:'')||
+   stateNow?.channelProfile?.login||stateNow?.watchRoom||stateNow?.lastChannelLogin||'').trim().toLowerCase();
  };
  const ownRoom=()=>{
   const s=current();
@@ -174,14 +175,18 @@
     },300);
   });
  }
- // Suggest the game configured on the linked Twitch channel, not a fake
- // visual recognition of OBS frames. Never overwrite a recent manual edit.
- async function detectGame(input,status,{force=false}={}){
-  if(!input?.isConnected)return;
-  const before=String(input.value||'').trim();
-  const generic=!before||/^(gaming|jeux?|jeu vidéo|just chatting|autre)$/i.test(before);
-  if(!force&&!generic)return;
-  if(status)status.textContent='Recherche du jeu sur Twitch…';
+ // Automatic game sync uses the linked Twitch stream/channel metadata.
+ // OBS HLS contains pixels and audio, not a trusted process/game identity.
+ const automatic={running:false,last:0,room:'',source:''};
+ const isGeneric=value=>!String(value||'').trim()||
+  /^(gaming|jeux?|jeu vidéo|just chatting|autre|non défini)$/i.test(String(value||'').trim());
+ async function detectGame(input,status){
+  if(!input?.isConnected||automatic.running||!ownRoom())return;
+  const name=currentRoom(),before=String(input.value||'').trim();
+  if(input.dataset.swappManualGame==='1'||!isGeneric(before))return;
+  if(automatic.room===name&&Date.now()-automatic.last<90000)return;
+  automatic.running=true;automatic.room=name;automatic.last=Date.now();
+  if(status)status.textContent='Jeu : synchronisation automatique…';
   try{
    const response=await fetch('/api/swapp/live/auto-game',{
     credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'},
@@ -189,31 +194,49 @@
    });
    if(!response.ok)throw Error('Recherche indisponible');
    const data=await response.json();
-   if(!input.isConnected)return;
-   if(!data?.game){
-    if(status)status.textContent='Aucun jeu détecté. Lie Twitch ou choisis une catégorie.';
+   const game=String(data?.game||'').trim().slice(0,60);
+   if(!game){
+    if(status)status.textContent=data?.source==='twitch_not_linked'
+     ?'Associe Twitch pour une détection automatique, ou choisis manuellement.'
+     :'Aucun jeu fiable identifié. Saisie manuelle disponible.';
     return;
    }
-   if(input.value.trim()!==before)return;
-   input.value=data.game;
-   input.dispatchEvent(new Event('change',{bubbles:true}));
-   if(status)status.textContent=data.confirmed_live
-    ?'Jeu récupéré depuis ton direct Twitch. Enregistre pour appliquer.'
-    :'Catégorie Twitch configurée : vérifie puis enregistre.';
-  }catch(_){if(status)status.textContent='Recherche indisponible. Tu peux saisir le jeu.'}
+   if(!input.isConnected||currentRoom()!==name||input.dataset.swappManualGame==='1'||
+    input.value.trim()!==before||!isGeneric(input.value))return;
+   input.value=game;
+   // Synchronize the real SWAPP live category without requiring a button.
+   // Never overwrite an explicit category or an input currently edited.
+   if(document.activeElement===input){if(status)status.textContent='Jeu suggéré : '+game;return}
+   const live=await metadata();
+   if(!input.isConnected||currentRoom()!==name||input.dataset.swappManualGame==='1')return;
+   if(!isGeneric(live.category)){input.value=live.category;return}
+   const saved=await save(live.title,game,status);
+   if(saved){automatic.source=data.source;if(status)status.textContent='Jeu synchronisé : '+game;}
+  }catch(_){if(status)status.textContent='Détection indisponible. Tu peux saisir le jeu.'}
+  finally{automatic.running=false}
  }
  function detectionButton(input,container){
   if(!input||!container||input.dataset.swappDetectGame)return;
   input.dataset.swappDetectGame='1';
   const row=make('div','swapp-game-detection-actions');
-  const btn=make('button','btn secondary','Détecter le jeu');btn.type='button';
-  const status=make('span','swapp-game-detection-status','');status.setAttribute('role','status');
-  btn.addEventListener('click',()=>void detectGame(input,status,{force:true}));
-  row.append(btn,status);
+  const status=make('span','swapp-game-detection-status','Synchronisation automatique si Twitch est lié.');
+  status.setAttribute('role','status');
+  row.append(status);
   const actions=container.querySelector?.('.swapp-studio-dialog-actions');
   if(actions)container.insertBefore(row,actions);else container.append(row);
+  input.addEventListener('input',()=>{
+   if(isGeneric(input.value)){delete input.dataset.swappManualGame;automatic.last=0;}
+   else input.dataset.swappManualGame='1';
+  });
+  void detectGame(input,status);
   return status;
  }
+ // Lightweight background sync when owner views the manager; manual edits win.
+ setInterval(()=>{
+  const pane=$('#manager'),input=pane?.querySelector('#liveCategory');
+  if(pane?.classList.contains('active')&&input&&ownRoom()&&!document.hidden)
+   void detectGame(input,pane.querySelector('.swapp-game-detection-status'));
+ },90000);
  function ensureDialog(){
   if(dialog)return dialog;
   dialog=make('dialog','swapp-studio-dialog');

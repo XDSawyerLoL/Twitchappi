@@ -62,6 +62,11 @@
   if(!channel?.classList.contains('active')||!user||!valid(name))return;
   let isOwn=false;try{isOwn=state.channelOwner===true}catch(_){}
   if(isOwn)return;
+  // Channel points now live in the chat rewards selector. Avoid a redundant dock chip.
+  if(channel.querySelector('[data-swapp-rewards-root]')){
+   channel.querySelectorAll('[data-swapp-channel-points]').forEach(item=>item.remove());
+   return;
+  }
   const dock=$('.channelActionDock',channel);
   if(!dock)return;
   let chip=$('[data-swapp-channel-points]',dock);

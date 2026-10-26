@@ -83,6 +83,20 @@
   }
   const link=make('a','swapp-showcase-calendar-link','Voir l’agenda');
   link.href='/'+encodeURIComponent(login)+'?tab=programme';
+  link.addEventListener('click',event=>{
+   // SPA captures in-page links; opening the native programme tab is reliable.
+   // Fall back to a real URL when the channel tab is not mounted yet.
+   event.preventDefault();
+   const channel=document.getElementById('channel');
+   const sameChannel=channel?.classList.contains('active')&&
+    page.isConnected&&loginFor(page)===login;
+   const tab=sameChannel?channel.querySelector('[data-swapp-programme-tab]'):null;
+   if(tab?.isConnected){
+    tab.click();
+    const agenda=channel.querySelector('[data-swapp-programme-page]');
+    agenda?.scrollIntoView({behavior:'smooth',block:'start'});
+   }else window.location.assign(link.href);
+  });
   section.append(icon,copy,link);
   layout.after(section);
  }

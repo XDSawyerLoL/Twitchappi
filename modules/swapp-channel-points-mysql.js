@@ -21,6 +21,13 @@ function createChannelPointsMysql({uri,mysqlFactory,now=Date.now}={}){
   'KEY swapp_channel_points_leaderboard (channel_login,points)',
   ') ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
  ].join(' ');
+ const rewardsDdl=['CREATE TABLE IF NOT EXISTS swapp_channel_redemptions (',
+  'channel_login VARCHAR(40) NOT NULL,user_id VARCHAR(80) NOT NULL,',
+  'request_id CHAR(36) NOT NULL,reward VARCHAR(40) NOT NULL,',
+  'cost INT UNSIGNED NOT NULL,created_at BIGINT NOT NULL,',
+  'PRIMARY KEY (channel_login,user_id,request_id),',
+  'KEY swapp_redemptions_created (created_at)',
+  ') ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'].join(' ');
  const queued=new Map();
  async function ensure(){
   if(!ready){
@@ -41,7 +48,7 @@ function createChannelPointsMysql({uri,mysqlFactory,now=Date.now}={}){
  }
  async function getRoom(room){
   const p=await ensure();
-  const [rows]=await p.execute('SELECT user_id,login,display_name,points,minutes,earned_today,earn_day,updated_at FROM swapp_channel_points WHERE channel_login=? ORDER BY points DESC LIMIT 5000',[room]);
+  const [rows]=await p.execute('SELECT user_id,login,display_name,points,minutes,earned_today,earn_day,updated_at FROM swapp_channel_points WHERE channel_login=? ORDER BY minutes DESC,points DESC LIMIT 5000',[room]);
   const out=Object.create(null);
   for(const row of rows||[])out[String(row.user_id)]=rowOut(row);
   return out;
@@ -58,6 +65,44 @@ function createChannelPointsMysql({uri,mysqlFactory,now=Date.now}={}){
   );
   for(const row of rows||[])result[String(row.user_id)]={points:Number(row.points)||0,minutes:Number(row.minutes)||0};
   return result;
+ }
+
+ let redemptionsReady=null;
+ async function ensureRedemptions(){
+  if(!redemptionsReady)redemptionsReady=ensure().then(p=>p.query(rewardsDdl)).catch(e=>{redemptionsReady=null;throw e});
+  await redemptionsReady;
+ }
+ // Uses the same per-user queue and SQL row locks as credit().
+ // An idempotency token prevents accidental double billing after retries/restarts.
+ async function spend(room,viewer,reward,cost,requestId){
+  const key=room+'|'+viewer.id;
+  const operation=async()=>{
+   await ensureRedemptions();
+   const p=await ensure(),conn=await p.getConnection();
+   try{
+    await conn.beginTransaction();
+    const [existing]=await conn.execute(
+     'SELECT request_id FROM swapp_channel_redemptions WHERE channel_login=? AND user_id=? AND request_id=? LIMIT 1',
+     [room,viewer.id,requestId]
+    );
+    if(existing?.length){await conn.rollback();return {ok:false,reason:'duplicate'};}
+    const [rows]=await conn.execute(
+     'SELECT points FROM swapp_channel_points WHERE channel_login=? AND user_id=? FOR UPDATE',[room,viewer.id]);
+    const balance=Number(rows?.[0]?.points)||0;
+    if(balance<cost){await conn.rollback();return {ok:false,reason:'insufficient',points:balance};}
+    // Serializes unique requests under the locked balance row.
+    await conn.execute('UPDATE swapp_channel_points SET points=?,updated_at=? WHERE channel_login=? AND user_id=?',
+     [balance-cost,now(),room,viewer.id]);
+    await conn.execute('INSERT INTO swapp_channel_redemptions (channel_login,user_id,request_id,reward,cost,created_at) VALUES (?,?,?,?,?,?)',
+     [room,viewer.id,requestId,reward,cost,now()]);
+    await conn.commit();
+    return {ok:true,points:balance-cost};
+   }catch(error){try{await conn.rollback()}catch(_){}throw error}
+   finally{conn.release();}
+  };
+  const prior=queued.get(key)||Promise.resolve(),task=prior.catch(()=>{}).then(operation);
+  queued.set(key,task);
+  try{return await task}finally{if(queued.get(key)===task)queued.delete(key)}
  }
  async function credit(room,viewer,utcDay,cap=300,amount=5){
   const key=room+'|'+viewer.id;
@@ -84,6 +129,6 @@ function createChannelPointsMysql({uri,mysqlFactory,now=Date.now}={}){
   queued.set(key,task);
   try{return await task}finally{if(queued.get(key)===task)queued.delete(key)}
  }
- return {ensure,getRoom,getByIds,credit};
+ return {ensure,getRoom,getByIds,credit,spend};
 }
 module.exports={createChannelPointsMysql};
