@@ -159,7 +159,7 @@ function installChannelAudience({app,io,getUser,getUsers,getModState,getNativeRo
    return res.status(415).json({success:false,error:'Format JSON requis.'});
   const item=REWARDS.find(x=>x.id===req.body?.reward);
   const requestId=String(req.body?.request_id||'');
-  if(!item||!/^[-a-f0-9]{36}$/i.test(requestId))
+  if(!item||!/^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/i.test(requestId))
    return res.status(400).json({success:false,error:'Récompense ou requête invalide.'});
   const message=String(req.body?.message||'').replace(/[\u0000-\u001f\u007f]/g,' ').replace(/\s+/g,' ').trim().slice(0,140);
   if(item.requires_message&&(message.length<2||String(req.body?.message||'').length>140))
@@ -211,7 +211,7 @@ function installChannelAudience({app,io,getUser,getUsers,getModState,getNativeRo
    }
    if(!outcome?.ok){
     purchaseCooldown.delete(key);
-    return res.status(outcome?.reason==='insufficient'?409:409).json({
+    return res.status(409).json({
      success:false,error:outcome?.reason==='insufficient'
       ?'Solde insuffisant.':'Récompense déjà demandée.',points:outcome?.points??null});
    }
