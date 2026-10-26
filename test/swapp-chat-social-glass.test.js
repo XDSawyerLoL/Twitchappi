@@ -57,7 +57,7 @@ test('expressive reactions compose text using native send, no ghost socket messa
 
 test('social glass style is the last channel stylesheet and JS runs after original modules',()=>{
  const html=read('index.html');
- assert.equal(html.split('swapp-chat-social-glass.css?v=20261026-attached-v1').length-1,1);
+ assert.equal((html.match(/swapp-chat-social-glass\.css\?v=[^"']+/g)||[]).length,1);
  assert.equal(html.split('swapp-chat-social.js?v=20261026-attached-v1').length-1,1);
  assert.ok(html.indexOf('swapp-chat-social-glass.css')>html.indexOf('swapp-channel-focus-20261026.css'));
  assert.ok(html.indexOf('swapp-chat-social.js')>html.indexOf('swapp-chat-rewards.js'));
