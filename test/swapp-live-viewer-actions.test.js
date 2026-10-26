@@ -59,9 +59,9 @@ test('Paid subscribe button is visible but never claims an unverified transactio
 });
 test('Assets load with separate versions, and only a single subscription button is produced per page',()=>{
  assert.match(html,/swapp-live-viewer-actions\.css\?v=20261026-viewer-actions-v1/);
- assert.match(html,/swapp-live-viewer-actions\.js\?v=20261026-viewer-actions-v1/);
+ assert.match(html,/swapp-live-viewer-actions\.js\?v=20261026-bell-owner-v2/);
  assert.match(html,/swapp-channel-follow\.js\?v=20261026-follow-near-player-v2/);
- assert.match(html,/swapp-live-alert-bell\.js\?v=20261026-push-near-player-v2/);
+ assert.match(html,/swapp-live-alert-bell\.js\?v=20261026-bell-visible-v3/);
  assert.ok(html.indexOf('swapp-live-viewer-actions.js')>html.indexOf('swapp-live-alert-bell.js'));
  assert.ok(html.indexOf('swapp-live-viewer-actions.css')>html.indexOf('swapp-channel-atmosphere.css'));
  assert.match(source,/page\.querySelector\('\.swapp-live-subscribe-button'\)/);
