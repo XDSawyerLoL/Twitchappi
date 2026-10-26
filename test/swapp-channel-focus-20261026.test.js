@@ -44,7 +44,7 @@ test('hide-chat, mobile, theatre and actual 16:9 playback remain preserved',()=>
 
 test('new finishing stylesheet loads last after prior channel styles',()=>{
  const html=read('index.html');
- const stylesheet='/assets/swapp-channel-focus-20261026.css?v=20261026-layout-v1';
+ const stylesheet='/assets/swapp-channel-focus-20261026.css?v=20261026-fixed-actions-v3';
  assert.equal(html.split(stylesheet).length-1,1);
  assert.ok(html.indexOf(stylesheet)>html.indexOf('swapp-channel-showcase.css'));
  assert.ok(html.indexOf(stylesheet)<html.indexOf('</head>'));
