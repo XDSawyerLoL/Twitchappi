@@ -326,3 +326,51 @@
 
 /* Never reveal an empty navigation that the channel router intentionally hides. */
 #channel#channel .creatorRefine.swapp-channel-polish .channelSubNav[hidden]{display:none!important}
+
+/* Channel viewing polish: consistent premium geometry, no extra bubbles.
+   Keep all controls interactive; never move or recreate the HLS iframe. */
+@media(min-width:1081px){
+ #channel#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelLiveLayout{
+  grid-template-columns:minmax(0,1fr) clamp(320px,27vw,410px)!important;
+  column-gap:12px!important;
+ }
+ #channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelLiveSidebar > .chatPanel{
+  min-height:0!important;max-height:none!important;
+ }
+}
+#channel#channel .creatorRefine.swapp-channel-polish .channelMainPlayer > :is(.player,.premiumPlayer,.oryonMainPlayer){
+ background:#000!important;overflow:hidden!important;contain:layout paint!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .channelMainPlayer > :is(.player,.premiumPlayer,.oryonMainPlayer) iframe{
+ width:100%!important;height:100%!important;display:block!important;
+ border:0!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .channelLiveSidebar .chatHeader{
+ min-height:54px!important;padding:10px 12px!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .nativeFixedChat[data-chat="oryon"] .chatAssist{
+ gap:5px!important;padding:7px 8px!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .nativeFixedChat[data-chat="oryon"] .chatAssist > button{
+ border-radius:7px!important;min-height:30px!important;padding:5px 8px!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .nativeFixedChat[data-chat="oryon"] .chatAssist > button:focus-visible,
+#channel#channel .creatorRefine.swapp-channel-polish .swapp-watch-tools button:focus-visible{
+ outline:2px solid var(--swapp-focus-accent,#b06df4)!important;outline-offset:2px!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .swapp-watch-tools{
+ display:flex!important;align-items:center!important;flex-wrap:wrap!important;
+ min-height:44px!important;gap:8px!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .swapp-watch-tools button{
+ min-height:36px!important;padding:7px 12px!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .nativeFixedChat[data-chat="oryon"] .chatLog:not(:has(.msg,.swapp-redeemed-message))::after{
+ border:0!important;background:none!important;
+ margin:12px 4px!important;padding:10px!important;
+}
+@media(max-width:680px){
+ #channel#channel .creatorRefine.swapp-channel-polish .swapp-watch-tools button{
+  min-height:40px!important;
+ }
+}

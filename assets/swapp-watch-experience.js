@@ -139,7 +139,7 @@
   const mobile=window.matchMedia('(max-width:1080px)').matches;
   // Keep the chat composer and suggestion actions visible when the video is short.
   // On desktop, preserve exact player height whenever it is sufficiently tall.
-  const actual=mobile?Math.max(400,Math.min(440,h)):Math.max(400,h);
+  const actual=mobile?Math.max(360,Math.min(440,h)):h;
   const value=actual+'px';
   // Only update changed values. This avoids ResizeObserver/layout feedback
   // whenever legacy code or scrolling triggers redundant measurements.
