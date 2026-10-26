@@ -19,7 +19,7 @@ function fixture(){
   {id:'zed-id',login:'zed',display_name:'Zed',following:['creator']}
  ];
  const routes={};
- const app={get(name,fn){routes[name]=fn}};
+ const app={get(name,fn){routes[name]=fn},post(name,fn){routes['POST '+name]=fn}};
  const io={on(){},sockets:{sockets:new Map()}};
  installChannelAudience({app,io,storageFile,getUser:login=>users.find(u=>u.login===login),
   getUsers:()=>({users}),getModState:()=>({state:{moderators:['alice'],banned:['zed']}}),
