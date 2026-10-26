@@ -5,6 +5,7 @@
  * Points persist as JSON on a writable Hostinger single-node filesystem.
  */
 const fs=require('node:fs');
+const crypto=require('node:crypto');
 const path=require('node:path');
 const cleanRoom=value=>{const v=String(value||'').trim().toLowerCase();return /^[a-z0-9_][a-z0-9_-]{1,39}$/.test(v)&&!['__proto__','prototype','constructor'].includes(v)?v:'';};
 const DATE=now=>new Date(now).toISOString().slice(0,10);
@@ -20,6 +21,13 @@ function installChannelAudience({app,io,getUser,getUsers,getModState,getNativeRo
  }catch(error){console.warn('[SWAPP CHANNEL LOYALTY] load failed:',error.message)}
  const watches=new Map();
  const MAX_DAILY=300,PTS_PER_MINUTE=5,TICK_MAX_MS=25000;
+ const REWARDS=Object.freeze([
+  {id:'cheer',label:'Lancer une ovation',cost:75,requires_message:false},
+  {id:'highlight',label:'Mettre un message en valeur',cost:150,requires_message:true},
+  {id:'question',label:'Poser une question à la communauté',cost:250,requires_message:true}
+ ]);
+ const purchaseCooldown=new Map();
+
  const lookup=(room,id)=>wallets[room]?.[id]||null;
  async function hydrate(room){if(sql)wallets[room]=await sql.getRoom(room);}
  function persist(){
@@ -131,9 +139,83 @@ function installChannelAudience({app,io,getUser,getUsers,getModState,getNativeRo
   if(!getUser(room))return res.status(404).json({success:false,error:'Chaîne inconnue.'});
   try{if(sql)await hydrate(room)}catch(_){return res.status(503).json({success:false,error:'Points MySQL indisponibles.'})}
   const w=lookup(room,who.id);
-  return res.json({success:true,room,points:Number(w?.points||0),
+  return res.json({success:true,room,points:Number(w?.points||0),rewards:REWARDS,
    points_per_minute:PTS_PER_MINUTE,daily_cap:MAX_DAILY,
    rewards_enabled:false,rule:'Lecture active, connecté et onglet visible. Les points ne sont pas échangeables actuellement.'});
+ });
+
+ // Spend points on a visible native-chat community interaction.
+ // Points are not monetary, transferable or redeemable for goods.
+ app.post('/api/swapp/channel-rewards/:room',async(req,res)=>{
+  res.set('Cache-Control','private, no-store');
+  const room=cleanRoom(req.params.room),who=identity(req.session);
+  if(!room||!who)return res.status(401).json({success:false,error:'Compte SWAPP requis.'});
+  const origin=String(req.headers?.origin||''),host=String(req.headers?.host||'');
+  if(!origin||!host)return res.status(403).json({success:false,error:'Origine requise.'});
+  try{const url=new URL(origin);if(!['https:','http:'].includes(url.protocol)||url.host!==host)
+    return res.status(403).json({success:false,error:'Origine refusée.'});}
+  catch(_){return res.status(403).json({success:false,error:'Origine refusée.'});}
+  if(!String(req.headers?.['content-type']||'').toLowerCase().startsWith('application/json'))
+   return res.status(415).json({success:false,error:'Format JSON requis.'});
+  const item=REWARDS.find(x=>x.id===req.body?.reward);
+  const requestId=String(req.body?.request_id||'');
+  if(!item||!/^[-a-f0-9]{36}$/i.test(requestId))
+   return res.status(400).json({success:false,error:'Récompense ou requête invalide.'});
+  const message=String(req.body?.message||'').replace(/[\u0000-\u001f\u007f]/g,' ').replace(/\s+/g,' ').trim().slice(0,140);
+  if(item.requires_message&&(message.length<2||String(req.body?.message||'').length>140))
+   return res.status(400).json({success:false,error:'Message de 2 à 140 caractères requis.'});
+  if(!live(room))return res.status(409).json({success:false,error:'Les récompenses sont disponibles pendant le direct.'});
+  const state=typeof getModState==='function'?getModState(room)?.state||{}:{};
+  if([...(state.banned||[]),...(state.muted||[])].includes(who.login)||
+    Number(state.timeouts?.[who.login]||0)>clock.now())
+   return res.status(403).json({success:false,error:'Interaction non autorisée sur cette chaîne.'});
+  const key=room+'|'+who.id,now=clock.now();
+  if(now-(purchaseCooldown.get(key)||0)<12000)
+   return res.status(429).json({success:false,error:'Une interaction toutes les 12 secondes maximum.'});
+  // Reserve this interval before database work to avoid concurrent posts.
+  purchaseCooldown.set(key,now);
+  if(purchaseCooldown.size>3000)for(const [id,stamp] of purchaseCooldown){
+   if(now-stamp>60000)purchaseCooldown.delete(id);
+  }
+  try{
+   let outcome=null;
+   if(sql){
+    outcome=await sql.spend(room,who,item.id,item.cost,requestId);
+    if(outcome.ok){
+     wallets[room]??={};
+     const row=wallets[room][who.id];
+     if(row)row.points=outcome.points;
+    }
+   }else{
+    const prev=lookup(room,who.id);
+    const oldPoints=Number(prev?.points)||0;
+    if((prev?.redeemedIds||[]).includes(requestId))outcome={ok:false,reason:'duplicate'};
+    else if(oldPoints<item.cost)outcome={ok:false,reason:'insufficient',points:oldPoints};
+    else{
+     wallets[room]??={};
+     wallets[room][who.id]={...prev,login:who.login,display_name:who.display_name,
+      points:oldPoints-item.cost,redeemedIds:[...(prev?.redeemedIds||[]).slice(-38),requestId],
+      updatedAt:now};
+     try{persist();outcome={ok:true,points:oldPoints-item.cost};}
+     catch(_){wallets[room][who.id]=prev;throw Error('points_persist_failed');}
+    }
+   }
+   if(!outcome?.ok){
+    purchaseCooldown.delete(key);
+    return res.status(outcome?.reason==='insufficient'?409:409).json({
+     success:false,error:outcome?.reason==='insufficient'
+      ?'Solde insuffisant.':'Récompense déjà demandée.',points:outcome?.points??null});
+   }
+   // Emit only after a committed debit. No fake native chat message.
+   const notice={room,reward:item.id,label:item.label,cost:item.cost,
+    user:who.login,user_display:who.display_name,message:item.requires_message?message:'',
+    redeemed_at:now,id:crypto.randomUUID()};
+   io.to('native:'+room).emit('swapp:channel:redeemed',notice);
+   return res.json({success:true,room,points:outcome.points,reward:item.id,cost:item.cost});
+  }catch(_){
+   purchaseCooldown.delete(key);
+   return res.status(503).json({success:false,error:'Dépense indisponible : aucun succès confirmé.'});
+  }
  });
  function award(room,who,ms,now){
   if(sql)return sql.credit(room,who,DATE(now),MAX_DAILY,PTS_PER_MINUTE).then(result=>{
