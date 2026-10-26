@@ -85,6 +85,8 @@ video{display:block;width:100%;height:100%;object-fit:cover;background:#000;curs
 }
 .latencyMonitor[hidden]{display:none!important}
 @media(max-width:620px){.latencyMonitor{right:5px;top:5px;font-size:9px;padding:4px 5px}}
+
+#captions[hidden]{display:none!important}
 </style>
 </head>
 <body>
@@ -104,6 +106,7 @@ video{display:block;width:100%;height:100%;object-fit:cover;background:#000;curs
   <button id="audio" type="button" aria-label="Activer le son" aria-pressed="false">🔇</button>
   <input id="volume" type="range" min="0" max="1" value="0.8" step="0.05" aria-label="Volume du direct">
   <span class="flex"></span>
+  <button id="captions" type="button" hidden aria-label="Activer les sous-titres français disponibles" aria-pressed="false" title="Sous-titres français transmis par la diffusion">CC FR</button>
   <button id="fit" type="button" aria-label="Afficher toute l'image sans recadrage" aria-pressed="true">Adapter</button>
   <button id="screen" type="button" aria-label="Passer en plein écran">⛶</button>
  </div>
@@ -117,6 +120,28 @@ const status = document.getElementById('state');
 const audio = document.getElementById('audio');
 const volume = document.getElementById('volume');
 const fit = document.getElementById('fit');
+const captionsButton=document.getElementById('captions');
+let frenchCaptionsEnabled=false;
+function syncFrenchCaptions(){
+ const tracks=Array.from(v.textTracks||[]);
+ const french=tracks.filter(track=>/^(fr|fr[-_])/i.test(String(track.language||'')) &&
+  (track.kind==='captions'||track.kind==='subtitles'));
+ captionsButton.hidden=french.length===0;
+ if(!french.length)frenchCaptionsEnabled=false;
+ for(const track of tracks){
+  if(track.kind==='captions'||track.kind==='subtitles')
+   track.mode=frenchCaptionsEnabled&&french.includes(track)?'showing':'disabled';
+ }
+ captionsButton.setAttribute('aria-pressed',String(frenchCaptionsEnabled));
+ captionsButton.title=french.length?'Sous-titres français fournis par le diffuseur':
+  'Aucun sous-titre français transmis';
+}
+captionsButton.addEventListener('click',()=>{
+ if(captionsButton.hidden)return;
+ frenchCaptionsEnabled=!frenchCaptionsEnabled;syncFrenchCaptions();
+});
+v.textTracks?.addEventListener?.('addtrack',()=>queueMicrotask(syncFrenchCaptions));
+
 const screen = document.getElementById('screen');
 const audioHint = document.getElementById('audioHint');
 const playButton = document.getElementById('play');
@@ -317,6 +342,7 @@ async function boot(){
    showStartupProgress('Chargement des images vidéo…');
   });
   h.on(Hls.Events.MANIFEST_PARSED,()=>{
+   syncFrenchCaptions();
    if(!manualStop&&!userPaused)void v.play().catch(e=>{
     if(e?.name==='NotAllowedError')message('Clique sur Lecture pour démarrer le direct.');
     else failure('lecture : '+String(e?.name||e?.message||'échouée'));

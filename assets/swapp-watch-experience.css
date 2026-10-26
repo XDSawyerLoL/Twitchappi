@@ -610,3 +610,44 @@ body:has(#channel.view.active) #oryonMiniPlayer{display:none!important}
  max-height:none!important;
  overflow:visible!important;
 }
+
+/* 2026-10-26 — lock player geometry through scrolling and window resizing. */
+#channel#channel .creatorRefine.swapp-channel-polish .channelLiveLayout{
+  display:grid!important;grid-template-columns:minmax(0,1fr) minmax(280px,384px)!important;
+  align-items:start!important;gap:14px!important;min-width:0!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .channelMainPlayer{
+  min-width:0!important;max-width:100%!important;position:relative!important;
+  transform:none!important;translate:none!important;align-self:start!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .channelMainPlayer > :is(.premiumPlayer,.oryonMainPlayer,.player){
+  position:relative!important;width:100%!important;height:auto!important;min-height:0!important;
+  max-height:none!important;aspect-ratio:16/9!important;transform:none!important;
+  translate:none!important;overflow:hidden!important;isolation:isolate!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .channelMainPlayer > :is(.premiumPlayer,.oryonMainPlayer,.player) > iframe{
+  position:absolute!important;inset:0!important;width:100%!important;height:100%!important;
+  border:0!important;transform:none!important;object-fit:contain!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .channelLiveSidebar,
+#channel#channel .creatorRefine.swapp-channel-polish .channelLiveSidebar > .chatPanel{
+  position:relative!important;top:0!important;inset-block-start:0!important;
+  transform:none!important;translate:none!important;align-self:start!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .swapp-watch-headline{
+  display:flex!important;align-items:center!important;gap:12px!important;
+  border-bottom:1px solid rgba(255,255,255,.09);padding:10px 0 14px!important;
+  min-height:66px;position:relative;z-index:1;
+}
+#channel .swapp-watch-headline-details{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1 1 auto}
+#channel .swapp-watch-live-category{font:600 12px/1.3 system-ui,sans-serif;color:#b8a2dd;min-height:0}
+#channel .swapp-watch-live-category[hidden]{display:none!important}
+#channel .swapp-watch-edit{flex:0 0 auto;min-height:35px;padding:7px 12px;font-size:12px;white-space:nowrap}
+#channel .swapp-stream-public-heading{display:none!important}
+@media(max-width:1080px){
+ #channel#channel .creatorRefine.swapp-channel-polish .channelLiveLayout{grid-template-columns:minmax(0,1fr)!important}
+}
+@media(max-width:540px){
+ #channel#channel .creatorRefine.swapp-channel-polish .swapp-watch-headline{flex-wrap:wrap!important}
+ #channel .swapp-watch-edit{margin-left:auto}
+}
