@@ -14,6 +14,61 @@ function attachSwappDirectRelay(app, opts={}){
  const onPublishedLive=opts.onPublishedLive;
  if(typeof lookupOwner!=='function')throw Error('Direct HLS relay owner resolver required');
  const rooms=new Map();
+ // Optional SAME-FILESYSTEM shared storage. Required for multi-worker Hostinger
+ // setups; the configured absolute directory MUST be common to every worker.
+ // Never assume separate Hostinger hosts share a filesystem.
+ const sharedRoot=String(process.env.SWAPP_DIRECT_RELAY_SHARED_DIR||'').trim();
+ if(sharedRoot&&!path.isAbsolute(sharedRoot))throw Error('SWAPP_DIRECT_RELAY_SHARED_DIR must be absolute');
+ if(sharedRoot)fs.mkdirSync(sharedRoot,{recursive:true,mode:0o700});
+ const sharedPath=(login,name)=>path.join(sharedRoot,login,name);
+ function atomicSharedWrite(login,name,bytes){
+  const dir=path.join(sharedRoot,login);
+  fs.mkdirSync(dir,{recursive:true,mode:0o700});
+  const dest=sharedPath(login,name),temp=dest+'.'+process.pid+'.'+crypto.randomBytes(6).toString('hex')+'.tmp';
+  try{fs.writeFileSync(temp,bytes,{mode:0o600});fs.renameSync(temp,dest)}
+  finally{try{fs.unlinkSync(temp)}catch(_){}}
+ }
+ function sharedRead(login,name){
+  if(!sharedRoot||!login)return null;
+  try{
+   const manifestFile=sharedPath(login,'index.m3u8');
+   const stat=fs.statSync(manifestFile);
+   // Never advertise old video after OBS stops.
+   if(Date.now()-stat.mtimeMs>55000)return null;
+   const bytes=fs.readFileSync(sharedPath(login,name));
+   if(name==='index.m3u8'){
+    const names=bytes.toString('utf8').split(/\\r?\\n/).filter(n=>/^seg_[0-9]{1,14}\\.ts$/.test(n));
+    if(!names.length||!names.every(n=>fs.existsSync(sharedPath(login,n))))return null;
+   }
+   return bytes;
+  }catch(_){return null}
+ }
+ function shareAcceptedMedia(login,name,body,room){
+  if(!sharedRoot)return;
+  // Persist segment BEFORE manifest, so other workers never see a playlist
+  // whose new segment has not been published yet.
+  if(name.endsWith('.ts'))atomicSharedWrite(login,name,body);
+  if(room.manifest&&room.playlistNames.length){
+   for(const n of room.playlistNames){
+    if(!fs.existsSync(sharedPath(login,n))){
+     const chunk=room.segments.get(n);
+     if(!chunk)return;
+     atomicSharedWrite(login,n,chunk);
+    }
+   }
+   atomicSharedWrite(login,'index.m3u8',room.manifest);
+  }
+  // Bound disk usage; keep the advertised window plus a modest DVR margin.
+  const dir=path.join(sharedRoot,login);
+  const entries=fs.readdirSync(dir).filter(n=>/^seg_[0-9]{1,14}\\.ts$/.test(n));
+  if(entries.length>65){
+   const pinned=new Set(room.playlistNames);
+   for(const n of entries.sort((a,b)=>Number(a.match(/\\d+/)[0])-Number(b.match(/\\d+/)[0])).slice(0,entries.length-55)){
+    if(!pinned.has(n))try{fs.unlinkSync(sharedPath(login,n))}catch(_){}
+   }
+  }
+ }
+
  // Per-owner, ephemeral diagnostics: never include a stream key, URL query or IP.
  const obsIngestTelemetry=new Map();
  function obsTrack(login,name,res,req){
@@ -305,6 +360,13 @@ function attachSwappDirectRelay(app, opts={}){
      Promise.resolve().then(()=>opts.onVerifiedObsIngest(login))
       .catch(error=>console.warn('[SWAPP OBS] live state update failed',String(error?.code||error?.name||'error')));
    }
+   if(sharedRoot){
+    try{shareAcceptedMedia(login,name,body,room)}
+    catch(error){
+     console.error('[SWAPP HLS] shared media write failed',String(error?.code||error?.name||'error'));
+     return res.status(503).json({success:false,error:'Stockage HLS commun indisponible.'});
+    }
+   }
    room.minuteBytes+=body.length;
    res.json({success:true,room:login,received:name,segment_count:room.segments.size});
  }
@@ -472,8 +534,9 @@ function attachSwappDirectRelay(app, opts={}){
  app.get('/api/oryon/local-relay/:login/index.m3u8',(req,res)=>{
   notCached(res);
   const login=cleanLogin(req.params.login),r=login&&liveRoom(login);
-  if(!r?.manifest)return res.sendStatus(404);
-  res.type('application/vnd.apple.mpegurl').send(r.manifest);
+  const manifest=sharedRead(login,'index.m3u8')||r?.manifest;
+  if(!manifest)return res.sendStatus(404);
+  res.type('application/vnd.apple.mpegurl').send(manifest);
  });
  app.get('/api/oryon/local-relay/:login/dvr.m3u8',(req,res)=>{
   notCached(res);
@@ -521,13 +584,13 @@ function attachSwappDirectRelay(app, opts={}){
  }); app.get('/api/oryon/local-relay/:login/:segment',(req,res)=>{
   notCached(res);
   const login=cleanLogin(req.params.login),name=cleanName(req.params.segment),r=login&&liveRoom(login);
-  if(!r||!name.endsWith('.ts'))return res.sendStatus(404);
-  const bytes=r.segments.get(name);
+  if(!login||!name||!name.endsWith('.ts'))return res.sendStatus(404);
+  const bytes=sharedRead(login,name)||r?.segments.get(name);
   if(!bytes){
    // A slow viewer can fall outside a bounded in-memory HLS window.
    // Surface this to the owner without logging IPs or private keys.
-   r.missingSegmentRequests=(r.missingSegmentRequests||0)+1;
-   r.lastMissingSegmentAt=Date.now();
+   if(r){r.missingSegmentRequests=(r.missingSegmentRequests||0)+1;
+   r.lastMissingSegmentAt=Date.now();}
    res.set('X-SWAPP-HLS-Window','expired');
    return res.sendStatus(404);
   }
