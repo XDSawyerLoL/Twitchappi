@@ -264,8 +264,12 @@
  background:color-mix(in srgb,var(--swapp-focus-accent) 12%,#0b0f18)!important;
  color:#eee9fa!important;
 }
-#channel .creatorRefine.swapp-channel-polish .channelActionDock .swapp-studio-owner-edit{
- display:none!important; /* same action is in the shared live heading */
+#channel#channel .creatorRefine.swapp-channel-polish[data-channel-owner="true"] .channelActionDock > .swapp-studio-owner-edit{
+ display:inline-flex!important; /* permanent action for the owner, online and offline */
+ align-items:center!important;justify-content:center!important;white-space:nowrap!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish[data-channel-owner="true"] .swapp-watch-headline .swapp-watch-edit{
+ display:none!important; /* no duplicate in the dynamic live headline */
 }
 @media(max-width:1080px){
  #channel#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelLiveLayout{
