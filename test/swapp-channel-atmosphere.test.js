@@ -48,7 +48,7 @@ test('Editor supports real upload, durable public read-back and non-destructive 
  assert.match(script,/URL\.revokeObjectURL/);
  assert.match(script,/background_preset/);
  assert.match(script,/\.swapp-showcase-owner-menu \.swapp-showcase-menu-content/);
- assert.match(script,/manager\.classList\.contains\('active'\)/);
+ assert.match(script,/manager\?\.classList\.contains\('active'\)/);
  assert.match(script,/fields\[4\]\.field\.dataset\.changed==='1'/);
 });
 test('Smaller live header and backdrop do not resize video/chat',()=>{
