@@ -1,0 +1,28 @@
+/* Creator impact: editorial metrics, no additional player/chat sizing overrides. */
+#dashboard .swapp-creator-impact{max-width:1380px;min-width:0;margin:22px 0 34px;padding:24px 0 18px;border-top:1px solid rgba(169,198,222,.24);border-bottom:1px solid rgba(169,198,222,.24);color:#f3f7fd;box-sizing:border-box}
+#dashboard .swapp-impact-head{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap}
+#dashboard .swapp-impact-kicker{font-size:11px;font-weight:850;letter-spacing:.14em;color:var(--swapp-side-light,var(--brand,#88deda))}
+#dashboard .swapp-impact-head h2{font-size:clamp(22px,2.5vw,34px);line-height:1.15;letter-spacing:-.045em;margin:8px 0!important}
+#dashboard .swapp-impact-head p,#dashboard .swapp-impact-status{font-size:13px;line-height:1.6;color:#afc2d4}
+#dashboard .swapp-impact-actions{display:flex;gap:10px;flex-wrap:wrap}
+#dashboard .swapp-impact-actions select,#dashboard .swapp-impact-actions button{width:auto!important;max-width:100%;min-height:40px;border-radius:6px!important;padding:8px 12px!important;border:1px solid rgba(160,192,218,.36)!important;color:#f4f8ff!important;background:#121e2e!important}
+#dashboard .swapp-impact-actions button:disabled{opacity:.6;cursor:wait}
+#dashboard .swapp-impact-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-block:1px solid rgba(169,198,222,.17);margin:21px 0 18px}
+#dashboard .swapp-impact-stat{min-width:0;display:flex;flex-direction:column;gap:10px;padding:20px 22px 18px;border-right:1px solid rgba(169,198,222,.17)}
+#dashboard .swapp-impact-stat:first-child{padding-left:0}
+#dashboard .swapp-impact-stat:last-child{border-right:0}
+#dashboard .swapp-impact-stat span{font-size:13px;font-weight:750}
+#dashboard .swapp-impact-stat strong{font-size:clamp(24px,3.1vw,40px);font-weight:850;letter-spacing:-.05em;overflow-wrap:anywhere}
+#dashboard .swapp-impact-stat small,#dashboard .swapp-impact-sources small{font-size:11px;color:#aabecf;line-height:1.5}
+#dashboard .swapp-impact-sources h3,#dashboard .swapp-impact-games h3{margin:18px 0 12px;font-size:16px;letter-spacing:-.015em}
+#dashboard .swapp-impact-place-items{display:flex;gap:8px 21px;flex-wrap:wrap}
+#dashboard .swapp-impact-place-items span{font-size:12px;color:#b4c6d6}
+#dashboard .swapp-impact-place-items strong{color:#f5fafc}
+#dashboard .swapp-impact-games ul{list-style:none;margin:0;padding:0;display:grid;gap:0}
+#dashboard .swapp-impact-games li{display:flex;gap:12px;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(169,198,222,.13);font-size:13px;flex-wrap:wrap}
+#dashboard .swapp-impact-games li strong{font-size:12px;font-weight:650;color:#b2c7d8}
+#dashboard .swapp-impact-foot{display:flex;justify-content:space-between;align-items:center;gap:15px;flex-wrap:wrap;margin-top:20px;padding-top:15px;border-top:1px solid rgba(169,198,222,.17)}
+#dashboard .swapp-impact-foot p{max-width:590px;font-size:11px;line-height:1.5;color:#aebed0;margin:0}
+#dashboard .swapp-impact-links{display:flex;gap:12px;flex-wrap:wrap}
+#dashboard .swapp-impact-links a{font-size:12px;font-weight:750;color:#baf2ee;text-decoration:underline;text-underline-offset:4px}
+@media(max-width:760px){#dashboard .swapp-impact-grid{grid-template-columns:minmax(0,1fr)}#dashboard .swapp-impact-stat{padding:13px 0;border-right:0;border-bottom:1px solid rgba(169,198,222,.17)}#dashboard .swapp-impact-stat:last-child{border-bottom:0}}
