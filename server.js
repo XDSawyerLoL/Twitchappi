@@ -3566,6 +3566,8 @@ const SWAPP_CHANNEL_SCHEMA_VERSION = 3;
 const {normalizeChannelTheme}=require('./modules/swapp-channel-theme');
 // Publicly report monetisation unavailability, never claim unverified paid credits.
 require('./modules/swapp-eclats').installEclatsStatus({app});
+// Paid creator subscriptions are visible, but checkout stays unavailable without settled billing.
+require('./modules/swapp-channel-subscription-status').installChannelSubscriptionStatus({app});
 function swappChannelPathForLogin(login){
   const clean = normalizeOryonLogin(login);
   return clean ? '/' + encodeURIComponent(clean) : '';
