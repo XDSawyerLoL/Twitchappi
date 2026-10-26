@@ -1,0 +1,23 @@
+/* SWAPP rewards: overlay above the existing chat composer. Never resize player or chat. */
+#channel .nativeFixedChat[data-chat="oryon"] .chatForm{position:relative!important}
+#channel .nativeFixedChat[data-chat="oryon"] .swapp-rewards-anchor{position:absolute;right:6px;bottom:100%;z-index:28;width:auto;max-width:calc(100% - 12px)}
+#channel .nativeFixedChat[data-chat="oryon"] .swapp-rewards-trigger{display:flex;gap:9px;align-items:center;justify-content:center;min-height:30px;padding:5px 10px;border-radius:7px 7px 0 0;font:700 11px/1.15 system-ui;white-space:nowrap;background:rgba(14,17,28,.96);border:1px solid rgba(181,200,227,.26);color:var(--text,#f3f3f8);cursor:pointer}
+#channel .swapp-rewards-hint{color:var(--brand,#b8d4de)}
+#channel .nativeFixedChat[data-chat="oryon"] .swapp-rewards-drawer{position:absolute;right:0;bottom:calc(100% + 3px);box-sizing:border-box;width:min(345px,calc(100vw - 36px));max-height:min(390px,65vh);padding:13px;border:1px solid rgba(174,195,217,.3);background:#141c27;box-shadow:0 16px 35px rgba(0,0,0,.38);border-radius:9px;overflow-y:auto;overscroll-behavior:contain;color:#f1f5fb}
+#channel .swapp-rewards-drawer[hidden]{display:none!important}
+#channel .swapp-rewards-top{display:flex;justify-content:space-between;align-items:center;gap:15px}
+#channel .swapp-rewards-top strong{font-size:15px}
+#channel .swapp-rewards-top button{background:transparent;color:inherit;border:0;cursor:pointer;font-size:20px}
+#channel .swapp-rewards-drawer p{font-size:11px;line-height:1.5;color:#bac7d4}
+#channel .swapp-rewards-item{padding:10px 0;border-top:1px solid rgba(255,255,255,.11);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+#channel .swapp-rewards-info{display:grid;gap:3px;flex:1 1 160px}
+#channel .swapp-rewards-info strong{font-size:12px}
+#channel .swapp-rewards-info small{font-size:11px;color:#b9c8d5}
+#channel .swapp-rewards-item button{border:1px solid rgba(134,189,203,.45);color:#f1fcff;padding:6px 10px;font-weight:750;font-size:11px;border-radius:6px;cursor:pointer;background:rgba(67,144,160,.2)}
+#channel .swapp-rewards-item button:disabled{opacity:.5}
+#channel .swapp-rewards-item input{flex-basis:100%;min-height:34px;border:1px solid rgba(184,199,218,.3);background:#0d141f;color:#f8f8fc;border-radius:6px;padding:6px 9px;font-size:12px}
+#channel .swapp-rewards-status{margin:7px 0 0}
+#channel .nativeFixedChat[data-chat="oryon"] .chatLog .swapp-redeemed-message{box-sizing:border-box;margin:6px 9px;padding:8px 10px;border-left:3px solid var(--brand,#80c6df);border-radius:4px;background:rgba(127,171,201,.13);display:grid;gap:3px;font-size:12px;overflow-wrap:anywhere}
+#channel .swapp-redeemed-message strong{font-size:12px;color:#d8f7ff}
+#channel .swapp-redeemed-message span{white-space:pre-wrap;color:#f6f7fb}
+@media(max-width:600px){#channel .nativeFixedChat[data-chat="oryon"] .swapp-rewards-drawer{width:min(310px,calc(100vw - 26px));max-height:55vh}}
