@@ -51,7 +51,9 @@
   const button=document.createElement('button');
   button.type='button';
   button.className='btn secondary swapp-live-alert-bell';
-  button.hidden=true;button.disabled=true;
+  button.hidden=false;button.disabled=false;
+  button.textContent='🔔';
+  button.title='État des notifications de direct : vérification en cours';
   button.setAttribute('aria-label','Notifications de direct');
   follow.after(button);
   let enabled=false,authenticated=false,following=false,available=false,key='',busy=false;
@@ -67,19 +69,44 @@
     authenticated=status.authenticated===true;
     following=status.following===true;
     enabled=status.enabled===true;
-    if(!available){button.hidden=true;return}
     button.hidden=false;
-    show(button,enabled);
+    show(button,enabled&&available);
+    button.dataset.swappAlertAvailable=String(available);
     const compatible=supported();
-    button.disabled=!compatible;
-    if(!compatible)button.title='Notifications système non disponibles ici. Sur iPhone, ajoute SWAPP à l’écran d’accueil.';
+    button.dataset.swappAlertSupported=String(compatible);
+    // The bell is always discoverable; unavailable Push remains truthful.
+    button.disabled=false;
+    if(!available){
+     button.textContent='🔔'; // visibly an available feature, but not an active subscription
+     button.title='Notifications indisponibles : configuration Push SWAPP non activée.';
+     button.setAttribute('aria-label','Notifications indisponibles sur SWAPP');
+    }else if(!compatible){
+     button.title='Notifications système non compatibles ici. Sur iPhone, ajoute SWAPP à l’écran d’accueil.';
+     button.setAttribute('aria-label','Notifications non compatibles avec ce navigateur');
+    }
    }catch{
-    if(button.isConnected)button.hidden=true;
+    if(!button.isConnected)return;
+    button.hidden=false;available=false;enabled=false;
+    button.dataset.swappAlertAvailable='false';
+    button.dataset.swappAlertSupported='false';
+    button.disabled=false;
+    button.textContent='🔔';
+    button.title='État des alertes indisponible : vérifie la configuration SWAPP.';
+    button.setAttribute('aria-label','Notifications temporairement indisponibles');
+    button.setAttribute('aria-pressed','false');
    }
   };
   void sync();
   button.addEventListener('click',async()=>{
-   if(busy||!available||button.disabled)return;
+   if(busy||button.disabled)return;
+   if(!available){
+    notice('La cloche est visible, mais le service de notifications SWAPP doit être activé sur le serveur (Push / VAPID).');
+    return;
+   }
+   if(!supported()){
+    notice('Ce navigateur ne permet pas les notifications Push. Sur iPhone, ajoute SWAPP à l’écran d’accueil.');
+    return;
+   }
    if(!authenticated){
     if(typeof window.setView==='function')window.setView('settings');
     else location.href='/compte';

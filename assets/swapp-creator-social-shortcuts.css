@@ -1,0 +1,111 @@
+/* Compact anti-GAFAM social row, attached to the REAL player toolbar.
+ * Icons are links; no overlays on game pixels and no extra feature cards.
+ */
+#channel#channel .creatorRefine.swapp-channel-polish .channelMainPlayer .swapp-watch-tools{
+ display:flex!important;align-items:center!important;flex-wrap:wrap!important;
+ gap:6px!important;min-width:0!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .swapp-creator-social-shortcuts{
+ margin-left:auto;display:inline-flex;align-items:center;justify-content:flex-end;
+ gap:5px;flex:0 0 auto;min-width:0;flex-wrap:wrap;
+ padding:3px 0;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .swapp-creator-social-caption{
+ color:#9c9ea9;font:650 10px/1.2 system-ui,sans-serif;margin-right:4px;
+ white-space:nowrap;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .swapp-creator-social-link{
+ display:inline-flex;align-items:center;justify-content:center;
+ width:32px;height:32px;flex:0 0 32px;box-sizing:border-box;
+ border-radius:7px;border:1px solid rgba(224,227,240,.13);
+ background:#111215;color:#d4d7df;text-decoration:none;
+ transition:border-color .16s ease,background-color .16s ease,transform .16s ease;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .swapp-creator-social-link svg{display:block;pointer-events:none}
+#channel#channel .creatorRefine.swapp-channel-polish .swapp-creator-social-signal{color:#87b4ff}
+#channel#channel .creatorRefine.swapp-channel-polish .swapp-creator-social-bluesky{color:#75baff}
+#channel#channel .creatorRefine.swapp-channel-polish .swapp-creator-social-mastodon{color:#af93ff}
+#channel#channel .creatorRefine.swapp-channel-polish .swapp-creator-social-minds{color:#e8cb79}
+#channel#channel .creatorRefine.swapp-channel-polish .swapp-creator-social-link:hover{
+ border-color:rgba(231,234,248,.42);
+ background:#212229;transform:translateY(-1px);
+}
+#channel#channel .creatorRefine.swapp-channel-polish .swapp-creator-social-link:focus-visible,
+#channel#channel .creatorRefine.swapp-channel-polish .swapp-creator-links-edit:focus-visible{
+ outline:2px solid var(--channel-accent,#b7a3f0);outline-offset:2px;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .swapp-creator-social-inline-edit{
+ display:inline-flex;align-items:center;justify-content:center;
+ border:1px dashed rgba(206,217,235,.26)!important;
+ border-radius:7px!important;
+ min-height:32px!important;padding:6px 8px!important;
+ background:#15161a!important;color:#ced1dc!important;
+ font:700 11px/1.2 system-ui!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .swapp-creator-links-edit{
+ display:flex;justify-content:flex-start;align-items:center;
+ padding:9px 11px;border-radius:7px;color:#edf1fa;
+ border:1px solid rgba(221,229,245,.17);background:#1d1e24;
+ font:700 12px/1.2 system-ui;cursor:pointer;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .swapp-live-viewer-actions > .swapp-live-alert-preview{
+ flex:0 0 38px!important;min-width:38px!important;width:38px!important;
+ min-height:38px!important;padding:5px!important;
+ border:1px solid rgba(225,232,244,.13)!important;
+ background:#17181c!important;color:#aab1c0!important;font-size:17px!important;
+ opacity:.64!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .swapp-live-viewer-actions > .swapp-live-alert-bell[data-swapp-alert-available="false"]{
+ opacity:.7!important;background:#15161a!important;
+ border-color:rgba(216,225,237,.15)!important;
+}
+/* Real social URLs and actions are visually separate from the video transport. */
+.swapp-creator-links-dialog{
+ position:fixed!important;top:50%!important;left:50%!important;
+ transform:translate(-50%,-50%)!important;margin:0!important;
+ box-sizing:border-box;width:min(510px,calc(100vw - 26px))!important;
+ max-height:min(88dvh,800px)!important;overflow-y:auto!important;
+ padding:20px!important;border-radius:13px!important;
+ border:1px solid rgba(224,229,245,.25)!important;
+ background:linear-gradient(145deg,#1b1c22,#0b0c10)!important;color:#f0f2f7!important;
+ box-shadow:0 24px 68px rgba(0,0,0,.68)!important;
+ font:13px/1.45 system-ui,sans-serif!important;
+ z-index:10010!important;
+}
+.swapp-creator-links-dialog::backdrop{background:rgba(0,0,0,.76)}
+.swapp-creator-links-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.swapp-creator-links-head h2{font-size:20px;margin:0;letter-spacing:-.03em}
+.swapp-creator-links-head button{
+ border:0;background:#292a30;color:#fff;width:32px;height:32px;
+ border-radius:8px;font-size:19px;cursor:pointer;
+}
+.swapp-creator-links-desc{font-size:12px;color:#b9bfcc;margin:12px 0 18px}
+.swapp-creator-links-field{display:grid;gap:6px;margin:0 0 13px;min-width:0}
+.swapp-creator-links-field span{font-weight:740;font-size:12px}
+.swapp-creator-links-field input{
+ min-height:38px;width:100%;box-sizing:border-box;border-radius:8px;
+ background:#15171c;color:#e9edf5;border:1px solid rgba(210,215,233,.24);
+ padding:8px 10px;font:12px/1.3 system-ui;outline:none;
+}
+.swapp-creator-links-field input:focus{border-color:var(--channel-accent,#a48dde)}
+.swapp-creator-links-hint{font-size:11px;color:#a4adbb;margin:8px 0}
+.swapp-creator-links-status{font-size:12px;color:#d2c6ee;min-height:17px;margin:8px 0}
+.swapp-creator-links-footer{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:13px}
+.swapp-creator-links-footer button{
+ min-height:37px;padding:8px 12px;border-radius:8px;font-weight:700;
+ border:1px solid rgba(221,227,242,.19);background:#24262c;color:#f2f3f8;
+}
+.swapp-creator-links-footer .swapp-creator-links-save{
+ background:#7754bd;border-color:#9776de;color:#fff;
+}
+.swapp-creator-links-footer button:disabled{opacity:.55}
+@media(max-width:800px){
+ #channel#channel .creatorRefine.swapp-channel-polish .swapp-creator-social-shortcuts{
+  margin-left:0;flex:1 1 100%;justify-content:flex-start;
+ }
+ #channel#channel .creatorRefine.swapp-channel-polish .swapp-creator-social-caption{display:none}
+}
+@media(prefers-reduced-motion:reduce){
+ #channel#channel .creatorRefine.swapp-channel-polish .swapp-creator-social-link{transition:none}
+ #channel#channel .creatorRefine.swapp-channel-polish .swapp-creator-social-link:hover{transform:none}
+}
