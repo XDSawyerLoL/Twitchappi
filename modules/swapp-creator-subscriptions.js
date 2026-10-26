@@ -56,7 +56,7 @@ function createCreatorSubscriptions({
   const enabled=env.SWAPP_SUBS_ENABLED==='1'&&legalOk&&
     (testKey||(liveKey&&env.SWAPP_SUBS_LIVE_APPROVED==='1'))&&
     priceCents>=100&&priceCents<=100000&&feePercent!==null&&
-    Boolean(env.SWAPP_MYSQL_URL);
+    Boolean(env.SWAPP_MYSQL_URL)&&Boolean(env.SWAPP_SUBS_STRIPE_WEBHOOK_SECRET);
   const stripe=stripeClient||(key?require('stripe')(key):null);
   let pool=null,connecting=null;
   async function db(){
