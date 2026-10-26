@@ -165,6 +165,15 @@ function installChannelAudience({app,io,getUser,getUsers,getModState,getNativeRo
   if(item.requires_message&&(message.length<2||String(req.body?.message||'').length>140))
    return res.status(400).json({success:false,error:'Message de 2 à 140 caractères requis.'});
   if(!live(room))return res.status(409).json({success:false,error:'Les récompenses sont disponibles pendant le direct.'});
+  // The viewer must currently be participating in the native chat room:
+  // otherwise a paid-in-points action would be invisible to them.
+  let member=false;
+  for(const socket of io.sockets.sockets.values()){
+   if(socket.data?.nativeRoom===room&&
+    String(socket.request?.session?.oryonUser?.id||'')===who.id){member=true;break;}
+  }
+  if(!member)return res.status(409).json({success:false,error:'Connecte-toi au tchat de la chaîne pour dépenser tes points.'});
+
   const state=typeof getModState==='function'?getModState(room)?.state||{}:{};
   if([...(state.banned||[]),...(state.muted||[])].includes(who.login)||
     Number(state.timeouts?.[who.login]||0)>clock.now())
