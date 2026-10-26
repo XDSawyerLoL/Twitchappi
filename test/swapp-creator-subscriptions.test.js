@@ -78,3 +78,17 @@ test('site mounts the storefront without replacing free follows or live alerts',
  assert.match(ui,/swapp-subs-grid/);
  assert.doesNotMatch(ui,/localStorage/);
 });
+
+test('supporter badges and subscriber emote rights always come from the server',()=>{
+ const server=read('server.js');
+ const ui=read('assets/swapp-supporter-chat-badges.js');
+ assert.match(server,/swappCreatorSubscriptions\.entitlement\(user\.id,room\)/);
+ assert.match(server,/swappCreatorSubscriptions\.entitlement\(req\.session\?\.oryonUser\?\.id,login\)/);
+ assert.match(server,/gate === 'subscriber' && hasSupporter/);
+ assert.match(server,/chat-badges\/:room/);
+ assert.match(server,/getNativeChat\(room\)\.slice\(-80\)/);
+ assert.match(ui,/payload\.badges/);
+ assert.match(ui,/swapp-supporter-chat-tag/);
+ assert.match(ui,/option\.value='subscriber'/);
+ assert.doesNotMatch(ui,/localStorage|sessionStorage/);
+});
