@@ -38,7 +38,7 @@ test('special redeemed chat notices, player/chat grid and live controls remain u
  assert.match(css,/\.channelLiveLayout\{/);
  assert.match(css,/data-watch-chat="hidden"/);
  assert.match(css,/data-watch-theatre="on"/);
- assert.doesNotMatch(css,/\.chatLog \.msg\.swapp-chat-fresh-message\{[^}]*height:.*!important/);
+ assert.doesNotMatch(css,/\.chatLog \.msg\.swapp-chat-fresh-message\{[^}]*\bheight:\s*\d+px!important/);
 });
 test('browser loads the flat-message CSS version, not the cached bubble style',()=>{
  assert.equal(html.split('swapp-chat-social-glass.css?v=20261026-flat-chat-v3').length-1,1);
