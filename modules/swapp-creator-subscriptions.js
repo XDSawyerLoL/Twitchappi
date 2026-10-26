@@ -320,9 +320,23 @@ function createCreatorSubscriptions({
           obj.client_reference_id===viewer){
           if(md.swapp_kind==='gift'&&obj.mode==='payment'){
             const total=amount(obj.amount_total);
-            if(total===amount(md.swapp_total_cents)&&total>0)
-              await assignGifts(conn,{sessionId:obj.id,creator,buyer:viewer,quantity,totalCents:total,
-                paymentIntentId:typeof obj.payment_intent==='string'?obj.payment_intent:null});
+            if(total===amount(md.swapp_total_cents)&&total>0 &&
+               typeof obj.payment_intent==='string'&&obj.payment_intent.startsWith('pi_')){
+              // Re-fetch current payment state. Stripe can deliver a refund/dispute
+              // before checkout.session.completed; never fulfill an already reversed charge.
+              const pi=await stripe.paymentIntents.retrieve(obj.payment_intent,
+                {expand:['latest_charge']});
+              const charge=pi.latest_charge;
+              const cleared=pi.status==='succeeded'&&pi.currency==='eur'&&
+                Number(pi.amount_received)===total&&
+                pi.metadata?.swapp_creator_login===creator&&
+                pi.metadata?.swapp_viewer_id===viewer&&
+                charge&&typeof charge==='object'&&
+                charge.refunded!==true&&charge.disputed!==true&&
+                Number(charge.amount_refunded||0)===0;
+              if(cleared)await assignGifts(conn,{sessionId:obj.id,creator,
+                buyer:viewer,quantity,totalCents:total,paymentIntentId:pi.id});
+            }
           }else if(md.swapp_kind==='self'&&obj.mode==='subscription'&&obj.subscription){
             const subscription=await stripe.subscriptions.retrieve(obj.subscription);
             await subscriptionPaid(conn,subscription);
