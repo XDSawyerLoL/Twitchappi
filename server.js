@@ -427,7 +427,7 @@ app.use((err,req,res,next)=>{
 app.use(bodyParser.json({
   limit: '12mb',
   verify: function(req, _res, buf){
-    if(req.originalUrl === '/api/stripe/webhook') req.rawBody = Buffer.from(buf);
+    if(req.originalUrl === '/api/stripe/webhook' || req.originalUrl === '/api/swapp/subscriptions/stripe-webhook') req.rawBody = Buffer.from(buf);
   }
 }));
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -4734,6 +4734,14 @@ const swappLivePush=makeLivePush({isFollowing:(viewerId,creator)=>{
  return Boolean(Array.isArray(user?.following)&&user.following.includes(creator));
 }});
 swappLivePush.register(app);
+
+// Creator support is strictly opt-in. Stripe payment confirmation, gift inventory
+// and creator payouts are handled by the dedicated MySQL service.
+const {createCreatorSubscriptions}=require('./modules/swapp-creator-subscriptions');
+const swappCreatorSubscriptions=createCreatorSubscriptions({
+  users:()=>readOryonUsers().users||[]
+});
+swappCreatorSubscriptions.register(app,mutationLimiter);
 
 // Upload-only OBS transport: SWAPP Local sends bounded HLS to the existing
 // HTTPS site. Viewers never connect to the streamer PC or a temporary tunnel.
