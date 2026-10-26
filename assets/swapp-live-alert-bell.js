@@ -77,6 +77,7 @@
     // The bell is always discoverable; unavailable Push remains truthful.
     button.disabled=false;
     if(!available){
+     button.textContent='🔔'; // visibly an available feature, but not an active subscription
      button.title='Notifications indisponibles : configuration Push SWAPP non activée.';
      button.setAttribute('aria-label','Notifications indisponibles sur SWAPP');
     }else if(!compatible){
