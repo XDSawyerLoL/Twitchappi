@@ -76,6 +76,11 @@ function swappIsBlockedTunnelUrl(url){
 }
 function swappSafeLocalPlayerUrl(url){
  const raw=String(url||'').trim();
+ // OBS Direct serves the trusted player on this same SWAPP origin. The
+ // old absolute-only URL parser rejected /api/.../player, leaving /vnhz
+ // with a black, empty WebRTC placeholder despite valid incoming HLS.
+ // Match the exact player route and nothing else (no queries or traversal).
+ if(/^\/api\/oryon\/local-relay\/[a-z0-9_-]{2,48}\/player$/i.test(raw))return raw;
  try{
   const parsed=new URL(raw);
   if(parsed.protocol!=='https:')return '';
@@ -3641,7 +3646,7 @@ applyViewerThemeColor();
 
 function fwLiveMediaHtml(p,isOwner,isLive,offlineImg,transport=''){
   const localPlayerUrl=swappSafeLocalPlayerUrl(p.oryon_local_player_url);
-  if(localPlayerUrl && isLive && transport==='local-agent') return `<iframe allowfullscreen sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-downloads" src="${esc(localPlayerUrl)}"></iframe>`;
+  if(localPlayerUrl && isLive && transport==='local-agent') return `<iframe title="Lecteur SWAPP Live" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-downloads" src="${esc(localPlayerUrl)}"></iframe>`;
   if((p.peertube_embed_url||p.peertube_watch_url) && !isLive) return `<iframe allowfullscreen sandbox="allow-same-origin allow-scripts allow-popups allow-forms" src="${esc(normalizePeerTubeEmbed(p.peertube_embed_url,p.peertube_watch_url))}"></iframe>`;
   return `<video id="localVideo" autoplay muted playsinline class="${isOwner&&state.stream?'':'hidden'}"></video><video id="remoteVideo" autoplay playsinline class="hidden"></video><div id="offlinePanel" class="emptyStatePlayer" style="display:${(isOwner&&state.stream)?'none':'grid'}">${offlineImg?`<img class="offlinePoster" src="${esc(offlineImg)}" alt="">`:''}<div class="offlineOverlay"><div><h2>${isLive?'Connexion au live…':'Chaîne hors ligne'}</h2><p class="muted">${isLive?'Connexion vidéo en attente.':'Bannière hors live, planning et infos de chaîne restent visibles.'}</p>${isOwner?`<button class="btn" onclick="setView('manager')">Ouvrir le gestionnaire</button>`:`<button class="btn" onclick="quickGem()">Trouver une pépite</button>`}</div></div></div>`;
 }
@@ -4835,22 +4840,31 @@ async function renderChannel(){
   const lives=await api('/api/native/lives').catch(()=>({items:[]}));
   const liveRoom=(lives.items||[]).find(x=>(x.host_login||x.room)===targetLogin);
   const livePing=await api('/api/oryon/channel/'+encodeURIComponent(targetLogin)+'/live-ping').catch(()=>null);
+  // Trust the actual HLS relay, independently of the delayed SWAPP account heartbeat.
+  const relayState=await api('/api/oryon/local-relay/'+encodeURIComponent(targetLogin)+'/state').catch(()=>null);
+  const verifiedHls=(relayState?.success===true && relayState?.active===true) ||
+    (liveRoom?.media_verified===true && liveRoom?.transport==='obs-hls');
+  const livePlayerUrl=verifiedHls
+    ? swappSafeLocalPlayerUrl('/api/oryon/local-relay/'+encodeURIComponent(targetLogin)+'/player')
+    : swappSafeLocalPlayerUrl(liveRoom?.player_url || p.oryon_local_player_url);
   // Never use a stale OBS embed while a browser-WebRTC broadcast is active.
-  const browserLive=(!!liveRoom && liveRoom.local_agent!==true) ||
+  const browserLive=!verifiedHls && ((!!liveRoom && liveRoom.local_agent!==true) ||
     livePing?.source==='browser-webrtc' ||
-    (isOwner && !!state.stream && !!state.nativeLiveConfirmed);
-  const agentLive=!browserLive && (
+    (isOwner && !!state.stream && !!state.nativeLiveConfirmed));
+  // A stale persisted OBS flag is not proof that a playable stream exists.
+  const obsStale=!verifiedHls && p.oryon_local_provider==='obs-hls';
+  const agentLive=!!verifiedHls || (!browserLive && !obsStale && (
     (!!liveRoom && liveRoom.local_agent===true) ||
     livePing?.source==='local-agent' ||
-    (!livePing?.success && !!(p.local_agent_live && swappSafeLocalPlayerUrl(p.oryon_local_player_url))));
+    (!livePing?.success && !!(p.local_agent_live && livePlayerUrl))));
   const transport=browserLive?'browser-webrtc':agentLive?'local-agent':'offline';
-  const isLive=browserLive || agentLive || (!!liveRoom) || !!livePing?.is_live;
+  const isLive=browserLive || agentLive || (!!liveRoom && !obsStale) || (!!livePing?.is_live && !obsStale);
   state.channelProfile=p; state.channelOwner=isOwner;
   const banner=p.banner_url||p.offline_image_url||'';
   const tags=Array.isArray(p.tags)?p.tags:(String(p.tags||'').split(',').map(x=>x.trim()).filter(Boolean));
   const channelBadges=channelBadgesFor(p,support,isOwner);
   const ownerActions=isOwner?`<button class="btn" onclick="setView('manager')">Gestionnaire</button><button class="btn secondary" onclick="setView('settings')">Modifier profil</button>`:`<button class="btn" onclick="followOryon('${esc(targetLogin)}')">Suivre</button><button id="likeBtn" class="btn secondary" onclick="likeOryon('${esc(targetLogin)}')">Aimer</button>${supportButton(targetLogin,support)}<button class="btn ghost" onclick="quickGem()">Autre live</button>`;
-  const media=isLive ? fwLiveMediaHtml(p,isOwner,isLive,p.offline_image_url||p.banner_url||'',transport) : oryonOfflinePremiumHtml(p,isOwner,tags);
+  const media=isLive ? fwLiveMediaHtml({...p,oryon_local_player_url:livePlayerUrl},isOwner,isLive,p.offline_image_url||p.banner_url||'',transport) : oryonOfflinePremiumHtml(p,isOwner,tags);
   const bannerBadges=oryonCreatorBannerBadgesHtml(channelBadges);
   const belowLive=oryonChannelBelowLiveHtml(p,tags,channelBadges,isOwner);
   $('#channel').innerHTML=`<div class="channelPage twitchLike viewerTint creatorRefine"><section class="channelTopHero">${banner?`<img src="${esc(banner)}" alt="">`:''}<div class="channelHeroContent"><div class="channelIdentity"><img class="avatar" src="${esc(p.avatar_url||'')}" alt=""><div class="channelTitleBlock"><h1>${esc(p.display_name||p.login)}</h1><p>${esc(p.bio||'Chaîne Swapp')}</p><div class="channelBadgesBar"><span id="channelLiveBadge" class="pill">${isLive?'🔴 En direct':'Hors ligne'}</span><span class="pill">@${esc(p.login)}</span><span class="pill">${Number(p.followers_count||0)} followers</span>${tags.slice(0,4).map(t=>`<span class="pill">${esc(t)}</span>`).join('')}</div>${bannerBadges}</div></div><div class="channelActionDock">${ownerActions}</div></div></section><nav class="channelSubNav"><button class="active" onclick="chanTab(this,'about')">Accueil</button><button onclick="chanTab(this,'about')">À propos</button><button onclick="chanTab(this,'planning')">Planning</button><button onclick="chanTab(this,'clips')">Clips</button></nav><section class="channelLiveLayout"><main class="channelMainPlayer"><div class="player premiumPlayer oryonMainPlayer">${media}</div></main><aside class="channelLiveSidebar"><div class="chatPanel nativeFixedChat" data-chat="oryon"><div class="chatHeader"><span>Tchat Swapp · ${esc(p.display_name||p.login)}</span><button class="btn ghost" onclick="reportRoom()">Signaler</button></div><div id="nativeChatLog" class="chatLog"></div><div id="customEmoteShelf" class="emotePanel hidden"></div><div id="gifGrid" class="gifGrid hidden"></div><div class="chatAssist"><button onclick="chatQuick('question')">Question</button><button onclick="chatQuick('new')">Nouveau ici</button><button onclick="chatQuick('react')">Réagir</button></div><div class="chatForm"><input id="chatInput" placeholder="Écrire sur Swapp…"><button class="btn secondary" onclick="toggleEmotes()">Emotes</button><button class="btn secondary" onclick="toggleGifs()">GIF</button><button class="btn" onclick="sendChat()">Envoyer</button></div></div></aside></section>${belowLive}</div>`;
@@ -4858,7 +4872,7 @@ async function renderChannel(){
   if(isLive) setMiniLive?.({type:'oryon',login:targetLogin,title:'Swapp · '+(p.display_name||p.login)});
   setupSocket?.(); state.room=targetLogin; state.socket?.emit('native:chat:history',{room:state.room});
   if(isOwner && state.stream){ attachCurrentStream?.(); }
-  else if(isLive){ state.socket?.emit('native:join',{room:targetLogin}); if(transport==='browser-webrtc' || !swappSafeLocalPlayerUrl(p.oryon_local_player_url)){ setTimeout(()=>requestOffer?.(),500); } }
+  else if(isLive){ state.socket?.emit('native:join',{room:targetLogin}); if(transport==='browser-webrtc' || !livePlayerUrl){ setTimeout(()=>requestOffer?.(),500); } }
   if(isLive && transport==='browser-webrtc' && !state.stream){
    clearTimeout(state.remoteConnectionWatchdog);
    state.remoteConnectionWatchdog=setTimeout(()=>{
