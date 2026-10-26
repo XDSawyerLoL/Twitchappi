@@ -139,10 +139,10 @@
   const caption=item.user_display||item.user;
   line.append(el('strong','',caption+' · '+rewardLabels[item.reward]));
   if(item.message)line.append(el('span','',String(item.message).slice(0,140)));
+  const nearBottom=log.scrollHeight-log.scrollTop-log.clientHeight<140;
   log.appendChild(line);
   const notices=log.querySelectorAll('.swapp-redeemed-message');
   if(notices.length>15)notices[0].remove();
-  const nearBottom=log.scrollHeight-log.scrollTop-log.clientHeight<140;
   if(nearBottom)log.scrollTop=log.scrollHeight;
   // A redemption event is not a public chat message and does not persist in chat history.
  }
