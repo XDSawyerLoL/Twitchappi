@@ -28,10 +28,12 @@ test('actual public channel renderer uses server-confirmed transport and request
  assert.ok(start>=0&&end>start);
  assert.match(channel,/livePing\?\.source==='browser-webrtc'/);
  assert.match(channel,/const browserLive=/);
- assert.match(channel,/const agentLive=!browserLive/);
+ assert.match(channel,/const verifiedHls=/);
+ assert.match(channel,/const livePlayerUrl=/);
+ assert.match(channel,/const agentLive=verifiedHls \|\| \(!browserLive/);
  assert.match(channel,/!livePing\?\.success/);
- assert.match(channel,/fwLiveMediaHtml\(p,isOwner,isLive,p\.offline_image_url\|\|p\.banner_url\|\|'',transport\)/);
- assert.match(channel,/transport==='browser-webrtc' \|\| !swappSafeLocalPlayerUrl/);
+ assert.match(channel,/fwLiveMediaHtml\(\{\.\.\.p,oryon_local_player_url:livePlayerUrl\}/);
+ assert.match(channel,/transport==='browser-webrtc' \|\| !livePlayerUrl/);
  assert.match(channel,/state\.remoteConnectionWatchdog=setTimeout/);
 });
 test('viewer reports success only after a real decoded video frame',()=>{
@@ -54,5 +56,5 @@ test('viewer reports success only after a real decoded video frame',()=>{
 });
 test('new live code is cache-busted',()=>{
  const html=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
- assert.match(html,/index_script\.js\?v=20261024-black-screen-v4/);
+ assert.match(html,/index_script\.js\?v=20261026-verified-obs-player-v7/);
 });
