@@ -8,7 +8,7 @@ const fs=require('node:fs');
 const path=require('node:path');
 const cleanRoom=value=>{const v=String(value||'').trim().toLowerCase();return /^[a-z0-9_][a-z0-9_-]{1,39}$/.test(v)&&!['__proto__','prototype','constructor'].includes(v)?v:'';};
 const DATE=now=>new Date(now).toISOString().slice(0,10);
-function installChannelAudience({app,io,getUser,getNativeRoom,isLocalLive,mysqlUri='',storageFile=path.join(process.cwd(),'.swapp-channel-loyalty.json'),clock=Date}){
+function installChannelAudience({app,io,getUser,getUsers,getModState,getNativeRoom,isLocalLive,mysqlUri='',storageFile=path.join(process.cwd(),'.swapp-channel-loyalty.json'),clock=Date}){
  if(!app||!io||!getUser||!getNativeRoom||!isLocalLive)throw Error('missing channel audience dependency');
  const sql=mysqlUri?require('./swapp-channel-points-mysql').createChannelPointsMysql({uri:mysqlUri,now:()=>clock.now()}):null;
  let wallets={};
@@ -74,6 +74,55 @@ function installChannelAudience({app,io,getUser,getNativeRoom,isLocalLive,mysqlU
    message:'Seuls les comptes SWAPP connectés apparaissent dans la liste. Lecture déclarée par le navigateur, sans preuve indépendante pour les lecteurs intégrés.',
    rule:{points_per_minute:PTS_PER_MINUTE,daily_cap:MAX_DAILY,rewards_enabled:false}
   });
+ });
+
+ // Owner-only roster of people who actually follow this channel. Data comes
+ // from the already established account follow list (not live presence).
+ // Points are from the existing channel-local point store, never global SWAPP rewards.
+ app.get('/api/swapp/channel-followers/:room',async(req,res)=>{
+  res.set('Cache-Control','private, no-store');
+  const room=cleanRoom(req.params.room);
+  if(!room||!owner(req,room))return res.status(403).json({success:false,error:'Accès réservé au propriétaire.'});
+  if(typeof getUsers!=='function'||typeof getModState!=='function')
+   return res.status(503).json({success:false,error:'Annuaire indisponible.'});
+  const rawPage=String(req.query?.page??'1');
+  if(!/^[1-9][0-9]{0,3}$/.test(rawPage))return res.status(400).json({success:false,error:'Page invalide.'});
+  const page=Number(rawPage),perPage=50;
+  const query=String(req.query?.q||'').trim().toLocaleLowerCase('fr');
+  if(query.length>60||/[\\u0000-\\u001f]/.test(query))return res.status(400).json({success:false,error:'Recherche invalide.'});
+  try{
+   const userData=getUsers();
+   const users=Array.isArray(userData?.users)?userData.users:[];
+   const matched=users.filter(user=>{
+    const login=cleanRoom(user?.login);
+    if(!login||login===room||!user?.id||!Array.isArray(user.following)||!user.following.includes(room))return false;
+    const display=String(user.display_name||login).toLocaleLowerCase('fr');
+    return !query||login.includes(query)||display.includes(query);
+   }).sort((a,b)=>String(a.login).localeCompare(String(b.login),'fr'));
+   const count=matched.length,start=(page-1)*perPage,selected=matched.slice(start,start+perPage);
+   const {state}=getModState(room);
+   const moderators=new Set(Array.isArray(state?.moderators)?state.moderators:[]);
+   const banned=new Set(Array.isArray(state?.banned)?state.banned:[]);
+   let pointsAvailable=true,pointsById=Object.create(null);
+   if(sql){
+    try{pointsById=await sql.getByIds(room,selected.map(user=>String(user.id)));}
+    catch(_){pointsAvailable=false;}
+   }else{
+    const rows=wallets[room]||{};
+    for(const user of selected)if(Object.prototype.hasOwnProperty.call(rows,String(user.id)))
+     pointsById[String(user.id)]=rows[String(user.id)];
+   }
+   const followers=selected.map(user=>{
+    const login=cleanRoom(user.login),value=pointsById[String(user.id)];
+    return {login,display_name:String(user.display_name||login).slice(0,80),
+     points:pointsAvailable?Math.max(0,Number(value?.points)||0):null,
+     minutes:pointsAvailable?Math.max(0,Number(value?.minutes)||0):null,
+     moderator:moderators.has(login),banned:banned.has(login)};
+   });
+   res.json({success:true,room,role:'owner',total:count,page,per_page:perPage,
+    has_more:start+selected.length<count,points_available:pointsAvailable,followers,
+    ban_scope:'native_swapp_chat_only',points_scope:'channel_local_verified_playback'});
+  }catch(_){res.status(503).json({success:false,error:'Liste des followers indisponible.'});}
  });
  app.get('/api/swapp/channel-points/:room',async(req,res)=>{
   res.set('Cache-Control','private, no-store');
