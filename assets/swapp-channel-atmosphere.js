@@ -141,10 +141,13 @@
    background_preset:preset.value,
    background_opacity:fields[0].field.value,background_blur:fields[1].field.value,
    background_x:fields[2].field.value,background_y:fields[3].field.value,
-   accent:fields[4].field.value,background_fit:fit.value
+   accent:fields[4].field.dataset.changed==='1'?fields[4].field.value:(cached?.accent||''),background_fit:fit.value
   });
   const preview=()=>display(read(),previewURL);
-  for(const {field} of fields)field.addEventListener('input',preview);
+  for(const {field} of fields)field.addEventListener('input',()=>{
+   if(field.id==='swapp-atmosphere-accent')field.dataset.changed='1';
+   preview();
+  });
   fit.addEventListener('change',preview);
   preset.addEventListener('change',preview);
   file.addEventListener('change',()=>{
@@ -230,8 +233,9 @@
    dialog.dataset.backgroundUrl=cached.background_url;
    for(const [key,value] of Object.entries(cached)){
     const input=dialog.querySelector('#swapp-atmosphere-'+key);
-    if(input)input.value=value;
+    if(input)input.value=key==='accent'?(value||'#9b78f4'):value;
    }
+   fields[4].field.dataset.changed='0';
    display(cached);
    status.textContent='Les changements s’affichent en direct. Publie pour les rendre publics.';
   }catch(error){status.textContent=String(error.message||'Chargement impossible.');}
