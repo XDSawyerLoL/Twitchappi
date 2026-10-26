@@ -16,7 +16,8 @@ function socialLink(value,provider){
   hostname.endsWith('.internal')||hostname==='localhost'||
   /^\d+\.\d+\.\d+\.\d+$/.test(hostname))
   throw Error('swapp_social_link_invalid');
- const path=decodeURIComponent(parsed.pathname);
+ let path;
+ try{path=decodeURIComponent(parsed.pathname)}catch(_){throw Error('swapp_social_link_invalid')}
  switch(provider){
   case 'signal':
    if(!['signal.me','signal.group'].includes(hostname)||
@@ -28,7 +29,7 @@ function socialLink(value,provider){
    break;
   case 'minds':
    if(!['minds.com','www.minds.com'].includes(hostname)||
-      !/^\/[a-z0-9_.-]+(?:\/)?$/i.test(path))
+      !/^\/@?[a-z0-9_.-]+(?:\/)?$/i.test(path))
     throw Error('swapp_social_link_invalid');
    break;
   case 'mastodon':
