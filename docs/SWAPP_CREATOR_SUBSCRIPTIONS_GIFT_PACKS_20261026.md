@@ -51,6 +51,6 @@ S'assurer que le propriétaire clique sur « Configurer mes versements » et pas
 
 ## Vérifications et limites
 - Tester mode Stripe test, onboarding, paiement normal, cadeau 1 à 100, achat répété, fin de période, échec de renouvellement, webhook doublé, cadeau non attribué, vérification sur mobile.
-- Remboursement automatisé, litiges et justificatifs TVA restent à finaliser avant vente réelle.
-- Badges/emotes et animations de cadeaux en chat ne sont pas encore câblés sur ce service : ne pas les afficher comme acquis.
+- Remboursement automatisé, litiges et justificatifs TVA restent à finaliser avant vente réelle. Les événements de remboursement intégral et de contestation bloquent les cadeaux associés ; les remboursements partiels doivent être rapprochés manuellement.
+- Emotes avec accès réservé aux abonnés (« subscriber ») et badges de soutien pour les auteurs du tchat : droits lus côté serveur uniquement, aucune confiance dans le navigateur.\n- Les animations de cadeaux en direct, badges selon la durée d’abonnement, remboursement automatisé et export fiscal complet restent à livrer et à vérifier.
 - Aucun VPS, aucune API IA payante ni GitHub Actions requis. Les frais Stripe/Connect existent pour les transactions effectives.
