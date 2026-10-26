@@ -48,7 +48,7 @@ function createChannelPointsMysql({uri,mysqlFactory,now=Date.now}={}){
  }
  async function getRoom(room){
   const p=await ensure();
-  const [rows]=await p.execute('SELECT user_id,login,display_name,points,minutes,earned_today,earn_day,updated_at FROM swapp_channel_points WHERE channel_login=? ORDER BY points DESC LIMIT 5000',[room]);
+  const [rows]=await p.execute('SELECT user_id,login,display_name,points,minutes,earned_today,earn_day,updated_at FROM swapp_channel_points WHERE channel_login=? ORDER BY minutes DESC,points DESC LIMIT 5000',[room]);
   const out=Object.create(null);
   for(const row of rows||[])out[String(row.user_id)]=rowOut(row);
   return out;
