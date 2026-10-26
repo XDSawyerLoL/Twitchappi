@@ -265,10 +265,15 @@
     channel.dataset.swappHasBackground='false';
     if(login)void syncPublic(login);
    }
-   if(isOwner(login)&&!root.querySelector('.swapp-atmosphere-open')){
+   if(isOwner(login)){
     const dock=root.querySelector('.swapp-showcase-owner-menu .swapp-showcase-menu-content')||
      root.querySelector('.channelActionDock');
-    if(dock)dock.append(makeButton());
+    if(dock&&!dock.querySelector('.swapp-atmosphere-open'))dock.append(makeButton());
+    // Keep editing available while exposing only Follow/Notifications to viewers.
+    // This is the ORIGINAL button, retaining its editLive callback.
+    const ownerMenu=root.querySelector('.swapp-showcase-owner-menu .swapp-showcase-menu-content');
+    const liveEdit=root.querySelector('.swapp-watch-headline .swapp-watch-edit');
+    if(ownerMenu&&liveEdit)ownerMenu.append(liveEdit);
    }
    if(profile()?.login===login&&profile()?.channel_theme&&!dialog?.open&&
     !cached?.background_url&&cached?.__login!==login){
