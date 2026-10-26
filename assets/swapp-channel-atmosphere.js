@@ -12,7 +12,7 @@
   return n;
  };
  const cleanLogin=s=>/^[a-z0-9_-]{3,40}$/.test(String(s||''))?String(s):'';
- const defaultTheme={background_url:'',background_opacity:35,background_blur:0,background_x:50,
+ const defaultTheme={background_url:'',background_preset:'none',background_opacity:35,background_blur:0,background_x:50,
   background_y:30,accent:'',background_fit:'cover'};
  const safeUrl=(login,url)=>{
   const str=String(url||'');
@@ -37,6 +37,7 @@
  function normalize(raw,login){
   const t=raw&&typeof raw==='object'?raw:{};
   return {background_url:safeUrl(login,t.background_url),
+   background_preset:['none','nebula','aurora','ember'].includes(t.background_preset)?t.background_preset:'none',
    background_opacity:number(t.background_opacity,35,0,70),
    background_blur:number(t.background_blur,0,0,20),
    background_x:number(t.background_x,50,0,100),
@@ -48,9 +49,15 @@
   const login=active||currentLogin();if(!login)return;
   const t=normalize(theme,login),image=urlOverride||t.background_url;
   const safe=image.startsWith('blob:')?image:safeUrl(login,image);
-  if(safe)channel.style.setProperty('--swapp-background-image','url('+JSON.stringify(safe)+')');
+  const presets={
+   nebula:'radial-gradient(ellipse at 18% 24%, #583a98 0%, transparent 62%),radial-gradient(ellipse at 78% 70%,#115f8a 0%,transparent 57%)',
+   aurora:'radial-gradient(ellipse at 10% 24%,#13775e 0%,transparent 61%),radial-gradient(ellipse at 90% 72%,#3d3388 0%,transparent 62%)',
+   ember:'radial-gradient(ellipse at 17% 17%,#984d20 0%,transparent 58%),radial-gradient(ellipse at 89% 79%,#6f1949 0%,transparent 66%)'
+  };
+  const art=safe?'url('+JSON.stringify(safe)+')':presets[t.background_preset]||'';
+  if(art)channel.style.setProperty('--swapp-background-image',art);
   else channel.style.removeProperty('--swapp-background-image');
-  channel.dataset.swappHasBackground=safe?'true':'false';
+  channel.dataset.swappHasBackground=art?'true':'false';
   channel.style.setProperty('--swapp-background-opacity',String(t.background_opacity/100));
   channel.style.setProperty('--swapp-background-blur',t.background_blur+'px');
   channel.style.setProperty('--swapp-background-x',t.background_x+'%');
@@ -95,6 +102,13 @@
   const file=make('input','');file.type='file';file.accept='image/jpeg,image/png,image/webp';
   file.setAttribute('aria-label','Choisir une image de fond');artwork.append(file);
   const grid=make('div','swapp-atmosphere-fields');
+  const presetLabel=make('label','swapp-atmosphere-field');
+  presetLabel.append(make('span','','Ambiance sans image'));
+  const preset=make('select','');preset.id='swapp-atmosphere-background_preset';
+  for(const [value,label] of [['none','Sans ambiance'],['nebula','Nébuleuse'],['aurora','Aurore'],['ember','Brasier']]){
+   const opt=make('option','',label);opt.value=value;preset.append(opt);
+  }
+  presetLabel.append(preset);grid.append(presetLabel);
   const fields=[
    input('Intensité du fond','range','background_opacity',35),
    input('Flou','range','background_blur',0),
@@ -124,6 +138,7 @@
   dialog.addEventListener('click',event=>{if(event.target===dialog)close()});
   const read=()=>({
    background_url:dialog.dataset.backgroundUrl||'',
+   background_preset:preset.value,
    background_opacity:fields[0].field.value,background_blur:fields[1].field.value,
    background_x:fields[2].field.value,background_y:fields[3].field.value,
    accent:fields[4].field.value,background_fit:fit.value
@@ -131,6 +146,7 @@
   const preview=()=>display(read(),previewURL);
   for(const {field} of fields)field.addEventListener('input',preview);
   fit.addEventListener('change',preview);
+  preset.addEventListener('change',preview);
   file.addEventListener('change',()=>{
    if(previewURL){URL.revokeObjectURL(previewURL);previewURL=''}
    selectedFile=file.files?.[0]||null;
