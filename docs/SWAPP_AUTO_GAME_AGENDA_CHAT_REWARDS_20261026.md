@@ -6,6 +6,8 @@ Le bouton « Détecter le jeu » a été retiré. Dans la page de gestion SWAPP 
 
 - Enregistré côté serveur par l'API propriétaire **SWAPP** `/api/swapp/live/metadata`, et non simplement prérempli en interface.
 - Pas de clic nécessaire ; tentative à l'ouverture puis toutes les 90 secondes quand le gestionnaire est actif.
+- **En parallèle**, un contrôle serveur dans `modules/swapp-native-auto-game.js` vérifie toutes les trois minutes (premier essai après 30 secondes) au maximum **4 chaînes actuellement en direct**. Il met à jour uniquement une catégorie vide/générique depuis le Twitch lié, sans exiger que le dashboard reste ouvert. Les catégories manuelles sont protégées.
+- Un vrai OBS transmet du HLS et **n'expose pas le nom du processus Windows** ; sans compte Twitch lié et catégorie pertinente, aucune détection fiable du jeu n'est possible depuis le seul flux vidéo.
 - Saisie manuelle prioritaire ; aucune catégorie non générique écrasée.
 - Une simple vidéo OBS/HLS ne contient **pas** le nom du jeu ou celui du processus Windows. Sans source fiable (par exemple Twitch lié), le jeu **ne peut pas être déterminé automatiquement** ; affichage honnête du message de liaison et saisie manuelle disponible.
 - Pas de reconnaissance d'image factice, pas d'API payante.
