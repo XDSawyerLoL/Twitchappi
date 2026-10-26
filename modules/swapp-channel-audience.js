@@ -89,7 +89,7 @@ function installChannelAudience({app,io,getUser,getUsers,getModState,getNativeRo
   if(!/^[1-9][0-9]{0,3}$/.test(rawPage))return res.status(400).json({success:false,error:'Page invalide.'});
   const page=Number(rawPage),perPage=50;
   const query=String(req.query?.q||'').trim().toLocaleLowerCase('fr');
-  if(query.length>60||/[\\u0000-\\u001f]/.test(query))return res.status(400).json({success:false,error:'Recherche invalide.'});
+  if(query.length>60||/[\x00-\x1f]/.test(query))return res.status(400).json({success:false,error:'Recherche invalide.'});
   try{
    const userData=getUsers();
    const users=Array.isArray(userData?.users)?userData.users:[];
