@@ -5030,7 +5030,7 @@ function sanitizeOryonEmoteCode(v){
 }
 function normalizeOryonEmoteGate(v){
   const x = String(v || '').toLowerCase();
-  return ['free','follow','like'].includes(x) ? x : 'follow';
+  return ['free','follow','like','subscriber'].includes(x) ? x : 'follow';
 }
 function oryonEmoteAccess(channelLogin, viewerLogin){
   const data = readOryonUsers();
@@ -5041,21 +5041,22 @@ function oryonEmoteAccess(channelLogin, viewerLogin){
   const likes = !!(viewer && Array.isArray(viewer.liked_channels) && viewer.liked_channels.includes(channel?.login));
   return { data, channel, viewer, isOwner, follows, likes };
 }
-function decorateOryonEmotesForViewer(channelLogin, viewerLogin){
+function decorateOryonEmotesForViewer(channelLogin, viewerLogin, hasSupporter=false){
   const ctx = oryonEmoteAccess(channelLogin, viewerLogin);
   const emotes = Array.isArray(ctx.channel?.emotes) ? ctx.channel.emotes : [];
   return { channel: ctx.channel, emotes: emotes.map(e => {
     const gate = normalizeOryonEmoteGate(e?.gate);
-    const allowed = ctx.isOwner || gate === 'free' || (gate === 'follow' && ctx.follows) || (gate === 'like' && ctx.likes);
+    const allowed = ctx.isOwner || gate === 'free' || (gate === 'follow' && ctx.follows) || (gate === 'like' && ctx.likes) || (gate === 'subscriber' && hasSupporter);
     return { code:sanitizeOryonEmoteCode(e?.code), image_url:String(e?.image_url||'').slice(0,2000000), gate, allowed };
   }).filter(e => e.code && e.image_url).slice(0,36) };
 }
 
-app.get('/api/oryon/emotes/:login', (req, res) => {
+app.get('/api/oryon/emotes/:login', async (req, res) => {
   try{
     const login = normalizeOryonLogin(req.params.login);
     const viewer = req.session?.oryonUser?.login || '';
-    const payload = decorateOryonEmotesForViewer(login, viewer);
+    const verified=await swappCreatorSubscriptions.entitlement(req.session?.oryonUser?.id,login);
+    const payload = decorateOryonEmotesForViewer(login, viewer,verified.active);
     if(!payload.channel) return res.status(404).json({ success:false, error:'Chaîne introuvable.' });
     res.json({ success:true, emotes:payload.emotes });
   }catch(e){ res.status(500).json({ success:false, error:e.message }); }
@@ -8951,7 +8952,7 @@ io.on('connection', async (socket) => {
     socket.emit('native:chat:history', { room, messages: getNativeChat(room).slice(-80) });
   });
 
-  socket.on('native:chat', (msg) => {
+  socket.on('native:chat', async (msg) => {
     const room = String(msg?.room || socket.data.nativeRoom || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 40);
     const r = nativeLiveRooms.get(room);
     const localAgentLive = isOryonLocalLiveRoom(room);
@@ -8969,16 +8970,18 @@ io.on('connection', async (socket) => {
     if((modState.blocked_words||[]).some(w=>w && lowerText.includes(w))) return socket.emit('native:error', { message:'Message bloqué par la modération.' });
     let gif = '';
     if(msg?.gif && typeof msg.gif === 'string' && isValidHttpUrl(msg.gif)) gif = msg.gif.slice(0, 800);
+    const supporter=user.type==='oryon'?await swappCreatorSubscriptions.entitlement(user.id,room):{active:false};
     let emote = null;
     if(msg?.emote && typeof msg.emote === 'object'){
       const code = sanitizeOryonEmoteCode(msg.emote.code);
-      const payload = decorateOryonEmotesForViewer(room, user.type === 'oryon' ? user.login : '');
+      const payload = decorateOryonEmotesForViewer(room, user.type === 'oryon' ? user.login : '',supporter.active);
       const found = (payload.emotes || []).find(e => e.code === code);
       if(found && found.allowed) emote = { code:found.code, image_url:found.image_url };
-      else if(found) return socket.emit('native:error', { message: found.gate === 'like' ? 'Aime la chaîne pour utiliser cette emote.' : 'Suis la chaîne pour utiliser cette emote.' });
+      else if(found) return socket.emit('native:error', { message: found.gate === 'subscriber' ? 'Cette emote est réservée aux abonnés de la chaîne.' : found.gate === 'like' ? 'Aime la chaîne pour utiliser cette emote.' : 'Suis la chaîne pour utiliser cette emote.' });
     }
     if(!text && !gif && !emote) return;
-    const out = { id:makeId(), room, user:user.login, user_display:user.display_name, user_type:user.type, text, gif, emote, ts:Date.now(), reactions:{} };
+    const out = { id:makeId(), room, user:user.login, user_display:user.display_name, user_type:user.type, text, gif, emote,
+      supporter: supporter.active?{kind:supporter.kind}:null, ts:Date.now(), reactions:{} };
     const h = getNativeChat(room); h.push(out); while(h.length > 120) h.shift();
     if(r) r.chatMessages = Number(r.chatMessages || 0) + 1;
     try{ const ud=readOryonUsers(); const host=ud.users.find(x=>x.login===room); if(host){ host.best_chat_messages=Math.max(Number(host.best_chat_messages||0),Number(r?.chatMessages||0)); writeOryonUsers(ud); } }catch(_e){}
