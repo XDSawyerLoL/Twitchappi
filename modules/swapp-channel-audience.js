@@ -80,7 +80,7 @@ function installChannelAudience({app,io,getUser,getUsers,getModState,getNativeRo
    anonymous_not_listed:true,
    native_room_connections:r?.viewers?.size||0,
    message:'Seuls les comptes SWAPP connectés apparaissent dans la liste. Lecture déclarée par le navigateur, sans preuve indépendante pour les lecteurs intégrés.',
-   rule:{points_per_minute:PTS_PER_MINUTE,daily_cap:MAX_DAILY,rewards_enabled:false}
+   rule:{points_per_minute:PTS_PER_MINUTE,daily_cap:MAX_DAILY,rewards_enabled:true}
   });
  });
 
@@ -141,7 +141,7 @@ function installChannelAudience({app,io,getUser,getUsers,getModState,getNativeRo
   const w=lookup(room,who.id);
   return res.json({success:true,room,points:Number(w?.points||0),rewards:REWARDS,
    points_per_minute:PTS_PER_MINUTE,daily_cap:MAX_DAILY,
-   rewards_enabled:false,rule:'Lecture active, connecté et onglet visible. Les points ne sont pas échangeables actuellement.'});
+   rewards_enabled:true,rule:'Lecture active, connecté et onglet visible. Les points ne sont pas échangeables actuellement.'});
  });
 
  // Spend points on a visible native-chat community interaction.
