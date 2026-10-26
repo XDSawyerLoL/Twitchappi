@@ -8787,6 +8787,24 @@ function getNativeChat(room){
   if(!nativeChatHistory.has(key)) nativeChatHistory.set(key, []);
   return nativeChatHistory.get(key);
 }
+// Only authors actually appearing in the recent PUBLIC chat are eligible for a
+// public badge lookup. Do not expose a full paying-members directory.
+app.get('/api/swapp/subscriptions/chat-badges/:room',heavyLimiter,async(req,res)=>{
+  res.set('Cache-Control','public, max-age=10');
+  const room=normalizeOryonLogin(req.params.room);
+  if(!room||!getOryonUserByLogin(room))return res.status(404).json({success:false,error:'Chaîne introuvable.'});
+  if(!swappCreatorSubscriptions.enabled())return res.json({success:true,badges:{}});
+  const authors=[...new Set(getNativeChat(room).slice(-80)
+    .filter(m=>m.user_type==='oryon').map(m=>String(m.user||'').toLowerCase()))].slice(0,40);
+  const known=new Map((readOryonUsers().users||[]).map(u=>[String(u.login||'').toLowerCase(),u.id]));
+  const badges={};
+  await Promise.all(authors.map(async(login)=>{
+    const id=known.get(login);if(!id)return;
+    const result=await swappCreatorSubscriptions.entitlement(id,room);
+    if(result.active)badges[login]={kind:result.kind};
+  }));
+  return res.json({success:true,badges});
+});
 
 function computeNativeOryonScore(r){
   if(!r) return 0;
