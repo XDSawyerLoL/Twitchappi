@@ -46,6 +46,19 @@ function createChannelPointsMysql({uri,mysqlFactory,now=Date.now}={}){
   for(const row of rows||[])out[String(row.user_id)]=rowOut(row);
   return out;
  }
+ // Bounded read for the requested follower page. No full 5,000-wallet hydration.
+ async function getByIds(room,ids){
+  const filtered=[...new Set((Array.isArray(ids)?ids:[]).map(String).filter(id=>id.length>0&&id.length<=80))].slice(0,50);
+  const result=Object.create(null);
+  if(!filtered.length)return result;
+  const p=await ensure(),placeholders=filtered.map(()=>'?').join(',');
+  const [rows]=await p.execute(
+   'SELECT user_id,points,minutes FROM swapp_channel_points WHERE channel_login=? AND user_id IN ('+placeholders+')',
+   [room,...filtered]
+  );
+  for(const row of rows||[])result[String(row.user_id)]={points:Number(row.points)||0,minutes:Number(row.minutes)||0};
+  return result;
+ }
  async function credit(room,viewer,utcDay,cap=300,amount=5){
   const key=room+'|'+viewer.id;
   const operation=async()=>{
@@ -71,6 +84,6 @@ function createChannelPointsMysql({uri,mysqlFactory,now=Date.now}={}){
   queued.set(key,task);
   try{return await task}finally{if(queued.get(key)===task)queued.delete(key)}
  }
- return {ensure,getRoom,credit};
+ return {ensure,getRoom,getByIds,credit};
 }
 module.exports={createChannelPointsMysql};
