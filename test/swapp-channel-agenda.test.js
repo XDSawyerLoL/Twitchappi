@@ -99,6 +99,50 @@ test('agenda client renders seven weekday columns and keeps every media element 
  assert.doesNotMatch(js,/replaceChildren\(.*iframe|new Hls\(|srcObject|RTCPeerConnection/);
  assert.match(css,/grid-template-columns:repeat\(7,minmax\(0,1fr\)\)/);
  assert.match(css,/swapp-agenda-dots/);
- assert.match(html,/swapp-channel-programme\.js\?v=20261026-agenda-v2/);
+ assert.match(html,/swapp-channel-programme\.js\?v=20261026-agenda-idempotent-v3/);
  assert.match(html,/swapp-channel-programme\.css\?v=20261026-agenda-v2/);
+});
+
+test('agenda tab install is idempotent under repeated DOM mutations',()=>{
+ const js=read('assets/swapp-channel-programme.js');
+ assert.doesNotMatch(js,/mounted\.button\?\.isConnected/);
+ assert.match(js,/mounted\.tab\?\.isConnected/);
+ const a=js.indexOf(' function install(){');
+ const b=js.indexOf('\n let scheduled=false;',a);
+ assert.ok(a>=0&&b>a);
+ const children=[],panels=[],listeners=new Set(),nav={
+  isConnected:true,hidden:false,
+  append(tab){tab.isConnected=true;children.push(tab)},
+  after(panel){panel.isConnected=true;panels.push(panel)},
+  querySelectorAll(selector){
+   if(selector==='[data-swapp-programme-tab]')return children.filter(x=>x.isConnected);
+   return [];
+  }
+ };
+ const page={isConnected:true,dataset:{},querySelector:()=>nav,
+  querySelectorAll(selector){return selector==='[data-swapp-programme-page]'?
+   panels.filter(x=>x.isConnected):[]}};
+ const root={classList:{contains:()=>true},querySelector:()=>page};
+ let models=0;
+ const make=()=>({dataset:{},classList:{},setAttribute(){},addEventListener(){},remove(){
+  this.isConnected=false}});
+ const init=()=>{models++;return {name:'vnhz',panel:{isConnected:false,remove(){this.isConnected=false}}}};
+ const window={addEventListener(event,fn){if(event==='popstate')listeners.add(fn)},
+  removeEventListener(event,fn){if(event==='popstate')listeners.delete(fn)}};
+ const fn=new Function('root','login','make','init','show','window','location','history','URL','URLSearchParams',
+  'let mounted=null;\n'+js.slice(a,b)+'\nreturn {install,stats:()=>({mounted,models})}');
+ const runtime=fn(root,()=> 'vnhz',make,init,()=>{},window,{href:'https://swapp.tv/vnhz',search:''},
+  {pushState(){}},function URL(){},function Params(){this.get=()=>null});
+ for(let i=0;i<80;i++)runtime.install();
+ assert.equal(children.filter(x=>x.isConnected).length,1,'only one tab may survive');
+ assert.equal(panels.filter(x=>x.isConnected).length,1,'only one agenda panel may survive');
+ assert.equal(models,1,'repeated observer callbacks cannot rebuild the agenda');
+ assert.equal(listeners.size,1);
+ // When SPA replaces the existing tab, cleanup must not accumulate listeners.
+ children[0].isConnected=false;
+ runtime.install();
+ assert.equal(children.filter(x=>x.isConnected).length,1);
+ assert.equal(panels.filter(x=>x.isConnected).length,1);
+ assert.equal(listeners.size,1);
+ assert.equal(models,2);
 });
