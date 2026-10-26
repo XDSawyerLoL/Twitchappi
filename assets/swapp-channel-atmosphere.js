@@ -13,7 +13,7 @@
  };
  const cleanLogin=s=>/^[a-z0-9_-]{3,40}$/.test(String(s||''))?String(s):'';
  const defaultTheme={background_url:'',background_opacity:35,background_blur:0,background_x:50,
-  background_y:30,accent:'#9b78f4',background_fit:'cover'};
+  background_y:30,accent:'',background_fit:'cover'};
  const safeUrl=(login,url)=>{
   const str=String(url||'');
   return new RegExp('^/api/oryon/panel-image/'+login+'/[a-f0-9]{64}$','i').test(str)?str:'';
@@ -42,7 +42,7 @@
    background_x:number(t.background_x,50,0,100),
    background_y:number(t.background_y,30,0,100),
    background_fit:t.background_fit==='contain'?'contain':'cover',
-   accent:/^#[a-f0-9]{6}$/i.test(t.accent||'')?t.accent:'#9b78f4'};
+   accent:/^#[a-f0-9]{6}$/i.test(t.accent||'')?t.accent:''};
  }
  function display(theme,urlOverride){
   const login=active||currentLogin();if(!login)return;
@@ -58,7 +58,7 @@
   channel.style.setProperty('--swapp-background-fit',t.background_fit);
   // Per-channel color only, independent of the viewer's global UI theme.
   const main=channel.querySelector('.creatorRefine');
-  if(main)main.style.setProperty('--channel-accent',t.accent);
+  if(main){if(t.accent)main.style.setProperty('--channel-accent',t.accent);else main.style.removeProperty('--channel-accent');}
  }
  async function getPublic(login){
   const r=await fetch('/api/oryon/profile/'+encodeURIComponent(login),{
@@ -199,8 +199,9 @@
   }finally{URL.revokeObjectURL(url)}
  }
  async function open(){
-  const login=active||currentLogin();
+  const login=manager?.classList.contains('active')?cleanLogin(String(me()?.login||'').toLowerCase()):active||currentLogin();
   if(!isOwner(login))return;
+  active=login;
   ensureDialog();
   selectedFile=null;if(previewURL){URL.revokeObjectURL(previewURL);previewURL=''}
   dialog.querySelector('input[type=file]').value='';
