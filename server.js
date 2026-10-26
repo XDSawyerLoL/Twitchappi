@@ -3563,6 +3563,7 @@ const swappMysqlAccountsRecovery=SWAPP_MYSQL_ACCOUNTS
 // Swapp streamer/channel hardening. No visual change: this only normalizes persistent
 // channel data so every account has a stable public channel and reliable live status.
 const SWAPP_CHANNEL_SCHEMA_VERSION = 3;
+const {normalizeChannelTheme}=require('./modules/swapp-channel-theme');
 function swappChannelPathForLogin(login){
   const clean = normalizeOryonLogin(login);
   return clean ? '/' + encodeURIComponent(clean) : '';
@@ -3607,6 +3608,7 @@ function ensureOryonUserShape(user, options = {}){
   user.channel_panels = Array.isArray(user.channel_panels) ? user.channel_panels.slice(0,8) : [];
   user.channel_vignettes = Array.isArray(user.channel_vignettes) ? user.channel_vignettes.slice(0,8) : [];
   user.channel_links = Array.isArray(user.channel_links) ? user.channel_links.slice(0,8) : [];
+  user.channel_theme=normalizeChannelTheme(user.channel_theme,user.login);
   if(options.ensureStreamKey && !user.stream_key) user.stream_key = makeOryonStreamKey();
   const localFresh = user.local_agent_live && Number(user.local_agent_last_seen || 0) && (now - Number(user.local_agent_last_seen || 0) <= oryonLiveSignalTimeoutMs());
   const nativeLive = String(user.live_status || '').toLowerCase() === 'live' && Number(user.live_started_at || 0) && !Number(user.last_live_ended_at || 0);
@@ -3998,7 +4000,7 @@ function isOryonLiveSignalFresh(u){
 function publicOryonUser(u){
   if(!u) return null;
   const localLiveFresh = isOryonLiveSignalFresh(u);
-  return { id:u.id, login:u.login, display_name:u.display_name || u.login, email:u.email || null, email_verified: !!u.email_verified, createdAt:u.createdAt || null, channel_id:u.channel_id || u.id, channel_public:u.channel_public !== false, public_path:u.public_path || swappChannelPathForLogin(u.login), public_url:u.public_url || swappChannelPathForLogin(u.login), channel_createdAt:u.channel_createdAt || u.createdAt || null, channel_updatedAt:u.channel_updatedAt || u.updatedAt || null, bio:u.bio||'', avatar_url:u.avatar_url||'', banner_url:u.banner_url||'', offline_image_url:u.offline_image_url||'', tags:Array.isArray(u.tags)?u.tags:[], language:u.language||'fr', content_rating:u.content_rating||'general', followers_count:Number(u.followers_count||0), likes_count:Number(u.likes_count||0), channel_badges:Array.isArray(u.channel_badges)?u.channel_badges.slice(0,8):[], channel_panels:Array.isArray(u.channel_panels)?u.channel_panels.slice(0,8):[], channel_vignettes:Array.isArray(u.channel_vignettes)?u.channel_vignettes.slice(0,8):[], channel_links:Array.isArray(u.channel_links)?u.channel_links.slice(0,8):[], peertube_embed_url:u.peertube_embed_url||'', peertube_watch_url:u.peertube_watch_url||'', external_live_platform:u.external_live_platform||'', live_status:localLiveFresh?'live':(u.live_status||'offline'), is_live:localLiveFresh || String(u.live_status||'')==='live', live_started_at:u.live_started_at||null, last_live_ended_at:u.last_live_ended_at||null, channel_last_seen:u.channel_last_seen||u.local_agent_last_seen||null, current_live_title:u.current_live_title||'', current_live_category:u.current_live_category||'', current_live_tags:Array.isArray(u.current_live_tags)?u.current_live_tags:[], oryon_local_player_url:localLiveFresh?(u.oryon_local_player_url||''):'', oryon_local_status_url:localLiveFresh?(u.oryon_local_status_url||''):'', local_agent_live:localLiveFresh, local_agent_last_seen:u.local_agent_last_seen||null, live_signal_timeout_ms:oryonLiveSignalTimeoutMs() };
+  return { id:u.id, login:u.login, display_name:u.display_name || u.login, email:u.email || null, email_verified: !!u.email_verified, createdAt:u.createdAt || null, channel_id:u.channel_id || u.id, channel_public:u.channel_public !== false, public_path:u.public_path || swappChannelPathForLogin(u.login), public_url:u.public_url || swappChannelPathForLogin(u.login), channel_createdAt:u.channel_createdAt || u.createdAt || null, channel_updatedAt:u.channel_updatedAt || u.updatedAt || null, bio:u.bio||'', avatar_url:u.avatar_url||'', banner_url:u.banner_url||'', offline_image_url:u.offline_image_url||'', channel_theme:normalizeChannelTheme(u.channel_theme,u.login), tags:Array.isArray(u.tags)?u.tags:[], language:u.language||'fr', content_rating:u.content_rating||'general', followers_count:Number(u.followers_count||0), likes_count:Number(u.likes_count||0), channel_badges:Array.isArray(u.channel_badges)?u.channel_badges.slice(0,8):[], channel_panels:Array.isArray(u.channel_panels)?u.channel_panels.slice(0,8):[], channel_vignettes:Array.isArray(u.channel_vignettes)?u.channel_vignettes.slice(0,8):[], channel_links:Array.isArray(u.channel_links)?u.channel_links.slice(0,8):[], peertube_embed_url:u.peertube_embed_url||'', peertube_watch_url:u.peertube_watch_url||'', external_live_platform:u.external_live_platform||'', live_status:localLiveFresh?'live':(u.live_status||'offline'), is_live:localLiveFresh || String(u.live_status||'')==='live', live_started_at:u.live_started_at||null, last_live_ended_at:u.last_live_ended_at||null, channel_last_seen:u.channel_last_seen||u.local_agent_last_seen||null, current_live_title:u.current_live_title||'', current_live_category:u.current_live_category||'', current_live_tags:Array.isArray(u.current_live_tags)?u.current_live_tags:[], oryon_local_player_url:localLiveFresh?(u.oryon_local_player_url||''):'', oryon_local_status_url:localLiveFresh?(u.oryon_local_status_url||''):'', local_agent_live:localLiveFresh, local_agent_last_seen:u.local_agent_last_seen||null, live_signal_timeout_ms:oryonLiveSignalTimeoutMs() };
 }
 function publicOryonChannelUser(u){
   const pub = publicOryonUser(u);
@@ -4452,7 +4454,7 @@ app.get('/api/oryon/panel-image/:login/:hash',async(req,res)=>{
   const {panelMediaUrl}=require('./modules/swapp-channel-panel-media');
   const url=panelMediaUrl(login,hash);
   const panels=user.channel_vignettes?.length?user.channel_vignettes:user.channel_panels;
-  if(!Array.isArray(panels)||!panels.some(p=>p.image_url===url))return res.status(404).end();
+  if((!Array.isArray(panels)||!panels.some(p=>p.image_url===url)) && user.channel_theme?.background_url!==url)return res.status(404).end();
   const media=await swappMysqlAccounts.getPanelImage(user.id,hash);
   if(!media?.bytes)return res.status(404).end();
   res.set('Cache-Control','public,max-age=300');
@@ -4481,6 +4483,23 @@ app.post('/api/oryon/profile', mutationLimiter, async (req, res) => {
     if(supplied('avatar_url')) user.avatar_url=String(req.body.avatar_url||'').trim().slice(0,2000000);
     if(supplied('banner_url')) user.banner_url=String(req.body.banner_url||'').trim().slice(0,5000000);
     if(supplied('offline_image_url')) user.offline_image_url=String(req.body.offline_image_url||'').trim().slice(0,5000000);
+    if(supplied('channel_theme')){
+      const themeBody=req.body.channel_theme;
+      if(!themeBody||typeof themeBody!=='object'||Array.isArray(themeBody))
+       return res.status(400).json({success:false,error:'Apparence de chaîne invalide.'});
+      const wanted=normalizeChannelTheme(themeBody,user.login);
+      if(Object.prototype.hasOwnProperty.call(themeBody,'background_image_data') && themeBody.background_image_data){
+       if(!swappMysqlAccountsReady||!swappMysqlAccounts)
+        return res.status(503).json({success:false,error:'Stockage des fonds indisponible.'});
+       // Same validated, deduplicated MySQL image store as channel mosaic.
+       const media=await swappMysqlAccounts.savePanelImage(user.id,String(themeBody.background_image_data));
+       const {panelMediaUrl}=require('./modules/swapp-channel-panel-media');
+       wanted.background_url=panelMediaUrl(user.login,media.hash);
+      }
+      // Prevent retaining or borrowing an image from another creator.
+      user.channel_theme=wanted;
+    }
+
     if(supplied('language')) user.language=String(req.body.language||'fr').trim().slice(0,16);
     if(supplied('content_rating')) user.content_rating=String(req.body.content_rating||'general').trim().slice(0,30);
     if(supplied('tags')) user.tags=safeTags(req.body.tags||[]);
@@ -4534,8 +4553,9 @@ app.post('/api/oryon/profile', mutationLimiter, async (req, res) => {
   }catch(e){
   const issue=String(e?.message||'profile_write_failed');
   const badImage=/^swapp_panel_image_(?:format_invalid|signature_invalid|too_large)$/.test(issue);
-  res.status(badImage?400:500).json({
-   success:false,error:badImage?'Image invalide ou trop volumineuse (1,1 Mo maximum après compression).':issue
+  const badTheme=issue==='swapp_channel_background_url_invalid';
+  res.status(badImage||badTheme?400:500).json({
+   success:false,error:badImage?'Image invalide ou trop volumineuse (1,1 Mo maximum après compression).':badTheme?'Image de fond non autorisée.':issue
   });
  }
 });
