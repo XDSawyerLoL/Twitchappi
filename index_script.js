@@ -11366,6 +11366,13 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
 
   function fitChat(){
     if(state?.view && state.view !== 'channel') return;
+    // The polished channel has a fixed 16:9 layout and its own chat observer.
+    // NEVER run the old viewport-top-based measurement on this page: it makes
+    // the player grow as scrolling reduces getBoundingClientRect().top.
+    if(document.querySelector('#channel .creatorRefine.swapp-channel-polish')){
+      applyChatAccess();
+      return;
+    }
     const layout = document.querySelector('#channel .watchShell.channelWatch, #channel .channelLiveLayout');
     const player = document.querySelector('#channel .oryonMainPlayer, #channel .premiumPlayer, #channel .player');
     const chat = document.querySelector('#channel .nativeFixedChat, #channel .chatPanel');
@@ -11373,7 +11380,7 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
     const stacked = window.matchMedia('(max-width:1100px)').matches;
     if(stacked){
       const width = Math.max(280, player.getBoundingClientRect().width || window.innerWidth - 20);
-      const ph = clamp(190, Math.round(width * 9 / 16), 430);
+      const ph = Math.round(width * 9 / 16);
       const ch = clamp(300, Math.round(window.innerHeight * 0.45), 520);
       layout.style.setProperty('--swapp-mobile-player-h', ph + 'px');
       layout.style.setProperty('--swapp-mobile-chat-h', ch + 'px');
@@ -11384,11 +11391,11 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
       applyChatAccess();
       return;
     }
+    // The video size is a pure function of its width. A viewport-relative
+    // bound varies with scroll position and must not resize the player.
     const rect = player.getBoundingClientRect();
-    const top = Math.max(70, layout.getBoundingClientRect().top || rect.top || 110);
-    const available = Math.max(380, window.innerHeight - top - 22);
-    let h = Math.round(rect.width ? rect.width * 9 / 16 : rect.height || 0);
-    h = clamp(390, Math.min(h, available), 780);
+    const h = Math.round(rect.width * 9 / 16);
+    if(!Number.isFinite(h) || h < 140) return;
     layout.style.setProperty('--swapp-player-chat-h', h + 'px');
     player.style.setProperty('height', h + 'px', 'important');
     player.style.setProperty('min-height', '0px', 'important');
@@ -11798,6 +11805,9 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
   // viewport-clamped height which stretches the stream when the chat changes.
   function fitChat1014(){
     if(state?.view && state.view !== 'channel') return;
+    // The newer watch layer alone owns live and offline video/chat geometry.
+    // Avoid inline !important writes that override the fixed CSS 16:9 ratio.
+    if(document.querySelector('#channel .creatorRefine.swapp-channel-polish'))return;
     const page=document.querySelector('#channel .creatorRefine[data-channel-live="true"]');
     if(!page)return;
     const layout=page.querySelector('.channelLiveLayout');

@@ -731,3 +731,46 @@ body:has(#channel.view.active) #oryonMiniPlayer{display:none!important}
   max-height:440px!important;
  }
 }
+
+
+/* The channel page is viewport-bounded at its source, not merely cropped by body.
+   Previously .channelPage{width:100vw} and .channelSubNav{width:100vw}
+   competed with the in-app width and shifted the live player/chat columns. */
+#channel#channel.view.active{
+ width:100%!important;max-width:100%!important;min-width:0!important;
+ margin-inline:0!important;box-sizing:border-box!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish{
+ width:100%!important;max-width:100%!important;min-width:0!important;
+ margin-inline:auto!important;box-sizing:border-box!important;
+ padding-inline:clamp(12px,1.5vw,28px)!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .channelTopHero,
+#channel#channel .creatorRefine.swapp-channel-polish .channelSubNav{
+ width:100%!important;max-width:100%!important;min-width:0!important;
+ margin-inline:0!important;box-sizing:border-box!important;
+ left:auto!important;right:auto!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .channelLiveLayout{
+ max-width:100%!important;min-width:0!important;
+ width:100%!important;margin-inline:0!important;box-sizing:border-box!important;
+}
+/* The legacy HLS channel pages are also shown offline; preserve 16:9
+   regardless of live flag and isolate the offline overlay from intrinsic sizing. */
+#channel#channel .creatorRefine.swapp-channel-polish .channelMainPlayer > :is(.player,.premiumPlayer,.oryonMainPlayer){
+ position:relative!important;
+ aspect-ratio:16 / 9!important;
+ height:auto!important;min-height:0!important;max-height:none!important;
+ width:100%!important;min-width:0!important;max-width:100%!important;
+ flex:0 0 auto!important;box-sizing:border-box!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .channelMainPlayer .offlinePremium{
+ position:absolute!important;inset:0!important;
+ width:100%!important;height:100%!important;max-height:100%!important;
+ min-height:0!important;
+}
+@media(max-width:680px){
+ #channel#channel .creatorRefine.swapp-channel-polish{
+  padding-inline:8px!important;
+ }
+}

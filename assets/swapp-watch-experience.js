@@ -115,6 +115,16 @@
  }
  // Chat follows the visible video surface, not the surrounding controls/Pulse.
  // ResizeObserver accounts for theatre mode, sidebar toggles and window resize.
+
+ // Remove inline !important dimensions written by legacy fitChat1013/1014
+ // before CSS is allowed to own the 16:9 media rectangle.
+ function resetLegacyPlayerGeometry(page){
+  const video=page?.querySelector('.channelMainPlayer > :is(.player,.premiumPlayer,.oryonMainPlayer)');
+  if(!video?.style)return;
+  for(const property of ['height','min-height','max-height','width','max-width','aspect-ratio']){
+   video.style.removeProperty(property);
+  }
+ }
  function syncChat(page){
   if(!page?.isConnected||page.dataset.watchChat==='hidden')return;
   const video=page.querySelector('.channelMainPlayer > :is(.player,.premiumPlayer,.oryonMainPlayer)');
@@ -226,6 +236,7 @@
   const chat=page.querySelector('.channelLiveSidebar .chatPanel');
   if(!video||!chat)return;
   page.dataset.swappOfflineChatSync='1';
+  resetLegacyPlayerGeometry(page);
   requestAnimationFrame(()=>syncChat(page));
   for(const ms of [180,720])setTimeout(()=>{if(page.isConnected)syncChat(page)},ms);
   if(typeof ResizeObserver==='function'){
@@ -243,6 +254,7 @@
   const main=page.querySelector('.channelMainPlayer');
   const video=main?.querySelector('.premiumPlayer,.oryonMainPlayer,.player');
   if(!main||!video)return;
+  resetLegacyPlayerGeometry(page);
   page.dataset.watchImmersion=mode.immersion;
   page.dataset.watchChat=mode.chat;
   installBroadcastHeadline(page,main,video);

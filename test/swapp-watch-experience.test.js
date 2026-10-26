@@ -187,8 +187,8 @@ test('channel chat is not clipped by its parent and watch assets have refreshed 
  assert.match(css,/min-height:max\(420px,var\(--swapp-chat-player-height,420px\)\)!important/);
  assert.match(js,/chat\.style\.setProperty\('height',value,'important'\)/);
  assert.match(js,/chat\.style\.setProperty\('max-height',value,'important'\)/);
- assert.match(html,/swapp-watch-experience\.css\?v=20261026-static-169-v3/);
- assert.match(html,/swapp-watch-experience\.js\?v=20261026-static-169-v3/);
+ assert.match(html,/swapp-watch-experience\.css\?v=20261026-scroll-source-fix-v4/);
+ assert.match(html,/swapp-watch-experience\.js\?v=20261026-scroll-source-fix-v4/);
 });
 
 
@@ -234,4 +234,42 @@ test('chat measured height remains unchanged even when video reports different h
  video.clientWidth=960;
  sync(page);
  assert.equal(props.height,'540px','real width changes still update height');
+});
+
+
+test('legacy viewport-driven fitChat1013 no longer resizes polished channels on scroll',()=>{
+ const index=read('index_script.js');
+ const a=index.lastIndexOf('  function fitChat(){',index.indexOf('window.swappFitChat1013 = fitChat;'));
+ const b=index.indexOf('  window.swappFitChat1013 = fitChat;',a);
+ assert.ok(a>=0&&b>a);
+ const fn=new Function('state','document','applyChatAccess',index.slice(a,b)+'return fitChat;');
+ let accessCalls=0;
+ const fit=fn({view:'channel'},{
+  querySelector(selector){
+   if(selector==='#channel .creatorRefine.swapp-channel-polish')return {};
+   throw Error('Should never measure player or layout when polished: '+selector);
+  }
+ },()=>{accessCalls++});
+ for(let i=0;i<60;i++)fit();
+ assert.equal(accessCalls,60);
+ assert.doesNotMatch(index.slice(a,b),/layout\.getBoundingClientRect\(\)\.top/);
+ assert.match(index.slice(a,b),/Math\.round\(rect\.width \* 9 \/ 16\)/);
+ const x=index.indexOf('  function fitChat1014(){');
+ assert.match(index.slice(x,x+420),/if\(document\.querySelector\('#channel \.creatorRefine\.swapp-channel-polish'\)\)return/);
+});
+test('legacy inline player dimensions are removed before video/chat alignment',()=>{
+ const js=read('assets/swapp-watch-experience.js');
+ const css=read('assets/swapp-watch-experience.css');
+ const a=js.indexOf(' function resetLegacyPlayerGeometry(page){');
+ const b=js.indexOf(' function syncChat(page){',a);
+ assert.ok(a>=0&&b>a);
+ const cleanup=new Function(js.slice(a,b)+'return resetLegacyPlayerGeometry;')();
+ const values=new Map([['height','460px'],['aspect-ratio','auto'],['width','1200px'],['min-height','620px']]);
+ const player={style:{removeProperty:name=>values.delete(name)}};
+ cleanup({querySelector:()=>player});
+ assert.equal(values.size,0);
+ assert.match(js,/page\.dataset\.swappOfflineChatSync='1';\s*resetLegacyPlayerGeometry\(page\)/);
+ assert.match(js,/if\(!main\|\|!video\)return;\s*resetLegacyPlayerGeometry\(page\)/);
+ assert.match(css,/\.channelSubNav\{\s*width:100%!important;max-width:100%!important/);
+ assert.match(css,/\.channelMainPlayer \.offlinePremium\{\s*position:absolute!important/);
 });
