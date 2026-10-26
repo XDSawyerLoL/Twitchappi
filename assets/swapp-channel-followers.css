@@ -1,0 +1,35 @@
+/* Compact first-party owner community. No player, OBS or chat dimensions touched. */
+#manager .swapp-followers{padding:14px 0 18px;margin:14px 0 10px;border-block:1px solid rgba(180,200,220,.17);min-width:0}
+#manager .swapp-followers-head{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+#manager .swapp-followers-head h3{margin:0 0 5px;font-size:clamp(18px,2vw,24px);letter-spacing:-.035em}
+#manager .swapp-followers-head p,#manager .swapp-followers-note{font-size:12px;color:var(--muted,#aebac9);margin:0;line-height:1.55}
+#manager .swapp-followers-tools{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;flex-wrap:wrap;margin:18px 0 11px}
+#manager .swapp-followers-tools label{display:grid;gap:6px;max-width:350px;width:100%;font-size:11px;font-weight:750}
+#manager .swapp-followers-tools input{min-height:38px;font-size:13px;border-radius:7px;padding:8px 11px}
+#manager .swapp-followers-summary,#manager .swapp-followers-status{font-size:12px;color:var(--muted,#bac6d4);line-height:1.5}
+#manager .swapp-followers-status:empty{display:none}
+#manager .swapp-followers-row{display:grid;grid-template-columns:minmax(130px,1.1fr) minmax(140px,.9fr) minmax(95px,.8fr) minmax(175px,1.1fr);gap:12px;align-items:center;padding:11px 5px;border-bottom:1px solid rgba(180,200,220,.1);min-width:0}
+#manager .swapp-followers-column-head{font-size:11px;font-weight:800;color:var(--muted,#aabace);background:rgba(255,255,255,.02)}
+#manager .swapp-followers-identity,#manager .swapp-followers-points{display:grid;gap:5px;min-width:0}
+#manager .swapp-followers-identity a{font-size:13px;font-weight:800;text-decoration:none;color:var(--text,#f0f4f8);overflow-wrap:anywhere}
+#manager .swapp-followers-identity a:hover{text-decoration:underline}
+#manager .swapp-followers-identity small,#manager .swapp-followers-points small{font-size:11px;color:var(--muted,#aebaca)}
+#manager .swapp-followers-points strong{font-size:15px;font-variant-numeric:tabular-nums}
+#manager .swapp-followers-flags,#manager .swapp-followers-actions{display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-width:0}
+#manager .swapp-followers-flags span{font-size:10px;font-weight:750;border:1px solid rgba(163,182,205,.2);padding:5px 8px;border-radius:5px}
+#manager .swapp-followers-mod{color:#b9eeec}
+#manager .swapp-followers-ban{color:#f4b5b1}
+#manager .swapp-followers-actions button,#manager .swapp-followers-pager button{background:rgba(255,255,255,.04);border:1px solid rgba(171,193,218,.23);border-radius:6px;color:var(--text,#f5f8fb);font-size:11px;font-weight:700;padding:8px 10px;min-height:34px}
+#manager .swapp-followers-actions button:hover:not(:disabled),#manager .swapp-followers-pager button:hover:not(:disabled){border-color:var(--brand,#89d7da)}
+#manager .swapp-followers-actions button:disabled,#manager .swapp-followers-pager button:disabled{opacity:.45;cursor:not-allowed}
+#manager .swapp-followers-actions .swapp-followers-danger{border-color:rgba(240,113,111,.36);color:#ffbab7}
+#manager .swapp-followers-pager{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:13px;margin:12px 0;font-size:11px;color:var(--muted,#aebaca)}
+#manager .swapp-followers-empty{font-size:12px;color:var(--muted,#afbbca);padding:16px 5px}
+#manager .swapp-followers-note{padding-top:10px}
+@media(max-width:790px){
+ #manager .swapp-followers-column-head{display:none}
+ #manager .swapp-followers-row:not(.swapp-followers-column-head){grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px 15px;padding:14px 3px}
+ #manager .swapp-followers-actions{justify-content:flex-end}
+}
+@media(max-width:470px){#manager .swapp-followers-row:not(.swapp-followers-column-head){grid-template-columns:minmax(0,1fr)}
+ #manager .swapp-followers-actions{justify-content:flex-start}}
