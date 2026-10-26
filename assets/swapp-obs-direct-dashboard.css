@@ -49,3 +49,27 @@
 #manager .swapp-obs-direct-diagnostic[data-stage="live"]{
  border-color:rgba(49,197,126,.4);background:rgba(21,141,88,.09)
 }
+
+#manager .swapp-obs-public-readiness{margin-top:8px;padding:10px 12px;border-left:3px solid rgba(157,181,204,.4);
+ background:rgba(255,255,255,.028);font-size:12px;line-height:1.5;color:var(--muted,#c2ced9);
+ overflow-wrap:anywhere}
+#manager .swapp-obs-public-readiness[data-status="ready"]{border-left-color:#34c98a;color:#bcebd8}
+#manager .swapp-obs-public-readiness[data-status="warning"]{border-left-color:#e6a257;color:#f5d6a7}
+#manager .swapp-obs-public-readiness[data-status="unknown"]{border-left-color:#a8b1c1}
+
+/* OBS compact one-click setup. Leave video and chat layout untouched. */
+#manager .swapp-obs-direct{padding:15px 18px;margin:10px 0 14px;border-radius:9px;background:transparent}
+#manager .swapp-obs-direct-header{gap:12px}
+#manager .swapp-obs-direct-header h2{font-size:clamp(18px,2vw,23px);margin:0}
+#manager .swapp-obs-direct-setup{border:0;padding:0;margin:13px 0 10px}
+#manager .swapp-obs-install{display:inline-flex;justify-content:center;align-items:center;width:auto;max-width:100%;min-height:43px;padding:11px 17px;text-decoration:none;border-radius:7px}
+#manager .swapp-obs-install-note{margin:9px 0 0;max-width:75ch;font-size:12px;color:var(--muted,#acbacc);line-height:1.5}
+#manager .swapp-obs-direct-secret{margin-top:12px;display:flex;align-items:center;flex-wrap:wrap;column-gap:16px;row-gap:8px;padding:12px 0 0;border-top:1px solid rgba(255,255,255,.13)}
+#manager .swapp-obs-key-label{font-size:12px;font-weight:750;min-width:145px}
+#manager .swapp-obs-direct-secret .swapp-obs-direct-keyline{flex:1 1 325px;max-width:610px}
+#manager .swapp-obs-direct-secret .swapp-obs-direct-status{flex-basis:100%;margin:0}
+#manager .swapp-obs-advanced{margin-top:12px;border-top:1px solid rgba(255,255,255,.1);padding-top:9px}
+#manager .swapp-obs-advanced>summary{width:max-content;max-width:100%;cursor:pointer;font-size:11px;font-weight:750;color:var(--muted,#aebccf);padding:5px 0}
+#manager .swapp-obs-advanced .swapp-obs-direct-diagnostic{margin-top:9px}
+#manager .swapp-obs-redundant-modes[hidden]{display:none!important}
+@media(max-width:640px){#manager .swapp-obs-direct{padding:13px 11px}#manager .swapp-obs-install{width:100%}}
