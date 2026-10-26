@@ -269,11 +269,9 @@
     const dock=root.querySelector('.swapp-showcase-owner-menu .swapp-showcase-menu-content')||
      root.querySelector('.channelActionDock');
     if(dock&&!dock.querySelector('.swapp-atmosphere-open'))dock.append(makeButton());
-    // Keep editing available while exposing only Follow/Notifications to viewers.
-    // This is the ORIGINAL button, retaining its editLive callback.
-    const ownerMenu=root.querySelector('.swapp-showcase-owner-menu .swapp-showcase-menu-content');
-    const liveEdit=root.querySelector('.swapp-watch-headline .swapp-watch-edit');
-    if(ownerMenu&&liveEdit)ownerMenu.append(liveEdit);
+    // The stable owner edit action stays in the channel header. Never
+    // relocate an editor button from the stream headline into this menu.
+    // Moving it on timed scans caused disappearing and jumping controls.
    }
    if(profile()?.login===login&&profile()?.channel_theme&&!dialog?.open&&
     !cached?.background_url&&cached?.__login!==login){

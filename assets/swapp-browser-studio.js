@@ -309,7 +309,7 @@
   const dock=page.querySelector('.channelActionDock');
   if(!dock)return;
   const existing=page.querySelector('[data-swapp-live-owner-edit]');
-  if(!ownRoom()){existing?.remove();return}
+  if(!ownRoom()){if(page.dataset.channelOwner!=='true')existing?.remove();return}
   if(existing)return;
   const edit=make('button','btn secondary swapp-studio-owner-edit','Modifier le direct');
   edit.type='button';edit.dataset.swappLiveOwnerEdit='1';
