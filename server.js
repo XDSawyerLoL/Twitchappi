@@ -378,18 +378,20 @@ const mutationLimiter = rateLimit({
 });
 
 
-// Hostinger/cPanel lance souvent Node via Phusion Passenger.
-// Avec Passenger, il faut laisser Passenger capter server.listen() au lieu de forcer un port fixe.
-// Render/Railway/Fly fournissent process.env.PORT : dans ce cas on l'utilise normalement.
+// Only legacy Phusion Passenger takes ownership of server.listen().
+// Modern Hostinger hPanel Node.js/Express applications need a real listening
+// port (3000 by default), even when HOSTINGER_NODEJS is defined.
+// Managed platforms that supply PORT always take precedence.
 const IS_PASSENGER_HOSTING = Boolean(
   process.env.PASSENGER_APP_ENV ||
   process.env.PASSENGER_BASE_URI ||
   process.env.PASSENGER_SPAWN_WORK_DIR ||
-  process.env.PASSENGER_NODE_ENV ||
-  process.env.HOSTINGER_NODEJS
+  process.env.PASSENGER_NODE_ENV
 );
-const PORT = process.env.PORT || 10000;
-const LISTEN_PORT = process.env.PORT ? Number(process.env.PORT) : (IS_PASSENGER_HOSTING ? undefined : 10000);
+const HOSTINGER_MANAGED_PORT = (process.env.HOSTINGER_NODEJS || process.env.NODE_ENV === 'production') ? 3000 : 10000;
+const LISTEN_PORT = process.env.PORT ? Number(process.env.PORT) : (IS_PASSENGER_HOSTING ? undefined : HOSTINGER_MANAGED_PORT);
+// The local analytics API must use the same internal port as the HTTP server.
+const PORT = process.env.PORT || LISTEN_PORT || 10000;
 const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID || process.env.TWITCH_CLIENTID || process.env.TWITCH_CLIENT || process.env.CLIENT_ID || process.env.TWITCH_API_CLIENT_ID;
 const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET || process.env.TWITCH_SECRET || process.env.TWITCH_CLIENT_SECRET_KEY || process.env.CLIENT_SECRET || process.env.TWITCH_API_SECRET;
 const PUBLIC_ORIGIN = safeOrigin(process.env.TWITCH_REDIRECT_URI) || safeOrigin(process.env.PUBLIC_BASE_URL) || safeOrigin(process.env.PUBLIC_APP_URL) || safeOrigin(process.env.APP_BASE_URL) || safeOrigin(process.env.RENDER_EXTERNAL_URL);
