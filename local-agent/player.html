@@ -486,7 +486,7 @@ async function refreshAudioTrack(){
   const missing=state.active&&state.audio_track==='missing';
   audioHint.hidden=!missing;
   audioHint.textContent=missing?'OBS ne transmet aucune piste audio. Vérifie la piste 1 dans OBS.':'';
- }catch(_){}
+ }catch(_){relayFresh=null;relayAgeMs=null}
 }
 refreshAudioTrack();
 setInterval(refreshAudioTrack,14000);
