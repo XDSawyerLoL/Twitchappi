@@ -224,7 +224,10 @@
   row.append(status);
   const actions=container.querySelector?.('.swapp-studio-dialog-actions');
   if(actions)container.insertBefore(row,actions);else container.append(row);
-  input.addEventListener('input',()=>{input.dataset.swappManualGame='1';});
+  input.addEventListener('input',()=>{
+   if(isGeneric(input.value)){delete input.dataset.swappManualGame;automatic.last=0;}
+   else input.dataset.swappManualGame='1';
+  });
   void detectGame(input,status);
   return status;
  }
