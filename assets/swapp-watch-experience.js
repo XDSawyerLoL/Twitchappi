@@ -131,10 +131,11 @@
   // On desktop, preserve exact player height whenever it is sufficiently tall.
   const actual=mobile?Math.max(400,Math.min(440,h)):Math.max(400,h);
   chat.style.setProperty('--swapp-chat-player-height',actual+'px');
-  // Minimum height follows the player, but the composer must remain in flow.
-  chat.style.removeProperty('height');
-  chat.style.removeProperty('max-height');
-  chat.style.setProperty('min-height',actual+'px','important');
+  // Lock the complete chat panel to the video height; only the message log
+  // scrolls. Previous min-height-only sizing let the composer overflow below it.
+  chat.style.setProperty('height',actual+'px','important');
+  chat.style.setProperty('min-height','0','important');
+  chat.style.setProperty('max-height',actual+'px','important');
   // On an offline channel the grid aligns the chat without translations.
   if(page.dataset.channelLive==='false'){
    chat.style.removeProperty('translate');

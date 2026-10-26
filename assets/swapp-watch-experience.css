@@ -651,3 +651,26 @@ body:has(#channel.view.active) #oryonMiniPlayer{display:none!important}
  #channel#channel .creatorRefine.swapp-channel-polish .swapp-watch-headline{flex-wrap:wrap!important}
  #channel .swapp-watch-edit{margin-left:auto}
 }
+
+/* Exact media/chat alignment: fixed video-height chat with internal message scrolling.
+   Overrides the legacy unclipped composer rules appended earlier. */
+#channel#channel .creatorRefine.swapp-channel-polish .channelLiveSidebar>.chatPanel{
+ display:grid!important;grid-template-rows:auto minmax(0,1fr) auto auto auto auto!important;
+ height:var(--swapp-chat-player-height,420px)!important;
+ min-height:0!important;max-height:var(--swapp-chat-player-height,420px)!important;
+ overflow:hidden!important;box-sizing:border-box!important;align-self:start!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .channelLiveSidebar .chatLog{
+ min-height:0!important;max-height:none!important;overflow-y:auto!important;
+ overscroll-behavior:contain;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .channelLiveSidebar{
+ align-self:start!important;height:auto!important;min-height:0!important;
+ translate:none!important;transform:none!important;top:0!important;
+}
+@media(max-width:1080px){
+ #channel#channel .creatorRefine.swapp-channel-polish .channelLiveSidebar>.chatPanel{
+ height:var(--swapp-chat-player-height,420px)!important;
+ max-height:440px!important;min-height:320px!important;
+ }
+}

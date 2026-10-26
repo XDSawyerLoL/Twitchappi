@@ -134,8 +134,8 @@ test('chat vertical correction remains stable across retries, and clears on mobi
  };
  sync(page);
  assert.equal(values.translate,undefined);
- assert.equal(values['min-height'],'557px');
- assert.equal(values.height,undefined,'the composer must not be clipped by a fixed height');
+ assert.equal(values['min-height'],'0');
+ assert.equal(values.height,'557px','chat must match the 16:9 media surface');
  sync(page);
  assert.equal(values.translate,undefined,'rechecks must not shift the chat');
  win.matchMedia=()=>({matches:true});
@@ -174,7 +174,7 @@ test('offline chat alignment needs no negative translation even with stale legac
  const video={getBoundingClientRect:()=>({top:170,left:0,right:1000,width:1000,height:563})};
  const chat={dataset:{swappAlignShift:'-160'},style:{setProperty(k,v){style.set(k,v)},removeProperty(k){removed.push(k);style.delete(k)}},getBoundingClientRect:()=>({top:330,left:1004,width:320,height:563})};
  f({isConnected:true,dataset:{channelLive:'false'},querySelector:q=>q.includes('.channelMainPlayer >')?video:q.includes('.chatPanel')?chat:null});
- assert.equal(style.get('min-height'),'563px');assert.equal(style.get('height'),undefined);assert.deepEqual(removed,['height','max-height','translate']);assert.equal(chat.dataset.swappAlignShift,'0');
+ assert.equal(style.get('min-height'),'0');assert.equal(style.get('height'),'563px');assert.deepEqual(removed,['translate']);assert.equal(chat.dataset.swappAlignShift,'0');
  assert.match(read('assets/swapp-watch-experience.css'),/OFFLINE ROW ALIGNMENT/);
 });
 
@@ -185,8 +185,8 @@ test('channel chat is not clipped by its parent and watch assets have refreshed 
  assert.match(css,/expose the chat composer beyond the video-height clipping ancestors/);
  assert.match(css,/\.channelLiveSidebar\{\s*height:auto!important;\s*min-height:0!important;\s*max-height:none!important;\s*overflow:visible!important;/);
  assert.match(css,/min-height:max\(420px,var\(--swapp-chat-player-height,420px\)\)!important/);
- assert.match(js,/chat\.style\.removeProperty\('height'\)/);
- assert.match(js,/chat\.style\.setProperty\('min-height',actual\+'px','important'\)/);
- assert.match(html,/swapp-watch-experience\.css\?v=20261026-stable-player-v1/);
- assert.match(html,/swapp-watch-experience\.js\?v=20261026-stable-player-v1/);
+ assert.match(js,/chat\.style\.setProperty\('height',actual\+'px','important'\)/);
+ assert.match(js,/chat\.style\.setProperty\('max-height',actual\+'px','important'\)/);
+ assert.match(html,/swapp-watch-experience\.css\?v=20261026-chat-height-v2/);
+ assert.match(html,/swapp-watch-experience\.js\?v=20261026-chat-height-v2/);
 });

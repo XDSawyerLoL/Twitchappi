@@ -1,0 +1,4 @@
+/* Detection uses SWAPP's existing Twitch Helix connection; no external paid API. */
+#channel .swapp-game-detection-actions,.swapp-studio-dialog .swapp-game-detection-actions{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:8px 0 12px}
+#channel .swapp-game-detection-actions button,.swapp-studio-dialog .swapp-game-detection-actions button{min-height:32px;font:650 12px/1.2 system-ui;padding:7px 12px;cursor:pointer}
+#channel .swapp-game-detection-status,.swapp-studio-dialog .swapp-game-detection-status{font:500 12px/1.35 system-ui;color:#b7a6cf;flex:1 1 160px}

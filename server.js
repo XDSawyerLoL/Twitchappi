@@ -8560,6 +8560,12 @@ require('./modules/swapp-live-metadata').installLiveMetadata({
   limiter:mutationLimiter
 });
 
+// Channel programme + linked Twitch game suggestion. No new DB table or paid API.
+require('./modules/swapp-channel-programme').installChannelProgramme({
+ app,getUsers:readOryonUsers,saveUsers:writeOryonUsersAndWait,
+ findUser:getOryonUserByLogin,limiter:mutationLimiter,twitchAPI
+});
+
 // SWAPP SOCIAL: voice signalling. Socket.IO transports only SDP/ICE metadata.
 // Actual audio uses WebRTC between members, is never recorded by SWAPP.
 require('./modules/swapp-social-voice').installSocialVoice({
