@@ -1231,6 +1231,10 @@ app.get('/assets/hls.min.js',(_req,res)=>{
  }
  return res.type('application/javascript').sendFile(SWAPP_HLS_LOCAL_DIST);
 });
+// Small first-party executable to add SWAPP as an OBS HLS stream service.
+// Route must precede static assets (fallthrough=false); no third-party download.
+try{require('./modules/swapp-obs-installer-download').registerObsInstallerDownload(app)}
+catch(error){console.error('[SWAPP OBS INSTALLER] unavailable:',String(error?.message||'error'))}
 app.use('/assets', express.static(path.join(__dirname, 'assets'), staticOptions));
 function sendPublicFile(res, file, type){
   const full = path.join(__dirname, file);
