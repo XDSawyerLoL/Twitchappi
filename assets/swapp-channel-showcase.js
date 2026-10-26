@@ -18,40 +18,112 @@
   const found=location.pathname.match(/^\/(?:c\/)?([a-z0-9_-]{2,48})\/?$/i);
   return found?found[1].toLowerCase():'';
  }
+ // These menus render in a body-level layer. Opening a menu must not change
+ // the banner, player, chat or action dock geometry, including on mobile.
+ const activeMenus=new Set();
  function menu(label,cls){
   const details=make('details',cls);
   const summary=make('summary','swapp-showcase-summary',label);
   summary.setAttribute('aria-label',label);
   const content=make('div','swapp-showcase-menu-content');
+  content.setAttribute('role','group');
+  content.setAttribute('aria-label',label);
   details.append(summary,content);
+  let floating=false;
+  const position=()=>{
+   if(!floating||!summary.isConnected)return;
+   const rect=summary.getBoundingClientRect();
+   const width=Math.min(268,Math.max(180,window.innerWidth-16));
+   const height=Math.min(content.scrollHeight||280,420,window.innerHeight-24);
+   const left=Math.max(8,Math.min(rect.right-width,window.innerWidth-width-8));
+   const above=rect.bottom+8+height>window.innerHeight && rect.top>height+12;
+   const top=above?Math.max(8,rect.top-height-8):
+    Math.max(8,Math.min(rect.bottom+8,window.innerHeight-Math.min(height,100)-8));
+   content.style.left=left+'px';
+   content.style.top=top+'px';
+   content.style.width=width+'px';
+   content.style.maxHeight=Math.max(100,window.innerHeight-top-8)+'px';
+  };
+  const onOutside=event=>{
+   if(!details.contains(event.target)&&!content.contains(event.target))details.open=false;
+  };
+  const onKeys=event=>{if(event.key==='Escape'){details.open=false;summary.focus()}};
+  const close=()=>{
+   if(!floating)return;
+   floating=false;activeMenus.delete(entry);
+   document.removeEventListener('pointerdown',onOutside,true);
+   document.removeEventListener('keydown',onKeys);
+   window.removeEventListener('resize',position);
+   window.removeEventListener('scroll',position,true);
+   content.classList.remove('swapp-showcase-floating-menu');
+   content.style.removeProperty('left');content.style.removeProperty('top');
+   content.style.removeProperty('width');content.style.removeProperty('max-height');
+   if(details.isConnected)details.append(content);
+   else content.remove();
+  };
+  const entry={details,close};
+  details.addEventListener('toggle',()=>{
+   if(!details.open){close();return}
+   if(floating||!details.isConnected)return;
+   floating=true;activeMenus.add(entry);
+   document.body.append(content);
+   content.classList.add('swapp-showcase-floating-menu');
+   position();
+   document.addEventListener('pointerdown',onOutside,true);
+   document.addEventListener('keydown',onKeys);
+   window.addEventListener('resize',position);
+   window.addEventListener('scroll',position,true);
+  });
+  // The original button callbacks still run. The menu closes afterwards.
+  content.addEventListener('click',event=>{
+   if(event.target.closest('button,a'))details.open=false;
+  });
   return {details,content};
+ }
+ function ownerEdit(dock){
+  let button=dock.querySelector('.swapp-studio-owner-edit');
+  if(!button){
+   button=make('button','btn secondary swapp-studio-owner-edit','Modifier le direct');
+   button.type='button';
+   button.dataset.swappLiveOwnerEdit='1';
+   button.addEventListener('click',()=>globalThis.SwappBrowserStudio?.editLive?.());
+  }
+  // Always the first stable action, including before asynchronous owner tools.
+  if(button.parentElement!==dock||dock.firstElementChild!==button)dock.prepend(button);
+  return button;
  }
  function organizeActions(page){
   const dock=page.querySelector('.channelActionDock');
   if(!dock||dock.dataset.swappShowcaseOrganized==='1')return;
   const owner=page.dataset.channelOwner==='true';
-  if(owner){
-   const actions=Array.from(dock.children);
-   if(!actions.length)return;
-   const group=menu('Gérer ma chaîne','swapp-showcase-owner-menu');
-   // Move actual DOM nodes, never copy their HTML or break their onclick.
-   actions.forEach(node=>group.content.append(node));
-   dock.append(group.details);
-  }else{
-   // Native Follow and the independently managed Push bell stay exposed.
-   // Every other available action remains functional in the secondary menu.
-   const items=Array.from(dock.children).filter(node=>
-    !node.classList?.contains('swapp-channel-follow-btn') &&
-    !node.classList?.contains('swapp-live-alert-bell') &&
-    !String(node.getAttribute?.('onclick')||'').includes('followOryon')
-   );
-   if(items.length){
-    const group=menu('Plus','swapp-showcase-visitor-menu');
-    items.forEach(node=>group.content.append(node));
-    dock.append(group.details);
+  const fixed=owner?ownerEdit(dock):null;
+  const group=menu(owner?'Gérer ma chaîne':'Plus',
+   owner?'swapp-showcase-owner-menu':'swapp-showcase-visitor-menu');
+  const eligible=node=>{
+   if(node===group.details||node===fixed)return false;
+   if(owner)return true;
+   return !node.classList?.contains('swapp-channel-follow-btn')&&
+    !node.classList?.contains('swapp-live-alert-bell')&&
+    !String(node.getAttribute?.('onclick')||'').includes('followOryon');
+  };
+  // Place the menu once; thereafter late-added controls go INSIDE its
+  // permanent content, never beside/before the fixed owner buttons.
+  dock.append(group.details);
+  const gather=()=>{
+   if(!dock.isConnected)return;
+   for(const node of Array.from(dock.children)){
+    if(eligible(node))group.content.append(node);
    }
-  }
+   // No empty Plus menu for viewers. Late actions reveal it automatically.
+   if(!owner)group.details.hidden=group.content.childElementCount===0;
+  };
+  gather();
   dock.dataset.swappShowcaseOrganized='1';
+  const observer=new MutationObserver(records=>{
+   if(!page.isConnected){observer.disconnect();return}
+   if(records.some(record=>record.addedNodes.length))gather();
+  });
+  observer.observe(dock,{childList:true});
  }
  const monthKey=date=>date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0');
  const pretty=date=>new Intl.DateTimeFormat('fr-FR',{
@@ -136,6 +208,7 @@
  }
  function scan(){
   if(!root.classList.contains('active'))return;
+  for(const item of activeMenus)if(!item.details.isConnected)item.close();
   root.querySelectorAll('.creatorRefine.swapp-channel-polish').forEach(enhance);
  }
  let queued=false;
