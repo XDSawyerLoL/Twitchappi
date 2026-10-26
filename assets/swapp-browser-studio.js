@@ -10,7 +10,7 @@
   if(text!==undefined)el.textContent=text;
   return el;
  };
- const studio={capture};
+ const studio={capture,editLive:()=>openEditor()};
  let dialog=null,activeRoom='',busy=false;
  let metadataPromise=null,managerBound=null,lastPublicFetch=0;
  const socketBound=new WeakSet();
@@ -112,6 +112,7 @@
   if(catField){
    catField.setAttribute('aria-label','Jeu ou catégorie du direct');
    catField.maxLength=60;
+   bindTwitchCategories(catField);
   }
   const launch=$('#startLiveBtn',manager);
   if(launch)launch.textContent='Démarrer SWAPP Live';
@@ -141,6 +142,37 @@
    if(!current()?.channelProfile){} // The public channel may not be mounted.
   }).catch(()=>{});
  }
+ function bindTwitchCategories(input){
+  if(!input||input.dataset.swappTwitchSearch==='1')return;
+  input.dataset.swappTwitchSearch='1';
+  const list=document.createElement('datalist');
+  list.id='swapp-twitch-categories-'+Math.random().toString(36).slice(2,10);
+  input.setAttribute('list',list.id);
+  input.after(list);
+  input.title='Recherche dans les catégories Twitch. Choisis une suggestion ou saisis un nom.';
+  let timer=null,request=0;
+  input.addEventListener('input',()=>{
+    clearTimeout(timer);
+    const query=input.value.trim();
+    list.replaceChildren();
+    const seq=++request;
+    if(query.length<2)return;
+    timer=setTimeout(async()=>{
+      try{
+        const response=await fetch('/api/categories/search?q='+encodeURIComponent(query),
+          {cache:'no-store',credentials:'same-origin',signal:AbortSignal.timeout(6000)});
+        if(!response.ok||request!==seq)return;
+        const data=await response.json();
+        if(request!==seq||!input.isConnected)return;
+        for(const entry of (Array.isArray(data.categories)?data.categories:[]).slice(0,12)){
+          const value=String(entry?.name||'').trim();
+          if(!value||value.length>60)continue;
+          const item=document.createElement('option');item.value=value;list.appendChild(item);
+        }
+      }catch(_){/* still allow typing a category when Twitch is unavailable */}
+    },300);
+  });
+ }
  function ensureDialog(){
   if(dialog)return dialog;
   dialog=make('dialog','swapp-studio-dialog');
@@ -155,6 +187,8 @@
   titleLabel.appendChild(title);
   const catLabel=make('label','','Jeu ou catégorie');
   const category=make('input','');category.name='category';category.maxLength=60;
+  // Uses the existing server-side Twitch category search; no new API or token.
+  bindTwitchCategories(category);
   catLabel.appendChild(category);
   const actions=make('div','swapp-studio-dialog-actions');
   const saveButton=make('button','btn good','Enregistrer');saveButton.type='submit';
@@ -188,16 +222,17 @@
   if(!s||!info||info.room!==currentRoom())return;
   const layout=page.querySelector('.channelLiveLayout');
   if(!layout?.parentNode)return;
-  const isLive=Boolean(s.channelProfile?.is_live||s.channelOwner&&s.stream||info.live||info.is_live);
-  let heading=layout.previousElementSibling;
-  if(!heading?.classList.contains('swapp-stream-public-heading'))heading=null;
-  if(!isLive){heading?.remove();return}
-  // Place the title ABOVE the entire video/chat grid so both stay top-aligned.
-  if(!heading){heading=make('div','swapp-stream-public-heading');layout.parentNode.insertBefore(heading,layout)}
-  heading.replaceChildren();
-  const title=make('strong','',info.title||'Direct SWAPP');
-  const category=make('span','',info.category||'Gaming');
-  heading.append(title,category);
+  // Only one live heading. The watch layer already displays it over the media row.
+  // The previous module was adding a duplicate heading ahead of the chat/player grid.
+  const obsolete=layout.previousElementSibling;
+  if(obsolete?.classList.contains('swapp-stream-public-heading'))obsolete.remove();
+  const title=page.querySelector('.swapp-watch-live-title');
+  if(title && info.title)title.textContent=String(info.title).slice(0,120);
+  const category=page.querySelector('.swapp-watch-live-category');
+  if(category){
+   const name=String(info.category||'').trim().slice(0,60);
+   category.textContent=name;category.hidden=!name;
+  }
  }
  function connectChannel(){
   const page=$('#channel'),s=current();
@@ -207,7 +242,7 @@
   publicHeading({room,title:profile.current_live_title,category:profile.current_live_category,is_live:profile.is_live});
   const dock=page.querySelector('.channelActionDock');
   if(!dock)return;
-  const existing=dock.querySelector('[data-swapp-live-owner-edit]');
+  const existing=page.querySelector('[data-swapp-live-owner-edit]');
   if(!ownRoom()){existing?.remove();return}
   if(existing)return;
   const edit=make('button','btn secondary swapp-studio-owner-edit','Modifier le direct');

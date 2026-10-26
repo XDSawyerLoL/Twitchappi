@@ -2,7 +2,7 @@
    reaction totals, rate and hot moments: no new counters or API requests. */
 (function(){
  'use strict';
- const CHANNEL='#channel .creatorRefine[data-channel-live="true"] .channelMainPlayer :is(.premiumPlayer,.oryonMainPlayer,.player)';
+ const CHANNEL='#channel .creatorRefine .channelMainPlayer :is(.premiumPlayer,.oryonMainPlayer,.player)';
  const DISCOVER='#discover .premiumPlayer,#discover .player,#discover .oryonMainPlayer,#discover .hfLivePlayer,#discover .twitchPlayer';
  const selector=CHANNEL+','+DISCOVER;
  const bindings=new Map();
@@ -29,6 +29,9 @@
  }
  function attach(player){
   if(!player.querySelector('iframe,video'))return;
+  const page=player.closest('.creatorRefine');
+  if(page?.dataset.channelLive!=='true' &&
+     !player.querySelector('iframe[src*="/api/oryon/local-relay/"]'))return;
   if(player.dataset.swappHeartUi==='1')return;
   const rail=create('div','swapp-heart-rail');
   rail.setAttribute('role','group');

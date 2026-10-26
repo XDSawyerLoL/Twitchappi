@@ -110,10 +110,8 @@ test('direct chat has no legacy sticky offset and follows the video top at deskt
  assert.match(css,/\.channelLiveSidebar > \.chatPanel\s*\{\s*position:relative!important/);
  assert.match(css,/top:0!important/);
  assert.match(css,/inset-block-start:0!important/);
- assert.match(js,/const baselineTop=chatRect\.top-previousShift/);
- assert.match(js,/videoRect\.top-baselineTop/);
- assert.match(js,/const besideVideo=!mobile/);
- assert.match(js,/chat\.style\.setProperty\('translate'/);
+ assert.doesNotMatch(js,/const baselineTop=chatRect\.top-previousShift/);
+ assert.match(js,/chat\.style\.removeProperty\('translate'\)/);
  // This must not re-parent the chat or alter the iframe transport.
  assert.doesNotMatch(js,/appendChild\(chat\)|replaceChildren\(chat\)|new Hls\(/);
 });
@@ -135,14 +133,14 @@ test('chat vertical correction remains stable across retries, and clears on mobi
    selector.includes('.channelLiveSidebar .chatPanel')?chat:null}
  };
  sync(page);
- assert.equal(values.translate,'0 -110px');
+ assert.equal(values.translate,undefined);
  assert.equal(values['min-height'],'557px');
  assert.equal(values.height,undefined,'the composer must not be clipped by a fixed height');
  sync(page);
- assert.equal(values.translate,'0 -110px','rechecks must not oscillate');
+ assert.equal(values.translate,undefined,'rechecks must not shift the chat');
  win.matchMedia=()=>({matches:true});
  sync(page);
- assert.equal(values.translate,'0 0px','mobile uses stacked positioning');
+ assert.equal(values.translate,undefined,'mobile also avoids translations');
 });
 
 test('offline chat shares the measured 16:9 player and does not use sticky offsets',()=>{
@@ -189,6 +187,6 @@ test('channel chat is not clipped by its parent and watch assets have refreshed 
  assert.match(css,/min-height:max\(420px,var\(--swapp-chat-player-height,420px\)\)!important/);
  assert.match(js,/chat\.style\.removeProperty\('height'\)/);
  assert.match(js,/chat\.style\.setProperty\('min-height',actual\+'px','important'\)/);
- assert.match(html,/swapp-watch-experience\.css\?v=20261025-chat-no-clip-v5/);
- assert.match(html,/swapp-watch-experience\.js\?v=20261025-chat-no-clip-v5/);
+ assert.match(html,/swapp-watch-experience\.css\?v=20261026-stable-player-v1/);
+ assert.match(html,/swapp-watch-experience\.js\?v=20261026-stable-player-v1/);
 });

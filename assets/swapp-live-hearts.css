@@ -172,3 +172,23 @@
 @media(prefers-reduced-motion:reduce){
  #channel .swapp-heart-rail .swapp-heart-meter-fill{transition:none}
 }
+
+/* Keep SWAPP Pulse in the upper-right of the visible video viewport,
+   rather than anchored to the bottom of a resizable/sticky media container. */
+#channel#channel .creatorRefine .channelMainPlayer
+ :is(.premiumPlayer,.oryonMainPlayer,.player)[data-swapp-heart-ui="1"] > .swapp-heart-rail{
+ display:flex!important;position:absolute!important;z-index:90!important;
+ right:14px!important;top:62px!important;bottom:auto!important;
+ visibility:visible!important;opacity:1!important;
+ max-height:calc(100% - 74px)!important;overflow:visible!important;
+}
+#channel#channel .creatorRefine .channelMainPlayer
+ :is(.premiumPlayer,.oryonMainPlayer,.player)[data-swapp-heart-ui="1"]{
+ isolation:isolate!important;
+}
+@media(max-width:680px){
+ #channel#channel .creatorRefine .channelMainPlayer
+  :is(.premiumPlayer,.oryonMainPlayer,.player)[data-swapp-heart-ui="1"] > .swapp-heart-rail{
+  top:46px!important;right:6px!important;bottom:auto!important;
+ }
+}

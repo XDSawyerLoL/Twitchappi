@@ -110,16 +110,11 @@
  // Defensive bound for additional legacy styles injected after initial layout:
  // never allow a channel card's right edge to exceed the actual viewport.
  function fitViewport(page){
+  // Never write viewport-dependent widths on scroll or resize: it produces
+  // a feedback loop with the 16:9 media frame and makes it jump.
   if(!page?.isConnected)return;
   page.style.removeProperty('width');
   page.style.removeProperty('max-width');
-  const rect=page.getBoundingClientRect();
-  const viewport=document.documentElement.clientWidth;
-  const room=Math.floor(viewport-Math.max(0,rect.left)-12);
-  if(room>320 && rect.width>room+2){
-   page.style.setProperty('width',room+'px','important');
-   page.style.setProperty('max-width',room+'px','important');
-  }
  }
  // Chat follows the visible video surface, not the surrounding controls/Pulse.
  // ResizeObserver accounts for theatre mode, sidebar toggles and window resize.
@@ -146,20 +141,10 @@
    chat.dataset.swappAlignShift='0';
    return;
   }
-  // The legacy channel CSS also pushed the chat away via sticky top:122px.
-  // Defensively match the actual pixel top, not only the video height.
-  // Independent CSS translate is out-of-flow; it cannot disturb grid columns.
-  const previousShift=Number(chat.dataset.swappAlignShift||0);
-  const chatRect=chat.getBoundingClientRect();
-  const besideVideo=!mobile && chatRect.left+20>=videoRect.right &&
-   chatRect.width>120 && videoRect.width>200;
-  const baselineTop=chatRect.top-previousShift;
-  const delta=besideVideo?Math.max(-240,Math.min(240,Math.round(videoRect.top-baselineTop))):0;
-  const shift=Math.abs(delta)>2?delta:0;
-  if(shift!==previousShift){
-   chat.style.setProperty('translate','0 '+shift+'px','important');
-   chat.dataset.swappAlignShift=String(shift);
-  }
+  // Grid layout, not sub-pixel translation, keeps chat beside the player.
+  // No scroll-dependent translate: it made the page wobble while scrolling.
+  chat.style.removeProperty('translate');
+  chat.dataset.swappAlignShift='0';
  }
 
  // Prefer actual broadcast metadata; a creator's channel name is NOT their
@@ -184,35 +169,49 @@
  function installBroadcastHeadline(page,main,video){
   const header=document.createElement('div');header.className='swapp-watch-headline';
   const pill=document.createElement('span');pill.className='swapp-watch-live-pill';pill.textContent='EN DIRECT';
+  const details=document.createElement('div');details.className='swapp-watch-headline-details';
   const title=document.createElement('h2');title.className='swapp-watch-live-title';
+  const category=document.createElement('span');category.className='swapp-watch-live-category';
   title.textContent=currentBroadcastTitle(page)||'Direct en cours';
-  header.append(pill,title);
+  details.append(title,category);header.append(pill,details);
+  const login=broadcastLogin(page);
+  const owner=typeof state!=='undefined' && !!state?.session?.local?.id &&
+    String(state.session.local.login||'').toLowerCase()===login;
+  if(owner){
+    const edit=document.createElement('button');
+    edit.type='button';edit.className='swapp-watch-edit btn secondary';
+    edit.dataset.swappLiveOwnerEdit='1';edit.textContent='Modifier le direct';
+    edit.addEventListener('click',()=>globalThis.SwappBrowserStudio?.editLive?.());
+    header.appendChild(edit);
+  }
   if(video.parentElement===main)main.insertBefore(header,video);
   else main.prepend(header);
-  const login=broadcastLogin(page);
-  let remoteTitle='';
+  // The owner may have edited the metadata without restarting OBS.
+  const update=(titleValue,categoryValue)=>{
+    const name=String(titleValue||'').trim();
+    if(name)title.textContent=name.slice(0,120);
+    const game=String(categoryValue||'').trim().slice(0,60);
+    category.textContent=game;
+    category.hidden=!game;
+  };
+  const localCategory=typeof state!=='undefined'?state?.channelProfile?.current_live_category:'';
+  update(currentBroadcastTitle(page),localCategory);
   const refresh=async()=>{
-   if(!page.isConnected)return;
-   const local=currentBroadcastTitle(page);
-   title.textContent=local||remoteTitle||'Direct en cours';
-   if(!login)return;
-   try{
-    const response=await fetch('/api/oryon/channel/'+encodeURIComponent(login)+'/status',
-     {cache:'no-store',signal:AbortSignal.timeout(5500)});
-    if(!response.ok)return;
-    const data=await response.json();
-    if(!page.isConnected)return;
-    const value=[data?.live?.title,data?.stream?.title,data?.broadcast?.title,
-     data?.live_title,data?.stream_title,data?.title]
-     .map(s=>String(s||'').trim()).find(s=>s.length>0&&s.length<=180);
-    if(value){remoteTitle=value;title.textContent=currentBroadcastTitle(page)||remoteTitle}
-   }catch(_){/* A temporary status failure must never remove the player. */}
+    if(!page.isConnected||!login)return;
+    try{
+      const response=await fetch('/api/oryon/channel/'+encodeURIComponent(login)+'/status',
+       {cache:'no-store',credentials:'same-origin',signal:AbortSignal.timeout(5500)});
+      if(!response.ok)return;
+      const data=await response.json();
+      if(!page.isConnected)return;
+      update(data?.live?.title||currentBroadcastTitle(page),data?.live?.category||localCategory);
+    }catch(_){/* temporary network errors must never re-render the media */}
   };
   void refresh();
   const timer=setInterval(()=>{
-   if(!page.isConnected){clearInterval(timer);return}
-   void refresh();
-  },45000);
+    if(!page.isConnected){clearInterval(timer);return}
+    void refresh();
+  },15000);
  }
  // Offline channels share the same measured media/chat alignment.
  // Keep the native chat element in place; only position and size it.
