@@ -4,9 +4,7 @@
 const $=(s,root=document)=>root.querySelector(s);
 const make=(tag,cls,label)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(label!==undefined)e.textContent=label;return e};
 let lastPanel=null,lastRefresh=0,refreshing=false;
-const serviceName='SWAPP Live (HTTPS HLS)';
-const presetUrl='/assets/swapp-obs-hls-preset.json';
-const setupUrl='https://github.com/XDSawyerLoL/Twitchappi/blob/master/tools/configurer-obs-swapp-hls.ps1';
+const setupUrl='/assets/downloads/SWAPP-OBS-HLS-Installer-x64.exe';
 const validRoom=s=>/^[a-z0-9_][a-z0-9_-]{1,39}$/.test(String(s||''));
 function manager(){
  const page=$('#manager');
@@ -35,26 +33,21 @@ function card(){
  panel.id='swapp-obs-direct';
  const top=make('header','swapp-obs-direct-header');
  const title=make('div','');
- title.append(make('span','swapp-obs-direct-overline','DIFFUSION OBS NATIVE'),
-  make('h2','', 'Diffuser depuis OBS, directement sur SWAPP'),
-  make('p','', 'Plus besoin de SWAPP Local. OBS envoie les segments HLS vers swapp.tv en HTTPS.'));
+ title.append(make('h2','','Diffuser depuis OBS sur SWAPP'));
  top.append(title,make('span','swapp-obs-direct-live','Vérification…'));
  panel.append(top);
- const fields=make('div','swapp-obs-direct-grid');
- const server=make('section','swapp-obs-direct-setup');
- server.append(make('h3','','1. Configuration OBS (une seule fois)'),
-  make('p','','Ajoute le service SWAPP Live (HTTPS HLS) à OBS, puis sélectionne-le dans Paramètres > Stream. La méthode native utilise le protocole HLS, pas RTMP.'));
- const setup=make('div','swapp-obs-direct-actions');
- const download=make('a','btn secondary','Configurer OBS sur Windows');
- download.href=setupUrl;download.target='_blank';download.rel='noopener noreferrer';
- const preset=make('a','btn secondary','Voir le préréglage HLS');
- preset.href=presetUrl;preset.target='_blank';preset.rel='noopener noreferrer';
- setup.append(download,preset);
- server.append(setup);
- const key=make('section','swapp-obs-direct-secret');
- key.append(make('h3','','2. Clé personnelle OBS'),
-  make('p','','Copie ta clé dans le champ « Clé de stream » d’OBS. Ne la partage jamais.'));
- const hidden=make('input','swapp-obs-key');hidden.type='password';hidden.readOnly=true;
+ // A single action installs the native OBS HLS service. No PowerShell or old SWAPP Live app.
+ const setup=make('div','swapp-obs-direct-setup');
+ const download=make('a','btn swapp-obs-install','Installer SWAPP dans OBS · Windows 64 bits');
+ download.href=setupUrl;
+ download.download='SWAPP-OBS-HLS-Installer-x64.exe';
+ download.setAttribute('aria-label','Télécharger l’installation du service SWAPP Live HLS pour OBS Studio Windows');
+ const instructions=make('p','swapp-obs-install-note','Ferme OBS, lance le fichier téléchargé, puis sélectionne SWAPP Live (HTTPS HLS) dans Paramètres > Stream > Afficher tous les services.');
+ setup.append(download,instructions);
+ panel.append(setup);
+ const key=make('div','swapp-obs-direct-secret');
+ const secretLabel=make('label','swapp-obs-key-label','Clé privée de diffusion');secretLabel.htmlFor='swapp-obs-secret';key.append(secretLabel);
+ const hidden=make('input','swapp-obs-key');hidden.id='swapp-obs-secret';hidden.type='password';hidden.readOnly=true;
  hidden.value='Chargement…';hidden.setAttribute('aria-label','Clé privée OBS');
  hidden.setAttribute('autocomplete','off');
  const line=make('div','swapp-obs-direct-keyline');
@@ -67,11 +60,7 @@ function card(){
  const status=make('p','swapp-obs-direct-status','');
  status.setAttribute('role','status');
  key.append(status);
- fields.append(server,key);panel.append(fields);
- const ready=make('div','swapp-obs-direct-ready');
- ready.append(make('strong','','3. Dans OBS : Démarrer le streaming'),
-  make('span','', 'SWAPP publiera automatiquement le direct dès réception de segments vidéo valides. Le titre et la catégorie se changent dans le dashboard.'));
- panel.append(ready);
+ panel.append(key);
  const diag=make('div','swapp-obs-direct-diagnostic');
  diag.setAttribute('role','status');diag.setAttribute('aria-live','polite');
  diag.append(make('strong','','Réception OBS : en attente des premiers fragments'),
@@ -96,43 +85,21 @@ function card(){
  const delivery=make('div','swapp-obs-public-readiness','Lecture publique non vérifiée : démarre OBS puis consulte ce contrôle.');
  delivery.setAttribute('role','status');
  delivery.setAttribute('aria-live','polite');
- panel.append(diag,delivery,probe);
+ const advanced=make('details','swapp-obs-advanced');
+ advanced.append(make('summary','','Diagnostic avancé OBS'),diag,delivery,probe);
+ panel.append(advanced);
  workspace.insertBefore(panel,hero);
  // This old OBS/local card is still used by legacy streamers but no longer
  // appears as a required installation in the direct OBS workflow.
  const old=page.querySelector('#oryonLivePanel');
  if(old){old.hidden=true;old.style.display='none';}
- // Existing mode cards are ordered Navigateur, then OBS in the page template.
- // Keep their labels accurate and turn the redundant tall cards into compact
- // keyboard-accessible jumps to their REAL settings, without touching OBS.
- const modes=page.querySelectorAll('.streamModeGrid .modeCard');
- if(modes.length>=2){
-  const destinations=[
-   {name:'Capture navigateur',tag:'Navigateur',target:hero},
-   {name:'OBS direct',tag:'OBS',target:panel}
-  ];
-  modes.forEach((mode,i)=>{
-   const config=destinations[i];if(!config)return;
-   const heading=mode.querySelector('h2');
-   if(heading)heading.textContent=config.name;
-   const pill=mode.querySelector('.pill');
-   if(pill)pill.textContent=config.tag;
-   mode.classList.remove('active');
-   mode.classList.add('swapp-manager-mode-jump');
-   mode.setAttribute('role','button');
-   mode.setAttribute('tabindex','0');
-   mode.setAttribute('aria-label','Aller aux réglages '+config.name);
-   const jump=()=>config.target?.scrollIntoView({behavior:'smooth',block:'start'});
-   mode.addEventListener('click',jump);
-   mode.addEventListener('keydown',event=>{
-    if(event.key==='Enter'||event.key===' '){event.preventDefault();jump()}
-   });
-  });
- }
+ // Hide only the redundant large mode chooser; both real capture tools remain available.
+ const redundantModes=page.querySelector('.streamModeGrid');
+ if(redundantModes){redundantModes.hidden=true;redundantModes.classList.add('swapp-obs-redundant-modes');}
  const managerHead=page.querySelector('.pageHead h1');
  if(managerHead)managerHead.textContent='Diffusion SWAPP';
  const sub=page.querySelector('.pageHead p');
- if(sub)sub.textContent='OBS direct ou capture navigateur.';
+ if(sub)sub.textContent='Diffuser avec OBS ou directement depuis ton navigateur.';
  void getKey(panel);
  return panel;
 }
