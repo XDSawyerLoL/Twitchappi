@@ -29,7 +29,7 @@ test('Native follow and Push scanning remain valid once buttons leave the hero',
  assert.match(follow,/request\(path,following\?'DELETE':'POST'\)/);
  assert.match(bell,/page\.querySelector\('\.swapp-channel-follow-btn'\)/);
  assert.match(bell,/Notification\.requestPermission\(\)/);
- assert.match(bell,/swapp-live-alerts\/enable/);
+ assert.match(bell,/swapp\/live-alerts\/enable/);
 });
 test('Paid subscribe button is visible but never claims an unverified transaction',()=>{
  const state=subscriptionState('vnhz');
@@ -71,5 +71,5 @@ test('No player, chat or OBS sizing/pipeline is altered by this patch',()=>{
  assert.doesNotMatch(css,/\.channelMainPlayer[^{]*\{[^}]*height:|\.chatPanel[^{]*\{[^}]*height:/);
  assert.doesNotMatch(source,/new Hls|MediaSource|RTCPeerConnection|new WebSocket/);
  assert.match(css,/flex-wrap:wrap!important/);
- assert.match(css,/color:var\(--channel-accent/);
+ assert.match(css,/background:var\(--channel-accent/);
 });
