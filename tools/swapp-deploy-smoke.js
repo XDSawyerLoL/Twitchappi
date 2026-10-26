@@ -556,6 +556,12 @@ async function verify(){
  check((robots.response.headers.get('content-type')||'').includes('text/plain'),'robots.txt is not plain text');
  const xml=await request(origin,'/sitemap.xml');
  check(xml.body.includes('<urlset')&&xml.body.includes('https://swapp.tv/plan-du-site'),'Sitemap XML missing canonical public sitemap page');
+ // GEO launch gate: the two editorial pages must be served by Hostinger,
+ // not silently routed to an old SPA or missing from the XML sitemap.
+ const geo=await require('./swapp-geo-probe').inspect({origin});
+ check(geo.status==='verified_on_http'&&geo.pages.length===2,
+  'GEO reference pages are absent from deployed SWAPP');
+ process.stdout.write('PASS GEO reference pages, structured data and sitemap\n');
  const advertisedGames=publicGamePaths(xml.body);
  if(advertisedGames.length){
   check(xml.body.includes('<loc>https://swapp.tv/jeux</loc>'),'Indexed game hubs lack the /jeux parent');
