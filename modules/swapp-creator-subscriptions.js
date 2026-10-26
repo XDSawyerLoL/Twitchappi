@@ -78,6 +78,7 @@ function createCreatorSubscriptions({
           'viewer_id VARCHAR(80) NOT NULL,creator_login VARCHAR(48) NOT NULL,'+
           'status VARCHAR(24) NOT NULL, kind VARCHAR(16) NOT NULL,'+
           'stripe_subscription_id VARCHAR(255) NULL,stripe_customer_id VARCHAR(255) NULL,'+
+          'gift_batch_id VARCHAR(255) NULL,'+
           'expires_at BIGINT NOT NULL DEFAULT 0, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,'+
           'PRIMARY KEY(viewer_id,creator_login),UNIQUE KEY uniq_subscription(stripe_subscription_id),'+
           'INDEX idx_swapp_sub_creator (creator_login,status,expires_at)'+
@@ -85,8 +86,10 @@ function createCreatorSubscriptions({
         await p.query('CREATE TABLE IF NOT EXISTS swapp_subs_gift_orders ('+
           'session_id VARCHAR(255) PRIMARY KEY,creator_login VARCHAR(48) NOT NULL,'+
           'buyer_id VARCHAR(80) NOT NULL, quantity SMALLINT NOT NULL, allocated SMALLINT NOT NULL DEFAULT 0,'+
-          'total_cents INT NOT NULL,status VARCHAR(24) NOT NULL, expires_at BIGINT NOT NULL,'+
-          'created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,INDEX idx_swapp_gifts_claim(creator_login,status,expires_at)'+
+          'total_cents INT NOT NULL,payment_intent_id VARCHAR(255) NULL,'+
+          'status VARCHAR(24) NOT NULL, expires_at BIGINT NOT NULL,'+
+          'created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,INDEX idx_swapp_gifts_claim(creator_login,status,expires_at),'+
+          'INDEX idx_swapp_gifts_payment(payment_intent_id)'+
           ') ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
         await p.query('CREATE TABLE IF NOT EXISTS swapp_subs_gift_allocations ('+
           'session_id VARCHAR(255) NOT NULL,recipient_id VARCHAR(80) NOT NULL,'+
@@ -254,20 +257,20 @@ function createCreatorSubscriptions({
     }catch(e){logger.warn?.('[SWAPP SUBS] checkout unavailable',e.code||e.name);
       return res.status(503).json({success:false,error:'Impossible de préparer le paiement.'})}
   }
-  async function writeMember(conn,{viewer,creator,status,kind,subscriptionId=null,customerId=null,expiresAt}){
+  async function writeMember(conn,{viewer,creator,status,kind,subscriptionId=null,customerId=null,giftBatchId=null,expiresAt}){
     await conn.execute('INSERT INTO swapp_subs_members'+
-      '(viewer_id,creator_login,status,kind,stripe_subscription_id,stripe_customer_id,expires_at)'+
-      ' VALUES(?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE status=VALUES(status),'+
+      '(viewer_id,creator_login,status,kind,stripe_subscription_id,stripe_customer_id,gift_batch_id,expires_at)'+
+      ' VALUES(?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE status=VALUES(status),'+
       'kind=VALUES(kind),stripe_subscription_id=VALUES(stripe_subscription_id),'+
-      'stripe_customer_id=VALUES(stripe_customer_id),expires_at=VALUES(expires_at)',
-      [viewer,creator,status,kind,subscriptionId,customerId,expiresAt]);
+      'stripe_customer_id=VALUES(stripe_customer_id),gift_batch_id=VALUES(gift_batch_id),expires_at=VALUES(expires_at)',
+      [viewer,creator,status,kind,subscriptionId,customerId,giftBatchId,expiresAt]);
   }
-  async function assignGifts(conn,{sessionId,creator,buyer,quantity,totalCents}){
+  async function assignGifts(conn,{sessionId,creator,buyer,quantity,totalCents,paymentIntentId=null}){
     const [insert]=await conn.execute(
       'INSERT IGNORE INTO swapp_subs_gift_orders'+
-      '(session_id,creator_login,buyer_id,quantity,allocated,total_cents,status,expires_at)'+
-      ' VALUES(?,?,?,?,?,?,?,?)',
-      [sessionId,creator,buyer,quantity,0,totalCents,'paid',now()+90*DAY]);
+      '(session_id,creator_login,buyer_id,quantity,allocated,total_cents,payment_intent_id,status,expires_at)'+
+      ' VALUES(?,?,?,?,?,?,?,?,?)',
+      [sessionId,creator,buyer,quantity,0,totalCents,paymentIntentId,'paid',now()+90*DAY]);
     if(insert.affectedRows!==1)return;
     const candidates=people().filter(u=>String(u.id)!==buyer&&
       loginOf(u.login)!==creator&&Array.isArray(u.following)&&u.following.includes(creator))
@@ -281,7 +284,7 @@ function createCreatorSubscriptions({
         'SELECT status,expires_at FROM swapp_subs_members WHERE viewer_id=? AND creator_login=? FOR UPDATE',
         [viewer,creator]);
       if(membershipActive(rows[0],now()))continue;
-      await writeMember(conn,{viewer,creator,status:'active',kind:'gift',expiresAt:now()+30*DAY});
+      await writeMember(conn,{viewer,creator,status:'active',kind:'gift',giftBatchId:sessionId,expiresAt:now()+30*DAY});
       await conn.execute('INSERT IGNORE INTO swapp_subs_gift_allocations(session_id,recipient_id,assigned_at) VALUES(?,?,?)',
         [sessionId,viewer,now()]);
       allocated++;
@@ -307,7 +310,7 @@ function createCreatorSubscriptions({
       const [saved]=await conn.execute('INSERT IGNORE INTO swapp_subs_events(event_id) VALUES(?)',[event.id]);
       if(saved.affectedRows!==1){await conn.rollback();return {duplicate:true}}
       const obj=event.data?.object||{};
-      if(event.type==='checkout.session.completed' && obj.payment_status==='paid' &&
+      if(['checkout.session.completed','checkout.session.async_payment_succeeded'].includes(event.type) && obj.payment_status==='paid' &&
         obj.metadata?.swapp_creator_login){
         const md=obj.metadata,creator=loginOf(md.swapp_creator_login),
           viewer=String(md.swapp_viewer_id||'').slice(0,80),
@@ -317,7 +320,8 @@ function createCreatorSubscriptions({
           if(md.swapp_kind==='gift'&&obj.mode==='payment'){
             const total=amount(obj.amount_total);
             if(total===amount(md.swapp_total_cents)&&total>0)
-              await assignGifts(conn,{sessionId:obj.id,creator,buyer:viewer,quantity,totalCents:total});
+              await assignGifts(conn,{sessionId:obj.id,creator,buyer:viewer,quantity,totalCents:total,
+                paymentIntentId:typeof obj.payment_intent==='string'?obj.payment_intent:null});
           }else if(md.swapp_kind==='self'&&obj.mode==='subscription'&&obj.subscription){
             const subscription=await stripe.subscriptions.retrieve(obj.subscription);
             await subscriptionPaid(conn,subscription);
@@ -353,6 +357,25 @@ function createCreatorSubscriptions({
         if(id&&String(id).startsWith('sub_'))
           await conn.execute('UPDATE swapp_subs_members SET status=? WHERE stripe_subscription_id=?',
             ['past_due',id]);
+      }
+      if(['charge.refunded','charge.dispute.created'].includes(event.type)){
+        // Suspend unused gifts and revoke only entitlements from THIS batch.
+        // Partial refunds require human review; they are not full revocations.
+        const paymentIntent=typeof obj.payment_intent==='string'?obj.payment_intent:'';
+        const fullRefund=event.type==='charge.dispute.created'||
+          (obj.refunded===true && Number(obj.amount_refunded)>=Number(obj.amount)&&Number(obj.amount)>0);
+        if(paymentIntent && fullRefund){
+          const [orders]=await conn.execute(
+            'SELECT session_id,creator_login FROM swapp_subs_gift_orders '+
+            'WHERE payment_intent_id=? AND status=? LIMIT 1 FOR UPDATE',[paymentIntent,'paid']);
+          if(orders.length){
+            const order=orders[0];
+            await conn.execute('UPDATE swapp_subs_gift_orders SET status=? WHERE session_id=?',
+              [event.type==='charge.refunded'?'refunded':'disputed',order.session_id]);
+            await conn.execute('UPDATE swapp_subs_members SET status=? WHERE gift_batch_id=? AND kind=?',
+              ['refunded',order.session_id,'gift']);
+          }
+        }
       }
       await conn.commit();return {processed:true};
     }catch(e){await conn.rollback().catch(()=>{});throw e}
@@ -395,7 +418,7 @@ function createCreatorSubscriptions({
       if(!batch.length){
         await conn.rollback();return res.status(404).json({success:false,error:'Aucun cadeau disponible pour le moment.'});
       }
-      await writeMember(conn,{viewer:viewer.id,creator,status:'active',kind:'gift',expiresAt:now()+30*DAY});
+      await writeMember(conn,{viewer:viewer.id,creator,status:'active',kind:'gift',giftBatchId:batch[0].session_id,expiresAt:now()+30*DAY});
       await conn.execute('INSERT INTO swapp_subs_gift_allocations(session_id,recipient_id,assigned_at) VALUES(?,?,?)',
         [batch[0].session_id,viewer.id,now()]);
       await conn.execute('UPDATE swapp_subs_gift_orders SET allocated=allocated+1 WHERE session_id=?',
