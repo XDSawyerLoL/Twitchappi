@@ -1,0 +1,181 @@
+/* SWAPP Channel Showcase v1 — coherent premium creator pages.
+   Respect custom accent, never write video or chat dimensions. */
+#channel#channel .creatorRefine.swapp-channel-polish{
+ --showcase-accent:var(--channel-accent,var(--viewer-accent,#9d65ed));
+ --showcase-border:rgba(220,226,247,.13);
+}
+#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelTopHero{
+ min-height:192px!important;height:auto!important;
+ border-radius:12px!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelTopHero[data-showcase-banner],
+#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"][data-channel-banner="true"] .channelTopHero{
+ min-height:192px!important;height:auto!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelHeroContent{
+ min-height:192px!important;height:auto!important;
+ align-items:center!important;
+ padding:18px clamp(16px,2.2vw,32px)!important;
+ gap:18px!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelTopHero:after{
+ background:linear-gradient(90deg,rgba(4,7,14,.84),rgba(4,7,14,.30) 58%,rgba(4,7,14,.08)),
+ linear-gradient(0deg,rgba(3,6,11,.75),transparent 72%)!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelIdentity .avatar{
+ width:64px!important;height:64px!important;min-width:64px!important;
+ border-radius:13px!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .swapp-channel-monogram{
+ width:64px!important;height:64px!important;flex-basis:64px!important;border-radius:13px!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelTitleBlock h1{
+ font-size:clamp(24px,2.3vw,39px)!important;line-height:1.08!important;
+ letter-spacing:-.035em!important;margin:0 0 4px!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .channelTitleBlock>p{
+ display:-webkit-box;overflow:hidden;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+ max-width:55ch!important;font-size:12.5px!important;line-height:1.45!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelBadgesBar>.pill:nth-child(n+4){
+ display:none!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .channelTopHero{
+ border-radius:12px!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .channelTopHero>img{
+ object-fit:cover!important;transform:none!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .channelActionDock{
+ display:flex!important;align-items:center!important;gap:8px!important;min-width:0!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .channelActionDock .btn{
+ min-height:36px!important;border-radius:7px!important;
+ padding:8px 12px!important;font-size:12px!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .channelActionDock > .swapp-channel-follow-btn{
+ background:var(--showcase-accent)!important;color:#0c0c16!important;
+ border-color:transparent!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .channelActionDock > .swapp-live-alert-bell{
+ min-width:38px!important;width:38px!important;min-height:36px!important;
+ padding:4px!important;font-size:16px!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .swapp-showcase-owner-menu,
+#channel#channel .creatorRefine.swapp-channel-polish .swapp-showcase-visitor-menu{
+ position:relative;flex:0 0 auto;min-width:0;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .swapp-showcase-summary{
+ list-style:none;display:flex;align-items:center;gap:9px;justify-content:center;
+ cursor:pointer;border:1px solid rgba(236,237,254,.26);border-radius:7px;
+ padding:8px 12px;min-height:36px;box-sizing:border-box;
+ background:rgba(8,11,20,.67);backdrop-filter:blur(12px);
+ color:#f5f6fa;font:650 12px/1.35 system-ui,sans-serif;
+ white-space:nowrap;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .swapp-showcase-summary::-webkit-details-marker{display:none}
+#channel#channel .creatorRefine.swapp-channel-polish .swapp-showcase-summary:after{
+ content:'⌄';font-size:15px;line-height:1;
+}
+#channel#channel .creatorRefine.swapp-channel-polish details[open] .swapp-showcase-summary:after{content:'⌃'}
+#channel#channel .creatorRefine.swapp-channel-polish .swapp-showcase-menu-content{
+ display:flex;flex-direction:column;gap:6px;min-width:175px;
+ position:static!important;margin-top:7px;z-index:100;
+ border:1px solid var(--showcase-border);border-radius:9px;
+ background:#131825;padding:7px;
+ box-shadow:0 16px 35px rgba(0,0,0,.45);
+}
+#channel#channel .creatorRefine.swapp-channel-polish .swapp-showcase-menu-content>.btn{
+ margin:0!important;width:100%!important;flex:0 0 auto!important;
+ white-space:normal!important;text-align:left!important;
+ justify-content:start!important;background:rgba(255,255,255,.045)!important;
+ border:0!important;color:#f1f3f8!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .swapp-showcase-menu-content>.btn:hover{
+ background:rgba(255,255,255,.11)!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .swapp-showcase-summary:focus-visible,
+#channel#channel .creatorRefine.swapp-channel-polish .swapp-showcase-menu-content .btn:focus-visible{
+ outline:2px solid var(--showcase-accent)!important;outline-offset:2px!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .channelSubNav{
+ background:rgba(8,10,16,.90)!important;backdrop-filter:blur(14px);
+}
+#channel#channel .creatorRefine.swapp-channel-polish .channelSubNav button{
+ font-size:12px!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .vignetteCard,
+#channel#channel .creatorRefine.swapp-channel-polish .linkCard{
+ border-radius:9px!important;box-shadow:none!important;
+ transition:border-color .16s ease,background-color .16s ease!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .vignetteCard:hover,
+#channel#channel .creatorRefine.swapp-channel-polish .linkCard:hover{
+ border-color:color-mix(in srgb,var(--showcase-accent) 55%,transparent)!important;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .swapp-showcase-upcoming{
+ display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+ min-height:78px;margin:12px 0 0;padding:14px clamp(14px,2vw,22px);
+ border:1px solid var(--showcase-border);border-left:3px solid var(--showcase-accent);
+ border-radius:9px;background:linear-gradient(90deg,color-mix(in srgb,var(--showcase-accent) 9%,#111723),#0c1018 72%);
+ box-sizing:border-box;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .swapp-showcase-calendar-icon{
+ display:grid;place-items:center;flex:0 0 40px;width:40px;height:40px;
+ border:1px solid rgba(255,255,255,.14);border-radius:9px;
+ color:var(--showcase-accent);font:700 29px/1 system-ui;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .swapp-showcase-next-copy{
+ display:flex;flex:1 1 240px;flex-direction:column;gap:3px;min-width:0;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .swapp-showcase-kicker{
+ letter-spacing:.11em;color:#9eabc1;font:700 10px/1.25 system-ui;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .swapp-showcase-event-title{
+ color:#f8f7fc;font:750 15px/1.35 system-ui;
+ overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .swapp-showcase-event-date{
+ color:#c7cfda;text-transform:capitalize;font:550 12px/1.4 system-ui;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .swapp-showcase-event-game{
+ color:var(--showcase-accent);font:700 11px/1.3 system-ui;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .swapp-showcase-calendar-link{
+ display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;
+ min-height:36px;padding:8px 12px;box-sizing:border-box;
+ border:1px solid rgba(220,224,242,.2);border-radius:7px;
+ color:#fafbff;background:rgba(255,255,255,.065);text-decoration:none;
+ font:650 12px/1.25 system-ui;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .swapp-showcase-calendar-link:hover{
+ border-color:var(--showcase-accent);
+}
+@media(max-width:900px){
+ #channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelTopHero,
+ #channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelHeroContent{
+  min-height:240px!important;height:auto!important;
+ }
+ #channel#channel .creatorRefine.swapp-channel-polish .channelHeroContent{gap:10px!important}
+ #channel#channel .creatorRefine.swapp-channel-polish .channelActionDock{width:auto!important}
+}
+@media(max-width:600px){
+ #channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelTopHero,
+ #channel#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .channelHeroContent{
+  min-height:268px!important;height:auto!important;
+ }
+ #channel#channel .creatorRefine.swapp-channel-polish .channelHeroContent{
+  align-items:flex-start!important;flex-direction:column!important;
+ }
+ #channel#channel .creatorRefine.swapp-channel-polish .channelActionDock{width:100%!important}
+ #channel#channel .creatorRefine.swapp-channel-polish .swapp-showcase-owner-menu,
+ #channel#channel .creatorRefine.swapp-channel-polish .swapp-showcase-visitor-menu{margin-left:auto}
+ #channel#channel .creatorRefine.swapp-channel-polish .swapp-showcase-upcoming{gap:10px;padding:12px}
+ #channel#channel .creatorRefine.swapp-channel-polish .swapp-showcase-calendar-link{
+  width:100%;margin-top:4px;
+ }
+}
+@media(prefers-reduced-motion:reduce){
+ #channel#channel .creatorRefine.swapp-channel-polish .vignetteCard,
+ #channel#channel .creatorRefine.swapp-channel-polish .linkCard{transition:none!important}
+}
