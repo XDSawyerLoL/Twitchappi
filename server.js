@@ -1482,6 +1482,14 @@ require('./modules/swapp-fair-admin').registerFairAdmin({
  app,guard:shopEditorGuard,restoreSession:restoreOryonSessionFromRememberCookie,
  fairMetrics,fairOffers,getPool:()=>socialInteractionsState!=='unavailable'?socialInteractionsPool:null
 });
+// Creator-owned first-party discovery indicators. Separate API candidate counts
+// from reported visible cards; never infer viewers, followers or revenue.
+require('./modules/swapp-creator-impact').installCreatorImpact({
+ app,lookupUser:getOryonUserByLogin,
+ getPool:()=>socialInteractionsState!=='unavailable'?socialInteractionsPool:null,
+ isEnabled:()=>fairMetrics.enabled(),restoreSession:restoreOryonSessionFromRememberCookie,
+ limiter:pulseReadLimiter
+});
 
 const SWAPP_CLEAN_VIEW_PATHS = new Set(['/actus','/decouvrir','/discover','/categories','/equipes','/teams','/compte','/connexion','/settings','/chaine','/channel','/gestionnaire','/manager','/dashboard','/studio','/admin','/reset-password']);
 const SWAPP_RESERVED_ROOT_PATHS = new Set(['index_script.js','favicon.ico','pricing','twitch_auth_start','twitch_auth_callback','twitch_user_status','twitch_logout','firebase_status','followed_streams','get_default_stream','boost_queue','stream_info','cycle_stream','stream_boost','scan_target','critique_ia','start_raid','analyze_schedule','api','assets','actus','jeux','communaute','bandes-annonces','boutique','reset-password','contact','moderation','mentions-legales','confidentialite','cgu','cookies']);
