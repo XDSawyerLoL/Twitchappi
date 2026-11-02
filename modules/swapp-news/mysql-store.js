@@ -103,7 +103,7 @@ function createNewsMysqlStore({uri,driver,pool,clock=Date.now}={}){
  function document(collection,id){
   const r=ref(collection,id);
   return {
-   id,
+   id,collection,
    async get(){const db=await ensure();return getRef(r,db)},
    async create(data){const db=await ensure();return write(db,'create',r,data)},
    async set(data,options={}){const db=await ensure();return write(db,'set',r,data,!!options?.merge)},
