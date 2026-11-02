@@ -1448,9 +1448,9 @@ app.get('/social',(_req,res)=>{res.set('Cache-Control','no-store');res.type('htm
 app.get('/bandes-annonces',async(_req,res)=>{
  res.set('Cache-Control','no-store');
  let videos=[];
- if(firestoreOk){
+ if(newsUseMysql||firestoreOk){
   try{
-   const snapshot=await db.collection('swapp_news_articles').where('status','==','published').limit(80).get();
+   const snapshot=await newsStorage.collection('swapp_news_articles').where('status','==','published').limit(80).get();
    videos=snapshot.docs.map(doc=>doc.data())
     .filter(x=>['trailer','video'].includes(x.contentType))
     .sort((a,b)=>String(b.publishedAt||'').localeCompare(String(a.publishedAt||'')));
@@ -1563,9 +1563,9 @@ require('./modules/swapp-aion2-guides').registerAion2Routes(app);
 // are cached for six hours to limit Firestore read operations.
 require('./modules/swapp-seo').registerSeoRoutes(app,{
  getPublished: async()=>{
-  if(!firestoreOk||!db||typeof db.collection!=='function')
+  if(!newsUseMysql&&!firestoreOk)
    throw new Error('News storage unavailable');
-  const result=await db.collection('swapp_news_articles')
+  const result=await newsStorage.collection('swapp_news_articles')
    .where('status','==','published').limit(500).get();
   return result.docs.map(doc=>({...doc.data(),slug:doc.id}));
  },
@@ -10287,10 +10287,10 @@ const spotlightNotices=createSpotlightNotices({getPool:spotlightPool});
 const spotlightLiveCache=new Map();
 let spotlightPublishedGamesCache={until:0,games:[]};
 async function spotlightPublishedGame(game){
-  if(!firestoreOk||!db||typeof db.collection!=='function')throw spotlightError('spotlight_articles_unavailable',503);
+  if(!newsUseMysql&&!firestoreOk)throw spotlightError('spotlight_articles_unavailable',503);
   let games=spotlightPublishedGamesCache.games;
   if(Date.now()>=spotlightPublishedGamesCache.until){
-    const snap=await db.collection('swapp_news_articles').where('status','==','published').limit(500).get();
+    const snap=await newsStorage.collection('swapp_news_articles').where('status','==','published').limit(500).get();
     const {editorialGame}=require('./modules/swapp-news/game-identity');
     games=(snap.docs||[]).map(doc=>editorialGame(doc.data()||{})).filter(Boolean);
     spotlightPublishedGamesCache={until:Date.now()+120000,games};
