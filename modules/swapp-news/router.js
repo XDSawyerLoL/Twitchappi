@@ -88,10 +88,19 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
     // Once every known historical post has a native, published SWAPP copy,
     // avoid requesting the retired external site on every magazine load.
     const remainingKnown=(publicCatalog.items||[]).filter(x=>x.type==='post'&&!oldUrls.has(x.url));
-    // Legacy read-through is optional. Never make public native articles wait
-    // on a retired external site's network, timeout or rate limits.
-    if(remainingKnown.length)void publicNews.scanBatch().catch(error=>
-      console.warn('[SWAPP NEWS] Ancien catalogue indisponible:',String(error?.message||error).slice(0,160)));
+    // Preserve fast legacy results (including the first public read), but
+    // cap time spent waiting on the retired external source. Slow attempts
+    // continue in the existing bounded in-memory cache for later requests.
+    if(remainingKnown.length){
+      let timeout;
+      try{
+        await Promise.race([
+          publicNews.scanBatch().catch(error=>
+            console.warn('[SWAPP NEWS] Ancien catalogue indisponible:',String(error?.message||error).slice(0,160))),
+          new Promise(resolve=>{timeout=setTimeout(resolve,700);})
+        ]);
+      }finally{clearTimeout(timeout);}
+    }
     const oldTitles=new Set(original.map(x=>String(x.title||'').toLowerCase()));
     // Removing a previously published native article must not resurrect
     // the old read-through copy from the historical source.
