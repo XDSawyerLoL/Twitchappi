@@ -38,7 +38,16 @@ const fetchJson=async route=>{
  const timer=setTimeout(()=>controller.abort(),15000);
  try{
   const r=await fetch(route,{credentials:'same-origin',headers:{Accept:'application/json'},signal:controller.signal});
-  if(!r.ok)throw Error('Contenu temporairement indisponible ('+r.status+').');
+  if(!r.ok){
+   if(r.status===503&&route.startsWith('/api/actus')){
+    const payload=await r.clone().json().catch(()=>null);
+    if(payload?.error==='news_migration_required')
+     throw Error('Les Actualités passent sur MySQL Hostinger. La reprise des anciens articles doit être vérifiée avant leur réouverture.');
+    if(payload?.error==='news_storage_unavailable'||payload?.error==='news_catalog_unavailable')
+     throw Error('Stockage Actualités indisponible. Vérifier la connexion MySQL Hostinger.');
+   }
+   throw Error('Contenu temporairement indisponible ('+r.status+').');
+  }
   return await r.json();
  }catch(error){
   if(error?.name==='AbortError')throw Error('Chargement trop long. Réessayez.');
