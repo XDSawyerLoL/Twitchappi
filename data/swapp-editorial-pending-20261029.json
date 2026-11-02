@@ -1,0 +1,462 @@
+{
+  "kind": "swapp-editorial-pending",
+  "schema": 1,
+  "source": "SWAPP-articles-prepares-20261029.md",
+  "createdAt": "2026-11-02",
+  "publicationPolicy": "INACTIF: ce fichier n'est PAS dans data/swapp-editorial-releases.json. Vérifier les sources, vidéo officielle intégrable, image, droits, absence de doublons Studio, déploiement Hostinger et rendu réel avant de publier. Ne pas inférer une publication du seul commit.",
+  "articles": [
+    {
+      "slug": "phantom-blade-zero-disponible-pc-ps5-lancement-installation",
+      "title": "Phantom Blade Zero est disponible : les points à vérifier avant de dégainer sur PC et PS5",
+      "summary": "L’action-RPG de S-GAME a ouvert ses portes le 29 octobre à 3 h en France métropolitaine. Version Steam disponible, français écrit et correctif de lancement : voici les informations pratiques confirmées.",
+      "body": "Phantom Blade Zero a franchi le cap du lancement numérique. L’horaire communiqué par S-GAME, le 28 octobre à 19 h sur la côte ouest américaine, correspond au 29 octobre 2026 à 3 h en France métropolitaine. La fiche Steam consultée ce matin indique que le jeu est sorti ; le PlayStation Store propose également l’édition PS5 à l’achat.\n\n## Une aventure solo de sabres et de conspirations\n\nLe joueur incarne Soul, un guerrier accusé d’avoir tué son maître et auquel il ne reste que soixante-six jours à vivre. Cette intrigue sert de cadre à un jeu d’action à la troisième personne nourri de wuxia, de fantastique et de cinéma d’arts martiaux. La fiche officielle Steam présente une expérience solo et recommande une manette.\n\nLe français figure parmi les langues d’interface et de sous-titrage ; les voix intégrales annoncées sont en anglais et en chinois simplifié. La présence d’une difficulté ajustable, d’options de sous-titres et d’un réglage de la taille du texte fait aussi partie des caractéristiques déclarées sur Steam. Cela renseigne les possibilités de configuration, sans constituer une évaluation de leur confort en situation.\n\n## Sur PC, ne pas confondre installation et espace de préchargement\n\nDans son message du 26 octobre, le studio annonce environ 145 Go pour le jeu et demande au moins 300 Go libres pour le processus de préchargement. Il recommande une installation sur SSD. Les 300 Go ne doivent donc pas être présentés comme la taille finale du jeu installé.\n\nUne lettre du directeur publiée le 28 octobre précise qu’un correctif de lancement d’environ 5 Go a été préparé. Les personnes ayant préchargé doivent le télécharger avant de jouer ; les nouveaux téléchargements comprennent directement la version actualisée. Les améliorations annoncées concernent notamment les performances du ray tracing et du path tracing : leur ampleur reste à mesurer indépendamment.\n\n## Prix Steam et points techniques\n\nL’édition standard est affichée à 59,99 € sur Steam France au contrôle du 29 octobre. Ce montant ne vaut ni pour toutes les éditions, ni pour les autres boutiques. Steam signale également l’emploi de Denuvo. Les recommandations matérielles restent des indications du studio et ne garantissent pas les performances sur chaque configuration.\n\n## Notre lecture : commencer par préparer sa machine\n\nLa disponibilité effective constitue le fait nouveau, distinct des bandes-annonces et des précommandes déjà ouvertes. Pour les joueurs PC, les vérifications utiles sont simples : espace disponible, SSD, version du jeu à jour et réglages adaptés à leur matériel. Les chiffres d’audience ou les promesses de spectacle ne remplacent pas ces conditions concrètes. Notre présentation décrit le lancement et ses modalités ; elle ne constitue pas un test du jeu.",
+      "game": "Phantom Blade Zero",
+      "games": [
+        "Phantom Blade Zero"
+      ],
+      "tags": [
+        "Phantom Blade Zero",
+        "S-GAME",
+        "sortie",
+        "PC",
+        "PS5",
+        "action-RPG"
+      ],
+      "seo": {
+        "title": "Phantom Blade Zero est disponible : les points à vérifier avant de dégainer sur PC et PS5",
+        "description": "Phantom Blade Zero est disponible sur PC et PS5. Horaire français, langues, prix Steam, SSD et correctif : les informations officielles du lancement."
+      },
+      "author": "Rédaction SWAPP",
+      "category": "Actualités JV",
+      "contentType": "article",
+      "status": "draft",
+      "publishedAt": null,
+      "trailerUrl": "https://www.youtube.com/watch?v=qgJBFa952mY",
+      "thumbnail": null,
+      "image": null,
+      "commercialLinks": [
+        {
+          "title": "Phantom Blade Zero — édition standard PC (Steam), Europe",
+          "merchant": "Instant Gaming",
+          "kind": "affiliate",
+          "url": "https://www.instant-gaming.com/fr/14205-acheter-phantom-blade-zero-pc-steam/?igr=SANSAHD"
+        }
+      ],
+      "sources": [
+        {
+          "label": "S-GAME — horaire de lancement et préchargement",
+          "url": "https://steamcommunity.com/games/4115450/announcements/detail/699905228356458777"
+        },
+        {
+          "label": "S-GAME — lettre du directeur et correctif de lancement, 28 octobre",
+          "url": "https://steamcommunity.com/games/4115450/announcements/detail/698779962638860722"
+        },
+        {
+          "label": "Steam — disponibilité, prix France et caractéristiques",
+          "url": "https://store.steampowered.com/app/4115450/Phantom_Blade_Zero/"
+        },
+        {
+          "label": "PlayStation — édition PS5 disponible, boutique américaine",
+          "url": "https://store.playstation.com/en-us/product/UB2134-PPSA34579_00-0622032276386943/"
+        }
+      ],
+      "qualityGate": {
+        "officialVideoIdentified": true,
+        "videoEmbeddabilityVerified": false,
+        "thumbnailVisualChecked": true,
+        "productionVerified": false,
+        "studioDedupVerified": false,
+        "readyForPublish": false
+      },
+      "notes": "- Le tarif cité est celui de Steam France, pas celui du lien affilié.\n- La recommandation de pilote du studio doit être recontrôlée avant tout conseil technique détaillé.\n- Déduplication publique et état Studio actuels impossibles : SWAPP répond HTTP 403 Bot Verification.\n- Lecture vidéo, restrictions régionales YouTube, rendu article/carte et flux Social encore à vérifier avant publication."
+    },
+    {
+      "slug": "cronos-lazarus-sortie-3-decembre-switch-2-2027",
+      "title": "Cronos: Lazarus sortira le 3 décembre ; la version Switch 2 attendra 2027",
+      "summary": "Bloober Team fixe la sortie du DLC narratif de Cronos: The New Dawn sur PC, PS5 et Xbox Series X|S. Sur Switch 2, l’extension est annoncée pour le premier trimestre 2027.",
+      "body": "Le communiqué publié par Bandai Namco Europe le 28 octobre donne enfin une date à Lazarus : le 3 décembre 2026. Les possesseurs de Switch 2 auront un calendrier distinct, limité pour l’instant au premier trimestre de l’année suivante. Aucun jour précis n’est annoncé pour cette version.\n\n## Revenir sur les origines du Warden\n\nCe chapitre se déroule avant Cronos: The New Dawn. Il suit le Pathfinder et les événements qui conduisent à sa transformation en Warden. Sa mission de résurrection doit échapper au Collective, qui envoie le Tracker à ses trousses.\n\nLe combat est présenté comme plus rapide et plus offensif. Le personnage disposera d’une téléportation, d’un leurre accompagné d’une brève invisibilité et du Gladius, une arme plus vive que la dague du jeu original. Ces éléments sont décrits par l’éditeur ; nous ne les présentons pas comme des sensations déjà éprouvées par la rédaction.\n\n## Une extension qui demande le jeu de base\n\nLa fiche Steam classe Lazarus comme contenu téléchargeable de Cronos: The New Dawn. Il faut donc posséder le jeu de base : acheter le DLC ne procure pas une aventure autonome. Cette fiche confirme une expérience solo sur Windows et répertorie le français parmi les langues prises en charge, avec voix intégrales en anglais.\n\nL’annonce européenne exprime le tarif en dollars, à 9,99 $. Elle ne permet pas d’établir un prix français en euros. Au contrôle du 29 octobre, la fiche Steam française confirme la date mais ne fournit pas de montant exploitable. Une conversion de devise ne remplacerait pas le prix choisi par la boutique.\n\n## Une bande-annonce centrée sur le récit\n\nLa vidéo officielle associée à l’annonce est une bande-annonce narrative. Elle présente les enjeux de ce chapitre et ses protagonistes. Ce montage promotionnel ne constitue pas une démonstration exhaustive des systèmes ni une mesure de leurs performances en jeu.\n\n## Notre lecture : deux vérifications avant l’achat\n\nLe premier choix est celui de la plateforme, puisque les calendriers diffèrent. Le second consiste à vérifier la possession de la bonne version du jeu de base. L’orientation plus offensive peut intéresser les joueurs qui souhaitent retrouver cet univers avec un autre rythme ; elle ne permet pas encore de conclure sur la durée, l’équilibrage ou la rejouabilité du DLC. Ces éléments restent à apprécier après sa sortie.",
+      "game": "Cronos: Lazarus",
+      "games": [
+        "Cronos: Lazarus"
+      ],
+      "tags": [
+        "Cronos",
+        "Lazarus",
+        "Bloober Team",
+        "DLC",
+        "survival horror",
+        "Switch 2"
+      ],
+      "seo": {
+        "title": "Cronos: Lazarus sortira le 3 décembre ; la version Switch 2 attendra 2027",
+        "description": "Cronos: Lazarus arrive le 3 décembre sur PC, PS5 et Xbox Series. Switch 2 au premier trimestre 2027, jeu de base requis et prix français à confirmer."
+      },
+      "author": "Rédaction SWAPP",
+      "category": "Actualités JV",
+      "contentType": "article",
+      "status": "draft",
+      "publishedAt": null,
+      "trailerUrl": "https://www.youtube.com/watch?v=iH4AIIHNs08",
+      "thumbnail": null,
+      "image": null,
+      "commercialLinks": [],
+      "sources": [
+        {
+          "label": "Bandai Namco — date et différences entre plateformes, 28 octobre",
+          "url": "https://en.bandainamcoent.eu/cronos/news/the-hunt-begins-cronos-lazarus-launches-december-3-pc-playstation-5-and-xbox-series-xs"
+        },
+        {
+          "label": "Steam — DLC, jeu de base requis et langues",
+          "url": "https://store.steampowered.com/app/4768180/Cronos_Lazarus/"
+        },
+        {
+          "label": "Bloober Team — site officiel Lazarus",
+          "url": "https://cronosnewdawn.com/lazarus"
+        }
+      ],
+      "qualityGate": {
+        "officialVideoIdentified": true,
+        "videoEmbeddabilityVerified": false,
+        "thumbnailVisualChecked": true,
+        "productionVerified": false,
+        "studioDedupVerified": false,
+        "readyForPublish": false
+      },
+      "notes": "- Prix français, durée et jour de sortie Switch 2 non confirmés.\n- Une mention de Lazarus existe chez Instant Gaming, mais aucun lien direct du bon DLC n’a été validé ; pas de substitution par le jeu de base.\n- Déduplication publique et état Studio actuels impossibles : SWAPP répond HTTP 403 Bot Verification.\n- Lecture vidéo, restrictions régionales YouTube, rendu article/carte et flux Social encore à vérifier avant publication."
+    },
+    {
+      "slug": "smalland-2-lost-realms-report-2027-gameplay",
+      "title": "Smalland 2: Lost Realms repoussé à 2027, avec un premier aperçu de ses nouveaux systèmes",
+      "summary": "Maximum Entertainment décale Smalland 2 à 2027 et publie une présentation de gameplay consacrée à la progression, à la fabrication et aux déplacements. La version Switch 2 visait déjà cette année-là.",
+      "body": "Smalland 2: Lost Realms ne sortira plus dans la fenêtre initialement annoncée pour 2026. Le communiqué de Maximum Entertainment du 28 octobre fixe désormais l’objectif à 2027, sans mois ni trimestre. Il accompagne cette annonce d’une vidéo de présentation commentée par l’équipe de développement.\n\n## Ce qui change dans le calendrier\n\nLors de la révélation du 9 juin, l’éditeur prévoyait le PC via Steam et Epic Games Store, la PS5 et les Xbox Series X|S avant la fin de l’année. La Switch 2 était, elle, déjà prévue pour 2027. Le report concerne donc la première vague ; il serait trompeur de présenter toutes les versions comme initialement attendues en 2026.\n\nMaximum explique vouloir livrer la meilleure expérience possible. Il ne détaille pas un problème technique précis et ne donne pas de calendrier plus fin. À ce stade, aucun motif supplémentaire ne peut être attribué au studio.\n\n## Progression, ressources et liberté de mouvement\n\nLa nouvelle vidéo s’attarde sur les avantages de progression, la collecte de ressources et la fabrication. Elle montre également l’escalade et la nage. Ces capacités avaient déjà été évoquées : la nouveauté consiste à les présenter dans ce premier aperçu d’ensemble du gameplay, et non à prétendre qu’elles viennent toutes d’être annoncées.\n\nCe second épisode revient à une époque antérieure à Smalland: Survive the Wilds. La présentation initiale décrit un univers miniature peuplé de créatures et de civilisations anciennes, à explorer seul ou en coopération jusqu’à dix. La construction d’avant-postes et les échanges entre régions font partie des ambitions exposées par l’éditeur.\n\n## Une date précise et un prix encore attendus\n\nLa fiche Steam française indique actuellement une sortie prochaine, sans jour fixé, et ne donne pas de prix. Elle répertorie le français et la coopération en ligne. Ces éléments ne suffisent pas à confirmer tous les détails du jeu croisé entre consoles et PC : les possibilités concrètes pour un groupe devront être précisées avant l’achat.\n\n## Notre lecture : attendre les conditions du jeu à plusieurs\n\nPour les joueurs qui préparaient une partie coopérative cette année, le changement utile est clair : il faut revoir le calendrier. La présentation des systèmes donne un aperçu du travail en cours, mais elle ne garantit ni la stabilité des grandes parties ni la qualité de la progression sur la durée. Une date ferme et une explication des connexions entre plateformes seront les prochains jalons réellement décisifs.",
+      "game": "Smalland 2: Lost Realms",
+      "games": [
+        "Smalland 2: Lost Realms"
+      ],
+      "tags": [
+        "Smalland 2",
+        "Lost Realms",
+        "Maximum Entertainment",
+        "report",
+        "survie",
+        "coopération"
+      ],
+      "seo": {
+        "title": "Smalland 2: Lost Realms repoussé à 2027, avec un premier aperçu de ses nouveaux systèmes",
+        "description": "Smalland 2 vise désormais 2027. Report des versions PC, PS5 et Xbox Series, fenêtre Switch 2 et nouveautés de gameplay : les précisions officielles."
+      },
+      "author": "Rédaction SWAPP",
+      "category": "Actualités JV",
+      "contentType": "article",
+      "status": "draft",
+      "publishedAt": null,
+      "trailerUrl": "https://www.youtube.com/watch?v=xtN7lRv2vqQ",
+      "thumbnail": null,
+      "image": null,
+      "commercialLinks": [],
+      "sources": [
+        {
+          "label": "Maximum Entertainment — communiqué du report, 28 octobre",
+          "url": "https://www.gamespress.com/Smalland-2-Lost-Realms-Reveals-First-Gameplay-Trailer-Showcasing-New-F"
+        },
+        {
+          "label": "Maximum Entertainment — calendrier initial du 9 juin",
+          "url": "https://maximument.com/news/revealing-smalland-2-lost-realms-a-new-adventure-begins/"
+        },
+        {
+          "label": "Steam — fiche officielle Smalland 2",
+          "url": "https://store.steampowered.com/app/4761940/Smalland_2_Lost_Realms/"
+        }
+      ],
+      "qualityGate": {
+        "officialVideoIdentified": true,
+        "videoEmbeddabilityVerified": false,
+        "thumbnailVisualChecked": true,
+        "productionVerified": false,
+        "studioDedupVerified": false,
+        "readyForPublish": false
+      },
+      "notes": "- Pas de date précise, de prix ni de modalités exhaustives du jeu croisé confirmés.\n- Déduplication publique et état Studio actuels impossibles : SWAPP répond HTTP 403 Bot Verification.\n- Lecture vidéo, restrictions régionales YouTube, rendu article/carte et flux Social encore à vérifier avant publication."
+    },
+    {
+      "slug": "company-of-heroes-3-operation-torch-25-novembre-campagne-pc",
+      "title": "Company of Heroes 3 : Operation Torch apportera quinze missions solo le 25 novembre",
+      "summary": "Relic annonce une nouvelle campagne consacrée aux forces américaines en Afrique du Nord. Operation Torch sortira sur PC via Steam ; aucune version console ni prix définitif ne sont annoncés.",
+      "body": "Company of Heroes 3 recevra une campagne narrative supplémentaire le 25 novembre 2026. Présenté par Relic le 28 octobre, le DLC Operation Torch propose quinze missions inspirées des opérations alliées en Afrique du Nord. Son parcours va des débarquements à l’assaut de la cote 609, en passant par Kasserine.\n\n## Une armée qui progresse entre les missions\n\nL’extension place les forces américaines au centre de scénarios tactiques variés : débarquement, infiltration, défense ou offensive. Les missions et leurs objectifs facultatifs donnent accès à des améliorations. Le joueur pourra ainsi orienter l’évolution de son armée entre les batailles, au lieu de retrouver un dispositif strictement identique à chaque départ.\n\nLe communiqué présente ce contenu comme une campagne solo. Les fonctions multijoueurs du jeu de base ne permettent donc pas d’en déduire une campagne coopérative. Les conditions de cette nouvelle expérience doivent être lues séparément des modes déjà existants.\n\n## Trois regards sur le même conflit\n\nL’annonce détaillée de Relic suit trois militaires américains : le colonel Thomas Becker, le major George Russo et le sergent-chef James Flanagan. Leurs rôles offrent des perspectives différentes sur les décisions du commandement et leurs conséquences au front. Les forces commandées appartiennent à la 34e division d’infanterie, surnommée les Red Bulls ; les forces allemandes constituent l’adversaire principal.\n\nCette construction narrative ne transforme pas le jeu en document historique. Relic revendique des situations inspirées d’événements réels et adaptées aux besoins des missions. La fidélité des reconstitutions et la qualité de l’écriture restent à évaluer.\n\n## Steam confirmé, jeu de base requis\n\nLa FAQ officielle indique une disponibilité sur Steam et précise que le tarif sera communiqué ultérieurement. La fiche du DLC exige Company of Heroes 3. Elle mentionne Windows, le jeu solo et une interface française, avec voix intégrales en anglais. Aucune date console n’est donnée pour Operation Torch, même si Company of Heroes 3 existe sur consoles.\n\nLa mise à jour 3.0 constitue un rendez-vous distinct : l’aperçu officiel des cartes publié le 27 octobre l’annonce pour le 5 novembre sur PC. Il ne faut pas confondre cette mise à jour avec l’achat de la nouvelle campagne.\n\n## Notre lecture : une annonce qui s’adresse d’abord au public solo\n\nLe nombre de missions et la progression entre les batailles rendent la proposition concrète pour ceux qui préfèrent les campagnes aux affrontements compétitifs. Le prix, la variété réelle des situations et la durée de chacune restent toutefois des informations déterminantes. Le teaser annonce une direction ; il ne suffit pas à juger ces qualités.",
+      "game": "Company of Heroes 3: Operation Torch",
+      "games": [
+        "Company of Heroes 3: Operation Torch"
+      ],
+      "tags": [
+        "Company of Heroes 3",
+        "Operation Torch",
+        "Relic",
+        "DLC",
+        "stratégie",
+        "PC"
+      ],
+      "seo": {
+        "title": "Company of Heroes 3 : Operation Torch apportera quinze missions solo le 25 novembre",
+        "description": "Operation Torch arrive le 25 novembre sur Steam avec quinze missions solo pour Company of Heroes 3. Jeu de base requis, prix et consoles à préciser."
+      },
+      "author": "Rédaction SWAPP",
+      "category": "Actualités JV",
+      "contentType": "article",
+      "status": "draft",
+      "publishedAt": null,
+      "trailerUrl": "https://www.youtube.com/watch?v=NIWn4bb0E7g",
+      "thumbnail": null,
+      "image": null,
+      "commercialLinks": [],
+      "sources": [
+        {
+          "label": "Relic — annonce et FAQ Operation Torch, 28 octobre",
+          "url": "https://steamcommunity.com/games/1677280/announcements/detail/674010164693565444"
+        },
+        {
+          "label": "Relic — communiqué de presse",
+          "url": "https://www.gamespress.com/Relic-Entertainment-Announces-Company-of-Heroes-3-Operation-Torch-a-ne"
+        },
+        {
+          "label": "Steam — DLC Operation Torch et prérequis",
+          "url": "https://store.steampowered.com/app/5210790/Company_of_Heroes_3_Operation_Torch/"
+        },
+        {
+          "label": "Relic — aperçu des cartes de la version 3.0, 27 octobre",
+          "url": "https://steamcommunity.com/games/1677280/announcements/detail/674009530499078684"
+        }
+      ],
+      "qualityGate": {
+        "officialVideoIdentified": true,
+        "videoEmbeddabilityVerified": false,
+        "thumbnailVisualChecked": true,
+        "productionVerified": false,
+        "studioDedupVerified": false,
+        "readyForPublish": false
+      },
+      "notes": "- Prix final, durée de campagne et éventuelles versions console non annoncés.\n- Déduplication publique et état Studio actuels impossibles : SWAPP répond HTTP 403 Bot Verification.\n- Lecture vidéo, restrictions régionales YouTube, rendu article/carte et flux Social encore à vérifier avant publication."
+    },
+    {
+      "slug": "modern-warfare-4-saison-1-6-novembre-x01-warzone",
+      "title": "Modern Warfare 4 détaille sa saison 1 : X01, nouvelles cartes et intégration de Warzone",
+      "summary": "La présentation du 28 octobre précise le contenu de la saison 1, attendue le 6 novembre à 6 h en France métropolitaine. Tout ce qui figure dans sa feuille de route ne sera pas disponible dès le premier jour.",
+      "body": "Activision a détaillé la première saison de Modern Warfare 4 le 28 octobre 2026. Son démarrage est fixé au 6 novembre à minuit sur la côte est américaine, soit 6 h en France métropolitaine. Cette présentation apporte du contenu nouveau par rapport au lancement du jeu du 23 octobre.\n\n## Multijoueur et DMZ : les premiers ajouts\n\nBackstab, Canyon et une nouvelle version de Shoot House sont prévus au lancement de la saison. Le DMZ accueillera X01, une installation fermée accessible depuis Hajin, avec de nouveaux ordres guidés par Ghost. Ministry et Overflow figurent, eux, parmi les cartes de mi-saison.\n\nShipment, ajouté le 27 octobre, ne constitue donc pas une nouveauté à attendre le 6 novembre. Activision annonce aussi Possession pour le 29 octobre et Infected pour le 30, avant le lancement de la saison elle-même. Ces dates distinguent les différentes étapes d’une feuille de route qui couvre plusieurs semaines.\n\n## Warzone : un second rendez-vous d’information\n\nHajin et Zodiac accompagnent l’intégration de Modern Warfare 4 à Warzone. L’éditeur réserve toutefois une présentation complète de ce volet au 2 novembre. Il faut attendre ce billet avant de traiter l’annonce actuelle comme un inventaire définitif de Warzone.\n\n## Choisir l’accès correspondant à son usage\n\nLa fiche officielle Steam présente Modern Warfare 4 comme un jeu payant, avec campagne, multijoueur et DMZ. Sa présence à côté de Warzone ne signifie pas que toutes ces expériences deviennent gratuites. Les éditions et les offres d’abonnement doivent être vérifiées pour la plateforme effectivement utilisée ; une clé Microsoft Store ne remplace pas une licence Steam ou PlayStation.\n\nLe lien commercial proposé en fin d’article correspond exclusivement à l’édition standard Microsoft Store pour PC et Xbox Series X|S. Aucun stock ni prix de cette offre n’est promis ici. Les dépenses liées aux contenus facultatifs doivent être considérées séparément de l’accès au jeu.\n\n## Notre lecture : organiser les sessions autour de ce qui arrive réellement\n\nLe point utile n’est pas seulement la quantité d’éléments affichés sur une image de promotion. Un groupe souhaitant découvrir X01 doit se coordonner sur le début de saison ; celui qui attend une carte de mi-saison n’a pas encore de rendez-vous aussi précis. Cette distinction évite de planifier une session sur une promesse qui arrivera plus tard. La liste des ajouts n’indique pas non plus leur équilibrage ni la stabilité du service, qui devront être jugés une fois la mise à jour disponible.",
+      "game": "Call of Duty: Modern Warfare 4",
+      "games": [
+        "Call of Duty: Modern Warfare 4"
+      ],
+      "tags": [
+        "Call of Duty",
+        "Modern Warfare 4",
+        "saison 1",
+        "DMZ",
+        "Warzone",
+        "mise à jour"
+      ],
+      "seo": {
+        "title": "Modern Warfare 4 détaille sa saison 1 : X01, nouvelles cartes et intégration de Warzone",
+        "description": "Modern Warfare 4 saison 1 : lancement le 6 novembre à 6 h, X01 en DMZ, nouvelles cartes et Warzone. Les dates et limites de la feuille de route."
+      },
+      "author": "Rédaction SWAPP",
+      "category": "Actualités JV",
+      "contentType": "article",
+      "status": "draft",
+      "publishedAt": null,
+      "trailerUrl": "https://www.youtube.com/watch?v=nemUC34Q2hQ",
+      "thumbnail": null,
+      "image": null,
+      "commercialLinks": [
+        {
+          "title": "Modern Warfare 4 — édition standard PC et Xbox Series X|S (Microsoft Store)",
+          "merchant": "Instant Gaming",
+          "kind": "affiliate",
+          "url": "https://www.instant-gaming.com/fr/16809-acheter-call-of-duty-modern-warfare-4-xbox-series-x-s-pc-microsoft-store/?igr=SANSAHD"
+        }
+      ],
+      "sources": [
+        {
+          "label": "Activision — contenu de la saison 1, 28 octobre",
+          "url": "https://www.callofduty.com/blog/2026/10/call-of-duty-modern-warfare-4-warzone-season-1-announcement"
+        },
+        {
+          "label": "Steam — fiche officielle Modern Warfare 4",
+          "url": "https://store.steampowered.com/app/4435490/Call_of_Duty_Modern_Warfare_4/"
+        }
+      ],
+      "qualityGate": {
+        "officialVideoIdentified": true,
+        "videoEmbeddabilityVerified": false,
+        "thumbnailVisualChecked": true,
+        "productionVerified": false,
+        "studioDedupVerified": false,
+        "readyForPublish": false
+      },
+      "notes": "- Présentation complète de Warzone attendue le 2 novembre ; détails de mi-saison incomplets.\n- Compatibilité régionale de l’offre Microsoft Store à recontrôler avant activation du lot.\n- Déduplication publique et état Studio actuels impossibles : SWAPP répond HTTP 403 Bot Verification.\n- Lecture vidéo, restrictions régionales YouTube, rendu article/carte et flux Social encore à vérifier avant publication."
+    },
+    {
+      "slug": "star-trek-voyager-delta-chronicles-2-disponible-q-patch-2-2",
+      "title": "Star Trek: Voyager accueille Delta Chronicles 2 : Q revient avec cinq nouvelles missions",
+      "summary": "Le DLC Delta Chronicles 2 est disponible depuis le 28 octobre. Les détenteurs de l’Expansion Pass le possèdent déjà ; le correctif 2.2 apporte aussi des ajustements distincts du contenu payant.",
+      "body": "Le voyage de l’U.S.S. Voyager s’enrichit d’un nouveau chapitre. Delta Chronicles 2 est sorti le 28 octobre 2026 : la fiche Steam française confirme sa disponibilité et un tarif de 9,99 € lors du contrôle du 29 octobre. Daedalic et gameXcite avaient annoncé ce rendez-vous sur PC, PS5, Xbox Series X|S et Switch 2 dans leur présentation du 22 octobre.\n\n## Cinq missions, avec Q et le Docteur au premier plan\n\nLe DLC réunit cinq intrigues inspirées de la série : The Swarm, The Q and the Grey, Tinker Tenor Doctor Spy, Nightingale et Q2. Cette dernière se débloque après la résolution de The Q and the Grey. Leur présence dans la campagne ne signifie donc pas qu’elles sont toutes accessibles immédiatement dans n’importe quelle sauvegarde.\n\nDeux personnages peuvent rejoindre l’équipage : Q et Phlox, ici le membre de la Hiérarchie associé à Tinker Tenor Doctor Spy. Le contenu ajoute aussi deux technologies et de nouveaux vaisseaux adverses ou rencontrés en mission. Les Q Logs offrent des commentaires audio sur les secteurs 2 à 12, avec John de Lancie dans le rôle de Q.\n\n## Vérifier l’Expansion Pass avant de racheter le DLC\n\nLa boutique précise deux conditions essentielles : le jeu de base est requis, et les propriétaires de l’Expansion Pass disposent déjà de ce contenu. Pour eux, un achat séparé ferait double emploi. Le montant Steam France ne doit pas être appliqué automatiquement aux boutiques console ou à d’autres régions.\n\nSteam répertorie une interface et des sous-titres français, avec voix intégrales en anglais et en allemand. Aucun doublage français n’est annoncé dans cette fiche. Le DLC conserve le cadre solo du jeu ; ses nouveaux héros ne correspondent pas à des personnages jouables par d’autres personnes en coopération.\n\n## Le correctif 2.2 accompagne l’extension\n\nLes notes PC du 28 octobre détaillent aussi des changements qui dépassent l’ajout de missions. Q Trials évite désormais de proposer deux fois de suite le même objectif de secteur, et une option permet de désactiver les fenêtres de tutoriel. Plusieurs corrections concernent les événements, l’interface et le déroulement des combats.\n\nLes nouvelles missions, les Q Logs et le recrutement des deux héros restent soumis à la possession du DLC. Il faut distinguer ces éléments payants des améliorations générales listées dans les mêmes notes.\n\n## Notre lecture : le pass et la sauvegarde sont les premières questions\n\nPour reprendre une campagne, le contenu acquis et l’avancement de la partie comptent davantage que le seul bouton d’achat. L’intérêt de ce pack repose sur de nouveaux dilemmes narratifs et sur Q ; sa valeur dépendra de la façon dont ces missions s’intègrent au voyage. Leur nombre ne permet pas, à lui seul, d’estimer une durée de jeu ni de garantir qu’une partie avancée les rencontrera toutes.",
+      "game": "Star Trek: Voyager — Across the Unknown",
+      "games": [
+        "Star Trek: Voyager — Across the Unknown"
+      ],
+      "tags": [
+        "Star Trek",
+        "Voyager",
+        "Across the Unknown",
+        "Delta Chronicles 2",
+        "DLC",
+        "Daedalic"
+      ],
+      "seo": {
+        "title": "Star Trek: Voyager accueille Delta Chronicles 2 : Q revient avec cinq nouvelles missions",
+        "description": "Delta Chronicles 2 est disponible pour Star Trek: Voyager. Cinq missions, Q, prix Steam, Expansion Pass et correctif 2.2 : ce qu’il faut vérifier."
+      },
+      "author": "Rédaction SWAPP",
+      "category": "Actualités JV",
+      "contentType": "article",
+      "status": "draft",
+      "publishedAt": null,
+      "trailerUrl": "https://www.youtube.com/watch?v=G-b-t5QZVys",
+      "thumbnail": null,
+      "image": null,
+      "commercialLinks": [],
+      "sources": [
+        {
+          "label": "Steam — disponibilité et conditions de Delta Chronicles 2",
+          "url": "https://store.steampowered.com/app/4861580/"
+        },
+        {
+          "label": "gameXcite et Daedalic — annonces officielles et notes 2.2",
+          "url": "https://steamcommunity.com/app/2643390/announcements/"
+        },
+        {
+          "label": "Nintendo — fiche officielle Switch 2, boutique américaine",
+          "url": "https://www.nintendo.com/us/store/products/star-trek-voyager-across-the-unknown-delta-chronicles-2-dlc-70050000076093-switch-2/"
+        }
+      ],
+      "qualityGate": {
+        "officialVideoIdentified": true,
+        "videoEmbeddabilityVerified": false,
+        "thumbnailVisualChecked": true,
+        "productionVerified": false,
+        "studioDedupVerified": false,
+        "readyForPublish": false
+      },
+      "notes": "- Conditions et prix français des boutiques console non vérifiés séparément ; seul le prix Steam France est cité.\n- Aucune fiche Instant Gaming directe du DLC exact identifiée.\n- Déduplication publique et état Studio actuels impossibles : SWAPP répond HTTP 403 Bot Verification.\n- Lecture vidéo, restrictions régionales YouTube, rendu article/carte et flux Social encore à vérifier avant publication."
+    },
+    {
+      "slug": "tanuki-pons-summer-sortie-10-novembre-demo-progression",
+      "title": "TANUKI: Pon’s Summer arrive le 10 novembre : les trois premiers jours de la démo seront conservés",
+      "summary": "Denkiworks et CRITICAL REFLEX datent leur aventure de livraison à vélo. La sortie PC est confirmée pour le 10 novembre, et le studio précise la limite du transfert de progression depuis la démo.",
+      "body": "TANUKI: Pon’s Summer dispose désormais d’une date ferme. Le 28 octobre 2026, Denkiworks et CRITICAL REFLEX ont annoncé une sortie le 10 novembre. La fiche Steam française reprend ce rendez-vous et confirme la prise en charge du français.\n\n## Un facteur en BMX, un sanctuaire à restaurer\n\nPon doit gagner suffisamment d’argent et réunir des ressources pour remettre un sanctuaire en état avant un festival. Les livraisons forment le cœur de l’aventure : la taille, le poids et la forme des colis obligent à adapter les trajets. Le vélo ne sert donc pas uniquement à rejoindre le prochain marqueur sur la carte.\n\nLa description officielle évoque quatre villes inspirées de Kyoto, Aomori, Sapporo et Beppu. Les relations avec leurs habitants ouvrent des activités et des objectifs supplémentaires. La restauration du sanctuaire lie ces occupations à une progression commune, au lieu d’en faire seulement une suite de mini-jeux isolés.\n\n## Une démo utile, mais un transfert limité\n\nLe message de lancement promet la reprise des trois premiers jours de la démo dans le jeu complet. Il ne promet pas que chaque minute jouée ni tous les progrès effectués au-delà seront conservés. Les joueurs qui souhaitent préparer leur partie peuvent donc essayer la démo tout en gardant cette limite en tête.\n\nL’annonce met également en avant les défis de BMX, les missions confiées par les habitants et plusieurs lieux à explorer. Il s’agit d’une présentation du contenu prévu, pas d’une estimation de durée de vie. La fiche Steam décrit une expérience solo et recommande une manette.\n\n## Les versions console se précisent\n\nLe même message confirme l’arrivée sur PlayStation et l’ouverture des précommandes sur Xbox, Switch et Switch 2. La bande-annonce de date est publiée par CRITICAL REFLEX. Pour un achat console, la fiche de la boutique locale reste la référence pour l’édition, le prix et les fonctions incluses ; les conditions d’une version ne doivent pas être supposées identiques sur toutes les machines.\n\nAu contrôle du 29 octobre, aucun prix Steam France exploitable n’est affiché. Une fiche Instant Gaming du jeu PC existe, mais elle ne permet pas d’affirmer ici qu’une précommande est disponible.\n\n## Notre lecture : essayer les déplacements avant de s’engager\n\nL’intérêt de cette découverte indépendante tient à la place du vélo dans les tâches quotidiennes. Le ressenti des déplacements décidera beaucoup de l’envie de multiplier les tournées. La démo constitue donc un meilleur point de départ qu’une promesse de quantité : elle permet d’évaluer le rythme, les commandes et l’ambiance. Le transfert annoncé facilite ensuite la poursuite, à condition de respecter sa limite de trois jours.",
+      "game": "TANUKI: Pon’s Summer",
+      "games": [
+        "TANUKI: Pon’s Summer"
+      ],
+      "tags": [
+        "TANUKI",
+        "Pon’s Summer",
+        "Denkiworks",
+        "CRITICAL REFLEX",
+        "indépendant",
+        "date de sortie"
+      ],
+      "seo": {
+        "title": "TANUKI: Pon’s Summer arrive le 10 novembre : les trois premiers jours de la démo seront conservés",
+        "description": "TANUKI: Pon’s Summer sort le 10 novembre. Aventure solo, français, versions console et transfert limité à trois jours de démo : les faits confirmés."
+      },
+      "author": "Rédaction SWAPP",
+      "category": "Actualités JV",
+      "contentType": "article",
+      "status": "draft",
+      "publishedAt": null,
+      "trailerUrl": "https://www.youtube.com/watch?v=PeF2MwJQwUM",
+      "thumbnail": null,
+      "image": null,
+      "commercialLinks": [
+        {
+          "title": "TANUKI: Pon’s Summer — fiche PC (Steam), précommande non confirmée",
+          "merchant": "Instant Gaming",
+          "kind": "affiliate",
+          "url": "https://www.instant-gaming.com/fr/17616-acheter-tanuki-pon-s-summer-pc-steam/?igr=SANSAHD"
+        }
+      ],
+      "sources": [
+        {
+          "label": "Denkiworks et CRITICAL REFLEX — annonce du 28 octobre",
+          "url": "https://steamcommunity.com/games/3218570/announcements/detail/716794361145196891"
+        },
+        {
+          "label": "Steam — fiche officielle et langues",
+          "url": "https://store.steampowered.com/app/3218570/TANUKI_Pons_Summer/"
+        }
+      ],
+      "qualityGate": {
+        "officialVideoIdentified": true,
+        "videoEmbeddabilityVerified": false,
+        "thumbnailVisualChecked": true,
+        "productionVerified": false,
+        "studioDedupVerified": false,
+        "readyForPublish": false
+      },
+      "notes": "- Prix français et conditions de chaque boutique console à préciser.\n- Le transfert annoncé concerne les trois premiers jours de la démo ; aucune synchronisation entre plateformes n’est promise.\n- Déduplication publique et état Studio actuels impossibles : SWAPP répond HTTP 403 Bot Verification.\n- Lecture vidéo, restrictions régionales YouTube, rendu article/carte et flux Social encore à vérifier avant publication."
+    },
+    {
+      "slug": "monster-train-2-the-punished-10-novembre-switch-2-mobile",
+      "title": "Monster Train 2 : The Punished arrive le 10 novembre, les versions Switch 2 et mobile se précisent",
+      "summary": "Shiny Shoe annonce un nouveau clan construit autour des dégâts infligés à ses propres unités. Ce DLC payant conclura la série de contenus additionnels annoncée par l’éditeur ; de nouveaux portages sont aussi prévus avant la fin de 2026.",
+      "body": "Monster Train 2 prépare un nouveau départ le 10 novembre 2026. Le 28 octobre, Shiny Shoe et Big Fan ont annoncé The Punished pour PC, PlayStation 5, Xbox et Nintendo Switch, au prix communiqué de 7,99 dollars. Aucun prix français en euros n’est confirmé dans les sources consultées.\n\n## Archus passe de l’autre côté du combat\n\nAncien adversaire du premier Monster Train, Archus mène désormais ce clan. Le studio promet de nouvelles unités, de nouveaux sorts et des capacités à découvrir au fil de présentations détaillées avant la sortie. Une émission avec les développeurs est également annoncée pour le jour du lancement.\n\nLe principe décrit sur Steam consiste à blesser ses propres unités pour déclencher leurs effets. Punish répond aux dégâts causés par les sorts ou capacités alliés ; Bloodshed récompense les dégâts subis par une unité amie au même étage. Chained permet de faire subir une partie de cette souffrance aux ennemis, tandis que Tenacious protège d’un coup fatal provoqué par un allié.\n\n## Un monolithe pour renforcer le clan\n\nLe Monolith ajoute un autre arbitrage : dépenser de l’Ember et défausser des cartes pour accroître la Devotion. Cette progression renforce certaines cartes et accorde du Zeal aux unités nouvellement invoquées, avec des gains d’attaque et de santé maximale.\n\nLa fiche Steam précise que le jeu de base est nécessaire et annonce une interface ainsi que des sous-titres français. Le prix du DLC ne comprend donc pas automatiquement Monster Train 2.\n\n## Des portages annoncés, sans jour fixé\n\nLe communiqué confirme aussi l’arrivée du jeu sur Switch 2, iOS et Android avant la fin de l’année, avec The Punished disponible sur ces plateformes. Il ne leur attribue pas une sortie le 10 novembre. Les modalités d’achat, les éventuels transferts de sauvegarde et les fonctions propres à ces versions restent à préciser.\n\nBig Fan présente ce DLC comme la conclusion de la série de contenus après lancement. Cette formulation porte sur le programme éditorial annoncé ; elle ne fournit pas un calendrier d’arrêt des correctifs ou de l’assistance.\n\n## Notre lecture : une ressource supplémentaire à surveiller\n\nCe clan promet de transformer la santé en outil de construction du deck. L’enjeu sera de garder suffisamment de marge pour profiter des effets déclenchés sans fragiliser toute la défense. Le Monolith ajoute une décision concurrente sur les cartes conservées en main. Ces interactions peuvent renouveler les choix d’une partie, mais leur équilibre et leur variété sur la durée demanderont une évaluation après la sortie.",
+      "game": "Monster Train 2: The Punished",
+      "games": [
+        "Monster Train 2: The Punished"
+      ],
+      "tags": [
+        "Monster Train 2",
+        "The Punished",
+        "Shiny Shoe",
+        "Big Fan",
+        "DLC",
+        "deckbuilding"
+      ],
+      "seo": {
+        "title": "Monster Train 2 : The Punished arrive le 10 novembre, les versions Switch 2 et mobile se précisent",
+        "description": "Monster Train 2 annonce The Punished pour le 10 novembre. Nouveau clan, jeu de base requis, prix en dollars et portages Switch 2, iOS et Android."
+      },
+      "author": "Rédaction SWAPP",
+      "category": "Actualités JV",
+      "contentType": "article",
+      "status": "draft",
+      "publishedAt": null,
+      "trailerUrl": "",
+      "thumbnail": null,
+      "image": null,
+      "commercialLinks": [],
+      "sources": [
+        {
+          "label": "Shiny Shoe — annonce officielle du 28 octobre",
+          "url": "https://steamcommunity.com/games/2742830/announcements/detail/717919626870128644"
+        },
+        {
+          "label": "Big Fan — communiqué sur le DLC et les nouveaux portages",
+          "url": "https://www.gamespress.com/en-US/Monster-Train-2-The-Punished-Adding-New-Playable-Clan-Nov-10-on-PC-and"
+        },
+        {
+          "label": "Steam — DLC The Punished, mécanismes et conditions",
+          "url": "https://store.steampowered.com/app/4739980/Monster_Train_2_The_Punished/"
+        }
+      ],
+      "qualityGate": {
+        "officialVideoIdentified": false,
+        "videoEmbeddabilityVerified": false,
+        "thumbnailVisualChecked": false,
+        "productionVerified": false,
+        "studioDedupVerified": false,
+        "readyForPublish": false
+      },
+      "notes": "- Prix français et date précise des portages Switch 2, iOS et Android non confirmés.\n- Aucune fiche Instant Gaming directe du DLC exact vérifiée ; aucun lien vers le jeu de base substitué.\n- Vidéo officielle directement consacrée au DLC et vignette correspondante à valider ; la vidéo du jeu de base ne prouve pas les nouveaux systèmes.\n- Déduplication publique et état Studio actuels impossibles : SWAPP répond HTTP 403 Bot Verification.\n- Lecture vidéo, restrictions régionales YouTube, rendu article/carte et flux Social encore à vérifier avant publication."
+    }
+  ]
+}
