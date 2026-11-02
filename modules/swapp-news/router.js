@@ -53,6 +53,10 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
         console.warn('[SWAPP INDEXNOW] Search-engine notification not accepted:',status.status||status.reason);
     }).catch(error=>console.warn('[SWAPP INDEXNOW] Notification unavailable:',error?.message));
   };
+  const mysqlMode=firestore.backend==='mysql';
+  // Keep old editorial withdrawal history authoritative until migration.
+  const migrationVerified=!mysqlMode||process.env.SWAPP_NEWS_MIGRATION_VERIFIED==='1';
+  const releaseCandidates=migrationVerified?swappReleaseArticles:[];
   const articles=firestore.collection('swapp_news_articles');
   const outbox=firestore.collection('swapp_news_outbox');
   const importKeys=firestore.collection('swapp_news_import_keys');
@@ -65,7 +69,7 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
   // existing CMS collection. Existing edits, drafts and withdrawals win.
   // A temporary storage failure leaves the verified public fallback intact.
   const ensureReleaseEditable=async()=>{
-    if(process.env.NODE_ENV!=='production'||!isReady())return;
+    if(process.env.NODE_ENV!=='production'||!isReady()||!migrationVerified)return;
     try{
       const result=await releaseSync.sync();
       if(result.created>0)discordPublisher.kick();
@@ -114,7 +118,8 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
     // Versioned editorial release follows the usual native rendering paths.
     // Never resurrect an article explicitly withdrawn or overwrite a Firestore draft.
     const allSlugs=new Set(records.map(item=>String(item.id||item.data?.slug||'')));
-    const editorialFallback=swappReleaseArticles.filter(item=>!allSlugs.has(item.slug)
+    if(mysqlMode&&!migrationVerified&&!original.length)throw Error('news_migration_required');
+    const editorialFallback=releaseCandidates.filter(item=>!allSlugs.has(item.slug)
       &&!oldTitles.has(String(item.title||'').toLowerCase())
       &&!withdrawnTitles.has(String(item.title||'').toLowerCase()));
     return [...original.map(publicArticle),...editorialFallback.map(publicArticle),...recovered.map(recoveredArticle)]
@@ -126,7 +131,7 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
   const relatedTo=async current=>{
     const snapshot=await articles.where('status','==','published').limit(80).get();
     const candidates=[...snapshot.docs.map(d=>publicArticle(d.data())),
-      ...swappReleaseArticles.map(publicArticle),...publicNews.articles().map(recoveredArticle)];
+      ...releaseCandidates.map(publicArticle),...publicNews.articles().map(recoveredArticle)];
     const norm=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
       .toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
     const game=norm(current.game),category=norm(current.category);
@@ -158,13 +163,27 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
   registerArticleScores({router,firestore,articles,publicNews,available,baseUrl,nativeSlug});
   registerEditorInsights({router,firestore,articles,editor});
   router.get('/api/actus/recovery-status',(_req,res)=>res.json(publicNews.status()));
+  router.get('/api/actus/storage-status',async(_req,res)=>{
+    res.set('Cache-Control','no-store');
+    if(!isReady())return res.status(503).json({backend:mysqlMode?'mysql-hostinger':'firestore',connected:false});
+    try{
+      if(typeof firestore.ensure==='function')await firestore.ensure();
+      const snap=await articles.limit(500).get();
+      return res.json({backend:mysqlMode?'mysql-hostinger':'firestore',connected:true,
+        migrationVerified,stored:snap.docs.length,published:snap.docs.filter(d=>d.data()?.status==='published').length,
+        needsImport:mysqlMode&&!migrationVerified});
+    }catch(error){
+      console.warn('[SWAPP NEWS] Storage status failed:',String(error?.code||error?.message||'unavailable').slice(0,120));
+      return res.status(503).json({backend:mysqlMode?'mysql-hostinger':'firestore',connected:false,error:'news_storage_unavailable'});
+    }
+  });
   // Public, read-only proof of CMS adoption. Does not expose draft content,
   // credentials or unpublished editorial information.
   router.get('/api/actus/release-status',available,async(req,res,next)=>{
     try{
       res.set('Cache-Control','no-store');
       await ensureReleaseEditable();
-      const states=await Promise.all(swappReleaseArticles.map(async item=>{
+      const states=await Promise.all(releaseCandidates.map(async item=>{
         const document=await articles.doc(item.slug).get();
         return {slug:item.slug,editableInStudio:document.exists};
       }));
@@ -189,7 +208,7 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
       // storage error. Log the true cause server-side, not in the public API.
       console.error('[SWAPP NEWS] Catalogue public indisponible:',e?.stack||e?.message||e);
       return res.status(503).set('Cache-Control','no-store')
-        .set('Retry-After','30').json({error:'news_catalog_unavailable'});
+        .set('Retry-After','30').json({error:e?.message==='news_migration_required'?'news_migration_required':'news_catalog_unavailable'});
     }
   });
   router.get('/api/actus/:slug',async(req,res,next)=>{
@@ -211,7 +230,7 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
       if((exact.exists&&exact.data().legacySuppressRecovery)
         ||(snap.exists&&snap.data().legacySuppressRecovery))
         return res.status(404).json({error:'Article retiré du magazine'});
-      if(!exact.exists&&!snap.exists&&swappReleaseBySlug.has(slug))
+      if(migrationVerified&&!exact.exists&&!snap.exists&&swappReleaseBySlug.has(slug))
         return res.json(publicArticle(swappReleaseBySlug.get(slug)));
       const historicalSlug=slug.startsWith('justplayer-')?slug:'justplayer-'+slug;
       const original=await publicNews.get(historicalSlug);
@@ -303,7 +322,7 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
       if((exact.exists&&exact.data().legacySuppressRecovery)
         ||(snap.exists&&snap.data().legacySuppressRecovery))
         return res.status(404).send('Article retiré du magazine');
-      if(!exact.exists&&!snap.exists&&swappReleaseBySlug.has(slug)){
+      if(migrationVerified&&!exact.exists&&!snap.exists&&swappReleaseBySlug.has(slug)){
         res.set('Cache-Control','public, max-age=60');
         return res.type('html').send(await storyHtml(publicArticle(swappReleaseBySlug.get(slug))));
       }
@@ -352,7 +371,7 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
       // In the event of a temporary CMS outage, Studio can still show the
       // original released articles. The next successful load adopts them.
       const pending=process.env.NODE_ENV==='production'
-        ? swappReleaseArticles.filter(a=>!present.has(a.slug)).map(publicArticle)
+        ? releaseCandidates.filter(a=>!present.has(a.slug)).map(publicArticle)
         : [];
       const list=[...stored,...pending].sort((a,b)=>String(b.updatedAt||b.publishedAt||'').localeCompare(String(a.updatedAt||a.publishedAt||'')));
       return res.json({articles:list});
