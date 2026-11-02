@@ -254,3 +254,21 @@ test('une erreur de lecture CMS renvoie 503 sans divulguer les données internes
   assert.doesNotMatch(JSON.stringify(response.payload),/Firestore secret/);
  }finally{console.error=originalError;}
 });
+
+test('MySQL sans migration vérifiée ne republie aucun ancien lot Firestore',async()=>{
+ const firestore=mockFirestore();
+ firestore.backend='mysql';
+ const {request}=setup({firestore});
+ const storage=await request('GET','/api/actus/storage-status');
+ assert.equal(storage.statusCode,200);
+ assert.equal(storage.payload.backend,'mysql-hostinger');
+ assert.equal(storage.payload.needsImport,true);
+ const original=console.error;
+ try{
+  console.error=()=>{};
+  const list=await request('GET','/api/actus');
+  assert.equal(list.statusCode,503);
+  assert.deepEqual(list.payload,{error:'news_migration_required'});
+  assert.equal(firestore.all.size,0,'no implicit release or tombstone resurrection');
+ }finally{console.error=original}
+});
