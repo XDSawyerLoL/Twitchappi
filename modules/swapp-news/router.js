@@ -78,18 +78,24 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
   const isValidation=e=>/Article|Titre|Slug|source|URL|Résumé|Crédit|droits|Date|JustPlayer|Contenu|Type de publication|vidéo|commercial|liens|Lien/.test(String(e?.message||''));
   const published=async()=>{
     await ensureReleaseEditable();
-    const snap=await articles.where('status','==','published').limit(500).get();
-    const original=snap.docs.map(x=>x.data());
+    // One consistent CMS snapshot: published posts, drafts and withdrawals
+    // are read together. A separate indexed query could fail independently and
+    // turn the entire magazine into HTTP 500 despite readable Firestore data.
+    const all=await articles.limit(500).get();
+    const records=all.docs.map(doc=>({id:doc.id,data:doc.data()}));
+    const original=records.filter(item=>item.data?.status==='published').map(item=>item.data);
     const oldUrls=new Set(original.map(x=>x.legacyUrl).filter(Boolean));
     // Once every known historical post has a native, published SWAPP copy,
     // avoid requesting the retired external site on every magazine load.
     const remainingKnown=(publicCatalog.items||[]).filter(x=>x.type==='post'&&!oldUrls.has(x.url));
-    if(remainingKnown.length)await publicNews.scanBatch();
+    // Legacy read-through is optional. Never make public native articles wait
+    // on a retired external site's network, timeout or rate limits.
+    if(remainingKnown.length)void publicNews.scanBatch().catch(error=>
+      console.warn('[SWAPP NEWS] Ancien catalogue indisponible:',String(error?.message||error).slice(0,160)));
     const oldTitles=new Set(original.map(x=>String(x.title||'').toLowerCase()));
     // Removing a previously published native article must not resurrect
     // the old read-through copy from the historical source.
-    const all=await articles.limit(500).get();
-    const withdrawn=all.docs.map(d=>d.data()).filter(a=>a.legacySuppressRecovery===true);
+    const withdrawn=records.map(item=>item.data).filter(a=>a?.legacySuppressRecovery===true);
     const withdrawnUrls=new Set(withdrawn.map(a=>a.legacyUrl).filter(Boolean));
     const withdrawnTitles=new Set(withdrawn.map(a=>String(a.title||'').toLowerCase()));
     const recovered=publicNews.articles().filter(x=>!oldUrls.has(x.legacyUrl)
@@ -98,7 +104,7 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
       &&!withdrawnTitles.has(String(x.title||'').toLowerCase()));
     // Versioned editorial release follows the usual native rendering paths.
     // Never resurrect an article explicitly withdrawn or overwrite a Firestore draft.
-    const allSlugs=new Set(all.docs.map(d=>String(d.id||d.data()?.slug||'')));
+    const allSlugs=new Set(records.map(item=>String(item.id||item.data?.slug||'')));
     const editorialFallback=swappReleaseArticles.filter(item=>!allSlugs.has(item.slug)
       &&!oldTitles.has(String(item.title||'').toLowerCase())
       &&!withdrawnTitles.has(String(item.title||'').toLowerCase()));
@@ -170,7 +176,11 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
       return res.json({articles:list.map(({body,...data})=>data)});
     }catch(e){
       if(fromVerifiedCache(res))return;
-      next(e);
+      // Fail closed rather than showing unchecked versioned releases after a
+      // storage error. Log the true cause server-side, not in the public API.
+      console.error('[SWAPP NEWS] Catalogue public indisponible:',e?.stack||e?.message||e);
+      return res.status(503).set('Cache-Control','no-store')
+        .set('Retry-After','30').json({error:'news_catalog_unavailable'});
     }
   });
   router.get('/api/actus/:slug',async(req,res,next)=>{
