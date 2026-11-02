@@ -1503,10 +1503,18 @@ app.get('/index_script.js', (req,res)=>{
   // version-aware caching rule with its default max-age=0 header.
   return res.sendFile(path.join(__dirname,'index_script.js'),{cacheControl:false});
 });
-// SWAPP ACTUS / JUSTPLAYER — module éditorial isolé du streaming.
-// Rubrique visible dès que Firestore est disponible ; SWAPP_NEWS_ENABLED=false la désactive.
+// SWAPP ACTUS / JUSTPLAYER — independent editorial storage.
+// In Hostinger MySQL mode, the CMS no longer depends on the global Firebase
+// availability flag (which can be affected by unrelated chat operations).
+const newsMysqlUrl=process.env.SWAPP_NEWS_MYSQL_URL||process.env.SWAPP_MYSQL_URL||'';
+const newsBackendPreference=String(process.env.SWAPP_NEWS_BACKEND||'').toLowerCase();
+const newsUseMysql=newsBackendPreference==='mysql'||
+ (newsBackendPreference!=='firestore'&&process.env.SWAPP_ACCOUNT_STORE==='mysql'&&!!newsMysqlUrl);
+const newsStorage=newsUseMysql
+ ?require('./modules/swapp-news/mysql-store').createNewsMysqlStore({uri:newsMysqlUrl})
+ :db;
 if (String(process.env.SWAPP_NEWS_ENABLED || 'true').toLowerCase() === 'true') {
-  if (firestoreOk && typeof db.runTransaction === 'function') {
+  if (newsUseMysql || (firestoreOk && typeof db.runTransaction === 'function')) {
     const {createNewsRouter} = require('./modules/swapp-news/router');
     const {makeNewsEditorGuard} = require('./modules/swapp-news/editor-auth');
     const allowedNewsOrigins = ['https://swapp.tv','https://www.swapp.tv',
@@ -1533,15 +1541,15 @@ if (String(process.env.SWAPP_NEWS_ENABLED || 'true').toLowerCase() === 'true') {
       next();
     });
     app.use(createNewsRouter({
-      express, firestore: db, requireEditor: requireNewsEditor,
+      express, firestore: newsStorage, requireEditor: requireNewsEditor,
       canEdit: isNewsEditor,
-      isReady: () => firestoreOk,
+      isReady: () => newsUseMysql ? !!newsMysqlUrl : firestoreOk,
       baseUrl: 'https://swapp.tv',
       sendApp: sendSwappUi
     }));
-    console.log('[SWAPP NEWS] Rédaction activée, diffusion sociale désactivée.');
+    console.log('[SWAPP NEWS] Rédaction activée via '+(newsUseMysql?'Hostinger MySQL':'Firestore')+'.');
   } else {
-    console.warn('[SWAPP NEWS] Firestore indisponible : module non activé.');
+    console.warn('[SWAPP NEWS] Stockage éditorial indisponible : module non activé.');
     // The ACTUS shell must remain reachable even while its API/storage is offline.
     app.get('/actus', (_req,res) => { res.set('Cache-Control','no-store'); return sendSwappUi(res); });
   }
