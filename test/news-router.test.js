@@ -214,3 +214,43 @@ test('première vidéo de vérification : autorisation, brouillon, prévol, publ
  const after=await request('GET','/api/actus');
  assert.ok(after.payload.articles.every(a=>a.slug!==slug));
 });
+
+test('le catalogue public utilise une seule lecture Firestore sans index supplémentaire',async()=>{
+ const firestore=mockFirestore();
+ const originalCollection=firestore.collection.bind(firestore);
+ let reads=0;
+ firestore.collection=name=>{
+  const col=originalCollection(name);
+  if(name==='swapp_news_articles'){
+   const baseLimit=col.limit.bind(col);
+   col.limit=n=>({get:async()=>{reads++;return baseLimit(n).get();}});
+   col.where=()=>{throw Error('Indexed query unavailable');};
+  }
+  return col;
+ };
+ const {request}=setup({firestore});
+ const response=await request('GET','/api/actus');
+ assert.equal(response.statusCode,200);
+ assert.ok(Array.isArray(response.payload.articles));
+ assert.equal(reads,1);
+});
+
+test('une erreur de lecture CMS renvoie 503 sans divulguer les données internes',async()=>{
+ const firestore=mockFirestore();
+ const originalCollection=firestore.collection.bind(firestore);
+ firestore.collection=name=>{
+  const col=originalCollection(name);
+  if(name==='swapp_news_articles')col.limit=()=>({get:async()=>{throw Error('Firestore secret private error');}});
+  return col;
+ };
+ const {request}=setup({firestore});
+ const originalError=console.error;
+ try{
+  console.error=()=>{};
+  const response=await request('GET','/api/actus');
+  assert.equal(response.statusCode,503);
+  assert.deepEqual(response.payload,{error:'news_catalog_unavailable'});
+  assert.equal(response.headers['Retry-After'],'30');
+  assert.doesNotMatch(JSON.stringify(response.payload),/Firestore secret/);
+ }finally{console.error=originalError;}
+});
