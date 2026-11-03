@@ -1,0 +1,65 @@
+{
+  "kind": "swapp-editorial-release",
+  "release": "2026-11-03-pikmin-day-demo",
+  "articles": [
+    {
+      "slug": "pikmin-4-switch-2-demo-gratuite-academie-dandori-novembre-2026",
+      "title": "Pikmin 4 sur Switch 2 : une démo gratuite et de nouveaux détails sur l’Académie Dandori",
+      "summary": "Nintendo détaille la démo gratuite annoncée pour le 2 novembre, les examens de l’Académie Dandori et la sortie du 12 novembre sur Switch 2.",
+      "body": "Nintendo a consacré sa présentation Pikmin Day à la série créée autour de ces petites créatures végétales. L’information utile aux joueurs est concrète : une démo gratuite de Pikmin 4 – Nintendo Switch 2 Edition + Académie Dandori a été annoncée pour le 2 novembre 2026, dix jours avant le lancement de cette nouvelle édition. La communication officielle du 2 novembre confirme également une nouvelle présentation vidéo du mode Académie Dandori.\n\n## Une démo pour découvrir l’aventure et le nouveau mode\n\nLa version d’essai donne accès à la Terrasse ensoleillée, zone d’ouverture de l’histoire principale, ainsi qu’à deux stages de l’Académie Dandori. C’est donc à la fois un point d’entrée dans l’exploration de Pikmin 4 et un moyen d’expérimenter les défis de planification avant la sortie du 12 novembre. Nintendo annonce cette démo sur le Nintendo eShop ; la disponibilité effective dans chaque boutique régionale doit être vérifiée directement sur la console.\n\n## Académie Dandori : préparer sa stratégie, puis passer l’examen\n\nL’Académie Dandori propose des niveaux où il faut collecter le plus efficacement possible des trésors, notamment des fruits et des légumes. Le joueur optimise l’itinéraire, choisit comment répartir ses Pikmin et essaie d’éviter les gestes inutiles. Les examens annoncés ont lieu les vendredis, samedis et dimanches, avec une seule tentative par session et des médailles à obtenir. Nintendo évoque aussi un classement en ligne et 72 stages déployés progressivement : ils ne doivent pas être confondus avec le contenu de la démo.\n\n## Otchin comprend désormais des commandes vocales\n\nSur Nintendo Switch 2, le microphone intégré permet de donner certaines instructions à Otchin, le chien qui accompagne le joueur. Nintendo présente notamment cette nouveauté comme un moyen supplémentaire de le guider dans ses actions. Les images et la présentation montrent cette option, mais elles ne permettent pas encore de conclure à la qualité de la reconnaissance vocale en conditions réelles.\n\n## Sortie, mise à niveau et conditions à connaître\n\nPikmin 4 – Nintendo Switch 2 Edition + Académie Dandori est prévu le 12 novembre 2026 sur Nintendo Switch 2. Les possesseurs de Pikmin 4 sur Nintendo Switch peuvent acheter un pack de mise à niveau plutôt que de racheter nécessairement l’édition complète ; les prix varient selon les boutiques et ne sont pas repris ici sans vérification locale. Cette édition ajoute également des améliorations visuelles et des possibilités de partage de partie décrites dans les fiches officielles.\n\n## Ce que SWAPP retient de l’annonce\n\nLe principal intérêt n’est pas seulement une nouvelle résolution : le mode Académie Dandori transforme l’optimisation et l’organisation des Pikmin en défis mesurables, avec une progression par entraînement et examens. La démo gratuite permet aux curieux de tester ce principe sans acheter immédiatement la nouvelle édition. Reste à voir si les contraintes d’une seule tentative par session motivent les joueurs ou limitent leur envie de recommencer.\n\n## Vidéo officielle et crédits\n\nLa vidéo jointe est la bande-annonce française de Pikmin 4 – Nintendo Switch 2 Edition + Académie Dandori diffusée par Nintendo France en septembre 2026. Elle illustre les fonctionnalités et le jeu, mais n’est pas présentée comme une vidéo tournée lors du Pikmin Day du 31 octobre. Illustration de carte : miniature distante de cette bande-annonce officielle, crédit Nintendo France via YouTube ; aucun fichier promotionnel n’est réhébergé par SWAPP.",
+      "game": "Pikmin 4 – Nintendo Switch 2 Edition + Académie Dandori",
+      "games": [
+        "Pikmin 4",
+        "Pikmin 4 – Nintendo Switch 2 Edition + Académie Dandori"
+      ],
+      "tags": [
+        "Pikmin 4",
+        "Nintendo",
+        "Nintendo Switch 2",
+        "Académie Dandori",
+        "démo gratuite",
+        "Pikmin Day",
+        "12 novembre 2026"
+      ],
+      "seo": {
+        "title": "Pikmin 4 Switch 2 : démo gratuite, Académie Dandori et sortie",
+        "description": "Pikmin 4 sur Nintendo Switch 2 : démo gratuite, nouveaux défis de l’Académie Dandori, commandes vocales d’Otchin et sortie le 12 novembre."
+      },
+      "author": "Rédaction SWAPP",
+      "category": "Actualités JV",
+      "contentType": "article",
+      "status": "published",
+      "revision": 1,
+      "image": null,
+      "thumbnail": null,
+      "editorialVerdict": null,
+      "legacyUrl": null,
+      "originalPublishedAt": null,
+      "publishedAt": "2026-11-03T07:30:00.000Z",
+      "trailerUrl": "https://www.youtube.com/watch?v=02nvq9B21tc",
+      "commercialLinks": [],
+      "sources": [
+        {
+          "label": "Nintendo — Pikmin Day et annonce de la démo (2 novembre 2026)",
+          "url": "https://www.nintendo.com/us/whatsnew/nintendo-declares-november-1-pikmin-day-in-recognition-of-all-things-pikmin/"
+        },
+        {
+          "label": "Nintendo — transcription officielle du Pikmin Day Direct",
+          "url": "https://www.nintendo.com/jp/nintendo-direct/description/20261031_en_US.html"
+        },
+        {
+          "label": "Nintendo France — présentation Pikmin Day Direct",
+          "url": "https://www.nintendo.com/fr-fr/News/Nintendo-Direct/Dernier-Nintendo-Direct/Nintendo-Direct-698557.html"
+        },
+        {
+          "label": "Nintendo France — bande-annonce officielle du jeu",
+          "url": "https://www.youtube.com/watch?v=02nvq9B21tc"
+        },
+        {
+          "label": "Nintendo — fiche de Pikmin 4 Switch 2 Edition et pack de mise à niveau",
+          "url": "https://www.nintendo.com/en-gb/Games/Nintendo-Switch-2-Edition/Pikmin-4-Nintendo-Switch-2-Edition-Dandori-Academy-3188744.html"
+        }
+      ]
+    }
+  ]
+}
