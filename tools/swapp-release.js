@@ -49,6 +49,7 @@ const RELEASE_FILES=Object.freeze([
  'modules/swapp-news/site-shell.js',
  'modules/swapp-news/router.js',
  'modules/swapp-news/mysql-store.js',
+ 'modules/swapp-news/editorial-release-selection.js',
  'modules/swapp-news/verified-cache.js',
  'modules/swapp-news/native-pages.js',
  'modules/swapp-news/editor-ui.js',
