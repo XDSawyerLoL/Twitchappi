@@ -54,3 +54,9 @@ Si les clés Firestore sont déjà désactivées et qu'aucune sauvegarde ou tabl
 5. Les journaux Hostinger ne signalent ni `news_mysql_url_invalid` ni erreur de droits `CREATE TABLE`.
 
 Ne pas présumer d'un déploiement effectif à partir des commits GitHub. Aucun accès distant à Hostinger ou à son MySQL n'a été utilisé pour ce correctif.
+
+## Publications nouvelles après le 3 novembre 2026
+
+Le fichier `modules/swapp-news/editorial-release-selection.js` distingue les lots nouveaux (date de publication à partir du 3 novembre 2026) des lots historiques. Lorsque `SWAPP_NEWS_MIGRATION_VERIFIED=0`, seuls les nouveaux articles explicitement approuvés dans le manifeste GitHub peuvent être adoptés dans MySQL. Les anciennes publications GitHub ne sont pas automatiquement récupérées : elles pourraient avoir été supprimées ou retirées dans l'ancien Studio. Une ligne MySQL préexistante, même en brouillon, garde toujours priorité. Le lot initial de reprise est `data/swapp-veille-native-20261103-pikmin-day-demo.json`.
+
+Après déploiement, vérifier l'article par son URL publique, puis `/api/actus/release-status`. Si l'article n'apparaît pas, comparer le SHA du déploiement avec GitHub ; le commit seul ne prouve pas la mise en ligne. Ce mécanisme ne remplace pas la migration complète des anciens contenus ni la vérification des droits des médias.
