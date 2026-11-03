@@ -10,6 +10,7 @@ const {makePublicCatalog}=require('./public-catalog');
 const {recommend}=require('./content-metadata');
 const catalog=require('../../data/justplayer-public-catalog.json');
 const {createEditorialReleaseSync,loadEditorialReleases}=require('./editorial-release-sync');
+const {selectEditorialReleaseCandidates}=require('./editorial-release-selection');
 const {createVerifiedPublishedCache}=require('./verified-cache');
 const {createDiscordPublisher}=require('./discord-publisher');
 const swappReleaseArticles=loadEditorialReleases();
@@ -56,12 +57,12 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
   const mysqlMode=firestore.backend==='mysql';
   // Keep old editorial withdrawal history authoritative until migration.
   const migrationVerified=!mysqlMode||process.env.SWAPP_NEWS_MIGRATION_VERIFIED==='1';
-  const releaseCandidates=migrationVerified?swappReleaseArticles:[];
+  const releaseCandidates=selectEditorialReleaseCandidates(swappReleaseArticles,{mysqlMode,migrationVerified});
   const articles=firestore.collection('swapp_news_articles');
   const outbox=firestore.collection('swapp_news_outbox');
   const importKeys=firestore.collection('swapp_news_import_keys');
   const discordPublisher=createDiscordPublisher({firestore,articles,baseUrl,isReady});
-  const releaseSync=createEditorialReleaseSync({firestore,articles,releaseArticles:swappReleaseArticles,
+  const releaseSync=createEditorialReleaseSync({firestore,articles,releaseArticles:releaseCandidates,
     recordDiscordPublication:discordPublisher.recordPublication});
   discordPublisher.start();
   // SWAPP already serves these editor-reviewed articles publicly. When the
@@ -69,7 +70,7 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
   // existing CMS collection. Existing edits, drafts and withdrawals win.
   // A temporary storage failure leaves the verified public fallback intact.
   const ensureReleaseEditable=async()=>{
-    if(process.env.NODE_ENV!=='production'||!isReady()||!migrationVerified)return;
+    if(process.env.NODE_ENV!=='production'||!isReady())return;
     try{
       const result=await releaseSync.sync();
       if(result.created>0)discordPublisher.kick();
