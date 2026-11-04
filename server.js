@@ -10445,6 +10445,31 @@ app.delete('/api/creator/spotlight/reservations/:id',mutationLimiter,async(req,r
   }catch(e){spotlightHandleError(e,res,req);}
 });
 
+// Creator Autopilot: free, explicit opt-in, only on existing Hostinger MySQL.
+// It converts the owner's SWAPP programme into verified Spotlight reservations.
+// Default OFF; no Firestore, no paid scheduler or blind Twitch/YouTube messaging.
+require('./modules/swapp-creator-autopilot').createCreatorAutopilot({
+ app,getUsers:readOryonUsers,findUser:getOryonUserByLogin,
+ saveUsers:writeOryonUsersAndWait,
+ restoreSession:restoreOryonSessionFromRememberCookie,
+ spotlightStore,spotlightPublishedGame,getPool:spotlightPool,
+ getExactTwitchGameId:async name=>{
+  if(!TWITCH_CLIENT_ID||!TWITCH_CLIENT_SECRET)return null;
+  // GET /helix/games by name: never adopt a fuzzy search result.
+  const response=await twitchAPI('games?name='+encodeURIComponent(name));
+  const exact=(response?.data||[]).find(x=>String(x.name||'').toLocaleLowerCase('fr')===
+    String(name).toLocaleLowerCase('fr'));
+  return exact?.id||null;
+ },
+ isReady:()=>SWAPP_MYSQL_ACCOUNTS&&swappMysqlAccountsReady&&
+  SWAPP_SPOTLIGHT_ENABLED&&!!spotlightPool()&&!!TWITCH_CLIENT_ID&&
+  !!TWITCH_CLIENT_SECRET&&newsUseMysql,
+ featureEnabled:process.env.SWAPP_CREATOR_AUTOPILOT_ENABLED==='1',
+ metricsEnabled:()=>process.env.SWAPP_FAIR_METRICS_ENABLED==='1'&&
+  process.env.SWAPP_SOCIAL_FEATURES==='1',
+ limiter:mutationLimiter
+});
+
 // Exact game discovery for ACTUS: unlike homepage recommendations, this searches Twitch by game ID.
 app.get('/api/discovery/game-lives', heavyLimiter, async (req,res)=>{
   const game=String(req.query.game||'').trim().slice(0,90);
