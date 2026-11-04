@@ -10364,7 +10364,7 @@ app.get('/api/creator/spotlight/status',async(_req,res)=>{
     await ORYON_USERS_READY.catch(()=>{});
     if(!swappMysqlAccountsReady)await swappMysqlAccountsRecovery.ensure();
   }
-  res.json({success:true,enabled:Boolean(SWAPP_SPOTLIGHT_ENABLED&&SWAPP_MYSQL_ACCOUNTS&&swappMysqlAccountsReady&&spotlightPool()&&TWITCH_CLIENT_ID&&TWITCH_CLIENT_SECRET&&firestoreOk),
+  res.json({success:true,enabled:Boolean(SWAPP_SPOTLIGHT_ENABLED&&SWAPP_MYSQL_ACCOUNTS&&swappMysqlAccountsReady&&spotlightPool()&&TWITCH_CLIENT_ID&&TWITCH_CLIENT_SECRET&&(newsUseMysql||firestoreOk)),
     accounts_mysql:SWAPP_MYSQL_ACCOUNTS&&swappMysqlAccountsReady,
     twitch_api_configured:Boolean(TWITCH_CLIENT_ID&&TWITCH_CLIENT_SECRET)});
 });
