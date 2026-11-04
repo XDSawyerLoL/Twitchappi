@@ -78,8 +78,9 @@ function createCreatorAutopilot({app,getUsers,findUser,saveUsers,restoreSession,
   if(typeof restoreSession==='function')await restoreSession(req,res,{allowUserRecovery:false});
   return actor(req);
  }
- function ownerSafe(user){try{return validateOwner(user),true}catch{return false}}
- function common(user){return {enabled:user.swapp_creator_autopilot_enabled===true,
+ function ownerSafe(user){try{validateOwner(user);return true}catch{return false}}
+ function allowedLink(user){return ownerSafe(user)&&String(user.swapp_creator_autopilot_twitch_id||'')===String(user.twitch_link?.id||'');}
+ function common(user){return {enabled:user.swapp_creator_autopilot_enabled===true&&allowedLink(user),
    available:available(),twitchLinked:ownerSafe(user),
    programmeSlots:planSlots(user.swapp_channel_programme,now()).slice(0,5),
    scope:'auto-spotlight-from-programme',maxDaysAhead:14,
@@ -116,7 +117,7 @@ function createCreatorAutopilot({app,getUsers,findUser,saveUsers,restoreSession,
    const actions=state.available?await myActions(user).catch(()=>[]):[];
    return res.json({success:true,...state,upcomingSpotlights:upcoming,
      automaticActions:actions,discovery:state.available?await impact(user):{available:false},
-     lastCycle});
+     lastCycle:lastCycle?{at:lastCycle.at,state:lastCycle.state}:null});
   }catch{return res.status(503).json({success:false,error:'autopilot_temporarily_unavailable'});}
  });
  app.post('/api/creator/autopilot',...actions,async(req,res)=>{
@@ -138,9 +139,11 @@ function createCreatorAutopilot({app,getUsers,findUser,saveUsers,restoreSession,
    if(stored.swapp_creator_autopilot_enabled===req.body.enabled)
     return res.json({success:true,...common(stored)});
    const previous=stored.swapp_creator_autopilot_enabled;
+   const previousTwitch=stored.swapp_creator_autopilot_twitch_id;
    stored.swapp_creator_autopilot_enabled=req.body.enabled;
+   stored.swapp_creator_autopilot_twitch_id=req.body.enabled?String(stored.twitch_link?.id||''):null;
    try{await saveUsers(data)}
-   catch(e){stored.swapp_creator_autopilot_enabled=previous;throw e}
+   catch(e){stored.swapp_creator_autopilot_enabled=previous;stored.swapp_creator_autopilot_twitch_id=previousTwitch;throw e}
    if(req.body.enabled)setImmediate(()=>{void tick().catch(()=>{})});
    return res.json({success:true,...common(stored),
      note:'Désactiver arrête les nouvelles réservations automatiques. Les réservations existantes restent gérables dans Spotlight.'});
@@ -152,7 +155,7 @@ function createCreatorAutopilot({app,getUsers,findUser,saveUsers,restoreSession,
   running=true;
   const report={state:'completed',examined:0,scheduled:0,skipped:0,failed:0,at:new Date(now()).toISOString()};
   try{
-   const enabled=(getUsers().users||[]).filter(x=>x.swapp_creator_autopilot_enabled===true&&ownerSafe(x));
+   const enabled=(getUsers().users||[]).filter(x=>x.swapp_creator_autopilot_enabled===true&&allowedLink(x));
    if(!enabled.length){lastCycle=report;return report;}
    const size=Math.min(MAX_CREATORS_PER_TICK,enabled.length);
    const users=Array.from({length:size},(_,i)=>enabled[(cursor+i)%enabled.length]);
@@ -168,7 +171,7 @@ function createCreatorAutopilot({app,getUsers,findUser,saveUsers,restoreSession,
      const planned=planSlots(user.swapp_channel_programme,now()).slice(0,6);
      for(const slot of planned){
       if(!capacity)break;
-      if(existing.some(x=>x.start_at===slot.start_at))continue;
+      if(existing.some(x=>Date.parse(x.start_at||'')===Date.parse(slot.start_at)))continue;
       try{
        // No promoted article, no automatic booking.
        await spotlightPublishedGame(slot.game);
