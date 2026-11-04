@@ -22,15 +22,16 @@ async function main(args=process.argv.slice(2),env=process.env){
   return info;
  }
  if(env.SWAPP_ON_AIR_TTS_ENABLED!=='1')throw Error('SWAPP_ON_AIR_TTS_ENABLED=1_required');
+ const outDir=path.resolve(process.cwd(),'.swapp-on-air-private');
+ const file=path.join(outDir,'swapp-on-air-episode-00-aoede.wav');
+ const meta=path.join(outDir,'swapp-on-air-episode-00-aoede.json');
+ if(fs.existsSync(file)||fs.existsSync(meta))throw Error('voice_output_already_exists');
  const key=env.GEMINI_API_KEY||env.TTS_API_KEY;
  const result=await synthesizeEpisode(episode,{
   apiKey:key,enabled:true,budgetUsd:approval,
   onChunk:chunk=>console.log('Dialogue '+chunk.index+'/'+chunk.total+' généré')
  });
- const outDir=path.resolve(process.cwd(),'.swapp-on-air-private');
  fs.mkdirSync(outDir,{recursive:true,mode:0o700});
- const file=path.join(outDir,'swapp-on-air-episode-00-aoede.wav');
- const meta=path.join(outDir,'swapp-on-air-episode-00-aoede.json');
  // Never overwrite prior reviewed takes.
  fs.writeFileSync(file,result.wav,{mode:0o600,flag:'wx'});
  fs.writeFileSync(meta,JSON.stringify({...info,render:result.metadata},null,2),{mode:0o600,flag:'wx'});
