@@ -66,6 +66,8 @@ def plan(episode: dict, mode: str, size: str) -> dict:
         "voices": ["NOVA", "KERN"],
         "french": True,
         "offline_inference": True,
+        "acting_instructions_supported": mode == "custom" and size == "standard",
+        "french_accent_requires_listening": True,
         "publication_allowed": False,
         "generates_audio": False,
         "warning": "Quality and fidelity must be approved by listening; no naturalness guarantee.",
@@ -128,11 +130,13 @@ def render(episode: dict, args: argparse.Namespace) -> tuple[Path, Path | None]:
         else:
             profile = VOICE_PROFILES[speaker]
             instruction = profile["instruction"]
-            if turn.get("delivery"):
+            if args.size == "standard" and turn.get("delivery"):
                 instruction += " Acting intention for this line: " + turn["delivery"].strip()
+            # Qwen3-TTS 0.6B CustomVoice explicitly ignores 'instruct'. Do not
+            # misrepresent the smaller model as expressive/actor-directed.
             waveforms, sr = model.generate_custom_voice(
                 text=words, language="French", speaker=profile["speaker"],
-                instruct=instruction
+                instruct=instruction if args.size == "standard" else ""
             )
         audio = np.asarray(waveforms[0], dtype=np.float32).squeeze()
         if audio.ndim != 1 or audio.size < int(sr * 0.20) or not np.all(np.isfinite(audio)):
