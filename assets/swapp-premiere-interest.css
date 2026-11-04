@@ -1,0 +1,14 @@
+/* SWAPP PREMIÈRE — visible when server feature flag is enabled. */
+.swp-interest{margin:20px 0;padding:clamp(15px,2vw,24px);
+ border:1px solid rgba(134,229,221,.3);border-radius:13px;
+ background:linear-gradient(120deg,rgba(15,39,45,.83),rgba(12,22,36,.9));color:#effafd}
+.swp-interest[hidden]{display:none!important}
+.swp-interest strong{display:block;font:800 15px/1.35 Inter,system-ui,sans-serif;color:#f1fffe}
+.swp-interest p{margin:9px 0 13px;color:#b7cdd4;font:400 13px/1.55 Inter,system-ui,sans-serif}
+.swp-interest button{background:#8ce9e2;color:#08252a;border:1px solid #8ce9e2;border-radius:7px;
+ padding:12px 17px;min-height:44px;font:800 13px/1.25 Inter,system-ui,sans-serif;cursor:pointer}
+.swp-interest button[aria-pressed="true"]{background:#253a3d;color:#effcfa}
+.swp-interest button:disabled{opacity:.6;cursor:not-allowed}
+.swp-interest button:focus-visible{outline:2px solid #e4fffb;outline-offset:4px}
+.swp-interest .swp-count,.swp-interest .swp-message{font-size:12px;color:#aaccc9}
+.swp-interest .swp-message{margin:9px 0 0}
