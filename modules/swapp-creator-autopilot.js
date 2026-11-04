@@ -80,8 +80,8 @@ function createCreatorAutopilot({app,getUsers,findUser,saveUsers,restoreSession,
  }
  function ownerSafe(user){try{validateOwner(user);return true}catch{return false}}
  function allowedLink(user){return ownerSafe(user)&&String(user.swapp_creator_autopilot_twitch_id||'')===String(user.twitch_link?.id||'');}
- function common(user){return {enabled:user.swapp_creator_autopilot_enabled===true&&allowedLink(user),
-   available:available(),twitchLinked:ownerSafe(user),
+ function common(user){return {enabled:user.swapp_creator_autopilot_enabled===true,
+   available:available(),twitchLinked:ownerSafe(user),linkedTwitchMatches:allowedLink(user),
    programmeSlots:planSlots(user.swapp_channel_programme,now()).slice(0,5),
    scope:'auto-spotlight-from-programme',maxDaysAhead:14,
    note:'Ce pilotage réserve des créneaux Spotlight pour les jeux officiellement couverts par SWAPP. Une réservation ne prouve ni un spectateur ni un clic.'};}
