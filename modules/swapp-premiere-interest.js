@@ -83,7 +83,8 @@ function registerPremiereInterest(app,{
  const noStore=res=>res.set('Cache-Control','no-store');
  async function validate(req){
   if(!enabled())throw apiError('premiere_interest_not_enabled',503);
-  const game=String(req.method==='GET'?req.query?.game:req.body?.game||'').trim();
+  const raw=req.method==='GET'?req.query?.game:req.body?.game;
+  const game=typeof raw==='string'?raw.trim():'';
   const {name}=validateGame(game);
   // Only canonical editorial coverage already published; never create phantom indie projects.
   await verifyGame(name);
