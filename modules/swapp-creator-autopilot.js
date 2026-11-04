@@ -88,7 +88,7 @@ function createCreatorAutopilot({app,getUsers,findUser,saveUsers,restoreSession,
  async function myActions(user){
   const pool=await readyTable();
   const [rows]=await pool.execute(
-   'SELECT programme_id,game_name,spotlight_id,DATE_FORMAT(slot_start,"%Y-%m-%dT%H:%i:%sZ") AS start_at '+
+   "SELECT programme_id,game_name,spotlight_id,DATE_FORMAT(slot_start,'%Y-%m-%dT%H:%i:%sZ') AS start_at "+
    'FROM swapp_creator_autopilot_actions WHERE user_id=? ORDER BY created_at DESC LIMIT 8',[String(user.id)]);
   return rows.map(x=>({game:String(x.game_name||''),start_at:String(x.start_at||''),
     spotlight_id:Number(x.spotlight_id),programme_id:String(x.programme_id||'')}));
