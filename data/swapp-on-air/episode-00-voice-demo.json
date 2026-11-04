@@ -1,0 +1,95 @@
+{
+  "id": "swapp-on-air-pilot-00-aoede",
+  "title": "SWAPP ON AIR — essai Mairaiy / Aoede (TES VI, Pikmin 4, Genshin 7.2)",
+  "date": "2026-11-04",
+  "status": "voice_demo_only",
+  "publication_allowed": false,
+  "sponsored": false,
+  "note": "Script technique de démonstration vocale. Révision journalistique et licences requises avant publication. Toute génération facturée doit être explicitement approuvée.",
+  "sources": [
+    {
+      "name": "Xbox Wire, 3 novembre 2026",
+      "url": "https://news.xbox.com/en-us/2026/11/03/the-elder-scrolls-vi-official-name-reveal/"
+    },
+    {
+      "name": "Nintendo, 2 novembre 2026",
+      "url": "https://www.nintendo.com/us/whatsnew/nintendo-declares-november-1-pikmin-day-in-recognition-of-all-things-pikmin/"
+    },
+    {
+      "name": "HoYoverse, 4 novembre 2026",
+      "url": "https://genshin.hoyoverse.com/fr/news/detail/167187"
+    }
+  ],
+  "segments": [
+    {
+      "speaker": "NOVA",
+      "delivery": "souriante, naturelle, accrocheuse, heureuse d'accueillir l'auditeur",
+      "text": "Salut ! C'est Nova. Bienvenue sur SWAPP On Air. Aujourd'hui, on a trois jeux sur la table... et un collègue qui va, comme d'habitude, refroidir mon enthousiasme."
+    },
+    {
+      "speaker": "KERN",
+      "delivery": "sourire ironique audible, ton calme, petite pause avant la chute",
+      "text": "Je préfère dire que je vérifie les faits. Mais vas-y, Nova. Surprends-moi."
+    },
+    {
+      "speaker": "NOVA",
+      "delivery": "curiosité vive, intérêt sincère, parler comme à un ami",
+      "text": "D'abord, The Elder Scrolls six. Le nom Sentinel a été annoncé, et forcément, ça réveille notre envie de retourner dans Tamriel."
+    },
+    {
+      "speaker": "KERN",
+      "delivery": "complice, sceptique mais jamais agressif",
+      "text": "Oui... sauf qu'un titre ne nous dit pas comment on jouera. Aucun gameplay à juger dans cette annonce. Ne confondons pas indice et démonstration."
+    },
+    {
+      "speaker": "NOVA",
+      "delivery": "un peu rêveuse puis spontanément amusée",
+      "text": "D'accord. Mais moi, je veux surtout retrouver cette sensation : ouvrir une porte, tomber sur un endroit incroyable et oublier complètement ma quête principale."
+    },
+    {
+      "speaker": "KERN",
+      "delivery": "léger rire dans la voix sans effet sonore, naturel",
+      "text": "Ça, je te l'accorde. Et quand tu auras passé deux heures à collectionner des objets inutiles, on en reparle !"
+    },
+    {
+      "speaker": "NOVA",
+      "delivery": "transition enjouée, vive sans voix publicitaire",
+      "text": "Allez, changement d'ambiance. Pikmin quatre, sur Switch deux, propose une démo gratuite et son Académie Dandori. Là, on peut vraiment essayer."
+    },
+    {
+      "speaker": "KERN",
+      "delivery": "enthousiasme mesuré, débit clair",
+      "text": "Et c'est ce que je préfère : on peut vérifier la qualité d'un jeu par soi-même. Organiser ses Pikmin, réussir ses défis... ça ferait un bon direct à plusieurs créateurs."
+    },
+    {
+      "speaker": "NOVA",
+      "delivery": "enthousiaste, sourire évident",
+      "text": "Exactement ! On pourrait même comparer leurs stratégies sur SWAPP. Lequel réussit le mieux, et surtout... qui perd tout le monde en route ?"
+    },
+    {
+      "speaker": "KERN",
+      "delivery": "taquin, complicité",
+      "text": "Je ne citerai personne. Mais j'ai déjà une idée."
+    },
+    {
+      "speaker": "NOVA",
+      "delivery": "ton curieux, relance fluide",
+      "text": "Et pour finir, Genshin Impact version sept point deux. De nouvelles zones à explorer, des personnages et des histoires qui continuent de s'enrichir."
+    },
+    {
+      "speaker": "KERN",
+      "delivery": "réfléchi, chaleureux, moins sarcastique",
+      "text": "Mon seul conseil, c'est de garder le plaisir de découvrir. Un jeu immense ne devrait pas devenir une liste de corvées."
+    },
+    {
+      "speaker": "NOVA",
+      "delivery": "conclusion chaleureuse, dynamique et complice",
+      "text": "C'était notre premier essai vocal. Dites-nous ce que vous pensez du duo... et quel jeu on devrait découvrir ensemble la prochaine fois."
+    },
+    {
+      "speaker": "KERN",
+      "delivery": "souriant, détendu, rythme de vraie fin de conversation",
+      "text": "Et surtout, promis : on continue de distinguer les annonces des promesses. À très vite sur SWAPP On Air."
+    }
+  ]
+}
