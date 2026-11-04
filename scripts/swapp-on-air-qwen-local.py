@@ -74,6 +74,10 @@ def plan(episode: dict, mode: str, size: str) -> dict:
 
 def render(episode: dict, args: argparse.Namespace) -> tuple[Path, Path | None]:
     # Imported only during an intentional render; --check is lightweight.
+    if not args.allow_download:
+        # Set before model libraries load: HF_HUB_OFFLINE is read at import time.
+        os.environ["HF_HUB_OFFLINE"] = "1"
+        os.environ["TRANSFORMERS_OFFLINE"] = "1"
     import numpy as np
     import soundfile as sf
     import torch
@@ -81,9 +85,6 @@ def render(episode: dict, args: argparse.Namespace) -> tuple[Path, Path | None]:
 
     if not torch.cuda.is_available() and not args.allow_cpu:
         raise RuntimeError("No CUDA GPU. CPU can be very slow; rerun explicitly with --allow-cpu.")
-    if not args.allow_download:
-        os.environ["HF_HUB_OFFLINE"] = "1"
-        os.environ["TRANSFORMERS_OFFLINE"] = "1"
 
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
     dtype = torch.bfloat16 if device != "cpu" and torch.cuda.is_bf16_supported() else (
