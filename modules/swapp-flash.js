@@ -70,6 +70,11 @@ function renderFlash(article,{baseUrl='https://swapp.tv'}={}){
  if(data.videoId)add('VIDÉO LIÉE À L’ARTICLE','Découvrir les images',
   '<p class="sf-lead">Lance la vidéo si tu le souhaites. Aucun lecteur tiers n’est chargé avant ton clic.</p>'+
   '<div class="sf-trailer" data-sf-video="'+esc(data.videoId)+'"><button type="button" data-sf-video-play>Lire la vidéo</button></div>','video');
+ const premiere=data.gameSlug?'<section class="swp-interest" data-swapp-premiere-interest data-game="'+esc(data.game)+'" aria-label="Je veux découvrir ce jeu en direct" hidden>'+
+  '<strong>SWAPP PREMIÈRE · Tu veux voir ce jeu testé ?</strong>'+
+  '<p>Exprime ton intérêt pour une future présentation par des créateurs volontaires. Aucun événement ni cachet n’est encore confirmé.</p>'+
+  '<button type="button" data-swp-toggle aria-pressed="false">Je veux voir ce jeu testé</button>'+
+  '<p class="swp-count" data-swp-count></p><p class="swp-message" data-swp-message role="status" aria-live="polite"></p></section>':'';
  const follow=data.gameSlug?'<div class="sf-actions">'+
   '<button type="button" data-swapp-follow-game data-game-slug="'+esc(data.gameSlug)+'" data-game-name="'+esc(data.game)+'" aria-pressed="false">＋ Suivre ce jeu</button>'+
   '<button type="button" data-swapp-wishlist-game data-game-slug="'+esc(data.gameSlug)+'" data-game-name="'+esc(data.game)+'" aria-pressed="false">♡ Mes envies</button></div>':'';
@@ -80,7 +85,7 @@ function renderFlash(article,{baseUrl='https://swapp.tv'}={}){
   data.sources.map(s=>'<li><a href="'+esc(s.url)+'" target="_blank" rel="nofollow noopener noreferrer">'+esc(s.label)+'</a></li>').join('')+
   '</ul></details>':'';
  add('POURSUIVRE L’EXPÉRIENCE','Et maintenant, on joue ?',
-  '<p class="sf-lead">Suis le jeu, découvre ceux qui le diffusent et rejoins la conversation.</p>'+follow+
+  '<p class="sf-lead">Suis le jeu, découvre ceux qui le diffusent et rejoins la conversation.</p>'+premiere+follow+
   '<nav class="sf-actions" aria-label="Aller plus loin">'+
   '<a class="sf-primary" href="'+esc(articleUrl)+'">Lire l’article complet</a>'+
   (gameUrl?'<a href="'+esc(gameUrl)+'">Explorer l’univers du jeu</a>':'')+
@@ -104,6 +109,6 @@ function renderFlash(article,{baseUrl='https://swapp.tv'}={}){
   (data.cover?'<meta property="og:image" content="'+esc(data.cover)+'">':'');
  return layout({title:'FLASH · '+data.title,description:short(data.summary,150),content,metadata,active:'actus',
  scripts:'<link rel="stylesheet" href="/assets/swapp-flash.css?v=20261104-pilot">'+
- '<script src="/assets/swapp-flash.js?v=20261104-pilot" defer></script>'});
+ '<script src="/assets/swapp-flash.js?v=20261104-pilot" defer></script>'+'<link rel="stylesheet" href="/assets/swapp-premiere-interest.css?v=20261104-v1">'+'<script src="/assets/swapp-premiere-interest.js?v=20261104-v1" defer></script>'});
 }
 module.exports={model,excerpts,youtube,https,renderFlash};
