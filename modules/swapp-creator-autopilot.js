@@ -136,7 +136,8 @@ function createCreatorAutopilot({app,getUsers,findUser,saveUsers,restoreSession,
     return res.status(403).json({success:false,error:'verified_twitch_link_required'});
    const data=getUsers(),stored=(data.users||[]).find(u=>String(u.id)===String(user.id));
    if(!stored)return res.status(401).json({success:false,error:'swapp_account_unavailable'});
-   if(stored.swapp_creator_autopilot_enabled===req.body.enabled)
+   if(stored.swapp_creator_autopilot_enabled===req.body.enabled&&
+    (!req.body.enabled||String(stored.swapp_creator_autopilot_twitch_id||'')===String(stored.twitch_link?.id||'')))
     return res.json({success:true,...common(stored)});
    const previous=stored.swapp_creator_autopilot_enabled;
    const previousTwitch=stored.swapp_creator_autopilot_twitch_id;
