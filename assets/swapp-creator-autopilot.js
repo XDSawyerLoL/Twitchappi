@@ -24,17 +24,18 @@
    }
    if(!response.ok||!data.success)throw Error('Autopilot temporairement indisponible.');
    const line=el('div','swapp-auto-status');
-   line.append(el('strong','',data.enabled?'Autopilot activé':'Autopilot désactivé'));
-   line.append(el('span','swapp-auto-muted',data.enabled?
+   const isRunning=data.enabled&&data.available&&data.linkedTwitchMatches;
+   line.append(el('strong','',isRunning?'Autopilot en service':data.enabled?'Autopilot suspendu':'Autopilot désactivé'));
+   line.append(el('span','swapp-auto-muted',isRunning?
     'Les prochains créneaux peuvent être réservés automatiquement si les vérifications passent.':
-    'Tu décides si SWAPP peut réserver des Spotlight depuis ton agenda.'));
+    data.enabled?'L’automatisation est suspendue tant que les prérequis ne sont pas réunis. Tu peux toujours la désactiver.':'Tu décides si SWAPP peut réserver des Spotlight depuis ton agenda.'));
    body.append(line);
    if(!data.available){
     body.append(el('p','swapp-auto-warning','Fonction pilote non activée sur Hostinger. Aucun créneau automatique n’est créé.'));
    }else if(!data.twitchLinked){
     body.append(el('p','swapp-auto-warning','Relie une chaîne Twitch vérifiée depuis ton tableau de bord Creator avant d’activer Autopilot.'));
    }
-   if(data.available&&data.twitchLinked){
+   if(data.enabled||(data.available&&data.twitchLinked)){
     const button=makeButton(data.enabled?'Désactiver l’automatisation':'Activer gratuitement Autopilot',async()=>{
      button.disabled=true;button.textContent='Enregistrement…';
      try{
