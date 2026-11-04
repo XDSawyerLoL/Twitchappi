@@ -44,6 +44,7 @@
    button.textContent=active?'Retirer ma demande':'Je veux voir ce jeu testé';
    button.setAttribute('aria-pressed',String(active));
    button.disabled=false;
+   section.hidden=false;
   }catch(error){
    if(error.status===503||error.message==='premiere_interest_not_enabled'){
     section.hidden=true;return;
