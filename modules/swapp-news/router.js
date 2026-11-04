@@ -20,6 +20,7 @@ const {registerArticleScores}=require('./article-scores');
 const {registerEditorInsights}=require('./editor-insights');
 const {notifyIndexNow,invalidateSeoCache,verifiedIndexedGame}=require('../swapp-seo');
 const {gameSlug}=require('../swapp-game-pages');
+const {renderFlash}=require('../swapp-flash');
 
 function createNewsRouter({express, firestore, requireEditor, isReady = () => true, baseUrl = 'https://swapp.tv', publicFetch = globalThis.fetch, publicCatalog = catalog, canEdit = () => false, sendApp = null}) {
   if (typeof express?.Router !== 'function' || typeof firestore?.collection !== 'function' ||
@@ -299,6 +300,25 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
   });
   router.get('/actus/studio',...editor,(req,res)=>res.set('Cache-Control','private, no-store').type('html').send(renderStudio()));
   router.get('/actus/studio.js',...editor,(req,res)=>res.set('Cache-Control','private, no-store').type('application/javascript').send(studioJs));
+  // Each published article automatically has a short interactive briefing.
+  // No separate publishing job or generative provider; withdrawn/drafts fail closed.
+  router.get('/flash/:slug',async(req,res,next)=>{
+    const slug=String(req.params.slug||'');
+    if(!slugOk(slug))return res.status(404).send('FLASH introuvable');
+    if(!isReady())return res.status(503).set('Cache-Control','no-store').send('Magazine temporairement indisponible');
+    try{
+      const list=await published(); // Same authoritative published/withdrawn filter as /api/actus.
+      const article=list.find(item=>item?.slug===slug&&item.status==='published');
+      if(!article)return res.status(404).set('Cache-Control','no-store').send('FLASH introuvable');
+      const page=renderFlash(article,{baseUrl});
+      if(!page)return res.status(404).set('Cache-Control','no-store').send('FLASH non disponible pour cet article');
+      // Never publicly cache withdrawn editorial content as a durable standalone media asset.
+      return res.set('Cache-Control','no-store').type('html').send(page);
+    }catch(error){
+      console.error('[SWAPP FLASH] Données éditoriales indisponibles:',String(error?.message||error).slice(0,160));
+      return res.status(503).set('Cache-Control','no-store').send('FLASH temporairement indisponible');
+    }
+  });
   router.get('/actus/:slug',async(req,res,next)=>{
     if(!slugOk(req.params.slug))return res.status(404).send('Article introuvable');
     if(!isReady()){
