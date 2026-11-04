@@ -111,3 +111,13 @@ test('Status endpoint rejects anonymous requests',async()=>{
  await p.routes.get('GET /api/creator/autopilot')({session:{},get:p.req.get},res);
  assert.equal(res.statusCode,401);assert.equal(res.body.success,false);
 });
+
+test('Can revoke an older opt-in while Hostinger feature is disabled and Twitch changed',async()=>{
+ const p=pilot({featureEnabled:false,linkId:'999999'});
+ p.req.body={enabled:false};
+ const res=p.response();
+ await p.routes.get('POST /api/creator/autopilot')(p.req,res);
+ assert.equal(res.statusCode,200);
+ assert.equal(p.user.swapp_creator_autopilot_enabled,false);
+ assert.equal(p.saveCount(),1);
+});
