@@ -31,6 +31,28 @@ function createPassageMetrics({getPool,secret,now=Date.now,randomBytes=crypto.ra
   await schema;
   return pool;
  }
+ function issueLiveProof(source){
+  if(!enabled()||source?.live!==true)return null;
+  const p=String(source.platform||''),login=String(source.login||'').toLowerCase(),
+   game=String(source.game||'').slice(0,90);
+  if(!valid(p,login)||!validGame(game))return null;
+  const encoded=Buffer.from(JSON.stringify({v:2,s:p+':'+login,g:game,t:now(),
+   r:randomBytes(12).toString('hex')})).toString('base64url');
+  return encoded+'.'+signature(encoded);
+ }
+ function verifyLiveProof(token,source){
+  if(!enabled()||typeof token!=='string'||token.length>500||
+   !/^[A-Za-z0-9_-]{30,360}\\.[a-f0-9]{64}$/.test(token))return false;
+  const dot=token.lastIndexOf('.'),raw=token.slice(0,dot),sig=token.slice(dot+1);
+  if(!crypto.timingSafeEqual(Buffer.from(signature(raw),'hex'),Buffer.from(sig,'hex')))return false;
+  try{
+   const data=JSON.parse(Buffer.from(raw,'base64url').toString('utf8'));
+   const t=now();
+   return data.v===2&&Number.isFinite(data.t)&&t>=data.t&&t-data.t<=8*60*60*1000&&
+    data.s===String(source?.platform||'')+':'+String(source?.login||'').toLowerCase()&&
+    equivalent(data.g,source?.game)&&validGame(data.g);
+  }catch{return false}
+ }
  function issue(source,destination){
   if(!enabled())return null;
   const sp=String(source?.platform||''),sl=String(source?.login||'').toLowerCase();
@@ -88,6 +110,6 @@ function createPassageMetrics({getPool,secret,now=Date.now,randomBytes=crypto.ra
    sent:Number(forwarded[0]?.total||0),source_creators:Number(received[0]?.sources||0),
    meaning:'confirmed_destination_page_open',unique_viewers:false,follows_measured:false};
  }
- return {enabled,issue,decode,arrive,summary,ready};
+ return {enabled,issue,issueLiveProof,verifyLiveProof,decode,arrive,summary,ready};
 }
 module.exports={createPassageMetrics,DDL,valid};
