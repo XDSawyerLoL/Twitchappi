@@ -22,7 +22,10 @@ function fixture({twitch=true,native=false,streamOnline=true}={}){
   ]};
   throw Error('Unexpected Twitch API: '+ep);
  };
- const relay=()=>other?[{login:'creatortwo',media_verified:true},{login:'wronggame',media_verified:true}]:[];
+ const relay=()=>other?[
+  {login:'creatortwo',media_verified:true,player_url:'/api/oryon/local-relay/creatortwo/player'},
+  {login:'wronggame',media_verified:true,player_url:'/api/oryon/local-relay/wronggame/player'}
+ ]:[];
  const service=createHandoff({twitchAPI:upstream,twitchEnabled:()=>twitch,users:()=>users,
   nativeStreams:relay,nativeLive:login=>login==='creatorone'&&on,now:()=>time});
  return {service,calls,offline(){on=false;time+=13000},advance(){time+=26000},setNative(v){other=v}};
