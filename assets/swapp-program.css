@@ -243,3 +243,16 @@
 .stv .stv-now-actions .stv-portail-entry:hover{background:rgba(72,177,197,.22);color:#fff!important}
 .stv .stv-now-actions .stv-portail-entry:focus-visible{outline:2px solid #8ef9fb;outline-offset:3px}
 @media(max-width:720px){.stv .stv-now-actions .stv-portail-entry{flex:1 0 100%;margin-top:4px;white-space:normal}}
+
+/* SWAPP PASSAGE / collective TV — relays below player, never over Twitch iframe. */
+.stv .stv-passage{margin:10px 0 0;padding:13px 16px;display:grid;gap:7px;
+ border:1px solid rgba(110,233,221,.32);border-radius:9px;background:linear-gradient(110deg,#0d2831,#1a1c38);
+ color:#f6fbff;font-size:13px;line-height:1.45}
+.stv .stv-passage strong{font-size:15px;font-weight:850}
+.stv .stv-passage p{margin:0;color:#c1d6df}
+.stv .stv-passage-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.stv .stv-passage-actions button{min-height:36px;padding:8px 12px;font-size:12px;font-weight:750;
+ color:#ecf6ff;background:rgba(255,255,255,.07);border-radius:7px;border:1px solid rgba(191,215,232,.3)}
+.stv .stv-passage-actions button:first-child{background:#8df0ed;color:#0b1723;border-color:#8df0ed}
+.stv .stv-passage-actions button:focus-visible{outline:2px solid #8df0ed;outline-offset:3px}
+@media(max-width:600px){.stv .stv-passage-actions button{flex:1 1 130px}}
