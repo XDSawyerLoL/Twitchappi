@@ -16,17 +16,23 @@ function hash(input){
  for(const ch of input)n=Math.imul(n^ch.charCodeAt(0),16777619);
  return n>>>0;
 }
-function choose(candidates,{game,platform,login,at=Date.now()}={}){
+function choose(candidates,{game,platform,login,exclude=[],at=Date.now()}={}){
+ const excluded=new Set((Array.isArray(exclude)?exclude:[]).slice(0,4).filter(x=>
+  /^(?:swapp|twitch):[a-z0-9_-]{2,40}$/.test(String(x))).map(String));
  const slot=Math.floor(at/600000),seen=new Set(),accepted=[];
  for(const row of Array.isArray(candidates)?candidates:[]){
   const p=String(row?.platform||''),user=String(row?.login||'').toLowerCase();
   const key=p+':'+user;
   if(!['swapp','twitch'].includes(p)||!(p==='swapp'?NATIVE:TWITCH).test(user)||
-     !equivalent(game,row?.game)||seen.has(key)||(p===platform&&user===login))continue;
+     !equivalent(game,row?.game)||seen.has(key)||excluded.has(key)||(p===platform&&user===login))continue;
   seen.add(key);
   accepted.push(row);
  }
- accepted.sort((a,b)=>hash(slot+':'+a.platform+':'+a.login)-hash(slot+':'+b.platform+':'+b.login)||
+ // Small streams (1–50 viewers) receive more exposure. Unknown native
+ // audience size is neutral and cannot exclude SWAPP creators.
+ const small=row=>row.platform==='swapp'||(Number.isFinite(row.viewer_count)&&row.viewer_count>=0&&row.viewer_count<=50);
+ accepted.sort((a,b)=>Number(small(b))-Number(small(a))||
+  hash(slot+':'+a.platform+':'+a.login)-hash(slot+':'+b.platform+':'+b.login)||
   String(a.platform+':'+a.login).localeCompare(b.platform+':'+b.login));
  return accepted[0]||null;
 }
@@ -83,7 +89,7 @@ function createHandoff({twitchAPI,twitchEnabled=()=>false,users=()=>[],nativeStr
     const login=String(row.user_login||'').toLowerCase();
     if(!TWITCH.test(login)||String(row.game_id)!==id||!equivalent(game,row.game_name))continue;
     result.push({platform:'twitch',login,game:row.game_name,
-     name:safeGame(row.user_name||login),url:'/live/twitch/'+encodeURIComponent(login)+
+     name:safeGame(row.user_name||login),viewer_count:Number(row.viewer_count)||0,url:'/live/twitch/'+encodeURIComponent(login)+
       '?game='+encodeURIComponent(game)+'&handoff=1'});
    }
   }
@@ -104,7 +110,7 @@ function createHandoff({twitchAPI,twitchEnabled=()=>false,users=()=>[],nativeStr
   }
   return available;
  }
- async function check({platform,login,game}={}){
+ async function check({platform,login,game,exclude=[]}={}){
   const from=String(platform||'').toLowerCase(),user=String(login||'').toLowerCase();
   if(!['swapp','twitch'].includes(from)||!(from==='swapp'?NATIVE:TWITCH).test(user))
    return {success:false,error:'invalid_stream',status:400};
@@ -129,7 +135,7 @@ function createHandoff({twitchAPI,twitchEnabled=()=>false,users=()=>[],nativeStr
   try{twitch=await twitchCandidates(verifiedGame)}catch(_){twitch=[]}
   let pool=[...nativeCandidates(verifiedGame),...twitch],next=null;
   for(let attempt=0;attempt<6&&pool.length;attempt++){
-   const selected=choose(pool,{game:verifiedGame,platform:from,login:user,at:now()});
+   const selected=choose(pool,{game:verifiedGame,platform:from,login:user,exclude,at:now()});
    if(!selected)break;
    if(selected.platform==='swapp'){next=selected;break}
    // Game-list cache can be 25s old. Validate the chosen Twitch broadcaster

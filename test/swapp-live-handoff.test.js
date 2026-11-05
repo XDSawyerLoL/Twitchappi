@@ -88,7 +88,7 @@ test('consumer pages and station expose PASSAGE without new player transport',()
  const js=read('assets/swapp-live-handoff.js'),tv=read('assets/swapp-tv-broadcast.js');
  const watch=read('modules/swapp-news/watch.js'),router=read('modules/swapp-news/router.js');
  const index=read('index.html'),server=read('server.js');
- for(const token of ['offline>=2','seenLive','clearStatus()','Rester sur cette chaîne','location.assign(check.next.url)'])
+ for(const token of ['offline>=2','seenLive','clearStatus()','Rester sur cette chaîne','location.assign(target.pathname+target.search)'])
   assert.ok(js.includes(token),token);
  assert.match(tv,/function passageOffer\(/);
  assert.match(tv,/function maybePassage\(/);
@@ -182,7 +182,7 @@ test('SWAPP TV handoff really transfers in the existing player without undefined
   passage:{key:'swapp:vnhz',game:'Hades',pending:true,cancelled:false}};
  let renders=0,played=0,resets=0,nextPlatform='',nextOnAir=null;
  const transfer=new Function('state','document','passageCheck','passageTarget','passagePanel',
-  'resetPassage','renderScreen','play',js.slice(begin,end)+'return passageGo;')(
+  'resetPassage','renderScreen','play','markWatched','$',js.slice(begin,end)+'return passageGo;')(
   state,{visibilityState:'visible'},
   async()=>({success:true,current:{live:false},
    next:{platform:'twitch',login:'beta',game:'Hades',name:'Beta'}}),
@@ -190,7 +190,7 @@ test('SWAPP TV handoff really transfers in the existing player without undefined
   ()=>({textContent:''}),
   ()=>{resets++;state.passage={key:'',game:'',pending:false}},
   (next,opts)=>{renders++;nextPlatform=next.platform;nextOnAir=opts.onAir;state.selection=next},
-  ()=>{played++}
+  ()=>{played++},()=>{},()=>null
  );
  await transfer();
  assert.equal(renders,1,'a real player replacement must occur');

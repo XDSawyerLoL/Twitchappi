@@ -115,6 +115,19 @@ function play(){
 // SWAPP PASSAGE: a station viewer remains with the same GAME when the
 // broadcaster really ends. No cross-game hop, no autoplay before first Play.
 let passageClock=null,passageBusy=false;
+const PASSAGE_KEY='swapp-passage-tab-v2';
+function recentlyWatched(){
+ try{
+  const rows=JSON.parse(sessionStorage.getItem(PASSAGE_KEY)||'[]');
+  return Array.isArray(rows)?rows.filter(x=>/^(swapp|twitch):[a-z0-9_-]{2,40}$/.test(x)).slice(-3):[];
+ }catch{return []}
+}
+function markWatched(platform,login){
+ try{
+  const key=platform+':'+login;
+  sessionStorage.setItem(PASSAGE_KEY,JSON.stringify([...recentlyWatched().filter(x=>x!==key),key].slice(-3)));
+ }catch{}
+}
 function resetPassage(){
  if(passageClock){clearInterval(passageClock);passageClock=null}
  $('stv-passage')?.remove();
@@ -135,8 +148,10 @@ function passagePanel(){
  else where?.append(el);
  return el;
 }
-async function passageCheck(info){
- const query=new URLSearchParams({platform:info.platform,login:info.login,game:info.game||''});
+async function passageCheck(info,commit=false,sourceProof=''){
+ const query=new URLSearchParams({platform:info.platform,login:info.login,game:info.game||'',
+  exclude:recentlyWatched().join(',')});
+ if(commit){query.set('phase','commit');query.set('source_proof',sourceProof)}
  return api('/api/swapp/live-handoff?'+query.toString());
 }
 async function passageGo(){
@@ -144,7 +159,7 @@ async function passageGo(){
  if(!state.consent||!current.pending||current.cancelled||document.visibilityState==='hidden')return;
  const key=current.key,from=state.selection;
  try{
-  const result=await passageCheck({platform:from.platform,login:from.login,game:current.game});
+  const result=await passageCheck({platform:from.platform,login:from.login,game:current.game},true,current.liveProof||'');
   if(state.passage!==current||result?.success!==true)return;
   if(result.current?.live){resetPassage();return}
   const next=result.next;
@@ -157,7 +172,19 @@ async function passageGo(){
   state.autoAdvance=false; // avoid a duplicate iframe reconstruction
   renderScreen({platform:next.platform,login:next.login,game:next.game,
    display_name:next.name||next.login,broadcast_id:null},{onAir:next.platform==='swapp'});
-  play(); // Reuse the single existing TV player; do not create another one.
+  play(); // Reuse the existing player; no duplicate iframe.
+  markWatched(from.platform,from.login);
+  // A TV handoff counts only once the new embedded destination loaded,
+  // never on recommendation, countdown, or API suggestion.
+  if(typeof result.transfer_token==='string'){
+   const frame=$('stv-screen').querySelector('.stv-player-layer iframe');
+   frame?.addEventListener('load',()=>{
+    void fetch('/api/swapp/passage/arrive',{method:'POST',
+     headers:{'Content-Type':'application/json'},credentials:'omit',
+     body:JSON.stringify({token:result.transfer_token}),keepalive:true
+    }).catch(()=>{});
+   },{once:true});
+  }
  }catch(_){
   if(state.passage===current){passagePanel().textContent='Relais indisponible. Le lecteur reste sur la chaîne actuelle.';current.pending=false;}
  }
@@ -207,6 +234,7 @@ async function maybePassage(){
   if(state.passage!==current||state.selection!==item||data?.success!==true)return;
   if(data.current?.live===true){
    current.seenLive=true;current.offline=0;
+   if(typeof data.live_proof==='string')current.liveProof=data.live_proof;
    if(String(data.current.game||'').length>=2)current.game=data.current.game;
    $('stv-passage')?.remove();
   }else if(data.current?.live===false&&current.seenLive){
