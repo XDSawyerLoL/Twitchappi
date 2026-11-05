@@ -32,7 +32,7 @@ function page(kind){
  <div class="sco-stats">
  <div><small>Passages reçus</small><strong id="sa-received">—</strong><span>Pages de ta chaîne ouvertes</span></div>
  <div><small>Passages envoyés</small><strong id="sa-sent">—</strong><span>Depuis tes directs SWAPP</span></div>
- <div><small>Créateurs d'origine</small><strong id="sa-creators">—</strong><span>Chaînes ayant relayé vers toi</span></div>
+ <div><small>Chaînes à l’origine</small><strong id="sa-creators">—</strong><span>Chaînes distinctes ayant relayé vers toi</span></div>
  </div>
  <p id="sa-status" class="sco-message" role="status" aria-live="polite">Vérification de ton compte SWAPP…</p>
  <p class="sco-note">Ce ne sont ni des spectateurs uniques, ni des abonnements, ni une mesure de visionnage. Aucun profil ni historique spectateur n'est enregistré.</p>
