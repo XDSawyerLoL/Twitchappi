@@ -1,0 +1,59 @@
+{
+  "id": "swapp-on-air-voice-natural-test",
+  "title": "SWAPP ON AIR — Premier essai conversationnel",
+  "publication_allowed": false,
+  "sponsored": false,
+  "note": "Dialogue fictif de démonstration acoustique, non destiné à une diffusion comme actualité vérifiée.",
+  "segments": [
+    {
+      "speaker": "NOVA",
+      "delivery": "curieuse, sourire perceptible, comme une confidence au micro",
+      "text": "Bon... tu sais ce qui me manque, Kern ?"
+    },
+    {
+      "speaker": "KERN",
+      "delivery": "ironique, léger sourire, naturel",
+      "text": "Un filtre entre tes idées et ton micro ?"
+    },
+    {
+      "speaker": "NOVA",
+      "delivery": "amusement franc puis énergie, sans jouer une publicité",
+      "text": "Très drôle. Non ! Un endroit où tu découvres un jeu avant que tout le monde en parle."
+    },
+    {
+      "speaker": "KERN",
+      "delivery": "sceptique mais complice, pause après la première proposition",
+      "text": "D'accord, mais découvrir un jeu sur une affiche... ou vraiment y jouer ?"
+    },
+    {
+      "speaker": "NOVA",
+      "delivery": "enthousiasme sincère, rapide, expressive",
+      "text": "Justement ! Un studio présente sa démo. Plusieurs streamers l'essaient en direct. Et nous, on vient voir ce qu'ils en pensent."
+    },
+    {
+      "speaker": "KERN",
+      "delivery": "réflexion, amusement léger, voix posée",
+      "text": "Même si le jeu est complètement raté ?"
+    },
+    {
+      "speaker": "NOVA",
+      "delivery": "réponse immédiate, convaincue, un peu taquine",
+      "text": "Surtout dans ce cas ! Une vraie découverte, c'est aussi le droit de ne pas aimer."
+    },
+    {
+      "speaker": "KERN",
+      "delivery": "approbation prudente puis humour doux",
+      "text": "Là, tu marques un point. Et si le studio paye les streamers sans acheter leur avis... ça devient intéressant."
+    },
+    {
+      "speaker": "NOVA",
+      "delivery": "conclusion complice, sourire",
+      "text": "Voilà ce que j'imagine pour SWAPP PREMIÈRE. Pas une publicité déguisée. Un rendez-vous pour les joueurs."
+    },
+    {
+      "speaker": "KERN",
+      "delivery": "conclusion sèche et amicale",
+      "text": "Bon... ça me plaît. Note bien que je ne le dirai pas deux fois."
+    }
+  ]
+}

@@ -10281,6 +10281,43 @@ function spotlightPool(){
     return spotlightDbPool;
   }catch(_){return null;}
 }
+const SWAPP_PREMIERE_INTEREST_ENABLED=process.env.SWAPP_PREMIERE_INTEREST_ENABLED==='1';
+let swappPremiereDbPool=null;
+function swappPremierePool(){
+  if(!SWAPP_PREMIERE_INTEREST_ENABLED||!SWAPP_MYSQL_ACCOUNTS)return null;
+  if(socialInteractionsPool)return socialInteractionsPool;
+  const shared=spotlightPool();
+  if(shared)return shared;
+  if(swappPremiereDbPool)return swappPremiereDbPool;
+  const uri=process.env.SWAPP_MYSQL_URL;
+  if(!uri)return null;
+  try{
+    const u=new URL(uri);
+    if(u.protocol!=='mysql:'||!u.hostname||!u.username||!u.pathname||u.pathname==='/')return null;
+    swappPremiereDbPool=require('mysql2/promise').createPool({
+      uri,connectionLimit:2,waitForConnections:true,queueLimit:20,connectTimeout:5000,
+      enableKeepAlive:true,timezone:'Z'
+    });
+    return swappPremiereDbPool;
+  }catch(_){return null}
+}
+const {createInterestStore,registerPremiereInterest}=require('./modules/swapp-premiere-interest');
+const swappPremiereStore=createInterestStore({getPool:swappPremierePool});
+registerPremiereInterest(app,{
+  store:swappPremiereStore,
+  enabled:()=>SWAPP_PREMIERE_INTEREST_ENABLED&&SWAPP_MYSQL_ACCOUNTS&&Boolean(swappPremierePool()),
+  verifyGame:async game=>spotlightPublishedGame(game),
+  restoreSession:restoreOryonSessionFromRememberCookie,
+  findUser:async id=>{
+    await ORYON_USERS_READY.catch(()=>{});
+    if(!swappMysqlAccountsReady){
+      await swappMysqlAccountsRecovery.ensure();
+      if(!swappMysqlAccountsReady)return null;
+    }
+    return (readOryonUsers().users||[]).find(user=>String(user?.id)===String(id))||null;
+  },
+  isProd:IS_PROD
+});
 const spotlightStore=createSpotlightStore({getPool:spotlightPool});
 const {createSpotlightNotices,qualifiesForSpotlight,MIN_FEATURE_VIEWERS}=require('./modules/swapp-spotlight-notices');
 const spotlightNotices=createSpotlightNotices({getPool:spotlightPool});
