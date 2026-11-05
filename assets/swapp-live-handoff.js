@@ -104,7 +104,7 @@
   }
  }
  function completed(data){
-  if(!active||active.cancelled||!active.seenLive||active.notice||active.game.length<2)return;
+  if(!active||active.cancelled||!active.seenLive||active.notice?.isConnected||active.game.length<2)return;
   notice();
   const other=data.next&&validTarget(data.next)?data.next:null;
   if(!other){
@@ -133,7 +133,10 @@
  async function tick(){
   const ctx=context(),id=ctx?ctx.platform+':'+ctx.login:'';
   if(id!==stamp)reset(ctx);
-  else if(active&&ctx)active.mount=ctx.mount;
+  else if(active&&ctx){
+   active.mount=ctx.mount;
+   if(active.notice&&!active.notice.isConnected)removeNotice();
+  }
   if(!ctx||!active||busy||document.visibilityState==='hidden')return;
   busy=true;
   const current=active;
@@ -154,6 +157,13 @@
   interval=setInterval(()=>{void tick()},POLL_MS);
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')void tick()});
   window.addEventListener('popstate',()=>void tick());
+  // SWAPP uses a SPA for native channels. Observe only the channel root,
+  // never the live chat subtree, to avoid one network request per message.
+  const channel=document.getElementById('channel');
+  if(channel&&typeof MutationObserver==='function')
+   new MutationObserver(()=>void tick()).observe(channel,{
+    attributes:true,attributeFilter:['class'],childList:true,subtree:false
+   });
   void tick();
  }
  if(typeof module!=='undefined'&&module.exports){
