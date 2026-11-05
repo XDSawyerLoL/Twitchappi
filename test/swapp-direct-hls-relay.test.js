@@ -579,5 +579,20 @@ test('shared HLS directory serves actual playlist and segment across isolated No
   assert.equal(chunk.status,200,'second process can serve shared media');
   assert.deepEqual(Buffer.from(chunk.payload),media);
   assert.equal((await reader.call('get',segment,{segment:'../secret'})).status,404);
+  const remoteProbe=await reader.call('get','/api/oryon/local-relay/:login/probe');
+  assert.equal(remoteProbe.payload.active,true,'reader worker recognizes the shared stream');
+  assert.equal(remoteProbe.payload.playlist_ready,true);
+  assert.equal(remoteProbe.payload.segment_ready,true);
+  assert.equal(remoteProbe.payload.media_fresh,true);
+  assert.equal(remoteProbe.payload.ts_sync_byte,true);
+  assert.equal(remoteProbe.payload.shared_media_ready,true);
+  const remoteDiagnostics=await reader.call('get','/api/swapp/obs-hls/diagnostics');
+  assert.equal(remoteDiagnostics.payload.stage,'live','owner sees a playable stream even if OBS uploads to a different worker');
+  assert.equal(remoteDiagnostics.payload.shared_storage_enabled,true);
+  assert.equal(remoteDiagnostics.payload.shared_media_ready,true);
+  fs.unlinkSync(path.join(tmp,'vnhz','index.m3u8'));
+  const stoppedProbe=await reader.call('get','/api/oryon/local-relay/:login/probe');
+  assert.equal(stoppedProbe.payload.active,false,'removed shared manifest cannot be mistaken for a live video');
+  assert.equal(stoppedProbe.payload.playlist_ready,false);
  }finally{fs.rmSync(tmp,{recursive:true,force:true})}
 });
