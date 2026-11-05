@@ -4892,6 +4892,10 @@ const swappLiveHandoff=require('./modules/swapp-live-handoff').createHandoff({
 app.get('/api/swapp/live-handoff',heavyLimiter,async(req,res)=>{
  res.set('Cache-Control','private, no-store');
  res.set('X-Content-Type-Options','nosniff');
+ // Fast operational rollback for live incidents, without deleting code or
+ // restarting OBS, and without enabling any external paid service.
+ if(process.env.SWAPP_LIVE_HANDOFF_DISABLED==='1')
+  return res.status(503).json({success:false,error:'live_handoff_paused'});
  const platform=String(req.query.platform||''),login=String(req.query.login||'');
  const game=String(req.query.game||'').slice(0,90);
  try{
