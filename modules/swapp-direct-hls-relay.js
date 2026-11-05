@@ -50,7 +50,25 @@ function attachSwappDirectRelay(app, opts={}){
   const manifest=sharedRead(login,'index.m3u8');
   if(!manifest)return null;
   const names=manifest.toString('utf8').split(/\r?\n/).filter(n=>/^seg_[0-9]{1,14}\.ts$/.test(n));
-  return names.length?{manifest,names,latest:names[names.length-1]}:null;
+  if(!names.length)return null;
+  const latest=names[names.length-1];
+  // A recently published playlist is NOT proof that video frames still arrive.
+  // Match the in-memory 30s freshness rule on all relay workers.
+  let segmentStamp;
+  try{segmentStamp=fs.statSync(sharedPath(login,latest)).mtimeMs}catch(_){return null}
+  if(Date.now()-segmentStamp>VIDEO_STALE_MS)return null;
+  let metadata=null;
+  try{
+   const b=sharedRead(login,'broadcast.json');
+   if(b&&b.length<2048){
+    const parsed=JSON.parse(b.toString('utf8'));
+    const digest=crypto.createHash('sha256').update(manifest).digest('hex');
+    if(/^[a-f0-9]{24}$/.test(parsed.id)&&parsed.manifest_sha256===digest)
+     metadata={id:parsed.id,lastSegmentAt:Number(parsed.lastSegmentAt)||segmentStamp,
+      audioTrack:parsed.audioTrack==='present'||parsed.audioTrack==='missing'?parsed.audioTrack:'unknown'};
+   }
+  }catch(_){}
+  return {manifest,names,latest,metadata,segmentStamp};
  }
  function shareAcceptedMedia(login,name,body,room){
   if(!sharedRoot)return;
@@ -65,6 +83,13 @@ function attachSwappDirectRelay(app, opts={}){
      atomicSharedWrite(login,n,chunk);
     }
    }
+   const digest=crypto.createHash('sha256').update(room.manifest).digest('hex');
+   // Write metadata before the manifest: a reader never receives new video
+   // paired with an old broadcast identity.
+   atomicSharedWrite(login,'broadcast.json',Buffer.from(JSON.stringify({
+    id:room.broadcastId,manifest_sha256:digest,lastSegmentAt:room.lastSegmentAt,
+    audioTrack:room.audioTrack
+   }),'utf8'));
    atomicSharedWrite(login,'index.m3u8',room.manifest);
   }
   // Bound disk usage; keep the advertised window plus a modest DVR margin.
@@ -520,8 +545,8 @@ function attachSwappDirectRelay(app, opts={}){
  app.get('/api/oryon/local-relay/:login/state',(req,res)=>{
   notCached(res);
   const login=cleanLogin(req.params.login),r=login&&liveRoom(login);
-  const sharedManifest=sharedRead(login,'index.m3u8');
-  const sharedNames=sharedManifest?sharedManifest.toString('utf8').split(/\r?\n/).filter(n=>/^seg_[0-9]{1,14}\.ts$/.test(n)):[];
+  const shared=sharedMediaView(login);
+  const sharedNames=shared?.names||[];
   const sharedActive=sharedNames.length>0;
   res.json({success:true,active:sharedActive||hasFreshVideo(r),segment_count:sharedActive?sharedNames.length:r?.segments?.size||0,
    last_manifest_at:r?.lastManifestAt||null,last_segment_at:r?.lastSegmentAt||null,
@@ -549,7 +574,7 @@ function attachSwappDirectRelay(app, opts={}){
  app.get('/api/oryon/local-relay/:login/index.m3u8',(req,res)=>{
   notCached(res);
   const login=cleanLogin(req.params.login),r=login&&liveRoom(login);
-  const manifest=sharedRead(login,'index.m3u8')||r?.manifest;
+  const manifest=sharedMediaView(login)?.manifest||r?.manifest;
   if(!manifest)return res.sendStatus(404);
   res.type('application/vnd.apple.mpegurl').send(manifest);
  });
@@ -619,18 +644,33 @@ function attachSwappDirectRelay(app, opts={}){
   // and posters are NOT proof of video.
   activeStreams(){
    reclaim();
-   return [...rooms.entries()]
-    .filter(([login,room])=>Boolean(cleanLogin(login))&&hasFreshVideo(room))
-    .map(([login,room])=>({
-     login,
-     media:'hls',
-     media_verified:true,
-     broadcast_id:room.broadcastId,
-     last_segment_at:room.lastSegmentAt,
+   const published=new Map();
+   for(const [login,room] of rooms){
+    if(!cleanLogin(login)||!hasFreshVideo(room))continue;
+    published.set(login,{login,media:'hls',media_verified:true,
+     broadcast_id:room.broadcastId,last_segment_at:room.lastSegmentAt,
      audio_track:room.audioTrack,
-     // Same-origin streaming; no CDN and no Twitch player.
-     player_url:'/api/oryon/local-relay/'+encodeURIComponent(login)+'/player'
-    }));
+     player_url:'/api/oryon/local-relay/'+encodeURIComponent(login)+'/player'});
+   }
+   // Without this read, SWAPP TV misses streams ingested by a different worker
+   // even when that worker's videos are accessible through the shared directory.
+   if(sharedRoot){
+    try{
+     for(const entry of fs.readdirSync(sharedRoot,{withFileTypes:true}).slice(0,100)){
+      const login=entry.name;
+      if(!entry.isDirectory()||!cleanLogin(login)||published.has(login))continue;
+      const shared=sharedMediaView(login);
+      if(!shared?.metadata)continue;
+      published.set(login,{login,media:'hls',media_verified:true,
+       broadcast_id:shared.metadata.id,last_segment_at:shared.metadata.lastSegmentAt,
+       audio_track:shared.metadata.audioTrack,
+       player_url:'/api/oryon/local-relay/'+encodeURIComponent(login)+'/player'});
+     }
+    }catch(error){
+     console.warn('[SWAPP HLS] shared stream discovery unavailable',String(error?.code||error?.name||'error'));
+    }
+   }
+   return [...published.values()];
   },
   posterForLogin(login){
    const r=liveRoom(cleanLogin(login));
