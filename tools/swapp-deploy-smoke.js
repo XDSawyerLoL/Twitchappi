@@ -63,6 +63,17 @@ async function verify(){
  process.stdout.write('PASS /ads.txt\n');
  // Native TV is a real route, not an iframe shell. Verify both the markup
  // and the exact JS payload of the continuous, opt-in broadcast rotation.
+ // SWAPP PORTAIL must render as an actual first-party route after deployment.
+ const portal=await request(origin,'/portail');
+ check(portal.body.includes('id="swapp-portail"')&&
+  portal.body.includes('id="sp-next"')&&
+  portal.body.includes('/assets/swapp-portail.js?v=20261105-1'),
+  'SWAPP PORTAIL is missing or returning a stale SPA shell');
+ const portalJs=await request(origin,'/assets/swapp-portail.js');
+ check(portalJs.body.includes("fetch('/api/swapp-tv/native-lineup'")&&
+  portalJs.body.includes("row.media_verified!==true"),
+  'SWAPP PORTAIL verified discovery client is missing or stale');
+ process.stdout.write('PASS /portail first-party verified discovery\\n');
  const station=await request(origin,'/tv');
  check(station.body.includes('id="stv-slot-clock"')&&
   station.body.includes('id="stv-watch"')&&
