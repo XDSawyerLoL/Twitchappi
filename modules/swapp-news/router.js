@@ -17,6 +17,7 @@ const swappReleaseArticles=loadEditorialReleases();
 const swappReleaseBySlug=new Map(swappReleaseArticles.map(article=>[article.slug,article]));
 const {publicArticle,recoveredArticle,nativeSlug,legacyDraft}=require('./editorial-identity');
 const {registerArticleScores}=require('./article-scores');
+const {registerGameScores}=require('../swapp-game-scores');
 const {registerEditorInsights}=require('./editor-insights');
 const {notifyIndexNow,invalidateSeoCache,verifiedIndexedGame}=require('../swapp-seo');
 const {gameSlug}=require('../swapp-game-pages');
@@ -163,6 +164,7 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
   const editor=[available,requireEditor,noStore];
 
   registerArticleScores({router,firestore,articles,publicNews,available,baseUrl,nativeSlug});
+  registerGameScores({router,firestore,available,baseUrl,resolveGame:verifiedIndexedGame});
   registerEditorInsights({router,firestore,articles,editor});
   router.get('/api/actus/recovery-status',(_req,res)=>res.json(publicNews.status()));
   router.get('/api/actus/storage-status',async(_req,res)=>{
