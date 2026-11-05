@@ -20,7 +20,7 @@ function choose(candidates,{game,platform,login,at=Date.now()}={}){
  for(const row of Array.isArray(candidates)?candidates:[]){
   const p=String(row?.platform||''),user=String(row?.login||'').toLowerCase();
   const key=p+':'+user;
-  if(!['swapp','twitch'].includes(p)||(p==='swapp'?!NATIVE:!TWITCH).test(user)||
+  if(!['swapp','twitch'].includes(p)||!(p==='swapp'?NATIVE:TWITCH).test(user)||
      !equivalent(game,row?.game)||seen.has(key)||(p===platform&&user===login))continue;
   seen.add(key);
   accepted.push(row);
@@ -104,7 +104,7 @@ function createHandoff({twitchAPI,twitchEnabled=()=>false,users=()=>[],nativeStr
  }
  async function check({platform,login,game}={}){
   const from=String(platform||'').toLowerCase(),user=String(login||'').toLowerCase();
-  if(!['swapp','twitch'].includes(from)||(from==='swapp'?!NATIVE:!TWITCH).test(user))
+  if(!['swapp','twitch'].includes(from)||!(from==='swapp'?NATIVE:TWITCH).test(user))
    return {success:false,error:'invalid_stream',status:400};
   let live=false,verifiedGame='';
   if(from==='twitch'){
