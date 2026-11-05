@@ -121,5 +121,21 @@
    button.disabled=true;
   }catch(error){status.textContent=errorMessage(error.message);button.disabled=false}
  });
+ async function checkStorage(){
+  try{
+   const response=await fetch('/api/on-air/studio/status',{credentials:'same-origin',cache:'no-store'});
+   const data=await response.json();
+   if(!response.ok||data.ready!==true){
+    status.textContent='Le stockage audio Hostinger est indisponible. Vérifie le dossier de publication.';
+    button.disabled=true;return;
+   }
+   status.textContent=data.persistent_directory_configured?
+    'Studio prêt. Ajoute ton MP3 final et les sources.' :
+    'Studio prêt en stockage local. Configure SWAPP_ON_AIR_STORAGE_DIR pour conserver les épisodes après chaque redéploiement.';
+  }catch{
+   status.textContent='Impossible de vérifier le stockage. L’envoi reste disponible, mais doit être contrôlé sur Hostinger.';
+  }
+ }
+ void checkStorage();
  window.addEventListener('pagehide',()=>{if(objectURL)URL.revokeObjectURL(objectURL)});
 })();
