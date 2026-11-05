@@ -43,6 +43,15 @@ function attachSwappDirectRelay(app, opts={}){
    return bytes;
   }catch(_){return null}
  }
+ // Consistent viewer-side proof on all workers when a common filesystem is configured.
+ // sharedRead already checks freshness and that every advertised segment exists.
+ function sharedMediaView(login){
+  if(!sharedRoot||!login)return null;
+  const manifest=sharedRead(login,'index.m3u8');
+  if(!manifest)return null;
+  const names=manifest.toString('utf8').split(/\r?\n/).filter(n=>/^seg_[0-9]{1,14}\.ts$/.test(n));
+  return names.length?{manifest,names,latest:names[names.length-1]}:null;
+ }
  function shareAcceptedMedia(login,name,body,room){
   if(!sharedRoot)return;
   // Persist segment BEFORE manifest, so other workers never see a playlist
@@ -441,10 +450,10 @@ function attachSwappDirectRelay(app, opts={}){
   try{owner=await opts.lookupDashboardOwner(req)}catch(_){}
   const login=cleanLogin(owner?.login);
   if(!login)return res.status(401).json({success:false,error:'Connexion propriétaire SWAPP requise.'});
-  const now=Date.now(),r=rooms.get(login),t=obsIngestTelemetry.get(login)||{};
+  const now=Date.now(),r=rooms.get(login),t=obsIngestTelemetry.get(login)||{},shared=sharedMediaView(login);
   const segmentAge=r?.lastSegmentAt?Math.max(0,now-r.lastSegmentAt):null;
   const playlistAge=r?.lastManifestAt?Math.max(0,now-r.lastManifestAt):null;
-  const active=hasFreshVideo(r),seen=!!t.last_put_at;
+  const active=hasFreshVideo(r)||!!shared,seen=!!t.last_put_at;
   let stage='no_upload';
   if(active)stage='live';
   else if(t.last_error_code&&now-(t.last_error_at||0)<60000)stage='rejected';
@@ -459,11 +468,11 @@ function attachSwappDirectRelay(app, opts={}){
    last_error_reason:t.last_error_reason||null,
    pending_obs_segments:r?.pendingObsPlaylist?.length||0,
    last_segment_ok_at:t.last_segment_ok_at||null,last_playlist_ok_at:t.last_playlist_ok_at||null,
-   segment_age_ms:segmentAge,playlist_age_ms:playlistAge,segment_count:r?.segments?.size||0,
+   segment_age_ms:segmentAge,playlist_age_ms:playlistAge,segment_count:shared?.names.length||r?.segments?.size||0,
    segment_bytes_in_memory:r?.bytes||0,segment_memory_budget:MAX_ROOM_BYTES,
    missing_segment_requests:r?.missingSegmentRequests||0,
    last_missing_segment_at:r?.lastMissingSegmentAt||null,
-   has_playlist:!!r?.manifest,max_rooms:MAX_ROOMS,used_rooms:rooms.size,
+   has_playlist:!!r?.manifest||!!shared,shared_storage_enabled:!!sharedRoot,shared_media_ready:!!shared,max_rooms:MAX_ROOMS,used_rooms:rooms.size,
    protocol_hint:'OBS doit utiliser le service HLS et HTTP PUT; les ports RTMP ne fonctionnent pas ici.'});
  });
  // Presence counts active playback sessions, not page visits or fabricated viewers.
@@ -524,14 +533,17 @@ function attachSwappDirectRelay(app, opts={}){
  app.get('/api/oryon/local-relay/:login/probe',(req,res)=>{
   notCached(res);
   const login=cleanLogin(req.params.login),r=login&&liveRoom(login);
-  const latest=r?.playlistNames?.at(-1)||null;
-  const chunk=latest&&r.segments.get(latest);
-  res.json({success:true,active:hasFreshVideo(r),instance:process.pid,
-   playlist_ready:!!r?.manifest,segment_ready:!!chunk,media_fresh:hasFreshVideo(r),
+  const shared=sharedMediaView(login);
+  const latest=shared?.latest||r?.playlistNames?.at(-1)||null;
+  const chunk=(shared?.latest&&sharedRead(login,shared.latest))||(latest&&r?.segments.get(latest));
+  const active=hasFreshVideo(r)||Boolean(shared&&chunk);
+  res.json({success:true,active,instance:process.pid,
+   playlist_ready:!!r?.manifest||!!shared,segment_ready:!!chunk,media_fresh:active,
    segment_age_ms:r?.lastSegmentAt?Math.max(0,Date.now()-r.lastSegmentAt):null,
    latest_segment:latest,
    latest_bytes:chunk?.length||0,ts_sync_byte:chunk?.[0]===0x47,
    manifest_age_ms:r?.lastManifestAt?Date.now()-r.lastManifestAt:null,
+   shared_storage_enabled:!!sharedRoot,shared_media_ready:Boolean(shared&&chunk),
    media:chunk?inspectTsMedia(chunk):null});
  });
  app.get('/api/oryon/local-relay/:login/index.m3u8',(req,res)=>{
