@@ -121,6 +121,39 @@
    button.disabled=true;
   }catch(error){status.textContent=errorMessage(error.message);button.disabled=false}
  });
+ // The local Qwen voice launcher can pass editorial METADATA through a
+ // browser URL fragment. No voice recording or local file is uploaded here.
+ function prefillFromLocalEpisode(){
+  const prefix='#prefill=',hash=String(location.hash||'');
+  if(!hash.startsWith(prefix)||hash.length>6500)return;
+  try{
+   const encoded=hash.slice(prefix.length);
+   if(!/^[A-Za-z0-9_-]{40,6300}$/.test(encoded))return;
+   const binary=atob(encoded.replace(/-/g,'+').replace(/_/g,'/')+
+    '='.repeat((4-encoded.length%4)%4));
+   const bytes=Uint8Array.from(binary,c=>c.charCodeAt(0));
+   const data=JSON.parse(new TextDecoder().decode(bytes));
+   if(!data||typeof data!=='object'||Array.isArray(data))return;
+   const text=x=>typeof x==='string'?x:'';
+   if(text(data.title).length>=12&&text(data.title).length<=180)title.value=data.title;
+   if(text(data.description).length>=30&&text(data.description).length<=700)
+    $('oas-description').value=data.description;
+   if(/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(data.slug||'')&&data.slug.length<=85){
+    slug.value=data.slug;slugTouched=true;
+   }
+   if(Array.isArray(data.sources)&&data.sources.length<=10){
+    $('oas-sources').value=data.sources.filter(s=>s&&typeof s.label==='string'&&
+     typeof s.url==='string'&&s.url.startsWith('https://'))
+     .map(s=>s.label+' | '+s.url).join('\n');
+   }
+   if(Array.isArray(data.articles)&&data.articles.length<=10)
+    $('oas-articles').value=data.articles.filter(s=>typeof s==='string'&&s.startsWith('/actus/')).join('\n');
+   history.replaceState(history.state,'',location.pathname+location.search);
+   $('oas-sources').closest('details').open=true;
+   status.textContent='Fiche préremplie depuis le dialogue Qwen. Choisis maintenant le MP3 généré.';
+  }catch{status.textContent='Préremplissage impossible : remplis la fiche manuellement.'}
+ }
+ prefillFromLocalEpisode();
  async function checkStorage(){
   try{
    const response=await fetch('/api/on-air/studio/status',{credentials:'same-origin',cache:'no-store'});

@@ -172,6 +172,14 @@ def render(episode: dict, args: argparse.Namespace) -> tuple[Path, Path | None]:
     sf.write(str(output), np.concatenate(pieces), sample_rate, subtype="PCM_16")
     mp3 = None
     ffmpeg = shutil.which("ffmpeg")
+    if not ffmpeg:
+        # Free bundled binary from the optional imageio-ffmpeg Python package.
+        # Avoids requiring a separate system-wide FFmpeg installation on Windows.
+        try:
+            import imageio_ffmpeg
+            ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
+        except (ImportError, RuntimeError, OSError):
+            ffmpeg = None
     if ffmpeg:
         mp3 = output.with_suffix(".mp3")
         subprocess.run(

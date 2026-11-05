@@ -1534,6 +1534,11 @@ app.get('/on-air',(req,res)=>{
  res.set('Cache-Control','no-store');
  return res.type('html').send(swappOnAir.home(undefined,{canManage:isOryonAdmin(req)}));
 });
+app.get('/on-air/feed.xml',(_req,res)=>{
+ res.set('Cache-Control','public, max-age=300');
+ res.set('X-Content-Type-Options','nosniff');
+ return res.type('application/rss+xml').send(swappOnAir.feedXml());
+});
 app.get('/on-air/:slug',(req,res)=>{
  res.set('Cache-Control','no-store');
  if(!swappOnAir.SLUG.test(String(req.params.slug||''))||String(req.params.slug).length>85)

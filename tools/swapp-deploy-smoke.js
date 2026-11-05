@@ -121,6 +121,14 @@ async function verify(){
   check(onAirData.episodes.length>0,
    'SWAPP ON AIR HAS NO APPROVED MP3. Upload a real episode from /on-air/studio.');
 
+ const rss=await request(origin,'/on-air/feed.xml');
+ check((rss.response.headers.get('content-type')||'').includes('application/rss+xml')&&
+  rss.body.startsWith('<?xml version="1.0" encoding="UTF-8"?>')&&
+  rss.body.includes('<title>SWAPP ON AIR</title>'),
+  'ON AIR podcast RSS feed missing or malformed');
+ const enclosures=(rss.body.match(/<enclosure /g)||[]).length;
+ check(enclosures===onAirData.episodes.length,
+  'ON AIR RSS mismatch: feed must contain every real audio episode exactly once');
  const studioClient=await request(origin,'/assets/swapp-on-air-studio.js');
  check(studioClient.body.includes('/api/on-air/studio/upload/')&&
   studioClient.body.includes('/api/on-air/studio/publish')&&
