@@ -7,7 +7,8 @@ const safeLogin=s=>/^[a-z0-9_]{3,25}$/.test(String(s||'').toLowerCase());
 const safeNativeLogin=s=>/^[a-z0-9_-]{2,32}$/.test(String(s||'').toLowerCase());
 const gameOf=a=>typeof a?.game==='string'?a.game.trim():String(a?.game?.name||a?.game?.title||'').trim();
 const gamesFrom=data=>[...new Set((Array.isArray(data.articles)?data.articles:[]).filter(x=>x?.slug&&x.status!=='draft').map(gameOf).filter(x=>x.length>1))].slice(0,16);
-const state={queue:null,selection:null,playing:null,playingPlatform:null,playingBroadcastId:null,discovery:[],native:[],nativeIndex:0,nativeFetchedAt:0,index:0,consent:false,autoAdvance:false,autoSource:null,playStartedAt:0,games:[],queueMode:false};
+const state={queue:null,selection:null,playing:null,playingPlatform:null,playingBroadcastId:null,discovery:[],native:[],nativeIndex:0,nativeFetchedAt:0,index:0,consent:false,autoAdvance:false,autoSource:null,playStartedAt:0,games:[],queueMode:false,
+ passage:{key:'',game:'',seenLive:false,offline:0,cancelled:false,pending:false}};
 const TV_SLOT_SECONDS=600; // 10-minute SWAPP TV slot; keep aligned with swapp-tv-director.MAX_AIR_SECONDS.
 function tvTime(value){
  if(value instanceof Date)return value.getTime();
@@ -80,6 +81,7 @@ function syncWatchButton(){
  $('stv-watch').setAttribute('aria-pressed',String(watching));
 }
 function stopPlayback(){
+ resetPassage();
  state.consent=false;state.playing=null;state.playingPlatform=null;state.autoAdvance=false;state.autoSource=null;state.playStartedAt=0;
  $('stv-screen').querySelector('.stv-player-layer')?.remove();
  $('stv-screen-inner').hidden=false;
@@ -105,7 +107,114 @@ function play(){
  state.autoAdvance=true;
  state.autoSource=item.platform==='swapp'?'native':item.onAir?'queue':'discovery';
  state.playStartedAt=Date.now();
+ resetPassage();
  syncWatchButton();
+ // Establish the initial live state as soon as the viewer starts playing.
+ void maybePassage();
+}
+// SWAPP PASSAGE: a station viewer remains with the same GAME when the
+// broadcaster really ends. No cross-game hop, no autoplay before first Play.
+let passageClock=null,passageBusy=false;
+function resetPassage(){
+ if(passageClock){clearInterval(passageClock);passageClock=null}
+ $('stv-passage')?.remove();
+ state.passage={key:'',game:'',seenLive:false,offline:0,cancelled:false,pending:false};
+}
+function passageTarget(next){
+ const name=String(next?.login||'').toLowerCase(),kind=String(next?.platform||'');
+ return Boolean((kind==='swapp'?safeNativeLogin(name):kind==='twitch'&&safeLogin(name))&&
+  typeof next?.game==='string'&&next.game.length>=2);
+}
+function passagePanel(){
+ let el=$('stv-passage');if(el)return el;
+ el=by('section','stv-passage');el.id='stv-passage';
+ el.setAttribute('aria-label','Relais de fin de direct SWAPP TV');
+ const where=$('stv-screen')?.parentElement;
+ const bar=where?.querySelector('.stv-nowbar');
+ if(bar)bar.insertAdjacentElement('afterend',el);
+ else where?.append(el);
+ return el;
+}
+async function passageCheck(info){
+ const query=new URLSearchParams({platform:info.platform,login:info.login,game:info.game||''});
+ return api('/api/swapp/live-handoff?'+query.toString());
+}
+async function passageGo(){
+ const current=state.passage;
+ if(!state.consent||!current.pending||current.cancelled||document.visibilityState==='hidden')return;
+ const key=current.key,from=state.selection;
+ try{
+  const result=await passageCheck({platform:from.platform,login:from.login,game:current.game});
+  if(state.passage!==current||result?.success!==true)return;
+  if(result.current?.live){resetPassage();return}
+  const next=result.next;
+  if(!passageTarget(next)){
+   const panel=passagePanel();panel.textContent='Le live est terminé. Aucun autre direct du même jeu n’est actuellement vérifié.';
+   current.pending=false;return;
+  }
+  if(state.passage.key!==key||state.selection!==from)return;
+  resetPassage();
+  state.autoAdvance=false; // avoid a duplicate iframe reconstruction
+  renderScreen({platform:next.platform,login:next.login,game:next.game,
+   display_name:next.name||next.login,broadcast_id:null},{onAir:next.platform==='swapp'});
+  play(); // Reuse the single existing TV player; do not create another one.
+ }catch(_){
+  if(state.passage===current){passagePanel().textContent='Relais indisponible. Le lecteur reste sur la chaîne actuelle.';current.pending=false;}
+ }
+}
+function passageOffer(next){
+ const current=state.passage;
+ if(current.pending||current.cancelled)return;
+ const panel=passagePanel();panel.replaceChildren();
+ if(!passageTarget(next)){
+  panel.append(by('strong',null,'Le direct vient de se terminer.'),
+   by('p',null,'Aucun autre créateur vérifié sur ce jeu pour le moment.'));
+  current.pending=false;return;
+ }
+ current.pending=true;let seconds=9;
+ const label=by('strong',null,'La partie continue sur SWAPP TV');
+ const text=by('p',null,'');
+ const controls=by('div','stv-passage-actions');
+ const now=by('button',null,'Passer maintenant');now.type='button';
+ const cancel=by('button',null,'Rester ici');cancel.type='button';
+ const render=()=>{text.textContent='Prochain direct : '+(next.name||next.login)+' · '+current.game+
+  ' · dans '+seconds+' s.'};
+ now.addEventListener('click',()=>{if(passageClock)clearInterval(passageClock);passageClock=null;void passageGo()});
+ cancel.addEventListener('click',()=>{current.cancelled=true;current.pending=false;if(passageClock)clearInterval(passageClock);passageClock=null;panel.remove()});
+ controls.append(now,cancel);panel.append(label,text,controls);render();
+ passageClock=setInterval(()=>{
+  if(state.passage!==current||current.cancelled){clearInterval(passageClock);passageClock=null;return}
+  if(document.visibilityState==='hidden')return;
+  seconds--;
+  if(seconds<=0){clearInterval(passageClock);passageClock=null;void passageGo()}
+  else render();
+ },1000);
+}
+async function maybePassage(){
+ const item=state.selection;
+ if(passageBusy||!state.consent||!item||state.playing!==item.login||
+  state.playingPlatform!==item.platform||document.visibilityState==='hidden')return;
+ const key=item.platform+':'+item.login;
+ if(state.passage.key!==key){
+  resetPassage();
+  state.passage.key=key;state.passage.game=String(item.game||'').slice(0,90);
+ }
+ if(state.passage.cancelled||state.passage.pending)return;
+ const current=state.passage;
+ passageBusy=true;
+ try{
+  const data=await passageCheck({platform:item.platform,login:item.login,game:current.game});
+  if(state.passage!==current||state.selection!==item||data?.success!==true)return;
+  if(data.current?.live===true){
+   current.seenLive=true;current.offline=0;
+   if(String(data.current.game||'').length>=2)current.game=data.current.game;
+   $('stv-passage')?.remove();
+  }else if(data.current?.live===false&&current.seenLive){
+   current.offline++;
+   if(current.offline>=2)passageOffer(data.next);
+  }
+ }catch(_){/* An API outage is not a broadcast end. */}
+ finally{passageBusy=false}
 }
 // Verified first-party stream registry: ONLY HLS with a fresh manifest
 // and real media segments. WebRTC signalling and account heartbeats are
@@ -149,12 +258,14 @@ async function refreshQueue(){
    const active=state.native.find(x=>x.login===state.selection?.login&&state.selection?.platform==='swapp'&&x.broadcast_id===(state.selection?.broadcastId||null));
    const item=active||state.native[state.nativeIndex%state.native.length];
    state.nativeIndex=state.native.indexOf(item);
-   if(!active)renderScreen(item,{onAir:true});
+   // Do not replace a stream on a temporary disappearance from the lineup.
+    // SWAPP PASSAGE confirms its actual end before changing to another game.
+    if(!active&&!(state.consent&&state.playing===state.selection?.login))renderScreen(item,{onAir:true});
   }else if(data.enabled){
    const item=data.director_enabled?data.on_air:null;
-   if(!item||!safeLogin(item.twitch_login))renderScreen(null);
-   else if(!state.selection||state.selection.login!==String(item.twitch_login).toLowerCase()||state.selection.platform!=='twitch'||!state.selection.onAir)renderScreen(item,{onAir:true});
-  }else if(state.selection?.platform==='swapp'){
+   if(!item||!safeLogin(item.twitch_login)){if(!state.consent)renderScreen(null);}
+   else if(!state.consent&&(!state.selection||state.selection.login!==String(item.twitch_login).toLowerCase()||state.selection.platform!=='twitch'||!state.selection.onAir))renderScreen(item,{onAir:true});
+  }else if(state.selection?.platform==='swapp'&&!state.consent){
    renderScreen(null);
   }
   rail(data);
@@ -220,7 +331,7 @@ async function discovery(){
  // Periodic discovery refresh must never tear down a stream the viewer
  // deliberately launched if its login is still in the verified result set.
  if(!state.queueMode){
-  if(!active)renderScreen(ordered[0]||null);
+  if(!active&&!state.consent)renderScreen(ordered[0]||null);
   rail(null);
  }
 }
@@ -395,6 +506,7 @@ setInterval(()=>{if(!$('stv-pane-swapp').hidden)void refreshSwappChat()},7000);
 setInterval(updateSlotClock,1000);
 setInterval(maybeAdvanceDiscovery,30000);
 setInterval(maybeAdvanceNative,30000);
+setInterval(()=>{void maybePassage()},25000);
 
 $('stv-watch').addEventListener('click',()=>{
  if(state.selection&&state.playing===state.selection.login&&state.playingPlatform===state.selection.platform&&state.consent)stopPlayback();

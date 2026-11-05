@@ -1,0 +1,20 @@
+/* SWAPP PASSAGE — opt-out countdown placed AFTER the player, never
+ * covering Twitch embed controls or interfering with HLS / native chat. */
+.swapp-passage{display:grid;gap:8px;position:relative;width:100%;min-width:0;
+ padding:17px clamp(14px,2vw,24px);margin:14px 0;
+ border:1px solid rgba(109,210,221,.31);border-radius:12px;
+ background:linear-gradient(110deg,rgba(10,29,39,.96),rgba(23,19,44,.97));
+ box-shadow:0 13px 40px rgba(0,0,0,.24);color:#f7f9ff;box-sizing:border-box}
+.swapp-passage *{box-sizing:border-box}
+.swapp-passage-kicker{font-size:10px;letter-spacing:.14em;font-weight:850;color:#73e6e8}
+.swapp-passage-title{font-size:clamp(17px,2vw,22px);font-weight:850;line-height:1.25;color:#f7f9ff}
+.swapp-passage-detail{margin:0!important;font-size:13px;color:#c4d4e6;line-height:1.5}
+.swapp-passage-actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:5px}
+.swapp-passage-actions :is(button,a){display:inline-flex;align-items:center;justify-content:center;min-height:39px;
+ border-radius:7px;border:1px solid rgba(170,199,219,.3);padding:8px 13px;
+ background:rgba(255,255,255,.045);text-decoration:none;color:#eef5ff;
+ font:750 12px/1.25 system-ui,sans-serif;cursor:pointer}
+.swapp-passage-actions .swapp-passage-go{background:#8df0ed!important;border-color:#8df0ed!important;color:#0b1723!important}
+.swapp-passage-actions :is(button,a):focus-visible{outline:2px solid #8df0ed;outline-offset:3px}
+@media(max-width:580px){.swapp-passage-actions :is(button,a){flex:1 1 100%}}
+@media(prefers-reduced-motion:reduce){.swapp-passage *{transition:none!important;animation:none!important}}
