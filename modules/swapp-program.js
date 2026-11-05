@@ -18,6 +18,7 @@ function page(kind){
  const content=tv?`<main id="swapp-tv" class="stv" aria-label="SWAPP TV">
   <header class="stv-mast">
    <div class="stv-brand"><span class="stv-brandline">SWAPP / GAME UNIVERSE</span><strong>SWAPP TV</strong><span class="stv-station-label">LA CHAÎNE</span></div>
+   <a class="stv-portail-entry" href="/portail">✦ DÉCOUVRIR UN CRÉATEUR</a>
   </header>
   <section class="stv-broadcast" aria-labelledby="stv-heading">
    <div class="stv-stage">
