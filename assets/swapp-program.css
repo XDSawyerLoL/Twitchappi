@@ -256,3 +256,13 @@
 .stv .stv-passage-actions button:first-child{background:#8df0ed;color:#0b1723;border-color:#8df0ed}
 .stv .stv-passage-actions button:focus-visible{outline:2px solid #8df0ed;outline-offset:3px}
 @media(max-width:600px){.stv .stv-passage-actions button{flex:1 1 130px}}
+
+/* Quiet secondary navigation: keep actions out of the video toolbar. */
+.stv-collective{display:flex;gap:14px;align-items:center;justify-content:flex-end;flex-wrap:wrap;
+ padding:12px 6px;color:#9bb5c6;font:650 12px/1.4 system-ui}
+.stv-collective span{margin-right:auto;color:#a7c4d4}
+.stv-collective a{color:#cdeef1;text-decoration:none;border-bottom:1px solid rgba(136,228,221,.38);
+ padding:5px 0}
+.stv-collective a:focus-visible{outline:2px solid #94efed;outline-offset:4px}
+@media(max-width:640px){.stv-collective{justify-content:flex-start;gap:10px 18px}
+ .stv-collective span{flex:1 1 100%}}
