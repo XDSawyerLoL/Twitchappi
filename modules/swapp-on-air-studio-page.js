@@ -13,7 +13,7 @@ function page(){
  '<input id="oas-title" name="title" autocomplete="off" maxlength="180" minlength="12" required placeholder="SWAPP ON AIR — Le dossier du jour"></div>'+
  '<div class="oas-field"><label for="oas-description">Présentation</label>'+
  '<textarea id="oas-description" rows="3" maxlength="700" minlength="30" required placeholder="Le sujet de l’épisode, ce qu’il apporte aux joueurs et les points abordés."></textarea></div>'+
- '<details class="oas-advanced"><summary>Références et URL de l’épisode</summary>'+
+ '<details class="oas-advanced" open><summary>Références et URL de l’épisode</summary>'+
  '<div class="oas-field"><label for="oas-sources">Sources officielles — une par ligne</label>'+
  '<textarea id="oas-sources" rows="3" required placeholder="Nom de la source | https://site-officiel.fr/annonce"></textarea>'+
  '<small>Obligatoire : des liens HTTPS réels, pas des exemples fictifs.</small></div>'+
