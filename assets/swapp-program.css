@@ -233,3 +233,13 @@
 .stv-slot-clock{font-size:11px;letter-spacing:.06em;font-weight:800;color:var(--tv-accent,#67dce8);font-variant-numeric:tabular-nums;white-space:nowrap}
 .stv-slot-clock[hidden]{display:none!important}
 @media(max-width:420px){.stv-rail-head{flex-wrap:wrap}.stv-air-meta{align-items:flex-start}.stv-slot-clock{font-size:10px}}
+
+
+/* SWAPP PORTAIL — first-party discovery next to the TV station controls. */
+.stv .stv-now-actions .stv-portail-entry{display:inline-flex;align-items:center;justify-content:center;
+ min-height:40px;padding:10px 14px;border-radius:9px;border:1px solid rgba(133,228,242,.45);
+ background:linear-gradient(110deg,rgba(39,144,158,.2),rgba(104,71,165,.2));
+ color:#d5f8fb!important;text-decoration:none;font-size:11px;font-weight:850;letter-spacing:.055em;white-space:nowrap}
+.stv .stv-now-actions .stv-portail-entry:hover{background:rgba(72,177,197,.22);color:#fff!important}
+.stv .stv-now-actions .stv-portail-entry:focus-visible{outline:2px solid #8ef9fb;outline-offset:3px}
+@media(max-width:720px){.stv .stv-now-actions .stv-portail-entry{flex:1 0 100%;margin-top:4px;white-space:normal}}

@@ -39,6 +39,9 @@ const RELEASE_FILES=Object.freeze([
  // must invalidate the release fingerprint, not merely the homepage.
  'modules/swapp-independence.js',
  'modules/swapp-program.js',
+ 'modules/swapp-portail.js',
+ 'assets/swapp-portail.js',
+ 'assets/swapp-portail.css',
  'modules/swapp-tv-director.js',
  'modules/swapp-tv-queue.js',
  'assets/swapp-program.css',

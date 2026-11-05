@@ -1461,6 +1461,11 @@ app.get('/on-air/:slug',(req,res)=>{
  return page?res.type('html').send(page):res.status(404).type('text').send('Épisode indisponible');
 });
 app.get('/tv',(_req,res)=>{res.set('Cache-Control','no-store');return res.type('html').send(swappProgram.page('tv'))});
+app.get('/portail',(_req,res)=>{
+ res.set('Cache-Control','no-store');
+ res.set('X-Content-Type-Options','nosniff');
+ return res.type('html').send(require('./modules/swapp-portail').page());
+});
 app.get('/communaute',(req,res)=>{res.set('Cache-Control','no-store');return res.redirect(308,'/social'+(req.originalUrl.includes('?')?req.originalUrl.slice(req.originalUrl.indexOf('?')):''));});
 app.get('/social',(_req,res)=>{res.set('Cache-Control','no-store');res.type('html').send(swappHubs.community())});
 app.get('/bandes-annonces',async(_req,res)=>{
