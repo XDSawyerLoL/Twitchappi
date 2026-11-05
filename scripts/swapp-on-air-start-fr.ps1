@@ -33,6 +33,21 @@ function Open-SwappStudio {
  Write-Host 'Selectionne le fichier MP3, ecoute-le et approuve le contenu.'
  Start-Process $url
 }
+function Test-PythonVersion($exe,$version){
+ $prior=$ErrorActionPreference
+ try{
+  # Windows PowerShell 5.1 can promote harmless stderr from a missing
+  # Python version to a terminating error when the global preference is Stop.
+  $ErrorActionPreference='SilentlyContinue'
+  if($version){
+   & $exe $version -c "import sys; assert (3, 10) <= sys.version_info[:2] < (3, 14)" 2>$null
+  }else{
+   & $exe -c "import sys; assert (3, 10) <= sys.version_info[:2] < (3, 14)" 2>$null
+  }
+  return ($LASTEXITCODE -eq 0)
+ }catch{ return $false }
+ finally{ $ErrorActionPreference=$prior }
+}
 Write-Host 'SWAPP ON AIR - NOVA / KERN - premier vrai episode' -ForegroundColor Cyan
 if(Test-Path $mp3){
  Write-Host 'MP3 deja genere : aucun nouveau telechargement ni installation.' -ForegroundColor Green
@@ -42,17 +57,14 @@ if(Test-Path $mp3){
 if(!(Test-Path $episode)){Fail 'Dialogue source manquant'}
 if(!(Test-Path $python)){
  $launcher=$null
- if(Get-Command py -ErrorAction SilentlyContinue){
-  & py -3.12 -c "import sys; print(sys.version)" 2>$null
-  if($LASTEXITCODE -eq 0){$launcher=@('py','-3.12')}
+ if((Get-Command py -ErrorAction SilentlyContinue) -and (Test-PythonVersion 'py' '-3.12')){
+  $launcher=@('py','-3.12')
  }
- if(!$launcher -and (Get-Command py -ErrorAction SilentlyContinue)){
-  & py -3 -c "import sys; assert sys.version_info >= (3,10); assert sys.version_info < (3,14)" 2>$null
-  if($LASTEXITCODE -eq 0){$launcher=@('py','-3')}
+ if(!$launcher -and (Get-Command py -ErrorAction SilentlyContinue) -and (Test-PythonVersion 'py' '-3')){
+  $launcher=@('py','-3')
  }
- if(!$launcher -and (Get-Command python -ErrorAction SilentlyContinue)){
-  & python -c "import sys; assert sys.version_info >= (3,10); assert sys.version_info < (3,14)" 2>$null
-  if($LASTEXITCODE -eq 0){$launcher=@('python')}
+ if(!$launcher -and (Get-Command python -ErrorAction SilentlyContinue) -and (Test-PythonVersion 'python' '')){
+  $launcher=@('python')
  }
  if(!$launcher){Fail 'Python 3.12 conseille. Installe Python depuis python.org, puis relance.'}
  Write-Host 'Premiere preparation : Python isole, modeles ouverts, aucun paiement.' -ForegroundColor Yellow
