@@ -4879,6 +4879,30 @@ app.get('/api/swapp-tv/native-lineup',(_req,res)=>{
   return res.status(503).json({success:false,error:'native_lineup_unavailable',items:[]});
  }
 });
+// SWAPP PASSAGE: check the ACTUAL source status before recommending another
+// still-live creator playing the same verified game. No viewer profile stored.
+const swappLiveHandoff=require('./modules/swapp-live-handoff').createHandoff({
+ twitchAPI,
+ twitchEnabled:()=>Boolean(TWITCH_CLIENT_ID&&TWITCH_CLIENT_SECRET),
+ users:()=>readOryonUsers().users||[],
+ nativeStreams:()=>swappDirectRelay.activeStreams(),
+ nativeLive:login=>Boolean(nativeLiveRooms?.get(login)||
+  isOryonLiveSignalFresh(getOryonUserByLogin(login)))
+});
+app.get('/api/swapp/live-handoff',heavyLimiter,async(req,res)=>{
+ res.set('Cache-Control','private, no-store');
+ res.set('X-Content-Type-Options','nosniff');
+ const platform=String(req.query.platform||''),login=String(req.query.login||'');
+ const game=String(req.query.game||'').slice(0,90);
+ try{
+  const result=await swappLiveHandoff.check({platform,login,game});
+  return res.status(result.status||200).json(result);
+ }catch(error){
+  console.warn('[SWAPP PASSAGE] Verification unavailable',String(error?.name||'error'));
+  return res.status(503).json({success:false,error:'live_verification_unavailable'});
+ }
+});
+
 app.post('/api/oryon/local-agent/register-public-url', mutationLimiter, async (req, res) => {
   try {
     const token = bearerToken(req);
