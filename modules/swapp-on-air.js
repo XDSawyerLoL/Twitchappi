@@ -97,7 +97,7 @@ function home(episodes=publicEpisodes(),{canManage=false}={}){
  return layout({title:'SWAPP ON AIR — podcast gaming',active:'actus',description:'L’émission gaming de SWAPP avec Nova et Kern.',
   metadata:'<link rel="canonical" href="https://swapp.tv/on-air">'+rssLink+schema(episodes),
   content:'<main class="oa-page">'+intro()+rows+
-  '<footer class="oa-end"><a href="/actus">Actualités</a><a href="/tv">SWAPP TV</a>'+
+  '<footer class="oa-end"><a href="/actus">Actualités</a><a href="/tv">SWAPP TV</a><a href="/on-air/feed.xml">Flux RSS</a>'+
   (canManage?'<a href="/on-air/studio">Publier un épisode</a>':'')+'</footer></main>',
   scripts:stylesheet});
 }
