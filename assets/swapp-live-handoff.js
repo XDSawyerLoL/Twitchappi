@@ -4,6 +4,35 @@
  'use strict';
  const TWITCH=/^[a-z0-9_]{2,25}$/,SWAPP=/^[a-z0-9_-]{2,40}$/;
  const POLL_MS=25000,COUNTDOWN=9;
+ // Private to this tab: last 3 handoffs, no cookie, server-side history,
+ // persistent profile or individual viewer tracking.
+ const HISTORY_KEY='swapp-passage-tab-v2';
+ function historyOf(){
+  try{
+   const rows=JSON.parse(sessionStorage.getItem(HISTORY_KEY)||'[]');
+   return Array.isArray(rows)?rows.filter(x=>/^(swapp|twitch):[a-z0-9_-]{2,40}$/.test(x)).slice(-3):[];
+  }catch{return []}
+ }
+ function remember(platform,login){
+  try{
+   const value=platform+':'+login;
+   sessionStorage.setItem(HISTORY_KEY,JSON.stringify([...historyOf().filter(x=>x!==value),value].slice(-3)));
+  }catch{}
+ }
+ async function recordArrival(){
+  // Only a one-time proof from the destination page. Strip it from the URL.
+  const url=new URL(location.href),token=url.searchParams.get('pass');
+  if(!token||!/^[A-Za-z0-9_-]{30,360}\.[a-f0-9]{64}$/.test(token))return;
+  url.searchParams.delete('pass');
+  history.replaceState(history.state,'',url.pathname+url.search+url.hash);
+  try{
+   await fetch('/api/swapp/passage/arrive',{
+    method:'POST',cache:'no-store',credentials:'omit',
+    headers:{'Content-Type':'application/json'},body:JSON.stringify({token}),
+    signal:AbortSignal.timeout(7000)
+   });
+  }catch{}
+ }
  const $=selector=>document.querySelector(selector);
  let active=null,stamp='',busy=false,clock=null,interval=null;
  function context(){
@@ -57,10 +86,12 @@
    '/live/twitch/'+encodeURIComponent(login)+'?game='+encodeURIComponent(active.game)+'&handoff=1';
   return next.url===expected;
  }
- async function request(state){
+ async function request(state,commit=false){
   const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),9000);
   try{
-   const q=new URLSearchParams({platform:state.platform,login:state.login,game:state.game||''});
+   const q=new URLSearchParams({platform:state.platform,login:state.login,
+    game:state.game||'',exclude:historyOf().join(',')});
+   if(commit)q.set('phase','commit');
    const response=await fetch('/api/swapp/live-handoff?'+q.toString(),{
     cache:'no-store',credentials:'omit',signal:controller.signal,headers:{Accept:'application/json'}
    });
@@ -86,7 +117,7 @@
   if(document.visibilityState==='hidden')return;
   saved.actions.detail.textContent='Dernière vérification du relais…';
   try{
-   const check=await request(saved);
+   const check=await request(saved,true);
    if(active!==saved||stamp!==origin||check.current.live){clearStatus();return}
    // Only move to a currently confirmed candidate for this exact game.
    gameFrom(check);
@@ -95,7 +126,11 @@
     saved.actions.actions.replaceChildren();
     return;
    }
-   location.assign(check.next.url);
+   remember(saved.platform,saved.login);
+   // Stay on SWAPP; the destination page confirms that it actually opened.
+   const target=new URL(check.next.url,location.origin);
+   if(typeof check.transfer_token==='string')target.searchParams.set('pass',check.transfer_token);
+   location.assign(target.pathname+target.search);
   }catch(_){
    if(active===saved&&saved.actions){
     saved.actions.detail.textContent='Impossible de confirmer le nouveau direct. Le relais automatique est suspendu.';
@@ -164,6 +199,7 @@
    new MutationObserver(()=>void tick()).observe(channel,{
     attributes:true,attributeFilter:['class'],childList:true,subtree:false
    });
+  void recordArrival();
   void tick();
  }
  if(typeof module!=='undefined'&&module.exports){
