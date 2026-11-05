@@ -32,6 +32,7 @@
    '<div class="swapp-news-menu"><a href="/actus"'+(active==='actus'?' aria-current="page"':'')+'>Tous les articles</a>'+
    '<a href="/bandes-annonces"'+(active==='trailers'?' aria-current="page"':'')+'>Vidéos et bandes-annonces</a>'+ 
    '<a href="/on-air"'+(active==='onair'?' aria-current="page"':'')+'>Podcast ON AIR</a>'+  
+   '<a href="/guides"'+(active==='guides'?' aria-current="page"':'')+'>Tous les guides</a>'+ 
    '<a href="/guides/aion-2"'+(active==='guides'?' aria-current="page"':'')+'>Guide Aion 2</a></div></details></div>';
  }
  function discoverNav(active){
@@ -55,6 +56,7 @@
    '<a href="/equipes"'+(active==='teams'?' class="active" aria-current="page"':'')+'>Équipes</a>'+ 
    '<span class="swapp-mobile-menu-title">ACTUALITÉ</span>'+
    '<a href="/bandes-annonces"'+(active==='trailers'?' class="active" aria-current="page"':'')+'>Vidéos et bandes-annonces</a>'+ 
+   '<a href="/guides"'+(active==='guides'?' class="active" aria-current="page"':'')+'>Tous les guides</a>'+ 
    '<a href="/guides/aion-2"'+(active==='guides'?' class="active" aria-current="page"':'')+'>Guide Aion 2</a>'+ 
    '<a href="/on-air"'+(active==='onair'?' class="active" aria-current="page"':'')+'>Podcast ON AIR</a>'+ 
    '<span class="swapp-mobile-menu-title">SWAPP</span>'+
