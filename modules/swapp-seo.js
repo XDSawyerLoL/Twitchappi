@@ -3,6 +3,7 @@
 // Only published Firestore articles may appear in the optional news section.
 const ORIGIN='https://swapp.tv';
 const {gameHubs,renderGameIndex,renderGamePage,renderMyGames}=require('./swapp-game-pages');
+const {renderGuideIndex}=require('./swapp-guide-library');
 // IndexNow's public domain-ownership proof, not a secret credential.
 const INDEXNOW_KEY='b700e3b876341559d245b13c5a25d369';
 const INDEXNOW_KEY_PATH='/'+INDEXNOW_KEY+'.txt';
@@ -16,7 +17,7 @@ function invalidateSeoCache(){invalidateRegisteredSeoCache()}
 function cachedGameHubForArticle(article){return lookupRegisteredGameHub(article)}
 const CORE_PATHS=Object.freeze([
  '/', '/a-propos', '/alternative-twitch', '/decouvrir', '/categories', '/equipes', '/actus',
- '/social', '/bandes-annonces', '/boutique', '/plan-du-site',
+ '/social', '/bandes-annonces', '/boutique', '/plan-du-site', '/guides',
  ...require('./swapp-aion2-guides').PUBLIC_PATHS
 ]);
 const SLUG=/^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/;
@@ -375,6 +376,15 @@ function registerSeoRoutes(app,{getPublished=async()=>[],getCreators=async()=>[]
   res.set('Cache-Control','public, max-age=300');
   return res.status(200).type('html').send(renderGameIndex(gameHubs(articles)));
  };
+ app.get('/guides',async(_req,res)=>{
+  await ensureCache();
+  if(!hasVerifiedArticles){
+   res.set('Cache-Control','no-store');res.set('Retry-After','60');
+   return res.status(503).type('text/plain').send('Guides momentanément indisponibles.');
+  }
+  res.set('Cache-Control','public, max-age=300');
+  return res.status(200).type('html').send(renderGuideIndex(articles));
+ });
  app.get('/univers',serveGameDirectory);
  app.get('/jeux',serveGameDirectory);
  app.get('/jeux/:slug',async(req,res)=>{
