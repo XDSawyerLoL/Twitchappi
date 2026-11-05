@@ -11,7 +11,7 @@ test('SWAPP CINEMA controls do not replace HLS frames or open extra transport',(
  assert.doesNotThrow(()=>new Function(js));
  assert.match(js,/swapp-watch-share-btn/);
  assert.match(js,/navigator\.share\(/);
- assert.match(js,/navigator\.clipboard\?\.writeText\(url\)/);
+ assert.match(js,/navigator\.clipboard\.writeText\(url\)/);
  assert.match(js,/location\.origin\+'\/'\+encodeURIComponent\(login\)/);
  assert.doesNotMatch(js,/new Hls\(|new WebSocket\(|\.srcObject\s*=/);
 });
