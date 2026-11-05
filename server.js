@@ -1601,7 +1601,7 @@ require('./modules/swapp-fair-admin').registerFairAdmin({
 });
 
 const SWAPP_CLEAN_VIEW_PATHS = new Set(['/actus','/decouvrir','/discover','/categories','/equipes','/teams','/compte','/connexion','/settings','/chaine','/channel','/gestionnaire','/manager','/dashboard','/studio','/admin','/reset-password']);
-const SWAPP_RESERVED_ROOT_PATHS = new Set(['index_script.js','favicon.ico','pricing','twitch_auth_start','twitch_auth_callback','twitch_user_status','twitch_logout','firebase_status','followed_streams','get_default_stream','boost_queue','stream_info','cycle_stream','stream_boost','scan_target','critique_ia','start_raid','analyze_schedule','api','assets','actus','jeux','communaute','bandes-annonces','boutique','reset-password','contact','moderation','mentions-legales','confidentialite','cgu','cookies']);
+const SWAPP_RESERVED_ROOT_PATHS = new Set(['index_script.js','favicon.ico','pricing','twitch_auth_start','twitch_auth_callback','twitch_user_status','twitch_logout','firebase_status','followed_streams','get_default_stream','boost_queue','stream_info','cycle_stream','stream_boost','scan_target','critique_ia','start_raid','analyze_schedule','api','assets','actus','jeux','guides','communaute','bandes-annonces','boutique','reset-password','contact','moderation','mentions-legales','confidentialite','cgu','cookies']);
 function isSwappCleanChannelSlug(slug){
   const clean = String(slug || '').trim().toLowerCase();
   return /^[a-z0-9_][a-z0-9_-]{1,39}$/.test(clean) && !SWAPP_RESERVED_ROOT_PATHS.has(clean);
@@ -1652,7 +1652,7 @@ if (String(process.env.SWAPP_NEWS_ENABLED || 'true').toLowerCase() === 'true') {
     });
     // Restore an existing signed remember-me session for article ratings only.
     // Never create a new account through a rating request.
-    app.use(/^\/api\/actus\/[a-z0-9][a-z0-9-]{2,109}[a-z0-9]\/score\/?$/, async (req,res,next) => {
+    app.use(/^\/api\/(?:actus\/[a-z0-9][a-z0-9-]{2,109}[a-z0-9]|jeux\/[a-z0-9]+(?:-[a-z0-9]+)*)\/score\/?$/, async (req,res,next) => {
       try { await restoreOryonSessionFromRememberCookie(req,res,{allowUserRecovery:false}); }
       catch (err) { console.warn('[SWAPP SCORE] session restore failed:',err?.message); }
       next();
