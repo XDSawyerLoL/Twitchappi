@@ -7,7 +7,8 @@
  */
 const {equivalent,searchNames}=require('./swapp-news/game-identity');
 const TWITCH=/^[a-z0-9_]{2,25}$/,NATIVE=/^[a-z0-9_-]{2,40}$/;
-const GAME_MAX=90,CACHE_MAX=320,STATUS_TTL=12000,DISCOVERY_TTL=25000;
+// Short source TTL forces a FRESH upstream check after the 9s countdown.
+const GAME_MAX=90,CACHE_MAX=320,STATUS_TTL=7000,DISCOVERY_TTL=25000;
 const clean=v=>String(v||'').trim();
 const safeGame=v=>clean(v).slice(0,GAME_MAX);
 function hash(input){
@@ -125,9 +126,19 @@ function createHandoff({twitchAPI,twitchEnabled=()=>false,users=()=>[],nativeStr
   // Native discovery remains available if Twitch is unavailable. The current
   // Twitch source check, unlike recommendations, must fail closed on errors.
   try{twitch=await twitchCandidates(verifiedGame)}catch(_){twitch=[]}
-  const next=choose([...nativeCandidates(verifiedGame),...twitch],{
-   game:verifiedGame,platform:from,login:user,at:now()
-  });
+  let pool=[...nativeCandidates(verifiedGame),...twitch],next=null;
+  for(let attempt=0;attempt<6&&pool.length;attempt++){
+   const selected=choose(pool,{game:verifiedGame,platform:from,login:user,at:now()});
+   if(!selected)break;
+   if(selected.platform==='swapp'){next=selected;break}
+   // Game-list cache can be 25s old. Validate the chosen Twitch broadcaster
+   // *individually* before telling a viewer that playback is available.
+   try{
+    const fresh=await twitchStream(selected.login);
+    if(fresh&&equivalent(verifiedGame,fresh.game_name)){next=selected;break}
+   }catch(_){}
+   pool=pool.filter(x=>x.platform!==selected.platform||x.login!==selected.login);
+  }
   return {success:true,current,next,reason:next?'same_game_live':'no_same_game_live'};
  }
  return {check,choose,cacheSize:()=>cache.size};
