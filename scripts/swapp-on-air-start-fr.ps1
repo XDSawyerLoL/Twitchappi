@@ -89,9 +89,21 @@ try{
  & $python -m pip install --disable-pip-version-check 'qwen-tts==0.1.1' 'imageio-ffmpeg>=0.6,<1'
  if($LASTEXITCODE -ne 0){Fail 'Installation Qwen3-TTS impossible. Aucune API payante utilisee.'}
 }
-& $python -c "import torch; print('CUDA active :',torch.cuda.is_available()); exit(0 if torch.cuda.is_available() else 1)"
+& $python -c "import torch,sys; print('CUDA active :',torch.cuda.is_available()); sys.exit(0 if torch.cuda.is_available() else 1)"
 if($LASTEXITCODE -ne 0 -and !$AutoriserCPU){
- Fail "CUDA absent. Verifie les pilotes NVIDIA et PyTorch GPU. Pour tenter le calcul CPU (tres lent), lance le script PowerShell avec -AutoriserCPU."
+ $nvidia=Get-Command nvidia-smi -ErrorAction SilentlyContinue
+ if($nvidia){
+  Write-Host 'Carte NVIDIA detectee, mais PyTorch ne dispose pas de CUDA.' -ForegroundColor Yellow
+  Write-Host 'Installation facultative du moteur CUDA officiel PyTorch 2.9 / CUDA 12.8. Plusieurs Go de telechargement possibles.' -ForegroundColor Yellow
+  $choice=Read-Host 'Saisis OUI pour installer les bibliotheques NVIDIA officielles'
+  if($choice -cne 'OUI'){Fail 'GPU inactif. Aucune installation CUDA effectuee.'}
+  & $python -m pip install --disable-pip-version-check 'torch==2.9.0' 'torchaudio==2.9.0' --index-url https://download.pytorch.org/whl/cu128
+  if($LASTEXITCODE -ne 0){Fail 'Impossible d installer PyTorch CUDA. Verifie GPU, pilote et version Python.'}
+  & $python -c "import torch,sys; print('CUDA active :',torch.cuda.is_available()); sys.exit(0 if torch.cuda.is_available() else 1)"
+ }
+ if($LASTEXITCODE -ne 0){
+  Fail "CUDA indisponible. Verifie les pilotes NVIDIA. Sans GPU, lance le script avec -AutoriserCPU (beaucoup plus lent)."
+ }
 }
 $args=@(
  (Join-Path $repo 'scripts\swapp-on-air-qwen-design-fr.py'),
