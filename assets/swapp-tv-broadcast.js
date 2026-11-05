@@ -150,7 +150,9 @@ async function passageGo(){
    const panel=passagePanel();panel.textContent='Le live est terminé. Aucun autre direct du même jeu n’est actuellement vérifié.';
    current.pending=false;return;
   }
+  if(state.passage.key!==key||item?.login!==from.login)return;
   resetPassage();
+  state.autoAdvance=false; // avoid a duplicate iframe reconstruction
   renderScreen({platform:next.platform,login:next.login,game:next.game,
    display_name:next.name||next.login,broadcast_id:null},{onAir:true});
   play(); // Reuse the single existing TV player; do not create another one.
@@ -212,8 +214,6 @@ async function maybePassage(){
  }catch(_){/* An API outage is not a broadcast end. */}
  finally{passageBusy=false}
 }
-setInterval(()=>{void maybePassage()},25000);
-
 // Verified first-party stream registry: ONLY HLS with a fresh manifest
 // and real media segments. WebRTC signalling and account heartbeats are
 // not enough to claim the channel has playable video.
@@ -504,6 +504,7 @@ setInterval(()=>{if(!$('stv-pane-swapp').hidden)void refreshSwappChat()},7000);
 setInterval(updateSlotClock,1000);
 setInterval(maybeAdvanceDiscovery,30000);
 setInterval(maybeAdvanceNative,30000);
+setInterval(()=>{void maybePassage()},25000);
 
 $('stv-watch').addEventListener('click',()=>{
  if(state.selection&&state.playing===state.selection.login&&state.playingPlatform===state.selection.platform&&state.consent)stopPlayback();
