@@ -261,9 +261,9 @@ async function refreshQueue(){
     if(!active&&!(state.consent&&state.playing===state.selection?.login))renderScreen(item,{onAir:true});
   }else if(data.enabled){
    const item=data.director_enabled?data.on_air:null;
-   if(!item||!safeLogin(item.twitch_login))renderScreen(null);
+   if(!item||!safeLogin(item.twitch_login)){if(!state.consent)renderScreen(null);}
    else if(!state.selection||state.selection.login!==String(item.twitch_login).toLowerCase()||state.selection.platform!=='twitch'||!state.selection.onAir)renderScreen(item,{onAir:true});
-  }else if(state.selection?.platform==='swapp'){
+  }else if(state.selection?.platform==='swapp'&&!state.consent){
    renderScreen(null);
   }
   rail(data);
