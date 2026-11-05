@@ -1,0 +1,49 @@
+{
+  "kind": "swapp-editorial-release",
+  "release": "2026-11-05-zelda-switch-2",
+  "articles": [
+    {
+      "slug": "zelda-ocarina-of-time-switch-2-sortie-5-novembre-2026",
+      "title": "Zelda: Ocarina of Time sort sur Nintendo Switch 2 le 5 novembre 2026",
+      "summary": "Nintendo propose une nouvelle version d’Ocarina of Time sur Switch 2, avec graphismes retravaillés, musique réorchestrée et commandes modernisées.",
+      "body": "Nintendo confirme la sortie de The Legend of Zelda: Ocarina of Time sur Switch 2 le 5 novembre 2026. Cette nouvelle version reprend l’aventure de Link face à Ganondorf.\n\n## Une aventure reconstruite\n\nNintendo annonce des graphismes entièrement repensés, des cinématiques doublées, des dialogues développés et une musique orchestrale. La caméra et les commandes sont modernisées, avec notamment de nouvelles possibilités de déplacement.\n\n## Les fonctions supplémentaires\n\nL’application Nintendo Switch propose ZELDA NOTES, un accompagnement de jeu sur appareil mobile compatible. Les amiibo de la série peuvent donner des bonus ; deux nouvelles figurines de Link et Zelda enfants sont annoncées pour 2027.\n\n## Pourquoi cette sortie compte\n\nOcarina of Time est l’un des épisodes fondateurs de la série. Cette version vise autant les joueurs historiques que ceux qui découvrent Hyrule. La qualité réelle des modifications devra être appréciée manette en main.\n\n## Vidéo et crédit\n\nLa bande-annonce jointe est publiée par Nintendo France sur YouTube en septembre 2026. Sa miniature est chargée à distance, sans réhébergement.",
+      "game": "The Legend of Zelda: Ocarina of Time",
+      "games": [
+        "The Legend of Zelda: Ocarina of Time"
+      ],
+      "tags": [
+        "Zelda",
+        "Nintendo Switch 2",
+        "Ocarina of Time"
+      ],
+      "seo": {
+        "title": "Zelda Ocarina of Time : sortie Switch 2 le 5 novembre",
+        "description": "Le remake de Zelda Ocarina of Time arrive sur Switch 2 : nouveautés, commandes et vidéo officielle."
+      },
+      "author": "Rédaction SWAPP",
+      "category": "Actualités JV",
+      "contentType": "article",
+      "status": "published",
+      "revision": 1,
+      "image": null,
+      "thumbnail": null,
+      "publishedAt": "2026-11-05T09:30:00.000Z",
+      "trailerUrl": "https://www.youtube.com/watch?v=iAra6FBAZCE",
+      "commercialLinks": [],
+      "sources": [
+        {
+          "label": "Nintendo France — calendrier officiel novembre 2026",
+          "url": "https://www.nintendo.com/fr-fr/News/2026/Novembre/Jeux-a-venir-Novembre-2026-3229019.html"
+        },
+        {
+          "label": "Nintendo — fiche du jeu",
+          "url": "https://www.nintendo.com/us/store/products/the-legend-of-zelda-ocarina-of-time-switch-2/"
+        },
+        {
+          "label": "Nintendo France — bande-annonce officielle",
+          "url": "https://www.youtube.com/watch?v=iAra6FBAZCE"
+        }
+      ]
+    }
+  ]
+}
