@@ -27,12 +27,13 @@ function validateEpisode(e,{mediaDir=audioRoot,mediaBase='/assets/on-air'}={}){
  if(title.length<12||title.length>180||description.length<30||description.length>700||
    !Number.isInteger(durationSec)||durationSec<20||durationSec>7200)return null;
  if(!mp3Exists(path.join(mediaDir,slug+'.mp3')))return null;
+ const audioBytes=fs.statSync(path.join(mediaDir,slug+'.mp3')).size;
  const sources=Array.isArray(e.sources)?e.sources.filter(s=>s&&validHttps(s.url)).slice(0,10)
   .map(s=>({url:validHttps(s.url),label:String(s.label||'Source').slice(0,120)})):[];
  const articles=Array.isArray(e.articles)?e.articles.filter(u=>typeof u==='string'&&
   /^\/actus\/[a-z0-9-]{4,115}$/.test(u)).slice(0,10):[];
  return {slug,title,description,durationSec,publishedAt:e.publishedAt,sources,articles,
-  url:'/on-air/'+slug,audioUrl:mediaBase+'/'+slug+'.mp3'};
+  url:'/on-air/'+slug,audioUrl:mediaBase+'/'+slug+'.mp3',audioBytes};
 }
 function publicEpisodes({index=manifest,mediaDir=audioRoot}={}){
  const visited=new Set(),items=[];
@@ -58,6 +59,7 @@ function publicEpisodes({index=manifest,mediaDir=audioRoot}={}){
  return items.sort((a,b)=>b.publishedAt.localeCompare(a.publishedAt)).slice(0,60);
 }
 const stylesheet='<link rel="stylesheet" href="/assets/swapp-on-air.css?v=20261105-1">';
+const rssLink='<link rel="alternate" type="application/rss+xml" title="SWAPP ON AIR" href="/on-air/feed.xml">';
 const niceDate=stamp=>new Intl.DateTimeFormat('fr-FR',{dateStyle:'long',timeZone:'UTC'}).format(new Date(stamp));
 const lengthText=sec=>Math.floor(sec/60)+' min '+String(sec%60).padStart(2,'0')+' s';
 function play(e){
@@ -93,7 +95,7 @@ function home(episodes=publicEpisodes(),{canManage=false}={}){
   '<p>Les voix Nova et Kern sont en cours de production. Aucun épisode n’a été approuvé pour diffusion : aucun bouton Lecture fictif n’est affiché.</p>'+
   '<a href="/actus">Lire les dernières actualités →</a></section>';
  return layout({title:'SWAPP ON AIR — podcast gaming',active:'actus',description:'L’émission gaming de SWAPP avec Nova et Kern.',
-  metadata:'<link rel="canonical" href="https://swapp.tv/on-air">'+schema(episodes),
+  metadata:'<link rel="canonical" href="https://swapp.tv/on-air">'+rssLink+schema(episodes),
   content:'<main class="oa-page">'+intro()+rows+
   '<footer class="oa-end"><a href="/actus">Actualités</a><a href="/tv">SWAPP TV</a>'+
   (canManage?'<a href="/on-air/studio">Publier un épisode</a>':'')+'</footer></main>',
@@ -107,11 +109,42 @@ function episodePage(slug,episodes=publicEpisodes()){
  const articles=e.articles.length?'<section class="oa-info"><h2>Lire aussi sur SWAPP</h2><ul>'+
   e.articles.map(u=>'<li><a href="'+esc(u)+'">'+esc(u.slice(7).replace(/-/g,' '))+'</a></li>').join('')+'</ul></section>':'';
  return layout({title:e.title+' | SWAPP ON AIR',active:'actus',description:e.description,
-  metadata:'<link rel="canonical" href="https://swapp.tv'+esc(e.url)+'"><meta property="og:title" content="'+esc(e.title)+'">',
+  metadata:'<link rel="canonical" href="https://swapp.tv'+esc(e.url)+'">'+rssLink+
+  '<meta property="og:title" content="'+esc(e.title)+'">',
   content:'<main class="oa-page oa-single"><a class="oa-back" href="/on-air">← SWAPP ON AIR</a>'+
   '<header><span class="oa-kicker">'+esc(niceDate(e.publishedAt))+' · NOVA / KERN</span>'+
   '<h1>'+esc(e.title)+'</h1><p class="oa-lead">'+esc(e.description)+'</p></header>'+
   play(e)+sources+articles+'<a class="oa-back" href="/on-air">Tous les épisodes →</a></main>',
   scripts:stylesheet});
 }
-module.exports={SLUG,validateEpisode,publicEpisodes,home,episodePage,mp3Exists};
+// Real RSS podcast feed. Episodes with missing or unapproved MP3s never
+// enter the feed. Content length is read from the actual file on disk.
+function feedXml(episodes=publicEpisodes()){
+ const xc=v=>esc(v);
+ const base='https://swapp.tv';
+ const items=episodes.map(e=>{
+  const path=base+e.url,audio=base+e.audioUrl;
+  return '<item>'+
+   '<title>'+xc(e.title)+'</title>'+
+   '<description>'+xc(e.description)+'</description>'+
+   '<link>'+xc(path)+'</link>'+
+   '<guid isPermaLink="true">'+xc(path)+'</guid>'+
+   '<pubDate>'+xc(new Date(e.publishedAt).toUTCString())+'</pubDate>'+
+   '<enclosure url="'+xc(audio)+'" length="'+Number(e.audioBytes||0)+'" type="audio/mpeg"/>'+
+   '<itunes:duration>'+Number(e.durationSec)+'</itunes:duration>'+
+   '<itunes:explicit>false</itunes:explicit>'+
+   '</item>';
+ }).join('');
+ return '<?xml version="1.0" encoding="UTF-8"?>'+
+  '<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" '+
+  'xmlns:atom="http://www.w3.org/2005/Atom">'+
+  '<channel><title>SWAPP ON AIR</title>'+
+  '<link>'+base+'/on-air</link>'+
+  '<atom:link href="'+base+'/on-air/feed.xml" rel="self" type="application/rss+xml"/>'+
+  '<language>fr-FR</language>'+
+  '<description>Nova et Kern décryptent les jeux vidéo avec des informations vérifiées.</description>'+
+  '<itunes:author>SWAPP</itunes:author><itunes:explicit>false</itunes:explicit>'+
+  '<itunes:category text="Leisure"><itunes:category text="Video Games"/></itunes:category>'+
+  items+'</channel></rss>';
+}
+module.exports={SLUG,validateEpisode,publicEpisodes,home,episodePage,mp3Exists,feedXml};
