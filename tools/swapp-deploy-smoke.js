@@ -82,10 +82,10 @@ async function verify(){
   'SWAPP PASSAGE client missing or not verifying two offline checks');
  const passageWatch=await request(origin,'/live/twitch/streamer_test?game=Hades');
  check(passageWatch.body.includes('data-swapp-handoff-platform="twitch"')&&
-  passageWatch.body.includes('swapp-live-handoff.js?v=20261105-v1'),
+  passageWatch.body.includes('swapp-live-handoff.js?v=20261105-collective-v2'),
   'SWAPP Twitch page lacks same-game handoff');
  const passageHome=await request(origin,'/');
- check(passageHome.body.includes('swapp-live-handoff.js?v=20261105-v1'),
+ check(passageHome.body.includes('swapp-live-handoff.js?v=20261105-collective-v2'),
   'SWAPP native channel shell lacks same-game handoff');
  process.stdout.write('PASS SWAPP PASSAGE same-game handoff assets and routes\\n');
  const marathon=await request(origin,'/marathon');
