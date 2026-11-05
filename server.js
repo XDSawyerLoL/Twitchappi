@@ -4915,8 +4915,13 @@ app.get('/api/swapp/live-handoff',heavyLimiter,async(req,res)=>{
  const exclude=String(req.query.exclude||'').slice(0,190).split(',').slice(0,4);
  try{
   const result=await swappLiveHandoff.check({platform,login,game,exclude});
-  // A signed proof is only prepared at the confirmed final transition.
-  if(req.query.phase==='commit'&&result.success&&result.next&&!result.current.live){
+  // A real live source first receives a temporary, unidentifying proof.
+  // A later offline stream cannot mint receipts without that proof.
+  if(result.success&&result.current?.live){
+   result.live_proof=swappPassageMetrics.issueLiveProof(result.current);
+  }
+  if(req.query.phase==='commit'&&result.success&&result.next&&!result.current.live&&
+   swappPassageMetrics.verifyLiveProof(req.query.source_proof,result.current)){
    result.transfer_token=swappPassageMetrics.issue(result.current,result.next);
   }
   return res.status(result.status||200).json(result);
