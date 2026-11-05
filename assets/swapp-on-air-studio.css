@@ -1,0 +1,33 @@
+/* ON AIR Studio — sober editorial workflow; no modal, no wizard. */
+.oas{width:min(740px,calc(100% - 30px));margin:35px auto 70px;color:#f0f5fd}
+.oas *{box-sizing:border-box}
+.oas-back{color:#9fc8d6;text-decoration:none;font-size:13px}
+.oas-head{padding:26px 0 27px}
+.oas-head span{color:#85eae4;letter-spacing:.14em;font-size:11px;font-weight:850}
+.oas-head h1{font-size:clamp(28px,4vw,40px);letter-spacing:-.04em;margin:10px 0}
+.oas-head p{color:#aec2d4;font-size:14px;line-height:1.7;margin:0;max-width:590px}
+.oas-form{display:grid;gap:18px;background:#121d2d;border:1px solid rgba(174,206,234,.2);
+ padding:clamp(18px,4vw,30px);border-radius:16px}
+.oas-field{display:grid;gap:8px}
+.oas-field>label,.oas-approval legend{font-size:13px;font-weight:750;color:#eef6fd}
+.oas-field :is(input:not([type=file]),textarea){display:block;width:100%;background:#1c2a3e;
+ border:1px solid #4b5a6d;border-radius:8px;color:#f6fbff;padding:12px;font:14px/1.5 system-ui;
+ resize:vertical}
+.oas-field input[type=file]{width:100%;font-size:13px;background:#1c2a3e;border:1px dashed #60778d;
+ border-radius:8px;padding:12px;color:#d3e6f5}
+.oas-field audio{width:100%;min-height:40px}
+.oas-field small{color:#9fb4c9;font-size:12px;line-height:1.5}
+.oas-advanced{border-top:1px solid rgba(173,199,223,.18);padding-top:15px}
+.oas-advanced summary{font-size:13px;font-weight:750;cursor:pointer;padding:4px 0 9px;color:#acece7}
+.oas-advanced .oas-field{padding:9px 0}
+.oas-approval{margin:0;padding:13px 16px;display:grid;gap:11px;border:1px solid rgba(173,199,223,.2);border-radius:9px}
+.oas-approval label{display:flex;align-items:flex-start;gap:9px;font-size:12px;color:#c9d7e8;line-height:1.5;cursor:pointer}
+.oas-approval input{accent-color:#83e9e3;margin-top:3px}
+.oas-bottom{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.oas-bottom button{background:#90eae5;border:0;border-radius:9px;padding:13px 18px;color:#0d202c;
+ font:800 13px system-ui;cursor:pointer;min-height:44px}
+.oas-bottom button[disabled]{opacity:.5;cursor:wait}
+.oas-bottom p{font-size:12px;color:#b9cede;line-height:1.5;flex:1 1 210px}
+.oas :is(input,textarea,button,summary):focus-visible{outline:2px solid #8af2eb;outline-offset:2px}
+@media(max-width:600px){.oas-bottom{align-items:stretch;flex-direction:column}.oas-bottom button{width:100%}}
+@media(prefers-reduced-motion:reduce){.oas *{animation:none!important;transition:none!important}}

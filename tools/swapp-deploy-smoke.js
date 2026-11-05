@@ -105,6 +105,38 @@ async function verify(){
   impactScript.body.includes('confirmed_destination_page_open'),
   'SWAPP ASCENSION metrics client absent or stale');
  process.stdout.write('PASS /marathon and /ascension lightweight interfaces\\n');
+ // ON AIR must be a real listening catalogue with an authenticated local
+ // studio, not a dead podcast button. This check needs NO unpublished MP3.
+ const onAir=await request(origin,'/on-air');
+ check(onAir.body.includes('SWAPP ON AIR')&&
+  (onAir.body.includes('Pas encore d’enregistrement validé')||
+   onAir.body.includes('oa-episodes')),
+  'SWAPP ON AIR podcast page is missing or stale');
+ const onAirApi=await request(origin,'/api/on-air/episodes');
+ let onAirData;
+ try{onAirData=JSON.parse(onAirApi.body)}catch{throw Error('/api/on-air/episodes returned invalid JSON')}
+ check(onAirData.success===true&&Array.isArray(onAirData.episodes),
+  'ON AIR catalog missing or invalid');
+ if(process.env.SWAPP_VERIFY_ON_AIR_PUBLISHED==='1')
+  check(onAirData.episodes.length>0,
+   'SWAPP ON AIR HAS NO APPROVED MP3. Upload a real episode from /on-air/studio.');
+
+ const studioClient=await request(origin,'/assets/swapp-on-air-studio.js');
+ check(studioClient.body.includes('/api/on-air/studio/upload/')&&
+  studioClient.body.includes('/api/on-air/studio/publish')&&
+  studioClient.body.includes('oas-preview'),
+  'ON AIR authenticated publisher client missing or stale');
+ const studioGate=await fetch(origin+'/on-air/studio',{redirect:'manual',cache:'no-store'});
+ check([401,403].includes(studioGate.status),'ON AIR publisher must reject anonymous visitors');
+ for(const episode of onAirData.episodes.slice(0,3)){
+  check(/^\/on-air\/[a-z0-9-]{7,85}$/.test(episode.url),'Invalid podcast episode URL');
+  check(/^\/(?:assets\/on-air|api\/on-air\/audio)\/[a-z0-9-]{7,85}\.mp3$/.test(episode.audioUrl),
+   'Unverified ON AIR audio path');
+  const head=await fetch(origin+episode.audioUrl,{method:'HEAD',redirect:'manual',cache:'no-store'});
+  check(head.ok&&(head.headers.get('content-type')||'').includes('audio/'),
+   'Approved ON AIR episode has no playable media: '+episode.slug);
+ }
+ process.stdout.write('PASS ON AIR catalog, audio sources and protected studio\n');
  const station=await request(origin,'/tv');
  check(station.body.includes('id="stv-slot-clock"')&&
   station.body.includes('id="stv-watch"')&&

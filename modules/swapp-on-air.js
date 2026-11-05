@@ -18,7 +18,7 @@ function mp3Exists(file){
   return b.toString('ascii')==='ID3'||b[0]===255&&(b[1]&0xe0)===0xe0;
  }catch{return false}
 }
-function validateEpisode(e,{mediaDir=audioRoot}={}){
+function validateEpisode(e,{mediaDir=audioRoot,mediaBase='/assets/on-air'}={}){
  if(!e||e.status!=='published'||e.editorialApproved!==true||e.audioReviewed!==true)return null;
  const slug=String(e.slug||'');
  if(!SLUG.test(slug)||slug.length<7||slug.length>85||e.audio!==slug+'.mp3')return null;
@@ -32,20 +32,30 @@ function validateEpisode(e,{mediaDir=audioRoot}={}){
  const articles=Array.isArray(e.articles)?e.articles.filter(u=>typeof u==='string'&&
   /^\/actus\/[a-z0-9-]{4,115}$/.test(u)).slice(0,10):[];
  return {slug,title,description,durationSec,publishedAt:e.publishedAt,sources,articles,
-  url:'/on-air/'+slug,audioUrl:'/assets/on-air/'+slug+'.mp3'};
+  url:'/on-air/'+slug,audioUrl:mediaBase+'/'+slug+'.mp3'};
 }
 function publicEpisodes({index=manifest,mediaDir=audioRoot}={}){
- try{
-  const data=JSON.parse(fs.readFileSync(index,'utf8'));
-  if(data.schema!==1||!Array.isArray(data.episodes))return [];
-  const visited=new Set(),items=[];
-  for(const row of data.episodes.slice(0,200)){
-   const e=validateEpisode(row,{mediaDir});
-   if(!e||visited.has(e.slug))continue;
-   visited.add(e.slug);items.push(e);
-  }
-  return items.sort((a,b)=>b.publishedAt.localeCompare(a.publishedAt)).slice(0,60);
- }catch{return []}
+ const visited=new Set(),items=[];
+ const sources=[{index,mediaDir,mediaBase:'/assets/on-air'}];
+ if(index===manifest&&mediaDir===audioRoot){
+  const storage=String(process.env.SWAPP_ON_AIR_STORAGE_DIR||'').trim();
+  const folder=storage&&path.isAbsolute(storage)?storage:
+   path.join(root,'data','swapp-on-air','uploads');
+  sources.push({index:path.join(folder,'episodes.json'),mediaDir:folder,
+   mediaBase:'/api/on-air/audio'});
+ }
+ for(const source of sources){
+  try{
+   const data=JSON.parse(fs.readFileSync(source.index,'utf8'));
+   if(data.schema!==1||!Array.isArray(data.episodes))continue;
+   for(const row of data.episodes.slice(0,200)){
+    const e=validateEpisode(row,source);
+    if(!e||visited.has(e.slug))continue;
+    visited.add(e.slug);items.push(e);
+   }
+  }catch{ /* An absent or unreadable source never fabricates an episode. */ }
+ }
+ return items.sort((a,b)=>b.publishedAt.localeCompare(a.publishedAt)).slice(0,60);
 }
 const stylesheet='<link rel="stylesheet" href="/assets/swapp-on-air.css?v=20261105-1">';
 const niceDate=stamp=>new Intl.DateTimeFormat('fr-FR',{dateStyle:'long',timeZone:'UTC'}).format(new Date(stamp));
@@ -71,7 +81,7 @@ function intro(){
   '<div class="oa-hosts"><div><span>N</span><strong>NOVA</strong><small>Curieuse et spontanée</small></div>'+
   '<div><span>K</span><strong>KERN</strong><small>Analytique et sceptique</small></div></div></header>';
 }
-function home(episodes=publicEpisodes()){
+function home(episodes=publicEpisodes(),{canManage=false}={}){
  const rows=episodes.length?'<section class="oa-episodes" aria-labelledby="oa-list-title">'+
   '<h2 id="oa-list-title">Les épisodes</h2><div class="oa-grid">'+episodes.map(e=>
    '<article class="oa-card"><span class="oa-kicker">'+esc(niceDate(e.publishedAt))+'</span>'+
@@ -85,7 +95,8 @@ function home(episodes=publicEpisodes()){
  return layout({title:'SWAPP ON AIR — podcast gaming',active:'actus',description:'L’émission gaming de SWAPP avec Nova et Kern.',
   metadata:'<link rel="canonical" href="https://swapp.tv/on-air">'+schema(episodes),
   content:'<main class="oa-page">'+intro()+rows+
-  '<footer class="oa-end"><a href="/actus">Actualités</a><a href="/tv">SWAPP TV</a></footer></main>',
+  '<footer class="oa-end"><a href="/actus">Actualités</a><a href="/tv">SWAPP TV</a>'+
+  (canManage?'<a href="/on-air/studio">Publier un épisode</a>':'')+'</footer></main>',
   scripts:stylesheet});
 }
 function episodePage(slug,episodes=publicEpisodes()){
