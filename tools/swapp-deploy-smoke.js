@@ -117,6 +117,10 @@ async function verify(){
  try{onAirData=JSON.parse(onAirApi.body)}catch{throw Error('/api/on-air/episodes returned invalid JSON')}
  check(onAirData.success===true&&Array.isArray(onAirData.episodes),
   'ON AIR catalog missing or invalid');
+ if(process.env.SWAPP_VERIFY_ON_AIR_PUBLISHED==='1')
+  check(onAirData.episodes.length>0,
+   'SWAPP ON AIR HAS NO APPROVED MP3. Upload a real episode from /on-air/studio.');
+
  const studioClient=await request(origin,'/assets/swapp-on-air-studio.js');
  check(studioClient.body.includes('/api/on-air/studio/upload/')&&
   studioClient.body.includes('/api/on-air/studio/publish')&&
