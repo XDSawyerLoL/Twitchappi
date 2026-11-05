@@ -14,12 +14,29 @@ function Fail($message){
  Write-Host ("ERREUR : "+$message) -ForegroundColor Red
  exit 1
 }
+function Open-SwappStudio {
+ # The generated MP3 remains local. Only public editorial metadata goes to
+ # the URL fragment; this step needs NO Python environment or paid API.
+ $data=Get-Content -LiteralPath $episode -Raw -Encoding UTF8 | ConvertFrom-Json
+ $metadata=@{
+  title=$data.title
+  description=$data.description
+  slug=$data.slug
+  sources=@($data.sources)
+  articles=@($data.articles)
+ } | ConvertTo-Json -Depth 10 -Compress
+ $bytes=[System.Text.Encoding]::UTF8.GetBytes($metadata)
+ $fragment=[Convert]::ToBase64String($bytes).TrimEnd('=').Replace('+','-').Replace('/','_')
+ $url='https://swapp.tv/on-air/studio#prefill='+$fragment
+ Write-Host 'Episode MP3 : ' $mp3
+ Write-Host 'Le studio va ouvrir une fiche pre-remplie.'
+ Write-Host 'Selectionne le fichier MP3, ecoute-le et approuve le contenu.'
+ Start-Process $url
+}
 Write-Host 'SWAPP ON AIR - NOVA / KERN - premier vrai episode' -ForegroundColor Cyan
 if(Test-Path $mp3){
- Write-Host 'Un MP3 existe deja : aucune re-generation ni ecrasement.' -ForegroundColor Yellow
- Write-Host $mp3
- & $python (Join-Path $repo 'scripts\swapp-on-air-open-studio.py') --episode $episode --audio $mp3
- if($LASTEXITCODE -ne 0){Fail 'Ouverture du studio impossible'}
+ Write-Host 'MP3 deja genere : aucun nouveau telechargement ni installation.' -ForegroundColor Green
+ Open-SwappStudio
  exit 0
 }
 if(!(Test-Path $episode)){Fail 'Dialogue source manquant'}
@@ -72,6 +89,5 @@ Write-Host 'Generation locale de deux voix francaises distinctes : aucune cle d 
 & $python @args
 if($LASTEXITCODE -ne 0){Fail 'Synthese interrompue. Verifie le GPU, la RAM et la connexion au telechargement des poids.'}
 if(!(Test-Path $mp3)){Fail 'Le WAV existe peut-etre, mais aucun MP3 encode. Verifie imageio-ffmpeg.'}
-& $python (Join-Path $repo 'scripts\swapp-on-air-open-studio.py') --episode $episode --audio $mp3
-if($LASTEXITCODE -ne 0){Fail 'Impossible d ouvrir le studio; le MP3 est bien conserve sur disque'}
+Open-SwappStudio
 Write-Host "MP3 genere. Ecoute-le integralement avant toute publication : $mp3" -ForegroundColor Green
