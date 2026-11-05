@@ -1,0 +1,79 @@
+/* SWAPP PORTAIL — verified creator discovery, no third-party assets or fonts. */
+#swapp-portail{--sp-ink:#f6f8ff;--sp-muted:#acbbd0;--sp-border:rgba(178,198,234,.2);
+ width:min(1440px,calc(100% - 32px));margin:0 auto 66px;color:var(--sp-ink);isolation:isolate}
+#swapp-portail *{box-sizing:border-box}
+#swapp-portail button,#swapp-portail select{font:inherit}
+#swapp-portail .sp-hero{position:relative;overflow:hidden;margin:27px 0 14px;padding:clamp(24px,4vw,65px);
+ background:radial-gradient(ellipse 65% 60% at 85% 50%,rgba(129,75,216,.24),transparent 83%),
+ linear-gradient(135deg,#111e31 0%,#0b101c 60%,#21142f 100%);
+ border:1px solid var(--sp-border);border-radius:22px}
+#swapp-portail .sp-eyebrow,#swapp-portail .sp-kicker{font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#8df2ef}
+#swapp-portail .sp-hero-grid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(210px,.7fr);
+ align-items:center;gap:22px}
+#swapp-portail h1{font-size:clamp(38px,5.8vw,84px);line-height:1.01;letter-spacing:-.075em;margin:28px 0 22px;max-width:15ch}
+#swapp-portail h1 em{font-style:normal;background:linear-gradient(110deg,#7fe9fb,#caa2ff 78%);
+ background-clip:text;-webkit-background-clip:text;color:transparent}
+#swapp-portail .sp-hero p{font-size:clamp(15px,1.45vw,19px);line-height:1.55;color:#c8d4e7;max-width:54ch}
+#swapp-portail .sp-principles{display:flex;gap:10px;flex-wrap:wrap;margin-top:25px}
+#swapp-portail .sp-principles span{font-size:11px;font-weight:700;letter-spacing:.05em;
+ color:#d0e5f9;padding:8px 11px;border:1px solid rgba(137,176,227,.23);
+ border-radius:999px;background:rgba(255,255,255,.035)}
+#swapp-portail .sp-orbit{position:relative;width:min(100%,300px);aspect-ratio:1;justify-self:center}
+#swapp-portail .sp-orbit-one,#swapp-portail .sp-orbit-two{position:absolute;inset:8%;
+ border:1px solid rgba(138,224,244,.34);border-radius:50%;transform:rotate(-24deg) scaleY(.53)}
+#swapp-portail .sp-orbit-two{inset:2%;border-color:rgba(200,152,255,.35);transform:rotate(31deg) scaleY(.68)}
+#swapp-portail .sp-orbit-core{position:absolute;inset:25%;display:grid;place-items:center;border-radius:50%;
+ background:radial-gradient(circle at 35% 30%,#2cc6e9,#364ea8 52%,#25143b 100%);
+ box-shadow:0 0 70px rgba(94,160,242,.26),inset 0 0 25px rgba(255,255,255,.13);
+ font-size:clamp(64px,10vw,105px);font-weight:900;letter-spacing:-.12em;color:#e9faff}
+#swapp-portail .sp-deck{padding:clamp(16px,2.2vw,30px);border:1px solid var(--sp-border);
+ border-radius:20px;background:linear-gradient(140deg,rgba(20,30,51,.95),rgba(10,14,23,.98))}
+#swapp-portail .sp-deck-top{display:flex;align-items:end;justify-content:space-between;gap:16px;flex-wrap:wrap}
+#swapp-portail h2{margin:6px 0 0;font-size:clamp(24px,3vw,42px);letter-spacing:-.06em;line-height:1.08}
+#swapp-portail .sp-counter{color:#bdd2e8;font-size:12px;font-weight:700}
+#swapp-portail .sp-stage{margin-top:20px;padding:clamp(18px,3vw,38px);
+ background:linear-gradient(125deg,#0b1625,#11182c 58%,#1f1831);
+ border:1px solid rgba(136,184,240,.21);border-radius:16px}
+#swapp-portail .sp-identity{display:flex;align-items:center;gap:15px}
+#swapp-portail .sp-avatar{width:70px;height:70px;flex:0 0 70px;display:grid;place-items:center;
+ border-radius:17px;background:linear-gradient(140deg,#4069bc,#703d9e);font-size:33px;font-weight:900;
+ box-shadow:0 10px 35px rgba(30,28,83,.45)}
+#swapp-portail .sp-identity-copy{min-width:0;display:grid;gap:4px}
+#swapp-portail #sp-name{display:block;font-size:clamp(20px,2.3vw,29px);letter-spacing:-.035em;overflow-wrap:anywhere}
+#swapp-portail #sp-title{font-size:clamp(22px,3.5vw,48px);line-height:1.15;letter-spacing:-.05em;
+ margin:24px 0 10px;max-width:26ch}
+#swapp-portail .sp-suggestion{font-size:12px;color:var(--sp-muted)}
+#swapp-portail .sp-status{font-size:13px;color:#aec9d9;max-width:65ch;min-height:2em}
+#swapp-portail .sp-actions{display:flex;gap:11px;flex-wrap:wrap;margin-top:25px}
+#swapp-portail .sp-actions :is(a,button){display:inline-flex;align-items:center;justify-content:center;
+ min-height:48px;flex:1 1 215px;border-radius:10px;padding:13px 17px;
+ font-size:13px;font-weight:850;letter-spacing:.045em;text-decoration:none}
+#swapp-portail .sp-watch{background:linear-gradient(110deg,#73e9ea,#aedcff);color:#101d2b;border:0}
+#swapp-portail .sp-next{border:1px solid rgba(188,183,255,.47);color:#f5f1ff;
+ background:rgba(121,73,195,.21)}
+#swapp-portail button:disabled{opacity:.5;cursor:not-allowed}
+#swapp-portail [hidden]{display:none!important}
+#swapp-portail .sp-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding-top:18px}
+#swapp-portail .sp-controls label{font-size:12px;color:var(--sp-muted);font-weight:800}
+#swapp-portail .sp-controls select{flex:1 1 220px;min-width:0;max-width:390px;
+ padding:10px 12px;border:1px solid var(--sp-border);border-radius:9px;
+ background:#142033;color:#f6f8ff}
+#swapp-portail .sp-controls button{padding:10px 14px;background:transparent;
+ color:#d5e0f3;border-radius:9px;border:1px solid var(--sp-border);font-size:12px;font-weight:700}
+#swapp-portail .sp-explain{display:grid;grid-template-columns:minmax(220px,.6fr) 1fr;gap:16px 35px;
+ align-items:start;padding:34px clamp(14px,2vw,30px) 10px}
+#swapp-portail .sp-explain h2{font-size:clamp(24px,2.4vw,34px);max-width:22ch}
+#swapp-portail .sp-explain p{margin:0;color:#b6c6dc;max-width:75ch;font-size:14px;line-height:1.75}
+#swapp-portail .sp-explain nav{grid-column:2;display:flex;flex-wrap:wrap;gap:18px}
+#swapp-portail .sp-explain nav a{font-size:13px;font-weight:800;color:#8cecf4}
+#swapp-portail :is(button,a,select):focus-visible{outline:2px solid #93f2f3;outline-offset:4px}
+#swapp-portail button:not(:disabled):hover,#swapp-portail .sp-actions a:hover{filter:brightness(1.15)}
+@media(max-width:750px){
+ #swapp-portail .sp-hero-grid{grid-template-columns:1fr}
+ #swapp-portail .sp-orbit{display:none}
+ #swapp-portail .sp-explain{grid-template-columns:1fr}
+ #swapp-portail .sp-explain nav{grid-column:1}
+ #swapp-portail .sp-actions :is(a,button){flex:1 1 100%}
+ #swapp-portail .sp-controls select{max-width:100%}
+}
+@media(prefers-reduced-motion:reduce){#swapp-portail *{scroll-behavior:auto!important;transition:none!important}}
