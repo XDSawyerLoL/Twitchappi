@@ -81,7 +81,7 @@ function intro(){
   '<div class="oa-hosts"><div><span>N</span><strong>NOVA</strong><small>Curieuse et spontanée</small></div>'+
   '<div><span>K</span><strong>KERN</strong><small>Analytique et sceptique</small></div></div></header>';
 }
-function home(episodes=publicEpisodes()){
+function home(episodes=publicEpisodes(),{canManage=false}={}){
  const rows=episodes.length?'<section class="oa-episodes" aria-labelledby="oa-list-title">'+
   '<h2 id="oa-list-title">Les épisodes</h2><div class="oa-grid">'+episodes.map(e=>
    '<article class="oa-card"><span class="oa-kicker">'+esc(niceDate(e.publishedAt))+'</span>'+
@@ -95,7 +95,8 @@ function home(episodes=publicEpisodes()){
  return layout({title:'SWAPP ON AIR — podcast gaming',active:'actus',description:'L’émission gaming de SWAPP avec Nova et Kern.',
   metadata:'<link rel="canonical" href="https://swapp.tv/on-air">'+schema(episodes),
   content:'<main class="oa-page">'+intro()+rows+
-  '<footer class="oa-end"><a href="/actus">Actualités</a><a href="/tv">SWAPP TV</a></footer></main>',
+  '<footer class="oa-end"><a href="/actus">Actualités</a><a href="/tv">SWAPP TV</a>'+
+  (canManage?'<a href="/on-air/studio">Publier un épisode</a>':'')+'</footer></main>',
   scripts:stylesheet});
 }
 function episodePage(slug,episodes=publicEpisodes()){
