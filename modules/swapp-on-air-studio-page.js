@@ -31,6 +31,6 @@ function page(){
  '</form></main>';
  return layout({title:'SWAPP ON AIR — Studio de publication',description:'Publication sécurisée de véritables podcasts audio SWAPP',
   content,active:'actus',scripts:'<link rel="stylesheet" href="/assets/swapp-on-air-studio.css?v=20261105-v2">'+
-   '<script defer src="/assets/swapp-on-air-studio.js?v=20261105-v2"></script>'});
+   '<script defer src="/assets/swapp-on-air-studio.js?v=20261105-pilot-v3"></script>'});
 }
 module.exports={page};
