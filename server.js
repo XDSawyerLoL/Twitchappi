@@ -1488,6 +1488,19 @@ app.get('/api/on-air/audio/:slug.mp3',(req,res)=>{
    if(error&&!res.headersSent)res.status(error.status||404).end();
   });
 });
+app.get('/api/on-air/studio/status',authLimiter,(req,res)=>{
+ res.set('Cache-Control','private, no-store');
+ if(!swappPodcastAdmin(req,res))return;
+ try{
+  const dir=swappPodcastStudio.ensure();
+  fs.accessSync(dir,fs.constants.R_OK|fs.constants.W_OK);
+  const configured=Boolean(String(process.env.SWAPP_ON_AIR_STORAGE_DIR||'').trim());
+  return res.json({success:true,ready:true,persistent_directory_configured:configured,
+   published:swappOnAir.publicEpisodes().length});
+ }catch(_){
+  return res.status(503).json({success:false,ready:false,error:'storage_unavailable'});
+ }
+});
 app.get('/on-air/studio',(req,res)=>{
  res.set('Cache-Control','private, no-store');
  if(!isOryonAdmin(req))return res.status(403).type('text').send('Studio ON AIR réservé à l’administrateur SWAPP.');
