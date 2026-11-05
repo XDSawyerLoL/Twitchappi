@@ -16,7 +16,7 @@
  const video=Object.freeze({id:'trailers',label:'Vidéos',href:'/bandes-annonces'});
  const account=Object.freeze({id:'settings',label:'Compte',href:'/compte'});
  const htmlEscape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
- const isNews=active=>active==='actus'||active==='trailers'||active==='guides';
+ const isNews=active=>active==='actus'||active==='trailers'||active==='guides'||active==='onair';
  const isDiscover=active=>active==='discover'||active==='categories'||active==='teams';
  const isTv=active=>active==='tv'||active==='agenda'||active==='programme';
  function link(item,active){
@@ -31,6 +31,7 @@
    '<details class="swapp-news-more"><summary aria-label="Ouvrir les rubriques Actualité" title="Rubriques Actualité">⌄</summary>'+
    '<div class="swapp-news-menu"><a href="/actus"'+(active==='actus'?' aria-current="page"':'')+'>Tous les articles</a>'+
    '<a href="/bandes-annonces"'+(active==='trailers'?' aria-current="page"':'')+'>Vidéos et bandes-annonces</a>'+ 
+   '<a href="/on-air"'+(active==='onair'?' aria-current="page"':'')+'>Podcast ON AIR</a>'+  
    '<a href="/guides/aion-2"'+(active==='guides'?' aria-current="page"':'')+'>Guide Aion 2</a></div></details></div>';
  }
  function discoverNav(active){
@@ -47,14 +48,15 @@
   const pinned=items.filter(x=>['home','discover','actus','tv'].includes(x.id));
   const other=items.filter(x=>!pinned.includes(x));
   return pinned.map(x=>link(x,active)).join('')+
-   '<details class="swapp-mobile-more"><summary'+(other.some(x=>x.id===active)||['categories','teams','guides',video.id,account.id].includes(active)?' class="active"':'')+'>Plus</summary>'+
+   '<details class="swapp-mobile-more"><summary'+(other.some(x=>x.id===active)||['categories','teams','guides','onair',video.id,account.id].includes(active)?' class="active"':'')+'>Plus</summary>'+
    '<div class="swapp-mobile-more-links">'+
    '<span class="swapp-mobile-menu-title">DÉCOUVRIR</span>'+ 
    '<a href="/categories"'+(active==='categories'?' class="active" aria-current="page"':'')+'>Jeux et catégories</a>'+ 
    '<a href="/equipes"'+(active==='teams'?' class="active" aria-current="page"':'')+'>Équipes</a>'+ 
    '<span class="swapp-mobile-menu-title">ACTUALITÉ</span>'+
    '<a href="/bandes-annonces"'+(active==='trailers'?' class="active" aria-current="page"':'')+'>Vidéos et bandes-annonces</a>'+ 
-   '<a href="/guides/aion-2"'+(active==='guides'?' class="active" aria-current="page"':'')+'>Guide Aion 2</a>'+
+   '<a href="/guides/aion-2"'+(active==='guides'?' class="active" aria-current="page"':'')+'>Guide Aion 2</a>'+ 
+   '<a href="/on-air"'+(active==='onair'?' class="active" aria-current="page"':'')+'>Podcast ON AIR</a>'+ 
    '<span class="swapp-mobile-menu-title">SWAPP</span>'+
    other.map(x=>link(x,active)).join('')+link(account,active)+'</div></details>';
  }
