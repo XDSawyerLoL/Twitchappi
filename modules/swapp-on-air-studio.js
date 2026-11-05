@@ -3,7 +3,7 @@
 // A release is visible only after the real MP3 and reviewed manifest are both durable.
 // Audio is outside the public static web root and served only through a validated route.
 const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
-const {spawnSync}=require('node:child_process');
+const {execFile}=require('node:child_process');
 const {SLUG}=require('./swapp-on-air');
 const MAX_UPLOAD=24*1024*1024,MIN_UPLOAD=30000,MAX_EPISODES=200;
 const UPLOAD_ID=/^[a-f0-9]{24}$/;
@@ -23,7 +23,7 @@ function readIndex(dir){
   throw publicationError('index_corrupt',503);
  }
 }
-function parseMp3(file,{requireCli=false}={}){
+function parseMp3(file){
  const stat=fs.statSync(file);
  if(!stat.isFile()||stat.size<MIN_UPLOAD||stat.size>MAX_UPLOAD)
   throw publicationError('audio_size_invalid',422);
@@ -64,20 +64,29 @@ function parseMp3(file,{requireCli=false}={}){
  if(!first)throw publicationError('audio_not_mp3',422);
  let duration=Math.round((stat.size-at)*8/(first.kbps*1000));
  if(!Number.isFinite(duration)||duration<20||duration>7200)throw publicationError('audio_duration_invalid',422);
- // Strong duration check where ffprobe exists; no dependency on ffprobe
- // for shared Hostinger Node hosting without shell multimedia packages.
- const probed=spawnSync('ffprobe',['-v','error','-show_entries','format=duration:stream=codec_name',
-  '-of','json',file],{encoding:'utf8',timeout:6500,maxBuffer:128*1024});
- if(probed.status===0){
-  try{
-   const metadata=JSON.parse(probed.stdout||'{}');
-   const actual=Number(metadata.format?.duration);
-   if(!metadata.streams?.some(x=>x.codec_name==='mp3')||actual<20||actual>7200)
-    throw publicationError('audio_codec_or_duration_invalid',422);
-   duration=Math.round(actual);
-  }catch(e){if(e.status)throw e}
- }else if(requireCli)throw publicationError('ffprobe_unavailable',503);
  return duration;
+}
+// Never run synchronous ffprobe on the same Node event loop as SWAPP Live.
+// On shared hosts with no FFmpeg, the verified MPEG frames above and explicit
+// owner listening approval remain the zero-cost fallback.
+async function verifiedDuration(file,estimate){
+ const result=await new Promise(resolve=>{
+  execFile('ffprobe',['-v','error','-show_entries',
+   'format=duration:stream=codec_name','-of','json',file],
+   {encoding:'utf8',timeout:6500,maxBuffer:128*1024},
+   (error,stdout)=>resolve({error,stdout}));
+ });
+ if(result.error){
+  if(result.error.code==='ENOENT')return estimate;
+  throw publicationError('audio_codec_or_duration_invalid',422);
+ }
+ try{
+  const data=JSON.parse(result.stdout||'{}');
+  const duration=Number(data.format?.duration);
+  if(!data.streams?.some(x=>x.codec_name==='mp3')||!Number.isFinite(duration)||
+    duration<20||duration>7200)throw publicationError('audio_codec_or_duration_invalid',422);
+  return Math.round(duration);
+ }catch(e){if(e.status)throw e;throw publicationError('audio_codec_or_duration_invalid',422)}
 }
 function validateMetadata(body,slug){
  if(!SLUG.test(slug)||slug.length<7||slug.length>85)throw publicationError('invalid_slug');
@@ -147,7 +156,7 @@ function makeStudio({dir=storageRoot(),now=()=>new Date(),random=crypto.randomBy
   const slug=String(data?.slug||''),file=stagePath(slug,String(data?.upload_id||''));
   const meta=validateMetadata(data,slug);
   if(!fs.existsSync(file))throw publicationError('upload_missing',404);
-  const durationSec=parseMp3(file);
+  const durationSec=await verifiedDuration(file,parseMp3(file));
   const stamp=now().toISOString(),entry={
    slug,title:meta.title,description:meta.description,
    audio:slug+'.mp3',durationSec,status:'published',
@@ -182,4 +191,4 @@ function makeStudio({dir=storageRoot(),now=()=>new Date(),random=crypto.randomBy
  }
  return {dir:directory,ensure,stagePath,mp3Path,upload,publish,read:()=>readIndex(directory)};
 }
-module.exports={makeStudio,storageRoot,parseMp3,validateMetadata,publicationError,MAX_UPLOAD};
+module.exports={makeStudio,storageRoot,parseMp3,verifiedDuration,validateMetadata,publicationError,MAX_UPLOAD};
