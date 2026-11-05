@@ -148,10 +148,10 @@ function passagePanel(){
  else where?.append(el);
  return el;
 }
-async function passageCheck(info,commit=false){
+async function passageCheck(info,commit=false,sourceProof=''){
  const query=new URLSearchParams({platform:info.platform,login:info.login,game:info.game||'',
   exclude:recentlyWatched().join(',')});
- if(commit)query.set('phase','commit');
+ if(commit){query.set('phase','commit');query.set('source_proof',sourceProof)}
  return api('/api/swapp/live-handoff?'+query.toString());
 }
 async function passageGo(){
@@ -159,7 +159,7 @@ async function passageGo(){
  if(!state.consent||!current.pending||current.cancelled||document.visibilityState==='hidden')return;
  const key=current.key,from=state.selection;
  try{
-  const result=await passageCheck({platform:from.platform,login:from.login,game:current.game},true);
+  const result=await passageCheck({platform:from.platform,login:from.login,game:current.game},true,current.liveProof||'');
   if(state.passage!==current||result?.success!==true)return;
   if(result.current?.live){resetPassage();return}
   const next=result.next;
@@ -234,6 +234,7 @@ async function maybePassage(){
   if(state.passage!==current||state.selection!==item||data?.success!==true)return;
   if(data.current?.live===true){
    current.seenLive=true;current.offline=0;
+   if(typeof data.live_proof==='string')current.liveProof=data.live_proof;
    if(String(data.current.game||'').length>=2)current.game=data.current.game;
    $('stv-passage')?.remove();
   }else if(data.current?.live===false&&current.seenLive){
