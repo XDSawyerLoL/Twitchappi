@@ -1,7 +1,7 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path'),os=require('node:os');
-const {SLUG,validateEpisode,publicEpisodes,home,episodePage,mp3Exists}=require('../modules/swapp-on-air');
+const {SLUG,validateEpisode,publicEpisodes,home,episodePage,mp3Exists,feedXml}=require('../modules/swapp-on-air');
 const src={slug:'on-air-premiere-demo',title:'Nova et Kern découvrent un jeu indépendant',
  description:'Un épisode test vérifié avec une mise en contexte, une discussion et des sources officielles.',
  durationSec:123,audio:'on-air-premiere-demo.mp3',status:'published',audioReviewed:true,editorialApproved:true,
@@ -76,4 +76,26 @@ test('ON AIR route is server rendered and does not expose unapproved assets via 
  assert.match(code,/app.get\('\/on-air\/:slug'/);
  assert.match(code,/swappOnAir\.publicEpisodes\(\)/);
  assert.doesNotMatch(fs.readFileSync(path.join(__dirname,'../modules/swapp-on-air.js'),'utf8'),/googleapis|elevenlabs|stripe|openai\.com/);
+});
+
+test('Podcast RSS contains only validated media, with correct enclosure MIME and URL',()=>{
+ const blank=feedXml([]);
+ assert.match(blank,/<rss version="2.0"/);
+ assert.match(blank,/<language>fr-FR<\/language>/);
+ assert.doesNotMatch(blank,/<enclosure /,'no fake episodes');
+ const h=fixture();
+ try{
+  const valid=validateEpisode(src,{mediaDir:h.temp});
+  assert.equal(valid.audioBytes,35003);
+  const xml=feedXml([valid]);
+  assert.match(xml,/xmlns:itunes=/);
+  assert.match(xml,/type="audio\/mpeg"/);
+  assert.match(xml,/length="35003"/);
+  assert.match(xml,/<guid isPermaLink="true">https:\/\/swapp\.tv\/on-air\/on-air-premiere-demo<\/guid>/);
+  assert.match(xml,/<itunes:duration>123<\/itunes:duration>/);
+  assert.match(xml,/<enclosure url="https:\/\/swapp\.tv\/assets\/on-air\/on-air-premiere-demo\.mp3"/);
+  const server=require('node:fs').readFileSync(path.join(__dirname,'../server.js'),'utf8');
+  assert.match(server,/app\.get\('\/on-air\/feed\.xml'/);
+  assert.ok(server.indexOf("app.get('/on-air/feed.xml'")<server.indexOf("app.get('/on-air/:slug'"));
+ }finally{h.clean()}
 });
