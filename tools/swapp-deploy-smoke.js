@@ -74,6 +74,20 @@ async function verify(){
   portalJs.body.includes("row.media_verified!==true"),
   'SWAPP PORTAIL verified discovery client is missing or stale');
  process.stdout.write('PASS /portail first-party verified discovery\\n');
+ // SWAPP PASSAGE must be live on both viewer routes, not only in source code.
+ const passageJs=await request(origin,'/assets/swapp-live-handoff.js');
+ check(passageJs.body.includes('/api/swapp/live-handoff?')&&
+  passageJs.body.includes('Rester sur cette chaîne')&&
+  passageJs.body.includes('current.offline>=2'),
+  'SWAPP PASSAGE client missing or not verifying two offline checks');
+ const passageWatch=await request(origin,'/live/twitch/streamer_test?game=Hades');
+ check(passageWatch.body.includes('data-swapp-handoff-platform="twitch"')&&
+  passageWatch.body.includes('swapp-live-handoff.js?v=20261105-v1'),
+  'SWAPP Twitch page lacks same-game handoff');
+ const passageHome=await request(origin,'/');
+ check(passageHome.body.includes('swapp-live-handoff.js?v=20261105-v1'),
+  'SWAPP native channel shell lacks same-game handoff');
+ process.stdout.write('PASS SWAPP PASSAGE same-game handoff assets and routes\\n');
  const station=await request(origin,'/tv');
  check(station.body.includes('id="stv-slot-clock"')&&
   station.body.includes('id="stv-watch"')&&
@@ -84,7 +98,9 @@ async function verify(){
   stationJs.body.includes('function fairDiscovery(')&&
   stationJs.body.includes("state.autoSource=item.platform==='swapp'?'native'")&&
   stationJs.body.includes("frame.src='/api/oryon/local-relay/'+encodeURIComponent(item.login)+'/player'")&&
-  stationJs.body.includes("api('/api/swapp-tv/native-lineup')"),
+  stationJs.body.includes("api('/api/swapp-tv/native-lineup')")&&
+  stationJs.body.includes('function maybePassage(')&&
+  stationJs.body.includes('function passageOffer('),
   'SWAPP TV does not expose the verified opt-in rotation logic');
  process.stdout.write('PASS /tv station native-first and consent-based relay\n');
  // Viewers must receive a real SWAPP-hosted HLS engine; returning a 404,
