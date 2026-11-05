@@ -95,7 +95,8 @@ function createHandoff({twitchAPI,twitchEnabled=()=>false,users=()=>[],nativeStr
   const available=[];
   for(const stream of streams()){
    const login=String(stream.login||'').toLowerCase(),user=directory.get(login);
-   if(!user||!NATIVE.test(login)||!equivalent(game,user.current_live_category||user.current_category||user.category)||!stream.media_verified)continue;
+   if(!user||!NATIVE.test(login)||!equivalent(game,user.current_live_category||user.current_category||user.category)||
+    !stream.media_verified||stream.player_url!=='/api/oryon/local-relay/'+encodeURIComponent(login)+'/player')continue;
    available.push({platform:'swapp',login,
     game:safeGame(user.current_live_category||user.current_category||user.category),
     name:clean(user.display_name||login).slice(0,70),
