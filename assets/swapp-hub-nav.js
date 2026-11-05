@@ -85,7 +85,7 @@
   const api=typeof window!=='undefined'?window.SwappNavigation:null;
   if(!api||typeof api.desktopNavigation!=='function'||typeof api.mobileNavigation!=='function')return false;
   const route=String(location.pathname||'/').replace(/\/+$/,'')||'/';
-  const active=route==='/bandes-annonces'?'trailers':route==='/tv'?'tv':route==='/tv/programme'||route==='/agenda'?'agenda':route==='/actus'?'actus':route==='/decouvrir'?'discover':route==='/social'?'community':route==='/boutique'?'shop':route==='/categories'?'categories':route==='/equipes'?'teams':route.startsWith('/guides')?'guides':'home';
+  const active=route==='/bandes-annonces'?'trailers':route==='/tv'?'tv':route==='/tv/programme'||route==='/agenda'?'agenda':route==='/on-air'?'onair':route==='/actus'?'actus':route==='/decouvrir'?'discover':route==='/social'?'community':route==='/boutique'?'shop':route==='/categories'?'categories':route==='/equipes'?'teams':route.startsWith('/guides')?'guides':'home';
   const signature=(mobile?'mobile:':'desktop:')+active;
   const valid=mobile?nav.querySelector('.swapp-mobile-more')&&nav.querySelector('.swapp-tv-nav-cta'):nav.querySelector('.swapp-news-more')&&nav.querySelector('.swapp-tv-nav-cta');
   if(nav.dataset.swappNavSignature===signature&&valid)return true;
