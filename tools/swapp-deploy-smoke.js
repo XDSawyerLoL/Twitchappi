@@ -88,10 +88,27 @@ async function verify(){
  check(passageHome.body.includes('swapp-live-handoff.js?v=20261105-v1'),
   'SWAPP native channel shell lacks same-game handoff');
  process.stdout.write('PASS SWAPP PASSAGE same-game handoff assets and routes\\n');
+ const marathon=await request(origin,'/marathon');
+ check(marathon.body.includes('id="swapp-marathon"')&&
+  marathon.body.includes('/assets/swapp-marathon.js?v=20261105-v1'),
+  'SWAPP MARATHON not deployed');
+ const marathonScript=await request(origin,'/assets/swapp-marathon.js');
+ check(marathonScript.body.includes('/api/discovery/game-lives?game=')&&
+  marathonScript.body.includes('/api/creator/spotlight?game='),
+  'SWAPP MARATHON missing verified discovery or real calendar');
+ const ascension=await request(origin,'/ascension');
+ check(ascension.body.includes('id="swapp-ascension"')&&
+  ascension.body.includes('/assets/swapp-ascension.js?v=20261105-v1'),
+  'SWAPP ASCENSION not deployed');
+ const impactScript=await request(origin,'/assets/swapp-ascension.js');
+ check(impactScript.body.includes('/api/swapp/passage/ascension')&&
+  impactScript.body.includes('confirmed_destination_page_open'),
+  'SWAPP ASCENSION metrics client absent or stale');
+ process.stdout.write('PASS /marathon and /ascension lightweight interfaces\\n');
  const station=await request(origin,'/tv');
  check(station.body.includes('id="stv-slot-clock"')&&
   station.body.includes('id="stv-watch"')&&
-  station.body.includes('swapp-tv-broadcast.js?v=20261105-same-game-handoff-v1'),
+  station.body.includes('swapp-tv-broadcast.js?v=20261105-collective-v1'),
   'SWAPP TV station layout or rotation script is stale');
  const stationJs=await request(origin,'/assets/swapp-tv-broadcast.js');
  check(stationJs.body.includes('function maybeAdvanceDiscovery(')&&
