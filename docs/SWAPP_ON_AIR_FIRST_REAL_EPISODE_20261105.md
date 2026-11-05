@@ -61,3 +61,17 @@ Après mise à jour du site Hostinger :
 - Un auditeur peut lire, mettre en pause et avancer dans le fichier.
 
 **Ne pas annoncer un podcast opérationnel avant un vrai MP3 publié, une écoute d'approbation, et un contrôle Hostinger.** Une fusion GitHub seule ne suffit pas.
+
+## Reprise automatique en cas d'interruption (Windows)
+
+Le lanceur détecte trois états :
+- **MP3 déjà généré** : ouvre la fiche SWAPP ON AIR avec le dialogue prérempli, sans charger Python ni télécharger de poids Qwen.
+- **WAV déjà généré, MP3 manquant** : convertit le WAV avec FFmpeg gratuit, sans refaire la synthèse vocale et sans nécessiter CUDA.
+- **Voix Nova/Kern de référence déjà terminées, dialogue manquant** : réutilise les références pour la synthèse du dialogue, sans redessiner les voix 1.7B.
+
+Les fichiers de référence incomplets ne sont jamais écrasés automatiquement. Le script de conversion refuse d'écraser un MP3 existant.
+
+La détection Python est compatible avec Windows PowerShell 5.1, même lorsqu'une version Python est absente. Sur NVIDIA, si PyTorch est installé sans CUDA, le script peut proposer **après accord explicite** le runtime officiel PyTorch 2.9 / CUDA 12.8 (téléchargement volumineux, sans frais d'API). La reconnaissance du GPU et le rendu audio sur un vrai PC Windows restent à tester.
+
+Le contrôle de production vérifie désormais HTTP `206 Partial Content` et 1 024 octets de média pour les épisodes publiés, afin de détecter une avance rapide ou une lecture audio défectueuse.
+

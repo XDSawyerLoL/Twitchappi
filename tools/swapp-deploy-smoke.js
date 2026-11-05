@@ -143,6 +143,17 @@ async function verify(){
   const head=await fetch(origin+episode.audioUrl,{method:'HEAD',redirect:'manual',cache:'no-store'});
   check(head.ok&&(head.headers.get('content-type')||'').includes('audio/'),
    'Approved ON AIR episode has no playable media: '+episode.slug);
+  const range=await fetch(origin+episode.audioUrl,{
+   method:'GET',redirect:'manual',cache:'no-store',
+   headers:{Range:'bytes=0-1023'}
+  });
+  check(range.status===206&&
+   /^bytes 0-1023\/\d+$/.test(range.headers.get('content-range')||'')&&
+   (range.headers.get('content-type')||'').includes('audio/'),
+   'ON AIR seeking broken: the MP3 server must support HTTP 206 Range: '+episode.slug);
+  const piece=await range.arrayBuffer();
+  check(piece.byteLength===1024,
+   'ON AIR Range did not return the expected 1024 bytes: '+episode.slug);
  }
  process.stdout.write('PASS ON AIR catalog, audio sources and protected studio\n');
  const station=await request(origin,'/tv');

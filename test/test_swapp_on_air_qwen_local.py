@@ -51,6 +51,42 @@ class VoicePilotPlanningTests(unittest.TestCase):
             self.assertIn("Dry run only", result.stdout)
             self.assertFalse((Path(folder) / "should-not-exist.wav").exists())
 
+    def test_encoding_existing_wav_without_loading_neural_models(self):
+        import math
+        import shutil
+        import struct
+        import wave
+        with tempfile.TemporaryDirectory() as folder:
+            file = Path(folder) / "episode.wav"
+            with wave.open(str(file), "wb") as sound:
+                sound.setnchannels(1)
+                sound.setsampwidth(2)
+                sound.setframerate(24000)
+                sample = [int(4000 * math.sin(2 * math.pi * 440 * n / 24000))
+                          for n in range(24_000 * 25)]
+                sound.writeframes(struct.pack("<" + "h" * len(sample), *sample))
+            cmd = [sys.executable, str(RUNNER), "--episode", str(EPISODE),
+                   "--output", str(file), "--encode-only"]
+            can_encode = bool(shutil.which("ffmpeg"))
+            if not can_encode:
+                try:
+                    import imageio_ffmpeg
+                    can_encode = bool(imageio_ffmpeg.get_ffmpeg_exe())
+                except (ImportError, RuntimeError, OSError):
+                    pass
+            if not can_encode:
+                self.skipTest("No local free FFmpeg binary available")
+            result = subprocess.run(cmd, capture_output=True, text=True, check=True, timeout=45)
+            data = json.loads(result.stdout)
+            self.assertTrue(data["reused_audio"])
+            mp3 = file.with_suffix(".mp3")
+            self.assertGreater(mp3.stat().st_size, 30000)
+            self.assertTrue(file.exists(), "Original WAV must be preserved")
+            # A second run must refuse to overwrite the validated MP3.
+            repeated = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
+            self.assertNotEqual(repeated.returncode, 0)
+            self.assertIn("already exists", repeated.stderr)
+
 
 if __name__ == "__main__":
     unittest.main()

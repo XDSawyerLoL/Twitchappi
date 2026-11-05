@@ -57,6 +57,49 @@ class FrenchVoiceDesignTest(unittest.TestCase):
         self.assertNotIn("gemini", source.lower())
         self.assertNotIn("elevenlabs", source.lower())
 
+    def test_previously_generated_voice_anchors_resume_without_voice_design_model(self):
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as folder:
+            target = Path(folder) / "test-episode.wav"
+            anchors = Path(folder) / "test-episode-reference-voices"
+            anchors.mkdir()
+            for speaker in ("nova", "kern"):
+                (anchors / (speaker + ".wav")).write_bytes(b"RIFF" + b"0" * 25000)
+                (anchors / (speaker + ".txt")).write_text(
+                    "Une reference vocale francaise originale de test.", encoding="utf-8"
+                )
+            args = SimpleNamespace(
+                output=target, episode=EPISODE, clone_size="light",
+                allow_download=False, allow_cpu=False
+            )
+            with patch.object(self.module.subprocess, "run") as runner:
+                self.module.render(args)
+                runner.assert_called_once()
+                call = runner.call_args.args[0]
+                self.assertIn("--authorized-reference", call)
+                self.assertIn("--mode", call)
+                self.assertIn("clone", call)
+                self.assertIn(str(anchors / "nova.wav"), call)
+                self.assertIn(str(anchors / "kern.wav"), call)
+            self.assertFalse(target.exists(), "the mocked clone stage must not fabricate WAV output")
+
+    def test_incomplete_voice_anchors_are_never_overwritten(self):
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as folder:
+            target = Path(folder) / "test-episode.wav"
+            anchors = Path(folder) / "test-episode-reference-voices"
+            anchors.mkdir()
+            (anchors / "nova.wav").write_bytes(b"bad")
+            args = SimpleNamespace(output=target, episode=EPISODE,
+                clone_size="light", allow_download=False, allow_cpu=False)
+            with patch.object(self.module.subprocess, "run") as runner:
+                with self.assertRaisesRegex(RuntimeError,"Incomplete reference voices"):
+                    self.module.render(args)
+                runner.assert_not_called()
+            self.assertTrue((anchors / "nova.wav").exists())
+
 
 if __name__ == "__main__":
     unittest.main()

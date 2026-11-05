@@ -14,28 +14,57 @@ function Fail($message){
  Write-Host ("ERREUR : "+$message) -ForegroundColor Red
  exit 1
 }
+function Open-SwappStudio {
+ # The generated MP3 remains local. Only public editorial metadata goes to
+ # the URL fragment; this step needs NO Python environment or paid API.
+ $data=Get-Content -LiteralPath $episode -Raw -Encoding UTF8 | ConvertFrom-Json
+ $metadata=@{
+  title=$data.title
+  description=$data.description
+  slug=$data.slug
+  sources=@($data.sources)
+  articles=@($data.articles)
+ } | ConvertTo-Json -Depth 10 -Compress
+ $bytes=[System.Text.Encoding]::UTF8.GetBytes($metadata)
+ $fragment=[Convert]::ToBase64String($bytes).TrimEnd('=').Replace('+','-').Replace('/','_')
+ $url='https://swapp.tv/on-air/studio#prefill='+$fragment
+ Write-Host 'Episode MP3 : ' $mp3
+ Write-Host 'Le studio va ouvrir une fiche pre-remplie.'
+ Write-Host 'Selectionne le fichier MP3, ecoute-le et approuve le contenu.'
+ Start-Process $url
+}
+function Test-PythonVersion($exe,$version){
+ $prior=$ErrorActionPreference
+ try{
+  # Windows PowerShell 5.1 can promote harmless stderr from a missing
+  # Python version to a terminating error when the global preference is Stop.
+  $ErrorActionPreference='SilentlyContinue'
+  if($version){
+   & $exe $version -c "import sys; assert (3, 10) <= sys.version_info[:2] < (3, 14)" 2>$null
+  }else{
+   & $exe -c "import sys; assert (3, 10) <= sys.version_info[:2] < (3, 14)" 2>$null
+  }
+  return ($LASTEXITCODE -eq 0)
+ }catch{ return $false }
+ finally{ $ErrorActionPreference=$prior }
+}
 Write-Host 'SWAPP ON AIR - NOVA / KERN - premier vrai episode' -ForegroundColor Cyan
 if(Test-Path $mp3){
- Write-Host 'Un MP3 existe deja : aucune re-generation ni ecrasement.' -ForegroundColor Yellow
- Write-Host $mp3
- & $python (Join-Path $repo 'scripts\swapp-on-air-open-studio.py') --episode $episode --audio $mp3
- if($LASTEXITCODE -ne 0){Fail 'Ouverture du studio impossible'}
+ Write-Host 'MP3 deja genere : aucun nouveau telechargement ni installation.' -ForegroundColor Green
+ Open-SwappStudio
  exit 0
 }
 if(!(Test-Path $episode)){Fail 'Dialogue source manquant'}
 if(!(Test-Path $python)){
  $launcher=$null
- if(Get-Command py -ErrorAction SilentlyContinue){
-  & py -3.12 -c "import sys; print(sys.version)" 2>$null
-  if($LASTEXITCODE -eq 0){$launcher=@('py','-3.12')}
+ if((Get-Command py -ErrorAction SilentlyContinue) -and (Test-PythonVersion 'py' '-3.12')){
+  $launcher=@('py','-3.12')
  }
- if(!$launcher -and (Get-Command py -ErrorAction SilentlyContinue)){
-  & py -3 -c "import sys; assert sys.version_info >= (3,10); assert sys.version_info < (3,14)" 2>$null
-  if($LASTEXITCODE -eq 0){$launcher=@('py','-3')}
+ if(!$launcher -and (Get-Command py -ErrorAction SilentlyContinue) -and (Test-PythonVersion 'py' '-3')){
+  $launcher=@('py','-3')
  }
- if(!$launcher -and (Get-Command python -ErrorAction SilentlyContinue)){
-  & python -c "import sys; assert sys.version_info >= (3,10); assert sys.version_info < (3,14)" 2>$null
-  if($LASTEXITCODE -eq 0){$launcher=@('python')}
+ if(!$launcher -and (Get-Command python -ErrorAction SilentlyContinue) -and (Test-PythonVersion 'python' '')){
+  $launcher=@('python')
  }
  if(!$launcher){Fail 'Python 3.12 conseille. Installe Python depuis python.org, puis relance.'}
  Write-Host 'Premiere preparation : Python isole, modeles ouverts, aucun paiement.' -ForegroundColor Yellow
@@ -48,6 +77,20 @@ if(!(Test-Path $python)){
  if($LASTEXITCODE -ne 0){Fail 'Creation Python isole impossible'}
 }
 if(!(Test-Path $python)){Fail 'Python virtuel introuvable'}
+if(Test-Path $output){
+ Write-Host 'WAV existant : conversion MP3 uniquement, sans recalcul des voix.' -ForegroundColor Cyan
+ & $python -c "import imageio_ffmpeg"
+ if($LASTEXITCODE -ne 0){
+  Write-Host 'Installation gratuite du convertisseur MP3 portable...' -ForegroundColor Yellow
+  & $python -m pip install --disable-pip-version-check 'imageio-ffmpeg>=0.6,<1'
+  if($LASTEXITCODE -ne 0){Fail 'Convertisseur MP3 non disponible'}
+ }
+ & $python (Join-Path $repo 'scripts\swapp-on-air-qwen-local.py') --episode $episode --output $output --encode-only
+ if($LASTEXITCODE -ne 0){Fail 'Conversion WAV vers MP3 impossible; le WAV reste intact'}
+ if(!(Test-Path $mp3)){Fail 'Aucun MP3 valide genere'}
+ Open-SwappStudio
+ exit 0
+}
 try{
  & $python -c "import qwen_tts, imageio_ffmpeg, torch"
  if($LASTEXITCODE -ne 0){throw 'Modules indisponibles'}
@@ -58,9 +101,21 @@ try{
  & $python -m pip install --disable-pip-version-check 'qwen-tts==0.1.1' 'imageio-ffmpeg>=0.6,<1'
  if($LASTEXITCODE -ne 0){Fail 'Installation Qwen3-TTS impossible. Aucune API payante utilisee.'}
 }
-& $python -c "import torch; print('CUDA active :',torch.cuda.is_available()); exit(0 if torch.cuda.is_available() else 1)"
+& $python -c "import torch,sys; print('CUDA active :',torch.cuda.is_available()); sys.exit(0 if torch.cuda.is_available() else 1)"
 if($LASTEXITCODE -ne 0 -and !$AutoriserCPU){
- Fail "CUDA absent. Verifie les pilotes NVIDIA et PyTorch GPU. Pour tenter le calcul CPU (tres lent), lance le script PowerShell avec -AutoriserCPU."
+ $nvidia=Get-Command nvidia-smi -ErrorAction SilentlyContinue
+ if($nvidia){
+  Write-Host 'Carte NVIDIA detectee, mais PyTorch ne dispose pas de CUDA.' -ForegroundColor Yellow
+  Write-Host 'Installation facultative du moteur CUDA officiel PyTorch 2.9 / CUDA 12.8. Plusieurs Go de telechargement possibles.' -ForegroundColor Yellow
+  $choice=Read-Host 'Saisis OUI pour installer les bibliotheques NVIDIA officielles'
+  if($choice -cne 'OUI'){Fail 'GPU inactif. Aucune installation CUDA effectuee.'}
+  & $python -m pip install --disable-pip-version-check 'torch==2.9.0' 'torchaudio==2.9.0' --index-url https://download.pytorch.org/whl/cu128
+  if($LASTEXITCODE -ne 0){Fail 'Impossible d installer PyTorch CUDA. Verifie GPU, pilote et version Python.'}
+  & $python -c "import torch,sys; print('CUDA active :',torch.cuda.is_available()); sys.exit(0 if torch.cuda.is_available() else 1)"
+ }
+ if($LASTEXITCODE -ne 0){
+  Fail "CUDA indisponible. Verifie les pilotes NVIDIA. Sans GPU, lance le script avec -AutoriserCPU (beaucoup plus lent)."
+ }
 }
 $args=@(
  (Join-Path $repo 'scripts\swapp-on-air-qwen-design-fr.py'),
@@ -72,6 +127,5 @@ Write-Host 'Generation locale de deux voix francaises distinctes : aucune cle d 
 & $python @args
 if($LASTEXITCODE -ne 0){Fail 'Synthese interrompue. Verifie le GPU, la RAM et la connexion au telechargement des poids.'}
 if(!(Test-Path $mp3)){Fail 'Le WAV existe peut-etre, mais aucun MP3 encode. Verifie imageio-ffmpeg.'}
-& $python (Join-Path $repo 'scripts\swapp-on-air-open-studio.py') --episode $episode --audio $mp3
-if($LASTEXITCODE -ne 0){Fail 'Impossible d ouvrir le studio; le MP3 est bien conserve sur disque'}
+Open-SwappStudio
 Write-Host "MP3 genere. Ecoute-le integralement avant toute publication : $mp3" -ForegroundColor Green

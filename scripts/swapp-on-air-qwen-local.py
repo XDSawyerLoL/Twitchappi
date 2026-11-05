@@ -170,24 +170,38 @@ def render(episode: dict, args: argparse.Namespace) -> tuple[Path, Path | None]:
     if output.exists() or output.with_suffix(".mp3").exists():
         raise FileExistsError("Existing render found; choose another --output file to protect prior takes")
     sf.write(str(output), np.concatenate(pieces), sample_rate, subtype="PCM_16")
-    mp3 = None
+    return output, encode_existing_wav(output)
+
+
+def encode_existing_wav(output: Path) -> Path:
+    """Encode a completed WAV without loading Qwen or regenerating dialogue."""
+    if not output.is_file() or output.suffix.lower() != ".wav" or output.stat().st_size < 20000:
+        raise FileNotFoundError("A complete WAV recording is required for MP3 conversion")
+    mp3 = output.with_suffix(".mp3")
+    if mp3.exists():
+        raise FileExistsError("MP3 already exists; keeping the original recording")
     ffmpeg = shutil.which("ffmpeg")
     if not ffmpeg:
-        # Free bundled binary from the optional imageio-ffmpeg Python package.
-        # Avoids requiring a separate system-wide FFmpeg installation on Windows.
         try:
             import imageio_ffmpeg
             ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
         except (ImportError, RuntimeError, OSError):
             ffmpeg = None
-    if ffmpeg:
-        mp3 = output.with_suffix(".mp3")
+    if not ffmpeg:
+        raise RuntimeError("Install imageio-ffmpeg to encode a real MP3, no paid service needed")
+    try:
         subprocess.run(
             [ffmpeg, "-hide_banner", "-loglevel", "error", "-n", "-i", str(output),
              "-codec:a", "libmp3lame", "-qscale:a", "3", str(mp3)],
-            check=True,
+            check=True, timeout=240,
         )
-    return output, mp3
+        if not mp3.is_file() or mp3.stat().st_size < 30000:
+            raise RuntimeError("MP3 encoding produced an invalid or incomplete output")
+    except Exception:
+        if mp3.exists():
+            mp3.unlink()
+        raise
+    return mp3
 
 
 def main() -> None:
@@ -196,6 +210,8 @@ def main() -> None:
     parser.add_argument("--mode", choices=("custom", "clone"), default="custom")
     parser.add_argument("--size", choices=("light", "standard"), default="standard")
     parser.add_argument("--render", action="store_true", help="Intentionally load model and generate audio")
+    parser.add_argument("--encode-only", action="store_true",
+                        help="Resume from an existing WAV; only encode the MP3, without any TTS model")
     parser.add_argument("--allow-download", action="store_true", help="Allow initial open-model download from Hugging Face")
     parser.add_argument("--allow-cpu", action="store_true", help="Allow potentially very slow CPU generation")
     parser.add_argument("--authorized-reference", action="store_true", help="Confirm lawful consent for both voice-clone references")
@@ -206,6 +222,12 @@ def main() -> None:
     parser.add_argument("--output", default=".swapp-on-air-private/nova-kern-natural.wav")
     args = parser.parse_args()
     episode = load_episode(args.episode)
+    if args.encode_only:
+        output = Path(args.output).expanduser().resolve()
+        mp3 = encode_existing_wav(output)
+        print(json.dumps({"wav": str(output), "mp3": str(mp3),
+                          "reused_audio": True, "published": False}, ensure_ascii=False))
+        return
     print(json.dumps(plan(episode, args.mode, args.size), ensure_ascii=False, indent=2))
     if not args.render:
         print("Dry run only: no model loaded, no network request, no audio file created.")
