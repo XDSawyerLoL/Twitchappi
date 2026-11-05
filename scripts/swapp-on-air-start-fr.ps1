@@ -29,6 +29,10 @@ if(!(Test-Path $python)){
   & py -3.12 -c "import sys; print(sys.version)" 2>$null
   if($LASTEXITCODE -eq 0){$launcher=@('py','-3.12')}
  }
+ if(!$launcher -and (Get-Command py -ErrorAction SilentlyContinue)){
+  & py -3 -c "import sys; assert sys.version_info >= (3,10); assert sys.version_info < (3,14)" 2>$null
+  if($LASTEXITCODE -eq 0){$launcher=@('py','-3')}
+ }
  if(!$launcher -and (Get-Command python -ErrorAction SilentlyContinue)){
   & python -c "import sys; assert sys.version_info >= (3,10); assert sys.version_info < (3,14)" 2>$null
   if($LASTEXITCODE -eq 0){$launcher=@('python')}
@@ -39,7 +43,7 @@ if(!(Test-Path $python)){
  $answer=Read-Host 'Saisis OUI pour autoriser l installation gratuite'
  if($answer -cne 'OUI'){Write-Host 'Aucune installation effectuee.';exit 0}
  New-Item -ItemType Directory -Path $privateDir -Force | Out-Null
- if($launcher.Count -eq 2){& py -3.12 -m venv $venv}
+ if($launcher.Count -eq 2){& py $launcher[1] -m venv $venv}
  else{& python -m venv $venv}
  if($LASTEXITCODE -ne 0){Fail 'Creation Python isole impossible'}
 }
