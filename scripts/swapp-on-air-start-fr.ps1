@@ -65,6 +65,20 @@ if(!(Test-Path $python)){
  if($LASTEXITCODE -ne 0){Fail 'Creation Python isole impossible'}
 }
 if(!(Test-Path $python)){Fail 'Python virtuel introuvable'}
+if(Test-Path $output){
+ Write-Host 'WAV existant : conversion MP3 uniquement, sans recalcul des voix.' -ForegroundColor Cyan
+ & $python -c "import imageio_ffmpeg"
+ if($LASTEXITCODE -ne 0){
+  Write-Host 'Installation gratuite du convertisseur MP3 portable...' -ForegroundColor Yellow
+  & $python -m pip install --disable-pip-version-check 'imageio-ffmpeg>=0.6,<1'
+  if($LASTEXITCODE -ne 0){Fail 'Convertisseur MP3 non disponible'}
+ }
+ & $python (Join-Path $repo 'scripts\swapp-on-air-qwen-local.py') --episode $episode --output $output --encode-only
+ if($LASTEXITCODE -ne 0){Fail 'Conversion WAV vers MP3 impossible; le WAV reste intact'}
+ if(!(Test-Path $mp3)){Fail 'Aucun MP3 valide genere'}
+ Open-SwappStudio
+ exit 0
+}
 try{
  & $python -c "import qwen_tts, imageio_ffmpeg, torch"
  if($LASTEXITCODE -ne 0){throw 'Modules indisponibles'}
