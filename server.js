@@ -4879,6 +4879,12 @@ app.get('/api/swapp-tv/native-lineup',(_req,res)=>{
   return res.status(503).json({success:false,error:'native_lineup_unavailable',items:[]});
  }
 });
+// ASCENSION: no extra paid backend. Aggregates signed handoff landings in
+// existing SWAPP MySQL; no viewer identifier stored. Disabled when unavailable.
+const swappPassageMetrics=require('./modules/swapp-passage-metrics').createPassageMetrics({
+ getPool:()=>socialInteractionsPool||spotlightPool(),
+ secret:configuredSessionSecret
+});
 // SWAPP PASSAGE: check the ACTUAL source status before recommending another
 // still-live creator playing the same verified game. No viewer profile stored.
 const swappLiveHandoff=require('./modules/swapp-live-handoff').createHandoff({
@@ -4898,13 +4904,46 @@ app.get('/api/swapp/live-handoff',heavyLimiter,async(req,res)=>{
   return res.status(503).json({success:false,error:'live_handoff_paused'});
  const platform=String(req.query.platform||''),login=String(req.query.login||'');
  const game=String(req.query.game||'').slice(0,90);
+ const exclude=String(req.query.exclude||'').slice(0,190).split(',').slice(0,4);
  try{
-  const result=await swappLiveHandoff.check({platform,login,game});
+  const result=await swappLiveHandoff.check({platform,login,game,exclude});
+  // A signed proof is only prepared at the confirmed final transition.
+  if(req.query.phase==='commit'&&result.success&&result.next&&!result.current.live){
+   result.transfer_token=swappPassageMetrics.issue(result.current,result.next);
+  }
   return res.status(result.status||200).json(result);
  }catch(error){
   console.warn('[SWAPP PASSAGE] Verification unavailable',String(error?.name||'error'));
   return res.status(503).json({success:false,error:'live_verification_unavailable'});
  }
+});
+
+// The destination page records a signed one-time opening; it does not send
+// IPs, viewer accounts, watch time, or third-party analytics.
+app.post('/api/swapp/passage/arrive',fairMetricsLimiter,async(req,res)=>{
+ res.set('Cache-Control','no-store');
+ if(process.env.SWAPP_LIVE_HANDOFF_DISABLED==='1')
+  return res.status(503).json({success:false,reason:'paused'});
+ const origin=String(req.get('origin')||'');
+ const allowed=['https://swapp.tv','https://www.swapp.tv'];
+ if(!IS_PROD)allowed.push('http://localhost:3000','http://127.0.0.1:3000');
+ if(!allowed.includes(origin))return res.status(403).json({success:false,reason:'origin'});
+ try{
+  const result=await swappPassageMetrics.arrive(req.body?.token);
+  return res.status(result.success?200:400).json(result);
+ }catch(_){return res.status(503).json({success:false,reason:'metrics_unavailable'})}
+});
+app.get('/api/swapp/passage/ascension',authLimiter,async(req,res)=>{
+ res.set('Cache-Control','private, no-store');
+ const session=req.session?.oryonUser,account=session?.login&&getOryonUserByLogin(session.login);
+ if(!session?.id||!account||String(account.id)!==String(session.id))
+  return res.status(401).json({success:false,reason:'swapp_login_required'});
+ if(!swappPassageMetrics.enabled())
+  return res.status(503).json({success:false,reason:'metrics_unavailable'});
+ try{
+  const result=await swappPassageMetrics.summary({swappLogin:String(account.login)});
+  return res.json(result);
+ }catch(_){return res.status(503).json({success:false,reason:'metrics_unavailable'})}
 });
 
 app.post('/api/oryon/local-agent/register-public-url', mutationLimiter, async (req, res) => {
