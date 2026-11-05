@@ -152,11 +152,11 @@ async function passageGo(){
    const panel=passagePanel();panel.textContent='Le live est terminé. Aucun autre direct du même jeu n’est actuellement vérifié.';
    current.pending=false;return;
   }
-  if(state.passage.key!==key||item?.login!==from.login)return;
+  if(state.passage.key!==key||state.selection!==from)return;
   resetPassage();
   state.autoAdvance=false; // avoid a duplicate iframe reconstruction
   renderScreen({platform:next.platform,login:next.login,game:next.game,
-   display_name:next.name||next.login,broadcast_id:null},{onAir:true});
+   display_name:next.name||next.login,broadcast_id:null},{onAir:next.platform==='swapp'});
   play(); // Reuse the single existing TV player; do not create another one.
  }catch(_){
   if(state.passage===current){passagePanel().textContent='Relais indisponible. Le lecteur reste sur la chaîne actuelle.';current.pending=false;}
@@ -264,7 +264,7 @@ async function refreshQueue(){
   }else if(data.enabled){
    const item=data.director_enabled?data.on_air:null;
    if(!item||!safeLogin(item.twitch_login)){if(!state.consent)renderScreen(null);}
-   else if(!state.selection||state.selection.login!==String(item.twitch_login).toLowerCase()||state.selection.platform!=='twitch'||!state.selection.onAir)renderScreen(item,{onAir:true});
+   else if(!state.consent&&(!state.selection||state.selection.login!==String(item.twitch_login).toLowerCase()||state.selection.platform!=='twitch'||!state.selection.onAir))renderScreen(item,{onAir:true});
   }else if(state.selection?.platform==='swapp'&&!state.consent){
    renderScreen(null);
   }
