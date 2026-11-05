@@ -129,6 +129,16 @@ function renderGameIndex(groups){
  const body='<main class="game-portal"><p class="breadcrumb"><a href="/">SWAPP</a> / Jeux</p><header class="hero"><h1>Jeux vidéo : actualités et créateurs</h1><p>Retrouve les jeux couverts par SWAPP, leurs articles et les créateurs en direct.</p><div class="actions"><a href="/mes-jeux">Mes jeux suivis →</a></div></header><section><div class="mg-index-intro"><h2>Explorer les jeux</h2><a href="/mes-jeux">Retrouver ma sélection →</a></div><div class="cards index">'+links+'</div></section></main>';
  return layout({title,description:'Articles et créateurs autour des jeux vidéo couverts par SWAPP.',content:body,metadata:meta,extraCss:CSS,active:'games'});
 }
+const SCORE_CSS=[
+ '.game-score{margin:28px 0;padding:26px;border:1px solid #ffffff29;border-radius:15px;background:linear-gradient(115deg,#172b37,#1e1934)}',
+ '.game-score h2{margin:0 0 9px}.game-score p{margin:8px 0 14px}',
+ '.game-score-buttons{display:flex;gap:9px;flex-wrap:wrap;margin:18px 0}',
+ '.game-score-buttons button{min-width:54px;min-height:46px;border:1px solid #c5dbe644;border-radius:10px;background:#ffffff0d;color:white;font-weight:800;font-size:18px}',
+ '.game-score-buttons button:hover,.game-score-buttons button.selected{background:#235864;border-color:#8cf3f1}',
+ '.game-score-buttons button:focus-visible{outline:3px solid #8cf3f1;outline-offset:3px}',
+ '.game-score-buttons button:disabled{opacity:.6;cursor:wait}',
+ '.game-score small{display:block;color:#bed1dd}'
+].join('');
 function renderGamePage(group){
  const url=ORIGIN+'/jeux/'+encodeURIComponent(group.slug);
  const title=group.game+' : actualités et lives',description=group.count+' publication'+(group.count>1?'s':'')+' SWAPP sur '+group.game+', les créateurs réellement en direct et la communauté.';
@@ -169,17 +179,24 @@ function renderGamePage(group){
    (cover?'<img src="'+html(cover)+'" alt="" loading="lazy">':'')+
    '<div><small>'+html(a.category||'Actualité')+'</small><h3>'+html(a.title)+'</h3><p>'+html(excerpt)+'</p></div></a>';
  }).join('');
+ const scoreBlock='<section class="game-score" data-swapp-game-score data-game-slug="'+html(group.slug)+'" aria-label="Note des joueurs">'+
+  '<h2>SWAPP Score · Joueurs</h2><p data-game-score-result role="status">Chargement des notes…</p>'+
+  '<div class="game-score-buttons" aria-label="Ta note sur cinq">'+[1,2,3,4,5].map(n=>
+   '<button type="button" data-game-rating="'+n+'" aria-label="Noter '+n+' sur 5" aria-pressed="false">'+n+'</button>').join('')+'</div>'+
+  '<p data-game-score-message aria-live="polite">Connecte-toi pour participer. Un vote modifiable par compte.</p>'+
+  '<small>Une moyenne est affichée à partir de 5 votes vérifiés. Aucune note presse n’est simulée.</small></section>';
  const body='<main class="game-portal"><p class="breadcrumb"><a href="/">SWAPP</a> / <a href="/jeux">Jeux</a> / '+html(group.game)+'</p>'+
   '<header class="hero">'+(cover?'<img class="hero-cover" src="'+html(cover)+'" alt="Visuel de '+html(group.game)+'" loading="eager">':'')+'<span class="universe-kicker">SWAPP / GAME UNIVERSE</span><h1>'+html(group.game)+' : actualités et lives</h1><p>'+html(description)+'</p><div class="journey"><span>Actualités</span><span>Créateurs</span><span>Communauté</span><span>Mes jeux</span></div><div class="actions"><button type="button" data-swapp-wishlist-game data-game-slug="'+html(group.slug)+'" data-game-name="'+html(group.game)+'" aria-pressed="false">♡ Ajouter aux envies</button><button type="button" data-swapp-follow-game data-game-slug="'+html(group.slug)+'" data-game-name="'+html(group.game)+'" aria-pressed="false">＋ Suivre ce jeu</button>'+flashLink+'<a href="/mes-jeux">Mes jeux</a><a href="/actus">Toutes les actualités</a><a href="/decouvrir">Explorer les créateurs</a><a href="/social?game='+encodeURIComponent(group.game)+'">Salons du jeu</a><a href="/boutique">Consulter la boutique</a></div></header>'+
-  premiereInterest+
+  premiereInterest+scoreBlock+require('./swapp-guide-library').guideLinksForGame(group)+
   '<section><h2>À lire sur '+html(group.game)+'</h2><div class="cards">'+cards+'</div></section>'+
   communityActions+
   '<section class="swapp-spotlight-public" data-spotlight-game="'+html(group.game)+'" aria-label="Créateurs Spotlight"></section>'+
   '<section class="swapp-media-section" data-swapp-live-shelf data-game="'+html(group.game)+'"><div class="swapp-media-heading"><h2>En direct sur '+html(group.game)+'</h2></div>'+
   '<div class="swapp-live-grid" data-live-results><p class="swapp-live-notice">Recherche des lives actuellement disponibles…</p></div></section></main>';
- return layout({title,description,content:body,metadata:meta,extraCss:CSS,active:'games',
+ return layout({title,description,content:body,metadata:meta,extraCss:CSS+SCORE_CSS,active:'games',
   scripts:'<link rel="stylesheet" href="/assets/swapp-premiere-interest.css?v=20261104-v1">'+
-  '<script src="/assets/swapp-premiere-interest.js?v=20261104-v1" defer></script>'});
+  '<script src="/assets/swapp-premiere-interest.js?v=20261104-v1" defer></script>'+ 
+  '<script src="/assets/swapp-game-score.js?v=20261106-v1" defer></script>'});
 }
 
 // One personal hub, populated with verified published articles only.
