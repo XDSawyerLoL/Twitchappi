@@ -22,6 +22,21 @@ async function json(url){
 function button(text,cls,callback){
  const b=make('button',cls,text);b.type='button';b.addEventListener('click',callback);return b;
 }
+// SWAPP SIGNAL uses real server transport states, never a fabricated viewer count.
+function signalStep(label,name){
+ const step=make('div','swapp-obs-signal-step');
+ step.dataset.signal=name;step.dataset.status='idle';
+ step.append(make('span','swapp-obs-signal-led',''),
+  make('span','swapp-obs-signal-label',label),
+  make('strong','swapp-obs-signal-value','En attente'));
+ return step;
+}
+function setSignal(panel,name,status,label){
+ const step=panel.querySelector('.swapp-obs-signal-step[data-signal="'+name+'"]');
+ if(!step)return;
+ step.dataset.status=status;
+ step.querySelector('.swapp-obs-signal-value').textContent=label;
+}
 function card(){
  const page=manager(),user=account();
  if(!page||!user||!validRoom(user.login))return null;
@@ -34,8 +49,30 @@ function card(){
  const top=make('header','swapp-obs-direct-header');
  const title=make('div','');
  title.append(make('h2','','Diffuser depuis OBS sur SWAPP'));
+ title.append(make('p','swapp-obs-direct-tagline','Ta régie. Ton signal. Ta communauté.'));
  top.append(title,make('span','swapp-obs-direct-live','Vérification…'));
  panel.append(top);
+ const signal=make('div','swapp-obs-signal');
+ signal.setAttribute('role','group');
+ signal.setAttribute('aria-label','État du signal en trois vérifications');
+ signal.append(signalStep('01 / ENVOI','ingest'),signalStep('02 / HLS','playlist'),
+  signalStep('03 / IMAGE','video'));
+ panel.append(signal);
+ const actions=make('div','swapp-obs-signal-actions');
+ const channelUrl='/'+encodeURIComponent(String(user.login).toLowerCase());
+ const liveLink=make('a','swapp-obs-signal-channel','Ouvrir ma chaîne');
+ liveLink.href=channelUrl;
+ const copyFeedback=make('span','swapp-obs-signal-copy-feedback','');
+ copyFeedback.setAttribute('role','status');
+ const copyChannel=button('Copier mon lien','swapp-obs-signal-copy',async()=>{
+  try{
+   if(!navigator.clipboard?.writeText)throw Error('clipboard unavailable');
+   await navigator.clipboard.writeText(location.origin+channelUrl);
+   copyFeedback.textContent='Lien copié';
+  }catch(_){copyFeedback.textContent='Copie indisponible : ouvre ta chaîne pour récupérer son adresse.'}
+ });
+ actions.append(liveLink,copyChannel,copyFeedback);
+ panel.append(actions);
  // A single action installs the native OBS HLS service. No PowerShell or old SWAPP Live app.
  const setup=make('div','swapp-obs-direct-setup');
  const download=make('a','btn swapp-obs-install','Installer SWAPP dans OBS · Windows 64 bits');
@@ -124,10 +161,17 @@ async function refresh(){
   if(!panel.isConnected)return;
   badge.textContent=result.active?'En direct sur SWAPP':'En attente du flux OBS';
   badge.dataset.live=result.active?'true':'false';
+  const received=Boolean(result.active||
+   (result.last_put_at&&Date.now()-Number(result.last_put_at)<60000));
+  setSignal(panel,'ingest',received?'ready':'idle',received?'Signal reçu':'En attente d’OBS');
+  setSignal(panel,'playlist',result.active&&result.has_playlist?'ready':'idle',
+   result.active&&result.has_playlist?'Playlist disponible':'En attente de playlist');
+  setSignal(panel,'video',result.active?'checking':'idle',
+   result.active?'Vérification H.264…':'En attente de vidéo');
   const detail=$('.swapp-obs-direct-diagnostic',panel);
   const heading=$('strong',detail),message=$('p',detail);
   const messages={
-   live:['Signal vidéo reçu','Playlist et fragments présents en mémoire sur SWAPP. La lecture réelle sur un autre appareil reste à vérifier.'],
+   live:['Signal vidéo reçu','Playlist et fragments disponibles sur SWAPP. La lecture réelle sur un autre appareil reste à vérifier.'],
    no_upload:['Aucune requête OBS reçue','OBS signale peut-être une émission, mais SWAPP ne reçoit aucun envoi HLS. Vérifie que le service OBS est bien « SWAPP Live (HTTPS HLS) », que la clé correspond et que le proxy Hostinger autorise HTTP PUT.'],
    upload_detected:['Connexion OBS détectée','Le serveur reçoit les requêtes. Il attend le premier segment vidéo et une playlist HLS complète.'],
    segments_only:['Segments reçus, playlist manquante','Les fragments vidéo arrivent, mais aucune playlist valide ne permet encore de les lire. Vérifie le débit, l’encodeur H.264/AAC et l’intervalle d’images clés de deux secondes.'],
@@ -172,7 +216,7 @@ async function refresh(){
   const delivery=$('.swapp-obs-public-readiness',panel);
   if(delivery){
    // A real segment and playlist must be available, not just the owner's LIVE badge.
-   // This small JSON probe reads server memory only: it never downloads a video segment.
+   // This small JSON probe reads bounded server metadata only: it never downloads a video segment.
    if(!result.active){
     delivery.dataset.status='waiting';
     delivery.textContent='Lecture publique : aucun flux vidéo frais à contrôler.';
@@ -189,18 +233,29 @@ async function refresh(){
       const readable=probe.active===true&&probe.playlist_ready===true&&
        probe.segment_ready===true&&probe.ts_sync_byte===true&&video;
       delivery.dataset.status=readable?'ready':'warning';
+      setSignal(panel,'playlist',probe.playlist_ready===true?'ready':'warning',
+       probe.playlist_ready===true?'Playlist disponible':'Playlist non confirmée');
+      setSignal(panel,'video',readable?'ready':'warning',
+       readable?'Vidéo H.264 confirmée':'Vidéo non confirmée');
       delivery.textContent=readable
        ?'Côté serveur : playlist et vidéo H.264 présentes · '+(audio?'audio AAC détecté.':'audio AAC non identifié.')+
         ' Teste malgré tout le son et l’image sur un autre appareil/réseau.'
        :'Attention : le serveur affiche un direct, mais la playlist, le segment ou la piste H.264 n’est pas confirmé. Vérifie le flux OBS avant de partager la chaîne.';
      }catch(_){
-      if(panel.isConnected){delivery.dataset.status='unknown';delivery.textContent='Contrôle public indisponible. Impossible de confirmer le flux depuis le serveur.';}
+      if(panel.isConnected){
+       setSignal(panel,'video','warning','Contrôle indisponible');
+       delivery.dataset.status='unknown';
+       delivery.textContent='Contrôle public indisponible. Impossible de confirmer le flux depuis le serveur.';
+      }
      }
     }
    }
   }
  }catch(error){if(panel.isConnected){
    badge.textContent='Diagnostic de réception indisponible';
+   setSignal(panel,'ingest','warning','Diagnostic indisponible');
+   setSignal(panel,'playlist','warning','État inconnu');
+   setSignal(panel,'video','warning','État inconnu');
    const detail=$('.swapp-obs-direct-diagnostic',panel);
    if(detail){
     const head=$('strong',detail),msg=$('p',detail);

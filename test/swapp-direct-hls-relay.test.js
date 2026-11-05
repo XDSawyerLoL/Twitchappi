@@ -572,6 +572,11 @@ test('shared HLS directory serves actual playlist and segment across isolated No
   assert.equal(reader.relay.rooms.size,0,'independent process has no in-memory room');
   const remoteState=await reader.call('get','/api/oryon/local-relay/:login/state');
   assert.equal(remoteState.payload.active,true,'remote worker must not incorrectly mark live offline');
+  const publicInventory=reader.relay.activeStreams();
+  assert.equal(publicInventory.length,1,'SWAPP TV must discover shared live across workers');
+  assert.equal(publicInventory[0].login,'vnhz');
+  assert.equal(publicInventory[0].broadcast_id,writer.relay.activeStreams()[0].broadcast_id,
+   'viewer worker must preserve the real broadcast identity');
   const external=await reader.call('get',manifest);
   assert.equal(external.status,200,'second process can serve shared manifest');
   assert.match(external.payload.toString('utf8'),/seg_007\.ts/);
@@ -579,5 +584,29 @@ test('shared HLS directory serves actual playlist and segment across isolated No
   assert.equal(chunk.status,200,'second process can serve shared media');
   assert.deepEqual(Buffer.from(chunk.payload),media);
   assert.equal((await reader.call('get',segment,{segment:'../secret'})).status,404);
+  const remoteProbe=await reader.call('get','/api/oryon/local-relay/:login/probe');
+  assert.equal(remoteProbe.payload.active,true,'reader worker recognizes the shared stream');
+  assert.equal(remoteProbe.payload.playlist_ready,true);
+  assert.equal(remoteProbe.payload.segment_ready,true);
+  assert.equal(remoteProbe.payload.media_fresh,true);
+  assert.equal(remoteProbe.payload.ts_sync_byte,true);
+  assert.equal(remoteProbe.payload.shared_media_ready,true);
+  const remoteDiagnostics=await reader.call('get','/api/swapp/obs-hls/diagnostics');
+  assert.equal(remoteDiagnostics.payload.stage,'live','owner sees a playable stream even if OBS uploads to a different worker');
+  assert.equal(remoteDiagnostics.payload.shared_storage_enabled,true);
+  assert.equal(remoteDiagnostics.payload.shared_media_ready,true);
+  const segmentFile=path.join(tmp,'vnhz','seg_007.ts');
+  const old=new Date(Date.now()-45_000);
+  fs.utimesSync(segmentFile,old,old);
+  const stale=await reader.call('get','/api/oryon/local-relay/:login/state');
+  assert.equal(stale.payload.active,false,'fresh manifest cannot mask a stalled OBS segment');
+  assert.deepEqual(reader.relay.activeStreams(),[],'stalled stream must leave SWAPP TV lineup');
+  fs.utimesSync(segmentFile,new Date(),new Date());
+  assert.equal((await reader.call('get','/api/oryon/local-relay/:login/state')).payload.active,true);
+  fs.unlinkSync(path.join(tmp,'vnhz','index.m3u8'));
+  const stoppedProbe=await reader.call('get','/api/oryon/local-relay/:login/probe');
+  assert.equal(stoppedProbe.payload.active,false,'removed shared manifest cannot be mistaken for a live video');
+  assert.equal(stoppedProbe.payload.playlist_ready,false);
+  assert.deepEqual(reader.relay.activeStreams(),[],'missing playlist cannot be advertised on SWAPP TV');
  }finally{fs.rmSync(tmp,{recursive:true,force:true})}
 });
