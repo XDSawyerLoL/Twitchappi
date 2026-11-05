@@ -58,7 +58,7 @@
   if(active){active.notice=null;active.actions=null}
  }
  function reset(next){
-  removeNotice();active=next?{...next,seenLive:false,offline:0,cancelled:false,game:next.game||'',notice:null}:null;
+  removeNotice();active=next?{...next,seenLive:false,offline:0,cancelled:false,liveProof:'',game:next.game||'',notice:null}:null;
   stamp=next?next.platform+':'+next.login:'';
  }
  function box(tag,className,label){
@@ -91,7 +91,7 @@
   try{
    const q=new URLSearchParams({platform:state.platform,login:state.login,
     game:state.game||'',exclude:historyOf().join(',')});
-   if(commit)q.set('phase','commit');
+   if(commit){q.set('phase','commit');q.set('source_proof',state.liveProof||'')}
    const response=await fetch('/api/swapp/live-handoff?'+q.toString(),{
     cache:'no-store',credentials:'omit',signal:controller.signal,headers:{Accept:'application/json'}
    });
@@ -179,7 +179,7 @@
    const data=await request(current);
    if(current!==active)return;
    if(data.current.live){
-    current.seenLive=true;gameFrom(data);clearStatus();
+    current.seenLive=true;gameFrom(data);if(typeof data.live_proof==='string')current.liveProof=data.live_proof;clearStatus();
    }else if(current.seenLive&&!current.cancelled){
     current.offline++;
     if(current.offline>=2)completed(data);
