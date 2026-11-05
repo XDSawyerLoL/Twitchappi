@@ -59,5 +59,19 @@ class TestOnAirRealPilot(unittest.TestCase):
         self.assertNotIn("elevenlabs",ps.lower())
         self.assertNotIn("api-key",ps.lower())
 
+    def test_powershell_resume_is_possible_without_regenerating_any_voice(self):
+        script=(ROOT/"scripts/swapp-on-air-start-fr.ps1").read_text(encoding="utf-8")
+        self.assertIn("function Open-SwappStudio",script)
+        self.assertIn("ToBase64String($bytes)",script)
+        self.assertIn("if(Test-Path $mp3)",script)
+        self.assertIn("if(Test-Path $output)",script)
+        self.assertIn("--encode-only",script)
+        self.assertIn("function Test-PythonVersion",script)
+        self.assertIn("SilentlyContinue",script)
+        self.assertIn("Read-Host",script)
+        self.assertIn("https://download.pytorch.org/whl/cu128",script)
+        self.assertIn("Test-Path $python",script)
+        self.assertNotIn("speechSynthesis",script)
+
 if __name__=="__main__":
     unittest.main()
