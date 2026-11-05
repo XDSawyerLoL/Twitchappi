@@ -109,6 +109,8 @@ function play(){
  state.playStartedAt=Date.now();
  resetPassage();
  syncWatchButton();
+ // Establish the initial live state as soon as the viewer starts playing.
+ void maybePassage();
 }
 // SWAPP PASSAGE: a station viewer remains with the same GAME when the
 // broadcaster really ends. No cross-game hop, no autoplay before first Play.
