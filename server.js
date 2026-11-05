@@ -1461,6 +1461,14 @@ app.get('/on-air/:slug',(req,res)=>{
  return page?res.type('html').send(page):res.status(404).type('text').send('Épisode indisponible');
 });
 app.get('/tv',(_req,res)=>{res.set('Cache-Control','no-store');return res.type('html').send(swappProgram.page('tv'))});
+app.get('/marathon',(_req,res)=>{
+ res.set('Cache-Control','no-store');
+ return res.type('html').send(require('./modules/swapp-collective').page('marathon'));
+});
+app.get('/ascension',(_req,res)=>{
+ res.set('Cache-Control','private, no-store');
+ return res.type('html').send(require('./modules/swapp-collective').page('ascension'));
+});
 app.get('/portail',(_req,res)=>{
  res.set('Cache-Control','no-store');
  res.set('X-Content-Type-Options','nosniff');
