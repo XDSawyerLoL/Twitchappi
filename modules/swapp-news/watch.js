@@ -22,6 +22,6 @@ function renderTwitchWatch(login,{game='',handoff=false}={}){
  return layout({title:'Live '+login,description:'Regarder '+login+' et découvrir les actualités du jeu sur SWAPP',
  content,active:'discover',scripts:
   '<link rel="stylesheet" href="/assets/swapp-live-handoff.css?v=20261105-v1">'+
-  '<script defer src="/assets/swapp-live-handoff.js?v=20261105-v1"></script>'});
+  '<script defer src="/assets/swapp-live-handoff.js?v=20261105-collective-v2"></script>'});
 }
 module.exports={isTwitchLogin,renderTwitchWatch};
