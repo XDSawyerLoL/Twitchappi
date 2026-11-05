@@ -42,7 +42,7 @@ function createPassageMetrics({getPool,secret,now=Date.now,randomBytes=crypto.ra
  }
  function verifyLiveProof(token,source){
   if(!enabled()||typeof token!=='string'||token.length>500||
-   !/^[A-Za-z0-9_-]{30,360}\\.[a-f0-9]{64}$/.test(token))return false;
+   !/^[A-Za-z0-9_-]{30,360}\.[a-f0-9]{64}$/.test(token))return false;
   const dot=token.lastIndexOf('.'),raw=token.slice(0,dot),sig=token.slice(dot+1);
   if(!crypto.timingSafeEqual(Buffer.from(signature(raw),'hex'),Buffer.from(sig,'hex')))return false;
   try{
