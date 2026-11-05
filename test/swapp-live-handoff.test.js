@@ -171,3 +171,31 @@ test('SWAPP-to-SWAPP works even when Twitch credentials are unavailable',async()
  assert.equal(result.next.login,'creatortwo');
  assert.equal(result.next.game,'Hades');
 });
+
+test('SWAPP TV handoff really transfers in the existing player without undefined identifiers',async()=>{
+ const js=read('assets/swapp-tv-broadcast.js');
+ const begin=js.indexOf('async function passageGo(');
+ const end=js.indexOf('function passageOffer(',begin);
+ assert.ok(begin>0&&end>begin,'passageGo must remain extractable for regression coverage');
+ const from={platform:'swapp',login:'vnhz',game:'Hades'};
+ const state={selection:from,consent:true,autoAdvance:true,
+  passage:{key:'swapp:vnhz',game:'Hades',pending:true,cancelled:false}};
+ let renders=0,played=0,resets=0,nextPlatform='',nextOnAir=null;
+ const transfer=new Function('state','document','passageCheck','passageTarget','passagePanel',
+  'resetPassage','renderScreen','play',js.slice(begin,end)+'return passageGo;')(
+  state,{visibilityState:'visible'},
+  async()=>({success:true,current:{live:false},
+   next:{platform:'twitch',login:'beta',game:'Hades',name:'Beta'}}),
+  next=>next.platform==='twitch'&&next.login==='beta',
+  ()=>({textContent:''}),
+  ()=>{resets++;state.passage={key:'',game:'',pending:false}},
+  (next,opts)=>{renders++;nextPlatform=next.platform;nextOnAir=opts.onAir;state.selection=next},
+  ()=>{played++}
+ );
+ await transfer();
+ assert.equal(renders,1,'a real player replacement must occur');
+ assert.equal(played,1,'the existing player is started only once');
+ assert.equal(resets,1);
+ assert.equal(nextPlatform,'twitch');
+ assert.equal(nextOnAir,false,'recommendations are discovery, not scheduled queue slots');
+});
