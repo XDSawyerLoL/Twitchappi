@@ -1445,13 +1445,81 @@ app.get('/api/oryon/independence/export',async(req,res)=>{
 // SWAPP ON AIR — real audio only, from human-approved editorial releases.
 // A missing MP3, unapproved take, or invalid manifest never produces a fake player.
 const swappOnAir=require('./modules/swapp-on-air');
+
+const swappPodcastStudio=require('./modules/swapp-on-air-studio').makeStudio();
+function swappPodcastAdmin(req,res){
+ if(!isOryonAdmin(req)){
+  res.set('Cache-Control','no-store');
+  res.status(403).json({success:false,error:'unauthorized'});
+  return false;
+ }
+ return true;
+}
+function swappPodcastWrite(req,res){
+ if(!swappPodcastAdmin(req,res))return false;
+ const origin=String(req.get('origin')||'');
+ const allowed=['https://swapp.tv','https://www.swapp.tv'];
+ if(!IS_PROD)allowed.push('http://localhost:3000','http://127.0.0.1:3000');
+ if(!allowed.includes(origin)||req.get('X-SWAPP-ON-AIR-ACTION')!=='publish'){
+  res.status(403).json({success:false,error:'forbidden_origin'});
+  return false;
+ }
+ return true;
+}
+function swappPodcastFailure(error,res){
+ const code=String(error?.message||'publication_failed').slice(0,80);
+ const known=/^(invalid_slug|audio_size_invalid|audio_invalid_id3|audio_invalid_frames|audio_not_mp3|audio_duration_invalid|audio_codec_or_duration_invalid|ffprobe_unavailable|invalid_editorial_metadata|approval_required|sources_required|invalid_source|invalid_article|invalid_upload|upload_missing|episode_exists|publication_busy|index_corrupt|storage_dir_absolute_required)$/;
+ res.status(Number.isInteger(error?.status)?error.status:503)
+  .json({success:false,error:known.test(code)?code:'storage_unavailable'});
+}
+// ON AIR MP3s are private files on the host, readable only after editorial
+// approval. Express sendFile supports HTTP Range and native seeking.
+app.get('/api/on-air/audio/:slug.mp3',(req,res)=>{
+ res.set('X-Content-Type-Options','nosniff');
+ const slug=String(req.params.slug||'');
+ if(!swappOnAir.SLUG.test(slug)||slug.length<7||slug.length>85)
+  return res.status(404).end();
+ const entry=swappOnAir.publicEpisodes().find(e=>e.slug===slug&&
+  e.audioUrl==='/api/on-air/audio/'+slug+'.mp3');
+ if(!entry)return res.status(404).end();
+ res.set('Cache-Control','public, max-age=600');
+ return res.type('audio/mpeg').sendFile(swappPodcastStudio.mp3Path(slug),
+  {acceptRanges:true,dotfiles:'deny'},error=>{
+   if(error&&!res.headersSent)res.status(error.status||404).end();
+  });
+});
+app.get('/on-air/studio',(req,res)=>{
+ res.set('Cache-Control','private, no-store');
+ if(!isOryonAdmin(req))return res.status(403).type('text').send('Studio ON AIR réservé à l’administrateur SWAPP.');
+ return res.type('html').send(require('./modules/swapp-on-air-studio-page').page());
+});
+// Stream raw MPEG directly to disk: no 24MB Base64 JSON and no RAM copy.
+app.post('/api/on-air/studio/upload/:slug',mutationLimiter,async(req,res)=>{
+ res.set('Cache-Control','no-store');
+ if(!swappPodcastWrite(req,res))return;
+ if(!req.is('audio/mpeg'))return res.status(415).json({success:false,error:'invalid_audio_type'});
+ const raw=req.get('content-length'),length=raw?Number(raw):undefined;
+ try{
+  const result=await swappPodcastStudio.upload(String(req.params.slug||''),req,{length});
+  return res.status(201).json(result);
+ }catch(e){return swappPodcastFailure(e,res)}
+});
+app.post('/api/on-air/studio/publish',mutationLimiter,async(req,res)=>{
+ res.set('Cache-Control','no-store');
+ if(!swappPodcastWrite(req,res))return;
+ try{
+  const result=await swappPodcastStudio.publish(req.body);
+  return res.status(201).json(result);
+ }catch(e){return swappPodcastFailure(e,res)}
+});
+
 app.get('/api/on-air/episodes',(_req,res)=>{
  res.set('Cache-Control','no-store');
  return res.json({success:true,series:'SWAPP ON AIR',episodes:swappOnAir.publicEpisodes()});
 });
-app.get('/on-air',(_req,res)=>{
+app.get('/on-air',(req,res)=>{
  res.set('Cache-Control','no-store');
- return res.type('html').send(swappOnAir.home());
+ return res.type('html').send(swappOnAir.home(undefined,{canManage:isOryonAdmin(req)}));
 });
 app.get('/on-air/:slug',(req,res)=>{
  res.set('Cache-Control','no-store');
