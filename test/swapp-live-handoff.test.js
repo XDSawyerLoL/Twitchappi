@@ -97,3 +97,64 @@ test('consumer pages and station expose PASSAGE without new player transport',()
  assert.match(server,/app\.get\('\/api\/swapp\/live-handoff',heavyLimiter/);
  assert.doesNotMatch(js,/new Hls\(|new WebSocket\(|\.srcObject\s*=/);
 });
+
+test('destination live is rechecked after cache and never advertised when it ended',async()=>{
+ let currentTime=100000,available=true;
+ const calls=[];
+ const service=createHandoff({
+  now:()=>currentTime,twitchEnabled:()=>true,users:()=>[],nativeStreams:()=>[],
+  twitchAPI:async endpoint=>{
+   calls.push(endpoint);
+   if(endpoint.startsWith('streams?user_login=alpha'))return {data:[]};
+   if(endpoint.startsWith('streams?user_login=beta'))
+    return {data:available?[{user_login:'beta',game_name:'Hades'}]:[]};
+   if(endpoint.startsWith('games?name='))return {data:[{id:'111',name:'Hades'}]};
+   if(endpoint.startsWith('streams?first=100&game_id=111'))
+    return {data:[{user_login:'beta',user_name:'Beta',game_id:'111',game_name:'Hades'}]};
+   throw Error('unexpected '+endpoint);
+  }
+ });
+ const first=await service.check({platform:'twitch',login:'alpha',game:'Hades'});
+ assert.equal(first.next?.login,'beta');
+ available=false;currentTime+=9000;
+ const second=await service.check({platform:'twitch',login:'alpha',game:'Hades'});
+ assert.equal(second.next,null,'stale game listing cannot recommend a now-offline destination');
+ assert.ok(calls.filter(x=>x.startsWith('streams?user_login=beta')).length>=2);
+});
+
+test('TV player still starts one native or Twitch frame and retains deliberate play/stop',()=>{
+ const js=read('assets/swapp-tv-broadcast.js');
+ const source=js.slice(js.indexOf('function renderScreen('),js.indexOf('function mapNativeLives('));
+ const make=(tag,cls,txt)=>({
+  tag,cls,textContent:txt||'',children:[],hidden:false,style:{},removed:false,
+  append(...nodes){this.children.push(...nodes)},
+  remove(){this.removed=true},setAttribute(key,val){this[key]=val},
+  querySelector(selector){return selector==='.stv-player-layer'?
+   this.children.find(n=>n.cls==='stv-player-layer'&&!n.removed):null}
+ });
+ const nodes={'stv-screen':make('section'),'stv-watch':make('button'),
+  'stv-screen-inner':make('div')};
+ for(const id of ['stv-air-state','stv-now-name','stv-now-game','stv-screen-game','stv-stage-status'])
+  nodes[id]=make('span');
+ const state={consent:false,selection:null,playing:null,playingPlatform:null,playingBroadcastId:null,
+  autoAdvance:false,autoSource:null,playStartedAt:0};
+ const FakeParams=class{constructor(o){this.value=o}toString(){return Object.entries(this.value)
+  .map(([k,v])=>k+'='+encodeURIComponent(v)).join('&')}};
+ const app=new Function('state','$','by','setText','safeLogin','safeNativeLogin','location',
+  'URLSearchParams','updateTwitchChat','api','document',source+'return {renderScreen,play,stopPlayback};')(
+  state,id=>nodes[id]||null,make,(id,value)=>{nodes[id].textContent=value},
+  login=>/^[a-z0-9_]{3,25}$/.test(login),login=>/^[a-z0-9_-]{2,32}$/.test(login),
+  {hostname:'swapp.tv'},FakeParams,()=>{},async()=>({}),{visibilityState:'visible'});
+ app.renderScreen({login:'vnhz',platform:'swapp',game:'Hades',broadcast_id:'br1'},{onAir:true});
+ app.play();
+ assert.equal(state.playing,'vnhz');
+ assert.match(nodes['stv-screen'].querySelector('.stv-player-layer').children[0].src,
+  /^\/api\/oryon\/local-relay\/vnhz\/player$/);
+ app.stopPlayback();
+ assert.equal(state.consent,false);
+ assert.equal(nodes['stv-screen'].querySelector('.stv-player-layer'),undefined);
+ app.renderScreen({login:'other_twitch',platform:'twitch',game:'Hades'},{onAir:false});
+ app.play();
+ assert.match(nodes['stv-screen'].querySelector('.stv-player-layer').children[0].src,
+  /^https:\/\/player\.twitch\.tv\//);
+});
