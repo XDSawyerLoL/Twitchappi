@@ -1442,6 +1442,24 @@ app.get('/api/oryon/independence/export',async(req,res)=>{
   return res.status(503).json({success:false,error:'swapp_export_unavailable'});
  }
 });
+// SWAPP ON AIR — real audio only, from human-approved editorial releases.
+// A missing MP3, unapproved take, or invalid manifest never produces a fake player.
+const swappOnAir=require('./modules/swapp-on-air');
+app.get('/api/on-air/episodes',(_req,res)=>{
+ res.set('Cache-Control','no-store');
+ return res.json({success:true,series:'SWAPP ON AIR',episodes:swappOnAir.publicEpisodes()});
+});
+app.get('/on-air',(_req,res)=>{
+ res.set('Cache-Control','no-store');
+ return res.type('html').send(swappOnAir.home());
+});
+app.get('/on-air/:slug',(req,res)=>{
+ res.set('Cache-Control','no-store');
+ if(!swappOnAir.SLUG.test(String(req.params.slug||''))||String(req.params.slug).length>85)
+  return res.status(404).type('text').send('Épisode introuvable');
+ const page=swappOnAir.episodePage(req.params.slug);
+ return page?res.type('html').send(page):res.status(404).type('text').send('Épisode indisponible');
+});
 app.get('/tv',(_req,res)=>{res.set('Cache-Control','no-store');return res.type('html').send(swappProgram.page('tv'))});
 app.get('/communaute',(req,res)=>{res.set('Cache-Control','no-store');return res.redirect(308,'/social'+(req.originalUrl.includes('?')?req.originalUrl.slice(req.originalUrl.indexOf('?')):''));});
 app.get('/social',(_req,res)=>{res.set('Cache-Control','no-store');res.type('html').send(swappHubs.community())});
