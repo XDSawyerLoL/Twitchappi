@@ -161,3 +161,13 @@ test('TV player still starts one native or Twitch frame and retains deliberate p
  assert.match(nodes['stv-screen'].querySelector('.stv-player-layer').children[0].src,
   /^https:\/\/player\.twitch\.tv\//);
 });
+
+test('SWAPP-to-SWAPP works even when Twitch credentials are unavailable',async()=>{
+ const h=fixture({twitch:false,native:true,streamOnline:false});
+ const result=await h.service.check({platform:'swapp',login:'creatorone',game:'Hades'});
+ assert.equal(result.success,true);
+ assert.equal(result.current.live,false);
+ assert.equal(result.next.platform,'swapp');
+ assert.equal(result.next.login,'creatortwo');
+ assert.equal(result.next.game,'Hades');
+});
