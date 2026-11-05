@@ -120,6 +120,17 @@ function makeStudio({dir=storageRoot(),now=()=>new Date(),random=crypto.randomBy
   if(!fs.lstatSync(directory).isDirectory())throw publicationError('invalid_storage',503);
   return directory;
  }
+ // Abandoned uploads do not accumulate indefinitely on Hostinger.
+ function pruneOldUploads(){
+  try{
+   for(const name of fs.readdirSync(directory)){
+    if(!/^\.[a-z0-9-]{7,85}\.[a-f0-9]{24}\.upload$/.test(name))continue;
+    const candidate=path.join(directory,name),stat=fs.lstatSync(candidate);
+    if(stat.isFile()&&!stat.isSymbolicLink()&&Date.now()-stat.mtimeMs>24*60*60*1000)
+     fs.unlinkSync(candidate);
+   }
+  }catch{/* Maintenance failure cannot interrupt a normal upload. */}
+ }
  function stagedPath(slug,id){return path.join(directory,'.'+slug+'.'+id+'.upload')}
  function mp3Path(slug){return path.join(directory,slug+'.mp3')}
  function stagePath(slug,id){
@@ -128,7 +139,7 @@ function makeStudio({dir=storageRoot(),now=()=>new Date(),random=crypto.randomBy
   return stagedPath(slug,id);
  }
  async function upload(slug,input,{length}={}){
-  ensure();
+  ensure();pruneOldUploads();
   if(!SLUG.test(slug)||slug.length<7||slug.length>85)throw publicationError('invalid_slug');
   if(fs.existsSync(mp3Path(slug))||readIndex(directory).episodes.some(e=>e.slug===slug))
    throw publicationError('episode_exists',409);
