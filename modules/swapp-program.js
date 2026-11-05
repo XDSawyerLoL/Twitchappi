@@ -78,13 +78,17 @@ function page(kind){
    </aside>
    <div id="stv-dock-scrim" class="stv-dock-scrim" hidden></div>
   </section>
+  <nav class="stv-collective" aria-label="Découverte collective">
+   <span>Le direct continue.</span><a href="/marathon">Marathons par jeu</a>
+   <a href="/ascension">Mon impact créateur</a>
+  </nav>
   <dialog id="stv-program-dialog" class="stv-program-dialog" aria-labelledby="stv-dialog-title">
    <div class="stv-dialog-tools"><div class="stv-dialog-brand"><span class="stv-dialog-kicker">SWAPP TV / PROGRAMMATION</span><strong id="stv-dialog-title">Agenda de la chaîne</strong></div><button id="stv-program-close" type="button" aria-label="Fermer l’agenda">Fermer</button></div>
    ${calendar.replace(/^<main/,'<section').replace(/<\/main>$/,'</section>')}
   </dialog>
  </main>`:calendar;
- return layout({title:tv?'SWAPP TV — La chaîne du Game Universe':'Programme SWAPP TV',description:tv?'La chaîne gaming collective, découverte équitable et directs vérifiés':'Agenda des rendez-vous Spotlight SWAPP',content,active:tv?'tv':'agenda',extraCss:PROGRAM_CSS,scripts:'<link rel="stylesheet" href="/assets/swapp-program.css?v=20261105-same-game-handoff-v1">'+
-  (tv?'<script defer src="/assets/swapp-tv-broadcast.js?v=20261105-same-game-handoff-v1"></script>':'')+
+ return layout({title:tv?'SWAPP TV — La chaîne du Game Universe':'Programme SWAPP TV',description:tv?'La chaîne gaming collective, découverte équitable et directs vérifiés':'Agenda des rendez-vous Spotlight SWAPP',content,active:tv?'tv':'agenda',extraCss:PROGRAM_CSS,scripts:'<link rel="stylesheet" href="/assets/swapp-program.css?v=20261105-collective-v1">'+
+  (tv?'<script defer src="/assets/swapp-tv-broadcast.js?v=20261105-collective-v1"></script>':'')+
   '<script defer src="/assets/swapp-calendar.js?v=20261021-calendar-health-v2"></script>'});
 }
 module.exports={page};
