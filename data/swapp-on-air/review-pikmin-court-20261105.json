@@ -1,0 +1,128 @@
+{
+  "method": "ASR transcription and signal measurements; does not establish subjective naturalness or human listening approval",
+  "results": [
+    {
+      "file": "01-NOVA.wav",
+      "durationSec": 6.16,
+      "transcript": "Bienvenue dans le podcast de Swap, moi c'est Nova. Avec Kern, on regarde ce que les annonces changent vraiment pour les joueurs.",
+      "expected": "Bienvenue dans le podcast de Swapp. Moi, c'est Nova. Avec Kern, on regarde ce que les annonces changent vraiment pour les joueurs.",
+      "similarity": 1.0,
+      "peak": 0.6523,
+      "clippedSamples": 0,
+      "rms": 0.1021
+    },
+    {
+      "file": "02-KERN.wav",
+      "durationSec": 5.2,
+      "transcript": "Et aujourd'hui, des petites créatures qui nous apprennent à nous organiser. Ça commence bien.",
+      "expected": "Et aujourd'hui, des petites créatures qui nous apprennent à nous organiser. Ça commence bien.",
+      "similarity": 1.0,
+      "peak": 0.6562,
+      "clippedSamples": 0,
+      "rms": 0.0798
+    },
+    {
+      "file": "03-NOVA.wav",
+      "durationSec": 9.52,
+      "transcript": "Nintendo a annoncé Pikmin 4, édition Switch 2, avec l'académie d'Andori, sorti prévu le 12 novembre. L'idée, récupérer des trésors dans des défis chronométrés.",
+      "expected": "Nintendo a annoncé Pikmin quatre, édition Switch deux, avec l'Académie Dandori. Sortie prévue le douze novembre. L'idée : récupérer des trésors dans des défis chronométrés.",
+      "similarity": 0.868,
+      "peak": 0.5977,
+      "clippedSamples": 0,
+      "rms": 0.0984
+    },
+    {
+      "file": "04-KERN.wav",
+      "durationSec": 8.08,
+      "transcript": "Donc, courir partout ne suffit pas. Il faut décider qui fait quoi et dans quel ordre. C'est là que le jeu peut devenir intéressant.",
+      "expected": "Donc, courir partout ne suffit pas. Il faut décider qui fait quoi, et dans quel ordre. C'est là que le jeu peut devenir intéressant.",
+      "similarity": 1.0,
+      "peak": 0.707,
+      "clippedSamples": 0,
+      "rms": 0.075
+    },
+    {
+      "file": "05-NOVA.wav",
+      "durationSec": 8.72,
+      "transcript": "Une démo gratuite est aussi annoncée. Elle comprend le début de l'aventure et deux épreuves de l'académie. De quoi se faire une idée avant de passer à la caisse.",
+      "expected": "Une démo gratuite est aussi annoncée. Elle comprend le début de l'aventure et deux épreuves de l'Académie. De quoi se faire une idée avant de passer à la caisse.",
+      "similarity": 1.0,
+      "peak": 0.6719,
+      "clippedSamples": 0,
+      "rms": 0.1062
+    },
+    {
+      "file": "06-KERN.wav",
+      "durationSec": 7.12,
+      "transcript": "C'est surtout ça que je retiens. Une bande annonce te vend une promesse. Une démo te permet de voir si tu as vraiment envie de continuer.",
+      "expected": "C'est surtout ça que je retiens. Une bande-annonce te vend une promesse. Une démo te permet de voir si tu as vraiment envie de continuer.",
+      "similarity": 1.0,
+      "peak": 0.6484,
+      "clippedSamples": 0,
+      "rms": 0.0835
+    },
+    {
+      "file": "07-NOVA.wav",
+      "durationSec": 6.8,
+      "transcript": "Notre avis reste à construire. Nous n'avons pas testé cette édition. Les sources officielles sont dans la fiche de l'épisode.",
+      "expected": "Notre avis reste à construire : nous n'avons pas testé cette édition. Les sources officielles sont dans la fiche de l'épisode.",
+      "similarity": 1.0,
+      "peak": 0.6016,
+      "clippedSamples": 0,
+      "rms": 0.0729
+    },
+    {
+      "file": "08-KERN.wav",
+      "durationSec": 5.36,
+      "transcript": "Voilà une annonce vérifiée et un peu de recul. On se retrouve très vite sur Swap On Air.",
+      "expected": "Voilà. Une annonce vérifiée, et un peu de recul. On se retrouve très vite sur Swapp On Air.",
+      "similarity": 1.0,
+      "peak": 0.6406,
+      "clippedSamples": 0,
+      "rms": 0.0728
+    },
+    {
+      "file": "09-NOVA.wav",
+      "durationSec": 3.76,
+      "transcript": "Cette émission utilise deux voies de synthèse. Merci de nous avoir écoutées.",
+      "expected": "Cette émission utilise deux voix de synthèse. Merci de nous avoir écoutés.",
+      "similarity": 0.833,
+      "peak": 0.4434,
+      "clippedSamples": 0,
+      "rms": 0.0722
+    }
+  ],
+  "reviewedAt": "2026-11-05T22:24:35.804Z",
+  "humanListeningReview": false,
+  "limitations": "The model cannot listen to audio. These are automatic transcription and signal checks, not a human judgment of naturalness.",
+  "media": {
+    "filename": "pikmin-dandori-le-point-avec-nova-et-kern.mp3",
+    "sha256": "05bb8d69ee0dbf19404bd52783364588459b942b5e1f1081ed19f15be4772ec8",
+    "probe": {
+      "programs": [],
+      "streams": [
+        {
+          "codec_name": "mp3",
+          "sample_rate": "48000",
+          "channels": 1
+        }
+      ],
+      "format": {
+        "duration": "59.160000",
+        "size": "623037"
+      }
+    },
+    "full_decode": "passed"
+  },
+  "editorialSourcesChecked": [
+    {
+      "label": "Nintendo — annonce Pikmin Day du 2 novembre 2026",
+      "url": "https://www.nintendo.com/us/whatsnew/nintendo-declares-november-1-pikmin-day-in-recognition-of-all-things-pikmin/"
+    },
+    {
+      "label": "Nintendo — Pikmin Day Direct du 1er novembre 2026",
+      "url": "https://www.nintendo.com/us/nintendo-direct/11-1-2026/"
+    }
+  ],
+  "sourceDate": "2026-11-02"
+}

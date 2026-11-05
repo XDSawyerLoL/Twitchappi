@@ -1,5 +1,35 @@
 {
   "schema": 1,
-  "description": "Seuls les épisodes avec fichier MP3 effectivement présent, relu, écouté et approuvé sont visibles.",
-  "episodes": []
+  "description": "Épisodes avec MP3 réel, validation audio et vérification éditoriale documentées. Le mode de contrôle audio est indiqué pour chaque épisode.",
+  "episodes": [
+    {
+      "slug": "pikmin-dandori-le-point-avec-nova-et-kern",
+      "title": "SWAPP ON AIR — Pikmin : le point avec Nova et Kern",
+      "description": "Nova et Kern présentent les annonces Nintendo autour de Pikmin 4, de l’Académie Dandori et de sa démo. Une édition courte pour distinguer les faits annoncés de ce qu’il reste à tester. Deux voix de synthèse originales.",
+      "sources": [
+        {
+          "label": "Nintendo — annonce Pikmin Day du 2 novembre 2026",
+          "url": "https://www.nintendo.com/us/whatsnew/nintendo-declares-november-1-pikmin-day-in-recognition-of-all-things-pikmin/"
+        },
+        {
+          "label": "Nintendo — Pikmin Day Direct du 1er novembre 2026",
+          "url": "https://www.nintendo.com/us/nintendo-direct/11-1-2026/"
+        }
+      ],
+      "articles": [
+        "/actus/pikmin-4-switch-2-demo-gratuite-academie-dandori-novembre-2026"
+      ],
+      "status": "published",
+      "audio": "pikmin-dandori-le-point-avec-nova-et-kern.mp3",
+      "durationSec": 59,
+      "publishedAt": "2026-11-05T22:24:35.804Z",
+      "reviewedAt": "2026-11-05T22:24:35.804Z",
+      "editorialApproved": true,
+      "audioReviewed": true,
+      "audioReviewMethod": "automated_transcription_and_signal_validation",
+      "humanListeningReview": false,
+      "syntheticVoices": true,
+      "licenseConfirmed": true
+    }
+  ]
 }

@@ -1,0 +1,70 @@
+{
+  "id": "swapp-on-air-pikmin-le-dandori-en-bref-20261105",
+  "slug": "pikmin-dandori-le-point-avec-nova-et-kern",
+  "title": "SWAPP ON AIR — Pikmin : le point avec Nova et Kern",
+  "description": "Nova et Kern présentent les annonces Nintendo autour de Pikmin 4, de l’Académie Dandori et de sa démo. Une édition courte pour distinguer les faits annoncés de ce qu’il reste à tester. Deux voix de synthèse originales.",
+  "publication_allowed": false,
+  "editorial_review_required": false,
+  "audio_review_required": true,
+  "sponsored": false,
+  "sources": [
+    {
+      "label": "Nintendo — annonce Pikmin Day du 2 novembre 2026",
+      "url": "https://www.nintendo.com/us/whatsnew/nintendo-declares-november-1-pikmin-day-in-recognition-of-all-things-pikmin/"
+    },
+    {
+      "label": "Nintendo — Pikmin Day Direct du 1er novembre 2026",
+      "url": "https://www.nintendo.com/us/nintendo-direct/11-1-2026/"
+    }
+  ],
+  "articles": [
+    "/actus/pikmin-4-switch-2-demo-gratuite-academie-dandori-novembre-2026"
+  ],
+  "segments": [
+    {
+      "speaker": "NOVA",
+      "text": "Bienvenue dans le podcast de Swapp. Moi, c'est Nova. Avec Kern, on regarde ce que les annonces changent vraiment pour les joueurs.",
+      "delivery": "chaleureuse et naturelle"
+    },
+    {
+      "speaker": "KERN",
+      "text": "Et aujourd'hui, des petites créatures qui nous apprennent à nous organiser. Ça commence bien.",
+      "delivery": "complice et légèrement ironique"
+    },
+    {
+      "speaker": "NOVA",
+      "text": "Nintendo a annoncé Pikmin quatre, édition Switch deux, avec l'Académie Dandori. Sortie prévue le douze novembre. L'idée : récupérer des trésors dans des défis chronométrés.",
+      "delivery": "vive et précise"
+    },
+    {
+      "speaker": "KERN",
+      "text": "Donc, courir partout ne suffit pas. Il faut décider qui fait quoi, et dans quel ordre. C'est là que le jeu peut devenir intéressant.",
+      "delivery": "réflexion détendue"
+    },
+    {
+      "speaker": "NOVA",
+      "text": "Une démo gratuite est aussi annoncée. Elle comprend le début de l'aventure et deux épreuves de l'Académie. De quoi se faire une idée avant de passer à la caisse.",
+      "delivery": "souriante"
+    },
+    {
+      "speaker": "KERN",
+      "text": "C'est surtout ça que je retiens. Une bande-annonce te vend une promesse. Une démo te permet de voir si tu as vraiment envie de continuer.",
+      "delivery": "posé et convaincu"
+    },
+    {
+      "speaker": "NOVA",
+      "text": "Notre avis reste à construire : nous n'avons pas testé cette édition. Les sources officielles sont dans la fiche de l'épisode.",
+      "delivery": "sincère et directe"
+    },
+    {
+      "speaker": "KERN",
+      "text": "Voilà. Une annonce vérifiée, et un peu de recul. On se retrouve très vite sur Swapp On Air.",
+      "delivery": "conclusion complice"
+    },
+    {
+      "speaker": "NOVA",
+      "text": "Cette émission utilise deux voix de synthèse. Merci de nous avoir écoutés.",
+      "delivery": "douce et chaleureuse"
+    }
+  ]
+}

@@ -17,6 +17,11 @@ import subprocess
 import sys
 from pathlib import Path
 
+# Disable dependency telemetry before any speech/ONNX library initializes.
+os.environ.setdefault("ORT_DISABLE_TELEMETRY", "1")
+os.environ.setdefault("HF_HUB_DISABLE_TELEMETRY", "1")
+os.environ.setdefault("DO_NOT_TRACK", "1")
+
 MODEL = "Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign"
 ANCHORS = {
     "NOVA": (

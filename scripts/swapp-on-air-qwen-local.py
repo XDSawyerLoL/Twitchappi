@@ -13,6 +13,11 @@ import shutil
 import subprocess
 from pathlib import Path
 
+# Disable dependency telemetry before any speech/ONNX library initializes.
+os.environ.setdefault("ORT_DISABLE_TELEMETRY", "1")
+os.environ.setdefault("HF_HUB_DISABLE_TELEMETRY", "1")
+os.environ.setdefault("DO_NOT_TRACK", "1")
+
 VOICE_PROFILES = {
     "NOVA": {
         "speaker": "Serena",

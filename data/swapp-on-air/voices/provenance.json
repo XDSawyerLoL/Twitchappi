@@ -1,0 +1,40 @@
+{
+  "origin": "Original synthetic fictional voices generated for SWAPP ON AIR; no real person cloned",
+  "model": "Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign",
+  "language": "fr-FR",
+  "generation": "CPU bfloat16, fixed seeds 500 and 501",
+  "review": {
+    "method": "ASR transcription and signal measurements; does not establish subjective naturalness or human listening approval",
+    "results": [
+      {
+        "file": "kern.wav",
+        "durationSec": 6.96,
+        "transcript": "Attends, Nova, j'ai une question. On parle d'un jeu prometteur, d'accord ? Mais qu'est-ce qu'on sait vraiment ?",
+        "expected": "Attends, Nova, j'ai une question. On parle d'un jeu prometteur, d'accord, mais qu'est-ce qu'on sait vraiment ?",
+        "similarity": 1.0,
+        "peak": 0.6172,
+        "clippedSamples": 0,
+        "rms": 0.0821
+      },
+      {
+        "file": "nova.wav",
+        "durationSec": 7.12,
+        "transcript": "Tiens, Karne, écoute ça, j'ai découvert un jeu qui pourrait vraiment nous surprendre. Mais attends, je vais te raconter !",
+        "expected": "Tiens, Kern, écoute ça. J'ai découvert un jeu qui pourrait vraiment nous surprendre. Mais attends, je vais te raconter.",
+        "similarity": 0.95,
+        "peak": 0.6641,
+        "clippedSamples": 0,
+        "rms": 0.0842
+      }
+    ]
+  },
+  "sha256": {
+    "nova.wav": "9fbe0625651d10e94a106abfd8e7a447de578159232370643e03fbf8dd566a8a",
+    "kern.wav": "a0e6201a3f6c096e5263623d2e299a8c813b0905636541dfc4f7d30faff15d53"
+  },
+  "reference_transcription_results": {
+    "NOVA": "95% token similarity; proper name Kern transcribed as Karne",
+    "KERN": "100% token similarity"
+  },
+  "human_listening_review": false
+}
