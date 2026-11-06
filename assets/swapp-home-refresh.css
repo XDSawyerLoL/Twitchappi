@@ -1,0 +1,25 @@
+/* SWAPP home flow — November 2026. Preserve the existing hero/navigation. */
+/* Layout order: cinematic lead, actual live creators, then unique news and game paths. */
+#home .swappHome1014 > .homeHero1014{order:-2!important}
+#home .swappHome1014 > .homeLiveSection1014{order:-1!important}
+#home .swappHome1014 > .swapp-home-editorial{order:0!important}
+#home .swappHome1014 > .swapp-home-editorial{border-top:1px solid rgba(169,192,220,.16)!important;padding-top:clamp(26px,3vw,42px)!important}
+#home .swapp-home-editorial-top{grid-template-columns:minmax(0,1fr) minmax(250px,340px)!important;gap:clamp(20px,4vw,60px)!important;align-items:center!important}
+#home .swapp-home-editorial-top .swapp-home-editorial-intro{max-width:670px}
+#home .swapp-home-editorial-top .swapp-home-video-feature .swapp-video-open{box-shadow:none!important;border:1px solid rgba(255,255,255,.11)}
+#home .swapp-home-editorial-top .swapp-home-video-feature .swapp-video-play-icon{width:52px;height:52px;font-size:17px}
+#home .swapp-home-editorial-top .swapp-home-video-feature .swapp-video-caption{display:flex!important;align-items:flex-start;flex-direction:column;gap:5px!important;padding-top:9px!important}
+#home .swapp-home-editorial-top .swapp-home-video-feature .swapp-video-caption h3{font-size:15px!important;line-height:1.35!important;margin:0!important;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+#home .swapp-home-editorial-top .swapp-home-video-feature .swapp-video-caption a{font-size:12px!important;align-self:start!important}
+#home .swapp-home-explore{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:clamp(24px,3vw,38px);min-width:0}
+#home .swapp-home-explore-link{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto auto;gap:5px 10px;align-items:center;min-width:0;padding:clamp(14px,1.8vw,22px);text-decoration:none!important;color:#f1f7ff!important;background:#111c2b;border:1px solid rgba(133,169,197,.2);border-radius:14px;transition:border-color .18s,background .18s}
+#home .swapp-home-explore-link strong{font-size:clamp(14px,1.25vw,17px);line-height:1.3;grid-column:1}
+#home .swapp-home-explore-link span:not(.swapp-home-explore-arrow){color:#9db3c9;font-size:12px;line-height:1.35;grid-column:1;grid-row:2}
+#home .swapp-home-explore-arrow{grid-column:2;grid-row:1/3;color:#7be9e9;font-size:22px}
+#home .swapp-home-explore-link:hover,#home .swapp-home-explore-link:focus-visible{background:#18283b;border-color:#78d9dc;outline:none}
+#home .swapp-home-explore-link:focus-visible{outline:2px solid #78d9dc;outline-offset:3px}
+/* Do not attempt to sharpen or stretch a low-resolution source with CSS. */
+#home .swapp-home-hero-feature img{object-fit:cover;object-position:center;image-rendering:auto}
+@media(max-width:980px){#home .swapp-home-editorial-top{grid-template-columns:minmax(0,1fr)!important}#home .swapp-home-editorial-top .swapp-home-hero-actions{max-width:480px!important}}
+@media(max-width:700px){#home .swapp-home-explore{grid-template-columns:minmax(0,1fr)!important;gap:9px}#home .swapp-home-explore-link{padding:14px 16px}#home .swapp-home-editorial-top .swapp-home-video-feature .swapp-video-caption h3{font-size:15px!important}}
+@media(prefers-reduced-motion:reduce){#home .swapp-home-explore-link{transition:none}}

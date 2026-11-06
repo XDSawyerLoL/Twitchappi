@@ -85,18 +85,21 @@
   const article=el('a','','Lire le dossier →');article.href='/actus/'+encodeURIComponent(item.slug);
   caption.append(article);wrap.append(trigger,caption);return wrap;
  }
- function updateVideoTeaser(section,articles){
+ function updateVideoTeaser(section,articles,heroSlug){
   const top=section.querySelector('.swapp-home-editorial-top');
   const actions=top?.querySelector('.swapp-home-hero-actions');
   if(!top||!actions)return;
   actions.replaceChildren();
-  const featured=articles.find(item=>String(item.status||'published').toLowerCase()==='published'&&youtubeId(item)&&cover(item));
+  const featured=articles.find(item=>item.slug!==heroSlug&&String(item.status||'published').toLowerCase()==='published'&&youtubeId(item)&&cover(item));
   const tile=featured?videoTeaser(featured):null;
   if(tile){actions.append(tile);top.classList.add('swapp-home-has-video')}
   else top.classList.remove('swapp-home-has-video');
  }
  // A newly published illustrated article takes priority over an older hero.
  const articleDate=item=>Date.parse(item?.publishedAt||item?.originalPublishedAt||item?.updatedAt||'')||0;
+ // Prefer the original editorial artwork for the full-screen hero, not a small thumbnail.
+ // Keep the thumbnail only as a fallback if no full-size artwork is available.
+ const heroCover=item=>safeUrl(item?.image?.url)||safeUrl(item?.imageUrl)||safeUrl(item?.thumbnail?.url)||cover(item);
  const cover=item=>{
    const sources=window.SwappArticleExtras?.cardImageSources?.(item);
    return safeUrl((Array.isArray(sources)&&sources[0])||item?.image?.url||item?.thumbnail?.url||item?.imageUrl||'');
@@ -137,7 +140,7 @@
    const hero=modern?.querySelector('.homeHeroInner1014');
    if(!hero)return null;
    const existing=hero.querySelector('.swapp-home-hero-feature');
-   const feature=articles.find(item=>slugOk(item.slug)&&cover(item));
+   const feature=articles.find(item=>slugOk(item.slug)&&heroCover(item));
    if(existing&&feature&&existing.dataset.articleSlug===feature.slug)return feature.slug;
    // Replace the old poster and its action rail in place. The video player
    // observes tile disconnection and destroys itself without leaking audio.
@@ -155,7 +158,7 @@
    tile.dataset.articleSlug=feature.slug;
    tile.setAttribute('aria-label','Lire : '+feature.title);
    tile.addEventListener('click',event=>navigateArticle(event,feature.slug,feature.game));
-   const image=el('img');image.src=cover(feature);image.alt='';
+   const image=el('img');image.src=heroCover(feature);image.alt='';
    image.decoding='async';image.loading='eager';
    const bridge=el('div','swapp-home-feature-bridge');
    bridge.dataset.swappFeatureGame=String(feature.game||'').slice(0,120);
@@ -169,6 +172,8 @@
    action('En discuter',discussionHref(feature));
    bridge.append(actions);
    image.onerror=()=>{
+     const fallback=cover(feature);
+     if(fallback&&image.src!==fallback){image.src=fallback;return;}
      tile.remove();bridge.remove();
      hero.classList.remove('swapp-hero-has-story','swapp-feature-ready','swapp-hero-pending');
      hero.classList.add('swapp-hero-unavailable');
@@ -197,7 +202,6 @@
        .sort((a,b)=>articleDate(b)-articleDate(a)||String(b.slug).localeCompare(String(a.slug)))
        .slice(0,12);
      latestArticles=valid.slice(0,5);
-     updateVideoTeaser(section,valid);
      // Matching reorders the existing live cards, not the article shelf.
      window.dispatchEvent(new CustomEvent('swapp:home-news-ready',{detail:{articles:valid}}));
      grid.replaceChildren();
@@ -221,6 +225,8 @@
        grid.replaceChildren();
        valid.forEach((item,i)=>grid.append(story(item,i)));
      });
+     // The secondary trailer must never repeat the main hero article.
+     updateVideoTeaser(section,valid,featuredSlug);
      const visible=featuredSlug?valid.filter(item=>item.slug!==featuredSlug):valid;
      // Without a valid illustrated lead, do not discard the fifth article.
      visible.slice(0,modern&&featuredSlug?4:5).forEach((item,i)=>grid.append(story(item,featuredSlug?i+1:i)));
@@ -245,12 +251,24 @@
    if(!base.children.length||home.querySelector('.swappBoot'))return;
    const section=el('section','swapp-home-editorial');section.dataset.swappHomeEditorial='1';
    const top=el('div','swapp-home-editorial-top'),title=el('div','swapp-home-editorial-intro');
-   title.append(el('small','','SWAPP · LE GAMING EN DIRECT'),el('h2','','À la une sur SWAPP'),el('p','','L’actualité des jeux et les créateurs qui y jouent, au même endroit.'));
+   title.append(el('small','','SWAPP · ACTUALITÉ'),el('h2','','Dernières actualités'),el('p','','Des annonces, des analyses et des bandes-annonces pour prolonger l’aventure.'));
    const all=el('a','swapp-media-button primary','Toute l’actualité →');all.href='/actus';
    all.onclick=e=>{if(e.button||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey||typeof window.setView!=='function')return;e.preventDefault();window.setView('actus');window.SwappActus?.home()};
    const actions=el('div','swapp-home-hero-actions');title.append(all);top.append(title,actions);section.append(top);
    const grid=el('div','swapp-home-story-grid');
    for(let i=0;i<(modern?4:5);i++){const skeleton=el('div','swapp-home-story swapp-home-story-skeleton'+(!modern&&i===0?' swapp-home-story-featured':''));skeleton.setAttribute('aria-hidden','true');skeleton.append(el('div','swapp-home-story-image'),el('div','swapp-home-story-body'));grid.append(skeleton)}section.setAttribute('aria-busy','true');section.append(grid);
+   // Real destinations only: no placeholder guides, fake scores or invented lives.
+   const explore=el('nav','swapp-home-explore');explore.setAttribute('aria-label','Explorer les univers SWAPP');
+   for(const [name,detail,href] of [
+     ['Univers des jeux','Actualités et créateurs par jeu','/jeux'],
+     ['Guide du moment','Parcours détaillé AION 2','/guides/aion-2'],
+     ['Communauté','Échanger avec les joueurs','/social']
+   ]){
+     const link=el('a','swapp-home-explore-link');link.href=href;
+     link.append(el('strong','',name),el('span','',detail),el('span','swapp-home-explore-arrow','→'));
+     explore.append(link);
+   }
+   section.append(explore);
    // Reserve the visual column before fetching articles to avoid a layout jump.
    const hero=modern?.querySelector('.homeHeroInner1014');
    if(hero&&!hero.querySelector('.swapp-home-hero-feature')){
@@ -263,10 +281,9 @@
      placeholder.setAttribute('aria-hidden','true');
      hero.append(placeholder);hero.classList.add('swapp-hero-has-story');
    }
-   // The editorial shelf belongs to the page's content flow, never ahead of
-   // the entire homepage hero. The magazine follows the hero, before the live and followed rails.
+   // Keep the immersive hero intact, show real live channels next, then editorial.
    const liveShelf=modern?.querySelector('.homeLiveSection1014');
-   if(liveShelf)modern.insertBefore(section,liveShelf);
+   if(liveShelf)modern.insertBefore(section,liveShelf.nextElementSibling);
    else if(legacy)legacy.insertBefore(section,legacy.firstChild);
    else base.append(section);
    section.dataset.swappEditorialChecked=String(Date.now());

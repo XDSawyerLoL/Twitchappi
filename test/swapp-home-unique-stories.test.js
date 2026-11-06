@@ -63,11 +63,12 @@ test('large hero and article grid contain five unique stories, without duplicate
  assert.equal(view.feature.href,'/actus/game-release-0');
  assert.equal(view.gridLinks().length,4);
  assert.equal(new Set([view.feature.href,...view.gridLinks()]).size,5);
- assert.equal(view.main.children[1],view.shelf,'article grid follows the featured hero');
- assert.equal(view.main.children[2],view.live,'lives follow the articles');
+ assert.equal(view.main.children[1],view.live,'live channels follow the hero');
+ assert.equal(view.main.children[2],view.shelf,'article grid follows the live channels');
  assert.equal(view.calls.filter(x=>x==='/api/actus').length,1);
  assert.equal(view.calls.some(x=>x.includes('game-lives')),true,'featured game checked for real creators');
- assert.ok(view.shelf.querySelector('.swapp-home-video-feature'),'one playable trailer appears alongside the editorial title');
+ assert.ok(view.shelf.querySelector('.swapp-home-video-feature'),'a distinct playable trailer appears beside the editorial title');
+ assert.equal(view.shelf.querySelector('.swapp-home-video-feature').querySelector('.swapp-video-caption').children.find(x=>x.tagName==='H3').textContent,'Gaming news 1','hero story is not duplicated in the trailer');
 });
 test('a missing image picks the next valid lead, or falls back to full story grid',async()=>{
  const next=await render([make(0,false),...([1,2,3,4].map(i=>make(i)))]);
@@ -115,7 +116,7 @@ test('trailer is full-width cinematic 16:9 and responsive rather than 290px wide
  assert.match(css,/@media\(max-width:980px\)/);
  assert.match(css,/@media\(max-width:600px\)/);
  assert.doesNotMatch(css,/width:clamp\(190px,19vw,290px\)/);
- assert.match(html,/swapp-home-news\.js\?v=20261025-latest-video-v1/);
+ assert.match(html,/swapp-home-news\.js\?v=20261106-home-flow-v1/);
  assert.match(html,/swapp-video-gallery\.css\?v=20261025-latest-video-v1/);
 });
 
@@ -133,8 +134,8 @@ test('the newest published article supplies its own video and destination',async
  ];
  const view=await render(data);
  const tile=view.shelf.querySelector('.swapp-home-video-feature');
- assert.equal(tile.querySelector('.swapp-video-open').dataset.videoYoutube,'Qwerty12345');
- assert.equal(tile.querySelector('.swapp-video-caption').children.find(node=>node.tagName==='H3').textContent,'Gaming news 1');
+ assert.equal(tile.querySelector('.swapp-video-open').dataset.videoYoutube,'AbcdEfgh012');
+ assert.equal(tile.querySelector('.swapp-video-caption').children.find(node=>node.tagName==='H3').textContent,'Gaming news 0');
 });
 
 test('the editorial video rejects lookalike hosts and unpublished teasers',async()=>{
@@ -144,4 +145,12 @@ test('the editorial video rejects lookalike hosts and unpublished teasers',async
  const top=view.shelf.querySelector('.swapp-home-editorial-top');
  assert.equal(top.classList.contains('swapp-home-has-video'),false);
  assert.equal(top.querySelector('.swapp-home-video-feature'),null);
+});
+
+
+test('full-screen hero prefers the original artwork over a thumbnail',async()=>{
+ const data=[{...make(0),thumbnail:{url:'https://example.com/small.jpg'},image:{url:'https://example.com/original.jpg'}},make(1)];
+ const view=await render(data);
+ assert.equal(view.feature.children.find(x=>x.tagName==='IMG').src,'https://example.com/original.jpg');
+ assert.ok(view.shelf.querySelector('.swapp-home-explore'),'real discovery destinations remain below the articles');
 });
