@@ -22,7 +22,7 @@ test('ACTUS return sits in its own semantic navigation with reliable top spacing
 test('above-the-fold layout shows featured article, then live channels, then the remaining news',()=>{
  const home=read('assets/swapp-home-news.js'),runtime=read('index_script.js'),css=read('assets/swapp-art-direction.css');
  assert.match(home,/const liveShelf=modern\?\.querySelector\('\.homeLiveSection1014'\)/);
- assert.match(home,/if\(liveShelf\)modern\.insertBefore\(section,liveShelf\)/);
+ assert.match(home,/if\(liveShelf\)modern\.insertBefore\(section,liveShelf\.nextElementSibling\)/);
  assert.match(home,/const featuredSlug=decorateHero\(modern,valid/);
  assert.match(home,/visible=featuredSlug\?valid\.filter\(item=>item\.slug!==featuredSlug\):valid/);
  assert.doesNotMatch(home,/browseLive\.href='\/decouvrir'/);
