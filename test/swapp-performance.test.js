@@ -46,7 +46,7 @@ test('both page shells use latest batched menu script with no stale assets',()=>
   assert.match(source,/swapp-hub-nav\.js\?v=20261020-guides-native-v2/);
   assert.doesNotMatch(source,/swapp-hub-nav\.js\?v=20261015-community-restore-10/);
  }
- assert.match(spa,/swapp-home-news\.js\?v=20261025-latest-video-v1/);
+ assert.match(spa,/swapp-home-news\.js\?v=20261106-home-flow-v1/);
 });
 
 test('SOCIAL remains mounted on its full native page and uses an independent backend',()=>{
