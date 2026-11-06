@@ -151,6 +151,6 @@ test('the editorial video rejects lookalike hosts and unpublished teasers',async
 test('full-screen hero prefers the original artwork over a thumbnail',async()=>{
  const data=[{...make(0),thumbnail:{url:'https://example.com/small.jpg'},image:{url:'https://example.com/original.jpg'}},make(1)];
  const view=await render(data);
- assert.equal(view.feature.querySelector('img').src,'https://example.com/original.jpg');
+ assert.equal(view.feature.children.find(x=>x.tagName==='IMG').src,'https://example.com/original.jpg');
  assert.ok(view.shelf.querySelector('.swapp-home-explore'),'real discovery destinations remain below the articles');
 });
