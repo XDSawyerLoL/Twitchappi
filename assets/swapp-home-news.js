@@ -94,6 +94,7 @@
   const tile=featured?videoTeaser(featured):null;
   if(tile){actions.append(tile);top.classList.add('swapp-home-has-video')}
   else top.classList.remove('swapp-home-has-video');
+  return tile?featured.slug:null;
  }
  // A newly published illustrated article takes priority over an older hero.
  const articleDate=item=>Date.parse(item?.publishedAt||item?.originalPublishedAt||item?.updatedAt||'')||0;
@@ -220,14 +221,16 @@
      }
      // The hero already links to its article; do not repeat the same story below.
      // If its image fails, return the article to the grid instead of losing it.
+     let teaserSlug=null;
      const featuredSlug=decorateHero(modern,valid,()=>{
        if(!section.isConnected)return;
        grid.replaceChildren();
-       valid.forEach((item,i)=>grid.append(story(item,i)));
+       // Restore the failed hero while keeping the secondary trailer unique.
+       valid.filter(item=>item.slug!==teaserSlug).slice(0,5).forEach((item,i)=>grid.append(story(item,i)));
      });
-     // The secondary trailer must never repeat the main hero article.
-     updateVideoTeaser(section,valid,featuredSlug);
-     const visible=featuredSlug?valid.filter(item=>item.slug!==featuredSlug):valid;
+     // Hero, secondary video and news cards must showcase distinct stories.
+     teaserSlug=updateVideoTeaser(section,valid,featuredSlug);
+     const visible=valid.filter(item=>item.slug!==featuredSlug&&item.slug!==teaserSlug);
      // Without a valid illustrated lead, do not discard the fifth article.
      visible.slice(0,modern&&featuredSlug?4:5).forEach((item,i)=>grid.append(story(item,featuredSlug?i+1:i)));
 
