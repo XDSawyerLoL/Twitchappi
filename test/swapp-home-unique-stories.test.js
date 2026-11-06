@@ -58,11 +58,13 @@ const make=(n,hasImage=true)=>({
  image:hasImage?{url:'https://example.com/game-'+n+'.jpg'}:null,
  trailerUrl:'https://www.youtube.com/watch?v=AbcdEfgh012'
 });
-test('large hero and article grid contain five unique stories, without duplicate first card',async()=>{
- const view=await render([0,1,2,3,4].map(i=>make(i)));
+test('hero, secondary video and four cards contain six unique stories',async()=>{
+ const view=await render([0,1,2,3,4,5].map(i=>make(i)));
  assert.equal(view.feature.href,'/actus/game-release-0');
  assert.equal(view.gridLinks().length,4);
- assert.equal(new Set([view.feature.href,...view.gridLinks()]).size,5);
+ const videoHref=view.shelf.querySelector('.swapp-home-video-feature').querySelector('.swapp-video-caption').children.find(x=>x.tagName==='A').href;
+ assert.equal(new Set([view.feature.href,videoHref,...view.gridLinks()]).size,6);
+ assert.ok(!view.gridLinks().includes(videoHref),'teaser article does not repeat as a news card');
  assert.equal(view.main.children[1],view.live,'live channels follow the hero');
  assert.equal(view.main.children[2],view.shelf,'article grid follows the live channels');
  assert.equal(view.calls.filter(x=>x==='/api/actus').length,1);
@@ -73,7 +75,8 @@ test('large hero and article grid contain five unique stories, without duplicate
 test('a missing image picks the next valid lead, or falls back to full story grid',async()=>{
  const next=await render([make(0,false),...([1,2,3,4].map(i=>make(i)))]);
  assert.equal(next.feature.href,'/actus/game-release-1');
- assert.equal(new Set([next.feature.href,...next.gridLinks()]).size,5);
+ const videoHref=next.shelf.querySelector('.swapp-home-video-feature').querySelector('.swapp-video-caption').children.find(x=>x.tagName==='A').href;
+ assert.equal(new Set([next.feature.href,videoHref,...next.gridLinks()]).size,5);
  const noImages=await render([0,1,2,3,4].map(i=>make(i,false)));
  assert.equal(noImages.feature,null);
  assert.ok(noImages.hero.classList.contains('swapp-hero-unavailable'));
@@ -83,8 +86,10 @@ test('a missing image picks the next valid lead, or falls back to full story gri
 test('failed lead image restores its article to the grid instead of hiding it',async()=>{
  const view=await render([0,1,2,3,4].map(i=>make(i)));
  const afterFailure=view.failHero();
- assert.equal(afterFailure.length,5);
- assert.equal(new Set(afterFailure).size,5);
+ assert.equal(afterFailure.length,4);
+ const videoHref=view.shelf.querySelector('.swapp-home-video-feature').querySelector('.swapp-video-caption').children.find(x=>x.tagName==='A').href;
+ assert.equal(new Set([videoHref,...afterFailure]).size,5);
+ assert.ok(!afterFailure.includes(videoHref));
  assert.equal(view.hero.querySelector('.swapp-home-hero-feature'),null);
  assert.ok(view.hero.classList.contains('swapp-hero-unavailable'));
  assert.equal(view.hero.attributes['aria-busy'],'false');
@@ -116,7 +121,7 @@ test('trailer is full-width cinematic 16:9 and responsive rather than 290px wide
  assert.match(css,/@media\(max-width:980px\)/);
  assert.match(css,/@media\(max-width:600px\)/);
  assert.doesNotMatch(css,/width:clamp\(190px,19vw,290px\)/);
- assert.match(html,/swapp-home-news\.js\?v=20261106-home-flow-v1/);
+ assert.match(html,/swapp-home-news\.js\?v=20261106-home-flow-v2/);
  assert.match(html,/swapp-video-gallery\.css\?v=20261025-latest-video-v1/);
 });
 
@@ -153,4 +158,11 @@ test('full-screen hero prefers the original artwork over a thumbnail',async()=>{
  const view=await render(data);
  assert.equal(view.feature.children.find(x=>x.tagName==='IMG').src,'https://example.com/original.jpg');
  assert.ok(view.shelf.querySelector('.swapp-home-explore'),'real discovery destinations remain below the articles');
+});
+
+
+test('the secondary video never duplicates a visible article card on sparse feeds',async()=>{
+ const view=await render([0,1,2].map(i=>make(i)));
+ const videoHref=view.shelf.querySelector('.swapp-home-video-feature').querySelector('.swapp-video-caption').children.find(x=>x.tagName==='A').href;
+ assert.deepEqual([view.feature.href,videoHref,...view.gridLinks()].sort(),['/actus/game-release-0','/actus/game-release-1','/actus/game-release-2'].sort());
 });
