@@ -15,8 +15,9 @@ const aliases=[
 const normalize=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
 const equivalent=(a,b)=>{const x=normalize(a),y=normalize(b);if(!x||!y)return false;if(x===y)return true;return aliases.some(group=>{const names=[group[0],...group[1]].map(normalize);return names.includes(x)&&names.includes(y)})};
 const searchNames=game=>{const n=normalize(game);const group=aliases.find(g=>[g[0],...g[1]].some(x=>normalize(x)===n));return group?[group[0],...group[1]].filter((v,i,a)=>a.indexOf(v)===i):[String(game||'').trim()]};
+const gameName=value=>typeof value==='string'?value.trim():value&&typeof value==='object'?String(value.name||value.title||'').trim():'';
 function editorialGame(article={}){
- const original=String(article.game||'').trim(),title=normalize(article.title||'');
+ const original=gameName(article.game),title=normalize(article.title||'');
  const legacy=new Set(['the witcher 3','witcher 3','the witcher 3 wild hunt','the witcher iii']);
  const hasRemaster=/(?:the )?witcher (?:3|iii)(?: wild hunt)? remaster(?:ed)?/.test(title);
  if(hasRemaster&&(!original||legacy.has(normalize(original))||

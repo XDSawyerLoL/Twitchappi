@@ -22,8 +22,9 @@
   const x=normal(a),y=normal(b);
   return !!x&&!!y&&(x===y||groups.some(group=>group.includes(x)&&group.includes(y)));
  }
+ const gameName=value=>typeof value==='string'?value.trim():value&&typeof value==='object'?String(value.name||value.title||'').trim():'';
  function editorialGame(article){
-  const game=String(article?.game||'').trim(),title=normal(article?.title);
+  const game=gameName(article?.game),title=normal(article?.title);
   const old=['the witcher 3','witcher 3','the witcher iii','the witcher 3 wild hunt'];
   if(/(?:the )?witcher (?:3|iii)(?: wild hunt)? remaster(?:ed)?/.test(title)&&
      (!game||old.includes(normal(game))||sameGame(game,'The Witcher 3: Wild Hunt Remastered')))
