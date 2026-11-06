@@ -23,3 +23,15 @@
 @media(max-width:980px){#home .swapp-home-editorial-top{grid-template-columns:minmax(0,1fr)!important}#home .swapp-home-editorial-top .swapp-home-hero-actions{max-width:480px!important}}
 @media(max-width:700px){#home .swapp-home-explore{grid-template-columns:minmax(0,1fr)!important;gap:9px}#home .swapp-home-explore-link{padding:14px 16px}#home .swapp-home-editorial-top .swapp-home-video-feature .swapp-video-caption h3{font-size:15px!important}}
 @media(prefers-reduced-motion:reduce){#home .swapp-home-explore-link{transition:none}}
+
+/* Refinement: quiet live carousel scrollbar (Firefox + Chromium/WebKit).
+   Scrolling remains available by mouse, touch, trackpad and keyboard. */
+#home .homeLiveGrid1014,#home .homeFollowedRail1014{
+ scrollbar-width:thin!important;
+ scrollbar-color:#42647c #0b1522!important;
+ scroll-padding-inline:8px;
+}
+#home .homeLiveGrid1014::-webkit-scrollbar,#home .homeFollowedRail1014::-webkit-scrollbar{height:6px}
+#home .homeLiveGrid1014::-webkit-scrollbar-track,#home .homeFollowedRail1014::-webkit-scrollbar-track{background:#0b1522;border-radius:99px}
+#home .homeLiveGrid1014::-webkit-scrollbar-thumb,#home .homeFollowedRail1014::-webkit-scrollbar-thumb{background:#42647c;border-radius:99px}
+#home .swapp-home-editorial-top{align-items:start!important}
