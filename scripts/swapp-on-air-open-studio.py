@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Open the SWAPP ON AIR admin studio prefilled with the verified episode.
+"""Open the PODCAST admin studio prefilled with the verified episode.
 Only metadata goes into the browser URL fragment. The MP3 STAYS local.
 """
 from __future__ import annotations
