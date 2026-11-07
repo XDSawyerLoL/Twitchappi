@@ -1,4 +1,4 @@
-/* SWAPP ON AIR: owner-only MP3 studio; real upload before visible release. */
+/* PODCAST: owner-only MP3 studio; real upload before visible release. */
 (()=>{'use strict';
  const form=document.getElementById('oas-form');if(!form)return;
  const $=id=>document.getElementById(id),file=$('oas-file'),preview=$('oas-preview');
@@ -10,7 +10,7 @@
   if(slugTouched)return;
   const base=slugify(title.value).slice(0,64).replace(/-+$/,'');
   const date=new Date().toISOString().slice(0,10).replace(/-/g,'');
-  slug.value=base?('on-air-'+base+'-'+date).slice(0,85):'';
+  slug.value=base?('podcast-'+base+'-'+date).slice(0,85):'';
  });
  slug.addEventListener('input',()=>{slugTouched=true;upload=null});
  file.addEventListener('change',()=>{

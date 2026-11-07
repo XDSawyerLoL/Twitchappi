@@ -1,59 +1,69 @@
 {
   "id": "swapp-on-air-voice-natural-test",
-  "title": "SWAPP ON AIR — Premier essai conversationnel",
+  "title": "PODCAST — Premier essai conversationnel",
   "publication_allowed": false,
   "sponsored": false,
-  "note": "Dialogue fictif de démonstration acoustique, non destiné à une diffusion comme actualité vérifiée.",
+  "note": "Dialogue fictif entre Nova et Kern pour tester les voix et le rythme, sans adresse au public et sans publication.",
   "segments": [
     {
       "speaker": "NOVA",
       "delivery": "curieuse, sourire perceptible, comme une confidence au micro",
-      "text": "Bon... tu sais ce qui me manque, Kern ?"
+      "text": "Bon... tu sais ce qui me manque, Kern ?",
+      "pause_after_ms": 180
     },
     {
       "speaker": "KERN",
       "delivery": "ironique, léger sourire, naturel",
-      "text": "Un filtre entre tes idées et ton micro ?"
+      "text": "Un filtre entre tes idées et ton micro ?",
+      "pause_after_ms": 100
     },
     {
       "speaker": "NOVA",
       "delivery": "amusement franc puis énergie, sans jouer une publicité",
-      "text": "Très drôle. Non ! Un endroit où tu découvres un jeu avant que tout le monde en parle."
+      "text": "Très drôle. Non ! Un endroit où tu découvres un jeu avant que tout le monde en parle.",
+      "pause_after_ms": 120
     },
     {
       "speaker": "KERN",
       "delivery": "sceptique mais complice, pause après la première proposition",
-      "text": "D'accord, mais découvrir un jeu sur une affiche... ou vraiment y jouer ?"
+      "text": "D'accord, mais découvrir un jeu sur une affiche... ou vraiment y jouer ?",
+      "pause_after_ms": 140
     },
     {
       "speaker": "NOVA",
       "delivery": "enthousiasme sincère, rapide, expressive",
-      "text": "Justement ! Un studio présente sa démo. Plusieurs streamers l'essaient en direct. Et nous, on vient voir ce qu'ils en pensent."
+      "text": "Justement ! Un studio présente sa démo. Plusieurs streamers l'essaient en direct. Et nous, on vient voir ce qu'ils en pensent.",
+      "pause_after_ms": 100
     },
     {
       "speaker": "KERN",
       "delivery": "réflexion, amusement léger, voix posée",
-      "text": "Même si le jeu est complètement raté ?"
+      "text": "Même si le jeu est complètement raté ?",
+      "pause_after_ms": 110
     },
     {
       "speaker": "NOVA",
       "delivery": "réponse immédiate, convaincue, un peu taquine",
-      "text": "Surtout dans ce cas ! Une vraie découverte, c'est aussi le droit de ne pas aimer."
+      "text": "Surtout dans ce cas ! Une vraie découverte, c'est aussi le droit de ne pas aimer.",
+      "pause_after_ms": 90
     },
     {
       "speaker": "KERN",
       "delivery": "approbation prudente puis humour doux",
-      "text": "Là, tu marques un point. Et si le studio paye les streamers sans acheter leur avis... ça devient intéressant."
+      "text": "Là, tu marques un point. Et si le studio paye les streamers sans acheter leur avis... ça devient intéressant.",
+      "pause_after_ms": 200
     },
     {
       "speaker": "NOVA",
       "delivery": "conclusion complice, sourire",
-      "text": "Voilà ce que j'imagine pour SWAPP PREMIÈRE. Pas une publicité déguisée. Un rendez-vous pour les joueurs."
+      "text": "Voilà ce que j'imagine pour SWAPP PREMIÈRE. Pas une publicité déguisée. Un rendez-vous pour les joueurs.",
+      "pause_after_ms": 200
     },
     {
       "speaker": "KERN",
       "delivery": "conclusion sèche et amicale",
-      "text": "Bon... ça me plaît. Note bien que je ne le dirai pas deux fois."
+      "text": "Bon... ça me plaît. Note bien que je ne le dirai pas deux fois.",
+      "pause_after_ms": 400
     }
   ]
 }

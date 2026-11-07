@@ -15,7 +15,7 @@ function fixture(){
 }
 test('Empty source catalog cannot produce pretend audio players',()=>{
  const h=home([]);
- assert.match(h,/SWAPP ON AIR/);
+ assert.match(h,/PODCAST/);
  assert.match(h,/Pas encore d’enregistrement validé/);
  assert.doesNotMatch(h,/<audio/);
  assert.equal(episodePage('made-up-episode',[]),null);
@@ -61,13 +61,13 @@ test('An absent or spoofed MP3 is never considered playable',()=>{
   assert.equal(mp3Exists(f.mp3),false);
  }finally{f.clean()}
 });
-test('Navigation exposes a stable ON AIR entry on desktop and mobile',()=>{
+test('Navigation exposes a stable PODCAST entry on desktop and mobile',()=>{
  const n=require('../assets/swapp-navigation');
  const desktop=n.serverHeader('onair'),mobile=n.serverMobile('onair');
  assert.match(desktop,/href="\/on-air"/);
  assert.match(mobile,/href="\/on-air"/);
- assert.match(desktop,/Podcast ON AIR/);
- assert.match(mobile,/Podcast ON AIR/);
+ assert.match(desktop,/PODCAST/);
+ assert.match(mobile,/PODCAST/);
  assert.match(desktop,/href="\/actus"/);
 });
 test('ON AIR route is server rendered and does not expose unapproved assets via API',()=>{
