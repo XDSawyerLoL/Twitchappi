@@ -21,6 +21,7 @@ const RELEASE_FILES=Object.freeze([
  'assets/swapp-shop-admin.css',
  'assets/swapp-shop-admin.js',
  'assets/swapp-editor-nav.js',
+ 'assets/swapp-navigation.js',
  'assets/swapp-hubs.css',
  'modules/swapp-discovery-diversity.js',
  'modules/swapp-fair-admin.js',
