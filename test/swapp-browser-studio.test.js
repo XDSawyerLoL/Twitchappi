@@ -2,7 +2,7 @@
 const test=require('node:test'),assert=require('node:assert/strict'),vm=require('node:vm');
 const fs=require('node:fs'),path=require('node:path');
 const script=fs.readFileSync(path.join(__dirname,'../assets/swapp-browser-studio.js'),'utf8');
-function studio({screenAudio=true,microphone=true}={}){
+function studio({screenAudio=true,microphone=true,cameraDeviceId=''}={}){
  const tracks=[],newTrack=kind=>{
   const track={kind,readyState:'live',stop(){this.readyState='ended'},addEventListener(){},removeEventListener(){}};
   tracks.push(track);return track;
@@ -16,6 +16,8 @@ function studio({screenAudio=true,microphone=true}={}){
  }
  const screen=new MediaStream([newTrack('video'),...(screenAudio?[newTrack('audio')]:[])]);
  const mic=new MediaStream(microphone?[newTrack('audio')]:[]);
+ const camera=new MediaStream([newTrack('video')]);
+ let cameraConstraints=null;
  const mix=newTrack('audio');
  let captures=0,opened=0,closed=0,captureOptions=null;
  class AudioContext{
@@ -27,15 +29,15 @@ function studio({screenAudio=true,microphone=true}={}){
   async close(){closed++}
  }
  const root={
-  document:{getElementById(){return null},addEventListener(){},hidden:false},
-  navigator:{mediaDevices:{getDisplayMedia:async options=>{captures++;captureOptions=options;return screen},getUserMedia:async()=>mic}},
+  document:{getElementById(){return null},querySelector(query){return query==='#swappStudioCameraDevice'?{value:cameraDeviceId}:null},addEventListener(){},hidden:false},
+  navigator:{mediaDevices:{getDisplayMedia:async options=>{captures++;captureOptions=options;return screen},getUserMedia:async constraints=>{if(constraints?.video){cameraConstraints=constraints;return camera}return mic}}},
   window:{addEventListener(){},AudioContext},
   MediaStream,requestAnimationFrame:()=>0,setInterval:()=>0,cancelAnimationFrame(){},
   console,fetch(){throw Error('unexpected fetch')}
  };
  root.globalThis=root;
  vm.runInNewContext(script,root,{filename:'swapp-browser-studio.js'});
- return {api:root.SwappBrowserStudio,tracks,screen,mic,mix,stats:()=>({captures,opened,closed,captureOptions})};
+ return {api:root.SwappBrowserStudio,tracks,screen,mic,camera,mix,stats:()=>({captures,opened,closed,captureOptions,cameraConstraints})};
 }
 test('screen stream mixes shared audio with optional microphone',async()=>{
  const ctx=studio();
@@ -73,6 +75,24 @@ test('screen stream can run with no optional audio permissions',async()=>{
  assert.equal(stream.getAudioTracks().length,0);
  assert.equal(ctx.stats().opened,0);
  stream._swappCleanup();
+});
+test('OBS Virtual Camera is selected without requiring screen sharing',async()=>{
+ const ctx=studio({cameraDeviceId:'obs-virtual-camera-123'});
+ const result=await ctx.api.capture({source:'camera',video:{width:{ideal:1920},height:{ideal:1080}}});
+ assert.equal(ctx.stats().captures,0);
+ assert.equal(ctx.stats().cameraConstraints.video.deviceId.exact,'obs-virtual-camera-123');
+ assert.equal(result.getVideoTracks().length,1);
+ assert.equal(result.getAudioTracks().length,1);
+ assert.equal(result._oryonSources[0],ctx.camera);
+ assert.equal(result._oryonSources[1],ctx.mic);
+ result._swappCleanup();
+});
+test('Camera mode does not need screen capture or microphone tracks',async()=>{
+ const ctx=studio({microphone:false,cameraDeviceId:'obs-virtual-camera-123'});
+ const result=await ctx.api.capture({source:'camera'});
+ assert.equal(result.getVideoTracks().length,1);
+ assert.equal(result.getAudioTracks().length,0);
+ assert.equal(ctx.stats().captures,0);
 });
 test('studio does not send audio, credentials or pixels to paid third-party APIs',()=>{
  assert.doesNotMatch(script,/https?:\/\/(?:api\.|www\.)?(?:openai|googleapis|cloudinary|agora)\./i);
