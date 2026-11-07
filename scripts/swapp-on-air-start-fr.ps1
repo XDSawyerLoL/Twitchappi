@@ -8,7 +8,7 @@ $episode=Join-Path $repo 'data\swapp-on-air\episode-pikmin-20261105.json'
 $privateDir=Join-Path $repo '.swapp-on-air-private'
 $venv=Join-Path $privateDir 'venv'
 $python=Join-Path $venv 'Scripts\python.exe'
-$output=Join-Path $privateDir 'swapp-pikmin-20261105.wav'
+$output=Join-Path $privateDir 'swapp-podcast-pikmin-dialogue-v2.wav'
 $mp3=[System.IO.Path]::ChangeExtension($output,'mp3')
 function Fail($message){
  Write-Host ("ERREUR : "+$message) -ForegroundColor Red
@@ -48,7 +48,7 @@ function Test-PythonVersion($exe,$version){
  }catch{ return $false }
  finally{ $ErrorActionPreference=$prior }
 }
-Write-Host 'SWAPP ON AIR - NOVA / KERN - premier vrai episode' -ForegroundColor Cyan
+Write-Host 'PODCAST - NOVA / KERN - dialogue naturel V2 (nouvelle prise)' -ForegroundColor Cyan
 if(Test-Path $mp3){
  Write-Host 'MP3 deja genere : aucun nouveau telechargement ni installation.' -ForegroundColor Green
  Open-SwappStudio
