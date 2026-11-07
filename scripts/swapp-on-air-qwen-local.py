@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""SWAPP ON AIR — expressive French dialogue, rendered offline with Qwen3-TTS.
+"""PODCAST — expressive French dialogue, rendered offline with Qwen3-TTS.
 
 No Google AI Studio, no paid API, no background production. The first run can
 download model weights from Hugging Face ONLY after explicit --allow-download.
@@ -24,7 +24,7 @@ VOICE_PROFILES = {
         "instruction": (
             "Speak native French from France. An adult woman hosting a close-mic gaming conversation: "
             "warm, alert, genuinely curious, lively but never an announcer, subtle smile and natural breaths. "
-            "React to the other host instead of reciting a news bulletin."
+            "Speak as if replying to a friend. No listener greetings, slogans or radio-announcer delivery."
         ),
     },
     "KERN": {
@@ -32,7 +32,7 @@ VOICE_PROFILES = {
         "instruction": (
             "Speak native French from France. An adult man in a relaxed podcast discussion: "
             "thoughtful, gently ironic, grounded, with dry comic timing and natural conversational pauses. "
-            "Never sound like an advertisement, audiobook, or monotonous news reader."
+            "Respond naturally to Nova, with short thinking pauses; never narrate at the audience."
         ),
     },
 }
@@ -59,12 +59,15 @@ def load_episode(path: Path) -> dict:
             raise ValueError(f"Invalid text length on line {n}")
         if not isinstance(turn.get("delivery", ""), str) or len(turn.get("delivery", "")) > 180:
             raise ValueError(f"Invalid acting instruction on line {n}")
+        pause_ms = turn.get("pause_after_ms")
+        if pause_ms is not None and (type(pause_ms) is not int or not 60 <= pause_ms <= 900):
+            raise ValueError(f"Invalid conversational pause on line {n}")
     return payload
 
 
 def plan(episode: dict, mode: str, size: str) -> dict:
     return {
-        "title": episode.get("title", "SWAPP ON AIR"),
+        "title": episode.get("title", "PODCAST"),
         "turns": len(episode["segments"]),
         "models": [ALLOWED_MODELS[(mode, size)]],
         "mode": mode,
@@ -72,6 +75,7 @@ def plan(episode: dict, mode: str, size: str) -> dict:
         "french": True,
         "offline_inference": True,
         "acting_instructions_supported": mode == "custom" and size == "standard",
+        "per_turn_conversational_pacing": True,
         "french_accent_requires_listening": True,
         "publication_allowed": False,
         "generates_audio": False,
@@ -162,10 +166,13 @@ def render(episode: dict, args: argparse.Namespace) -> tuple[Path, Path | None]:
             audio[:fade] *= np.linspace(0.0, 1.0, fade, dtype=np.float32)
             audio[-fade:] *= np.linspace(1.0, 0.0, fade, dtype=np.float32)
         pieces.append(audio)
-        # A different duration for questions and declarative lines sounds more human.
+        # Explicit turn-specific pauses prevent a metronomic interview rhythm.
+        # Keep existing drafts compatible with natural, shorter defaults.
         if i < len(episode["segments"]):
-            gap = 0.18 if words.endswith("?") else 0.22 if words.endswith("!") else 0.24
-            pieces.append(np.zeros(round(sr * gap), dtype=np.float32))
+            gap_ms = turn.get("pause_after_ms")
+            if gap_ms is None:
+                gap_ms = 115 if words.endswith("?") else 155 if words.endswith("!") else 185
+            pieces.append(np.zeros(round(sr * gap_ms / 1000), dtype=np.float32))
         print(f"Rendered {speaker} {i}/{len(episode['segments'])}: {audio.size / sr:.1f} s", flush=True)
 
     if not pieces or not sample_rate:
@@ -210,7 +217,7 @@ def encode_existing_wav(output: Path) -> Path:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="SWAPP ON AIR natural-voice local pilot (no paid API)")
+    parser = argparse.ArgumentParser(description="PODCAST natural-voice local pilot (no paid API)")
     parser.add_argument("--episode", type=Path, default=Path("data/swapp-on-air/voice-natural-demo.json"))
     parser.add_argument("--mode", choices=("custom", "clone"), default="custom")
     parser.add_argument("--size", choices=("light", "standard"), default="standard")
