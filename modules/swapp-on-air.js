@@ -1,5 +1,5 @@
 'use strict';
-// SWAPP ON AIR — only real, reviewed, existing MP3s are publicly playable.
+// PODCAST — only real, reviewed, existing MP3s are publicly playable.
 const fs=require('node:fs'),path=require('node:path');
 const {layout}=require('./swapp-news/site-shell');
 const root=path.resolve(__dirname,'..');
@@ -59,7 +59,7 @@ function publicEpisodes({index=manifest,mediaDir=audioRoot}={}){
  return items.sort((a,b)=>b.publishedAt.localeCompare(a.publishedAt)).slice(0,60);
 }
 const stylesheet='<link rel="stylesheet" href="/assets/swapp-on-air.css?v=20261105-1">';
-const rssLink='<link rel="alternate" type="application/rss+xml" title="SWAPP ON AIR" href="/on-air/feed.xml">';
+const rssLink='<link rel="alternate" type="application/rss+xml" title="PODCAST" href="/on-air/feed.xml">';
 const niceDate=stamp=>new Intl.DateTimeFormat('fr-FR',{dateStyle:'long',timeZone:'UTC'}).format(new Date(stamp));
 const lengthText=sec=>Math.floor(sec/60)+' min '+String(sec%60).padStart(2,'0')+' s';
 function play(e){
@@ -68,7 +68,7 @@ function play(e){
  'Lecture audio non disponible dans ce navigateur.</audio><a href="'+esc(e.audioUrl)+'" download>Télécharger le MP3</a></section>';
 }
 function schema(episodes){
- const data={'@context':'https://schema.org','@type':'PodcastSeries',name:'SWAPP ON AIR',inLanguage:'fr-FR',
+ const data={'@context':'https://schema.org','@type':'PodcastSeries',name:'PODCAST',inLanguage:'fr-FR',
   description:'Nova et Kern parlent des jeux vidéo sur SWAPP.',url:'https://swapp.tv/on-air',
   publisher:{'@type':'Organization',name:'SWAPP'},
   hasPart:episodes.map(e=>({'@type':'PodcastEpisode',name:e.title,url:'https://swapp.tv'+e.url,
@@ -78,8 +78,8 @@ function schema(episodes){
 }
 function intro(){
  return '<header class="oa-hero"><span class="oa-kicker">SWAPP / PODCAST</span>'+
-  '<h1>SWAPP <em>ON AIR</em></h1><p class="oa-lead">Le jeu vidéo, ça se raconte.</p>'+
-  '<p>Nova s’enthousiasme, Kern questionne. Des annonces vérifiées, deux regards et les jeux que tu peux retrouver sur SWAPP.</p>'+
+  '<h1>PODCAST</h1><p class="oa-lead">Le jeu vidéo, ça se raconte.</p>'+
+  '<p>Nova et Kern discutent du jeu vidéo, se répondent, ne sont pas toujours d’accord et explorent ensemble les annonces vérifiées.</p>'+
   '<div class="oa-hosts"><div><span>N</span><strong>NOVA</strong><small>Curieuse et spontanée</small></div>'+
   '<div><span>K</span><strong>KERN</strong><small>Analytique et sceptique</small></div></div></header>';
 }
@@ -94,7 +94,7 @@ function home(episodes=publicEpisodes(),{canManage=false}={}){
   '<h2 id="oa-list-title">Pas encore d’enregistrement validé.</h2>'+
   '<p>Les voix Nova et Kern sont en cours de production. Aucun épisode n’a été approuvé pour diffusion : aucun bouton Lecture fictif n’est affiché.</p>'+
   '<a href="/actus">Lire les dernières actualités →</a></section>';
- return layout({title:'SWAPP ON AIR — podcast gaming',active:'actus',description:'L’émission gaming de SWAPP avec Nova et Kern.',
+ return layout({title:'PODCAST — podcast gaming',active:'actus',description:'La conversation gaming de Nova et Kern, deux voix de synthèse sur SWAPP.',
   metadata:'<link rel="canonical" href="https://swapp.tv/on-air">'+rssLink+schema(episodes),
   content:'<main class="oa-page">'+intro()+rows+
   '<footer class="oa-end"><a href="/actus">Actualités</a><a href="/tv">SWAPP TV</a><a href="/on-air/feed.xml">Flux RSS</a>'+
@@ -108,10 +108,10 @@ function episodePage(slug,episodes=publicEpisodes()){
   e.sources.map(s=>'<li><a href="'+esc(s.url)+'" target="_blank" rel="nofollow noopener noreferrer">'+esc(s.label)+'</a></li>').join('')+'</ul></section>':'';
  const articles=e.articles.length?'<section class="oa-info"><h2>Lire aussi sur SWAPP</h2><ul>'+
   e.articles.map(u=>'<li><a href="'+esc(u)+'">'+esc(u.slice(7).replace(/-/g,' '))+'</a></li>').join('')+'</ul></section>':'';
- return layout({title:e.title+' | SWAPP ON AIR',active:'actus',description:e.description,
+ return layout({title:e.title+' | PODCAST',active:'actus',description:e.description,
   metadata:'<link rel="canonical" href="https://swapp.tv'+esc(e.url)+'">'+rssLink+
   '<meta property="og:title" content="'+esc(e.title)+'">',
-  content:'<main class="oa-page oa-single"><a class="oa-back" href="/on-air">← SWAPP ON AIR</a>'+
+  content:'<main class="oa-page oa-single"><a class="oa-back" href="/on-air">← PODCAST</a>'+
   '<header><span class="oa-kicker">'+esc(niceDate(e.publishedAt))+' · NOVA / KERN</span>'+
   '<h1>'+esc(e.title)+'</h1><p class="oa-lead">'+esc(e.description)+'</p></header>'+
   play(e)+sources+articles+'<a class="oa-back" href="/on-air">Tous les épisodes →</a></main>',
@@ -138,7 +138,7 @@ function feedXml(episodes=publicEpisodes()){
  return '<?xml version="1.0" encoding="UTF-8"?>'+
   '<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" '+
   'xmlns:atom="http://www.w3.org/2005/Atom">'+
-  '<channel><title>SWAPP ON AIR</title>'+
+  '<channel><title>PODCAST</title>'+
   '<link>'+base+'/on-air</link>'+
   '<atom:link href="'+base+'/on-air/feed.xml" rel="self" type="application/rss+xml"/>'+
   '<language>fr-FR</language>'+
