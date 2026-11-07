@@ -68,6 +68,11 @@ test('Edge game capture prefers a full monitor while retaining user choice',asyn
  assert.equal(stream.getVideoTracks().length,1);
  stream._swappCleanup();
 });
+test('normal bordered game windows do not require borderless fullscreen mode',()=>{
+ assert.match(script,/Fenêtre avec bordures \(jeu en mode fenêtré\)/);
+ assert.match(script,/Pas besoin de mode sans bordure/);
+ assert.doesNotMatch(script,/Fenêtre de jeu \(sans bordure\)/);
+});
 test('game window preference uses a window picker without excluding whole monitors',async()=>{
  const ctx=studio();
  const stream=await ctx.api.capture({source:'game-window',video:{width:{ideal:1280},frameRate:{ideal:30}}});
