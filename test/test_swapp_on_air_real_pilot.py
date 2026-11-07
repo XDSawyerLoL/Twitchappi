@@ -25,6 +25,10 @@ class TestOnAirRealPilot(unittest.TestCase):
             self.assertTrue(3<=len(turn["text"].strip())<=350)
             self.assertLessEqual(len(turn["delivery"]),180)
         self.assertTrue(episode["sources"])
+        self.assertGreaterEqual(sum("?" in t["text"] for t in episode["segments"]),8)
+        self.assertGreaterEqual(sum("Kern" in t["text"] or "Nova" in t["text"] for t in episode["segments"]),2)
+        self.assertTrue(all(60 <= t["pause_after_ms"] <= 900 for t in episode["segments"]))
+        self.assertFalse(any("bienvenue" in t["text"].lower() or "on se retrouve" in t["text"].lower() or "on air" in t["text"].lower() for t in episode["segments"]))
         self.assertTrue(all(x["url"].startswith("https://www.nintendo.com/") for x in episode["sources"]))
 
     def test_local_render_dry_run_loads_real_pilot_with_no_models(self):
@@ -32,6 +36,7 @@ class TestOnAirRealPilot(unittest.TestCase):
             cwd=ROOT,text=True,capture_output=True,timeout=15,check=True)
         payload=json.loads(result.stdout.split("Dry run only:")[0])
         self.assertEqual(payload["turns"],30)
+        self.assertTrue(payload["per_turn_conversational_pacing"])
         self.assertFalse(payload["generates_audio"])
         self.assertFalse(payload["publication_allowed"])
 
@@ -64,6 +69,7 @@ class TestOnAirRealPilot(unittest.TestCase):
         self.assertIn("function Open-SwappStudio",script)
         self.assertIn("ToBase64String($bytes)",script)
         self.assertIn("if(Test-Path $mp3)",script)
+        self.assertIn("swapp-podcast-pikmin-dialogue-v2.wav",script)
         self.assertIn("if(Test-Path $output)",script)
         self.assertIn("--encode-only",script)
         self.assertIn("function Test-PythonVersion",script)
