@@ -31,7 +31,7 @@
    '<details class="swapp-news-more"><summary aria-label="Ouvrir les rubriques Actualité" title="Rubriques Actualité">⌄</summary>'+
    '<div class="swapp-news-menu"><a href="/actus"'+(active==='actus'?' aria-current="page"':'')+'>Tous les articles</a>'+
    '<a href="/bandes-annonces"'+(active==='trailers'?' aria-current="page"':'')+'>Vidéos et bandes-annonces</a>'+ 
-   '<a href="/on-air"'+(active==='onair'?' aria-current="page"':'')+'>Podcast ON AIR</a>'+  
+   '<a href="/on-air"'+(active==='onair'?' aria-current="page"':'')+'>PODCAST</a>'+  
    '<a href="/guides/aion-2"'+(active==='guides'?' aria-current="page"':'')+'>Guide Aion 2</a></div></details></div>';
  }
  function discoverNav(active){
@@ -56,7 +56,7 @@
    '<span class="swapp-mobile-menu-title">ACTUALITÉ</span>'+
    '<a href="/bandes-annonces"'+(active==='trailers'?' class="active" aria-current="page"':'')+'>Vidéos et bandes-annonces</a>'+ 
    '<a href="/guides/aion-2"'+(active==='guides'?' class="active" aria-current="page"':'')+'>Guide Aion 2</a>'+ 
-   '<a href="/on-air"'+(active==='onair'?' class="active" aria-current="page"':'')+'>Podcast ON AIR</a>'+ 
+   '<a href="/on-air"'+(active==='onair'?' class="active" aria-current="page"':'')+'>PODCAST</a>'+ 
    '<span class="swapp-mobile-menu-title">SWAPP</span>'+
    other.map(x=>link(x,active)).join('')+link(account,active)+'</div></details>';
  }
