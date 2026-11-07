@@ -94,6 +94,16 @@ test('Camera mode does not need screen capture or microphone tracks',async()=>{
  assert.equal(result.getAudioTracks().length,0);
  assert.equal(ctx.stats().captures,0);
 });
+
+test('browser-only diagnostic inspects video without publishing or requiring OBS',()=>{
+ assert.match(script,/function installCaptureProbe\(panel,editor,launch\)/);
+ assert.match(script,/getDisplayMedia\(options\)/);
+ assert.match(script,/options\.audio=false/);
+ assert.match(script,/getImageData\(0,0,48,27\)/);
+ assert.match(script,/capture.*locale|Capture locale active/);
+ assert.match(script,/launch\?\.addEventListener\('click',close,\{capture:true\}\)/);
+ assert.match(script,/for\(const track of old\.getTracks\(\)\)/);
+});
 test('studio does not send audio, credentials or pixels to paid third-party APIs',()=>{
  assert.doesNotMatch(script,/https?:\/\/(?:api\.|www\.)?(?:openai|googleapis|cloudinary|agora)\./i);
  assert.match(script,/navigator\.mediaDevices/);
