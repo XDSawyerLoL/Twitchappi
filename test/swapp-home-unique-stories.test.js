@@ -41,7 +41,7 @@ async function render(articles){
  const timers=[];const calls=[];
  const document={getElementById:id=>id==='home'?root:null,createElement:tag=>new Element(tag),addEventListener(){},visibilityState:'visible'};
  const fetch=async url=>{calls.push(url);return {ok:true,json:async()=>url==='/api/actus'?{articles}:{items:[]}}};
- const context={document,window:{addEventListener(){},dispatchEvent(){}},CustomEvent:class{constructor(type,options){this.type=type;this.detail=options?.detail}},MutationObserver:class{observe(){}},
+ const context={document,window:{addEventListener(){},dispatchEvent(){},setInterval(){}},CustomEvent:class{constructor(type,options){this.type=type;this.detail=options?.detail}},MutationObserver:class{observe(){}},
   setTimeout:(cb,ms)=>{if(ms===220)timers.push(cb);return 1},clearTimeout(){},fetch,AbortController,URL};
  vm.runInNewContext(script,context,{timeout:2000});
  for(let i=0;i<30;i++){while(timers.length)timers.shift()();await Promise.resolve()}
