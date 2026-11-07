@@ -65,6 +65,108 @@
   }catch(error){if(status)status.textContent=error.message;return null}
   finally{busy=false}
  }
+
+ // Browser-only diagnostic: preview what Edge actually returns, without publishing a live.
+ // Pixels are inspected locally on a tiny canvas; no screenshots leave the device.
+ function installCaptureProbe(panel,editor,launch){
+  if(panel.querySelector('[data-swapp-capture-probe]'))return;
+  const section=make('section','swapp-browser-capture-probe');
+  section.dataset.swappCaptureProbe='1';
+  const heading=make('h3','','Tester la capture du jeu');
+  const explanation=make('p','swapp-studio-device-note',
+   'Test local, sans diffusion et sans OBS. Partage « Écran entier », affiche le jeu, puis vérifie si l’aperçu reste noir.');
+  const row=make('div','swapp-studio-editor-actions');
+  const begin=make('button','btn secondary','Tester sans diffuser');
+  begin.type='button';
+  const end=make('button','btn ghost','Arrêter le test');
+  end.type='button';end.hidden=true;
+  const feedback=make('p','swapp-studio-capture-feedback','Aucun test lancé.');
+  feedback.setAttribute('role','status');feedback.setAttribute('aria-live','polite');
+  const preview=make('video','swapp-browser-capture-probe-video');
+  preview.muted=true;preview.autoplay=true;preview.playsInline=true;
+  preview.style.cssText='display:none;width:100%;max-width:560px;max-height:320px;aspect-ratio:16/9;object-fit:contain;background:#05070a;border:1px solid #48546b;border-radius:8px';
+  row.append(begin,end);
+  section.append(heading,explanation,row,preview,feedback);
+  panel.insertBefore(section,editor);
+  let captured=null,interval=null,firstCheck=null,serial=0;
+  const close=()=>{
+   serial++;
+   if(interval!==null){clearInterval(interval);interval=null}
+   if(firstCheck!==null){clearTimeout(firstCheck);firstCheck=null}
+   const old=captured;captured=null;
+   if(old)for(const track of old.getTracks())try{track.stop()}catch(_){}
+   preview.pause();preview.srcObject=null;preview.style.display='none';
+   begin.disabled=false;end.hidden=true;
+  };
+  function checkFrame(){
+   if(!captured)return;
+   if(!section.isConnected){close();return}
+   const track=captured.getVideoTracks()[0];
+   if(!track||track.readyState!=='live'){close();feedback.textContent='Le partage d’écran a été interrompu.';return}
+   const surface=track.getSettings?.().displaySurface||'';
+   const source=surface==='monitor'?'écran entier':surface==='window'?'fenêtre':surface==='browser'?'onglet':'source choisie';
+   if(preview.readyState<2||!preview.videoWidth||!preview.videoHeight){
+    feedback.textContent='Capture '+source+' active, mais aucune image vidéo décodable dans l’aperçu Edge.';
+    return;
+   }
+   try{
+    const canvas=document.createElement('canvas');
+    canvas.width=48;canvas.height=27;
+    const ctx=canvas.getContext('2d',{willReadFrequently:true});
+    if(!ctx)throw Error('canvas unavailable');
+    ctx.drawImage(preview,0,0,48,27);
+    const px=ctx.getImageData(0,0,48,27).data;
+    let bright=0;
+    for(let i=0;i<px.length;i+=4){
+     if(Math.max(px[i],px[i+1],px[i+2])>35)bright++;
+    }
+    feedback.textContent=bright<12
+     ?'L’aperçu reçu depuis Edge est presque noir. Si une image claire est affichée sur le moniteur, le problème est dans la capture navigateur/Windows, avant SWAPP. Essaie le mode fenêtré sans bordure et désactive les overlays du jeu.'
+     :'Image reçue dans le navigateur ('+source+'). Si ta chaîne reste noire, il faut dépanner la diffusion ou le lecteur SWAPP, pas la sélection de la fenêtre.';
+   }catch(_){
+    feedback.textContent='Flux vidéo détecté ('+source+'). Contrôle visuellement l’aperçu ci-dessus ; analyse des pixels indisponible.';
+   }
+  }
+  begin.addEventListener('click',async()=>{
+   close();
+   const token=serial;
+   begin.disabled=true;
+   feedback.textContent='Sélectionne « Écran entier » et ton moniteur dans Edge ; aucun direct ne sera publié.';
+   try{
+    if(!navigator.mediaDevices?.getDisplayMedia)throw Error('Capture écran indisponible dans ce navigateur');
+    const options=screenCaptureOptions({
+     width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30,max:30}
+    });
+    options.audio=false;
+    const stream=await navigator.mediaDevices.getDisplayMedia(options);
+    if(token!==serial){for(const t of stream.getTracks())t.stop();return}
+    captured=stream;
+    const track=stream.getVideoTracks()[0];
+    if(!track)throw Error('Aucune piste vidéo fournie par Edge');
+    track.addEventListener('ended',()=>{
+     if(captured===stream){close();feedback.textContent='Le partage d’écran a été arrêté dans Edge.'}
+    },{once:true});
+    preview.srcObject=stream;preview.style.display='block';
+    end.hidden=false;
+    feedback.textContent='Capture locale active. Affiche le jeu puis regarde l’aperçu. Aucun flux n’est publié.';
+    void preview.play().catch(()=>{feedback.textContent='Lecture de la prévisualisation bloquée : réessaie après avoir activé l’onglet SWAPP.'});
+    firstCheck=setTimeout(checkFrame,1700);
+    interval=setInterval(checkFrame,2200);
+   }catch(error){
+    if(token!==serial)return;
+    close();
+    const type=String(error?.name||'');
+    feedback.textContent=type==='NotAllowedError'||type==='AbortError'
+     ?'Partage annulé ou refusé dans Edge.'
+     :type==='NotReadableError'
+      ?'Edge ne peut pas lire la source choisie (verrouillage Windows ou GPU).'
+      :'Capture impossible : '+String(error?.message||type||'erreur inconnue').slice(0,140);
+   }
+  });
+  end.addEventListener('click',()=>{close();feedback.textContent='Test arrêté, aucun direct publié.'});
+  // Free GPU resources before a real stream starts.
+  launch?.addEventListener('click',close,{capture:true});
+ }
  function connectManager(){
   const manager=$('#manager'),s=current();
   if(!manager||!s?.session?.local||!manager.querySelector('.managerHero'))return;
@@ -137,6 +239,7 @@
   captureFeedback.setAttribute('role','status');
   captureFeedback.setAttribute('aria-live','polite');
   panel.insertBefore(captureFeedback,editor);
+  installCaptureProbe(panel,editor,launch);
   // OBS Virtual Camera is a browser video device, not a screen-capture window.
   // Selecting it provides a practical fallback for games blocked by Edge capture.
   const sourceField=$('#liveSource',manager);
