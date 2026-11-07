@@ -25,6 +25,19 @@ class VoicePilotPlanningTests(unittest.TestCase):
         self.assertFalse(episode["publication_allowed"])
         self.assertEqual({t["speaker"] for t in episode["segments"]}, {"NOVA", "KERN"})
 
+    def test_explicit_dialogue_pause_is_checked_without_loading_voice_models(self):
+        with tempfile.TemporaryDirectory() as folder:
+            data = self.module.load_episode(EPISODE)
+            data["segments"][0]["pause_after_ms"] = 100
+            p = Path(folder) / "valid.json"
+            p.write_text(json.dumps(data), encoding="utf-8")
+            self.assertEqual(self.module.load_episode(p)["segments"][0]["pause_after_ms"], 100)
+            for invalid in [0, 2000, "100", True]:
+                data["segments"][0]["pause_after_ms"] = invalid
+                p.write_text(json.dumps(data), encoding="utf-8")
+                with self.assertRaises(ValueError):
+                    self.module.load_episode(p)
+
     def test_voice_clone_and_custom_use_local_models(self):
         p = self.module.plan(self.module.load_episode(EPISODE), "custom", "light")
         self.assertEqual(p["models"], ["Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice"])
