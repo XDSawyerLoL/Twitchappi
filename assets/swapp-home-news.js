@@ -196,6 +196,40 @@
    window.SwappHomeMotion?.attach?.(tile,feature);
    return feature.slug;
  }
+ // Compact, real editorial shortcuts fill the intro column beside the trailer.
+ // Prefer stories outside the four main cards, without repeating the hero/video.
+ function updateEditorialBriefs(section,articles,featuredSlug,teaserSlug,gridArticles=[]){
+   const intro=section.querySelector('.swapp-home-editorial-intro');
+   if(!intro)return;
+   let briefs=intro.querySelector('.swapp-home-editorial-briefs');
+   const excluded=new Set([featuredSlug,teaserSlug].filter(Boolean));
+   const eligible=articles.filter(item=>slugOk(item.slug)
+     &&String(item.title||'').trim()
+     &&String(item.status||'published').toLowerCase()==='published'
+     &&!excluded.has(item.slug));
+   const inGrid=new Set(gridArticles.map(item=>item.slug));
+   const elsewhere=eligible.filter(item=>!inGrid.has(item.slug));
+   const selection=[...elsewhere,...eligible.filter(item=>inGrid.has(item.slug))].slice(0,3);
+   if(!selection.length){briefs?.remove();return;}
+   if(!briefs){
+     briefs=el('nav','swapp-home-editorial-briefs');
+     briefs.setAttribute('aria-label','À lire aussi sur SWAPP');
+     intro.append(briefs);
+   }
+   briefs.replaceChildren(el('small','swapp-home-editorial-briefs-label','À DÉCOUVRIR AUSSI'));
+   for(const item of selection){
+     const link=el('a','swapp-home-editorial-brief');
+     link.href='/actus/'+encodeURIComponent(item.slug);
+     link.addEventListener('click',event=>navigateArticle(event,item.slug,item.game));
+     const copy=el('span','swapp-home-editorial-brief-copy');
+     copy.append(
+       el('small','swapp-home-editorial-brief-tag',String(item.game||item.category||'Actualité').slice(0,70)),
+       el('strong','swapp-home-editorial-brief-title',String(item.title).slice(0,125))
+     );
+     link.append(copy,el('span','swapp-home-editorial-brief-arrow','→'));
+     briefs.append(link);
+   }
+ }
  function applyArticles(section,grid,modern,articles){
      if(!section.isConnected)return;
      section.setAttribute('aria-busy','false');
@@ -207,6 +241,7 @@
      window.dispatchEvent(new CustomEvent('swapp:home-news-ready',{detail:{articles:valid}}));
      grid.replaceChildren();
      if(!valid.length){
+       updateEditorialBriefs(section,[],null,null);
        decorateHero(modern,[]);
        const retryState=el('div','swapp-home-empty');
        retryState.append(el('p','','Les actualités sont momentanément indisponibles.'));
@@ -232,7 +267,9 @@
      teaserSlug=updateVideoTeaser(section,valid,featuredSlug);
      const visible=valid.filter(item=>item.slug!==featuredSlug&&item.slug!==teaserSlug);
      // Without a valid illustrated lead, do not discard the fifth article.
-     visible.slice(0,modern&&featuredSlug?4:5).forEach((item,i)=>grid.append(story(item,featuredSlug?i+1:i)));
+     const gridArticles=visible.slice(0,modern&&featuredSlug?4:5);
+     gridArticles.forEach((item,i)=>grid.append(story(item,featuredSlug?i+1:i)));
+     updateEditorialBriefs(section,valid,featuredSlug,teaserSlug,gridArticles);
 
  }
  function mount(){
