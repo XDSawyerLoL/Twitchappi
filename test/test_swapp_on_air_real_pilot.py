@@ -60,7 +60,7 @@ class TestOnAirRealPilot(unittest.TestCase):
         self.assertIn("--clone-size','light",ps)
         self.assertIn("--render','--allow-download",ps)
         self.assertIn("Read-Host",ps)
-        self.assertIn("swapp-on-air-open-studio.py",ps)
+        self.assertIn("function Open-SwappStudio",ps)
         self.assertNotIn("elevenlabs",ps.lower())
         self.assertNotIn("api-key",ps.lower())
 
