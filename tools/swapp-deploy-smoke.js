@@ -108,10 +108,10 @@ async function verify(){
  // ON AIR must be a real listening catalogue with an authenticated local
  // studio, not a dead podcast button. This check needs NO unpublished MP3.
  const onAir=await request(origin,'/on-air');
- check(onAir.body.includes('SWAPP ON AIR')&&
+ check(onAir.body.includes('PODCAST')&&
   (onAir.body.includes('Pas encore d’enregistrement validé')||
    onAir.body.includes('oa-episodes')),
-  'SWAPP ON AIR podcast page is missing or stale');
+  'PODCAST podcast page is missing or stale');
  const onAirApi=await request(origin,'/api/on-air/episodes');
  let onAirData;
  try{onAirData=JSON.parse(onAirApi.body)}catch{throw Error('/api/on-air/episodes returned invalid JSON')}
@@ -119,13 +119,13 @@ async function verify(){
   'ON AIR catalog missing or invalid');
  if(process.env.SWAPP_VERIFY_ON_AIR_PUBLISHED==='1')
   check(onAirData.episodes.length>0,
-   'SWAPP ON AIR HAS NO APPROVED MP3. Upload a real episode from /on-air/studio.');
+   'PODCAST HAS NO APPROVED MP3. Upload a real episode from /on-air/studio.');
 
  const rss=await request(origin,'/on-air/feed.xml');
  check((rss.response.headers.get('content-type')||'').includes('application/rss+xml')&&
   rss.body.startsWith('<?xml version="1.0" encoding="UTF-8"?>')&&
-  rss.body.includes('<title>SWAPP ON AIR</title>'),
-  'ON AIR podcast RSS feed missing or malformed');
+  rss.body.includes('<title>PODCAST</title>'),
+  'PODCAST RSS feed missing or malformed');
  const enclosures=(rss.body.match(/<enclosure /g)||[]).length;
  check(enclosures===onAirData.episodes.length,
   'ON AIR RSS mismatch: feed must contain every real audio episode exactly once');
