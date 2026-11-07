@@ -33,6 +33,14 @@ function Open-SwappStudio {
  Write-Host 'Selectionne le fichier MP3, ecoute-le et approuve le contenu.'
  Start-Process $url
 }
+function Test-PodcastAudio {
+ if(!(Test-Path $output)){Fail 'Controle audio impossible : WAV absent'}
+ $qc=Join-Path $repo 'scripts\\swapp-podcast-audio-preflight.py'
+ if(!(Test-Path $qc)){Fail 'Controle audio indisponible'}
+ & $python $qc $output
+ if($LASTEXITCODE -ne 0){Fail 'Le controle qualite WAV a echoue : episode non pret pour le studio'}
+ Write-Host 'Controle WAV reussi. Ecoute humaine integrale toujours obligatoire.' -ForegroundColor Green
+}
 function Test-PythonVersion($exe,$version){
  $prior=$ErrorActionPreference
  try{
@@ -50,6 +58,8 @@ function Test-PythonVersion($exe,$version){
 }
 Write-Host 'PODCAST - NOVA / KERN - dialogue naturel V2 (nouvelle prise)' -ForegroundColor Cyan
 if(Test-Path $mp3){
+ if(!(Test-Path $python)){Fail 'Environnement Python introuvable : impossible de valider le MP3 existant'}
+ Test-PodcastAudio
  Write-Host 'MP3 deja genere : aucun nouveau telechargement ni installation.' -ForegroundColor Green
  Open-SwappStudio
  exit 0
@@ -88,6 +98,7 @@ if(Test-Path $output){
  & $python (Join-Path $repo 'scripts\swapp-on-air-qwen-local.py') --episode $episode --output $output --encode-only
  if($LASTEXITCODE -ne 0){Fail 'Conversion WAV vers MP3 impossible; le WAV reste intact'}
  if(!(Test-Path $mp3)){Fail 'Aucun MP3 valide genere'}
+ Test-PodcastAudio
  Open-SwappStudio
  exit 0
 }
@@ -127,5 +138,6 @@ Write-Host 'Generation locale de deux voix francaises distinctes : aucune cle d 
 & $python @args
 if($LASTEXITCODE -ne 0){Fail 'Synthese interrompue. Verifie le GPU, la RAM et la connexion au telechargement des poids.'}
 if(!(Test-Path $mp3)){Fail 'Le WAV existe peut-etre, mais aucun MP3 encode. Verifie imageio-ffmpeg.'}
+Test-PodcastAudio
 Open-SwappStudio
 Write-Host "MP3 genere. Ecoute-le integralement avant toute publication : $mp3" -ForegroundColor Green
