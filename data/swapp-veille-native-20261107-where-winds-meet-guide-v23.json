@@ -1,0 +1,81 @@
+{
+  "kind": "swapp-editorial-release",
+  "release": "2026-11-07-where-winds-meet-guide-v23",
+  "articles": [
+    {
+      "slug": "where-winds-meet-guide-debuter-progression-version-2-3",
+      "title": "Where Winds Meet : le guide pour bien débuter et progresser en version 2.3",
+      "summary": "Comptes PC, PS5 et mobile, combats, Qingzhou, arts martiaux, sectes et PvP : guide SWAPP documenté et actualisé pour la version 2.3.",
+      "body": "Guide SWAPP vérifié le 7 novembre 2026, basé sur la version 2.3 et les correctifs officiels du 29 octobre 2026. Les conseils éditoriaux sont distingués des règles annoncées par le studio. La vidéo intégrée est la bande-annonce de lancement officielle de 2025 : elle ne présente pas spécifiquement le contenu du patch 2.3.\n\n## 1. Avant votre premier personnage : reliez vos comptes\n\n**Le piège majeur est la création de deux personnages séparés sur deux plateformes.** Le guide officiel de progression croisée du 10 novembre 2025 précise qu'il faut relier le compte de la nouvelle plateforme avant d'y créer un personnage : deux comptes disposant déjà chacun d'un personnage ne peuvent pas être associés directement. Depuis l'écran titre, ouvrez `User Center → Link Account`. En jeu, le chemin annoncé est `Settings → Other → User Center → Link Account`.\n\nCette règle concerne les plateformes PC et PlayStation documentées au lancement ; la FAQ mobile du 9 décembre 2025 confirme également la progression et le jeu croisés, sous réserve de liaison préalable du compte ou de connexion directe avec le compte existant. **Conseil SWAPP :** effectuez l'association sur la seconde plateforme avant d'y valider la création du personnage, puis contrôlez que la sauvegarde attendue apparaît. En cas d'erreur, utilisez le support officiel plutôt que de supprimer des données au hasard.\n\n## 2. Les premières heures : apprenez une voie, pas un classement de dégâts\n\nNe choisissez pas votre style à partir d'un tableau de performances non daté. Depuis le correctif du 28 mai 2026, le `Path Guide` comprend un `Path Tutorial` permettant d'essayer les compétences, les spécificités et les enchaînements élémentaires de chaque voie. **Méthode SWAPP :** testez un style, jouez quelques combats, notez ce qui vous fait échouer (lecture d'une attaque, portée, rythme ou gestion d'espace), puis revenez au tutoriel pour travailler précisément cet aspect.\n\nLa mise à jour du 15 octobre 2026 introduit aussi, dans les réglages, une option de mise en file des commandes de parade et d'esquive pendant la récupération ou l'animation d'une compétence. Vérifiez son état si vous avez l'impression que vos appuis ne répondent pas comme prévu : changer ce réglage n'est pas un « buff » de statistiques, mais peut modifier le ressenti du timing. Les changements d'équilibrage de la version 2.3 rendent les anciens « meilleurs builds » potentiellement obsolètes.\n\n## 3. Progressez sans gaspiller vos ressources\n\nLe `Improvement Guide - Bound for the World` a reçu le module `A Journey into Jianghu` en mai 2026, ainsi qu'un accès `Quick Enhance` pour retrouver les matériaux d'amélioration. Il est plus sûr de lire ces indications en jeu avant de reproduire les dépenses conseillées dans une vidéo d'une autre saison.\n\nL'éditeur a aussi diminué les coûts de certaines réinitialisations d'arts martiaux et conversions d'Inner Ways dans le correctif du 28 mai. **Conseil SWAPP :** gardez une marge de ressources tant que vous n'avez pas trouvé un style plaisant ; n'achetez ni ne convertissez sur la foi de chiffres non vérifiés pour votre version. Aucun seuil de puissance, arbre de talents optimal ou montant d'investissement n'est inventé ici.\n\n## 4. Version 2.3 : quoi explorer à Qingzhou ?\n\nLa version 2.3 a introduit Qingzhou le 15 octobre 2026. Le studio met en avant la zone d'Eastern Peak, les activités locales et les personnages rencontrés en exploration. Le 29 octobre, il a ajouté la partie Penglai ainsi que trois expériences annoncées : `Mount Tai Blizzard` (enquête dans une auberge isolée), `Cast in Currents` (exploration d'un rêve où avancer ou reculer influe sur le temps) et `Spirit of the Grove` (repérer des anomalies à l'aide d'un miroir).\n\n**Itinéraire conseillé — sans prétendre être l'ordre imposé par le jeu :** terminez d'abord les étapes scénaristiques réellement affichées dans votre journal pour débloquer les zones, puis consacrez une séance à l'exploration de Qingzhou, une autre aux systèmes de combat, et une troisième aux expériences narratives de fin octobre. Pour `Cast in Currents`, observez le déplacement des éléments du décor lorsque vous avancez puis reculez avant de chercher une solution au hasard. Pour `Spirit of the Grove`, inspectez les changements discrets dans une même pièce ; la détection d'anomalies constitue le principe documenté de l'activité.\n\n## 5. Nouvelles armes, nouvelle voie et sectes\n\nLe studio a détaillé la voie `Silkbind - Wings`, associant l'art martial du `Waist Drum` aux attaques et contrôles du `Willowbend Fan`. Les mouvements du tambour reposent parfois sur des entrées rythmiques, avec des variantes annoncées orientées attaque, contrôle de foule ou soutien. Ce n'est **pas** une garantie que cette voie domine toutes les autres.\n\nL'`Inkbound Order` est une secte liée à l'apprentissage et aux débats. Le développeur annonce un dispositif de double appartenance : un personnage déjà affilié à une autre secte peut y étudier comme `Visiting Disciple`. **Conseil SWAPP :** consultez les conditions réellement affichées dans votre version avant de quitter une secte par précipitation. Les procédures d'entrée et les avantages peuvent changer ; ce guide ne prétend pas avoir testé chaque combinaison.\n\n## 6. Jouer sur mobile sans perdre ses repères\n\nLa FAQ mobile officielle du 9 décembre 2025 confirme le jeu croisé et explique plusieurs différences de commandes et de démarrage. Les nouveaux personnages mobiles commencent avec les difficultés `Story` ou `Recommended`, tandis que `Expert` devient accessible au niveau 30 selon cette FAQ. L'assistance à la parade est activée par défaut sur un nouveau personnage mobile ; les paramètres peuvent différer du PC. Les développeurs préviennent aussi que certaines scènes sont diffusées comme vidéos préenregistrées sur mobile pour préserver les performances.\n\n**Conseil SWAPP :** si vous jouez sur plusieurs appareils, revérifiez les paramètres d'esquive/parade et les commandes après chaque bascule. La parité parfaite du contrôle PC/mobile n'est pas affirmée, et les dispositions actuelles des touches doivent être vérifiées en jeu.\n\n## 7. PvP, matchmaking et horaires européens\n\nLa note officielle du 27 avril 2026 a défini des groupes d'arène régionaux ; `Yunya` regroupe notamment les serveurs européens, avec matchmaking et classements communs à l'intérieur du groupe. Elle décrit également des possibilités de changement de groupe, avec des conséquences sur le classement. Ne concluez donc pas qu'un classement représente tous les serveurs mondiaux.\n\nLa note du 30 octobre signale une anomalie corrigée d'horaires de guerre de guildes dans plusieurs régions et précise que les heures d'ouverture ne suivent pas mécaniquement les changements d'heure locaux. **Conseil SWAPP :** consultez systématiquement l'heure affichée dans l'interface d'événement plutôt qu'un ancien planning communautaire, notamment après le passage à l'heure d'hiver.\n\n## 8. Les cinq erreurs qui coûtent le plus cher\n\n1. Créer un nouveau personnage sur mobile, PC ou PS5 avant la liaison avec la progression existante.\n2. Se précipiter sur un « build ultime » provenant d'une ancienne version sans vérifier les ajustements de la 2.3.\n3. Dépenser toutes ses ressources avant d'avoir essayé les voies dans le `Path Tutorial`.\n4. Quitter sa secte sans vérifier les options d'appartenance et de disciple invité de l'`Inkbound Order`.\n5. Programmer des sessions PvP sur la base d'anciens horaires, sans regarder le serveur et le groupe d'arène.",
+      "game": "Where Winds Meet",
+      "games": [
+        "Where Winds Meet"
+      ],
+      "tags": [
+        "Guides",
+        "Where Winds Meet",
+        "Progression",
+        "Version 2.3",
+        "Qingzhou",
+        "Arts martiaux",
+        "PvP"
+      ],
+      "seo": {
+        "title": "Where Winds Meet : guide débutant et progression en 2.3",
+        "description": "Guide Where Winds Meet 2.3 : lier ses comptes, choisir ses arts martiaux, explorer Qingzhou, gérer ses ressources et éviter les erreurs."
+      },
+      "author": "Rédaction SWAPP",
+      "category": "Guides",
+      "contentType": "article",
+      "status": "published",
+      "revision": 1,
+      "image": null,
+      "thumbnail": null,
+      "publishedAt": "2026-11-07T15:14:13.735Z",
+      "trailerUrl": "https://www.youtube.com/watch?v=Al8yo6Pzvcg",
+      "commercialLinks": [],
+      "sources": [
+        {
+          "label": "Everstone / NetEase — Guide officiel de liaison des comptes, 10 novembre 2025",
+          "url": "https://www.wherewindsmeetgame.com/m/news/official/official/GlobalLaunch/CrossPlatform.html"
+        },
+        {
+          "label": "Everstone / NetEase — FAQ officielle mobile, 9 décembre 2025",
+          "url": "https://www.wherewindsmeetgame.com/news/official/MobileFAQ.html"
+        },
+        {
+          "label": "Everstone / NetEase — Notes de mise à jour du 28 mai 2026",
+          "url": "https://www.wherewindsmeetgame.com/news/official/527update.html"
+        },
+        {
+          "label": "Everstone / NetEase — Matchmaking et groupes d'arène, 27 avril 2026",
+          "url": "https://www.wherewindsmeetgame.com/m/news/official/PVP427.html"
+        },
+        {
+          "label": "Everstone / NetEase — Lettre des développeurs 2.3, partie 1, 9 octobre 2026",
+          "url": "https://www.wherewindsmeetgame.com/news/official/1009devletter.html"
+        },
+        {
+          "label": "Everstone / NetEase — Lettre des développeurs 2.3, partie 2, 14 octobre 2026",
+          "url": "https://www.wherewindsmeetgame.com/news/official/1014devletter.html"
+        },
+        {
+          "label": "Everstone / NetEase — Équilibrage des voies 2.3, 14 octobre 2026",
+          "url": "https://www.wherewindsmeetgame.com/news/official/PathBalance1015.html"
+        },
+        {
+          "label": "Everstone / NetEase — Lettre des développeurs 2.3, 28 octobre 2026",
+          "url": "https://www.wherewindsmeetgame.com/news/official/1028devletter.html"
+        },
+        {
+          "label": "Everstone / NetEase — Correctifs 2.3 du 29 octobre 2026",
+          "url": "https://www.wherewindsmeetgame.com/news/official/1029patchnotes.html"
+        },
+        {
+          "label": "Where Winds Meet — bande-annonce officielle de lancement, 14 novembre 2025",
+          "url": "https://www.youtube.com/watch?v=Al8yo6Pzvcg"
+        }
+      ]
+    }
+  ]
+}
