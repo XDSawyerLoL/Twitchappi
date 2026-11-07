@@ -140,7 +140,7 @@ def render(args: argparse.Namespace) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="SWAPP ON AIR — native-French Qwen voice design + stable cloning")
+    parser = argparse.ArgumentParser(description="PODCAST — native-French Qwen voice design + stable cloning")
     parser.add_argument("--episode", default="data/swapp-on-air/voice-natural-demo.json")
     parser.add_argument("--output", default=".swapp-on-air-private/nova-kern-designed.wav")
     parser.add_argument("--clone-size", choices=("light", "standard"), default="standard")
