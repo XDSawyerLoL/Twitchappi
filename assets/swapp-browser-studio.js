@@ -233,12 +233,12 @@
   if(screenOption)screenOption.textContent='Écran entier / moniteur';
   const sourceSelect=$('#liveSource',manager);
   if(sourceSelect && !sourceSelect.querySelector('option[value="game-window"]')){
-   const windowOption=make('option','','Fenêtre de jeu (sans bordure)');
+   const windowOption=make('option','','Fenêtre avec bordures (jeu en mode fenêtré)');
    windowOption.value='game-window';
    if(screenOption)screenOption.after(windowOption);else sourceSelect.prepend(windowOption);
   }
   const deviceNote=make('p','swapp-studio-device-note',
-   'Pour les jeux, préfère « Fenêtre de jeu (sans bordure) » ou « Écran entier ». Le plein écran exclusif peut rendre la capture noire, même avec tout le moniteur sélectionné. Dans le jeu, active « Fenêtré sans bordure » ; SWAPP ne peut pas forcer le navigateur à récupérer une surface inaccessible.');
+   'Pour Where Winds Meet, sélectionne le mode « Fenêtré » avec ses bordures Windows, puis choisis « Fenêtre avec bordures » dans SWAPP et la fenêtre du jeu dans Edge. Pas besoin de mode sans bordure. Le plein écran exclusif peut rester noir dans Edge. Le contour de sélection Windows ne fait pas partie de la vidéo diffusée.');
   panel.insertBefore(deviceNote,editor);
   const captureFeedback=make('p','swapp-studio-capture-feedback','');
   captureFeedback.id='swapp-capture-surface-notice';
@@ -577,7 +577,7 @@
     surfaceFeedback.textContent=selectedSurface==='monitor'
      ?'Capture active : écran entier. Affiche ton jeu sur ce moniteur.'
      :selectedSurface==='window'
-      ?'Capture active : fenêtre. Pour les jeux, utilise le mode fenêtré sans bordure. Si l’image reste noire, essaie « Écran entier / moniteur ».'
+      ?'Capture active : fenêtre de jeu, bordures Windows autorisées. Si elle reste noire, Edge ne fournit pas les images ; essaie « Écran entier / moniteur ».'
       :selectedSurface==='browser'
        ?'Capture active : onglet du navigateur, pas le jeu. Arrête et partage « Écran entier ».'
        :'Capture démarrée. Si le jeu manque à l’image, partage « Écran entier » dans Edge.';
