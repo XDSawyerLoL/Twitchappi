@@ -137,6 +137,55 @@
   captureFeedback.setAttribute('role','status');
   captureFeedback.setAttribute('aria-live','polite');
   panel.insertBefore(captureFeedback,editor);
+  // OBS Virtual Camera is a browser video device, not a screen-capture window.
+  // Selecting it provides a practical fallback for games blocked by Edge capture.
+  const sourceField=$('#liveSource',manager);
+  if(sourceField && !panel.querySelector('[data-swapp-camera-picker]')){
+   const cameraRow=make('div','swapp-studio-camera-picker');
+   cameraRow.dataset.swappCameraPicker='1';
+   const cameraLabel=make('label','','Caméra vidéo à diffuser (OBS Virtual Camera disponible ici)');
+   const cameraSelect=make('select','');
+   cameraSelect.id='swappStudioCameraDevice';
+   cameraSelect.setAttribute('aria-label','Caméra vidéo à diffuser');
+   const refresh=make('button','btn secondary','Actualiser les caméras');
+   refresh.type='button';
+   const cameraHelp=make('p','swapp-studio-device-note',
+    'Écran noir avec Edge ? Dans OBS : ajoute « Capture de jeu » ou « Capture d’écran », puis lance « Démarrer la caméra virtuelle ». Dans SWAPP, choisis « Caméra » et la caméra virtuelle OBS ci-dessus. La caméra virtuelle transporte la vidéo ; le son du jeu doit être ajouté séparément.');
+   cameraLabel.append(cameraSelect);
+   cameraRow.append(cameraLabel,refresh,cameraHelp);
+   panel.insertBefore(cameraRow,deviceNote);
+   let cameraRequest=0;
+   const reload=async()=>{
+    const id=++cameraRequest,selected=cameraSelect.value;
+    const fallback=make('option','','Caméra par défaut');fallback.value='';
+    cameraSelect.replaceChildren(fallback);
+    try{
+     const devices=await navigator.mediaDevices?.enumerateDevices?.()||[];
+     if(id!==cameraRequest||!cameraSelect.isConnected)return;
+     let count=0;
+     for(const device of devices){
+      if(device.kind!=='videoinput'||!device.deviceId)continue;
+      const option=make('option','',device.label||'Caméra '+(++count));
+      option.value=device.deviceId;
+      cameraSelect.append(option);
+     }
+     if(Array.from(cameraSelect.options).some(option=>option.value===selected))
+      cameraSelect.value=selected;
+     else{
+      const obs=Array.from(cameraSelect.options).find(option=>/obs.*(?:virtual|caméra|camera)|(?:virtual|caméra|camera).*obs/i.test(option.textContent));
+      if(obs)cameraSelect.value=obs.value;
+     }
+    }catch(_){/* Device labels may be hidden until camera permission is granted. */}
+   };
+   refresh.addEventListener('click',()=>void reload());
+   const updateVisibility=()=>{
+    cameraRow.hidden=!['camera','screen-camera'].includes(sourceField.value);
+    if(!cameraRow.hidden)void reload();
+   };
+   sourceField.addEventListener('change',updateVisibility);
+   navigator.mediaDevices?.addEventListener?.('devicechange',()=>{if(cameraRow.isConnected&&!cameraRow.hidden)void reload()});
+   updateVisibility();
+  }
   if(!navigator.mediaDevices?.getDisplayMedia){
    if(launch){launch.disabled=true;launch.title='Capture écran non disponible : utilise un navigateur récent en HTTPS';}
    status.textContent='Ce navigateur ne propose pas la capture d’écran sécurisée.';
@@ -392,8 +441,19 @@
  async function capture({source='screen',video={}}={}){
   if(!navigator.mediaDevices)throw Error('media_devices_unavailable');
   const devices=navigator.mediaDevices;
+  const deviceId=String(document.querySelector?.('#swappStudioCameraDevice')?.value||'').trim();
   if(source==='camera'){
-   return devices.getUserMedia({video,audio:{echoCancellation:true,noiseSuppression:true}});
+   const cameraConstraints=video&&typeof video==='object'&&!Array.isArray(video)?{...video}:{};
+   if(deviceId)cameraConstraints.deviceId={exact:deviceId};
+   const camera=await devices.getUserMedia({video:cameraConstraints,audio:false});
+   let microphone=null;
+   try{microphone=await devices.getUserMedia({video:false,audio:{echoCancellation:true,noiseSuppression:true}})}
+   catch(_){/* A denied microphone must not prevent OBS Virtual Camera video. */}
+   const resources=[camera,...(microphone?[microphone]:[])];
+   const outgoing=new MediaStream([...camera.getVideoTracks(),...(microphone?.getAudioTracks?.()||[])]);
+   outgoing._oryonSources=resources;
+   outgoing._swappCleanup=()=>{};
+   return outgoing;
   }
   const resources=[],screens=[],videos=[],listeners=[];
   let audioContext=null,animation=null,composite=null;
@@ -415,7 +475,7 @@
    let camera=null,microphone=null;
    if(source==='screen-camera'){
     try{
-     camera=await devices.getUserMedia({video:{width:{ideal:640},height:{ideal:360}},audio:{echoCancellation:true,noiseSuppression:true}});
+     camera=await devices.getUserMedia({video:{width:{ideal:640},height:{ideal:360},...(deviceId?{deviceId:{exact:deviceId}}:{})},audio:{echoCancellation:true,noiseSuppression:true}});
      resources.push(camera);
     }catch(e){console.warn('[SWAPP WEB STUDIO] camera unavailable, screen only');}
    }else{
