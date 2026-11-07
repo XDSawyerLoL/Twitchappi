@@ -68,6 +68,16 @@ test('Edge game capture prefers a full monitor while retaining user choice',asyn
  assert.equal(stream.getVideoTracks().length,1);
  stream._swappCleanup();
 });
+test('game window preference uses a window picker without excluding whole monitors',async()=>{
+ const ctx=studio();
+ const stream=await ctx.api.capture({source:'game-window',video:{width:{ideal:1280},frameRate:{ideal:30}}});
+ const options=ctx.stats().captureOptions;
+ assert.equal(options.video.displaySurface,'window');
+ assert.equal(options.monitorTypeSurfaces,'include');
+ assert.equal(options.video.width.ideal,1280);
+ assert.equal(stream.getVideoTracks().length,1);
+ stream._swappCleanup();
+});
 test('screen stream can run with no optional audio permissions',async()=>{
  const ctx=studio({screenAudio:false,microphone:false});
  const stream=await ctx.api.capture({source:'screen'});
