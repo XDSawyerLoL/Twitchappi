@@ -230,9 +230,15 @@
    if(link)link.textContent='Télécharger SWAPP Live (option OBS)';
   }
   const screenOption=$('#liveSource',manager)?.querySelector('option[value="screen"]');
-  if(screenOption)screenOption.textContent='Jeu / écran entier (recommandé)';
+  if(screenOption)screenOption.textContent='Écran entier / moniteur';
+  const sourceSelect=$('#liveSource',manager);
+  if(sourceSelect && !sourceSelect.querySelector('option[value="game-window"]')){
+   const windowOption=make('option','','Fenêtre de jeu (sans bordure)');
+   windowOption.value='game-window';
+   if(screenOption)screenOption.after(windowOption);else sourceSelect.prepend(windowOption);
+  }
   const deviceNote=make('p','swapp-studio-device-note',
-   'Jeu absent des fenêtres Edge ? Au lancement du direct, sélectionne « Écran entier » dans la fenêtre de partage, puis ton moniteur. Mets le jeu en mode fenêtré sans bordure si la capture reste noire. Edge ne permet pas à SWAPP de détecter ou choisir une fenêtre de jeu sans ton accord.');
+   'Pour les jeux, préfère « Fenêtre de jeu (sans bordure) » ou « Écran entier ». Le plein écran exclusif peut rendre la capture noire, même avec tout le moniteur sélectionné. Dans le jeu, active « Fenêtré sans bordure » ; SWAPP ne peut pas forcer le navigateur à récupérer une surface inaccessible.');
   panel.insertBefore(deviceNote,editor);
   const captureFeedback=make('p','swapp-studio-capture-feedback','');
   captureFeedback.id='swapp-capture-surface-notice';
@@ -528,10 +534,11 @@
 
  // A browser cannot enumerate game processes or force a particular window.
  // Prefer full-screen capture, but the user always controls the browser picker.
- function screenCaptureOptions(video={}){
+ function screenCaptureOptions(video={},surface='monitor'){
   const requested=video&&typeof video==='object'&&!Array.isArray(video)?video:{};
+  const selectedSurface=surface==='window'?'window':'monitor';
   return {
-   video:{...requested,displaySurface:'monitor'},
+   video:{...requested,displaySurface:selectedSurface},
    audio:true,
    monitorTypeSurfaces:'include',
    selfBrowserSurface:'exclude',
@@ -561,7 +568,7 @@
   const resources=[],screens=[],videos=[],listeners=[];
   let audioContext=null,animation=null,composite=null;
   try{
-   const screen=await devices.getDisplayMedia(screenCaptureOptions(video));
+   const screen=await devices.getDisplayMedia(screenCaptureOptions(video,source==='game-window'?'window':'monitor'));
    resources.push(screen);screens.push(screen);
    let selectedSurface='';
    try{selectedSurface=screen.getVideoTracks()?.[0]?.getSettings?.()?.displaySurface||''}catch(_){}
@@ -570,7 +577,7 @@
     surfaceFeedback.textContent=selectedSurface==='monitor'
      ?'Capture active : écran entier. Affiche ton jeu sur ce moniteur.'
      :selectedSurface==='window'
-      ?'Capture active : fenêtre. Si le jeu est invisible ou noir, relance et partage « Écran entier ».'
+      ?'Capture active : fenêtre. Pour les jeux, utilise le mode fenêtré sans bordure. Si l’image reste noire, essaie « Écran entier / moniteur ».'
       :selectedSurface==='browser'
        ?'Capture active : onglet du navigateur, pas le jeu. Arrête et partage « Écran entier ».'
        :'Capture démarrée. Si le jeu manque à l’image, partage « Écran entier » dans Edge.';
