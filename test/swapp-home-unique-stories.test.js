@@ -121,8 +121,36 @@ test('trailer is full-width cinematic 16:9 and responsive rather than 290px wide
  assert.match(css,/@media\(max-width:980px\)/);
  assert.match(css,/@media\(max-width:600px\)/);
  assert.doesNotMatch(css,/width:clamp\(190px,19vw,290px\)/);
- assert.match(html,/swapp-home-news\.js\?v=20261106-home-flow-v2/);
+ assert.match(html,/swapp-home-news\.js\?v=20261107-editorial-briefs-v1/);
  assert.match(html,/swapp-video-gallery\.css\?v=20261025-latest-video-v1/);
+});
+
+test('editorial briefs use published article destinations and keep hero, trailer and grid intact',async()=>{
+ const data=Array.from({length:10},(_,i)=>make(i));
+ const view=await render(data);
+ const briefs=view.shelf.querySelector('.swapp-home-editorial-briefs');
+ assert.ok(briefs,'compact editorial headlines appear beside the trailer');
+ const links=briefs.children.filter(x=>x.tagName==='A');
+ assert.equal(links.length,3);
+ const destinations=links.map(x=>x.href);
+ assert.equal(new Set(destinations).size,3);
+ assert.ok(destinations.every(x=>x.startsWith('/actus/')));
+ assert.ok(destinations.every(x=>x!==view.feature.href));
+ const videoHref=view.shelf.querySelector('.swapp-home-video-feature').querySelector('.swapp-video-caption').children.find(x=>x.tagName==='A').href;
+ assert.ok(destinations.every(x=>x!==videoHref));
+ assert.ok(destinations.every(x=>!view.gridLinks().includes(x)), 'prefer non-duplicated articles when available');
+ assert.equal(view.gridLinks().length,4);
+ assert.equal(view.main.children.length,3,'no additional homepage section');
+ const none=await render([]);
+ assert.equal(none.shelf.querySelector('.swapp-home-editorial-briefs'),null,'no fictitious links when catalog is empty');
+});
+test('editorial briefs stay accessible on mobile, reserve no false content and remain CSS responsive',()=>{
+ const css=fs.readFileSync(path.resolve(__dirname,'../assets/swapp-home-refresh.css'),'utf8');
+ assert.match(css,/#home \.swapp-home-editorial-briefs\{/);
+ assert.match(css,/\.swapp-home-editorial-brief:focus-visible\{/);
+ assert.match(css,/max-width:980px/);
+ assert.match(css,/max-width:600px/);
+ assert.match(css,/prefers-reduced-motion:reduce/);
 });
 
 test('no usable article trailer leaves no empty video column or historical campaign',async()=>{
