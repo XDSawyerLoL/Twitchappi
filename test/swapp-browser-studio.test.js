@@ -17,7 +17,7 @@ function studio({screenAudio=true,microphone=true}={}){
  const screen=new MediaStream([newTrack('video'),...(screenAudio?[newTrack('audio')]:[])]);
  const mic=new MediaStream(microphone?[newTrack('audio')]:[]);
  const mix=newTrack('audio');
- let captures=0,opened=0,closed=0;
+ let captures=0,opened=0,closed=0,captureOptions=null;
  class AudioContext{
   constructor(){opened++}
   createMediaStreamDestination(){return{stream:new MediaStream([mix])}}
@@ -28,14 +28,14 @@ function studio({screenAudio=true,microphone=true}={}){
  }
  const root={
   document:{getElementById(){return null},addEventListener(){},hidden:false},
-  navigator:{mediaDevices:{getDisplayMedia:async()=>{captures++;return screen},getUserMedia:async()=>mic}},
+  navigator:{mediaDevices:{getDisplayMedia:async options=>{captures++;captureOptions=options;return screen},getUserMedia:async()=>mic}},
   window:{addEventListener(){},AudioContext},
   MediaStream,requestAnimationFrame:()=>0,setInterval:()=>0,cancelAnimationFrame(){},
   console,fetch(){throw Error('unexpected fetch')}
  };
  root.globalThis=root;
  vm.runInNewContext(script,root,{filename:'swapp-browser-studio.js'});
- return {api:root.SwappBrowserStudio,tracks,screen,mic,mix,stats:()=>({captures,opened,closed})};
+ return {api:root.SwappBrowserStudio,tracks,screen,mic,mix,stats:()=>({captures,opened,closed,captureOptions})};
 }
 test('screen stream mixes shared audio with optional microphone',async()=>{
  const ctx=studio();
@@ -49,6 +49,22 @@ test('screen stream mixes shared audio with optional microphone',async()=>{
  assert.ok(ctx.tracks.every(t=>t.readyState==='ended'||t===ctx.mix));
  assert.equal(ctx.stats().opened,1);
  assert.equal(ctx.stats().closed,1);
+});
+test('Edge game capture prefers a full monitor while retaining user choice',async()=>{
+ const ctx=studio();
+ const stream=await ctx.api.capture({source:'screen',video:{width:{ideal:1920},frameRate:{ideal:60}}});
+ const options=ctx.stats().captureOptions;
+ assert.equal(options.video.displaySurface,'monitor');
+ assert.equal(options.video.width.ideal,1920);
+ assert.equal(options.video.frameRate.ideal,60);
+ assert.equal(options.monitorTypeSurfaces,'include');
+ assert.equal(options.selfBrowserSurface,'exclude');
+ assert.equal(options.systemAudio,'include');
+ assert.equal(options.surfaceSwitching,'include');
+ assert.equal(options.preferCurrentTab,false);
+ assert.equal(options.audio,true);
+ assert.equal(stream.getVideoTracks().length,1);
+ stream._swappCleanup();
 });
 test('screen stream can run with no optional audio permissions',async()=>{
  const ctx=studio({screenAudio:false,microphone:false});
