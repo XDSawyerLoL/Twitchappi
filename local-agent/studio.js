@@ -15,7 +15,7 @@
   previewButton.disabled=working||capturing;
   liveButton.disabled=working||!capturing||!previewReady||!connected||captureKey!==configuredKey||published;
   stopButton.disabled=working||!capturing;
-  for(const id of ['display','fps','bitrate','audio','mic','encoder','captureMode'])$(id).disabled=working||capturing;
+  for(const id of ['display','fps','bitrate','audio','mic','encoder','captureMode','obsSource'])$(id).disabled=working||capturing;
  }
  async function api(url,options){
   const response=await fetch(url,{cache:'no-store',...options});
@@ -103,11 +103,11 @@
     method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({display:Number($('display').value),fps:Number($('fps').value),
      bitrate:Number($('bitrate').value),audioDevice:$('audio').value,micDevice:$('mic').value,
-     encoder:$('encoder').value,method:$('captureMode').value})
+     encoder:$('encoder').value,method:$('captureMode').value,source:$('obsSource').value})
    });
    capturing=true;captureKey=data.key;
    playPreview(data.key);
-   status('Capture '+(data.method==='ddagrab'?'DirectX':'Windows classique')+
+   status('Capture '+(data.engine==='libobs'?'OBS natif / '+$('obsSource').selectedOptions[0].textContent:data.method==='ddagrab'?'DirectX':'Windows classique')+
     ' · '+(data.encoder==='nvenc'?'NVIDIA NVENC':'x264')+
     ' active. Vérifie les images avant de diffuser.'+
     (data.method==='gdigrab'?'\nMode secours : tout le bureau virtuel est capturé.':''));
@@ -144,6 +144,8 @@
   if(working)return;
   try{
    const s=await api('/api/screen/status');
+   $('nativeNotice').textContent=s.libobsAvailable?'Moteur OBS natif détecté : capture de jeu et son Windows disponibles.':'Moteur OBS natif non compilé/installé. Le mode automatique utilise FFmpeg et le mode Game Capture est indisponible.';
+   $('obsSource').disabled=working||capturing||!s.libobsAvailable;
    if(capturing&&!s.capturing){
     capturing=false;published=false;captureKey='';resetPreview();
     status('La capture Windows s’est interrompue : '+(s.error||'source indisponible'),'error');
@@ -173,6 +175,6 @@
   // The native process also disposes of the child capture on app exit.
   if(capturing)navigator.sendBeacon?.('/api/screen/stop');
  });
- void getAccount();void audioDevices();buttons();
+ void getAccount();void audioDevices();buttons();void refresh();
  setInterval(refresh,4000);
 })();
