@@ -8,6 +8,8 @@
 const {spawn}=require('node:child_process');
 const path=require('node:path');
 const fs=require('node:fs');
+const os=require('node:os');
+const {createSceneStore}=require('./swapp-scene-store');
 const {URL}=require('node:url');
 const {listCapturableWindows,resolveSelectedWindow}=require('./swapp-window-picker');
 
@@ -220,6 +222,8 @@ function localOriginOnly(req,res,next){
 
 function mountScreenStudio(app,{express,ffmpegPath,rtmpPort,currentConfiguredKey,streamStatus}){
  const ffmpeg=createScreenCapture({ffmpegPath,rtmpPort,currentConfiguredKey,streamStatus});
+ const sceneFile=path.join(process.env.APPDATA||os.homedir(),'SwappLocal','scenes.json');
+ const sceneStore=createSceneStore({filePath:sceneFile});
  const {createLibobsCapture,createHybridCapture}=require('./swapp-libobs-bridge');
  const native=createLibobsCapture({rtmpPort,currentConfiguredKey,streamStatus});
  const capture=createHybridCapture({ffmpeg,native});
@@ -228,6 +232,13 @@ function mountScreenStudio(app,{express,ffmpegPath,rtmpPort,currentConfiguredKey
  app.get('/studio.css',(_req,res)=>res.type('text/css').sendFile(path.join(__dirname,'studio.css')));
  app.get('/studio.js',(_req,res)=>res.type('application/javascript').sendFile(path.join(__dirname,'studio.js')));
  app.get('/api/screen/status',(_req,res)=>res.json({success:true,...capture.status()}));
+ app.get('/api/screen/scenes',(_req,res)=>res.json({success:true,...sceneStore.get()}));
+ app.post('/api/screen/scenes',express.json({limit:'8kb'}),localOriginOnly,(req,res)=>{
+  try{
+   if(capture.status().capturing)throw new Error('Arrête l’aperçu ou le direct pour modifier les scènes. Le changement à chaud nécessite le compositeur libobs.');
+   res.json({success:true,...sceneStore.mutate(req.body||{})});
+  }catch(e){res.status(409).json({success:false,error:e.message})}
+ });
  app.get('/api/screen/windows',async(_req,res)=>{
   try{res.json({success:true,windows:await listCapturableWindows()})}
   catch(e){res.status(503).json({success:false,error:String(e.message||e),windows:[]})}
@@ -259,7 +270,15 @@ function mountScreenStudio(app,{express,ffmpegPath,rtmpPort,currentConfiguredKey
  });
  app.post('/api/screen/start',express.json({limit:'4kb'}),localOriginOnly,async(req,res)=>{
   try{
-   const result=await capture.start(req.body||{});
+   let options={...(req.body||{})};
+   if(options.sceneId){
+     const scene=sceneStore.get().scenes.find(x=>x.id===options.sceneId);
+     if(!scene)throw new Error('Scène sélectionnée introuvable.');
+     options={...options,...scene.base,overlays:scene.overlays};
+     if(options.method==='libobs'&&scene.overlays.length)
+       throw new Error('Cette scène contient une webcam : sélectionne FFmpeg pour le montage multicouche dans cette version.');
+   }
+   const result=await capture.start(options);
    res.json(result);
   }catch(e){res.status(400).json({success:false,error:String(e.message||e),...capture.status()})}
  });
