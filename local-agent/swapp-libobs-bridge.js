@@ -62,7 +62,7 @@ function createLibobsCapture({
   const args=['--rtmp','rtmp://127.0.0.1:'+rtmpPort+'/live','--key',key,
    '--source',source,'--display',String(display),
    '--fps',String(fps),'--bitrate',String(bitrate),'--encoder',encoder];
-  let output='',stopped=false;
+  let output='';
   starting=true;exitSeen=false;activeKey=key;startedAt=now();error='';
   try{
    const proc=spawnProcess(executable,args,{windowsHide:true,stdio:['pipe','pipe','pipe'],cwd:path.dirname(executable)});
@@ -78,7 +78,7 @@ function createLibobsCapture({
     }
    });
    for(let attempt=0;attempt<50;attempt++){
-    if(child!==proc||exitSeen){stopped=true;break}
+    if(child!==proc||exitSeen)break
     const s=streamStatus(key),seen=Date.parse(s.started_at||s.last_seen||'')||0;
     if(s.active&&s.ffmpeg_running&&s.hls_exists&&seen>=startedAt-2500){
      starting=false;
@@ -101,7 +101,10 @@ function createHybridCapture({ffmpeg,native}){
  let current=null;
  const status=()=>{
   const s=current==='libobs'?native.status():ffmpeg.status();
-  return {...s,engine:current||'ffmpeg',libobsAvailable:native.available()};
+  // A native child can exit without an explicit Stop (GPU/RTMP failures).
+  // Release ownership so another Start is possible after the UI notices the error.
+  if(current==='libobs'&&!s.capturing)current=null;
+  return {...s,engine:current||s.engine||'ffmpeg',libobsAvailable:native.available()};
  };
  async function start(options={}){
   if(current)throw new Error('Une capture est déjà en cours.');
