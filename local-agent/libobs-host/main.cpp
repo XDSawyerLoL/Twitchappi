@@ -172,12 +172,13 @@ int main(int argc, char **argv) {
   desktop = make_source("wasapi_output_capture", "SWAPP Desktop Audio", audio_settings);
   mic = make_source("wasapi_input_capture", "SWAPP Microphone", audio_settings);
   obs_data_release(audio_settings);
-  if (!desktop || !mic) {
-   std::cerr << "win-wasapi required for microphone and desktop audio" << std::endl;
-   break;
-  }
-  obs_scene_add(scene, desktop);
-  obs_scene_add(scene, mic);
+  // A PC can have no microphone, disconnected headphones, or missing audio devices.
+  // Capture whichever WASAPI sources exist; do not reject a working game video
+  // solely because a microphone is absent. Missing sources may mean silent audio.
+  if (desktop) obs_scene_add(scene, desktop);
+  else std::cerr << "Desktop audio unavailable; stream may be silent" << std::endl;
+  if (mic) obs_scene_add(scene, mic);
+  else std::cerr << "Microphone unavailable; continue without voice" << std::endl;
   obs_set_output_source(0, obs_scene_get_source(scene));
 
   video = make_video_encoder(opt);
