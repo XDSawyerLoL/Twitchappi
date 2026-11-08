@@ -100,6 +100,7 @@
   previewButton.disabled=working||capturing||!connected||$('captureMode').value==='external';
   liveButton.disabled=working||!capturing||!previewReady||!connected||captureKey!==configuredKey||published;
   stopButton.disabled=working||(!capturing&&!published)||(externalSource&&!published);
+  $('stopText').textContent=published?'Arrêter le direct':externalSource?'Source RTMP externe':'Arrêter l’aperçu';
   for(const id of settings.slice(0,7))$(id).disabled=working||capturing;
   const nativeMode=$('captureMode').value;
   $('obsSource').disabled=working||capturing||!libobsAvailable||nativeMode==='ddagrab'||nativeMode==='gdigrab';
