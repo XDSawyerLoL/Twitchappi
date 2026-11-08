@@ -101,8 +101,7 @@
      bitrate:Number($('bitrate').value),audioDevice:$('audio').value})
    });
    capturing=true;
-   const a=await api('/api/account/status');
-   playPreview(a.stream_key);
+   playPreview(data.key);
    status('Capture '+(data.method==='ddagrab'?'DirectX':'Windows classique')+
     ' active. Vérifie les images avant de diffuser.'+
     (data.method==='gdigrab'?'\nMode secours : tout le bureau virtuel est capturé.':''));
