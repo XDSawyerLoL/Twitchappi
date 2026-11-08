@@ -9,19 +9,21 @@ const fs=require('node:fs');
 const path=require('node:path');
 const {spawn}=require('node:child_process');
 
-const REQUIRED_MODULES=['win-capture','win-wasapi','obs-outputs','obs-x264','obs-ffmpeg','rtmp-services'];
+const REQUIRED_MODULES=['win-capture','win-wasapi','win-dshow','obs-outputs','obs-x264','obs-ffmpeg','rtmp-services'];
 function completeLibobsRuntime(executable,exists=fs.existsSync){
  if(!executable||!exists(executable))return false;
- const root=path.dirname(executable);
- if(!exists(path.join(root,'obs.dll'))||!exists(path.join(root,'libobs-d3d11.dll')))return false;
+ const bin=path.dirname(executable);
+ const root=path.resolve(bin,'..','..');
+ // Mandatory OBS 33 portable tree, not a DLL pile at the EXE root.
+ if(!exists(path.join(bin,'obs.dll'))||!exists(path.join(bin,'libobs-d3d11.dll')))return false;
+ if(!exists(path.join(root,'GPL-2.0-LICENSE.txt')))return false;
  return REQUIRED_MODULES.every(name=>
-  exists(path.join(root,'core',name,name+'.dll'))||
-  exists(path.join(root,'obs-plugins','64bit',name+'.dll')));
+  exists(path.join(root,'core',name,name+'.dll')));
 }
 function nativeHostPath({root=__dirname,resourcesPath=process.resourcesPath,exists=fs.existsSync}={}){
  const candidates=[
-  resourcesPath&&path.join(resourcesPath,'swapp-libobs','swapp-libobs-host.exe'),
-  path.join(root,'libobs-runtime','swapp-libobs-host.exe')
+  resourcesPath&&path.join(resourcesPath,'swapp-libobs','bin','64bit','swapp-libobs-host.exe'),
+  path.join(root,'libobs-runtime','bin','64bit','swapp-libobs-host.exe')
  ].filter(Boolean);
  // Incomplete staging must never make Game Capture appear ready.
  return candidates.find(candidate=>completeLibobsRuntime(candidate,exists))||null;
