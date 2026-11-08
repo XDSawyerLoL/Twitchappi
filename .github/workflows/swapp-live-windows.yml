@@ -70,6 +70,18 @@ jobs:
       - name: Compile Windows installer and portable EXE
         run: npm run dist:win --prefix local-agent
 
+      - name: Verify bundled Windows window picker exists and runs
+        shell: pwsh
+        run: |
+          $script = "local-agent/dist/win-unpacked/resources/app/list-capture-windows.ps1"
+          if (!(Test-Path $script)) { throw "Window picker missing from the packaged EXE" }
+          $json = & powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $script
+          if ($LASTEXITCODE -ne 0) { throw "Packaged Win32 window enumeration failed" }
+          if (!$json) { throw "Win32 window picker must return valid JSON, even when no windows are open" }
+          $windows = ConvertFrom-Json -InputObject ($json -join " ")
+          if ($null -eq $windows) { throw "Invalid Win32 JSON response" }
+          Write-Host "Packaged window enumeration passed"
+
       - name: Verify Electron DLLs in packaged app and installed NSIS executable
         shell: pwsh
         run: |
@@ -127,18 +139,20 @@ jobs:
             if (!(Test-Path $file)) { throw "Missing binary: $file" }
           }
           $notes = @"
-          ## SWAPP Live 1.2.3 — Studio unifié RTMP / DirectX (préversion)
-          Un seul Creator Studio remplace l'ancienne page OBS. L'application récupère automatiquement l'adresse RTMP locale et la clé du compte connecté ; celle-ci est masquée par défaut. La capture intégrée et une source RTMP/OBS externe passent par le même aperçu HLS et par les mêmes boutons de publication sur SWAPP.
+          ## SWAPP Live 1.2.3 — Choix des fenêtres Windows (préversion)
+          Le Creator Studio permet maintenant de choisir **une fenêtre ou application réellement ouverte sur Windows** (liste de fenêtres Win32, titres, actualisation). Un clic sur Prévisualiser transmet uniquement cette sélection au moteur FFmpeg pour la capture GDI. La fenêtre est vérifiée juste avant la capture : une fenêtre réduite, fermée ou impossible à identifier n'entraîne JAMAIS une capture cachée de tout le bureau.
+
+          La même interface conserve le RTMP et la clé SWAPP récupérés automatiquement, les sources OBS externes, l'aperçu HLS et les commandes de publication/arrêt du direct.
           
           **Correctifs :** après l'erreur FFmpeg DirectX « Output parameters changed », le studio tente GDI automatiquement ; l'option NVENC incompatible sc_threshold a été supprimée. Les commandes copier, afficher/masquer la clé, déconnexion, réparation du relais et arrêt du direct ont été raccordées aux API du site local.
           
-          **Validation :** tests simulés complets du parcours connexion, clé, aperçu, direct, réparation, arrêt et source RTMP externe, contrôles de capture et d'accès aux clés.
+          **Validation :** tests du parcours connexion → choix de fenêtre → aperçu → direct → arrêt, résolution sécurisée des fenêtres Win32, lancement réel du script PowerShell sur runner Windows et vérification du script dans le paquet Electron.
           
-          **Limites :** le moteur Game Capture de libobs reste source-only : il n'est PAS inclus dans cet EXE. Certains jeux plein écran, dont ceux protégés par anti-cheat, peuvent rester noirs même en GDI. Les scènes multicouches, overlays et chat embarqué ne sont pas encore implémentés. Version non encore validée sur le PC de l'utilisateur.
+          **Limites :** la capture d'une fenêtre utilise le gdigrab par titre de FFmpeg 6.1 : certains jeux 3D accélérés ou plein écran exclusif peuvent fournir une image noire. Le moteur Game Capture de libobs reste source-only : il n'est PAS inclus dans cet EXE. Certains jeux plein écran, dont ceux protégés par anti-cheat, peuvent rester noirs même en GDI. Les scènes multicouches, overlays et chat embarqué ne sont pas encore implémentés. Version non encore validée sur le PC de l'utilisateur.
           
           Construite et contrôlée sur GitHub Actions Windows ; test de jeu réel côté utilisateur encore nécessaire.
           "@
-          gh release create $tag $portable $setup --repo "$env:GITHUB_REPOSITORY" --target "$env:GITHUB_SHA" --title "SWAPP Live 1.2.3 — Studio RTMP intégré (préversion)" --prerelease --notes "$notes"
+          gh release create $tag $portable $setup --repo "$env:GITHUB_REPOSITORY" --target "$env:GITHUB_SHA" --title "SWAPP Live 1.2.3 — Choix de fenêtre Windows (préversion)" --prerelease --notes "$notes"
 
       - name: Require validated native libobs runtime before public release
         if: ${{ inputs.publish_release == true }}
