@@ -12,12 +12,12 @@ test('premium studio layout contains actual source dock, playable canvas, action
  for(const label of ['Écran principal','Écran secondaire','Bureau complet','Jeu plein écran','Contrôle du direct',"Journal d'activité"]){
   assert.ok(html.includes(label),'Missing '+label);
  }
- for(const name of ['primary','secondary','desktop','game'])assert.ok(html.includes('data-preset="'+name+'"'));
+ for(const name of ['primary','secondary','desktop','game','external'])assert.ok(html.includes('data-preset="'+name+'"'));
  for(const id of ['video','emptyPreview','previewExplanation','topLiveState','previewStateLabel','previewButton','liveButton','stopButton','soundToggle','activityList','channelLink','account','connectButton','nativeNotice']){
   assert.ok(html.includes('id="'+id+'"'),'Missing UI control '+id);
  }
  assert.match(html,/href="\/studio\.css"/);
- assert.match(html,/href="\/"/);
+ assert.match(html,/href="#rtmp"/);
  assert.match(html,/src="\/studio\.js"/);
  assert.match(css,/grid-template-columns:262px minmax\(385px,1fr\) 290px/);
  assert.match(css,/@media\(max-width:1070px\)/);
@@ -47,10 +47,19 @@ test('studio uses the real local APIs, never invents a chat, fake stream or a sc
  assert.match(js,/\/api\/go-live/);
  assert.match(js,/\/api\/screen\/stop/);
  assert.match(js,/\/api\/tunnel\/stop/);
+ assert.match(js,/\/api\/account\/disconnect/);
+ assert.match(js,/\/api\/setup\/check/);
+ assert.match(js,/\/api\/tunnel\/repair/);
+ assert.match(js,/\/api\/status\?key=/);
+ assert.match(html,/id="streamKey"/);
+ assert.match(html,/id="rtmpServer"/);
+ assert.match(html,/id="disconnectButton"/);
+ assert.match(html,/id="copyKey"/);
+ assert.match(html,/id="copyRtmp"/);
  assert.match(js,/feed\.prepend\(entry\)/);
  assert.match(js,/localStorage\.setItem\(storageKey/);
  assert.match(js,/video\.addEventListener\('loadeddata'/);
- assert.match(html,/Le chat SWAPP s'ouvre dans ton navigateur/);
+ assert.match(html,/Le chat SWAPP s’ouvre dans ton navigateur/);
  assert.match(html,/Nécessite le moteur libobs/);
  assert.match(html,/Paramètre, pas une mesure/);
 });
