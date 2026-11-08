@@ -26,6 +26,18 @@ test('classic Windows capture fallback covers full desktop and optional DirectSh
  assert.ok(!args.some(a=>a.includes('anullsrc')));
  assert.throws(()=>captureArgs({method:'unknown'}),/inconnue/);
 });
+test('native hardware encoding and two audio sources produce one AAC mix',()=>{
+ const args=captureArgs({method:'ddagrab',display:0,fps:60,bitrate:8000,
+  encoder:'nvenc',audioDevice:'Stereo Mix',micDevice:'Microphone',
+  rtmpUrl:'rtmp://127.0.0.1:1935/live/test'});
+ assert.ok(args.includes('h264_nvenc'));
+ assert.ok(!args.includes('libx264'));
+ assert.ok(args.includes('audio=Stereo Mix'));
+ assert.ok(args.includes('audio=Microphone'));
+ assert.ok(args.some(x=>x.includes('amix=inputs=2')));
+ assert.ok(args.includes('[a]'));
+ assert.equal(args.filter(x=>x==='-i').length,3);
+});
 test('native capture routes reject external website origins',()=>{
  let called=false,result=null;
  const middleware=(origin,host)=>localOriginOnly({
