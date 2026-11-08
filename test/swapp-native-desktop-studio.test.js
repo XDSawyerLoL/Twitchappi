@@ -5,12 +5,12 @@ const fs=require('node:fs');
 const path=require('node:path');
 const root=path.join(__dirname,'..');
 const source=p=>fs.readFileSync(path.join(root,p),'utf8');
-const {captureArgs,localOriginOnly}=require('../local-agent/swapp-screen-studio');
+const {captureArgs,captureFailure,createScreenCapture,localOriginOnly}=require('../local-agent/swapp-screen-studio');
 
 test('Windows DirectX capture is sent through the existing local RTMP ingest without OBS',()=>{
  const args=captureArgs({method:'ddagrab',display:1,fps:60,bitrate:8000,audioDevice:'',
   rtmpUrl:'rtmp://127.0.0.1:1935/live/abc'});
- assert.ok(args.includes('ddagrab=output_idx=1:framerate=60,hwdownload,format=bgra,format=yuv420p'));
+ assert.ok(args.includes('ddagrab=output_idx=1:framerate=60:output_fmt=8bit,hwdownload,format=bgra'));
  assert.ok(args.includes('libx264'));
  assert.ok(args.includes('aac'));
  assert.ok(args.includes('anullsrc=r=48000:cl=stereo'));
@@ -38,6 +38,53 @@ test('native hardware encoding and two audio sources produce one AAC mix',()=>{
  assert.ok(args.includes('[a]'));
  assert.equal(args.filter(x=>x==='-i').length,3);
 });
+test('ddagrab NVENC zero-copy does not download GPU frames or pass an x264-only option',()=>{
+ const args=captureArgs({method:'ddagrab',display:0,fps:60,bitrate:8000,
+  encoder:'nvenc',rtmpUrl:'rtmp://127.0.0.1:1935/live/test'});
+ assert.ok(args.includes('ddagrab=output_idx=0:framerate=60:output_fmt=8bit'));
+ assert.ok(args.includes('h264_nvenc'));
+ assert.ok(!args.some(a=>a.includes('hwdownload')));
+ assert.ok(!args.includes('-vf'));
+ assert.ok(!args.includes('-sc_threshold'));
+});
+
+test('DXGI Output changed is classified as a display-mode capture failure, not an NVENC issue',()=>{
+ const exact='[Parsed_ddagrab_0] Output parameters changed!\n[in#0/lavfi] Error during demuxing: Output changed\n[in#0/lavfi] Error retrieving a packet from demuxer: Output changed';
+ assert.equal(captureFailure(exact).code,'DISPLAY_MODE_CHANGED');
+ assert.equal(captureFailure('Cannot load libcuda.so').code,'ENCODER_UNAVAILABLE');
+ assert.equal(captureFailure('Codec AVOption sc_threshold has not been used'),null);
+});
+
+test('automatic capture falls back to GDI immediately after the exact DXGI output change error',async()=>{
+ const {EventEmitter}=require('node:events');
+ const methods=[];
+ let successful=false;
+ const status=()=>successful?{active:true,ffmpeg_running:true,hls_exists:true,started_at:new Date(200000).toISOString()}:{
+  active:false,ffmpeg_running:false,hls_exists:false
+ };
+ const spawnProcess=(_binary,args)=>{
+  const kind=args.includes('gdigrab')?'gdigrab':'ddagrab';
+  methods.push(kind);
+  const p=new EventEmitter();
+  p.exitCode=null;p.stderr=new EventEmitter();
+  p.kill=()=>{p.exitCode=0;p.emit('exit',0,null)};
+  if(kind==='ddagrab'){
+   queueMicrotask(()=>p.stderr.emit('data','[Parsed_ddagrab_0] Output parameters changed!\n[in#0/lavfi] Error during demuxing: Output changed'));
+  }else successful=true;
+  return p;
+ };
+ const capture=createScreenCapture({
+  platform:'win32',ffmpegPath:'ffmpeg.exe',rtmpPort:1935,
+  currentConfiguredKey:()=> 'test-key',streamStatus:status,
+  now:()=>200000,spawnProcess,sleep:async()=>{}
+ });
+ const result=await capture.start({method:'ddagrab',encoder:'x264',display:0,fps:30,bitrate:4500});
+ assert.deepEqual(methods,['ddagrab','gdigrab']);
+ assert.equal(result.method,'gdigrab');
+ assert.match(result.recovery,/GDI/);
+ capture.stop();
+});
+
 test('native capture routes reject external website origins',()=>{
  let called=false,result=null;
  const middleware=(origin,host)=>localOriginOnly({
