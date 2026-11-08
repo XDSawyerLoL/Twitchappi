@@ -54,18 +54,20 @@ static bool read_args(int argc, char **argv, Options &o) {
  return true;
 }
 
-static void configure_plugins(const fs::path &exe) {
- // A portable, self-contained SWAPP libobs distribution:
- // swapp-libobs-host.exe, libobs.dll, libobs-d3d11.dll, obs-plugins/64bit/*.dll,
- // data/obs-plugins/<module>/... and their transitive runtime dependencies.
- // OBS Studio 33 moved first-party plugins to core/<module>/; load these first.
- const std::string coreBin = (exe / "core" / "%module%" / "%module%.dll").string();
- const std::string coreData = (exe / "core" / "%module%" / "data").string();
- obs_add_module_path(coreBin.c_str(), coreData.c_str());
- // Keep legacy third-party plugin layout as a deliberate compatibility fallback.
- const std::string bin = (exe / "obs-plugins" / "64bit" / "%module%.dll").string();
- const std::string data = (exe / "data" / "obs-plugins" / "%module%").string();
- obs_add_module_path(bin.c_str(), data.c_str());
+static bool configure_plugins(const fs::path &exe) {
+ // OBS 33.0.1 uses a hardcoded first-party core module registry.
+ // OBS's deprecated obs_load_all_modules() is now an empty no-op!
+ // Its core loader resolves ../../core relative to the process CWD, so we
+ // must launch it from the canonical OBS portable bin/64bit/ directory.
+ fs::current_path(exe);
+ const std::string libobsData=(exe/".."/".."/"data"/"libobs").lexically_normal().string();
+ obs_add_data_path(libobsData.c_str());
+ if(!obs_load_core_modules()) {
+  std::cerr << "OBS 33 core module registration failed; missing DLL or data" << std::endl;
+  return false;
+ }
+ obs_post_load_modules();
+ return true;
 }
 
 static obs_source_t *make_source(const char *id, const char *name, obs_data_t *settings) {
@@ -106,9 +108,7 @@ int main(int argc, char **argv) {
   if(!obs_startup("fr-FR",nullptr,nullptr)) {
    std::cerr << "libobs startup failed" << std::endl;return 10;
   }
-  configure_plugins(root);
-  obs_load_all_modules();
-  obs_post_load_modules();
+  if(!configure_plugins(root)){obs_shutdown();return 12;}
   const char *ids[]={"game_capture","monitor_capture",
    "wasapi_output_capture","wasapi_input_capture"};
   bool valid=true;
@@ -166,9 +166,7 @@ int main(int argc, char **argv) {
    break;
   }
 
-  configure_plugins(root);
-  obs_load_all_modules();
-  obs_post_load_modules();
+  if(!configure_plugins(root))break;
 
   obs_data_t *video_settings = obs_data_create();
   if (opt.source == "game") {
