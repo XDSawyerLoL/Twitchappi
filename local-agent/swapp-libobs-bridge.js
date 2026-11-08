@@ -119,7 +119,7 @@ function createHybridCapture({ffmpeg,native}){
  async function start(options={}){
   if(current)throw new Error('Une capture est déjà en cours.');
   const requested=String(options.method||'auto');
-  if(!['auto','libobs','ddagrab','gdigrab'].includes(requested))throw new Error('Méthode de capture non autorisée.');
+  if(!['auto','libobs','ddagrab','gdigrab','window'].includes(requested))throw new Error('Méthode de capture non autorisée.');
   if(requested==='libobs'&&!native.available())throw new Error('Le composant libobs n’est pas installé.');
   if(requested==='libobs'||requested==='auto'&&native.available()){
    try{
