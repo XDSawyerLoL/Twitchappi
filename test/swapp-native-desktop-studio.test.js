@@ -95,7 +95,7 @@ test('native capture routes reject external website origins',()=>{
  middleware('http://127.0.0.1:8081','127.0.0.1:8081');
  assert.equal(called,true);
 });
-test('desktop studio is the default; OBS screen remains available',()=>{
+test('desktop studio is the only interface, RTMP and OBS inputs are integrated',()=>{
  const main=source('local-agent/main.js');
  const server=source('local-agent/server.js');
  const html=source('local-agent/studio.html');
@@ -105,9 +105,11 @@ test('desktop studio is the default; OBS screen remains available',()=>{
  assert.match(html,/id="video"/);
  assert.match(html,/id="previewButton"/);
  assert.match(html,/id="liveButton"/);
- assert.match(html,/href="\/"/);
+ assert.match(html,/href="#rtmp"/);
  assert.match(js,/\/api\/screen\/start/);
  assert.match(js,/\/api\/go-live/);
+ assert.match(server,/res\.redirect\(302, '\/studio'\)/);
+ assert.doesNotMatch(server,/function pageHtml\(key\)/);
  assert.match(js,/\/api\/tunnel\/stop/);
  assert.doesNotThrow(()=>new (require('node:vm').Script)(js));
  assert.equal(JSON.parse(source('local-agent/package.json')).version,'1.2.1');
