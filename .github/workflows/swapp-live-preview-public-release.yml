@@ -1,13 +1,9 @@
 name: SWAPP Live 1.2.0 preview - publish EXE download links
 
-# One-time export of already-built binaries from verified run 42491530250.
-# Restrict triggering to adding/updating this workflow on the feature branch.
+# One-time export of verified Windows binaries completed on 2026-11-08.
+# Future runs require manual maintainer request, preventing unplanned charges.
 on:
-  push:
-    branches:
-      - feat/swapp-live-native-screen-capture-20261108
-    paths:
-      - '.github/workflows/swapp-live-preview-public-release.yml'
+  workflow_dispatch:
 
 permissions:
   actions: read
