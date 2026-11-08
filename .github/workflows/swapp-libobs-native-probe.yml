@@ -1,6 +1,6 @@
 name: SWAPP native libobs 33 build probe (one-time)
 
-# User-requested Windows plugin registration smoke test with corrected OBS source API.
+# User-requested native smoke test with OBS 33 supported core loader and official bin/64bit layout.
 on:
   push:
     branches:
@@ -34,16 +34,17 @@ jobs:
         shell: pwsh
         run: |
           $p='local-agent/libobs-runtime'
-          foreach ($name in @('swapp-libobs-host.exe','obs.dll','libobs-d3d11.dll','GPL-2.0-LICENSE.txt')) {
-            if (!(Test-Path (Join-Path $p $name))) { throw "Missing native file $name" }
+          foreach ($name in @('swapp-libobs-host.exe','obs.dll','libobs-d3d11.dll')) {
+            if (!(Test-Path (Join-Path $p "bin/64bit/$name"))) { throw "Missing native file $name" }
           }
-          foreach ($name in @('win-capture','win-wasapi','obs-outputs','obs-x264','obs-ffmpeg','rtmp-services')) {
+          if (!(Test-Path (Join-Path $p 'GPL-2.0-LICENSE.txt'))) { throw 'OBS GPL notice missing' }
+          foreach ($name in @('win-capture','win-wasapi','win-dshow','obs-outputs','obs-x264','obs-ffmpeg','rtmp-services')) {
             $dll=Join-Path (Join-Path (Join-Path $p 'core') $name) "$name.dll"
             if (!(Test-Path $dll)) { throw "Missing native module $dll" }
           }
           Write-Host 'SWAPP native Game Capture and WASAPI components compiled and staged.'
-          Get-FileHash (Join-Path $p 'swapp-libobs-host.exe') -Algorithm SHA256
-          $hostExe=Join-Path $p 'swapp-libobs-host.exe'
+          Get-FileHash (Join-Path $p 'bin/64bit/swapp-libobs-host.exe') -Algorithm SHA256
+          $hostExe=Join-Path $p 'bin/64bit/swapp-libobs-host.exe'
           & $hostExe --selftest
           if ($LASTEXITCODE -ne 0) { throw "Native OBS plugins failed runtime Game Capture/WASAPI registration" }
           Write-Host 'Headless real-plugin smoke check passed.'
