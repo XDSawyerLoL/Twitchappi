@@ -13,7 +13,7 @@
  const settings=['display','fps','bitrate','audio','mic','encoder','captureMode','obsSource'];
  const storageKey='swapp.creator.studio.settings.v1';
  let connected=false,login='',configuredKey='',captureKey='',capturing=false,published=false;
- let previewReady=false,working=false,hls=null,libobsAvailable=false,activeEngine='',lastMessage='',darkChecks=0;
+ let previewReady=false,working=false,hls=null,libobsAvailable=false,activeEngine='',lastMessage='',darkChecks=0,externalSource=false;
  let savedAudio='',savedMic='';
 
  function activity(message,kind=''){
@@ -58,6 +58,7 @@
 
  function sourceLabel(){
   const mode=$('captureMode').value,monitor=Number($('display').value)+1;
+  if(mode==='external')return 'Signal OBS/RTMP externe';
   if(mode==='libobs')return $('obsSource').value==='game'?'Jeu plein écran (libobs)':'Écran via libobs';
   if(mode==='gdigrab')return 'Bureau complet (Windows)';
   if(mode==='ddagrab')return 'Écran '+monitor+' (DirectX)';
@@ -71,6 +72,7 @@
   else if(mode==='ddagrab'&&display==='1')selected='secondary';
   else if(mode==='gdigrab')selected='desktop';
   else if(mode==='libobs'&&source==='game')selected='game';
+  else if(mode==='external')selected='external';
   for(const button of presetButtons){
    const active=button.dataset.preset===selected;
    button.classList.toggle('is-selected',active);
@@ -81,6 +83,8 @@
   $('engineChip').textContent='Moteur : '+(activeEngine||(mode==='ddagrab'?'DirectX':mode==='gdigrab'?'GDI':mode==='libobs'?'libobs':'Auto'));
   $('presetHelp').textContent=selected==='game'
    ?'Capture du jeu natif via libobs. Le moteur doit être compilé et installé.'
+   :selected==='external'
+   ?'Signal RTMP externe détecté automatiquement dès que la source envoie du H.264/AAC. L’aperçu et le bouton Direct s’activent lorsqu’un flux réel arrive.'
    :selected==='desktop'
    ?'Mode compatible : toute la surface du bureau Windows peut être visible, y compris des informations privées.'
    :mode==='auto'
@@ -93,13 +97,17 @@
  }
 
  function buttons(){
-  previewButton.disabled=working||capturing;
+  previewButton.disabled=working||capturing||!connected||$('captureMode').value==='external';
   liveButton.disabled=working||!capturing||!previewReady||!connected||captureKey!==configuredKey||published;
-  stopButton.disabled=working||!capturing;
+  stopButton.disabled=working||(!capturing&&!published)||(externalSource&&!published);
   for(const id of settings.slice(0,7))$(id).disabled=working||capturing;
   const nativeMode=$('captureMode').value;
   $('obsSource').disabled=working||capturing||!libobsAvailable||nativeMode==='ddagrab'||nativeMode==='gdigrab';
   $('soundToggle').disabled=!capturing||!previewReady;
+  $('copyKey').disabled=!connected;
+  $('revealKey').disabled=!connected;
+  $('disconnectButton').disabled=!connected||working||capturing||published;
+  $('repairButton').disabled=!published||working;
   const nativeOpt=$('captureMode').querySelector('option[value="libobs"]');
   if(nativeOpt)nativeOpt.disabled=!libobsAvailable;
   const top=$('topLiveState'),corner=$('previewStateLabel');
@@ -126,6 +134,8 @@
     $('captureMode').value='gdigrab';$('obsSource').value='display';break;
    case 'game':
     $('captureMode').value='libobs';$('obsSource').value='game';break;
+   case 'external':
+    $('captureMode').value='external';$('obsSource').value='display';break;
    default:return;
   }
   persist();buttons();
