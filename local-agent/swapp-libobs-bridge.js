@@ -12,6 +12,7 @@ const {spawn}=require('node:child_process');
 function nativeHostPath({root=__dirname,resourcesPath=process.resourcesPath,exists=fs.existsSync}={}){
  const candidates=[
   resourcesPath&&path.join(resourcesPath,'swapp-libobs','swapp-libobs-host.exe'),
+  path.join(root,'libobs-runtime','swapp-libobs-host.exe'),
   path.join(root,'bin','swapp-libobs-host.exe')
  ].filter(Boolean);
  return candidates.find(candidate=>exists(candidate))||null;
