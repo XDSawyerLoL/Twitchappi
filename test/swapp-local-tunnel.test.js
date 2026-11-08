@@ -68,7 +68,7 @@ test('public Cloudflare tunnel cannot access user settings or local control APIs
  assert.ok(server.includes('PUBLIC_HTTP_PORT'));
 });
 test('Windows executable bundles validated cloudflared and a local HLS player dependency',()=>{
- assert.equal(pkg.version,'1.1.1');
+ assert.equal(pkg.version,'1.2.0');
  assert.ok(pkg.dependencies['hls.js']);
  assert.ok(pkg.build.extraResources.some(x=>x.from==='bin/cloudflared.exe'&&x.to==='bin/cloudflared.exe'));
  assert.ok(server.includes('process.resourcesPath'));
