@@ -10,14 +10,16 @@ const {
 
 test('only the packaged or developer-built libobs executable can be selected',()=>{
  const prefix=path.join('/resources','swapp-libobs');
- const required=['win-capture','win-wasapi','obs-outputs','obs-x264','obs-ffmpeg','rtmp-services'];
+ const required=['win-capture','win-wasapi','win-dshow','obs-outputs','obs-x264','obs-ffmpeg','rtmp-services'];
+ const exe=path.join(prefix,'bin','64bit','swapp-libobs-host.exe');
  const present=new Set([
-  path.join(prefix,'swapp-libobs-host.exe'),path.join(prefix,'obs.dll'),path.join(prefix,'libobs-d3d11.dll'),
+  exe,path.join(prefix,'bin','64bit','obs.dll'),path.join(prefix,'bin','64bit','libobs-d3d11.dll'),
+  path.join(prefix,'GPL-2.0-LICENSE.txt'),
   ...required.map(n=>path.join(prefix,'core',n,n+'.dll'))
  ]);
  const exists=p=>present.has(p);
  const found=nativeHostPath({root:'/project/local-agent',resourcesPath:'/resources',exists});
- assert.equal(found,path.join(prefix,'swapp-libobs-host.exe'));
+ assert.equal(found,exe);
  assert.equal(completeLibobsRuntime(found,exists),true);
  present.delete(path.join(prefix,'core','win-capture','win-capture.dll'));
  assert.equal(completeLibobsRuntime(found,exists),false);
