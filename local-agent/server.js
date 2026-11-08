@@ -626,13 +626,33 @@ const app = express();
 // exposes /api/account/status (stream key), tunnel controls and pairing callback.
 const publicApp = express();
 app.use(express.json({ limit: '1mb' }));
-app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
-  if (req.method === 'OPTIONS') return res.status(204).end();
+// The unified studio reads the private stream key from the local account API.
+// Never allow arbitrary websites to read that API through permissive localhost CORS.
+function privateStudioOrigin(req,res,next){
+  const origin=String(req.get('Origin')||'').trim();
+  const site=String(req.get('Sec-Fetch-Site')||'').toLowerCase();
+  const sensitive=/^\/api\/(?:account\/(?!browser-callback)|setup|status|screen|go-live|tunnel|heartbeat|publish-to-oryon)(?:\/|$)/.test(req.path);
+  let sameOrigin=false;
+  if(origin){
+    try{
+      const u=new URL(origin);
+      sameOrigin=u.protocol==='http:'&&
+        (u.hostname==='127.0.0.1'||u.hostname==='localhost')&&u.host===req.get('Host');
+    }catch(_){}
+  }
+  if(sensitive&&((origin&&!sameOrigin)||site==='cross-site')){
+    return res.status(403).json({success:false,error:'Les données du studio sont accessibles uniquement depuis SWAPP Live.'});
+  }
+  if(sameOrigin){
+    res.setHeader('Access-Control-Allow-Origin',origin);
+    res.setHeader('Vary','Origin');
+    res.setHeader('Access-Control-Allow-Methods','GET,POST,OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers','Content-Type');
+  }
+  if(req.method==='OPTIONS')return res.status(204).end();
   next();
-});
+}
+app.use(privateStudioOrigin);
 const hlsStatic = express.static(path.join(MEDIA_ROOT, 'live'), {
   fallthrough: true,
   setHeaders(res, filePath) {
