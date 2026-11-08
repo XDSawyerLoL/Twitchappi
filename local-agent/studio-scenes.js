@@ -135,4 +135,7 @@
  const SceneAPI={activeId:()=>activeId,current,setLocked,setWebcams,setBase,reload};
  window.SWAPPScenes=SceneAPI;
  void reload();
+ // The studio starts device discovery before this module has initialized.
+ // Refresh once the scene editor exists so detected webcams actually appear.
+ void window.SWAPPRefreshDevices?.();
 })();
