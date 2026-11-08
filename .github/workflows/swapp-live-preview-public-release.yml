@@ -1,0 +1,73 @@
+name: SWAPP Live 1.2.0 preview - publish EXE download links
+
+# One-time export of already-built binaries from verified run 42491530250.
+# Restrict triggering to adding/updating this workflow on the feature branch.
+on:
+  push:
+    branches:
+      - feat/swapp-live-native-screen-capture-20261108
+    paths:
+      - '.github/workflows/swapp-live-preview-public-release.yml'
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  publish-preview:
+    if: github.ref == 'refs/heads/feat/swapp-live-native-screen-capture-20261108'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Download previously compiled Windows EXEs from successful build
+        uses: actions/download-artifact@v4
+        with:
+          run-id: 42491530250
+          repository: XDSawyerLoL/Twitchappi
+          github-token: ${{ github.token }}
+          name: SWAPP-Live-1.2.0-Windows-FFmpeg-preview
+          path: release-files
+
+      - name: Verify both EXE SHA256 digests before publishing
+        shell: bash
+        run: |
+          cd release-files
+          cat > SHA256SUMS.txt <<'HASHES'
+          f83dacc506265d7254274b3f1a894958c4f641998c6d5616293e5177e06e700a  SWAPP-Live-Portable-1.2.0-x64.exe
+          076c984148b49bc8a123648e483f2cbb0feef26b6140d8eabb127b36b894805f  SWAPP-Live-Setup-1.2.0-x64.exe
+          HASHES
+          sha256sum -c SHA256SUMS.txt
+
+      - name: Create public PRE-RELEASE with direct Windows EXE downloads
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          cat > preview-notes.md <<'NOTES'
+          ## SWAPP Live Windows 1.2.0 — TEST / APERÇU
+
+          **Ce n'est pas une version finale**. EXE Windows x64 construits dans un run GitHub Actions réussi le 8 novembre 2026 : [build #38](https://github.com/XDSawyerLoL/Twitchappi/actions/runs/42491530250).
+
+          - **Portable** : démarrage sans installation.
+          - **Setup** : installateur Windows.
+          - Studio local avec prévisualisation et diffusion sur SWAPP.tv.
+          - Capture FFmpeg DirectX / GDI, encodage NVENC ou x264.
+
+          **Limites importantes** : libobs Game Capture n'est pas embarqué, les jeux plein écran peuvent être noirs, l'audio système nécessite un périphérique compatible, et les tests en diffusion réelle sur le PC du créateur n'ont pas été réalisés. Conserver une sauvegarde de l'ancienne version avant l'installation et ne pas considérer cette préversion comme stable.
+
+          Les SHA-256 vérifiés sont joints dans SHA256SUMS.txt.
+          NOTES
+          if gh release view swapp-live-windows-v1.2.0-preview --repo "$GH_REPO" >/dev/null 2>&1; then
+            echo "Preview release already present; no duplicate created."
+            exit 0
+          fi
+          gh release create swapp-live-windows-v1.2.0-preview \
+            release-files/SWAPP-Live-Portable-1.2.0-x64.exe \
+            release-files/SWAPP-Live-Setup-1.2.0-x64.exe \
+            release-files/SHA256SUMS.txt \
+            --repo "$GH_REPO" \
+            --target "$GITHUB_SHA" \
+            --title "SWAPP Live Windows 1.2.0 (préversion FFmpeg)" \
+            --prerelease \
+            --notes-file preview-notes.md
