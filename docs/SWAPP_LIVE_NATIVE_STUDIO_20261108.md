@@ -32,3 +32,15 @@
 9. Après validation Windows, construire dans local-agent avec BUILD-WINDOWS.bat sur un poste préparé, ou déclencher manuellement le workflow GitHub, avec contrôle préalable des éventuels coûts de minutes runner.
 
 Aucun workflow payant n'est automatiquement déclenché et la branche ne déploie pas le site.
+
+## Intégration libobs (code ajouté à la branche)
+
+- `local-agent/libobs-host/main.cpp` : hôte C++ autonome qui initialise libobs, charge les plugins Win Capture + WASAPI, compose jeu/écran et audio, et envoie H.264/AAC vers le RTMP localhost de SWAPP Live sans démarrer OBS Studio.
+- `local-agent/swapp-libobs-bridge.js` : processus enfant isolé, contrôle démarrer/arrêter, validation de la sortie HLS, reconnaissance de l'hôte natif empaqueté et repli automatique FFmpeg.
+- `local-agent/libobs-host/CMakeLists.txt` et `build-and-stage-windows.ps1` : projet CMake Windows et mise en scène de la version **OBS 33.0.1** avec ses plugins/runtime. Le script n'effectue aucun téléchargement et requiert un SDK libobs et les sources/licences correspondantes.
+- Le studio propose « Automatique », « libobs Game Capture », « FFmpeg DirectX » et « FFmpeg classique » et indique si le binaire libobs existe.
+- `test/swapp-libobs-bridge.test.js` couvre la sélection de l'hôte, l'RTMP local seulement, l'arrêt et le repli FFmpeg.
+
+**Statut réel :** les fichiers C++, JS et CMake sont committés, mais le composant `swapp-libobs-host.exe` n'est pas encore produit. Les tests effectués depuis ChatGPT sont des tests de syntaxe JS et des simulations de processus, pas une compilation Windows ni un essai GPU. La récupération/compilation d'OBS 33.0.1 et la conformité GPL complète restent nécessaires avant diffusion d'un binaire.
+
+Ressources officielles : https://github.com/obsproject/obs-studio/tree/33.0.1 et https://docs.obsproject.com/frontends.
