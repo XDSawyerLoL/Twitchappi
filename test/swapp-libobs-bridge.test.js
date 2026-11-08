@@ -5,13 +5,22 @@ const {EventEmitter}=require('node:events');
 const fs=require('node:fs');
 const path=require('node:path');
 const {
- nativeHostPath,createLibobsCapture,createHybridCapture
+ nativeHostPath,completeLibobsRuntime,createLibobsCapture,createHybridCapture
 }=require('../local-agent/swapp-libobs-bridge');
 
 test('only the packaged or developer-built libobs executable can be selected',()=>{
- const exists=(p)=>p.endsWith('resources/swapp-libobs/swapp-libobs-host.exe');
+ const prefix=path.join('/resources','swapp-libobs');
+ const required=['win-capture','win-wasapi','obs-outputs','obs-x264','obs-ffmpeg','rtmp-services'];
+ const present=new Set([
+  path.join(prefix,'swapp-libobs-host.exe'),path.join(prefix,'libobs.dll'),path.join(prefix,'libobs-d3d11.dll'),
+  ...required.map(n=>path.join(prefix,'core',n,n+'.dll'))
+ ]);
+ const exists=p=>present.has(p);
  const found=nativeHostPath({root:'/project/local-agent',resourcesPath:'/resources',exists});
- assert.equal(found,path.join('/resources','swapp-libobs','swapp-libobs-host.exe'));
+ assert.equal(found,path.join(prefix,'swapp-libobs-host.exe'));
+ assert.equal(completeLibobsRuntime(found,exists),true);
+ present.delete(path.join(prefix,'core','win-capture','win-capture.dll'));
+ assert.equal(completeLibobsRuntime(found,exists),false);
  assert.equal(nativeHostPath({root:'/none',resourcesPath:null,exists:()=>false}),null);
 });
 
