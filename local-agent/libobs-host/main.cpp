@@ -113,7 +113,7 @@ int main(int argc, char **argv) {
    "wasapi_output_capture","wasapi_input_capture"};
   bool valid=true;
   for(auto *name:ids) {
-   const char *label=obs_get_source_display_name(name);
+   const char *label=obs_source_get_display_name(name);
    if(!label) {
     std::cerr << "Missing native source plugin: " << name << std::endl;
     valid=false;
