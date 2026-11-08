@@ -158,6 +158,48 @@
   return json;
  }
 
+ async function refreshWindowList(){
+  if(working||capturing)return;
+  const picker=$('windowSelect'),notice=$('windowsStatus');
+  const previous=picker.value;
+  $('refreshWindowsButton').disabled=true;
+  notice.dataset.error='0';notice.textContent='Recherche des fenêtres Windows ouvertes…';
+  try{
+   const data=await api('/api/screen/windows');
+   const items=Array.isArray(data.windows)?data.windows:[];
+   const options=[];
+   const placeholder=document.createElement('option');
+   placeholder.value='';placeholder.textContent='Choisir une fenêtre…';
+   options.push(placeholder);
+   for(const item of items){
+    const opt=document.createElement('option');
+    opt.value=String(item.hwnd);
+    opt.textContent=String(item.title||'Fenêtre').slice(0,160)+
+     (item.minimized?' (réduite)':item.ambiguous?' (titre dupliqué)':'');
+    opt.disabled=!!item.minimized||!!item.ambiguous;
+    options.push(opt);
+   }
+   picker.replaceChildren(...options);
+   const match=options.find(o=>o.value===previous&&!o.disabled);
+   picker.value=match?previous:'';
+   const capturable=options.filter(o=>o.value&&!o.disabled).length;
+   notice.textContent=capturable
+    ?capturable+' fenêtre(s) disponibles. Choisis celle à capturer, puis clique sur « Prévisualiser ».'
+    :'Aucune fenêtre capturable. Ouvre ton jeu, restaure sa fenêtre, puis clique sur Actualiser.';
+  }catch(e){
+   picker.replaceChildren();
+   const opt=document.createElement('option');
+   opt.value='';opt.textContent='Liste des fenêtres indisponible';
+   picker.appendChild(opt);picker.value='';
+   notice.dataset.error='1';
+   notice.textContent='Énumération Windows impossible : '+e.message;
+   status(notice.textContent,'error');
+  }finally{
+   $('refreshWindowsButton').disabled=working||capturing;
+   buttons();
+  }
+ }
+
  async function getAccount(){
   try{
    const data=await api('/api/account/status');
@@ -443,9 +485,19 @@
   status(video.muted?'Retour audio coupé.':'Retour audio local activé à faible volume. Attention au risque d’écho.');
  });
  video.addEventListener('click',()=>{if(capturing&&video.paused)void video.play()});
- for(const button of presetButtons)button.addEventListener('click',()=>choosePreset(button.dataset.preset));
+ for(const button of presetButtons)button.addEventListener('click',()=>{
+  choosePreset(button.dataset.preset);
+  if(button.dataset.preset==='window'&&!$('windowSelect').options.length)void refreshWindowList();
+ });
+ $('refreshWindowsButton').addEventListener('click',refreshWindowList);
+ $('windowSelect').addEventListener('change',()=>{
+  if(working||capturing)return;
+  $('captureMode').value='window';persist();buttons();
+  status($('windowSelect').value?'Fenêtre choisie : '+sourceLabel()+'. Lance la prévisualisation.':'Sélectionne une fenêtre pour activer la capture.');
+ });
  for(const id of settings)$(id).addEventListener('change',()=>{
   persist();
+  if(id==='captureMode'&&$('captureMode').value==='window'&&!$('windowSelect').options.length)void refreshWindowList();
   if(id==='captureMode'&&$('captureMode').value==='libobs'&&!libobsAvailable){
    $('captureMode').value='ddagrab';
    status('libobs n’est pas installé. DirectX reste sélectionné.','error');
@@ -486,6 +538,6 @@
  });
  restore();buttons();
  activity('SWAPP Creator Studio chargé. Aucune diffusion en cours.');
- void loadConnection();void refresh();void audioDevices();
+ void loadConnection();void refresh();void audioDevices();void refreshWindowList();
  setInterval(refresh,4000);
 })();
