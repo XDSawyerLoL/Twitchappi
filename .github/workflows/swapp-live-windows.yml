@@ -5,6 +5,12 @@ name: SWAPP Live Windows (free public runner)
 # The maintainer may trigger it manually when an updated installer is needed.
 on:
   workflow_dispatch:
+    inputs:
+      publish_release:
+        description: "Publish public EXE release after native libobs validation?"
+        type: boolean
+        default: false
+        required: false
 
 permissions:
   contents: write
@@ -86,7 +92,19 @@ jobs:
           if ($matching.Count -eq 0) { throw "NSIS installed SWAPP Live.exe without the matching ffmpeg.dll" }
           Write-Host "NSIS smoke test PASS: matching Electron ffmpeg.dll is installed next to SWAPP Live.exe"
 
-      - name: Publish installers as public GitHub Release (not paid Actions artifact storage)
+      - name: Require validated native libobs runtime before public release
+        if: ${{ inputs.publish_release == true }}
+        shell: pwsh
+        run: |
+          if (!(Test-Path "local-agent/libobs-runtime/swapp-libobs-host.exe")) {
+            throw "No native libobs executable staged. Public release blocked to avoid misleading users."
+          }
+          if (!(Test-Path "local-agent/libobs-runtime/GPL-2.0-LICENSE.txt")) {
+            throw "Missing libobs GPL notice. Public release blocked."
+          }
+
+      - name: Publish installers as public GitHub Release (manual opt-in only)
+        if: ${{ inputs.publish_release == true }}
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
