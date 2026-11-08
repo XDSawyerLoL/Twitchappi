@@ -4,7 +4,7 @@
  const video=$('video'),empty=$('emptyPreview');
  const previewButton=$('previewButton'),liveButton=$('liveButton'),stopButton=$('stopButton');
  const account=$('account'),connectButton=$('connectButton');
- let connected=false,login='',configuredKey='',captureKey='',capturing=false,published=false,previewReady=false,working=false,hls=null;
+ let connected=false,login='',configuredKey='',captureKey='',capturing=false,published=false,previewReady=false,working=false,hls=null,libobsAvailable=false;
  function status(message,kind=''){
   const badge=$('badge');
   badge.textContent=message;
@@ -16,7 +16,7 @@
   liveButton.disabled=working||!capturing||!previewReady||!connected||captureKey!==configuredKey||published;
   stopButton.disabled=working||!capturing;
   for(const id of ['display','fps','bitrate','audio','mic','encoder','captureMode'])$(id).disabled=working||capturing;
-  $('obsSource').disabled=working||capturing||$('captureMode').value==='ddagrab'||$('captureMode').value==='gdigrab';
+  $('obsSource').disabled=working||capturing||!libobsAvailable||$('captureMode').value==='ddagrab'||$('captureMode').value==='gdigrab';
  }
  async function api(url,options){
   const response=await fetch(url,{cache:'no-store',...options});
@@ -145,8 +145,9 @@
   if(working)return;
   try{
    const s=await api('/api/screen/status');
+   libobsAvailable=!!s.libobsAvailable;
    $('nativeNotice').textContent=s.libobsAvailable?'Moteur OBS natif détecté : capture de jeu et son Windows disponibles.':'Moteur OBS natif non compilé/installé. Le mode automatique utilise FFmpeg et le mode Game Capture est indisponible.';
-   $('obsSource').disabled=working||capturing||!s.libobsAvailable||$('captureMode').value==='ddagrab'||$('captureMode').value==='gdigrab';
+   $('obsSource').disabled=working||capturing||!libobsAvailable||$('captureMode').value==='ddagrab'||$('captureMode').value==='gdigrab';
    if(capturing&&!s.capturing){
     capturing=false;published=false;captureKey='';resetPreview();
     status('La capture Windows s’est interrompue : '+(s.error||'source indisponible'),'error');
