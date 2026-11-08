@@ -15,7 +15,7 @@
   previewButton.disabled=working||capturing;
   liveButton.disabled=working||!capturing||!previewReady||!connected||published;
   stopButton.disabled=working||!capturing;
-  for(const id of ['display','fps','bitrate','audio'])$(id).disabled=working||capturing;
+  for(const id of ['display','fps','bitrate','audio','captureMode'])$(id).disabled=working||capturing;
  }
  async function api(url,options){
   const response=await fetch(url,{cache:'no-store',...options});
@@ -98,7 +98,7 @@
    const data=await api('/api/screen/start',{
     method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({display:Number($('display').value),fps:Number($('fps').value),
-     bitrate:Number($('bitrate').value),audioDevice:$('audio').value})
+     bitrate:Number($('bitrate').value),audioDevice:$('audio').value,method:$('captureMode').value})
    });
    capturing=true;
    playPreview(data.key);
@@ -145,6 +145,20 @@
   }catch(_){}
   buttons();
  }
+ let darkChecks=0;
+ setInterval(()=>{
+  if(!capturing||!previewReady||published||video.readyState<2){darkChecks=0;return}
+  try{
+   const canvas=document.createElement('canvas');canvas.width=64;canvas.height=36;
+   const ctx=canvas.getContext('2d',{willReadFrequently:true});
+   ctx.drawImage(video,0,0,64,36);
+   const pixels=ctx.getImageData(0,0,64,36).data;
+   let lit=0;
+   for(let i=0;i<pixels.length;i+=4)if(Math.max(pixels[i],pixels[i+1],pixels[i+2])>35)lit++;
+   darkChecks=lit<15?darkChecks+1:0;
+   if(darkChecks>=3)status('L’aperçu semble noir. Vérifie ton jeu ; si le moniteur affiche une image, arrête puis essaie le mode de capture Windows classique.','error');
+  }catch(_){}
+ },2400);
  connectButton.addEventListener('click',connect);
  previewButton.addEventListener('click',start);
  liveButton.addEventListener('click',publish);
