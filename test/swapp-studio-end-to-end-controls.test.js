@@ -16,7 +16,7 @@ function makeHarness(){
    this.dataset={};this.classList={toggle(){}};this.style={};
    this.children=[];this.listeners={};this.textContent='';this.attributes={};
    this.muted=true;this.volume=0;this.readyState=0;this.paused=true;
-   this.options=[];this.src='';this.type='text';
+   this.options=[];this.src='';this.type='text';this.offsetTop=0;this.scrollTop=0;
   }
   get selectedOptions(){return this.options.filter(x=>x.value===this.value).slice(0,1)}
   get childElementCount(){return this.children.length}
@@ -30,6 +30,7 @@ function makeHarness(){
   async fire(name){for(const listener of this.listeners[name]||[])await listener()}
   removeAttribute(key){delete this.attributes[key]}
   setAttribute(key,value){this.attributes[key]=String(value)}
+  querySelectorAll(sel){if(sel==='button')return this.children.filter(x=>x.kind==='button');return []}
   querySelector(query){
    const m=query.match(/^option\[value="(.+)"\]$/);
    if(!m)return null;
@@ -54,9 +55,19 @@ function makeHarness(){
   const p=new Element('preset-'+key,'button');p.dataset.preset=key;nodes.set(p.id,p);
  }
  const presetButtons=[...nodes.values()].filter(x=>x.dataset.preset);
+ const panelButtons=[...html.matchAll(/data-panel="([^"]+)"/g)].map(([,panel])=>{
+  const button=new Element('panel-'+panel,'a');button.dataset.panel=panel;return button;
+ });
+ const selectors={
+  '.studio-layout':new Element('studio-layout'),
+  '.left-dock':new Element('left-dock'),
+  '.right-dock':new Element('right-dock'),
+  '.center-dock':new Element('center-dock')
+ };
  const document={
   getElementById(id){const x=nodes.get(id);if(!x)throw Error('Missing HTML element: '+id);return x},
-  querySelectorAll(sel){if(sel==='[data-preset]')return presetButtons;throw Error('Unexpected selector: '+sel)},
+  querySelectorAll(sel){if(sel==='[data-preset]')return presetButtons;if(sel==='[data-panel]')return panelButtons;throw Error('Unexpected selector: '+sel)},
+  querySelector(sel){return selectors[sel]||null},
   createElement(kind){return new Element('',kind)}
  };
  const store=new Map;
@@ -105,7 +116,7 @@ function makeHarness(){
   Hls:{isSupported:()=>false},
   Date,console
  };
- return {state,nodes,presetButtons,context,run:()=>vm.runInNewContext(script,context,{timeout:2000}),
+ return {state,nodes,presetButtons,panelButtons,selectors,context,run:()=>vm.runInNewContext(script,context,{timeout:2000}),
   wait:async()=>new Promise(resolve=>setImmediate(resolve))};
 }
 
@@ -188,4 +199,16 @@ test('choose a real Windows application and send its selected HWND into the capt
  assert.equal(body.method,'window');
  assert.equal(body.windowHwnd,'45678');
  assert.equal(state.local,true);
+});
+
+
+test('studio navigation opens Sources, Settings and Activity panels, including collapsed Activity on narrow windows',async()=>{
+ const app=makeHarness();app.run();await app.wait();
+ const links=app.panelButtons;
+ await links.find(x=>x.dataset.panel==='activite').fire('click');
+ assert.ok(links.find(x=>x.dataset.panel==='activite').attributes['aria-current']==='page');
+ await links.find(x=>x.dataset.panel==='reglages').fire('click');
+ assert.equal(app.nodes.get('advancedSettings').open,true);
+ await links.find(x=>x.dataset.panel==='scenes').fire('click');
+ assert.equal(links.find(x=>x.dataset.panel==='scenes').attributes['aria-current'],'page');
 });
