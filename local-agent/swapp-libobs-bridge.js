@@ -111,9 +111,9 @@ function createHybridCapture({ffmpeg,native}){
  let current=null;
  const status=()=>{
   const s=current==='libobs'?native.status():ffmpeg.status();
-  // A native child can exit without an explicit Stop (GPU/RTMP failures).
-  // Release ownership so another Start is possible after the UI notices the error.
-  if(current==='libobs'&&!s.capturing)current=null;
+  // Both native and FFmpeg can exit after a DXGI device/display-mode switch.
+  // Release the engine lock so Preview can be clicked again without restarting SWAPP.
+  if(current&&!s.capturing)current=null;
   return {...s,engine:current||s.engine||'ffmpeg',libobsAvailable:native.available()};
  };
  async function start(options={}){
