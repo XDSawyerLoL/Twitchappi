@@ -12,7 +12,7 @@ test('only the packaged or developer-built libobs executable can be selected',()
  const prefix=path.join('/resources','swapp-libobs');
  const required=['win-capture','win-wasapi','obs-outputs','obs-x264','obs-ffmpeg','rtmp-services'];
  const present=new Set([
-  path.join(prefix,'swapp-libobs-host.exe'),path.join(prefix,'libobs.dll'),path.join(prefix,'libobs-d3d11.dll'),
+  path.join(prefix,'swapp-libobs-host.exe'),path.join(prefix,'obs.dll'),path.join(prefix,'libobs-d3d11.dll'),
   ...required.map(n=>path.join(prefix,'core',n,n+'.dll'))
  ]);
  const exists=p=>present.has(p);
