@@ -478,7 +478,7 @@ async function verify(){
  const newsScript=await request(origin,'/assets/swapp-home-news.js');
  check(!newsScript.body.includes('signal:AbortSignal.timeout(')&&
    newsScript.body.includes('new AbortController()')&&
-   home.body.includes('swapp-home-news.js?v=20261107-editorial-briefs-v1'),
+   home.body.includes('swapp-home-news.js?v=20261108-remove-purple-video-v3'),
    'Homepage editorial script is stale or incompatible with older Safari');
  check(newsScript.body.includes('function updateVideoTeaser(section,articles,heroSlug)')&&
   !newsScript.body.includes('trailer-code-vein-2-story-trailer'),
@@ -488,7 +488,7 @@ async function verify(){
   'Homepage still intercepts canonical editorial links with the SPA route');
  const motionPath='/assets/swapp-home-motion.js?v=20261108-gta6-header-video-v2';
  check(home.body.includes(motionPath)&&
-   home.body.indexOf(motionPath)<home.body.indexOf('swapp-home-news.js?v=20261107-editorial-briefs-v1'),
+   home.body.indexOf(motionPath)<home.body.indexOf('swapp-home-news.js?v=20261108-remove-purple-video-v3'),
    'No cinematic hero helper before the editorial client');
  const motion=await request(origin,'/assets/swapp-home-motion.js');
  check(motion.body.includes('window.SwappHomeMotion')&&
