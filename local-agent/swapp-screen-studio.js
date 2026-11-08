@@ -220,6 +220,22 @@ function localOriginOnly(req,res,next){
  next();
 }
 
+function parseDshowDevices(output){
+ let category=null;
+ const result={devices:[],videoDevices:[]};
+ const pattern=/^\s*\[dshow[^\]]*\]\s*"([^"]+)"(?:\s+\((?:audio|video)\))?/i;
+ for(const line of String(output||'').split(/\r?\n/)){
+  if(/DirectShow video devices/i.test(line)){category='video';continue}
+  if(/DirectShow audio devices/i.test(line)){category='audio';continue}
+  const match=line.match(pattern);
+  if(!match||/Alternative name/i.test(line)||!category)continue;
+  const device=match[1].trim().slice(0,160);
+  const bucket=category==='video'?result.videoDevices:result.devices;
+  if(device&&!bucket.includes(device))bucket.push(device);
+ }
+ return result;
+}
+
 function mountScreenStudio(app,{express,ffmpegPath,rtmpPort,currentConfiguredKey,streamStatus}){
  const ffmpeg=createScreenCapture({ffmpegPath,rtmpPort,currentConfiguredKey,streamStatus});
  const sceneFile=path.join(process.env.APPDATA||os.homedir(),'SwappLocal','scenes.json');
@@ -227,7 +243,6 @@ function mountScreenStudio(app,{express,ffmpegPath,rtmpPort,currentConfiguredKey
  const {createLibobsCapture,createHybridCapture}=require('./swapp-libobs-bridge');
  const native=createLibobsCapture({rtmpPort,currentConfiguredKey,streamStatus});
  const capture=createHybridCapture({ffmpeg,native});
- const audioDevicePattern=/^\[[^\]]*dshow[^\]]*\]\s+"([^"]+)"/i;
  app.get('/studio',(_req,res)=>res.sendFile(path.join(__dirname,'studio.html')));
  app.get('/studio.css',(_req,res)=>res.type('text/css').sendFile(path.join(__dirname,'studio.css')));
  app.get('/studio.js',(_req,res)=>res.type('application/javascript').sendFile(path.join(__dirname,'studio.js')));
@@ -244,7 +259,7 @@ function mountScreenStudio(app,{express,ffmpegPath,rtmpPort,currentConfiguredKey
   catch(e){res.status(503).json({success:false,error:String(e.message||e),windows:[]})}
  });
  app.get('/api/screen/audio-devices',async(_req,res)=>{
-  if(process.platform!=='win32')return res.json({success:true,devices:[]});
+  if(process.platform!=='win32')return res.json({success:true,devices:[],videoDevices:[]});
   const proc=spawn(ffmpegPath,['-hide_banner','-list_devices','true','-f','dshow','-i','dummy'],
    {windowsHide:true,stdio:['ignore','ignore','pipe']});
   let output='';
@@ -254,19 +269,9 @@ function mountScreenStudio(app,{express,ffmpegPath,rtmpPort,currentConfiguredKey
   proc.once('close',()=>{
    if(responded)return;responded=true;
    clearTimeout(timeout);
-   let audio=false;
-   const devices=[];
-   for(const line of output.split(/\r?\n/)){
-    if(/DirectShow audio devices/i.test(line)){audio=true;continue}
-    if(/DirectShow video devices/i.test(line)){audio=false;continue}
-    if(audio){
-     const match=line.match(audioDevicePattern);
-     if(match&&!devices.includes(match[1]))devices.push(match[1]);
-    }
-   }
-   res.json({success:true,devices});
+   res.json({success:true,...parseDshowDevices(output)});
   });
-  proc.once('error',()=>{if(responded)return;responded=true;clearTimeout(timeout);res.json({success:true,devices:[]})});
+  proc.once('error',()=>{if(responded)return;responded=true;clearTimeout(timeout);res.json({success:true,devices:[],videoDevices:[]})});
  });
  app.post('/api/screen/start',express.json({limit:'4kb'}),localOriginOnly,async(req,res)=>{
   try{
@@ -285,4 +290,4 @@ function mountScreenStudio(app,{express,ffmpegPath,rtmpPort,currentConfiguredKey
  app.post('/api/screen/stop',localOriginOnly,(_req,res)=>res.json(capture.stop()));
  return capture;
 }
-module.exports={captureArgs,captureFailure,createScreenCapture,mountScreenStudio,localOriginOnly};
+module.exports={captureArgs,captureFailure,parseDshowDevices,createScreenCapture,mountScreenStudio,localOriginOnly};
