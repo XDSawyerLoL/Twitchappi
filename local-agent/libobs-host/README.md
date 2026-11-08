@@ -25,8 +25,9 @@ preview and decides when to publish via the existing SWAPP service.
    architecture, extracted locally. It is used to stage compatible libobs DLLs,
    plugins and their runtime assets. No OBS interface is installed for the user.
 3. Run `local-agent/libobs-host/build-and-stage-windows.ps1` with
-   `-SdkPrefix C:\path\to\exported-libobs` and
-   `-ObsPortableRoot C:\path\to\OBS-portable`.
+   `-SdkPrefix C:\path\to\exported-libobs`,
+   `-ObsPortableRoot C:\path\to\OBS-portable`, and
+   `-ObsSourceRoot C:\path\to\obs-studio-33.0.1` (checked-out upstream source with `COPYING`).
 
 The script builds `swapp-libobs-host.exe` and stages the selected OBS runtime
 components under `local-agent/libobs-runtime/`. It will abort when required
@@ -50,7 +51,7 @@ Never bypass game security or anti-cheat protections.
 
 The Electron package includes a `swapp-libobs` runtime directory when staged.
 On start, SWAPP Live checks for `swapp-libobs-host.exe` in its packaged
-resources; in development it also checks `local-agent/bin/`.
+resources; in development it also checks `local-agent/libobs-runtime/` and `local-agent/bin/`.
 The Studio auto mode prefers libobs when present and falls back to FFmpeg if
 the host cannot provide healthy HLS. Users can explicitly select libobs
 Game Capture, and the interface clearly reports when the host is missing.
