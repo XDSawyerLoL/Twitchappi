@@ -2,7 +2,7 @@
 # ABI-matched import library from obs.dll, avoiding a full OBS source build.
 [CmdletBinding()]
 param(
-  [string]$OutputRoot = (Join-Path $env:RUNNER_TEMP "swapp-obs-33.0.1"),
+  [string]$OutputRoot = "",
   [switch]$Force
 )
 $ErrorActionPreference = 'Stop'
