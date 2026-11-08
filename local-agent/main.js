@@ -37,7 +37,7 @@ async function createWindow(){
    try{const u=new URL(url);if(u.protocol==='https:' && (u.hostname==='swapp.tv'||u.hostname.endsWith('.swapp.tv')))shell.openExternal(url);}catch(_){}
    return{action:'deny'};
   });
-  await win.loadURL('http://127.0.0.1:'+port+'/');
+  await win.loadURL('http://127.0.0.1:'+port+'/studio');
  }catch(err){
   dialog.showErrorBox('SWAPP Live — démarrage impossible',String(err?.message||err));
   app.quit();
