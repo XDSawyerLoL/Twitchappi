@@ -55,17 +55,45 @@ static bool read_args(int argc, char **argv, Options &o) {
 }
 
 static bool configure_plugins(const fs::path &exe) {
- // OBS 33.0.1 uses a hardcoded first-party core module registry.
- // OBS's deprecated obs_load_all_modules() is now an empty no-op!
- // Its core loader resolves ../../core relative to the process CWD, so we
- // must launch it from the canonical OBS portable bin/64bit/ directory.
+ // OBS 33's public obs_load_core_modules() loads *all* official modules,
+ // including frontend-tools.dll, which assumes the actual OBS GUI frontend.
+ // SWAPP has no OBS GUI callbacks, so load only the capture/encode/output
+ // modules we explicitly need, using documented obs_open_module/init_module.
  fs::current_path(exe);
- const std::string libobsData=(exe/".."/".."/"data"/"libobs").lexically_normal().string();
+ const fs::path runtime=fs::weakly_canonical(exe/".."/"..");
+ const fs::path core=runtime/"core";
+ const std::string libobsData=(runtime/"data"/"libobs").string();
  obs_add_data_path(libobsData.c_str());
- if(!obs_load_core_modules()) {
-  std::cerr << "OBS 33 core module registration failed; missing DLL or data" << std::endl;
-  return false;
+
+ const char *required[]={
+  "win-capture","win-wasapi","win-dshow",
+  "obs-ffmpeg","obs-x264","obs-outputs","rtmp-services"
+ };
+ auto load=[&](const char *name,bool mandatory){
+  const fs::path binary=core/name/(std::string(name)+".dll");
+  const fs::path data=core/name/"data";
+  if(!fs::exists(binary)){
+   if(mandatory)std::cerr<<"Missing OBS module: "<<binary.string()<<std::endl;
+   return !mandatory;
+  }
+  obs_module_t *module=nullptr;
+  int status=obs_open_module(&module,binary.string().c_str(),data.string().c_str());
+  if(status!=MODULE_SUCCESS||!module){
+   if(mandatory)std::cerr<<"Failed opening OBS module "<<name<<" code "<<status<<std::endl;
+   return !mandatory;
+  }
+  if(!obs_init_module(module)){
+   if(mandatory)std::cerr<<"Failed initializing OBS module "<<name<<std::endl;
+   return !mandatory;
+  }
+  std::cout<<"Loaded native OBS module: "<<name<<std::endl;
+  return true;
+ };
+ for(const char *name:required){
+  if(!load(name,true))return false;
  }
+ // NVENC may fail on PCs without a compatible NVIDIA driver. x264 remains.
+ load("obs-nvenc",false);
  obs_post_load_modules();
  return true;
 }
