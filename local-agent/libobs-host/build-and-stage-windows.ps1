@@ -31,7 +31,7 @@ $obsBin = Join-Path $obs "bin\64bit"
 $core = Join-Path $obs "core"
 $legacy = Join-Path $obs "obs-plugins\64bit"
 $legacyData = Join-Path $obs "data\obs-plugins"
-Require-File (Join-Path $obsBin "libobs.dll")
+Require-File (Join-Path $obsBin "obs.dll")
 Require-File (Join-Path $obsBin "libobs-d3d11.dll")
 
 $required = @("win-capture","win-wasapi","obs-outputs","obs-x264","obs-ffmpeg","rtmp-services")
@@ -48,7 +48,7 @@ foreach ($name in ($required + $optional)) {
 }
 
 Write-Host "Using OBS core modules:" ([string]::Join(", ", @($selected.Keys)))
-& cmake -S $here -B $build -A x64 "-DCMAKE_PREFIX_PATH=$sdk" "-DCMAKE_INSTALL_PREFIX=$stage"
+& cmake -S $here -B $build -A x64 "-DCMAKE_PREFIX_PATH=$sdk" "-DCMAKE_INSTALL_PREFIX=$stage" "-DSWAPP_OBS_SDK=$sdk" "-DSWAPP_OBS_ROOT=$obs" "-DSWAPP_OBS_SOURCE=$sourceTree"
 if ($LASTEXITCODE -ne 0) { throw "CMake configuration failed; SDK must export OBS::libobs." }
 & cmake --build $build --config Release --parallel 4
 if ($LASTEXITCODE -ne 0) { throw "Native libobs host build failed" }
