@@ -69,5 +69,5 @@ test('desktop UI release has incremented, workspace has adequate width',()=>{
  const electron=read('local-agent/main.js');
  assert.equal(pkg.version,'1.2.3');
  assert.match(electron,/width:1510,height:920/);
- assert.match(read('local-agent/BUILD-WINDOWS.bat'),/SWAPP-Live-Setup-1\.2\.2-x64\.exe/);
+ assert.match(read('local-agent/BUILD-WINDOWS.bat'),/SWAPP-Live-Setup-1\.2\.3-x64\.exe/);
 });
