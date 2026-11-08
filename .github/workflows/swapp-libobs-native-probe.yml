@@ -1,6 +1,6 @@
 name: SWAPP native libobs 33 build probe (one-time)
 
-# User-requested native smoke test with OBS 33 supported core loader and official bin/64bit layout.
+# Native smoke test: only Game Capture/WASAPI/encoding plugins loaded; no GUI callbacks.
 on:
   push:
     branches:
