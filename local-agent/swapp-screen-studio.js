@@ -22,7 +22,7 @@ function captureArgs({method,display,fps,bitrate,audioDevice,rtmpUrl}){
   args.push('-f','dshow','-i','audio='+audioDevice);
  }else{
   // HLS needs a dependable audio timeline even with no capture device selected.
-  args.push('-f','lavfi','-i','anullsrc=r=48000:cl=stereo');
+  args.push('-re','-f','lavfi','-i','anullsrc=r=48000:cl=stereo');
  }
  args.push('-map','0:v:0','-map','1:a:0','-vf',"scale=w='min(1920,iw)':h=-2:flags=fast_bilinear,format=yuv420p",
   '-c:v','libx264','-preset','veryfast','-tune','zerolatency','-r',String(fps),
