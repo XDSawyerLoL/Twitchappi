@@ -9,7 +9,9 @@
  const TRAILER_START_SECONDS=10; // 0:10, not the first frame.
  function trailerId(article){
   const validate=window.SwappArticleExtras?.trailerId;
-  return typeof validate==='function'?validate(article?.trailerUrl):null;
+  const parsed=typeof validate==='function'?validate(article?.trailerUrl):null;
+  if(parsed)return parsed;
+  try{const u=new URL(String(article?.trailerUrl||''));const id=u.hostname==='youtu.be'?u.pathname.slice(1):u.searchParams.get('v');return /^[A-Za-z0-9_-]{11}$/.test(id||'')?id:null}catch{return null}
  }
  function eligible(){
   try{
@@ -64,7 +66,7 @@
   tile.classList.add('swapp-home-motion-loading');
   poster.after(wrap);
   function active(){return !removed&&tile.isConnected&&eligible()&&
-   !!tile.closest('#home.view.active')}
+   !!tile.closest('#home')&&getComputedStyle(tile).display!=='none'}
   function removeMotion(){
    tile.classList.remove('swapp-home-motion-playing','swapp-home-motion-loading');
    wrap.remove();
@@ -130,7 +132,7 @@
   function startMotion(){
    if(watching)return;
    watching=true;
-   // The trailer does not wait for image download or artificial delay.
+   // Start the muted official trailer in the actual home hero; preserve the poster on failure.
    delay=setTimeout(begin,0);
   }
   // Never keep a background video playing when its SWAPP page leaves the DOM.
