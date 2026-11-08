@@ -63,5 +63,5 @@ test('desktop studio is the default; OBS screen remains available',()=>{
  assert.match(js,/\/api\/go-live/);
  assert.match(js,/\/api\/tunnel\/stop/);
  assert.doesNotThrow(()=>new (require('node:vm').Script)(js));
- assert.equal(JSON.parse(source('local-agent/package.json')).version,'1.2.0');
+ assert.equal(JSON.parse(source('local-agent/package.json')).version,'1.2.1');
 });
