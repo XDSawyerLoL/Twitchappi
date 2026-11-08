@@ -14,23 +14,23 @@
  const storageKey='swapp.creator.studio.settings.v1';
  let connected=false,login='',configuredKey='',captureKey='',capturing=false,published=false;
  let previewReady=false,working=false,hls=null,libobsAvailable=false,activeEngine='',lastMessage='',darkChecks=0,externalSource=false;
- let savedAudio='',savedMic='';
+ let savedAudio='',savedMic='',sceneState=null,activeSceneId='';
 
  // The three docks scroll independently; hash anchors did not navigate.
  // This also exposes the activity dock on narrow Windows/Electron windows.
  function openStudioPanel(panel){
-  const allowed=new Set(['studio','sources','reglages','activite','rtmp']);
+  const allowed=new Set(['studio','scenes','sources','reglages','activite','rtmp']);
   if(!allowed.has(panel))return;
   const layout=document.querySelector('.studio-layout');
   const left=document.querySelector('.left-dock');
   const right=document.querySelector('.right-dock');
   const center=document.querySelector('.center-dock');
   layout.classList.toggle('show-activity',panel==='activite');
-  left.classList.toggle('dock-focused',['sources','reglages','rtmp'].includes(panel));
+  left.classList.toggle('dock-focused',['scenes','sources','reglages','rtmp'].includes(panel));
   right.classList.toggle('dock-focused',panel==='activite');
   center.classList.toggle('dock-focused',panel==='studio');
   if(panel==='studio')center.scrollTop=0;
-  else if(panel==='sources')left.scrollTop=0;
+  else if(panel==='scenes'||panel==='sources')left.scrollTop=0;
   else if(panel==='activite')right.scrollTop=0;
   else{
    if(panel==='reglages')$('advancedSettings').open=true;
