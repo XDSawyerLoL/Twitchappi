@@ -4,7 +4,7 @@
  const video=$('video'),empty=$('emptyPreview');
  const previewButton=$('previewButton'),liveButton=$('liveButton'),stopButton=$('stopButton');
  const account=$('account'),connectButton=$('connectButton');
- let connected=false,login='',capturing=false,published=false,previewReady=false,working=false,hls=null;
+ let connected=false,login='',configuredKey='',captureKey='',capturing=false,published=false,previewReady=false,working=false,hls=null;
  function status(message,kind=''){
   const badge=$('badge');
   badge.textContent=message;
@@ -13,7 +13,7 @@
  }
  function buttons(){
   previewButton.disabled=working||capturing;
-  liveButton.disabled=working||!capturing||!previewReady||!connected||published;
+  liveButton.disabled=working||!capturing||!previewReady||!connected||captureKey!==configuredKey||published;
   stopButton.disabled=working||!capturing;
   for(const id of ['display','fps','bitrate','audio','captureMode'])$(id).disabled=working||capturing;
  }
@@ -28,6 +28,8 @@
    const data=await api('/api/account/status');
    connected=!!data.connected;
    login=data.user?.login||'';
+   configuredKey=data.stream_key||'';
+   if(capturing&&connected&&captureKey!==configuredKey&&!working)status('Ta clé SWAPP a changé après connexion. Arrête puis relance la capture pour publier.','error');
    account.textContent=connected?'Connecté : '+login:'Compte non connecté';
    connectButton.hidden=connected;
   }catch(_){connected=false;account.textContent='Connexion SWAPP indisponible'}
@@ -100,7 +102,7 @@
     body:JSON.stringify({display:Number($('display').value),fps:Number($('fps').value),
      bitrate:Number($('bitrate').value),audioDevice:$('audio').value,method:$('captureMode').value})
    });
-   capturing=true;
+   capturing=true;captureKey=data.key;
    playPreview(data.key);
    status('Capture '+(data.method==='ddagrab'?'DirectX':'Windows classique')+
     ' active. Vérifie les images avant de diffuser.'+
@@ -129,7 +131,7 @@
    try{await api('/api/tunnel/stop',{method:'POST'})}catch(e){errors.push('Publication : '+e.message)}
   }
   try{await api('/api/screen/stop',{method:'POST'})}catch(e){errors.push('Capture : '+e.message)}
-  capturing=false;published=false;resetPreview();
+  capturing=false;published=false;captureKey='';resetPreview();
   status(errors.length?'Arrêt local demandé. Vérifie le statut public : '+errors.join(' ; '):'Capture et direct arrêtés.',errors.length?'error':'');
   working=false;buttons();
  }
@@ -139,7 +141,7 @@
   try{
    const s=await api('/api/screen/status');
    if(capturing&&!s.capturing){
-    capturing=false;published=false;resetPreview();
+    capturing=false;published=false;captureKey='';resetPreview();
     status('La capture Windows s’est interrompue : '+(s.error||'source indisponible'),'error');
    }
   }catch(_){}
