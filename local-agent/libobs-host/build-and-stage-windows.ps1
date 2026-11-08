@@ -1,6 +1,7 @@
 param(
   [Parameter(Mandatory = $true)][string]$SdkPrefix,
-  [Parameter(Mandatory = $true)][string]$ObsPortableRoot
+  [Parameter(Mandatory = $true)][string]$ObsPortableRoot,
+  [Parameter(Mandatory = $true)][string]$ObsSourceRoot
 )
 
 $ErrorActionPreference = "Stop"
@@ -22,6 +23,8 @@ function Copy-Verified([string]$source,[string]$destination) {
 if ($env:OS -ne "Windows_NT") { throw "Requires Windows x64" }
 $obs = (Resolve-Path -LiteralPath $ObsPortableRoot).Path
 $sdk = (Resolve-Path -LiteralPath $SdkPrefix).Path
+$sourceTree = (Resolve-Path -LiteralPath $ObsSourceRoot).Path
+Require-File (Join-Path $sourceTree "COPYING")
 $obsBin = Join-Path $obs "bin\64bit"
 $obsPlugins = Join-Path $obs "obs-plugins\64bit"
 $obsData = Join-Path $obs "data\obs-plugins"
@@ -39,6 +42,7 @@ Require-File $exe
 
 New-Item -ItemType Directory -Force -Path $stage | Out-Null
 Copy-Verified $exe (Join-Path $stage "swapp-libobs-host.exe")
+Copy-Verified (Join-Path $sourceTree "COPYING") (Join-Path $stage "GPL-2.0-LICENSE.txt")
 # Carry all binary dependencies from matching OBS runtime. We do not package obs64.exe
 # (the OBS Studio interface is not run or installed by SWAPP).
 Get-ChildItem -LiteralPath $obsBin -File -Filter "*.dll" |
@@ -73,7 +77,7 @@ License: GNU GPL version 2 or (at your option) any later version.
 The corresponding upstream source is available at:
 https://github.com/obsproject/obs-studio/tree/33.0.1
 SWAPP host source is available in the SWAPP repository:
-https://github.com/XDSawyerLoL/Twitchappi/tree/master/local-agent/libobs-host
+https://github.com/XDSawyerLoL/Twitchappi/tree/feat/swapp-live-native-screen-capture-20261108/local-agent/libobs-host
 This staging operation is not an authorization to redistribute.
 Review and include corresponding sources and third-party licenses
 for all distributed binaries and the complete combined application.
