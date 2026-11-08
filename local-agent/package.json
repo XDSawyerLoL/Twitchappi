@@ -62,6 +62,10 @@
       {
         "from": "bin/cloudflared.exe",
         "to": "bin/cloudflared.exe"
+      },
+      {
+        "from": "libobs-runtime",
+        "to": "swapp-libobs"
       }
     ],
     "afterPack": "./scripts/ensure-electron-runtime.cjs"
