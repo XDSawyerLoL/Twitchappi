@@ -15,7 +15,7 @@
   previewButton.disabled=working||capturing;
   liveButton.disabled=working||!capturing||!previewReady||!connected||captureKey!==configuredKey||published;
   stopButton.disabled=working||!capturing;
-  for(const id of ['display','fps','bitrate','audio','captureMode'])$(id).disabled=working||capturing;
+  for(const id of ['display','fps','bitrate','audio','mic','encoder','captureMode'])$(id).disabled=working||capturing;
  }
  async function api(url,options){
   const response=await fetch(url,{cache:'no-store',...options});
@@ -45,11 +45,13 @@
   try{
    const data=await api('/api/screen/audio-devices');
    for(const name of data.devices||[]){
-    const opt=document.createElement('option');
-    opt.value=name;
-    opt.textContent=name;
-    $('audio').appendChild(opt);
+    for(const id of ['audio','mic']){
+     const opt=document.createElement('option');opt.value=name;opt.textContent=name;
+     $(id).appendChild(opt);
+    }
    }
+   const stereo=(data.devices||[]).find(x=>/stereo mix|mixage stéréo|loopback|virtual.audio|wentbackward/i.test(x));
+   if(stereo)$('audio').value=stereo;
   }catch(_){}
  }
  function resetPreview(){
@@ -100,11 +102,13 @@
    const data=await api('/api/screen/start',{
     method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({display:Number($('display').value),fps:Number($('fps').value),
-     bitrate:Number($('bitrate').value),audioDevice:$('audio').value,method:$('captureMode').value})
+     bitrate:Number($('bitrate').value),audioDevice:$('audio').value,micDevice:$('mic').value,
+     encoder:$('encoder').value,method:$('captureMode').value})
    });
    capturing=true;captureKey=data.key;
    playPreview(data.key);
    status('Capture '+(data.method==='ddagrab'?'DirectX':'Windows classique')+
+    ' · '+(data.encoder==='nvenc'?'NVIDIA NVENC':'x264')+
     ' active. Vérifie les images avant de diffuser.'+
     (data.method==='gdigrab'?'\nMode secours : tout le bureau virtuel est capturé.':''));
   }catch(e){capturing=false;status('Capture impossible : '+e.message,'error');resetPreview()}
