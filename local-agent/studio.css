@@ -239,3 +239,31 @@ details[open] summary:after{transform:rotate(180deg)}
 @media(max-width:760px){
  .studio-layout.show-activity .right-dock{position:relative;width:100%;box-shadow:none}
 }
+
+/* Persistent multi-source scenes — sources are included in the encoded video. */
+.scenes-panel{scroll-margin-top:20px}
+.scene-list{display:grid;gap:6px;max-height:185px;overflow-y:auto;padding-right:3px;margin-bottom:10px}
+.scene-choice{display:flex;align-items:center;text-align:left;width:100%;border-radius:9px;border:1px solid #30364a;
+ background:#191d2b;color:#c3cbe0;padding:10px;gap:7px;font-size:11px;font-weight:750}
+.scene-choice:hover:not(:disabled){background:#252b3d}
+.scene-choice.active{border-color:#8e6aff;background:#714fc82f;color:#f1e9ff}
+.scene-choice:before{content:"";width:7px;height:7px;border-radius:50%;background:#646d88}
+.scene-choice.active:before{background:#bb98ff;box-shadow:0 0 12px #9e80ff}
+.scene-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
+.scene-actions button{background:#292e3f;border:1px solid #414961;color:#e0e6f7;
+ border-radius:8px;font-size:10px;font-weight:750;min-height:33px;padding:4px}
+.scene-actions button:hover:not(:disabled){background:#41476a}
+.scenes-panel .field input,.camera-source-picker .field select{
+ display:block;min-width:0;width:100%;padding:9px 10px;background:#0c111c;border:1px solid #353c51;
+ border-radius:8px;color:#dbe2f7;font-size:11px
+}
+.scenes-panel .field{margin-top:10px}
+.scene-layer-list{display:grid;gap:6px}
+.scene-layer{padding:10px;border:1px solid #333b51;border-radius:9px;background:#171b28;display:flex;gap:7px;
+ align-items:center;justify-content:space-between;font-size:11px;color:#d7def1;overflow:hidden}
+.scene-layer span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.scene-layer button{border:1px solid #624552;border-radius:7px;color:#ffbfd1;background:#422634;
+ font-size:10px;padding:6px;flex-shrink:0}
+.camera-source-picker{margin-top:8px}
+.camera-source-picker .scene-actions{grid-template-columns:1.7fr 1fr}
+#sceneNotice{display:block;margin:11px 0;line-height:1.6}
