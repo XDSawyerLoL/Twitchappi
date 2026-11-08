@@ -21,7 +21,9 @@ function makeHarness(){
   get selectedOptions(){return this.options.filter(x=>x.value===this.value).slice(0,1)}
   get childElementCount(){return this.children.length}
   get lastElementChild(){return this.children[this.children.length-1]}
-  append(...items){for(const item of items){item.parent=this;this.children.push(item)}}
+  append(...items){for(const item of items){item.parent=this;this.children.push(item);if(this.id==='windowSelect')this.options.push(item)}}
+  appendChild(item){this.append(item);return item}
+  replaceChildren(...items){this.children=[];if(this.id==='windowSelect')this.options=[];this.append(...items)}
   prepend(item){item.parent=this;this.children.unshift(item)}
   remove(){if(this.parent)this.parent.children.splice(this.parent.children.indexOf(this),1)}
   addEventListener(name,listener){(this.listeners[name]??=[]).push(listener)}
@@ -78,8 +80,12 @@ function makeHarness(){
     ffmpeg_running:state.external||state.local}
   };
   else if(url==='/api/screen/audio-devices')result={success:true,devices:[]};
+  else if(url==='/api/screen/windows')result={success:true,windows:[
+   {hwnd:'45678',title:'Where Winds Meet',pid:1527,minimized:false,ambiguous:false},
+   {hwnd:'98765',title:'Fenêtre réduite',pid:1900,minimized:true,ambiguous:false}
+  ]};
   else if(url==='/api/screen/start'){
-   state.local=true;result={success:true,key:state.key,engine:'ffmpeg',method:'gdigrab',
+   state.local=true;result={success:true,key:state.key,engine:'ffmpeg',method:JSON.parse(options.body||'{}').method==='window'?'window':'gdigrab',
     recovery:'Capture de secours via GDI après changement de mode vidéo.'};
   }else if(url==='/api/screen/stop')state.local=false;
   else if(url==='/api/go-live')state.published=true;
@@ -157,4 +163,29 @@ test('external OBS RTMP stream uses existing studio canvas and Go Live, stop nev
  assert.equal(state.requests.filter(x=>x.url==='/api/screen/stop').length,stopsBefore,
   'never terminate independently owned OBS input when stopping only public live');
  assert.equal(nodes.get('topLiveState').textContent,'APERÇU LOCAL');
+});
+
+
+test('choose a real Windows application and send its selected HWND into the capture API',async()=>{
+ const app=makeHarness();app.run();await app.wait();
+ const {nodes,state,presetButtons}=app;
+ const picker=nodes.get('windowSelect');
+ assert.ok(picker.options.some(o=>o.value==='45678'));
+ assert.ok(picker.options.find(o=>o.value==='98765').disabled,'minimized windows are disabled');
+ const windowButton=presetButtons.find(x=>x.dataset.preset==='window');
+ assert.ok(windowButton);
+ await windowButton.fire('click');
+ assert.equal(nodes.get('captureMode').value,'window');
+ assert.equal(nodes.get('previewButton').disabled,true,'preview is blocked until a window is selected');
+ picker.value='45678';
+ await picker.fire('change');
+ assert.equal(nodes.get('previewButton').disabled,false);
+ assert.match(nodes.get('activeSourceText').textContent,/Where Winds Meet/);
+ await nodes.get('previewButton').fire('click');
+ const req=state.requests.find(x=>x.url==='/api/screen/start');
+ assert.ok(req);
+ const body=JSON.parse(req.body);
+ assert.equal(body.method,'window');
+ assert.equal(body.windowHwnd,'45678');
+ assert.equal(state.local,true);
 });
