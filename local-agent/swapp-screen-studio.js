@@ -9,18 +9,23 @@ const {spawn}=require('node:child_process');
 const path=require('node:path');
 const fs=require('node:fs');
 const {URL}=require('node:url');
+const {listCapturableWindows,resolveSelectedWindow}=require('./swapp-window-picker');
 
-function captureArgs({method,display,fps,bitrate,audioDevice='',micDevice='',encoder='x264',rtmpUrl}){
+function captureArgs({method,display,fps,bitrate,audioDevice='',micDevice='',encoder='x264',windowTitle='',rtmpUrl}){
  const args=['-hide_banner','-nostdin','-loglevel','warning','-y'];
  if(method==='ddagrab'){
   // FFmpeg's Direct3D desktop duplicator exposes native D3D11 frames.
   // NVENC can encode them directly; downloading GPU textures first breaks the fast path.
   const source='ddagrab=output_idx='+display+':framerate='+fps+':output_fmt=8bit';
   args.push('-f','lavfi','-i',encoder==='nvenc'?source:source+',hwdownload,format=bgra');
- }else if(method==='gdigrab'){
-  // GDI is slower but survives display mode/texture changes that terminate ddagrab.
-  // This captures the entire Windows virtual desktop, not a specific monitor.
-  args.push('-f','gdigrab','-framerate',String(fps),'-draw_mouse','1','-i','desktop');
+ }else if(method==='gdigrab'||method==='window'){
+  // FFmpeg 6.1 supports "title="; "hwnd=" requires FFmpeg >= 7.0.
+  // Resolve Win32 HWND server-side and use its exact, unique window title.
+  // In window mode never silently capture the desktop.
+  if(method==='window'&&(!windowTitle||typeof windowTitle!=='string'))
+   throw new Error('Aucune fenêtre valide n’a été sélectionnée.');
+  args.push('-f','gdigrab','-framerate',String(fps),'-draw_mouse','1','-i',
+   method==='window'?'title='+windowTitle:'desktop');
  }else throw new Error('Méthode de capture inconnue');
  const selected=[audioDevice,micDevice].map(x=>String(x||'').trim())
   .filter((x,i,a)=>x&&a.indexOf(x)===i);
@@ -57,29 +62,30 @@ function captureFailure(log){
  return null;
 }
 
-function createScreenCapture({ffmpegPath,rtmpPort,currentConfiguredKey,streamStatus,platform=process.platform,spawnProcess=spawn,now=()=>Date.now(),sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms))}){
- let child=null,method=null,codec=null,startedAt=0,error='',stopping=false,attempt=0,recovery='';
+function createScreenCapture({ffmpegPath,rtmpPort,currentConfiguredKey,streamStatus,platform=process.platform,spawnProcess=spawn,now=()=>Date.now(),sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms)),listWindows=listCapturableWindows}){
+ let child=null,method=null,codec=null,startedAt=0,error='',stopping=false,attempt=0,recovery='',capturedWindow=null;
  const safeStatus=()=>{
   const key=currentConfiguredKey();
   const source=streamStatus(key);
   return {key,capturing:!!child&&!stopping,method,encoder:codec,startedAt:startedAt?new Date(startedAt).toISOString():null,
    ready:!!child&&!stopping&&!!source.active&&!!source.hls_exists,error,recovery,
-   screen:method==='gdigrab'?'Bureau virtuel complet':'Moniteur sélectionné',
+   window:capturedWindow?{hwnd:capturedWindow.hwnd,title:capturedWindow.title}:null,
+   screen:method==='window'?(capturedWindow?.title||'Fenêtre'):(method==='gdigrab'?'Bureau virtuel complet':'Moniteur sélectionné'),
    stream:{active:!!source.active,hls_exists:!!source.hls_exists,ffmpeg_running:!!source.ffmpeg_running}};
  };
  function stop(){
   stopping=true;attempt++;
-  const old=child;child=null;method=null;codec=null;startedAt=0;
+  const old=child;child=null;method=null;codec=null;startedAt=0;capturedWindow=null;
   if(old && old.exitCode===null){try{old.kill('SIGTERM')}catch(_){}}
   stopping=false;
   return {success:true,...safeStatus()};
  }
- async function trial(kind,encoder,display,fps,bitrate,audioDevice,micDevice,rtmpUrl){
+ async function trial(kind,encoder,display,fps,bitrate,audioDevice,micDevice,rtmpUrl,selectedWindow){
   const id=++attempt;
-  const args=captureArgs({method:kind,encoder,display,fps,bitrate,audioDevice,micDevice,rtmpUrl});
+  const args=captureArgs({method:kind,encoder,display,fps,bitrate,audioDevice,micDevice,rtmpUrl,windowTitle:selectedWindow?.title||''});
   let log='',exited=false,problem=null;
   const proc=spawnProcess(ffmpegPath,args,{windowsHide:true,stdio:['ignore','ignore','pipe']});
-  child=proc;method=kind;codec=encoder;startedAt=now();
+  child=proc;method=kind;codec=encoder;capturedWindow=kind==='window'?selectedWindow:null;startedAt=now();
   proc.stderr?.on('data',chunk=>{
    log=(log+String(chunk)).slice(-3500);
    problem=captureFailure(log)||problem;
@@ -124,7 +130,9 @@ function createScreenCapture({ffmpegPath,rtmpPort,currentConfiguredKey,streamSta
   const rtmpUrl='rtmp://127.0.0.1:'+rtmpPort+'/live/'+encodeURIComponent(key);
   error='';recovery='';
   const requested=String(options.method||'auto');
-  if(!['auto','ddagrab','gdigrab'].includes(requested))throw new Error('Méthode de capture non autorisée.');
+  if(!['auto','ddagrab','gdigrab','window'].includes(requested))throw new Error('Méthode de capture non autorisée.');
+  const selectedWindow=requested==='window'
+   ?await resolveSelectedWindow(options.windowHwnd,{listWindows}):null;
   const encoderOption=String(options.encoder||'auto');
   if(!['auto','nvenc','x264'].includes(encoderOption))throw new Error('Encodeur non autorisé.');
   const methods=requested==='auto'?['ddagrab','gdigrab']:[requested];
@@ -137,7 +145,7 @@ function createScreenCapture({ffmpegPath,rtmpPort,currentConfiguredKey,streamSta
    let skipEncoder=false;
    for(const encoder of encoders){
     try{
-     const result=await trial(kind,encoder,display,fps,bitrate,audioDevice,micDevice,rtmpUrl);
+     const result=await trial(kind,encoder,display,fps,bitrate,audioDevice,micDevice,rtmpUrl,selectedWindow);
      return {...result,recovery};
     }catch(e){
      if(/interrompue/i.test(String(e.message)))throw e;
@@ -145,6 +153,8 @@ function createScreenCapture({ffmpegPath,rtmpPort,currentConfiguredKey,streamSta
      // RTMP may remain marked active until NodeMediaServer emits donePublish.
      // Never start the next source against the same key before its teardown.
      for(let wait=0;wait<16&&streamStatus(key).active;wait++)await sleep(200);
+     if(kind==='window'&&(e.code==='DISPLAY_MODE_CHANGED'||e.code==='CAPTURE_UNAVAILABLE'))
+       throw new Error('La fenêtre sélectionnée ne peut pas être capturée actuellement. Restaure-la et réessaie, sans diffuser tout le bureau. '+e.message);
      if(e.code==='DISPLAY_MODE_CHANGED'||e.code==='CAPTURE_UNAVAILABLE'){
       recovery='DirectX interrompu par un changement de mode d’affichage. Capture basculée automatiquement sur le bureau complet (GDI).';
       skipEncoder=true;break;
@@ -185,6 +195,10 @@ function mountScreenStudio(app,{express,ffmpegPath,rtmpPort,currentConfiguredKey
  app.get('/studio.css',(_req,res)=>res.type('text/css').sendFile(path.join(__dirname,'studio.css')));
  app.get('/studio.js',(_req,res)=>res.type('application/javascript').sendFile(path.join(__dirname,'studio.js')));
  app.get('/api/screen/status',(_req,res)=>res.json({success:true,...capture.status()}));
+ app.get('/api/screen/windows',async(_req,res)=>{
+  try{res.json({success:true,windows:await listCapturableWindows()})}
+  catch(e){res.status(503).json({success:false,error:String(e.message||e),windows:[]})}
+ });
  app.get('/api/screen/audio-devices',async(_req,res)=>{
   if(process.platform!=='win32')return res.json({success:true,devices:[]});
   const proc=spawn(ffmpegPath,['-hide_banner','-list_devices','true','-f','dshow','-i','dummy'],
