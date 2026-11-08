@@ -13,7 +13,7 @@ const REQUIRED_MODULES=['win-capture','win-wasapi','win-dshow','obs-outputs','ob
 function completeLibobsRuntime(executable,exists=fs.existsSync){
  if(!executable||!exists(executable))return false;
  const bin=path.dirname(executable);
- const root=path.resolve(bin,'..','..');
+ const root=path.join(bin,'..','..');
  // Mandatory OBS 33 portable tree, not a DLL pile at the EXE root.
  if(!exists(path.join(bin,'obs.dll'))||!exists(path.join(bin,'libobs-d3d11.dll')))return false;
  if(!exists(path.join(root,'GPL-2.0-LICENSE.txt')))return false;
