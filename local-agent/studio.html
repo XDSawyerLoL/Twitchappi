@@ -52,9 +52,11 @@ video{width:100%;height:100%;object-fit:contain;display:none}
 <label>Encodeur
 <select id="encoder"><option value="auto">Automatique — NVIDIA puis logiciel</option><option value="nvenc">NVIDIA NVENC uniquement</option><option value="x264">Processeur — x264</option></select></label></div>
 <label>Mode de capture
-<select id="captureMode"><option value="auto">Automatique : DirectX puis Windows classique</option><option value="ddagrab">DirectX uniquement (jeux plein écran)</option><option value="gdigrab">Windows classique (bureau entier)</option></select></label>
+<select id="captureMode"><option value="auto">Automatique : libobs (si installé), puis DirectX</option><option value="libobs">Moteur OBS — libobs Game Capture</option><option value="ddagrab">FFmpeg DirectX — capture écran</option><option value="gdigrab">FFmpeg Windows classique — bureau entier</option></select></label>
+<p id="nativeNotice" class="note">Vérification du moteur OBS installé…</p>
+<label>Source libobs<select id="obsSource"><option value="game">Jeu plein écran (Game Capture)</option><option value="display">Écran entier (Display Capture)</option></select></label>
 <p class="note">Si l’aperçu reste noir alors que le jeu est visible à l’écran, arrête la capture et essaie « Windows classique ».</p>
-<p class="note">Le son du jeu passe par une entrée « Stereo Mix » ou une source loopback DirectShow si elle est installée. La voix passe par le microphone. Les deux sources sont mixées quand elles existent. Si Windows ne fournit pas Stereo Mix, l'application ne peut pas inventer une capture de son système : l'intégration libobs/WASAPI est l'évolution prévue.</p>
+<p class="note">En mode libobs, le son du bureau et le microphone sont capturés par WASAPI. Le mode FFmpeg exige « Stereo Mix » ou une entrée DirectShow équivalente pour le son du jeu. La voix passe par le microphone. Les deux sources sont mixées quand elles existent. Si Windows ne fournit pas Stereo Mix, l'application ne peut pas inventer une capture de son système : l'intégration libobs/WASAPI est l'évolution prévue.</p>
 <div class="actions">
 <button type="button" id="previewButton">1. Prévisualiser l'écran</button>
 <button type="button" id="liveButton" disabled>2. Lancer le direct</button>
