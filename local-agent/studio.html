@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SWAPP Live — Studio</title>
+<style>
+:root{font-family:Inter,"Segoe UI",system-ui,sans-serif;color-scheme:dark;background:#080b12;color:#eef2ff}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 75% 0%,#39227755,transparent 45%),#080b12}
+header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;padding:18px 26px;border-bottom:1px solid #293048;background:#0c101bce}
+header strong{letter-spacing:.08em;font-size:20px}header strong span{color:#af8cff}
+a{color:#c9b6ff;text-decoration:none}a:hover{text-decoration:underline}
+header nav{display:flex;gap:20px;align-items:center;font-size:14px}
+main{max-width:1440px;margin:0 auto;padding:24px;display:grid;grid-template-columns:minmax(380px,1fr) minmax(410px,1.45fr);gap:20px}
+.panel{background:#111626;border:1px solid #30374f;border-radius:19px;padding:23px;min-width:0}
+h1{font-size:26px;margin:5px 0 10px}h2{font-size:20px;margin:0 0 13px}h3{font-size:16px;margin:22px 0 6px}
+p{color:#bac5dc;line-height:1.5;font-size:14px;margin:0 0 15px}
+.flag{font-size:12px;color:#c9b6ff;text-transform:uppercase;letter-spacing:.12em;font-weight:800}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+label{display:flex;flex-direction:column;gap:6px;margin:13px 0;font-size:13px;color:#cbd5ea;font-weight:650}
+select,input{width:100%;background:#090d18;border:1px solid #3c4963;border-radius:11px;color:#fff;padding:12px;font:inherit}
+button{cursor:pointer;background:#7650f2;border:0;border-radius:12px;color:white;font:inherit;font-weight:800;padding:14px 16px}
+button:hover:not(:disabled){filter:brightness(1.1)}button:disabled{opacity:.43;cursor:not-allowed}
+button.secondary{background:#252f43}button.danger{background:#923b51}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:22px}
+.actions button{min-height:54px}
+#stopButton{grid-column:1/-1}
+.frame{aspect-ratio:16/9;border:1px solid #353e53;border-radius:15px;overflow:hidden;position:relative;background:#020408;display:flex;align-items:center;justify-content:center}
+video{width:100%;height:100%;object-fit:contain;display:none}
+#emptyPreview{position:absolute;max-width:370px;text-align:center;padding:20px;color:#8d9ab0;font-size:15px;line-height:1.5}
+#badge{margin-top:16px;background:#0a101e;border:1px solid #303e55;padding:15px;border-radius:12px;white-space:pre-wrap;color:#d7e2fc;font-size:14px;line-height:1.6}
+#badge[data-error="1"]{border-color:#a44356;color:#ffd8df}#badge[data-live="1"]{border-color:#1d9866;color:#b2ffd6}
+.info{border-top:1px solid #29344b;margin-top:20px;padding-top:17px;font-size:13px;color:#aab8d5;line-height:1.65}
+.note{padding:12px;border-radius:10px;background:#1e2739;border:1px solid #394765;margin-top:15px}
+#account{color:#c7d5ea;font-size:13px;font-weight:700}
+@media(max-width:980px){main{grid-template-columns:1fr}}
+@media(max-width:560px){header{padding:14px}main{padding:12px}.grid,.actions{grid-template-columns:1fr}#stopButton{grid-column:1/-1}}
+</style></head>
+<body>
+<header><strong>SWAPP <span>LIVE</span></strong><nav><span id="account">Compte non connecté</span><a href="/" id="obsLink">Mode OBS</a><a href="https://swapp.tv" target="_blank" rel="noopener">swapp.tv</a></nav></header>
+<main>
+<section class="panel"><div class="flag">Studio natif Windows</div><h1>Diffuser ton écran, sans OBS</h1>
+<p>Capture ton moniteur directement depuis SWAPP Live, vérifie l'image, puis lance le direct sur ta chaîne.</p>
+<button type="button" id="connectButton" class="secondary">Connecter mon compte SWAPP</button>
+<div class="grid"><label>Moniteur
+<select id="display"><option value="0">Moniteur 1 (principal)</option><option value="1">Moniteur 2</option><option value="2">Moniteur 3</option><option value="3">Moniteur 4</option></select></label>
+<label>Fluidité
+<select id="fps"><option value="30">30 images/seconde</option><option value="60">60 images/seconde</option></select></label></div>
+<div class="grid"><label>Débit vidéo
+<select id="bitrate"><option value="4500">4,5 Mb/s</option><option value="6000" selected>6 Mb/s</option><option value="8000">8 Mb/s</option></select></label>
+<label>Entrée audio (si disponible)
+<select id="audio"><option value="">Aucune — vidéo uniquement</option></select></label></div>
+<p class="note">Pour le son du jeu, choisis une entrée de mixage système (« Stereo Mix ») si Windows en propose une. Pour ta voix, choisis un microphone. L'application n'ajoute pas automatiquement les deux sources.</p>
+<div class="actions">
+<button type="button" id="previewButton">1. Prévisualiser l'écran</button>
+<button type="button" id="liveButton" disabled>2. Lancer le direct</button>
+<button type="button" id="stopButton" class="danger" disabled>Arrêter la capture et le direct</button>
+</div>
+<div class="info">La prévisualisation reste sur ton PC. Aucun direct public n'est lancé avant ton clic sur « Lancer le direct ». Pour utiliser tes scènes OBS, clique sur « Mode OBS ».</div>
+</section>
+<section class="panel"><h2>Retour vidéo en temps réel</h2>
+<div class="frame"><video id="video" autoplay muted playsinline></video><div id="emptyPreview">L'aperçu de ton écran apparaîtra ici dès que la capture Windows sera prête.</div></div>
+<div id="badge" role="status" aria-live="polite">Prêt à tester la capture.</div>
+<div class="info">Capture DirectX (DDAGrab) en priorité, capture Windows classique en secours. Si un jeu en plein écran exclusif reste noir, le mode fenêtré ou sans bordure peut être nécessaire : aucune méthode de capture ne garantit l'accès aux contenus protégés ou à tous les pilotes GPU.</div>
+</section>
+</main>
+<script src="/assets/hls.min.js"></script><script src="/studio.js"></script>
+</body></html>
