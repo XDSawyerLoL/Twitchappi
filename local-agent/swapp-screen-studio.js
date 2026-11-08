@@ -10,54 +10,66 @@ const path=require('node:path');
 const fs=require('node:fs');
 const {URL}=require('node:url');
 
-function captureArgs({method,display,fps,bitrate,audioDevice,rtmpUrl}){
+function captureArgs({method,display,fps,bitrate,audioDevice='',micDevice='',encoder='x264',rtmpUrl}){
  const args=['-hide_banner','-nostdin','-loglevel','warning','-y'];
  if(method==='ddagrab'){
   args.push('-f','lavfi','-i','ddagrab=output_idx='+display+':framerate='+fps+',hwdownload,format=bgra,format=yuv420p');
  }else if(method==='gdigrab'){
-  // gdigrab captures the entire virtual Windows desktop as a fallback.
+  // The compatibility fallback records the full virtual desktop, not a selected display.
   args.push('-f','gdigrab','-framerate',String(fps),'-draw_mouse','1','-i','desktop');
  }else throw new Error('Méthode de capture inconnue');
- if(audioDevice){
-  args.push('-f','dshow','-i','audio='+audioDevice);
- }else{
-  // HLS needs a dependable audio timeline even with no capture device selected.
+ // DirectShow capture (Stereo Mix or a virtual loopback) is not universally available.
+ // An explicit mic can be mixed with the system input; no silent claim of system audio.
+ const selected=[audioDevice,micDevice].map(x=>String(x||'').trim())
+  .filter((x,i,arr)=>x&&arr.indexOf(x)===i);
+ for(const name of selected)args.push('-thread_queue_size','1024','-f','dshow','-i','audio='+name);
+ if(!selected.length){
   args.push('-re','-f','lavfi','-i','anullsrc=r=48000:cl=stereo');
  }
- args.push('-map','0:v:0','-map','1:a:0','-vf',"scale=w='min(1920,iw)':h=-2:flags=fast_bilinear,format=yuv420p",
-  '-c:v','libx264','-preset','veryfast','-tune','zerolatency','-r',String(fps),
-  '-b:v',String(bitrate)+'k','-maxrate',String(bitrate+1000)+'k','-bufsize',String(bitrate*2)+'k',
-  '-g',String(fps*2),'-keyint_min',String(fps*2),'-sc_threshold','0',
-  '-c:a','aac','-b:a','128k','-ar','48000','-ac','2',
+ args.push('-map','0:v:0');
+ if(selected.length>1){
+  args.push('-filter_complex','[1:a][2:a]amix=inputs=2:duration=longest:dropout_transition=0,aresample=async=1:first_pts=0[a]',
+   '-map','[a]');
+ }else{
+  args.push('-map','1:a:0');
+ }
+ args.push('-vf',"scale=w='min(1920,iw)':h=-2:flags=fast_bilinear,format=yuv420p");
+ // NVENC offloads encoding on supported NVIDIA cards. Falls back to CPU on failure.
+ if(encoder==='nvenc')args.push('-c:v','h264_nvenc','-preset','p4','-rc','cbr','-bf','0');
+ else if(encoder==='x264')args.push('-c:v','libx264','-preset','veryfast','-tune','zerolatency');
+ else throw new Error('Encodeur non pris en charge');
+ args.push('-r',String(fps),'-b:v',String(bitrate)+'k','-maxrate',String(bitrate+1000)+'k',
+  '-bufsize',String(bitrate*2)+'k','-g',String(fps*2),'-keyint_min',String(fps*2),'-sc_threshold','0',
+  '-c:a','aac','-b:a','160k','-ar','48000','-ac','2',
   '-f','flv','-flvflags','no_duration_filesize',rtmpUrl);
  return args;
 }
 
 function createScreenCapture({ffmpegPath,rtmpPort,currentConfiguredKey,streamStatus,platform=process.platform,spawnProcess=spawn,now=()=>Date.now()}){
- let child=null,method=null,startedAt=0,error='',stopping=false,attempt=0;
+ let child=null,method=null,codec=null,startedAt=0,error='',stopping=false,attempt=0;
  const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
  const safeStatus=()=>{
   const key=currentConfiguredKey();
   const source=streamStatus(key);
-  return {key,capturing:!!child&&!stopping,method,startedAt:startedAt?new Date(startedAt).toISOString():null,
+  return {key,capturing:!!child&&!stopping,method,encoder:codec,startedAt:startedAt?new Date(startedAt).toISOString():null,
    ready:!!child&&!stopping&&!!source.active&&!!source.hls_exists,error,
    screen:method==='gdigrab'?'Bureau virtuel complet':'Moniteur sélectionné',
    stream:{active:!!source.active,hls_exists:!!source.hls_exists,ffmpeg_running:!!source.ffmpeg_running}};
  };
  function stop(){
   stopping=true;attempt++;
-  const old=child;child=null;method=null;startedAt=0;
+  const old=child;child=null;method=null;codec=null;startedAt=0;
   if(old && old.exitCode===null){try{old.kill('SIGTERM')}catch(_){}}
   stopping=false;
   return {success:true,...safeStatus()};
  }
- async function trial(kind,display,fps,bitrate,audioDevice,rtmpUrl){
+ async function trial(kind,encoder,display,fps,bitrate,audioDevice,micDevice,rtmpUrl){
   const id=++attempt;
-  const args=captureArgs({method:kind,display,fps,bitrate,audioDevice,rtmpUrl});
+  const args=captureArgs({method:kind,encoder,display,fps,bitrate,audioDevice,micDevice,rtmpUrl});
   let log='';
   let exited=false;
   const proc=spawnProcess(ffmpegPath,args,{windowsHide:true,stdio:['ignore','ignore','pipe']});
-  child=proc;method=kind;startedAt=now();
+  child=proc;method=kind;codec=encoder;startedAt=now();
   proc.stderr?.on('data',d=>{log=(log+String(d)).slice(-3000)});
   proc.on('error',e=>{error='FFmpeg : '+e.message;exited=true});
   proc.on('exit',(code,signal)=>{
@@ -74,7 +86,7 @@ function createScreenCapture({ffmpegPath,rtmpPort,currentConfiguredKey,streamSta
    const seen=Date.parse(s.started_at||s.last_seen||'')||0;
    if(s.active&&s.ffmpeg_running&&s.hls_exists&&seen>=startedAt-2500){
     error='';
-    return {success:true,method:kind,...safeStatus()};
+    return {success:true,method:kind,encoder,...safeStatus()};
    }
    await sleep(400);
   }
@@ -92,20 +104,26 @@ function createScreenCapture({ffmpegPath,rtmpPort,currentConfiguredKey,streamSta
   const fps=[30,60].includes(Number(options.fps))?Number(options.fps):30;
   const bitrate=Math.max(2500,Math.min(10000,Number.parseInt(options.bitrate,10)||6000));
   const audioDevice=String(options.audioDevice||'').trim().slice(0,160);
+  const micDevice=String(options.micDevice||'').trim().slice(0,160);
   // FFmpeg receives argument arrays, never a shell; no command interpolation.
   const rtmpUrl='rtmp://127.0.0.1:'+rtmpPort+'/live/'+encodeURIComponent(key);
   error='';
   const requested=String(options.method||'auto');
   if(!['auto','ddagrab','gdigrab'].includes(requested))throw new Error('Méthode de capture non autorisée.');
   const methods=requested==='auto'?['ddagrab','gdigrab']:[requested];
+  const encoderOption=String(options.encoder||'auto');
+  if(!['auto','nvenc','x264'].includes(encoderOption))throw new Error('Encodeur non autorisé.');
+  const encoders=encoderOption==='auto'?['nvenc','x264']:[encoderOption];
   const errors=[];
   for(const kind of methods){
-   try{return await trial(kind,display,fps,bitrate,audioDevice,rtmpUrl)}
-   catch(e){
-    errors.push(kind+': '+e.message);
-    // Do not switch sources after the user has pressed Stop.
-    if(/interrompue/.test(String(e.message)))throw e;
-    await sleep(650);
+   for(const encoder of encoders){
+    try{return await trial(kind,encoder,display,fps,bitrate,audioDevice,micDevice,rtmpUrl)}
+    catch(e){
+     errors.push(kind+'/'+encoder+': '+e.message);
+     // Never retry after the streamer stopped capturing.
+     if(/interrompue/.test(String(e.message)))throw e;
+     await sleep(650);
+    }
    }
   }
   error=errors.join('\n').slice(-1300);
