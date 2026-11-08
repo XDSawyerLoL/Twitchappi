@@ -95,8 +95,11 @@ function createScreenCapture({ffmpegPath,rtmpPort,currentConfiguredKey,streamSta
   // FFmpeg receives argument arrays, never a shell; no command interpolation.
   const rtmpUrl='rtmp://127.0.0.1:'+rtmpPort+'/live/'+encodeURIComponent(key);
   error='';
+  const requested=String(options.method||'auto');
+  if(!['auto','ddagrab','gdigrab'].includes(requested))throw new Error('Méthode de capture non autorisée.');
+  const methods=requested==='auto'?['ddagrab','gdigrab']:[requested];
   const errors=[];
-  for(const kind of ['ddagrab','gdigrab']){
+  for(const kind of methods){
    try{return await trial(kind,display,fps,bitrate,audioDevice,rtmpUrl)}
    catch(e){
     errors.push(kind+': '+e.message);
