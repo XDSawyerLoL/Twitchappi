@@ -58,6 +58,11 @@ static void configure_plugins(const fs::path &exe) {
  // A portable, self-contained SWAPP libobs distribution:
  // swapp-libobs-host.exe, libobs.dll, libobs-d3d11.dll, obs-plugins/64bit/*.dll,
  // data/obs-plugins/<module>/... and their transitive runtime dependencies.
+ // OBS Studio 33 moved first-party plugins to core/<module>/; load these first.
+ const std::string coreBin = (exe / "core" / "%module%" / "%module%.dll").string();
+ const std::string coreData = (exe / "core" / "%module%" / "data").string();
+ obs_add_module_path(coreBin.c_str(), coreData.c_str());
+ // Keep legacy third-party plugin layout as a deliberate compatibility fallback.
  const std::string bin = (exe / "obs-plugins" / "64bit" / "%module%.dll").string();
  const std::string data = (exe / "data" / "obs-plugins" / "%module%").string();
  obs_add_module_path(bin.c_str(), data.c_str());
