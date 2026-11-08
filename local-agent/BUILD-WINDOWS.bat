@@ -14,7 +14,7 @@ if errorlevel 1 (
 where npm >nul 2>nul
 if errorlevel 1 goto fail
 echo Verification des tests de capture...
-node --test "..\test\swapp-native-desktop-studio.test.js" "..\test\swapp-libobs-bridge.test.js"
+node --test "..\test\swapp-native-desktop-studio.test.js" "..\test\swapp-libobs-bridge.test.js" "..\test\swapp-libobs-package-gate.test.js"
 if errorlevel 1 goto fail
 echo.
 if exist "libobs-runtime\swapp-libobs-host.exe" (
