@@ -6,16 +6,18 @@ const path=require('node:path');
 const root=path.join(__dirname,'..');
 const read=p=>fs.readFileSync(path.join(root,p),'utf8');
 
-test('OBS Studio 33 first-party module paths are loaded by the native host',()=>{
+test('OBS Studio 33 uses actual native core module loader and canonical portable runtime',()=>{
  const native=read('local-agent/libobs-host/main.cpp');
  const ps=read('local-agent/libobs-host/build-and-stage-windows.ps1');
- assert.match(native,/core.*%module%.*%module%\.dll/);
- assert.match(native,/obs_add_module_path\(coreBin\.c_str\(\), coreData\.c_str\(\)\)/);
- assert.match(ps,/\$core = Join-Path \$obs "core"/);
- for(const module of ['win-capture','win-wasapi','obs-outputs','obs-x264','obs-ffmpeg','rtmp-services']){
-  assert.ok(ps.includes('"'+module+'"'),'Missing required plugin '+module);
+ assert.match(native,/obs_load_core_modules\(\)/);
+ assert.match(native,/fs::current_path\(exe\)/);
+ assert.doesNotMatch(native,/^\s*obs_load_all_modules\(\);/m);
+ assert.match(ps,/Join-Path \$obs 'core'/);
+ assert.match(ps,/Join-Path \$work 'bin\\64bit'/);
+ for(const module of ['win-capture','win-wasapi','win-dshow','obs-outputs','obs-x264','obs-ffmpeg','rtmp-services']){
+  assert.ok(ps.includes("'"+module+"'"),'Missing required OBS module '+module);
  }
- assert.match(ps,/Copy-Item -LiteralPath \(Join-Path \$core \$name\).* -Recurse -Force/);
+ assert.match(ps,/Copy-Item -LiteralPath \$core -Destination \(Join-Path \$work 'core'\) -Recurse -Force/);
  assert.match(ps,/Move-Item -LiteralPath \$work -Destination \$stage/);
 });
 
