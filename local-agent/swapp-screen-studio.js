@@ -142,6 +142,9 @@ function createScreenCapture({ffmpegPath,rtmpPort,currentConfiguredKey,streamSta
     }catch(e){
      if(/interrompue/i.test(String(e.message)))throw e;
      errors.push(kind+'/'+encoder+' ['+(e.code||'FFMPEG')+']: '+e.message);
+     // RTMP may remain marked active until NodeMediaServer emits donePublish.
+     // Never start the next source against the same key before its teardown.
+     for(let wait=0;wait<16&&streamStatus(key).active;wait++)await sleep(200);
      if(e.code==='DISPLAY_MODE_CHANGED'||e.code==='CAPTURE_UNAVAILABLE'){
       recovery='DirectX interrompu par un changement de mode d’affichage. Capture basculée automatiquement sur le bureau complet (GDI).';
       skipEncoder=true;break;
