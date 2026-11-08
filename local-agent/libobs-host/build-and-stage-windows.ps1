@@ -47,7 +47,7 @@ Get-ChildItem -LiteralPath $obsBin -File -Filter "*.dll" |
 $pluginsDest = Join-Path $stage "obs-plugins\64bit"
 $dataDest = Join-Path $stage "data\obs-plugins"
 New-Item -ItemType Directory -Force -Path $pluginsDest, $dataDest | Out-Null
-$needed = @("win-capture", "win-wasapi", "obs-outputs", "obs-x264", "obs-ffmpeg", "obs-nvenc")
+$needed = @("win-capture", "win-wasapi", "obs-outputs", "obs-x264", "obs-ffmpeg", "obs-nvenc", "rtmp-services")
 foreach ($plugin in $needed) {
   $source = Join-Path $obsPlugins "$plugin.dll"
   if ($plugin -eq "obs-nvenc" -and !(Test-Path $source)) {
