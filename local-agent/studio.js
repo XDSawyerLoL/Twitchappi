@@ -146,6 +146,7 @@
   $('revealKey').disabled=!connected;
   $('disconnectButton').disabled=!connected||working||capturing||published;
   $('repairButton').disabled=!published||working;
+  window.SWAPPScenes?.setLocked(working||capturing);
   const nativeOpt=$('captureMode').querySelector('option[value="libobs"]');
   if(nativeOpt)nativeOpt.disabled=!libobsAvailable;
   const top=$('topLiveState'),corner=$('previewStateLabel');
@@ -179,6 +180,7 @@
    default:return;
   }
   persist();buttons();
+  window.SWAPPScenes?.setBase({method:$('captureMode').value,display:Number($('display').value),windowHwnd:$('captureMode').value==='window'?$('windowSelect').value:''});
   status('Source sélectionnée : '+sourceLabel()+'. Lance la prévisualisation pour vérifier l’image.');
  }
 
@@ -397,7 +399,8 @@
      display:Number($('display').value),fps:Number($('fps').value),
      bitrate:Number($('bitrate').value),audioDevice:$('audio').value,micDevice:$('mic').value,
      encoder:$('encoder').value,method:$('captureMode').value,source:$('obsSource').value,
-      windowHwnd:$('captureMode').value==='window'?$('windowSelect').value:''
+      windowHwnd:$('captureMode').value==='window'?$('windowSelect').value:'',
+      sceneId:window.SWAPPScenes?.activeId()||undefined
     })
    });
    capturing=true;externalSource=false;captureKey=data.key;
@@ -524,10 +527,12 @@
  $('windowSelect').addEventListener('change',()=>{
   if(working||capturing)return;
   $('captureMode').value='window';persist();buttons();
+  window.SWAPPScenes?.setBase({method:'window',display:Number($('display').value),windowHwnd:$('windowSelect').value});
   status($('windowSelect').value?'Fenêtre choisie : '+sourceLabel()+'. Lance la prévisualisation.':'Sélectionne une fenêtre pour activer la capture.');
  });
  for(const id of settings)$(id).addEventListener('change',()=>{
   persist();
+  if(id==='captureMode'||id==='display')window.SWAPPScenes?.setBase({method:$('captureMode').value,display:Number($('display').value),windowHwnd:$('captureMode').value==='window'?$('windowSelect').value:''});
   if(id==='captureMode'&&$('captureMode').value==='window'&&!$('windowSelect').options.length)void refreshWindowList();
   if(id==='captureMode'&&$('captureMode').value==='libobs'&&!libobsAvailable){
    $('captureMode').value='ddagrab';
@@ -573,6 +578,9 @@
  window.addEventListener('beforeunload',()=>{
   if(capturing&&!externalSource)navigator.sendBeacon?.('/api/screen/stop');
  });
+ window.SWAPPStudioState=()=>({capturing,working,published});
+ window.SWAPPStudioUpdate=buttons;
+ window.SWAPPRefreshDevices=audioDevices;
  restore();buttons();
  activity('SWAPP Creator Studio chargé. Aucune diffusion en cours.');
  void loadConnection();void refresh();void audioDevices();void refreshWindowList();
