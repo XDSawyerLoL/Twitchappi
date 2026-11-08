@@ -59,7 +59,7 @@ Never bypass game security or anti-cheat protections.
 
 The Electron package includes a `swapp-libobs` runtime directory when staged.
 On start, SWAPP Live checks for `swapp-libobs-host.exe` in its packaged
-resources; in development it also checks `local-agent/libobs-runtime/` and `local-agent/bin/`.
+resources; in development it checks only the validated `local-agent/libobs-runtime/` directory. A lone executable in `bin/` is intentionally ignored because the required OBS libraries might be missing.
 The Studio auto mode prefers libobs when present and falls back to FFmpeg if
 the host cannot provide healthy HLS. Users can explicitly select libobs
 Game Capture, and the interface clearly reports when the host is missing.
