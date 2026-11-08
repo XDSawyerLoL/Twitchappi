@@ -15,7 +15,8 @@
   previewButton.disabled=working||capturing;
   liveButton.disabled=working||!capturing||!previewReady||!connected||captureKey!==configuredKey||published;
   stopButton.disabled=working||!capturing;
-  for(const id of ['display','fps','bitrate','audio','mic','encoder','captureMode','obsSource'])$(id).disabled=working||capturing;
+  for(const id of ['display','fps','bitrate','audio','mic','encoder','captureMode'])$(id).disabled=working||capturing;
+  $('obsSource').disabled=working||capturing||$('captureMode').value==='ddagrab'||$('captureMode').value==='gdigrab';
  }
  async function api(url,options){
   const response=await fetch(url,{cache:'no-store',...options});
@@ -145,7 +146,7 @@
   try{
    const s=await api('/api/screen/status');
    $('nativeNotice').textContent=s.libobsAvailable?'Moteur OBS natif détecté : capture de jeu et son Windows disponibles.':'Moteur OBS natif non compilé/installé. Le mode automatique utilise FFmpeg et le mode Game Capture est indisponible.';
-   $('obsSource').disabled=working||capturing||!s.libobsAvailable;
+   $('obsSource').disabled=working||capturing||!s.libobsAvailable||$('captureMode').value==='ddagrab'||$('captureMode').value==='gdigrab';
    if(capturing&&!s.capturing){
     capturing=false;published=false;captureKey='';resetPreview();
     status('La capture Windows s’est interrompue : '+(s.error||'source indisponible'),'error');
@@ -167,6 +168,7 @@
    if(darkChecks>=3)status('L’aperçu semble noir. Vérifie ton jeu ; si le moniteur affiche une image, arrête puis essaie le mode de capture Windows classique.','error');
   }catch(_){}
  },2400);
+ $('captureMode').addEventListener('change',buttons);
  connectButton.addEventListener('click',connect);
  previewButton.addEventListener('click',start);
  liveButton.addEventListener('click',publish);
