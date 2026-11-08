@@ -1,6 +1,6 @@
 name: SWAPP native libobs 33 build probe (one-time)
 
-# User-requested Windows compilation validation. Retry OBS 33 encoder API update. No public release.
+# User-requested Windows plugin/runtime smoke test. No public release.
 on:
   push:
     branches:
@@ -43,3 +43,7 @@ jobs:
           }
           Write-Host 'SWAPP native Game Capture and WASAPI components compiled and staged.'
           Get-FileHash (Join-Path $p 'swapp-libobs-host.exe') -Algorithm SHA256
+          $hostExe=Join-Path $p 'swapp-libobs-host.exe'
+          & $hostExe --selftest
+          if ($LASTEXITCODE -ne 0) { throw "Native OBS plugins failed runtime Game Capture/WASAPI registration" }
+          Write-Host 'Headless real-plugin smoke check passed.'
