@@ -777,7 +777,7 @@ setInterval(refreshDiag,5000);loadAccount();refreshDiag();
 app.get('/', (req, res) => { const cfg = loadLocalConfig(); const key = safeKey(req.query.key || cfg.stream_key || DEFAULT_KEY); res.type('html').send(pageHtml(key)); });
 app.get('/api/setup/check', (_req, res) => {
   const cfg = loadLocalConfig();
-  res.json({ success:true, app:'Swapp Local', version:'1.1.1', site_url:cleanSiteUrl(cfg.site_url || DEFAULT_SWAPP_SITE_URL), account:cfg.user || null, connected:Boolean(cfg.token && cfg.stream_key), rtmp:`rtmp://127.0.0.1:${RTMP_PORT}/live`, stream_key:cfg.stream_key || DEFAULT_KEY, ffmpeg:ffmpegInfo(), media_root:MEDIA_ROOT, tunnel:publicTunnelInfo, localtunnel_disabled:true });
+  res.json({ success:true, app:'Swapp Local', version:'1.2.0', site_url:cleanSiteUrl(cfg.site_url || DEFAULT_SWAPP_SITE_URL), account:cfg.user || null, connected:Boolean(cfg.token && cfg.stream_key), rtmp:`rtmp://127.0.0.1:${RTMP_PORT}/live`, stream_key:cfg.stream_key || DEFAULT_KEY, ffmpeg:ffmpegInfo(), media_root:MEDIA_ROOT, tunnel:publicTunnelInfo, localtunnel_disabled:true });
 });
 app.get('/api/account/browser-callback', (req, res) => {
   try {
@@ -884,6 +884,10 @@ setInterval(async () => {
     }
   }
 }, 15000);
+
+require('./swapp-screen-studio').mountScreenStudio(app,{
+ express,ffmpegPath:FFMPEG_PATH,rtmpPort:RTMP_PORT,currentConfiguredKey,streamStatus
+});
 
 app.listen(HTTP_PORT,'127.0.0.1', () => { console.log(`[Swapp Local] Interface: http://127.0.0.1:${HTTP_PORT}`); console.log(`[Swapp Local] OBS server: rtmp://127.0.0.1:${RTMP_PORT}/live`); });
 publicApp.listen(PUBLIC_HTTP_PORT,'127.0.0.1',()=>{log('system','Origine vidéo publique distincte lancée',{url:`http://127.0.0.1:${PUBLIC_HTTP_PORT}`})});
