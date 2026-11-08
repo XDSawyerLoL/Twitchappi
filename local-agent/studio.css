@@ -192,3 +192,23 @@ details[open] summary:after{transform:rotate(180deg)}
  .footer{height:auto;min-height:32px;flex-wrap:wrap;padding:12px 16px}
 }
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* Integrated SWAPP RTMP connection — never expose the stream key as plain text by default */
+.rtmp-settings{display:block;scroll-margin-top:20px}
+.rtmp-settings .dock-heading{margin-bottom:10px}
+.rtmp-settings .dock-caption{font-size:11px;margin-bottom:12px}
+.rtmp-settings input{
+ display:block;min-width:0;width:100%;padding:10px 9px;background:#0a0d17;color:#f1e9ff;
+ border:1px solid #3b3b56;border-radius:8px;font-size:11px;font-family:Consolas,ui-monospace,monospace;
+ text-overflow:ellipsis
+}
+.rtmp-settings input[type=password]{letter-spacing:.13em}
+.tiny-control,.text-control{padding:9px 10px;border-radius:8px;font-weight:700;font-size:11px}
+.tiny-control{border:1px solid #654d97;color:#ded0fa;background:#39254c66;width:100%;margin:0 0 8px}
+.tiny-control:hover:not(:disabled){background:#67429a77}
+.rtmp-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.text-control{width:100%;background:transparent;color:#b8a3cf;border:1px solid #36304b;margin-top:8px}
+.text-control:hover:not(:disabled){background:#34263c}
+.diagnostic-row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:12px}
+.diagnostic-row button{padding:7px 11px;border-radius:8px;background:#282e3b;border:1px solid #474d61;color:#dce1eb;font-size:11px}
+.diagnostic-row a{font-weight:760;font-size:11px;color:#c4affc}
