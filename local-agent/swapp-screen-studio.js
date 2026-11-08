@@ -246,6 +246,7 @@ function mountScreenStudio(app,{express,ffmpegPath,rtmpPort,currentConfiguredKey
  app.get('/studio',(_req,res)=>res.sendFile(path.join(__dirname,'studio.html')));
  app.get('/studio.css',(_req,res)=>res.type('text/css').sendFile(path.join(__dirname,'studio.css')));
  app.get('/studio.js',(_req,res)=>res.type('application/javascript').sendFile(path.join(__dirname,'studio.js')));
+ app.get('/studio-scenes.js',(_req,res)=>res.type('application/javascript').sendFile(path.join(__dirname,'studio-scenes.js')));
  app.get('/api/screen/status',(_req,res)=>res.json({success:true,...capture.status()}));
  app.get('/api/screen/scenes',(_req,res)=>res.json({success:true,...sceneStore.get()}));
  app.post('/api/screen/scenes',express.json({limit:'8kb'}),localOriginOnly,(req,res)=>{
@@ -279,7 +280,7 @@ function mountScreenStudio(app,{express,ffmpegPath,rtmpPort,currentConfiguredKey
    if(options.sceneId){
      const scene=sceneStore.get().scenes.find(x=>x.id===options.sceneId);
      if(!scene)throw new Error('Scène sélectionnée introuvable.');
-     options={...options,...scene.base,overlays:scene.overlays};
+     options={...scene.base,...options,overlays:scene.overlays};
      if(options.method==='libobs'&&scene.overlays.length)
        throw new Error('Cette scène contient une webcam : sélectionne FFmpeg pour le montage multicouche dans cette version.');
    }
