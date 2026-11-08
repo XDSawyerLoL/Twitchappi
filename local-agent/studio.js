@@ -98,7 +98,7 @@
  async function start(){
   if(working||capturing)return;
   working=true;buttons();
-  status('Démarrage de la capture DirectX… Cela ne publie rien sur Internet.');
+  status('Initialisation de la capture locale… Aucune image n’est publiée sur SWAPP à cette étape.');
   try{
    const data=await api('/api/screen/start',{
     method:'POST',headers:{'Content-Type':'application/json'},
@@ -109,7 +109,7 @@
    capturing=true;captureKey=data.key;
    playPreview(data.key);
    status('Capture '+(data.engine==='libobs'?'OBS natif / '+$('obsSource').selectedOptions[0].textContent:data.method==='ddagrab'?'DirectX':'Windows classique')+
-    ' · '+(data.encoder==='nvenc'?'NVIDIA NVENC':'x264')+
+    ' · '+(data.engine==='libobs'?'encodeur OBS':data.encoder==='nvenc'?'NVIDIA NVENC':'x264')+
     ' active. Vérifie les images avant de diffuser.'+
     (data.method==='gdigrab'?'\nMode secours : tout le bureau virtuel est capturé.':''));
   }catch(e){capturing=false;status('Capture impossible : '+e.message,'error');resetPreview()}
