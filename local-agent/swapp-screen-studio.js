@@ -147,7 +147,10 @@ function localOriginOnly(req,res,next){
 }
 
 function mountScreenStudio(app,{express,ffmpegPath,rtmpPort,currentConfiguredKey,streamStatus}){
- const capture=createScreenCapture({ffmpegPath,rtmpPort,currentConfiguredKey,streamStatus});
+ const ffmpeg=createScreenCapture({ffmpegPath,rtmpPort,currentConfiguredKey,streamStatus});
+ const {createLibobsCapture,createHybridCapture}=require('./swapp-libobs-bridge');
+ const native=createLibobsCapture({rtmpPort,currentConfiguredKey,streamStatus});
+ const capture=createHybridCapture({ffmpeg,native});
  const audioDevicePattern=/^\[[^\]]*dshow[^\]]*\]\s+"([^"]+)"/i;
  app.get('/studio',(_req,res)=>res.sendFile(path.join(__dirname,'studio.html')));
  app.get('/studio.js',(_req,res)=>res.type('application/javascript').sendFile(path.join(__dirname,'studio.js')));
