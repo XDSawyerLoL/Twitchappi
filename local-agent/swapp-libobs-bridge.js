@@ -13,7 +13,7 @@ const REQUIRED_MODULES=['win-capture','win-wasapi','obs-outputs','obs-x264','obs
 function completeLibobsRuntime(executable,exists=fs.existsSync){
  if(!executable||!exists(executable))return false;
  const root=path.dirname(executable);
- if(!exists(path.join(root,'libobs.dll'))||!exists(path.join(root,'libobs-d3d11.dll')))return false;
+ if(!exists(path.join(root,'obs.dll'))||!exists(path.join(root,'libobs-d3d11.dll')))return false;
  return REQUIRED_MODULES.every(name=>
   exists(path.join(root,'core',name,name+'.dll'))||
   exists(path.join(root,'obs-plugins','64bit',name+'.dll')));
