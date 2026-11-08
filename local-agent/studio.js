@@ -58,6 +58,7 @@
 
  function sourceLabel(){
   const mode=$('captureMode').value,monitor=Number($('display').value)+1;
+  if(mode==='window')return $('windowSelect').value?('Fenêtre : '+($('windowSelect').selectedOptions[0]?.textContent||'sélectionnée')):'Aucune fenêtre sélectionnée';
   if(mode==='external')return 'Signal OBS/RTMP externe';
   if(mode==='libobs')return $('obsSource').value==='game'?'Jeu plein écran (libobs)':'Écran via libobs';
   if(mode==='gdigrab')return 'Bureau complet (Windows)';
@@ -71,6 +72,7 @@
   if(mode==='ddagrab'&&display==='0')selected='primary';
   else if(mode==='ddagrab'&&display==='1')selected='secondary';
   else if(mode==='gdigrab')selected='desktop';
+  else if(mode==='window')selected='window';
   else if(mode==='libobs'&&source==='game')selected='game';
   else if(mode==='external')selected='external';
   for(const button of presetButtons){
@@ -80,13 +82,15 @@
    button.disabled=working||capturing||(button.dataset.preset==='game'&&!libobsAvailable);
   }
   $('activeSourceText').textContent='Source : '+sourceLabel();
-  $('engineChip').textContent='Moteur : '+(activeEngine||(mode==='ddagrab'?'DirectX':mode==='gdigrab'?'GDI':mode==='libobs'?'libobs':'Auto'));
+  $('engineChip').textContent='Moteur : '+(activeEngine||(mode==='ddagrab'?'DirectX':mode==='gdigrab'?'GDI':mode==='window'?'Fenêtre GDI':mode==='libobs'?'libobs':'Auto'));
   $('presetHelp').textContent=selected==='game'
    ?'Capture du jeu natif via libobs. Le moteur doit être compilé et installé.'
    :selected==='external'
    ?'Signal RTMP externe détecté automatiquement dès que la source envoie du H.264/AAC. L’aperçu et le bouton Direct s’activent lorsqu’un flux réel arrive.'
    :selected==='desktop'
    ?'Mode compatible : toute la surface du bureau Windows peut être visible, y compris des informations privées.'
+   :selected==='window'
+   ?'Une seule application sera capturée, sans bascule automatique sur le bureau complet. Restaure-la si elle est réduite.'
    :mode==='auto'
    ?'Détection automatique avec repli FFmpeg. Les réglages sont conservés sur ce PC.'
    :'Le moniteur est sélectionné pour le prochain aperçu. Pour changer en cours de live, arrête d’abord la capture.';
@@ -97,11 +101,13 @@
  }
 
  function buttons(){
-  previewButton.disabled=working||capturing||!connected||$('captureMode').value==='external';
+  previewButton.disabled=working||capturing||!connected||$('captureMode').value==='external'||($('captureMode').value==='window'&&!$('windowSelect').value);
   liveButton.disabled=working||!capturing||!previewReady||!connected||captureKey!==configuredKey||published;
   stopButton.disabled=working||(!capturing&&!published)||(externalSource&&!published);
   $('stopText').textContent=published?'Arrêter le direct':externalSource?'Source RTMP externe':'Arrêter l’aperçu';
   for(const id of settings.slice(0,7))$(id).disabled=working||capturing;
+  $('windowSelect').disabled=working||capturing;
+  $('refreshWindowsButton').disabled=working||capturing;
   const nativeMode=$('captureMode').value;
   $('obsSource').disabled=working||capturing||!libobsAvailable||nativeMode==='ddagrab'||nativeMode==='gdigrab';
   $('soundToggle').disabled=!capturing||!previewReady;
@@ -133,6 +139,8 @@
     $('captureMode').value='ddagrab';$('display').value='1';$('obsSource').value='display';break;
    case 'desktop':
     $('captureMode').value='gdigrab';$('obsSource').value='display';break;
+   case 'window':
+    $('captureMode').value='window';$('obsSource').value='display';break;
    case 'game':
     $('captureMode').value='libobs';$('obsSource').value='game';break;
    case 'external':
@@ -315,11 +323,12 @@
     body:JSON.stringify({
      display:Number($('display').value),fps:Number($('fps').value),
      bitrate:Number($('bitrate').value),audioDevice:$('audio').value,micDevice:$('mic').value,
-     encoder:$('encoder').value,method:$('captureMode').value,source:$('obsSource').value
+     encoder:$('encoder').value,method:$('captureMode').value,source:$('obsSource').value,
+      windowHwnd:$('captureMode').value==='window'?$('windowSelect').value:''
     })
    });
    capturing=true;externalSource=false;captureKey=data.key;
-   activeEngine=data.engine==='libobs'?'libobs':data.method==='ddagrab'?'DirectX':'GDI';
+   activeEngine=data.engine==='libobs'?'libobs':data.method==='ddagrab'?'DirectX':data.method==='window'?'Fenêtre GDI':'GDI';
    playPreview(data.key);
    status((data.recovery||'Capture '+sourceLabel()+' active avec '+activeEngine+'.')+
     ' Vérifie ton image avant de diffuser.'+
