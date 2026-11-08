@@ -33,7 +33,7 @@
       <a class="rail-link" href="#activite"><svg class="ui-icon"><use href="#i-radio"/></svg>Activité</a>
     </nav>
     <div class="rail-bottom">
-      <a class="rail-link" id="obsLink" href="/" title="Ouvrir le mode OBS classique"><svg class="ui-icon"><use href="#i-cog"/></svg>OBS</a>
+      <a class="rail-link" id="obsLink" href="#rtmp" title="Paramètres RTMP et connexion intégrés"><svg class="ui-icon"><use href="#i-cog"/></svg>RTMP</a>
     </div>
   </aside>
 
@@ -56,6 +56,7 @@
           <button type="button" class="source-preset" data-preset="secondary" aria-pressed="false"><span class="source-icon"><svg class="ui-icon"><use href="#i-monitor"/></svg></span><span><strong>Écran secondaire</strong><em>Moniteur 2 · DirectX</em></span></button>
           <button type="button" class="source-preset" data-preset="desktop" aria-pressed="false"><span class="source-icon"><svg class="ui-icon"><use href="#i-grid"/></svg></span><span><strong>Bureau complet</strong><em>Mode compatible · GDI</em></span></button>
           <button type="button" class="source-preset" data-preset="game" aria-pressed="false" disabled><span class="source-icon"><svg class="ui-icon"><use href="#i-camera"/></svg></span><span><strong>Jeu plein écran</strong><em id="gamePresetDetail">Nécessite le moteur libobs</em></span></button>
+          <button type="button" class="source-preset" data-preset="external" aria-pressed="false"><span class="source-icon"><svg class="ui-icon"><use href="#i-radio"/></svg></span><span><strong>RTMP externe</strong><em>Détection automatique du flux OBS</em></span></button>
         </div>
         <div class="preset-status" id="presetHelp">Capture DirectX du moniteur principal. Les scènes multicouches ne sont pas encore disponibles.</div>
 
@@ -73,12 +74,26 @@
                 <label class="field" for="bitrate">Débit cible<select id="bitrate"><option value="4500">4,5 Mb/s</option><option value="6000" selected>6 Mb/s</option><option value="8000">8 Mb/s</option><option value="10000">10 Mb/s</option></select></label>
                 <label class="field" for="encoder">Encodeur<select id="encoder"><option value="auto">Automatique</option><option value="nvenc">NVIDIA NVENC</option><option value="x264">CPU · x264</option></select></label>
               </div>
-              <label class="field" for="captureMode">Moteur de capture<select id="captureMode"><option value="auto">Automatique</option><option value="libobs">Game Capture · libobs</option><option value="ddagrab" selected>DirectX · DDAGrab</option><option value="gdigrab">Bureau entier · GDI</option></select></label>
+              <label class="field" for="captureMode">Moteur de capture<select id="captureMode"><option value="auto">Automatique</option><option value="libobs">Game Capture · libobs</option><option value="ddagrab" selected>DirectX · DDAGrab</option><option value="gdigrab">Bureau entier · GDI</option><option value="external">Signal RTMP externe</option></select></label>
               <label class="field" for="obsSource">Source OBS native<select id="obsSource" disabled><option value="game">Jeu plein écran</option><option value="display">Écran entier</option></select></label>
             </div>
           </details>
         </div>
 
+        <div class="dock-divider"></div>
+        <section class="rtmp-settings" id="rtmp" aria-label="Connexion RTMP et clé de chaîne">
+          <div class="dock-heading"><span class="kicker">Connexion à SWAPP</span><span class="side-badge">AUTOMATIQUE</span></div>
+          <p class="dock-caption">Ta clé est récupérée après connexion. La capture intégrée l’utilise automatiquement. OBS externe peut utiliser ces mêmes informations, sans autre interface.</p>
+          <label class="field" for="rtmpServer">Serveur RTMP local
+            <input id="rtmpServer" type="text" value="rtmp://127.0.0.1:1935/live" readonly spellcheck="false" autocomplete="off">
+          </label>
+          <button type="button" class="tiny-control" id="copyRtmp">Copier le serveur RTMP</button>
+          <label class="field" for="streamKey">Clé de diffusion SWAPP
+            <input id="streamKey" type="password" value="" readonly spellcheck="false" autocomplete="off" placeholder="Connecte ton compte pour la récupérer">
+          </label>
+          <div class="rtmp-actions"><button type="button" class="tiny-control" id="copyKey" disabled>Copier la clé</button><button type="button" class="tiny-control" id="revealKey" disabled>Afficher</button></div>
+          <button type="button" class="text-control" id="disconnectButton" disabled>Déconnecter mon compte</button>
+        </section>
         <div class="dock-divider"></div>
         <section class="mixer" aria-label="Mixeur audio">
           <div class="dock-heading"><span class="kicker"><svg class="ui-icon"><use href="#i-sound"/></svg>Entrées audio</span><span class="muted-mini">DIRECTSHOW</span></div>
@@ -114,9 +129,10 @@
           <div class="action-buttons">
             <button type="button" id="previewButton"><svg class="ui-icon"><use href="#i-play"/></svg>Prévisualiser</button>
             <button type="button" id="liveButton" disabled><svg class="ui-icon"><use href="#i-radio"/></svg>Lancer le direct</button>
-            <button type="button" id="stopButton" disabled><svg class="ui-icon"><use href="#i-stop"/></svg>Tout arrêter</button>
+            <button type="button" id="stopButton" disabled><svg class="ui-icon"><use href="#i-stop"/></svg>Arrêter le direct</button>
           </div>
-          <div id="badge" role="status" aria-live="polite">Studio prêt. Choisis la source que tu souhaites diffuser.</div>
+          <div id="badge" role="status" aria-live="polite">Connecte ton compte, choisis une source, puis lance l’aperçu. Aucun direct n’est actif.</div>
+          <div class="diagnostic-row"><button type="button" id="repairButton" disabled>Réparer la diffusion publique</button><a href="#rtmp">Connexion RTMP et clé</a></div>
         </section>
 
         <section class="metric-row" aria-label="Réglages du flux">
@@ -134,7 +150,7 @@
             <p id="profileHint">Ton live sera publié sur ta chaîne après avoir vérifié l'aperçu et cliqué sur « Lancer le direct ».</p>
           </div>
           <a href="https://swapp.tv" target="_blank" rel="noopener" id="channelLink" class="channel-link"><svg class="ui-icon"><use href="#i-external"/></svg>Ouvrir ma chaîne / mon chat</a>
-          <p class="fine-print">Le chat SWAPP s'ouvre dans ton navigateur. Son intégration dans ce panneau sera une évolution ultérieure.</p>
+          <p class="fine-print">Le chat SWAPP s’ouvre dans ton navigateur ; le flux vidéo, la clé et les commandes de diffusion sont regroupés ici.</p>
         </section>
 
         <section class="right-panel activity-panel" aria-label="Événements réels du studio">
@@ -145,7 +161,7 @@
         <section class="right-panel" style="margin-top:21px">
           <div class="right-panel-title"><h2>État des modules</h2><span class="side-badge">DIAGNOSTIC</span></div>
           <div class="warn-box"><b>Moteur natif</b><p id="nativeNotice">Vérification du moteur libobs installé…</p></div>
-          <a class="help-link" href="/" id="obsModeShortcut">Utiliser le mode OBS classique</a>
+          <a class="help-link" href="#rtmp" id="obsModeShortcut">Voir la connexion RTMP intégrée au studio</a>
           <p class="fine-print">En cas d'écran noir, tente « Bureau complet ». Certains jeux protégés ne peuvent pas être capturés par FFmpeg. Seul le moteur libobs natif peut proposer Game Capture lorsqu'il est installé.</p>
         </section>
       </aside>
@@ -153,7 +169,7 @@
 
     <footer class="footer">
       <span><span class="safe">●</span> Capture locale · Publication uniquement après confirmation</span>
-      <span>SWAPP Live 1.2.1 · Studio Windows · Pas de capture garantie pour les jeux protégés</span>
+      <span>SWAPP Live 1.2.2 · Studio Windows · Pas de capture garantie pour les jeux protégés</span>
     </footer>
   </div>
 </div>
