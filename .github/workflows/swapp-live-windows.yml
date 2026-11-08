@@ -3,7 +3,7 @@ name: SWAPP Live Windows (free public runner)
 # The Windows packaging job installs tools and may consume billable
 # hosted-runner minutes. It must never run automatically on pushes or merges.
 # The maintainer may trigger it manually when an updated installer is needed.
-# Creator Studio 1.2.3 Windows preview undergoing verification on 2026-11-08.
+# Creator Studio 1.2.3 Windows picker: corrected escaped filename test and repackaging verified selection.
 # Disabled the one-time push trigger after delivery to avoid surprise runner costs.
 # All new builds are manual-only to prevent unexpected runner charges.
 # A one-time user-authorized push build was run successfully on 2026-11-08;
