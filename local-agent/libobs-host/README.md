@@ -29,6 +29,14 @@ preview and decides when to publish via the existing SWAPP service.
    `-ObsPortableRoot C:\path\to\OBS-portable`, and
    `-ObsSourceRoot C:\path\to\obs-studio-33.0.1` (checked-out upstream source with `COPYING`).
 
+OBS 33.0.1 uses `core/<module>/<module>.dll` and `core/<module>/data`
+for its first-party modules, rather than the older
+`obs-plugins/64bit/<module>.dll` layout. The staging script now copies each
+required *whole module directory*, including game capture helpers, and rejects
+missing required modules. It also stages `data/libobs` effects if present.
+The application will not offer libobs unless the host, both libobs DLLs and the
+six mandatory capture/audio/RTMP modules are present.
+
 The script builds `swapp-libobs-host.exe` and stages the selected OBS runtime
 components under `local-agent/libobs-runtime/`. It will abort when required
 modules are missing. It does **not** download or silently bundle binaries.
@@ -65,3 +73,12 @@ Capture with a fullscreen game, WASAPI desktop/microphone, NVENC/x264,
 external viewer HLS for at least five minutes, and start/stop/restart.
 Verify ffmpeg HLS remuxing and the existing OBS mode are unaffected.
 No native binary is included in this source-only change.
+
+## Verification status (8 November 2026)
+
+- JS source syntax and mocked libobs process handoff have been checked.
+- Module paths were corrected against OBS 33.0.1 portable runtime layout.
+- A real C++ compile against libobs 33.0.1 is **not yet done**.
+- No Windows portable/NSIS installer has been produced and no public release created.
+- Explicit Windows-only capture tests (fullscreen game, GPU, WASAPI, network spectator)
+  and GPL corresponding-source compliance remain release blockers.
