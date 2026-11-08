@@ -301,7 +301,11 @@
  video.addEventListener('error',()=>{if(capturing)status('Le lecteur ne peut pas décoder la vidéo locale.','error')});
 
  async function start(){
-  if(working||capturing)return;
+  if(working||capturing||!connected)return;
+  if($('captureMode').value==='external'){
+   status('Source RTMP externe : en attente du signal entrant. Les paramètres RTMP et ta clé sont à gauche.','error');
+   return;
+  }
   working=true;buttons();
   status('Démarrage de '+sourceLabel()+'… Aucune diffusion publique pour le moment.');
   try{
@@ -313,10 +317,11 @@
      encoder:$('encoder').value,method:$('captureMode').value,source:$('obsSource').value
     })
    });
-   capturing=true;captureKey=data.key;
+   capturing=true;externalSource=false;captureKey=data.key;
    activeEngine=data.engine==='libobs'?'libobs':data.method==='ddagrab'?'DirectX':'GDI';
    playPreview(data.key);
-   status('Capture '+sourceLabel()+' active ('+activeEngine+'). Vérifie ton image avant de diffuser.'+
+   status((data.recovery||'Capture '+sourceLabel()+' active avec '+activeEngine+'.')+
+    ' Vérifie ton image avant de diffuser.'+
     (data.method==='gdigrab'?' Attention : le bureau virtuel complet peut être visible.':''));
   }catch(e){capturing=false;activeEngine='';status('Capture impossible : '+e.message,'error');resetPreview()}
   finally{working=false;buttons()}
@@ -336,16 +341,26 @@
  }
 
  async function stop(){
-  if(working)return;
+  if(working||(!capturing&&!published))return;
   working=true;buttons();
-  status('Arrêt du direct et de la capture…');
+  status(externalSource?'Arrêt de la publication SWAPP…':'Arrêt du direct et de la capture intégrée…');
   const errors=[];
   if(published){
-   try{await api('/api/tunnel/stop',{method:'POST'})}catch(e){errors.push('Publication : '+e.message)}
+   try{await api('/api/tunnel/stop',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})}
+   catch(e){errors.push('Publication : '+e.message)}
   }
-  try{await api('/api/screen/stop',{method:'POST'})}catch(e){errors.push('Capture : '+e.message)}
-  capturing=false;published=false;captureKey='';activeEngine='';resetPreview();
-  status(errors.length?'Arrêt local demandé. Vérifie le direct public : '+errors.join(' ; '):'Capture et direct arrêtés.',errors.length?'error':'');
+  published=false;
+  if(externalSource){
+   // The OBS/RTMP publisher is a separate process. Stopping public delivery
+   // must not kill a source owned by another application.
+   status(errors.length?'Arrêt public incomplet : '+errors.join(' ; '):
+    'Direct arrêté sur SWAPP. La source RTMP externe continue son aperçu local.',errors.length?'error':'');
+  }else{
+   try{await api('/api/screen/stop',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})}
+   catch(e){errors.push('Capture : '+e.message)}
+   capturing=false;captureKey='';activeEngine='';resetPreview();
+   status(errors.length?'Arrêt local demandé : '+errors.join(' ; '):'Capture et direct arrêtés.',errors.length?'error':'');
+  }
   working=false;buttons();
  }
 
@@ -357,18 +372,56 @@
    const previous=libobsAvailable;
    libobsAvailable=!!s.libobsAvailable;
    $('nativeNotice').textContent=libobsAvailable
-    ?'Composants libobs détectés sur ce PC. Capture de jeu native disponible sous réserve de compatibilité du jeu.'
-    :'libobs n’est pas installé dans cette version. Les sources DirectX et GDI restent disponibles ; Game Capture est désactivé.';
+    ?'Composants libobs détectés. Game Capture dépend encore de la compatibilité du jeu.'
+    :'Game Capture libobs n’est pas inclus dans cet EXE. La capture DirectX bascule automatiquement vers GDI si le moniteur change de mode.';
    $('gamePresetDetail').textContent=libobsAvailable?'Capture native · libobs':'Nécessite le moteur libobs';
    if(!libobsAvailable&&$('captureMode').value==='libobs'&&!capturing){
-    $('captureMode').value='ddagrab';persist();
+    $('captureMode').value='auto';persist();
    }
-   if(previous!==libobsAvailable)activity(libobsAvailable?'Moteur libobs détecté.':'Mode FFmpeg disponible ; Game Capture natif non installé.');
-   if(capturing&&!s.capturing){
-    capturing=false;published=false;captureKey='';activeEngine='';resetPreview();
-    status('La capture s’est interrompue : '+(s.error||'source indisponible'),'error');
+   if(previous!==libobsAvailable)activity(libobsAvailable?'libobs détecté.':'Capture SWAPP disponible : DirectX / GDI de secours.');
+
+   const diag=connected&&configuredKey
+    ?await api('/api/status?key='+encodeURIComponent(configuredKey)):null;
+   const rtmpReady=!!(diag?.stream?.active&&diag.stream.hls_exists&&diag.stream.ffmpeg_running);
+
+   if(!capturing&&s.capturing&&s.ready&&connected&&s.key===configuredKey){
+    externalSource=false;capturing=true;captureKey=s.key;
+    activeEngine=s.engine==='libobs'?'libobs':s.method==='gdigrab'?'GDI':'DirectX';
+    playPreview(s.key);
+    status('Capture SWAPP déjà active, aperçu local rétabli.');
    }
-  }catch(_){}
+
+   if(capturing&&!externalSource&&!s.capturing){
+    capturing=false;published=false;captureKey='';activeEngine='';
+    resetPreview();
+    status('La capture SWAPP s’est interrompue : '+(s.error||'source indisponible'),'error');
+   }
+
+   // An OBS or other RTMP publisher can send to SWAPP's existing ingest.
+   // Detect the actual HLS segments before exposing any Go Live control.
+   if(connected&&!s.capturing&&rtmpReady){
+    if(!capturing||!externalSource){
+     externalSource=true;capturing=true;captureKey=configuredKey;
+     activeEngine='RTMP externe';
+     $('captureMode').value='external';persist();
+     playPreview(configuredKey);
+     status('Flux RTMP reçu et aperçu local disponible. Tu peux lancer le direct sans quitter le Creator Studio.');
+    }
+   }else if(externalSource&&!rtmpReady){
+    externalSource=false;capturing=false;published=false;captureKey='';activeEngine='';
+    resetPreview();
+    status('Le signal RTMP externe a été coupé. Relance l’envoi depuis la source vidéo.');
+   }
+
+   if(diag&&capturing&&diag.published!==published){
+    published=!!diag.published;
+    status(published?'Direct public SWAPP confirmé par le serveur.':'La diffusion publique SWAPP est arrêtée.',published?'live':'');
+   }
+  }catch(e){
+   // Reconnecting a status endpoint should not fake a stream or silently reset
+   // a healthy local preview. All real capture transitions require server state.
+   if(!capturing)activity('Diagnostic local momentanément indisponible : '+e.message,'error');
+  }
   buttons();
  }
 
@@ -419,7 +472,7 @@
  liveButton.addEventListener('click',publish);
  stopButton.addEventListener('click',stop);
  window.addEventListener('beforeunload',()=>{
-  if(capturing)navigator.sendBeacon?.('/api/screen/stop');
+  if(capturing&&!externalSource)navigator.sendBeacon?.('/api/screen/stop');
  });
  restore();buttons();
  activity('SWAPP Creator Studio chargé. Aucune diffusion en cours.');
