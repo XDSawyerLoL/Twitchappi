@@ -227,7 +227,13 @@ int main(int argc, char **argv) {
  } while (false);
 
  if (output) {
-  if (obs_output_active(output)) obs_output_stop(output);
+  if (obs_output_active(output)) {
+   obs_output_stop(output);
+   // OBS stop is asynchronous: allow RTMP to drain, then force stop if needed.
+   for (unsigned i = 0; i < 100 && obs_output_active(output); ++i)
+    std::this_thread::sleep_for(std::chrono::milliseconds(20));
+   if (obs_output_active(output)) obs_output_force_stop(output);
+  }
   obs_output_release(output);
  }
  if (video) obs_encoder_release(video);
