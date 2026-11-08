@@ -3,7 +3,7 @@ name: SWAPP Live Windows (free public runner)
 # The Windows packaging job installs tools and may consume billable
 # hosted-runner minutes. It must never run automatically on pushes or merges.
 # The maintainer may trigger it manually when an updated installer is needed.
-# Creator Studio 1.2.1 preview was built and released successfully on 2026-11-08.
+# Creator Studio 1.2.2 unified RTMP preview pending build.
 # All new builds are manual-only to prevent unexpected runner charges.
 # A one-time user-authorized push build was run successfully on 2026-11-08;
 # automatic push-triggered builds are now disabled to avoid future charges.
@@ -80,8 +80,8 @@ jobs:
           if ((Get-Item $dll).Length -lt 102400) { throw "Critical: ffmpeg.dll appears truncated" }
           $dllHash = (Get-FileHash $dll -Algorithm SHA256).Hash
           Write-Host "Packaged Electron ffmpeg.dll SHA256: $dllHash"
-          $installer = "local-agent/dist/SWAPP-Live-Setup-1.2.1-x64.exe"
-          $portable = "local-agent/dist/SWAPP-Live-Portable-1.2.1-x64.exe"
+          $installer = "local-agent/dist/SWAPP-Live-Setup-1.2.2-x64.exe"
+          $portable = "local-agent/dist/SWAPP-Live-Portable-1.2.2-x64.exe"
           foreach ($artifact in @($installer, $portable)) {
             if (!(Test-Path $artifact)) { throw "Missing release executable: $artifact" }
           }
@@ -106,10 +106,10 @@ jobs:
       - name: Upload validated Windows installer and portable EXE
         uses: actions/upload-artifact@v4
         with:
-          name: SWAPP-Live-1.2.1-Windows-FFmpeg-preview
+          name: SWAPP-Live-1.2.2-Windows-integrated-studio-preview
           path: |
-            local-agent/dist/SWAPP-Live-Setup-1.2.1-x64.exe
-            local-agent/dist/SWAPP-Live-Portable-1.2.1-x64.exe
+            local-agent/dist/SWAPP-Live-Setup-1.2.2-x64.exe
+            local-agent/dist/SWAPP-Live-Portable-1.2.2-x64.exe
           if-no-files-found: error
           retention-days: 7
 
@@ -119,14 +119,14 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $tag = "swapp-live-windows-v1.2.1-creator-studio-preview"
-          $portable = "local-agent/dist/SWAPP-Live-Portable-1.2.1-x64.exe"
-          $setup = "local-agent/dist/SWAPP-Live-Setup-1.2.1-x64.exe"
+          $tag = "swapp-live-windows-v1.2.2-unified-rtmp-preview"
+          $portable = "local-agent/dist/SWAPP-Live-Portable-1.2.2-x64.exe"
+          $setup = "local-agent/dist/SWAPP-Live-Setup-1.2.2-x64.exe"
           foreach ($file in @($portable, $setup)) {
             if (!(Test-Path $file)) { throw "Missing binary: $file" }
           }
           $notes = @"
-          ## SWAPP Live 1.2.1 — Creator Studio (préversion)
+          ## SWAPP Live 1.2.2 — Creator Studio (préversion)
           L'interface Windows a été entièrement réorganisée comme un studio de streaming moderne : scène vidéo centrale, sources de capture à gauche, réglages vidéo et micro, commandes de diffusion, statut du direct, compte et journal d'activité réel.
           
           **Déjà utilisable dans cette préversion :** capture FFmpeg DirectX ou GDI, prévisualisation HLS locale, mixage DirectShow si périphériques audio compatibles, encodeur NVENC ou x264, publication sur SWAPP depuis l'application. Les paramètres sont mémorisés sur le PC.
@@ -135,7 +135,7 @@ jobs:
           
           Construite et contrôlée sur GitHub Actions Windows ; test de jeu réel côté utilisateur encore nécessaire.
           "@
-          gh release create $tag $portable $setup --repo "$env:GITHUB_REPOSITORY" --target "$env:GITHUB_SHA" --title "SWAPP Live 1.2.1 — Creator Studio (préversion)" --prerelease --notes "$notes"
+          gh release create $tag $portable $setup --repo "$env:GITHUB_REPOSITORY" --target "$env:GITHUB_SHA" --title "SWAPP Live 1.2.2 — Creator Studio (préversion)" --prerelease --notes "$notes"
 
       - name: Require validated native libobs runtime before public release
         if: ${{ inputs.publish_release == true }}
@@ -154,8 +154,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $tag = "swapp-live-windows-v1.2.1"
+          $tag = "swapp-live-windows-v1.2.2"
           $files = @(Get-ChildItem "local-agent/dist" -File -Filter "*.exe" | ForEach-Object { $_.FullName })
           if ($files.Count -lt 2) { throw "SWAPP Live installer and portable executable were not both produced" }
-          $notes = "SWAPP Live Windows 1.2.1 : Creator Studio moderne avec dock de sources de capture, canvas vidéo central, journal d’activité, réglages mémorisés, aperçu HLS avant publication, encodage NVENC ou x264 et mixage DirectShow si périphériques disponibles. libobs Game Capture non compilé. Version de test, capture plein écran non garantie."
-          gh release create $tag $files --repo "$env:GITHUB_REPOSITORY" --target "$env:GITHUB_SHA" --title "SWAPP Live Windows v1.2.1" --notes $notes
+          $notes = "SWAPP Live Windows 1.2.2 : un seul Creator Studio (ancienne interface OBS supprimée), URL RTMP et clé de chaîne récupérées automatiquement, source OBS externe détectée dans le studio, commandes de direct/arrêt/réparation intégrées. Récupération après écran DXGI Output changed par GDI. Game Capture libobs non compilé, jeux protégés non garantis : préversion Windows."
+          gh release create $tag $files --repo "$env:GITHUB_REPOSITORY" --target "$env:GITHUB_SHA" --title "SWAPP Live Windows v1.2.2" --notes $notes
