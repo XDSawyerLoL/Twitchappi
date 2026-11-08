@@ -55,8 +55,17 @@
           <button type="button" class="source-preset is-selected" data-preset="primary" aria-pressed="true"><span class="source-icon"><svg class="ui-icon"><use href="#i-monitor"/></svg></span><span><strong>Écran principal</strong><em>Moniteur 1 · DirectX</em></span></button>
           <button type="button" class="source-preset" data-preset="secondary" aria-pressed="false"><span class="source-icon"><svg class="ui-icon"><use href="#i-monitor"/></svg></span><span><strong>Écran secondaire</strong><em>Moniteur 2 · DirectX</em></span></button>
           <button type="button" class="source-preset" data-preset="desktop" aria-pressed="false"><span class="source-icon"><svg class="ui-icon"><use href="#i-grid"/></svg></span><span><strong>Bureau complet</strong><em>Mode compatible · GDI</em></span></button>
+          <button type="button" class="source-preset" data-preset="window" aria-pressed="false"><span class="source-icon"><svg class="ui-icon"><use href="#i-monitor"/></svg></span><span><strong>Fenêtre ou application</strong><em>Choisir une fenêtre Windows précise</em></span></button>
           <button type="button" class="source-preset" data-preset="game" aria-pressed="false" disabled><span class="source-icon"><svg class="ui-icon"><use href="#i-camera"/></svg></span><span><strong>Jeu plein écran</strong><em id="gamePresetDetail">Nécessite le moteur libobs</em></span></button>
           <button type="button" class="source-preset" data-preset="external" aria-pressed="false"><span class="source-icon"><svg class="ui-icon"><use href="#i-radio"/></svg></span><span><strong>RTMP externe</strong><em>Détection automatique du flux OBS</em></span></button>
+        </div>
+        <div class="window-picker" id="windowCapturePanel">
+          <label for="windowSelect">Fenêtre à diffuser</label>
+          <div class="window-picker-row">
+            <select id="windowSelect" aria-label="Fenêtre Windows à capturer"><option value="">Actualisation des fenêtres…</option></select>
+            <button type="button" id="refreshWindowsButton" title="Actualiser les fenêtres ouvertes" aria-label="Actualiser la liste des fenêtres"><svg class="ui-icon"><use href="#i-refresh"/></svg></button>
+          </div>
+          <p id="windowsStatus" role="status">Sélectionne une fenêtre visible, puis prévisualise-la.</p>
         </div>
         <div class="preset-status" id="presetHelp">Capture DirectX du moniteur principal. Les scènes multicouches ne sont pas encore disponibles.</div>
 
@@ -74,7 +83,7 @@
                 <label class="field" for="bitrate">Débit cible<select id="bitrate"><option value="4500">4,5 Mb/s</option><option value="6000" selected>6 Mb/s</option><option value="8000">8 Mb/s</option><option value="10000">10 Mb/s</option></select></label>
                 <label class="field" for="encoder">Encodeur<select id="encoder"><option value="auto">Automatique</option><option value="nvenc">NVIDIA NVENC</option><option value="x264">CPU · x264</option></select></label>
               </div>
-              <label class="field" for="captureMode">Moteur de capture<select id="captureMode"><option value="auto">Automatique</option><option value="libobs">Game Capture · libobs</option><option value="ddagrab" selected>DirectX · DDAGrab</option><option value="gdigrab">Bureau entier · GDI</option><option value="external">Signal RTMP externe</option></select></label>
+              <label class="field" for="captureMode">Moteur de capture<select id="captureMode"><option value="auto">Automatique</option><option value="libobs">Game Capture · libobs</option><option value="ddagrab" selected>DirectX · DDAGrab</option><option value="gdigrab">Bureau entier · GDI</option><option value="window">Fenêtre précise · GDI</option><option value="external">Signal RTMP externe</option></select></label>
               <label class="field" for="obsSource">Source OBS native<select id="obsSource" disabled><option value="game">Jeu plein écran</option><option value="display">Écran entier</option></select></label>
             </div>
           </details>
@@ -169,7 +178,7 @@
 
     <footer class="footer">
       <span><span class="safe">●</span> Capture locale · Publication uniquement après confirmation</span>
-      <span>SWAPP Live 1.2.2 · Studio Windows · Pas de capture garantie pour les jeux protégés</span>
+      <span>SWAPP Live 1.2.3 · Studio Windows · Pas de capture garantie pour les jeux protégés</span>
     </footer>
   </div>
 </div>
