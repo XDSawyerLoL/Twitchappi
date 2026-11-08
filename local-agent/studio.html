@@ -28,6 +28,7 @@
     <div class="rail-line"></div>
     <nav class="rail-nav">
       <a class="rail-link active" data-panel="studio" href="#studio" aria-current="page"><svg class="ui-icon"><use href="#i-grid"/></svg>Studio</a>
+      <a class="rail-link" data-panel="scenes" href="#scenes"><svg class="ui-icon"><use href="#i-grid"/></svg>Scènes</a>
       <a class="rail-link" data-panel="sources" href="#sources"><svg class="ui-icon"><use href="#i-monitor"/></svg>Sources</a>
       <a class="rail-link" data-panel="reglages" href="#reglages"><svg class="ui-icon"><use href="#i-sliders"/></svg>Réglages</a>
       <a class="rail-link" data-panel="activite" href="#activite"><svg class="ui-icon"><use href="#i-radio"/></svg>Activité</a>
@@ -48,7 +49,34 @@
     </header>
 
     <div class="studio-layout">
-      <aside class="left-dock" id="sources" aria-label="Sources et réglages du flux">
+      <aside class="left-dock" id="sources" aria-label="Scènes, sources et réglages du flux">
+        <section class="scenes-panel" id="scenes" aria-label="Scènes du direct">
+          <div class="dock-heading"><span class="kicker">Mes scènes</span><span class="side-badge">MONTAGE</span></div>
+          <p class="dock-caption">Crée des scènes et ajoute une caméra par-dessus ta capture. Les modifications s’appliquent au prochain aperçu.</p>
+          <div id="sceneList" class="scene-list" role="listbox" aria-label="Choisir une scène"></div>
+          <div class="scene-actions">
+            <button type="button" id="sceneCreate" aria-label="Créer une scène">+ Scène</button>
+            <button type="button" id="sceneDuplicate" aria-label="Dupliquer la scène">Dupliquer</button>
+            <button type="button" id="sceneRemove" aria-label="Supprimer la scène">Supprimer</button>
+          </div>
+          <label class="field" for="sceneName">Nom de la scène
+            <input id="sceneName" type="text" maxlength="55" placeholder="Nom de la scène">
+          </label>
+          <button type="button" id="sceneRename" class="tiny-control">Enregistrer le nom</button>
+          <div class="dock-heading" style="margin-top:18px"><span class="kicker">Sources de la scène</span></div>
+          <div id="sceneLayerList" class="scene-layer-list"></div>
+          <div class="camera-source-picker">
+            <label class="field" for="webcamSelect">Ajouter une webcam
+              <select id="webcamSelect"><option value="">Détection des caméras…</option></select>
+            </label>
+            <div class="scene-actions">
+              <button type="button" id="sceneAddWebcam">+ Ajouter la caméra</button>
+              <button type="button" id="sceneRefreshDevices">Actualiser</button>
+            </div>
+          </div>
+          <p class="muted-mini" id="sceneNotice" role="status">Les scènes sont enregistrées sur cet ordinateur, sans clé de diffusion.</p>
+        </section>
+        <div class="dock-divider"></div>
         <div class="dock-heading"><span class="kicker">Sources de capture</span><span class="side-badge">WINDOWS</span></div>
         <p class="dock-caption">Choisis ce que tu veux montrer. La source sélectionnée est utilisée au prochain aperçu.</p>
         <div class="source-stack" role="group" aria-label="Presets de capture">
@@ -67,7 +95,7 @@
           </div>
           <p id="windowsStatus" role="status">Sélectionne une fenêtre visible, puis prévisualise-la.</p>
         </div>
-        <div class="preset-status" id="presetHelp">Capture DirectX du moniteur principal. Les scènes multicouches ne sont pas encore disponibles.</div>
+        <div class="preset-status" id="presetHelp">Capture DirectX du moniteur principal. Tu peux composer une scène avec la capture et une webcam. Le changement de scène en plein direct dépend du moteur libobs.</div>
 
         <div class="dock-divider"></div>
         <div id="reglages" class="dock-block">
