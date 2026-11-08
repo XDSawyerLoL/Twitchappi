@@ -99,6 +99,29 @@ static obs_encoder_t *make_video_encoder(const Options &o) {
 }
 
 int main(int argc, char **argv) {
+ // Safe, non-streaming module check for headless Windows build runners.
+ // Verifies real Game Capture and WASAPI plugin registration without GPU hooks.
+ if(argc==2 && std::string(argv[1])=="--selftest") {
+  const fs::path root=fs::absolute(fs::path(argv[0])).parent_path();
+  if(!obs_startup("fr-FR",nullptr,nullptr)) {
+   std::cerr << "libobs startup failed" << std::endl;return 10;
+  }
+  configure_plugins(root);
+  obs_load_all_modules();
+  obs_post_load_modules();
+  const char *ids[]={"game_capture","monitor_capture",
+   "wasapi_output_capture","wasapi_input_capture"};
+  bool valid=true;
+  for(auto *name:ids) {
+   const char *label=obs_get_source_display_name(name);
+   if(!label) {
+    std::cerr << "Missing native source plugin: " << name << std::endl;
+    valid=false;
+   } else std::cout << name << ": " << label << std::endl;
+  }
+  obs_shutdown();
+  return valid?0:11;
+ }
  Options opt;
  if (!read_args(argc, argv, opt)) {
   std::cerr << "SWAPP libobs: invalid arguments (only local RTMP allowed)" << std::endl;
