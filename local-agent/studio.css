@@ -224,3 +224,18 @@ details[open] summary:after{transform:rotate(180deg)}
 .window-picker-row button:disabled{opacity:.4}
 .window-picker p{font-size:10px;line-height:1.5;color:#aab4c8;margin:9px 0 0;overflow-wrap:anywhere}
 .window-picker p[data-error="1"]{color:#ffb8c8}
+
+/* Navigation is functional: section focus and a responsive activity drawer. */
+.dock-focused{box-shadow:inset 0 3px 0 #9475ff55}
+@media(max-width:1070px){
+ .studio-layout{position:relative}
+ .studio-layout.show-activity .right-dock{
+  display:block;position:absolute;z-index:15;
+  top:0;bottom:0;right:0;width:min(350px,85vw);
+  box-shadow:-16px 0 55px #000a;background:#111522;
+  overflow-y:auto
+ }
+}
+@media(max-width:760px){
+ .studio-layout.show-activity .right-dock{position:relative;width:100%;box-shadow:none}
+}
