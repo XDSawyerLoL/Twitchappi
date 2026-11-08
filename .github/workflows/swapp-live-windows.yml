@@ -78,8 +78,8 @@ jobs:
           if ((Get-Item $dll).Length -lt 102400) { throw "Critical: ffmpeg.dll appears truncated" }
           $dllHash = (Get-FileHash $dll -Algorithm SHA256).Hash
           Write-Host "Packaged Electron ffmpeg.dll SHA256: $dllHash"
-          $installer = "local-agent/dist/SWAPP-Live-Setup-1.2.0-x64.exe"
-          $portable = "local-agent/dist/SWAPP-Live-Portable-1.2.0-x64.exe"
+          $installer = "local-agent/dist/SWAPP-Live-Setup-1.2.1-x64.exe"
+          $portable = "local-agent/dist/SWAPP-Live-Portable-1.2.1-x64.exe"
           foreach ($artifact in @($installer, $portable)) {
             if (!(Test-Path $artifact)) { throw "Missing release executable: $artifact" }
           }
@@ -104,10 +104,10 @@ jobs:
       - name: Upload validated Windows installer and portable EXE
         uses: actions/upload-artifact@v4
         with:
-          name: SWAPP-Live-1.2.0-Windows-FFmpeg-preview
+          name: SWAPP-Live-1.2.1-Windows-FFmpeg-preview
           path: |
-            local-agent/dist/SWAPP-Live-Setup-1.2.0-x64.exe
-            local-agent/dist/SWAPP-Live-Portable-1.2.0-x64.exe
+            local-agent/dist/SWAPP-Live-Setup-1.2.1-x64.exe
+            local-agent/dist/SWAPP-Live-Portable-1.2.1-x64.exe
           if-no-files-found: error
           retention-days: 7
 
@@ -128,8 +128,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $tag = "swapp-live-windows-v1.2.0"
+          $tag = "swapp-live-windows-v1.2.1"
           $files = @(Get-ChildItem "local-agent/dist" -File -Filter "*.exe" | ForEach-Object { $_.FullName })
           if ($files.Count -lt 2) { throw "SWAPP Live installer and portable executable were not both produced" }
-          $notes = "SWAPP Live Windows 1.2.0 : nouveau studio de capture d’écran sans OBS, capture DirectX (DDAGrab) ou Windows classique, aperçu HLS local avant publication, démarrage et arrêt du direct depuis l’application. L’entrée audio DirectShow est optionnelle ; le mixage automatique jeu + microphone n’est pas encore fourni. Le mode OBS existant reste disponible. Un test Windows réel, y compris jeu plein écran et retour spectateur distant, est nécessaire avant validation de la diffusion."
-          gh release create $tag $files --repo "$env:GITHUB_REPOSITORY" --target "$env:GITHUB_SHA" --title "SWAPP Live Windows v1.2.0" --notes $notes
+          $notes = "SWAPP Live Windows 1.2.1 : Creator Studio moderne avec dock de sources de capture, canvas vidéo central, journal d’activité, réglages mémorisés, aperçu HLS avant publication, encodage NVENC ou x264 et mixage DirectShow si périphériques disponibles. libobs Game Capture non compilé. Version de test, capture plein écran non garantie."
+          gh release create $tag $files --repo "$env:GITHUB_REPOSITORY" --target "$env:GITHUB_SHA" --title "SWAPP Live Windows v1.2.1" --notes $notes
