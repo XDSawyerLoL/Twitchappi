@@ -29,7 +29,7 @@ jobs:
           node-version: '20'
 
       - name: Run live transport regression tests
-        run: node --test test/swapp-native-webrtc-transport.test.js test/swapp-native-live-public.test.js test/swapp-browser-http-relay.test.js test/swapp-local-tunnel.test.js test/swapp-electron-runtime-package.test.js test/swapp-tunnel-fallback.test.js test/swapp-direct-hls-relay.test.js test/swapp-local-ui-simplify.test.js test/swapp-discord-live-preview.test.js test/swapp-native-obs-quality.test.js test/swapp-ts-inspect.test.js test/swapp-native-desktop-studio.test.js test/swapp-libobs-bridge.test.js
+        run: node --test test/swapp-native-webrtc-transport.test.js test/swapp-native-live-public.test.js test/swapp-browser-http-relay.test.js test/swapp-local-tunnel.test.js test/swapp-electron-runtime-package.test.js test/swapp-tunnel-fallback.test.js test/swapp-direct-hls-relay.test.js test/swapp-local-ui-simplify.test.js test/swapp-discord-live-preview.test.js test/swapp-native-obs-quality.test.js test/swapp-ts-inspect.test.js test/swapp-native-desktop-studio.test.js test/swapp-libobs-bridge.test.js test/swapp-libobs-package-gate.test.js
 
       - name: Report native libobs packaging status
         shell: pwsh
