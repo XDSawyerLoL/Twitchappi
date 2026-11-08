@@ -88,7 +88,7 @@ static obs_encoder_t *make_video_encoder(const Options &o) {
    obs_data_set_string(settings, "preset", "veryfast");
   else
    obs_data_set_string(settings, "preset", "p4");
-  encoder = obs_encoder_create(id, "SWAPP H264", settings, nullptr);
+  encoder = obs_video_encoder_create(id, "SWAPP H264", settings, nullptr);
   obs_data_release(settings);
   if (encoder) {
    std::cerr << "Video encoder: " << id << std::endl;
@@ -184,7 +184,7 @@ int main(int argc, char **argv) {
   video = make_video_encoder(opt);
   obs_data_t *audio_options = obs_data_create();
   obs_data_set_int(audio_options, "bitrate", 160);
-  audio = obs_encoder_create("ffmpeg_aac", "SWAPP AAC", audio_options, 0);
+  audio = obs_audio_encoder_create("ffmpeg_aac", "SWAPP AAC", audio_options, 0, nullptr);
   obs_data_release(audio_options);
   if (!video || !audio) {
    std::cerr << "Video or AAC encoder missing" << std::endl;
