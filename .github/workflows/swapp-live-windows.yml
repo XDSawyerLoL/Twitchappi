@@ -31,7 +31,7 @@ jobs:
           node-version: '20'
 
       - name: Run SWAPP Live Windows shipping tests (blocking)
-        run: node --test test/swapp-native-desktop-studio.test.js test/swapp-libobs-bridge.test.js test/swapp-libobs-package-gate.test.js test/swapp-electron-runtime-package.test.js
+        run: node --test test/swapp-native-desktop-studio.test.js test/swapp-libobs-bridge.test.js test/swapp-libobs-package-gate.test.js test/swapp-studio-dashboard.test.js test/swapp-electron-runtime-package.test.js
 
       - name: Run full legacy regression suite (report failures without blocking preview build)
         continue-on-error: true
