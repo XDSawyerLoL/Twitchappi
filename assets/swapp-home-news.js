@@ -169,16 +169,6 @@
     const link=el('a','swapp-home-feature-cta'+(primary?' primary':''),label);link.href=href;actions.append(link);
    };
    action('Lire l’article','/actus/'+encodeURIComponent(feature.slug),true);
-   // Always offer explicit playback: muted hero autoplay can be blocked by browsers.
-   const featuredVideoId=youtubeId(feature);
-   if(featuredVideoId){
-    const play=el('button','swapp-home-feature-cta swapp-video-open','▶ Voir la vidéo officielle');
-    play.type='button';play.dataset.swappVideoPlay='1';play.dataset.videoYoutube=featuredVideoId;
-    play.dataset.videoTitle='Bande-annonce officielle · '+String(feature.game||'Jeu vidéo').slice(0,90);
-    play.setAttribute('aria-label','Regarder la vidéo officielle de '+String(feature.game||'ce jeu'));
-    play.style.cssText='cursor:pointer;color:#fff;background:#6136ad;border:1px solid rgba(255,255,255,.5);font-weight:800;';
-    actions.append(play);
-   }
    action('Voir les lives',feature.game?'/actus/'+encodeURIComponent(feature.slug)+'#swapp-article-lives':'/decouvrir');
    action('En discuter',discussionHref(feature));
    bridge.append(actions);
