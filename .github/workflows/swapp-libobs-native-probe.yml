@@ -1,0 +1,45 @@
+name: SWAPP native libobs 33 build probe (one-time)
+
+# User-requested Windows compilation validation. No public release.
+on:
+  push:
+    branches:
+      - feat/swapp-live-native-screen-capture-20261108
+    paths:
+      - '.github/workflows/swapp-libobs-native-probe.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native-host:
+    runs-on: windows-2025
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify OBS 33.0.1 archive hashes and prepare matching SDK
+        shell: pwsh
+        run: |
+          & ./local-agent/libobs-host/bootstrap-obs33-windows.ps1
+          if ($LASTEXITCODE -ne 0) { throw "OBS SDK bootstrap failed" }
+
+      - name: Compile and stage native Game Capture and WASAPI host
+        shell: pwsh
+        run: |
+          & ./local-agent/libobs-host/build-and-stage-windows.ps1 -SdkPrefix $env:SWAPP_OBS_SDK -ObsPortableRoot $env:SWAPP_OBS_ROOT -ObsSourceRoot $env:SWAPP_OBS_SOURCE
+          if ($LASTEXITCODE -ne 0) { throw "Native host compilation failed" }
+
+      - name: Validate OBS 33 native runtime
+        shell: pwsh
+        run: |
+          $p='local-agent/libobs-runtime'
+          foreach ($name in @('swapp-libobs-host.exe','obs.dll','libobs-d3d11.dll','GPL-2.0-LICENSE.txt')) {
+            if (!(Test-Path (Join-Path $p $name))) { throw "Missing native file $name" }
+          }
+          foreach ($name in @('win-capture','win-wasapi','obs-outputs','obs-x264','obs-ffmpeg','rtmp-services')) {
+            $dll=Join-Path (Join-Path (Join-Path $p 'core') $name) "$name.dll"
+            if (!(Test-Path $dll)) { throw "Missing native module $dll" }
+          }
+          Write-Host 'SWAPP native Game Capture and WASAPI components compiled and staged.'
+          Get-FileHash (Join-Path $p 'swapp-libobs-host.exe') -Algorithm SHA256
