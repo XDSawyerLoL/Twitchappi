@@ -11,39 +11,70 @@ const fs=require('node:fs');
 const {URL}=require('node:url');
 const {listCapturableWindows,resolveSelectedWindow}=require('./swapp-window-picker');
 
-function captureArgs({method,display,fps,bitrate,audioDevice='',micDevice='',encoder='x264',windowTitle='',rtmpUrl}){
+function captureArgs({method,display,fps,bitrate,audioDevice='',micDevice='',encoder='x264',windowTitle='',overlays=[],rtmpUrl}){
  const args=['-hide_banner','-nostdin','-loglevel','warning','-y'];
+ const webcamLayers=(Array.isArray(overlays)?overlays:[]).filter(x=>x?.type==='webcam').slice(0,2);
  if(method==='ddagrab'){
-  // FFmpeg's Direct3D desktop duplicator exposes native D3D11 frames.
-  // NVENC can encode them directly; downloading GPU textures first breaks the fast path.
   const source='ddagrab=output_idx='+display+':framerate='+fps+':output_fmt=8bit';
   args.push('-f','lavfi','-i',encoder==='nvenc'?source:source+',hwdownload,format=bgra');
  }else if(method==='gdigrab'||method==='window'){
-  // FFmpeg 6.1 supports "title="; "hwnd=" requires FFmpeg >= 7.0.
-  // Resolve Win32 HWND server-side and use its exact, unique window title.
-  // In window mode never silently capture the desktop.
   if(method==='window'&&(!windowTitle||typeof windowTitle!=='string'))
    throw new Error('Aucune fenêtre valide n’a été sélectionnée.');
   args.push('-f','gdigrab','-framerate',String(fps),'-draw_mouse','1','-i',
    method==='window'?'title='+windowTitle:'desktop');
  }else throw new Error('Méthode de capture inconnue');
+
+ for(const camera of webcamLayers){
+  const device=String(camera.device||'').trim();
+  if(!device||device.length>160)throw new Error('Source webcam invalide.');
+  args.push('-thread_queue_size','512','-f','dshow','-i','video='+device);
+ }
+ const audioStart=1+webcamLayers.length;
  const selected=[audioDevice,micDevice].map(x=>String(x||'').trim())
   .filter((x,i,a)=>x&&a.indexOf(x)===i);
- for(const device of selected)args.push('-thread_queue_size','1024','-f','dshow','-i','audio='+device);
+ for(const device of selected)
+  args.push('-thread_queue_size','1024','-f','dshow','-i','audio='+device);
  if(!selected.length)args.push('-re','-f','lavfi','-i','anullsrc=r=48000:cl=stereo');
- args.push('-map','0:v:0');
- if(selected.length>1)args.push('-filter_complex',
-   '[1:a][2:a]amix=inputs=2:duration=longest:dropout_transition=0,aresample=async=1:first_pts=0[a]',
-   '-map','[a]');
- else args.push('-map','1:a:0');
- // NVENC + D3D11 keeps GPU frames; all other cases use CPU scaling/conversion.
- if(!(method==='ddagrab'&&encoder==='nvenc'))
+
+ const filters=[];
+ let videoOutput='0:v:0';
+ if(webcamLayers.length){
+  // Multiple input composition really happens in FFmpeg, not a fake UI layer.
+  // CPU composition requires downloading GPU texture when ddagrab+NVENC.
+  const gpuToCpu=method==='ddagrab'&&encoder==='nvenc'?'hwdownload,format=bgra,':'';
+  filters.push('[0:v]'+gpuToCpu+
+   'scale=w=1920:h=1080:force_original_aspect_ratio=decrease:flags=fast_bilinear,'+
+   'pad=1920:1080:(ow-iw)/2:(oh-ih)/2:color=black,format=yuv420p[vbase]');
+  let prev='vbase';
+  webcamLayers.forEach((camera,index)=>{
+   const w=Math.max(100,Math.min(960,Math.round(Number(camera.width)||320)));
+   const h=Math.max(60,Math.min(540,Math.round(Number(camera.height)||180)));
+   const x=Math.max(0,Math.min(1920-w,Math.round(Number(camera.x)||0)));
+   const y=Math.max(0,Math.min(1080-h,Math.round(Number(camera.y)||0)));
+   const cam='cam'+index,output='vcomposite'+index;
+   filters.push('['+(index+1)+':v]scale='+w+':'+h+':flags=fast_bilinear,setsar=1['+cam+']');
+   filters.push('['+prev+']['+cam+']overlay='+x+':'+y+':eof_action=repeat:shortest=0['+output+']');
+   prev=output;
+  });
+  videoOutput='['+prev+']';
+ }
+ if(selected.length>1){
+  const i=audioStart;
+  filters.push('['+i+':a]['+(i+1)+':a]amix=inputs=2:duration=longest:dropout_transition=0,'+
+   'aresample=async=1:first_pts=0[a]');
+ }
+ if(filters.length)args.push('-filter_complex',filters.join(';'));
+ args.push('-map',videoOutput);
+ args.push('-map',selected.length>1?'[a]':audioStart+':a:0');
+
+ if(!webcamLayers.length&&!(method==='ddagrab'&&encoder==='nvenc'))
   args.push('-vf',"scale=w='min(1920,iw)':h=-2:flags=fast_bilinear,format=yuv420p");
  if(encoder==='nvenc'){
   args.push('-c:v','h264_nvenc','-preset','p4','-rc','cbr','-bf','0');
  }else if(encoder==='x264'){
   args.push('-c:v','libx264','-preset','veryfast','-tune','zerolatency','-sc_threshold','0');
  }else throw new Error('Encodeur non pris en charge');
+
  args.push('-r',String(fps),'-b:v',String(bitrate)+'k','-maxrate',String(bitrate+1000)+'k',
   '-bufsize',String(bitrate*2)+'k','-g',String(fps*2),'-keyint_min',String(fps*2),
   '-c:a','aac','-b:a','160k','-ar','48000','-ac','2',
@@ -63,29 +94,30 @@ function captureFailure(log){
 }
 
 function createScreenCapture({ffmpegPath,rtmpPort,currentConfiguredKey,streamStatus,platform=process.platform,spawnProcess=spawn,now=()=>Date.now(),sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms)),listWindows=listCapturableWindows}){
- let child=null,method=null,codec=null,startedAt=0,error='',stopping=false,attempt=0,recovery='',capturedWindow=null;
+ let child=null,method=null,codec=null,startedAt=0,error='',stopping=false,attempt=0,recovery='',capturedWindow=null,activeLayers=[];
  const safeStatus=()=>{
   const key=currentConfiguredKey();
   const source=streamStatus(key);
   return {key,capturing:!!child&&!stopping,method,encoder:codec,startedAt:startedAt?new Date(startedAt).toISOString():null,
    ready:!!child&&!stopping&&!!source.active&&!!source.hls_exists,error,recovery,
    window:capturedWindow?{hwnd:capturedWindow.hwnd,title:capturedWindow.title}:null,
+   layers:activeLayers.map(x=>({id:x.id,type:x.type,device:x.device})),
    screen:method==='window'?(capturedWindow?.title||'Fenêtre'):(method==='gdigrab'?'Bureau virtuel complet':'Moniteur sélectionné'),
    stream:{active:!!source.active,hls_exists:!!source.hls_exists,ffmpeg_running:!!source.ffmpeg_running}};
  };
  function stop(){
   stopping=true;attempt++;
-  const old=child;child=null;method=null;codec=null;startedAt=0;capturedWindow=null;
+  const old=child;child=null;method=null;codec=null;startedAt=0;capturedWindow=null;activeLayers=[];
   if(old && old.exitCode===null){try{old.kill('SIGTERM')}catch(_){}}
   stopping=false;
   return {success:true,...safeStatus()};
  }
- async function trial(kind,encoder,display,fps,bitrate,audioDevice,micDevice,rtmpUrl,selectedWindow){
+ async function trial(kind,encoder,display,fps,bitrate,audioDevice,micDevice,rtmpUrl,selectedWindow,overlays){
   const id=++attempt;
-  const args=captureArgs({method:kind,encoder,display,fps,bitrate,audioDevice,micDevice,rtmpUrl,windowTitle:selectedWindow?.title||''});
+  const args=captureArgs({method:kind,encoder,display,fps,bitrate,audioDevice,micDevice,rtmpUrl,windowTitle:selectedWindow?.title||'',overlays});
   let log='',exited=false,problem=null;
   const proc=spawnProcess(ffmpegPath,args,{windowsHide:true,stdio:['ignore','ignore','pipe']});
-  child=proc;method=kind;codec=encoder;capturedWindow=kind==='window'?selectedWindow:null;startedAt=now();
+  child=proc;method=kind;codec=encoder;capturedWindow=kind==='window'?selectedWindow:null;activeLayers=overlays||[];startedAt=now();
   proc.stderr?.on('data',chunk=>{
    log=(log+String(chunk)).slice(-3500);
    problem=captureFailure(log)||problem;
@@ -133,6 +165,7 @@ function createScreenCapture({ffmpegPath,rtmpPort,currentConfiguredKey,streamSta
   if(!['auto','ddagrab','gdigrab','window'].includes(requested))throw new Error('Méthode de capture non autorisée.');
   const selectedWindow=requested==='window'
    ?await resolveSelectedWindow(options.windowHwnd,{listWindows}):null;
+  const overlays=Array.isArray(options.overlays)?options.overlays:[];
   const encoderOption=String(options.encoder||'auto');
   if(!['auto','nvenc','x264'].includes(encoderOption))throw new Error('Encodeur non autorisé.');
   const methods=requested==='auto'?['ddagrab','gdigrab']:[requested];
@@ -145,7 +178,7 @@ function createScreenCapture({ffmpegPath,rtmpPort,currentConfiguredKey,streamSta
    let skipEncoder=false;
    for(const encoder of encoders){
     try{
-     const result=await trial(kind,encoder,display,fps,bitrate,audioDevice,micDevice,rtmpUrl,selectedWindow);
+     const result=await trial(kind,encoder,display,fps,bitrate,audioDevice,micDevice,rtmpUrl,selectedWindow,overlays);
      return {...result,recovery};
     }catch(e){
      if(/interrompue/i.test(String(e.message)))throw e;
