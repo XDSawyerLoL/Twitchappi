@@ -9,7 +9,7 @@ const read=x=>fs.readFileSync(path.join(root,x),'utf8');
 const html=read('local-agent/studio.html'),css=read('local-agent/studio.css'),js=read('local-agent/studio.js');
 
 test('premium studio layout contains actual source dock, playable canvas, actions and live state',()=>{
- for(const label of ['Écran principal','Écran secondaire','Bureau complet','Jeu plein écran','Contrôle du direct','Journal d'activité']){
+ for(const label of ['Écran principal','Écran secondaire','Bureau complet','Jeu plein écran','Contrôle du direct',"Journal d'activité"]){
   assert.ok(html.includes(label),'Missing '+label);
  }
  for(const name of ['primary','secondary','desktop','game'])assert.ok(html.includes('data-preset="'+name+'"'));
