@@ -1,6 +1,6 @@
 name: SWAPP native libobs 33 build probe (one-time)
 
-# User-requested Windows plugin/runtime smoke test. No public release.
+# User-requested Windows plugin registration smoke test with corrected OBS source API.
 on:
   push:
     branches:
