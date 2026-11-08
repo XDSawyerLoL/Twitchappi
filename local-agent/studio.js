@@ -315,21 +315,35 @@
   try{
    const data=await api('/api/screen/audio-devices');
    const devices=Array.isArray(data.devices)?data.devices:[];
-   for(const name of devices){
-    for(const id of ['audio','mic']){
-     const opt=document.createElement('option');opt.value=name;opt.textContent=name;
-     $(id).appendChild(opt);
+   const cameras=Array.isArray(data.videoDevices)?data.videoDevices:[];
+   for(const id of ['audio','mic']){
+    const select=$(id),previous=select.value;
+    const options=[];
+    const none=document.createElement('option');none.value='';
+    none.textContent=id==='audio'?'Détection auto via OBS WASAPI (ou muet FFmpeg)':'Micro par défaut OBS (ou désactivé FFmpeg)';
+    options.push(none);
+    for(const device of devices){
+     const opt=document.createElement('option');opt.value=device;opt.textContent=device;
+     options.push(opt);
     }
+    select.replaceChildren(...options);
+    const saved=id==='audio'?savedAudio:savedMic;
+    const match=[previous,saved].find(x=>devices.includes(x));
+    const stereo=devices.find(x=>/stereo mix|mixage stéréo|loopback|virtual.audio/i.test(x));
+    select.value=match||(id==='audio'?stereo||'':'');
    }
-   const stereo=devices.find(x=>/stereo mix|mixage stéréo|loopback|virtual.audio/i.test(x));
-   $('audio').value=devices.includes(savedAudio)?savedAudio:(stereo||'');
-   $('mic').value=devices.includes(savedMic)?savedMic:'';
-   $('mixerAvailability').textContent=devices.length
-    ?'Périphériques DirectShow détectés. Le son du jeu exige une entrée loopback ou Stereo Mix compatible.'
-    :'Aucune entrée DirectShow détectée. Le live pourra fonctionner sans audio ; libobs/WASAPI reste une évolution distincte.';
+   window.SWAPPScenes?.setWebcams(cameras);
+   const native=libobsAvailable;
+   $('mixerAvailability').textContent=native
+    ?'Moteur OBS natif disponible : le son du PC est capturé automatiquement en WASAPI, et le micro par défaut est tenté sans Stereo Mix. Les périphériques DirectShow restent utilisables avec FFmpeg.'
+    :devices.length
+    ?devices.length+' entrée(s) DirectShow détectée(s). Pour capturer le son du PC avec FFmpeg, Stereo Mix ou un périphérique loopback reste nécessaire.'
+    :'Aucune entrée DirectShow détectée. La capture vidéo reste possible mais FFmpeg ne peut pas capturer le son du PC sans périphérique loopback. Le moteur OBS natif est nécessaire.';
+   if(!cameras.length)$('sceneNotice').textContent+=' Aucune webcam détectée : vérifie les autorisations caméra Windows.';
    buttons();
-  }catch(_){
-   $('mixerAvailability').textContent='Liste audio indisponible. La capture vidéo reste utilisable.';
+  }catch(e){
+   $('mixerAvailability').textContent='Détection audio indisponible : '+e.message;
+   window.SWAPPScenes?.setWebcams([]);
   }
  }
 
