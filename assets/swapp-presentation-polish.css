@@ -997,11 +997,4 @@ body.oryonDiscoverV4 #discover .v4Meta{
 #home .swappHome1014 .swapp-home-feature-links{
  display:flex;flex-wrap:wrap;gap:8px;position:relative;z-index:8;
 }
-#home .swappHome1014 .swapp-home-feature-links .swapp-video-open{
- display:inline-flex;align-items:center;justify-content:center;min-height:42px;
- color:#fff!important;background:#6538ad!important;border:1px solid #a68ce8!important;
- border-radius:10px;padding:10px 16px;cursor:pointer;font-weight:800;
-}
-#home .swappHome1014 .swapp-home-feature-links .swapp-video-open:hover{background:#8252d5!important}
-#home .swappHome1014 .swapp-home-feature-links .swapp-video-open:focus-visible{outline:3px solid #fff;outline-offset:3px}
 @media(max-width:700px){#home .swappHome1014 .swapp-home-hero-feature-overlay strong{font-size:clamp(22px,6vw,34px)!important;max-width:90vw!important}}
