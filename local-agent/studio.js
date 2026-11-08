@@ -155,7 +155,9 @@
    const wasConnected=connected,oldLogin=login;
    connected=!!data.connected;
    login=data.user?.login||'';
-   configuredKey=data.stream_key||'';
+   configuredKey=connected?(data.stream_key||''):'';
+   $('streamKey').value=configuredKey;
+   // This is a password input by default. Never persist or log stream credentials.
    if(capturing&&connected&&captureKey!==configuredKey&&!working)
     status('La clé SWAPP a changé. Arrête puis relance la capture pour publier.','error');
    account.textContent=connected?'@'+login:'Compte non connecté';
@@ -166,7 +168,7 @@
    connectButton.hidden=connected;
    if(connected&&(!wasConnected||oldLogin!==login))activity('Compte @'+login+' connecté à SWAPP.');
   }catch(_){
-   connected=false;
+   connected=false;configuredKey='';$('streamKey').value='';
    account.textContent='Connexion indisponible';
    $('profileName').textContent='Non connecté';
    $('profileMeta').textContent='Connexion SWAPP indisponible';
@@ -180,6 +182,49 @@
   const url='https://swapp.tv/api/oryon/local-agent/browser-connect?callback='+encodeURIComponent(callback);
   window.open(url,'_blank');
   status('Connecte-toi dans ton navigateur. La session sera reconnue automatiquement.');
+ }
+
+ async function loadConnection(){
+  try{
+   const data=await api('/api/setup/check');
+   if(data.rtmp&&/^rtmp:\/\/127\.0\.0\.1:\d+\/live$/.test(data.rtmp))
+    $('rtmpServer').value=data.rtmp;
+  }catch(e){status('Informations RTMP indisponibles : '+e.message,'error')}
+ }
+
+ async function copyCredential(id){
+  const value=$(id).value;
+  if(!value||id==='streamKey'&&!connected){
+   status('Connecte d’abord ton compte SWAPP pour obtenir la clé.','error');return;
+  }
+  try{
+   await navigator.clipboard.writeText(value);
+   status(id==='streamKey'?'Clé de diffusion copiée. Ne la partage jamais publiquement.':'Adresse RTMP locale copiée.');
+  }catch(e){status('Copie refusée par Windows : '+e.message,'error')}
+ }
+
+ async function disconnect(){
+  if(capturing||published||working)return;
+  working=true;buttons();
+  try{
+   await api('/api/account/disconnect',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+   connected=false;configuredKey='';login='';
+   $('streamKey').value='';
+   status('Compte SWAPP déconnecté. La clé est retirée de cette fenêtre.');
+   await getAccount();
+  }catch(e){status('Déconnexion impossible : '+e.message,'error')}
+  finally{working=false;buttons()}
+ }
+
+ async function repair(){
+  if(working||!published)return;
+  working=true;buttons();
+  status('Vérification et réparation du relais public…');
+  try{
+   await api('/api/tunnel/repair',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:configuredKey})});
+   status('Vérification du relais terminée. Contrôle le retour sur ta chaîne SWAPP.','live');
+  }catch(e){status('Relais non réparé : '+e.message,'error')}
+  finally{working=false;buttons()}
  }
 
  async function audioDevices(){
@@ -361,6 +406,15 @@
  },2400);
 
  connectButton.addEventListener('click',connect);
+ $('copyRtmp').addEventListener('click',()=>copyCredential('rtmpServer'));
+ $('copyKey').addEventListener('click',()=>copyCredential('streamKey'));
+ $('revealKey').addEventListener('click',()=>{
+  const hidden=$('streamKey').type==='password';
+  $('streamKey').type=hidden?'text':'password';
+  $('revealKey').textContent=hidden?'Masquer':'Afficher';
+ });
+ $('disconnectButton').addEventListener('click',disconnect);
+ $('repairButton').addEventListener('click',repair);
  previewButton.addEventListener('click',start);
  liveButton.addEventListener('click',publish);
  stopButton.addEventListener('click',stop);
@@ -369,6 +423,6 @@
  });
  restore();buttons();
  activity('SWAPP Creator Studio chargé. Aucune diffusion en cours.');
- void refresh();void audioDevices();
+ void loadConnection();void refresh();void audioDevices();
  setInterval(refresh,4000);
 })();
