@@ -66,7 +66,7 @@
   tile.classList.add('swapp-home-motion-loading');
   poster.after(wrap);
   function active(){return !removed&&tile.isConnected&&eligible()&&
-   !!tile.closest('#home')&&getComputedStyle(tile).display!=='none'}
+   !!(tile.closest('#home.view.active')||tile.closest('#home'))}
   function removeMotion(){
    tile.classList.remove('swapp-home-motion-playing','swapp-home-motion-loading');
    wrap.remove();
