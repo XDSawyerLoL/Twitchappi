@@ -631,7 +631,8 @@ app.use(express.json({ limit: '1mb' }));
 function privateStudioOrigin(req,res,next){
   const origin=String(req.get('Origin')||'').trim();
   const site=String(req.get('Sec-Fetch-Site')||'').toLowerCase();
-  const sensitive=/^\/api\/(?:account\/(?!browser-callback)|setup|status|screen|go-live|tunnel|heartbeat|publish-to-oryon)(?:\/|$)/.test(req.path);
+  const sensitive=(req.path.startsWith('/api/account/')&&req.path!=='/api/account/browser-callback')||
+    /^\/api\/(?:setup|status|screen|go-live|tunnel|heartbeat|publish-to-oryon)(?:\/|$)/.test(req.path);
   let sameOrigin=false;
   if(origin){
     try{
