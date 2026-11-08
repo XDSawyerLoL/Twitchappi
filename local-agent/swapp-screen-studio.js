@@ -39,7 +39,7 @@ function createScreenCapture({ffmpegPath,rtmpPort,currentConfiguredKey,streamSta
  const safeStatus=()=>{
   const key=currentConfiguredKey();
   const source=streamStatus(key);
-  return {capturing:!!child&&!stopping,method,startedAt:startedAt?new Date(startedAt).toISOString():null,
+  return {key,capturing:!!child&&!stopping,method,startedAt:startedAt?new Date(startedAt).toISOString():null,
    ready:!!child&&!stopping&&!!source.active&&!!source.hls_exists,error,
    screen:method==='gdigrab'?'Bureau virtuel complet':'Moniteur sélectionné',
    stream:{active:!!source.active,hls_exists:!!source.hls_exists,ffmpeg_running:!!source.ffmpeg_running}};
@@ -138,7 +138,9 @@ function mountScreenStudio(app,{express,ffmpegPath,rtmpPort,currentConfiguredKey
   let output='';
   proc.stderr.on('data',d=>{output=(output+String(d)).slice(-15000)});
   const timeout=setTimeout(()=>{try{proc.kill()}catch(_){}},4500);
+  let responded=false;
   proc.once('close',()=>{
+   if(responded)return;responded=true;
    clearTimeout(timeout);
    let audio=false;
    const devices=[];
@@ -152,7 +154,7 @@ function mountScreenStudio(app,{express,ffmpegPath,rtmpPort,currentConfiguredKey
    }
    res.json({success:true,devices});
   });
-  proc.once('error',()=>{clearTimeout(timeout);res.json({success:true,devices:[]})});
+  proc.once('error',()=>{if(responded)return;responded=true;clearTimeout(timeout);res.json({success:true,devices:[]})});
  });
  app.post('/api/screen/start',express.json({limit:'4kb'}),localOriginOnly,async(req,res)=>{
   try{
