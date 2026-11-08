@@ -9,13 +9,22 @@ const fs=require('node:fs');
 const path=require('node:path');
 const {spawn}=require('node:child_process');
 
+const REQUIRED_MODULES=['win-capture','win-wasapi','obs-outputs','obs-x264','obs-ffmpeg','rtmp-services'];
+function completeLibobsRuntime(executable,exists=fs.existsSync){
+ if(!executable||!exists(executable))return false;
+ const root=path.dirname(executable);
+ if(!exists(path.join(root,'libobs.dll'))||!exists(path.join(root,'libobs-d3d11.dll')))return false;
+ return REQUIRED_MODULES.every(name=>
+  exists(path.join(root,'core',name,name+'.dll'))||
+  exists(path.join(root,'obs-plugins','64bit',name+'.dll')));
+}
 function nativeHostPath({root=__dirname,resourcesPath=process.resourcesPath,exists=fs.existsSync}={}){
  const candidates=[
   resourcesPath&&path.join(resourcesPath,'swapp-libobs','swapp-libobs-host.exe'),
-  path.join(root,'libobs-runtime','swapp-libobs-host.exe'),
-  path.join(root,'bin','swapp-libobs-host.exe')
+  path.join(root,'libobs-runtime','swapp-libobs-host.exe')
  ].filter(Boolean);
- return candidates.find(candidate=>exists(candidate))||null;
+ // Incomplete staging must never make Game Capture appear ready.
+ return candidates.find(candidate=>completeLibobsRuntime(candidate,exists))||null;
 }
 
 function createLibobsCapture({
@@ -135,4 +144,4 @@ function createHybridCapture({ffmpeg,native}){
  return {start,stop,status,available:native.available};
 }
 
-module.exports={nativeHostPath,createLibobsCapture,createHybridCapture};
+module.exports={nativeHostPath,completeLibobsRuntime,createLibobsCapture,createHybridCapture};
