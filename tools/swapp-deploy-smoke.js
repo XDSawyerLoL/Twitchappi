@@ -565,7 +565,7 @@ async function verify(){
  const presentation='/assets/swapp-presentation-polish.css?v=20261017-visual-audit-v16';
  check(home.body.includes(presentation),'Home uses an outdated presentation stylesheet');
  check(news.body.includes(presentation),'Actualité uses an outdated presentation stylesheet');
- const journey='/assets/swapp-game-journey.css?v=20261018-followed-session-v27';
+ const journey='/assets/swapp-game-journey.css?v=20261108-gta6-header-video-v2';
  check(home.body.includes(journey)&&news.body.includes(journey),
   'V17 cinematic journey is missing from homepage or native articles');
  const journeyStyles=await request(origin,'/assets/swapp-game-journey.css');
