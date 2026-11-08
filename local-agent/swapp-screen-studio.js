@@ -153,6 +153,7 @@ function mountScreenStudio(app,{express,ffmpegPath,rtmpPort,currentConfiguredKey
  const capture=createHybridCapture({ffmpeg,native});
  const audioDevicePattern=/^\[[^\]]*dshow[^\]]*\]\s+"([^"]+)"/i;
  app.get('/studio',(_req,res)=>res.sendFile(path.join(__dirname,'studio.html')));
+ app.get('/studio.css',(_req,res)=>res.type('text/css').sendFile(path.join(__dirname,'studio.css')));
  app.get('/studio.js',(_req,res)=>res.type('application/javascript').sendFile(path.join(__dirname,'studio.js')));
  app.get('/api/screen/status',(_req,res)=>res.json({success:true,...capture.status()}));
  app.get('/api/screen/audio-devices',async(_req,res)=>{
