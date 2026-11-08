@@ -3,7 +3,7 @@ setlocal
 cd /d "%~dp0"
 echo.
 echo ===============================================
-echo      SWAPP Live 1.2.2 - Construction Windows
+echo      SWAPP Live 1.2.3 - Construction Windows
 echo ===============================================
 echo.
 where node >nul 2>nul
@@ -14,7 +14,7 @@ if errorlevel 1 (
 where npm >nul 2>nul
 if errorlevel 1 goto fail
 echo Verification des tests de capture...
-node --test "..\test\swapp-native-desktop-studio.test.js" "..\test\swapp-libobs-bridge.test.js" "..\test\swapp-libobs-package-gate.test.js" "..\test\swapp-studio-dashboard.test.js" "..\test\swapp-studio-end-to-end-controls.test.js" "..\test\swapp-studio-api-security.test.js"
+node --test "..\test\swapp-native-desktop-studio.test.js" "..\test\swapp-libobs-bridge.test.js" "..\test\swapp-libobs-package-gate.test.js" "..\test\swapp-studio-dashboard.test.js" "..\test\swapp-studio-end-to-end-controls.test.js" "..\test\swapp-studio-api-security.test.js" "..\test\swapp-window-capture.test.js"
 if errorlevel 1 goto fail
 echo.
 if exist "libobs-runtime\swapp-libobs-host.exe" (
@@ -32,12 +32,12 @@ if errorlevel 1 goto fail
 echo Compilation des fichiers Windows x64...
 call npm run dist:win
 if errorlevel 1 goto fail
-if not exist "dist\SWAPP-Live-Portable-1.2.2-x64.exe" goto fail
-if not exist "dist\SWAPP-Live-Setup-1.2.2-x64.exe" goto fail
+if not exist "dist\SWAPP-Live-Portable-1.2.3-x64.exe" goto fail
+if not exist "dist\SWAPP-Live-Setup-1.2.3-x64.exe" goto fail
 echo.
 echo APPLICATIONS CONSTRUITES :
-echo   dist\SWAPP-Live-Portable-1.2.2-x64.exe
-echo   dist\SWAPP-Live-Setup-1.2.2-x64.exe
+echo   dist\SWAPP-Live-Portable-1.2.3-x64.exe
+echo   dist\SWAPP-Live-Setup-1.2.3-x64.exe
 echo.
 echo Il reste a tester le flux sur un autre appareil.
 pause
