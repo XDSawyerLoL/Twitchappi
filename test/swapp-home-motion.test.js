@@ -72,7 +72,7 @@ test('desktop hides poster immediately while muted trailer starts',async()=>{
  assert.ok(v.poster.next);
  assert.equal(v.poster.next.className,'swapp-home-motion');
  assert.equal(v.classes.has('swapp-home-motion-playing'),false,'no movie before ready');
- assert.equal(v.classes.has('swapp-home-motion-loading'),true,'poster hidden before video plays');
+ assert.equal(v.classes.has('swapp-home-motion-loading'),true,'poster retained until video plays');
  assert.equal(v.players.length,0,'video begins on the next turn, not after poster load');
  assert.equal(v.timers.length,1);
  v.timers.shift()();
@@ -108,7 +108,7 @@ test('cleaner homepage has no legacy first-paint masking and mounts cinematic cl
  assert.doesNotMatch(boot,/#home\.view\.active > :not\(\.swappHome1014\)/);
  assert.doesNotMatch(boot,/\.homeHeroCopy1014\{display:none!important\}/);
  assert.doesNotMatch(boot,/\.homeHeroInner1014:not\(\.swapp-feature-ready\)/);
- const helper='swapp-home-motion.js?v=20261018-followed-session-v27';
+ const helper='swapp-home-motion.js?v=20261108-gta6-header-video-v2';
  assert.match(html,/swapp-home-news\.js\?v=20261107-editorial-briefs-v1/);
  assert.ok(html.includes(helper));
  assert.ok(html.indexOf(helper)<html.indexOf('swapp-home-news.js?v=20261107-editorial-briefs-v1'));
@@ -124,7 +124,7 @@ test('hero remains image first and never animates for motion-sensitive visitors'
  assert.match(part,/opacity:1!important/);
  assert.doesNotMatch(script,/setTimeout\(begin,1100\)/);
  assert.ok(part.includes('swapp-home-motion-loading > img{'));
- assert.match(part,/visibility:hidden!important/);
+ assert.match(part,/visibility:visible!important/);
  assert.doesNotMatch(part,/opacity:\.88!important/);
  assert.match(part,/\(prefers-reduced-motion:reduce\)/);
  assert.match(part,/\(pointer:coarse\)/);
