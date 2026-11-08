@@ -3,7 +3,7 @@ name: SWAPP Live Windows (free public runner)
 # The Windows packaging job installs tools and may consume billable
 # hosted-runner minutes. It must never run automatically on pushes or merges.
 # The maintainer may trigger it manually when an updated installer is needed.
-# Creator Studio 1.2.2 unified RTMP preview pending build.
+# Creator Studio 1.2.2 preview: corrected stale UI fixture and enabled full control-flow tests.
 # All new builds are manual-only to prevent unexpected runner charges.
 # A one-time user-authorized push build was run successfully on 2026-11-08;
 # automatic push-triggered builds are now disabled to avoid future charges.
