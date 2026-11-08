@@ -9,7 +9,9 @@ const read=p=>fs.readFileSync(path.join(root,p),'utf8');
 test('OBS Studio 33 uses actual native core module loader and canonical portable runtime',()=>{
  const native=read('local-agent/libobs-host/main.cpp');
  const ps=read('local-agent/libobs-host/build-and-stage-windows.ps1');
- assert.match(native,/obs_load_core_modules\(\)/);
+ assert.match(native,/obs_open_module\(/);
+ assert.match(native,/obs_init_module\(/);
+ assert.doesNotMatch(native,/^\s*obs_load_core_modules\(\);/m);
  assert.match(native,/fs::current_path\(exe\)/);
  assert.doesNotMatch(native,/^\s*obs_load_all_modules\(\);/m);
  assert.match(ps,/Join-Path \$obs 'core'/);
