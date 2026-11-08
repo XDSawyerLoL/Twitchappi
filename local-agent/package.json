@@ -1,8 +1,8 @@
 {
   "name": "swapp-local-app",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "private": true,
-  "description": "SWAPP Live Creator Studio unifié : clé RTMP automatique, capture DirectX/GDI de secours, entrées OBS externes et direct SWAPP",
+  "description": "SWAPP Live Windows Creator Studio : choix de fenêtre, capture RTMP/HLS intégrée, publication SWAPP, sources OBS externes",
   "main": "main.js",
   "dependencies": {
     "express": "^4.21.2",
