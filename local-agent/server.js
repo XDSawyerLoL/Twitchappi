@@ -774,10 +774,11 @@ setInterval(refreshDiag,5000);loadAccount();refreshDiag();
 </script></body></html>`;
 }
 
-app.get('/', (req, res) => { const cfg = loadLocalConfig(); const key = safeKey(req.query.key || cfg.stream_key || DEFAULT_KEY); res.type('html').send(pageHtml(key)); });
+// One unified application: all former OBS controls are integrated into Creator Studio.
+app.get('/', (_req, res) => res.redirect(302, '/studio'));
 app.get('/api/setup/check', (_req, res) => {
   const cfg = loadLocalConfig();
-  res.json({ success:true, app:'Swapp Local', version:'1.2.0', site_url:cleanSiteUrl(cfg.site_url || DEFAULT_SWAPP_SITE_URL), account:cfg.user || null, connected:Boolean(cfg.token && cfg.stream_key), rtmp:`rtmp://127.0.0.1:${RTMP_PORT}/live`, stream_key:cfg.stream_key || DEFAULT_KEY, ffmpeg:ffmpegInfo(), media_root:MEDIA_ROOT, tunnel:publicTunnelInfo, localtunnel_disabled:true });
+  res.json({ success:true, app:'Swapp Local', version:'1.2.2', site_url:cleanSiteUrl(cfg.site_url || DEFAULT_SWAPP_SITE_URL), account:cfg.user || null, connected:Boolean(cfg.token && cfg.stream_key), rtmp:`rtmp://127.0.0.1:${RTMP_PORT}/live`, stream_key:cfg.stream_key || DEFAULT_KEY, ffmpeg:ffmpegInfo(), media_root:MEDIA_ROOT, tunnel:publicTunnelInfo, localtunnel_disabled:true });
 });
 app.get('/api/account/browser-callback', (req, res) => {
   try {
@@ -815,8 +816,8 @@ app.post('/api/go-live', async (req, res) => {
   try {
     if (!cfg.token) return res.status(401).json({ success:false, error:'Connecte d’abord ton compte Swapp dans l’application.' });
     const st = await waitForHlsReady(key, 45000);
-    if (!st.active) return res.status(400).json({ success:false, error:`Aucun flux OBS détecté. Mets OBS sur rtmp://127.0.0.1:${RTMP_PORT}/live avec ta clé Swapp.` });
-    if (!st.hls_exists) return res.status(400).json({ success:false, error:'OBS est détecté, mais le player local n’est pas encore prêt. Attends 5 à 15 secondes puis réessaie.' });
+    if (!st.active) return res.status(400).json({ success:false, error:'Aucun signal vidéo reçu. Démarre la capture SWAPP ou connecte une source RTMP avant de publier.' });
+    if (!st.hls_exists) return res.status(400).json({ success:false, error:'Une source RTMP est connectée, mais les fragments vidéo locaux ne sont pas encore prêts.' });
     await startPublicTunnel('auto',key);
     const result = await registerPublicUrlOnSwapp({ siteUrl: req.body?.site_url, key });
     const heartbeat=await sendHeartbeatToSwapp(key, true);
@@ -857,7 +858,7 @@ app.post('/api/heartbeat', async (req, res) => {
 });
 
 app.get('/health', (_req, res) => res.json({ success:true, name:'Swapp Local', rtmp:`rtmp://127.0.0.1:${RTMP_PORT}/live`, local_base_url:LOCAL_BASE_URL, media_root:MEDIA_ROOT, ffmpeg:ffmpegInfo(), active:Object.values(active), ffmpeg_jobs:Object.keys(ffmpegJobs), tunnel:publicTunnelInfo, account: loadLocalConfig().user || null, localtunnel_disabled:true }));
-app.get('/api/status', (req, res) => res.json({ success:true, ffmpeg:ffmpegInfo(), media_root:MEDIA_ROOT, stream:streamStatus(req.query.key || currentConfiguredKey()), active:Object.values(active), ffmpeg_jobs:Object.keys(ffmpegJobs), events }));
+app.get('/api/status', (req, res) => { const key = safeKey(req.query.key || currentConfiguredKey()); res.json({ success:true, ffmpeg:ffmpegInfo(), media_root:MEDIA_ROOT, stream:streamStatus(key), published:publishedLiveKey===key, active:Object.values(active), ffmpeg_jobs:Object.keys(ffmpegJobs), events }); });
 function servePlayer(req, res) {
   const key = safeKey(req.params.key);
   // Relative path is essential: remote viewers must request HLS via trycloudflare.com,
