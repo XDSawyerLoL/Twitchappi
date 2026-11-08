@@ -8,6 +8,11 @@ name: SWAPP Live Windows (free public runner)
 # A one-time user-authorized push build was run successfully on 2026-11-08;
 # automatic push-triggered builds are now disabled to avoid future charges.
 on:
+  push:
+    branches:
+      - feat/swapp-live-native-screen-capture-20261108
+    paths:
+      - '.github/workflows/swapp-live-windows.yml'
   workflow_dispatch:
     inputs:
       publish_release:
@@ -33,7 +38,7 @@ jobs:
           node-version: '20'
 
       - name: Run SWAPP Live Windows shipping tests (blocking)
-        run: node --test test/swapp-native-desktop-studio.test.js test/swapp-libobs-bridge.test.js test/swapp-libobs-package-gate.test.js test/swapp-studio-dashboard.test.js test/swapp-electron-runtime-package.test.js
+        run: node --test test/swapp-native-desktop-studio.test.js test/swapp-libobs-bridge.test.js test/swapp-libobs-package-gate.test.js test/swapp-studio-dashboard.test.js test/swapp-studio-end-to-end-controls.test.js test/swapp-studio-api-security.test.js test/swapp-electron-runtime-package.test.js
 
       - name: Run full legacy regression suite (report failures without blocking preview build)
         continue-on-error: true
@@ -126,16 +131,18 @@ jobs:
             if (!(Test-Path $file)) { throw "Missing binary: $file" }
           }
           $notes = @"
-          ## SWAPP Live 1.2.2 — Creator Studio (préversion)
-          L'interface Windows a été entièrement réorganisée comme un studio de streaming moderne : scène vidéo centrale, sources de capture à gauche, réglages vidéo et micro, commandes de diffusion, statut du direct, compte et journal d'activité réel.
+          ## SWAPP Live 1.2.2 — Studio unifié RTMP / DirectX (préversion)
+          Un seul Creator Studio remplace l'ancienne page OBS. L'application récupère automatiquement l'adresse RTMP locale et la clé du compte connecté ; celle-ci est masquée par défaut. La capture intégrée et une source RTMP/OBS externe passent par le même aperçu HLS et par les mêmes boutons de publication sur SWAPP.
           
-          **Déjà utilisable dans cette préversion :** capture FFmpeg DirectX ou GDI, prévisualisation HLS locale, mixage DirectShow si périphériques audio compatibles, encodeur NVENC ou x264, publication sur SWAPP depuis l'application. Les paramètres sont mémorisés sur le PC.
+          **Correctifs :** après l'erreur FFmpeg DirectX « Output parameters changed », le studio tente GDI automatiquement ; l'option NVENC incompatible sc_threshold a été supprimée. Les commandes copier, afficher/masquer la clé, déconnexion, réparation du relais et arrêt du direct ont été raccordées aux API du site local.
           
-          **Limites :** libobs Game Capture n'est pas compilé/embarqué. Les scènes multicouches, overlays et chat intégré ne sont pas encore implémentés. La capture plein écran de certains jeux peut rester noire. Version en test, ne remplace pas automatiquement une installation existante.
+          **Validation :** tests simulés complets du parcours connexion, clé, aperçu, direct, réparation, arrêt et source RTMP externe, contrôles de capture et d'accès aux clés.
+          
+          **Limites :** le moteur Game Capture de libobs reste source-only : il n'est PAS inclus dans cet EXE. Certains jeux plein écran, dont ceux protégés par anti-cheat, peuvent rester noirs même en GDI. Les scènes multicouches, overlays et chat embarqué ne sont pas encore implémentés. Version non encore validée sur le PC de l'utilisateur.
           
           Construite et contrôlée sur GitHub Actions Windows ; test de jeu réel côté utilisateur encore nécessaire.
           "@
-          gh release create $tag $portable $setup --repo "$env:GITHUB_REPOSITORY" --target "$env:GITHUB_SHA" --title "SWAPP Live 1.2.2 — Creator Studio (préversion)" --prerelease --notes "$notes"
+          gh release create $tag $portable $setup --repo "$env:GITHUB_REPOSITORY" --target "$env:GITHUB_SHA" --title "SWAPP Live 1.2.2 — Studio RTMP intégré (préversion)" --prerelease --notes "$notes"
 
       - name: Require validated native libobs runtime before public release
         if: ${{ inputs.publish_release == true }}
