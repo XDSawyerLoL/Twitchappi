@@ -107,6 +107,11 @@ function createSceneStore({filePath,fsImpl=fs}){
    if(!selected.overlays.some(x=>x.id===raw.layerId))throw new Error('Source introuvable.');
    selected.overlays=selected.overlays.filter(x=>x.id!==raw.layerId);
   }else throw new Error('Action de scène inconnue.');
+  // Validate the *complete* graph after every mutation, including duplicated
+  // webcam devices. Never persist invalid sources or layer collections.
+  state.scenes=state.scenes.map(cleanScene);
+  if(new Set(state.scenes.map(x=>x.id)).size!==state.scenes.length)
+   throw new Error('Identifiants de scènes dupliqués.');
   write(state);
   return state;
  };
