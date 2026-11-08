@@ -105,6 +105,30 @@
     tile.classList.remove('swapp-home-motion-playing');
    }
   }
+  function directEmbedFallback(){
+   if(removed||!active())return cleanup();
+   // Browser CSP or extensions may block the iframe API while allowing an embed.
+   // Keep the poster visible until the iframe has actually loaded.
+   host.replaceChildren();
+   const frame=document.createElement('iframe');
+   frame.title='Bande-annonce officielle de '+String(article?.game||'ce jeu');
+   frame.allow='autoplay; encrypted-media; picture-in-picture';
+   frame.referrerPolicy='strict-origin-when-cross-origin';
+   frame.setAttribute('tabindex','-1');
+   frame.setAttribute('aria-hidden','true');
+   let loaded=false;
+   frame.onload=()=>{
+    if(!active())return;
+    loaded=true;
+    clearTimeout(watchdog);
+    tile.classList.add('swapp-home-motion-playing');
+    tile.classList.remove('swapp-home-motion-loading');
+   };
+   frame.onerror=()=>cleanup();
+   host.append(frame);
+   watchdog=setTimeout(()=>{if(!loaded)cleanup()},10000);
+   frame.src='https://www.youtube-nocookie.com/embed/'+encodeURIComponent(id)+'?autoplay=1&mute=1&controls=0&playsinline=1&loop=1&playlist='+encodeURIComponent(id)+'&start='+TRAILER_START_SECONDS+'&rel=0';
+  }
   async function begin(){
    if(!active())return cleanup();
    try{
@@ -127,7 +151,7 @@
       onError:()=>cleanup()
      }
     });
-   }catch{cleanup()}
+   }catch{directEmbedFallback()}
   }
   function startMotion(){
    if(watching)return;
