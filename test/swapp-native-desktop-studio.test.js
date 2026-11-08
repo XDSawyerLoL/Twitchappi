@@ -112,5 +112,5 @@ test('desktop studio is the only interface, RTMP and OBS inputs are integrated',
  assert.doesNotMatch(server,/function pageHtml\(key\)/);
  assert.match(js,/\/api\/tunnel\/stop/);
  assert.doesNotThrow(()=>new (require('node:vm').Script)(js));
- assert.equal(JSON.parse(source('local-agent/package.json')).version,'1.2.1');
+ assert.equal(JSON.parse(source('local-agent/package.json')).version,'1.2.2');
 });
