@@ -13,6 +13,7 @@ const {createEditorialReleaseSync,loadEditorialReleases}=require('./editorial-re
 const {selectEditorialReleaseCandidates}=require('./editorial-release-selection');
 const {createVerifiedPublishedCache}=require('./verified-cache');
 const {createDiscordPublisher}=require('./discord-publisher');
+const {createSocialPublisher}=require('./social-publisher');
 const swappReleaseArticles=loadEditorialReleases();
 const swappReleaseBySlug=new Map(swappReleaseArticles.map(article=>[article.slug,article]));
 const {publicArticle,recoveredArticle,nativeSlug,legacyDraft}=require('./editorial-identity');
@@ -63,8 +64,10 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
   const outbox=firestore.collection('swapp_news_outbox');
   const importKeys=firestore.collection('swapp_news_import_keys');
   const discordPublisher=createDiscordPublisher({firestore,articles,baseUrl,isReady});
+  const socialPublisher=createSocialPublisher({firestore,baseUrl});
   const releaseSync=createEditorialReleaseSync({firestore,articles,releaseArticles:releaseCandidates,
-    recordDiscordPublication:discordPublisher.recordPublication});
+    recordDiscordPublication:discordPublisher.recordPublication,
+    recordSocialPublication:socialPublisher.recordPublication});
   discordPublisher.start();
   // SWAPP already serves these editor-reviewed articles publicly. When the
   // production magazine loads, adopt only still-missing records into the
