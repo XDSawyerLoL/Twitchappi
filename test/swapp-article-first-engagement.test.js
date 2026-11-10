@@ -69,7 +69,7 @@ test('share component is keyboard accessible, responsive and avoids multiple lin
  const footer=html.indexOf('class="swapp-article-engagement"');
  assert.ok(primary<story&&story<footer);
  const content=html.slice(primary,story);
- assert.equal((content.match(/class="sash-action/g)||[]).length,4,'four useful sharing actions');
+ assert.equal((content.match(/class="sash-action(?:\s|\")/g)||[]).length,4,'four useful sharing actions');
 });
 test('game endcap keeps follow and wishlist, without repeating external sharing nav',()=>{
  const html=renderArticleEngagement(article());
