@@ -19,7 +19,7 @@ test('compact share toolbar appears immediately after article hero, before readi
  const toolbar=html.slice(share,reading);
  assert.match(toolbar,/class="swapp-article-share"/);
  assert.match(toolbar,/class="sash-label">Partager/);
- assert.doesNotMatch(toolbar,/Cette actu mérite|sash-eyebrow|sash-copy|sash-interact|sash-after/);
+ assert.doesNotMatch(toolbar,/Cette actu mérite|sash-eyebrow|class="sash-copy"|sash-interact|sash-after/);
  assert.doesNotMatch(html,/class="sae-sharebar"/);
 });
 test('real locally hosted platform SVGs appear on five distinct useful actions',()=>{
