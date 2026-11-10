@@ -115,27 +115,24 @@ function renderArticleShare(article,baseUrl='https://swapp.tv'){
  const slug=String(article?.slug||'');
  if(!/^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/.test(slug))return '';
  const articleUrl=baseUrl.replace(/\/$/,'')+'/actus/'+encodeURIComponent(slug);
- const headline=String(article.title||'Une actualité à découvrir sur SWAPP').trim().slice(0,130);
+ const title=String(article.title||'Une actualité SWAPP').trim().slice(0,130);
  const game=String(article.game||'').trim();
- const shareX='https://x.com/intent/tweet?'+new URLSearchParams({text:headline,url:articleUrl}).toString();
- const shareBlue='https://bsky.app/intent/compose?text='+encodeURIComponent(headline+'\n'+articleUrl);
- const social='/social?'+new URLSearchParams(game?{game,share:'news',title:headline,url:articleUrl}:{share:'news',title:headline,url:articleUrl}).toString();
+ const x='https://x.com/intent/tweet?'+new URLSearchParams({text:title,url:articleUrl}).toString();
+ const blue='https://bsky.app/intent/compose?text='+encodeURIComponent(title+'\n'+articleUrl);
+ const social='/social?'+new URLSearchParams(game?{game,share:'news',title,url:articleUrl}:{share:'news',title,url:articleUrl}).toString();
  const discord=publicCommunityLinks().discordInvite;
- return '<section id="swapp-article-share" class="swapp-article-share" aria-labelledby="swapp-share-title" data-swapp-article-share>'+
-  '<div class="sash-copy">'+
-   '<span class="sash-eyebrow"><span aria-hidden="true">✦</span> FAIS CIRCULER L’INFO</span>'+
-   '<h2 id="swapp-share-title">Cette actu mérite <em>d’être partagée.</em></h2>'+
-   '<p>Tu connais un joueur que ça intéresse ? Envoie-lui l’article ou lance la discussion.</p>'+
-  '</div>'+
-  '<div class="sash-interact"><nav class="sash-actions" aria-label="Partager cet article">'+
-   '<a class="sash-action sash-primary" href="'+escapeHtml(social)+'" aria-label="Discuter de cet article sur SWAPP Social"><span class="sash-logo" aria-hidden="true">⌗</span><span>En parler sur SWAPP</span><span class="sash-arrow" aria-hidden="true">↗</span></a>'+
-   '<a class="sash-action" href="'+escapeHtml(shareX)+'" target="_blank" rel="noopener noreferrer" aria-label="Partager cet article sur X"><span class="sash-logo" aria-hidden="true">𝕏</span><span>Partager sur X</span><span class="sash-arrow" aria-hidden="true">↗</span></a>'+
-   '<a class="sash-action" href="'+escapeHtml(shareBlue)+'" target="_blank" rel="noopener noreferrer" aria-label="Partager cet article sur Bluesky"><span class="sash-logo sash-blue" aria-hidden="true">✦</span><span>Bluesky</span><span class="sash-arrow" aria-hidden="true">↗</span></a>'+
-   '<button class="sash-action" type="button" data-swapp-share-copy data-article-url="'+escapeHtml(articleUrl)+'" aria-label="Copier le lien de cet article"><span class="sash-logo" aria-hidden="true">↗</span><span data-swapp-share-copy-label>Copier le lien</span><span class="sash-arrow" aria-hidden="true">+</span></button>'+
-  '</nav><div class="sash-after">'+
-   (discord?'<a class="sash-discord" href="'+escapeHtml(discord)+'" target="_blank" rel="noopener noreferrer"><span class="sash-discord-mark" aria-hidden="true">◈</span> Rejoins les échanges sur Discord <span aria-hidden="true">↗</span></a>':'<span>Partage la découverte avec tes amis.</span>')+
-   '<span class="sash-notice" data-swapp-share-notice role="status" aria-live="polite"></span>'+
-  '</div></div></section>';
+ const icon=(name)=>'<img class="sash-icon" src="/assets/brand-icons/'+name+'.svg" alt="" aria-hidden="true" width="18" height="18" loading="eager">';
+ return '<nav id="swapp-article-share" class="swapp-article-share" aria-label="Partager cet article" data-swapp-article-share>'+
+  '<strong class="sash-label">Partager <span aria-hidden="true">↗</span></strong>'+
+  '<div class="sash-actions">'+
+   '<a class="sash-action sash-primary" href="'+escapeHtml(social)+'" aria-label="Discuter de cet article sur SWAPP Social"><img class="sash-icon" src="/favicon.ico" width="18" height="18" alt="" aria-hidden="true"><span>SWAPP</span></a>'+
+   '<a class="sash-action" href="'+escapeHtml(x)+'" target="_blank" rel="noopener noreferrer" aria-label="Partager cet article sur X">'+icon('x')+'<span>X</span></a>'+
+   '<a class="sash-action" href="'+escapeHtml(blue)+'" target="_blank" rel="noopener noreferrer" aria-label="Partager cet article sur Bluesky">'+icon('bluesky')+'<span>Bluesky</span></a>'+
+   (discord?'<a class="sash-action" href="'+escapeHtml(discord)+'" target="_blank" rel="noopener noreferrer" aria-label="Rejoindre le Discord SWAPP">'+icon('discord')+'<span>Discord</span></a>':'')+
+   '<button class="sash-action sash-copy-button" type="button" data-swapp-share-copy data-article-url="'+escapeHtml(articleUrl)+'" aria-label="Copier le lien de cet article">'+
+    '<svg class="sash-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg><span data-swapp-share-copy-label>Copier</span></button>'+
+  '</div><span class="sash-notice" data-swapp-share-notice role="status" aria-live="polite"></span>'+
+ '</nav>';
 }
 function renderArticleEngagement(article,baseUrl='https://swapp.tv'){
  const slug=String(article?.slug||'');
@@ -152,7 +149,7 @@ function renderArticleEngagement(article,baseUrl='https://swapp.tv'){
    '<h2 id="swapp-article-community-title">'+(game?'Le jeu continue. <em>Avec toi.</em>':'La conversation <em>continue.</em>')+'</h2>'+
    '<p class="sae-deck">'+(game?'Suis le jeu, garde-le dans tes envies et retrouve ceux qui y jouent.':'Retrouve d’autres joueurs et participe aux échanges autour des prochaines actualités.')+'</p>'+
   '</div>'+controls+'</div>'+
-  '<div class="sae-invite">Une info utile à partager ? <a href="#swapp-article-share">Fais-la découvrir à tes amis <span aria-hidden="true">↗</span></a></div>'+
+
  '</section>';
 }
 
@@ -218,7 +215,7 @@ function renderNewsStory(originalArticle,{baseUrl='https://swapp.tv',relatedArti
  const spotlight=article.game?'<div class="swapp-spotlight-public" data-spotlight-game="'+escapeHtml(article.game)+'" aria-label="Créateurs Spotlight"></div>':'';
  const liveSection=`<aside id="swapp-article-lives" class="swapp-article-related swapp-media-section" data-swapp-live-shelf data-game="${escapeHtml(article.game||'')}"><div class="swapp-media-heading"><div><span class="swapp-media-kicker">Actualités & lives</span><h2>${article.game?'En direct sur '+escapeHtml(article.game):'Les créateurs en direct'}</h2><p>Un article peut mener à un live. Les suggestions suivent le jeu de l’article lorsqu’il est renseigné.</p></div><a class="swapp-media-button" href="/decouvrir">Tous les lives →</a></div><div class="swapp-live-grid" data-live-results><p class="swapp-live-notice">Recherche des lives…</p></div></aside>`;
  const content=`<main class="article-wrap" data-swapp-article-slug="${escapeHtml(article.slug)}">${scene}<p class="breadcrumb"><a href="/actus">SWAPP · Actualité</a> / ${escapeHtml(article.category||'Actualités')}</p>${hero}${renderArticleShare(article,baseUrl)}<div class="swapp-article-reading">${toc}<div id="article-content" class="article-body">${markdown(article.body)}${partnerFooter}${renderArticleEngagement(article,baseUrl)}</div>${nextReading}</div>${articleExtras.renderServer(article)}${liveSection}<nav class="swapp-article-end-nav" aria-label="Retour après lecture"><a href="/actus">← Revenir à l’actualité</a></nav></main>`;
- return layout({title:seoTitle,description:seoDescription,metadata,content,extraCss:ARTICLE_ENGAGEMENT_CSS,scripts:'<link rel="stylesheet" href="/assets/swapp-article-share.css?v=20261110-share-v1"><script src="/assets/swapp-article-share.js?v=20261110-share-v1" defer></script>'});
+ return layout({title:seoTitle,description:seoDescription,metadata,content,extraCss:ARTICLE_ENGAGEMENT_CSS,scripts:'<link rel="stylesheet" href="/assets/swapp-article-share.css?v=20261110-compact-share-v2"><script src="/assets/swapp-article-share.js?v=20261110-compact-share-v2" defer></script>'});
 }
 
 function renderJustPlayerPreview(item, article=null) {
