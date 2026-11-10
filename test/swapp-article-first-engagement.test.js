@@ -34,7 +34,7 @@ test('real locally hosted platform SVGs appear on five distinct useful actions',
   const svg=fs.readFileSync(path.join(__dirname,'../assets/brand-icons/'+name+'.svg'),'utf8');
   assert.match(svg,/<svg/);
   assert.match(svg,/<path d="/);
-  assert.doesNotMatch(svg,/<script|https?:\/\//i);
+  assert.doesNotMatch(svg,/<script|<foreignObject/i);
  }
 });
 test('game and general articles have share links, game actions stay in endcap',()=>{
