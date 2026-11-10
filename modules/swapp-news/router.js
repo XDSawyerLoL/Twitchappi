@@ -361,6 +361,27 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
   // Read-only preflight: use the EXACT publication validator, no DB writes.
   // Editors can see missing sources, images, rights or media URLs before saving.
   // Secret-free status for SWAPP administrators. Does not emit a Discord message.
+  // Authenticated editorial share preparation: no X credentials and no outbound post.
+  router.get('/api/editor/actus/social/status',...editor,async(req,res,next)=>{
+    try{
+      const snap=await socialPublisher.outbox.limit(100).get();
+      const counts={};
+      for(const doc of snap.docs){const status=String(doc.data()?.status||'unknown');counts[status]=(counts[status]||0)+1;}
+      res.json({network:'x',handle:'@swappstreaming',automaticPublishing:false,
+        transport:'not_configured',mode:'manual',counts});
+    }catch(e){next(e);}
+  });
+  router.get('/api/editor/actus/:slug/social-preview',...editor,async(req,res,next)=>{
+    try{
+      const result=await socialPublisher.prepare(String(req.params.slug||''));
+      res.set('Cache-Control','no-store');
+      res.json(result);
+    }catch(e){
+      if(/^social_(article_not_published|article_missing|invalid_slug|missing_title)$/.test(e.message))
+        return res.status(400).json({error:e.message});
+      next(e);
+    }
+  });
   router.get('/api/editor/actus/discord/status',...editor,(req,res)=>{
     res.json({discord:discordPublisher.status()});
   });
@@ -513,6 +534,7 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
         const eventId=`article_${slug}_r${revision}`;
         // Atomically schedule Discord only for the initial publication of a slug.
         await discordPublisher.recordPublication(tx,{...old,slug},now);
+        await socialPublisher.recordPublication(tx,{...old,slug},now);
         tx.update(ref,{status:'published',publishedAt:old.originalPublishedAt||now,updatedAt:now,legacySuppressRecovery:false});
         tx.create(outbox.doc(eventId),{type:'article.published',articleSlug:slug,revision,
           createdAt:now,status:'paused',channels:[],attempts:0});
