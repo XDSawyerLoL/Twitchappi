@@ -239,17 +239,6 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
       return original?res.json(recoveredArticle(original)):res.status(404).json({error:'Article introuvable'});
     }catch(e){if(fromVerifiedCache(res,String(req.params.slug)))return;next(e);}
   });
-  // Technology source watch is separate from verified /actus publications.
-  router.get('/tech',async(req,res,next)=>{
-    try{
-      const {renderTechWatch,readTechItems}=require('../swapp-tech-watch-page');
-      const section=['IA','Robotique'].includes(req.query.rubrique)?req.query.rubrique:'';
-      const uri=process.env.SWAPP_NEWS_MYSQL_URL||process.env.SWAPP_MYSQL_URL;
-      const items=await readTechItems({uri,section});
-      res.set('Cache-Control','public, max-age=300');
-      return res.type('html').send(renderTechWatch(items,{section}));
-    }catch(error){next(error);}
-  });
   // One canonical UI for direct navigation and SPA navigation.
   router.get('/actus',(req,res,next)=>{
     res.set('Cache-Control','no-store');
