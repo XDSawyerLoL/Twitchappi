@@ -1,6 +1,7 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict');
 const {renderNewsStory,renderArticleEngagement}=require('../modules/swapp-news/native-pages');
+const fs=require('node:fs'),path=require('node:path');
 const {sitemapXml}=require('../modules/swapp-seo');
 function article(overrides={}){
  return {slug:'baldurs-gate-news',title:"Baldur's Gate 3 : nouveautés & communauté",
@@ -57,10 +58,12 @@ test('share component is keyboard accessible, responsive and avoids multiple lin
  assert.match(html,/class="sash-notice"[^>]*role="status" aria-live="polite"/);
  assert.match(html,/data-swapp-share-copy data-article-url=/);
  assert.match(html,/aria-label="Copier le lien de cet article"/);
- assert.match(html,/@media\(max-width:860px\)/);
- assert.match(html,/@media\(max-width:560px\)/);
- assert.match(html,/prefers-reduced-motion:reduce/);
- assert.match(html,/var\(--swapp-page-accent/);
+ const css=fs.readFileSync(path.join(__dirname,'../assets/swapp-article-share.css'),'utf8');
+ assert.match(css,/@media\(max-width:860px\)/);
+ assert.match(css,/@media\(max-width:560px\)/);
+ assert.match(css,/prefers-reduced-motion:reduce/);
+ assert.match(css,/var\(--swapp-page-accent/);
+ assert.match(html,/href="\/assets\/swapp-article-share\.css/);
  assert.match(html,/src="\/assets\/swapp-article-share\.js/);
  assert.match(html,/class="sae-invite"/);
  assert.match(html,/href="#swapp-article-share"/);
@@ -79,4 +82,16 @@ test('game endcap keeps follow and wishlist, without repeating external sharing 
  assert.match(html,/data-swapp-follow-game[^>]*aria-pressed="false"/);
  assert.match(html,/data-swapp-wishlist-game[^>]*aria-pressed="false"/);
  assert.doesNotMatch(html,/class="sae-sharebar"|class="sae-links"|intent\/tweet/);
+});
+
+test('SPA bundles shared stylesheet and builder before its article renderer',()=>{
+ const index=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
+ const app=fs.readFileSync(path.join(__dirname,'../assets/swapp-actus-app.js'),'utf8');
+ const js=fs.readFileSync(path.join(__dirname,'../assets/swapp-article-share.js'),'utf8');
+ assert.match(index,/href="\/assets\/swapp-article-share\.css/);
+ assert.match(index,/src="\/assets\/swapp-article-share\.js/);
+ assert.ok(index.indexOf('/assets/swapp-article-share.js')<index.indexOf('/assets/swapp-actus-app.js'));
+ assert.match(app,/SwappArticleShare\?\.build/);
+ assert.match(js,/window\.SwappArticleShare=\{build\}/);
+ assert.match(js,/role/);
 });
