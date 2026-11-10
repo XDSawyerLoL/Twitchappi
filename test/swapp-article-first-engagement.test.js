@@ -8,9 +8,12 @@ function article(overrides={}){
   game:"Baldur’s Gate 3",category:'Actualité',status:'published',author:'SWAPP',
   publishedAt:'2026-10-21T19:00:00Z',sources:[],...overrides};
 }
-test('game article automatically exposes follow, wishlist and four community links without a hub',()=>{
+test('article shows premium sharing near the start and game engagement after reading',()=>{
  const html=renderNewsStory(article());
- for(const name of ['data-swapp-follow-game','data-swapp-wishlist-game','Partager ce jeu sur X','Discuter sur SWAPP SOCIAL','Partager sur Bluesky','Rejoindre le Discord SWAPP'])
+ for(const name of ['data-swapp-follow-game','data-swapp-wishlist-game',
+  'Partager cet article sur X','Discuter de cet article sur SWAPP Social',
+  'Partager cet article sur Bluesky','Rejoins les échanges sur Discord',
+  'data-swapp-share-copy','Copier le lien'])
   assert.match(html,new RegExp(name),name);
  assert.match(html,/data-game-slug="baldur-s-gate-3"/);
  assert.match(html,/https:\/\/discord\.gg\/AYKJYYJrTJ/);
@@ -18,20 +21,26 @@ test('game article automatically exposes follow, wishlist and four community lin
  assert.match(html,/https:\/\/bsky\.app\/intent\/compose/);
  assert.match(html,/\/social\?game=Baldur/);
  assert.match(html,/swapp-article-engagement/);
- assert.doesNotMatch(html,/Dossier du jeu ↗/);
+ assert.ok(html.indexOf('class="swapp-article-share"')>html.indexOf('id="swapp-article-hero"'));
+ assert.ok(html.indexOf('id="swapp-article-share"')<html.indexOf('id="article-content"'));
  assert.ok(html.indexOf('class="swapp-article-engagement"')>html.indexOf('id="article-content"'));
- assert.ok(html.indexOf('class="swapp-article-engagement"')<html.indexOf('swapp-reader-next'));
+ assert.doesNotMatch(html,/class="sae-sharebar"/,'remove old cramped sharing footer');
 });
-test('articles with no identified game still share the article without follow/wishlist actions',()=>{
- const html=renderArticleEngagement(article({game:''}));
- assert.match(html,/Partager l’article sur X/);
- assert.match(html,/Discuter sur SWAPP SOCIAL/);
- assert.match(html,/Partager sur Bluesky/);
+test('game-less articles still share and have a tidy engagement ending',()=>{
+ const html=renderNewsStory(article({game:''}));
+ assert.match(html,/Partager cet article sur X/);
+ assert.match(html,/Discuter de cet article sur SWAPP Social/);
+ assert.match(html,/Partager cet article sur Bluesky/);
+ assert.match(html,/La conversation/);
  assert.doesNotMatch(html,/data-swapp-follow-game|data-swapp-wishlist-game/);
+ const endcap=renderArticleEngagement(article({game:''}));
+ assert.match(endcap,/Fais-la découvrir à tes amis/);
+ assert.doesNotMatch(endcap,/class="sae-controls"|class="sae-sharebar"/);
 });
-test('sharing points to the article URL, not retired game pages, with escaped titles',()=>{
- const html=renderArticleEngagement(article({title:'Jeu & <script>alert(1)</script>'}));
- assert.doesNotMatch(html,/<script>alert/);
+test('sharing uses the canonical article URL; article title is escaped',()=>{
+ const html=renderNewsStory(article({title:'Jeu & <script>alert(1)</script>'}));
+ assert.doesNotMatch(html,/<script>alert\(1\)<\/script>/);
+ assert.match(html,/data-article-url="https:\/\/swapp\.tv\/actus\/baldurs-gate-news"/);
  assert.match(html,/swapp\.tv%2Factus%2Fbaldurs-gate-news/);
  assert.doesNotMatch(html,/href="\/jeux\//);
 });
@@ -40,31 +49,34 @@ test('retired game index and detail pages do not appear in new sitemaps',()=>{
  assert.match(xml,/\/actus\/baldurs-gate-news/);
  assert.doesNotMatch(xml,/\/jeux(?:\/|<)/);
 });
-
-
-test('premium article endcap separates primary game actions from lightweight share navigation',()=>{
+test('share component is keyboard accessible, responsive and avoids multiple links',()=>{
  const html=renderNewsStory(article());
- assert.match(html,/class="sae-main"/);
- assert.match(html,/class="sae-controls"/);
- assert.match(html,/class="sae-sharebar"/);
- assert.match(html,/class="sae-links"/);
- assert.match(html,/class="sae-social-link"/);
- assert.match(html,/aria-label="Partager et discuter de cet article"/);
- assert.match(html,/data-swapp-follow-game[^>]*aria-pressed="false"/);
- assert.match(html,/data-swapp-wishlist-game[^>]*aria-pressed="false"/);
- assert.match(html,/@media\(max-width:760px\)/);
- assert.match(html,/@media\(max-width:500px\)/);
+ assert.match(html,/id="swapp-share-title"/);
+ assert.match(html,/class="sash-actions"/);
+ assert.match(html,/class="sash-action sash-primary"/);
+ assert.match(html,/class="sash-notice"[^>]*role="status" aria-live="polite"/);
+ assert.match(html,/data-swapp-share-copy data-article-url=/);
+ assert.match(html,/aria-label="Copier le lien de cet article"/);
+ assert.match(html,/@media\(max-width:860px\)/);
+ assert.match(html,/@media\(max-width:560px\)/);
  assert.match(html,/prefers-reduced-motion:reduce/);
  assert.match(html,/var\(--swapp-page-accent/);
- assert.doesNotMatch(html,/class="swapp-engagement-actions"/);
- const primary=html.indexOf('class="sae-controls"');
- const secondary=html.indexOf('class="sae-sharebar"');
- assert.ok(primary<secondary,'follow and wishlist should precede social links');
+ assert.match(html,/src="\/assets\/swapp-article-share\.js/);
+ assert.match(html,/class="sae-invite"/);
+ assert.match(html,/href="#swapp-article-share"/);
+ const primary=html.indexOf('id="swapp-article-share"');
+ const story=html.indexOf('id="article-content"');
+ const footer=html.indexOf('class="swapp-article-engagement"');
+ assert.ok(primary<story&&story<footer);
+ const content=html.slice(primary,story);
+ assert.equal((content.match(/class="sash-action/g)||[]).length,4,'four useful sharing actions');
 });
-test('context-specific endcap never adds empty game actions to a general news story',()=>{
- const html=renderArticleEngagement(article({game:''}));
- assert.match(html,/La conversation/);
- assert.match(html,/class="sae-sharebar"/);
- assert.doesNotMatch(html,/class="sae-controls"/);
- assert.doesNotMatch(html,/data-swapp-follow-game|data-swapp-wishlist-game/);
+test('game endcap keeps follow and wishlist, without repeating external sharing nav',()=>{
+ const html=renderArticleEngagement(article());
+ assert.match(html,/class="sae-main"/);
+ assert.match(html,/class="sae-controls"/);
+ assert.match(html,/class="sae-invite"/);
+ assert.match(html,/data-swapp-follow-game[^>]*aria-pressed="false"/);
+ assert.match(html,/data-swapp-wishlist-game[^>]*aria-pressed="false"/);
+ assert.doesNotMatch(html,/class="sae-sharebar"|class="sae-links"|intent\/tweet/);
 });
