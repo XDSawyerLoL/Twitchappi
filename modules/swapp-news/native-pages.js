@@ -107,36 +107,9 @@ const ARTICLE_ENGAGEMENT_CSS=[
  "@media(prefers-reduced-motion:reduce){.article-body .swapp-article-engagement *{transition:none!important;animation:none!important}}",
  "@media(max-width:760px){.article-body .swapp-article-engagement .sae-main{grid-template-columns:minmax(0,1fr);gap:21px}.article-body .swapp-article-engagement .sae-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}}",
  "@media(max-width:500px){.article-body .swapp-article-engagement{border-radius:9px}.article-body .swapp-article-engagement .sae-main{padding:24px 18px}.article-body .swapp-article-engagement .sae-overline{font-size:9px}.article-body .swapp-article-engagement .sae-controls{gap:8px}.article-body .swapp-article-engagement .sae-controls button{min-height:48px;padding:10px 8px;font-size:11px}}",
- ".article-wrap > .swapp-article-share{--sash-accent:var(--swapp-page-accent,var(--swapp-side-light,#9adfe0));box-sizing:border-box;position:relative;isolation:isolate;display:grid;grid-template-columns:minmax(250px,.9fr) minmax(0,1.45fr);align-items:center;gap:clamp(18px,3.2vw,46px);width:min(1040px,calc(100% - 34px));margin:clamp(16px,3vw,30px) auto clamp(24px,4vw,52px);padding:clamp(22px,3vw,34px);border:1px solid rgba(192,220,245,.20);border-radius:22px;background:radial-gradient(ellipse at 0 0,color-mix(in srgb,var(--sash-accent) 15%,transparent),transparent 65%),linear-gradient(122deg,#1b2636,#0d1422 72%);box-shadow:0 22px 50px rgba(0,0,0,.18);color:#f6f8ff;scroll-margin-top:100px}",
- ".article-wrap > .swapp-article-share::before{content:'';position:absolute;inset:0 auto 0 0;width:3px;border-radius:22px 0 0 22px;background:linear-gradient(to bottom,var(--sash-accent),transparent 80%);pointer-events:none}",
- ".swapp-article-share .sash-copy{position:relative;z-index:1;min-width:0}",
- ".swapp-article-share .sash-eyebrow{display:inline-flex;align-items:center;gap:8px;margin-bottom:11px;font:800 10px/1.4 Inter,system-ui,sans-serif;letter-spacing:.17em;color:var(--sash-accent)}",
- ".swapp-article-share .sash-eyebrow span{font-size:16px}",
- ".swapp-article-share h2{margin:0 0 11px;font:850 clamp(23px,2.9vw,32px)/1.13 Inter,system-ui,sans-serif;letter-spacing:-.045em;color:#f6f9fd;text-wrap:balance}",
- ".swapp-article-share h2 em{font-style:normal;color:var(--sash-accent)}",
- ".swapp-article-share .sash-copy p{margin:0;color:#aebdd0;font:400 13px/1.65 Inter,system-ui,sans-serif}",
- ".swapp-article-share .sash-interact{position:relative;z-index:1;min-width:0}",
- ".swapp-article-share .sash-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}",
- ".swapp-article-share .sash-action{box-sizing:border-box;min-width:0;min-height:55px;display:flex;align-items:center;gap:9px;margin:0;padding:12px 14px;border:1px solid rgba(201,223,243,.19);border-radius:13px;background:rgba(255,255,255,.055);color:#e4ecf6;text-decoration:none;text-align:left;font:750 12px/1.35 Inter,system-ui,sans-serif;cursor:pointer;transition:background .18s ease,border-color .18s ease,transform .18s ease,box-shadow .18s ease}",
- ".swapp-article-share .sash-action:hover{background:rgba(255,255,255,.11);border-color:color-mix(in srgb,var(--sash-accent) 65%,white);transform:translateY(-2px);box-shadow:0 8px 18px rgba(0,0,0,.14)}",
- ".swapp-article-share .sash-action.sash-primary{border-color:color-mix(in srgb,var(--sash-accent) 48%,transparent);background:color-mix(in srgb,var(--sash-accent) 20%,#172334);color:#fff}",
- ".swapp-article-share .sash-logo{display:grid;place-items:center;flex:0 0 27px;width:27px;height:27px;border-radius:8px;background:#ffffff14;color:#f4f8fa;font-size:18px;font-weight:900}",
- ".swapp-article-share .sash-primary .sash-logo{background:color-mix(in srgb,var(--sash-accent) 32%,transparent);color:var(--sash-accent)}",
- ".swapp-article-share .sash-blue{color:#72b7ff}",
- ".swapp-article-share .sash-arrow{margin-left:auto;color:#90a6ba;font-size:13px}",
- ".swapp-article-share .sash-after{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px 15px;min-height:28px;margin-top:13px}",
- ".swapp-article-share .sash-discord{display:inline-flex;align-items:center;gap:7px;font:750 12px/1.4 Inter,system-ui,sans-serif;color:#b6a6ff;text-decoration:none}",
- ".swapp-article-share .sash-discord:hover{text-decoration:underline;color:#ded5ff}",
- ".swapp-article-share .sash-discord-mark{font-size:16px}",
- ".swapp-article-share .sash-notice{font:650 11px/1.35 Inter,system-ui,sans-serif;color:var(--sash-accent);overflow-wrap:anywhere}",
- ".swapp-article-share :is(a,button):focus-visible{outline:2px solid var(--sash-accent);outline-offset:3px}",
  ".article-body .swapp-article-engagement .sae-invite{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px 12px;padding:15px clamp(25px,3vw,38px);border-top:1px solid rgba(207,225,235,.13);background:rgba(0,0,0,.15);color:#b7c4d3;font:600 12px/1.5 Inter,system-ui,sans-serif}",
  ".article-body .swapp-article-engagement .sae-invite a{color:var(--sae-accent);text-decoration:none;font-weight:800}",
  ".article-body .swapp-article-engagement .sae-invite a:hover{text-decoration:underline}",
- "@media(max-width:860px){.article-wrap > .swapp-article-share{grid-template-columns:minmax(0,1fr);gap:19px}.swapp-article-share .sash-copy p{max-width:570px}}",
- "@media(max-width:560px){.article-wrap > .swapp-article-share{width:calc(100% - 24px);padding:20px 16px;border-radius:16px}.swapp-article-share .sash-actions{gap:8px}.swapp-article-share .sash-action{min-height:55px;padding:9px;gap:6px;font-size:11px;border-radius:10px}.swapp-article-share .sash-logo{flex-basis:25px;width:25px;height:25px;font-size:16px}.swapp-article-share .sash-arrow{display:none}}",
- "@media(max-width:360px){.swapp-article-share .sash-actions{grid-template-columns:minmax(0,1fr)}.swapp-article-share .sash-action{min-height:45px}}",
- "@media(prefers-reduced-motion:reduce){.swapp-article-share *{transition:none!important;animation:none!important}}",
 ].join('');
 function renderArticleShare(article,baseUrl='https://swapp.tv'){
  const slug=String(article?.slug||'');
@@ -245,7 +218,7 @@ function renderNewsStory(originalArticle,{baseUrl='https://swapp.tv',relatedArti
  const spotlight=article.game?'<div class="swapp-spotlight-public" data-spotlight-game="'+escapeHtml(article.game)+'" aria-label="Créateurs Spotlight"></div>':'';
  const liveSection=`<aside id="swapp-article-lives" class="swapp-article-related swapp-media-section" data-swapp-live-shelf data-game="${escapeHtml(article.game||'')}"><div class="swapp-media-heading"><div><span class="swapp-media-kicker">Actualités & lives</span><h2>${article.game?'En direct sur '+escapeHtml(article.game):'Les créateurs en direct'}</h2><p>Un article peut mener à un live. Les suggestions suivent le jeu de l’article lorsqu’il est renseigné.</p></div><a class="swapp-media-button" href="/decouvrir">Tous les lives →</a></div><div class="swapp-live-grid" data-live-results><p class="swapp-live-notice">Recherche des lives…</p></div></aside>`;
  const content=`<main class="article-wrap" data-swapp-article-slug="${escapeHtml(article.slug)}">${scene}<p class="breadcrumb"><a href="/actus">SWAPP · Actualité</a> / ${escapeHtml(article.category||'Actualités')}</p>${hero}${renderArticleShare(article,baseUrl)}<div class="swapp-article-reading">${toc}<div id="article-content" class="article-body">${markdown(article.body)}${partnerFooter}${renderArticleEngagement(article,baseUrl)}</div>${nextReading}</div>${articleExtras.renderServer(article)}${liveSection}<nav class="swapp-article-end-nav" aria-label="Retour après lecture"><a href="/actus">← Revenir à l’actualité</a></nav></main>`;
- return layout({title:seoTitle,description:seoDescription,metadata,content,extraCss:ARTICLE_ENGAGEMENT_CSS,scripts:'<script src="/assets/swapp-article-share.js?v=20261110-share-v1" defer></script>'});
+ return layout({title:seoTitle,description:seoDescription,metadata,content,extraCss:ARTICLE_ENGAGEMENT_CSS,scripts:'<link rel="stylesheet" href="/assets/swapp-article-share.css?v=20261110-share-v1"><script src="/assets/swapp-article-share.js?v=20261110-share-v1" defer></script>'});
 }
 
 function renderJustPlayerPreview(item, article=null) {
