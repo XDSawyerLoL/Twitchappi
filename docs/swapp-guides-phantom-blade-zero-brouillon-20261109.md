@@ -1,6 +1,6 @@
 # SWAPP Guides — Phantom Blade Zero : premiers pas, combat et progression (dossier de vérification)
 
-**Statut :** brouillon documentaire, NON publié. **Révision :** 2026-11-09, v0.1. **Auteur :** Rédaction SWAPP. **Jeu :** Phantom Blade Zero, S-GAME Studio / S-GAME Publishing. **Plateformes confirmées :** PC Windows (Steam), PS5 selon communication éditeur relayée par la presse ; présence Epic à revalider sur une fiche officielle. **Patch PC annoncé :** 1.0302256, daté du 4 novembre 2026 sur la page Steam ; détail des changements non relu dans le billet original, donc aucune modification de mécanique attribuée à ce patch. **Date de sortie :** 28 octobre sur la fiche Steam (fuseau horaire), 29 octobre dans des sources de suivi : ne pas présenter cette divergence comme deux sorties distinctes.
+**Statut :** brouillon documentaire, NON publié. **Révision :** 2026-11-10, v0.2 (complément du 10 novembre en fin de dossier). **Auteur :** Rédaction SWAPP. **Jeu :** Phantom Blade Zero, S-GAME Studio / S-GAME Publishing. **Plateformes confirmées :** PC Windows (Steam), PS5 selon communication éditeur relayée par la presse ; présence Epic à revalider sur une fiche officielle. **Patch PC annoncé :** 1.0302256, daté du 4 novembre 2026 sur la page Steam ; détail des changements non relu dans le billet original, donc aucune modification de mécanique attribuée à ce patch. **Date de sortie :** 28 octobre sur la fiche Steam (fuseau horaire), 29 octobre dans des sources de suivi : ne pas présenter cette divergence comme deux sorties distinctes.
 
 ## Pourquoi traiter ce jeu ?
 SteamDB relève un pic de **833 921 connexions simultanées le 1er novembre 2026** (instantané consulté le 9 novembre). Il s'agit de connexions Steam, ni de ventes ni du total multi-plateforme. Les chiffres d'autres agrégateurs divergent : privilégier SteamDB avec date et méthode. Un article GamesRadar du 2 novembre relaie une annonce de 4 millions de ventes par S-GAME : déclaration de l'éditeur, non audit indépendant. Une actualité de lancement existe déjà dans `data/swapp-editorial-pending-20261029.json` : **ne pas republier cette actualité**. Ce document vise un guide distinct.
@@ -37,3 +37,30 @@ Le joueur incarne Soul, accusé du meurtre de son maître et engagé dans une en
 
 ## Historique
 - **2026-11-09 — v0.1 :** création d'un dossier original de prise en main et méthode de progression, distinction des faits vérifiés et des conseils éditoriaux ; aucun lot de publication.
+
+## Révision documentaire du 10 novembre 2026 — v0.2 (non publiée)
+
+### Signal de priorité, avec périmètre
+Le classement officiel Steam consulté le **10 novembre 2026** place Phantom Blade Zero parmi les cinq jeux les plus joués au moment de la mesure. Le classement est **instantané et limité à Steam** : il ne prouve ni une croissance quotidienne continue ni des ventes sur consoles. La fiche du jeu annonce une sortie le **28 octobre 2026** ; conserver cette date officielle, plutôt que déduire une seconde sortie du 29 octobre de fuseaux horaires différents.
+
+### Vérifications supplémentaires utiles au lecteur
+- **Accessibilité et langue :** Steam confirme interface et sous-titres français, mais pas de voix françaises. Le jeu annonce une difficulté réglable et la prise en charge complète des manettes. Avant la première session, régler sous-titres, volume et difficulté selon les besoins du joueur, plutôt que supposer un doublage disponible.
+- **Installation PC :** les **145 Go sur SSD**, **16 Go de RAM** et les objectifs de performance avec upscaling sont des spécifications du développeur, pas des performances mesurées indépendamment. Prévoir une marge d'espace supplémentaire pour mises à jour et cache sans inventer de taille requise.
+- **Combat :** pour progresser, travailler séparément la reconnaissance d'une attaque, la défense et la contre-attaque, puis seulement combiner les actions. S-GAME confirme esquive, déviation et contre, mais pas de fenêtre universelle en images ni de rotation optimale. Le guide doit rester un protocole d'apprentissage, pas une tier list spéculative.
+- **Exploration et armes :** S-GAME annonce plus de trente armes principales et vingt Phantom Edges. Recommander de tester chaque arme obtenue dans une rencontre déjà connue pour comparer rythme et portée, sans annoncer un emplacement, un taux de butin ou une amélioration qui n'a pas été observé.
+- **Patch 1.0302256 :** l'annonce du 4 novembre sur la fiche Steam confirme des changements de commandes, audio, performances, combat et corrections de bugs. **Ne pas attribuer de chiffres ou d'effets détaillés à ce correctif sans accès au texte primaire complet.** Un article d'actualité distinct existe déjà dans le manifeste éditorial du 10 novembre ; ne pas le dupliquer ni en recopier les affirmations sans contrôle.
+
+### Divergences et blocages vérifiés
+1. **Lien source à réparer avant publication :** l'URL éditeur `https://pbz.s-game.com/ko-KR/news/patch-notes-2026-11-03/`, citée dans le lot d'actualité du 10 novembre, renvoie **HTTP 404** lors du contrôle externe de ce jour. L'annonce du patch reste visible sur la fiche Steam, mais le texte détaillé et son URL canonique doivent être récupérés puis comparés avant de réutiliser les précisions de l'article.
+2. **Plateformes :** la version PC Steam est vérifiée directement. La PS5 est mentionnée dans les documents SWAPP et l'article existant ; vérifier sur la fiche officielle PlayStation accessible avant de généraliser les réglages ou les instructions PC à la console. L'Epic Games Store reste non confirmé.
+3. **Droits et déploiement :** aucun média supplémentaire n'est incorporé dans ce brouillon. La route publique `/guides` et les trois API `/api/actus`, `/api/actus/storage-status`, `/api/actus/release-status` n'ont pas pu être validées lors de cette exécution. En revanche, `/guides/aion-2` renvoie bien un guide public : une page AION 2 fonctionnelle ne prouve pas que l'index général ou le pipeline des nouveaux guides soit actif.
+4. **Doublons :** le manifeste contient déjà `swapp-veille-native-20261110-phantom-blade-zero-patch.json` ; l'actualité de lancement figure aussi dans `data/swapp-editorial-pending-20261029.json`. Ne pas créer de nouveau lot ni publier de version « guide » avant contrôle du catalogue MySQL et des médias.
+
+### Sources vérifiées le 10 novembre 2026
+- **Valve, classement officiel Steam :** https://store.steampowered.com/charts/ — classement ponctuel, sans extrapolation multi-plateforme.
+- **S-GAME Publishing, fiche officielle Steam :** https://store.steampowered.com/app/4115450/Phantom_Blade_Zero/ — date, combat, armes, langues, matériel et annonce du patch 1.0302256 du 4 novembre.
+- **Contrôle indépendant :** https://steamdb.info/charts/ — classement et pic de fréquentation Steam, instantané non comparable à des ventes.
+- **Existant SWAPP :** `data/swapp-veille-native-20261110-phantom-blade-zero-patch.json` (article de correctif déjà déclaré dans le manifeste, publication réelle non confirmée).
+
+### Historique de révision
+- **2026-11-10 — v0.2 :** vérification de la popularité Steam et des spécifications primaires, enrichissement des conseils de prise en main, identification d'une source officielle 404 dans le lot d'actualité et de l'impossibilité de certifier le déploiement. Statut inchangé : **brouillon, non publié**.
