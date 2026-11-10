@@ -33,10 +33,9 @@ test('game-less articles still share and have a tidy engagement ending',()=>{
  assert.match(html,/Discuter de cet article sur SWAPP Social/);
  assert.match(html,/Partager cet article sur Bluesky/);
  assert.match(html,/La conversation/);
- assert.doesNotMatch(html,/data-swapp-follow-game|data-swapp-wishlist-game/);
  const endcap=renderArticleEngagement(article({game:''}));
  assert.match(endcap,/Fais-la découvrir à tes amis/);
- assert.doesNotMatch(endcap,/class="sae-controls"|class="sae-sharebar"/);
+ assert.doesNotMatch(endcap,/class="sae-controls"|class="sae-sharebar"|data-swapp-follow-game|data-swapp-wishlist-game/);
 });
 test('sharing uses the canonical article URL; article title is escaped',()=>{
  const html=renderNewsStory(article({title:'Jeu & <script>alert(1)</script>'}));
