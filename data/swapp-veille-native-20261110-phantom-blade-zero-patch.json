@@ -1,0 +1,62 @@
+{
+  "kind": "swapp-editorial-release",
+  "release": "2026-11-10-phantom-blade-zero-patch",
+  "articles": [
+    {
+      "slug": "phantom-blade-zero-patch-1-0302256-boss-performances-pc",
+      "title": "Phantom Blade Zero : le premier correctif ajuste les boss et accélère le lancement sur PC",
+      "summary": "Disponible depuis le 29 octobre, Phantom Blade Zero reçoit le patch 1.0302256 : moins de saisies pour un boss, shaders optimisés, manettes Bluetooth et bugs de progression corrigés. Les détails utiles.",
+      "body": "Sorti fin octobre sur PC et PlayStation 5, **Phantom Blade Zero** est déjà entré dans sa phase d'ajustements. Le 4 novembre 2026, S-GAME a détaillé sur Steam la mise à jour **1.0302256**, consacrée aux performances, à la maniabilité et à plusieurs problèmes qui pouvaient interrompre la progression. Ce n'est pas une extension : ce premier correctif post-lancement vise surtout à rendre l'aventure de Soul plus régulière.\n\n## Le démarrage sur PC devient moins laborieux\n\nL'un des changements les plus concrets concerne la compilation des shaders. Sur PC, le jeu ne prépare plus systématiquement les shaders de ray tracing au démarrage. L'objectif annoncé est de réduire le temps d'attente avant de jouer. Une compilation ponctuelle peut toutefois se produire après l'installation du patch, notamment si le ray tracing était désactivé précédemment ; activer cette technologie peut aussi nécessiter une préparation lors du redémarrage suivant.\n\nS-GAME indique également avoir réduit certains à-coups avec les manettes reliées en **Bluetooth**. Le réglage NVIDIA Reflex en mode « Auto » doit désormais fonctionner avec la synchronisation verticale activée. Ce sont des corrections ciblées : elles ne signifient pas que toutes les configurations PC bénéficieront du même gain.\n\n## Un boss devient moins agressif sur deux difficultés\n\nCôté affrontements, le studio a revu plusieurs comportements d'ennemis et de boss. L'exemple le plus précis est **Hua, Deadly Betrothed** : ses attaques de saisie sont moins fréquentes en difficultés **Wayfarer** et **Pathbreaker**. S-GAME précise que les autres niveaux de difficulté ne sont pas concernés par cette modification.\n\nLa sensation d'impact des armes a également été retravaillée, tout comme l'équilibre sonore de certains coups et dialogues. Les descriptifs de plusieurs compétences et les indications de boutons ont été actualisés. Pour les joueurs, cela doit rendre certaines confrontations plus lisibles, sans transformer le système de combat en profondeur.\n\n## Progression, commandes et affichage : les autres correctifs\n\nCette version s'attaque aussi à des incidents susceptibles de bloquer un personnage, que ce soit dans une zone du décor ou au cours de la progression. Des anomalies liées aux cinématiques, à l'affichage et à certains combats font partie des corrections annoncées. Le rendu des cheveux sur certaines cartes AMD, avec certaines versions de pilotes, est également visé.\n\nDeux réglages font leur apparition : des curseurs dédiés à l'intensité sonore des coups, et la possibilité de **réattribuer l'action « Interagir / Parler » sur PC**, au clavier comme à la manette. Cela peut paraître secondaire face aux boss, mais personnaliser une touche difficile d'accès améliore le confort d'une aventure qui réclame des réactions rapides.\n\n## Que faire si le jeu saccade après la mise à jour ?\n\nS-GAME signale deux vérifications prioritaires. D'abord, **certains mods tiers peuvent ne plus fonctionner avec le patch** : si un problème apparaît immédiatement après l'installation, désactivez-les et réessayez sans modification. Ensuite, si des plantages ou des saccades persistent sur PC, le studio recommande de supprimer les fichiers du cache de shaders dans le dossier du jeu, puis de le relancer pour laisser le cache se reconstruire.\n\nSur Steam, le chemin indiqué est accessible depuis la bibliothèque, via **Gérer → Parcourir les fichiers locaux**, puis `PBZ/ProjectPBZ/Saved/Cache`. Supprimez uniquement le contenu du dossier **Cache** selon les indications officielles, et non des répertoires voisins. Cette manipulation est une piste de dépannage publiée par le développeur, pas une garantie de résoudre toutes les causes de ralentissement.\n\n## Faut-il commencer Phantom Blade Zero maintenant ?\n\nLe jeu est disponible sur **PS5 et PC** depuis la fin octobre 2026. Il s'agit d'un action-RPG solo de S-GAME, inspiré du wuxia, avec des combats martiaux spectaculaires et une histoire centrée sur Soul, un combattant dont le temps est compté. Les textes français sont pris en charge, mais pas le doublage français.\n\n**Le regard de SWAPP :** ce correctif est encourageant sur deux points précis : le studio traite la fluidité et les bugs de progression, tout en affinant les affrontements sans annoncer une baisse générale de difficulté. Il ne constitue cependant ni un bilan définitif des performances ni une preuve de stabilité parfaite sur toutes les machines. Un vrai verdict sur l'aventure nécessite un test du jeu, pas seulement la lecture de ses notes de mise à jour.\n\nLa vidéo intégrée ci-dessous est la bande-annonce officielle de précommande publiée par **PlayStation le 11 août 2026**. Elle présente l'univers et le gameplay ; **elle ne montre pas les modifications du patch du 4 novembre**. Toutes les informations techniques ci-dessus proviennent des notes officielles du développeur, consultées le 10 novembre 2026.",
+      "game": "Phantom Blade Zero",
+      "games": [
+        "Phantom Blade Zero"
+      ],
+      "tags": [
+        "Phantom Blade Zero",
+        "S-GAME",
+        "Patch 1.0302256",
+        "PC",
+        "PS5",
+        "Action RPG",
+        "Wuxia",
+        "Correctif"
+      ],
+      "seo": {
+        "title": "Phantom Blade Zero : patch 1.0302256, boss et optimisations PC",
+        "description": "Phantom Blade Zero : le patch du 4 novembre ajuste Hua, accélère les shaders PC et corrige des bugs. Voici les changements officiels."
+      },
+      "author": "Rédaction SWAPP",
+      "category": "Actualités",
+      "contentType": "article",
+      "status": "published",
+      "revision": 1,
+      "image": null,
+      "thumbnail": null,
+      "publishedAt": "2026-11-10T14:30:00.000Z",
+      "trailerUrl": "https://www.youtube.com/watch?v=aOU7KOPGVYU",
+      "commercialLinks": [],
+      "sources": [
+        {
+          "label": "S-GAME — notes officielles du correctif 1.0302256 (3-4 novembre 2026)",
+          "url": "https://pbz.s-game.com/ko-KR/news/patch-notes-2026-11-03/"
+        },
+        {
+          "label": "S-GAME — annonce du patch sur Steam (4 novembre 2026)",
+          "url": "https://steamcommunity.com/app/4115450/allnews/"
+        },
+        {
+          "label": "Steam — fiche officielle de Phantom Blade Zero",
+          "url": "https://store.steampowered.com/app/4115450/Phantom_Blade_Zero/"
+        },
+        {
+          "label": "PlayStation — support officiel, plateformes et langues",
+          "url": "https://www.playstation.com/fr-fr/support/games/phantom-blade-zero-support/"
+        },
+        {
+          "label": "PlayStation — bande-annonce de précommande officielle (11 août 2026)",
+          "url": "https://www.youtube.com/watch?v=aOU7KOPGVYU"
+        }
+      ]
+    }
+  ]
+}
