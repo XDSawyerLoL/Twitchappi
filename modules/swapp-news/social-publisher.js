@@ -58,14 +58,15 @@ function createSocialPublisher({firestore,baseUrl='https://swapp.tv',clock=()=>n
    reportedPostUrl:event.exists?event.data().reportedPostUrl||null:null};
  }
  async function queue(){
-  const entries=await outbox.limit(200).get();
+  const [entries,articleSnaps]=await Promise.all([outbox.limit(200).get(),articles.limit(500).get()]);
+  const bySlug=new Map(articleSnaps.docs.map(doc=>[doc.id,doc.data()]));
   const result=[];
   for(const doc of entries.docs){
    const e=doc.data(),slug=e.articleSlug;
    if(!SLUG.test(String(slug||'')))continue;
-   const article=await articles.doc(slug).get();
-   if(!article.exists||article.data().status!=='published')continue;
-   result.push({slug,title:clean(article.data().title,180),publishedAt:article.data().publishedAt||null,
+   const article=bySlug.get(slug);
+   if(!article||article.status!=='published')continue;
+   result.push({slug,title:clean(article.title,180),publishedAt:article.publishedAt||null,
     status:e.status,reportedPostUrl:e.reportedPostUrl||null,createdAt:e.createdAt||null});
   }
   return result.sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
