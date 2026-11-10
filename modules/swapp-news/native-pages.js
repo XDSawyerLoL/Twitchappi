@@ -103,29 +103,44 @@ const ARTICLE_ENGAGEMENT_CSS=[
  ".article-body .swapp-article-engagement .sae-controls [data-swapp-wishlist-game]:hover{background:#ffffff1a;border-color:#d0dce2}",
  ".article-body .swapp-article-engagement .sae-controls [data-swapp-wishlist-game][aria-pressed='true']{color:var(--sae-accent);border-color:var(--sae-accent);background:#ffffff0b}",
  ".article-body .swapp-article-engagement .sae-controls button:disabled{opacity:.45;cursor:not-allowed}",
- ".article-body .swapp-article-engagement .sae-sharebar{position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;min-height:66px;padding:12px clamp(25px,3vw,38px);border-top:1px solid rgba(207,225,235,.13);background:rgba(0,0,0,.18)}",
- ".article-body .swapp-article-engagement .sae-sharetitle{color:#8d9ca9;font:850 10px/1.35 Inter,system-ui,sans-serif;letter-spacing:.16em;white-space:nowrap}",
- ".article-body .swapp-article-engagement .sae-links{display:flex;align-items:center;flex-wrap:wrap;gap:clamp(12px,1.6vw,23px)}",
- ".article-body .swapp-article-engagement .sae-links a{display:inline-flex;align-items:center;gap:7px;padding:6px 0;border:0;border-bottom:1px solid transparent;border-radius:0;background:transparent;color:#cbd5df;text-decoration:none;font:700 11px/1.35 Inter,system-ui,sans-serif;white-space:nowrap;transition:color .18s ease,border-color .18s ease}",
- ".article-body .swapp-article-engagement .sae-links a:hover{border-color:var(--sae-accent);color:#fff}",
- ".article-body .swapp-article-engagement .sae-links .sae-social-link{color:var(--sae-accent)}",
- ".article-body .swapp-article-engagement .sae-links .sae-logo{display:inline-grid;place-items:center;min-width:15px;font-size:15px;font-weight:900;color:inherit}",
- ".article-body .swapp-article-engagement .sae-links .sae-arrow{color:#9faeb8;font-size:12px}",
  ".article-body .swapp-article-engagement :is(button,a):focus-visible{outline:2px solid var(--sae-accent);outline-offset:4px}",
- "@media(max-width:760px){.article-body .swapp-article-engagement .sae-main{grid-template-columns:minmax(0,1fr);gap:21px}.article-body .swapp-article-engagement .sae-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.article-body .swapp-article-engagement .sae-sharebar{align-items:flex-start}.article-body .swapp-article-engagement .sae-sharetitle{width:100%}}",
- "@media(max-width:500px){.article-body .swapp-article-engagement{border-radius:9px}.article-body .swapp-article-engagement .sae-main{padding:24px 18px}.article-body .swapp-article-engagement .sae-overline{font-size:9px}.article-body .swapp-article-engagement .sae-controls{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.article-body .swapp-article-engagement .sae-controls button{min-height:48px;padding:10px 8px;font-size:11px}.article-body .swapp-article-engagement .sae-sharebar{padding:17px 18px 20px}.article-body .swapp-article-engagement .sae-links{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%;gap:9px 14px}.article-body .swapp-article-engagement .sae-links a{min-width:0;white-space:normal;min-height:35px}}",
- "@media(prefers-reduced-motion:reduce){.article-body .swapp-article-engagement *{transition:none!important;animation:none!important}}"
+ "@media(prefers-reduced-motion:reduce){.article-body .swapp-article-engagement *{transition:none!important;animation:none!important}}",
+ "@media(max-width:760px){.article-body .swapp-article-engagement .sae-main{grid-template-columns:minmax(0,1fr);gap:21px}.article-body .swapp-article-engagement .sae-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}}",
+ "@media(max-width:500px){.article-body .swapp-article-engagement{border-radius:9px}.article-body .swapp-article-engagement .sae-main{padding:24px 18px}.article-body .swapp-article-engagement .sae-overline{font-size:9px}.article-body .swapp-article-engagement .sae-controls{gap:8px}.article-body .swapp-article-engagement .sae-controls button{min-height:48px;padding:10px 8px;font-size:11px}}",
+ ".article-body .swapp-article-engagement .sae-invite{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px 12px;padding:15px clamp(25px,3vw,38px);border-top:1px solid rgba(207,225,235,.13);background:rgba(0,0,0,.15);color:#b7c4d3;font:600 12px/1.5 Inter,system-ui,sans-serif}",
+ ".article-body .swapp-article-engagement .sae-invite a{color:var(--sae-accent);text-decoration:none;font-weight:800}",
+ ".article-body .swapp-article-engagement .sae-invite a:hover{text-decoration:underline}",
 ].join('');
+function renderArticleShare(article,baseUrl='https://swapp.tv'){
+ const slug=String(article?.slug||'');
+ if(!/^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/.test(slug))return '';
+ const articleUrl=baseUrl.replace(/\/$/,'')+'/actus/'+encodeURIComponent(slug);
+ const headline=String(article.title||'Une actualité à découvrir sur SWAPP').trim().slice(0,130);
+ const game=String(article.game||'').trim();
+ const shareX='https://x.com/intent/tweet?'+new URLSearchParams({text:headline,url:articleUrl}).toString();
+ const shareBlue='https://bsky.app/intent/compose?text='+encodeURIComponent(headline+'\n'+articleUrl);
+ const social='/social?'+new URLSearchParams(game?{game,share:'news',title:headline,url:articleUrl}:{share:'news',title:headline,url:articleUrl}).toString();
+ const discord=publicCommunityLinks().discordInvite;
+ return '<section id="swapp-article-share" class="swapp-article-share" aria-labelledby="swapp-share-title" data-swapp-article-share>'+
+  '<div class="sash-copy">'+
+   '<span class="sash-eyebrow"><span aria-hidden="true">✦</span> FAIS CIRCULER L’INFO</span>'+
+   '<h2 id="swapp-share-title">Cette actu mérite <em>d’être partagée.</em></h2>'+
+   '<p>Tu connais un joueur que ça intéresse ? Envoie-lui l’article ou lance la discussion.</p>'+
+  '</div>'+
+  '<div class="sash-interact"><nav class="sash-actions" aria-label="Partager cet article">'+
+   '<a class="sash-action sash-primary" href="'+escapeHtml(social)+'" aria-label="Discuter de cet article sur SWAPP Social"><span class="sash-logo" aria-hidden="true">⌗</span><span>En parler sur SWAPP</span><span class="sash-arrow" aria-hidden="true">↗</span></a>'+
+   '<a class="sash-action" href="'+escapeHtml(shareX)+'" target="_blank" rel="noopener noreferrer" aria-label="Partager cet article sur X"><span class="sash-logo" aria-hidden="true">𝕏</span><span>Partager sur X</span><span class="sash-arrow" aria-hidden="true">↗</span></a>'+
+   '<a class="sash-action" href="'+escapeHtml(shareBlue)+'" target="_blank" rel="noopener noreferrer" aria-label="Partager cet article sur Bluesky"><span class="sash-logo sash-blue" aria-hidden="true">✦</span><span>Bluesky</span><span class="sash-arrow" aria-hidden="true">↗</span></a>'+
+   '<button class="sash-action" type="button" data-swapp-share-copy data-article-url="'+escapeHtml(articleUrl)+'" aria-label="Copier le lien de cet article"><span class="sash-logo" aria-hidden="true">↗</span><span data-swapp-share-copy-label>Copier le lien</span><span class="sash-arrow" aria-hidden="true">+</span></button>'+
+  '</nav><div class="sash-after">'+
+   (discord?'<a class="sash-discord" href="'+escapeHtml(discord)+'" target="_blank" rel="noopener noreferrer"><span class="sash-discord-mark" aria-hidden="true">◈</span> Rejoins les échanges sur Discord <span aria-hidden="true">↗</span></a>':'<span>Partage la découverte avec tes amis.</span>')+
+   '<span class="sash-notice" data-swapp-share-notice role="status" aria-live="polite"></span>'+
+  '</div></div></section>';
+}
 function renderArticleEngagement(article,baseUrl='https://swapp.tv'){
  const slug=String(article?.slug||'');
  if(!/^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/.test(slug))return '';
  const game=String(article.game||'').trim(),key=game?gameSlug(game):'';
- const link=baseUrl.replace(/\/$/,'')+'/actus/'+encodeURIComponent(slug);
- const title=String(article.title||'Découvre cet article sur SWAPP');
- const shareX='https://x.com/intent/tweet?'+new URLSearchParams({text:title,url:link}).toString();
- const shareBlue='https://bsky.app/intent/compose?text='+encodeURIComponent(title+' — '+link);
- const social='/social?'+new URLSearchParams(game?{game,share:'news',url:link}:{share:'news',url:link}).toString();
- const discord=publicCommunityLinks().discordInvite;
  const controls=key?
   '<div class="sae-controls" aria-label="Tes actions sur ce jeu">'+
    '<button type="button" data-swapp-follow-game data-game-slug="'+escapeHtml(key)+'" data-game-name="'+escapeHtml(game)+'" aria-pressed="false">＋ Suivre ce jeu</button>'+
@@ -135,15 +150,10 @@ function renderArticleEngagement(article,baseUrl='https://swapp.tv'){
   '<div class="sae-main"><div class="sae-copy">'+
    '<span class="sae-overline"><span class="sae-beacon" aria-hidden="true"></span> SWAPP / APRÈS L’ARTICLE'+(game?'<span class="sae-game-context">— '+escapeHtml(game)+'</span>':'')+'</span>'+
    '<h2 id="swapp-article-community-title">'+(game?'Le jeu continue. <em>Avec toi.</em>':'La conversation <em>continue.</em>')+'</h2>'+
-   '<p class="sae-deck">'+(game?'Suis le jeu, garde-le dans tes envies et retrouve ceux qui y jouent.':'Partage cette lecture et retrouve les échanges dans la communauté.')+'</p>'+
+   '<p class="sae-deck">'+(game?'Suis le jeu, garde-le dans tes envies et retrouve ceux qui y jouent.':'Retrouve d’autres joueurs et participe aux échanges autour des prochaines actualités.')+'</p>'+
   '</div>'+controls+'</div>'+
-  '<div class="sae-sharebar"><span class="sae-sharetitle">PARTAGER & ÉCHANGER</span>'+
-   '<nav class="sae-links" aria-label="Partager et discuter de cet article">'+
-    '<a class="sae-social-link" href="'+escapeHtml(social)+'" aria-label="Discuter sur SWAPP SOCIAL"><span class="sae-logo" aria-hidden="true">⌗</span> SWAPP SOCIAL <span class="sae-arrow" aria-hidden="true">↗</span></a>'+
-    '<a href="'+escapeHtml(shareX)+'" aria-label="'+(game?'Partager ce jeu sur X':'Partager l’article sur X')+'" target="_blank" rel="noopener noreferrer"><span class="sae-logo" aria-hidden="true">𝕏</span> X <span class="sae-arrow" aria-hidden="true">↗</span></a>'+
-    '<a href="'+escapeHtml(shareBlue)+'" aria-label="Partager sur Bluesky" target="_blank" rel="noopener noreferrer"><span class="sae-logo" aria-hidden="true">✦</span> Bluesky <span class="sae-arrow" aria-hidden="true">↗</span></a>'+
-    (discord?'<a href="'+escapeHtml(discord)+'" aria-label="Rejoindre le Discord SWAPP" target="_blank" rel="noopener noreferrer"><span class="sae-logo" aria-hidden="true">◈</span> Discord <span class="sae-arrow" aria-hidden="true">↗</span></a>':'')+
-   '</nav></div></section>';
+  '<div class="sae-invite">Une info utile à partager ? <a href="#swapp-article-share">Fais-la découvrir à tes amis <span aria-hidden="true">↗</span></a></div>'+
+ '</section>';
 }
 
 function renderNewsStory(originalArticle,{baseUrl='https://swapp.tv',relatedArticles=[],gameHubUrl=null}={}){
@@ -207,8 +217,8 @@ function renderNewsStory(originalArticle,{baseUrl='https://swapp.tv',relatedArti
  const nextReading=`<details class="swapp-reader-next" open><summary>À découvrir ensuite</summary><div class="swapp-reader-next-list">${nextLinks||'<a class="swapp-reader-next-all" href="/actus">Explorer toute l’actualité →</a>'}</div>${sponsorHtml}</details>`;
  const spotlight=article.game?'<div class="swapp-spotlight-public" data-spotlight-game="'+escapeHtml(article.game)+'" aria-label="Créateurs Spotlight"></div>':'';
  const liveSection=`<aside id="swapp-article-lives" class="swapp-article-related swapp-media-section" data-swapp-live-shelf data-game="${escapeHtml(article.game||'')}"><div class="swapp-media-heading"><div><span class="swapp-media-kicker">Actualités & lives</span><h2>${article.game?'En direct sur '+escapeHtml(article.game):'Les créateurs en direct'}</h2><p>Un article peut mener à un live. Les suggestions suivent le jeu de l’article lorsqu’il est renseigné.</p></div><a class="swapp-media-button" href="/decouvrir">Tous les lives →</a></div><div class="swapp-live-grid" data-live-results><p class="swapp-live-notice">Recherche des lives…</p></div></aside>`;
- const content=`<main class="article-wrap" data-swapp-article-slug="${escapeHtml(article.slug)}">${scene}<p class="breadcrumb"><a href="/actus">SWAPP · Actualité</a> / ${escapeHtml(article.category||'Actualités')}</p>${hero}<div class="swapp-article-reading">${toc}<div id="article-content" class="article-body">${markdown(article.body)}${partnerFooter}${renderArticleEngagement(article,baseUrl)}</div>${nextReading}</div>${articleExtras.renderServer(article)}${liveSection}<nav class="swapp-article-end-nav" aria-label="Retour après lecture"><a href="/actus">← Revenir à l’actualité</a></nav></main>`;
- return layout({title:seoTitle,description:seoDescription,metadata,content,extraCss:ARTICLE_ENGAGEMENT_CSS});
+ const content=`<main class="article-wrap" data-swapp-article-slug="${escapeHtml(article.slug)}">${scene}<p class="breadcrumb"><a href="/actus">SWAPP · Actualité</a> / ${escapeHtml(article.category||'Actualités')}</p>${hero}${renderArticleShare(article,baseUrl)}<div class="swapp-article-reading">${toc}<div id="article-content" class="article-body">${markdown(article.body)}${partnerFooter}${renderArticleEngagement(article,baseUrl)}</div>${nextReading}</div>${articleExtras.renderServer(article)}${liveSection}<nav class="swapp-article-end-nav" aria-label="Retour après lecture"><a href="/actus">← Revenir à l’actualité</a></nav></main>`;
+ return layout({title:seoTitle,description:seoDescription,metadata,content,extraCss:ARTICLE_ENGAGEMENT_CSS,scripts:'<link rel="stylesheet" href="/assets/swapp-article-share.css?v=20261110-share-v1"><script src="/assets/swapp-article-share.js?v=20261110-share-v1" defer></script>'});
 }
 
 function renderJustPlayerPreview(item, article=null) {
