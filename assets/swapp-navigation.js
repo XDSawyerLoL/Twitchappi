@@ -9,6 +9,7 @@
   Object.freeze({id:'home',label:'Accueil',href:'/'}),
   Object.freeze({id:'discover',label:'Découvrir',href:'/decouvrir'}),
   Object.freeze({id:'actus',label:'Actualité',href:'/actus'}),
+  Object.freeze({id:'media',label:'Média',href:'/tech'}),
   Object.freeze({id:'community',label:'Social',href:'/social'}),
   Object.freeze({id:'shop',label:'Boutique',href:'/boutique'}),
   Object.freeze({id:'tv',label:'SWAPP TV',href:'/tv'})
@@ -19,8 +20,9 @@
  const isNews=active=>active==='actus'||active==='trailers'||active==='guides'||active==='onair';
  const isDiscover=active=>active==='discover'||active==='categories'||active==='teams';
  const isTv=active=>active==='tv'||active==='agenda'||active==='programme';
+ const isMedia=active=>['media','tech','gaming','ai','robotics','future','live-news'].includes(active);
  function link(item,active){
-  const selected=(item.id==='discover'&&isDiscover(active))||(item.id==='actus'&&isNews(active))||(item.id==='tv'&&isTv(active))||active===item.id;
+  const selected=(item.id==='discover'&&isDiscover(active))||(item.id==='actus'&&isNews(active))||(item.id==='tv'&&isTv(active))||(item.id==='media'&&isMedia(active))||active===item.id;
   const current=active===item.id;
   const classes=[selected?'active':'',item.id==='tv'?'swapp-tv-nav-cta':''].filter(Boolean).join(' ');
   return '<a href="'+htmlEscape(item.href)+'" class="'+classes+'"'+(current?' aria-current="page"':'')+'>'+
@@ -34,6 +36,16 @@
    '<a href="/on-air"'+(active==='onair'?' aria-current="page"':'')+'>PODCAST</a>'+  
    '<a href="/guides/aion-2"'+(active==='guides'?' aria-current="page"':'')+'>Guide Aion 2</a></div></details></div>';
  }
+ function mediaNav(active){
+  return '<div class="swapp-news-nav">'+link(items.find(x=>x.id==='media'),active)+
+   '<details class="swapp-news-more"><summary aria-label="Ouvrir les rubriques du média" title="Rubriques du média">⌄</summary>'+
+   '<div class="swapp-news-menu"><a href="/tech">Vue d’ensemble</a>'+
+   '<a href="/gaming"'+(active==='gaming'?' aria-current="page"':'')+'>GAMING · Jeux, guides et lives</a>'+
+   '<a href="/ai"'+(active==='ai'?' aria-current="page"':'')+'>AI · Intelligence artificielle</a>'+
+   '<a href="/robotics"'+(active==='robotics'?' aria-current="page"':'')+'>ROBOTICS · Robots et automatisation</a>'+
+   '<a href="/future"'+(active==='future'?' aria-current="page"':'')+'>FUTURE · Technologies émergentes</a>'+
+   '<a href="/live-news"'+(active==='live-news'?' aria-current="page"':'')+'>SWAPP LIVE NEWS · Flux transversal</a></div></details></div>';
+ }
  function discoverNav(active){
   return '<div class="swapp-news-nav swapp-discover-nav">'+link(items.find(x=>x.id==='discover'),active)+
    '<details class="swapp-news-more"><summary aria-label="Ouvrir les rubriques Découvrir" title="Rubriques Découvrir">⌄</summary>'+
@@ -42,13 +54,13 @@
    '<a href="/equipes"'+(active==='teams'?' aria-current="page"':'')+'>Équipes</a></div></details></div>';
  }
  function desktopNavigation(active='actus'){
-  return '<div class="navGroup">'+items.map(x=>x.id==='actus'?newsNav(active):x.id==='discover'?discoverNav(active):link(x,active)).join('')+'</div>';
+  return '<div class="navGroup">'+items.map(x=>x.id==='actus'?newsNav(active):x.id==='discover'?discoverNav(active):x.id==='media'?mediaNav(active):link(x,active)).join('')+'</div>';
  }
  function mobileNavigation(active='actus'){
   const pinned=items.filter(x=>['home','discover','actus','tv'].includes(x.id));
   const other=items.filter(x=>!pinned.includes(x));
   return pinned.map(x=>link(x,active)).join('')+
-   '<details class="swapp-mobile-more"><summary'+(other.some(x=>x.id===active)||['categories','teams','guides','onair',video.id,account.id].includes(active)?' class="active"':'')+'>Plus</summary>'+
+   '<details class="swapp-mobile-more"><summary'+(other.some(x=>x.id===active)||['categories','teams','guides','onair','tech','gaming','ai','robotics','future','live-news',video.id,account.id].includes(active)?' class="active"':'')+'>Plus</summary>'+
    '<div class="swapp-mobile-more-links">'+
    '<span class="swapp-mobile-menu-title">DÉCOUVRIR</span>'+ 
    '<a href="/categories"'+(active==='categories'?' class="active" aria-current="page"':'')+'>Jeux et catégories</a>'+ 
@@ -57,6 +69,13 @@
    '<a href="/bandes-annonces"'+(active==='trailers'?' class="active" aria-current="page"':'')+'>Vidéos et bandes-annonces</a>'+ 
    '<a href="/guides/aion-2"'+(active==='guides'?' class="active" aria-current="page"':'')+'>Guide Aion 2</a>'+ 
    '<a href="/on-air"'+(active==='onair'?' class="active" aria-current="page"':'')+'>PODCAST</a>'+ 
+   '<span class="swapp-mobile-menu-title">RUBRIQUES DU MÉDIA</span>'+
+   '<a href="/tech">SWAPP TECH · Toutes les rubriques</a>'+
+   '<a href="/gaming">GAMING · Jeux, guides et lives</a>'+
+   '<a href="/ai">AI · Intelligence artificielle</a>'+
+   '<a href="/robotics">ROBOTICS · Robotique</a>'+
+   '<a href="/future">FUTURE · Technologies émergentes</a>'+
+   '<a href="/live-news">SWAPP LIVE NEWS · Le flux</a>'+
    '<span class="swapp-mobile-menu-title">SWAPP</span>'+
    other.map(x=>link(x,active)).join('')+link(account,active)+'</div></details>';
  }
