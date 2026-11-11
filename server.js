@@ -4581,7 +4581,8 @@ app.get('/api/oryon/profile/:login', async (req, res) => {
     pub.channel_exists = true;
     pub.public_url = swappChannelPathForLogin(login);
     pub.public_abs_url = (swappPublicBase(req)||'').replace(/\/$/,'') + pub.public_url;
-    pub.is_live = !!room || localLiveFresh;
+    pub.is_live = !!room || !!nativeBrowserShared.state(login) ||
+      !!swappDirectRelay.activeStreams().find(stream=>stream.login===login) || localLiveFresh;
     pub.live_status = pub.is_live ? 'live' : 'offline';
     pub.oryon_local_player_url = localLiveFresh ? String(user.oryon_local_player_url || '') : '';
     pub.oryon_local_status_url = localLiveFresh ? String(user.oryon_local_status_url || '') : '';
@@ -9224,7 +9225,9 @@ io.on('connection', async (socket) => {
     const room = String(payload?.room || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 40);
     const r = nativeLiveRooms.get(room);
     const localAgentLive = isOryonLocalLiveRoom(room);
-    if(!room || (!r?.host && !localAgentLive)) return socket.emit('native:error', { message: 'Aucun live actif dans ce salon.' });
+    const browserShared=Boolean(nativeBrowserShared.state(room));
+    if(!room || (!r?.host && !localAgentLive && !browserShared))
+      return socket.emit('native:error', { message: 'Aucun live actif dans ce salon.' });
     const maxViewers = Number(process.env.MAX_NATIVE_VIEWERS || 300);
     if(r?.viewers && r.viewers.size >= maxViewers) return socket.emit('native:error', { message: 'Salon complet : limite ' + maxViewers + ' viewers atteinte.' });
     if(r?.viewers){
@@ -10885,11 +10888,14 @@ app.get('/api/oryon/channel/:login/live-ping', async (req, res) => {
     res.setHeader('Cache-Control','no-store');
     if(!user)return res.status(404).json({success:false,error:'Chaîne introuvable.'});
     const room=nativeLiveRooms.get(login);
+    const browserMedia=nativeBrowserShared.state(login);
+    const verifiedObs=swappDirectRelay.activeStreams().find(stream=>stream.login===login);
     const localLiveFresh=isOryonLiveSignalFresh(user);
     res.json({
       success:true,
-      is_live:!!room||localLiveFresh,
-      source:room?'browser-webrtc':(localLiveFresh?'local-agent':'offline')
+      is_live:!!room||!!browserMedia||!!verifiedObs||localLiveFresh,
+      source:room||browserMedia?'browser-webrtc':(verifiedObs||localLiveFresh?'local-agent':'offline'),
+      media_ready:!!browserMedia||!!verifiedObs
     });
   }catch(e){res.status(500).json({success:false,error:'Statut indisponible.'});}
 });
@@ -10904,8 +10910,11 @@ app.get('/api/oryon/channel/:login/status', async (req, res) => {
     if(!user) return res.status(404).json({success:false,error:'Chaîne introuvable.'});
     ensureOryonUserShape(user, { ensureStreamKey:true });
     const room = (typeof nativeLiveRooms !== 'undefined' && nativeLiveRooms?.get) ? nativeLiveRooms.get(login) : null;
+    const browserMedia=nativeBrowserShared.state(login);
+    const verifiedObs=swappDirectRelay.activeStreams().find(stream=>stream.login===login);
     const localLiveFresh = isOryonLiveSignalFresh(user);
-    const localPlayerUrl = localLiveFresh ? String(user.oryon_local_player_url || '') : '';
+    const localPlayerUrl = verifiedObs?.player_url||
+      (localLiveFresh ? String(user.oryon_local_player_url || '') : '');
     const localStatusUrl = localLiveFresh ? String(user.oryon_local_status_url || '') : '';
     const localPublicBaseUrl = localLiveFresh ? String(user.oryon_local_public_base_url || '') : '';
     const publicPath = swappChannelPathForLogin(login);
@@ -10916,9 +10925,9 @@ app.get('/api/oryon/channel/:login/status', async (req, res) => {
       public_url:publicPath,
       public_abs_url:(swappPublicBase(req)||'').replace(/\/$/,'') + publicPath,
       live:{
-        is_live:!!room || localLiveFresh,
-        source:room ? 'browser-webrtc' : (localLiveFresh ? 'local-agent' : 'offline'),
-        status:(!!room || localLiveFresh) ? 'live' : 'offline',
+        is_live:!!room || !!browserMedia || !!verifiedObs || localLiveFresh,
+        source:room || browserMedia ? 'browser-webrtc' : (verifiedObs || localLiveFresh ? 'local-agent' : 'offline'),
+        status:(!!room || !!browserMedia || !!verifiedObs || localLiveFresh) ? 'live' : 'offline',
         started_at:room?.createdAt || user.live_started_at || null,
         last_seen:user.channel_last_seen || user.local_agent_last_seen || null,
         ended_at:user.last_live_ended_at || null,
@@ -10926,12 +10935,12 @@ app.get('/api/oryon/channel/:login/status', async (req, res) => {
         category:room?.category || user.current_live_category || '',
         viewers:room?.viewers ? room.viewers.size : 0,
         peak_viewers:room?.peakViewers || 0,
-        player_url: room?.player_url || localPlayerUrl || '',
-        embed_url: room?.embed_url || localPlayerUrl || '',
+        player_url: room?.player_url || verifiedObs?.player_url || localPlayerUrl || '',
+        embed_url: room?.embed_url || verifiedObs?.player_url || localPlayerUrl || '',
         hls_url: room?.hls_url || (/\.m3u8(\?|$)/i.test(localPlayerUrl) ? localPlayerUrl : ''),
         status_url: localStatusUrl || '',
         public_base_url: localPublicBaseUrl || '',
-        provider: room ? 'browser-webrtc' : (localLiveFresh ? (user.oryon_local_provider || 'local-agent') : 'offline')
+        provider: room || browserMedia ? 'browser-webrtc' : (verifiedObs || localLiveFresh ? (user.oryon_local_provider || 'local-agent') : 'offline')
       }
     });
   }catch(e){ res.status(500).json({success:false,error:e.message}); }
