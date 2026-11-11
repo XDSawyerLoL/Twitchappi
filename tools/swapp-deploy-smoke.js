@@ -214,7 +214,7 @@ async function verify(){
   socialAppearance.body.includes('inset-block-start:0!important'),
   'SOCIAL header top gap defensive fix missing');
  check(social.body.includes('social-swapp.css?v=20261022-social-control-emotes-v1'),'SOCIAL CSS release is stale');
- check(social.body.includes('app.js?v=20261025-dm-workspace-v1')&&
+ check(social.body.includes('app.js?v=20261111-follow-guard-v2')&&
   social.body.includes('swapp-social-product-v3.css?v=20261025-dm-workspace-v1'),
   'SOCIAL module/workspace assets are stale');
  check(social.body.includes('swapp-social-editorial-air.css?v=20261022-large-tools-v1'),
