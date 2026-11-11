@@ -4630,15 +4630,19 @@ app.get('/api/oryon/panel-image/:login/:hash',async(req,res)=>{
   const login=normalizeOryonLogin(req.params.login);
   const hash=String(req.params.hash||'').toLowerCase();
   if(!/^[0-9a-f]{64}$/.test(hash))return res.status(404).end();
-  const user=(readOryonUsers().users||[]).find(u=>u.login===login&&u.channel_public!==false);
+  const user=(readOryonUsers().users||[]).find(u=>u.login===login);
   if(!user)return res.status(404).end();
+  const ownSession=String(req.session?.oryonUser?.id||'')===String(user.id);
+  if(user.channel_public===false&&!ownSession)return res.status(404).end();
   const {panelMediaUrl}=require('./modules/swapp-channel-panel-media');
   const url=panelMediaUrl(login,hash);
   const panels=user.channel_vignettes?.length?user.channel_vignettes:user.channel_panels;
-  if((!Array.isArray(panels)||!panels.some(p=>p.image_url===url)) && user.channel_theme?.background_url!==url)return res.status(404).end();
+  const attachedToAccount=[user.avatar_url,user.banner_url,user.offline_image_url].includes(url);
+  const attachedToPanel=Array.isArray(panels)&&panels.some(p=>p.image_url===url);
+  if(!attachedToAccount&&!attachedToPanel&&user.channel_theme?.background_url!==url)return res.status(404).end();
   const media=await swappMysqlAccounts.getPanelImage(user.id,hash);
   if(!media?.bytes)return res.status(404).end();
-  res.set('Cache-Control','public,max-age=300');
+  res.set('Cache-Control',user.channel_public===false?'private,no-store':'public,max-age=300');
   res.set('Content-Type',media.mime);
   return res.end(media.bytes);
  }catch(error){
