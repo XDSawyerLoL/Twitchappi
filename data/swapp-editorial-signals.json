@@ -18,7 +18,9 @@
       "sourceUrl": "https://deepmind.google/blog/introducing-alphaproof-code/",
       "sourceDate": "2026-11-10",
       "reviewedAt": "2026-11-11",
-      "articleSlug": null
+      "articleSlug": null,
+      "imageUrl": "https://lh3.googleusercontent.com/PHIZgiGejgu8shHsJV9pVfWv7Kr5rTj-e2yIj73c8LkDKBnTTAr2r28DN9aZd1vLDjCnd1Wi2qOD0t8bPpNN-3DfmbEgxj0TE-TttqVbpdoOD1xmFQk=w1440-h810-n-nu",
+      "imageCredit": "Google DeepMind · AlphaProof Code"
     },
     {
       "id": "gemini-carbon-model-20261110",
@@ -33,7 +35,9 @@
       "sourceUrl": "https://deepmind.google/models/model-cards/gemini-4-carbon/",
       "sourceDate": "2026-11-10",
       "reviewedAt": "2026-11-11",
-      "articleSlug": null
+      "articleSlug": null,
+      "imageUrl": "https://storage.googleapis.com/gdm-deepmind-com-prod-public/media/images/model-cards/gemini-4-carbon/gemini-4-carbon-social.jpg",
+      "imageCredit": "Google DeepMind · Gemini 4 Carbon"
     },
     {
       "id": "gemini-robotics-25-20261110",
@@ -49,7 +53,9 @@
       "sourceUrl": "https://deepmind.google/blog/gemini-robotics-2-5-accelerates-real-world-physical-intelligence/",
       "sourceDate": "2026-11-10",
       "reviewedAt": "2026-11-11",
-      "articleSlug": "gemini-robotics-2-5-robots-dexterite-securite-usines-2026"
+      "articleSlug": "gemini-robotics-2-5-robots-dexterite-securite-usines-2026",
+      "imageUrl": "https://lh3.googleusercontent.com/1p0vcWGLECMy9qInQW-1AumUwO5fa37wyJ66G0eO8H14BurbFkN7NkKAXbjXYXZ9tS034NyZ9ByuQk8ptQ24dLcMBeg6o_fHMmauBZJ7KAXdM5NHFQ=w1440-h810-n-nu",
+      "imageCredit": "Google DeepMind · Gemini Robotics 2.5"
     },
     {
       "id": "groot2-nvidia-corl-20261109",
@@ -65,7 +71,9 @@
       "sourceUrl": "https://blogs.nvidia.com/blog/robotics-simulation-advancements-corl/",
       "sourceDate": "2026-11-09",
       "reviewedAt": "2026-11-11",
-      "articleSlug": "nvidia-groot-2-robots-apprennent-simulation-isaac-lab-2026"
+      "articleSlug": "nvidia-groot-2-robots-apprennent-simulation-isaac-lab-2026",
+      "imageUrl": "https://blogs.nvidia.com/wp-content/uploads/2026/11/corl-corp-blog-promo-pack-1920x1080-1-1280x720.png",
+      "imageCredit": "NVIDIA · GR00T 2 / CoRL"
     },
     {
       "id": "alpamayo2-edge-nvidia-20261110",
@@ -82,7 +90,9 @@
       "sourceUrl": "https://developer.nvidia.com/blog/running-av-reasoning-models-within-onboard-compute-and-latency-limits/",
       "sourceDate": "2026-11-10",
       "reviewedAt": "2026-11-11",
-      "articleSlug": null
+      "articleSlug": null,
+      "imageUrl": "https://developer-blogs.nvidia.com/wp-content/uploads/2026/11/auto-alpamayo-2-edge-tech-blog-promo-600x338_r2-1.gif",
+      "imageCredit": "NVIDIA · Alpamayo 2 Edge"
     },
     {
       "id": "panasonic-t-rex-tactile-20261105",
