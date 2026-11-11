@@ -117,6 +117,7 @@ const topicBar=el('div','swapp-actus-topic-tags');
 topicBar.setAttribute('role','group');topicBar.setAttribute('aria-label','Filtrer les actualités par tag');
 node.append(topicBar);
 let activeTopic=queryTopic();
+let refreshSignalSection=()=>{};
 const drawTopics=()=>{
  topicBar.replaceChildren();
  for(const topic of SWAPP_TOPICS){
@@ -127,12 +128,86 @@ const drawTopics=()=>{
   b.onclick=()=>{
    activeTopic=topic.id;
    try{history.replaceState(history.state,'','/actus'+(activeTopic?'?tag='+encodeURIComponent(activeTopic):''));}catch(_){}
-   drawTopics();update();
+   drawTopics();update();refreshSignalSection();
   };
   topicBar.append(b);
  }
 };
 drawTopics();
+// Two editorial speeds, ONE magazine: primary-source flashes above deep articles.
+const flashSection=el('section','swapp-flash-strip');
+flashSection.setAttribute('aria-label','SWAPP FLASH : brèves sourcées');
+const flashHead=el('div','swapp-flash-head');
+const flashName=el('div');
+flashName.append(el('small','swapp-flash-kicker','SWAPP FLASH · SOURCES PRIMAIRES'),el('h2','','À retenir, sans attendre un dossier'));
+const flashSubtitle=el('p','swapp-flash-subtitle','Le fait, son impact et la limite de ce qui est prouvé. Aucun titre issu d’un flux RSS ne devient automatiquement une information validée.');
+flashHead.append(flashName,flashSubtitle);
+const flashCards=el('div','swapp-flash-cards');
+const flashToggle=el('button','swapp-flash-more','Plus de brèves');
+flashToggle.type='button';flashToggle.hidden=true;
+const sourceDetails=el('details','swapp-flash-radar');
+const sourceSummary=el('summary','','Veille des sources : annonces repérées, pas encore vérifiées');
+const sourceList=el('div','swapp-flash-radar-list');
+sourceDetails.append(sourceSummary,sourceList);
+flashSection.append(flashHead,flashCards,flashToggle,sourceDetails);
+node.append(flashSection);
+let flashData=null,flashExpanded=false;
+const safeSource=raw=>url(raw);
+const shortDate=raw=>{
+ const parsed=new Date(String(raw||'')+'T12:00:00Z');
+ return Number.isFinite(parsed.getTime())?parsed.toLocaleDateString('fr-FR',{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'}):'';
+};
+const renderFlashCard=entry=>{
+ const article=el('article','swapp-flash-item');
+ const metadata=el('div','swapp-flash-meta');
+ metadata.append(el('span','',entry.topics.join(' · ')),el('time','',shortDate(entry.sourceDate)));
+ const heading=el('h3','',entry.title);
+ article.append(metadata,heading);
+ article.append(el('p','swapp-flash-fact',entry.fact));
+ const impact=el('p','swapp-flash-impact');
+ impact.append(el('strong','','Impact : '),document.createTextNode(entry.impact));article.append(impact);
+ const caution=el('p','swapp-flash-caveat');
+ caution.append(el('strong','','À confirmer : '),document.createTextNode(entry.caveat));article.append(caution);
+ const foot=el('div','swapp-flash-source');
+ const source=el('a','',entry.sourceName+' · Source officielle ↗');
+ source.href=safeSource(entry.sourceUrl)||'/actus';
+ source.target='_blank';source.rel='noopener noreferrer';
+ foot.append(source,el('span','','Vérifié sur source · '+shortDate(entry.reviewedAt)));
+ article.append(foot);
+ return article;
+};
+refreshSignalSection=()=>{
+ if(!flashData)return;
+ const all=flashData.editorial.filter(x=>!activeTopic||(Array.isArray(x.topics)&&x.topics.includes(activeTopic)));
+ flashCards.replaceChildren();
+ const chosen=flashExpanded?all:all.slice(0,3);
+ if(!all.length)flashCards.append(el('p','swapp-actus-state','Aucune brève validée pour ce tag actuellement. Les articles complets restent accessibles ci-dessous.'));
+ else chosen.forEach(entry=>flashCards.append(renderFlashCard(entry)));
+ flashToggle.hidden=all.length<=3;
+ flashToggle.textContent=flashExpanded?'Réduire':('Voir les '+(all.length-3)+' autres brèves');
+ const watch=flashData.watch?.items||[];
+ const pending=watch.filter(x=>!activeTopic||(Array.isArray(x.topics)&&x.topics.includes(activeTopic)));
+ sourceDetails.hidden=pending.length===0;
+ sourceList.replaceChildren();
+ sourceSummary.textContent='Sources surveillées ('+pending.length+') · signalement non vérifié';
+ pending.slice(0,18).forEach(x=>{
+  const href=safeSource(x.sourceUrl);if(!href)return;
+  const item=el('a','swapp-flash-pending',x.title+' · '+x.sourceName+' · '+shortDate(x.sourceDate));
+  item.href=href;item.target='_blank';item.rel='noopener noreferrer nofollow';
+  sourceList.append(item);
+ });
+};
+flashToggle.onclick=()=>{flashExpanded=!flashExpanded;refreshSignalSection();};
+flashCards.append(el('p','swapp-actus-state','Chargement des informations sourcées…'));
+fetchJson('/api/actus/signaux').then(data=>{
+ if(!flashSection.isConnected)return;
+ if(!Array.isArray(data.editorial))throw Error('Réponse éditoriale invalide');
+ flashData=data;refreshSignalSection();
+}).catch(()=>{
+ if(!flashSection.isConnected)return;
+ flashCards.replaceChildren(el('p','swapp-actus-state','Les brèves rapides sont momentanément indisponibles. Les actualités complètes restent accessibles.'));
+ sourceDetails.hidden=true;
+});
 window.SwappArticleFeedback?.mountList(node);
 const liveSection=el('section','swapp-discover-live');liveSection.setAttribute('aria-label','Créateurs en direct pour le jeu sélectionné');const liveHeading=el('div','swapp-discover-live-heading');liveHeading.append(el('h2','','Les créateurs en direct'));const liveStatus=el('p','swapp-discover-live-status');liveSection.append(liveHeading,liveStatus);const liveCards=el('div','swapp-discover-live-grid');liveSection.append(liveCards);node.append(liveSection);
 let liveResults=null,liveLoading=null,liveTicket=0;
