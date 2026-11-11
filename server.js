@@ -1785,7 +1785,7 @@ app.get(['/tech','/technologies','/gaming','/ai','/robotics','/future','/live-ne
   const topic=HUBS.find(h=>h.id===selected);
   const section=topic?.section||(['IA','Robotique','FUTURE'].includes(req.query.rubrique)?req.query.rubrique:'');
   const uri=process.env.SWAPP_NEWS_MYSQL_URL||process.env.SWAPP_MYSQL_URL;
-  let items=[],feedError=false;
+  let items=[],feedError=!uri;
   try{items=await readTechItems({uri,section});}
   catch(error){
    feedError=true;
