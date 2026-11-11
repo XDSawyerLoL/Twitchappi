@@ -4581,7 +4581,7 @@ app.get('/api/oryon/profile/:login', async (req, res) => {
     pub.channel_exists = true;
     pub.public_url = swappChannelPathForLogin(login);
     pub.public_abs_url = (swappPublicBase(req)||'').replace(/\/$/,'') + pub.public_url;
-    pub.is_live = !!room || !!nativeBrowserShared.state(login) ||
+    pub.is_live = !!room || Number(nativeBrowserShared.state(login)?.lastSeq||0)>=1 ||
       !!swappDirectRelay.activeStreams().find(stream=>stream.login===login) || localLiveFresh;
     pub.live_status = pub.is_live ? 'live' : 'offline';
     pub.oryon_local_player_url = localLiveFresh ? String(user.oryon_local_player_url || '') : '';
@@ -9011,7 +9011,8 @@ function swappRelayLive(room){
  // A public viewer can be routed to a different Node process than the host.
  // The authenticated publisher writes an atomic shared media state on disk.
  const shared=nativeBrowserShared.state(room);
- if(shared)return {...shared,shared:true};
+ // A recorder initialization chunk alone is not proof that playback exists.
+ if(shared?.lastSeq>=1)return {...shared,shared:true};
  const r=nativeLiveRooms.get(room);
  const b=nativeBrowserRelays.get(room);
  if(!r?.host || !b || Date.now()-b.updatedAt>18000)return null;
@@ -9233,7 +9234,7 @@ io.on('connection', async (socket) => {
     const room = String(payload?.room || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 40);
     const r = nativeLiveRooms.get(room);
     const localAgentLive = isOryonLocalLiveRoom(room);
-    const browserShared=Boolean(nativeBrowserShared.state(room));
+    const browserShared=Number(nativeBrowserShared.state(room)?.lastSeq||0)>=1;
     if(!room || (!r?.host && !localAgentLive && !browserShared))
       return socket.emit('native:error', { message: 'Aucun live actif dans ce salon.' });
     const maxViewers = Number(process.env.MAX_NATIVE_VIEWERS || 300);
@@ -10896,7 +10897,8 @@ app.get('/api/oryon/channel/:login/live-ping', async (req, res) => {
     res.setHeader('Cache-Control','no-store');
     if(!user)return res.status(404).json({success:false,error:'Chaîne introuvable.'});
     const room=nativeLiveRooms.get(login);
-    const browserMedia=nativeBrowserShared.state(login);
+    const browserCandidate=nativeBrowserShared.state(login);
+    const browserMedia=browserCandidate?.lastSeq>=1?browserCandidate:null;
     const verifiedObs=swappDirectRelay.activeStreams().find(stream=>stream.login===login);
     const localLiveFresh=isOryonLiveSignalFresh(user);
     res.json({
@@ -10918,7 +10920,8 @@ app.get('/api/oryon/channel/:login/status', async (req, res) => {
     if(!user) return res.status(404).json({success:false,error:'Chaîne introuvable.'});
     ensureOryonUserShape(user, { ensureStreamKey:true });
     const room = (typeof nativeLiveRooms !== 'undefined' && nativeLiveRooms?.get) ? nativeLiveRooms.get(login) : null;
-    const browserMedia=nativeBrowserShared.state(login);
+    const browserCandidate=nativeBrowserShared.state(login);
+    const browserMedia=browserCandidate?.lastSeq>=1?browserCandidate:null;
     const verifiedObs=swappDirectRelay.activeStreams().find(stream=>stream.login===login);
     const localLiveFresh = isOryonLiveSignalFresh(user);
     const localPlayerUrl = verifiedObs?.player_url||
