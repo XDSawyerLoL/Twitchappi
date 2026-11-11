@@ -5205,6 +5205,7 @@ app.post('/api/oryon/stream-key/regenerate', mutationLimiter, async (req, res) =
 app.get('/api/oryon/follow/:login', async(req,res)=>{
   try{
     await ORYON_USERS_READY.catch(()=>{});
+    await restoreOryonSessionFromRememberCookie(req,res,{allowUserRecovery:false});
     const target=normalizeOryonLogin(req.params.login);
     if(!target)return res.status(400).json({success:false,error:'Créateur invalide.'});
     const data=readOryonUsers();
@@ -5221,6 +5222,7 @@ app.get('/api/oryon/follow/:login', async(req,res)=>{
 
 app.delete('/api/oryon/follow/:login',mutationLimiter,async(req,res)=>{
   try{
+    await restoreOryonSessionFromRememberCookie(req,res,{allowUserRecovery:false});
     const cur=req.session?.oryonUser;
     if(!cur?.id)return res.status(401).json({success:false,error:'Compte SWAPP requis.'});
     const target=normalizeOryonLogin(req.params.login);
@@ -5242,6 +5244,7 @@ app.delete('/api/oryon/follow/:login',mutationLimiter,async(req,res)=>{
 
 app.post('/api/oryon/follow/:login', mutationLimiter, async (req, res) => {
   try{
+    await restoreOryonSessionFromRememberCookie(req,res,{allowUserRecovery:false});
     const cur = req.session?.oryonUser;
     if(!cur?.id) return res.status(401).json({ success:false, error:'Compte Oryon requis.' });
     const target = normalizeOryonLogin(req.params.login);
