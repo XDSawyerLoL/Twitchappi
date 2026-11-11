@@ -55,7 +55,7 @@ test('public image endpoint never serves unpublished or private channel drafts',
  const end=server.indexOf("app.post('/api/oryon/profile'",from);
  assert.ok(from>0&&end>from);
  const endpoint=server.slice(from,end);
- assert.match(endpoint,/u\.channel_public!==false/);
+ assert.match(endpoint,/user\.channel_public===false&&!ownSession/);
  assert.match(endpoint,/panels\.some\(p=>p\.image_url===url\)/);
  assert.match(endpoint,/getPanelImage\(user\.id,hash\)/);
  assert.match(endpoint,/X-Content-Type-Options/);
@@ -66,7 +66,7 @@ test('profile saves convert local data URLs before persisting panel metadata',()
  assert.match(server,/image_url=panelMediaUrl\(user\.login,media\.hash\)/);
  assert.match(server,/await writeOryonUsersAndWait\(data\)/);
  assert.match(server,/if\(supplied\('bio'\)\)/);
- assert.match(server,/if\(supplied\('banner_url'\)\)/);
+ assert.match(server,/for\(const field of \['avatar_url','banner_url','offline_image_url'\]\)/);
  assert.match(server,/if\(supplied\('peertube_watch_url'\)\)/);
 });
 test('owner automatically migrates both legacy localStorage backups only after real session validation',()=>{
