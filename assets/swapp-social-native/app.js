@@ -632,10 +632,16 @@ function bindDelegatedEvents(){
 
     const follow=event.target.closest('[data-follow]');
     if(follow){
+      if(!requireAuth()||follow.dataset.followPending==='true')return;
+      const handle=String(follow.dataset.follow||'');
+      if(!/^[a-z0-9_]{3,24}$/.test(handle))return;
+      follow.dataset.followPending='true';follow.disabled=true;
       try{
-        await api('/api/pulse/users/'+encodeURIComponent(follow.dataset.follow)+'/follow',{method:'POST',body:'{}'});
-        await loadProfile(follow.dataset.follow);
+        // Pulse POST deliberately toggles follow/unfollow. Avoid a rapid double submit.
+        await api('/api/pulse/users/'+encodeURIComponent(handle)+'/follow',{method:'POST',body:'{}'});
+        await loadProfile(handle);
       }catch(error){alert(errorText(error))}
+      finally{if(follow.isConnected){follow.disabled=false;delete follow.dataset.followPending}}
       return;
     }
 
