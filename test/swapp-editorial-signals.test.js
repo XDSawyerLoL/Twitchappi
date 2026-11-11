@@ -6,10 +6,10 @@ const path=require('node:path');
 const {editorialSignals,validateEditorial,watchCandidates,buildSignalResponse}=require('../modules/swapp-news/editorial-signals');
 const sampleTime=new Date('2026-11-11T12:00:00.000Z');
 
-test('SWAPP FLASH contains nine verified primary-source briefs, each with specific limits',()=>{
+test('SWAPP FLASH contains thirteen verified primary-source briefs, each with specific limits',()=>{
  const all=editorialSignals({now:sampleTime});
- assert.equal(all.length,9);
- assert.equal(new Set(all.map(s=>s.id)).size,9);
+ assert.equal(all.length,13);
+ assert.equal(new Set(all.map(s=>s.id)).size,13);
  for(const x of all){
   assert.doesNotThrow(()=>validateEditorial(x));
   assert.match(x.sourceUrl,/^https:\/\//);
@@ -22,11 +22,11 @@ test('SWAPP FLASH contains nine verified primary-source briefs, each with specif
 test('multi-topic signals enrich all topic filters without double-counting the news',()=>{
  const all=editorialSignals({now:sampleTime});
  const count=k=>editorialSignals({now:sampleTime,topic:k}).length;
- assert.equal(count('AI'),8);
- assert.equal(count('ROBOTICS'),5);
- assert.equal(count('FUTURE'),5);
+ assert.equal(count('AI'),11);
+ assert.equal(count('ROBOTICS'),7);
+ assert.equal(count('FUTURE'),9);
  assert.equal(count('GAMING'),0);
- assert.equal(all.length,9);
+ assert.equal(all.length,13);
 });
 test('primary source validation rejects unverifiable headlines and malicious destinations',()=>{
  const sample=editorialSignals({now:sampleTime})[0];
@@ -44,7 +44,7 @@ test('unreviewed source candidates remain separately identified, not mixed with 
   {id:'a',sourceUrl:all[0].sourceUrl,verification:'pending_review'},
   {id:'b',sourceUrl:'https://official.example/another',verification:'pending_review'}
  ]});
- assert.equal(output.editorial.length,9);
+ assert.equal(output.editorial.length,13);
  assert.equal(output.watch.items.length,1);
  assert.equal(output.watch.items[0].verification,'pending_review');
  assert.match(output.disclaimer,/non vérifiés/);
