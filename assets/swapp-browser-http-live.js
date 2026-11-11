@@ -8,14 +8,19 @@
  const wait=ms=>new Promise(r=>setTimeout(r,ms));
  function supportedRecorderType(){
   if(typeof MediaRecorder==='undefined')return '';
+  // Chromium/Edge can record MP4 yet produce fragments that fail in MSE.
+  // Prefer WebM on browsers that can both RECORD and PLAY it; keep MP4 for
+  // Safari and other browsers where WebM is not supported.
   const types=[
-   'video/mp4;codecs="avc1.42E01E,mp4a.40.2"',
-   'video/mp4;codecs="avc1.42E01E"',
    'video/webm;codecs="vp8,opus"',
    'video/webm;codecs="vp8"',
+   'video/mp4;codecs="avc1.42E01E,mp4a.40.2"',
+   'video/mp4;codecs="avc1.42E01E"',
    'video/webm'
   ];
-  return types.find(t=>MediaRecorder.isTypeSupported(t))||'';
+  const playback=window.MediaSource;
+  return types.find(t=>MediaRecorder.isTypeSupported(t)&&
+    (!playback?.isTypeSupported||playback.isTypeSupported(t)))||'';
  }
  function stopPublisher(){
   const p=publisher;publisher=null;
@@ -47,6 +52,11 @@
      if(!r.ok)throw Error('HTTP relay '+r.status);
     }).catch(err=>{
      console.warn('[SWAPP] HTTP relay stopped:',err?.message||err);
+     // The WebRTC preview can still work while HTTP viewers are black.
+     // Expose a clear on-page diagnosis to the broadcaster when HTTP fails.
+     try{window.dispatchEvent?.(new CustomEvent('swapp:live:relay-error',{
+      detail:{transport:'browser-http',message:'Le relais vidéo HTTP est indisponible ('+String(err?.message||err).slice(0,80)+'). Vérifie le serveur SWAPP.'}
+     }))}catch(_){}
      p.failed=true;if(publisher===p)stopPublisher();
     }).finally(()=>{p.pending--});
    });
