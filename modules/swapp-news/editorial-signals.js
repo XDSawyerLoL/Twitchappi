@@ -8,6 +8,7 @@ const PRIMARY_HOSTS=new Set([
  'news.panasonic.com','www.esa.int','esa.int','research.google',
  'mistral.ai','huggingface.co','www.nasa.gov','nasa.gov'
 ]);
+const IMAGE_HOSTS=new Set(['lh3.googleusercontent.com','storage.googleapis.com','developer-blogs.nvidia.com','blogs.nvidia.com','news.panasonic.com','global.discourse-cdn.com']);
 const HTTPS=url=>{
  try{
   const parsed=new URL(String(url||''));
@@ -22,6 +23,11 @@ function validateEditorial(item){
  if(item.title.length>200||item.fact.length>500||item.impact.length>350||item.caveat.length>350)throw Error('signal_too_long');
  const source=HTTPS(item.sourceUrl);
  if(!source||!PRIMARY_HOSTS.has(source.hostname.toLowerCase()))throw Error('signal_requires_primary_source');
+ if(item.imageUrl!=null){
+  const asset=HTTPS(item.imageUrl);
+  if(!asset||!IMAGE_HOSTS.has(asset.hostname.toLowerCase()))throw Error('invalid_official_signal_image');
+  if(typeof item.imageCredit!=='string'||item.imageCredit.trim().length<8)throw Error('missing_image_credit');
+ }
  if(!isoDate(item.sourceDate)||!isoDate(item.reviewedAt))throw Error('invalid_signal_dates');
  if(item.articleSlug!=null&&!/^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/.test(item.articleSlug))throw Error('invalid_article_slug');
  return true;
@@ -84,4 +90,4 @@ function buildSignalResponse(verified,watch){
    items:watch.items.filter(x=>!urls.has(x.sourceUrl))},disclaimer:
   'Les notes éditoriales attribuent les faits à leur source primaire. Les titres du radar sont non vérifiés et ne constituent pas des articles.'};
 }
-module.exports={PRIMARY_HOSTS,validateEditorial,editorialSignals,watchCandidates,buildSignalResponse};
+module.exports={PRIMARY_HOSTS,IMAGE_HOSTS,validateEditorial,editorialSignals,watchCandidates,buildSignalResponse};
