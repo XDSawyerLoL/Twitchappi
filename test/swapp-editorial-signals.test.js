@@ -38,6 +38,7 @@ test('primary source validation rejects unverifiable headlines and malicious des
  assert.throws(()=>validateEditorial({...sample,caveat:''}));
  assert.throws(()=>validateEditorial({...sample,imageUrl:'https://evil.invalid/pixel.png'}));
  assert.throws(()=>validateEditorial({...sample,imageCredit:''}));
+ assert.throws(()=>validateEditorial({...sample,imageUrl:null}));
 });
 test('unreviewed source candidates remain separately identified, not mixed with editorial flashes',async()=>{
  const watch=await watchCandidates({});
