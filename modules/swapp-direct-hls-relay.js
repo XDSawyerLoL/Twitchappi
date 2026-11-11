@@ -17,9 +17,18 @@ function attachSwappDirectRelay(app, opts={}){
  // Optional SAME-FILESYSTEM shared storage. Required for multi-worker Hostinger
  // setups; the configured absolute directory MUST be common to every worker.
  // Never assume separate Hostinger hosts share a filesystem.
- const sharedRoot=String(process.env.SWAPP_DIRECT_RELAY_SHARED_DIR||'').trim();
- if(sharedRoot&&!path.isAbsolute(sharedRoot))throw Error('SWAPP_DIRECT_RELAY_SHARED_DIR must be absolute');
- if(sharedRoot)fs.mkdirSync(sharedRoot,{recursive:true,mode:0o700});
+ // Hostinger may route OBS PUT and HLS GET to distinct Node workers.
+ // Use a common writable app-data directory even when the operator has not
+ // provided the optional explicit absolute shared path.
+ const configuredShared=String(process.env.SWAPP_DIRECT_RELAY_SHARED_DIR||'').trim();
+ if(configuredShared&&!path.isAbsolute(configuredShared))throw Error('SWAPP_DIRECT_RELAY_SHARED_DIR must be absolute');
+ const defaultBase=String(process.env.ORYON_DATA_DIR||'').trim();
+ let sharedRoot=configuredShared||path.join(path.isAbsolute(defaultBase)?defaultBase:path.join(__dirname,'..','data'),'.swapp-live-relay');
+ try{fs.mkdirSync(sharedRoot,{recursive:true,mode:0o700})}
+ catch(error){
+  console.warn('[SWAPP HLS] shared disk disabled:',String(error?.code||error?.message));
+  sharedRoot='';
+ }
  const sharedPath=(login,name)=>path.join(sharedRoot,login,name);
  function atomicSharedWrite(login,name,bytes){
   const dir=path.join(sharedRoot,login);
@@ -190,6 +199,34 @@ function attachSwappDirectRelay(app, opts={}){
   for(const [login,r] of rooms){
    if(now-r.lastManifestAt>TTL_MS){rooms.delete(login);continue}
    for(const [id,seen] of (r.viewers||new Map()))if(now-seen>45000)r.viewers.delete(id);
+  }
+  // The shared HLS directory is temporary live transport, not a VOD.
+  // Bounded pruning prevents unbounded disk growth when OBS runs for hours.
+  if(sharedRoot){
+   try{
+    for(const entry of fs.readdirSync(sharedRoot,{withFileTypes:true})){
+     if(!entry.isDirectory()||!cleanLogin(entry.name))continue;
+     const login=entry.name,dir=path.join(sharedRoot,login);
+     let freshManifest=false,pinned=new Set();
+     try{
+      const f=path.join(dir,'index.m3u8'),stat=fs.statSync(f);
+      freshManifest=now-stat.mtimeMs<90000;
+      if(freshManifest)pinned=new Set(fs.readFileSync(f,'utf8').split(/\r?\n/).filter(x=>/^seg_[0-9]{1,14}\.ts$/.test(x)));
+     }catch(_){}
+     for(const file of fs.readdirSync(dir)){
+      if(!/^seg_[0-9]{1,14}\.ts$/.test(file)||pinned.has(file))continue;
+      try{
+       const target=path.join(dir,file),stat=fs.statSync(target);
+       if(now-stat.mtimeMs>120000)fs.unlinkSync(target);
+      }catch(_){}
+     }
+     if(!freshManifest){
+      let age=0;
+      try{age=now-fs.statSync(dir).mtimeMs}catch(_){}
+      if(age>180000)fs.rmSync(dir,{recursive:true,force:true});
+     }
+    }
+   }catch(error){console.warn('[SWAPP HLS] prune skipped',String(error?.code||error?.message))}
   }
  }
  const interval=setInterval(reclaim,12000);
@@ -486,7 +523,7 @@ function attachSwappDirectRelay(app, opts={}){
   else if(seen&&now-t.last_put_at<60000)stage='upload_detected';
   else if(seen)stage='upload_stale';
   res.json({success:true,room:login,stage,active,transport:'obs-hls-http-put',
-   backend:'swapp-direct-hls',single_node_process:true,
+   backend:'swapp-direct-hls',single_node_process:!sharedRoot,
    last_put_at:t.last_put_at||null,last_file_type:t.last_file_type||null,
    last_status:t.last_status||null,last_error_code:t.last_error_code||null,
    last_error_file_type:t.last_error_file_type||null,
@@ -549,9 +586,13 @@ function attachSwappDirectRelay(app, opts={}){
   const sharedNames=shared?.names||[];
   const sharedActive=sharedNames.length>0;
   res.json({success:true,active:sharedActive||hasFreshVideo(r),segment_count:sharedActive?sharedNames.length:r?.segments?.size||0,
-   last_manifest_at:r?.lastManifestAt||null,last_segment_at:r?.lastSegmentAt||null,
-   segment_age_ms:r?.lastSegmentAt?Math.max(0,Date.now()-r.lastSegmentAt):null,
-   media_fresh:sharedActive||hasFreshVideo(r),audio_track:r?.audioTrack||'unknown',dvr_seconds:r?Math.round(Math.min(80,historySeconds(r))):0,preview_ready:!!r?.clip,
+   last_manifest_at:r?.lastManifestAt||null,last_segment_at:shared?.segmentStamp||r?.lastSegmentAt||null,
+   segment_age_ms:shared?.segmentStamp?Math.max(0,Date.now()-shared.segmentStamp):
+    (r?.lastSegmentAt?Math.max(0,Date.now()-r.lastSegmentAt):null),
+   media_fresh:sharedActive||hasFreshVideo(r),
+   shared_storage_enabled:!!sharedRoot,shared_media_ready:sharedActive,worker:process.pid,
+   audio_track:shared?.metadata?.audioTrack||r?.audioTrack||'unknown',
+   dvr_seconds:r?Math.round(Math.min(80,historySeconds(r))):0,preview_ready:!!r?.clip,
    segment_bytes_in_memory:r?.bytes||0,segment_memory_budget:MAX_ROOM_BYTES,
    missing_segment_requests:r?.missingSegmentRequests||0});
  });

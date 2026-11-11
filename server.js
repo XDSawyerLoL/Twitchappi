@@ -4581,7 +4581,8 @@ app.get('/api/oryon/profile/:login', async (req, res) => {
     pub.channel_exists = true;
     pub.public_url = swappChannelPathForLogin(login);
     pub.public_abs_url = (swappPublicBase(req)||'').replace(/\/$/,'') + pub.public_url;
-    pub.is_live = !!room || localLiveFresh;
+    pub.is_live = !!room || Number(nativeBrowserShared.state(login)?.lastSeq||0)>=1 ||
+      !!swappDirectRelay.activeStreams().find(stream=>stream.login===login) || localLiveFresh;
     pub.live_status = pub.is_live ? 'live' : 'offline';
     pub.oryon_local_player_url = localLiveFresh ? String(user.oryon_local_player_url || '') : '';
     pub.oryon_local_status_url = localLiveFresh ? String(user.oryon_local_status_url || '') : '';
@@ -8995,10 +8996,23 @@ const nativeLiveRooms = new Map();
 const nativeBrowserRelays = new Map();
 const SWAPP_RELAY_MAX_ROOMS = Math.max(1, Math.min(5, Number(process.env.SWAPP_HTTP_RELAY_MAX_ROOMS || 2)));
 const SWAPP_RELAY_MAX_BYTES = 10 * 1024 * 1024; // per publishing room
+// Browser recording and OBS HLS need a real shared filesystem on multi-worker
+// Hostinger. Both transports use the same app-data root, with isolated folders.
+const {createBrowserRelayShared}=require('./modules/swapp-browser-relay-shared');
+const swappLiveDir=String(process.env.SWAPP_DIRECT_RELAY_SHARED_DIR||'').trim()||
+  path.join(path.isAbsolute(String(process.env.ORYON_DATA_DIR||''))?process.env.ORYON_DATA_DIR:path.join(__dirname,'data'),'.swapp-live-relay');
+const nativeBrowserShared=createBrowserRelayShared({
+ root:path.join(swappLiveDir,'.browser-relay'),maxRooms:SWAPP_RELAY_MAX_ROOMS
+});
 function swappRelayRoomName(raw){
  return String(raw||'').trim().toLowerCase().replace(/[^a-z0-9_-]/g,'').slice(0,40);
 }
 function swappRelayLive(room){
+ // A public viewer can be routed to a different Node process than the host.
+ // The authenticated publisher writes an atomic shared media state on disk.
+ const shared=nativeBrowserShared.state(room);
+ // A recorder initialization chunk alone is not proof that playback exists.
+ if(shared?.lastSeq>=1)return {...shared,shared:true};
  const r=nativeLiveRooms.get(room);
  const b=nativeBrowserRelays.get(room);
  if(!r?.host || !b || Date.now()-b.updatedAt>18000)return null;
@@ -9009,12 +9023,24 @@ function swappRelayNotCached(res){
  res.set('X-Content-Type-Options','nosniff');
 }
 app.post('/api/native/browser-relay/:room/chunk',
- express.raw({type:'application/octet-stream',limit:'2mb'}), (req,res)=>{
+ express.raw({type:'application/octet-stream',limit:'2mb'}), async(req,res)=>{
   swappRelayNotCached(res);
   const room=swappRelayRoomName(req.params.room);
+  // Browser upload and Socket.IO may land on separate workers.
+  // Verify existing SWAPP session or remember-cookie READ-ONLY. Reissuing a
+  // remember token for every 1.5s media chunk would write all MySQL accounts.
+  await ORYON_USERS_READY.catch(()=>{});
+  let user=getSessionIdentity(req).local;
+  if(!user){
+   const remembered=swappReadRememberPayload(req.cookies?.[SWAPP_REMEMBER_COOKIE]);
+   const login=normalizeOryonLogin(remembered?.login);
+   const stored=login&&(readOryonUsers().users||[]).find(u=>u.login===login);
+   if(stored&&verifyOryonRememberToken(stored,remembered.remember_token))
+    user={id:stored.id,login:stored.login};
+  }
   const live=nativeLiveRooms.get(room);
-  const user=getSessionIdentity(req).local;
-  if(!room || !live?.host || !user || user.login!==room || String(user.id)!==String(live.hostUserId))
+  if(!room || !user || user.login!==room ||
+     (live?.hostUserId&&String(user.id)!==String(live.hostUserId)))
    return res.status(403).json({success:false,error:'Diffusion non autorisée.'});
   const origin=String(req.get('origin')||'');
   if(origin){
@@ -9028,6 +9054,20 @@ app.post('/api/native/browser-relay/:room/chunk',
    return res.status(400).json({success:false,error:'Fragment invalide.'});
   if(!/^video\/(webm|mp4)(;[a-zA-Z0-9.,\-=" ]+)?$/.test(mime))
    return res.status(415).json({success:false,error:'Format média non accepté.'});
+  // Write full media chunks to a shared filesystem with an atomic index.
+  // A returning non-null result is authoritative; never fall through and
+  // create competing partial timelines in process-local memory.
+  let sharedResult;
+  try{sharedResult=nativeBrowserShared.put(room,seq,mime,data,String(user.id))}
+  catch(error){
+   console.warn('[SWAPP LIVE] shared browser ingest error',String(error?.code||error?.message));
+   return res.status(503).json({success:false,error:'Relais vidéo partagé inaccessible.'});
+  }
+  if(sharedResult){
+   if(sharedResult.success)return res.json({success:true,seq,shared_storage:true});
+   return res.status(sharedResult.status||503).json({success:false,error:sharedResult.error});
+  }
+  if(!live?.host)return res.status(503).json({success:false,error:'Relais sur plusieurs processus sans stockage commun.'});
   let b=nativeBrowserRelays.get(room);
   if(seq===0){
    if(!b && nativeBrowserRelays.size>=SWAPP_RELAY_MAX_ROOMS)
@@ -9050,15 +9090,16 @@ app.post('/api/native/browser-relay/:room/chunk',
 app.get('/api/native/browser-relay/:room/state',(req,res)=>{
  swappRelayNotCached(res);
  const room=swappRelayRoomName(req.params.room),b=swappRelayLive(room);
- if(!b)return res.json({success:true,active:false});
- res.json({success:true,active:true,mime:b.mime,firstSeq:b.firstSeq,lastSeq:b.lastSeq});
+ if(!b)return res.json({success:true,active:false,shared_storage_enabled:nativeBrowserShared.enabled,worker:process.pid,reason:'no_recent_video_chunks'});
+ res.json({success:true,active:true,mime:b.mime,firstSeq:b.firstSeq,lastSeq:b.lastSeq,shared_storage:b.shared===true,worker:process.pid});
 });
 app.get('/api/native/browser-relay/:room/segment/:seq',(req,res)=>{
  swappRelayNotCached(res);
  const room=swappRelayRoomName(req.params.room),b=swappRelayLive(room);
  const seq=Number(req.params.seq);
  if(!b || !Number.isSafeInteger(seq) || seq<0)return res.sendStatus(404);
- const data=seq===0?b.init:b.chunks.get(seq);
+ const data=b.shared===true?nativeBrowserShared.segment(room,seq):
+  (seq===0?b.init:b.chunks.get(seq));
  if(!data)return res.sendStatus(410);
  res.type('application/octet-stream').send(data);
 });
@@ -9066,6 +9107,7 @@ const swappBrowserRelaySweep=setInterval(()=>{
  for(const [room,b] of nativeBrowserRelays){
   if(!nativeLiveRooms.has(room)||Date.now()-b.updatedAt>22000)nativeBrowserRelays.delete(room);
  }
+ nativeBrowserShared.sweep();
 },25000);
 swappBrowserRelaySweep.unref?.();
 
@@ -9192,7 +9234,9 @@ io.on('connection', async (socket) => {
     const room = String(payload?.room || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 40);
     const r = nativeLiveRooms.get(room);
     const localAgentLive = isOryonLocalLiveRoom(room);
-    if(!room || (!r?.host && !localAgentLive)) return socket.emit('native:error', { message: 'Aucun live actif dans ce salon.' });
+    const browserShared=Number(nativeBrowserShared.state(room)?.lastSeq||0)>=1;
+    if(!room || (!r?.host && !localAgentLive && !browserShared))
+      return socket.emit('native:error', { message: 'Aucun live actif dans ce salon.' });
     const maxViewers = Number(process.env.MAX_NATIVE_VIEWERS || 300);
     if(r?.viewers && r.viewers.size >= maxViewers) return socket.emit('native:error', { message: 'Salon complet : limite ' + maxViewers + ' viewers atteinte.' });
     if(r?.viewers){
@@ -10853,11 +10897,15 @@ app.get('/api/oryon/channel/:login/live-ping', async (req, res) => {
     res.setHeader('Cache-Control','no-store');
     if(!user)return res.status(404).json({success:false,error:'Chaîne introuvable.'});
     const room=nativeLiveRooms.get(login);
+    const browserCandidate=nativeBrowserShared.state(login);
+    const browserMedia=browserCandidate?.lastSeq>=1?browserCandidate:null;
+    const verifiedObs=swappDirectRelay.activeStreams().find(stream=>stream.login===login);
     const localLiveFresh=isOryonLiveSignalFresh(user);
     res.json({
       success:true,
-      is_live:!!room||localLiveFresh,
-      source:room?'browser-webrtc':(localLiveFresh?'local-agent':'offline')
+      is_live:!!room||!!browserMedia||!!verifiedObs||localLiveFresh,
+      source:verifiedObs?'local-agent':(room||browserMedia?'browser-webrtc':(localLiveFresh?'local-agent':'offline')),
+      media_ready:!!browserMedia||!!verifiedObs
     });
   }catch(e){res.status(500).json({success:false,error:'Statut indisponible.'});}
 });
@@ -10872,8 +10920,12 @@ app.get('/api/oryon/channel/:login/status', async (req, res) => {
     if(!user) return res.status(404).json({success:false,error:'Chaîne introuvable.'});
     ensureOryonUserShape(user, { ensureStreamKey:true });
     const room = (typeof nativeLiveRooms !== 'undefined' && nativeLiveRooms?.get) ? nativeLiveRooms.get(login) : null;
+    const browserCandidate=nativeBrowserShared.state(login);
+    const browserMedia=browserCandidate?.lastSeq>=1?browserCandidate:null;
+    const verifiedObs=swappDirectRelay.activeStreams().find(stream=>stream.login===login);
     const localLiveFresh = isOryonLiveSignalFresh(user);
-    const localPlayerUrl = localLiveFresh ? String(user.oryon_local_player_url || '') : '';
+    const localPlayerUrl = verifiedObs?.player_url||
+      (localLiveFresh ? String(user.oryon_local_player_url || '') : '');
     const localStatusUrl = localLiveFresh ? String(user.oryon_local_status_url || '') : '';
     const localPublicBaseUrl = localLiveFresh ? String(user.oryon_local_public_base_url || '') : '';
     const publicPath = swappChannelPathForLogin(login);
@@ -10884,9 +10936,9 @@ app.get('/api/oryon/channel/:login/status', async (req, res) => {
       public_url:publicPath,
       public_abs_url:(swappPublicBase(req)||'').replace(/\/$/,'') + publicPath,
       live:{
-        is_live:!!room || localLiveFresh,
-        source:room ? 'browser-webrtc' : (localLiveFresh ? 'local-agent' : 'offline'),
-        status:(!!room || localLiveFresh) ? 'live' : 'offline',
+        is_live:!!room || !!browserMedia || !!verifiedObs || localLiveFresh,
+        source:verifiedObs ? 'local-agent' : (room || browserMedia ? 'browser-webrtc' : (localLiveFresh ? 'local-agent' : 'offline')),
+        status:(!!room || !!browserMedia || !!verifiedObs || localLiveFresh) ? 'live' : 'offline',
         started_at:room?.createdAt || user.live_started_at || null,
         last_seen:user.channel_last_seen || user.local_agent_last_seen || null,
         ended_at:user.last_live_ended_at || null,
@@ -10894,12 +10946,12 @@ app.get('/api/oryon/channel/:login/status', async (req, res) => {
         category:room?.category || user.current_live_category || '',
         viewers:room?.viewers ? room.viewers.size : 0,
         peak_viewers:room?.peakViewers || 0,
-        player_url: room?.player_url || localPlayerUrl || '',
-        embed_url: room?.embed_url || localPlayerUrl || '',
+        player_url: room?.player_url || verifiedObs?.player_url || localPlayerUrl || '',
+        embed_url: room?.embed_url || verifiedObs?.player_url || localPlayerUrl || '',
         hls_url: room?.hls_url || (/\.m3u8(\?|$)/i.test(localPlayerUrl) ? localPlayerUrl : ''),
         status_url: localStatusUrl || '',
         public_base_url: localPublicBaseUrl || '',
-        provider: room ? 'browser-webrtc' : (localLiveFresh ? (user.oryon_local_provider || 'local-agent') : 'offline')
+        provider: verifiedObs ? 'swapp-direct-hls' : (room || browserMedia ? 'browser-webrtc' : (localLiveFresh ? (user.oryon_local_provider || 'local-agent') : 'offline'))
       }
     });
   }catch(e){ res.status(500).json({success:false,error:e.message}); }
