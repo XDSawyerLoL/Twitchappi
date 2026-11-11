@@ -17,9 +17,18 @@ function attachSwappDirectRelay(app, opts={}){
  // Optional SAME-FILESYSTEM shared storage. Required for multi-worker Hostinger
  // setups; the configured absolute directory MUST be common to every worker.
  // Never assume separate Hostinger hosts share a filesystem.
- const sharedRoot=String(process.env.SWAPP_DIRECT_RELAY_SHARED_DIR||'').trim();
- if(sharedRoot&&!path.isAbsolute(sharedRoot))throw Error('SWAPP_DIRECT_RELAY_SHARED_DIR must be absolute');
- if(sharedRoot)fs.mkdirSync(sharedRoot,{recursive:true,mode:0o700});
+ // Hostinger may route OBS PUT and HLS GET to distinct Node workers.
+ // Use a common writable app-data directory even when the operator has not
+ // provided the optional explicit absolute shared path.
+ const configuredShared=String(process.env.SWAPP_DIRECT_RELAY_SHARED_DIR||'').trim();
+ if(configuredShared&&!path.isAbsolute(configuredShared))throw Error('SWAPP_DIRECT_RELAY_SHARED_DIR must be absolute');
+ const defaultBase=String(process.env.ORYON_DATA_DIR||'').trim();
+ let sharedRoot=configuredShared||path.join(path.isAbsolute(defaultBase)?defaultBase:path.join(__dirname,'..','data'),'.swapp-live-relay');
+ try{fs.mkdirSync(sharedRoot,{recursive:true,mode:0o700})}
+ catch(error){
+  console.warn('[SWAPP HLS] shared disk disabled:',String(error?.code||error?.message));
+  sharedRoot='';
+ }
  const sharedPath=(login,name)=>path.join(sharedRoot,login,name);
  function atomicSharedWrite(login,name,bytes){
   const dir=path.join(sharedRoot,login);
@@ -190,6 +199,34 @@ function attachSwappDirectRelay(app, opts={}){
   for(const [login,r] of rooms){
    if(now-r.lastManifestAt>TTL_MS){rooms.delete(login);continue}
    for(const [id,seen] of (r.viewers||new Map()))if(now-seen>45000)r.viewers.delete(id);
+  }
+  // The shared HLS directory is temporary live transport, not a VOD.
+  // Bounded pruning prevents unbounded disk growth when OBS runs for hours.
+  if(sharedRoot){
+   try{
+    for(const entry of fs.readdirSync(sharedRoot,{withFileTypes:true})){
+     if(!entry.isDirectory()||!cleanLogin(entry.name))continue;
+     const login=entry.name,dir=path.join(sharedRoot,login);
+     let freshManifest=false,pinned=new Set();
+     try{
+      const f=path.join(dir,'index.m3u8'),stat=fs.statSync(f);
+      freshManifest=now-stat.mtimeMs<90000;
+      if(freshManifest)pinned=new Set(fs.readFileSync(f,'utf8').split(/\r?\n/).filter(x=>/^seg_[0-9]{1,14}\.ts$/.test(x)));
+     }catch(_){}
+     for(const file of fs.readdirSync(dir)){
+      if(!/^seg_[0-9]{1,14}\.ts$/.test(file)||pinned.has(file))continue;
+      try{
+       const target=path.join(dir,file),stat=fs.statSync(target);
+       if(now-stat.mtimeMs>120000)fs.unlinkSync(target);
+      }catch(_){}
+     }
+     if(!freshManifest){
+      let age=0;
+      try{age=now-fs.statSync(dir).mtimeMs}catch(_){}
+      if(age>180000)fs.rmSync(dir,{recursive:true,force:true});
+     }
+    }
+   }catch(error){console.warn('[SWAPP HLS] prune skipped',String(error?.code||error?.message))}
   }
  }
  const interval=setInterval(reclaim,12000);
