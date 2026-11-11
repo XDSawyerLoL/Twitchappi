@@ -1775,7 +1775,7 @@ app.get(['/discover','/teams'],(req,res)=>{
 app.get(Array.from(SWAPP_CLEAN_VIEW_PATHS), (req, res) => { if(req.path==='/actus')res.set('Cache-Control','no-store'); return sendSwappUi(res); });
 // Reserve /tech for editorial AI & robotics even when the News CMS is disabled.
 // Must precede the root-level creator channel catch-all.
-app.get('/tech',async(req,res,next)=>{
+app.get(['/tech','/technologies'],async(req,res,next)=>{
  try{
   const {renderTechWatch,readTechItems}=require('./modules/swapp-tech-watch-page');
   const section=['IA','Robotique'].includes(req.query.rubrique)?req.query.rubrique:'';
