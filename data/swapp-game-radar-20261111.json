@@ -1,0 +1,74 @@
+{
+  "schema": 1,
+  "kind": "swapp-gaming-radar",
+  "verifiedAt": "2026-11-11",
+  "notice": "Fiches de suivi fondées sur des annonces officielles déjà publiées. Ce radar n'est pas un flux de nouvelles annonces ; réactualiser les informations avant publication d'un article.",
+  "items": [
+    {
+      "id": "dawn-of-war-iv",
+      "game": "Warhammer 40,000: Dawn of War IV",
+      "headline": "La Commander Edition et le calendrier de sortie",
+      "summary": "Le RTS de KING Art est annoncé pour le 3 décembre 2026 sur PC. La Commander Edition prévoit un accès anticipé de trois jours et du contenu de la première année.",
+      "releaseDate": "2026-12-03",
+      "platforms": "PC (Steam)",
+      "sourceName": "Steam · fiche officielle Deep Silver",
+      "sourceUrl": "https://store.steampowered.com/app/2272360/Warhammer_40000_Dawn_of_War_IV/",
+      "videoId": null
+    },
+    {
+      "id": "metro-2039",
+      "game": "Metro 2039",
+      "headline": "Retour à Moscou : gameplay console et date annoncée",
+      "summary": "4A Games présente son FPS narratif et annonce le 4 février 2027, avec un décalage au 5 février dans certaines régions. La vidéo officielle montre du gameplay capturé sur PS5 Pro.",
+      "releaseDate": "2027-02-04",
+      "platforms": "PC et consoles",
+      "sourceName": "4A Games · vidéo officielle du 3 septembre 2026",
+      "sourceUrl": "https://www.youtube.com/watch?v=cglLxmNfk7Q",
+      "videoId": "cglLxmNfk7Q"
+    },
+    {
+      "id": "dragon-quest-monsters-withered-world",
+      "game": "Dragon Quest Monsters : Le Royaume de Boisflétri",
+      "headline": "Les monstres à collectionner et les éditions détaillées",
+      "summary": "Square Enix présente les éditions du nouveau Dragon Quest Monsters, sa synthèse de monstres et une sortie annoncée pour le 3 décembre 2026.",
+      "releaseDate": "2026-12-03",
+      "platforms": "Voir les plateformes sur la fiche officielle",
+      "sourceName": "Square Enix · boutique officielle française",
+      "sourceUrl": "https://fr.store.square-enix-games.com/dragon-quest-monsters-the-withered-world",
+      "videoId": null
+    },
+    {
+      "id": "persona-4-revival",
+      "game": "Persona 4 Revival",
+      "headline": "Le remake d'Inaba se précise",
+      "summary": "SEGA référence Persona 4 Revival sur Xbox Series X|S, Windows, PS5 et Steam pour le 18 février 2027. Les conditions peuvent varier selon la plateforme et la région.",
+      "releaseDate": "2027-02-18",
+      "platforms": "Xbox Series X|S, Windows, PS5, Steam",
+      "sourceName": "SEGA Asia · calendrier officiel des jeux",
+      "sourceUrl": "https://asia.sega.com/",
+      "videoId": null
+    },
+    {
+      "id": "stranger-than-heaven",
+      "game": "Stranger Than Heaven",
+      "headline": "Le prochain jeu de Ryu Ga Gotoku Studio",
+      "summary": "SEGA liste Stranger Than Heaven comme une aventure d'action prévue le 15 janvier 2027 sur consoles et PC.",
+      "releaseDate": "2027-01-15",
+      "platforms": "Xbox Series X|S, PC, PS5",
+      "sourceName": "SEGA Asia · fiche officielle",
+      "sourceUrl": "https://asia.sega.com/en/steam.html",
+      "videoId": null
+    },
+    {
+      "id": "fable",
+      "game": "Fable",
+      "headline": "Albion, une population vivante et des choix qui comptent",
+      "summary": "Playground Games détaille la population vivante et la réputation des personnages d'Albion. Xbox annonce le 23 février 2027, avec accès anticipé pour certaines éditions.",
+      "releaseDate": "2027-02-23",
+      "platforms": "Xbox Series X|S, PC, PS5",
+      "sourceName": "Xbox Wire · développeurs de Fable",
+      "sourceUrl": "https://news.xbox.com/fr-fr/2026/06/10/fable-comment-nous-avons-cree-la-population-vivante-dalbion/",
+      "videoId": "3iW1i78zFvk"
+    }
+  ]
+}
