@@ -3,7 +3,7 @@
 const {run}=require('../tools/swapp-tech-watch');
 const {saveCandidates,withWatchLock}=require('./swapp-tech-watch-store');
 const INTERVAL_MS=6*60*60*1000;
-function startTechWatch({enabled=process.env.SWAPP_TECH_WATCH_ENABLED==='1',execute=run,log=console,intervalMs=INTERVAL_MS}={}){
+function startTechWatch({enabled=process.env.SWAPP_TECH_WATCH_ENABLED!=='0' && !!(process.env.SWAPP_NEWS_MYSQL_URL||process.env.SWAPP_MYSQL_URL),execute=run,log=console,intervalMs=INTERVAL_MS}={}){
  if(!enabled)return {enabled:false,stop(){}};
  let stopped=false,running=false,lastAttempt=0;
  const tick=async()=>{
