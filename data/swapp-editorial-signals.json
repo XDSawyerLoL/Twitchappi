@@ -180,7 +180,9 @@
       "sourceUrl": "https://deepmind.google/models/model-cards/gemini-omni-1-2-flash/",
       "sourceDate": "2026-11-05",
       "reviewedAt": "2026-11-11",
-      "articleSlug": null
+      "articleSlug": null,
+      "imageUrl": "https://storage.googleapis.com/gweb-cloudblog-publish/images/gemini-omni.max-2500x2500.jpg",
+      "imageCredit": "Google Cloud · Gemini Omni 1.2 Flash"
     },
     {
       "id": "antigravity-cheminformatics-20261103",
