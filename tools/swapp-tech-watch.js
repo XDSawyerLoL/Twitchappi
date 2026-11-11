@@ -9,6 +9,8 @@ const SOURCES=[
   {id:'mistral',section:'IA',name:'Mistral AI',url:'https://mistral.ai/news/rss.xml'},
   {id:'huggingface',section:'IA',name:'Hugging Face',url:'https://huggingface.co/blog/feed.xml'},
   {id:'google-research',section:'IA',name:'Google Research',url:'https://research.google/blog/rss/'},
+  {id:'deepmind',section:'IA',name:'Google DeepMind',url:'https://deepmind.google/blog/rss.xml'},
+  {id:'nvidia-dev',section:'IA',name:'NVIDIA Developer',url:'https://developer.nvidia.com/blog/feed/'},
   {id:'nvidia',section:'Robotique',name:'NVIDIA',url:'https://blogs.nvidia.com/feed/'},
   {id:'ieee-robotics',section:'Robotique',name:'IEEE Spectrum Robotics',url:'https://spectrum.ieee.org/feeds/topic/robotics.rss'},
   {id:'esa-tech',section:'FUTURE',name:'Agence spatiale européenne · Technologies',url:'https://www.esa.int/rssfeed/Our_Activities/Space_Engineering_Technology'}
