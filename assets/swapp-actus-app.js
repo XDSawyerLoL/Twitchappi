@@ -4,6 +4,37 @@ const el=(tag,cls,text)=>{const x=document.createElement(tag);if(cls)x.className
 const url=v=>{try{const u=new URL(v);return u.protocol==='https:'&&!u.username&&!u.password?u.href:null}catch{return null}};
 const date=v=>{const d=new Date(v);return v&&!Number.isNaN(d.getTime())?d.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'}):'';};
 const slugOk=s=>/^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/.test(s||'');
+
+// Editorial taxonomy: one /actus listing, with user-visible TAGS (not separate pages).
+const SWAPP_TOPICS=[
+ {id:'',label:'Toutes les actualités'},
+ {id:'GAMING',label:'GAMING'},
+ {id:'AI',label:'AI'},
+ {id:'ROBOTICS',label:'ROBOTICS'},
+ {id:'FUTURE',label:'FUTURE'}
+];
+const normalizeTopic=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim().replace(/[\s_-]+/g,' ');
+const topicCode=value=>{
+ const tag=normalizeTopic(value);
+ if(['gaming','jeu video','jeux video','jv'].includes(tag))return 'GAMING';
+ if(['ai','ia','intelligence artificielle','artificial intelligence'].includes(tag))return 'AI';
+ if(['robotics','robotique','robots','robots et automatisation','automatisation'].includes(tag))return 'ROBOTICS';
+ if(['future','futur','technologies emergentes','technologie emergente','emerging technologies'].includes(tag))return 'FUTURE';
+ return '';
+};
+const articleTopics=article=>{
+ const explicit=[...(Array.isArray(article?.tags)?article.tags:[]),article?.category]
+  .map(topicCode).filter(Boolean);
+ const unique=[...new Set(explicit)];
+ // Historical gaming articles predate the new topic tags; preserve their discoverability.
+ return unique.length?unique:['GAMING'];
+};
+const hasTopic=(article,topic)=>!topic||articleTopics(article).includes(topic);
+const queryTopic=()=>{
+ try{const tag=new URLSearchParams(window.location.search).get('tag');return topicCode(tag);}
+ catch(_){return '';}
+};
+
  // One consistent identity rule across the ACTUS list and article reader.
  // Never confuse numbered sequels, e.g. Hades and Hades II.
  const gameKey=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
@@ -77,11 +108,32 @@ function cover(article){
  return p;
 }
 function makeCard(a){if(!slugOk(a.slug))return null;const link=el('a','swapp-actus-card');link.href='/actus/'+encodeURIComponent(a.slug);
-const info=el('div','swapp-actus-info');info.append(el('small','',a.game||a.category||'Actualité'),el('h2','',a.title),el('p','',a.summary||''),el('span','',date(a.publishedAt||a.originalPublishedAt)+' · Lire l’article →'));
+const info=el('div','swapp-actus-info');info.append(el('small','',a.game||a.category||'Actualité'),el('span','swapp-actus-topic-label',articleTopics(a).join(' · ')),el('h2','',a.title),el('p','',a.summary||''),el('span','',date(a.publishedAt||a.originalPublishedAt)+' · Lire l’article →'));
 link.append(cover(a),info);link.onclick=e=>{if(e.button||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey)return;e.preventDefault();window.SwappLocalTastes?.record?.(a.game);open(a.slug)};return link;}
 function paragraphContent(parent,raw){let list=null;for(const lineRaw of String(raw||'').split(/\r?\n/)){const line=lineRaw.trim();if(!line){list=null;continue;}let m;if((m=line.match(/^(#{2,3})\s+(.+)/))){parent.append(el('h'+m[1].length,'',m[2]));list=null;}else if((m=line.match(/^[-*]\s+(.+)/))){if(!list){list=el('ul');parent.append(list)}list.append(el('li','',m[1]));}else{list=null;parent.append(el('p','',line.replace(/\*\*(.*?)\*\*/g,'$1')));}}}
-async function showList(node){const headline=el('header','swapp-actus-head');headline.append(el('small','','SWAPP / Actualité'),el('h1','','L’actualité du jeu vidéo'),el('p','','Des articles complets et des créateurs en direct, sans quitter SWAPP.'));node.append(headline);
-const tools=el('div','swapp-actus-tools'),search=el('input');search.type='search';search.placeholder='Rechercher un jeu ou une actualité';search.setAttribute('aria-label','Recherche Actualité');const live=el('button','swapp-actus-go-live','Découvrir les lives →');live.onclick=()=>window.setView('discover');const category=el('select','swapp-actus-category');category.setAttribute('aria-label','Filtrer par catégorie');const all=el('option','','Toutes les catégories');all.value='';category.append(all);tools.append(search,category,live);node.append(tools);window.SwappArticleFeedback?.mountList(node);
+async function showList(node){const headline=el('header','swapp-actus-head');headline.append(el('small','','SWAPP LIVE NEWS · Actualité'),el('h1','','Toutes les actualités SWAPP'),el('p','','Gaming, intelligence artificielle, robotique et technologies émergentes : un seul magazine, filtré par tags.'));node.append(headline);
+const tools=el('div','swapp-actus-tools'),search=el('input');search.type='search';search.placeholder='Rechercher un jeu ou une actualité';search.setAttribute('aria-label','Recherche Actualité');const live=el('button','swapp-actus-go-live','Découvrir les lives →');live.onclick=()=>window.setView('discover');const category=el('select','swapp-actus-category');category.setAttribute('aria-label','Filtrer par catégorie');const all=el('option','','Toutes les catégories');all.value='';category.append(all);tools.append(search,category,live);node.append(tools);
+const topicBar=el('div','swapp-actus-topic-tags');
+topicBar.setAttribute('role','group');topicBar.setAttribute('aria-label','Filtrer les actualités par tag');
+node.append(topicBar);
+let activeTopic=queryTopic();
+const drawTopics=()=>{
+ topicBar.replaceChildren();
+ for(const topic of SWAPP_TOPICS){
+  const b=el('button','swapp-actus-topic-tag'+(topic.id===activeTopic?' active':''),topic.label);
+  b.type='button';
+  b.dataset.topic=topic.id;
+  b.setAttribute('aria-pressed',String(topic.id===activeTopic));
+  b.onclick=()=>{
+   activeTopic=topic.id;
+   try{history.replaceState(history.state,'','/actus'+(activeTopic?'?tag='+encodeURIComponent(activeTopic):''));}catch(_){}
+   drawTopics();update();
+  };
+  topicBar.append(b);
+ }
+};
+drawTopics();
+window.SwappArticleFeedback?.mountList(node);
 const liveSection=el('section','swapp-discover-live');liveSection.setAttribute('aria-label','Créateurs en direct pour le jeu sélectionné');const liveHeading=el('div','swapp-discover-live-heading');liveHeading.append(el('h2','','Les créateurs en direct'));const liveStatus=el('p','swapp-discover-live-status');liveSection.append(liveHeading,liveStatus);const liveCards=el('div','swapp-discover-live-grid');liveSection.append(liveCards);node.append(liveSection);
 let liveResults=null,liveLoading=null,liveTicket=0;
 const normalized=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
@@ -99,7 +151,7 @@ for(const item of found){const login=String(item.login).toLowerCase(),native=['s
 }catch{if(ticket===liveTicket&&liveSection.isConnected)liveStatus.textContent='Lives temporairement indisponibles. Les articles restent accessibles.'}}
 liveSection.hidden=true;
 const gamesBar=el('div','swapp-actus-game-filters');gamesBar.setAttribute('aria-label','Explorer les jeux');node.append(gamesBar);let activeGame='',gamesExpanded=false;const count=el('p','swapp-actus-count');count.setAttribute('aria-live','polite');node.append(count);const feed=el('div','swapp-actus-grid');node.append(feed);
-const update=()=>{feed.replaceChildren();const query=search.value.toLocaleLowerCase('fr').trim();const available=items.filter(x=>(!activeGame||String(x.game||'')===activeGame)&&(!category.value||(x.category||'')===category.value)&&[x.title,x.game,x.summary,x.category].join(' ').toLocaleLowerCase('fr').includes(query));count.textContent=available.length+' article'+(available.length>1?'s':'')+' à découvrir';if(!available.length){feed.append(el('p','swapp-actus-state',query?'Aucun résultat.':'Aucun article complet récupéré pour le moment.'));return;}available.forEach(a=>{const c=makeCard(a);if(c)feed.append(c)});};
+const update=()=>{feed.replaceChildren();const query=search.value.toLocaleLowerCase('fr').trim();const available=items.filter(x=>(!activeGame||String(x.game||'')===activeGame)&&(!category.value||(x.category||'')===category.value)&&hasTopic(x,activeTopic)&&[x.title,x.game,x.summary,x.category,...(Array.isArray(x.tags)?x.tags:[])].join(' ').toLocaleLowerCase('fr').includes(query));count.textContent=available.length+' article'+(available.length>1?'s':'')+' à découvrir';if(!available.length){feed.append(el('p','swapp-actus-state',query?'Aucun résultat.':'Aucun article complet récupéré pour le moment.'));return;}available.forEach(a=>{const c=makeCard(a);if(c)feed.append(c)});};
 search.oninput=update;category.onchange=update;feed.append(el('p','swapp-actus-state','Chargement des articles…'));
 try{const data=await fetchJson('/api/actus');if(!node.isConnected)return;items=Array.isArray(data.articles)?data.articles:[];const categories=[...new Set(items.map(x=>x.category).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'fr'));for(const name of categories){const option=el('option','',name);option.value=name;category.append(option)}
 const games=[...new Set(items.map(x=>String(x.game||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'fr')).slice(0,16);

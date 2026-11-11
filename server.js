@@ -1775,25 +1775,25 @@ app.get(['/discover','/teams'],(req,res)=>{
 app.get(Array.from(SWAPP_CLEAN_VIEW_PATHS), (req, res) => { if(req.path==='/actus')res.set('Cache-Control','no-store'); return sendSwappUi(res); });
 // Reserve /tech for editorial AI & robotics even when the News CMS is disabled.
 // Must precede the root-level creator channel catch-all.
-// The 5 public editorial sections must resolve before the creator catch-all.
-// Never interpret /tech, /ai, /robotics, /future or /gaming as streamer names.
+// The old /tech experimental paths are *aliases* into the existing /actus page.
+// No secondary media pages or streamer channels. Keep these roots reserved.
 app.get(['/tech','/technologies','/gaming','/ai','/robotics','/future','/live-news',
- '/tech/gaming','/tech/ai','/tech/robotique','/tech/futur','/tech/live'],async(req,res,next)=>{
- try{
-  const {renderTechWatch,readTechItems,VALID_PATHS,HUBS}=require('./modules/swapp-tech-watch-page');
-  const selected=VALID_PATHS.get(req.path)||'tech';
-  const topic=HUBS.find(h=>h.id===selected);
-  const section=topic?.section||(['IA','Robotique','FUTURE'].includes(req.query.rubrique)?req.query.rubrique:'');
-  const uri=process.env.SWAPP_NEWS_MYSQL_URL||process.env.SWAPP_MYSQL_URL;
-  let items=[],feedError=!uri;
-  try{items=await readTechItems({uri,section});}
-  catch(error){
-   feedError=true;
-   console.warn('[SWAPP EDITORIAL HUB] Tech source collection unavailable:',error?.code||error?.message);
-  }
-  res.set('Cache-Control','no-store');
-  return res.type('html').send(renderTechWatch(items,{section,path:req.path,feedError}));
- }catch(error){return next(error);}
+ '/tech/gaming','/tech/ai','/tech/robotique','/tech/futur','/tech/live'],(req,res)=>{
+ const topicByPath={
+  '/gaming':'GAMING','/tech/gaming':'GAMING',
+  '/ai':'AI','/tech/ai':'AI',
+  '/robotics':'ROBOTICS','/tech/robotique':'ROBOTICS',
+  '/future':'FUTURE','/tech/futur':'FUTURE'
+ };
+ let topic=topicByPath[req.path]||'';
+ if(!topic && (req.path==='/tech'||req.path==='/technologies')){
+  const term=String(req.query.rubrique||'').toLowerCase();
+  if(term==='ia'||term==='ai')topic='AI';
+  else if(term==='robotique'||term==='robotics')topic='ROBOTICS';
+  else if(term==='futur'||term==='future')topic='FUTURE';
+ }
+ res.set('Cache-Control','no-store');
+ return res.redirect(302,'/actus'+(topic?'?tag='+encodeURIComponent(topic):''));
 });
 app.get(/^\/([a-zA-Z0-9_][a-zA-Z0-9_-]{1,39})$/, (req, res, next) => {
   const slug = String(req.params[0] || '').toLowerCase();
