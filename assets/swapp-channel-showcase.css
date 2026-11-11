@@ -182,6 +182,7 @@
 
 /* Menus float at document level. Toggling Gérer ma chaîne MUST NOT resize
    or reposition other actions, the banner, the chat or the live player. */
+.swapp-showcase-floating-menu[hidden]{display:none!important}
 .swapp-showcase-floating-menu{
  position:fixed!important;
  display:flex!important;flex-direction:column!important;gap:5px!important;
