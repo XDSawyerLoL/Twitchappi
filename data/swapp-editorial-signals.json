@@ -108,7 +108,9 @@
       "sourceUrl": "https://news.panasonic.com/global/press/en261105-2",
       "sourceDate": "2026-11-05",
       "reviewedAt": "2026-11-11",
-      "articleSlug": null
+      "articleSlug": null,
+      "imageUrl": "https://news.panasonic.com/uploads/tmg_block_page/cover_image/19136/l-en261105-2-1.jpg",
+      "imageCredit": "Panasonic · robot tactile T-Rex"
     },
     {
       "id": "nvidia-snapshot-20261110",
@@ -124,7 +126,9 @@
       "sourceUrl": "https://developer.nvidia.com/blog/start-and-restore-gpu-workloads-in-seconds-with-nvidia-snapshot/",
       "sourceDate": "2026-11-10",
       "reviewedAt": "2026-11-11",
-      "articleSlug": null
+      "articleSlug": null,
+      "imageUrl": "https://developer-blogs.nvidia.com/wp-content/uploads/2026/11/nvidia-snapshot-gpu-checkpoint-restore-1024x576-jpg.webp",
+      "imageCredit": "NVIDIA Developer · Snapshot"
     },
     {
       "id": "holoscan5-robot-arm-20261109",
@@ -140,7 +144,9 @@
       "sourceUrl": "https://developer.nvidia.com/blog/make-a-robot-arm-feel-weightless-with-nvidia-holoscan-5/",
       "sourceDate": "2026-11-09",
       "reviewedAt": "2026-11-11",
-      "articleSlug": null
+      "articleSlug": null,
+      "imageUrl": "https://developer-blogs.nvidia.com/wp-content/uploads/2026/11/featured-image-1024x576-jpg.webp",
+      "imageCredit": "NVIDIA Developer · Holoscan 5"
     },
     {
       "id": "genie4-world-simulation-20261027",
@@ -156,7 +162,9 @@
       "sourceUrl": "https://deepmind.google/blog/genie-4-a-new-generation-of-world-simulation/",
       "sourceDate": "2026-10-27",
       "reviewedAt": "2026-11-11",
-      "articleSlug": "genie-4-google-deepmind-simulation-mondes-interactifs-2026"
+      "articleSlug": "genie-4-google-deepmind-simulation-mondes-interactifs-2026",
+      "imageUrl": "https://lh3.googleusercontent.com/mKq26Yz8rlcAthtTHS2GaID7LuUM9a4zM16VHUszY-zyKly80QRUt5nn6V4jQN8_bJ4_UMesp1D_88ethzTEJPoo6NUPyhO76QZ7zNJM5KzfPE5GKjM=w1440-h810-n-nu",
+      "imageCredit": "Google DeepMind · Genie 4"
     },
     {
       "id": "omni12-flash-video-20261105",
@@ -188,7 +196,9 @@
       "sourceUrl": "https://deepmind.google/blog/agentic-cheminformatics-with-google-antigravity/",
       "sourceDate": "2026-11-03",
       "reviewedAt": "2026-11-11",
-      "articleSlug": null
+      "articleSlug": null,
+      "imageUrl": "https://storage.googleapis.com/gdm-deepmind-com-prod-public/media/original_images/antigravity_cheminformatics_social.jpg",
+      "imageCredit": "Google DeepMind · Antigravity et chimie"
     },
     {
       "id": "nvidia-cosmos-worldmodels-20261102",
@@ -205,7 +215,9 @@
       "sourceUrl": "https://developer.nvidia.com/blog/build-world-models-for-interactive-simulation-with-nvidia-cosmos/",
       "sourceDate": "2026-11-02",
       "reviewedAt": "2026-11-11",
-      "articleSlug": null
+      "articleSlug": null,
+      "imageUrl": "https://developer-blogs.nvidia.com/wp-content/uploads/2026/10/cosmos-framework-tech-blog-600x338-5784057.webp",
+      "imageCredit": "NVIDIA · Cosmos Framework"
     },
     {
       "id": "isaac-lab3-nvidia-20261029",
@@ -221,7 +233,9 @@
       "sourceUrl": "https://forums.developer.nvidia.com/t/nvidia-isaac-lab-3-0-now-available/387360",
       "sourceDate": "2026-10-29",
       "reviewedAt": "2026-11-11",
-      "articleSlug": null
+      "articleSlug": null,
+      "imageUrl": "https://global.discourse-cdn.com/nvidia/optimized/4X/d/5/2/d52994af92d80215e3d3308e93a40799dc7e605a_2_690x388.jpeg",
+      "imageCredit": "NVIDIA Developer Forums · Isaac Lab 3.0"
     }
   ]
 }
