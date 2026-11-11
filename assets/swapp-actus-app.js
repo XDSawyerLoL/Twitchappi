@@ -189,7 +189,9 @@ refreshSignalSection=()=>{
  const pending=watch.filter(x=>!activeTopic||(Array.isArray(x.topics)&&x.topics.includes(activeTopic)));
  sourceDetails.hidden=pending.length===0;
  sourceList.replaceChildren();
- sourceSummary.textContent='Sources surveillées ('+pending.length+') · signalement non vérifié';
+ const seenAt=flashData.watch?.lastCollectionAt?new Date(flashData.watch.lastCollectionAt):null;
+ const seenLabel=seenAt&&Number.isFinite(seenAt.getTime())?' · dernière collecte '+seenAt.toLocaleDateString('fr-FR',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'';
+ sourceSummary.textContent='Sources surveillées ('+pending.length+') · signalement non vérifié'+seenLabel;
  pending.slice(0,18).forEach(x=>{
   const href=safeSource(x.sourceUrl);if(!href)return;
   const item=el('a','swapp-flash-pending',x.title+' · '+x.sourceName+' · '+shortDate(x.sourceDate));
