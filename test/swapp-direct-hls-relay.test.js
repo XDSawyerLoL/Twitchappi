@@ -7,12 +7,14 @@ const path=require('node:path');
 const vm=require('node:vm');
 
 const source=fs.readFileSync(path.join(__dirname,'..','modules','swapp-direct-hls-relay.js'),'utf8');
+const testRelayTempDirs=[];
+process.once('exit',()=>{for(const dir of testRelayTempDirs)try{fs.rmSync(dir,{recursive:true,force:true})}catch(_){}});
 function backend(env={}){
  // Isolate each simulated process to avoid leaking temporary HLS media into
  // another test now that the production relay defaults to disk-backed storage.
  if(!env.SWAPP_DIRECT_RELAY_SHARED_DIR){
   const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'swapp-hls-worker-'));
-  process.on('exit',()=>{try{fs.rmSync(tmp,{recursive:true,force:true})}catch(_){}});
+  testRelayTempDirs.push(tmp);
   env={...env,SWAPP_DIRECT_RELAY_SHARED_DIR:tmp};
  }
  const routes={get:new Map(),post:new Map(),put:new Map()};
