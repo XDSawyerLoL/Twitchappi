@@ -1,8 +1,8 @@
 'use strict';
-// Hostinger Node-process scheduler: off by default until persistent storage is ready.
+// Hostinger Node-process source discovery. Independently polls fast public feeds; publication retains 6h editorial review.
 const {run}=require('../tools/swapp-tech-watch');
 const {saveCandidates,withWatchLock}=require('./swapp-tech-watch-store');
-const INTERVAL_MS=6*60*60*1000;
+const INTERVAL_MS=60*60*1000;
 function startTechWatch({enabled=process.env.SWAPP_TECH_WATCH_ENABLED!=='0' && !!(process.env.SWAPP_NEWS_MYSQL_URL||process.env.SWAPP_MYSQL_URL),execute=()=>run({output:null}),log=console,intervalMs=INTERVAL_MS}={}){
  if(!enabled)return {enabled:false,stop(){}};
  let stopped=false,running=false,lastAttempt=0;
