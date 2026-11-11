@@ -1626,9 +1626,13 @@ app.get('/api/actus/signaux',async(_req,res)=>{
  try{
   const {editorialSignals,watchCandidates,buildSignalResponse}=require('./modules/swapp-news/editorial-signals');
   const uri=process.env.SWAPP_NEWS_MYSQL_URL||process.env.SWAPP_MYSQL_URL||'';
-  const watch=await watchCandidates({uri,limit:18});
+  // Source watcher is optional: its failure must never take down reviewed editorial notes.
+  const reviewed=editorialSignals();
+  let watch={status:'unavailable',lastCollectionAt:null,items:[]};
+  try{watch=await watchCandidates({uri,limit:18});}
+  catch(watchError){console.warn('[SWAPP FLASH] Veille MySQL secondaire indisponible:',watchError?.code||watchError?.message);}
   res.set('Cache-Control','public, max-age=90');
-  return res.json(buildSignalResponse(editorialSignals(),watch));
+  return res.json(buildSignalResponse(reviewed,watch));
  }catch(error){
   console.error('[SWAPP FLASH] Echec lecture:',error?.code||error?.message);
   return res.status(503).set('Cache-Control','no-store').json({error:'signal_feed_unavailable'});
