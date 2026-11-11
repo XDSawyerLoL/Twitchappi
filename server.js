@@ -9089,8 +9089,8 @@ app.post('/api/native/browser-relay/:room/chunk',
 app.get('/api/native/browser-relay/:room/state',(req,res)=>{
  swappRelayNotCached(res);
  const room=swappRelayRoomName(req.params.room),b=swappRelayLive(room);
- if(!b)return res.json({success:true,active:false});
- res.json({success:true,active:true,mime:b.mime,firstSeq:b.firstSeq,lastSeq:b.lastSeq,shared_storage:b.shared===true});
+ if(!b)return res.json({success:true,active:false,shared_storage_enabled:nativeBrowserShared.enabled,worker:process.pid,reason:'no_recent_video_chunks'});
+ res.json({success:true,active:true,mime:b.mime,firstSeq:b.firstSeq,lastSeq:b.lastSeq,shared_storage:b.shared===true,worker:process.pid});
 });
 app.get('/api/native/browser-relay/:room/segment/:seq',(req,res)=>{
  swappRelayNotCached(res);
