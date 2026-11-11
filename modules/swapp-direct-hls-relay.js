@@ -523,7 +523,7 @@ function attachSwappDirectRelay(app, opts={}){
   else if(seen&&now-t.last_put_at<60000)stage='upload_detected';
   else if(seen)stage='upload_stale';
   res.json({success:true,room:login,stage,active,transport:'obs-hls-http-put',
-   backend:'swapp-direct-hls',single_node_process:true,
+   backend:'swapp-direct-hls',single_node_process:!sharedRoot,
    last_put_at:t.last_put_at||null,last_file_type:t.last_file_type||null,
    last_status:t.last_status||null,last_error_code:t.last_error_code||null,
    last_error_file_type:t.last_error_file_type||null,
@@ -586,9 +586,13 @@ function attachSwappDirectRelay(app, opts={}){
   const sharedNames=shared?.names||[];
   const sharedActive=sharedNames.length>0;
   res.json({success:true,active:sharedActive||hasFreshVideo(r),segment_count:sharedActive?sharedNames.length:r?.segments?.size||0,
-   last_manifest_at:r?.lastManifestAt||null,last_segment_at:r?.lastSegmentAt||null,
-   segment_age_ms:r?.lastSegmentAt?Math.max(0,Date.now()-r.lastSegmentAt):null,
-   media_fresh:sharedActive||hasFreshVideo(r),audio_track:r?.audioTrack||'unknown',dvr_seconds:r?Math.round(Math.min(80,historySeconds(r))):0,preview_ready:!!r?.clip,
+   last_manifest_at:r?.lastManifestAt||null,last_segment_at:shared?.segmentStamp||r?.lastSegmentAt||null,
+   segment_age_ms:shared?.segmentStamp?Math.max(0,Date.now()-shared.segmentStamp):
+    (r?.lastSegmentAt?Math.max(0,Date.now()-r.lastSegmentAt):null),
+   media_fresh:sharedActive||hasFreshVideo(r),
+   shared_storage_enabled:!!sharedRoot,shared_media_ready:sharedActive,worker:process.pid,
+   audio_track:shared?.metadata?.audioTrack||r?.audioTrack||'unknown',
+   dvr_seconds:r?Math.round(Math.min(80,historySeconds(r))):0,preview_ready:!!r?.clip,
    segment_bytes_in_memory:r?.bytes||0,segment_memory_budget:MAX_ROOM_BYTES,
    missing_segment_requests:r?.missingSegmentRequests||0});
  });
