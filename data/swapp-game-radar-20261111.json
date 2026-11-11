@@ -13,7 +13,8 @@
       "platforms": "PC (Steam)",
       "sourceName": "Steam · fiche officielle Deep Silver",
       "sourceUrl": "https://store.steampowered.com/app/2272360/Warhammer_40000_Dawn_of_War_IV/",
-      "videoId": null
+      "videoId": "hy8qn3VqYiE",
+      "videoUrl": "https://www.youtube.com/watch?v=hy8qn3VqYiE"
     },
     {
       "id": "metro-2039",
@@ -24,7 +25,8 @@
       "platforms": "PC et consoles",
       "sourceName": "4A Games · vidéo officielle du 3 septembre 2026",
       "sourceUrl": "https://www.youtube.com/watch?v=cglLxmNfk7Q",
-      "videoId": "cglLxmNfk7Q"
+      "videoId": "cglLxmNfk7Q",
+      "videoUrl": "https://www.youtube.com/watch?v=cglLxmNfk7Q"
     },
     {
       "id": "dragon-quest-monsters-withered-world",
@@ -35,7 +37,8 @@
       "platforms": "Voir les plateformes sur la fiche officielle",
       "sourceName": "Square Enix · boutique officielle française",
       "sourceUrl": "https://fr.store.square-enix-games.com/dragon-quest-monsters-the-withered-world",
-      "videoId": null
+      "videoId": "tsmv5am_iOE",
+      "videoUrl": "https://www.youtube.com/watch?v=tsmv5am_iOE"
     },
     {
       "id": "persona-4-revival",
@@ -46,7 +49,8 @@
       "platforms": "Xbox Series X|S, Windows, PS5, Steam",
       "sourceName": "SEGA Asia · calendrier officiel des jeux",
       "sourceUrl": "https://asia.sega.com/",
-      "videoId": null
+      "videoId": "kmTWWpRxtTo",
+      "videoUrl": "https://www.youtube.com/watch?v=kmTWWpRxtTo"
     },
     {
       "id": "stranger-than-heaven",
@@ -57,7 +61,8 @@
       "platforms": "Xbox Series X|S, PC, PS5",
       "sourceName": "SEGA Asia · fiche officielle",
       "sourceUrl": "https://asia.sega.com/en/steam.html",
-      "videoId": null
+      "videoId": "de9t_UOJ7Q4",
+      "videoUrl": "https://www.youtube.com/watch?v=de9t_UOJ7Q4"
     },
     {
       "id": "fable",
@@ -68,7 +73,8 @@
       "platforms": "Xbox Series X|S, PC, PS5",
       "sourceName": "Xbox Wire · développeurs de Fable",
       "sourceUrl": "https://news.xbox.com/fr-fr/2026/06/10/fable-comment-nous-avons-cree-la-population-vivante-dalbion/",
-      "videoId": "3iW1i78zFvk"
+      "videoId": "3iW1i78zFvk",
+      "videoUrl": "https://www.youtube.com/watch?v=3iW1i78zFvk"
     }
   ]
 }
