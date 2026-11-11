@@ -9025,11 +9025,19 @@ app.post('/api/native/browser-relay/:room/chunk',
  express.raw({type:'application/octet-stream',limit:'2mb'}), async(req,res)=>{
   swappRelayNotCached(res);
   const room=swappRelayRoomName(req.params.room);
-  // Browser MediaRecorder POST and its socket may reach different workers;
-  // require the real owner's SWAPP login, not an in-memory socket map hit.
-  await restoreOryonSessionFromRememberCookie(req,res,{allowUserRecovery:false});
+  // Browser upload and Socket.IO may land on separate workers.
+  // Verify existing SWAPP session or remember-cookie READ-ONLY. Reissuing a
+  // remember token for every 1.5s media chunk would write all MySQL accounts.
+  await ORYON_USERS_READY.catch(()=>{});
+  let user=getSessionIdentity(req).local;
+  if(!user){
+   const remembered=swappReadRememberPayload(req.cookies?.[SWAPP_REMEMBER_COOKIE]);
+   const login=normalizeOryonLogin(remembered?.login);
+   const stored=login&&(readOryonUsers().users||[]).find(u=>u.login===login);
+   if(stored&&verifyOryonRememberToken(stored,remembered.remember_token))
+    user={id:stored.id,login:stored.login};
+  }
   const live=nativeLiveRooms.get(room);
-  const user=getSessionIdentity(req).local;
   if(!room || !user || user.login!==room ||
      (live?.hostUserId&&String(user.id)!==String(live.hostUserId)))
    return res.status(403).json({success:false,error:'Diffusion non autorisée.'});
