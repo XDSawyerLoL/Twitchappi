@@ -4,7 +4,7 @@
 const catalog=require('../../data/swapp-editorial-signals.json');
 const TOPICS=new Set(['AI','ROBOTICS','FUTURE','GAMING']);
 const PRIMARY_HOSTS=new Set([
- 'deepmind.google','developer.nvidia.com','blogs.nvidia.com',
+ 'deepmind.google','developer.nvidia.com','forums.developer.nvidia.com','blogs.nvidia.com',
  'news.panasonic.com','www.esa.int','esa.int','research.google',
  'mistral.ai','huggingface.co','www.nasa.gov','nasa.gov'
 ]);
