@@ -1,0 +1,80 @@
+{
+  "schema": 1,
+  "kind": "swapp-gaming-radar",
+  "verifiedAt": "2026-11-11",
+  "notice": "Fiches de suivi fondées sur des annonces officielles déjà publiées. Ce radar n'est pas un flux de nouvelles annonces ; réactualiser les informations avant publication d'un article.",
+  "items": [
+    {
+      "id": "dawn-of-war-iv",
+      "game": "Warhammer 40,000: Dawn of War IV",
+      "headline": "La Commander Edition et le calendrier de sortie",
+      "summary": "Le RTS de KING Art est annoncé pour le 3 décembre 2026 sur PC. La Commander Edition prévoit un accès anticipé de trois jours et du contenu de la première année.",
+      "releaseDate": "2026-12-03",
+      "platforms": "PC (Steam)",
+      "sourceName": "Deep Silver / PLAION · présentation officielle",
+      "sourceUrl": "https://press.plaion.com/fr/NEW-TRAILERTHE-SPACE-MARINES-UNLEASH-THEIR-MIGHT-IN-DAWN-OF-WAR-IV",
+      "videoId": "hy8qn3VqYiE",
+      "videoUrl": "https://www.youtube.com/watch?v=hy8qn3VqYiE"
+    },
+    {
+      "id": "metro-2039",
+      "game": "Metro 2039",
+      "headline": "Retour à Moscou : gameplay console et date annoncée",
+      "summary": "4A Games présente son FPS narratif et annonce le 4 février 2027, avec un décalage au 5 février dans certaines régions. La vidéo officielle montre du gameplay capturé sur PS5 Pro.",
+      "releaseDate": "2027-02-04",
+      "platforms": "PC et consoles",
+      "sourceName": "Deep Silver · site officiel",
+      "sourceUrl": "https://www.deepsilver.com/fr/games/metro2039",
+      "videoId": "iwa_ERihvvE",
+      "videoUrl": "https://www.youtube.com/watch?v=iwa_ERihvvE"
+    },
+    {
+      "id": "dragon-quest-monsters-withered-world",
+      "game": "Dragon Quest Monsters : Le Royaume de Boisflétri",
+      "headline": "Les monstres à collectionner et les éditions détaillées",
+      "summary": "Square Enix présente les éditions du nouveau Dragon Quest Monsters, sa synthèse de monstres et une sortie annoncée pour le 3 décembre 2026.",
+      "releaseDate": "2026-12-03",
+      "platforms": "Switch 2, Switch, PS5, Xbox Series X|S, PC",
+      "sourceName": "Square Enix · annonce officielle",
+      "sourceUrl": "https://www.square-enix.com/asia/newsportal/en/topics/dragonquest-monsters4/post01.html",
+      "videoId": "H1bPRyHqNws",
+      "videoUrl": "https://www.youtube.com/watch?v=H1bPRyHqNws"
+    },
+    {
+      "id": "persona-4-revival",
+      "game": "Persona 4 Revival",
+      "headline": "Le remake d'Inaba se précise",
+      "summary": "SEGA référence Persona 4 Revival sur Xbox Series X|S, Windows, PS5 et Steam pour le 18 février 2027. Les conditions peuvent varier selon la plateforme et la région.",
+      "releaseDate": "2027-02-18",
+      "platforms": "Xbox Series X|S, Windows, PS5, Steam",
+      "sourceName": "SEGA · annonce officielle",
+      "sourceUrl": "https://www.sega.co.jp/en/release/260608_4.html?category=1&page=2&year=2026",
+      "videoId": "EDogusFqYqs",
+      "videoUrl": "https://www.youtube.com/watch?v=EDogusFqYqs"
+    },
+    {
+      "id": "stranger-than-heaven",
+      "game": "Stranger Than Heaven",
+      "headline": "Le prochain jeu de Ryu Ga Gotoku Studio",
+      "summary": "SEGA liste Stranger Than Heaven comme une aventure d'action prévue le 15 janvier 2027 sur consoles et PC.",
+      "releaseDate": "2027-01-15",
+      "platforms": "Xbox Series X|S, PC, PS5",
+      "sourceName": "SEGA · annonce et distribution",
+      "sourceUrl": "https://sega.co.jp/en/release/260608_3.html",
+      "videoId": "6SPM5JORmss",
+      "videoUrl": "https://www.youtube.com/watch?v=6SPM5JORmss"
+    },
+    {
+      "id": "fable",
+      "game": "Fable",
+      "headline": "Albion, une population vivante et des choix qui comptent",
+      "summary": "Playground Games détaille la population vivante et la réputation des personnages d'Albion. Xbox annonce le 23 février 2027, avec accès anticipé pour certaines éditions.",
+      "releaseDate": "2027-02-23",
+      "platforms": "Xbox Series X|S, PC, PS5",
+      "sourceName": "Xbox Wire · date et vidéo officielle",
+      "sourceUrl": "https://news.xbox.com/fr-fr/2026/06/07/xbox-games-showcase-2026-le-recap/",
+      "videoId": "3iW1i78zFvk",
+      "videoUrl": "https://www.youtube.com/watch?v=3iW1i78zFvk"
+    }
+  ]
+}
