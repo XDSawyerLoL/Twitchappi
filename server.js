@@ -1620,6 +1620,20 @@ app.get('/index_script.js', (req,res)=>{
   // version-aware caching rule with its default max-age=0 header.
   return res.sendFile(path.join(__dirname,'index_script.js'),{cacheControl:false});
 });
+// Editorial briefs and official-source watch, embedded in the EXISTING /actus screen.
+// Register before the CMS /api/actus/:slug catchall; no extra public page.
+app.get('/api/actus/signaux',async(_req,res)=>{
+ try{
+  const {editorialSignals,watchCandidates,buildSignalResponse}=require('./modules/swapp-news/editorial-signals');
+  const uri=process.env.SWAPP_NEWS_MYSQL_URL||process.env.SWAPP_MYSQL_URL||'';
+  const watch=await watchCandidates({uri,limit:18});
+  res.set('Cache-Control','public, max-age=90');
+  return res.json(buildSignalResponse(editorialSignals(),watch));
+ }catch(error){
+  console.error('[SWAPP FLASH] Echec lecture:',error?.code||error?.message);
+  return res.status(503).set('Cache-Control','no-store').json({error:'signal_feed_unavailable'});
+ }
+});
 // SWAPP ACTUS / JUSTPLAYER — independent editorial storage.
 // In Hostinger MySQL mode, the CMS no longer depends on the global Firebase
 // availability flag (which can be affected by unrelated chat operations).
