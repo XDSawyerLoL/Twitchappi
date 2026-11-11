@@ -4665,9 +4665,32 @@ app.post('/api/oryon/profile', mutationLimiter, async (req, res) => {
     const supplied=key=>Object.prototype.hasOwnProperty.call(req.body||{},key);
     if(supplied('display_name')) user.display_name=String(req.body.display_name||user.login).trim().slice(0,40)||user.login;
     if(supplied('bio')) user.bio=String(req.body.bio||'').trim().slice(0,500);
-    if(supplied('avatar_url')) user.avatar_url=String(req.body.avatar_url||'').trim().slice(0,2000000);
-    if(supplied('banner_url')) user.banner_url=String(req.body.banner_url||'').trim().slice(0,5000000);
-    if(supplied('offline_image_url')) user.offline_image_url=String(req.body.offline_image_url||'').trim().slice(0,5000000);
+    // Persist image bytes in the existing MySQL blob store, not 512 KB account JSON.
+    const {panelMediaUrl}=require('./modules/swapp-channel-panel-media');
+    for(const field of ['avatar_url','banner_url','offline_image_url']){
+      if(!supplied(field))continue;
+      const raw=String(req.body[field]||'').trim();
+      if(!raw){user[field]='';continue;}
+      if(raw.toLowerCase().startsWith('data:')){
+        if(!swappMysqlAccountsReady||!swappMysqlAccounts)
+          return res.status(503).json({success:false,error:'Stockage MySQL des images indisponible.'});
+        const media=await swappMysqlAccounts.savePanelImage(user.id,raw);
+        user[field]=panelMediaUrl(user.login,media.hash);
+      }else if(raw.toLowerCase().startsWith('https://')){
+        let remote;
+        try{remote=new URL(raw)}catch(_){return res.status(400).json({success:false,error:'Adresse d’image invalide.'});}
+        if(remote.username||remote.password||raw.length>2048)
+          return res.status(400).json({success:false,error:'Adresse d’image invalide.'});
+        user[field]=remote.href;
+      }else{
+        const prefix='/api/oryon/panel-image/'+encodeURIComponent(user.login)+'/';
+        if(raw.startsWith(prefix)&&/^[a-f0-9]{64}$/.test(raw.slice(prefix.length))){
+          user[field]=raw;
+        }else if(field==='avatar_url'&&raw==='/api/oryon/avatar/'+encodeURIComponent(user.login)){
+          // Do not replace an existing avatar data URL with its public self-proxy.
+        }else return res.status(400).json({success:false,error:'Image non autorisée pour ce profil.'});
+      }
+    }
     if(supplied('channel_social_links')){
       if(!req.body.channel_social_links||typeof req.body.channel_social_links!=='object'||Array.isArray(req.body.channel_social_links))
        return res.status(400).json({success:false,error:'Liens sociaux invalides.'});
