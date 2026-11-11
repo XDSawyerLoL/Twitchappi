@@ -304,3 +304,5 @@
 .swapp-flash-strip :is(button,a,summary):focus-visible{outline:2px solid #6ee8ef;outline-offset:3px}
 @media(max-width:960px){.swapp-flash-cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:630px){.swapp-flash-strip{margin:10px -3px 19px;padding:12px;border-radius:13px}.swapp-flash-cards{grid-template-columns:1fr}.swapp-flash-head{gap:4px}.swapp-flash-item{padding:12px}}
+
+.swapp-flash-strip [hidden]{display:none!important}
