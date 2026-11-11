@@ -1,0 +1,88 @@
+'use strict';
+const test=require('node:test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
+const root=path.resolve(__dirname,'..');
+const read=p=>fs.readFileSync(path.join(root,p),'utf8');
+const {panelImagePayload,MAX_PANEL_IMAGE_BYTES,MAX_PROFILE_ART_BYTES}=require('../modules/swapp-channel-panel-media');
+
+test('profile artwork accepts real image bytes above vignette limit without truncation',()=>{
+ assert.equal(MAX_PANEL_IMAGE_BYTES,1100000);
+ assert.equal(MAX_PROFILE_ART_BYTES,3000000);
+ const jpeg=Buffer.alloc(MAX_PANEL_IMAGE_BYTES+90000,0x22);
+ jpeg[0]=0xff;jpeg[1]=0xd8;jpeg[2]=0xff;
+ const source='data:image/jpeg;base64,'+jpeg.toString('base64');
+ assert.throws(()=>panelImagePayload(source),/swapp_panel_image_too_large/);
+ const upgraded=panelImagePayload(source,{maxBytes:MAX_PROFILE_ART_BYTES});
+ assert.equal(upgraded.mime,'image/jpeg');
+ assert.deepEqual(upgraded.bytes,jpeg);
+ assert.match(upgraded.hash,/^[a-f0-9]{64}$/);
+ const huge=Buffer.alloc(MAX_PROFILE_ART_BYTES+1,0x33);huge[0]=255;huge[1]=216;huge[2]=255;
+ assert.throws(()=>panelImagePayload('data:image/jpeg;base64,'+huge.toString('base64'),{maxBytes:MAX_PROFILE_ART_BYTES}),/swapp_panel_image_too_large/);
+});
+test('banner/avatar/offline images persist as binary MySQL blobs, not account JSON data URLs',()=>{
+ const server=read('server.js');
+ const start=server.indexOf("app.post('/api/oryon/profile'");
+ const end=server.indexOf("function makeOryonStreamKey()",start);
+ const endpoint=server.slice(start,end);
+ assert.ok(start>0&&end>start);
+ assert.match(endpoint,/for\(const field of \['avatar_url','banner_url','offline_image_url'\]\)/);
+ assert.match(endpoint,/if\(!supplied\(field\)\)continue/);
+ assert.match(endpoint,/savePanelImage\(user\.id,raw,\{maxBytes:MAX_PROFILE_ART_BYTES\}\)/);
+ assert.match(endpoint,/user\[field\]=panelMediaUrl\(user\.login,media\.hash\)/);
+ assert.doesNotMatch(endpoint,/user\.banner_url=String\(req\.body\.banner_url/);
+ assert.doesNotMatch(endpoint,/user\.offline_image_url=String\(req\.body\.offline_image_url/);
+ assert.match(endpoint,/await writeOryonUsersAndWait\(data\)/);
+ const store=read('modules/swapp-oryon-mysql-accounts.js');
+ assert.match(store,/savePanelImage\(ownerId,dataUrl,options=\{\}\)/);
+ assert.match(store,/panelImagePayload\(dataUrl,options\)/);
+});
+test('image GET checks current owner references and protects private channels',()=>{
+ const server=read('server.js');
+ const start=server.indexOf("app.get('/api/oryon/panel-image/:login/:hash'");
+ const end=server.indexOf("app.post('/api/oryon/profile'",start);
+ const route=server.slice(start,end);
+ assert.ok(start>0&&end>start);
+ assert.match(route,/user\.channel_public===false&&!ownSession/);
+ assert.match(route,/\[user\.avatar_url,user\.banner_url,user\.offline_image_url\]\.includes\(url\)/);
+ assert.match(route,/panels\.some\(p=>p\.image_url===url\)/);
+ assert.match(route,/getPanelImage\(user\.id,hash\)/);
+ assert.match(route,/X-Content-Type-Options/);
+});
+test('Follow restores remembered account and targets the visible creator, not a stale SPA profile',()=>{
+ const server=read('server.js');
+ const start=server.indexOf("app.get('/api/oryon/follow/:login'");
+ const end=server.indexOf("app.post('/api/oryon/like/:login'",start);
+ const followRoutes=server.slice(start,end);
+ assert.equal((followRoutes.match(/restoreOryonSessionFromRememberCookie\(req,res,\{allowUserRecovery:false\}\)/g)||[]).length,3);
+ const client=read('assets/swapp-channel-follow.js');
+ assert.ok(client.indexOf("page?.dataset?.channelLogin")<client.indexOf("state.channelProfile"));
+ assert.match(client,/Réessayer le suivi/);
+ assert.match(client,/request\(path,following\?'DELETE':'POST'\)/);
+ assert.match(client,/button\.onclick=null/);
+});
+test('Plus menu remains in a fixed portal, not reparented on every toggle',()=>{
+ const script=read('assets/swapp-channel-showcase.js');
+ const css=read('assets/swapp-channel-showcase.css');
+ assert.match(script,/const allMenus=new Set\(\)/);
+ assert.match(script,/document\.body\.append\(content\)/);
+ assert.equal((script.match(/document\.body\.append\(content\)/g)||[]).length,1);
+ assert.match(script,/content\.hidden=true/);
+ assert.match(script,/content\.hidden=false/);
+ assert.match(script,/if\(!item\.details\.isConnected\)item\.destroy\(\)/);
+ assert.doesNotMatch(script,/if\(details\.isConnected\)details\.append\(content\)/);
+ assert.match(css,/\.swapp-showcase-floating-menu\[hidden\]\{display:none!important\}/);
+ assert.match(script,/document\.addEventListener\('pointerdown',onOutside,true\)/);
+});
+test('SOCIAL follow cannot accidentally toggle twice and channel assets bust caches',()=>{
+ const social=read('assets/swapp-social-native/app.js');
+ assert.match(social,/follow\.dataset\.followPending==='true'/);
+ assert.match(social,/follow\.disabled=true/);
+ assert.match(social,/delete follow\.dataset\.followPending/);
+ const html=read('index.html'),hubs=read('modules/swapp-hubs.js');
+ assert.match(html,/swapp-channel-follow\.js\?v=20261111-follow-session-v3/);
+ assert.match(html,/swapp-channel-showcase\.js\?v=20261111-plus-stable-v4/);
+ assert.match(html,/swapp-channel-showcase\.css\?v=20261111-plus-stable-v4/);
+ assert.match(hubs,/swapp-social-native\/app\.js\?v=20261111-follow-guard-v2/);
+});
