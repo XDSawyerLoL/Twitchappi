@@ -18,7 +18,7 @@ const isoDate=x=>/^\d{4}-\d{2}-\d{2}$/.test(String(x||''))&&!Number.isNaN(new Da
 function validateEditorial(item){
  if(!/^[a-z][a-z0-9-]{9,109}$/.test(String(item?.id||'')))throw Error('invalid_signal_id');
  if(!Array.isArray(item.topics)||item.topics.length<1||item.topics.some(x=>!TOPICS.has(x)))throw Error('invalid_signal_topics');
- if(!['title','fact','impact','caveat','sourceName'].every(k=>typeof item[k]==='string'&&item[k].trim().length>=8))throw Error('invalid_signal_content');
+ if(!['title','fact','impact','caveat'].every(k=>typeof item[k]==='string'&&item[k].trim().length>=8)||typeof item.sourceName!=='string'||item.sourceName.trim().length<3)throw Error('invalid_signal_content');
  if(item.title.length>200||item.fact.length>500||item.impact.length>350||item.caveat.length>350)throw Error('signal_too_long');
  const source=HTTPS(item.sourceUrl);
  if(!source||!PRIMARY_HOSTS.has(source.hostname.toLowerCase()))throw Error('signal_requires_primary_source');
