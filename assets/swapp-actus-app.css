@@ -267,3 +267,13 @@
  display:grid;
  place-items:center;
 }
+
+
+/* Small, accessible editorial tags inside the existing Actualité view. No new page. */
+.swapp-actus-topic-tags{display:flex;align-items:center;flex-wrap:wrap;gap:7px;margin:0 0 17px;padding:0}
+.swapp-actus-topic-tag{font:inherit;font-size:12px;font-weight:800;letter-spacing:.03em;color:#c1cfe0;background:#111e2b;border:1px solid #3c4f68;border-radius:999px;padding:8px 13px;cursor:pointer;transition:background .16s,border-color .16s}
+.swapp-actus-topic-tag:hover{background:#22364b;border-color:#6ce0e4}
+.swapp-actus-topic-tag.active{background:#183b48;border-color:#5bdae0;color:#f4ffff}
+.swapp-actus-topic-tag:focus-visible{outline:2px solid #66edf1;outline-offset:3px}
+.swapp-actus-topic-label{display:inline-block;margin:0 0 6px;color:#76dfe8;font-size:11px;font-weight:850;letter-spacing:.09em}
+@media(max-width:620px){.swapp-actus-topic-tags{gap:6px}.swapp-actus-topic-tag{padding:8px 10px;font-size:11px}}
