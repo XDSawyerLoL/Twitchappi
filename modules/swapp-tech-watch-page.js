@@ -34,6 +34,7 @@ function rawStyle(){
  '.sh-card{border:1px solid #323e56;border-radius:18px;background:#121b2c;min-width:0;overflow:hidden}',
  '.sh-card picture,.sh-visual{aspect-ratio:16/8.5;background:linear-gradient(138deg,#34466f,#29203f 65%,#101a27);display:flex;align-items:center;justify-content:center;overflow:hidden}',
  '.sh-card img{width:100%;height:100%;object-fit:cover;display:block}',
+ '.sh-video{display:block}',
  '.sh-visual span{font-weight:900;letter-spacing:-.045em;font-size:clamp(23px,2vw,34px);text-align:center;max-width:90%;line-height:1.12}',
  '.sh-cardbody{padding:19px}.sh-cardbody h3{font-size:20px;line-height:1.25;margin:8px 0}',
  '.sh-cardbody p{font-size:14px;line-height:1.62;color:#c2cedc;margin:11px 0}',
@@ -69,7 +70,7 @@ function compactDate(value){
 function renderRadar(items){
  return '<div class="sh-cards">'+items.map(g=>{
   const video=/^[a-zA-Z0-9_-]{11}$/.test(String(g.videoId||''))?g.videoId:null;
-  const visual=video?'<picture><img loading="lazy" alt="Miniature officielle : '+escapeHtml(g.game)+'" src="https://i.ytimg.com/vi/'+video+'/hqdefault.jpg"></picture>'
+  const visual=video?'<a class="sh-video" href="https://www.youtube.com/watch?v='+video+'" target="_blank" rel="noopener noreferrer" aria-label="Voir la vidéo officielle de '+escapeHtml(g.game)+'"><picture><img loading="lazy" alt="Miniature de vidéo officielle : '+escapeHtml(g.game)+'" src="https://i.ytimg.com/vi/'+video+'/hqdefault.jpg"></picture></a>'
    :'<div class="sh-visual"><span>'+escapeHtml(g.game)+'</span></div>';
   const url=safeLink(g.sourceUrl);
   return '<article class="sh-card">'+visual+'<div class="sh-cardbody"><div class="sh-meta">'+escapeHtml(g.game)+'</div>'+
