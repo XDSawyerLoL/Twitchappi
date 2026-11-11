@@ -2,7 +2,7 @@
 
 ## Une seule rédaction, une seule adresse
 
-Toute l'information publique demeure dans **`/actus`**. Les boutons `GAMING`, `AI`, `ROBOTICS` et `FUTURE` sont des **filtres de tags**, pas de nouvelles pages ni de chaînes. Au-dessus de la grille d'articles, le composant `SWAPP FLASH` affiche trois brèves principales, avec la possibilité d'afficher les suivantes sans changer de route. Le même article peut appartenir à plusieurs tags.
+Toute l'information publique demeure dans **`/actus`**. Les boutons `GAMING`, `AI`, `ROBOTICS` et `FUTURE` sont des **filtres de tags**, pas de nouvelles pages ni de chaînes. Au-dessus de la grille d'articles, le composant `SWAPP FLASH` affiche un bandeau horizontal compact avec des miniatures officielles des sujets ; les autres brèves se parcourent par glissement ou flèches. Les faits, impacts et limites s’ouvrent uniquement à la demande. Le même article peut appartenir à plusieurs tags.
 
 ### Ce qui rend le format distinct
 
@@ -19,7 +19,7 @@ Toute l'information publique demeure dans **`/actus`**. Les boutons `GAMING`, `A
 - Endpoint public en lecture seule : `GET /api/actus/signaux` (réponse `editorial` + `watch` séparés). La route est enregistrée avant la route générique `/api/actus/:slug`.
 - Interface : `assets/swapp-actus-app.js` et `assets/swapp-actus-app.css`, à l'intérieur de la même vue native `/actus`.
 - Candidats persistants MySQL : `swapp_tech_watch_candidates`, mises à jour non destructives par le collecteur. Les articles publiés, brouillons ou retirés ne sont **jamais** affectés par ces mises à jour.
-- Les nouvelles notes brèves sont préparées par la veille éditoriale existante toutes les six heures, après vérification de sources officielles. Les nouvelles sources candidates apparaissent au plus tôt lors d'une collecte Node réussie.
+- Chaque note validée doit contenir `imageUrl` (URL HTTPS de l’image originale officiellement publiée pour le même sujet) et `imageCredit` (crédit identifiable). Le validateur refuse une nouvelle note sans image ou dont l’image est hébergée sur un domaine non autorisé. Ne jamais inventer, réhéberger, ou substituer l’image d’une autre annonce. Les nouvelles notes brèves sont préparées par la veille éditoriale existante toutes les six heures, après vérification de sources officielles. Les nouvelles sources candidates apparaissent au plus tôt lors d'une collecte Node réussie.
 
 ## Règles de mise à jour
 
@@ -32,7 +32,7 @@ Pour actualiser `data/swapp-editorial-signals.json`, faire un changement version
 - `node --test test/swapp-editorial-signals.test.js test/swapp-tech-watch.test.js test/swapp-tech-watch-scheduler.test.js`
 - `node --check assets/swapp-actus-app.js && node --check modules/swapp-news/editorial-signals.js && node --check server.js`
 - Vérifier `/actus` avec et sans `?tag=AI`, `?tag=ROBOTICS`, `?tag=FUTURE`, sur ordinateur et sur mobile.
-- Vérifier que les brèves ne sont pas répétées dans plusieurs listes, que leur source et leurs dates sont visibles, que « Voir plus » ne masque pas les articles et que le radar non vérifié reste clairement distinct.
+- Vérifier que les brèves ne sont pas répétées dans plusieurs listes, que leur source et leurs dates sont visibles, que la rangée reste compacte en défilement horizontal et que le détail replié ne masque pas les articles et que le radar non vérifié reste clairement distinct.
 - Si MySQL est indisponible : continuer à afficher uniquement les brèves éditoriales sauvegardées, sans annoncer de collecte réussie.
 - Si la page est bloquée par reCAPTCHA/WAF avant Node : diagnostiquer la protection amont ; ne jamais prétendre qu'un commit GitHub prouve la mise en ligne.
 
