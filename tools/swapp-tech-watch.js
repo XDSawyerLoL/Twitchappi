@@ -10,7 +10,8 @@ const SOURCES=[
   {id:'huggingface',section:'IA',name:'Hugging Face',url:'https://huggingface.co/blog/feed.xml'},
   {id:'google-research',section:'IA',name:'Google Research',url:'https://research.google/blog/rss/'},
   {id:'nvidia',section:'Robotique',name:'NVIDIA',url:'https://blogs.nvidia.com/feed/'},
-  {id:'ieee-robotics',section:'Robotique',name:'IEEE Spectrum Robotics',url:'https://spectrum.ieee.org/feeds/topic/robotics.rss'}
+  {id:'ieee-robotics',section:'Robotique',name:'IEEE Spectrum Robotics',url:'https://spectrum.ieee.org/feeds/topic/robotics.rss'},
+  {id:'esa-tech',section:'FUTURE',name:'Agence spatiale européenne · Technologies',url:'https://www.esa.int/rssfeed/Our_Activities/Space_Engineering_Technology'}
 ];
 const MAX_BYTES=1024*1024;
 function decode(s){return String(s||'').replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g,'$1').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/<[^>]+>/g,'').trim();}
@@ -46,7 +47,7 @@ function parseFeed(xml,source){
   }).filter(Boolean);
 }
 async function run({output=path.resolve(__dirname,'../data/swapp-tech-watch-candidates.json'),now=new Date()}={}){
-  const previous=fs.existsSync(output)?JSON.parse(fs.readFileSync(output,'utf8')):{candidates:[]};
+  const previous=output&&fs.existsSync(output)?JSON.parse(fs.readFileSync(output,'utf8')):{candidates:[]};
   const byId=new Map((previous.candidates||[]).map(x=>[x.id,x]));
   const checks=[];
   for(const source of SOURCES){
@@ -58,8 +59,10 @@ async function run({output=path.resolve(__dirname,'../data/swapp-tech-watch-cand
   }
   const candidates=[...byId.values()].sort((a,b)=>b.sourcePublishedAt.localeCompare(a.sourcePublishedAt)).slice(0,300);
   const result={schema:1,kind:'swapp-tech-watch-candidates',checkedAt:now.toISOString(),checks,candidates};
-  fs.mkdirSync(path.dirname(output),{recursive:true});
-  const temp=output+'.tmp-'+process.pid;fs.writeFileSync(temp,JSON.stringify(result,null,2)+'\n');fs.renameSync(temp,output);
+  if(output){
+   fs.mkdirSync(path.dirname(output),{recursive:true});
+   const temp=output+'.tmp-'+process.pid;fs.writeFileSync(temp,JSON.stringify(result,null,2)+'\n');fs.renameSync(temp,output);
+  }
   return result;
 }
 if(require.main===module)run().then(r=>{console.log(JSON.stringify({checkedAt:r.checkedAt,candidates:r.candidates.length,checks:r.checks}));if(r.checks.every(x=>!x.ok))process.exitCode=1;}).catch(e=>{console.error(e);process.exitCode=1;});
