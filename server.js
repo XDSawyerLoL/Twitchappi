@@ -4674,7 +4674,8 @@ app.post('/api/oryon/profile', mutationLimiter, async (req, res) => {
       if(raw.toLowerCase().startsWith('data:')){
         if(!swappMysqlAccountsReady||!swappMysqlAccounts)
           return res.status(503).json({success:false,error:'Stockage MySQL des images indisponible.'});
-        const media=await swappMysqlAccounts.savePanelImage(user.id,raw);
+        const {MAX_PROFILE_ART_BYTES}=require('./modules/swapp-channel-panel-media');
+        const media=await swappMysqlAccounts.savePanelImage(user.id,raw,{maxBytes:MAX_PROFILE_ART_BYTES});
         user[field]=panelMediaUrl(user.login,media.hash);
       }else if(raw.toLowerCase().startsWith('https://')){
         let remote;
@@ -4769,7 +4770,7 @@ app.post('/api/oryon/profile', mutationLimiter, async (req, res) => {
   const badTheme=issue==='swapp_channel_background_url_invalid';
   const badSocial=issue==='swapp_social_link_invalid';
   res.status(badImage||badTheme||badSocial?400:500).json({
-   success:false,error:badImage?'Image invalide ou trop volumineuse (1,1 Mo maximum après compression).':badTheme?'Image de fond non autorisée.':badSocial?'Lien social invalide : utilise une URL HTTPS valide vers ton profil ou groupe.':issue
+   success:false,error:badImage?'Image invalide ou trop volumineuse (1,1 Mo pour les vignettes, 3 Mo pour les bannières et profils).':badTheme?'Image de fond non autorisée.':badSocial?'Lien social invalide : utilise une URL HTTPS valide vers ton profil ou groupe.':issue
   });
  }
 });
