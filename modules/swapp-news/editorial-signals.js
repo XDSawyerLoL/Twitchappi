@@ -1,7 +1,7 @@
 'use strict';
 // Fast editorial signals inside /actus, separate from published articles.
 // Only explicitly reviewed primary-source notes are labelled "sourcé".
-const catalog=require('../../data/swapp-editorial-signals-20261111.json');
+const catalog=require('../../data/swapp-editorial-signals.json');
 const TOPICS=new Set(['AI','ROBOTICS','FUTURE','GAMING']);
 const PRIMARY_HOSTS=new Set([
  'deepmind.google','developer.nvidia.com','blogs.nvidia.com',
