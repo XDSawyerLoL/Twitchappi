@@ -5,11 +5,13 @@
  const root=document.getElementById('channel');
  if(!root)return;
  function loginFor(page){
-  const current=typeof state!=='undefined'?state.channelProfile:null;
-  const candidate=String(current?.login||page?.dataset?.channelLogin||'').trim().toLowerCase();
-  if(/^[a-z0-9_-]{2,48}$/.test(candidate))return candidate;
+  const pageLogin=String(page?.dataset?.channelLogin||'').trim().toLowerCase();
+  if(/^[a-z0-9_-]{2,48}$/.test(pageLogin))return pageLogin;
   const pathname=(location.pathname||'').match(/^\/(?:c\/)?([a-z0-9_-]{2,48})\/?$/i);
-  return pathname?pathname[1].toLowerCase():'';
+  if(pathname)return pathname[1].toLowerCase();
+  const current=typeof state!=='undefined'?state.channelProfile:null;
+  const candidate=String(current?.login||'').trim().toLowerCase();
+  return /^[a-z0-9_-]{2,48}$/.test(candidate)?candidate:'';
  }
  function alertMessage(text){
   if(typeof window.toast==='function')window.toast(text);
@@ -41,25 +43,36 @@
   button.type='button';
   // Remove the original always-POST inline handler to prevent double requests.
   button.removeAttribute('onclick');
+  button.onclick=null;
   const path='/api/oryon/follow/'+encodeURIComponent(login);
-  let following=false,authenticated=false,busy=false;
-  button.disabled=true;
-  button.textContent='Suivi…';
-  button.setAttribute('aria-busy','true');
-  request(path).then(result=>{
-   if(!button.isConnected)return;
-   authenticated=result.authenticated===true;
-   following=result.following===true;
-   show(button,following);
-   button.disabled=false;
-  }).catch(()=>{
-   if(!button.isConnected)return;
-   button.textContent='Suivi indisponible';
-   button.title='Impossible de vérifier le suivi pour le moment';
-   button.disabled=true;
-  }).finally(()=>button.removeAttribute('aria-busy'));
-  button.addEventListener('click',async()=>{
+  let following=false,authenticated=false,busy=false,ready=false;
+  const refresh=async()=>{
+   button.disabled=true;button.setAttribute('aria-busy','true');
+   button.textContent='Vérification…';
+   try{
+    const result=await request(path);
+    if(!button.isConnected)return false;
+    authenticated=result.authenticated===true;
+    following=result.following===true;
+    ready=true;
+    show(button,following);
+    return true;
+   }catch(error){
+    if(button.isConnected){
+     ready=false;
+     button.textContent='Réessayer le suivi';
+     button.title=error.message||'Connexion temporairement indisponible';
+    }
+    return false;
+   }finally{
+    if(button.isConnected){button.disabled=false;button.removeAttribute('aria-busy')}
+   }
+  };
+  void refresh();
+  button.addEventListener('click',async event=>{
+   event?.preventDefault?.();
    if(busy||button.disabled)return;
+   if(!ready){await refresh();return;}
    if(!authenticated){
     if(typeof window.setView==='function')window.setView('settings');
     else location.href='/compte';
@@ -67,13 +80,16 @@
    }
    busy=true;button.disabled=true;button.setAttribute('aria-busy','true');
    try{
-    const next=await request(path,following?'DELETE':'POST');
+    const wasFollowing=following;
+    const result=await request(path,following?'DELETE':'POST');
     if(!button.isConnected)return;
-    following=following?false:(next.is_following===true||Array.isArray(next.following)&&next.following.includes(login));
+    following=wasFollowing?false:(result.is_following===true||result.following===true||
+      (Array.isArray(result.following)&&result.following.includes(login)));
     show(button,following);
    }catch(error){
-    if(error.status===401){authenticated=false;alertMessage('Reconnecte-toi à SWAPP pour suivre cette chaîne.')}
+    if(error.status===401){authenticated=false;ready=false;alertMessage('Reconnecte-toi à SWAPP pour suivre cette chaîne.');}
     else alertMessage(error.message||'Suivi temporairement indisponible.');
+    show(button,following);
    }finally{
     busy=false;
     if(button.isConnected){button.disabled=false;button.removeAttribute('aria-busy')}

@@ -8,8 +8,8 @@ test('premium showcase files load after native channel modules',()=>{
  const css=read('assets/swapp-channel-showcase.css');
  const js=read('assets/swapp-channel-showcase.js');
  new Function(js);
- assert.match(html,/swapp-channel-showcase\.css\?v=20261026-fixed-actions-v3/);
- assert.match(html,/swapp-channel-showcase\.js\?v=20261026-fixed-actions-v3/);
+ assert.match(html,/swapp-channel-showcase\.css\?v=20261111-plus-stable-v4/);
+ assert.match(html,/swapp-channel-showcase\.js\?v=20261111-plus-stable-v4/);
  assert.ok(html.indexOf('swapp-live-alert-bell.js')<html.indexOf('swapp-channel-showcase.js'));
  assert.match(css,/data-channel-live="true"/);
 });

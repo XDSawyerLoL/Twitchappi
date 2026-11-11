@@ -4630,15 +4630,19 @@ app.get('/api/oryon/panel-image/:login/:hash',async(req,res)=>{
   const login=normalizeOryonLogin(req.params.login);
   const hash=String(req.params.hash||'').toLowerCase();
   if(!/^[0-9a-f]{64}$/.test(hash))return res.status(404).end();
-  const user=(readOryonUsers().users||[]).find(u=>u.login===login&&u.channel_public!==false);
+  const user=(readOryonUsers().users||[]).find(u=>u.login===login);
   if(!user)return res.status(404).end();
+  const ownSession=String(req.session?.oryonUser?.id||'')===String(user.id);
+  if(user.channel_public===false&&!ownSession)return res.status(404).end();
   const {panelMediaUrl}=require('./modules/swapp-channel-panel-media');
   const url=panelMediaUrl(login,hash);
   const panels=user.channel_vignettes?.length?user.channel_vignettes:user.channel_panels;
-  if((!Array.isArray(panels)||!panels.some(p=>p.image_url===url)) && user.channel_theme?.background_url!==url)return res.status(404).end();
+  const attachedToAccount=[user.avatar_url,user.banner_url,user.offline_image_url].includes(url);
+  const attachedToPanel=Array.isArray(panels)&&panels.some(p=>p.image_url===url);
+  if(!attachedToAccount&&!attachedToPanel&&user.channel_theme?.background_url!==url)return res.status(404).end();
   const media=await swappMysqlAccounts.getPanelImage(user.id,hash);
   if(!media?.bytes)return res.status(404).end();
-  res.set('Cache-Control','public,max-age=300');
+  res.set('Cache-Control',user.channel_public===false?'private,no-store':'public,max-age=300');
   res.set('Content-Type',media.mime);
   return res.end(media.bytes);
  }catch(error){
@@ -4661,9 +4665,33 @@ app.post('/api/oryon/profile', mutationLimiter, async (req, res) => {
     const supplied=key=>Object.prototype.hasOwnProperty.call(req.body||{},key);
     if(supplied('display_name')) user.display_name=String(req.body.display_name||user.login).trim().slice(0,40)||user.login;
     if(supplied('bio')) user.bio=String(req.body.bio||'').trim().slice(0,500);
-    if(supplied('avatar_url')) user.avatar_url=String(req.body.avatar_url||'').trim().slice(0,2000000);
-    if(supplied('banner_url')) user.banner_url=String(req.body.banner_url||'').trim().slice(0,5000000);
-    if(supplied('offline_image_url')) user.offline_image_url=String(req.body.offline_image_url||'').trim().slice(0,5000000);
+    // Persist image bytes in the existing MySQL blob store, not 512 KB account JSON.
+    const {panelMediaUrl}=require('./modules/swapp-channel-panel-media');
+    for(const field of ['avatar_url','banner_url','offline_image_url']){
+      if(!supplied(field))continue;
+      const raw=String(req.body[field]||'').trim();
+      if(!raw){user[field]='';continue;}
+      if(raw.toLowerCase().startsWith('data:')){
+        if(!swappMysqlAccountsReady||!swappMysqlAccounts)
+          return res.status(503).json({success:false,error:'Stockage MySQL des images indisponible.'});
+        const {MAX_PROFILE_ART_BYTES}=require('./modules/swapp-channel-panel-media');
+        const media=await swappMysqlAccounts.savePanelImage(user.id,raw,{maxBytes:MAX_PROFILE_ART_BYTES});
+        user[field]=panelMediaUrl(user.login,media.hash);
+      }else if(raw.toLowerCase().startsWith('https://')){
+        let remote;
+        try{remote=new URL(raw)}catch(_){return res.status(400).json({success:false,error:'Adresse d’image invalide.'});}
+        if(remote.username||remote.password||raw.length>2048)
+          return res.status(400).json({success:false,error:'Adresse d’image invalide.'});
+        user[field]=remote.href;
+      }else{
+        const prefix='/api/oryon/panel-image/'+encodeURIComponent(user.login)+'/';
+        if(raw.startsWith(prefix)&&/^[a-f0-9]{64}$/.test(raw.slice(prefix.length))){
+          user[field]=raw;
+        }else if(field==='avatar_url'&&raw==='/api/oryon/avatar/'+encodeURIComponent(user.login)){
+          // Do not replace an existing avatar data URL with its public self-proxy.
+        }else return res.status(400).json({success:false,error:'Image non autorisée pour ce profil.'});
+      }
+    }
     if(supplied('channel_social_links')){
       if(!req.body.channel_social_links||typeof req.body.channel_social_links!=='object'||Array.isArray(req.body.channel_social_links))
        return res.status(400).json({success:false,error:'Liens sociaux invalides.'});
@@ -4742,7 +4770,7 @@ app.post('/api/oryon/profile', mutationLimiter, async (req, res) => {
   const badTheme=issue==='swapp_channel_background_url_invalid';
   const badSocial=issue==='swapp_social_link_invalid';
   res.status(badImage||badTheme||badSocial?400:500).json({
-   success:false,error:badImage?'Image invalide ou trop volumineuse (1,1 Mo maximum après compression).':badTheme?'Image de fond non autorisée.':badSocial?'Lien social invalide : utilise une URL HTTPS valide vers ton profil ou groupe.':issue
+   success:false,error:badImage?'Image invalide ou trop volumineuse (1,1 Mo pour les vignettes, 3 Mo pour les bannières et profils).':badTheme?'Image de fond non autorisée.':badSocial?'Lien social invalide : utilise une URL HTTPS valide vers ton profil ou groupe.':issue
   });
  }
 });
@@ -5205,6 +5233,7 @@ app.post('/api/oryon/stream-key/regenerate', mutationLimiter, async (req, res) =
 app.get('/api/oryon/follow/:login', async(req,res)=>{
   try{
     await ORYON_USERS_READY.catch(()=>{});
+    await restoreOryonSessionFromRememberCookie(req,res,{allowUserRecovery:false});
     const target=normalizeOryonLogin(req.params.login);
     if(!target)return res.status(400).json({success:false,error:'Créateur invalide.'});
     const data=readOryonUsers();
@@ -5221,6 +5250,7 @@ app.get('/api/oryon/follow/:login', async(req,res)=>{
 
 app.delete('/api/oryon/follow/:login',mutationLimiter,async(req,res)=>{
   try{
+    await restoreOryonSessionFromRememberCookie(req,res,{allowUserRecovery:false});
     const cur=req.session?.oryonUser;
     if(!cur?.id)return res.status(401).json({success:false,error:'Compte SWAPP requis.'});
     const target=normalizeOryonLogin(req.params.login);
@@ -5242,6 +5272,7 @@ app.delete('/api/oryon/follow/:login',mutationLimiter,async(req,res)=>{
 
 app.post('/api/oryon/follow/:login', mutationLimiter, async (req, res) => {
   try{
+    await restoreOryonSessionFromRememberCookie(req,res,{allowUserRecovery:false});
     const cur = req.session?.oryonUser;
     if(!cur?.id) return res.status(401).json({ success:false, error:'Compte Oryon requis.' });
     const target = normalizeOryonLogin(req.params.login);

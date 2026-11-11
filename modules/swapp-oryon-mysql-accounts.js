@@ -61,10 +61,10 @@ function createMysqlAccountsStore({uri,pool,mysqlFactory}={}){
   }
   await panelInitPromise;
  }
- async function savePanelImage(ownerId,dataUrl){
+ async function savePanelImage(ownerId,dataUrl,options={}){
   if(!/^[a-zA-Z0-9_-]{3,80}$/.test(String(ownerId||'')))throw Error('invalid_panel_owner');
   const {panelImagePayload}=require('./swapp-channel-panel-media');
-  const image=panelImagePayload(dataUrl);
+  const image=panelImagePayload(dataUrl,options);
   await ensurePanelTable();
   await client.execute(
    'INSERT IGNORE INTO swapp_channel_panel_images (owner_id,image_hash,mime,image_data,created_at) VALUES (?,?,?,?,?)',

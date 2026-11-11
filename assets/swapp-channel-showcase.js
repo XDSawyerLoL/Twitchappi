@@ -21,6 +21,7 @@
  // These menus render in a body-level layer. Opening a menu must not change
  // the banner, player, chat or action dock geometry, including on mobile.
  const activeMenus=new Set();
+ const allMenus=new Set();
  function menu(label,cls){
   const details=make('details',cls);
   const summary=make('summary','swapp-showcase-summary',label);
@@ -29,14 +30,19 @@
   content.setAttribute('role','group');
   content.setAttribute('aria-label',label);
   details.append(summary,content);
-  let floating=false;
+  // Portal the menu ONCE. Reparenting it on each toggle caused flicker,
+  // lost focus, displaced controls and rapid open/close loops on mobile.
+  document.body.append(content);
+  content.classList.add('swapp-showcase-floating-menu');
+  content.hidden=true;
+  let floating=false,disposed=false;
   const position=()=>{
    if(!floating||!summary.isConnected)return;
    const rect=summary.getBoundingClientRect();
    const width=Math.min(268,Math.max(180,window.innerWidth-16));
    const height=Math.min(content.scrollHeight||280,420,window.innerHeight-24);
    const left=Math.max(8,Math.min(rect.right-width,window.innerWidth-width-8));
-   const above=rect.bottom+8+height>window.innerHeight && rect.top>height+12;
+   const above=rect.bottom+8+height>window.innerHeight&&rect.top>height+12;
    const top=above?Math.max(8,rect.top-height-8):
     Math.max(8,Math.min(rect.bottom+8,window.innerHeight-Math.min(height,100)-8));
    content.style.left=left+'px';
@@ -55,26 +61,29 @@
    document.removeEventListener('keydown',onKeys);
    window.removeEventListener('resize',position);
    window.removeEventListener('scroll',position,true);
-   content.classList.remove('swapp-showcase-floating-menu');
-   content.style.removeProperty('left');content.style.removeProperty('top');
-   content.style.removeProperty('width');content.style.removeProperty('max-height');
-   if(details.isConnected)details.append(content);
-   else content.remove();
+   content.hidden=true;
   };
-  const entry={details,close};
+  const destroy=()=>{
+   if(disposed)return;disposed=true;
+   close();allMenus.delete(entry);
+   content.classList.remove('swapp-showcase-floating-menu');
+   content.remove();
+  };
+  const entry={details,close,destroy};
+  allMenus.add(entry);
   details.addEventListener('toggle',()=>{
    if(!details.open){close();return}
-   if(floating||!details.isConnected)return;
+   if(floating||!details.isConnected||disposed)return;
+   // Only one active channel menu at a time.
+   for(const other of activeMenus)if(other!==entry)other.details.open=false;
    floating=true;activeMenus.add(entry);
-   document.body.append(content);
-   content.classList.add('swapp-showcase-floating-menu');
+   content.hidden=false;
    position();
    document.addEventListener('pointerdown',onOutside,true);
    document.addEventListener('keydown',onKeys);
    window.addEventListener('resize',position);
    window.addEventListener('scroll',position,true);
   });
-  // The original button callbacks still run. The menu closes afterwards.
   content.addEventListener('click',event=>{
    if(event.target.closest('button,a'))details.open=false;
   });
@@ -208,7 +217,7 @@
  }
  function scan(){
   if(!root.classList.contains('active'))return;
-  for(const item of activeMenus)if(!item.details.isConnected)item.close();
+  for(const item of allMenus)if(!item.details.isConnected)item.destroy();
   root.querySelectorAll('.creatorRefine.swapp-channel-polish').forEach(enhance);
  }
  let queued=false;
