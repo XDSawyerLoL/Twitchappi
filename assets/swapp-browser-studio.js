@@ -14,6 +14,17 @@
  let dialog=null,activeRoom='',busy=false;
  let metadataPromise=null,managerBound=null,lastPublicFetch=0;
  const socketBound=new WeakSet();
+ // Never disguise an HTTP media transport failure as a successfully published
+ // video. Alert the broadcaster without interrupting a working WebRTC stream.
+ window.addEventListener('swapp:live:relay-error',event=>{
+  const page=document.getElementById('manager');
+  if(!page?.classList.contains('active'))return;
+  const message=String(event?.detail?.message||'Le relais vidéo SWAPP a échoué.').slice(0,180);
+  const badge=document.getElementById('streamStateBadge');
+  if(badge){badge.textContent='⚠ Relais vidéo en échec';badge.title=message}
+  if(typeof window.toast==='function')window.toast(message);
+  else console.warn('[SWAPP LIVE]',message);
+ });
  const current=()=>{try{return typeof state!=='undefined'?state:null}catch(_){return null}};
  const currentRoom=()=>{
   const stateNow=current();
