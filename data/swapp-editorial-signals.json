@@ -147,6 +147,71 @@
       "sourceDate": "2026-10-27",
       "reviewedAt": "2026-11-11",
       "articleSlug": "genie-4-google-deepmind-simulation-mondes-interactifs-2026"
+    },
+    {
+      "id": "omni12-flash-video-20261105",
+      "topics": [
+        "AI",
+        "FUTURE"
+      ],
+      "title": "Gemini Omni 1.2 Flash : Google détaille son modèle multimodal orienté vidéo",
+      "fact": "Google DeepMind publie la fiche officielle de Gemini Omni 1.2 Flash, consacré à la compréhension et à la modification multimodale des contenus, notamment vidéo.",
+      "impact": "Les outils vidéo pourraient évoluer vers une édition plus précise au moyen de consignes naturelles.",
+      "caveat": "La fiche présente les capacités et limites annoncées par Google ; elle ne confirme pas la disponibilité de toutes les fonctions pour chaque utilisateur.",
+      "sourceName": "Google DeepMind",
+      "sourceUrl": "https://deepmind.google/models/model-cards/gemini-omni-1-2-flash/",
+      "sourceDate": "2026-11-05",
+      "reviewedAt": "2026-11-11",
+      "articleSlug": null
+    },
+    {
+      "id": "antigravity-cheminformatics-20261103",
+      "topics": [
+        "AI",
+        "FUTURE"
+      ],
+      "title": "Antigravity et chimie : DeepMind accélère une étape de recherche de molécules",
+      "fact": "DeepMind décrit un agent muni d'outils de chimie informatique ayant analysé de nombreux composés et proposé des molécules candidates et des voies de synthèse en environ une heure.",
+      "impact": "Les chercheurs pourraient gagner du temps pour explorer des hypothèses et préparer de nouvelles expériences.",
+      "caveat": "Il s'agit de propositions assistées par IA, pas de médicaments validés ni d'une preuve d'efficacité clinique.",
+      "sourceName": "Google DeepMind",
+      "sourceUrl": "https://deepmind.google/blog/agentic-cheminformatics-with-google-antigravity/",
+      "sourceDate": "2026-11-03",
+      "reviewedAt": "2026-11-11",
+      "articleSlug": null
+    },
+    {
+      "id": "nvidia-cosmos-worldmodels-20261102",
+      "topics": [
+        "FUTURE",
+        "ROBOTICS",
+        "AI"
+      ],
+      "title": "Cosmos : NVIDIA publie des outils pour entraîner des simulations de véhicules et de robots",
+      "fact": "NVIDIA détaille Cosmos Framework et ses recettes de génération de vues caméra et LiDAR, ainsi que des services d'inférence adaptés à des scénarios de simulation.",
+      "impact": "La simulation pourrait accélérer les tests d'agents physiques sur des situations dangereuses ou difficiles à reproduire.",
+      "caveat": "La qualité visuelle d'une simulation n'assure pas l'exactitude de la physique ni le transfert direct à un véhicule ou robot réel.",
+      "sourceName": "NVIDIA Developer",
+      "sourceUrl": "https://developer.nvidia.com/blog/build-world-models-for-interactive-simulation-with-nvidia-cosmos/",
+      "sourceDate": "2026-11-02",
+      "reviewedAt": "2026-11-11",
+      "articleSlug": null
+    },
+    {
+      "id": "isaac-lab3-nvidia-20261029",
+      "topics": [
+        "ROBOTICS",
+        "FUTURE"
+      ],
+      "title": "Isaac Lab 3.0 : NVIDIA annonce un environnement de simulation plus modulaire",
+      "fact": "NVIDIA présente Isaac Lab 3.0, qui intègre notamment le moteur physique Newton et différentes options de rendu pour entraîner et évaluer des politiques robotiques.",
+      "impact": "Les développeurs pourraient reproduire davantage de gestes et de matériaux dans les tests de robots.",
+      "caveat": "Les possibilités dépendent du matériel et des scènes simulées ; les performances sur un robot physique doivent être mesurées séparément.",
+      "sourceName": "NVIDIA Developer Forums",
+      "sourceUrl": "https://forums.developer.nvidia.com/t/nvidia-isaac-lab-3-0-now-available/387360",
+      "sourceDate": "2026-10-29",
+      "reviewedAt": "2026-11-11",
+      "articleSlug": null
     }
   ]
 }
