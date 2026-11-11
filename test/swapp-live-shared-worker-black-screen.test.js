@@ -71,7 +71,8 @@ test('OBS and browser live paths consult shared video rather than process-only s
  assert.match(server,/const nativeBrowserShared=createBrowserRelayShared/);
  assert.match(server,/nativeBrowserShared\.put\(room,seq,mime,data,String\(user\.id\)\)/);
  assert.match(server,/nativeBrowserShared\.segment\(room,seq\)/);
- assert.match(server,/const browserMedia=nativeBrowserShared\.state\(login\)/);
+ assert.match(server,/const browserCandidate=nativeBrowserShared\.state\(login\)/);
+ assert.match(server,/const browserMedia=browserCandidate\?\.lastSeq>=1\?browserCandidate:null/);
  assert.match(server,/const verifiedObs=swappDirectRelay\.activeStreams\(\)\.find\(stream=>stream\.login===login\)/);
  assert.match(server,/source:verifiedObs\?'local-agent'/);
  assert.match(server,/verifyOryonRememberToken\(stored,remembered\.remember_token\)/);
