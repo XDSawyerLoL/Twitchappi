@@ -10902,7 +10902,7 @@ app.get('/api/oryon/channel/:login/live-ping', async (req, res) => {
     res.json({
       success:true,
       is_live:!!room||!!browserMedia||!!verifiedObs||localLiveFresh,
-      source:room||browserMedia?'browser-webrtc':(verifiedObs||localLiveFresh?'local-agent':'offline'),
+      source:verifiedObs?'local-agent':(room||browserMedia?'browser-webrtc':(localLiveFresh?'local-agent':'offline')),
       media_ready:!!browserMedia||!!verifiedObs
     });
   }catch(e){res.status(500).json({success:false,error:'Statut indisponible.'});}
@@ -10934,7 +10934,7 @@ app.get('/api/oryon/channel/:login/status', async (req, res) => {
       public_abs_url:(swappPublicBase(req)||'').replace(/\/$/,'') + publicPath,
       live:{
         is_live:!!room || !!browserMedia || !!verifiedObs || localLiveFresh,
-        source:room || browserMedia ? 'browser-webrtc' : (verifiedObs || localLiveFresh ? 'local-agent' : 'offline'),
+        source:verifiedObs ? 'local-agent' : (room || browserMedia ? 'browser-webrtc' : (localLiveFresh ? 'local-agent' : 'offline')),
         status:(!!room || !!browserMedia || !!verifiedObs || localLiveFresh) ? 'live' : 'offline',
         started_at:room?.createdAt || user.live_started_at || null,
         last_seen:user.channel_last_seen || user.local_agent_last_seen || null,
@@ -10948,7 +10948,7 @@ app.get('/api/oryon/channel/:login/status', async (req, res) => {
         hls_url: room?.hls_url || (/\.m3u8(\?|$)/i.test(localPlayerUrl) ? localPlayerUrl : ''),
         status_url: localStatusUrl || '',
         public_base_url: localPublicBaseUrl || '',
-        provider: room || browserMedia ? 'browser-webrtc' : (verifiedObs || localLiveFresh ? (user.oryon_local_provider || 'local-agent') : 'offline')
+        provider: verifiedObs ? 'swapp-direct-hls' : (room || browserMedia ? 'browser-webrtc' : (localLiveFresh ? (user.oryon_local_provider || 'local-agent') : 'offline'))
       }
     });
   }catch(e){ res.status(500).json({success:false,error:e.message}); }
