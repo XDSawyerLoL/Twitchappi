@@ -15,7 +15,7 @@ const DDL=`CREATE TABLE IF NOT EXISTS swapp_tech_watch_candidates (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`;
 function assertCandidate(c){
  if(!/^[a-f0-9]{20}$/.test(c?.id||''))throw Error('invalid_candidate_id');
- if(!['IA','Robotique'].includes(c.section))throw Error('invalid_section');
+ if(!['IA','Robotique','FUTURE'].includes(c.section))throw Error('invalid_section');
  if(typeof c.title!=='string'||!c.title.trim()||c.title.length>500)throw Error('invalid_title');
  const url=new URL(c.url);if(url.protocol!=='https:'||url.username||url.password||c.url.length>2048)throw Error('invalid_source_url');
  const date=new Date(c.sourcePublishedAt);if(!Number.isFinite(date.getTime()))throw Error('invalid_source_date');
