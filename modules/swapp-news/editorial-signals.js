@@ -23,7 +23,8 @@ function validateEditorial(item){
  if(item.title.length>200||item.fact.length>500||item.impact.length>350||item.caveat.length>350)throw Error('signal_too_long');
  const source=HTTPS(item.sourceUrl);
  if(!source||!PRIMARY_HOSTS.has(source.hostname.toLowerCase()))throw Error('signal_requires_primary_source');
- if(item.imageUrl!=null){
+ if(typeof item.imageUrl!=='string'||!item.imageUrl.trim())throw Error('official_signal_image_required');
+ {
   const asset=HTTPS(item.imageUrl);
   if(!asset||!IMAGE_HOSTS.has(asset.hostname.toLowerCase()))throw Error('invalid_official_signal_image');
   if(typeof item.imageCredit!=='string'||item.imageCredit.trim().length<8)throw Error('missing_image_credit');
