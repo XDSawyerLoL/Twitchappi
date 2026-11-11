@@ -17,6 +17,8 @@ test('SWAPP FLASH contains thirteen verified primary-source briefs, each with sp
   assert.ok(x.impact.length>20);
   assert.ok(x.caveat.length>20);
   assert.equal(x.verification,'source_primaire_consultee');
+  assert.match(x.imageUrl,/^https:\/\//);
+  assert.ok(x.imageCredit.length>=8);
  }
 });
 test('multi-topic signals enrich all topic filters without double-counting the news',()=>{
@@ -34,6 +36,8 @@ test('primary source validation rejects unverifiable headlines and malicious des
  assert.throws(()=>validateEditorial({...sample,sourceUrl:'https://not-a-source.invalid/story'}));
  assert.throws(()=>validateEditorial({...sample,sourceDate:'not-a-date'}));
  assert.throws(()=>validateEditorial({...sample,caveat:''}));
+ assert.throws(()=>validateEditorial({...sample,imageUrl:'https://evil.invalid/pixel.png'}));
+ assert.throws(()=>validateEditorial({...sample,imageCredit:''}));
 });
 test('unreviewed source candidates remain separately identified, not mixed with editorial flashes',async()=>{
  const watch=await watchCandidates({});
@@ -56,6 +60,10 @@ test('route precedes native /api/actus/:slug and client remains inside single ex
  assert.ok(server.indexOf("app.get('/api/actus/signaux'")>0);
  assert.ok(server.indexOf("app.get('/api/actus/signaux'")<server.indexOf("const newsMysqlUrl="));
  assert.match(client,/swapp-flash-strip/);
+ assert.match(client,/swapp-flash-thumb/);
+ assert.match(client,/swapp-flash-cards/);
+ assert.match(client,/scrollBy/);
+ assert.doesNotMatch(client,/SWAPP FLASH · SOURCES PRIMAIRES/);
  assert.match(client,/SWAPP FLASH/);
  assert.match(client,/refreshSignalSection/);
  assert.match(client,/\/api\/actus\/signaux/);
