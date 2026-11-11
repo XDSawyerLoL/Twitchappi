@@ -64,3 +64,21 @@ Le classement officiel Steam consulté le **10 novembre 2026** place Phantom Bla
 
 ### Historique de révision
 - **2026-11-10 — v0.2 :** vérification de la popularité Steam et des spécifications primaires, enrichissement des conseils de prise en main, identification d'une source officielle 404 dans le lot d'actualité et de l'impossibilité de certifier le déploiement. Statut inchangé : **brouillon, non publié**.
+
+## Révision documentaire du 11 novembre 2026 — v0.3 (non publiée)
+
+### Source primaire retrouvée et corrections précises
+Le journal officiel S-GAME du patch **1.0302256** est accessible sur le domaine de l'éditeur : https://pbz.s-game.com/ru-RU/news/patch-notes-2026-11-03/ (URL localisée, texte anglais). Date de mise en ligne du correctif Steam : **4 novembre 2026**, build **26367565** selon SteamDB : https://steamdb.info/patchnotes/26367565/ . Cette source remplace l'URL coréenne signalée 404 dans la v0.2 ; elle ne permet pas d'affirmer que toutes les plateformes ont reçu le patch simultanément.
+
+### Conseils utiles après le correctif, limités à ce qui est confirmé
+- **Commandes PC :** « Interact / Talk » est désormais remappable au clavier et à la manette. Vérifier son assignation dans les options si une interaction semble ne plus répondre ; ne pas appliquer cette instruction à PS5 sans contrôle.
+- **Démarrage PC et ray tracing :** les shaders ray tracing ne sont plus compilés systématiquement au démarrage. Après la mise à jour, une recompilation ponctuelle peut se produire pour les joueurs qui avaient désactivé le ray tracing. L'activer ultérieurement déclenche une compilation séparée au redémarrage suivant. Ne pas interpréter cette attente ponctuelle comme une régression permanente.
+- **Fluidité PC :** le développeur annonce une réduction des saccades avec les manettes Bluetooth et le fonctionnement de NVIDIA Reflex en mode Auto avec V-Sync. Ce sont des correctifs annoncés, pas des gains chiffrés démontrés pour toutes les machines.
+- **Combat :** Hua, Deadly Betrothed, utilise moins souvent ses prises **uniquement** aux difficultés Wayfarer et Pathbreaker. Aucune baisse généralisée de difficulté n'est établie. Les changements apportés à d'autres ennemis ne sont pas détaillés ; ne pas en déduire une nouvelle stratégie universelle.
+- **Incidents après mise à jour :** S-GAME prévient que certains mods tiers sont incompatibles. En cas de crash ou de saccades, le studio recommande de retirer les mods problématiques puis, si nécessaire, de vider les fichiers du cache des shaders dans le répertoire du jeu et de relancer pour recompilation. Avant toute suppression, vérifier le chemin dans l'installation réelle et ne pas toucher aux sauvegardes.
+- **Audio :** deux nouveaux curseurs règlent l'intensité du son des coups et de leur impact ; les tester pour distinguer retour sonore et efficacité réelle d'une attaque.
+
+### Limites de publication et traçabilité
+Le classement officiel Steam du **11 novembre 2026** place Phantom Blade Zero dans les cinq titres les plus joués au moment du relevé : https://store.steampowered.com/charts/ . Il s'agit d'une photographie instantanée, pas d'une preuve de croissance continue. Le dossier existant du 9 novembre est enrichi, **sans nouveau slug, sans média copié, sans note SWAPP Score**. Les API publiques /api/actus, /api/actus/storage-status, /api/actus/release-status et l'index /guides n'ont pas été vérifiables par l'outil externe le 11 novembre. Ne pas ajouter ce brouillon au manifeste éditorial ni prétendre à une publication. Les éventuelles illustrations et vidéos devront être contrôlées et créditées séparément.
+
+**Historique :** 2026-11-11 — v0.3 : récupération d'une source primaire éditeur accessible, contrôle croisé du build, conseils techniques spécifiques et bornés au patch, maintien du statut documentaire.
