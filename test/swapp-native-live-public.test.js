@@ -25,7 +25,7 @@ test('public live polling is lightweight and never cached',()=>{
    .split("app.get('/api/oryon/channel/:login/status'")[0];
  assert.match(ping,/Cache-Control','no-store'/);
  assert.doesNotMatch(ping,/publicOryonChannelUser|avatar_url|channel_panels|channel_vignettes/);
- assert.match(ping,/is_live:!!room\|\|localLiveFresh/);
+ assert.match(ping,/is_live:!!room\|\|!!browserMedia\|\|!!verifiedObs\|\|localLiveFresh/);
  assert.match(client,/setInterval\(\(\)=>\{if\(state\?\.view==='channel'\)refreshChannelStatus\(\)\},10000\)/);
  assert.match(client,/await renderChannel\(\)/);
  assert.match(client,/const livePing=await api\('\/api\/oryon\/channel\/'/);
