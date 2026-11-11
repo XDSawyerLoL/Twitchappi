@@ -70,7 +70,7 @@
   };
   void refresh();
   button.addEventListener('click',async event=>{
-   event.preventDefault();
+   event?.preventDefault?.();
    if(busy||button.disabled)return;
    if(!ready){await refresh();return;}
    if(!authenticated){
@@ -81,7 +81,7 @@
    busy=true;button.disabled=true;button.setAttribute('aria-busy','true');
    try{
     const wasFollowing=following;
-    const result=await request(path,wasFollowing?'DELETE':'POST');
+    const result=await request(path,following?'DELETE':'POST');
     if(!button.isConnected)return;
     following=wasFollowing?false:(result.is_following===true||result.following===true||
       (Array.isArray(result.following)&&result.following.includes(login)));
