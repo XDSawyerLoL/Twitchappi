@@ -41,8 +41,8 @@ test('profile POST persists complete selected presentation and does not erase ot
  assert.match(server,/normalizePanels\(incomingPanels\)/);
  assert.match(server,/link_url:sanitizePanelUrl\(panel\.link_url\)/);
  assert.match(server,/if\(supplied\('bio'\)\)/);
- assert.match(server,/if\(supplied\('avatar_url'\)\)/);
- assert.match(server,/if\(supplied\('banner_url'\)\)/);
+ assert.match(server,/for\(const field of \['avatar_url','banner_url','offline_image_url'\]\)/);
+ assert.match(server,/if\(!supplied\(field\)\)continue/);
  assert.match(server,/if\(supplied\('oryon_local_player_url'\)\)|hasOwnProperty\.call\(req\.body,'oryon_local_player_url'\)/);
  assert.match(server,/await writeOryonUsersAndWait\(data\)/);
 });
