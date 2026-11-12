@@ -26,7 +26,7 @@ function chrome(title,description,path,content,json){
  '<meta name="twitter:card" content="summary"><meta name="twitter:title" content="'+esc(title)+'">'+
  '<meta name="twitter:description" content="'+esc(description)+'">'+json;
  return layout({title,description,active:'actus',metadata,content:'<main class="sg">'+content+'</main>',
-  scripts:'',extraCss:'@import url("/assets/swapp-goty.css?v=20261112");'});
+  scripts:'<link rel="stylesheet" href="/assets/swapp-goty.css?v=20261112">',extraCss:''});
 }
 function card(g){
  return '<a href="'+href(g)+'" class="sg-card" data-winner="'+g.winner+'" aria-label="Lire '+esc(g.title)+'">'+
