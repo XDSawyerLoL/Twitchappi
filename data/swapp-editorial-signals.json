@@ -2,8 +2,94 @@
   "schema": 1,
   "kind": "swapp-editorial-signals",
   "method": "Brèves rédigées à partir de sources primaires, avec revendication, intérêt et limites distincts. Ne jamais convertir automatiquement un RSS en brève vérifiée.",
-  "updatedAt": "2026-11-11",
+  "updatedAt": "2026-11-12T16:51:58Z",
   "items": [
+    {
+      "id": "vindictus-ps5-annonce-20261112",
+      "topics": [
+        "GAMING"
+      ],
+      "title": "Vindictus: Defying Fate annonce sa version PS5 pour 2027",
+      "fact": "Le 12 novembre, Nexon confirme sur PlayStation.Blog l’arrivée de son action-RPG sur PS5 en 2027. Le studio décrit une aventure centrée sur le solo et prépare aussi du contenu multijoueur.",
+      "impact": "Les joueurs PS5 disposent d’une annonce officielle et d’une fiche à suivre sur le PlayStation Store.",
+      "caveat": "Aucun jour de sortie ni tarif français n’est précisé dans l’annonce. Les modalités du multijoueur restent à détailler.",
+      "sourceName": "NEXON Korea / PlayStation.Blog",
+      "sourceUrl": "https://blog.playstation.com/2026/11/12/vindictus-defying-fate-comes-to-ps5-next-year/",
+      "sourceDate": "2026-11-12",
+      "imageUrl": "https://blog.playstation.com/tachyon/2026/11/0bfe897fc01044ee53ab7ea0a12dcd7164024df9.jpg",
+      "imageCredit": "NEXON Korea / PlayStation.Blog · Vindictus: Defying Fate",
+      "reviewedAt": "2026-11-12T16:51:58Z",
+      "articleSlug": null
+    },
+    {
+      "id": "zelda-ocarina-switch2-ventes-20261111",
+      "topics": [
+        "GAMING"
+      ],
+      "title": "Zelda: Ocarina of Time sur Switch 2 dépasse 5,2 millions de ventes en quatre jours",
+      "fact": "Nintendo annonce le 11 novembre plus de 5,2 millions d’exemplaires vendus dans le monde sur les quatre premiers jours, dont 810 000 au Japon, pour The Legend of Zelda: Ocarina of Time sur Nintendo Switch 2.",
+      "impact": "Selon Nintendo, il s’agit du meilleur démarrage sur quatre jours parmi ses jeux édités sur Switch 2.",
+      "caveat": "Le bilan est calculé par Nintendo et additionne les versions physiques et numériques ; il ne mesure ni les revenus ni les ventes de toute la série Zelda.",
+      "sourceName": "Nintendo",
+      "sourceUrl": "https://www.nintendo.co.jp/corporate/release/2026/261111.html",
+      "sourceDate": "2026-11-11",
+      "imageUrl": "https://www.nintendo.co.jp/corporate/release/2026/img_261111/package.webp",
+      "imageCredit": "Nintendo · The Legend of Zelda: Ocarina of Time, Nintendo Switch 2",
+      "reviewedAt": "2026-11-12T16:51:58Z",
+      "articleSlug": null
+    },
+    {
+      "id": "alphagenome2-cellules-20261111",
+      "topics": [
+        "AI"
+      ],
+      "title": "AlphaGenome 2 affine les prédictions génétiques à l’échelle des types de cellules",
+      "fact": "Google DeepMind présente le 11 novembre AlphaGenome 2, qui prédit les effets de variations de l’ADN selon le type ou l’état des cellules. L’accès est ouvert à la recherche non commerciale via son API ; la recherche commerciale reste en préversion privée.",
+      "impact": "Les chercheurs peuvent cibler des variants et des expériences qui risqueraient de passer inaperçus dans une moyenne portant sur tout un tissu.",
+      "caveat": "Ces prédictions doivent être confrontées aux expériences. Le modèle n’est ni validé ni approuvé pour un usage clinique ou diagnostique.",
+      "sourceName": "Google DeepMind",
+      "sourceUrl": "https://deepmind.google/blog/alphagenome-2-deciphering-how-cells-read-dna-to-better-understand-disease/",
+      "sourceDate": "2026-11-11",
+      "imageUrl": "https://lh3.googleusercontent.com/VPOhADdGu1T7kK_gWBiGzyVawQbKCjpL3-B0L0wxpYCyr8cHxviYmo9Hghy4f1laeIo2YKwuz8E07TR9HWWk2b0EONi0uvju-8TDLHX6YWHG4dXe3w=w1200-h630-n-nu-rw",
+      "imageCredit": "Google DeepMind · AlphaGenome 2",
+      "reviewedAt": "2026-11-12T16:51:58Z",
+      "articleSlug": null
+    },
+    {
+      "id": "marathon-symbiosis-date-modes-20261110",
+      "topics": [
+        "GAMING"
+      ],
+      "title": "Marathon: Symbiosis arrive le 8 décembre avec un mode PvE et du 3 contre 3",
+      "fact": "PlayStation.Blog annonce le 10 novembre la mise à jour Symbiosis de Marathon pour le 8 décembre. Elle introduit Expedition, un mode PvE en première phase, et Deathmatch, un mode compétitif 3 contre 3 en bêta, ainsi que de nouvelles zones et armes.",
+      "impact": "Expedition permettra de parcourir une série de trois sorties en solo ou en équipe sans affrontements contre d’autres joueurs.",
+      "caveat": "Les deux modes sont présentés comme des versions initiales. La connexion reste requise et le jeu sur console nécessite un abonnement payant.",
+      "sourceName": "PlayStation.Blog / Bungie",
+      "sourceUrl": "https://blog.playstation.com/2026/11/10/marathon-symbiosis-update-launches-december-8-adding-new-pve-and-pvp-modes-weapons-and-more/",
+      "sourceDate": "2026-11-10",
+      "imageUrl": "https://blog.playstation.com/tachyon/2048/11/475e02e6da09723fe2dd0469175d593a7c1fee39.jpg",
+      "imageCredit": "Bungie / PlayStation.Blog · Marathon: Symbiosis",
+      "reviewedAt": "2026-11-12T16:51:58Z",
+      "articleSlug": null
+    },
+    {
+      "id": "nvidia-openshell-cncf-20261110",
+      "topics": [
+        "AI",
+        "FUTURE"
+      ],
+      "title": "NVIDIA annonce la contribution d’OpenShell à la CNCF pour encadrer les agents IA",
+      "fact": "Le 10 novembre, NVIDIA annonce contribuer OpenShell à la Cloud Native Computing Foundation comme projet Sandbox. Cet environnement d’exécution applique des règles aux outils, services d’inférence et tâches auxquels accèdent les agents autonomes.",
+      "impact": "Une base ouverte commune peut aider les équipes à inspecter et à encadrer les actions des agents dans leurs infrastructures.",
+      "caveat": "Le statut Sandbox ne certifie pas la sécurité d’un déploiement. Les garanties dépendent notamment des règles configurées et de leur mise en œuvre.",
+      "sourceName": "NVIDIA",
+      "sourceUrl": "https://blogs.nvidia.com/blog/open-source-openshell-infrastructure/",
+      "sourceDate": "2026-11-10",
+      "imageUrl": "https://blogs.nvidia.com/wp-content/uploads/2026/11/end-to-end-key-visual-kubecon-blog-1920x1080-5915250-v2.jpg",
+      "imageCredit": "NVIDIA · OpenShell et infrastructure KubeCon",
+      "reviewedAt": "2026-11-12T16:51:58Z",
+      "articleSlug": null
+    },
     {
       "id": "alphaproof-code-signal-20261110",
       "topics": [
