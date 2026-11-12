@@ -54,7 +54,10 @@ function articleContents(article,headings,sourcesAvailable){
  const link=(title,id,subsection=false)=>`<a href="#${escapeHtml(id)}"${subsection?' class="subsection"':''}>${escapeHtml(title)}</a>`;
  const links=[];
  if(headings.length<2)links.push(link('Introduction','article-content'));
- for(const h of headings)links.push(link(h.title,h.id,h.level===3));
+ // Long dossiers keep the native table of contents compact: only main chapters.
+ const tocHeadings=article?.category==='Dossiers'&&headings.length>12
+  ?headings.filter(h=>h.level===2):headings;
+ for(const h of tocHeadings)links.push(link(h.title,h.id,h.level===3));
  if(!headings.length){
   if(sourcesAvailable)links.push(link('Sources et références','swapp-article-sources'));
   if(article.game)links.push(link('Créateurs en direct','swapp-article-lives'));
@@ -172,7 +175,7 @@ function renderNewsStory(originalArticle,{baseUrl='https://swapp.tv',relatedArti
  // Keep actual origin dates on imported editorials; never invent publish times.
  const author={'@type':'Person',name:article.author||'Rédaction SWAPP'};
  const publisher={'@type':'Organization',name:'SWAPP',url:'https://swapp.tv'};
- const schema={'@context':'https://schema.org','@type':isVideo?'VideoObject':'NewsArticle',
+ const schema={'@context':'https://schema.org','@type':isVideo?'VideoObject':article.category==='Dossiers'?'Article':'NewsArticle',
    name:seoTitle,headline:seoTitle,description:seoDescription,
    ...(published?{datePublished:published}:{}),
    ...(article.updatedAt?{dateModified:article.updatedAt}:{}),
@@ -199,6 +202,7 @@ function renderNewsStory(originalArticle,{baseUrl='https://swapp.tv',relatedArti
  const heroActions=`<div class="story-actions swapp-article-hero-actions swapp-game-journey-actions" aria-label="Explorer ce jeu sur SWAPP"><a class="button-link primary" href="#article-content">Lire l’article ↓</a>${flashAction}<a class="button-link" href="${article.game?'#swapp-article-lives':'/decouvrir'}">Voir les lives →</a><a class="button-link" href="${escapeHtml(discussUrl)}">En discuter →</a></div>`;
  const hero=`<header id="swapp-article-hero" class="swapp-native-immersive-hero swapp-immersive-hero"><div class="swapp-immersive-content"><span class="eyebrow">${escapeHtml(article.category||'Actualités')} ${article.game?'· '+escapeHtml(article.game):''}</span><h1 class="article-title">${escapeHtml(article.title)}</h1><p class="article-deck">${escapeHtml(summary)}</p><div class="article-byline"><span>Par <strong>${escapeHtml(article.author||'Rédaction SWAPP')}</strong></span><span>·</span><time datetime="${escapeHtml(published||'')}">${escapeHtml(dateLabel(published))}</time></div>${heroActions}${heroCredit}</div></header>`;
  const sources=(article.sources||[]).map(s=>`<li><a href="${escapeHtml(s.url)}" rel="nofollow noopener noreferrer" target="_blank">${escapeHtml(s.label||s.url)}</a></li>`).join('');
+ const sourcesPanel=sources?'<aside id="swapp-article-sources" class="sources-panel" aria-labelledby="swapp-article-sources-title"><h2 id="swapp-article-sources-title">Sources et références</h2><ul>'+sources+'</ul></aside>':'';
  const toc=articleContents(article,articleHeadings(article.body),Boolean(sources));
  const related=(Array.isArray(relatedArticles)?relatedArticles:[]).filter(x=>
   x&&x.slug!==article.slug&&/^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/.test(String(x.slug||''))).slice(0,3);
@@ -214,7 +218,7 @@ function renderNewsStory(originalArticle,{baseUrl='https://swapp.tv',relatedArti
  const nextReading=`<details class="swapp-reader-next" open><summary>À découvrir ensuite</summary><div class="swapp-reader-next-list">${nextLinks||'<a class="swapp-reader-next-all" href="/actus">Explorer toute l’actualité →</a>'}</div>${sponsorHtml}</details>`;
  const spotlight=article.game?'<div class="swapp-spotlight-public" data-spotlight-game="'+escapeHtml(article.game)+'" aria-label="Créateurs Spotlight"></div>':'';
  const liveSection=`<aside id="swapp-article-lives" class="swapp-article-related swapp-media-section" data-swapp-live-shelf data-game="${escapeHtml(article.game||'')}"><div class="swapp-media-heading"><div><span class="swapp-media-kicker">Actualités & lives</span><h2>${article.game?'En direct sur '+escapeHtml(article.game):'Les créateurs en direct'}</h2><p>Un article peut mener à un live. Les suggestions suivent le jeu de l’article lorsqu’il est renseigné.</p></div><a class="swapp-media-button" href="/decouvrir">Tous les lives →</a></div><div class="swapp-live-grid" data-live-results><p class="swapp-live-notice">Recherche des lives…</p></div></aside>`;
- const content=`<main class="article-wrap" data-swapp-article-slug="${escapeHtml(article.slug)}">${scene}<p class="breadcrumb"><a href="/actus">SWAPP · Actualité</a> / ${escapeHtml(article.category||'Actualités')}</p>${hero}${renderArticleShare(article,baseUrl)}<div class="swapp-article-reading">${toc}<div id="article-content" class="article-body">${markdown(article.body)}${partnerFooter}${renderArticleEngagement(article,baseUrl)}</div>${nextReading}</div>${articleExtras.renderServer(article)}${liveSection}<nav class="swapp-article-end-nav" aria-label="Retour après lecture"><a href="/actus">← Revenir à l’actualité</a></nav></main>`;
+ const content=`<main class="article-wrap" data-swapp-article-slug="${escapeHtml(article.slug)}">${scene}<p class="breadcrumb"><a href="/actus">SWAPP · Actualité</a> / ${escapeHtml(article.category||'Actualités')}</p>${hero}${renderArticleShare(article,baseUrl)}<div class="swapp-article-reading">${toc}<div id="article-content" class="article-body">${markdown(article.body)}${sourcesPanel}${partnerFooter}${renderArticleEngagement(article,baseUrl)}</div>${nextReading}</div>${articleExtras.renderServer(article)}${liveSection}<nav class="swapp-article-end-nav" aria-label="Retour après lecture"><a href="/actus">← Revenir à l’actualité</a></nav></main>`;
  return layout({title:seoTitle,description:seoDescription,metadata,content,extraCss:ARTICLE_ENGAGEMENT_CSS,scripts:'<link rel="stylesheet" href="/assets/swapp-article-share.css?v=20261110-compact-share-v2"><script src="/assets/swapp-article-share.js?v=20261110-compact-share-v2" defer></script>'});
 }
 

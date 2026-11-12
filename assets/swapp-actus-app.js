@@ -9,6 +9,7 @@ const slugOk=s=>/^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/.test(s||'');
 const SWAPP_TOPICS=[
  {id:'',label:'Toutes les actualités'},
  {id:'GAMING',label:'GAMING'},
+ {id:'DOSSIERS',label:'Dossiers'},
  {id:'AI',label:'AI'},
  {id:'ROBOTICS',label:'ROBOTICS'},
  {id:'FUTURE',label:'FUTURE'}
@@ -17,6 +18,7 @@ const normalizeTopic=value=>String(value||'').normalize('NFD').replace(/[\u0300-
 const topicCode=value=>{
  const tag=normalizeTopic(value);
  if(['gaming','jeu video','jeux video','jv'].includes(tag))return 'GAMING';
+ if(['dossiers','dossier'].includes(tag))return 'DOSSIERS';
  if(['ai','ia','intelligence artificielle','artificial intelligence'].includes(tag))return 'AI';
  if(['robotics','robotique','robots','robots et automatisation','automatisation'].includes(tag))return 'ROBOTICS';
  if(['future','futur','technologies emergentes','technologie emergente','emerging technologies'].includes(tag))return 'FUTURE';

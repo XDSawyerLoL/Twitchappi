@@ -34,7 +34,7 @@
    '<a href="/bandes-annonces"'+(active==='trailers'?' aria-current="page"':'')+'>Vidéos et bandes-annonces</a>'+ 
    '<a href="/on-air"'+(active==='onair'?' aria-current="page"':'')+'>PODCAST</a>'+  
    '<a href="/guides/aion-2"'+(active==='guides'?' aria-current="page"':'')+'>Guide Aion 2</a>'+ 
-   '<a href="/guides/game-awards-2017-2025">Les 18 incontournables GOTY</a></div></details></div>';
+   '<a href="/actus?tag=DOSSIERS">Dossiers</a></div></details></div>';
  }
  function discoverNav(active){
   return '<div class="swapp-news-nav swapp-discover-nav">'+link(items.find(x=>x.id==='discover'),active)+

@@ -17,8 +17,7 @@ function cachedGameHubForArticle(article){return lookupRegisteredGameHub(article
 const CORE_PATHS=Object.freeze([
  '/', '/a-propos', '/alternative-twitch', '/decouvrir', '/categories', '/equipes', '/actus',
  '/social', '/bandes-annonces', '/boutique', '/plan-du-site',
- ...require('./swapp-aion2-guides').PUBLIC_PATHS,
- ...require('./swapp-goty-guides').PUBLIC_PATHS
+ ...require('./swapp-aion2-guides').PUBLIC_PATHS
 ]);
 const SLUG=/^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/;
 const XML_CHARS=/[&<>"']/g;
@@ -287,8 +286,10 @@ function registerSeoRoutes(app,{getPublished=async()=>[],getCreators=async()=>[]
  if(!app||typeof app.get!=='function')throw Error('Express app required');
  // Register before the generic creator-slug route in server.js.
  require('./swapp-geo-pages').registerGeoRoutes(app);
- // The evergreen GOTY hub and its 18 guides are crawlable without the editorial database.
- require('./swapp-goty-guides').registerRoutes(app);
+ // Historical GOTY stand-alone guides now redirect to one native /actus dossier.
+ // Keep old shared URLs usable without rendering a second design or indexing duplicates.
+ app.get(/^\/guides\/game-awards-2017-2025(?:\/[a-z0-9-]+)?\/?$/,(_req,res)=>
+  res.redirect(301,'/actus/goty-2017-2025-18-jeux-incontournables-notes-conseils'));
  let cached=null,articles=[],expires=0,inflight=null,revision=0,loadedRevision=-1,hasVerifiedArticles=false,lastReadSuccessful=false;
  const TTL=6*60*60*1000;
  invalidateRegisteredSeoCache=()=>{revision++;expires=0};
