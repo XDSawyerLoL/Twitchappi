@@ -265,7 +265,7 @@ async function verify(){
  // remains reachable at ?classic=1 for emergency rollback and legacy journeys.
  const publicHome=await request(origin,'/');
  check(publicHome.body.includes('id="swapp-catalogue-lab"')&&
-  publicHome.body.includes('swapp-catalogue-lab.js?v=20261113-hover-rails-hero-10s-v6')&&
+  publicHome.body.includes('swapp-catalogue-lab.js?v=20261113-x-share-edge-hints-v7')&&
   publicHome.body.includes('rel="canonical" href="https://swapp.tv/"')&&
   !publicHome.body.includes('name="robots" content="noindex'),
   'SWAPP / is not the canonical cinematic homepage');
@@ -273,11 +273,11 @@ async function verify(){
  check(labHome.body.includes('id="swapp-catalogue-lab"')&&
    labHome.body.includes('noindex,nofollow,noarchive'),
    'Unindexed /catalogue-test laboratory missing');
- const publicCatalogueJs=await request(origin,'/assets/swapp-catalogue-lab.js?v=20261113-hover-rails-hero-10s-v6');
+ const publicCatalogueJs=await request(origin,'/assets/swapp-catalogue-lab.js?v=20261113-x-share-edge-hints-v7');
  check(publicCatalogueJs.body.includes('function chooseSmallCommunities(')&&
   publicCatalogueJs.body.includes('/api/oryon/discover/find-live?mood=petite-commu'),
   'Public homepage small-community discovery missing');
- const publicActusJs=await request(origin,'/assets/swapp-actus-app.js?v=20261113-relocated-feature-v2');
+ const publicActusJs=await request(origin,'/assets/swapp-actus-app.js?v=20261113-direct-x-v3');
  check(publicActusJs.body.includes('function renderFeaturedActusHero(')&&
   publicActusJs.body.includes('swapp-home-hero-feature'),
   'Former homepage featured article was not moved to ACTUS');
@@ -294,7 +294,7 @@ async function verify(){
   !trailerJs.body.includes('CONSENT_API_READY'),
   'Game-article autoplay controller is stale');
  const extras=await request(origin,'/assets/swapp-article-extras.js');
- check(home.body.includes('swapp-article-extras.js?v=20261019-manual-commerce-v10'),
+ check(home.body.includes('swapp-article-extras.js?v=20261113-direct-x-v3'),
   'Homepage still caches previous trailer validation library');
  check(extras.body.includes('function heroTrailerId(article)')&&
    extras.body.includes('heroTrailerId,isGameArticle,cardImageSources,commercialLinks,partnerOffersHtml'),
@@ -365,7 +365,7 @@ async function verify(){
   extras.body.includes('swapp-affiliate-offer swapp-affiliate-manual')&&
   !extras.body.includes('Pour aller plus loin')&&
   readerApp.body.includes('SwappArticleExtras?.partnerOffersHtml?.(a)')&&
-  home.body.includes('swapp-article-extras.js?v=20261019-manual-commerce-v10'),
+  home.body.includes('swapp-article-extras.js?v=20261113-direct-x-v3'),
   'Witcher manual Instant Gaming link still renders as huge footer advertisement');
  const nativeColor=await request(origin,'/assets/swapp-editorial-color.js');
  check(nativeColor.body.includes("oryon_viewer_accent")&&
