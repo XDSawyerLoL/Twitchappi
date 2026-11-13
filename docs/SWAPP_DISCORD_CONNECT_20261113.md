@@ -1,7 +1,7 @@
 # SWAPP Discord Connect + Live Bot + communautés (13/11/2026)
 
 ## Livraison
-- Page propriétaire : https://swapp.tv/discord (accès depuis menu du compte SWAPP et menu du catalogue immersif).
+- Discord se gère depuis **https://swapp.tv/compte**, dans la section Discord de l'aperçu du compte SWAPP authentifié. Le bouton « Gérer Discord Connect » ouvre le gestionnaire `/discord`. Aucun lien Discord Connect dans le menu principal, le panneau utilisateur global, la barre d'accueil ou les raccourcis privés de la chaîne. Les invitations de serveurs rendues publiques volontairement restent visibles sous le lecteur créateur.
 - Connexion OAuth2 du compte Discord : `identify` uniquement ; pas de connexion SWAPP obligatoire via Discord.
 - Autorisation serveur : `identify guilds webhook.incoming`. Discord affiche une sélection explicite de serveur et salon ; SWAPP vérifie identité liée et permission de gestion du serveur.
 - Jusqu'à cinq serveurs autorisés par créateur. Chaque serveur est activable/désactivable et sa visibilité publique est distincte et OFF par défaut. Le propriétaire peut enregistrer une invitation publique `discord.gg` validée (facultative). `/api/swapp/discord/creator/:login` ne renvoie que les noms et invitations des serveurs expressément affichés par le créateur. Les communautés consenties apparaissent en petits liens dans la barre sociale sous son lecteur.
@@ -48,3 +48,9 @@ La route `/discord` est inscrite dans `modules/swapp-discord-connect.js` et doit
 Déploiement nécessaire : paquet complet du commit GitHub actuel, y compris `server.js`, `app.js`, `modules/swapp-discord-connect.js`, `assets/swapp-discord-connect.js` et `assets/swapp-discord-connect.css` ; lancement/rechargement de `app.js` dans l'application Node Hostinger. Ne pas remplacer des fichiers isolés si une autre instance Node utilise encore l'ancienne version. Ne jamais placer les secrets OAuth/clé AES dans le ZIP. Les nouveaux modules Discord sont désormais **obligatoires** dans le contrôle du paquet Hostinger et inclus dans l'empreinte de publication `/api/release`.
 
 Ordre du contrôle après déploiement : `GET /api/release` (empreinte et absence de fichiers manquants), `GET /discord` (HTTP 200, titre « Discord Connect — SWAPP »), `GET /api/swapp/discord/status` sans session (HTTP 401), puis connexion SWAPP et configuration OAuth Discord. Un `503 discord_not_configured` après authentification signifie que les variables privées Hostinger ne sont pas configurées ; c'est différent de `Cannot GET`.
+
+## Réorganisation du 13/11/2026 — compte uniquement
+
+Le réglage privé Discord Connect n'est plus affiché dans les menus d'accueil. Sur `/compte`, après connexion au compte SWAPP, une carte Discord présente le lien `/discord` pour associer/déconnecter le compte et gérer les autorisations des serveurs. Sans authentification, cette carte n'apparaît pas. La page `/discord` reste le parcours de gestion OAuth2, elle ne remplace pas le compte SWAPP.
+
+Cette correction requiert le nouveau `assets/swapp-account-discord-link.js`, `assets/swapp-account-menu.js`, `assets/swapp-creator-workspace.css`, `assets/swapp-creator-social-shortcuts.js`, `modules/swapp-catalogue-lab.js`, `index.html` et un redémarrage Hostinger. Si `/discord` renvoie toujours « Cannot GET », l'application Node publique n'exécute toujours pas le backend Discord fusionné ; recharger uniquement les fichiers CSS/JS n'est pas suffisant.
