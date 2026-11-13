@@ -4,6 +4,7 @@ const {correctWoWForever}=require('./editorial-corrections');
 const {assertArticle, renderArticle, renderListing, isLegacyJustPlayerUrl} = require('./article-core');
 const {js:studioJs,renderStudio}=require('./editor-ui');
 const {renderNewsHome,renderNewsStory,renderJustPlayerPreview}=require('./native-pages');
+const sharePreview=require('./share-preview');
 const {renderTwitchWatch,isTwitchLogin}=require('./watch');
 const {collectPublicCatalog}=require('../../tools/justplayer-public-fetch');
 const {makePublicCatalog}=require('./public-catalog');
@@ -317,6 +318,24 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
     }catch(error){
       console.error('[SWAPP FLASH] Données éditoriales indisponibles:',String(error?.message||error).slice(0,160));
       return res.status(503).set('Cache-Control','no-store').send('FLASH temporairement indisponible');
+    }
+  });
+  // Public preview images are resolved from published articles only.
+  router.get('/actus/og-image/:slug',async(req,res)=>{
+    const slug=String(req.params.slug||'');
+    if(!sharePreview.SLUG.test(slug))return res.status(404).end();
+    if(!isReady())return res.status(503).end();
+    try{
+      const snapshot=await articles.doc(slug).get();
+      const candidate=snapshot.exists&&snapshot.data()?.status==='published'
+        ?publicArticle(snapshot.data())
+        :migrationVerified&&swappReleaseBySlug.has(slug)
+          ?publicArticle(swappReleaseBySlug.get(slug)):null;
+      if(!candidate)return res.status(404).end();
+      return sharePreview.deliverPreview(candidate,res);
+    }catch(error){
+      console.warn('[SWAPP social card] Preview unavailable',String(error?.message||'unavailable').slice(0,100));
+      return res.status(503).end();
     }
   });
   router.get('/actus/:slug',async(req,res,next)=>{
