@@ -95,7 +95,7 @@ test('existing Oryon V4 streamer favorites work in the test catalogue without fa
  assert.deepEqual(catalog.readChannelFavorites({getItem(){throw Error('blocked')}}),[]);
  assert.match(read('assets/swapp-catalogue-lab.js'),/storage\(\)\.setItem\(CHANNEL_KEY/);
  assert.match(read('assets/swapp-catalogue-lab.js'),/state\.lives\.filter\(x=>liveKeys\.has\(x\.id\)\)/);
- assert.match(lab.page(),/Mes favoris/);
+ assert.match(lab.page(),/Ma liste/);
 });
 test('no video preloading, only the explicit user preview path instantiates Twitch iframe',()=>{
  const js=read('assets/swapp-catalogue-lab.js');
