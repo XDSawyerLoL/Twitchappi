@@ -23,7 +23,8 @@ function bootstrap({isVerified=()=>false,enabled=true,sqlRows=[]}={}){
  const env=enabled?{
   SWAPP_ACCOUNT_STORE:'mysql',SWAPP_DISCORD_CLIENT_ID:id,SWAPP_DISCORD_CLIENT_SECRET:'Z'.repeat(40),
   SWAPP_DISCORD_REDIRECT_URI:'https://swapp.tv/api/swapp/discord/callback',
-  SWAPP_DISCORD_ENCRYPTION_KEY:'12'.repeat(32),SWAPP_ACCOUNT_MYSQL_URL:'mysql://root:pass@example.org/swapp'
+  SWAPP_DISCORD_ENCRYPTION_KEY:'12'.repeat(32),SWAPP_ACCOUNT_MYSQL_URL:'mysql://root:pass@example.org/swapp',
+  SESSION_SECRET:'S'.repeat(64)
  }: {};
  const db={
   async query(sql){queries.push([sql]);return [[]]},
