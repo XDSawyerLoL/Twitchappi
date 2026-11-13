@@ -159,9 +159,15 @@ async function verify(){
  const station=await request(origin,'/tv');
  check(station.body.includes('id="stv-slot-clock"')&&
   station.body.includes('id="stv-watch"')&&
-  station.body.includes('swapp-tv-broadcast.js?v=20261113-liveboot-v11')&&
-   station.body.includes('data-tv-build="20261113-liveboot-v11"'),
+  station.body.includes('swapp-tv-broadcast.js?v=20261113-twitch-events-v12')&&
+   station.body.includes('data-tv-build="20261113-twitch-events-v12"'),
   'SWAPP TV station layout or rotation script is stale');
+ const sdk=await request(origin,'/assets/swapp-tv-twitch-player.js');
+ check(station.body.includes('swapp-tv-twitch-player.js?v=20261113-twitch-events-v12')&&
+  sdk.body.includes('https://player.twitch.tv/js/embed/v1.js')&&
+  sdk.body.includes('Twitch.Player.PLAYBACK_BLOCKED')&&
+  sdk.body.includes('Twitch.Player.PLAYING'),
+  'SWAPP TV Twitch SDK cannot report real playback and blocked autoplay');
  const stationJs=await request(origin,'/assets/swapp-tv-broadcast.js');
  check(stationJs.body.includes('function maybeAdvanceDiscovery(')&&
   stationJs.body.includes('function fairDiscovery(')&&
@@ -170,6 +176,8 @@ async function verify(){
   stationJs.body.includes("api('/api/swapp-tv/native-lineup')")&&
   stationJs.body.includes('autoStartPending:true')&&
    stationJs.body.includes('const bootDiscovery=discovery();')&&
+   stationJs.body.includes("state.twitchPlaybackState='playing'")&&
+   stationJs.body.includes('resumeTwitchPlayback()')&&
    stationJs.body.includes('await Promise.allSettled([bootQueue,bootDiscovery])')&&
    stationJs.body.includes('function explainEmptyStation(')&&
   stationJs.body.includes('const DISCOVERY_SLOT_MS=5*60*1000')&&
