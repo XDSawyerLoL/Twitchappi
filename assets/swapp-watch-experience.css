@@ -774,3 +774,25 @@ body:has(#channel.view.active) #oryonMiniPlayer{display:none!important}
   padding-inline:8px!important;
  }
 }
+
+
+/* SWAPP CINEMA — share and accessible viewing shortcuts. No iframe/player mutation. */
+#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .swapp-watch-tools{
+ flex-wrap:wrap!important;row-gap:6px!important;min-width:0}
+#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .swapp-watch-share-btn{
+ border-color:rgba(176,193,224,.18)!important;color:#e5eafb!important;
+ background:rgba(255,255,255,.045)!important;white-space:nowrap}
+#channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .swapp-watch-share-btn:hover{
+ border-color:rgba(174,199,248,.44)!important;background:rgba(149,176,228,.13)!important}
+#channel .swapp-watch-shortcuts{margin-left:auto;font:500 11px/1.4 Inter,system-ui,sans-serif;
+ letter-spacing:.015em;color:#a7afc2;white-space:nowrap;padding:0 4px}
+#channel .swapp-watch-share-feedback{flex:0 0 auto;max-width:100%;padding:4px 7px;
+ border:1px solid rgba(184,199,227,.17);border-radius:6px;
+ font:550 11px/1.5 Inter,system-ui,sans-serif;color:#c6e8f0;overflow-wrap:anywhere}
+#channel .swapp-watch-share-feedback:empty{display:none}
+@media(max-width:990px){#channel .swapp-watch-shortcuts{display:none}}
+@media(max-width:560px){
+ #channel .creatorRefine.swapp-channel-polish[data-channel-live="true"] .swapp-watch-tools button{
+  flex:1 1 auto;min-width:0}
+ #channel .swapp-watch-share-feedback{flex:1 0 100%}
+}

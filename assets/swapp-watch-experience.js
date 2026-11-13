@@ -7,7 +7,8 @@
  const mode={immersion:'off',chat:'shown'};
  const icons={
   immersion:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9V5h4m6 0h4v4M5 15v4h4m6 0h4v-4"/><circle cx="12" cy="12" r="2.25"/></svg>',
-  chat:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 0 1-8 8 8.2 8.2 0 0 1-3-.6L4 21l1.6-5A8 8 0 1 1 20 12Z"/></svg>'
+  chat:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 0 1-8 8 8.2 8.2 0 0 1-3-.6L4 21l1.6-5A8 8 0 1 1 20 12Z"/></svg>',
+  share:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.7 10.7 6.6-4.2m-6.6 6.8 6.6 4.2"/></svg>'
  };
  function button(cls,svg,label){
   const el=document.createElement('button');
@@ -260,8 +261,11 @@
   const video=main?.querySelector('.premiumPlayer,.oryonMainPlayer,.player');
   if(!main||!video)return;
   resetLegacyPlayerGeometry(page);
-  page.dataset.watchImmersion=mode.immersion;
-  page.dataset.watchChat=mode.chat;
+  // Each channel starts in its own accessible default state.
+  // Hiding chat on the previous channel must never hide it here.
+  mode.immersion='off';mode.chat='shown';
+  page.dataset.watchImmersion='off';
+  page.dataset.watchChat='shown';
   installBroadcastHeadline(page,main,video);
   const row=document.createElement('div');
   row.className='swapp-watch-tools';
@@ -269,6 +273,36 @@
   row.setAttribute('aria-label','Affichage du direct');
   const immersion=button('swapp-watch-immersion-btn',icons.immersion,'Mode Immersion');
   const chat=button('swapp-watch-chat-btn',icons.chat,'Masquer le chat');
+  const share=button('swapp-watch-share-btn',icons.share,'Partager');
+  share.setAttribute('aria-label','Partager ce direct SWAPP');
+  share.title='Partager le direct (S)';
+  const feedback=document.createElement('span');
+  feedback.className='swapp-watch-share-feedback';
+  feedback.setAttribute('role','status');
+  feedback.setAttribute('aria-live','polite');
+  const keyboard=document.createElement('span');
+  keyboard.className='swapp-watch-shortcuts';
+  keyboard.textContent='I : Immersion · C : Chat · S : Partager';
+  share.addEventListener('click',async()=>{
+   const login=broadcastLogin(page);
+   if(!login){feedback.textContent='Lien public indisponible.';return}
+   const url=location.origin+'/'+encodeURIComponent(login);
+   try{
+    if(typeof navigator.share==='function'){
+     await navigator.share({title:'SWAPP Live · '+login,url});
+     feedback.textContent='Direct partagé';
+    }else if(navigator.clipboard?.writeText){
+     await navigator.clipboard.writeText(url);
+     feedback.textContent='Lien du direct copié';
+    }else feedback.textContent=url;
+   }catch(error){
+    if(error?.name==='AbortError')return;
+    try{
+     if(!navigator.clipboard?.writeText)throw Error('clipboard unavailable');
+     await navigator.clipboard.writeText(url);feedback.textContent='Lien du direct copié';
+    }catch(_){feedback.textContent=url}
+   }
+  });
   immersion.addEventListener('click',()=>{
    const next=page.dataset.watchImmersion!=='on';
    setImmersion(page,next);
@@ -286,7 +320,7 @@
    page.dataset.watchChat=next;mode.chat=next;updateUI(page);
    requestAnimationFrame(()=>{syncChat(page)});
   });
-  row.append(immersion,chat);
+  row.append(immersion,chat,share,keyboard,feedback);
   main.appendChild(row);
   updateUI(page);
   requestAnimationFrame(()=>{
@@ -332,7 +366,22 @@
   }),{passive:true});
   window.addEventListener('scroll',scheduleImmersion,{capture:true,passive:true});
   document.addEventListener('keydown',event=>{
-   if(event.key==='Escape' && activeImmersivePage)disableImmersion();
+   if(event.key==='Escape' && activeImmersivePage){disableImmersion();return}
+   if(event.defaultPrevented||event.repeat||event.isComposing||
+      event.ctrlKey||event.metaKey||event.altKey)return;
+   const target=event.target;
+   if(target?.isContentEditable||target?.closest?.('input,textarea,select,[contenteditable="true"],[role="textbox"]'))return;
+   if(!root.classList.contains('active'))return;
+   const page=root.querySelector('.creatorRefine.swapp-channel-polish[data-channel-live="true"]');
+   if(!page?.isConnected)return;
+   const key=String(event.key||'').toLowerCase();
+   const selector=key==='i'?'.swapp-watch-immersion-btn':
+    key==='c'?'.swapp-watch-chat-btn':key==='s'?'.swapp-watch-share-btn':'';
+   if(!selector)return;
+   const control=page.querySelector(selector);
+   if(!control)return;
+   event.preventDefault();
+   control.click();
   });
   schedule();
  }
