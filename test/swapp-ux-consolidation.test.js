@@ -4,14 +4,14 @@ const read=p=>fs.readFileSync(path.join(__dirname,'..',p),'utf8');
 const nav=require('../assets/swapp-navigation');
 const {community}=require('../modules/swapp-hubs');
 test('seven direct destinations; no Actualité dropdown and no Équipes tab',()=>{
- assert.deepEqual(nav.items.map(x=>x.label),['Accueil','DIRECT','Jeux & catégories','Actualité','Social','Boutique','SWAPP TV']);
+ assert.deepEqual(nav.items.map(x=>x.label),['Accueil','SWAPER','DÉCOUVRIR','Actualité','Social','Boutique','SWAPP TV']);
  const desktop=nav.desktopNavigation('categories');
  assert.equal((desktop.match(/<a /g)||[]).length,7);
  for(const href of ['/','/decouvrir','/categories','/actus','/social','/boutique','/tv'])
   assert.match(desktop,new RegExp('href="'+href+'"'));
  assert.doesNotMatch(desktop,/swapp-news-more|swapp-news-menu|href="\/equipes"/);
  assert.match(desktop,/href="\/categories" class="active" aria-current="page"/);
- assert.match(desktop,/href="\/decouvrir"[^>]*>DIRECT<\/a>/);
+ assert.match(desktop,/href="\/decouvrir"[^>]*>SWAPER<\/a>/);
  const mobile=nav.mobileNavigation('categories');
  const pinned=mobile.split('<details class="swapp-mobile-more">')[0];
  assert.equal((pinned.match(/<a /g)||[]).length,4);

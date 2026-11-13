@@ -8,8 +8,8 @@
  // Deliberately flat: no nested Discover or Actualité menus.
  const items=Object.freeze([
   Object.freeze({id:'home',label:'Accueil',href:'/'}),
-  Object.freeze({id:'discover',label:'DIRECT',href:'/decouvrir'}),
-  Object.freeze({id:'categories',label:'Jeux & catégories',href:'/categories'}),
+  Object.freeze({id:'discover',label:'SWAPER',href:'/decouvrir'}),
+  Object.freeze({id:'categories',label:'DÉCOUVRIR',href:'/categories'}),
   Object.freeze({id:'actus',label:'Actualité',href:'/actus'}),
   Object.freeze({id:'community',label:'Social',href:'/social'}),
   Object.freeze({id:'shop',label:'Boutique',href:'/boutique'}),
@@ -22,14 +22,12 @@
  const isNews=active=>active==='actus'||active==='trailers'||active==='guides'||active==='onair';
  const isDiscover=active=>active==='discover'||active==='teams';
  const isTv=active=>active==='tv'||active==='agenda'||active==='programme';
- function link(item,active,shortLabel=''){
+ function link(item,active){
   const selected=(item.id==='discover'&&isDiscover(active))||(item.id==='actus'&&isNews(active))||(item.id==='tv'&&isTv(active))||active===item.id;
   const current=active===item.id;
   const classes=[selected?'active':'',item.id==='tv'?'swapp-tv-nav-cta':'',item.id==='discover'?'swapp-direct-nav-cta':''].filter(Boolean).join(' ');
-  const label=shortLabel||item.label;
-  const accessibility=shortLabel&&shortLabel!==item.label?' aria-label="'+htmlEscape(item.label)+'"':'';
-  return '<a href="'+htmlEscape(item.href)+'" class="'+classes+'"'+accessibility+(current?' aria-current="page"':'')+'>'+
-   (item.id==='tv'?'<span class="swapp-tv-nav-icon" aria-hidden="true">◉</span>':'')+htmlEscape(label)+'</a>';
+  return '<a href="'+htmlEscape(item.href)+'" class="'+classes+'"'+(current?' aria-current="page"':'')+'>'+
+   htmlEscape(item.label)+'</a>';
  }
  function desktopNavigation(active='actus'){
   return '<div class="navGroup">'+items.map(x=>link(x,active)).join('')+'</div>';
@@ -40,7 +38,7 @@
   const other=items.filter(x=>!pinned.includes(x));
   const extra=[...other,video,podcast,account];
   const secondaryActive=extra.some(x=>x.id===active)||active==='guides';
-  return pinned.map(x=>link(x,active,x.id==='categories'?'Jeux':undefined)).join('')+
+  return pinned.map(x=>link(x,active)).join('')+
    '<details class="swapp-mobile-more"><summary'+(secondaryActive?' class="active"':'')+
    ' aria-label="Autres rubriques SWAPP">Plus</summary>'+
    '<div class="swapp-mobile-more-links">'+

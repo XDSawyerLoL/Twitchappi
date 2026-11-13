@@ -10,7 +10,7 @@
   {href:'/tv',label:'SWAPP TV'}
  ];
  const NAV=[
-  ['/', 'Accueil'],['/decouvrir','DIRECT'],['/categories','Jeux & catégories'],
+  ['/', 'Accueil'],['/decouvrir','SWAPER'],['/categories','DÉCOUVRIR'],
   ['/actus','Actualité'],
   ...HUBS.map(x=>[x.href,x.label])
  ];
@@ -18,7 +18,7 @@
  // reconciliation; otherwise every MutationObserver pass adds another link.
  const ACCOUNT=['/compte','Compte'];
  const norm=s=>String(s||'').replace(/\s+/g,' ').trim().toLocaleLowerCase('fr');
- const byLabel=new Map([...NAV,ACCOUNT,['/decouvrir','Découvrir'],['/categories','Catégories']].map(([href,label])=>[norm(label),href]));
+ const byLabel=new Map([...NAV,ACCOUNT,['/decouvrir','DIRECT'],['/categories','Jeux & catégories'],['/categories','Catégories']].map(([href,label])=>[norm(label),href]));
  const byHref=new Set([...NAV,ACCOUNT].map(([href])=>href));
  const isHub=href=>HUBS.some(x=>x.href===href);
  function dest(el){

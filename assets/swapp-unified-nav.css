@@ -211,3 +211,38 @@ header.top #nav .swapp-tv-nav-icon{color:#65eaf2;font-size:15px;text-shadow:0 0 
 @media(pointer:coarse){#mobileNav :is(a,button,summary){min-height:44px}header.top .userBtn{min-height:44px}}
 @media(forced-colors:active){:where(header.top,#mobileNav) :is(a,button,summary):focus-visible{outline:2px solid Highlight;box-shadow:none}}
 @media(prefers-reduced-motion:reduce){:where(header.top,#mobileNav) :is(a,button,summary){transition:none!important}}
+
+
+/* Uniform top-level menu: every item has the same frame, spacing and state.
+ * SWAPER and SWAPP TV remain semantic class names, not oversized highlighted pills.
+ */
+header.top #nav.mainNav .navGroup > a,
+header.top #nav.mainNav .navGroup > a.swapp-tv-nav-cta,
+header.top #nav.mainNav .navGroup > a.swapp-direct-nav-cta{
+ display:inline-flex!important;align-items:center!important;justify-content:center!important;
+ min-height:36px!important;padding:8px 11px!important;
+ border:1px solid transparent!important;border-radius:10px!important;
+ background:transparent!important;box-shadow:none!important;
+ color:#dbe4f3!important;font-weight:850!important;
+ letter-spacing:0!important;text-transform:none!important;
+}
+header.top #nav.mainNav .navGroup > a:hover,
+header.top #nav.mainNav .navGroup > a.active{
+ color:#fff!important;background:rgba(255,255,255,.12)!important;
+ border-color:rgba(126,214,232,.32)!important;
+ box-shadow:none!important;
+}
+header.top #nav.mainNav .swapp-tv-nav-cta:before{display:none!important}
+#mobileNav.mobileNav > a.swapp-tv-nav-cta,
+#mobileNav.mobileNav > a.swapp-direct-nav-cta{
+ background:transparent!important;border:1px solid transparent!important;
+ border-radius:10px!important;color:#dbe4f3!important;box-shadow:none!important;
+ font-weight:800!important;letter-spacing:-.025em!important;
+}
+#mobileNav.mobileNav > a:is(.swapp-tv-nav-cta,.swapp-direct-nav-cta).active{
+ background:rgba(255,255,255,.12)!important;
+ border-color:rgba(126,214,232,.32)!important;color:#fff!important;
+}
+@media(max-width:1080px){
+ #mobileNav.mobileNav > a[href="/categories"]{font-size:clamp(9px,2.2vw,12px)!important;letter-spacing:-.045em!important}
+}

@@ -8,7 +8,7 @@ const {layout}=require('../modules/swapp-news/site-shell');
 const {renderNewsHome,renderNewsStory}=require('../modules/swapp-news/native-pages');
 const {renderTwitchWatch}=require('../modules/swapp-news/watch');
 const ROOT=path.resolve(__dirname,'..');
-const expected=['Accueil','DIRECT','Jeux & catégories','Actualité','Social','Boutique','SWAPP TV'];
+const expected=['Accueil','SWAPER','DÉCOUVRIR','Actualité','Social','Boutique','SWAPP TV'];
 test('même contrat de menu pour toutes les pages SWAPP',()=>{
  assert.deepEqual(items.map(x=>x.label),expected);
  assert.equal(account.label,'Compte');
@@ -38,10 +38,10 @@ test('le serveur utilise la barre et les identifiants exacts du site de lives',(
 test('le site client charge le même contrat avant le script SPA',()=>{
  const html=fs.readFileSync(path.join(ROOT,'index.html'),'utf8');
  const script=fs.readFileSync(path.join(ROOT,'index_script.js'),'utf8');
- assert.ok(html.indexOf('src="/assets/swapp-navigation.js?v=20261113-direct-games-flat-nav-v1"') < html.indexOf('src="/index_script.js'));
+ assert.ok(html.indexOf('src="/assets/swapp-navigation.js?v=20261113-swaper-decouvrir-v1"') < html.indexOf('src="/index_script.js'));
  assert.match(script,/window\.SwappNavigation/);
- assert.match(html,/href="\/assets\/swapp-unified-nav\.css\?v=20261113-direct-games-flat-nav-v1"/);
- assert.match(layout({content:''}),/href="\/assets\/swapp-unified-nav\.css\?v=20261113-direct-games-flat-nav-v1"/);
+ assert.match(html,/href="\/assets\/swapp-unified-nav\.css\?v=20261113-swaper-decouvrir-v1"/);
+ assert.match(layout({content:''}),/href="\/assets\/swapp-unified-nav\.css\?v=20261113-swaper-decouvrir-v1"/);
 });
 test('pages article, actualités et live partagent le même menu et SWAPP reste SWAPP',()=>{
  const story={slug:'jeu-2026',title:'Un jeu annoncé',body:'Une analyse assez complète pour découvrir cette actualité.',summary:'Un résumé de l’article',category:'ACTUS',author:'SWAPP',game:'Fortnite',sources:[],publishedAt:'2026-10-14T20:00:00Z'};
@@ -54,7 +54,7 @@ test('pages article, actualités et live partagent le même menu et SWAPP reste 
    assert.doesNotMatch(html,/>ACTUS × LIVE<\/a>/);
  }
 });
-test('le lecteur live conserve le menu et sélectionne DIRECT',()=>{const page=renderTwitchWatch('streamer2026',{game:'Fortnite'});assert.ok(page.includes('id="userBtn"'));assert.ok(page.includes('aria-current="page">DIRECT</a>'));});
+test('le lecteur live conserve le menu et sélectionne SWAPER',()=>{const page=renderTwitchWatch('streamer2026',{game:'Fortnite'});assert.ok(page.includes('id="userBtn"'));assert.ok(page.includes('aria-current="page">SWAPER</a>'));});
 test('l’ancien CSS éditorial n’altère plus la nouvelle barre commune',()=>{
  const css=fs.readFileSync(path.join(ROOT,'assets/swapp-media.css'),'utf8');
  const shared=fs.readFileSync(path.join(ROOT,'assets/swapp-unified-nav.css'),'utf8');
@@ -92,7 +92,7 @@ test('Social, Vidéos et Boutique partagent exactement les dimensions du logo et
  const brand=/<a class="brand" href="\/"[^>]*><span class="swapp-wordmark-text">SWAPP<span class="swapp-wordmark-dot"/;
  for(const html of [spa,...pages]){
   assert.match(html,brand);
-  assert.match(html,/swapp-unified-nav\.css\?v=20261113-direct-games-flat-nav-v1/);
+  assert.match(html,/swapp-unified-nav\.css\?v=20261113-swaper-decouvrir-v1/);
   assert.match(html,/class="topbar"/);
   assert.match(html,/id="nav" class="mainNav"/);
   assert.match(html,/id="userBtn" class="userBtn"|id="userBtn" class="userBtn"/);

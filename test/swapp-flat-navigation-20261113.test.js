@@ -6,14 +6,14 @@ const path=require('node:path');
 const {desktopNavigation,mobileNavigation,serverHeader,serverMobile,items}=require('../assets/swapp-navigation');
 const read=filename=>fs.readFileSync(path.join(__dirname,'..',filename),'utf8');
 
-test('seven main links are direct, with DIRECT for live discovery and separate Jeux et catégories',()=>{
+test('seven main links are direct, with SWAPER for live discovery and DÉCOUVRIR for catalogue',()=>{
  assert.deepEqual(items.map(({href})=>href),['/','/decouvrir','/categories','/actus','/social','/boutique','/tv']);
- assert.equal(items.find(x=>x.href==='/decouvrir').label,'DIRECT');
+ assert.equal(items.find(x=>x.href==='/decouvrir').label,'SWAPER');
  const html=desktopNavigation('discover');
  assert.equal((html.match(/<a /g)||[]).length,7);
  assert.doesNotMatch(html,/<details|<summary|swapp-news-menu|href="\/equipes"/);
- assert.match(html,/href="\/decouvrir"[^>]*aria-current="page"[^>]*>DIRECT<\/a>/);
- assert.match(html,/href="\/categories"[^>]*>Jeux &amp; catégories<\/a>/);
+ assert.match(html,/href="\/decouvrir"[^>]*aria-current="page"[^>]*>SWAPER<\/a>/);
+ assert.match(html,/href="\/categories"[^>]*>DÉCOUVRIR<\/a>/);
  assert.match(html,/href="\/actus"[^>]*>Actualité<\/a>/);
 });
 test('mobile keeps four priorities and one Plus; no separate Actualité dropdown',()=>{
@@ -21,7 +21,7 @@ test('mobile keeps four priorities and one Plus; no separate Actualité dropdown
  const pinned=html.slice(0,html.indexOf('<details class="swapp-mobile-more">'));
  assert.equal((pinned.match(/<a /g)||[]).length,4);
  for(const href of ['/','/decouvrir','/categories','/actus'])assert.match(pinned,new RegExp('href="'+href+'"'));
- assert.match(pinned,/aria-label="Jeux &amp; catégories"/);
+ assert.match(pinned,/href="\/categories"[^>]*>DÉCOUVRIR<\/a>/);
  assert.match(html,/href="\/tv"/);
  assert.match(html,/href="\/social"/);
  assert.match(html,/href="\/boutique"/);
@@ -33,7 +33,7 @@ test('server and SPA use the same versioned navigation contract',()=>{
  const home=read('index.html'),native=read('modules/swapp-news/site-shell.js');
  for(const source of [home,native]){
   for(const name of ['swapp-navigation.js','swapp-hub-nav.js','swapp-unified-nav.css'])
-   assert.ok(source.includes('/assets/'+name+'?v=20261113-direct-games-flat-nav-v1'),name);
+   assert.ok(source.includes('/assets/'+name+'?v=20261113-swaper-decouvrir-v1'),name);
  }
  for(const page of [serverHeader('actus'),serverMobile('actus')]){
   assert.doesNotMatch(page,/href="\/equipes"|swapp-news-more/);
