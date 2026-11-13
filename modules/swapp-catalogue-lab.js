@@ -46,7 +46,7 @@ function page(){
    '<footer class="scl-footer">Prototype expérimental SWAPP. Les images et flux proviennent des sources publiques disponibles. Aucun contenu fictif ni vidéo lancée sans interaction. <a href="/categories">Retour au catalogue</a>.</footer>'+
   '</main></div>'+
   '<dialog class="scl-dialog" id="scl-dialog" aria-labelledby="scl-dialog-title"><button class="scl-dialog-close" type="button" id="scl-dialog-close" aria-label="Fermer">×</button><div id="scl-dialog-content"></div></dialog>';
- return '<!doctype html><html lang="fr"><head>'+head+'</head><body class="swapp-catalogue-lab-page">'+
+ return '<!doctype html><html lang="fr"><head>'+head+'</head><body class="swapp-editorial-route swapp-catalogue-lab-page">'+
   serverHeader('categories')+content+serverMobile('categories')+
   '<script src="/assets/swapp-catalogue-lab.js?v=20261113-lab-v1" defer></script>'+
   '<script src="/assets/swapp-my-games.js?v=20261021-account-hub-v1" defer></script>'+
