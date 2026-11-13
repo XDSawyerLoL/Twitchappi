@@ -152,6 +152,14 @@ test('ACTUS recycles old-home article poster with real published art and interna
  assert.match(read('index.html'),/swapp-actus-app\.css\?v=20261113-relocated-feature-v2/);
  assert.match(read('index.html'),/swapp-actus-app\.js\?v=20261113-direct-x-v3/);
 });
+test('published ACTUS hero sits flush below navigation without a spacer',()=>{
+ const css=read('assets/swapp-actus-app.css');
+ const html=read('index.html');
+ assert.match(css,/#actus\.view\.active:has\(\.swapp-actus-featured-mount\)\{[^}]*padding-top:0!important/s);
+ assert.match(css,/#actus \.swapp-actus-native:has\(> \.swapp-actus-featured-mount\)\{[^}]*padding-top:0!important/s);
+ assert.match(css,/#actus \.swapp-actus-featured-mount\{[^}]*margin-top:0!important/s);
+ assert.match(html,/swapp-actus-app\.css\?v=20261113-flush-hero-v10/);
+});
 test('official muted trailer from former homepage is scoped to ACTUS and never autoplays on touch devices',()=>{
  const motion=read('assets/swapp-home-motion.js'),actus=read('assets/swapp-actus-app.js');
  const css=read('assets/swapp-actus-app.css');
