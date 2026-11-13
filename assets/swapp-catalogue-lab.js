@@ -626,28 +626,46 @@ async function fetchJson(path){
   return data;
  }finally{clearTimeout(timeout)}
 }
+async function fetchArticles(){
+ const control=new AbortController();
+ const timeout=setTimeout(()=>control.abort(),9500);
+ try{
+  const response=await fetch(API.articles,{
+   credentials:'same-origin',
+   headers:{Accept:'application/json'},signal:control.signal,cache:'no-store'
+  });
+  if(!response.ok)throw new Error('Actualités HTTP '+response.status);
+  const payload=await response.json();
+  // Native magazine API intentionally has no success:true field.
+  if(!payload||!Array.isArray(payload.articles))throw new Error('Catalogue ACTUS invalide');
+  return payload.articles;
+ }finally{clearTimeout(timeout)}
+}
 async function load(){
  if(state.loading)return;
  state.loading=true;status.dataset.error='false';status.replaceChildren(create('span','','Recherche des vrais lives et jeux…'));
- const results=await Promise.allSettled([fetchJson(API.home),fetchJson(API.top),fetchJson(API.games)]);
+ const results=await Promise.allSettled([fetchJson(API.home),fetchJson(API.top),fetchJson(API.games),fetchArticles()]);
  const home=results[0].status==='fulfilled'?results[0].value.items:[];
  const top=results[1].status==='fulfilled'?results[1].value.items:[];
  const categories=results[2].status==='fulfilled'?results[2].value.categories:[];
+ const published=results[3].status==='fulfilled'?results[3].value:[];
+ state.newsError=results[3].status==='rejected';
  state.failed=results.map((result,i)=>result.status==='rejected'?Object.keys(API)[i]:null).filter(Boolean);
  state.lives=mergeLives(home,top);
  state.games=mergeGames(categories,state.lives);
+ state.articles=normalizeArticles(published);
  setHeroItems();
  render();
  startHeroRotation();
  status.replaceChildren();
- if(!state.lives.length&&!state.games.length){
+ if(!state.lives.length&&!state.games.length&&!state.articles.length){
   status.dataset.error='true';
-  status.append(create('span','','Aucun contenu disponible. Vérifie la connexion ou les flux de découverte.'));
+  status.append(create('span','','Aucun contenu disponible. Vérifie la connexion ou les catalogues SWAPP.'));
   status.append(button('Réessayer','',()=>{void load()}));
  }else if(state.failed.length){
   status.textContent='Catalogue partiel : certaines sources sont temporairement indisponibles. Les éléments affichés sont réels.';
  }else{
-  status.textContent=state.lives.length+' directs confirmés · '+state.games.length+' jeux à explorer';
+  status.textContent=state.articles.length+' articles publiés · '+state.lives.length+' directs confirmés · '+state.games.length+' jeux à explorer';
  }
  state.loading=false;
 }
