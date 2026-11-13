@@ -8,15 +8,15 @@ const {layout}=require('../modules/swapp-news/site-shell');
 const {renderNewsHome,renderNewsStory}=require('../modules/swapp-news/native-pages');
 const {renderTwitchWatch}=require('../modules/swapp-news/watch');
 const ROOT=path.resolve(__dirname,'..');
-const expected=['Accueil','Découvrir','Actualité','Social','Boutique','SWAPP TV'];
+const expected=['Accueil','DIRECT','Jeux & catégories','Actualité','Social','Boutique','SWAPP TV'];
 test('même contrat de menu pour toutes les pages SWAPP',()=>{
  assert.deepEqual(items.map(x=>x.label),expected);
  assert.equal(account.label,'Compte');
  const header=serverHeader('actus');
  const mobile=serverMobile('actus');
  for(const label of expected){
-   assert.ok(header.includes(label),'desktop '+label);
-   assert.ok(mobile.includes(label),'mobile '+label);
+   assert.ok(header.includes(label.replace('&','&amp;')),'desktop '+label);
+   assert.ok(mobile.includes(label.replace('&','&amp;')),'mobile '+label);
  }
  assert.ok(header.includes('id="userBtn" class="userBtn"'));assert.ok(header.includes('id="userMenu"'));
  assert.match(header,/href="\/actus"[^>]*aria-current="page"/);
@@ -31,17 +31,17 @@ test('le serveur utilise la barre et les identifiants exacts du site de lives',(
    assert.ok(article.includes(marker),marker+' missing in ACTUS');
    assert.ok(home.includes(marker),marker+' missing in SPA');
  }
- assert.match(article,/href="\/equipes"/);
+ assert.doesNotMatch(article,/href="\/equipes"/);
  assert.match(article,/href="\/decouvrir"/);
  assert.match(article,/href="\/compte"/);
 });
 test('le site client charge le même contrat avant le script SPA',()=>{
  const html=fs.readFileSync(path.join(ROOT,'index.html'),'utf8');
  const script=fs.readFileSync(path.join(ROOT,'index_script.js'),'utf8');
- assert.ok(html.indexOf('src="/assets/swapp-navigation.js?v=20261022-one-account-menu-v2"') < html.indexOf('src="/index_script.js'));
+ assert.ok(html.indexOf('src="/assets/swapp-navigation.js?v=20261113-direct-games-flat-nav-v1"') < html.indexOf('src="/index_script.js'));
  assert.match(script,/window\.SwappNavigation/);
- assert.match(html,/href="\/assets\/swapp-unified-nav\.css\?v=20261022-tvnav-v1"/);
- assert.match(layout({content:''}),/href="\/assets\/swapp-unified-nav\.css\?v=20261022-tvnav-v1"/);
+ assert.match(html,/href="\/assets\/swapp-unified-nav\.css\?v=20261113-direct-games-flat-nav-v1"/);
+ assert.match(layout({content:''}),/href="\/assets\/swapp-unified-nav\.css\?v=20261113-direct-games-flat-nav-v1"/);
 });
 test('pages article, actualités et live partagent le même menu et SWAPP reste SWAPP',()=>{
  const story={slug:'jeu-2026',title:'Un jeu annoncé',body:'Une analyse assez complète pour découvrir cette actualité.',summary:'Un résumé de l’article',category:'ACTUS',author:'SWAPP',game:'Fortnite',sources:[],publishedAt:'2026-10-14T20:00:00Z'};
@@ -54,7 +54,7 @@ test('pages article, actualités et live partagent le même menu et SWAPP reste 
    assert.doesNotMatch(html,/>ACTUS × LIVE<\/a>/);
  }
 });
-test('le lecteur live conserve le menu et sélectionne Découvrir',()=>{const page=renderTwitchWatch('streamer2026',{game:'Fortnite'});assert.ok(page.includes('id="userBtn"'));assert.ok(page.includes('aria-current="page">Découvrir</a>'));});
+test('le lecteur live conserve le menu et sélectionne DIRECT',()=>{const page=renderTwitchWatch('streamer2026',{game:'Fortnite'});assert.ok(page.includes('id="userBtn"'));assert.ok(page.includes('aria-current="page">DIRECT</a>'));});
 test('l’ancien CSS éditorial n’altère plus la nouvelle barre commune',()=>{
  const css=fs.readFileSync(path.join(ROOT,'assets/swapp-media.css'),'utf8');
  const shared=fs.readFileSync(path.join(ROOT,'assets/swapp-unified-nav.css'),'utf8');
@@ -92,7 +92,7 @@ test('Social, Vidéos et Boutique partagent exactement les dimensions du logo et
  const brand=/<a class="brand" href="\/"[^>]*><span class="swapp-wordmark-text">SWAPP<span class="swapp-wordmark-dot"/;
  for(const html of [spa,...pages]){
   assert.match(html,brand);
-  assert.match(html,/swapp-unified-nav\.css\?v=20261022-tvnav-v1/);
+  assert.match(html,/swapp-unified-nav\.css\?v=20261113-direct-games-flat-nav-v1/);
   assert.match(html,/class="topbar"/);
   assert.match(html,/id="nav" class="mainNav"/);
   assert.match(html,/id="userBtn" class="userBtn"|id="userBtn" class="userBtn"/);
@@ -104,17 +104,17 @@ test('Social, Vidéos et Boutique partagent exactement les dimensions du logo et
  assert.doesNotMatch(navCss,/#nav\.swapp-nav-consistent/);
 });
 
-test('SWAPP TV is a highlighted top-level destination; videos stay inside Actualité',()=>{
+test('SWAPP TV keeps its CTA; Actualité links directly and videos remain reachable in mobile Plus',()=>{
  const nav=require('../assets/swapp-navigation');
  const header=nav.serverHeader('tv'),news=nav.serverHeader('trailers'),mobile=nav.serverMobile('tv');
- assert.match(header,/href="\/tv" class="active swapp-tv-nav-cta" aria-current="page"/);
- assert.match(header,/class="swapp-news-more"/);
- assert.match(header,/href="\/bandes-annonces"/);
+ assert.match(header,/href="\/tv" class="swapp-tv-nav-cta active"|href="\/tv" class="active swapp-tv-nav-cta"/);
+ assert.doesNotMatch(header,/swapp-news-more|swapp-news-menu/);
+ assert.doesNotMatch(header,/href="\/bandes-annonces"|href="\/equipes"/);
  assert.doesNotMatch(nav.items.map(x=>x.label).join(','),/Vidéos/);
- assert.match(news,/href="\/bandes-annonces" aria-current="page"/);
- assert.match(mobile,/class="swapp-tv-nav-cta"/);
- assert.match(mobile,/swapp-mobile-menu-title">ACTUALITÉ/);
- assert.match(mobile,/Vidéos et bandes-annonces/);
+ assert.match(news,/href="\/actus"[^>]*class="active"/);
+ assert.match(mobile,/class="swapp-tv-nav-cta active"|class="active swapp-tv-nav-cta"/);
+ assert.match(mobile,/href="\/bandes-annonces"/);
+ assert.match(mobile,/PODCAST/);
  const programme=nav.serverHeader('agenda');
  assert.match(programme,/swapp-tv-nav-cta/);
  assert.doesNotMatch(programme,/href="\/tv"[^>]*aria-current="page"/);
