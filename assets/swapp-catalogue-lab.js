@@ -364,7 +364,9 @@ function modalBody(item){
  }
  const body=create('div','scl-dialog-body');
  body.append(create('div','scl-dialog-meta',item.kind==='live'?'DIFFUSION EN DIRECT':'UNIVERS / JEU'));
- body.append(create('h2','',item.kind==='live'?item.name:item.game));
+ const title=create('h2','',item.kind==='live'?item.name:item.game);
+ title.id='scl-dialog-title';
+ body.append(title);
  body.append(create('p','',item.kind==='live'?(item.title+(item.game?' · '+item.game:'')):item.summary));
  if(item.kind==='live'){
   body.append(create('p','scl-dialog-meta',item.viewers.toLocaleString('fr-FR')+' spectateurs · '+(item.platform==='swapp'?'SWAPP LIVE':'Twitch')));
@@ -531,7 +533,9 @@ async function load(){
 async function showGameLives(game){
  const section=create('div','scl-dialog-content'),body=create('div','scl-dialog-body');
  body.append(create('div','scl-dialog-meta','CRÉATEURS EN DIRECT'));
- body.append(create('h2','',game.game));
+ const title=create('h2','',game.game);
+ title.id='scl-dialog-title';
+ body.append(title);
  body.append(create('p','',game.summary));
  const list=create('div','scl-cards');list.style.padding='0 0 12px';
  const notice=create('p','scl-preview-note','Recherche des directs associés à ce jeu…');
