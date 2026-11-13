@@ -113,8 +113,9 @@ function syncWatchButton(){
   state.playingPlatform===state.selection.platform&&state.consent);
  const blocked=watching&&state.selection.platform==='twitch'&&
   (state.twitchPlaybackState==='blocked'||state.twitchPlaybackState==='offline'||state.twitchPlaybackState==='fallback');
- setText('stv-watch',blocked?'▶ LANCER TWITCH':watching?'■ ARRÊTER':'▶ REGARDER');
- $('stv-watch').setAttribute('aria-pressed',String(watching&&!blocked));
+ const loading=watching&&state.selection.platform==='twitch'&&state.twitchPlaybackState==='loading';
+ setText('stv-watch',blocked?'▶ LANCER TWITCH':loading?'■ ANNULER':watching?'■ ARRÊTER':'▶ REGARDER');
+ $('stv-watch').setAttribute('aria-pressed',String(watching&&!blocked&&!loading));
 }
 function stopPlayback(){
  resetPassage();
@@ -156,7 +157,7 @@ function play(){
   }
   frame.allow='autoplay; fullscreen';frame.allowFullscreen=true;
   frame.loading='eager';frame.referrerPolicy='strict-origin-when-cross-origin';
-  frame.addEventListener('error',()=>{
+  frame.addEventListener?.('error',()=>{
    if(state.selection?.login!==item.login||state.playing!==item.login)return;
    if(item.platform==='twitch'){
     state.twitchPlaybackState='blocked';
@@ -352,6 +353,7 @@ function passageOffer(next){
 async function maybePassage(){
  const item=state.selection;
  if(passageBusy||!state.consent||!item||state.playing!==item.login||
+    (item.platform==='twitch'&&['loading','blocked','offline'].includes(state.twitchPlaybackState))||
   state.playingPlatform!==item.platform||document.visibilityState==='hidden')return;
  const key=item.platform+':'+item.login;
  if(state.passage.key!==key){
@@ -554,7 +556,7 @@ async function discovery(){
 const DISCOVERY_SLOT_MS=5*60*1000;
 function maybeAdvanceDiscovery(now=Date.now()){
  if(state.queueMode||!state.consent||!state.autoAdvance||
-    state.twitchPlaybackState==='blocked'||state.twitchPlaybackState==='loading'||
+    ['blocked','loading','offline','fallback'].includes(state.twitchPlaybackState)||
     state.autoSource!=='discovery'||now-state.playStartedAt<DISCOVERY_SLOT_MS)return false;
  const candidates=state.discovery;
  if(candidates.length<2){
