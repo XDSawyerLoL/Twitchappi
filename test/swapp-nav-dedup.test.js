@@ -5,7 +5,7 @@ const fs=require('node:fs');
 const path=require('node:path');
 const vm=require('node:vm');
 const ROOT=path.resolve(__dirname,'..');
-const EXPECTED=['Accueil','Découvrir','Actualité','Social','Boutique','SWAPP TV'];
+const EXPECTED=['Accueil','DIRECT','Jeux & catégories','Actualité','Social','Boutique','SWAPP TV'];
 
 class Element {
  constructor(tag,text='',href=null){
@@ -37,7 +37,7 @@ function setup(){
  }
  const hrefs=['/social','/boutique','/tv'];
  for(let i=0;i<hrefs.length;i++){
-  const a=new Element('a',EXPECTED[3+i],hrefs[i]);a.rootNav=nav;nav.append(a);
+  const a=new Element('a',EXPECTED[4+i],hrefs[i]);a.rootNav=nav;nav.append(a);
  }
  let observer,clickListener,navigatedTo=null;
  const location={origin:'https://swapp.tv',pathname:'/',assign(url){navigatedTo=url}};
@@ -53,22 +53,22 @@ function setup(){
    location,URL,setTimeout});
  return {nav,group,observe:()=>observer?.(),navigate:()=>navigatedTo,click:(target,mods={})=>{let prevented=false,stopped=false;clickListener({target,button:0,...mods,preventDefault(){prevented=true},stopImmediatePropagation(){stopped=true}});return {prevented,stopped}}};
 }
-test('consolidated fallback keeps six navigation destinations without duplicate links',()=>{
+test('consolidated fallback keeps seven navigation destinations without duplicate links',()=>{
  const {nav,group}=setup();
- assert.equal(nav.querySelectorAll('a,button').length,6);
+ assert.equal(nav.querySelectorAll('a,button').length,7);
  assert.deepEqual(group.children.map(x=>x.textContent),EXPECTED);
  assert.equal(nav.children.length,1);
  assert.equal(nav.querySelectorAll('a').length,3);
- assert.deepEqual(group.children.slice(3).map(x=>x.getAttribute('href')),
+ assert.deepEqual(group.children.slice(4).map(x=>x.getAttribute('href')),
   ['/social','/boutique','/tv']);
- assert.equal(group.children.slice(3).every(x=>x.dataset.swappNativeRoute==='1'),true);
+ assert.equal(group.children.slice(4).every(x=>x.dataset.swappNativeRoute==='1'),true);
 });
 test('reconciling a second SPA render cannot reintroduce duplicate destinations',()=>{
  const {nav,group,observe}=setup();
  for(const [href,label] of [['/social','Social'],['/boutique','Boutique'],['/tv','SWAPP TV']])
   group.append(new Element('a',label,href));
  observe();
- assert.equal(nav.querySelectorAll('a,button').length,6);
+ assert.equal(nav.querySelectorAll('a,button').length,7);
  assert.deepEqual(group.children.map(x=>x.textContent),EXPECTED);
 });
 test('navigation assets are versioned consistently on SPA and native pages',()=>{
@@ -77,7 +77,7 @@ test('navigation assets are versioned consistently on SPA and native pages',()=>
  const home=fs.readFileSync(path.join(ROOT,'index.html'),'utf8');
  const shell=fs.readFileSync(path.join(ROOT,'modules/swapp-news/site-shell.js'),'utf8');
  for(const source of [home,shell]){
-  assert.match(source,/swapp-hub-nav\.js\?v=20261022-one-account-menu-v2/);
-  assert.match(source,/swapp-navigation\.js\?v=20261022-one-account-menu-v2/);
+  assert.match(source,/swapp-hub-nav\.js\?v=20261113-direct-games-flat-nav-v1/);
+  assert.match(source,/swapp-navigation\.js\?v=20261113-direct-games-flat-nav-v1/);
  }
 });
