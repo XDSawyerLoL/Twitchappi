@@ -4,7 +4,7 @@
  */
 (function(){
 'use strict';
-const LAB_VERSION='20261113-public-home-audience-v5';
+const LAB_VERSION='20261113-hover-rails-hero-10s-v6';
 const API=Object.freeze({
  home:'/api/discovery/home-lives?limit=12&lang=fr',
  top:'/api/twitch/streams/top?limit=40&lang=fr',
@@ -419,7 +419,7 @@ function startHeroRotation(){
  state.heroTimer=setInterval(()=>{
   if(document.hidden||dialog.open||hero.matches(':hover')||hero.matches(':focus-within')||prefersLessMotion())return;
   showHero(state.heroIndex+1);
- },9500);
+ },10000);
 }
 $('scl-feature-watch').addEventListener('click',()=>{const item=state.featured;if(!item)return;if(item.kind==='live')watch(item);else void showGameLives(item)});
 $('scl-feature-preview').addEventListener('click',()=>{if(state.featured?.kind==='live')preview(state.featured)});
@@ -837,6 +837,70 @@ document.querySelectorAll('[data-scl-filter]').forEach(button=>{
   render();
  });
 });
+
+/* Rails: moving a mouse toward the sides scrolls that one shelf.
+ * No automatic motion on touch, with reduced-motion or when the page is hidden.
+ */
+function installRailHoverScroll(){
+ const canHoverScroll=()=>window.matchMedia?.('(hover: hover) and (pointer: fine)').matches&&
+  !prefersLessMotion()&&!navigator.connection?.saveData;
+ document.querySelectorAll('.scl-rail > .scl-cards').forEach(rail=>{
+  if(rail.dataset.sclHoverScroll==='ready')return;
+  rail.dataset.sclHoverScroll='ready';
+  rail.tabIndex=0;
+  const heading=rail.closest('.scl-rail')?.querySelector('h2');
+  if(heading?.id)rail.setAttribute('aria-labelledby',heading.id);
+  let pointerX=null,frameId=0,previousTime=0;
+  function stop(){
+   if(frameId)cancelAnimationFrame(frameId);
+   frameId=0;pointerX=null;previousTime=0;
+   rail.classList.remove('scl-is-edge-scrolling');
+  }
+  function animate(now){
+   frameId=0;
+   if(pointerX===null||document.hidden||dialog.open||!canHoverScroll()){stop();return}
+   const rect=rail.getBoundingClientRect();
+   const maxScroll=Math.max(0,rail.scrollWidth-rail.clientWidth);
+   if(maxScroll<1){stop();return}
+   const edge=Math.min(140,Math.max(65,rect.width*.22));
+   const left=Math.min(1,Math.max(0,(rect.left+edge-pointerX)/edge));
+   const right=Math.min(1,Math.max(0,(pointerX-(rect.right-edge))/edge));
+   const intensity=right>0?right:-left;
+   if(!intensity||intensity<0&&rail.scrollLeft<=0||intensity>0&&rail.scrollLeft>=maxScroll){
+    rail.classList.remove('scl-is-edge-scrolling');
+    previousTime=0;
+    return;
+   }
+   rail.classList.add('scl-is-edge-scrolling');
+   const elapsed=previousTime?Math.min(32,Math.max(1,now-previousTime)):16;
+   previousTime=now;
+   rail.scrollLeft=Math.min(maxScroll,Math.max(0,rail.scrollLeft+
+    intensity*(130+240*Math.abs(intensity))*elapsed/1000));
+   frameId=requestAnimationFrame(animate);
+  }
+  function track(event){
+   if(event.pointerType&&event.pointerType!=='mouse'){stop();return}
+   if(!canHoverScroll()||document.hidden||dialog.open){stop();return}
+   pointerX=event.clientX;
+   if(!frameId)frameId=requestAnimationFrame(animate);
+  }
+  rail.addEventListener('pointerenter',track);
+  rail.addEventListener('pointermove',track);
+  rail.addEventListener('pointerleave',stop);
+  rail.addEventListener('pointercancel',stop);
+  rail.addEventListener('focusin',stop);
+  rail.addEventListener('keydown',event=>{
+   if(event.target!==rail||!['ArrowLeft','ArrowRight'].includes(event.key))return;
+   event.preventDefault();
+   stop();
+   rail.scrollBy({left:(event.key==='ArrowRight'?1:-1)*Math.max(200,rail.clientWidth*.7),
+    behavior:prefersLessMotion()?'auto':'smooth'});
+  });
+  document.addEventListener('visibilitychange',()=>{if(document.hidden)stop()});
+  window.addEventListener('pagehide',stop);
+ });
+}
+
 document.querySelectorAll('[data-scroll-left],[data-scroll-right]').forEach(button=>{
  button.addEventListener('click',()=>{
   const target=$(button.dataset.scrollLeft||button.dataset.scrollRight);
@@ -853,6 +917,7 @@ document.addEventListener('click',event=>{
   setTimeout(refreshFavorites,300);
  }
 });
+installRailHoverScroll();
 window.SwappCatalogueLab=Object.freeze({version:LAB_VERSION,load});
 void load();
 })();

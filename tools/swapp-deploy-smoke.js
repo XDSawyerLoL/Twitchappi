@@ -265,7 +265,7 @@ async function verify(){
  // remains reachable at ?classic=1 for emergency rollback and legacy journeys.
  const publicHome=await request(origin,'/');
  check(publicHome.body.includes('id="swapp-catalogue-lab"')&&
-  publicHome.body.includes('swapp-catalogue-lab.js?v=20261113-public-home-small-v4')&&
+  publicHome.body.includes('swapp-catalogue-lab.js?v=20261113-hover-rails-hero-10s-v6')&&
   publicHome.body.includes('rel="canonical" href="https://swapp.tv/"')&&
   !publicHome.body.includes('name="robots" content="noindex'),
   'SWAPP / is not the canonical cinematic homepage');
@@ -273,7 +273,7 @@ async function verify(){
  check(labHome.body.includes('id="swapp-catalogue-lab"')&&
    labHome.body.includes('noindex,nofollow,noarchive'),
    'Unindexed /catalogue-test laboratory missing');
- const publicCatalogueJs=await request(origin,'/assets/swapp-catalogue-lab.js?v=20261113-public-home-audience-v5');
+ const publicCatalogueJs=await request(origin,'/assets/swapp-catalogue-lab.js?v=20261113-hover-rails-hero-10s-v6');
  check(publicCatalogueJs.body.includes('function chooseSmallCommunities(')&&
   publicCatalogueJs.body.includes('/api/oryon/discover/find-live?mood=petite-commu'),
   'Public homepage small-community discovery missing');
