@@ -212,7 +212,7 @@ const create=(tag,className,text)=>{
  if(text!==undefined)node.textContent=String(text);
  return node;
 };
-const state={lives:[],games:[],articles:[],newsError:false,featured:null,filter:'all',query:'',loading:false,failed:[],previewTimer:0,abort:null,heroItems:[],heroIndex:0,heroTimer:null,hoverTimer:null,hoverIframe:null,hoverCard:null};
+const state={lives:[],games:[],articles:[],newsError:false,newsLoading:false,newsEpoch:0,featured:null,filter:'all',query:'',loading:false,failed:[],previewTimer:0,abort:null,heroItems:[],heroIndex:0,heroTimer:null,hoverTimer:null,hoverIframe:null,hoverCard:null};
 const status=$('scl-status'),hero=$('scl-feature'),featureVisual=$('scl-feature-visual'),dialog=$('scl-dialog');
 const heroDots=$('scl-feature-dots');
 const visNode=item=>{
@@ -561,6 +561,7 @@ function fillArticleRail(items,unavailable=false){
  if(items.length)items.forEach(item=>fragment.append(createArticleCard(item)));
  else fragment.append(empty(unavailable?
   'Les actualités sont temporairement indisponibles. Consulte le magazine SWAPP.':
+  state.newsLoading?'Chargement des articles publiés…':
   'Aucun article publié ne correspond à cette recherche.'));
  host.replaceChildren(fragment);
 }
@@ -641,34 +642,70 @@ async function fetchArticles(){
   return payload.articles;
  }finally{clearTimeout(timeout)}
 }
-async function load(){
- if(state.loading)return;
- state.loading=true;status.dataset.error='false';status.replaceChildren(create('span','','Recherche des vrais lives et jeux…'));
- const results=await Promise.allSettled([fetchJson(API.home),fetchJson(API.top),fetchJson(API.games),fetchArticles()]);
- const home=results[0].status==='fulfilled'?results[0].value.items:[];
- const top=results[1].status==='fulfilled'?results[1].value.items:[];
- const categories=results[2].status==='fulfilled'?results[2].value.categories:[];
- const published=results[3].status==='fulfilled'?results[3].value:[];
- state.newsError=results[3].status==='rejected';
- state.failed=results.map((result,i)=>result.status==='rejected'?Object.keys(API)[i]:null).filter(Boolean);
- state.lives=mergeLives(home,top);
- state.games=mergeGames(categories,state.lives);
- state.articles=normalizeArticles(published);
- setHeroItems();
- render();
- startHeroRotation();
+function updateCatalogueStatus(){
+ if(state.loading){
+  status.textContent='Chargement des directs et des jeux…';
+  return;
+ }
  status.replaceChildren();
+ status.dataset.error='false';
  if(!state.lives.length&&!state.games.length&&!state.articles.length){
+  if(state.newsLoading){
+   status.textContent='Recherche des derniers articles publiés…';
+   return;
+  }
   status.dataset.error='true';
   status.append(create('span','','Aucun contenu disponible. Vérifie la connexion ou les catalogues SWAPP.'));
   status.append(button('Réessayer','',()=>{void load()}));
- }else if(state.failed.length){
-  status.textContent='Catalogue partiel : certaines sources sont temporairement indisponibles. Les éléments affichés sont réels.';
- }else{
-  status.textContent=state.articles.length+' articles publiés · '+state.lives.length+' directs confirmés · '+state.games.length+' jeux à explorer';
+  return;
  }
- state.loading=false;
+ if(state.failed.length||state.newsError){
+  status.textContent='Catalogue partiel : certaines sources sont temporairement indisponibles. Les contenus affichés sont réels.';
+  return;
+ }
+ status.textContent=state.articles.length+' articles publiés · '+state.lives.length+
+  ' directs confirmés · '+state.games.length+' jeux à explorer'+
+  (state.newsLoading?' · Actualités en cours de chargement':'');
 }
+async function load(){
+ if(state.loading)return;
+ state.loading=true;
+ state.newsLoading=true;
+ state.newsError=false;
+ state.failed=[];
+ state.articles=[];
+ const newsEpoch=++state.newsEpoch;
+ status.dataset.error='false';
+ status.replaceChildren(create('span','','Recherche des vrais lives et jeux…'));
+ // A slow or unavailable MySQL-backed ACTUS API must never delay live discovery.
+ void fetchArticles().then(published=>{
+  if(newsEpoch!==state.newsEpoch)return;
+  state.articles=normalizeArticles(published);
+  state.newsError=false;
+ }).catch(()=>{
+  if(newsEpoch!==state.newsEpoch)return;
+  state.newsError=true;
+  state.articles=[];
+ }).finally(()=>{
+  if(newsEpoch!==state.newsEpoch)return;
+  state.newsLoading=false;
+  fillArticleRail(state.articles.filter(matching),state.newsError);
+  updateCatalogueStatus();
+ });
+ const results=await Promise.allSettled([fetchJson(API.home),fetchJson(API.top),fetchJson(API.games)]);
+ const home=results[0].status==='fulfilled'?results[0].value.items:[];
+ const top=results[1].status==='fulfilled'?results[1].value.items:[];
+ const categories=results[2].status==='fulfilled'?results[2].value.categories:[];
+ state.failed=results.map((result,i)=>result.status==='rejected'?Object.keys(API)[i]:null).filter(Boolean);
+ state.lives=mergeLives(home,top);
+ state.games=mergeGames(categories,state.lives);
+ setHeroItems();
+ render();
+ startHeroRotation();
+ state.loading=false;
+ updateCatalogueStatus();
+}
+
 async function showGameLives(game){
  const section=create('div','scl-dialog-content'),body=create('div','scl-dialog-body');
  body.append(create('div','scl-dialog-meta','CRÉATEURS EN DIRECT'));
