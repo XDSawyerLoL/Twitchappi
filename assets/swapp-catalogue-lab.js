@@ -194,7 +194,49 @@ const visNode=item=>{
  return frame;
 };
 const stopPreview=()=>{const node=$('scl-preview-frame');if(node)node.remove()};
+/* Only one tiny muted live preview is permitted, after deliberate desktop hover.
+ * Touch, reduced-motion, data-saver and native SWAPP streams keep still posters.
+ */
+function stopHoverPreview(){
+ if(state.hoverTimer){clearTimeout(state.hoverTimer);state.hoverTimer=null}
+ if(state.hoverIframe){state.hoverIframe.remove();state.hoverIframe=null}
+ if(state.hoverCard){state.hoverCard.classList.remove('scl-is-playing');state.hoverCard=null}
+}
+function scheduleHoverPreview(item,card,frame){
+ stopHoverPreview();
+ if(item.kind!=='live'||item.platform!=='twitch'||!item.image)return;
+ if(!window.matchMedia?.('(hover: hover) and (pointer: fine)').matches||
+     window.matchMedia?.('(prefers-reduced-motion: reduce)').matches||
+     navigator.connection?.saveData||document.hidden)return;
+ const host=String(window.location.hostname||'').toLowerCase();
+ if(!/^[a-z0-9.-]+$/.test(host))return;
+ state.hoverCard=card;
+ state.hoverTimer=setTimeout(()=>{
+  state.hoverTimer=null;
+  if(!card.isConnected||!card.matches(':hover')||document.hidden||dialog.open)return;
+  const iframe=create('iframe','scl-card-hover-player');
+  const address=new URL('https://player.twitch.tv/');
+  address.searchParams.set('channel',item.login);
+  address.searchParams.set('parent',host);
+  address.searchParams.set('autoplay','true');
+  address.searchParams.set('muted','true');
+  iframe.src=address.href;
+  iframe.title='Aperçu muet de '+item.name;
+  iframe.allow='autoplay; fullscreen';
+  iframe.referrerPolicy='strict-origin-when-cross-origin';
+  iframe.setAttribute('aria-hidden','true');
+  iframe.tabIndex=-1;
+  iframe.addEventListener('error',stopHoverPreview,{once:true});
+  frame.append(iframe);
+  state.hoverIframe=iframe;
+  card.classList.add('scl-is-playing');
+ },1250);
+}
+document.addEventListener('visibilitychange',()=>{if(document.hidden)stopHoverPreview()});
+document.addEventListener('scroll',stopHoverPreview,true);
+window.addEventListener('pagehide',stopHoverPreview);
 function showDialog(node){
+ stopHoverPreview();
  stopPreview();
  const host=$('scl-dialog-content');
  host.replaceChildren(node);
@@ -202,6 +244,7 @@ function showDialog(node){
  else dialog.setAttribute('open','');
 }
 function closeDialog(){
+ stopHoverPreview();
  stopPreview();
  if(typeof dialog.close==='function'&&dialog.open)dialog.close();
  else dialog.removeAttribute('open');
@@ -366,9 +409,14 @@ function createCard(item){
  body.append(kicker,title,summary);
  const actions=create('div','scl-card-action-row');
  if(item.kind==='live'){
-  const link=create('a','', 'Regarder');
+  const link=create('a','scl-card-watch', '▶ Regarder');
   link.href=item.watchUrl;
   actions.append(link);
+  if(item.platform==='twitch'){
+   const peek=button('▣','scl-card-peek',()=>preview(item));
+   peek.setAttribute('aria-label','Prévisualiser '+item.name);
+   actions.append(peek);
+  }
   const save=button('♡','scl-channel-fav',()=>toggleChannelFavorite(item));
   save.dataset.sclChannelFavorite=item.id;
   save.setAttribute('aria-label','Ajouter '+item.name+' aux favoris');
@@ -384,12 +432,13 @@ function createCard(item){
  const info=button('ⓘ','scl-card-info',()=>details(item));info.setAttribute('aria-label','En savoir plus sur '+(item.kind==='live'?item.name:item.game));
  actions.append(info);body.append(actions);
  card.append(media,body);
- // Hover/focus preview updates the hero with real current data; video never autoloads.
- card.addEventListener('mouseenter',()=>{clearTimeout(state.previewTimer);state.previewTimer=setTimeout(()=>feature(item),250)});
- card.addEventListener('mouseleave',()=>clearTimeout(state.previewTimer));
- card.addEventListener('focusin',event=>{
-  if(event.target.matches('[data-swapp-follow-game]'))return;
-  feature(item);
+ // Netflix-style reveal remains inside this card. Never move the global
+ // featured hero when a user merely passes over a thumbnail.
+ card.addEventListener('mouseenter',()=>scheduleHoverPreview(item,card,media));
+ card.addEventListener('mouseleave',stopHoverPreview);
+ card.addEventListener('focusin',()=>card.classList.add('scl-is-focused'));
+ card.addEventListener('focusout',event=>{
+  if(!card.contains(event.relatedTarget))card.classList.remove('scl-is-focused');
  });
  return card;
 }
@@ -429,6 +478,7 @@ function refreshFavorites(){
  });
 }
 function render(){
+ stopHoverPreview();
  const lives=state.lives.filter(matching),games=state.games.filter(matching);
  const small=lives.filter(x=>x.viewers<=50);
  fill('scl-live-cards',lives,'Aucun direct confirmé pour cette recherche.');
