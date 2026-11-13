@@ -48,3 +48,16 @@ Pour chaque catégorie, produire un état `new_verified`, `already_covered`, `in
 - Mesurer sur plusieurs passages la couverture par catégorie, les nouveaux événements détectés et le taux d'échec.
 
 **Statut : spécification technique et éditoriale, pas preuve de moteur automatisé déployé.**
+
+## Exécution effective du 13 novembre 2026
+- Nouveau lot de **quatre articles** : `data/swapp-veille-native-20261113-multicategories-sourcees.json`, enregistré à la fin du manifeste sans écraser les anciens lots.
+- Thèmes couverts : `GAMING` (PlayStation Plus et Dawn of War IV), `AI` (Gemini 4 Hydrogen), `ROBOTICS` et `FUTURE` (LG, Kakao, NVIDIA).
+- Veille Node/Hostinger étendue dans `tools/swapp-tech-watch.js` aux flux RSS officiels PlayStation Blog, Xbox Wire, NVIDIA Gaming et au flux des versions OBS publié par le projet officiel sur GitHub.
+- `modules/swapp-tech-watch-store.js` accepte maintenant `GAMING` dans **la table MySQL existante** ; aucun changement de schéma.
+- Événements dont la publication RSS est antérieure à 21 jours (ou datés plus d'un jour dans le futur) rejetés de la nouvelle collecte ; seuls des **candidats non vérifiés** sont enregistrés.
+- Test ajouté : `test/swapp-multicategory-watch-release-20261113.test.js`. Syntaxe JS contrôlée et collecte pure simulée exercée sans API ni frais ; **suite Node complète non exécutée**.
+- Aucun déclencheur GitHub Actions, nouvelle dépendance ou service externe payant.
+- Droits médias : deux vidéos issues des chaînes officielles et intégrées sans copie ; deux articles purement textuels, aucun visuel récupéré sans autorisation.
+- Dernier contrôle public des API `/api/actus`, `/api/actus/storage-status`, `/api/actus/release-status`, `/api/release` : **HTTP 403 via lecture automatisée**. Ces réponses empêchent de certifier l'adoption MySQL, le SHA déployé et l'affichage. Ne pas annoncer la publication publique tant que ces contrôles n'ont pas réussi.
+
+Le statut GitHub (lot préparé et/ou fusionné) doit toujours être distingué du statut *publié et visible sur swapp.tv*.
