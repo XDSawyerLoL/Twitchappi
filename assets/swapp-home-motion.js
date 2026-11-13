@@ -66,7 +66,8 @@
   tile.classList.add('swapp-home-motion-loading');
   poster.after(wrap);
   function active(){return !removed&&tile.isConnected&&eligible()&&
-   !!(tile.closest('#home.view.active')||tile.closest('#home'))}
+   !!(tile.closest('#home.view.active')||
+     tile.closest('#actus.view.active .swapp-actus-featured-hero'))}
   function removeMotion(){
    tile.classList.remove('swapp-home-motion-playing','swapp-home-motion-loading');
    wrap.remove();
@@ -160,10 +161,10 @@
    delay=setTimeout(begin,0);
   }
   // Never keep a background video playing when its SWAPP page leaves the DOM.
-  const home=document.getElementById('home');
-  if(home&&window.MutationObserver){
+  const root=tile.closest('#home,#actus');
+  if(root&&window.MutationObserver){
    rootObserver=new MutationObserver(()=>{if(!tile.isConnected)cleanup();else onVisibility()});
-   rootObserver.observe(home,{childList:true,attributes:true,attributeFilter:['class']});
+   rootObserver.observe(root,{childList:true,attributes:true,attributeFilter:['class'],subtree:true});
   }
   if(window.IntersectionObserver){
    observer=new IntersectionObserver(entries=>{
