@@ -210,7 +210,7 @@
   else recoverInitialThumbnails();
   document.addEventListener('click',event=>{
    const target=event.target;
-   const share=target.closest?.('[data-swapp-article-share]');
+   const share=target.closest?.('button[data-swapp-article-share]');
    if(share){shareEditorial(share);return;}
    const button=target.closest?.('.swapp-trailer-launch');
    if(button)activate(button);
