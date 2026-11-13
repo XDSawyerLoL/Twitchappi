@@ -7,7 +7,7 @@ const DDL=`CREATE TABLE IF NOT EXISTS swapp_tv_director (
  started_at DATETIME DEFAULT NULL,
  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`;
-const MAX_AIR_SECONDS=10*60;
+const MAX_AIR_SECONDS=5*60;
 function utcTime(value){if(value instanceof Date)return value.getTime();if(!value)return NaN;const text=String(value).trim().replace(' ','T');return Date.parse(/(?:Z|[+-]\d\d:?\d\d)$/.test(text)?text:text+'Z')}
 function choice(rows,{recentUsers=[]}={}){
  const recent=new Set(recentUsers.map(String));
