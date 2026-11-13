@@ -6,34 +6,35 @@ const path=require('node:path');
 const {desktopNavigation,mobileNavigation,serverHeader,serverMobile,items}=require('../assets/swapp-navigation');
 const read=filename=>fs.readFileSync(path.join(__dirname,'..',filename),'utf8');
 
-test('seven main links are direct, with SWAPER for live discovery and DÉCOUVRIR for catalogue',()=>{
- assert.deepEqual(items.map(({href})=>href),['/','/decouvrir','/categories','/actus','/social','/boutique','/tv']);
- assert.equal(items.find(x=>x.href==='/decouvrir').label,'SWAPER');
+test('six first-level destinations start with Accueil then Découvrir',()=>{
+ assert.deepEqual(items.map(({href})=>href),['/','/categories','/actus','/social','/boutique','/tv']);
+ assert.deepEqual(items.map(({label})=>label),['Accueil','Découvrir','Actualité','Social','Boutique','SWAPP TV']);
  const html=desktopNavigation('discover');
- assert.equal((html.match(/<a /g)||[]).length,7);
- assert.doesNotMatch(html,/<details|<summary|swapp-news-menu|href="\/equipes"/);
- assert.match(html,/href="\/decouvrir"[^>]*aria-current="page"[^>]*>SWAPER<\/a>/);
- assert.match(html,/href="\/categories"[^>]*>DÉCOUVRIR<\/a>/);
- assert.match(html,/href="\/actus"[^>]*>Actualité<\/a>/);
+ const firstLevel=html.slice(0,html.indexOf('<div class="swapp-tv-navigation">'));
+ assert.equal((firstLevel.match(/<a /g)||[]).length,5);
+ assert.doesNotMatch(firstLevel,/href="\/decouvrir"|>SWAPER</);
+ assert.match(html,/href="\/categories"[^>]*>Découvrir<\/a>/);
+ assert.match(html,/class="swapp-tv-submenu"/);
+ assert.match(html,/class="swapp-tv-submenu-links"><a href="\/decouvrir"[^>]*aria-current="page">Swapper<\/a>/);
+ assert.match(html,/href="\/tv"[^>]*class="active swapp-tv-nav-cta"/);
+ assert.doesNotMatch(html,/swapp-news-menu|href="\/equipes"/);
 });
-test('mobile keeps four priorities and one Plus; no separate Actualité dropdown',()=>{
+test('mobile keeps Accueil, Découvrir, Actualité, SWAPP TV then Plus',()=>{
  const html=mobileNavigation('categories');
  const pinned=html.slice(0,html.indexOf('<details class="swapp-mobile-more">'));
  assert.equal((pinned.match(/<a /g)||[]).length,4);
- for(const href of ['/','/decouvrir','/categories','/actus'])assert.match(pinned,new RegExp('href="'+href+'"'));
- assert.match(pinned,/href="\/categories"[^>]*>DÉCOUVRIR<\/a>/);
- assert.match(html,/href="\/tv"/);
- assert.match(html,/href="\/social"/);
- assert.match(html,/href="\/boutique"/);
- assert.match(html,/href="\/on-air"/);
- assert.match(html,/href="\/bandes-annonces"/);
- assert.doesNotMatch(html,/href="\/equipes"|swapp-mobile-menu-title|\/actus\?tag=/);
+ for(const href of ['/','/categories','/actus','/tv'])assert.match(pinned,new RegExp('href="'+href+'"'));
+ assert.doesNotMatch(pinned,/href="\/decouvrir"|SWAPER/);
+ assert.match(html,/class="swapp-mobile-tv-subnav"[^>]*>[\s\S]*href="\/decouvrir"/);
+ for(const href of ['/social','/boutique','/on-air','/bandes-annonces','/compte'])
+  assert.match(html,new RegExp('href="'+href+'"'));
+ assert.doesNotMatch(html,/href="\/equipes"|\/actus\?tag=/);
 });
 test('server and SPA use the same versioned navigation contract',()=>{
  const home=read('index.html'),native=read('modules/swapp-news/site-shell.js');
  for(const source of [home,native]){
   for(const name of ['swapp-navigation.js','swapp-hub-nav.js','swapp-unified-nav.css'])
-   assert.ok(source.includes('/assets/'+name+'?v='+(name==='swapp-unified-nav.css'?'20261113-nav-uniform-v1':name==='swapp-hub-nav.js'?'20261113-home-router-v2':'20261113-swaper-decouvrir-v1')),name);
+   assert.ok(source.includes('/assets/'+name+'?v=20261113-nav-simple-v2'),name);
  }
  for(const page of [serverHeader('actus'),serverMobile('actus')]){
   assert.doesNotMatch(page,/href="\/equipes"|swapp-news-more/);
@@ -42,8 +43,7 @@ test('server and SPA use the same versioned navigation contract',()=>{
  }
  const reconcile=read('assets/swapp-hub-nav.js');
  assert.match(reconcile,/const valid=/);
- assert.match(reconcile,/\/categories/);
- assert.match(reconcile,/const pinned=\['\/','\/decouvrir','\/categories','\/actus'\]/);
+ assert.match(reconcile,/const pinned=\['\/','\/categories','\/actus','\/tv'\]/);
 });
 test('Équipes is temporarily redirected, not erased, and excluded from SEO discovery',()=>{
  const server=read('server.js'),seo=read('modules/swapp-seo.js');
