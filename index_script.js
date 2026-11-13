@@ -2573,7 +2573,7 @@ async function renderCategories(){
   const el=document.getElementById('categories');
   const size=getCategorySize();
   el.dataset.catSize=size;
-  el.innerHTML=`<div class="catHead"><div><span class="eyebrow"><i class="dot"></i>Catégories</span><h1>Choisis une ambiance.</h1><p>Vignettes réglables : compact sur mobile, grand si tu veux explorer visuellement.</p></div><div class="catTools">${catSizeControls()}<div class="catSearch"><input id="catSearch" placeholder="Rechercher"><button class="btn secondary" onclick="searchCats()">OK</button></div></div></div><div id="catPick" class="section"></div><div id="catGrid" class="catGridResponsive section"><div class="empty">Chargement…</div></div><div class="row section"><button class="btn secondary" onclick="loadMoreCats()">Charger plus</button></div>`;
+  el.innerHTML=`<div class="catHead"><div><h1>CATALOGUE</h1></div><div class="catTools">${catSizeControls()}<div class="catSearch"><input id="catSearch" placeholder="Rechercher"><button class="btn secondary" onclick="searchCats()">OK</button></div></div></div><div id="catPick" class="section"></div><div id="catGrid" class="catGridResponsive section"><div class="empty">Chargement…</div></div><div class="row section"><button class="btn secondary" onclick="loadMoreCats()">Charger plus</button></div>`;
   const input=document.getElementById('catSearch');
   if(input) input.addEventListener('keydown',e=>{if(e.key==='Enter') searchCats();});
   state.catsCursor=null;
@@ -8171,7 +8171,7 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
       document.body.classList.remove('oryonDiscoverLayoutActive','oryonDiscoverV4','oryonDiscoverV3','oryonDiscoverProduct','oryonDiscoverFinalActive','oryonCleanDiscoverActive');
       const size=currentCatSize();
       el.dataset.catSize=size;
-      el.innerHTML=`<div class="catHead"><div><span class="eyebrow"><i class="dot"></i>Catégories</span><h1>Choisis une ambiance.</h1><p>Vignettes réglables : compact sur mobile, grand si tu veux explorer visuellement.</p></div><div class="catTools">${window.catSizeControls()}<div class="catSearch"><input id="catSearch" placeholder="Rechercher"><button class="btn secondary" onclick="searchCats()">OK</button></div></div></div><div id="catPick" class="section"></div><div id="catGrid" class="catGridResponsive section"><div class="empty">Chargement…</div></div><div class="row section"><button class="btn secondary" onclick="loadMoreCats()">Charger plus</button></div>`;
+      el.innerHTML=`<div class="catHead"><div><h1>CATALOGUE</h1></div><div class="catTools">${window.catSizeControls()}<div class="catSearch"><input id="catSearch" placeholder="Rechercher"><button class="btn secondary" onclick="searchCats()">OK</button></div></div></div><div id="catPick" class="section"></div><div id="catGrid" class="catGridResponsive section"><div class="empty">Chargement…</div></div><div class="row section"><button class="btn secondary" onclick="loadMoreCats()">Charger plus</button></div>`;
       const input=document.getElementById('catSearch');
       if(input) input.addEventListener('keydown',e=>{if(e.key==='Enter') searchCats();});
       if(window.state) state.catsCursor=null;
