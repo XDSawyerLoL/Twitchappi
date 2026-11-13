@@ -40,3 +40,11 @@
 - Il n'invite pas les membres automatiquement dans le serveur, ne réplique pas les messages privés ni les rôles. La synchronisation porte sur l'association volontaire des communautés et leurs annonces.
 - Pour révoquer également le webhook du côté Discord, le gestionnaire peut supprimer l'intégration dans les paramètres du serveur Discord.
 - Aucun service payant supplémentaire ni VPS n'est requis.
+
+## Diagnostic HTTP 404 « Cannot GET /discord »
+
+La route `/discord` est inscrite dans `modules/swapp-discord-connect.js` et doit être enregistrée par le fichier d'entrée Hostinger `app.js` (qui charge `server.js`). Si la réponse contient `Cannot GET /discord`, le processus Node visé exécute encore une version sans cette route, ou la configuration du proxy cible une autre application. Il ne s'agit **pas** d'un défaut d'identifiants Discord : ces derniers ne sont nécessaires qu'après chargement de la page.
+
+Déploiement nécessaire : paquet complet du commit GitHub actuel, y compris `server.js`, `app.js`, `modules/swapp-discord-connect.js`, `assets/swapp-discord-connect.js` et `assets/swapp-discord-connect.css` ; lancement/rechargement de `app.js` dans l'application Node Hostinger. Ne pas remplacer des fichiers isolés si une autre instance Node utilise encore l'ancienne version. Ne jamais placer les secrets OAuth/clé AES dans le ZIP. Les nouveaux modules Discord sont désormais **obligatoires** dans le contrôle du paquet Hostinger et inclus dans l'empreinte de publication `/api/release`.
+
+Ordre du contrôle après déploiement : `GET /api/release` (empreinte et absence de fichiers manquants), `GET /discord` (HTTP 200, titre « Discord Connect — SWAPP »), `GET /api/swapp/discord/status` sans session (HTTP 401), puis connexion SWAPP et configuration OAuth Discord. Un `503 discord_not_configured` après authentification signifie que les variables privées Hostinger ne sont pas configurées ; c'est différent de `Cannot GET`.
