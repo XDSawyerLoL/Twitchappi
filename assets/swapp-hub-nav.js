@@ -206,7 +206,9 @@
   event.preventDefault();
   event.stopImmediatePropagation();
   if(document.getElementById('swapp-catalogue-lab')&&typeof window.setView==='function'){
-   window.setView('home');return;
+   if(typeof window.swappNavigateSpa==='function')window.swappNavigateSpa('home');
+   else window.setView('home');
+   return;
   }
   location.assign('/');
  },true);

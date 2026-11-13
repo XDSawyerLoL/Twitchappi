@@ -7,6 +7,7 @@ on:
       - feat/swapp-live-revalidation-20261113
       - feat/swapp-home-account-appearance-motion-20261114
       - feat/swapp-unified-spa-home-20261114
+      - feat/swapp-spa-persistent-nav-20261114
 concurrency:
   group: swapp-quality-${{ github.ref }}
   cancel-in-progress: true
