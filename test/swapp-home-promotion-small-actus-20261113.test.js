@@ -17,7 +17,7 @@ test('public homepage has a canonical indexable catalogue, original lab remains 
  assert.match(home,/rel="canonical" href="https:\/\/swapp\.tv\/"/);
  assert.match(home,/<title>SWAPP — Directs, jeux et actualités<\/title>/);
  assert.match(home,/class="swapp-editorial-route swapp-catalogue-lab-page swapp-catalogue-home"/);
- assert.match(home,/href="\/\?classic=1"/);
+ assert.doesNotMatch(home,/classic=1|Ancien accueil|Catalogue classique/);
  assert.match(home,/href="\/mentions-legales"/);
  assert.match(home,/href="\/confidentialite"/);
  assert.match(home,/google-site-verification/);
@@ -35,38 +35,39 @@ test('public homepage has a canonical indexable catalogue, original lab remains 
   assert.ok(oldLab.includes(name+'?v='+version));
  }
 });
-test('root route promotes the catalogue but preserves classic fallback and survives missing modules',()=>{
+test('root route serves only the immersive catalogue and redirects legacy bookmarks',()=>{
  const server=read('server.js'),start=server.indexOf("app.get('/', (req, res) => {");
  const end=server.indexOf('\n});',start)+4;
  assert.ok(start>0&&end>start);
  const routes=[],warnings=[];
- const mockApp={get(route,fn){routes.push({route,fn})}};
- const requireLab=()=>({page:({publicHome})=>publicHome?'PUBLIC_SWAPP_CATALOGUE':'LAB'});
- const recover=()=>{classicRuns++},fsStub={existsSync:()=>true},pathStub={join:(...p)=>p.join('/')};
- let classicRuns=0;
- new Function('app','require','process','fs','path','sendSwappUi','console','__dirname',server.slice(start,end))(
-  mockApp,requireLab,{env:{}},fsStub,pathStub,recover,{warn:(...parts)=>warnings.push(parts.join(' '))},'/repo'
+ new Function('app','require','console',server.slice(start,end))(
+  {get(route,handler){routes.push({route,handler})}},
+  ()=>({page:({publicHome})=>publicHome?'PUBLIC_SWAPP_CATALOGUE':'LAB'}),
+  {warn:(...parts)=>warnings.push(parts.join(' '))}
  );
- const handler=routes.find(x=>x.route==='/')?.fn;
+ const handler=routes.find(x=>x.route==='/')?.handler;
  assert.equal(typeof handler,'function');
- const res=()=>({headers:{},sent:null,type(name){this.mime=name;return this},
+ const response=()=>({headers:{},sent:null,redirected:null,type(name){this.mime=name;return this},
   set(k,v){this.headers[k]=v;return this},send(body){this.sent=body;return this},
-  status(code){this.statusCode=code;return this}});
- const publicRes=res();handler({query:{}},publicRes);
+  status(code){this.statusCode=code;return this},redirect(code,url){this.redirected={code,url};return this}});
+ const publicRes=response();handler({query:{}},publicRes);
  assert.equal(publicRes.sent,'PUBLIC_SWAPP_CATALOGUE');
  assert.equal(publicRes.mime,'html');
  assert.equal(publicRes.headers['Cache-Control'],'public, max-age=45');
- const classicRes=res();handler({query:{classic:'1'}},classicRes);
- assert.equal(classicRuns,1);
- assert.equal(classicRes.headers['X-Robots-Tag'],'noindex, nofollow');
- // Exercise an interrupted Hostinger file sync: the SPA must stay reachable.
- const failing=[],appFail={get(route,fn){failing.push(fn)}};
- new Function('app','require','process','fs','path','sendSwappUi','console','__dirname',server.slice(start,end))(
-  appFail,()=>{throw Error('optional module missing')},{env:{}},fsStub,pathStub,recover,{warn:(...parts)=>warnings.push(parts.join(' '))},'/repo'
+ const legacy=response();handler({query:{classic:'1'}},legacy);
+ assert.deepEqual(legacy.redirected,{code:308,url:'/'});
+ assert.equal(legacy.headers['Cache-Control'],'no-store');
+ const broken=[],appFail={get(_route,fn){broken.push(fn)}};
+ new Function('app','require','console',server.slice(start,end))(
+  appFail,()=>{throw Error('incomplete Hostinger upload')},
+  {warn:(...parts)=>warnings.push(parts.join(' '))}
  );
- failing[0]({query:{}},res());
- assert.equal(classicRuns,2);
+ const failure=response();broken[0]({query:{}},failure);
+ assert.equal(failure.statusCode,503);
+ assert.equal(failure.headers['Cache-Control'],'no-store');
+ assert.equal(failure.sent,'Accueil SWAPP temporairement indisponible.');
  assert.ok(warnings.some(x=>x.includes('Catalogue indisponible')));
+ assert.equal(server.slice(start,end).includes('sendSwappUi'),false);
 });
 test('small communities use dedicated verified sources, prefer up to 50 and accurately expand to 150',()=>{
  assert.match(catalogue.API.small,/\/api\/oryon\/discover\/find-live\?mood=petite-commu/);
