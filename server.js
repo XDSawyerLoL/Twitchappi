@@ -1780,6 +1780,10 @@ app.get('/c/:login', (req, res) => {
 // Dedicated password reset URLs. Keep both /reset-password and /reset-password/:token working.
 app.get(['/reset-password', '/reset-password/:token'], (_req, res) => sendSwappUi(res));
 
+// Opt-in, noindex SWAPP catalogue prototype. It is not included in the menu
+// or sitemap and must register before the generic /:creator catch-all.
+require('./modules/swapp-catalogue-lab').register(app);
+
 // Clean SPA URLs. /c/:login remains a compatibility alias, but public channel URLs are /pseudo.
 // Institutional documents must precede the /:creator catch-all.
 require('./modules/swapp-news/legal-pages').register(app);
