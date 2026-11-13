@@ -165,6 +165,7 @@ if(typeof document==='undefined')return;
 const root=document.getElementById('swapp-catalogue-lab');
 if(!root)return;
 const $=id=>document.getElementById(id);
+const storage=()=>{try{return window.localStorage}catch{return {getItem(){return null},setItem(){throw Error('storage_unavailable')}}}};
 const create=(tag,className,text)=>{
  const node=document.createElement(tag);
  if(className)node.className=className;
@@ -210,17 +211,17 @@ dialog.addEventListener('click',event=>{if(event.target===dialog)closeDialog()})
 dialog.addEventListener('close',()=>{$('scl-dialog-content').replaceChildren()});
 function channelPlatform(item){return item.platform==='swapp'?'oryon':'twitch'}
 function isSavedChannel(item){
- try{return readChannelFavorites(window.localStorage).some(x=>x.platform===channelPlatform(item)&&x.login===item.login)}
+ try{return readChannelFavorites(storage()).some(x=>x.platform===channelPlatform(item)&&x.login===item.login)}
  catch{return false}
 }
 function toggleChannelFavorite(item){
  try{
-  const saved=readChannelFavorites(window.localStorage);
+  const saved=readChannelFavorites(storage());
   const platform=channelPlatform(item);
   const exists=saved.some(x=>x.platform===platform&&x.login===item.login);
   const next=exists?saved.filter(x=>!(x.platform===platform&&x.login===item.login)):
    [{platform,login:item.login,name:item.name,game:item.game,ts:Date.now()},...saved].slice(0,100);
-  window.localStorage.setItem(CHANNEL_KEY,JSON.stringify(next));
+  storage().setItem(CHANNEL_KEY,JSON.stringify(next));
   refreshFavorites();
   status.textContent=exists?'Chaîne retirée des favoris.':'Chaîne ajoutée aux favoris locaux.';
  }catch{
@@ -262,7 +263,7 @@ function actionsFor(item){
   followed.dataset.swappFollowGame='1';
   followed.dataset.gameSlug=item.gameSlug;
   followed.dataset.gameName=item.game;
-  followed.setAttribute('aria-pressed',String(readFavorites(window.localStorage).some(x=>x.slug===item.gameSlug)));
+  followed.setAttribute('aria-pressed',String(readFavorites(storage()).some(x=>x.slug===item.gameSlug)));
   actions.append(followed);
  }
  return actions;
@@ -331,7 +332,7 @@ function createCard(item){
   fav.dataset.swappFollowGame='1';
   fav.dataset.gameSlug=item.gameSlug;
   fav.dataset.gameName=item.game;
-  fav.setAttribute('aria-pressed',String(readFavorites(window.localStorage).some(x=>x.slug===item.gameSlug)));
+  fav.setAttribute('aria-pressed',String(readFavorites(storage()).some(x=>x.slug===item.gameSlug)));
   actions.append(fav);
  }
  const info=button('ⓘ','scl-card-info',()=>details(item));info.setAttribute('aria-label','En savoir plus sur '+(item.kind==='live'?item.name:item.game));
@@ -357,8 +358,8 @@ function fill(id,items,placeholder){
  host.replaceChildren(fragment);
 }
 function refreshFavorites(){
- const saved=readFavorites(window.localStorage);
- const savedChannels=readChannelFavorites(window.localStorage);
+ const saved=readFavorites(storage());
+ const savedChannels=readChannelFavorites(storage());
  const games=saved.map(x=>state.games.find(g=>g.gameSlug===x.slug)||normalizeGame({name:x.game})).filter(Boolean);
  const liveKeys=new Set(savedChannels.map(x=>(x.platform==='oryon'?'swapp':'twitch')+':'+x.login));
  const followedLives=state.lives.filter(x=>liveKeys.has(x.id));
