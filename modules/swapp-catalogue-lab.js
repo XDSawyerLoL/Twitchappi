@@ -21,6 +21,7 @@ function page({publicHome=false}={}){
    '<a href="#scl-articles" class="scl-side-link">Articles</a><a href="#scl-live" class="scl-side-link">Directs</a>'+
    '<a href="#scl-games" class="scl-side-link">Jeux</a>'+
    '<a href="#scl-small" class="scl-side-link">Petites communautés</a>'+
+   '<a href="/discord" class="scl-side-link">Discord Connect</a>'+
    '<a href="#scl-favorites" class="scl-side-link">Ma liste <span data-scl-favorites-count>0</span></a>'+
    '<a href="'+(publicHome?'/?classic=1':'/categories')+'" class="scl-side-back">'+(publicHome?'Ancien accueil':'Catalogue classique')+'</a>'+
   '</aside>'+
