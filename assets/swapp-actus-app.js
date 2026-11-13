@@ -486,8 +486,10 @@ actions.append(read,watch,discuss);heroCopy.append(actions);
 const sharePanel=window.SwappArticleShare?.build?.(a);
 if(sharePanel){heroCopy.append(controls);article.append(sharePanel)}
 else{
- const share=el('button','swapp-reader-share','Partager l’article');share.type='button';
- share.onclick=async()=>{const address=location.origin+'/actus/'+encodeURIComponent(slug);try{if(navigator.share){await navigator.share({title:a.title,url:address});return}if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(address);share.textContent='Lien copié';return}}catch(e){if(e.name==='AbortError')return}share.textContent='Copier le lien : '+address};
+ const share=el('a','swapp-reader-share','Partager sur X');
+ share.href=shareArticleCard(a);
+ share.target='_blank';share.rel='noopener noreferrer';
+ share.setAttribute('aria-label','Partager cet article sur X : '+a.title);
  controls.append(share);heroCopy.append(controls);
 }
 // Artwork remains behind the heading. Reading progress is now a small TOC label,
