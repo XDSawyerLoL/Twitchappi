@@ -51,6 +51,30 @@ function sameOrigin(req){
   return u.protocol==='https:'&&u.host.toLowerCase()===host.toLowerCase();
  }catch{return false;}
 }
+// The existing SWAPP session is memory-backed on each Node worker. An HMAC
+// state survives a Discord redirect landing on another Hostinger worker.
+// It remains bound to the signed-in SWAPP owner and expires in ten minutes.
+function makeOAuthState(uid,mode,secret,issued=Date.now()){
+ if(!UID.test(String(uid||''))||!['account','server'].includes(mode)||String(secret||'').length<32)
+  throw Error('discord_oauth_state_config_invalid');
+ const data=Buffer.from(JSON.stringify({uid,mode,exp:issued+600000,nonce:crypto.randomBytes(18).toString('base64url')})).toString('base64url');
+ const mac=crypto.createHmac('sha256',secret).update(data).digest('base64url');
+ return data+'.'+mac;
+}
+function verifyOAuthState(value,secret,now=Date.now()){
+ if(typeof value!=='string'||value.length>400||String(secret||'').length<32)return null;
+ const parts=value.split('.');
+ if(parts.length!==2||!/^[A-Za-z0-9_-]+$/.test(parts[0])||!/^[A-Za-z0-9_-]{43}$/.test(parts[1]))return null;
+ const mac=crypto.createHmac('sha256',secret).update(parts[0]).digest('base64url');
+ if(!crypto.timingSafeEqual(Buffer.from(mac),Buffer.from(parts[1])))return null;
+ try{
+  const state=JSON.parse(Buffer.from(parts[0],'base64url').toString('utf8'));
+  if(!UID.test(String(state.uid||''))||!['account','server'].includes(state.mode)||
+   !Number.isSafeInteger(state.exp)||now>state.exp||state.exp-now>600000||
+   !/^[A-Za-z0-9_-]{24}$/.test(String(state.nonce||'')))return null;
+  return {ownerId:String(state.uid),mode:state.mode};
+ }catch{return null}
+}
 function webhookPayload(creator,category){
  const login=String(creator.login||'');
  const title=safe(creator.current_live_title||'Le direct de '+(creator.display_name||login),170).replace(/@(?:everyone|here)/gi,'');
@@ -71,16 +95,16 @@ const TABLES=[
  'CREATE TABLE IF NOT EXISTS swapp_discord_live_outbox (id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY, swapp_user_id VARCHAR(80) NOT NULL, guild_id VARCHAR(22) NOT NULL, event_id VARCHAR(120) NOT NULL, creator_login VARCHAR(48) NOT NULL, status VARCHAR(16) NOT NULL DEFAULT "pending", attempts INT NOT NULL DEFAULT 0, created_at BIGINT NOT NULL, next_attempt_at BIGINT NOT NULL DEFAULT 0, lease_until BIGINT NOT NULL DEFAULT 0, message_id VARCHAR(22) DEFAULT NULL, UNIQUE KEY swapp_discord_live_once (swapp_user_id,guild_id,event_id), KEY swapp_discord_due (status,next_attempt_at)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4'
 ];
 function createDiscordConnect({app,env=process.env,mysqlFactory=null,restoreSession,findOwner,getOwnerById,getVerifiedLive,
- limiter=null,fetchImpl=globalThis.fetch,now=Date.now,setIntervalImpl=setInterval}={}){
+ limiter=null,fetchImpl=globalThis.fetch,now=Date.now,setIntervalImpl=setInterval,stateSecret=null}={}){
  if(!app||typeof restoreSession!=='function'||typeof findOwner!=='function'||typeof getOwnerById!=='function'||typeof getVerifiedLive!=='function')throw Error('swapp_discord_dependencies_invalid');
  const clientId=String(env.SWAPP_DISCORD_CLIENT_ID||''),secret=String(env.SWAPP_DISCORD_CLIENT_SECRET||'');
  const redirect=String(env.SWAPP_DISCORD_REDIRECT_URI||'');
  const mysqlUri=String(env.SWAPP_ACCOUNT_MYSQL_URL||env.SWAPP_MYSQL_URL||env.DATABASE_URL||'');
- const key=keyFromEnv(env);
+ const key=keyFromEnv(env),oauthSecret=String(stateSecret||env.SESSION_SECRET||'');
  let uriValid=false,redirectValid=false;
  try{const u=new URL(mysqlUri);uriValid=u.protocol==='mysql:'&&Boolean(u.username&&u.hostname&&u.pathname!=='/');}catch{}
  try{const u=new URL(redirect);redirectValid=u.protocol==='https:'&&u.hostname==='swapp.tv'&&u.pathname==='/api/swapp/discord/callback'&&!u.search&&!u.hash;}catch{}
- const enabled=env.SWAPP_ACCOUNT_STORE==='mysql'&&snowflake(clientId)&&secret.length>=12&&key&&uriValid&&redirectValid&&env.SWAPP_DISCORD_ENABLED!=='false';
+ const enabled=env.SWAPP_ACCOUNT_STORE==='mysql'&&snowflake(clientId)&&secret.length>=12&&key&&oauthSecret.length>=32&&uriValid&&redirectValid&&env.SWAPP_DISCORD_ENABLED!=='false';
  let pool=null,init=null,running=null;
  const ready=async()=>{
   if(!enabled)throw Error('discord_not_configured');
@@ -124,33 +148,25 @@ function createDiscordConnect({app,env=process.env,mysqlFactory=null,restoreSess
   if(!enabled)return res.status(503).json({success:false,error:'discord_not_configured'});
   const mode=req.query?.mode==='server'?'server':'account';
   try{
-   const db=await ready();
+   await ready();
    if(mode==='server'){
     const linked=await query('SELECT discord_user_id FROM swapp_discord_identities WHERE swapp_user_id=?',[person.id]);
     if(!linked.length)return res.redirect('/discord?error=link_account_first');
    }
-   const nonce=crypto.randomBytes(24).toString('base64url');
-   req.session.swappDiscordOAuth={nonce,ownerId:String(person.id),mode,until:now()+600000};
-   req.session.save(err=>{
-    if(err)return res.status(503).send('Session SWAPP indisponible');
-    const scopes=mode==='server'?'identify guilds webhook.incoming':'identify';
-    const url=new URL('https://discord.com/oauth2/authorize');
-    url.search=new URLSearchParams({client_id:clientId,response_type:'code',redirect_uri:redirect,
-     scope:scopes,state:nonce,prompt:'consent'}).toString();
-    res.set('Cache-Control','no-store').redirect(url.href);
-   });
+   const state=makeOAuthState(String(person.id),mode,oauthSecret,now());
+   const scopes=mode==='server'?'identify guilds webhook.incoming':'identify';
+   const url=new URL('https://discord.com/oauth2/authorize');
+   url.search=new URLSearchParams({client_id:clientId,response_type:'code',redirect_uri:redirect,
+    scope:scopes,state,prompt:'consent'}).toString();
+   res.set('Cache-Control','no-store').redirect(url.href);
   }catch(_){res.status(503).json({success:false,error:'discord_storage_unavailable'})}
  };
  app.get('/api/swapp/discord/connect',oauth);
  app.get('/api/swapp/discord/callback',async(req,res)=>{
   res.set('Cache-Control','no-store');
-  const state=req.session?.swappDiscordOAuth;
-  if(req.session)delete req.session.swappDiscordOAuth;
   const person=await owner(req,res);if(!person)return;
-  const supplied=String(req.query?.state||'');
-  if(!state||state.ownerId!==String(person.id)||now()>state.until||
-     !/^[A-Za-z0-9_-]{32}$/.test(supplied)||
-     !crypto.timingSafeEqual(Buffer.from(supplied),Buffer.from(state.nonce))||
+  const state=verifyOAuthState(String(req.query?.state||''),oauthSecret,now());
+  if(!state||state.ownerId!==String(person.id)||
      !/^[A-Za-z0-9_-]{5,300}$/.test(String(req.query?.code||'')))
    return res.redirect('/discord?error=oauth_state');
   try{
@@ -350,4 +366,4 @@ function createDiscordConnect({app,env=process.env,mysqlFactory=null,restoreSess
  }
  return {enabled:Boolean(enabled),notifyLive,flush,ready,status:()=>({configured:Boolean(enabled),maxGuilds:MAX_GUILDS})};
 }
-module.exports={createDiscordConnect,validWebhook,keyFromEnv,encryptWebhook,decryptWebhook,webhookPayload,sameOrigin,TABLES};
+module.exports={createDiscordConnect,validWebhook,keyFromEnv,encryptWebhook,decryptWebhook,makeOAuthState,verifyOAuthState,webhookPayload,sameOrigin,TABLES};
