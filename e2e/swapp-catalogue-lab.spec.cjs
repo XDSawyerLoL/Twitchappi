@@ -57,9 +57,12 @@ test('published ACTUS rail opens only native SWAPP articles and shares without n
  await open(page);
  const card=page.locator('#scl-article-cards .scl-story-card').first();
  await expect(card.getByRole('link',{name:/Lire sur SWAPP/})).toHaveAttribute('href','/actus/article-test-swapp-2026');
- await card.getByRole('button',{name:/Partager/}).click();
- await expect(card.locator('.scl-story-share-feedback')).toContainText('Lien SWAPP copié');
- expect(await page.evaluate(()=>window.__sharedArticle)).toBe(ORIGIN+'/actus/article-test-swapp-2026');
+ const xShare=card.getByRole('link',{name:/Partager cet article sur X/});
+ await expect(xShare).toHaveAttribute('target','_blank');
+ const intent=new URL(await xShare.getAttribute('href'));
+ expect(intent.origin).toBe('https://x.com');
+ expect(intent.pathname).toBe('/intent/tweet');
+ expect(intent.searchParams.get('url')).toBe('https://swapp.tv/actus/article-test-swapp-2026');
  expect(new URL(page.url()).pathname).toBe('/catalogue-test');
  await page.locator('[data-scl-filter="article"]').click();
  await expect(page.locator('#scl-articles')).toBeVisible();
