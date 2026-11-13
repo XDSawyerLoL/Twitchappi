@@ -165,6 +165,18 @@ function createDiscordConnect({app,env=process.env,mysqlFactory=null,restoreSess
    const user=await fetchJson(DISCORD+'/users/@me',{headers});
    if(!snowflake(user?.id))throw Error('discord_identity_invalid');
    if(state.mode==='account'){
+    // An existing Discord identity cannot silently migrate to another SWAPP
+    // account via a UNIQUE-key upsert. Explicit unlink is required first.
+    const assigned=await query('SELECT swapp_user_id FROM swapp_discord_identities WHERE discord_user_id=?',[String(user.id)]);
+    if(assigned.length&&String(assigned[0].swapp_user_id)!==String(person.id))
+     return res.redirect('/discord?error=discord_already_connected');
+    const current=await query('SELECT discord_user_id FROM swapp_discord_identities WHERE swapp_user_id=?',[person.id]);
+    if(current.length&&String(current[0].discord_user_id)!==String(user.id)){
+     // Server authorizations belong to their Discord identity, not to the
+     // SWAPP account in isolation. Do not carry them over to another Discord.
+     await query('DELETE FROM swapp_discord_communities WHERE swapp_user_id=?',[person.id]);
+     await query('DELETE FROM swapp_discord_live_outbox WHERE swapp_user_id=?',[person.id]);
+    }
     await query('INSERT INTO swapp_discord_identities (swapp_user_id,discord_user_id,username,avatar_hash,updated_at) VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE discord_user_id=VALUES(discord_user_id),username=VALUES(username),avatar_hash=VALUES(avatar_hash),updated_at=VALUES(updated_at)',
      [String(person.id),String(user.id),safe(user.global_name||user.username,100),safe(user.avatar,128),now()]);
    }else{
