@@ -6,7 +6,7 @@ const path=require('node:path');
 const crypto=require('node:crypto');
 const {
  createDiscordConnect,validWebhook,keyFromEnv,encryptWebhook,decryptWebhook,
- webhookPayload,sameOrigin,TABLES
+ makeOAuthState,verifyOAuthState,webhookPayload,sameOrigin,TABLES
 }=require('../modules/swapp-discord-connect');
 const root=path.join(__dirname,'..');
 const id='123456789012345678',token='A'.repeat(45);
@@ -65,6 +65,16 @@ test('Discord webhooks accept only official HTTPS incoming webhook endpoints',()
   assert.equal(validWebhook(bad),false,bad);
  assert.equal(sameOrigin(request()),true);
  assert.equal(sameOrigin({get:key=>key==='host'?'swapp.tv':'https://attacker.test'}),false);
+});
+test('OAuth state is short-lived, HMAC signed and tied to the same SWAPP owner across workers',()=>{
+ const secret='S'.repeat(64),ts=Date.UTC(2026,10,13,18,0,0);
+ const state=makeOAuthState(creator.id,'server',secret,ts);
+ assert.ok(typeof state==='string'&&state.includes('.'));
+ assert.deepEqual(verifyOAuthState(state,secret,ts+5000),{ownerId:creator.id,mode:'server'});
+ assert.equal(verifyOAuthState(state,secret,ts+600001),null);
+ assert.equal(verifyOAuthState(state,'wrong secret'.repeat(4),ts+5000),null);
+ assert.equal(verifyOAuthState(state.slice(0,-2)+'AA',secret,ts+5000),null);
+ assert.throws(()=>makeOAuthState(creator.id,'invalid_mode',secret,ts));
 });
 test('each webhook is encrypted/authenticated, not persisted in plaintext',()=>{
  const key=keyFromEnv({SWAPP_DISCORD_ENCRYPTION_KEY:'ab'.repeat(32)});
