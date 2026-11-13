@@ -11,6 +11,7 @@ const API=Object.freeze({
  games:'/api/categories/top'
 });
 const FAVORITES_KEY='swapp:followed-games:v1';
+const CHANNEL_KEY='oryon_v4_likes';
 const GAME_COPY=Object.freeze({
  'fortnite':'Battle royale et expériences créatives : des parties en équipe, des constructions et des modes imaginés par les joueurs.',
  'minecraft':'Explore, collecte des ressources et construis dans un univers de blocs, en survie comme en création.',
@@ -119,8 +120,23 @@ function readFavorites(storage){
   }).slice(0,30).map(x=>({slug:x.slug,game:escapeName(x.game)||x.slug}));
  }catch{return []}
 }
+function readChannelFavorites(storage){
+ try{
+  const data=JSON.parse(storage.getItem(CHANNEL_KEY)||'[]');
+  if(!Array.isArray(data))return [];
+  const seen=new Set();
+  return data.filter(item=>{
+   const platform=item?.platform==='twitch'?'twitch':item?.platform==='oryon'?'oryon':'';
+   const login=String(item?.login||'').toLowerCase();
+   const valid=platform==='twitch'?/^[a-z0-9_]{2,25}$/:/^[a-z0-9_][a-z0-9_-]{1,39}$/;
+   const key=platform+':'+login;
+   if(!platform||!valid.test(login)||seen.has(key))return false;
+   seen.add(key);return true;
+  }).slice(0,100).map(item=>({platform:item.platform,login:String(item.login).toLowerCase(),name:escapeName(item.name),game:escapeName(item.game)}));
+ }catch{return []}
+}
 if(typeof module==='object'&&module.exports)
- module.exports={API,LAB_VERSION,normalizeLive,normalizeGame,mergeLives,mergeGames,gameSlug,synopsis,readFavorites,safeImage};
+ module.exports={API,LAB_VERSION,normalizeLive,normalizeGame,mergeLives,mergeGames,gameSlug,synopsis,readFavorites,readChannelFavorites,safeImage};
 if(typeof document==='undefined')return;
 const root=document.getElementById('swapp-catalogue-lab');
 if(!root)return;
@@ -168,6 +184,25 @@ function closeDialog(){
 $('scl-dialog-close').addEventListener('click',closeDialog);
 dialog.addEventListener('click',event=>{if(event.target===dialog)closeDialog()});
 dialog.addEventListener('close',()=>{$('scl-dialog-content').replaceChildren()});
+function channelPlatform(item){return item.platform==='swapp'?'oryon':'twitch'}
+function isSavedChannel(item){
+ try{return readChannelFavorites(window.localStorage).some(x=>x.platform===channelPlatform(item)&&x.login===item.login)}
+ catch{return false}
+}
+function toggleChannelFavorite(item){
+ try{
+  const saved=readChannelFavorites(window.localStorage);
+  const platform=channelPlatform(item);
+  const exists=saved.some(x=>x.platform===platform&&x.login===item.login);
+  const next=exists?saved.filter(x=>!(x.platform===platform&&x.login===item.login)):
+   [{platform,login:item.login,name:item.name,game:item.game,ts:Date.now()},...saved].slice(0,100);
+  window.localStorage.setItem(CHANNEL_KEY,JSON.stringify(next));
+  refreshFavorites();
+  status.textContent=exists?'Chaîne retirée des favoris.':'Chaîne ajoutée aux favoris locaux.';
+ }catch{
+  status.textContent='Impossible de modifier les favoris sur cet appareil.';
+ }
+}
 function watch(item){if(!item||item.kind!=='live')return;window.location.assign(item.watchUrl)}
 function feature(item){
  state.featured=item||null;
@@ -193,6 +228,10 @@ function actionsFor(item){
  if(item.kind==='live'){
   actions.append(button('Regarder le direct','scl-btn scl-btn-primary',()=>watch(item)));
   actions.append(button('Prévisualiser','scl-btn scl-btn-neutral',()=>preview(item)));
+  const save=button('♡ Ajouter aux favoris','scl-btn scl-btn-outline',()=>toggleChannelFavorite(item));
+  save.dataset.sclChannelFavorite=item.id;
+  save.dataset.labelMode='full';
+  actions.append(save);
  }else{
   actions.append(button('Voir les directs','scl-btn scl-btn-primary',()=>{void showGameLives(item)}));
   const followed=button('＋ Suivre ce jeu','scl-btn scl-btn-neutral',()=>{});
@@ -257,6 +296,10 @@ function createCard(item){
   const link=create('a','', 'Regarder');
   link.href=item.watchUrl;
   actions.append(link);
+  const save=button('♡','scl-channel-fav',()=>toggleChannelFavorite(item));
+  save.dataset.sclChannelFavorite=item.id;
+  save.setAttribute('aria-label','Ajouter '+item.name+' aux favoris');
+  actions.append(save);
  }else{
   const fav=button('＋ Suivre ce jeu','scl-fav-button',()=>{});
   fav.dataset.swappFollowGame='1';
@@ -289,15 +332,27 @@ function fill(id,items,placeholder){
 }
 function refreshFavorites(){
  const saved=readFavorites(window.localStorage);
+ const savedChannels=readChannelFavorites(window.localStorage);
  const games=saved.map(x=>state.games.find(g=>g.gameSlug===x.slug)||normalizeGame({name:x.game})).filter(Boolean);
- fill('scl-favorite-cards',games.filter(matching),'Aucun jeu suivi pour le moment. Utilise « Suivre ce jeu » pour remplir ta sélection.');
- const counter=document.querySelector('[data-swapp-favorites-count]');
- if(counter)counter.textContent=String(saved.length);
+ const liveKeys=new Set(savedChannels.map(x=>(x.platform==='oryon'?'swapp':'twitch')+':'+x.login));
+ const followedLives=state.lives.filter(x=>liveKeys.has(x.id));
+ fill('scl-favorite-cards',[...followedLives,...games].filter(matching),
+  'Aucun favori actuellement en direct. Suis un jeu ou ajoute une chaîne aux favoris.');
+ const counter=document.querySelector('[data-scl-favorites-count]');
+ if(counter)counter.textContent=String(saved.length+savedChannels.length);
  const selected=new Set(saved.map(x=>x.slug));
  document.querySelectorAll('[data-swapp-follow-game]').forEach(el=>{
   const pressed=selected.has(el.dataset.gameSlug);
   el.setAttribute('aria-pressed',String(pressed));
   el.textContent=pressed?'✓ Jeu suivi':'＋ Suivre ce jeu';
+ });
+ const streamKeys=new Set(savedChannels.map(x=>(x.platform==='oryon'?'swapp':'twitch')+':'+x.login));
+ document.querySelectorAll('[data-scl-channel-favorite]').forEach(el=>{
+  const pressed=streamKeys.has(el.dataset.sclChannelFavorite);
+  el.setAttribute('aria-pressed',String(pressed));
+  el.textContent=el.dataset.labelMode==='full'?(pressed?'♥ Dans les favoris':'♡ Ajouter aux favoris'):(pressed?'♥':'♡');
+  const item=state.lives.find(x=>x.id===el.dataset.sclChannelFavorite);
+  if(item)el.setAttribute('aria-label',(pressed?'Retirer ':'Ajouter ')+item.name+(pressed?' des favoris':' aux favoris'));
  });
 }
 function render(){
@@ -396,7 +451,7 @@ document.querySelectorAll('[data-scroll-left],[data-scroll-right]').forEach(butt
  });
 });
 window.addEventListener('swapp:library-changed',refreshFavorites);
-window.addEventListener('storage',event=>{if(event.key===FAVORITES_KEY||event.key===null)refreshFavorites()});
+window.addEventListener('storage',event=>{if(event.key===FAVORITES_KEY||event.key===CHANNEL_KEY||event.key===null)refreshFavorites()});
 document.addEventListener('click',event=>{
  if(event.target.closest('[data-swapp-follow-game]')){
   requestAnimationFrame(refreshFavorites);
