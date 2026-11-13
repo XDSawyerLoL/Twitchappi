@@ -506,7 +506,7 @@ async function verify(){
  check(newsScript.body.includes('function navigateArticle(event,slug,game)')&&
   !newsScript.body.includes("event.preventDefault();window.setView('actus');window.SwappActus.open(slug)"),
   'Homepage still intercepts canonical editorial links with the SPA route');
- const motionPath='/assets/swapp-home-motion.js?v=20261108-gta6-header-video-v2';
+ const motionPath='/assets/swapp-home-motion.js?v=20261113-actus-relocation-v3';
  check(home.body.includes(motionPath)&&
    home.body.indexOf(motionPath)<home.body.indexOf('swapp-home-news.js?v=20261108-remove-purple-video-v3'),
    'No cinematic hero helper before the editorial client');
