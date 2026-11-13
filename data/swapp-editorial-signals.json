@@ -2,8 +2,76 @@
   "schema": 1,
   "kind": "swapp-editorial-signals",
   "method": "Brèves rédigées à partir de sources primaires, avec revendication, intérêt et limites distincts. Ne jamais convertir automatiquement un RSS en brève vérifiée.",
-  "updatedAt": "2026-11-12T16:51:58Z",
+  "updatedAt": "2026-11-13T04:56:53Z",
   "items": [
+    {
+      "id": "once-human-s5-colossus-gameplay-20261112",
+      "topics": [
+        "GAMING"
+      ],
+      "title": "Once Human détaille le raid Colossus de sa saison 5",
+      "fact": "Le 12 novembre, Starry Studio présente le combat coopératif à quatre contre le Colossus et les mécaniques musicales de Dissonant Resonance sur PlayStation.Blog. La saison 5 est annoncée pour le 18 novembre, heure du Pacifique.",
+      "impact": "Les joueurs devront coordonner leurs actions pour interrompre la mélodie du boss et exploiter les effets liés au son.",
+      "caveat": "La date affichée est américaine ; elle ne garantit pas une ouverture le 18 novembre en France. L’heure de disponibilité après la mise à jour reste à confirmer.",
+      "sourceName": "Starry Studio / PlayStation.Blog",
+      "sourceUrl": "https://blog.playstation.com/2026/11/12/once-human-season-5-gameplay-showcases-co-op-colossus-boss-battle-live-november-18/",
+      "sourceDate": "2026-11-12",
+      "imageUrl": "https://blog.playstation.com/tachyon/2026/11/4307c0e946544855e38087de41e890782dd7d4bf.jpg",
+      "imageCredit": "Starry Studio / PlayStation.Blog · Once Human, Dissonant Resonance",
+      "reviewedAt": "2026-11-13T04:56:53Z",
+      "articleSlug": null
+    },
+    {
+      "id": "doom-dark-ages-slaughter-date-20261112",
+      "topics": [
+        "GAMING"
+      ],
+      "title": "DOOM: The Dark Ages fixe Slaughter au 16 novembre",
+      "fact": "Bethesda annonce le 12 novembre que Slaughter Mode arrivera le 16 novembre dans DOOM: The Dark Ages | Revelations. Ce mode enchaîne des vagues aléatoires et permet de sécuriser ses récompenses ou de les risquer pour augmenter les gains.",
+      "impact": "Les propriétaires de Revelations, de la Premium Edition ou du Premium Upgrade recevront ce mode sans supplément.",
+      "caveat": "Posséder uniquement le jeu de base ne suffit pas. L’annonce ne précise pas l’heure de déploiement ; la sortie du mode reste à venir.",
+      "sourceName": "Bethesda Softworks / Slayers Club",
+      "sourceUrl": "https://slayersclub.bethesda.net/en-US/news/doom-the-dark-ages-revelations-slaughter-mode-release-date",
+      "sourceDate": "2026-11-12",
+      "imageUrl": "https://res.cloudinary.com/dewzjk72j/image/authenticated/s--m2iGM2fh--/c_lfill,w_772,h_441/f_auto:image,q_auto/v1/cms/DTDA_Slaughter_Mode_Logo_1920x870.jpg-78c1c753da14c7887772469e01525ca7",
+      "imageCredit": "Bethesda Softworks / id Software · Slaughter Mode",
+      "reviewedAt": "2026-11-13T04:56:53Z",
+      "articleSlug": null
+    },
+    {
+      "id": "gemini-4-hydrogen-annonce-20261112",
+      "topics": [
+        "AI"
+      ],
+      "title": "Google présente Gemini 4 Hydrogen pour les tâches rapides des agents IA",
+      "fact": "Google annonce le 12 novembre Gemini 4 Hydrogen, destiné à l’exécution rapide de tâches de programmation et de workflows agentiques. L’entreprise annonce son arrivée notamment dans AI Studio, l’API Gemini, l’application Gemini et Search.",
+      "impact": "Hydrogen propose un modèle supplémentaire pour exécuter des étapes courantes au sein de systèmes utilisant plusieurs modèles.",
+      "caveat": "Les gains de performance sont des résultats annoncés par Google, à évaluer sur chaque usage. Conditions d’accès, quotas et offres varient selon le produit ; aucune autonomie fiable n’est garantie.",
+      "sourceName": "Google / Google DeepMind",
+      "sourceUrl": "https://blog.google/innovation-and-ai/models-and-research/gemini-models/introducing-gemini-4-hydrogen/",
+      "sourceDate": "2026-11-12",
+      "imageUrl": "https://storage.googleapis.com/gweb-uniblog-publish-prod/images/gemini-4-hydrogen__key-art__lockup__16-9.width-1300.jpg",
+      "imageCredit": "Google · Gemini 4 Hydrogen",
+      "reviewedAt": "2026-11-13T04:56:53Z",
+      "articleSlug": null
+    },
+    {
+      "id": "dawn-of-war-iv-geforce-now-20261112",
+      "topics": [
+        "GAMING"
+      ],
+      "title": "Dawn of War IV est annoncé sur GeForce NOW",
+      "fact": "Le 12 novembre, NVIDIA confirme l’arrivée prochaine de Warhammer 40,000: Dawn of War IV sur GeForce NOW. Le jeu de stratégie de KING Art Games et Deep Silver est annoncé sur Steam pour le 3 décembre.",
+      "impact": "La prise en charge cloud prévue offrira une autre façon de jouer à ce titre sur les appareils compatibles avec le service.",
+      "caveat": "Le 3 décembre concerne la sortie Steam. NVIDIA ne garantit pas une disponibilité GeForce NOW ce jour-là ; le calendrier cloud et les conditions d’accès restent à vérifier.",
+      "sourceName": "NVIDIA",
+      "sourceUrl": "https://blogs.nvidia.com/blog/geforce-now-thursday-warhammer-dawn-of-war-iv-coming/",
+      "sourceDate": "2026-11-12",
+      "imageUrl": "https://blogs.nvidia.com/wp-content/uploads/2026/11/gfn-thursday-11-12-blog-1920x1080-logo.jpg",
+      "imageCredit": "NVIDIA / Deep Silver / KING Art Games · Warhammer 40,000: Dawn of War IV",
+      "reviewedAt": "2026-11-13T04:56:53Z",
+      "articleSlug": null
+    },
     {
       "id": "vindictus-ps5-annonce-20261112",
       "topics": [
