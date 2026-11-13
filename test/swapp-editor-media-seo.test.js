@@ -92,7 +92,8 @@ test('video articles without manually uploaded covers get playable YouTube poste
  const article={...assertArticle(input,{publish:true}),status:'published',publishedAt:'2026-10-15T10:00:00.000Z'};
  const page=renderNewsStory(article);
  const thumbnail='https://i.ytimg.com/vi/VQRLujxTm3c/hqdefault.jpg';
- assert.ok(page.includes('<meta property="og:image" content="'+thumbnail+'">'));
+ assert.ok(page.includes('<meta property="og:image" content="https://swapp.tv/actus/og-image/'+article.slug+'">'));
+ assert.ok(page.includes('<meta name="twitter:image" content="https://swapp.tv/actus/og-image/'+article.slug+'">'));
  assert.ok(page.includes('<meta name="twitter:card" content="summary_large_image">'));
  assert.doesNotMatch(page,/swapp-hero-video-links|swapp-trailer-stage/);
  assert.doesNotMatch(page,/swapp-trailer-stage|swapp-trailer-thumb/);
@@ -108,7 +109,7 @@ test('an uploaded licensed cover takes priority over the official YouTube thumbn
  const article={...assertArticle({...input,image:{url:'https://example.org/licensed-wow.jpg',credit:'Éditeur',rights:'Autorisé'}},{publish:true}),
  status:'published',publishedAt:'2026-10-15T10:00:00.000Z'};
  const page=renderNewsStory(article);
- assert.match(page,/<meta property="og:image" content="https:\/\/example.org\/licensed-wow.jpg">/);
+ assert.ok(page.includes('<meta property="og:image" content="https://swapp.tv/actus/og-image/'+article.slug+'">'));
  assert.doesNotMatch(page,/swapp-hero-video-links|swapp-trailer-stage/);
  assert.match(page,/data-swapp-trailer-id="VQRLujxTm3c"/);
  assert.doesNotMatch(page,/swapp-trailer-stage|swapp-trailer-thumb/);
@@ -148,10 +149,12 @@ test('article sharing uses canonical SWAPP URL without a paid SDK or user tracki
  const page=renderNewsStory(article);
  const client=fs.readFileSync(path.join(root,'assets/swapp-article-extras.js'),'utf8');
  assert.match(page,/data-swapp-article-share/);
- assert.match(client,/navigator\.share/);
- assert.match(client,/navigator\.clipboard\?\.writeText/);
+ assert.equal(client.includes('navigator.share('),false);
+ assert.equal(client.includes('navigator.clipboard'),false);
  assert.match(client,/https:\/\/swapp\.tv\/actus\//);
  assert.match(client,/data-swapp-article-slug/);
+ assert.ok(client.includes('https://x.com/intent/tweet?'));
+ assert.ok(page.includes('summary_large_image'));
  assert.doesNotMatch(client,/google-analytics|gtag\(|trackEvent\(|sendBeacon\(/);
  assert.doesNotThrow(()=>new Function(client));
 });
@@ -175,7 +178,7 @@ test('vignette distincte survives article validation, protects rights and contro
  const cards=renderNewsHome([a]);
  assert.match(cards,/src="https:\/\/example.org\/card\.jpg"/);
  assert.match(html,/src="https:\/\/example.org\/hero\.jpg"/);
- assert.match(html,/<meta property="og:image" content="https:\/\/example.org\/card\.jpg"/);
+ assert.ok(html.includes('<meta property="og:image" content="https://swapp.tv/actus/og-image/'+a.slug+'">'));
  assert.throws(()=>assertArticle({...input,thumbnail:{url:'http://example.org/a.jpg'}},{publish:true}),/vignette/);
  assert.throws(()=>assertArticle({...input,thumbnail:{url:'https://example.org/card.jpg'}},{publish:true}),/droits vérifiés requis pour la vignette/);
  assert.doesNotThrow(()=>assertArticle({...input,thumbnail:null},{publish:true}));
