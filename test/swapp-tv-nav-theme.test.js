@@ -3,14 +3,14 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const read=name=>fs.readFileSync(path.join(__dirname,'..',name),'utf8');
 const nav=require('../assets/swapp-navigation');
 const {page}=require('../modules/swapp-program');
-test('SWAPP TV remains highlighted, while Actualité is a single direct link',()=>{
+test('SWAPP TV keeps its navigation position, while Actualité is a single direct link',()=>{
  assert.equal(nav.items.at(-1).href,'/tv');
  assert.equal(nav.items.some(x=>x.href==='/bandes-annonces'),false);
  const html=nav.serverHeader('tv');
  assert.match(html,/href="\/tv" class="swapp-tv-nav-cta" aria-current="page"|href="\/tv" class="active swapp-tv-nav-cta" aria-current="page"/);
  assert.doesNotMatch(html,/swapp-news-more|swapp-news-menu|href="\/equipes"/);
  assert.match(html,/href="\/actus"[^>]*>Actualité<\/a>/);
- assert.match(html,/href="\/categories"[^>]*>Jeux &amp; catégories<\/a>/);
+ assert.match(html,/href="\/categories"[^>]*>DÉCOUVRIR<\/a>/);
  assert.match(nav.serverHeader('trailers'),/href="\/actus" class="active"/);
 });
 test('mobile menu pins four direct routes; TV and video are in Plus',()=>{
@@ -43,8 +43,8 @@ test('Agenda legacy route safely redirects under TV and shared nav assets bust b
  assert.match(server,/app\.get\('\/tv\/programme'/);
  assert.match(server,/res\.redirect\(308,'\/tv\/programme'/);
  for(const html of [shell,home]){
-  assert.match(html,/swapp-unified-nav\.css\?v=20261113-direct-games-flat-nav-v1/);
-  assert.match(html,/swapp-hub-nav\.js\?v=20261113-direct-games-flat-nav-v1/);
-  assert.match(html,/swapp-navigation\.js\?v=20261113-direct-games-flat-nav-v1/);
+  assert.match(html,/swapp-unified-nav\.css\?v=20261113-swaper-decouvrir-v1/);
+  assert.match(html,/swapp-hub-nav\.js\?v=20261113-swaper-decouvrir-v1/);
+  assert.match(html,/swapp-navigation\.js\?v=20261113-swaper-decouvrir-v1/);
  }
 });
