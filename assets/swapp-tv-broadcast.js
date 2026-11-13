@@ -77,7 +77,7 @@ function renderScreen(item,{onAir=false}={}){
  $('stv-watch').disabled=!state.selection;
  $('stv-air-state').textContent=valid&&platform==='swapp'?'ANTENNE NATIVE SWAPP':onAir&&valid?'ANTENNE ACTIVE':valid?'DÉCOUVERTE':'HORS ANTENNE';
  $('stv-air-state').style.color=onAir&&valid?'var(--tv-accent,#67dce8)':'';
- setText('stv-stage-status',valid&&platform==='swapp'?'Diffusion native SWAPP, indépendante du lecteur Twitch.':onAir&&valid?'Créateur sélectionné par la régie SWAPP TV.':valid?'Direct trouvé dans la découverte. Lecture volontaire, sans garantie de maintien en ligne.':'Aucun passage vérifié à cette heure.');
+ setText('stv-stage-status',valid&&platform==='swapp'?'Diffusion native SWAPP, indépendante du lecteur Twitch.':onAir&&valid?'Créateur sélectionné par la régie SWAPP TV.':valid?'Direct en cours de chargement automatique (son coupé). La disponibilité peut évoluer.':'Aucun passage vérifié à cette heure.');
  // SWAPP TV should behave like a TV channel: the first verified/live source
  // starts muted on arrival (browser autoplay policy), not after another click.
  // If no real source is available, stay idle; never manufacture a broadcast.
@@ -111,7 +111,16 @@ function play(){
   const parent=location.hostname;
   frame.src='https://player.twitch.tv/?'+new URLSearchParams({channel:item.login,parent,autoplay:'true',muted:'true'});
  }
- frame.allow='autoplay; fullscreen';frame.allowFullscreen=true;frame.referrerPolicy='strict-origin-when-cross-origin';
+ frame.allow='autoplay; fullscreen';frame.allowFullscreen=true;
+ frame.loading='eager';frame.referrerPolicy='strict-origin-when-cross-origin';
+ frame.addEventListener('error',()=>{
+  if(state.selection?.login!==item.login||state.playing!==item.login)return;
+  $('stv-screen').querySelector('.stv-player-layer')?.remove();
+  $('stv-screen-inner').hidden=false;
+  state.playing=null;state.consent=false;state.autoAdvance=false;
+  setText('stv-stage-status','Le lecteur externe est bloqué ou indisponible. Clique sur Regarder pour réessayer.');
+  syncWatchButton();
+ });
  layer.append(frame,by('div','stv-player-overlay','SWAPP TV  /  '+(item.onAir?'À L’ANTENNE':'DÉCOUVERTE')));
  screen.append(layer);$('stv-screen-inner').hidden=true;state.autoStartPending=false;state.playing=item.login;state.playingPlatform=item.platform;state.playingBroadcastId=item.broadcastId||null;state.consent=true;
  // Resume subsequent five-minute TV slots after a real stream starts.
