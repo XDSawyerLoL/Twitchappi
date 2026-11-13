@@ -1274,7 +1274,10 @@ function sendSwappUi(res){
   // a JavaScript crawler, and keeps account/admin routes out of search.
   try {
     const html=fs.readFileSync(found,'utf8');
-    const output=require('./modules/swapp-seo').injectSpaMetadata(html,res.req?.path||'/');
+    const seo=require('./modules/swapp-seo').injectSpaMetadata(html,res.req?.path||'/');
+    // Render the SAME navigation as the native catalogue/editorial shell
+    // before any client JS executes. No empty-header flash or route jump.
+    const output=require('./modules/swapp-page-shell').hydrateSpaNavigation(seo,res.req?.path||'/');
     res.set('Cache-Control','no-store');
     return res.type('html').send(output);
   }catch(error){
