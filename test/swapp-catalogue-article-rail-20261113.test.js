@@ -34,9 +34,11 @@ test('news source is the real published CMS and NOT external feeds or invented c
  assert.equal(api.API.articles,'/api/actus');
  assert.match(js,/async function fetchArticles\(\)/);
  assert.match(js,/!Array\.isArray\(payload\.articles\)/);
- assert.match(js,/Promise\.allSettled\(\[fetchJson\(API\.home\),fetchJson\(API\.top\),fetchJson\(API\.games\),fetchArticles\(\)\]\)/);
- assert.match(js,/state\.newsError=results\[3\]\.status==='rejected'/);
+ assert.match(js,/Promise\.allSettled\(\[fetchJson\(API\.home\),fetchJson\(API\.top\),fetchJson\(API\.games\)\]\)/);
+ assert.match(js,/void fetchArticles\(\)\.then\(published=>/);
  assert.match(js,/state\.articles=normalizeArticles\(published\)/);
+ assert.match(js,/state\.newsLoading=false/);
+ assert.match(js,/fillArticleRail\(state\.articles\.filter\(matching\),state\.newsError\)/);
  assert.doesNotMatch(js,/\barticles:\s*\[\{\s*title:/);
 });
 test('published articles have canonical internal routes, descending order and no duplicates',()=>{
