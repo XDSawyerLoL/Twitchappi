@@ -45,6 +45,24 @@ test('editorial API outages cannot disable autoplay, manual stop does not self-r
  assert.match(tv,/if\(state\.autoStartPending&&valid&&document\.visibilityState!=='hidden'\)/);
  assert.match(tv,/state\.autoAdvance=false;state\.autoStartPending=false/);
 });
+test('a real live from SWAPP community discovery is selected without ACTUS game metadata',async()=>{
+ const a=tv.indexOf('async function discovery(){'),b=tv.indexOf('// Fallback channel:',a);
+ assert.ok(a>0&&b>a);
+ const urls=[],selected=[];
+ const state={queueMode:false,games:[],selection:null,consent:false,discovery:[],index:0};
+ const discovery=new Function('state','api','safeLogin','fairDiscovery','renderScreen','rail',
+  tv.slice(a,b)+'return discovery;')(
+  state,async url=>{
+   urls.push(url);
+   return {success:true,items:[{login:'valid_channel',platform:'twitch',
+    game_name:'Where Winds Meet',display_name:'Vrai streamer en direct'}]};
+  },name=>/^[a-z0-9_]{3,25}$/.test(String(name||'')),items=>items,
+  item=>{state.selection=item;state.consent=Boolean(item);selected.push(item?.login)},()=>{});
+ await discovery();
+ assert.deepEqual(urls,['/api/discovery/home-lives?limit=12&lang=fr']);
+ assert.deepEqual(selected,['valid_channel']);
+ assert.equal(state.consent,true);
+});
 test('no-stream condition is displayed instead of a perpetual loading message',()=>{
  const a=tv.indexOf('function explainEmptyStation(){'),b=tv.indexOf('let stationRefreshing=false;',a);
  assert.ok(a>0&&b>a);
