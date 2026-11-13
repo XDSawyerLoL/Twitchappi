@@ -36,3 +36,16 @@ Contraintes : Hostinger Node + MySQL existants, pas de VPS, pas de dépenses ré
 - **Lecture au chargement** : les appels `/api/swapp-tv/native-lineup` et `/api/swapp-tv/queue/status` sont parallélisés. Un direct natif vérifié peut démarrer avant la réponse d'une file ralentie. Une simple file d'inscriptions ouverte **sans programme en cours** ne bloque plus le démarrage de la découverte. Les appels réseau sont limités à 8,5 secondes et les jeux sont interrogés en parallèle. En cas d'absence de lives éditoriaux, SWAPP essaye les vrais directs communautaires puis les directs de l'API Twitch publique.
 - **Actus** : la bande d'espacement entre le menu global et la grande affiche de `/actus` a été supprimée avec une règle limitée au magazine. Les pages individuelles de lecture conservent leurs marges.
 - **Mise en production** : déployer l'archive Hostinger complète (dont les CSS, le client TV, le directeur et `index.html`), redémarrer l'application Node et vérifier en navigateur la route `/tv`, la rotation après cinq minutes et la bannière `/actus`. La fusion GitHub ne signifie pas que la production a été mise à jour.
+
+
+## Correctif du 13/11/2026 — démarrage indépendant de la régie et d'ACTUS (v11)
+
+**Défaut constaté dans le code** : l'initialisation du lecteur attendait `refreshQueue()` puis la réponse `/api/actus` avant d'appeler `discovery()`. En l'absence de direct natif validé, une requête MySQL ou éditoriale lente retardait ou empêchait l'apparition du premier direct Twitch pourtant réel.
+
+**Correction** : dès l'ouverture de `/tv`, la recherche des vrais lives publics commence **en parallèle** de la régie native et du chargement des articles. La première source réelle valide trouvée déclenche l'iframe Twitch avec `autoplay=true&muted=true`, ou le lecteur HLS natif SWAPP avec vidéo muette au chargement. La régie reste prioritaire si elle confirme effectivement un passage, même après le démarrage. Les tentatives de découverte continuent automatiquement toutes les 30 secondes en absence de source initiale. L'état « aucun direct disponible » s'affiche plutôt qu'un spinner interminable. Un clic sur « Arrêter » désarme l'autoplay et la rotation involontaire.
+
+Le backend SWAPP doit réellement exposer au moins un direct sur `/api/swapp-tv/native-lineup`, `/api/swapp-tv/queue/status` (passage actif) ou `/api/discovery/home-lives?limit=12&lang=fr` (Twitch vérifié). Une liste vide ou l'absence de configuration Twitch côté serveur ne peut pas devenir une vidéo par simple ajout de l'attribut `autoplay`.
+
+**Identification de version** : inspecter la balise principale `<main id="swapp-tv" ... data-tv-build="20261113-liveboot-v11">` ou la ressource `swapp-tv-broadcast.js?v=20261113-liveboot-v11` dans le code source de `/tv`. Sans cette version, Hostinger exécute encore l'ancienne application : installer le paquet complet depuis `master` puis redémarrer Node.
+
+**Limite du navigateur** : Twitch documente que ses embeds autoplay nécessitent une taille/visibilité suffisantes et qu'un déclenchement utilisateur peut rester obligatoire sur mobile. Le navigateur peut également bloquer une iframe externe : un tel échec est maintenant présenté dans le lecteur avec une invitation à réessayer manuellement, sans promettre de contourner les règles du navigateur.
