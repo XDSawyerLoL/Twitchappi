@@ -53,7 +53,7 @@ test('the shared main navigation has no redundant Média tab and the Studio uses
  assert.match(studio,/Tags \/ rubriques/);
  assert.match(studio,/id="tags"/);
  const html=read('index.html');
- assert.match(html,/swapp-actus-app\.js\?v=20261113-card-density-v1/);
+ assert.match(html,/swapp-actus-app\.js\?v=20261113-inline-share-v1/);
 });
 test('Fable is a gaming-tagged existing editorial release, not a new page',()=>{
  const manifest=JSON.parse(read('data/swapp-editorial-releases.json'));
