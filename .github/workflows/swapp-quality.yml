@@ -26,6 +26,9 @@ jobs:
           node --check modules/swapp-program.js
           node --check modules/swapp-tv-queue.js
           node --check modules/swapp-tv-director.js
+          node --check modules/swapp-page-shell.js
+          node --check modules/swapp-news/site-shell.js
+          node --check assets/swapp-route-motion.js
           node --check modules/swapp-catalogue-lab.js
           node --check assets/swapp-navigation.js
           node --check assets/swapp-hub-nav.js
