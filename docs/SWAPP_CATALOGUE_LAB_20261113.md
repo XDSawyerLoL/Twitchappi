@@ -1,0 +1,28 @@
+# SWAPP — catalogue immersif de test (13 novembre 2026)
+
+## Accès et périmètre
+- URL de test : `/catalogue-test`, uniquement après déploiement du commit sur Hostinger.
+- La page n'apparaît **ni dans le menu, ni dans le sitemap**, et répond `noindex,nofollow,noarchive` avec une politique `Cache-Control: private, no-store`.
+- Aucun remplacement des routes `/categories`, `/decouvrir`, `/actus` ni du lecteur HLS/OBS. Retour permanent au catalogue existant sur la page.
+- Navigation principale de SWAPP : casse **visuellement uniforme en capitales** sur ordinateur et mobile, libellés accessibles d'origine inchangés.
+
+## Présentation
+- Expérience de navigation inspirée du catalogue de streaming illustré : rail latéral, grande mise en avant visuelle, recherche, catégories horizontales, aperçu au survol ou au focus, fiches détaillées et actions.
+- Sources **réelles uniquement** : `GET /api/discovery/home-lives?limit=12&lang=fr`, `GET /api/twitch/streams/top?limit=40&lang=fr` et `GET /api/categories/top`. Recherche approfondie d'un jeu uniquement à l'ouverture de sa fiche : `/api/discovery/game-lives?game=...`.
+- Les cartes distinguent clairement direct SWAPP, Twitch, jeux, petites communautés (≤ 50 spectateurs) et favoris. Si les flux sont indisponibles, la page affiche un état vide ou partiel, sans vignettes de faux streamers.
+- Les descriptions des jeux sont éditées localement pour des titres connus ; les autres affichent « Présentation éditoriale à compléter » plutôt que des données inventées.
+- Prévisualisation : survol/focus = **affiche mise à jour à partir de la vraie miniature** ; la vidéo Twitch muette ne se charge **que sur clic** via un iframe avec parent du domaine courant. Pour un live natif sans miniature vidéo, le lien « Regarder » mène au vrai lecteur SWAPP.
+- Aucun lecteur supplémentaire créé en arrière-plan et aucun flux HLS changé.
+
+## Favoris et persistance
+- Jeux : contrôles `data-swapp-follow-game` gérés par **`assets/swapp-my-games.js`** et sa clé locale `swapp:followed-games:v1`, avec synchronisation MySQL de l'existant *seulement si elle était déjà activée*.
+- Créateurs : même stockage local `oryon_v4_likes` utilisé par l'ancienne exploration Oryon V4. Les abonnements aux chaînes **ne sont pas** des abonnements Twitch/SWAPP distants. Un favori hors ligne ne compte pas dans les directs affichés.
+- Accès aux lives via les routes natives `/live/twitch/:login` et `/:login`, jamais une redirection implicite vers Twitch.
+
+## Fichiers / validation
+- Serveur : `modules/swapp-catalogue-lab.js`, route enregistrée dans `server.js` avant le catch-all des créateurs.
+- Front : `assets/swapp-catalogue-lab.js`, `assets/swapp-catalogue-lab.css`.
+- Tests Node : `node --test test/swapp-catalogue-lab-20261113.test.js test/swapp-flat-navigation-20261113.test.js`.
+- E2E navigateur après déploiement : `npx playwright test e2e/swapp-catalogue-lab.spec.cjs` avec données d'API interceptées, pour éprouver l'affichage, les prévisualisations, les boutons, les favoris, le mobile et l'absence de débordement.
+- Les fichiers sont pris en compte par `tools/swapp-release.js` pour différencier la version réellement déployée.
+- Les tests logiques isolés ont été exécutés et passent ; **ne pas affirmer que l'E2E ou le déploiement Hostinger ont été vérifiés avant leur exécution effective**.
