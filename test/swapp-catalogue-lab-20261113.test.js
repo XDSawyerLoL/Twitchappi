@@ -93,7 +93,7 @@ test('existing Oryon V4 streamer favorites work in the test catalogue without fa
  assert.deepEqual(items.map(x=>x.platform+':'+x.login),['oryon:swapper123','twitch:playerone']);
  assert.equal(items[0].ts,1700000000);
  assert.deepEqual(catalog.readChannelFavorites({getItem(){throw Error('blocked')}}),[]);
- assert.match(read('assets/swapp-catalogue-lab.js'),/window\.localStorage\.setItem\(CHANNEL_KEY/);
+ assert.match(read('assets/swapp-catalogue-lab.js'),/storage\(\)\.setItem\(CHANNEL_KEY/);
  assert.match(read('assets/swapp-catalogue-lab.js'),/state\.lives\.filter\(x=>liveKeys\.has\(x\.id\)\)/);
  assert.match(lab.page(),/Mes favoris/);
 });
