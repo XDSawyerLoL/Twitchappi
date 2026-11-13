@@ -61,12 +61,12 @@ test('An absent or spoofed MP3 is never considered playable',()=>{
   assert.equal(mp3Exists(f.mp3),false);
  }finally{f.clean()}
 });
-test('Navigation exposes a stable PODCAST entry on desktop and mobile',()=>{
+test('Navigation preserves PODCAST in mobile Plus without adding an Actualité submenu',()=>{
  const n=require('../assets/swapp-navigation');
  const desktop=n.serverHeader('onair'),mobile=n.serverMobile('onair');
- assert.match(desktop,/href="\/on-air"/);
+ assert.doesNotMatch(desktop,/href="\/on-air"/);
  assert.match(mobile,/href="\/on-air"/);
- assert.match(desktop,/PODCAST/);
+ assert.doesNotMatch(desktop,/PODCAST/);
  assert.match(mobile,/PODCAST/);
  assert.match(desktop,/href="\/actus"/);
 });
