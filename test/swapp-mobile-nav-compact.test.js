@@ -33,16 +33,16 @@ test('native and SPA navigation share the same four pinned destinations and Plus
  const {serverMobile}=require('../assets/swapp-navigation');
  const html=serverMobile('community');
  const top=html.slice(0,html.indexOf('<details class="swapp-mobile-more">'));
- for(const label of ['Accueil','Découvrir','Actualité','SWAPP TV']){
+ for(const label of ['Accueil','DIRECT','Jeux','Actualité']){
   assert.ok(top.includes(label),'pinned '+label);
  }
  assert.equal((top.match(/<a /g)||[]).length,4);
- assert.match(html,/<summary>Plus<\/summary>/);
- for(const route of ['/categories','/equipes','/bandes-annonces','/boutique','/social','/compte']){
+ assert.match(html,/<summary[^>]*>Plus<\/summary>/);
+ for(const route of ['/categories','/tv','/bandes-annonces','/boutique','/social','/compte']){
   assert.ok(html.includes('href="'+route+'"'),route);
  }
  const spa=read('assets/swapp-hub-nav.js');
- assert.match(spa,/const pinned=\['\/','\/decouvrir','\/actus','\/tv'\]/);
+ assert.match(spa,/const pinned=\['\/','\/decouvrir','\/categories','\/actus'\]/);
 });
 
 function mountedMenu(){
