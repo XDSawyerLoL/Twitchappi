@@ -1782,7 +1782,13 @@ app.get(['/reset-password', '/reset-password/:token'], (_req, res) => sendSwappU
 
 // Opt-in, noindex SWAPP catalogue prototype. It is not included in the menu
 // or sitemap and must register before the generic /:creator catch-all.
-require('./modules/swapp-catalogue-lab').register(app);
+try{
+ require('./modules/swapp-catalogue-lab').register(app);
+}catch(error){
+ // Hostinger might sync server.js before uploading new experimental modules.
+ // Never let a missing optional test-page dependency interrupt SWAPP lives.
+ console.warn('[SWAPP CATALOGUE LAB] Page expérimentale indisponible :',String(error?.message||error).slice(0,160));
+}
 
 // Clean SPA URLs. /c/:login remains a compatibility alias, but public channel URLs are /pseudo.
 // Institutional documents must precede the /:creator catch-all.
