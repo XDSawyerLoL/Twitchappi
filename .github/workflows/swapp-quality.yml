@@ -26,6 +26,19 @@ jobs:
           node --check modules/swapp-program.js
           node --check modules/swapp-tv-queue.js
           node --check modules/swapp-tv-director.js
+          node --check modules/swapp-catalogue-lab.js
+          node --check assets/swapp-catalogue-lab.js
+          node --check assets/swapp-actus-app.js
       - name: Editorial, SOCIAL and game-identity regression tests (Node built-ins only)
         run: |
-          node --test test/swapp-seo-landings.test.js test/swapp-social-rss-images.test.js test/witcher-remastered-creator-workspace.test.js test/swapp-program.test.js test/swapp-tv-rotation.test.js test/swapp-tv-queue.test.js test/swapp-tv-director.test.js
+          node --test test/swapp-seo-landings.test.js test/swapp-social-rss-images.test.js test/witcher-remastered-creator-workspace.test.js test/swapp-program.test.js test/swapp-tv-rotation.test.js test/swapp-tv-queue.test.js test/swapp-tv-director.test.js test/swapp-home-promotion-small-actus-20261113.test.js test/swapp-catalogue-article-rail-20261113.test.js test/swapp-catalogue-cinema-20261113.test.js test/swapp-nav-catalogue-share-20261113.test.js test/swapp-flat-navigation-20261113.test.js
+
+      - name: Préparer le paquet Hostinger à partir du commit GitHub validé
+        run: node tools/swapp-hostinger-package.js --output="${{ runner.temp }}/swapp-hostinger-${GITHUB_SHA:0:12}.zip"
+      - name: Télécharger le paquet Hostinger vérifié
+        uses: actions/upload-artifact@v4
+        with:
+          name: swapp-hostinger-${{ github.sha }}
+          path: ${{ runner.temp }}/swapp-hostinger-*.zip
+          if-no-files-found: error
+          retention-days: 7
