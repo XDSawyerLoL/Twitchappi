@@ -54,7 +54,7 @@ function page({publicHome=false}={}){
  return '<!doctype html><html lang="fr"><head>'+head+'</head><body class="swapp-editorial-route swapp-catalogue-lab-page'+(publicHome?' swapp-catalogue-home':'')+'">'+
   serverHeader(publicHome?'home':'categories')+content+serverMobile(publicHome?'home':'categories')+
   '<script src="/assets/swapp-article-extras.js?v=20261113-actus-rail-v3" defer></script>'+
-  '<script src="/assets/swapp-catalogue-lab.js?v=20261113-public-home-small-v4" defer></script>'+
+  '<script src="/assets/swapp-catalogue-lab.js?v=20261113-public-home-audience-v5" defer></script>'+
   '<script src="/assets/swapp-my-games.js?v=20261021-account-hub-v1" defer></script>'+
   '<script src="/assets/swapp-navigation.js?v=20261113-swaper-decouvrir-v1" defer></script>'+
   '<script src="/assets/swapp-nav-session.js" defer></script>'+
