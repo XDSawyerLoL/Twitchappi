@@ -101,3 +101,36 @@ test('share toolbar cannot intercept outbound social links via its container',()
  assert.ok(catalogue.includes('installRailEdgeHints();'));
  assert.ok(read('assets/swapp-catalogue-lab.css').includes('.scl-edge-arrow-right'));
 });
+
+test('overlaid desktop arrows appear only when there is content left to scroll',()=>{
+ const js=read('assets/swapp-catalogue-lab.js');
+ const start=js.indexOf('function installRailEdgeHints(){');
+ const end=js.indexOf("document.querySelectorAll('[data-scroll-left]",start);
+ assert.ok(start>0&&end>start);
+ const handlers={},arrows=[],rail={append(node){arrows.push(node)},
+  querySelector:()=>({textContent:'Explore les jeux'})};
+ const cards={dataset:{},scrollWidth:1200,clientWidth:400,scrollLeft:0,
+  closest:()=>rail,addEventListener:(name,fn)=>{handlers[name]=fn},
+  scrollBy({left}){this.scrollLeft+=left}};
+ const create=(tag,className,label)=>({
+  tag,className,label,hidden:false,events:{},
+  setAttribute(name,value){this[name]=value},
+  addEventListener(name,fn){this.events[name]=fn}
+ });
+ const setup=new Function('document','window','create','requestAnimationFrame',
+  'prefersLessMotion','ResizeObserver','MutationObserver',
+  js.slice(start,end)+';return installRailEdgeHints;')(
+   {querySelectorAll:()=>[cards]},{addEventListener(){}},
+   create,fn=>{fn();return 1},()=>false,undefined,undefined
+  );
+ setup();
+ assert.equal(arrows.length,2);
+ assert.equal(arrows[0].hidden,true);
+ assert.equal(arrows[1].hidden,false);
+ assert.ok(arrows[1]['aria-label'].includes('droite'));
+ cards.scrollLeft=800;handlers.scroll();
+ assert.equal(arrows[0].hidden,false);
+ assert.equal(arrows[1].hidden,true);
+ cards.scrollLeft=0;arrows[1].events.click();
+ assert.ok(cards.scrollLeft>0);
+});
