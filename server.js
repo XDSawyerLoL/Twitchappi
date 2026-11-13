@@ -1282,7 +1282,13 @@ function sendSwappUi(res){
     return res.type('html').send(output);
   }catch(error){
     console.warn('[SWAPP SEO] HTML metadata fallback:',error?.message);
-    return res.sendFile(found);
+    // Preserve a stable first-paint menu even when SEO metadata fails.
+    try{
+      const html=require('./modules/swapp-page-shell').hydrateSpaNavigation(
+        fs.readFileSync(found,'utf8'),res.req?.path||'/');
+      res.set('Cache-Control','no-store');
+      return res.type('html').send(html);
+    }catch(_){return res.sendFile(found)}
   }
 }
 async function sendSwappPublicChannelUi(req, res, login){
@@ -1323,7 +1329,7 @@ html.swapp-tv-embed #channel .twitchChat,html.swapp-tv-embed #channel .channelCh
     else html = html.replace('</body>', inject + '\n</body>');
     res.setHeader('Cache-Control','no-store, no-cache, must-revalidate, proxy-revalidate');
     res.type('html');
-    return res.send(html);
+    return res.send(require('./modules/swapp-page-shell').hydrateSpaNavigation(html,req.path));
   }catch(e){
     console.error('[PUBLIC_CHANNEL_UI]', e && e.stack ? e.stack : e);
     return sendSwappUi(res);
