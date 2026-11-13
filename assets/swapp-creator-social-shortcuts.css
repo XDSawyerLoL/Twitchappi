@@ -109,3 +109,22 @@
  #channel#channel .creatorRefine.swapp-channel-polish .swapp-creator-social-link{transition:none}
  #channel#channel .creatorRefine.swapp-channel-polish .swapp-creator-social-link:hover{transform:none}
 }
+
+/* Discord public communities, only when opted in. No full-width third-party block. */
+#channel#channel .creatorRefine.swapp-channel-polish .swapp-creator-discord-chip{
+ display:inline-flex;align-items:center;min-height:30px;max-width:160px;
+ border:1px solid rgba(128,151,255,.32);border-radius:7px;padding:5px 9px;
+ background:#171b30;color:#c5cdff;font:750 11px/1.2 system-ui,sans-serif;
+ text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .swapp-creator-discord-chip.is-unlinked{
+ opacity:.7;cursor:default;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .swapp-creator-discord-config{
+ text-decoration:none;border:1px dashed rgba(121,143,244,.4);border-radius:7px;
+ padding:7px 9px;color:#b4bfff;font:750 11px/1.2 system-ui,sans-serif;
+}
+#channel#channel .creatorRefine.swapp-channel-polish .swapp-creator-discord-config:focus-visible,
+#channel#channel .creatorRefine.swapp-channel-polish .swapp-creator-discord-chip:focus-visible{
+ outline:2px solid #9aaaff;outline-offset:2px;
+}
