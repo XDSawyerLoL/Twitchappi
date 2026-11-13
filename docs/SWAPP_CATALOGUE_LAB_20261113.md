@@ -26,3 +26,16 @@
 - E2E navigateur après déploiement : `npx playwright test e2e/swapp-catalogue-lab.spec.cjs` avec données d'API interceptées, pour éprouver l'affichage, les prévisualisations, les boutons, les favoris, le mobile et l'absence de débordement.
 - Les fichiers sont pris en compte par `tools/swapp-release.js` pour différencier la version réellement déployée.
 - Les tests logiques isolés ont été exécutés et passent ; **ne pas affirmer que l'E2E ou le déploiement Hostinger ont été vérifiés avant leur exécution effective**.
+
+## V2 cinéma : rendu « simili Netflix » — 13 novembre 2026
+
+- L'ancienne disposition de laboratoire en deux colonnes est remplacée par une **navigation contextuelle horizontale compacte** sous le menu principal SWAPP (qui reste unique, uniforme, en majuscules).
+- L'affiche principale passe **bord à bord**, sans encadrement, avec dégradés cinéma, grande typographie et défilement de **1 à 6 sélections réellement issues des flux**. Une source SWAPP illustrée est prioritaire ; les sources non disponibles ne produisent ni faux héros ni faux visuels.
+- Les sélections disposent de boutons précédent/suivant, de points accessibles au clavier et d'un défilement automatique lent. Ce dernier se suspend si l'utilisateur interagit, si la page est masquée, si une fiche est ouverte ou si l'utilisateur préfère moins d'animations.
+- Les rails **chevauchent légèrement** le bas de la grande affiche. Les vignettes se rapprochent de véritables affiches : repos = visuel dominant avec titre ; survol ou focus = zoom contenu, résumé et actions (Regarder, prévisualisation, favoris, détails) sans quitter la page.
+- Sur ordinateur **seulement**, une vraie vignette Twitch avec image peut déclencher **un unique lecteur muet** après 1 250 ms de survol délibéré. Il est retiré sur départ du pointeur, déplacement, changement d'onglet, ouverture de fiche ou navigation. Pas de vidéo automatique sur mobile, connexion économiseur de données ou préférence d'animation réduite. Les lives natifs restent en vignette sans prétendre disposer d'un lecteur miniature HLS.
+- Sur mobile / écran tactile, les actions et résumés restent **directement visibles** et les vignettes ne se dilatent pas au survol. Aucune interaction ne dépend exclusivement d'un pointeur.
+- Les dialogues sont reliés à un véritable titre `aria-labelledby`, contrairement à la première version.
+- Versionnement CSS/JS actualisé : `20261113-cinema-v2`, sans toucher au catalogue public `/categories`.
+- Tests dédiés : `test/swapp-catalogue-cinema-20261113.test.js` (navigation du carrousel, sources réelles, comportement d'aperçu, fermeture, accessibilité, responsive). Scénario E2E `e2e/swapp-catalogue-lab.spec.cjs` actualisé mais **son exécution réelle reste nécessaire**.
+- Ne pas affirmer que le rendu navigateur ou la production Hostinger ont été vérifiés tant que les tests E2E n'ont pas été exécutés sur la nouvelle version.
