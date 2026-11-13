@@ -643,3 +643,23 @@
 @media(max-width:979px),(pointer:coarse),(prefers-reduced-motion:reduce){
  #actus .swapp-actus-featured-link > .swapp-home-motion{display:none!important;opacity:0!important;transition:none!important}
 }
+
+/* SWAPP V10: the published ACTUS cover starts directly below the global bar.
+   Do not touch article reading routes, which retain their own breathing room. */
+#actus.view.active:has(.swapp-actus-featured-mount){
+ padding-top:0!important;
+ margin-top:0!important;
+ border-top:0!important;
+}
+#actus .swapp-actus-native:has(> .swapp-actus-featured-mount){
+ padding-top:0!important;
+ margin-top:0!important;
+}
+#actus .swapp-actus-featured-mount{
+ margin-top:0!important;
+ padding-top:0!important;
+}
+@media(max-width:650px){
+ #actus.view.active:has(.swapp-actus-featured-mount){padding-top:0!important}
+ #actus .swapp-actus-native:has(> .swapp-actus-featured-mount){padding-top:0!important}
+}

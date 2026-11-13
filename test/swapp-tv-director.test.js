@@ -5,7 +5,7 @@ test('director selects oldest eligible creator, not biggest audience',()=>{
  const rows=[{id:2,user_id:'a',twitch_login:'alpha',status:'waiting',joined_at:'2026-10-21T12:00:00Z',viewers:9000},{id:1,user_id:'b',twitch_login:'bravo',status:'waiting',joined_at:'2026-10-21T11:00:00Z',viewers:1}];
  assert.equal(choice(rows).user_id,'b');
  assert.equal(choice(rows,{recentUsers:['b']}).user_id,'a');
- assert.equal(MAX_AIR_SECONDS,600);
+ assert.equal(MAX_AIR_SECONDS,300);
 });
 test('director never promotes a creator when live verification fails',async()=>{
  const log=[];

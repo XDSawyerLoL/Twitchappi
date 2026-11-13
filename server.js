@@ -1356,7 +1356,7 @@ if(SWAPP_TV_DIRECTOR_ENABLED){
   finally{ticking=false}
  };
  // Only started by deliberate Hostinger feature flags; no paid scheduler or VPS.
- const heartbeat=setInterval(tick,60000);
+ const heartbeat=setInterval(tick,15000);
  if(typeof heartbeat.unref==='function')heartbeat.unref();
 }
 

@@ -2,14 +2,22 @@
 const $=id=>document.getElementById(id);
 if(!$('swapp-tv'))return;
 const by=(tag,cls,value)=>{const node=document.createElement(tag);if(cls)node.className=cls;if(value!==undefined)node.textContent=value;return node};
-const api=async(path,options={})=>{const r=await fetch(path,{credentials:'same-origin',cache:'no-store',...options});const data=await r.json().catch(()=>({}));if(!r.ok)throw Error(data.error||'service_unavailable');return data};
+const api=async(path,options={})=>{
+ // A stalled provider must not freeze the station before the first picture.
+ const timeout=typeof AbortSignal!=='undefined'&&typeof AbortSignal.timeout==='function'&&
+  !options.signal?{signal:AbortSignal.timeout(8500)}:{};
+ const r=await fetch(path,{credentials:'same-origin',cache:'no-store',...timeout,...options});
+ const data=await r.json().catch(()=>({}));
+ if(!r.ok)throw Error(data.error||'service_unavailable');
+ return data;
+};
 const safeLogin=s=>/^[a-z0-9_]{3,25}$/.test(String(s||'').toLowerCase());
 const safeNativeLogin=s=>/^[a-z0-9_-]{2,32}$/.test(String(s||'').toLowerCase());
 const gameOf=a=>typeof a?.game==='string'?a.game.trim():String(a?.game?.name||a?.game?.title||'').trim();
 const gamesFrom=data=>[...new Set((Array.isArray(data.articles)?data.articles:[]).filter(x=>x?.slug&&x.status!=='draft').map(gameOf).filter(x=>x.length>1))].slice(0,16);
 const state={queue:null,selection:null,playing:null,playingPlatform:null,playingBroadcastId:null,discovery:[],native:[],nativeIndex:0,nativeFetchedAt:0,index:0,consent:false,autoAdvance:false,autoStartPending:true,autoSource:null,playStartedAt:0,games:[],queueMode:false,
  passage:{key:'',game:'',seenLive:false,offline:0,cancelled:false,pending:false}};
-const TV_SLOT_SECONDS=600; // 10-minute SWAPP TV slot; keep aligned with swapp-tv-director.MAX_AIR_SECONDS.
+const TV_SLOT_SECONDS=300; // Five-minute verified queue slot, shared with swapp-tv-director.MAX_AIR_SECONDS.
 function tvTime(value){
  if(value instanceof Date)return value.getTime();
  const str=String(value||'').trim().replace(' ','T');
@@ -106,8 +114,8 @@ function play(){
  frame.allow='autoplay; fullscreen';frame.allowFullscreen=true;frame.referrerPolicy='strict-origin-when-cross-origin';
  layer.append(frame,by('div','stv-player-overlay','SWAPP TV  /  '+(item.onAir?'À L’ANTENNE':'DÉCOUVERTE')));
  screen.append(layer);$('stv-screen-inner').hidden=true;state.autoStartPending=false;state.playing=item.login;state.playingPlatform=item.platform;state.playingBroadcastId=item.broadcastId||null;state.consent=true;
- // Resume subsequent 10-minute TV slots only if the user started an actual
- // on-air relay. Browser embedding is muted to respect autoplay policy.
+ // Resume subsequent five-minute TV slots after a real stream starts.
+ // Browser embedding remains muted to respect autoplay policy.
  state.autoAdvance=true;
  state.autoSource=item.platform==='swapp'?'native':item.onAir?'queue':'discovery';
  state.playStartedAt=Date.now();
@@ -273,8 +281,9 @@ function mapNativeLives(payload,rotation=Math.floor(Date.now()/600000)){
 }
 async function refreshQueue(){
  try{
-  // Native is tried first, independent from Twitch credentials and the
-  // optional MySQL TV queue. A failed native request keeps the last set.
+  // Fetch the optional queue concurrently: its latency must not postpone the
+  // first verifiable native live, and an outage must not block discovery.
+  const queueRequest=api('/api/swapp-tv/queue/status').catch(()=>null);
   const nativeData=await api('/api/swapp-tv/native-lineup').catch(()=>null);
   if(nativeData?.success===true){
    state.native=mapNativeLives(nativeData);
@@ -283,8 +292,14 @@ async function refreshQueue(){
    // Short grace for API glitches, never continue advertising stale streams.
    state.native=[];
   }
-  const data=await api('/api/swapp-tv/queue/status');
-  state.queue=data;state.queueMode=Boolean(data.enabled)||state.native.length>0;
+  if(state.native.length&&!state.selection?.login)renderScreen(state.native[0],{onAir:true});
+  const data=await queueRequest;
+  if(!data)throw Error('tv_queue_status_unavailable');
+  state.queue=data;
+  // An open enrollment queue is NOT an active TV broadcast. Without a
+  // confirmed on-air director slot, start actual Twitch discovery instead.
+  state.queueMode=state.native.length>0||
+   Boolean(data.director_enabled&&safeLogin(data.on_air?.twitch_login));
   renderQueue(data);updateSlotClock();
   if(state.native.length){
    const active=state.native.find(x=>x.login===state.selection?.login&&state.selection?.platform==='swapp'&&x.broadcast_id===(state.selection?.broadcastId||null));
@@ -295,8 +310,21 @@ async function refreshQueue(){
     if(!active&&!(state.consent&&state.playing===state.selection?.login))renderScreen(item,{onAir:true});
   }else if(data.enabled){
    const item=data.director_enabled?data.on_air:null;
-   if(!item||!safeLogin(item.twitch_login)){if(!state.consent)renderScreen(null);}
-   else if(!state.consent&&(!state.selection||state.selection.login!==String(item.twitch_login).toLowerCase()||state.selection.platform!=='twitch'||!state.selection.onAir))renderScreen(item,{onAir:true});
+   if(!item||!safeLogin(item.twitch_login)){
+    if(!state.consent)renderScreen(null);
+   }else{
+    const login=String(item.twitch_login).toLowerCase();
+    const changed=!state.selection||state.selection.login!==login||
+      state.selection.platform!=='twitch'||!state.selection.onAir;
+    if(changed){
+     // A real, newly selected director slot supersedes the old one even
+     // while an existing queue player is still running.
+     if(state.consent&&state.autoAdvance)state.autoSource='queue';
+     renderScreen(item,{onAir:true});
+    }else if(state.consent&&state.autoSource==='discovery'){
+     state.autoSource='queue'; // same Twitch creator now occupies official slot
+    }
+   }
   }else if(state.selection?.platform==='swapp'&&!state.consent){
    renderScreen(null);
   }
@@ -312,7 +340,7 @@ async function refreshQueue(){
 // Rotate discovery across games and creators without using viewer counts.
 // Input from the game-live endpoint may be ordered by popularity; that
 // provider order must not decide who appears first on SWAPP TV.
-function fairDiscovery(candidates,rotation=Math.floor(Date.now()/600000)){
+function fairDiscovery(candidates,rotation=Math.floor(Date.now()/300000)){
  const hash=value=>{
   let n=2166136261;
   for(const ch of String(value)){n=Math.imul(n^ch.charCodeAt(0),16777619)}
@@ -346,13 +374,48 @@ function fairDiscovery(candidates,rotation=Math.floor(Date.now()/600000)){
 async function discovery(){
  if(state.queueMode)return;
  const found=[],keys=new Set();
- for(const game of state.games.slice(0,5)){
-  try{const result=await api('/api/discovery/game-lives?game='+encodeURIComponent(game)+'&limit=12');
-   for(const x of Array.isArray(result.items)?result.items:[]){
-    const login=String(x.login||'').toLowerCase(),platform=String(x.platform||'').toLowerCase(),key=platform+':'+login;
-    if(platform!=='twitch'||!safeLogin(login)||keys.has(key))continue;
-    if(String(x.game_name||x.game||'').trim().toLocaleLowerCase()!==game.toLocaleLowerCase())continue;
-    keys.add(key);found.push({...x,game,platform});
+ const games=state.games.slice(0,5);
+ // Look up editorial games concurrently; sequential retries can keep the TV
+ // screen blank for 40+ seconds when one remote game endpoint is unavailable.
+ const results=await Promise.all(games.map(async game=>{
+  try{return {game,result:await api('/api/discovery/game-lives?game='+encodeURIComponent(game)+'&limit=12')}}
+  catch{return {game,result:null}}
+ }));
+ for(const {game,result} of results){
+  for(const x of Array.isArray(result?.items)?result.items:[]){
+   const login=String(x.login||'').toLowerCase(),platform=String(x.platform||'').toLowerCase(),key=platform+':'+login;
+   if(platform!=='twitch'||!safeLogin(login)||keys.has(key))continue;
+   if(String(x.game_name||x.game||'').trim().toLocaleLowerCase()!==game.toLocaleLowerCase())continue;
+   keys.add(key);found.push({...x,login,game,platform});
+  }
+ }
+ // Prefer SWAPP's already diversified, actual-live discovery pool.
+ // This brings small communities on-screen instead of always promoting
+ // Twitch's largest channels when the editorial list is empty.
+ if(!found.length){
+  try{
+   const home=await api('/api/discovery/home-lives?limit=12&lang=fr');
+   for(const x of Array.isArray(home?.items)?home.items:[]){
+    const login=String(x.user_login||x.login||'').toLowerCase();
+    const game=String(x.game_name||x.game||'').trim();
+    if(x.platform!=='twitch'||!safeLogin(login)||game.length<2||keys.has('twitch:'+login))continue;
+    keys.add('twitch:'+login);
+    found.push({login,platform:'twitch',game,
+     display_name:String(x.user_name||x.display_name||login)});
+   }
+  }catch{}
+ }
+ // Fallback to the public Twitch "streams" API only when SWAPP's home
+ // discovery is also unavailable: these are still real live broadcasters.
+ if(!found.length){
+  try{
+   const top=await api('/api/twitch/streams/top?limit=24');
+   for(const x of Array.isArray(top?.items)?top.items:Array.isArray(top?.streams)?top.streams:[]){
+    const login=String(x.user_login||x.login||'').toLowerCase();
+    const game=String(x.game_name||x.game||'').trim();
+    if(!safeLogin(login)||game.length<2||keys.has('twitch:'+login))continue;
+    keys.add('twitch:'+login);
+    found.push({login,platform:'twitch',game,display_name:String(x.user_name||x.display_name||login)});
    }
   }catch{}
  }
@@ -360,8 +423,7 @@ async function discovery(){
  const active=!state.selection?.onAir&&ordered.find(item=>item.login===state.selection?.login);
  state.discovery=ordered;
  state.index=active?ordered.indexOf(active):0;
- // Periodic discovery refresh must never tear down a stream the viewer
- // deliberately launched if its login is still in the verified result set.
+ // Never tear down a watched creator on a periodic discovery refresh.
  if(!state.queueMode){
   if(!active&&!state.consent)renderScreen(ordered[0]||null);
   rail(null);
@@ -369,7 +431,7 @@ async function discovery(){
 }
 // Fallback channel: genuine live discovery also rotates after one explicit
 // viewer action. Never promote stale input without the API discovery refresh.
-const DISCOVERY_SLOT_MS=10*60*1000;
+const DISCOVERY_SLOT_MS=5*60*1000;
 function maybeAdvanceDiscovery(now=Date.now()){
  if(state.queueMode||!state.consent||!state.autoAdvance||
     state.autoSource!=='discovery'||now-state.playStartedAt<DISCOVERY_SLOT_MS)return false;
@@ -536,8 +598,7 @@ $('stv-swapp-chat-form').addEventListener('submit',async e=>{
 void refreshSwappChat();
 setInterval(()=>{if(!$('stv-pane-swapp').hidden)void refreshSwappChat()},7000);
 setInterval(updateSlotClock,1000);
-setInterval(maybeAdvanceDiscovery,30000);
-setInterval(maybeAdvanceNative,30000);
+setInterval(()=>{updateRotationBar();maybeAdvanceDiscovery();maybeAdvanceNative()},1000);
 setInterval(()=>{void maybePassage()},25000);
 
 $('stv-watch').addEventListener('click',()=>{
@@ -553,11 +614,35 @@ $('stv-immersive').addEventListener('click',()=>{
 document.addEventListener('visibilitychange',()=>{
  if(document.visibilityState==='visible'&&state.autoStartPending&&state.selection)play();
 });
+function updateRotationBar(now=Date.now()){
+ const el=$('stv-rotation'),track=$('stv-rotation-track'),
+  fill=$('stv-rotation-fill'),clock=$('stv-rotation-clock'),label=$('stv-rotation-label');
+ if(!el||!track||!fill||!clock||!label)return;
+ const active=state.consent&&state.selection&&state.playing===state.selection.login;
+ el.hidden=!active;
+ if(!active)return;
+ const serverSlot=state.autoSource==='queue'&&state.queue?.director_enabled;
+ const official=serverSlot?tvTime(state.queue?.on_air?.started_at):NaN;
+ const started=Number.isFinite(official)&&official>0&&official<=now+5000?official:state.playStartedAt;
+ const elapsed=Math.max(0,now-started);
+ const remaining=Math.max(0,Math.ceil((DISCOVERY_SLOT_MS-elapsed)/1000));
+ const elapsedSeconds=Math.min(TV_SLOT_SECONDS,Math.floor(elapsed/1000));
+ const alternatives=state.autoSource==='native'?state.native.length>1:
+  state.autoSource==='discovery'?state.discovery.length>1:
+   Boolean(state.queue?.waiting?.length);
+ label.textContent=remaining===0?'RELAIS EN COURS':
+  alternatives?'PROCHAIN STREAMER DANS':'PROCHAINE VÉRIFICATION DANS';
+ clock.textContent=String(Math.floor(remaining/60)).padStart(2,'0')+':'+String(remaining%60).padStart(2,'0');
+ track.setAttribute('aria-valuenow',String(elapsedSeconds));
+ track.setAttribute('aria-valuetext',remaining===0?'Relais en cours':'Prochain contrôle dans '+remaining+' secondes');
+ fill.style.width=(100*elapsedSeconds/TV_SLOT_SECONDS).toFixed(1)+'%';
+}
 async function init(){
  // Loading ACTUS must never postpone the first native or scheduled TV signal.
  const editorial=api('/api/actus').catch(()=>({articles:[]}));
  try{
   await refreshQueue();
+  updateRotationBar();
   const data=await editorial;
   state.games=gamesFrom(data);
   const select=$('stv-game');select.replaceChildren();

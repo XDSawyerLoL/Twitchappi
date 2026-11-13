@@ -29,6 +29,14 @@ function page(kind){
       <div class="stv-screen-bottom"><span id="stv-screen-game">GAME UNIVERSE</span><span id="stv-screen-clock">SWAPP / LIVE DISCOVERY</span></div>
      </div>
     </div>
+    <div class="stv-rotation" id="stv-rotation" hidden aria-label="Rotation SWAPP TV toutes les cinq minutes">
+     <div class="stv-rotation-meta"><span id="stv-rotation-label">PROCHAIN DIRECT DANS</span>
+      <time id="stv-rotation-clock" aria-live="off">05:00</time></div>
+     <div id="stv-rotation-track" class="stv-rotation-track" role="progressbar"
+      aria-label="Progression du passage SWAPP TV" aria-valuemin="0" aria-valuemax="300" aria-valuenow="0">
+      <span id="stv-rotation-fill"></span>
+     </div>
+    </div>
     <div class="stv-nowbar"><div><span class="stv-label">MAINTENANT</span><strong id="stv-now-name">Antenne en préparation</strong><span id="stv-now-game">En attente de programmation</span></div><div class="stv-now-actions"><button id="stv-watch" type="button" aria-pressed="false" disabled>▶ REGARDER</button><button id="stv-dock-toggle" type="button" aria-controls="stv-dock" aria-expanded="false">◧ TCHATS / FILE</button><button id="stv-immersive" type="button" aria-pressed="false">⛶ IMMERSION</button><a class="stv-portail-entry" href="/portail">✦ PORTAIL CRÉATEURS</a></div></div>
    </div>
    <aside class="stv-rail stv-dock" id="stv-dock" aria-label="Tchats et file SWAPP TV">
@@ -87,8 +95,8 @@ function page(kind){
    ${calendar.replace(/^<main/,'<section').replace(/<\/main>$/,'</section>')}
   </dialog>
  </main>`:calendar;
- return layout({title:tv?'SWAPP TV — La chaîne du Game Universe':'Programme SWAPP TV',description:tv?'La chaîne gaming collective, découverte équitable et directs vérifiés':'Agenda des rendez-vous Spotlight SWAPP',content,active:tv?'tv':'agenda',extraCss:PROGRAM_CSS,scripts:'<link rel="stylesheet" href="/assets/swapp-program.css?v=20261105-collective-v1">'+
-  (tv?'<script defer src="/assets/swapp-tv-broadcast.js?v=20261113-arrival-autoplay-v2"></script>':'')+
+ return layout({title:tv?'SWAPP TV — La chaîne du Game Universe':'Programme SWAPP TV',description:tv?'La chaîne gaming collective, découverte équitable et directs vérifiés':'Agenda des rendez-vous Spotlight SWAPP',content,active:tv?'tv':'agenda',extraCss:PROGRAM_CSS,scripts:'<link rel="stylesheet" href="/assets/swapp-program.css?v=20261113-5min-rotation-v10">'+
+  (tv?'<script defer src="/assets/swapp-tv-broadcast.js?v=20261113-5min-rotation-v10"></script>':'')+
   '<script defer src="/assets/swapp-calendar.js?v=20261021-calendar-health-v2"></script>'});
 }
 module.exports={page};

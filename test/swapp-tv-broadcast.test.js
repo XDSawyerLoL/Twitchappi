@@ -164,6 +164,23 @@ test('automatic discovery refresh does not discard an already watched creator',a
  assert.equal(railCount,2);
 });
 
+test('five-minute timer is visible and advances only real streams',()=>{
+ const html=page('tv'),code=read('assets/swapp-tv-broadcast.js');
+ const css=read('assets/swapp-program.css');
+ assert.match(html,/id="stv-rotation"[^>]*hidden/);
+ assert.match(html,/id="stv-rotation-clock"[^>]*>05:00<\/time>/);
+ assert.match(html,/id="stv-rotation-track"[^>]*role="progressbar"/);
+ assert.match(html,/aria-valuemax="300"/);
+ assert.match(css,/\.stv \.stv-rotation-track>span/);
+ assert.match(code,/const TV_SLOT_SECONDS=300/);
+ assert.match(code,/const DISCOVERY_SLOT_MS=5\*60\*1000/);
+ assert.match(code,/state\.queueMode=state\.native\.length>0\|\|/);
+ assert.match(code,/data\.director_enabled&&safeLogin\(data\.on_air\?\.twitch_login\)/);
+ assert.match(code,/const queueRequest=api\('\/api\/swapp-tv\/queue\/status'\)/);
+ assert.match(code,/await Promise\.all\(games\.map\(async game=>/);
+ assert.match(code,/api\('\/api\/twitch\/streams\/top\?limit=24'\)/);
+ assert.match(code,/setInterval\(\(\)=>\{updateRotationBar\(\);maybeAdvanceDiscovery\(\);maybeAdvanceNative\(\)\},1000\)/);
+});
 test('conductor clock measures the actual verified slot, not queue position estimates',()=>{
  const code=read('assets/swapp-tv-broadcast.js');
  const start=code.indexOf('const TV_SLOT_SECONDS=');
@@ -179,7 +196,7 @@ test('conductor clock measures the actual verified slot, not queue position esti
  assert.equal(make.tvTime('2026-10-25 18:00:00'),Date.parse('2026-10-25T18:00:00Z'));
  assert.ok(Number.isNaN(make.tvTime('not a time')));
  make.updateSlotClock(Date.parse('2026-10-25T18:02:31Z'));
- assert.equal(nodes['stv-slot-clock'].textContent,'PROCHAIN RELAIS · 07:29');
+ assert.equal(nodes['stv-slot-clock'].textContent,'PROCHAIN RELAIS · 02:29');
  assert.equal(nodes['stv-slot-clock'].hidden,false);
  make.updateSlotClock(Date.parse('2026-10-25T18:10:01Z'));
  assert.equal(nodes['stv-slot-clock'].textContent,'RELAIS EN PRÉPARATION');
@@ -201,8 +218,8 @@ test('verified fallback channel rotates after opt-in but not after stop',()=>{
  let played=[],rails=0;
  const advance=new Function('state','renderScreen','rail',source.slice(start,end)+
   'return maybeAdvanceDiscovery;')(state,(item)=>{played.push(item.login);state.selection={login:item.login};state.playStartedAt=600000+1000},()=>rails++);
- assert.equal(advance(1000+500000),false,'no early handoff');
- assert.equal(advance(1000+601000),true);
+ assert.equal(advance(1000+250000),false,'no early handoff');
+ assert.equal(advance(1000+301000),true);
  assert.deepEqual(played,['second_live']);
  assert.equal(rails,1);
  state.consent=false;state.autoAdvance=false;
@@ -284,10 +301,10 @@ test('TV native rotation requires opt-in and ignores Twitch queue',()=>{
  const changed=[];
  const advance=new Function('state','DISCOVERY_SLOT_MS','renderScreen','rail',
   js.slice(start,end)+'return maybeAdvanceNative;')(
-  state,600000,(item)=>{changed.push(item.login);state.selection=item;state.playStartedAt=900000},()=>{});
+  state,300000,(item)=>{changed.push(item.login);state.selection=item;state.playStartedAt=900000},()=>{});
  assert.equal(advance(700000),false);
  state.autoAdvance=true;state.consent=true;
- assert.equal(advance(500000),false,'no early rotation');
+ assert.equal(advance(250000),false,'no early rotation');
  assert.equal(advance(900000),true);
  assert.deepEqual(changed,['creator_two']);
  state.autoSource='queue';

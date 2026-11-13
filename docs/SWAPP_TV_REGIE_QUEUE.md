@@ -26,3 +26,13 @@ Contraintes : Hostinger Node + MySQL existants, pas de VPS, pas de dépenses ré
 - Un clic sur « Arrêter » coupe la lecture et annule tout redémarrage automatique de cette visite ; « Regarder » permet de relancer volontairement.
 - La recherche ACTUS n'empêche plus le premier direct natif/de régie de démarrer. Les scripts et tests sont versionnés `20261113-arrival-autoplay-v2`.
 - La fusion GitHub ne déploie pas Hostinger. Vérifier le rendu réel et le son sur Chromium, Firefox, Safari/iOS après installation.
+
+
+## Correctif du 13 novembre 2026 — rotation de cinq minutes
+
+- **Durée effective** : 300 secondes pour les passages officiels de la régie MySQL (`modules/swapp-tv-director.js`) et pour la découverte/rotation des créateurs natifs SWAPP ou Twitch (`assets/swapp-tv-broadcast.js`). Le contrôle serveur de la régie se répète toutes les 15 secondes au lieu de 60 (uniquement si les flags de régie sont activés).
+- **Barre de rotation** : directement sous la vidéo, un indicateur de progression et un compte à rebours `05:00` → `00:00`, accessibles et mis à jour chaque seconde. Pour la régie, la source temporelle est `on_air.started_at` (horodatage MySQL) ; pour la découverte, le début de la lecture locale. Un arrêt manuel masque la barre et empêche toute relance automatique.
+- **Bascule** : à la fin des cinq minutes, SWAPP TV sélectionne un autre direct SWAPP HLS réellement vérifié ou un direct Twitch présent dans la découverte. Les créateurs programmés changent lorsque la régie a confirmé leur nouveau passage (avec un délai potentiel du polling serveur). S'il n'existe pas d'autre direct réel, SWAPP ne simule pas un streamer : il attend le prochain contrôle.
+- **Lecture au chargement** : les appels `/api/swapp-tv/native-lineup` et `/api/swapp-tv/queue/status` sont parallélisés. Un direct natif vérifié peut démarrer avant la réponse d'une file ralentie. Une simple file d'inscriptions ouverte **sans programme en cours** ne bloque plus le démarrage de la découverte. Les appels réseau sont limités à 8,5 secondes et les jeux sont interrogés en parallèle. En cas d'absence de lives éditoriaux, SWAPP essaye les vrais directs communautaires puis les directs de l'API Twitch publique.
+- **Actus** : la bande d'espacement entre le menu global et la grande affiche de `/actus` a été supprimée avec une règle limitée au magazine. Les pages individuelles de lecture conservent leurs marges.
+- **Mise en production** : déployer l'archive Hostinger complète (dont les CSS, le client TV, le directeur et `index.html`), redémarrer l'application Node et vérifier en navigateur la route `/tv`, la rotation après cinq minutes et la bannière `/actus`. La fusion GitHub ne signifie pas que la production a été mise à jour.
