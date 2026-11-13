@@ -43,7 +43,7 @@ test('Agenda legacy route safely redirects under TV and shared nav assets bust b
  assert.match(server,/app\.get\('\/tv\/programme'/);
  assert.match(server,/res\.redirect\(308,'\/tv\/programme'/);
  for(const html of [shell,home]){
-  assert.match(html,/swapp-unified-nav\.css\?v=20261113-swaper-decouvrir-v1/);
+  assert.match(html,/swapp-unified-nav\.css\?v=20261113-nav-uniform-v1/);
   assert.match(html,/swapp-hub-nav\.js\?v=20261113-swaper-decouvrir-v1/);
   assert.match(html,/swapp-navigation\.js\?v=20261113-swaper-decouvrir-v1/);
  }
