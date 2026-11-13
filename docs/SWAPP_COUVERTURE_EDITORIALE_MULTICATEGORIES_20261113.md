@@ -61,3 +61,14 @@ Pour chaque catégorie, produire un état `new_verified`, `already_covered`, `in
 - Dernier contrôle public des API `/api/actus`, `/api/actus/storage-status`, `/api/actus/release-status`, `/api/release` : **HTTP 403 via lecture automatisée**. Ces réponses empêchent de certifier l'adoption MySQL, le SHA déployé et l'affichage. Ne pas annoncer la publication publique tant que ces contrôles n'ont pas réussi.
 
 Le statut GitHub (lot préparé et/ou fusionné) doit toujours être distingué du statut *publié et visible sur swapp.tv*.
+
+## Correction des liens et des visuels — 13 novembre 2026
+- Dans `assets/swapp-actus-app.js`, le titre et la vignette des **brèves sourcées** ne redirigent plus le lecteur vers l'éditeur externe : si `articleSlug` désigne un article natif, ils mènent à `/actus/<slug>` ; sinon, ils ouvrent le détail de la brève **dans la même page SWAPP**.
+- La référence primaire externe reste disponible à la fin du détail, sous l'intitulé explicite « Référence externe » ; elle n'est pas une destination implicite pour une carte.
+- Dans `data/swapp-editorial-signals.json`, les brèves Dawn of War IV et Gemini 4 Hydrogen pointent vers les deux nouveaux articles intégraux SWAPP.
+- Les quatre articles du lot `data/swapp-veille-native-20261113-multicategories-sourcees.json` ont une **illustration distante officielle avec crédit** : couverture de partage PlayStation.Blog, miniature vidéo Deep Silver sur YouTube, visuel Open Graph Google et visuel Open Graph NVIDIA.
+- Les deux bande-annonces de jeux sont identifiées par leurs véritables références officielles : KOJIMA PRODUCTIONS `HdzIwQhYABQ` et Deep Silver `FIr-v1G-4nQ`. Aucune image ni vidéo n'est copiée ou hébergée par SWAPP.
+- Tests de navigation des brèves et validation du jeu de quatre médias dans `test/swapp-actus-visuals-internal-links-20261113.test.js`. Vérification dynamique isolée effectuée pour les modes **article natif** et **brève déroulante** ; suite Node complète à exécuter dans l'environnement du dépôt.
+- **Aucune preuve de déploiement Hostinger :** les requêtes automatisées vers `/api/actus` et les quatre pages publiques renvoient HTTP 403. Ne pas confondre fusion GitHub et publication visible.
+
+Cette correction n'ouvre pas de nouvelle rubrique ; elle réutilise le magazine `/actus` et ses cartes existantes.

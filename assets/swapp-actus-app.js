@@ -174,10 +174,12 @@ const shortDate=raw=>{
 const renderFlashCard=entry=>{
  const article=el('article','swapp-flash-item');
  const top=el('div','swapp-flash-top');
+ const articleSlug=slugOk(entry.articleSlug)?entry.articleSlug:'';
+ const detailId='swapp-flash-detail-'+String(entry.id||'detail').replace(/[^a-z0-9-]/gi,'').slice(0,72);
+ const nativeHref=articleSlug?'/actus/'+encodeURIComponent(articleSlug):'#'+detailId;
  const imageLink=el('a','swapp-flash-thumb');
- imageLink.href=safeSource(entry.sourceUrl)||'/actus';
- imageLink.target='_blank';imageLink.rel='noopener noreferrer';
- imageLink.setAttribute('aria-label','Ouvrir la source officielle de '+entry.title);
+ imageLink.href=nativeHref;
+ imageLink.setAttribute('aria-label',articleSlug?'Lire l’article complet sur SWAPP : '+entry.title:'Lire la brève sur SWAPP : '+entry.title);
  const imageSource=safeSource(entry.imageUrl);
  if(imageSource){
   const img=el('img');
@@ -197,18 +199,24 @@ const renderFlashCard=entry=>{
  published.dateTime=entry.sourceDate;
  meta.append(topic,published);
  const titleLink=el('a','swapp-flash-title',entry.title);
- titleLink.href=safeSource(entry.sourceUrl)||'/actus';
- titleLink.target='_blank';titleLink.rel='noopener noreferrer';
+ titleLink.href=nativeHref;
+ titleLink.setAttribute('aria-label',articleSlug?'Lire l’article complet sur SWAPP':'Lire cette brève sur SWAPP');
  copy.append(meta,titleLink);
  top.append(imageLink,copy);
  const details=el('details','swapp-flash-details');
+ details.id=detailId;
+ if(!articleSlug){
+  const openInline=e=>{e.preventDefault();details.open=true;details.scrollIntoView({block:'nearest',behavior:'smooth'});};
+  imageLink.addEventListener('click',openInline);
+  titleLink.addEventListener('click',openInline);
+ }
  const summary=el('summary','','Pourquoi c’est important');
  const fact=el('p','',entry.fact);
  const impact=el('p','');
  impact.append(el('strong','','Impact : '),document.createTextNode(entry.impact));
  const caveat=el('p','');
  caveat.append(el('strong','','Limite : '),document.createTextNode(entry.caveat));
- const source=el('a','swapp-flash-source-link',entry.sourceName+' · source officielle ↗');
+ const source=el('a','swapp-flash-source-link','Référence externe · '+entry.sourceName);
  source.href=safeSource(entry.sourceUrl)||'/actus';
  source.target='_blank';source.rel='noopener noreferrer';
  details.append(summary,fact,impact,caveat,source);
