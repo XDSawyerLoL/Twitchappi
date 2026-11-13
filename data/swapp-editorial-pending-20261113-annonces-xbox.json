@@ -1,0 +1,130 @@
+{
+  "kind": "swapp-editorial-pending",
+  "schema": 1,
+  "source": "Veille SWAPP — sources officielles consultées le 13 novembre 2026",
+  "createdAt": "2026-11-13T05:00:56Z",
+  "publicationPolicy": "Brouillons uniquement, hors manifeste. Publier seulement après validation des médias, déduplication et adoption native MySQL ; respecter les retraits du Studio.",
+  "articles": [
+    {
+      "slug": "doom-dark-ages-revelations-slaughter-16-novembre",
+      "title": "DOOM: The Dark Ages — Slaughter arrive le 16 novembre, avec des gains à risquer",
+      "summary": "Slaughter arrive le 16 novembre dans DOOM: The Dark Ages. Accès via Revelations, progression et risques : ce que Bethesda confirme.",
+      "body": "Bethesda a fixé au **16 novembre 2026** l’arrivée de Slaughter Mode dans **DOOM: The Dark Ages | Revelations**. L’annonce du Slayers Club, datée du 12 novembre, donne un rendez-vous précis à ce défi de survie. L’accès dépend toutefois du contenu possédé : le jeu de base seul ne suffit pas.\n\n## Un rendez-vous pour les propriétaires de Revelations\n\nLe mode sera ajouté sans supplément pour les détenteurs du DLC Revelations, de la Premium Edition ou du Premium Upgrade. Bethesda reprend cette condition dans son point consacré aux studios id Software et MachineGames. Il faut donc comprendre « sans supplément » à l’intérieur de ces offres, et non comme une mise à jour accessible à tous les propriétaires de DOOM: The Dark Ages.\n\nLe site officiel référence le jeu sur PC, Xbox Series X|S et PS5. L’annonce de Slaughter ne fournit pas d’heure de déploiement pour la France ni de calendrier détaillé par boutique. La date du 16 novembre ne doit donc pas être transformée en promesse de disponibilité à minuit.\n\n## Des vagues, puis une décision qui engage les gains\n\nSlaughter combine des rencontres, des boss et des arènes aléatoires, avec une difficulté croissante. Les manches rapportent des Skulls. Aux points de passage, le joueur peut sécuriser cette réserve ou choisir de la risquer pour augmenter son multiplicateur. Mourir après avoir pris ce risque fait perdre les Skulls non protégés.\n\nLa progression ne se réduit pas au score d’une seule tentative : les points de passage franchis ouvrent aussi des départs plus avancés pour les parties suivantes. Les récompenses comprennent des éléments cosmétiques et des morceaux de la bande originale IDKFA. Certaines apparences du Slayer sont réservées à Slaughter ; il ne faut pas supposer que chaque récompense fonctionne dans tous les modes.\n\n## Analyse SWAPP : savoir s’arrêter devient une compétence\n\nSur le papier, ce système peut créer une tension différente de celle d’un simple défi chronométré. Une partie réussie ne se définit plus uniquement par la distance parcourue : savoir conserver un résultat acquis devient une décision à part entière. Un joueur qui cherche une récompense précise n’aura pas forcément intérêt à prendre les mêmes risques qu’un joueur décidé à améliorer son record.\n\nLa variété annoncée des rencontres pourrait également favoriser l’adaptation plutôt que la mémorisation d’une séquence unique. C’est une intention de conception, pas encore une conclusion sur l’équilibrage réel. Il faudra jouer au mode pour mesurer si les combinaisons restent lisibles, si la progression est régulière et si les récompenses justifient plusieurs tentatives.\n\nCette distinction compte aussi pour la durée des sessions. Pouvoir repartir plus loin semble utile à ceux qui veulent travailler les affrontements difficiles. Cela ne permet cependant pas de déduire la durée moyenne d’une partie, ni de promettre une progression rapide. Ces points restent à observer après le lancement.\n\n## Avant le 16 novembre : vérifier son édition\n\nLe premier contrôle utile concerne la licence de Revelations sur la plateforme utilisée. Il n’est pas nécessaire de racheter une édition supérieure lorsqu’on possède déjà le contenu qui donne accès au mode. À l’inverse, une licence du DLC pour le Microsoft Store ne doit pas être présentée comme une licence Steam ou PS5.\n\nLa vidéo officielle associée à cette annonce est une bande-annonce de **Slaughter Mode**, publiée par Bethesda Softworks. Elle accompagne une présentation de l’éditeur ; cet article ne constitue pas un test du mode.\n\n## Pour aller plus loin\n\nLe lien partenaire ci-dessous correspond précisément au DLC **Revelations pour PC et Xbox Series X|S via le Microsoft Store**. La fiche consultée indique une compatibilité mondiale et exige le jeu de base. Aucun prix ni niveau de stock n’est garanti ici.\n\n**Lien affilié · commission possible.** SWAPP peut recevoir une commission si un achat est effectué par ce lien. Les liens rémunérés n’influencent pas notre indépendance éditoriale.",
+      "game": "DOOM: The Dark Ages",
+      "games": [
+        "DOOM: The Dark Ages"
+      ],
+      "tags": [
+        "GAMING",
+        "DOOM: The Dark Ages",
+        "Revelations",
+        "mise à jour",
+        "PC",
+        "Xbox Series X|S",
+        "PS5"
+      ],
+      "seo": {
+        "title": "DOOM: The Dark Ages — Slaughter arrive le 16 novembre, avec des gains à risquer",
+        "description": "Slaughter arrive le 16 novembre dans DOOM: The Dark Ages. Accès via Revelations, progression et risques : ce que Bethesda confirme."
+      },
+      "author": "Rédaction SWAPP",
+      "category": "Actualités JV",
+      "contentType": "article",
+      "status": "draft",
+      "publishedAt": null,
+      "trailerUrl": "https://www.youtube.com/watch?v=RwtRHiZ8zkE",
+      "thumbnail": null,
+      "image": null,
+      "commercialLinks": [
+        {
+          "title": "DOOM: The Dark Ages | Revelations — PC et Xbox Series X|S (Microsoft Store), monde",
+          "merchant": "Instant Gaming",
+          "kind": "affiliate",
+          "url": "https://www.instant-gaming.com/fr/23103-acheter-doom-the-dark-ages-revelations-xbox-series-x-s-pc-microsoft-store/?igr=SANSAHD"
+        }
+      ],
+      "sources": [
+        {
+          "label": "Bethesda / Slayers Club — date et fonctionnement de Slaughter, 12 novembre 2026",
+          "url": "https://slayersclub.bethesda.net/en-US/news/doom-the-dark-ages-revelations-slaughter-mode-release-date"
+        },
+        {
+          "label": "Bethesda — point id Software et MachineGames, 13 novembre 2026",
+          "url": "https://bethesda.net/en-US/news/xbox-25-id-software-machinegames-news"
+        },
+        {
+          "label": "Bethesda — site officiel de DOOM: The Dark Ages et plateformes",
+          "url": "https://doom.bethesda.net/en-US/the-dark-ages"
+        },
+        {
+          "label": "Bethesda Softworks — bande-annonce officielle Slaughter Mode",
+          "url": "https://www.youtube.com/watch?v=RwtRHiZ8zkE"
+        }
+      ],
+      "qualityGate": {
+        "officialVideoIdentified": true,
+        "officialEmbeddedPlayerObserved": true,
+        "videoEmbeddabilityVerified": false,
+        "videoPlaybackVerified": false,
+        "thumbnailVisualChecked": true,
+        "officialLeadImageVisualChecked": true,
+        "productionVerified": false,
+        "studioDedupVerified": false,
+        "repositoryDedupVerified": true,
+        "readyForPublish": false
+      },
+      "notes": "Vérification réelle 2026-11-13T05:00:56Z. Le lecteur YouTube intégré chez Bethesda identifie Bethesda Softworks et le bon titre, mais reste à 0:00/3:09 avec un indicateur de chargement après activation ; lecture effective non confirmée. Le visuel lead Slaughter a été consulté visuellement ; la miniature YouTube renvoyée par cardImageSources (https://i.ytimg.com/vi/RwtRHiZ8zkE/hqdefault.jpg) a été téléchargée avec HTTP 200 et contrôlée visuellement le 13 novembre à 05:02 UTC : logo du bon jeu, Revelations et Slaughter Mode Official Trailer. Le lecteur officiel reste à 0:00. Fiche Instant Gaming exacte relue : Microsoft Store PC/Xbox Series X|S, DLC nécessitant le jeu de base, compatibilité mondiale affichée. Aucun prix ni stock repris. Schéma commercialLinks et rendu natif inspectés dans assets/swapp-article-extras.js. SWAPP renvoie HTTP 403 Bot Verification ; état MySQL, retraits Studio, rendu et RSS non vérifiables. Finalisation du brouillon dans GitHub après interruption du précédent contrôle ; aucune publication attestée."
+    },
+    {
+      "slug": "wolfenstein-3-machinegames-production-casting-confirme",
+      "title": "Wolfenstein 3 confirmé chez MachineGames, avec le retour de BJ et Grace",
+      "summary": "Bethesda confirme Wolfenstein 3 et le retour de Brian Bloom et Debra Wilson. Date, plateformes et gameplay restent à préciser.",
+      "body": "**Wolfenstein 3 est en production chez MachineGames.** Bethesda le confirme dans sa communication consacrée aux 25 ans de Xbox, publiée le 13 novembre 2026, après le récapitulatif Xbox Wire du 12 novembre. L’annonce apporte une confirmation du projet et de deux retours au casting. Elle ne livre pas encore de calendrier commercial.\n\n## MachineGames et deux personnages de retour\n\nBethesda rapporte que Brian Bloom et Debra Wilson reprendront respectivement les rôles de BJ Blazkowicz et Grace Walker. Le studio indique travailler sur le prochain épisode et prévoit d’en montrer davantage lorsqu’il sera prêt.\n\nLe billet comprend des photographies liées à la production, dont un aperçu de script et une image des interprètes en tenue de capture de mouvements. Ces documents montrent la préparation du projet ; ils ne constituent pas des captures du jeu. Leur présence ne permet pas de déduire le rendu final, l’état d’avancement précis des niveaux ou une fenêtre de lancement.\n\n## Date, machines et prix : des informations encore absentes\n\nAucune date de sortie, liste de plateformes, édition commerciale ou grille tarifaire n’est annoncée dans les sources consultées. L’inscription du projet dans une célébration Xbox ne suffit pas, à elle seule, à établir une exclusivité ou à promettre sa présence dans une formule d’abonnement.\n\nLe récit détaillé, la structure de la campagne et les systèmes de jeu restent également à découvrir. Le retour de deux interprètes confirme une continuité de personnages ; il ne révèle ni leur place dans l’intrigue ni les événements qu’ils traverseront. Il serait prématuré d’en tirer un scénario.\n\n## Analyse SWAPP : une confirmation importante, encore peu d’éléments pour juger le jeu\n\nPour les joueurs qui suivent la série, cette prise de parole donne un point d’appui officiel aux attentes autour d’une suite. Elle permet surtout de distinguer l’existence du projet des spéculations qui peuvent entourer son contenu. Ce changement de statut a une valeur éditoriale réelle, même en l’absence d’une démonstration jouable.\n\nIl ne permet toutefois pas d’évaluer les combats, le rythme ou les choix de mise en scène. La prochaine étape utile sera une présentation montrant ce que le joueur fait concrètement, puis des informations de disponibilité suffisamment précises pour préparer un achat. Une photographie de production ne répond pas à ces questions.\n\n## Ce qu’il faut retenir pour la suite\n\nL’annonce à suivre est donc celle d’un développement confirmé chez MachineGames, avec Brian Bloom et Debra Wilson. Toute date, plateforme ou offre commerciale ajoutée ultérieurement devra être rattachée à une nouvelle communication officielle. À ce stade, nous ne proposons ni précommande ni lien commercial de substitution vers un autre Wolfenstein.",
+      "game": "Wolfenstein 3",
+      "games": [
+        "Wolfenstein 3"
+      ],
+      "tags": [
+        "GAMING",
+        "Wolfenstein 3",
+        "MachineGames",
+        "Bethesda",
+        "annonce"
+      ],
+      "seo": {
+        "title": "Wolfenstein 3 confirmé chez MachineGames, avec le retour de BJ et Grace",
+        "description": "Bethesda confirme Wolfenstein 3 et le retour de Brian Bloom et Debra Wilson. Date, plateformes et gameplay restent à préciser."
+      },
+      "author": "Rédaction SWAPP",
+      "category": "Actualités JV",
+      "contentType": "article",
+      "status": "draft",
+      "publishedAt": null,
+      "trailerUrl": null,
+      "thumbnail": null,
+      "image": null,
+      "commercialLinks": [],
+      "sources": [
+        {
+          "label": "Bethesda — confirmation du projet et casting, 13 novembre 2026",
+          "url": "https://bethesda.net/en-US/news/xbox-25-id-software-machinegames-news"
+        },
+        {
+          "label": "Xbox Wire — récapitulatif officiel du 25e anniversaire, 12 novembre 2026",
+          "url": "https://news.xbox.com/en-us/2026/11/12/xbox-25th-anniversary-news-recap/"
+        }
+      ],
+      "qualityGate": {
+        "officialVideoIdentified": false,
+        "videoEmbeddabilityVerified": false,
+        "thumbnailVisualChecked": false,
+        "productionVerified": false,
+        "studioDedupVerified": false,
+        "repositoryDedupVerified": true,
+        "readyForPublish": false
+      },
+      "notes": "Vérification réelle 2026-11-13T05:00:56Z. Vidéo officielle pertinente du jeu non trouvée dans les annonces consultées. Le lead du billet est générique Xbox 25 ; ne pas l'utiliser comme vignette de Wolfenstein 3 ni recycler une image d'un épisode précédent. Les photographies de production ne sont pas du gameplay. Fiche Instant Gaming https://www.instant-gaming.com/fr/21931-acheter-wolfenstein-3-pc-steam/ consultée : page d’attente affichant Steam et 2027, non confirmés par Bethesda. Fiche non validée pour affiliation ; aucune précommande ni lien de substitution proposé. Contrôle SWAPP bloqué par HTTP 403. Première communication retenue : Xbox Wire du 12 novembre, confirmation Bethesda datée du 13 novembre ; ne pas confondre ces dates avec une sortie."
+    }
+  ],
+  "updatedAt": "2026-11-13T10:52:52.681079+00:00"
+}
