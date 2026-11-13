@@ -1767,39 +1767,23 @@ app.get('/favicon.ico', (_req,res)=>sendPublicFile(res, 'favicon.ico', 'image/x-
 
 // Page principale (UI)
 app.get('/', (req, res) => {
-  // The catalogue is now SWAPP's public homepage. Keep the former SPA home
-  // reachable at /?classic=1 for immediate rollback and layout comparisons.
-  if(String(req.query?.classic||'')!=='1'){
-    try{
-      const page=require('./modules/swapp-catalogue-lab').page({publicHome:true});
-      res.set('Cache-Control','public, max-age=45');
-      res.set('X-Content-Type-Options','nosniff');
-      return res.type('html').send(page);
-    }catch(error){
-      // Deployment can briefly serve the updated server before its new assets.
-      // A homepage failure must never take down SWAPP.
-      console.warn('[SWAPP HOME] Catalogue indisponible, accueil classique conservé :',String(error?.message||error).slice(0,180));
-    }
-  }else{
+  // The immersive catalogue is SWAPP's only public homepage.
+  // Old bookmarks must not reintroduce a competing historical design.
+  if(String(req.query?.classic||'')==='1'){
     res.set('Cache-Control','no-store');
-    res.set('X-Robots-Tag','noindex, nofollow');
+    return res.redirect(308,'/');
   }
-  // Serve only HTML UI files (prevents accidentally serving JS source if UI_FILE is mis-set on Render)
-  const rawCandidates = [
-    process.env.UI_FILE,
-    'index.html',
-    'NicheOptimizer.html',
-    'NicheOptimizer_v56.html'
-  ].filter(Boolean);
-
-  const candidates = rawCandidates
-    .map(String)
-    .map(f => f.trim())
-    .filter(f => /\.html?$/i.test(f));
-
-  const found = candidates.find(f => fs.existsSync(path.join(__dirname, f)));
-  if (!found) return res.status(500).send('UI introuvable sur le serveur.');
-  return sendSwappUi(res);
+  try{
+    const page=require('./modules/swapp-catalogue-lab').page({publicHome:true});
+    res.set('Cache-Control','public, max-age=45');
+    res.set('X-Content-Type-Options','nosniff');
+    return res.type('html').send(page);
+  }catch(error){
+    // A partial Hostinger upload must be fixed, never disguised as the old home.
+    console.warn('[SWAPP HOME] Catalogue indisponible :',String(error?.message||error).slice(0,180));
+    res.set('Cache-Control','no-store');
+    return res.status(503).type('text/plain').send('Accueil SWAPP temporairement indisponible.');
+  }
 });
 
 // Pricing page (credits + premium)

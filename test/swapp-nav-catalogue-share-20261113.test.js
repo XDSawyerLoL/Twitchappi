@@ -38,19 +38,21 @@ function harness(){
 }
 const article={slug:'article-test-partage',title:'Un article SWAPP',summary:'Une analyse complète',game:'Fortnite',publishedAt:'2026-11-13T10:00:00Z'};
 
-test('SWAPER and DÉCOUVRIR are correctly labelled, with one uniform navigation',()=>{
+test('Découvrir is primary and Swapper is only inside SWAPP TV',()=>{
  const items=nav.items;
- assert.equal(items.find(i=>i.href==='/decouvrir').label,'SWAPER');
- assert.equal(items.find(i=>i.href==='/categories').label,'DÉCOUVRIR');
+ assert.equal(items.find(i=>i.href==='/categories').label,'Découvrir');
+ assert.equal(items.some(i=>i.href==='/decouvrir'),false);
  for(const page of [nav.desktopNavigation('discover'),nav.mobileNavigation('categories')]){
-  assert.match(page,/>SWAPER<\/a>/);
-  assert.match(page,/>DÉCOUVRIR<\/a>/);
-  assert.doesNotMatch(page,/>DIRECT<\/a>|>Jeux &amp; catégories<\/a>|swapp-news-more/);
+  assert.match(page,/>Swapper<\/a>/);
+  assert.match(page,/>Découvrir<\/a>/);
+  assert.doesNotMatch(page,/>SWAPER<\/a>|>DIRECT<\/a>|>Jeux &amp; catégories<\/a>|swapp-news-more/);
  }
+ const desktop=nav.desktopNavigation('discover');
+ assert.ok(desktop.indexOf('href="/categories"')<desktop.indexOf('href="/actus"'));
+ assert.ok(desktop.indexOf('href="/decouvrir"')>desktop.indexOf('class="swapp-tv-navigation"'));
  const css=read('assets/swapp-unified-nav.css');
- assert.match(css,/#nav\.mainNav \.navGroup > a/);
- assert.match(css,/#mobileNav\.mobileNav > a/);
- assert.match(css,/swapp-tv-nav-cta:before\{display:none!important\}/);
+ assert.match(css,/#nav\.mainNav \.swapp-tv-submenu/);
+ assert.match(css,/\.swapp-tv-submenu:not\(\[open\]\)/);
 });
 test('catalogue has only the requested title while keeping size controls',()=>{
  const source=read('index_script.js');
@@ -91,7 +93,7 @@ test('versioned SPA assets expose new navigation, catalogue and sharing without 
  const home=read('index.html'),shell=read('modules/swapp-news/site-shell.js');
  for(const source of [home,shell]){
   for(const file of ['swapp-navigation.js','swapp-hub-nav.js','swapp-unified-nav.css'])
-   assert.ok(source.includes(file+'?v='+(file==='swapp-unified-nav.css'?'20261113-nav-uniform-v1':file==='swapp-hub-nav.js'?'20261113-home-router-v2':'20261113-swaper-decouvrir-v1')));
+   assert.ok(source.includes(file+'?v='+(file==='swapp-unified-nav.css'?'20261113-nav-simple-v2':file==='swapp-hub-nav.js'?'20261113-nav-simple-v2':'20261113-nav-simple-v2')));
  }
  assert.match(home,/index_script\.js\?v=20261113-catalogue-heading-v1/);
  assert.match(home,/swapp-actus-app\.js\?v=20261113-direct-x-v3/);

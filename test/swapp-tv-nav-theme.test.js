@@ -10,17 +10,19 @@ test('SWAPP TV keeps its navigation position, while Actualité is a single direc
  assert.match(html,/href="\/tv" class="swapp-tv-nav-cta" aria-current="page"|href="\/tv" class="active swapp-tv-nav-cta" aria-current="page"/);
  assert.doesNotMatch(html,/swapp-news-more|swapp-news-menu|href="\/equipes"/);
  assert.match(html,/href="\/actus"[^>]*>Actualité<\/a>/);
- assert.match(html,/href="\/categories"[^>]*>DÉCOUVRIR<\/a>/);
+ assert.match(html,/href="\/categories"[^>]*>Découvrir<\/a>/);
  assert.match(nav.serverHeader('trailers'),/href="\/actus" class="active"/);
 });
-test('mobile menu pins four direct routes; TV and video are in Plus',()=>{
+test('mobile pins Accueil, Découvrir, Actualité and SWAPP TV; Swapper lives in Plus',()=>{
  const html=nav.serverMobile('tv'),main=html.split('<details class="swapp-mobile-more">')[0];
- for(const route of ['/','/decouvrir','/categories','/actus'])assert.ok(main.includes('href="'+route+'"'),route);
+ for(const route of ['/','/categories','/actus','/tv'])assert.ok(main.includes('href="'+route+'"'),route);
  assert.equal((main.match(/<a /g)||[]).length,4);
- assert.match(html,/href="\/tv"/);
+ assert.doesNotMatch(main,/href="\/decouvrir"/);
+ assert.match(html,/class="swapp-mobile-tv-subnav"/);
+ assert.match(html,/href="\/decouvrir"/);
  assert.match(html,/href="\/bandes-annonces"/);
  assert.match(html,/PODCAST/);
- assert.doesNotMatch(html,/href="\/equipes"|swapp-mobile-menu-title/);
+ assert.doesNotMatch(html,/href="\/equipes"/);
 });
 test('TV and programme follow existing SWAPP colors and layout',()=>{
  const css=read('assets/swapp-program.css');
@@ -43,8 +45,8 @@ test('Agenda legacy route safely redirects under TV and shared nav assets bust b
  assert.match(server,/app\.get\('\/tv\/programme'/);
  assert.match(server,/res\.redirect\(308,'\/tv\/programme'/);
  for(const html of [shell,home]){
-  assert.match(html,/swapp-unified-nav\.css\?v=20261113-nav-uniform-v1/);
-  assert.match(html,/swapp-hub-nav\.js\?v=20261113-home-router-v2/);
-  assert.match(html,/swapp-navigation\.js\?v=20261113-swaper-decouvrir-v1/);
+  assert.match(html,/swapp-unified-nav\.css\?v=20261113-nav-simple-v2/);
+  assert.match(html,/swapp-hub-nav\.js\?v=20261113-nav-simple-v2/);
+  assert.match(html,/swapp-navigation\.js\?v=20261113-nav-simple-v2/);
  }
 });

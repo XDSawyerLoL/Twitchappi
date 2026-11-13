@@ -12,7 +12,7 @@ function page({publicHome=false}={}){
   '<meta name="theme-color" content="#0b0d12">'+
   '<title>'+(publicHome?'SWAPP — Directs, jeux et actualités':'Catalogue immersif · Laboratoire SWAPP')+'</title>'+
   '<meta name="description" content="'+(publicHome?'SWAPP réunit les créateurs en direct, les jeux à découvrir et les actualités gaming dans un catalogue immersif.':'Page de démonstration : explorer les lives et les jeux SWAPP par affiches, prévisualisations et favoris.')+'">'+
-  '<link rel="stylesheet" href="/assets/swapp-unified-nav.css?v=20261113-nav-uniform-v1">'+
+  '<link rel="stylesheet" href="/assets/swapp-unified-nav.css?v=20261113-nav-simple-v2">'+
   '<link rel="stylesheet" href="/assets/swapp-catalogue-lab.css?v=20261113-x-share-edge-hints-v7">';
  const content='<div class="scl-shell" id="swapp-catalogue-lab">'+
   '<aside class="scl-side" aria-label="Rubriques du catalogue">'+
@@ -23,7 +23,6 @@ function page({publicHome=false}={}){
    '<a href="#scl-small" class="scl-side-link">Petites communautés</a>'+
    '<a href="/discord" class="scl-side-link">Discord Connect</a>'+
    '<a href="#scl-favorites" class="scl-side-link">Ma liste <span data-scl-favorites-count>0</span></a>'+
-   '<a href="'+(publicHome?'/?classic=1':'/categories')+'" class="scl-side-back">'+(publicHome?'Ancien accueil':'Catalogue classique')+'</a>'+
   '</aside>'+
   '<main class="scl-main" id="scl-main">'+
    '<div class="scl-topline"><div><span class="scl-kicker">'+(publicHome?'SWAPP · LIVE, JEUX & ACTUALITÉS':'SWAPP ORIGINAL · EXPÉRIENCE TEST')+'</span><p>Des histoires à regarder en direct.</p></div>'+
@@ -49,7 +48,7 @@ function page({publicHome=false}={}){
    '<section class="scl-rail" id="scl-games" data-scl-section="game" aria-labelledby="scl-games-title"><div class="scl-rail-head"><div><span class="scl-rail-eyebrow">AFFICHES & UNIVERS</span><h2 id="scl-games-title">Explore les jeux</h2></div><div class="scl-rail-nav"><button type="button" data-scroll-left="scl-game-cards" aria-label="Défiler les jeux vers la gauche">‹</button><button type="button" data-scroll-right="scl-game-cards" aria-label="Défiler les jeux vers la droite">›</button></div></div><div class="scl-cards scl-cards-games" id="scl-game-cards"></div></section>'+
    '<section class="scl-rail" id="scl-small" data-scl-section="live" aria-labelledby="scl-small-title"><div class="scl-rail-head"><div><span class="scl-rail-eyebrow" id="scl-small-eyebrow">JUSQU’À 50 SPECTATEURS</span><h2 id="scl-small-title">Petites communautés à découvrir</h2></div><div class="scl-rail-nav"><button type="button" data-scroll-left="scl-small-cards" aria-label="Défiler les petits streams vers la gauche">‹</button><button type="button" data-scroll-right="scl-small-cards" aria-label="Défiler les petits streams vers la droite">›</button></div></div><div class="scl-cards" id="scl-small-cards"></div></section>'+
    '<section class="scl-rail" id="scl-favorites" data-scl-section="fav" aria-labelledby="scl-favorites-title"><div class="scl-rail-head"><div><span class="scl-rail-eyebrow">TA SÉLECTION</span><h2 id="scl-favorites-title">Ma liste</h2></div><a href="/mes-jeux" class="scl-library-link">Ma bibliothèque</a></div><div class="scl-cards scl-cards-favorites" id="scl-favorite-cards"></div></section>'+
-   '<footer class="scl-footer">'+(publicHome?'SWAPP · Découvre les directs, les articles et les jeux qui font l’actualité.':'Prototype expérimental SWAPP.')+' Les images, articles et flux proviennent de sources publiées ou de directs disponibles. Aucun live fictif ni vidéo lancée sans interaction. <a href="'+(publicHome?'/?classic=1':'/categories')+'">'+(publicHome?'Ancien accueil':'Retour au catalogue')+'</a>. <nav class="scl-legal" aria-label="Informations SWAPP"><a href="/a-propos">À propos</a><a href="/contact">Contact</a><a href="/mentions-legales">Mentions légales</a><a href="/confidentialite">Confidentialité</a><a href="/cookies">Cookies</a><a href="/cgu">CGU</a></nav></footer>'+
+   '<footer class="scl-footer">'+(publicHome?'SWAPP · Découvre les directs, les articles et les jeux qui font l’actualité.':'Prototype expérimental SWAPP.')+' Les images, articles et flux proviennent de sources publiées ou de directs disponibles. Aucun live fictif ni vidéo lancée sans interaction. <nav class="scl-legal" aria-label="Informations SWAPP"><a href="/a-propos">À propos</a><a href="/contact">Contact</a><a href="/mentions-legales">Mentions légales</a><a href="/confidentialite">Confidentialité</a><a href="/cookies">Cookies</a><a href="/cgu">CGU</a></nav></footer>'+
   '</main></div>'+
   '<dialog class="scl-dialog" id="scl-dialog" aria-labelledby="scl-dialog-title"><button class="scl-dialog-close" type="button" id="scl-dialog-close" aria-label="Fermer">×</button><div id="scl-dialog-content"></div></dialog>';
  return '<!doctype html><html lang="fr"><head>'+head+'</head><body class="swapp-editorial-route swapp-catalogue-lab-page'+(publicHome?' swapp-catalogue-home':'')+'">'+
@@ -57,7 +56,7 @@ function page({publicHome=false}={}){
   '<script src="/assets/swapp-article-extras.js?v=20261113-actus-rail-v3" defer></script>'+
   '<script src="/assets/swapp-catalogue-lab.js?v=20261113-x-share-edge-hints-v7" defer></script>'+
   '<script src="/assets/swapp-my-games.js?v=20261021-account-hub-v1" defer></script>'+
-  '<script src="/assets/swapp-navigation.js?v=20261113-swaper-decouvrir-v1" defer></script>'+
+  '<script src="/assets/swapp-navigation.js?v=20261113-nav-simple-v2" defer></script>'+
   '<script src="/assets/swapp-nav-session.js" defer></script>'+
   '</body></html>';
 }

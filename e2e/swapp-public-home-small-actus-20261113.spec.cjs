@@ -34,7 +34,9 @@ test('SWAPP root is immersive and presents real news, games and smaller streams'
  await expect(page.locator('#scl-small-cards')).toContainText('Chill FR');
  await expect(page.locator('#scl-small-cards')).not.toContainText('Grande chaîne');
  await expect(page.locator('#scl-article-cards a.scl-story-link')).toHaveAttribute('href','/actus/nouvel-article-swapp-2026');
- await expect(page.locator('a[href="/?classic=1"]').first()).toBeVisible();
+ await expect(page.locator('a[href="/?classic=1"]')).toHaveCount(0);
+ await expect(page.locator('#nav .navGroup > a').first()).toHaveText('Accueil');
+ await expect(page.locator('#nav .navGroup > a').nth(1)).toHaveText('Découvrir');
 });
 test('published ACTUS magazine displays the former home editorial poster',async({page})=>{
  await mocks(page);
@@ -45,9 +47,10 @@ test('published ACTUS magazine displays the former home editorial poster',async(
  await expect(page.locator('#actus .swapp-actus-featured-actions a').first()).toHaveAttribute('href','/actus/nouvel-article-swapp-2026');
  await expect(page.locator('#actus .swapp-actus-head')).toContainText('Toutes les actualités SWAPP');
 });
-test('classic home rollback and unindexed test page survive the promotion',async({page})=>{
+test('classic bookmark redirects to the canonical immersive homepage; lab stays noindex',async({page})=>{
  await page.goto(ORIGIN+'/?classic=1',{waitUntil:'domcontentloaded'});
- await expect(page.locator('#home')).toBeAttached();
+ await expect(page).toHaveURL(ORIGIN+'/');
+ await expect(page.locator('#swapp-catalogue-lab')).toBeVisible();
  await page.goto(ORIGIN+'/catalogue-test',{waitUntil:'domcontentloaded'});
  await expect(page.locator('#swapp-catalogue-lab')).toBeVisible();
  const robots=await page.locator('meta[name="robots"]').getAttribute('content');
