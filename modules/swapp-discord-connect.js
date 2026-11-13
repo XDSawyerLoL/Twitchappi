@@ -193,8 +193,15 @@ function createDiscordConnect({app,env=process.env,mysqlFactory=null,restoreSess
      await query('DELETE FROM swapp_discord_communities WHERE swapp_user_id=?',[person.id]);
      await query('DELETE FROM swapp_discord_live_outbox WHERE swapp_user_id=?',[person.id]);
     }
-    await query('INSERT INTO swapp_discord_identities (swapp_user_id,discord_user_id,username,avatar_hash,updated_at) VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE discord_user_id=VALUES(discord_user_id),username=VALUES(username),avatar_hash=VALUES(avatar_hash),updated_at=VALUES(updated_at)',
-     [String(person.id),String(user.id),safe(user.global_name||user.username,100),safe(user.avatar,128),now()]);
+    if(current.length){
+     await query('UPDATE swapp_discord_identities SET discord_user_id=?,username=?,avatar_hash=?,updated_at=? WHERE swapp_user_id=?',
+      [String(user.id),safe(user.global_name||user.username,100),safe(user.avatar,128),now(),person.id]);
+    }else{
+     // A concurrent link of the same Discord user to a second SWAPP account
+     // must fail against UNIQUE(discord_user_id), not mutate the first owner.
+     await query('INSERT INTO swapp_discord_identities (swapp_user_id,discord_user_id,username,avatar_hash,updated_at) VALUES (?,?,?,?,?)',
+      [String(person.id),String(user.id),safe(user.global_name||user.username,100),safe(user.avatar,128),now()]);
+    }
    }else{
     const linked=await query('SELECT discord_user_id FROM swapp_discord_identities WHERE swapp_user_id=?',[person.id]);
     if(String(linked[0]?.discord_user_id||'')!==String(user.id))return res.redirect('/discord?error=discord_account_mismatch');
