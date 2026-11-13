@@ -248,7 +248,7 @@ const create=(tag,className,text)=>{
  if(text!==undefined)node.textContent=String(text);
  return node;
 };
-const state={lives:[],games:[],articles:[],small:[],smallLoading:false,smallError:false,smallMax:50,newsError:false,newsLoading:false,newsEpoch:0,featured:null,filter:'all',query:'',loading:false,failed:[],previewTimer:0,abort:null,heroItems:[],heroIndex:0,heroTimer:null,hoverTimer:null,hoverIframe:null,hoverCard:null};
+const state={lives:[],games:[],articles:[],small:[],smallCandidates:[],smallLoading:false,smallError:false,smallMax:50,smallEpoch:0,newsError:false,newsLoading:false,newsEpoch:0,featured:null,filter:'all',query:'',loading:false,failed:[],previewTimer:0,abort:null,heroItems:[],heroIndex:0,heroTimer:null,hoverTimer:null,hoverIframe:null,hoverCard:null};
 const status=$('scl-status'),hero=$('scl-feature'),featureVisual=$('scl-feature-visual'),dialog=$('scl-dialog');
 const heroDots=$('scl-feature-dots');
 const visNode=item=>{
@@ -636,14 +636,54 @@ function refreshFavorites(){
   if(item)el.setAttribute('aria-label',(pressed?'Retirer ':'Ajouter ')+item.name+(pressed?' des favoris':' aux favoris'));
  });
 }
+function refreshSmallRail(){
+ const result=chooseSmallCommunities(state.lives,state.smallCandidates,[],12);
+ state.small=result.items;
+ state.smallMax=result.max;
+ const label=$('scl-small-eyebrow');
+ if(label)label.textContent=result.max===50?'JUSQU’À 50 SPECTATEURS':'JUSQU’À 150 SPECTATEURS';
+ const visible=state.small.filter(matching);
+ fill('scl-small-cards',visible,state.smallLoading?
+  'Recherche de petites communautés réellement en direct…':
+  'Aucun petit live disponible pour cette recherche en ce moment.');
+ const area=$('scl-small-cards');
+ if(visible.length||state.smallLoading)return;
+ const info=area.querySelector('.scl-empty');
+ if(info){
+  const link=create('a','scl-small-discover','Découvrir tous les lives SWAPP');
+  link.href='/decouvrir';
+  info.append(create('span','',' '),link);
+ }
+}
+async function loadSmallCommunities(){
+ if(state.smallLoading)return;
+ const epoch=++state.smallEpoch;
+ state.smallLoading=true;state.smallError=false;state.smallCandidates=[];
+ refreshSmallRail();
+ const sources=[API.smallBackup,API.small];
+ // Independent, progressive feeds. A slow community search must not delay
+ // the homepage hero, article rail or top live rows.
+ const results=await Promise.allSettled(sources.map(async route=>{
+  const response=await fetchJson(route);
+  return Array.isArray(response.items)?response.items:[];
+ }).map(promise=>promise.then(items=>{
+  if(epoch!==state.smallEpoch)return items;
+  state.smallCandidates.push(...items);
+  refreshSmallRail();
+  return items;
+ })));
+ if(epoch!==state.smallEpoch)return;
+ state.smallError=results.every(x=>x.status==='rejected');
+ state.smallLoading=false;
+ refreshSmallRail();
+}
 function render(){
  stopHoverPreview();
  const lives=state.lives.filter(matching),games=state.games.filter(matching);
- const small=lives.filter(x=>x.viewers<=50);
  fillArticleRail(state.articles.filter(matching),state.newsError);
  fill('scl-live-cards',lives,'Aucun direct confirmé pour cette recherche.');
  fill('scl-game-cards',games,'Aucun jeu disponible pour cette recherche.');
- fill('scl-small-cards',small,'Aucune petite communauté confirmée pour cette recherche.');
+ refreshSmallRail();
  refreshFavorites();
  document.querySelectorAll('[data-scl-section]').forEach(sec=>{
   sec.hidden=state.filter!=='all'&&sec.dataset.sclSection!==state.filter;
@@ -707,6 +747,7 @@ async function load(){
  if(state.loading)return;
  state.loading=true;
  state.newsLoading=true;
+ void loadSmallCommunities();
  state.newsError=false;
  state.failed=[];
  state.articles=[];
