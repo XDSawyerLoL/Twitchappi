@@ -15,8 +15,8 @@ test('cinema lab keeps an isolated page with the real SWAPP header and versioned
  assert.match(html,/id="scl-feature-next"/);
  assert.match(html,/id="scl-feature-dots"/);
  assert.match(html,/scl-feature-vignette/);
- assert.match(html,/swapp-catalogue-lab\.js\?v=20261113-public-home-audience-v5/);
- assert.match(html,/swapp-catalogue-lab\.css\?v=20261113-public-home-small-v4/);
+ assert.match(html,/swapp-catalogue-lab\.js\?v=20261113-hover-rails-hero-10s-v6/);
+ assert.match(html,/swapp-catalogue-lab\.css\?v=20261113-hover-rails-hero-10s-v6/);
  assert.match(html,/robots" content="noindex,nofollow,noarchive"/);
  assert.match(html,/id="nav"/);
  assert.doesNotMatch(read('assets/swapp-navigation.js'),/catalogue-test/);
@@ -43,15 +43,15 @@ function heroHarness(){
  ];
  const games=[{id:'game:minecraft',kind:'game',image:'https://static-cdn.jtvnw.net/c.jpg'}];
  const state={lives:live,games,featured:null,heroItems:[],heroIndex:0,heroTimer:null};
- let timer;
+ let timer,timerDelay;
  const api=new Function('state','heroDots','feature','create','$','window','document','dialog','hero','setInterval','clearInterval',
   js.slice(start,end)+'; return {setHeroItems,showHero,startHeroRotation};')(
    state,dots,item=>featureCalls.push(item),()=>node(),id=>id==='scl-feature-prev'?prev:next,
    {matchMedia:()=>({matches:false})},{hidden:false},{open:false},
    {matches(){return false}},
-   fn=>{timer=fn;return 1},()=>{timer=null}
+   (fn,ms)=>{timer=fn;timerDelay=ms;return 1},()=>{timer=null}
   );
- return {api,state,featureCalls,dots,prev,next,getTimer:()=>timer};
+ return {api,state,featureCalls,dots,prev,next,getTimer:()=>timer,getTimerDelay:()=>timerDelay};
 }
 test('hero carousel favors actual SWAPP live art, has accessible pagination and wraps',()=>{
  const h=heroHarness();
@@ -69,6 +69,7 @@ test('hero carousel favors actual SWAPP live art, has accessible pagination and 
  assert.equal(h.featureCalls.at(-1).id,'game:minecraft');
  h.api.startHeroRotation();
  assert.equal(typeof h.getTimer(),'function');
+ assert.equal(h.getTimerDelay(),10000);
  h.getTimer()();
  assert.equal(h.state.heroIndex,0);
 });
@@ -156,4 +157,60 @@ test('Netflix-like hierarchy is full bleed, poster first, with desktop reveal an
 test('detail modal has its own correctly labelled heading',()=>{
  assert.match(js,/title\.id='scl-dialog-title'/);
  assert.match(html,/aria-labelledby="scl-dialog-title"/);
+});
+
+test('rails hide grey scrollbars and move only at mouse edges; keyboard and touch remain usable',()=>{
+ assert.match(css,/\.scl-rail-nav\{display:none!important\}/);
+ assert.match(css,/\.scl-cards::-webkit-scrollbar\{display:none;width:0;height:0\}/);
+ assert.match(css,/\.scl-cards\.scl-is-edge-scrolling\{scroll-snap-type:none\}/);
+ assert.match(js,/installRailHoverScroll\(\);/);
+ const start=js.indexOf('function installRailHoverScroll(){');
+ const end=js.indexOf("document.querySelectorAll('[data-scroll-left]",start);
+ assert.ok(start>0&&end>start);
+ const listeners={},documentEvents={},classes=new Set();
+ const rail={
+  dataset:{},tabIndex:-1,scrollWidth:1500,clientWidth:500,scrollLeft:200,
+  classList:{add:k=>classes.add(k),remove:k=>classes.delete(k)},
+  closest:()=>({querySelector:()=>({id:'scl-games-title'})}),
+  setAttribute:(k,v)=>{rail[k]=v},
+  addEventListener:(k,v)=>{listeners[k]=v},
+  getBoundingClientRect:()=>({left:0,right:500,width:500}),
+  scrollBy:({left})=>{rail.scrollLeft+=left}
+ };
+ let isTouch=false,reduced=false,frame=null,cancelled=false,next=1;
+ const doc={hidden:false,querySelectorAll:()=>[rail],addEventListener:(k,v)=>{documentEvents[k]=v}};
+ const win={matchMedia:q=>({matches:q.includes('pointer: fine')?!isTouch:reduced}),addEventListener:()=>{}};
+ const setup=new Function('document','window','navigator','dialog','prefersLessMotion',
+  'requestAnimationFrame','cancelAnimationFrame',
+  js.slice(start,end)+';return installRailHoverScroll;')(
+   doc,win,{connection:{saveData:false}},{open:false},()=>reduced,
+   fn=>{frame=fn;return next++},()=>{frame=null;cancelled=true}
+  );
+ const step=now=>{const fn=frame;frame=null;assert.equal(typeof fn,'function');fn(now)};
+ setup();
+ assert.equal(rail.tabIndex,0);
+ assert.equal(rail['aria-labelledby'],'scl-games-title');
+ listeners.pointerenter({pointerType:'mouse',clientX:490});
+ step(100);
+ assert.ok(rail.scrollLeft>200);
+ const rightPos=rail.scrollLeft;
+ listeners.pointermove({pointerType:'mouse',clientX:250});
+ step(116);
+ assert.equal(rail.scrollLeft,rightPos,'no drift while cursor is centered');
+ listeners.pointerleave();
+ assert.equal(classes.has('scl-is-edge-scrolling'),false);
+ listeners.keydown({key:'ArrowLeft',target:rail,preventDefault(){}});
+ assert.ok(rail.scrollLeft<rightPos,'keyboard ArrowLeft scrolls');
+ isTouch=true;
+ const pos=rail.scrollLeft;
+ listeners.pointerenter({pointerType:'touch',clientX:490});
+ assert.equal(frame,null);
+ assert.equal(rail.scrollLeft,pos,'touch swipe is not replaced by auto-scroll');
+ isTouch=false;reduced=true;
+ listeners.pointerenter({pointerType:'mouse',clientX:490});
+ assert.equal(frame,null,'prefers-reduced-motion stops auto-scroll');
+ reduced=false;
+ listeners.pointerenter({pointerType:'mouse',clientX:490});
+ doc.hidden=true;documentEvents.visibilitychange();
+ assert.ok(cancelled,'page visibility cancels the animation');
 });
