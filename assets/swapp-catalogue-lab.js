@@ -1,0 +1,407 @@
+/* SWAPP Catalogue Lab: real game and live feeds, no invented sessions.
+ * Visual previews on focus/hover; video previews only on explicit click.
+ * Uses existing Mes jeux library action and storage schema (30 games max).
+ */
+(function(){
+'use strict';
+const LAB_VERSION='20261113-lab-v1';
+const API=Object.freeze({
+ home:'/api/discovery/home-lives?limit=12&lang=fr',
+ top:'/api/twitch/streams/top?limit=40&lang=fr',
+ games:'/api/categories/top'
+});
+const FAVORITES_KEY='swapp:followed-games:v1';
+const GAME_COPY=Object.freeze({
+ 'fortnite':'Battle royale et expériences créatives : des parties en équipe, des constructions et des modes imaginés par les joueurs.',
+ 'minecraft':'Explore, collecte des ressources et construis dans un univers de blocs, en survie comme en création.',
+ 'grand theft auto v':'Un monde ouvert à Los Santos, entre missions, conduite et aventures improvisées en ligne.',
+ 'gta v':'Un monde ouvert à Los Santos, entre missions, conduite et aventures improvisées en ligne.',
+ 'league of legends':'Jeu de stratégie compétitif en équipes où chaque champion joue un rôle dans la conquête de la carte.',
+ 'valorant':'Jeu de tir tactique en équipes combinant précision, coordination et compétences propres à chaque agent.',
+ 'counter-strike':'Affrontements tactiques où la maîtrise des armes et les objectifs d’équipe font la différence.',
+ 'counter-strike 2':'Affrontements tactiques où la maîtrise des armes et les objectifs d’équipe font la différence.',
+ 'world of warcraft':'Explore Azeroth dans un MMORPG mêlant quêtes, donjons, raids et affrontements entre joueurs.',
+ 'elden ring':'Aventure et combats dans un vaste monde de dark fantasy, à explorer librement.',
+ 'cyberpunk 2077':'Jeu de rôle en monde ouvert dans Night City, mégalopole futuriste dominée par les corporations.',
+ 'the elder scrolls online':'Parcours Tamriel dans un MMORPG mêlant exploration, quêtes et activités en groupe.',
+ 'where winds meet':'Aventure d’arts martiaux en monde ouvert inspirée de la Chine ancienne.',
+ 'marvel rivals':'Affrontements en équipes entre héros et antagonistes de l’univers Marvel.',
+ 'apex legends':'Battle royale en escouades centré sur des personnages aux capacités complémentaires.',
+ 'rocket league':'Football automobile compétitif, entre acrobaties et jeu collectif.',
+ 'call of duty':'Jeu de tir d’action avec des expériences multijoueurs qui varient selon les épisodes.',
+ 'dead by daylight':'Jeu d’horreur asymétrique où des survivants tentent d’échapper à un tueur.',
+ 'escape from tarkov':'Survie et extraction dans des zones hostiles où chaque sortie comporte un risque.',
+ 'dota 2':'Arène de combat stratégique opposant deux équipes aux héros et capacités variés.',
+ 'just chatting':'Diffusions centrées sur les échanges et la discussion avec la communauté.'
+});
+const NOT_GAMES=new Set(['just chatting','music','asmr','irl','sports','art','talk shows & podcasts','food & drink','pools, hot tubs, and beaches','special events','always on','software and game development']);
+const escapeName=value=>String(value??'').replace(/[\u0000-\u001f<>]/g,'').trim().slice(0,140);
+const latin=value=>escapeName(value).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+const gameSlug=value=>latin(value).replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,90).replace(/-+$/,'');
+const isValidSlug=s=>typeof s==='string'&&/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(s)&&s.length>=3&&s.length<=90;
+function safeImage(value){
+ try{
+  const source=String(value||'').replaceAll('{width}','640').replaceAll('{height}','360');
+  const url=new URL(source);
+  const host=url.hostname.toLowerCase();
+  const allowed=host==='swapp.tv'||host==='www.swapp.tv'||
+   host==='static-cdn.jtvnw.net'||host.endsWith('.jtvnw.net')||
+   host==='images.igdb.com'||host.endsWith('.twitchcdn.net');
+  return url.protocol==='https:'&&!url.username&&!url.password&&allowed?url.href:'';
+ }catch{return ''}
+}
+function synopsis(game){
+ const key=latin(game).replace(/\s+/g,' ');
+ return GAME_COPY[key]||'Retrouve les créateurs qui explorent ce jeu. Présentation éditoriale à compléter.';
+}
+function normalizeLive(item,defaultPlatform='twitch'){
+ if(!item||typeof item!=='object')return null;
+ const rawPlatform=latin(item.platform||defaultPlatform);
+ const platform=['oryon','swapp','native'].includes(rawPlatform)?'swapp':'twitch';
+ const login=latin(item.login||item.user_login||item.host_login||item.room).replace(/[^a-z0-9_]/g,'');
+ if(!/^[a-z0-9_]{2,25}$/.test(login))return null;
+ const game=escapeName(item.game_name||item.category||item.game||'').slice(0,90);
+ const title=escapeName(item.title||('En direct avec '+login)).slice(0,140);
+ return {
+  id:platform+':'+login,kind:'live',platform,login,
+  name:escapeName(item.display_name||item.user_name||item.host_name||login)||login,
+  title,game,gameSlug:gameSlug(game),summary:synopsis(game),
+  viewers:Math.max(0,Math.floor(Number(item.viewer_count??item.viewers)||0)),
+  image:safeImage(item.thumbnail_url||item.img||item.banner_url||''),
+  watchUrl:platform==='twitch'?'/live/twitch/'+encodeURIComponent(login):'/'+encodeURIComponent(login)
+ };
+}
+function normalizeGame(item){
+ if(!item||typeof item!=='object')return null;
+ const game=escapeName(item.name||item.game_name||'').slice(0,90);
+ if(!game||NOT_GAMES.has(latin(game)))return null;
+ const slug=gameSlug(game);
+ if(!isValidSlug(slug))return null;
+ return {id:'game:'+slug,kind:'game',name:game,game,gameSlug:slug,
+  summary:synopsis(game),image:safeImage(item.box_art_url||item.thumbnail_url||'')};
+}
+function mergeLives(home,top){
+ const all=[],seen=new Set();
+ for(const [arr,platform] of [[home,'swapp'],[top,'twitch']]){
+  for(const raw of Array.isArray(arr)?arr:[]){
+   const item=normalizeLive(raw,platform);
+   if(!item||seen.has(item.id))continue;
+   seen.add(item.id);all.push(item);
+  }
+ }
+ return all.slice(0,70);
+}
+function mergeGames(categories,lives){
+ const result=[],seen=new Set();
+ for(const raw of Array.isArray(categories)?categories:[]){
+  const game=normalizeGame(raw);if(!game||seen.has(game.gameSlug))continue;
+  seen.add(game.gameSlug);result.push(game);
+  if(result.length>=60)break;
+ }
+ for(const live of lives){
+  if(!isValidSlug(live.gameSlug)||seen.has(live.gameSlug)||NOT_GAMES.has(latin(live.game)))continue;
+  const fallback=normalizeGame({name:live.game});
+  if(!fallback)continue;
+  seen.add(fallback.gameSlug);result.push(fallback);
+ }
+ return result;
+}
+function readFavorites(storage){
+ try{
+  const saved=JSON.parse(storage.getItem(FAVORITES_KEY)||'null');
+  if(!saved||saved.version!==1||!Array.isArray(saved.games))return [];
+  const seen=new Set();
+  return saved.games.filter(x=>{
+   const slug=String(x?.slug||'');
+   if(!isValidSlug(slug)||seen.has(slug))return false;
+   seen.add(slug);return true;
+  }).slice(0,30).map(x=>({slug:x.slug,game:escapeName(x.game)||x.slug}));
+ }catch{return []}
+}
+if(typeof module==='object'&&module.exports)
+ module.exports={API,LAB_VERSION,normalizeLive,normalizeGame,mergeLives,mergeGames,gameSlug,synopsis,readFavorites,safeImage};
+if(typeof document==='undefined')return;
+const root=document.getElementById('swapp-catalogue-lab');
+if(!root)return;
+const $=id=>document.getElementById(id);
+const create=(tag,className,text)=>{
+ const node=document.createElement(tag);
+ if(className)node.className=className;
+ if(text!==undefined)node.textContent=String(text);
+ return node;
+};
+const state={lives:[],games:[],featured:null,filter:'all',query:'',loading:false,failed:[],previewTimer:0,abort:null};
+const status=$('scl-status'),hero=$('scl-feature'),featureVisual=$('scl-feature-visual'),dialog=$('scl-dialog');
+const visNode=item=>{
+ const frame=create('div','scl-card-media');
+ if(item.image){
+  const image=create('img');
+  image.src=item.image;
+  image.alt='';
+  image.loading='lazy';
+  image.decoding='async';
+  image.referrerPolicy='no-referrer';
+  image.onerror=()=>{image.remove();frame.append(create('div','scl-no-art','Aperçu indisponible'))};
+  frame.append(image);
+ }else frame.append(create('div','scl-no-art','Image indisponible'));
+ if(item.kind==='live'){
+  frame.append(create('span','scl-live-pill','DIRECT'));
+  frame.append(create('span','scl-viewer-pill',item.viewers.toLocaleString('fr-FR')+' spectateurs'));
+ }
+ return frame;
+};
+const stopPreview=()=>{const node=$('scl-preview-frame');if(node)node.remove()};
+function showDialog(node){
+ stopPreview();
+ const host=$('scl-dialog-content');
+ host.replaceChildren(node);
+ if(typeof dialog.showModal==='function'&&!dialog.open)dialog.showModal();
+ else dialog.setAttribute('open','');
+}
+function closeDialog(){
+ stopPreview();
+ if(typeof dialog.close==='function'&&dialog.open)dialog.close();
+ else dialog.removeAttribute('open');
+ $('scl-dialog-content').replaceChildren();
+}
+$('scl-dialog-close').addEventListener('click',closeDialog);
+dialog.addEventListener('click',event=>{if(event.target===dialog)closeDialog()});
+dialog.addEventListener('close',()=>{$('scl-dialog-content').replaceChildren()});
+function watch(item){if(!item||item.kind!=='live')return;window.location.assign(item.watchUrl)}
+function feature(item){
+ state.featured=item||null;
+ featureVisual.style.backgroundImage=item?.image?'url("'+item.image+'")':'';
+ $('scl-feature-kicker').textContent=item?(item.kind==='live'?'EN DIRECT / '+(item.platform==='swapp'?'SWAPP':'TWITCH'):'UNIVERS À DÉCOUVRIR'):'CATALOGUE / SWAPP';
+ $('scl-feature-title').textContent=item?(item.kind==='live'?item.name:item.game):'Trouver ton prochain live.';
+ $('scl-feature-desc').textContent=item?(item.kind==='live'?(item.title+(item.game?' · '+item.game:'')):item.summary):
+  'Le catalogue affiche uniquement des directs réellement disponibles. Aucune diffusion fictive.';
+ $('scl-feature-meta').textContent=item?(item.kind==='live'?item.viewers.toLocaleString('fr-FR')+' spectateurs · '+(item.platform==='swapp'?'SWAPP LIVE':'Twitch'):'FICHE JEU · '+(state.lives.filter(x=>x.gameSlug===item.gameSlug).length)+' directs repérés'):'';
+ $('scl-feature-watch').textContent=item?.kind==='game'?'Voir les directs':'Regarder';
+ $('scl-feature-watch').disabled=!item;
+ $('scl-feature-preview').disabled=!item||item.kind!=='live';
+ $('scl-feature-details').disabled=!item;
+}
+$('scl-feature-watch').addEventListener('click',()=>{const item=state.featured;if(!item)return;if(item.kind==='live')watch(item);else void showGameLives(item)});
+$('scl-feature-preview').addEventListener('click',()=>{if(state.featured?.kind==='live')preview(state.featured)});
+$('scl-feature-details').addEventListener('click',()=>{if(state.featured)details(state.featured)});
+const button=(label,cls,handler)=>{
+ const el=create('button',cls,label);el.type='button';el.addEventListener('click',handler);return el;
+};
+function actionsFor(item){
+ const actions=create('div','scl-actions');
+ if(item.kind==='live'){
+  actions.append(button('Regarder le direct','scl-btn scl-btn-primary',()=>watch(item)));
+  actions.append(button('Prévisualiser','scl-btn scl-btn-neutral',()=>preview(item)));
+ }else{
+  actions.append(button('Voir les directs','scl-btn scl-btn-primary',()=>{void showGameLives(item)}));
+  const followed=button('＋ Suivre ce jeu','scl-btn scl-btn-neutral',()=>{});
+  followed.dataset.swappFollowGame='1';
+  followed.dataset.gameSlug=item.gameSlug;
+  followed.dataset.gameName=item.game;
+  followed.setAttribute('aria-pressed',String(readFavorites(window.localStorage).some(x=>x.slug===item.gameSlug)));
+  actions.append(followed);
+ }
+ return actions;
+}
+function modalBody(item){
+ const container=create('div','scl-dialog-content');
+ if(item.image){
+  const poster=create('img','scl-dialog-image');poster.src=item.image;poster.alt='';poster.referrerPolicy='no-referrer';container.append(poster);
+ }
+ const body=create('div','scl-dialog-body');
+ body.append(create('div','scl-dialog-meta',item.kind==='live'?'DIFFUSION EN DIRECT':'UNIVERS / JEU'));
+ body.append(create('h2','',item.kind==='live'?item.name:item.game));
+ body.append(create('p','',item.kind==='live'?(item.title+(item.game?' · '+item.game:'')):item.summary));
+ if(item.kind==='live'){
+  body.append(create('p','scl-dialog-meta',item.viewers.toLocaleString('fr-FR')+' spectateurs · '+(item.platform==='swapp'?'SWAPP LIVE':'Twitch')));
+ }
+ body.append(actionsFor(item));
+ container.append(body);
+ return container;
+}
+function details(item){showDialog(modalBody(item));window.dispatchEvent(new Event('swapp:account-rendered'))}
+function preview(item){
+ const content=modalBody(item);
+ const body=content.querySelector('.scl-dialog-body');
+ if(item.platform==='twitch'){
+  const iframe=create('iframe','scl-preview-frame');
+  iframe.id='scl-preview-frame';
+  const host=window.location.hostname.toLowerCase();
+  if(!/^[a-z0-9.-]+$/.test(host))return details(item);
+  const url=new URL('https://player.twitch.tv/');
+  url.searchParams.set('channel',item.login);
+  url.searchParams.set('parent',host);
+  url.searchParams.set('muted','true');
+  url.searchParams.set('autoplay','true');
+  iframe.src=url.href;
+  iframe.title='Prévisualisation Twitch : '+item.name;
+  iframe.allow='autoplay; fullscreen';
+  iframe.referrerPolicy='strict-origin-when-cross-origin';
+  body.insertBefore(iframe,body.querySelector('.scl-actions'));
+  body.append(create('p','scl-preview-note','Aperçu muet chargé à ta demande. Le lecteur complet et le tchat restent sur SWAPP.'));
+ }else{
+  body.append(create('p','scl-preview-note','Ce live SWAPP ne propose pas encore de lecteur miniature ici. Utilise « Regarder le direct » pour ouvrir le flux complet.'));
+ }
+ showDialog(content);
+}
+function createCard(item){
+ const card=create('article','scl-card');
+ const media=visNode(item),body=create('div','scl-card-details');
+ const kicker=create('span','',item.kind==='live'?(item.platform==='swapp'?'SWAPP LIVE':'TWITCH'):'JEU VIDÉO');
+ const title=create('h3','',item.kind==='live'?item.name:item.game);
+ const summary=create('p','',item.kind==='live'?(item.game?item.game+' · '+item.title:item.title):item.summary);
+ body.append(kicker,title,summary);
+ const actions=create('div','scl-card-action-row');
+ if(item.kind==='live'){
+  const link=create('a','', 'Regarder');
+  link.href=item.watchUrl;
+  actions.append(link);
+ }else{
+  const fav=button('＋ Suivre ce jeu','scl-fav-button',()=>{});
+  fav.dataset.swappFollowGame='1';
+  fav.dataset.gameSlug=item.gameSlug;
+  fav.dataset.gameName=item.game;
+  fav.setAttribute('aria-pressed',String(readFavorites(window.localStorage).some(x=>x.slug===item.gameSlug)));
+  actions.append(fav);
+ }
+ const info=button('ⓘ','scl-card-info',()=>details(item));info.setAttribute('aria-label','En savoir plus sur '+(item.kind==='live'?item.name:item.game));
+ actions.append(info);body.append(actions);
+ card.append(media,body);
+ // Hover/focus preview updates the hero with real current data; video never autoloads.
+ card.addEventListener('mouseenter',()=>{clearTimeout(state.previewTimer);state.previewTimer=setTimeout(()=>feature(item),250)});
+ card.addEventListener('mouseleave',()=>clearTimeout(state.previewTimer));
+ card.addEventListener('focusin',event=>{
+  if(event.target.matches('[data-swapp-follow-game]'))return;
+  feature(item);
+ });
+ return card;
+}
+const matching=item=>{
+ const q=latin(state.query);return !q||latin([item.name,item.title,item.game].join(' ')).includes(q);
+};
+const empty=(message)=>create('p','scl-empty',message);
+function fill(id,items,placeholder){
+ const host=$(id);const fragment=document.createDocumentFragment();
+ if(items.length)items.forEach(item=>fragment.append(createCard(item)));
+ else fragment.append(empty(placeholder));
+ host.replaceChildren(fragment);
+}
+function refreshFavorites(){
+ const saved=readFavorites(window.localStorage);
+ const games=saved.map(x=>state.games.find(g=>g.gameSlug===x.slug)||normalizeGame({name:x.game})).filter(Boolean);
+ fill('scl-favorite-cards',games.filter(matching),'Aucun jeu suivi pour le moment. Utilise « Suivre ce jeu » pour remplir ta sélection.');
+ const counter=document.querySelector('[data-swapp-favorites-count]');
+ if(counter)counter.textContent=String(saved.length);
+ const selected=new Set(saved.map(x=>x.slug));
+ document.querySelectorAll('[data-swapp-follow-game]').forEach(el=>{
+  const pressed=selected.has(el.dataset.gameSlug);
+  el.setAttribute('aria-pressed',String(pressed));
+  el.textContent=pressed?'✓ Jeu suivi':'＋ Suivre ce jeu';
+ });
+}
+function render(){
+ const lives=state.lives.filter(matching),games=state.games.filter(matching);
+ const small=lives.filter(x=>x.viewers<=50);
+ fill('scl-live-cards',lives,'Aucun direct confirmé pour cette recherche.');
+ fill('scl-game-cards',games,'Aucun jeu disponible pour cette recherche.');
+ fill('scl-small-cards',small,'Aucune petite communauté confirmée pour cette recherche.');
+ refreshFavorites();
+ document.querySelectorAll('[data-scl-section]').forEach(sec=>{
+  sec.hidden=state.filter!=='all'&&sec.dataset.sclSection!==state.filter;
+ });
+ if(!state.featured||!matching(state.featured))feature(lives[0]||games[0]||null);
+ // Rebind existing SWAPP Mes jeux controller to dynamically created cards.
+ window.dispatchEvent(new Event('swapp:account-rendered'));
+}
+async function fetchJson(path){
+ const control=new AbortController();
+ const timeout=setTimeout(()=>control.abort(),8500);
+ try{
+  const response=await fetch(path,{credentials:'same-origin',headers:{Accept:'application/json'},signal:control.signal,cache:'no-store'});
+  if(!response.ok)throw new Error('HTTP '+response.status);
+  const data=await response.json();
+  if(!data?.success||typeof data!=='object')throw new Error('Réponse indisponible');
+  return data;
+ }finally{clearTimeout(timeout)}
+}
+async function load(){
+ if(state.loading)return;
+ state.loading=true;status.dataset.error='false';status.replaceChildren(create('span','','Recherche des vrais lives et jeux…'));
+ const results=await Promise.allSettled([fetchJson(API.home),fetchJson(API.top),fetchJson(API.games)]);
+ const home=results[0].status==='fulfilled'?results[0].value.items:[];
+ const top=results[1].status==='fulfilled'?results[1].value.items:[];
+ const categories=results[2].status==='fulfilled'?results[2].value.categories:[];
+ state.failed=results.map((result,i)=>result.status==='rejected'?Object.keys(API)[i]:null).filter(Boolean);
+ state.lives=mergeLives(home,top);
+ state.games=mergeGames(categories,state.lives);
+ feature(state.lives[0]||state.games[0]||null);
+ render();
+ status.replaceChildren();
+ if(!state.lives.length&&!state.games.length){
+  status.dataset.error='true';
+  status.append(create('span','','Aucun contenu disponible. Vérifie la connexion ou les flux de découverte.'));
+  status.append(button('Réessayer','',()=>{void load()}));
+ }else if(state.failed.length){
+  status.textContent='Catalogue partiel : certaines sources sont temporairement indisponibles. Les éléments affichés sont réels.';
+ }else{
+  status.textContent=state.lives.length+' directs confirmés · '+state.games.length+' jeux à explorer';
+ }
+ state.loading=false;
+}
+async function showGameLives(game){
+ const section=create('div','scl-dialog-content'),body=create('div','scl-dialog-body');
+ body.append(create('div','scl-dialog-meta','CRÉATEURS EN DIRECT'));
+ body.append(create('h2','',game.game));
+ body.append(create('p','',game.summary));
+ const list=create('div','scl-cards');list.style.padding='0 0 12px';
+ const notice=create('p','scl-preview-note','Recherche des directs associés à ce jeu…');
+ body.append(notice,list);section.append(body);showDialog(section);
+ let found=state.lives.filter(x=>x.gameSlug===game.gameSlug);
+ try{
+  const result=await fetchJson('/api/discovery/game-lives?game='+encodeURIComponent(game.game)+'&limit=12');
+  const candidates=(result.items||[]).map(raw=>normalizeLive(raw)).filter(Boolean);
+  const seen=new Set(found.map(x=>x.id));
+  for(const live of candidates)if(!seen.has(live.id)){seen.add(live.id);found.push(live)}
+ }catch{
+  notice.textContent=found.length?'Résultats locaux uniquement : recherche étendue indisponible.':'Recherche des créateurs indisponible pour le moment.';
+ }
+ if(!dialog.open)return;
+ if(found.length){
+  notice.textContent=found.length+' créateur'+(found.length>1?'s':'')+' réellement en direct sur '+game.game+'.';
+  list.replaceChildren(...found.slice(0,12).map(createCard));
+ }else{
+  notice.textContent='Aucun live confirmé pour ce jeu actuellement.';
+  list.replaceChildren();
+ }
+ window.dispatchEvent(new Event('swapp:account-rendered'));
+}
+$('scl-search').addEventListener('input',event=>{
+ state.query=event.target.value.trim().slice(0,120);
+ feature(null);render();
+});
+document.querySelectorAll('[data-scl-filter]').forEach(button=>{
+ button.addEventListener('click',()=>{
+  state.filter=button.dataset.sclFilter;
+  document.querySelectorAll('[data-scl-filter]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));
+  render();
+ });
+});
+document.querySelectorAll('[data-scroll-left],[data-scroll-right]').forEach(button=>{
+ button.addEventListener('click',()=>{
+  const target=$(button.dataset.scrollLeft||button.dataset.scrollRight);
+  if(!target)return;
+  const direction=button.dataset.scrollLeft?-1:1;
+  target.scrollBy({left:direction*Math.max(250,target.clientWidth*.74),behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});
+ });
+});
+window.addEventListener('swapp:library-changed',refreshFavorites);
+window.addEventListener('storage',event=>{if(event.key===FAVORITES_KEY||event.key===null)refreshFavorites()});
+document.addEventListener('click',event=>{
+ if(event.target.closest('[data-swapp-follow-game]')){
+  requestAnimationFrame(refreshFavorites);
+  setTimeout(refreshFavorites,300);
+ }
+});
+window.SwappCatalogueLab=Object.freeze({version:LAB_VERSION,load});
+void load();
+})();
