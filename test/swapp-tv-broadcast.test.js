@@ -105,7 +105,8 @@ test('TV automatically starts the first on-air stream and respects Stop',()=>{
  assert.equal(state.autoStartPending,false);
  assert.match(String(screen.querySelector('.stv-player-layer')?.children[0]?.src),/muted=true/);
  assert.equal(state.playing,'creator_one');
- assert.equal(watch['aria-pressed'],'true');
+ assert.equal(watch['aria-pressed'],'false','an unconfirmed iframe must not pretend Twitch is playing');
+ assert.equal(watch.textContent,'▶ LANCER TWITCH');
  app.renderScreen(null);
  assert.equal(state.playing,null);
  assert.equal(state.autoAdvance,true,'temporary off-air transition preserves viewer TV consent');
