@@ -58,8 +58,9 @@ function normalizeLive(item,defaultPlatform='twitch'){
  if(!item||typeof item!=='object')return null;
  const rawPlatform=latin(item.platform||defaultPlatform);
  const platform=['oryon','swapp','native'].includes(rawPlatform)?'swapp':'twitch';
- const login=latin(item.login||item.user_login||item.host_login||item.room).replace(/[^a-z0-9_]/g,'');
- if(!/^[a-z0-9_]{2,25}$/.test(login))return null;
+ const login=String(item.login||item.user_login||item.host_login||item.room||'').trim().toLowerCase();
+ const valid=platform==='twitch'?/^[a-z0-9_]{2,25}$/:/^[a-z0-9_][a-z0-9_-]{1,39}$/;
+ if(!valid.test(login))return null;
  const game=escapeName(item.game_name||item.category||item.game||'').slice(0,90);
  const title=escapeName(item.title||('En direct avec '+login)).slice(0,140);
  return {
