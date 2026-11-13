@@ -113,14 +113,17 @@ function brandedPng(article){
  };
  write('SWAPP.',65,72,13,[240,250,255]);
  write('LE MAGAZINE GAMING',70,190,5,[94,231,226]);
+ // Keep every printed glyph inside the 1200 px card: 22 chars * 48 px.
+ // Never let long article titles spill beyond the PNG's right boundary.
  const words=normalizeText(article?.title||'ACTUALITE DU JEU VIDEO').split(' '),lines=[''];
  for(const word of words){
   const current=lines[lines.length-1],next=current?current+' '+word:word;
-  if(next.length>35&&lines.length<3)lines.push(word);
-  else if(next.length<=35)lines[lines.length-1]=next;
-  else{lines[lines.length-1]=current.slice(0,32)+'...';break;}
+  if(next.length<=22){lines[lines.length-1]=next;continue}
+  if(lines.length>=3){lines[2]=current.slice(0,19)+'...';break}
+  if(current)lines.push(word.slice(0,22));
+  else lines[0]=word.slice(0,22);
  }
- lines.forEach((line,i)=>write(line,70,280+i*91,9,[249,250,253]));
+ lines.forEach((line,i)=>write(line,70,275+i*87,8,[249,250,253]));
  const head=Buffer.alloc(13);head.writeUInt32BE(width,0);head.writeUInt32BE(height,4);head[8]=8;head[9]=2;
  return Buffer.concat([Buffer.from([137,80,78,71,13,10,26,10]),chunk('IHDR',head),
   chunk('IDAT',zlib.deflateSync(pixels,{level:5})),chunk('IEND',Buffer.alloc(0))]);
