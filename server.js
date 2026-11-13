@@ -1277,7 +1277,8 @@ function sendSwappUi(res){
     const seo=require('./modules/swapp-seo').injectSpaMetadata(html,res.req?.path||'/');
     // Render the SAME navigation as the native catalogue/editorial shell
     // before any client JS executes. No empty-header flash or route jump.
-    const output=require('./modules/swapp-page-shell').hydrateSpaNavigation(seo,res.req?.path||'/');
+    const integrated=require('./modules/swapp-catalogue-spa').renderIntoSpa(seo);
+    const output=require('./modules/swapp-page-shell').hydrateSpaNavigation(integrated,res.req?.path||'/');
     res.set('Cache-Control','no-store');
     return res.type('html').send(output);
   }catch(error){
@@ -1285,10 +1286,13 @@ function sendSwappUi(res){
     // Preserve a stable first-paint menu even when SEO metadata fails.
     try{
       const html=require('./modules/swapp-page-shell').hydrateSpaNavigation(
-        fs.readFileSync(found,'utf8'),res.req?.path||'/');
+        require('./modules/swapp-catalogue-spa').renderIntoSpa(fs.readFileSync(found,'utf8')),res.req?.path||'/');
       res.set('Cache-Control','no-store');
       return res.type('html').send(html);
-    }catch(_){return res.sendFile(found)}
+    }catch(error){
+      console.error('[SWAPP SPA] Shared catalogue renderer unavailable:',String(error?.message||error).slice(0,180));
+      return res.status(503).type('text/plain').send('SWAPP est temporairement indisponible.');
+    }
   }
 }
 async function sendSwappPublicChannelUi(req, res, login){
@@ -1776,23 +1780,13 @@ app.get('/favicon.ico', (_req,res)=>sendPublicFile(res, 'favicon.ico', 'image/x-
 
 // Page principale (UI)
 app.get('/', (req, res) => {
-  // The immersive catalogue is SWAPP's only public homepage.
-  // Old bookmarks must not reintroduce a competing historical design.
   if(String(req.query?.classic||'')==='1'){
     res.set('Cache-Control','no-store');
     return res.redirect(308,'/');
   }
-  try{
-    const page=require('./modules/swapp-catalogue-lab').page({publicHome:true});
-    res.set('Cache-Control','public, max-age=45');
-    res.set('X-Content-Type-Options','nosniff');
-    return res.type('html').send(page);
-  }catch(error){
-    // A partial Hostinger upload must be fixed, never disguised as the old home.
-    console.warn('[SWAPP HOME] Catalogue indisponible :',String(error?.message||error).slice(0,180));
-    res.set('Cache-Control','no-store');
-    return res.status(503).type('text/plain').send('Accueil SWAPP temporairement indisponible.');
-  }
+  // Home, catalogue, account and ACTUS now share the very same SPA shell and
+  // navigation lifecycle. Never send a parallel homepage document.
+  return sendSwappUi(res);
 });
 
 // Pricing page (credits + premium)

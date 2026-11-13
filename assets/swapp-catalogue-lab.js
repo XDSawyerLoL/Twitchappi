@@ -831,13 +831,17 @@ async function refreshLiveInventory(){
  }finally{state.liveRefreshing=false}
 }
 let liveRefreshTimer=0;
+function refreshWhenVisible(){
+ const view=root.closest?.('#home.view');
+ if(!view||view.classList.contains('active'))void refreshLiveInventory();
+}
 function installLiveRecheck(){
  if(liveRefreshTimer)return;
- liveRefreshTimer=setInterval(()=>{void refreshLiveInventory()},LIVE_RECHECK_MS);
+ liveRefreshTimer=setInterval(refreshWhenVisible,LIVE_RECHECK_MS);
 }
-document.addEventListener('visibilitychange',()=>{if(!document.hidden)void refreshLiveInventory()});
-window.addEventListener('online',()=>{void refreshLiveInventory()});
-window.addEventListener('pageshow',()=>{installLiveRecheck();void refreshLiveInventory()});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshWhenVisible()});
+window.addEventListener('online',refreshWhenVisible);
+window.addEventListener('pageshow',()=>{installLiveRecheck();refreshWhenVisible()});
 window.addEventListener('pagehide',()=>{
  if(liveRefreshTimer)clearInterval(liveRefreshTimer);
  liveRefreshTimer=0;
@@ -1005,5 +1009,14 @@ installRailHoverScroll();
 installRailEdgeHints();
 window.SwappCatalogueLab=Object.freeze({version:LAB_VERSION,load});
 installLiveRecheck();
-void load();
+const spaHome=root.closest?.('#home.view');
+if(spaHome){
+ const refreshWhenActive=()=>{
+  if(!spaHome.classList.contains('active'))return;
+  if(!state.liveLastCheck&&!state.loading)void load();
+  else refreshWhenVisible();
+ };
+ new MutationObserver(refreshWhenActive).observe(spaHome,{attributes:true,attributeFilter:['class']});
+ refreshWhenActive();
+}else void load();
 })();
