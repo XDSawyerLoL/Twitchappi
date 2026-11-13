@@ -1741,6 +1741,7 @@ const swappDiscordConnect=require('./modules/swapp-discord-connect').createDisco
  restoreSession:restoreOryonSessionFromRememberCookie,
  findOwner:getOryonUserByLogin,
  getOwnerById:id=>(readOryonUsers().users||[]).find(u=>String(u.id)===String(id))||null,
+ stateSecret:oauthSigningSecret,
  getVerifiedLive:(login,eventId)=>{
   try{return !!swappDiscordHlsProvider?.activeStreams().some(item=>
    item.media_verified===true&&item.login===login&&String(item.broadcast_id)===String(eventId));}
