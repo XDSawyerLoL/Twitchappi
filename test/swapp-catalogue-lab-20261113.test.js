@@ -88,7 +88,7 @@ test('no video preloading, only the explicit user preview path instantiates Twit
  assert.match(js,/url\.searchParams\.set\('parent',host\)/);
  assert.match(js,/const iframe=create\('iframe','scl-preview-frame'\)/);
  assert.doesNotMatch(lab.page(),/<iframe/);
- assert.match(js,/function stopPreview\(/);
+ assert.match(js,/const stopPreview=/);
  assert.match(js,/dialog\.addEventListener\('close'/);
  assert.match(js,/image\.onerror=/);
 });
