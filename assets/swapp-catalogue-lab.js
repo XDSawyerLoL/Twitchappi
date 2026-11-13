@@ -4,7 +4,7 @@
  */
 (function(){
 'use strict';
-const LAB_VERSION='20261113-lab-v1';
+const LAB_VERSION='20261113-cinema-v2';
 const API=Object.freeze({
  home:'/api/discovery/home-lives?limit=12&lang=fr',
  top:'/api/twitch/streams/top?limit=40&lang=fr',
@@ -172,8 +172,9 @@ const create=(tag,className,text)=>{
  if(text!==undefined)node.textContent=String(text);
  return node;
 };
-const state={lives:[],games:[],featured:null,filter:'all',query:'',loading:false,failed:[],previewTimer:0,abort:null};
+const state={lives:[],games:[],featured:null,filter:'all',query:'',loading:false,failed:[],previewTimer:0,abort:null,heroItems:[],heroIndex:0,heroTimer:null,hoverTimer:null,hoverIframe:null,hoverCard:null};
 const status=$('scl-status'),hero=$('scl-feature'),featureVisual=$('scl-feature-visual'),dialog=$('scl-dialog');
+const heroDots=$('scl-feature-dots');
 const visNode=item=>{
  const frame=create('div','scl-card-media');
  if(item.image){
@@ -232,6 +233,8 @@ function watch(item){if(!item||item.kind!=='live')return;window.location.assign(
 function feature(item){
  state.featured=item||null;
  featureVisual.style.backgroundImage=item?.image?'url("'+item.image+'")':'';
+ hero.dataset.kind=item?.kind||'empty';
+ hero.dataset.image=item?.image?'available':'missing';
  $('scl-feature-kicker').textContent=item?(item.kind==='live'?'EN DIRECT / '+(item.platform==='swapp'?'SWAPP':'TWITCH'):'UNIVERS À DÉCOUVRIR'):'CATALOGUE / SWAPP';
  $('scl-feature-title').textContent=item?(item.kind==='live'?item.name:item.game):'Trouver ton prochain live.';
  $('scl-feature-desc').textContent=item?(item.kind==='live'?(item.title+(item.game?' · '+item.game:'')):item.summary):
@@ -241,6 +244,49 @@ function feature(item){
  $('scl-feature-watch').disabled=!item;
  $('scl-feature-preview').disabled=!item||item.kind!=='live';
  $('scl-feature-details').disabled=!item;
+}
+/* Curated from current verified sources only. No autoplay of live media in the hero. */
+function setHeroItems(){
+ const order=[...state.lives.filter(x=>x.platform==='swapp'&&x.image).slice(0,2),
+  ...state.lives.filter(x=>x.image).slice(0,5),
+  ...state.games.filter(x=>x.image).slice(0,2)];
+ const seen=new Set();
+ state.heroItems=order.filter(x=>{
+  if(!x||seen.has(x.id))return false;
+  seen.add(x.id);return true;
+ }).slice(0,6);
+ if(!state.heroItems.length)state.heroItems=[...state.lives,...state.games].slice(0,6);
+ state.heroIndex=0;
+ showHero(0);
+}
+function showHero(index){
+ const total=state.heroItems.length;
+ if(!total){heroDots.replaceChildren();feature(null);return}
+ state.heroIndex=(index%total+total)%total;
+ const item=state.heroItems[state.heroIndex];
+ feature(item);
+ heroDots.replaceChildren();
+ for(let i=0;i<total;i++){
+  const dot=create('button','scl-feature-dot');
+  dot.type='button';
+  dot.setAttribute('aria-label','Afficher la sélection '+(i+1)+' sur '+total);
+  dot.setAttribute('aria-pressed',String(i===state.heroIndex));
+  dot.addEventListener('click',()=>showHero(i));
+  heroDots.append(dot);
+ }
+ $('scl-feature-prev').disabled=total<2;
+ $('scl-feature-next').disabled=total<2;
+}
+$('scl-feature-prev').addEventListener('click',()=>showHero(state.heroIndex-1));
+$('scl-feature-next').addEventListener('click',()=>showHero(state.heroIndex+1));
+const prefersLessMotion=()=>window.matchMedia?.('(prefers-reduced-motion: reduce)').matches||false;
+function startHeroRotation(){
+ if(state.heroTimer)clearInterval(state.heroTimer);
+ if(state.heroItems.length<2)return;
+ state.heroTimer=setInterval(()=>{
+  if(document.hidden||dialog.open||hero.matches(':hover')||hero.matches(':focus-within')||prefersLessMotion())return;
+  showHero(state.heroIndex+1);
+ },9500);
 }
 $('scl-feature-watch').addEventListener('click',()=>{const item=state.featured;if(!item)return;if(item.kind==='live')watch(item);else void showGameLives(item)});
 $('scl-feature-preview').addEventListener('click',()=>{if(state.featured?.kind==='live')preview(state.featured)});
@@ -417,8 +463,9 @@ async function load(){
  state.failed=results.map((result,i)=>result.status==='rejected'?Object.keys(API)[i]:null).filter(Boolean);
  state.lives=mergeLives(home,top);
  state.games=mergeGames(categories,state.lives);
- feature(state.lives[0]||state.games[0]||null);
+ setHeroItems();
  render();
+ startHeroRotation();
  status.replaceChildren();
  if(!state.lives.length&&!state.games.length){
   status.dataset.error='true';
