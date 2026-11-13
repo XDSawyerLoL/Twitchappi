@@ -206,6 +206,16 @@ function chooseSmallCommunities(main,discovered,backup,limit=12){
   selected.push(item);
   if(selected.length>=Math.max(1,Math.min(24,limit)))break;
  }
+ // When all verified small creators play the same game, show those real
+ // streams instead of leaving a rail artificially half-empty.
+ if(selected.length<Math.min(6,active.length,limit)){
+  const chosen=new Set(selected.map(x=>x.id));
+  for(const item of active){
+   if(chosen.has(item.id))continue;
+   selected.push(item);chosen.add(item.id);
+   if(selected.length>=Math.min(6,active.length,limit))break;
+  }
+ }
  return {items:selected,max};
 }
 function readFavorites(storage){
