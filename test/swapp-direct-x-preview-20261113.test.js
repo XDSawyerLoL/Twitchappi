@@ -32,6 +32,24 @@ test('first-party social image URL is HTTPS and image host validation blocks int
  assert.equal(preview.thumbnailSource({...article,trailerUrl:null,
   thumbnail:{url:'https://evil.example/vi/VQRLujxTm3c/hqdefault.jpg'}}),null);
 });
+test('published official editorial cover wins over the video thumbnail when a provider is approved',()=>{
+ const official='https://blog.playstation.com/tachyon/2026/11/official-artwork.jpg';
+ const withArt={...article,thumbnail:{url:official}};
+ assert.equal(preview.thumbnailSource(withArt),official);
+ assert.deepEqual(preview.thumbnailSources(withArt),[
+  official,'https://i.ytimg.com/vi/VQRLujxTm3c/hqdefault.jpg'
+ ]);
+ assert.equal(preview.allowedSource('https://storage.googleapis.com/gweb-uniblog-publish-prod/images/gemini.width-1300.jpg'),
+  'https://storage.googleapis.com/gweb-uniblog-publish-prod/images/gemini.width-1300.jpg');
+ assert.equal(preview.allowedSource('https://blogs.nvidia.com/wp-content/uploads/2026/11/photo.jpeg'),
+  'https://blogs.nvidia.com/wp-content/uploads/2026/11/photo.jpeg');
+ for(const link of ['http://blog.playstation.com/tachyon/2026/11/image.jpg',
+  'https://blog.playstation.com.evil.example/tachyon/2026/11/image.jpg',
+  'https://storage.googleapis.com/untrusted-user-bucket/private.jpg',
+  'https://blogs.nvidia.com/account/login',
+  'https://blog.playstation.com/tachyon/2026/11/image.jpg?redirect=http://localhost'])
+  assert.equal(preview.allowedSource(link),null);
+});
 test('no image can still result in an article-specific valid 1200x630 PNG',()=>{
  const png=preview.brandedPng({...article,trailerUrl:null});
  assert.ok(Buffer.isBuffer(png));
