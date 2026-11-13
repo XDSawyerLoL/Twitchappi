@@ -19,6 +19,13 @@
   details.append(summary,panel);
   details.addEventListener('toggle',()=>{appearanceOpened=details.open});
   menu.append(details);
+  // Account-level integration: optional, no Discord login required for SWAPP.
+  const discord=document.createElement('a');
+  discord.href='/discord';
+  discord.className='swapp-account-discord';
+  discord.textContent='Discord Connect';
+  discord.setAttribute('aria-label','Lier Discord et choisir les annonces de live');
+  menu.append(discord);
   // A collapsed control inside the existing account menu, never a new page block.
   const tastes=window.SwappLocalTastes;
   if(tastes){

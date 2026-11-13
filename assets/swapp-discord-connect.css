@@ -1,0 +1,26 @@
+/* Discord Connect — compact SWAPP creator workspace, no Discord iframe. */
+:root{color-scheme:dark;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#080c14;color:#e7f0fc}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 70% 0,#16293a 0,transparent 48%),#080c14;min-height:100vh}
+a{color:#93e6e1}.sdc-main{max-width:990px;margin:0 auto;padding:26px clamp(18px,4vw,44px) 72px}
+nav{display:flex;justify-content:space-between;gap:20px}nav a{font-size:13px;font-weight:750;text-decoration:none;letter-spacing:.04em}
+header{margin:70px 0 42px}header small{font-size:12px;letter-spacing:.2em;font-weight:800;color:#6bdfd7}
+h1{font-size:clamp(42px,7vw,73px);line-height:1.05;letter-spacing:-.055em;margin:18px 0}
+h2{margin:0 0 16px;font-size:21px;letter-spacing:-.02em}
+p{color:#afbece;line-height:1.6}header p{max-width:760px;font-size:18px}
+.sdc-panel{border:1px solid #273748;background:#0f1824d9;border-radius:17px;padding:26px;margin-bottom:18px;box-shadow:0 12px 40px #0003}
+#sdc-status{min-height:40px;color:#aedcd9;margin-bottom:12px}
+.sdc-primary,button.sdc-action{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:11px 18px;background:#366e76;border:1px solid #4cb8b9;border-radius:9px;text-decoration:none;color:#f2fefe;font:750 14px/1.2 inherit;cursor:pointer}
+.sdc-primary:hover,button.sdc-action:hover{background:#43888d}
+button{cursor:pointer;border-radius:8px;padding:10px 13px;background:#21303c;color:#e4ecf5;border:1px solid #405363;font-weight:700}
+button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid #62e5df;outline-offset:3px}
+#sdc-unlink{margin-left:12px;background:transparent}
+.sdc-guild{border:1px solid #293d4d;padding:18px;border-radius:12px;margin-top:12px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;align-items:center}
+.sdc-guild strong{display:block;font-size:17px;margin-bottom:7px}.sdc-guild small{color:#9eb4c6}
+.sdc-guild-controls{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.sdc-guild-controls label{display:inline-flex;align-items:center;gap:6px;font-size:13px}
+.sdc-guild-controls input{accent-color:#4bd0c8}
+.sdc-account{display:flex;gap:14px;align-items:center;margin-bottom:18px}
+.sdc-account img{height:48px;width:48px;border-radius:50%;object-fit:cover}
+[hidden]{display:none!important}@media(max-width:650px){.sdc-main{padding:20px 16px}header{margin-top:48px}.sdc-panel{padding:18px}.sdc-guild{align-items:stretch;flex-direction:column}}
+.sdc-invite{width:min(250px,100%);min-height:39px;padding:8px;border:1px solid #496078;
+ border-radius:8px;background:#0c1621;color:#f3faff;font:600 12px system-ui,sans-serif}
