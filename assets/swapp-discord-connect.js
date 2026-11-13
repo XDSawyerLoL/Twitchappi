@@ -4,8 +4,10 @@
  const btnAccount=el('sdc-connect'),btnAdd=el('sdc-add'),btnRemove=el('sdc-unlink');
  const identity=el('sdc-identity'),servers=el('sdc-servers');
  const query=new URLSearchParams(location.search);
- if(query.has('error'))msg('Discord n’a pas pu être lié : '+String(query.get('error')).slice(0,70));
- else if(query.has('connected'))msg('Autorisation Discord enregistrée.');
+ const oauthError=query.has('error')?'Discord n’a pas pu être lié : '+String(query.get('error')).slice(0,70):'';
+ const oauthSuccess=query.has('connected')?'Autorisation Discord enregistrée. ':'';
+ if(oauthError)msg(oauthError);
+ else if(oauthSuccess)msg(oauthSuccess);
  function node(tag,cls,label){
   const e=document.createElement(tag);if(cls)e.className=cls;
   if(label!==undefined)e.textContent=label;
@@ -66,7 +68,7 @@
    controls.append(announcement.wrapper,listed.wrapper,remove);
    item.append(details,controls);servers.append(item);
   });
-  msg(state.communities.length+' serveur(s) connecté(s). Les annonces nécessitent un flux SWAPP réellement en direct.');
+  msg(oauthError||oauthSuccess+state.communities.length+' serveur(s) connecté(s). Les annonces nécessitent un flux SWAPP réellement en direct.');
  }
  btnRemove.addEventListener('click',async()=>{
   if(!confirm('Déconnecter Discord et supprimer tous les serveurs liés à SWAPP ?'))return;
