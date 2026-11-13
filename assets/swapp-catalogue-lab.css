@@ -106,3 +106,12 @@ body.swapp-catalogue-lab-page a{color:inherit}
 @media(max-width:950px){.scl-shell{display:block}.scl-side{position:relative;top:auto;width:auto;height:auto;flex-direction:row;gap:8px;align-items:center;padding:12px 4%;overflow-x:auto;border-right:0;border-bottom:1px solid var(--scl-line);scrollbar-width:none}.scl-side-brand,.scl-side-back{display:none}.scl-side-link{flex:none;padding:8px 12px;min-height:37px;white-space:nowrap;font-size:12px}.scl-main{padding-top:18px}}
 @media(max-width:650px){.scl-topline{align-items:stretch;flex-direction:column;gap:13px}.scl-search{width:100%}.scl-feature{height:450px;border-radius:14px}.scl-feature-copy{max-width:100%;padding:23px;justify-content:end}.scl-feature-visual:after{background:linear-gradient(0deg,#0b1019 0%,#0b1019ed 37%,#0b101966 75%,#0b10191a 100%)}.scl-feature h1{font-size:33px}.scl-feature p{font-size:13px}.scl-actions{gap:7px}.scl-btn{min-height:42px;font-size:12px;padding:9px 13px}.scl-card{flex-basis:min(79vw,315px)}.scl-cards-games .scl-card{flex-basis:min(54vw,215px)}.scl-rail-head h2{font-size:20px}.scl-rail{margin-bottom:22px}.scl-dialog-body{padding:18px}.scl-topline{margin-bottom:16px}#mobileNav.mobileNav>a{font-size:clamp(9px,2.35vw,11px)!important}#mobileNav.mobileNav>a[href="/categories"]{letter-spacing:-.06em!important}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.scl-card,.scl-card-media img,.scl-side-link,.scl-feature-visual{transition:none}.scl-card:hover{transform:none}.scl-card:hover .scl-card-media img{transform:none}}
+
+
+/* Fav shelf can contain games and currently-live channels. Portrait game art
+ * retains its real cover aspect ratio; live thumbnails stay widescreen. */
+.scl-cards-favorites .scl-card[data-kind="game"]{flex-basis:clamp(165px,16vw,225px)}
+.scl-cards-favorites .scl-card[data-kind="game"] .scl-card-media{aspect-ratio:3/4}
+.scl-cards-favorites .scl-card[data-kind="game"] .scl-card-details{min-height:136px}
+.scl-channel-fav{flex:0 0 36px!important;font-size:19px!important;padding:5px!important;line-height:1!important}
+.scl-channel-fav[aria-pressed="true"]{border-color:#76d9d7!important;color:#77e7dc!important;background:#193b3d!important}
