@@ -2,8 +2,41 @@
   "schema": 1,
   "kind": "swapp-editorial-signals",
   "method": "Brèves rédigées à partir de sources primaires, avec revendication, intérêt et limites distincts. Ne jamais convertir automatiquement un RSS en brève vérifiée.",
-  "updatedAt": "2026-11-13T10:57:01Z",
+  "updatedAt": "2026-11-13T16:59:44Z",
   "items": [
+    {
+      "id": "ps5-qssr-nouvelle-vague-spider-man-2-20261113",
+      "topics": [
+        "GAMING",
+        "AI"
+      ],
+      "title": "QSSR arrive dans Spider-Man 2 sur PS5, d’autres jeux suivront",
+      "fact": "Le 13 novembre, Sony annonce QSSR déjà disponible dans Spider-Man 2 sur PS5. Control Resonant suivra en décembre ; ARC Raiders, The Finals, No Man’s Sky et Hell Let Loose: Vietnam sont également annoncés.",
+      "impact": "Les possesseurs de PS5 pourront bénéficier de cette reconstruction d’image dans davantage de jeux, au fil des mises à jour propres à chacun.",
+      "caveat": "Les gains visuels sont des déclarations des développeurs, sans mesures indépendantes ici. Les six mises à jour ne sont pas toutes disponibles et QSSR avait déjà été présenté en octobre.",
+      "sourceName": "Sony Interactive Entertainment / PlayStation.Blog",
+      "sourceUrl": "https://blog.playstation.com/2026/11/13/qssr-arrives-in-marvels-spider-man-2-control-resonant-the-finals-arc-raiders-and-hell-let-loose-vietnam/",
+      "sourceDate": "2026-11-13",
+      "reviewedAt": "2026-11-13T16:59:44Z",
+      "imageUrl": "https://blog.playstation.com/tachyon/2026/11/84a6eb5f0831acb87ad7b548df366dcf10547aaf-scaled.jpg",
+      "imageCredit": "Remedy Entertainment / Sony Interactive Entertainment · Control Resonant, illustration officielle de l’annonce QSSR"
+    },
+    {
+      "id": "guild-saga-vanished-worlds-ps5-mai-2027-20261113",
+      "topics": [
+        "GAMING"
+      ],
+      "title": "Guild Saga: Vanished Worlds annonce son arrivée sur PS5 en mai 2027",
+      "fact": "Ocelot Technologies annonce le 13 novembre que son RPG tactique au tour par tour Guild Saga: Vanished Worlds arrivera sur PS5 en mai 2027.",
+      "impact": "Le portage ouvrira cette aventure et sa composition d’équipe personnalisable aux joueurs PS5.",
+      "caveat": "Il s’agit d’une fenêtre annoncée : aucun jour précis, prix français ou détail régional n’est confirmé dans ce billet. Ce n’est pas une sortie disponible aujourd’hui.",
+      "sourceName": "Ocelot Technologies / PlayStation.Blog",
+      "sourceUrl": "https://blog.playstation.com/2026/11/13/guild-saga-vanished-worlds-brings-tactical-adventure-to-ps5-in-may-2027/",
+      "sourceDate": "2026-11-13",
+      "reviewedAt": "2026-11-13T16:59:44Z",
+      "imageUrl": "https://blog.playstation.com/tachyon/2026/11/b76ffd50c3d63cbe3bcbf54cd2965dceb1a4e8b5.png",
+      "imageCredit": "Ocelot Technologies / PlayStation.Blog · Guild Saga: Vanished Worlds"
+    },
     {
       "id": "once-human-s5-colossus-gameplay-20261112",
       "topics": [
