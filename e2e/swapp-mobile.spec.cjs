@@ -95,7 +95,7 @@ test('Découvrir keeps the live cover readable and the Watch action easy to tap'
 
 
 test('iPhone account S popup stays above the homepage hero',async({page},testInfo)=>{
- await page.goto(ORIGIN+'/?classic=1',{waitUntil:'domcontentloaded'});
+ await page.goto(ORIGIN+'/categories',{waitUntil:'domcontentloaded'});
  const trigger=page.locator('#userBtn');
  await expect(trigger).toBeVisible();
  await trigger.click();
