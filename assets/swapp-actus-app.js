@@ -235,6 +235,11 @@ function renderFeaturedActusHero(host,articles){
  actions.append(read,discover);
  root.append(link,actions);
  host.replaceChildren(root);
+ // Preserve the former homepage's official muted trailer when the published
+ // article supplies one; the shared helper is desktop-only and cleans up on
+ // view change. The poster remains the guaranteed fallback.
+ if(pictures.length&&featured.trailerUrl)
+  window.SwappHomeMotion?.attach?.(link,featured);
  return root;
 }
 async function showList(node){
