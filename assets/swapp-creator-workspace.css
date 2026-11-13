@@ -378,3 +378,27 @@
  #settings .swapp-auth-single.authCard{width:100%;padding:18px 16px!important}
  #settings .swapp-auth-tabs button{font-size:12px}
 }
+
+/* Discord belongs to the authenticated /compte dashboard, not the main menu. */
+#settings .swapp-acct-discord-integration{
+ display:flex;align-items:center;flex-wrap:wrap;gap:10px 20px;
+ margin-top:20px;padding:18px 20px;
+ border:1px solid rgba(111,163,212,.3);border-radius:14px;
+ background:linear-gradient(135deg,rgba(74,101,166,.15),rgba(25,35,53,.35));
+}
+#settings .swapp-acct-discord-integration h3{flex:1 1 100%;margin:0;font-size:18px;color:#f4f8ff}
+#settings .swapp-acct-discord-integration p{flex:1 1 320px;margin:0;color:#bfcdde;font-size:13px;line-height:1.55}
+#settings .swapp-acct-discord-link{
+ display:inline-flex;align-items:center;justify-content:center;min-height:42px;
+ padding:10px 16px;border-radius:10px;border:1px solid rgba(128,205,241,.5);
+ color:#e9faff;background:rgba(58,107,150,.22);text-decoration:none;
+ font-size:13px;font-weight:800;white-space:nowrap;
+}
+#settings .swapp-acct-discord-link:hover{background:rgba(69,142,191,.32)}
+#settings .swapp-acct-discord-link:focus-visible{outline:2px solid #6ce6f2;outline-offset:3px}
+@media(max-width:600px){
+ #settings .swapp-acct-discord-integration{padding:16px;flex-direction:column;align-items:stretch}
+ #settings .swapp-acct-discord-integration h3{flex:auto}
+ #settings .swapp-acct-discord-integration p{flex:auto}
+ #settings .swapp-acct-discord-link{width:100%}
+}
