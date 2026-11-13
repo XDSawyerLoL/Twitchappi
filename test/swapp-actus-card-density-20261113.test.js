@@ -74,6 +74,6 @@ test('responsive modes are scoped to listing cards and keep the article reader i
  assert.match(css,/orientation:portrait/);
  assert.doesNotMatch(css,/\.swapp-actus-article\[data-card-size=/);
  assert.match(js,/layoutTools\.append\(count,sizeLabel,sizeControl\)/);
- assert.match(html,/swapp-actus-app\.js\?v=20261113-card-density-v1/);
- assert.match(html,/swapp-actus-app\.css\?v=20261113-card-density-v1/);
+ assert.match(html,/swapp-actus-app\.js\?v=20261113-inline-share-v1/);
+ assert.match(html,/swapp-actus-app\.css\?v=20261113-inline-share-v1/);
 });
