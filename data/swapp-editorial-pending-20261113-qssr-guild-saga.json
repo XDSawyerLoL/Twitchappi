@@ -1,0 +1,78 @@
+{
+  "kind": "swapp-editorial-pending",
+  "schema": 1,
+  "source": "Veille SWAPP — annonce primaire PlayStation consultée le 13 novembre 2026",
+  "createdAt": "2026-11-13T16:58:21Z",
+  "updatedAt": "2026-11-13T16:59:44Z",
+  "publicationPolicy": "Brouillon éditorial hors manifeste. Ne promouvoir vers une release native qu’après validation du lecteur officiel et rapprochement du catalogue public/Studio. Respecter MySQL et les dépublications existantes.",
+  "articles": [
+    {
+      "slug": "ps5-qssr-spider-man-2-control-resonant-nouvelle-vague",
+      "title": "QSSR sur PS5 : Spider-Man 2 ouvre une nouvelle vague de mises à jour",
+      "summary": "Sony étend sa reconstruction d’image à plusieurs jeux PS5. Spider-Man 2 est annoncé comme déjà mis à jour ; les autres titres suivront selon des calendriers distincts.",
+      "body": "La nouvelle étape de QSSR concerne les jeux qui l’adoptent. Dans son annonce du 13 novembre 2026, Sony confirme l’arrivée de cette reconstruction d’image guidée par l’IA dans une nouvelle sélection PS5. La technologie avait été présentée en octobre : le fait nouveau est son déploiement titre par titre.\n\n## Les disponibilités confirmées par les développeurs\n\nInsomniac annonce la mise à jour de Marvel’s Spider-Man 2 déjà disponible, dans les modes Fidélité et Performance. Remedy vise décembre pour Control Resonant. No Man’s Sky doit suivre dans les prochaines semaines ; ARC Raiders, The Finals et Hell Let Loose: Vietnam recevront également des mises à jour, sans jour précis communiqué.\n\nSony rattache QSSR aux travaux menés avec AMD dans Project Amethyst. La technologie partage une base et une interface avec PSSR sur PS5 Pro. Cela ne permet pas de conclure que les résultats seront identiques entre les deux consoles.\n\n## Notre analyse : la valeur se mesurera en mouvement\n\nPour le joueur, l’intérêt d’une reconstruction d’image ne se réduit pas à une capture plus nette. Il faudra notamment observer les contours pendant les déplacements, la lisibilité des objets éloignés et la manière dont les détails se maintiennent lorsque la caméra tourne. Un arrêt sur image peut faire ressortir un avantage tout en laissant de côté des défauts qui apparaissent uniquement en mouvement.\n\nC’est aussi pour cela qu’une liste de jeux compatibles ne constitue pas un classement de leur qualité technique. Chaque moteur, chaque scène et chaque mode graphique imposent un contexte différent. Une amélioration convaincante dans un jeu ne suffit pas à prévoir celle d’un autre.\n\nLa comparaison officielle associée au dossier concerne Control Resonant. Il s’agit d’une démonstration de l’éditeur, pas d’un test SWAPP. Les promesses de netteté et de stabilité doivent rester attribuées aux équipes ; nous ne leur associons aucun gain chiffré d’images par seconde.\n\n## Comment comparer sans changer tous ses réglages\n\nPour apprécier une mise à jour, le plus utile sera de conserver le même mode graphique, le même écran et une scène aussi proche que possible. Passer simultanément d’un mode à l’autre compliquerait l’interprétation : une différence de fluidité ou de finesse pourrait alors provenir d’un autre réglage.\n\nLes joueurs satisfaits de leur configuration actuelle n’ont pas besoin de déduire de cette annonce une obligation de changer de console. Le sujet est l’évolution annoncée des versions PS5 des jeux concernés. La décision de modifier ses réglages peut attendre une comparaison dans ses propres conditions de jeu.\n\n## Avant de relancer un jeu\n\nVérifiez la version installée et les notes du développeur correspondant au titre choisi. La présence d’un jeu dans l’annonce ne signifie pas que son correctif est déjà téléchargeable. Aucun horaire particulier pour la France n’est donné dans le billet consulté. Nous ne présumons donc pas d’un déploiement simultané dans toutes les régions.",
+      "game": "PlayStation 5",
+      "games": [
+        "Marvel’s Spider-Man 2",
+        "Control Resonant",
+        "ARC Raiders",
+        "The Finals",
+        "No Man’s Sky",
+        "Hell Let Loose: Vietnam"
+      ],
+      "tags": [
+        "GAMING",
+        "AI",
+        "PS5",
+        "QSSR"
+      ],
+      "seo": {
+        "title": "QSSR sur PS5 : Spider-Man 2 disponible, les prochains jeux",
+        "description": "Sony précise la nouvelle vague QSSR sur PS5 : Spider-Man 2 déjà mis à jour, Control Resonant en décembre et d’autres titres à venir."
+      },
+      "author": "Rédaction SWAPP",
+      "category": "Actualités JV",
+      "contentType": "article",
+      "status": "draft",
+      "publishedAt": null,
+      "trailerUrl": "https://www.youtube.com/watch?v=JYEQkLnlV7o",
+      "thumbnail": null,
+      "image": null,
+      "commercialLinks": [],
+      "sources": [
+        {
+          "label": "Sony Interactive Entertainment — annonce officielle du 13 novembre 2026",
+          "url": "https://blog.playstation.com/2026/11/13/qssr-arrives-in-marvels-spider-man-2-control-resonant-the-finals-arc-raiders-and-hell-let-loose-vietnam/"
+        }
+      ],
+      "qualityGate": {
+        "officialVideoIdentified": true,
+        "officialEmbeddedPlayerObserved": true,
+        "videoEmbeddabilityVerified": false,
+        "videoPlaybackVerified": false,
+        "thumbnailVisualChecked": true,
+        "officialLeadImageVisualChecked": true,
+        "repositoryDedupVerified": true,
+        "studioDedupVerified": false,
+        "productionVerified": false,
+        "readyForPublish": false
+      },
+      "notes": "Source primaire consultée intégralement le 13 novembre 2026 à 16:52 UTC puis dans le navigateur. Date originale article:published_time=2026-11-13T06:00:16-08:00. Lecteur intégré de la vidéo JYEQkLnlV7o : titre Control Resonant QSSR et chaîne PlayStation observés ; après activation le lecteur reste à 0:00/0:26 avec chargement. Métadonnées YouTube oEmbed et miniature hqdefault consultées à 16:57 UTC. Miniature visuellement contrôlée : comparaison QSSR off/on du bon jeu. Ne pas déclarer la lecture fonctionnelle. image/thumbnail laissés nuls pour utiliser cardImageSources et la miniature YouTube distante lors d’une future release conforme. Annonce portant sur la technologie de plateforme et plusieurs jeux : aucun lien affilié de substitution. Contrôles publics SWAPP et état Studio/MySQL impossibles sous HTTP 403. Hors manifeste jusqu’à validation complète."
+    }
+  ],
+  "candidates": [
+    {
+      "eventKey": "guild-saga-vanished-worlds:ps5-may2027:2026-11-13",
+      "sourceUrl": "https://blog.playstation.com/2026/11/13/guild-saga-vanished-worlds-brings-tactical-adventure-to-ps5-in-may-2027/",
+      "sourceDate": "2026-11-13",
+      "sourcePublishedAt": "2026-11-13T13:01:11Z",
+      "status": "verified_signal_prepared_longform_not_ready",
+      "trailerUrl": "https://www.youtube.com/watch?v=pbKZ3IzvB4Q",
+      "videoVerification": "Vidéo identifiée dans la page primaire ; lecture, chaîne et intégrabilité pas encore contrôlées.",
+      "imageUrl": "https://blog.playstation.com/tachyon/2026/11/b76ffd50c3d63cbe3bcbf54cd2965dceb1a4e8b5.png",
+      "imageCredit": "Ocelot Technologies / PlayStation.Blog · Guild Saga: Vanished Worlds",
+      "reviewedAt": "2026-11-13T16:58:21Z",
+      "publicationVerified": false
+    }
+  ]
+}
