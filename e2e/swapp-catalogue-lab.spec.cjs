@@ -26,7 +26,7 @@ async function open(page){
 test('real shelves, hover preview, modal and game-follow flow work without leaving SWAPP',async({page})=>{
  await open(page);
  await expect(page.locator('#scl-feature-title')).toContainText('Swapper 123');
- await expect(page.locator('#scl-feature-dots button')).toHaveCount(2);
+ await expect(page.locator('#scl-feature-dots button')).toHaveCount(4);
  await page.locator('#scl-live-cards .scl-card').nth(1).hover();
  await expect(page.locator('#scl-feature-title')).toContainText('Swapper 123'); // cards no longer hijack the main banner
  await expect(page.locator('#scl-live-cards .scl-card').nth(1).locator('.scl-card-action-row')).toBeVisible();
@@ -34,6 +34,7 @@ test('real shelves, hover preview, modal and game-follow flow work without leavi
  await expect(page.locator('#scl-feature-title')).toContainText('Player One');
  await page.locator('#scl-feature-prev').click();
  await expect(page.locator('#scl-feature-title')).toContainText('Swapper 123');
+ await page.locator('#scl-feature-next').click();
  await page.locator('#scl-feature-preview').click();
  await expect(page.locator('#scl-dialog')).toBeVisible();
  await expect(page.locator('iframe.scl-preview-frame')).toHaveAttribute('src',/player\.twitch\.tv.*channel=playerone.*muted=true/);
