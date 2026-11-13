@@ -637,26 +637,54 @@ function updateRotationBar(now=Date.now()){
  track.setAttribute('aria-valuetext',remaining===0?'Relais en cours':'Prochain contrôle dans '+remaining+' secondes');
  fill.style.width=(100*elapsedSeconds/TV_SLOT_SECONDS).toFixed(1)+'%';
 }
-async function init(){
- // Loading ACTUS must never postpone the first native or scheduled TV signal.
- const editorial=api('/api/actus').catch(()=>({articles:[]}));
- try{
-  await refreshQueue();
-  updateRotationBar();
-  const data=await editorial;
-  state.games=gamesFrom(data);
-  const select=$('stv-game');select.replaceChildren();
-  for(const g of state.games){const o=by('option',null,g);o.value=g;select.append(o)}
-  if(!state.games.length){const o=by('option',null,'Aucun jeu éditorial disponible');o.value='';select.append(o)}
-  if(state.queue)renderQueue(state.queue);
-  if(!state.queueMode)await discovery();
-  setInterval(refreshQueue,15000);
-  setInterval(async()=>{if(!state.queueMode){await discovery()}},180000);
- }catch(e){
-  setText('stv-stage-status','Programmation indisponible pour le moment.');
-  setText('stv-queue-status','Les données éditoriales sont indisponibles.');
-  $('stv-join').disabled=true;
+function explainEmptyStation(){
+ // No invented streamer, no invisible stalled spinner. Any real live found
+ // by the next refresh still autostarts unless the viewer clicked Stop.
+ if(state.autoStartPending&&!state.selection&&!state.consent){
+  setText('stv-stage-status',
+   'Aucun direct disponible pour le moment. Recherche automatique de vrais lives en cours…');
  }
 }
-init();
+let stationRefreshing=false;
+async function refreshStation(){
+ if(stationRefreshing)return;
+ stationRefreshing=true;
+ try{
+  await refreshQueue();
+  if(state.autoStartPending&&!state.queueMode)await discovery();
+  explainEmptyStation();
+ }finally{stationRefreshing=false}
+}
+async function init(){
+ // Previous boot awaited queue + ACTUS before looking for even one streamer:
+ // a slow MySQL queue or editorial endpoint could leave the screen blank.
+ // Start independent actual-live discovery IMMEDIATELY, concurrently with
+ // native HLS and the director. First valid source autoplays muted.
+ const editorial=api('/api/actus').catch(()=>({articles:[]}));
+ const bootQueue=refreshQueue();
+ const bootDiscovery=discovery();
+ // Periodic retries are installed before any external API resolves. A
+ // temporarily unavailable provider is never a permanent black screen.
+ setInterval(()=>{void refreshStation().catch(()=>{})},30000);
+ setInterval(()=>{if(!state.queueMode)void discovery().catch(()=>{})},180000);
+ const outcome=await Promise.allSettled([bootQueue,bootDiscovery]);
+ updateRotationBar();
+ explainEmptyStation();
+ // ACTUS is optional content for later game-specific discovery; its failure
+ // must never disable the TV station or cancel the automatic playback.
+ const data=await editorial;
+ state.games=gamesFrom(data);
+ const select=$('stv-game');select.replaceChildren();
+ for(const g of state.games){const o=by('option',null,g);o.value=g;select.append(o)}
+ if(!state.games.length){const o=by('option',null,'Aucun jeu éditorial disponible');o.value='';select.append(o)}
+ if(state.queue)renderQueue(state.queue);
+ if(!state.queueMode&&!state.consent&&state.games.length)void discovery().catch(()=>{});
+ // If a provider failed during first paint, the periodic retry will recover.
+ if(outcome.every(result=>result.status==='rejected'))explainEmptyStation();
+}
+void init().catch(error=>{
+ // Show an actual diagnostic; do not leave an infinite "Connexion…" state.
+ console.warn('[SWAPP TV] Startup:',String(error?.message||error).slice(0,140));
+ explainEmptyStation();
+});
 })();
