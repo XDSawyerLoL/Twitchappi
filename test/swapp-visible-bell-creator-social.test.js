@@ -78,8 +78,8 @@ test('Bell remains visible even when Push configuration is unavailable, without 
  assert.doesNotMatch(actions,/new WebSocket|new Hls/);
 });
 test('Resources are included in the channel route with versions and without touching live dimensions',()=>{
- assert.match(html,/swapp-creator-social-shortcuts\.css\?v=20261026-social-shortcuts-v1/);
- assert.match(html,/swapp-creator-social-shortcuts\.js\?v=20261026-social-shortcuts-v1/);
+ assert.match(html,/swapp-creator-social-shortcuts\.css\?v=20261113-discord-v1/);
+ assert.match(html,/swapp-creator-social-shortcuts\.js\?v=20261113-discord-v1/);
  assert.match(html,/swapp-live-alert-bell\.js\?v=20261026-bell-visible-v3/);
  assert.match(html,/swapp-live-viewer-actions\.js\?v=20261026-bell-owner-v2/);
  assert.ok(html.indexOf('swapp-creator-social-shortcuts.js')>html.indexOf('swapp-live-viewer-actions.js'));
