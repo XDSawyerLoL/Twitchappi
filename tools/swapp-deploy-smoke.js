@@ -84,7 +84,7 @@ async function verify(){
  check(passageWatch.body.includes('data-swapp-handoff-platform="twitch"')&&
   passageWatch.body.includes('swapp-live-handoff.js?v=20261105-collective-v2'),
   'SWAPP Twitch page lacks same-game handoff');
- const passageHome=await request(origin,'/?classic=1');
+ const passageHome=await request(origin,'/categories');
  check(passageHome.body.includes('swapp-live-handoff.js?v=20261105-collective-v2'),
   'SWAPP native channel shell lacks same-game handoff');
  process.stdout.write('PASS SWAPP PASSAGE same-game handoff assets and routes\\n');
@@ -262,12 +262,13 @@ async function verify(){
    'New Steam-only layout stylesheet has not deployed');
  process.stdout.write('PASS SWAPP Boutique ten Steam games only; catalog drafts remain private to editor\n');
  // The public root is now the cinematic catalogue; the original SPA
- // remains reachable at ?classic=1 for emergency rollback and legacy journeys.
+ // the SPA remains reachable on /categories for creator and account journeys.
  const publicHome=await request(origin,'/');
  check(publicHome.body.includes('id="swapp-catalogue-lab"')&&
   publicHome.body.includes('swapp-catalogue-lab.js?v=20261113-x-share-edge-hints-v7')&&
   publicHome.body.includes('rel="canonical" href="https://swapp.tv/"')&&
-  !publicHome.body.includes('name="robots" content="noindex'),
+  !publicHome.body.includes('name="robots" content="noindex')&&
+  !publicHome.body.includes('Ancien accueil')&&!publicHome.body.includes('/?classic=1'),
   'SWAPP / is not the canonical cinematic homepage');
  const labHome=await request(origin,'/catalogue-test');
  check(labHome.body.includes('id="swapp-catalogue-lab"')&&
@@ -282,7 +283,7 @@ async function verify(){
   publicActusJs.body.includes('swapp-home-hero-feature'),
   'Former homepage featured article was not moved to ACTUS');
  // Legacy SPA assets are still checked against their original shell.
- const home=await request(origin,'/?classic=1');
+ const home=await request(origin,'/categories');
  // All articles share a single immersive scene: own game trailer when one
  // exists, animated poster otherwise. Google CMP remains for AdSense only.
  check(home.body.includes('swapp-article-trailer-bg.js?v=20261019-no-pause-v7'),
