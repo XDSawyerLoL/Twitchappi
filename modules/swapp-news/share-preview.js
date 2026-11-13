@@ -128,22 +128,36 @@ function brandedPng(article){
 async function deliverPreview(article,res,fetchImpl=globalThis.fetch){
  const source=thumbnailSource(article);
  if(source&&typeof fetchImpl==='function'){
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),4000);
   try{
-   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),4000);
-   let response;
-   try{response=await fetchImpl(source,{redirect:'error',signal:controller.signal,headers:{Accept:'image/jpeg'}});}
-   finally{clearTimeout(timer);}
+   const response=await fetchImpl(source,{
+    redirect:'error',signal:controller.signal,headers:{Accept:'image/jpeg'}
+   });
    if(response?.ok&&/^image\/jpeg(?:;|$)/i.test(response.headers.get('content-type')||'')){
-    const size=Number(response.headers.get('content-length')||0);
-    if(size>=0&&size<4500000){
-     const buffer=Buffer.from(await response.arrayBuffer());
-     if(buffer.length>1500&&buffer.length<4500000&&buffer[0]===255&&buffer[1]===216){
-      return res.set('Cache-Control','public, max-age=900').set('X-Content-Type-Options','nosniff').type('jpeg').send(buffer);
+    const maximum=4500000,size=Number(response.headers.get('content-length')||0);
+    if(Number.isFinite(size)&&size>=0&&size<maximum&&response.body?.getReader){
+     const reader=response.body.getReader(),parts=[];let count=0,invalid=false;
+     try{
+      while(true){
+       const item=await reader.read();
+       if(item.done)break;
+       count+=item.value.byteLength;
+       if(count>=maximum){invalid=true;controller.abort();break}
+       parts.push(Buffer.from(item.value));
+      }
+     }finally{try{await reader.cancel()}catch(_){}}
+     if(!invalid){
+      const buffer=Buffer.concat(parts,count);
+      if(buffer.length>1500&&buffer[0]===255&&buffer[1]===216)
+       return res.set('Cache-Control','public, max-age=60')
+        .set('X-Content-Type-Options','nosniff').type('jpeg').send(buffer);
      }
     }
    }
-  }catch(_){/* Image fetch can fail. A first-party article-specific PNG is still served. */}
+  }catch(_){/* A branded per-article image remains available without paid services. */}
+  finally{clearTimeout(timer)}
  }
- return res.set('Cache-Control','public, max-age=900').set('X-Content-Type-Options','nosniff').type('png').send(brandedPng(article));
+ return res.set('Cache-Control','public, max-age=60')
+  .set('X-Content-Type-Options','nosniff').type('png').send(brandedPng(article));
 }
 module.exports={SLUG,xShareUrl,previewUrl,thumbnailSource,brandedPng,deliverPreview};
