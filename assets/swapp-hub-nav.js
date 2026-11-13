@@ -10,16 +10,16 @@
   {href:'/tv',label:'SWAPP TV'}
  ];
  const NAV=[
-  ['/', 'Accueil'],['/decouvrir','SWAPER'],['/categories','DÉCOUVRIR'],
-  ['/actus','Actualité'],
+  ['/','Accueil'],['/categories','Découvrir'],['/actus','Actualité'],
   ...HUBS.map(x=>[x.href,x.label])
  ];
  // Account lives in the secondary menu but must still be recognized by
  // reconciliation; otherwise every MutationObserver pass adds another link.
  const ACCOUNT=['/compte','Compte'];
+ const SECONDARY=['/decouvrir','Swapper'];
  const norm=s=>String(s||'').replace(/\s+/g,' ').trim().toLocaleLowerCase('fr');
- const byLabel=new Map([...NAV,ACCOUNT,['/decouvrir','DIRECT'],['/categories','Jeux & catégories'],['/categories','Catégories']].map(([href,label])=>[norm(label),href]));
- const byHref=new Set([...NAV,ACCOUNT].map(([href])=>href));
+ const byLabel=new Map([...NAV,ACCOUNT,SECONDARY,['/decouvrir','DIRECT'],['/categories','Jeux & catégories'],['/categories','Catégories']].map(([href,label])=>[norm(label),href]));
+ const byHref=new Set([...NAV,ACCOUNT,SECONDARY].map(([href])=>href));
  const isHub=href=>HUBS.some(x=>x.href===href);
  function dest(el){
   const href=el.getAttribute('href');
@@ -88,11 +88,12 @@
   if(!api||typeof api.desktopNavigation!=='function'||typeof api.mobileNavigation!=='function')return false;
   const route=String(location.pathname||'/').replace(/\/+$/,'')||'/';
   const active=route==='/bandes-annonces'?'trailers':route==='/tv'?'tv':route==='/tv/programme'||route==='/agenda'?'agenda':route==='/on-air'?'onair':route==='/actus'?'actus':route==='/decouvrir'?'discover':route==='/social'?'community':route==='/boutique'?'shop':route==='/categories'?'categories':route==='/equipes'?'teams':route.startsWith('/guides')?'guides':'home';
-  const signature=(mobile?'mobile:':'desktop:')+active;
+  const signature='simple-v2:'+(mobile?'mobile:':'desktop:')+active;
   const valid=!!(nav.querySelector('a[href="/categories"]')&&nav.querySelector('a[href="/decouvrir"]')&&
    nav.querySelector('a[href="/actus"]')&&nav.querySelector('.swapp-tv-nav-cta')&&
    !nav.querySelector('.swapp-news-more')&&!nav.querySelector('a[href="/equipes"]')&&
-   (!mobile||nav.querySelector('.swapp-mobile-more')));
+   (mobile?!!nav.querySelector('.swapp-mobile-more .swapp-mobile-tv-subnav a[href="/decouvrir"]'):
+    !!nav.querySelector('.swapp-tv-submenu a[href="/decouvrir"]')));
   if(nav.dataset.swappNavSignature===signature&&valid)return true;
   nav.innerHTML=mobile?api.mobileNavigation(active):api.desktopNavigation(active);
   nav.dataset.swappNavSignature=signature;
@@ -104,8 +105,10 @@
   if(canonicalMenu(nav,false))return;
   nav.classList.add('swapp-nav-consistent');
   const found=dedupe(nav);
-  // A real page link is required even if the SPA did not create this tab.
+  // Do not revive the obsolete first-level SWAPER CTA from cached SPA markup.
   const list=nav.querySelector('.navGroup')||nav;
+  const deprecated=list.querySelector(':scope > a[href="/decouvrir"]');
+  if(deprecated)deprecated.remove();
   for(const {href,label} of HUBS){
    if(!found.has(href))list.append(anchor(href,label));
   }
@@ -114,7 +117,7 @@
   const nav=document.getElementById('mobileNav');
   if(!nav)return;
   if(canonicalMenu(nav,true))return;
-  const pinned=['/','/decouvrir','/categories','/actus'];
+  const pinned=['/','/categories','/actus','/tv'];
   let more=nav.querySelector(':scope > .swapp-mobile-more');
   if(!more){
    more=document.createElement('details');
@@ -146,7 +149,7 @@
    nav.insertBefore(anchor(href,label),more);
   }
   const existing=new Set([...nav.querySelectorAll('a,button')].map(dest));
-  for(const [href,label] of [...NAV.filter(x=>!pinned.includes(x[0])),ACCOUNT]){
+  for(const [href,label] of [...NAV.filter(x=>!pinned.includes(x[0])),ACCOUNT,SECONDARY]){
    if(existing.has(href))continue;
    inner.append(anchor(href,label));
   }
