@@ -107,8 +107,24 @@
   const found=dedupe(nav);
   // Do not revive the obsolete first-level SWAPER CTA from cached SPA markup.
   const list=nav.querySelector('.navGroup')||nav;
-  const deprecated=list.querySelector(':scope > a[href="/decouvrir"]');
-  if(deprecated)deprecated.remove();
+  // Catch legacy SPA buttons too, not just their converted anchors.
+  for(const el of [...list.children]){
+   if(el.matches('a,button')&&(norm(el.textContent)==='swaper'||dest(el)==='/decouvrir'))el.remove();
+  }
+  // When the shared navigation script was blocked, keep the TV submenu usable.
+  if(!list.querySelector('.swapp-tv-navigation')){
+   const direct=[...list.children].find(el=>el.tagName==='A'&&dest(el)==='/tv');
+   if(direct){
+    const group=document.createElement('div');group.className='swapp-tv-navigation';
+    direct.replaceWith(group);group.append(direct);
+    const details=document.createElement('details');details.className='swapp-tv-submenu';
+    const summary=document.createElement('summary');summary.setAttribute('aria-label','Sous-menu SWAPP TV');
+    summary.textContent='▾';
+    const children=document.createElement('div');children.className='swapp-tv-submenu-links';
+    children.append(anchor('/decouvrir','Swapper'));
+    details.append(summary,children);group.append(details);
+   }
+  }
   for(const {href,label} of HUBS){
    if(!found.has(href))list.append(anchor(href,label));
   }
@@ -142,6 +158,9 @@
    if(!href||!pinned.includes(href))inner.append(el);
   }
   dedupe(nav);
+  for(const el of [...nav.children,...inner.children]){
+   if(el.matches('a,button')&&(norm(el.textContent)==='swaper'||dest(el)==='/decouvrir'))el.remove();
+  }
   const top=new Set([...nav.children].filter(el=>el!==more&&el.matches('a,button')).map(dest));
   for(const href of pinned){
    if(top.has(href))continue;
@@ -149,9 +168,15 @@
    nav.insertBefore(anchor(href,label),more);
   }
   const existing=new Set([...nav.querySelectorAll('a,button')].map(dest));
-  for(const [href,label] of [...NAV.filter(x=>!pinned.includes(x[0])),ACCOUNT,SECONDARY]){
+  for(const [href,label] of [...NAV.filter(x=>!pinned.includes(x[0])),ACCOUNT]){
    if(existing.has(href))continue;
    inner.append(anchor(href,label));
+  }
+  if(!inner.querySelector('.swapp-mobile-tv-subnav')){
+   const group=document.createElement('div');group.className='swapp-mobile-tv-subnav';
+   group.setAttribute('role','group');group.setAttribute('aria-label','Sous-menu SWAPP TV');
+   const label=document.createElement('span');label.className='swapp-mobile-tv-title';label.textContent='SWAPP TV';
+   group.append(label,anchor('/decouvrir','Swapper'));inner.append(group);
   }
   if(more!==nav.lastElementChild)nav.append(more);
  }
