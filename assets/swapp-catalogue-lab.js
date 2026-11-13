@@ -4,11 +4,12 @@
  */
 (function(){
 'use strict';
-const LAB_VERSION='20261113-cinema-v2';
+const LAB_VERSION='20261113-actus-rail-v3';
 const API=Object.freeze({
  home:'/api/discovery/home-lives?limit=12&lang=fr',
  top:'/api/twitch/streams/top?limit=40&lang=fr',
- games:'/api/categories/top'
+ games:'/api/categories/top',
+ articles:'/api/actus'
 });
 const FAVORITES_KEY='swapp:followed-games:v1';
 const CHANNEL_KEY='oryon_v4_likes';
@@ -132,6 +133,45 @@ function mergeGames(categories,lives){
  }
  return result;
 }
+/* SWAPP ACTUS content is fetched from the published MySQL-backed catalogue,
+ * never generated from unverified feeds or off-site article URLs.
+ */
+function cleanArticleImage(value){
+ try{
+  const uri=new URL(String(value||''));
+  return uri.protocol==='https:'&&!uri.username&&!uri.password&&uri.hostname&&
+   !/\.(?:svg|svgz)(?:$|\?)/i.test(uri.pathname)?uri.href:'';
+ }catch{return ''}
+}
+function normalizeArticle(article){
+ if(!article||typeof article!=='object'||(article.status&&article.status!=='published'))return null;
+ const slug=String(article.slug||'').trim();
+ if(!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)||slug.length>150)return null;
+ const title=escapeName(article.title).slice(0,150);
+ if(!title)return null;
+ const category=escapeName(article.category||'Actualité').slice(0,55);
+ const summary=escapeName(article.summary||article.description||'').slice(0,190);
+ const publishedAt=String(article.publishedAt||article.originalPublishedAt||'');
+ const timestamp=Date.parse(publishedAt);
+ const rawCover=[article.thumbnail?.url,article.image?.url,article.imageUrl]
+  .map(cleanArticleImage).find(Boolean)||'';
+ return {
+  id:'article:'+slug,kind:'article',slug,title,category,summary,
+  game:escapeName(article.game||''),url:'/actus/'+encodeURIComponent(slug),
+  publishedAt:Number.isFinite(timestamp)?timestamp:0,image:rawCover,
+  original:article
+ };
+}
+function normalizeArticles(values){
+ if(!Array.isArray(values))return [];
+ const seen=new Set(),articles=[];
+ for(const raw of values){
+  const article=normalizeArticle(raw);
+  if(!article||seen.has(article.slug))continue;
+  seen.add(article.slug);articles.push(article);
+ }
+ return articles.sort((a,b)=>b.publishedAt-a.publishedAt).slice(0,20);
+}
 function readFavorites(storage){
  try{
   const saved=JSON.parse(storage.getItem(FAVORITES_KEY)||'null');
@@ -160,7 +200,7 @@ function readChannelFavorites(storage){
  }catch{return []}
 }
 if(typeof module==='object'&&module.exports)
- module.exports={API,LAB_VERSION,normalizeLive,normalizeGame,mergeLives,mergeGames,gameSlug,synopsis,readFavorites,readChannelFavorites,safeImage};
+ module.exports={API,LAB_VERSION,normalizeLive,normalizeGame,normalizeArticle,normalizeArticles,mergeLives,mergeGames,gameSlug,synopsis,readFavorites,readChannelFavorites,safeImage,cleanArticleImage};
 if(typeof document==='undefined')return;
 const root=document.getElementById('swapp-catalogue-lab');
 if(!root)return;
@@ -172,7 +212,7 @@ const create=(tag,className,text)=>{
  if(text!==undefined)node.textContent=String(text);
  return node;
 };
-const state={lives:[],games:[],featured:null,filter:'all',query:'',loading:false,failed:[],previewTimer:0,abort:null,heroItems:[],heroIndex:0,heroTimer:null,hoverTimer:null,hoverIframe:null,hoverCard:null};
+const state={lives:[],games:[],articles:[],newsError:false,featured:null,filter:'all',query:'',loading:false,failed:[],previewTimer:0,abort:null,heroItems:[],heroIndex:0,heroTimer:null,hoverTimer:null,hoverIframe:null,hoverCard:null};
 const status=$('scl-status'),hero=$('scl-feature'),featureVisual=$('scl-feature-visual'),dialog=$('scl-dialog');
 const heroDots=$('scl-feature-dots');
 const visNode=item=>{
