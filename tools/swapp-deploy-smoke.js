@@ -273,7 +273,7 @@ async function verify(){
  check(labHome.body.includes('id="swapp-catalogue-lab"')&&
    labHome.body.includes('noindex,nofollow,noarchive'),
    'Unindexed /catalogue-test laboratory missing');
- const publicCatalogueJs=await request(origin,'/assets/swapp-catalogue-lab.js?v=20261113-public-home-small-v4');
+ const publicCatalogueJs=await request(origin,'/assets/swapp-catalogue-lab.js?v=20261113-public-home-audience-v5');
  check(publicCatalogueJs.body.includes('function chooseSmallCommunities(')&&
   publicCatalogueJs.body.includes('/api/oryon/discover/find-live?mood=petite-commu'),
   'Public homepage small-community discovery missing');

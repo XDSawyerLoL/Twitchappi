@@ -28,10 +28,11 @@ test('public homepage has a canonical indexable catalogue, original lab remains 
  assert.match(oldLab,/Catalogue immersif · Laboratoire SWAPP/);
  assert.doesNotMatch(oldLab,/rel="canonical" href="https:\/\/swapp\.tv\/"/);
  assert.match(oldLab,/href="\/categories"/);
- const assets=['swapp-catalogue-lab.js','swapp-catalogue-lab.css'];
- for(const name of assets){
-  assert.ok(home.includes(name+'?v=20261113-public-home-small-v4'));
-  assert.ok(oldLab.includes(name+'?v=20261113-public-home-small-v4'));
+ const assets=[['swapp-catalogue-lab.js','20261113-public-home-audience-v5'],
+  ['swapp-catalogue-lab.css','20261113-public-home-small-v4']];
+ for(const [name,version] of assets){
+  assert.ok(home.includes(name+'?v='+version));
+  assert.ok(oldLab.includes(name+'?v='+version));
  }
 });
 test('root route promotes the catalogue but preserves classic fallback and survives missing modules',()=>{
@@ -100,6 +101,18 @@ test('small stream search rejects malformed identifiers and does not fabricate o
  assert.match(source,/state\.smallLoading=false/);
  assert.match(source,/JUSQU’À 150 SPECTATEURS/);
  assert.match(source,/Découvrir tous les lives SWAPP/);
+});
+test('unknown audience is not silently advertised as a verified zero-viewer stream',()=>{
+ const unknown=live('twitch','unknown12',undefined);
+ const nonnumeric=live('twitch','badcount12','many');
+ const negative=live('twitch','negative12',-1);
+ const genuineZero=live('twitch','genuinezero',0);
+ assert.equal(catalogue.normalizeLive(unknown).audienceVerified,false);
+ assert.equal(catalogue.normalizeLive(unknown).viewers,null);
+ assert.equal(catalogue.normalizeLive(genuineZero).audienceVerified,true);
+ assert.equal(catalogue.normalizeLive(genuineZero).viewers,0);
+ const selected=catalogue.chooseSmallCommunities([], [unknown,nonnumeric,negative,genuineZero], []);
+ assert.deepEqual(selected.items.map(x=>x.login),['genuinezero']);
 });
 test('ACTUS recycles old-home article poster with real published art and internal article/live links',()=>{
  const js=read('assets/swapp-actus-app.js');

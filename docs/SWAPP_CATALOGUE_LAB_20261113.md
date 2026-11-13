@@ -69,3 +69,11 @@ Ordre testé : affiche du moment → articles SWAPP → directs → univers de j
 - Versions des assets : `20261113-public-home-small-v4` (catalogue), `20261113-relocated-feature-v2` (ACTUS), `20261113-home-router-v2` (navigation SPA).
 - Vérification de déploiement dans `tools/swapp-deploy-smoke.js` : `/` doit être l'accueil immersif indexable ; `/catalogue-test` doit rester noindex et la SPA classique doit rester disponible à `/?classic=1`. Les contrôles historiques de l'accueil classique passent sur cette URL.
 - Tests unitaires isolés : `test/swapp-home-promotion-small-actus-20261113.test.js`. E2E Playwright : `e2e/swapp-public-home-small-actus-20261113.spec.cjs`. **Le navigateur réel et le déploiement Hostinger nécessitent toujours une vérification sur la version publiée.**
+
+## V5 : audiences fiables et livraison Hostinger contrôlée (13 novembre 2026)
+
+- Une audience absente ou invalide ne devient plus zéro spectateur dans le catalogue. Un compteur connu de 0 reste valable ; une audience inconnue affiche « Audience indisponible » et ne peut pas être présentée comme petite communauté confirmée.
+- Nouveau cache-busting JS : `20261113-public-home-audience-v5`. CSS inchangé, `20261113-public-home-small-v4`.
+- GitHub Actions manuel « SWAPP quality gate » intègre la syntaxe et les tests du catalogue, de l'accueil et de la navigation. Aucun déclenchement récurrent, aucun secret SSH/FTP ou API payante nécessaire.
+- Après réussite, le workflow assemble le ZIP Hostinger depuis le commit exact contrôlé et l'attache comme artefact téléchargeable durant 7 jours. Télécharger l'artefact, extraire le ZIP intérieur et déposer son contenu à la racine de l'application Node Hostinger existante ; conserver variables d'environnement et stockage persistant, redémarrer Node, puis exécuter `npm run verify:production`.
+- Le workflow ne déploie pas sur Hostinger : la fusion GitHub ne suffit pas pour valider la production.

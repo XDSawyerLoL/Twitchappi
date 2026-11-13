@@ -15,7 +15,7 @@ test('cinema lab keeps an isolated page with the real SWAPP header and versioned
  assert.match(html,/id="scl-feature-next"/);
  assert.match(html,/id="scl-feature-dots"/);
  assert.match(html,/scl-feature-vignette/);
- assert.match(html,/swapp-catalogue-lab\.js\?v=20261113-public-home-small-v4/);
+ assert.match(html,/swapp-catalogue-lab\.js\?v=20261113-public-home-audience-v5/);
  assert.match(html,/swapp-catalogue-lab\.css\?v=20261113-public-home-small-v4/);
  assert.match(html,/robots" content="noindex,nofollow,noarchive"/);
  assert.match(html,/id="nav"/);
