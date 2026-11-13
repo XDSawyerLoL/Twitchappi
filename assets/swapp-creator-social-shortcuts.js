@@ -116,9 +116,6 @@
    }
   }
   if(owner){
-   const discord=make('a','swapp-creator-discord-config','Discord Connect');
-   discord.href='/discord';discord.title='Configurer les serveurs Discord reliés à SWAPP';
-   row.append(discord);
    const edit=make('button','swapp-creator-social-inline-edit','+ Liens');
    edit.type='button';edit.title='Configurer Signal, Bluesky, Mastodon et Minds';
    edit.addEventListener('click',()=>open(page));
