@@ -1,11 +1,15 @@
 'use strict';
-// SWAPP AI/Robotics watcher. Zero external dependencies and no paid APIs.
+// SWAPP multi-category editorial discovery. Zero paid APIs. Candidates only; never auto-published.
 // Collects candidates; never publishes an unverified claim to /actus.
 const fs=require('node:fs');
 const path=require('node:path');
 const crypto=require('node:crypto');
 const https=require('node:https');
 const SOURCES=[
+  {"id":"playstation","section":"GAMING","beat":"Consoles","name":"PlayStation Blog","url":"https://blog.playstation.com/feed/"},
+  {"id":"xbox-wire","section":"GAMING","beat":"Consoles","name":"Xbox Wire","url":"https://news.xbox.com/en-us/feed/"},
+  {"id":"nvidia-gaming","section":"GAMING","beat":"PC / Cloud","name":"NVIDIA Gaming","url":"https://blogs.nvidia.com/blog/category/gaming/feed/"},
+  {"id":"obs-releases","section":"GAMING","beat":"Streaming","name":"OBS Studio (GitHub officiel)","url":"https://github.com/obsproject/obs-studio/releases.atom"},
   {id:'mistral',section:'IA',name:'Mistral AI',url:'https://mistral.ai/news/rss.xml'},
   {id:'huggingface',section:'IA',name:'Hugging Face',url:'https://huggingface.co/blog/feed.xml'},
   {id:'google-research',section:'IA',name:'Google Research',url:'https://research.google/blog/rss/'},
@@ -45,19 +49,19 @@ function parseFeed(xml,source){
     let canonical;try{canonical=new URL(url);if(canonical.protocol!=='https:')return null;canonical.hash='';}catch{return null;}
     const published=new Date(date);if(!title||!Number.isFinite(published.getTime()))return null;
     const id=crypto.createHash('sha256').update(source.id+'|'+canonical.href).digest('hex').slice(0,20);
-    return {id,section:source.section,source:source.name,title,url:canonical.href,sourcePublishedAt:published.toISOString(),status:'candidate_unverified',officialVideoVerified:false,primarySourceVerified:false};
+    return {id,section:source.section,beat:source.beat||source.section,source:source.name,title,url:canonical.href,sourcePublishedAt:published.toISOString(),status:'candidate_unverified',officialVideoVerified:false,primarySourceVerified:false};
   }).filter(Boolean);
 }
-async function run({output=path.resolve(__dirname,'../data/swapp-tech-watch-candidates.json'),now=new Date()}={}){
+async function run({output=path.resolve(__dirname,'../data/swapp-tech-watch-candidates.json'),now=new Date(),fetchFeed=fetchXml,maxAgeDays=21}={}){
   const previous=output&&fs.existsSync(output)?JSON.parse(fs.readFileSync(output,'utf8')):{candidates:[]};
   const byId=new Map((previous.candidates||[]).map(x=>[x.id,x]));
   const checks=[];
   for(const source of SOURCES){
     try{
-      const entries=parseFeed(await fetchXml(source.url),source);
+      const entries=parseFeed(await fetchFeed(source.url),source).filter(item=>{const age=now.getTime()-new Date(item.sourcePublishedAt).getTime();return age>=-86400000 && age<=maxAgeDays*86400000;});
       for(const entry of entries){const old=byId.get(entry.id);byId.set(entry.id,old?{...entry,...old}:entry);}
-      checks.push({source:source.id,ok:true,count:entries.length});
-    }catch(e){checks.push({source:source.id,ok:false,error:String(e.message).slice(0,120)});}
+      checks.push({source:source.id,section:source.section,beat:source.beat||source.section,ok:true,count:entries.length});
+    }catch(e){checks.push({source:source.id,section:source.section,beat:source.beat||source.section,ok:false,error:String(e.message).slice(0,120)});}
   }
   const candidates=[...byId.values()].sort((a,b)=>b.sourcePublishedAt.localeCompare(a.sourcePublishedAt)).slice(0,300);
   const result={schema:1,kind:'swapp-tech-watch-candidates',checkedAt:now.toISOString(),checks,candidates};
