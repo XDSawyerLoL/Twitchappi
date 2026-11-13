@@ -29,6 +29,14 @@ function page(kind){
       <div class="stv-screen-bottom"><span id="stv-screen-game">GAME UNIVERSE</span><span id="stv-screen-clock">SWAPP / LIVE DISCOVERY</span></div>
      </div>
     </div>
+    <div class="stv-rotation" id="stv-rotation" hidden aria-label="Rotation SWAPP TV toutes les cinq minutes">
+     <div class="stv-rotation-meta"><span id="stv-rotation-label">PROCHAIN DIRECT DANS</span>
+      <time id="stv-rotation-clock" aria-live="off">05:00</time></div>
+     <div id="stv-rotation-track" class="stv-rotation-track" role="progressbar"
+      aria-label="Progression du passage SWAPP TV" aria-valuemin="0" aria-valuemax="300" aria-valuenow="0">
+      <span id="stv-rotation-fill"></span>
+     </div>
+    </div>
     <div class="stv-nowbar"><div><span class="stv-label">MAINTENANT</span><strong id="stv-now-name">Antenne en préparation</strong><span id="stv-now-game">En attente de programmation</span></div><div class="stv-now-actions"><button id="stv-watch" type="button" aria-pressed="false" disabled>▶ REGARDER</button><button id="stv-dock-toggle" type="button" aria-controls="stv-dock" aria-expanded="false">◧ TCHATS / FILE</button><button id="stv-immersive" type="button" aria-pressed="false">⛶ IMMERSION</button><a class="stv-portail-entry" href="/portail">✦ PORTAIL CRÉATEURS</a></div></div>
    </div>
    <aside class="stv-rail stv-dock" id="stv-dock" aria-label="Tchats et file SWAPP TV">
