@@ -4,7 +4,7 @@
 - Page propriétaire : https://swapp.tv/discord (accès depuis menu du compte SWAPP et menu du catalogue immersif).
 - Connexion OAuth2 du compte Discord : `identify` uniquement ; pas de connexion SWAPP obligatoire via Discord.
 - Autorisation serveur : `identify guilds webhook.incoming`. Discord affiche une sélection explicite de serveur et salon ; SWAPP vérifie identité liée et permission de gestion du serveur.
-- Jusqu'à cinq serveurs autorisés par créateur. Chaque serveur est activable/désactivable et sa visibilité publique est distincte et OFF par défaut. `/api/swapp/discord/creator/:login` ne publie que les noms expressément affichés par le créateur.
+- Jusqu'à cinq serveurs autorisés par créateur. Chaque serveur est activable/désactivable et sa visibilité publique est distincte et OFF par défaut. Le propriétaire peut enregistrer une invitation publique `discord.gg` validée (facultative). `/api/swapp/discord/creator/:login` ne renvoie que les noms et invitations des serveurs expressément affichés par le créateur. Les communautés consenties apparaissent en petits liens dans la barre sociale sous son lecteur.
 - Envoi d'un embed de direct uniquement après playlist HLS et segments TS publiés. Identifiant de diffusion unique : contrainte MySQL `(swapp_user_id,guild_id,event_id)` pour empêcher les doublons entre processus Hostinger.
 - Aucune permission de lire les messages Discord, aucun accès aux salons vocaux, aucun bot Gateway, aucune synchronisation abusive de membres ou de rôles. Connexion optionnelle.
 - Les URLs de webhooks Discord sont chiffrées AES-256-GCM au repos dans l'actuel MySQL Hostinger et ne sont jamais renvoyées au navigateur ; les tokens OAuth ne sont pas enregistrés.
