@@ -81,7 +81,7 @@ test('every TV player control referenced in client script exists in server marku
  assert.deepEqual(missing,[]);
 });
 test('deployed page reveals the correct v11 script revision for cache busting',()=>{
- assert.match(page,/data-tv-build="20261113-liveboot-v11"/);
- assert.match(page,/swapp-tv-broadcast\.js\?v=20261113-liveboot-v11/);
+ assert.match(page,/data-tv-build="20261113-twitch-events-v12"/);
+ assert.match(page,/swapp-tv-broadcast\.js\?v=20261113-twitch-events-v12/);
  assert.match(tv,/const bootDiscovery=discovery\(\)/);
 });
