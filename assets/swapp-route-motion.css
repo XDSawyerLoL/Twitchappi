@@ -22,6 +22,7 @@ main.app > .view.active.swapp-route-enter{
  */
 @view-transition{navigation:auto}
 header.top{view-transition-name:swapp-masthead}
+#mobileNav.mobileNav{view-transition-name:swapp-mobile-masthead}
 ::view-transition-old(root){
  animation:swapp-document-out var(--swapp-route-exit-duration) ease-in both;
 }
@@ -29,7 +30,9 @@ header.top{view-transition-name:swapp-masthead}
  animation:swapp-document-in var(--swapp-route-enter-duration) var(--swapp-route-easing) both;
 }
 ::view-transition-old(swapp-masthead),
-::view-transition-new(swapp-masthead){animation:none}
+::view-transition-new(swapp-masthead),
+::view-transition-old(swapp-mobile-masthead),
+::view-transition-new(swapp-mobile-masthead){animation:none}
 @keyframes swapp-document-out{to{opacity:.56}}
 @keyframes swapp-document-in{from{opacity:.52}to{opacity:1}}
 
