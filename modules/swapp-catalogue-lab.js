@@ -49,6 +49,7 @@ function page(){
   '<dialog class="scl-dialog" id="scl-dialog" aria-labelledby="scl-dialog-title"><button class="scl-dialog-close" type="button" id="scl-dialog-close" aria-label="Fermer">×</button><div id="scl-dialog-content"></div></dialog>';
  return '<!doctype html><html lang="fr"><head>'+head+'</head><body class="swapp-editorial-route swapp-catalogue-lab-page">'+
   serverHeader('categories')+content+serverMobile('categories')+
+  '<script src="/assets/swapp-article-extras.js?v=20261113-actus-rail-v3" defer></script>'+
   '<script src="/assets/swapp-catalogue-lab.js?v=20261113-actus-rail-v3" defer></script>'+
   '<script src="/assets/swapp-my-games.js?v=20261021-account-hub-v1" defer></script>'+
   '<script src="/assets/swapp-navigation.js?v=20261113-swaper-decouvrir-v1" defer></script>'+
