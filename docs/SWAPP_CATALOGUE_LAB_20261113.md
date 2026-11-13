@@ -86,3 +86,14 @@ Ordre testé : affiche du moment → articles SWAPP → directs → univers de j
 - Le grand bandeau tourne automatiquement toutes les **10 secondes** (au lieu de 9,5), sans s'animer pendant le survol, le focus clavier, l'ouverture d'un dialogue ou un onglet masqué.
 - JS et CSS du catalogue ont le cache-busting `20261113-hover-rails-hero-10s-v6`. Aucun changement sur les API, les données utilisateurs ou HLS.
 - Vérifications dans `test/swapp-catalogue-cinema-20261113.test.js`. La fusion GitHub n'entraîne pas automatiquement un déploiement Hostinger.
+
+## Décision finale — navigation simplifiée (13 novembre 2026)
+
+- La présentation immersive de `/` est définitivement l'unique accueil SWAPP public. Les deux liens « Ancien accueil » (barre latérale et pied de page) sont retirés.
+- Un ancien favori `/?classic=1` effectue une redirection permanente HTTP 308 vers `/`. En cas de paquet Hostinger incomplet, le serveur retourne une réponse 503 explicite au lieu de faire réapparaître l'ancien accueil.
+- Le menu desktop affiche **Accueil → Découvrir → Actualité → Social → Boutique → SWAPP TV**. L'entrée « Découvrir » ouvre `/categories`. Les liens `/categories`, `/tv`, `/decouvrir` et le catalogue en ligne restent fonctionnels.
+- « Swapper » (`/decouvrir`) n'est plus un onglet principal : il figure dans le menu déroulant accessible par la flèche à côté de **SWAPP TV**. Un clic sur « SWAPP TV » ouvre directement `/tv` ; la flèche révèle « Swapper » sans faire naviguer.
+- Sur mobile : **Accueil, Découvrir, Actualité, SWAPP TV, Plus** ; Swapper est rangé dans la section « SWAPP TV » de Plus. Les liens sociaux, boutique, vidéos, podcast et compte restent accessibles.
+- Le même composant de navigation est rendu par l'accueil immersif, ACTUS, les pages natives et la SPA. Les assets de navigation ont été versionnés `20261113-nav-simple-v2` pour éviter le cache précédent.
+- Les tests Node et Playwright historiques qui exigeaient `/?classic=1` ont été adaptés aux nouvelles routes et aux critères d'affichage du catalogue. Ne pas interpréter leur présence dans GitHub comme une exécution en navigateur.
+- **Activation réelle** : fusionner et déployer la dernière version complète de `master` sur Hostinger, redémarrer l'instance Node `app.js`, puis vérifier `/`, `/?classic=1`, `/categories`, `/tv` et le lien sous-menu `/decouvrir` sur mobile/desktop.
