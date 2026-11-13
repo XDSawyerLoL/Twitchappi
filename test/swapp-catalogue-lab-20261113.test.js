@@ -80,6 +80,23 @@ test('Mes jeux favorites use the same existing SWAPP storage schema and 30-item 
  assert.equal(new Set(saved.map(x=>x.slug)).size,30);
  assert.deepEqual(catalog.readFavorites({getItem(){throw Error('denied')}}),[]);
 });
+test('existing Oryon V4 streamer favorites work in the test catalogue without fake offline lives',()=>{
+ const raw=[
+  {platform:'oryon',login:'swapper123',name:'Swapper 123',game:'Minecraft',ts:1700000000},
+  {platform:'twitch',login:'playerone',name:'Player One',game:'VALORANT',ts:1700000100},
+  {platform:'twitch',login:'playerone',name:'Duplicate'},
+  {platform:'unknown',login:'someone',name:'Invalid provider'},
+  {platform:'twitch',login:'<invalid>',name:'Markup'}];
+ const storage={getItem(key){assert.equal(key,'oryon_v4_likes');return JSON.stringify(raw)}};
+ const items=catalog.readChannelFavorites(storage);
+ assert.equal(items.length,2);
+ assert.deepEqual(items.map(x=>x.platform+':'+x.login),['oryon:swapper123','twitch:playerone']);
+ assert.equal(items[0].ts,1700000000);
+ assert.deepEqual(catalog.readChannelFavorites({getItem(){throw Error('blocked')}}),[]);
+ assert.match(read('assets/swapp-catalogue-lab.js'),/window\.localStorage\.setItem\(CHANNEL_KEY/);
+ assert.match(read('assets/swapp-catalogue-lab.js'),/state\.lives\.filter\(x=>liveKeys\.has\(x\.id\)\)/);
+ assert.match(lab.page(),/Mes favoris/);
+});
 test('no video preloading, only the explicit user preview path instantiates Twitch iframe',()=>{
  const js=read('assets/swapp-catalogue-lab.js');
  assert.match(js,/function preview\(item\)/);
