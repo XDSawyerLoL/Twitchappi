@@ -11,7 +11,8 @@ const {serverHeader,serverMobile,desktopNavigation,mobileNavigation}=require('..
 const SHARED_HEAD_SLOT='<!-- swapp:shared-shell-styles -->';
 const SHARED_CSS=Object.freeze([
  '/assets/swapp-unified-nav.css?v=20261113-nav-simple-v2',
- '/assets/swapp-route-motion.css?v=20261113-shared-shell-v2'
+ '/assets/swapp-route-motion.css?v=20261113-shared-shell-v2&rev=20261114-nav-motion-v3',
+ '/assets/swapp-native-account.css?v=20261114-native-account-v1'
 ]);
 function escapeAttribute(value){
  return String(value||'').replace(/[&<>"']/g,ch=>({
