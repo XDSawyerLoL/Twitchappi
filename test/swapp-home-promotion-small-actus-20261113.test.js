@@ -39,8 +39,8 @@ test('root route promotes the catalogue but preserves classic fallback and survi
  const requireLab=()=>({page:({publicHome})=>publicHome?'PUBLIC_SWAPP_CATALOGUE':'LAB'});
  const recover=()=>{classicRuns++},fsStub={existsSync:()=>true},pathStub={join:(...p)=>p.join('/')};
  let classicRuns=0;
- new Function('app','require','process','fs','path','sendSwappUi','console',server.slice(start,end))(
-  mockApp,requireLab,{env:{}},fsStub,pathStub,recover,{warn:(...parts)=>warnings.push(parts.join(' '))}
+ new Function('app','require','process','fs','path','sendSwappUi','console','__dirname',server.slice(start,end))(
+  mockApp,requireLab,{env:{}},fsStub,pathStub,recover,{warn:(...parts)=>warnings.push(parts.join(' '))},'/repo'
  );
  const handler=routes.find(x=>x.route==='/')?.fn;
  assert.equal(typeof handler,'function');
@@ -56,8 +56,8 @@ test('root route promotes the catalogue but preserves classic fallback and survi
  assert.equal(classicRes.headers['X-Robots-Tag'],'noindex, nofollow');
  // Exercise an interrupted Hostinger file sync: the SPA must stay reachable.
  const failing=[],appFail={get(route,fn){failing.push(fn)}};
- new Function('app','require','process','fs','path','sendSwappUi','console',server.slice(start,end))(
-  appFail,()=>{throw Error('optional module missing')},{env:{}},fsStub,pathStub,recover,{warn:(...parts)=>warnings.push(parts.join(' '))}
+ new Function('app','require','process','fs','path','sendSwappUi','console','__dirname',server.slice(start,end))(
+  appFail,()=>{throw Error('optional module missing')},{env:{}},fsStub,pathStub,recover,{warn:(...parts)=>warnings.push(parts.join(' '))},'/repo'
  );
  failing[0]({query:{}},res());
  assert.equal(classicRuns,2);
