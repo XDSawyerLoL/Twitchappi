@@ -159,7 +159,8 @@ async function verify(){
  const station=await request(origin,'/tv');
  check(station.body.includes('id="stv-slot-clock"')&&
   station.body.includes('id="stv-watch"')&&
-  station.body.includes('swapp-tv-broadcast.js?v=20261113-liveboot-v11'),
+  station.body.includes('swapp-tv-broadcast.js?v=20261113-liveboot-v11')&&
+   station.body.includes('data-tv-build="20261113-liveboot-v11"'),
   'SWAPP TV station layout or rotation script is stale');
  const stationJs=await request(origin,'/assets/swapp-tv-broadcast.js');
  check(stationJs.body.includes('function maybeAdvanceDiscovery(')&&
@@ -168,6 +169,9 @@ async function verify(){
   stationJs.body.includes("frame.src='/api/oryon/local-relay/'+encodeURIComponent(item.login)+'/player'")&&
   stationJs.body.includes("api('/api/swapp-tv/native-lineup')")&&
   stationJs.body.includes('autoStartPending:true')&&
+   stationJs.body.includes('const bootDiscovery=discovery();')&&
+   stationJs.body.includes('await Promise.allSettled([bootQueue,bootDiscovery])')&&
+   stationJs.body.includes('function explainEmptyStation(')&&
   stationJs.body.includes('const DISCOVERY_SLOT_MS=5*60*1000')&&
   stationJs.body.includes('function updateRotationBar(')&&
   station.body.includes('id="stv-rotation-track"')&&
