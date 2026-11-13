@@ -6,6 +6,7 @@ on:
       - master
       - feat/swapp-live-revalidation-20261113
       - feat/swapp-home-account-appearance-motion-20261114
+      - feat/swapp-unified-spa-home-20261114
 concurrency:
   group: swapp-quality-${{ github.ref }}
   cancel-in-progress: true
@@ -35,6 +36,8 @@ jobs:
           node --check modules/swapp-tv-queue.js
           node --check modules/swapp-tv-director.js
           node --check modules/swapp-page-shell.js
+          node --check modules/swapp-catalogue-spa.js
+          node --check assets/swapp-catalogue-spa.js
           node --check modules/swapp-news/site-shell.js
           node --check assets/swapp-route-motion.js
           node --check assets/swapp-nav-session.js
@@ -56,7 +59,7 @@ jobs:
           node --check modules/swapp-news/router.js
       - name: Editorial, SOCIAL and game-identity regression tests (Node built-ins only)
         run: |
-          node --test test/swapp-seo-landings.test.js test/swapp-social-rss-images.test.js test/witcher-remastered-creator-workspace.test.js test/swapp-program.test.js test/swapp-tv-broadcast.test.js test/swapp-tv-five-minute-bar-20261113.test.js test/swapp-tv-live-first-autostart-20261113.test.js test/swapp-live-revalidation-20261113.test.js test/swapp-tv-twitch-player-events-20261113.test.js test/swapp-account-discord-tv-arrival-20261113.test.js test/swapp-tv-rotation.test.js test/swapp-tv-queue.test.js test/swapp-tv-director.test.js test/swapp-home-promotion-small-actus-20261113.test.js test/swapp-catalogue-article-rail-20261113.test.js test/swapp-catalogue-cinema-20261113.test.js test/swapp-nav-catalogue-share-20261113.test.js test/swapp-flat-navigation-20261113.test.js test/swapp-unified-navigation.test.js test/swapp-route-motion.test.js test/swapp-shared-shell-transitions-20261113.test.js test/swapp-native-account-appearance-20261114.test.js test/swapp-tv-nav-theme.test.js test/swapp-nav-dedup.test.js test/swapp-mobile-nav-compact.test.js test/swapp-ux-consolidation.test.js test/swapp-direct-x-preview-20261113.test.js test/swapp-discord-connect-20261113.test.js test/swapp-visible-bell-creator-social.test.js test/swapp-editor-media-seo.test.js
+          node --test test/swapp-seo-landings.test.js test/swapp-social-rss-images.test.js test/witcher-remastered-creator-workspace.test.js test/swapp-program.test.js test/swapp-tv-broadcast.test.js test/swapp-tv-five-minute-bar-20261113.test.js test/swapp-tv-live-first-autostart-20261113.test.js test/swapp-live-revalidation-20261113.test.js test/swapp-tv-twitch-player-events-20261113.test.js test/swapp-account-discord-tv-arrival-20261113.test.js test/swapp-tv-rotation.test.js test/swapp-tv-queue.test.js test/swapp-tv-director.test.js test/swapp-home-promotion-small-actus-20261113.test.js test/swapp-catalogue-article-rail-20261113.test.js test/swapp-catalogue-cinema-20261113.test.js test/swapp-nav-catalogue-share-20261113.test.js test/swapp-flat-navigation-20261113.test.js test/swapp-unified-navigation.test.js test/swapp-route-motion.test.js test/swapp-shared-shell-transitions-20261113.test.js test/swapp-native-account-appearance-20261114.test.js test/swapp-spa-home-unification-20261114.test.js test/swapp-tv-nav-theme.test.js test/swapp-nav-dedup.test.js test/swapp-mobile-nav-compact.test.js test/swapp-ux-consolidation.test.js test/swapp-direct-x-preview-20261113.test.js test/swapp-discord-connect-20261113.test.js test/swapp-visible-bell-creator-social.test.js test/swapp-editor-media-seo.test.js
 
       - name: Préparer le paquet Hostinger à partir du commit GitHub validé
         run: node tools/swapp-hostinger-package.js --output="${{ runner.temp }}/swapp-hostinger-${GITHUB_SHA:0:12}.zip"

@@ -64,7 +64,8 @@ test('SPA menu is server-populated before JavaScript; no first-paint empty heade
   assert.equal((output.match(/class="navGroup"/g)||[]).length,1);
   assert.equal((output.match(/id="mobileNav"/g)||[]).length,1);
  }
- assert.match(read('server.js'),/hydrateSpaNavigation\(seo,res\.req\?\.path\|\|'\/'\)/);
+ assert.match(read('server.js'),/renderIntoSpa\(seo\)/);
+ assert.match(read('server.js'),/hydrateSpaNavigation\(integrated,res\.req\?\.path\|\|'\/'\)/);
  const populated=hydrateSpaNavigation(html,'/actus');
  assert.equal(hydrateSpaNavigation(populated,'/actus'),populated,'idempotent on already rendered headers');
 });
