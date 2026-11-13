@@ -15,7 +15,7 @@ for(const [name,width,height,mobile] of [['desktop',1440,900,false],['iPhone',39
     await newsGate;
     await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({articles:[]})});
    });
-   await page.goto(ORIGIN+'/',{waitUntil:'domcontentloaded'});
+   await page.goto(ORIGIN+'/?classic=1',{waitUntil:'domcontentloaded'});
    const hero=page.locator('#home .homeHeroInner1014');
    await expect(hero).toBeVisible({timeout:20000});
    await expect(page.getByText('Les bons lives se trouvent ici.')).toHaveCount(0);
