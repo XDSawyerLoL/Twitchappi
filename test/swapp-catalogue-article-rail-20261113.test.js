@@ -34,7 +34,7 @@ test('news source is the real published CMS and NOT external feeds or invented c
  assert.equal(api.API.articles,'/api/actus');
  assert.match(js,/async function fetchArticles\(\)/);
  assert.match(js,/!Array\.isArray\(payload\.articles\)/);
- assert.match(js,/Promise\.allSettled\(\[fetchJson\(API\.home\),fetchJson\(API\.top\),fetchJson\(API\.games\)\]\)/);
+ assert.match(js,/Promise\.allSettled\(\[fetchLiveInventory\(API\.home\),fetchLiveInventory\(API\.top\),fetchJson\(API\.games\)\]\)/);
  assert.match(js,/void fetchArticles\(\)\.then\(published=>/);
  assert.match(js,/state\.articles=normalizeArticles\(published\)/);
  assert.match(js,/state\.newsLoading=false/);
