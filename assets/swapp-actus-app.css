@@ -383,7 +383,7 @@
 /* Compact shows more stories and more images at once, not cropped text
  * whose entire body becomes inaccessible. The native reader stays unchanged.
  */
-#actus .swapp-actus-grid[data-card-size="compact"]{gap:12px}
+#actus .swapp-actus-grid[data-card-size="compact"]{gap:12px!important}
 #actus .swapp-actus-grid[data-card-size="compact"] .swapp-actus-card{border-radius:13px}
 #actus .swapp-actus-grid[data-card-size="compact"] .swapp-actus-info{padding:12px 13px 14px;gap:6px}
 #actus .swapp-actus-grid[data-card-size="compact"] .swapp-actus-info h2{
@@ -399,7 +399,7 @@
  font-size:11px;
 }
 /* Grand lets the cover and text breathe without changing article pages. */
-#actus .swapp-actus-grid[data-card-size="grand"]{gap:23px}
+#actus .swapp-actus-grid[data-card-size="grand"]{gap:23px!important}
 #actus .swapp-actus-grid[data-card-size="grand"] .swapp-actus-card{border-radius:19px}
 #actus .swapp-actus-grid[data-card-size="grand"] .swapp-actus-info{padding:22px 24px 24px;gap:12px}
 #actus .swapp-actus-grid[data-card-size="grand"] .swapp-actus-info h2{
@@ -412,20 +412,20 @@
  font-size:12px;
 }
 @media(min-width:1161px){
- #actus .swapp-actus-grid[data-card-size="compact"]{grid-template-columns:repeat(4,minmax(0,1fr))}
- #actus .swapp-actus-grid[data-card-size="grand"]{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #actus .swapp-actus-grid[data-card-size="compact"]{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+ #actus .swapp-actus-grid[data-card-size="grand"]{grid-template-columns:repeat(2,minmax(0,1fr))!important}
  .swapp-flash-cards[data-card-size="compact"]{grid-auto-columns:clamp(240px,25%,310px)}
  .swapp-flash-cards[data-card-size="grand"]{grid-auto-columns:clamp(320px,44%,550px)}
 }
 @media(min-width:761px) and (max-width:1160px){
- #actus .swapp-actus-grid[data-card-size="compact"]{grid-template-columns:repeat(3,minmax(0,1fr))}
- #actus .swapp-actus-grid[data-card-size="grand"]{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #actus .swapp-actus-grid[data-card-size="compact"]{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+ #actus .swapp-actus-grid[data-card-size="grand"]{grid-template-columns:repeat(2,minmax(0,1fr))!important}
  .swapp-flash-cards[data-card-size="compact"]{grid-auto-columns:minmax(245px,32%)}
  .swapp-flash-cards[data-card-size="grand"]{grid-auto-columns:minmax(320px,57%)}
 }
 @media(min-width:631px) and (max-width:760px){
- #actus .swapp-actus-grid[data-card-size="compact"]{grid-template-columns:repeat(2,minmax(0,1fr))}
- #actus .swapp-actus-grid[data-card-size="grand"]{grid-template-columns:minmax(0,1fr)}
+ #actus .swapp-actus-grid[data-card-size="compact"]{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ #actus .swapp-actus-grid[data-card-size="grand"]{grid-template-columns:minmax(0,1fr)!important}
  .swapp-flash-cards[data-card-size="compact"]{grid-auto-columns:minmax(235px,42%)}
  .swapp-flash-cards[data-card-size="grand"]{grid-auto-columns:minmax(320px,70%)}
 }
@@ -434,7 +434,7 @@
  #actus .swapp-actus-card-size-label{font-size:11px}
  #actus .swapp-actus-card-size-option{min-width:57px;padding:7px 8px;font-size:11px}
  #actus .swapp-actus-grid[data-card-size="compact"],
- #actus .swapp-actus-grid[data-card-size="grand"]{grid-template-columns:minmax(0,1fr)}
+ #actus .swapp-actus-grid[data-card-size="grand"]{grid-template-columns:minmax(0,1fr)!important}
  #actus .swapp-actus-grid[data-card-size="grand"] .swapp-actus-info{padding:18px;gap:9px}
  #actus .swapp-actus-grid[data-card-size="grand"] .swapp-actus-info h2{font-size:22px}
  .swapp-flash-cards[data-card-size="compact"]{grid-auto-columns:minmax(230px,75%)}
@@ -442,4 +442,11 @@
 }
 @media(prefers-reduced-motion:reduce){
  #actus .swapp-actus-card-size-option{transition:none}
+}
+
+/* Override the legacy tablet-portrait global 1-column !important rule only
+ * when the reader explicitly chooses a different density. */
+@media (min-width:701px) and (max-width:920px) and (orientation:portrait){
+ #actus .swapp-actus-grid[data-card-size="compact"]{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ #actus .swapp-actus-grid[data-card-size="grand"]{grid-template-columns:minmax(0,1fr)!important}
 }
