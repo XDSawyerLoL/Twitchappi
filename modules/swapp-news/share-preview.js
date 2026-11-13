@@ -19,17 +19,29 @@ function previewUrl(article){
  const slug=String(article?.slug||'');
  return SLUG.test(slug)?PREVIEW_BASE+slug:'';
 }
-function thumbnailSource(article){
- for(const source of articleExtras.cardImageSources(article)){
-  try{
-   const u=new URL(source);
-   if(u.protocol==='https:'&&HOSTS.has(u.hostname)&&!u.port&&!u.username&&!u.password
-    &&/^\/vi\/[A-Za-z0-9_-]{11}\/(?:hqdefault|mqdefault|maxresdefault|sddefault|0)\.jpg$/.test(u.pathname)
-    &&!u.search&&!u.hash)return u.href;
-  }catch(_){}
- }
- return null;
+function allowedSource(raw){
+ try{
+  const u=new URL(String(raw||''));
+  if(u.protocol!=='https:'||u.port||u.username||u.password||u.search||u.hash)return null;
+  const host=u.hostname.toLowerCase(),path=u.pathname;
+  if(HOSTS.has(host)&&/^\/vi\/[A-Za-z0-9_-]{11}\/(?:hqdefault|mqdefault|maxresdefault|sddefault|0)\.jpg$/.test(path))
+   return u.href;
+  // Official editorial hosts and fixed image publishing paths only.
+  // Do not proxy arbitrary URLs, even when a link was supplied by a user.
+  if(host==='blog.playstation.com'&&/^\/tachyon\/20\d{2}\/\d{2}\/[a-zA-Z0-9_./-]+\.(?:jpe?g|png)$/.test(path))
+   return u.href;
+  if(host==='storage.googleapis.com'&&/^\/gweb-uniblog-publish-prod\/images\/[a-zA-Z0-9_./-]+\.(?:jpe?g|png)$/.test(path))
+   return u.href;
+  if(host==='blogs.nvidia.com'&&/^\/wp-content\/uploads\/20\d{2}\/\d{2}\/[a-zA-Z0-9_./-]+\.(?:jpe?g|png)$/.test(path))
+   return u.href;
+  return null;
+ }catch(_){return null}
 }
+function thumbnailSources(article){
+ const candidates=articleExtras.cardImageSources(article);
+ return [...new Set(candidates.map(allowedSource).filter(Boolean))].slice(0,3);
+}
+function thumbnailSource(article){return thumbnailSources(article)[0]||null;}
 const GLYPHS={
  'A':['01110','10001','10001','11111','10001','10001','10001'],
  'B':['11110','10001','10001','11110','10001','10001','11110'],
@@ -129,38 +141,39 @@ function brandedPng(article){
   chunk('IDAT',zlib.deflateSync(pixels,{level:5})),chunk('IEND',Buffer.alloc(0))]);
 }
 async function deliverPreview(article,res,fetchImpl=globalThis.fetch){
- const source=thumbnailSource(article);
- if(source&&typeof fetchImpl==='function'){
-  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),4000);
+ for(const source of thumbnailSources(article)){
+  if(typeof fetchImpl!=='function')break;
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),3000);
   try{
    const response=await fetchImpl(source,{
-    redirect:'error',signal:controller.signal,headers:{Accept:'image/jpeg'}
+    redirect:'error',signal:controller.signal,headers:{Accept:'image/jpeg,image/png'}
    });
-   if(response?.ok&&/^image\/jpeg(?:;|$)/i.test(response.headers.get('content-type')||'')){
-    const maximum=4500000,size=Number(response.headers.get('content-length')||0);
-    if(Number.isFinite(size)&&size>=0&&size<maximum&&response.body?.getReader){
-     const reader=response.body.getReader(),parts=[];let count=0,invalid=false;
-     try{
-      while(true){
-       const item=await reader.read();
-       if(item.done)break;
-       count+=item.value.byteLength;
-       if(count>=maximum){invalid=true;controller.abort();break}
-       parts.push(Buffer.from(item.value));
-      }
-     }finally{try{await reader.cancel()}catch(_){}}
-     if(!invalid){
-      const buffer=Buffer.concat(parts,count);
-      if(buffer.length>1500&&buffer[0]===255&&buffer[1]===216)
-       return res.set('Cache-Control','public, max-age=60')
-        .set('X-Content-Type-Options','nosniff').type('jpeg').send(buffer);
-     }
+   if(!response?.ok)continue;
+   const mime=String(response.headers.get('content-type')||'').toLowerCase();
+   if(!/^image\/(?:jpeg|png)(?:;|$)/.test(mime))continue;
+   const maximum=4500000,size=Number(response.headers.get('content-length')||0);
+   if(!Number.isFinite(size)||size<0||size>=maximum||!response.body?.getReader)continue;
+   const reader=response.body.getReader(),parts=[];let count=0,invalid=false;
+   try{
+    while(true){
+     const item=await reader.read();
+     if(item.done)break;
+     count+=item.value.byteLength;
+     if(count>=maximum){invalid=true;controller.abort();break}
+     parts.push(Buffer.from(item.value));
     }
-   }
-  }catch(_){/* A branded per-article image remains available without paid services. */}
+   }finally{try{await reader.cancel()}catch(_){}}
+   if(invalid||count<=1500)continue;
+   const buffer=Buffer.concat(parts,count);
+   const jpeg=buffer[0]===255&&buffer[1]===216&&buffer[buffer.length-2]===255&&buffer[buffer.length-1]===217;
+   const png=buffer.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10]));
+   if(mime.startsWith('image/jpeg')&&!jpeg||mime.startsWith('image/png')&&!png)continue;
+   return res.set('Cache-Control','public, max-age=60')
+    .set('X-Content-Type-Options','nosniff').type(jpeg?'jpeg':'png').send(buffer);
+  }catch(_){/* Continue to another licensed artwork source or branded SWAPP card. */}
   finally{clearTimeout(timer)}
  }
  return res.set('Cache-Control','public, max-age=60')
   .set('X-Content-Type-Options','nosniff').type('png').send(brandedPng(article));
 }
-module.exports={SLUG,xShareUrl,previewUrl,thumbnailSource,brandedPng,deliverPreview};
+module.exports={SLUG,xShareUrl,previewUrl,thumbnailSource,thumbnailSources,allowedSource,brandedPng,deliverPreview};
