@@ -42,6 +42,11 @@ test('published ACTUS magazine displays the former home editorial poster',async(
  await mocks(page);
  await page.goto(ORIGIN+'/actus',{waitUntil:'domcontentloaded'});
  await expect(page.locator('#actus .swapp-actus-featured-hero')).toBeVisible({timeout:20000});
+ const header=await page.locator('header.top').boundingBox();
+ const hero=await page.locator('#actus .swapp-actus-featured-mount').boundingBox();
+ expect(header).toBeTruthy();expect(hero).toBeTruthy();
+ expect(Math.abs(hero.y-(header.y+header.height))).toBeLessThanOrEqual(3);
+
  await expect(page.locator('#actus .swapp-actus-featured-overlay strong')).toHaveText('Une annonce officielle SWAPP');
  await expect(page.locator('#actus .swapp-actus-featured-link')).toHaveAttribute('href','/actus/nouvel-article-swapp-2026');
  await expect(page.locator('#actus .swapp-actus-featured-actions a').first()).toHaveAttribute('href','/actus/nouvel-article-swapp-2026');
