@@ -1600,7 +1600,7 @@ require('./modules/swapp-fair-admin').registerFairAdmin({
  fairMetrics,fairOffers,getPool:()=>socialInteractionsState!=='unavailable'?socialInteractionsPool:null
 });
 
-const SWAPP_CLEAN_VIEW_PATHS = new Set(['/actus','/decouvrir','/discover','/categories','/equipes','/teams','/compte','/connexion','/settings','/chaine','/channel','/gestionnaire','/manager','/dashboard','/studio','/admin','/reset-password']);
+const SWAPP_CLEAN_VIEW_PATHS = new Set(['/actus','/decouvrir','/discover','/categories','/compte','/connexion','/settings','/chaine','/channel','/gestionnaire','/manager','/dashboard','/studio','/admin','/reset-password']);
 const SWAPP_RESERVED_ROOT_PATHS = new Set(['index_script.js','favicon.ico','pricing','twitch_auth_start','twitch_auth_callback','twitch_user_status','twitch_logout','firebase_status','followed_streams','get_default_stream','boost_queue','stream_info','cycle_stream','stream_boost','scan_target','critique_ia','start_raid','analyze_schedule','api','assets','actus','tech','technologies','gaming','ai','robotics','future','live-news','jeux','communaute','bandes-annonces','boutique','reset-password','contact','moderation','mentions-legales','confidentialite','cgu','cookies']);
 function isSwappCleanChannelSlug(slug){
   const clean = String(slug || '').trim().toLowerCase();
@@ -1785,10 +1785,15 @@ app.get(['/reset-password', '/reset-password/:token'], (_req, res) => sendSwappU
 require('./modules/swapp-news/legal-pages').register(app);
 // Legacy route names redirect to one canonical, indexable URL.
 // Keep the same UI and preserve query parameters without creating duplicate pages.
-app.get(['/discover','/teams'],(req,res)=>{
- const destination=req.path==='/discover'?'/decouvrir':'/equipes';
+app.get('/discover',(req,res)=>{
  const query=req.originalUrl.includes('?')?req.originalUrl.slice(req.originalUrl.indexOf('?')):'';
- return res.redirect(301,destination+query);
+ return res.redirect(301,'/decouvrir'+query);
+});
+// Temporary withdrawal of Équipes. Preserve bookmarks with a reversible
+// non-permanent redirect; never delete any teams, accounts or community data.
+app.get(['/equipes','/teams'],(req,res)=>{
+ const query=req.originalUrl.includes('?')?req.originalUrl.slice(req.originalUrl.indexOf('?')):'';
+ return res.redirect(302,'/decouvrir'+query);
 });
 app.get(Array.from(SWAPP_CLEAN_VIEW_PATHS), (req, res) => { if(req.path==='/actus')res.set('Cache-Control','no-store'); return sendSwappUi(res); });
 // Reserve /tech for editorial AI & robotics even when the News CMS is disabled.

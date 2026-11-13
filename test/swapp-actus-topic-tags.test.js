@@ -13,7 +13,7 @@ const createTopics=search=>new Function('window','URLSearchParams',client.slice(
 
 test('one Actualité page has four optional topic tags and a transverse all feed',()=>{
  const t=createTopics('');
- assert.deepEqual(t.SWAPP_TOPICS.map(x=>x.id),['','GAMING','AI','ROBOTICS','FUTURE']);
+ assert.deepEqual(t.SWAPP_TOPICS.map(x=>x.id),['','GAMING','DOSSIERS','AI','ROBOTICS','FUTURE']);
  assert.equal(t.hasTopic({tags:['AI']},''),true);
  assert.equal(t.hasTopic({tags:['AI']},'AI'),true);
  assert.equal(t.hasTopic({tags:['AI']},'ROBOTICS'),false);
@@ -48,12 +48,12 @@ test('the shared main navigation has no redundant Média tab and the Studio uses
  const navigation=read('assets/swapp-navigation.js');
  const studio=read('modules/swapp-news/editor-ui.js');
  assert.doesNotMatch(navigation,/id:'media'|function mediaNav/);
- assert.match(navigation,/\/actus\?tag=AI/);
- assert.match(navigation,/\/actus\?tag=ROBOTICS/);
+ assert.doesNotMatch(navigation,/\/actus\?tag=AI/);
+ assert.doesNotMatch(navigation,/\/actus\?tag=ROBOTICS/);
  assert.match(studio,/Tags \/ rubriques/);
  assert.match(studio,/id="tags"/);
  const html=read('index.html');
- assert.match(html,/swapp-actus-app\.js\?v=20261111-topic-tags-v1/);
+ assert.match(html,/swapp-actus-app\.js\?v=20261113-card-density-v1/);
 });
 test('Fable is a gaming-tagged existing editorial release, not a new page',()=>{
  const manifest=JSON.parse(read('data/swapp-editorial-releases.json'));

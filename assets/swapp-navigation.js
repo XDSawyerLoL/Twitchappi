@@ -5,63 +5,47 @@
  if(typeof module==='object'&&module.exports)module.exports=api;
  if(root)root.SwappNavigation=api;
 })(typeof window!=='undefined'?window:null,function(){
+ // Deliberately flat: no nested Discover or Actualité menus.
  const items=Object.freeze([
   Object.freeze({id:'home',label:'Accueil',href:'/'}),
-  Object.freeze({id:'discover',label:'Découvrir',href:'/decouvrir'}),
+  Object.freeze({id:'discover',label:'DIRECT',href:'/decouvrir'}),
+  Object.freeze({id:'categories',label:'Jeux & catégories',href:'/categories'}),
   Object.freeze({id:'actus',label:'Actualité',href:'/actus'}),
   Object.freeze({id:'community',label:'Social',href:'/social'}),
   Object.freeze({id:'shop',label:'Boutique',href:'/boutique'}),
   Object.freeze({id:'tv',label:'SWAPP TV',href:'/tv'})
  ]);
  const video=Object.freeze({id:'trailers',label:'Vidéos',href:'/bandes-annonces'});
+ const podcast=Object.freeze({id:'onair',label:'PODCAST',href:'/on-air'});
  const account=Object.freeze({id:'settings',label:'Compte',href:'/compte'});
  const htmlEscape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
  const isNews=active=>active==='actus'||active==='trailers'||active==='guides'||active==='onair';
- const isDiscover=active=>active==='discover'||active==='categories'||active==='teams';
+ const isDiscover=active=>active==='discover'||active==='teams';
  const isTv=active=>active==='tv'||active==='agenda'||active==='programme';
- function link(item,active){
+ function link(item,active,shortLabel=''){
   const selected=(item.id==='discover'&&isDiscover(active))||(item.id==='actus'&&isNews(active))||(item.id==='tv'&&isTv(active))||active===item.id;
   const current=active===item.id;
-  const classes=[selected?'active':'',item.id==='tv'?'swapp-tv-nav-cta':''].filter(Boolean).join(' ');
-  return '<a href="'+htmlEscape(item.href)+'" class="'+classes+'"'+(current?' aria-current="page"':'')+'>'+
-   (item.id==='tv'?'<span class="swapp-tv-nav-icon" aria-hidden="true">◉</span>':'')+htmlEscape(item.label)+'</a>';
- }
- function newsNav(active){
-  return '<div class="swapp-news-nav">'+link(items.find(x=>x.id==='actus'),active)+
-   '<details class="swapp-news-more"><summary aria-label="Ouvrir les rubriques Actualité" title="Rubriques Actualité">⌄</summary>'+
-   '<div class="swapp-news-menu"><a href="/actus"'+(active==='actus'?' aria-current="page"':'')+'>Tous les articles</a>'+
-   '<a href="/actus?tag=GAMING">GAMING</a><a href="/actus?tag=AI">AI</a><a href="/actus?tag=ROBOTICS">ROBOTICS</a><a href="/actus?tag=FUTURE">FUTURE</a>'+
-   '<a href="/bandes-annonces"'+(active==='trailers'?' aria-current="page"':'')+'>Vidéos et bandes-annonces</a>'+ 
-   '<a href="/on-air"'+(active==='onair'?' aria-current="page"':'')+'>PODCAST</a>'+  
-   '<a href="/guides/aion-2"'+(active==='guides'?' aria-current="page"':'')+'>Guide Aion 2</a>'+ 
-   '<a href="/actus?tag=DOSSIERS">Dossiers</a></div></details></div>';
- }
- function discoverNav(active){
-  return '<div class="swapp-news-nav swapp-discover-nav">'+link(items.find(x=>x.id==='discover'),active)+
-   '<details class="swapp-news-more"><summary aria-label="Ouvrir les rubriques Découvrir" title="Rubriques Découvrir">⌄</summary>'+
-   '<div class="swapp-news-menu"><a href="/decouvrir"'+(active==='discover'?' aria-current="page"':'')+'>Tous les créateurs</a>'+
-   '<a href="/categories"'+(active==='categories'?' aria-current="page"':'')+'>Jeux et catégories</a>'+
-   '<a href="/equipes"'+(active==='teams'?' aria-current="page"':'')+'>Équipes</a></div></details></div>';
+  const classes=[selected?'active':'',item.id==='tv'?'swapp-tv-nav-cta':'',item.id==='discover'?'swapp-direct-nav-cta':''].filter(Boolean).join(' ');
+  const label=shortLabel||item.label;
+  const accessibility=shortLabel&&shortLabel!==item.label?' aria-label="'+htmlEscape(item.label)+'"':'';
+  return '<a href="'+htmlEscape(item.href)+'" class="'+classes+'"'+accessibility+(current?' aria-current="page"':'')+'>'+
+   (item.id==='tv'?'<span class="swapp-tv-nav-icon" aria-hidden="true">◉</span>':'')+htmlEscape(label)+'</a>';
  }
  function desktopNavigation(active='actus'){
-  return '<div class="navGroup">'+items.map(x=>x.id==='actus'?newsNav(active):x.id==='discover'?discoverNav(active):link(x,active)).join('')+'</div>';
+  return '<div class="navGroup">'+items.map(x=>link(x,active)).join('')+'</div>';
  }
  function mobileNavigation(active='actus'){
-  const pinned=items.filter(x=>['home','discover','actus','tv'].includes(x.id));
+  // Four primary destinations plus one "Plus" button fit 320px phones.
+  const pinned=items.filter(x=>['home','discover','categories','actus'].includes(x.id));
   const other=items.filter(x=>!pinned.includes(x));
-  return pinned.map(x=>link(x,active)).join('')+
-   '<details class="swapp-mobile-more"><summary'+(other.some(x=>x.id===active)||['categories','teams','guides','onair',video.id,account.id].includes(active)?' class="active"':'')+'>Plus</summary>'+
+  const extra=[...other,video,podcast,account];
+  const secondaryActive=extra.some(x=>x.id===active)||active==='guides';
+  return pinned.map(x=>link(x,active,x.id==='categories'?'Jeux':undefined)).join('')+
+   '<details class="swapp-mobile-more"><summary'+(secondaryActive?' class="active"':'')+
+   ' aria-label="Autres rubriques SWAPP">Plus</summary>'+
    '<div class="swapp-mobile-more-links">'+
-   '<span class="swapp-mobile-menu-title">DÉCOUVRIR</span>'+ 
-   '<a href="/categories"'+(active==='categories'?' class="active" aria-current="page"':'')+'>Jeux et catégories</a>'+ 
-   '<a href="/equipes"'+(active==='teams'?' class="active" aria-current="page"':'')+'>Équipes</a>'+ 
-   '<span class="swapp-mobile-menu-title">ACTUALITÉ</span>'+
-   '<a href="/actus?tag=GAMING">GAMING</a><a href="/actus?tag=AI">AI</a><a href="/actus?tag=ROBOTICS">ROBOTICS</a><a href="/actus?tag=FUTURE">FUTURE</a>'+
-   '<a href="/bandes-annonces"'+(active==='trailers'?' class="active" aria-current="page"':'')+'>Vidéos et bandes-annonces</a>'+ 
-   '<a href="/guides/aion-2"'+(active==='guides'?' class="active" aria-current="page"':'')+'>Guide Aion 2</a>'+ 
-   '<a href="/on-air"'+(active==='onair'?' class="active" aria-current="page"':'')+'>PODCAST</a>'+ 
-   '<span class="swapp-mobile-menu-title">SWAPP</span>'+
-   other.map(x=>link(x,active)).join('')+link(account,active)+'</div></details>';
+   extra.map(x=>link(x,active)).join('')+
+   '</div></details>';
  }
  function serverHeader(active='actus'){
   return '<header class="top"><div class="topbar">'+

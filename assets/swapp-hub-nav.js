@@ -10,15 +10,15 @@
   {href:'/tv',label:'SWAPP TV'}
  ];
  const NAV=[
-  ['/', 'Accueil'],['/decouvrir','Découvrir'],['/categories','Catégories'],
-  ['/equipes','Équipes'],['/actus','Actualité'],
+  ['/', 'Accueil'],['/decouvrir','DIRECT'],['/categories','Jeux & catégories'],
+  ['/actus','Actualité'],
   ...HUBS.map(x=>[x.href,x.label])
  ];
  // Account lives in the secondary menu but must still be recognized by
  // reconciliation; otherwise every MutationObserver pass adds another link.
  const ACCOUNT=['/compte','Compte'];
  const norm=s=>String(s||'').replace(/\s+/g,' ').trim().toLocaleLowerCase('fr');
- const byLabel=new Map([...NAV,ACCOUNT].map(([href,label])=>[norm(label),href]));
+ const byLabel=new Map([...NAV,ACCOUNT,['/decouvrir','Découvrir'],['/categories','Catégories']].map(([href,label])=>[norm(label),href]));
  const byHref=new Set([...NAV,ACCOUNT].map(([href])=>href));
  const isHub=href=>HUBS.some(x=>x.href===href);
  function dest(el){
@@ -63,6 +63,8 @@
   const seen=new Map();
   for(const el of [...parent.querySelectorAll('a,button')]){
    if(el.closest('#nav')!==parent&&el.closest('#mobileNav')!==parent)continue;
+   // Deprecated Équipes is intentionally out of public navigation.
+   if(norm(el.textContent)==='équipes'||el.getAttribute('href')==='/equipes'){el.remove();continue;}
    const href=dest(el);
    if(!href)continue;
    if(seen.has(href)){
@@ -87,7 +89,10 @@
   const route=String(location.pathname||'/').replace(/\/+$/,'')||'/';
   const active=route==='/bandes-annonces'?'trailers':route==='/tv'?'tv':route==='/tv/programme'||route==='/agenda'?'agenda':route==='/on-air'?'onair':route==='/actus'?'actus':route==='/decouvrir'?'discover':route==='/social'?'community':route==='/boutique'?'shop':route==='/categories'?'categories':route==='/equipes'?'teams':route.startsWith('/guides')?'guides':'home';
   const signature=(mobile?'mobile:':'desktop:')+active;
-  const valid=mobile?nav.querySelector('.swapp-mobile-more')&&nav.querySelector('.swapp-tv-nav-cta'):nav.querySelector('.swapp-news-more')&&nav.querySelector('.swapp-tv-nav-cta');
+  const valid=!!(nav.querySelector('a[href="/categories"]')&&nav.querySelector('a[href="/decouvrir"]')&&
+   nav.querySelector('a[href="/actus"]')&&nav.querySelector('.swapp-tv-nav-cta')&&
+   !nav.querySelector('.swapp-news-more')&&!nav.querySelector('a[href="/equipes"]')&&
+   (!mobile||nav.querySelector('.swapp-mobile-more')));
   if(nav.dataset.swappNavSignature===signature&&valid)return true;
   nav.innerHTML=mobile?api.mobileNavigation(active):api.desktopNavigation(active);
   nav.dataset.swappNavSignature=signature;
@@ -109,7 +114,7 @@
   const nav=document.getElementById('mobileNav');
   if(!nav)return;
   if(canonicalMenu(nav,true))return;
-  const pinned=['/','/decouvrir','/actus','/tv'];
+  const pinned=['/','/decouvrir','/categories','/actus'];
   let more=nav.querySelector(':scope > .swapp-mobile-more');
   if(!more){
    more=document.createElement('details');

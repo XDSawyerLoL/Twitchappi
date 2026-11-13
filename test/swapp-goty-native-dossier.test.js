@@ -75,7 +75,7 @@ test('old GOTY guide URLs redirect to the ACTUS article and are not in the sitem
 });
 test('ACTUS provides Dossiers as the existing magazine filter, not as a separate section',()=>{
  const nav=read('assets/swapp-navigation.js'),app=read('assets/swapp-actus-app.js'),seo=read('modules/swapp-seo.js');
- assert.match(nav,/href="\/actus\?tag=DOSSIERS">Dossiers<\/a>/);
+ assert.doesNotMatch(nav,/href="\/actus\?tag=DOSSIERS">Dossiers<\/a>/);
  assert.match(app,/id:'DOSSIERS',label:'Dossiers'/);
  assert.match(app,/return 'DOSSIERS'/);
  assert.doesNotMatch(nav,/href="\/guides\/game-awards-2017-2025"/);

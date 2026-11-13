@@ -3,24 +3,24 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const read=name=>fs.readFileSync(path.join(__dirname,'..',name),'utf8');
 const nav=require('../assets/swapp-navigation');
 const {page}=require('../modules/swapp-program');
-test('SWAPP TV is a distinguished last desktop tab; video belongs exclusively under Actualité',()=>{
+test('SWAPP TV remains highlighted, while Actualité is a single direct link',()=>{
  assert.equal(nav.items.at(-1).href,'/tv');
  assert.equal(nav.items.some(x=>x.href==='/bandes-annonces'),false);
  const html=nav.serverHeader('tv');
- assert.match(html,/href="\/tv" class="active swapp-tv-nav-cta" aria-current="page"/);
- assert.match(html,/class="swapp-news-more"/);
- assert.match(html,/aria-label="Ouvrir les rubriques Actualité"/);
- assert.match(html,/class="swapp-news-menu"/);
- assert.match(html,/href="\/bandes-annonces"/);
- assert.match(nav.serverHeader('trailers'),/href="\/bandes-annonces" aria-current="page"/);
+ assert.match(html,/href="\/tv" class="swapp-tv-nav-cta" aria-current="page"|href="\/tv" class="active swapp-tv-nav-cta" aria-current="page"/);
+ assert.doesNotMatch(html,/swapp-news-more|swapp-news-menu|href="\/equipes"/);
+ assert.match(html,/href="\/actus"[^>]*>Actualité<\/a>/);
+ assert.match(html,/href="\/categories"[^>]*>Jeux &amp; catégories<\/a>/);
+ assert.match(nav.serverHeader('trailers'),/href="\/actus" class="active"/);
 });
-test('mobile menu pins TV and keeps videos grouped with Actualité',()=>{
+test('mobile menu pins four direct routes; TV and video are in Plus',()=>{
  const html=nav.serverMobile('tv'),main=html.split('<details class="swapp-mobile-more">')[0];
- for(const route of ['/','/decouvrir','/actus','/tv'])assert.ok(main.includes('href="'+route+'"'),route);
+ for(const route of ['/','/decouvrir','/categories','/actus'])assert.ok(main.includes('href="'+route+'"'),route);
  assert.equal((main.match(/<a /g)||[]).length,4);
- assert.match(html,/swapp-mobile-menu-title">ACTUALITÉ/);
- assert.match(html,/Vidéos et bandes-annonces/);
- assert.match(html,/swapp-tv-nav-cta/);
+ assert.match(html,/href="\/tv"/);
+ assert.match(html,/href="\/bandes-annonces"/);
+ assert.match(html,/PODCAST/);
+ assert.doesNotMatch(html,/href="\/equipes"|swapp-mobile-menu-title/);
 });
 test('TV and programme follow existing SWAPP colors and layout',()=>{
  const css=read('assets/swapp-program.css');
@@ -43,8 +43,8 @@ test('Agenda legacy route safely redirects under TV and shared nav assets bust b
  assert.match(server,/app\.get\('\/tv\/programme'/);
  assert.match(server,/res\.redirect\(308,'\/tv\/programme'/);
  for(const html of [shell,home]){
-  assert.match(html,/swapp-unified-nav\.css\?v=20261022-tvnav-v1/);
-  assert.match(html,/swapp-hub-nav\.js\?v=20261022-one-account-menu-v2/);
-  assert.match(html,/swapp-navigation\.js\?v=20261022-one-account-menu-v2/);
+  assert.match(html,/swapp-unified-nav\.css\?v=20261113-direct-games-flat-nav-v1/);
+  assert.match(html,/swapp-hub-nav\.js\?v=20261113-direct-games-flat-nav-v1/);
+  assert.match(html,/swapp-navigation\.js\?v=20261113-direct-games-flat-nav-v1/);
  }
 });

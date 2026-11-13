@@ -3,17 +3,22 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const read=p=>fs.readFileSync(path.join(__dirname,'..',p),'utf8');
 const nav=require('../assets/swapp-navigation');
 const {community}=require('../modules/swapp-hubs');
-test('exactly six main destinations and existing subroutes remain reachable',()=>{
- assert.deepEqual(nav.items.map(x=>x.label),['Accueil','Découvrir','Actualité','Social','Boutique','SWAPP TV']);
+test('seven direct destinations; no Actualité dropdown and no Équipes tab',()=>{
+ assert.deepEqual(nav.items.map(x=>x.label),['Accueil','DIRECT','Jeux & catégories','Actualité','Social','Boutique','SWAPP TV']);
  const desktop=nav.desktopNavigation('categories');
- assert.match(desktop,/swapp-discover-nav/);
- for(const href of ['/categories','/equipes','/bandes-annonces','/guides/aion-2'])assert.match(desktop,new RegExp('href="'+href+'"'));
- assert.equal((desktop.match(/class="swapp-news-nav/g)||[]).length,2);
- assert.match(desktop,/href="\/decouvrir" class="active"/);
- const mobile=nav.mobileNavigation('teams');
- assert.match(mobile,/DÉCOUVRIR/);
- assert.match(mobile,/href="\/equipes" class="active" aria-current="page"/);
- assert.match(mobile,/href="\/tv" class="swapp-tv-nav-cta"/);
+ assert.equal((desktop.match(/<a /g)||[]).length,7);
+ for(const href of ['/','/decouvrir','/categories','/actus','/social','/boutique','/tv'])
+  assert.match(desktop,new RegExp('href="'+href+'"'));
+ assert.doesNotMatch(desktop,/swapp-news-more|swapp-news-menu|href="\/equipes"/);
+ assert.match(desktop,/href="\/categories" class="active" aria-current="page"/);
+ assert.match(desktop,/href="\/decouvrir"[^>]*>DIRECT<\/a>/);
+ const mobile=nav.mobileNavigation('categories');
+ const pinned=mobile.split('<details class="swapp-mobile-more">')[0];
+ assert.equal((pinned.match(/<a /g)||[]).length,4);
+ for(const href of ['/','/decouvrir','/categories','/actus'])assert.match(pinned,new RegExp('href="'+href+'"'));
+ assert.match(mobile,/href="\/tv"/);
+ assert.match(mobile,/href="\/social"/);
+ assert.doesNotMatch(mobile,/href="\/equipes"|swapp-mobile-menu-title/);
 });
 test('SOCIAL content is public, while the only login dialog uses the SWAPP session',()=>{
  const html=community();
