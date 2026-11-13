@@ -1750,6 +1750,23 @@ app.get('/favicon.ico', (_req,res)=>sendPublicFile(res, 'favicon.ico', 'image/x-
 
 // Page principale (UI)
 app.get('/', (req, res) => {
+  // The catalogue is now SWAPP's public homepage. Keep the former SPA home
+  // reachable at /?classic=1 for immediate rollback and layout comparisons.
+  if(String(req.query?.classic||'')!=='1'){
+    try{
+      const page=require('./modules/swapp-catalogue-lab').page({publicHome:true});
+      res.set('Cache-Control','public, max-age=45');
+      res.set('X-Content-Type-Options','nosniff');
+      return res.type('html').send(page);
+    }catch(error){
+      // Deployment can briefly serve the updated server before its new assets.
+      // A homepage failure must never take down SWAPP.
+      console.warn('[SWAPP HOME] Catalogue indisponible, accueil classique conservé :',String(error?.message||error).slice(0,180));
+    }
+  }else{
+    res.set('Cache-Control','no-store');
+    res.set('X-Robots-Tag','noindex, nofollow');
+  }
   // Serve only HTML UI files (prevents accidentally serving JS source if UI_FILE is mis-set on Render)
   const rawCandidates = [
     process.env.UI_FILE,
