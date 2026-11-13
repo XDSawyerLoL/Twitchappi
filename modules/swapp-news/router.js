@@ -14,6 +14,8 @@ const {createEditorialReleaseSync,loadEditorialReleases}=require('./editorial-re
 const {selectEditorialReleaseCandidates}=require('./editorial-release-selection');
 const {createVerifiedPublishedCache}=require('./verified-cache');
 const {createDiscordPublisher}=require('./discord-publisher');
+const {createSocialPublisher}=require('./social-publisher');
+const {renderSocialPublisher}=require('./social-publisher-ui');
 const swappReleaseArticles=loadEditorialReleases();
 const swappReleaseBySlug=new Map(swappReleaseArticles.map(article=>[article.slug,article]));
 const {publicArticle,recoveredArticle,nativeSlug,legacyDraft}=require('./editorial-identity');
@@ -64,8 +66,10 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
   const outbox=firestore.collection('swapp_news_outbox');
   const importKeys=firestore.collection('swapp_news_import_keys');
   const discordPublisher=createDiscordPublisher({firestore,articles,baseUrl,isReady});
+  const socialPublisher=createSocialPublisher({firestore,baseUrl});
   const releaseSync=createEditorialReleaseSync({firestore,articles,releaseArticles:releaseCandidates,
-    recordDiscordPublication:discordPublisher.recordPublication});
+    recordDiscordPublication:discordPublisher.recordPublication,
+    recordSocialPublication:socialPublisher.recordPublication});
   discordPublisher.start();
   // SWAPP already serves these editor-reviewed articles publicly. When the
   // production magazine loads, adopt only still-missing records into the
@@ -299,6 +303,7 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
     res.set('Cache-Control','no-store');
     return res.type('html').send(renderTwitchWatch(login,{game:req.query?.game,handoff:req.query?.handoff==='1'}));
   });
+  router.get('/actus/social-publisher',...editor,(_req,res)=>res.set('Cache-Control','private, no-store').type('html').send(renderSocialPublisher()));
   router.get('/actus/studio',...editor,(req,res)=>res.set('Cache-Control','private, no-store').type('html').send(renderStudio()));
   router.get('/actus/studio.js',...editor,(req,res)=>res.set('Cache-Control','private, no-store').type('application/javascript').send(studioJs));
   // Each published article automatically has a short interactive briefing.
@@ -384,6 +389,38 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
   // Read-only preflight: use the EXACT publication validator, no DB writes.
   // Editors can see missing sources, images, rights or media URLs before saving.
   // Secret-free status for SWAPP administrators. Does not emit a Discord message.
+  // Authenticated editorial share preparation: no X credentials and no outbound post.
+  router.get('/api/editor/actus/social/status',...editor,(req,res)=>{
+    res.set('Cache-Control','private, no-store');
+    res.json(socialPublisher.status());
+  });
+  router.get('/api/editor/actus/social/queue',...editor,async(req,res,next)=>{
+    try{
+      res.set('Cache-Control','private, no-store');
+      await ensureReleaseEditable();
+      res.json({articles:await socialPublisher.queue(),automaticPublishing:false});
+    }catch(e){next(e);}
+  });
+  router.get('/api/editor/actus/:slug/social-preview',...editor,async(req,res,next)=>{
+    try{
+      const result=await socialPublisher.prepare(String(req.params.slug||''));
+      res.set('Cache-Control','no-store');
+      res.json(result);
+    }catch(e){
+      if(/^social_(article_not_published|article_missing|invalid_slug|missing_title)$/.test(e.message))
+        return res.status(400).json({error:e.message});
+      next(e);
+    }
+  });
+  router.post('/api/editor/actus/:slug/social-report',...editor,async(req,res,next)=>{
+    try{
+      const result=await socialPublisher.reportManuallyPublished(String(req.params.slug||''),req.body?.url);
+      res.set('Cache-Control','private, no-store').json(result);
+    }catch(e){
+      if(/^social_/.test(String(e?.message||'')))return res.status(400).json({error:e.message});
+      next(e);
+    }
+  });
   router.get('/api/editor/actus/discord/status',...editor,(req,res)=>{
     res.json({discord:discordPublisher.status()});
   });
@@ -536,6 +573,7 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
         const eventId=`article_${slug}_r${revision}`;
         // Atomically schedule Discord only for the initial publication of a slug.
         await discordPublisher.recordPublication(tx,{...old,slug},now);
+        await socialPublisher.recordPublication(tx,{...old,slug},now);
         tx.update(ref,{status:'published',publishedAt:old.originalPublishedAt||now,updatedAt:now,legacySuppressRecovery:false});
         tx.create(outbox.doc(eventId),{type:'article.published',articleSlug:slug,revision,
           createdAt:now,status:'paused',channels:[],attempts:0});
