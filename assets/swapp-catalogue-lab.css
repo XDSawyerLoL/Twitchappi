@@ -644,3 +644,6 @@ body.swapp-catalogue-lab-page{
 .scl-cards::-webkit-scrollbar{display:none;width:0;height:0}
 .scl-cards.scl-is-edge-scrolling{scroll-snap-type:none}
 .scl-cards:focus-visible{outline:2px solid #86e8ea;outline-offset:-2px}
+
+/* Direct external X share; preserve the card's compact styling. */
+.scl-story-share{display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
