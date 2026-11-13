@@ -884,6 +884,44 @@ function installRailHoverScroll(){
  });
 }
 
+/* Subtle overlaid controls show that every catalogue rail scrolls.
+ * They also work as actual buttons and disappear at each boundary.
+ */
+function installRailEdgeHints(){
+ document.querySelectorAll('.scl-rail > .scl-cards').forEach(cards=>{
+  if(cards.dataset.sclEdgeHints==='ready')return;
+  cards.dataset.sclEdgeHints='ready';
+  const rail=cards.closest('.scl-rail');
+  if(!rail)return;
+  const title=rail.querySelector('h2')?.textContent||'les contenus';
+  const make=(direction)=>{
+   const control=create('button','scl-edge-arrow scl-edge-arrow-'+direction,
+     direction==='left'?'‹':'›');
+   control.type='button';
+   control.setAttribute('aria-label','Défiler '+title+' vers la '+(direction==='left'?'gauche':'droite'));
+   control.hidden=true;
+   control.addEventListener('click',()=>{
+    cards.scrollBy({left:(direction==='right'?1:-1)*Math.max(230,cards.clientWidth*.76),
+     behavior:prefersLessMotion()?'auto':'smooth'});
+   });
+   rail.append(control);
+   return control;
+  };
+  const left=make('left'),right=make('right');
+  function refresh(){
+   const max=Math.max(0,cards.scrollWidth-cards.clientWidth);
+   left.hidden=max<=8||cards.scrollLeft<=6;
+   right.hidden=max<=8||cards.scrollLeft>=max-6;
+  }
+  cards.addEventListener('scroll',refresh,{passive:true});
+  window.addEventListener('resize',refresh,{passive:true});
+  if(typeof ResizeObserver!=='undefined')new ResizeObserver(refresh).observe(cards);
+  if(typeof MutationObserver!=='undefined')
+   new MutationObserver(refresh).observe(cards,{childList:true});
+  requestAnimationFrame(refresh);
+ });
+}
+
 document.querySelectorAll('[data-scroll-left],[data-scroll-right]').forEach(button=>{
  button.addEventListener('click',()=>{
   const target=$(button.dataset.scrollLeft||button.dataset.scrollRight);
@@ -901,6 +939,7 @@ document.addEventListener('click',event=>{
  }
 });
 installRailHoverScroll();
+installRailEdgeHints();
 window.SwappCatalogueLab=Object.freeze({version:LAB_VERSION,load});
 void load();
 })();
