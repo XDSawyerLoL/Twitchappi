@@ -99,8 +99,8 @@ test('Escape closes Plus and restores keyboard focus to its summary',()=>{
 });
 
 test('both shells and release verifier use exactly the latest navigation assets',()=>{
- const home=read('index.html'),native=read('modules/swapp-news/site-shell.js');
- const css='/assets/swapp-presentation-polish.css?v=20261017-visual-audit-v16';
+ const home=read('index.html'),native=require('../modules/swapp-news/site-shell').layout({content:'<main>Test</main>'});
+ const css='/assets/swapp-presentation-polish.css?v=20261108-remove-purple-video-v3';
  const js='/assets/swapp-mobile-nav-follow.js?v=20261016-follow-v2';
  for(const html of [home,native]){
   assert.equal(html.split(css).length-1,1);
@@ -110,7 +110,7 @@ test('both shells and release verifier use exactly the latest navigation assets'
  assert.match(release,/'assets\/swapp-presentation-polish\.css'/);
  assert.match(release,/'assets\/swapp-mobile-nav-follow\.js'/);
  const smoke=read('tools/swapp-deploy-smoke.js');
- assert.match(smoke,/20261017-visual-audit-v16/);
+ assert.match(smoke,/20261108-remove-purple-video-v3/);
  assert.match(smoke,/20261016-follow-v2/);
 });
 

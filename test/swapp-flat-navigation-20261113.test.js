@@ -31,7 +31,7 @@ test('mobile keeps Accueil, Découvrir, Actualité, SWAPP TV then Plus',()=>{
  assert.doesNotMatch(html,/href="\/equipes"|\/actus\?tag=/);
 });
 test('server and SPA use the same versioned navigation contract',()=>{
- const home=read('index.html'),native=read('modules/swapp-news/site-shell.js');
+ const home=read('index.html'),native=require('../modules/swapp-news/site-shell').layout({content:'<main>Test</main>'});
  for(const source of [home,native]){
   for(const name of ['swapp-navigation.js','swapp-hub-nav.js','swapp-unified-nav.css'])
    assert.ok(source.includes('/assets/'+name+'?v=20261113-nav-simple-v2'),name);

@@ -133,14 +133,14 @@ test('Google-compatible video and article JSON-LD use real publication dates and
  const video=extract(renderNewsStory({...base,status:'published',publishedAt,originalPublishedAt:'2026-10-14T09:00:00.000Z'}));
  assert.equal(video['@type'],'VideoObject');
  assert.equal(video.uploadDate,'2026-10-14T09:00:00.000Z');
- assert.equal(video.thumbnailUrl,'https://example.org/actual-cover.jpg');
+ assert.equal(video.thumbnailUrl,'https://swapp.tv/actus/og-image/'+base.slug);
  assert.equal(video.publisher.name,'SWAPP');
  assert.ok(video.embedUrl.includes('youtube-nocookie.com'));
  const plain=assertArticle({...input,contentType:'article',trailerUrl:null},{publish:true});
  const article=extract(renderNewsStory({...plain,status:'published',publishedAt,image:{url:'https://example.org/actual-cover.jpg'}}));
  assert.equal(article['@type'],'NewsArticle');
  assert.equal(article.datePublished,publishedAt);
- assert.deepEqual(article.image,['https://example.org/actual-cover.jpg']);
+ assert.deepEqual(article.image,['https://swapp.tv/actus/og-image/'+plain.slug]);
  assert.equal(article.publisher.name,'SWAPP');
 });
 
@@ -173,7 +173,8 @@ test('vignette distincte survives article validation, protects rights and contro
  assert.equal(a.image.url,'https://example.org/hero.jpg');
  assert.deepEqual(cardImageSources(a),[
   'https://example.org/card.jpg','https://example.org/hero.jpg',
-  'https://i.ytimg.com/vi/uQuKE0KDgiM/hqdefault.jpg']);
+  'https://i.ytimg.com/vi/uQuKE0KDgiM/hqdefault.jpg',
+  'https://img.youtube.com/vi/uQuKE0KDgiM/hqdefault.jpg']);
  const html=renderNewsStory({...a,status:'published',publishedAt:'2026-10-19T00:00:00.000Z'});
  const cards=renderNewsHome([a]);
  assert.match(cards,/src="https:\/\/example.org\/card\.jpg"/);

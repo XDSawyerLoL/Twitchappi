@@ -90,12 +90,12 @@ test('ACTUS sharing does not use Windows native sheet',()=>{
  assert.equal(h.shareArticleCard({slug:'<invalid>'}), '');
 });
 test('versioned SPA assets expose new navigation, catalogue and sharing without cache collisions',()=>{
- const home=read('index.html'),shell=read('modules/swapp-news/site-shell.js');
+ const home=read('index.html'),shell=require('../modules/swapp-news/site-shell').layout({content:'<main>Test</main>'});
  for(const source of [home,shell]){
   for(const file of ['swapp-navigation.js','swapp-hub-nav.js','swapp-unified-nav.css'])
    assert.ok(source.includes(file+'?v='+(file==='swapp-unified-nav.css'?'20261113-nav-simple-v2':file==='swapp-hub-nav.js'?'20261113-nav-simple-v2':'20261113-nav-simple-v2')));
  }
  assert.match(home,/index_script\.js\?v=20261113-catalogue-heading-v1/);
  assert.match(home,/swapp-actus-app\.js\?v=20261113-direct-x-v3/);
- assert.match(home,/swapp-actus-app\.css\?v=20261113-relocated-feature-v2/);
+ assert.match(home,/swapp-actus-app\.css\?v=20261113-flush-hero-v10/);
 });

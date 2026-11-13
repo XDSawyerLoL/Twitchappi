@@ -149,7 +149,7 @@ test('ACTUS recycles old-home article poster with real published art and interna
  assert.deepEqual(actions.children.map(x=>x.href),['/actus/article-feature-gaming','/decouvrir']);
  assert.match(js,/renderFeaturedActusHero\(featuredMount,items\)/);
  assert.match(js,/const featuredMount=el\('div','swapp-actus-featured-mount'\)/);
- assert.match(read('index.html'),/swapp-actus-app\.css\?v=20261113-relocated-feature-v2/);
+ assert.match(read('index.html'),/swapp-actus-app\.css\?v=20261113-flush-hero-v10/);
  assert.match(read('index.html'),/swapp-actus-app\.js\?v=20261113-direct-x-v3/);
 });
 test('published ACTUS hero sits flush below navigation without a spacer',()=>{

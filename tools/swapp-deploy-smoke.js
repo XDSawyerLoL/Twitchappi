@@ -614,7 +614,7 @@ async function verify(){
    'SPA still renders its menu only after client-side JavaScript');
  process.stdout.write('PASS one native site shell and pre-rendered SPA navigation\\n');
  // A successful GitHub commit is not proof the final visual layer reached Hostinger.
- const presentation='/assets/swapp-presentation-polish.css?v=20261017-visual-audit-v16';
+ const presentation='/assets/swapp-presentation-polish.css?v=20261108-remove-purple-video-v3';
  check(home.body.includes(presentation),'Home uses an outdated presentation stylesheet');
  check(news.body.includes(presentation),'Actualité uses an outdated presentation stylesheet');
  const journey='/assets/swapp-game-journey.css?v=20261108-gta6-header-video-v2';

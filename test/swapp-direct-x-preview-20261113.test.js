@@ -37,7 +37,8 @@ test('published official editorial cover wins over the video thumbnail when a pr
  const withArt={...article,thumbnail:{url:official}};
  assert.equal(preview.thumbnailSource(withArt),official);
  assert.deepEqual(preview.thumbnailSources(withArt),[
-  official,'https://i.ytimg.com/vi/VQRLujxTm3c/hqdefault.jpg'
+  official,'https://i.ytimg.com/vi/VQRLujxTm3c/hqdefault.jpg',
+  'https://img.youtube.com/vi/VQRLujxTm3c/hqdefault.jpg'
  ]);
  assert.equal(preview.allowedSource('https://storage.googleapis.com/gweb-uniblog-publish-prod/images/gemini.width-1300.jpg'),
   'https://storage.googleapis.com/gweb-uniblog-publish-prod/images/gemini.width-1300.jpg');
