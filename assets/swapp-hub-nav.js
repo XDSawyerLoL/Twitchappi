@@ -167,6 +167,18 @@
   event.stopImmediatePropagation();
   location.assign('/guides/aion-2');
  },true);
+ // Accueil now belongs to the server-rendered immersive catalogue.
+ // Prevent a stale SPA setView('home') handler from showing the old home when
+ // navigating back from /actus or another legacy SPA view.
+ document.addEventListener('click',event=>{
+  const target=event.target?.closest?.('header.top .brand,#nav a,#nav button,#mobileNav a,#mobileNav button');
+  if(!target||dest(target)!=='/')return;
+  if(event.button!==0||event.ctrlKey||event.metaKey||event.shiftKey||event.altKey)return;
+  if(location.pathname==='/'&&location.search==='')return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  location.assign('/');
+ },true);
  // Multiple SPA updates can mutate the menu in one frame. Reconcile once
  // per frame, not once per DOM mutation/microtask, to avoid main-thread churn.
  const nextFrame=typeof requestAnimationFrame==='function'

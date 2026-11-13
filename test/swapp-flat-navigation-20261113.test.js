@@ -33,7 +33,7 @@ test('server and SPA use the same versioned navigation contract',()=>{
  const home=read('index.html'),native=read('modules/swapp-news/site-shell.js');
  for(const source of [home,native]){
   for(const name of ['swapp-navigation.js','swapp-hub-nav.js','swapp-unified-nav.css'])
-   assert.ok(source.includes('/assets/'+name+'?v='+(name==='swapp-unified-nav.css'?'20261113-nav-uniform-v1':'20261113-swaper-decouvrir-v1')),name);
+   assert.ok(source.includes('/assets/'+name+'?v='+(name==='swapp-unified-nav.css'?'20261113-nav-uniform-v1':name==='swapp-hub-nav.js'?'20261113-home-router-v2':'20261113-swaper-decouvrir-v1')),name);
  }
  for(const page of [serverHeader('actus'),serverMobile('actus')]){
   assert.doesNotMatch(page,/href="\/equipes"|swapp-news-more/);

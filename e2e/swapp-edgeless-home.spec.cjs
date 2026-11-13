@@ -11,7 +11,7 @@ for(const device of [
  test.describe('SWAPP V19 edgeless hero '+device.name,()=>{
   test.use({browserName:'chromium',viewport:device.viewport,isMobile:device.isMobile,hasTouch:device.hasTouch});
   test('published hero really reaches both window edges and fades to the page',async({page},testInfo)=>{
-   await page.goto(ORIGIN+'/',{waitUntil:'domcontentloaded'});
+   await page.goto(ORIGIN+'/?classic=1',{waitUntil:'domcontentloaded'});
    const hero=page.locator('#home .homeHeroInner1014.swapp-feature-ready > .swapp-home-hero-feature');
    await expect(hero).toBeVisible({timeout:25000});
    const image=hero.locator('img');

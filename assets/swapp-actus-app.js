@@ -179,7 +179,74 @@ function makeCard(a){
  return card;
 }
 function paragraphContent(parent,raw){let list=null;for(const lineRaw of String(raw||'').split(/\r?\n/)){const line=lineRaw.trim();if(!line){list=null;continue;}let m;if((m=line.match(/^(#{2,3})\s+(.+)/))){parent.append(el('h'+m[1].length,'',m[2]));list=null;}else if((m=line.match(/^[-*]\s+(.+)/))){if(!list){list=el('ul');parent.append(list)}list.append(el('li','',m[1]));}else{list=null;parent.append(el('p','',line.replace(/\*\*(.*?)\*\*/g,'$1')));}}}
-async function showList(node){const headline=el('header','swapp-actus-head');headline.append(el('small','','SWAPP LIVE NEWS · Actualité'),el('h1','','Toutes les actualités SWAPP'),el('p','','Gaming, intelligence artificielle, robotique et technologies émergentes : un seul magazine, filtré par tags.'));node.append(headline);
+/* Featured editorial poster migrated from the former homepage.
+ * Same verified cover priority, oversized title and article/live actions,
+ * now mounted only on the ACTUS listing (never on article reading pages).
+ */
+function renderFeaturedActusHero(host,articles){
+ if(!host)return null;
+ const published=(Array.isArray(articles)?articles:[]).filter(item=>
+  slugOk(item?.slug)&&item?.title&&(!item.status||item.status==='published'));
+ const latest=published.slice().sort((a,b)=>
+  (Date.parse(b.publishedAt||b.originalPublishedAt||'')||0)-
+  (Date.parse(a.publishedAt||a.originalPublishedAt||'')||0));
+ const sourcesFor=item=>[
+  item.image?.url,item.imageUrl,item.thumbnail?.url,
+  ...(window.SwappArticleExtras?.cardImageSources?.(item)||[])
+ ].map(url).filter(Boolean);
+ const featured=latest.find(item=>sourcesFor(item).length)||latest[0];
+ const root=el('section','swapp-actus-featured-hero');
+ root.setAttribute('aria-label','Article à la une sur SWAPP');
+ if(!featured){
+  const blank=el('div','swapp-actus-featured-empty');
+  blank.append(el('small','','SWAPP · LE MAGAZINE'),el('strong','','L’actualité du jeu vidéo, de l’IA et de la robotique.'),
+   el('p','','Les publications vérifiées apparaissent ici dès qu’elles sont disponibles.'));
+  root.append(blank);host.replaceChildren(root);
+  return root;
+ }
+ const link=el('a','swapp-home-hero-feature swapp-actus-featured-link');
+ link.href='/actus/'+encodeURIComponent(featured.slug);
+ link.setAttribute('aria-label','Lire l’article à la une : '+featured.title);
+ const pictures=sourcesFor(featured);let pictureIndex=0;
+ if(pictures.length){
+  const image=el('img','swapp-actus-featured-image');
+  image.src=pictures[pictureIndex];image.alt=featured.thumbnail?.alt||featured.title||'Illustration de l’article';
+  image.decoding='async';image.loading='eager';
+  image.addEventListener('error',()=>{
+   pictureIndex++;
+   if(pictureIndex<pictures.length){image.src=pictures[pictureIndex];return}
+   image.remove();root.classList.add('swapp-actus-featured-no-image');
+  });
+  link.append(image);
+ }else root.classList.add('swapp-actus-featured-no-image');
+ const overlay=el('span','swapp-home-hero-feature-overlay swapp-actus-featured-overlay');
+ overlay.append(
+  el('span','swapp-home-hero-feature-label','À LA UNE · '+(featured.game||featured.category||'SWAPP')),
+  el('strong','',featured.title.slice(0,160)),
+  el('span','swapp-actus-featured-summary',String(featured.summary||'').slice(0,240))
+ );
+ link.append(overlay);
+ const actions=el('nav','swapp-home-feature-links swapp-actus-featured-actions');
+ actions.setAttribute('aria-label','Explorer l’article mis à la une');
+ const read=el('a','swapp-home-feature-cta primary','Lire l’article');
+ read.href=link.href;
+ const discover=el('a','swapp-home-feature-cta','Découvrir les directs');
+ discover.href='/decouvrir';
+ actions.append(read,discover);
+ root.append(link,actions);
+ host.replaceChildren(root);
+ // Preserve the former homepage's official muted trailer when the published
+ // article supplies one; the shared helper is desktop-only and cleans up on
+ // view change. The poster remains the guaranteed fallback.
+ if(pictures.length&&featured.trailerUrl)
+  window.SwappHomeMotion?.attach?.(link,featured);
+ return root;
+}
+async function showList(node){
+ const featuredMount=el('div','swapp-actus-featured-mount');
+ node.append(featuredMount);
+ renderFeaturedActusHero(featuredMount,[]);
+ const headline=el('header','swapp-actus-head');headline.append(el('small','','SWAPP LIVE NEWS · Actualité'),el('h1','','Toutes les actualités SWAPP'),el('p','','Gaming, intelligence artificielle, robotique et technologies émergentes : un seul magazine, filtré par tags.'));node.append(headline);
 const tools=el('div','swapp-actus-tools'),search=el('input');search.type='search';search.placeholder='Rechercher un jeu ou une actualité';search.setAttribute('aria-label','Recherche Actualité');const live=el('button','swapp-actus-go-live','Découvrir les lives →');live.onclick=()=>window.setView('discover');const category=el('select','swapp-actus-category');category.setAttribute('aria-label','Filtrer par catégorie');const all=el('option','','Toutes les catégories');all.value='';category.append(all);tools.append(search,category,live);node.append(tools);
 const topicBar=el('div','swapp-actus-topic-tags');
 topicBar.setAttribute('role','group');topicBar.setAttribute('aria-label','Filtrer les actualités par tag');
@@ -376,7 +443,7 @@ layoutTools.append(count,sizeLabel,sizeControl);
 node.append(layoutTools,feed);
 const update=()=>{feed.replaceChildren();const query=search.value.toLocaleLowerCase('fr').trim();const available=items.filter(x=>(!activeGame||String(x.game||'')===activeGame)&&(!category.value||(x.category||'')===category.value)&&hasTopic(x,activeTopic)&&[x.title,x.game,x.summary,x.category,...(Array.isArray(x.tags)?x.tags:[])].join(' ').toLocaleLowerCase('fr').includes(query));count.textContent=available.length+' article'+(available.length>1?'s':'')+' à découvrir';if(!available.length){feed.append(el('p','swapp-actus-state',query?'Aucun résultat.':'Aucun article complet récupéré pour le moment.'));return;}available.forEach(a=>{const c=makeCard(a);if(c)feed.append(c)});};
 search.oninput=update;category.onchange=update;feed.append(el('p','swapp-actus-state','Chargement des articles…'));
-try{const data=await fetchJson('/api/actus');if(!node.isConnected)return;items=Array.isArray(data.articles)?data.articles:[];const categories=[...new Set(items.map(x=>x.category).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'fr'));for(const name of categories){const option=el('option','',name);option.value=name;category.append(option)}
+try{const data=await fetchJson('/api/actus');if(!node.isConnected)return;items=Array.isArray(data.articles)?data.articles:[];renderFeaturedActusHero(featuredMount,items);const categories=[...new Set(items.map(x=>x.category).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'fr'));for(const name of categories){const option=el('option','',name);option.value=name;category.append(option)}
 const games=[...new Set(items.map(x=>String(x.game||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'fr')).slice(0,16);
 if(games.length){
  const renderGames=()=>{

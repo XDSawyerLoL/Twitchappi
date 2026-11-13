@@ -54,3 +54,18 @@
 ### Candidature à la future page d'accueil
 
 Ordre testé : affiche du moment → articles SWAPP → directs → univers de jeux → petites communautés → Ma liste. La migration vers `/` devra être une décision distincte, après validation des performances mobiles, du comportement réel des médias et de la qualité des publications.
+
+
+## V4 : validation du catalogue comme accueil public (13 novembre 2026)
+
+**Décision utilisateur** : promouvoir le catalogue cinéma / actualités / lives sur `/`.
+
+- `/` rend désormais `modules/swapp-catalogue-lab.page({publicHome:true})` avec balise canonical SWAPP, titre/description orientés accueil, menu « Accueil » actif, balise de vérification Google et chargeur AdSense existants. Les liens Mentions légales, Confidentialité, Cookies, CGU et Contact restent accessibles depuis le pied de page.
+- La SPA historique n'est **pas supprimée** : `/?classic=1` la sert toujours, avec `X-Robots-Tag: noindex, nofollow`. Si le module du catalogue échoue au démarrage, la route `/` utilise automatiquement l'ancien `sendSwappUi`.
+- `/catalogue-test` reste non indexable et garde les outils expérimentaux. L'URL de test n'entre pas dans le menu.
+- Le menu SPA redirige physiquement tout clic « Accueil » ou logo vers `/` ; aucune redirection silencieuse vers l'ancien `setView('home')`.
+- Le rail **Petites communautés à découvrir** ne filtre plus uniquement les lives déjà classés en « populaires ». Il interroge indépendamment `/api/oryon/discover/find-live?mood=petite-commu` et `/api/twitch/streams/small`, plus les vrais directs SWAPP récupérés par le premier rail. Il affiche en priorité les chaînes de ≤50 spectateurs, puis élargit à ≤150 si moins de quatre chaînes de 50 spectateurs ou moins sont disponibles. La valeur max est explicitement affichée. Aucun faux live ou audience n'est généré. Si aucun direct n'est confirmé, un lien de découverte mène à `/decouvrir` au lieu d'une impasse.
+- **Ancien bandeau éditorial d'accueil déplacé sur ACTUS** : la liste `/actus` affiche désormais, au-dessus du magazine, un grand visuel de la publication illustrée la plus récente avec titre, résumé et liens natifs « Lire l'article » / « Découvrir les directs ». Même hiérarchie visuelle et classes `swapp-home-hero-feature` / `swapp-home-feature-links` que le précédent accueil. Repli visuel SWAPP si aucun article publié/illustré n'est disponible.
+- Versions des assets : `20261113-public-home-small-v4` (catalogue), `20261113-relocated-feature-v2` (ACTUS), `20261113-home-router-v2` (navigation SPA).
+- Vérification de déploiement dans `tools/swapp-deploy-smoke.js` : `/` doit être l'accueil immersif indexable ; `/catalogue-test` doit rester noindex et la SPA classique doit rester disponible à `/?classic=1`. Les contrôles historiques de l'accueil classique passent sur cette URL.
+- Tests unitaires isolés : `test/swapp-home-promotion-small-actus-20261113.test.js`. E2E Playwright : `e2e/swapp-public-home-small-actus-20261113.spec.cjs`. **Le navigateur réel et le déploiement Hostinger nécessitent toujours une vérification sur la version publiée.**

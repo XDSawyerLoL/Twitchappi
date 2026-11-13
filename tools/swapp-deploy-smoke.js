@@ -84,7 +84,7 @@ async function verify(){
  check(passageWatch.body.includes('data-swapp-handoff-platform="twitch"')&&
   passageWatch.body.includes('swapp-live-handoff.js?v=20261105-collective-v2'),
   'SWAPP Twitch page lacks same-game handoff');
- const passageHome=await request(origin,'/');
+ const passageHome=await request(origin,'/?classic=1');
  check(passageHome.body.includes('swapp-live-handoff.js?v=20261105-collective-v2'),
   'SWAPP native channel shell lacks same-game handoff');
  process.stdout.write('PASS SWAPP PASSAGE same-game handoff assets and routes\\n');
@@ -261,8 +261,28 @@ async function verify(){
    steamStyle.body.includes('.swapp-store-steam-only .swapp-editorial-top-grid'),
    'New Steam-only layout stylesheet has not deployed');
  process.stdout.write('PASS SWAPP Boutique ten Steam games only; catalog drafts remain private to editor\n');
- // Home markup is also inspected by the Boutique editor check below.
- const home=await request(origin,'/');
+ // The public root is now the cinematic catalogue; the original SPA
+ // remains reachable at ?classic=1 for emergency rollback and legacy journeys.
+ const publicHome=await request(origin,'/');
+ check(publicHome.body.includes('id="swapp-catalogue-lab"')&&
+  publicHome.body.includes('swapp-catalogue-lab.js?v=20261113-public-home-small-v4')&&
+  publicHome.body.includes('rel="canonical" href="https://swapp.tv/"')&&
+  !publicHome.body.includes('name="robots" content="noindex'),
+  'SWAPP / is not the canonical cinematic homepage');
+ const labHome=await request(origin,'/catalogue-test');
+ check(labHome.body.includes('id="swapp-catalogue-lab"')&&
+   labHome.body.includes('noindex,nofollow,noarchive'),
+   'Unindexed /catalogue-test laboratory missing');
+ const publicCatalogueJs=await request(origin,'/assets/swapp-catalogue-lab.js?v=20261113-public-home-small-v4');
+ check(publicCatalogueJs.body.includes('function chooseSmallCommunities(')&&
+  publicCatalogueJs.body.includes('/api/oryon/discover/find-live?mood=petite-commu'),
+  'Public homepage small-community discovery missing');
+ const publicActusJs=await request(origin,'/assets/swapp-actus-app.js?v=20261113-relocated-feature-v2');
+ check(publicActusJs.body.includes('function renderFeaturedActusHero(')&&
+  publicActusJs.body.includes('swapp-home-hero-feature'),
+  'Former homepage featured article was not moved to ACTUS');
+ // Legacy SPA assets are still checked against their original shell.
+ const home=await request(origin,'/?classic=1');
  // All articles share a single immersive scene: own game trailer when one
  // exists, animated poster otherwise. Google CMP remains for AdSense only.
  check(home.body.includes('swapp-article-trailer-bg.js?v=20261019-no-pause-v7'),
@@ -486,7 +506,7 @@ async function verify(){
  check(newsScript.body.includes('function navigateArticle(event,slug,game)')&&
   !newsScript.body.includes("event.preventDefault();window.setView('actus');window.SwappActus.open(slug)"),
   'Homepage still intercepts canonical editorial links with the SPA route');
- const motionPath='/assets/swapp-home-motion.js?v=20261108-gta6-header-video-v2';
+ const motionPath='/assets/swapp-home-motion.js?v=20261113-actus-relocation-v3';
  check(home.body.includes(motionPath)&&
    home.body.indexOf(motionPath)<home.body.indexOf('swapp-home-news.js?v=20261108-remove-purple-video-v3'),
    'No cinematic hero helper before the editorial client');

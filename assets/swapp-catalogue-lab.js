@@ -4,12 +4,14 @@
  */
 (function(){
 'use strict';
-const LAB_VERSION='20261113-actus-rail-v3';
+const LAB_VERSION='20261113-public-home-small-v4';
 const API=Object.freeze({
  home:'/api/discovery/home-lives?limit=12&lang=fr',
  top:'/api/twitch/streams/top?limit=40&lang=fr',
  games:'/api/categories/top',
- articles:'/api/actus'
+ articles:'/api/actus',
+ small:'/api/oryon/discover/find-live?mood=petite-commu&max=150&lang=fr&source=twitch&discover=1',
+ smallBackup:'/api/twitch/streams/small?lang=fr&min=0&max=150&discover=1'
 });
 const FAVORITES_KEY='swapp:followed-games:v1';
 const CHANNEL_KEY='oryon_v4_likes';
@@ -172,6 +174,50 @@ function normalizeArticles(values){
  }
  return articles.sort((a,b)=>b.publishedAt-a.publishedAt).slice(0,20);
 }
+/* Small communities are verified active sessions only. A dedicated discovery
+ * source is essential: top-ranked Twitch streams rarely have <50 viewers.
+ * Prefer <=50; if too few exist, include <=150 and update the label honestly.
+ */
+function chooseSmallCommunities(main,discovered,backup,limit=12){
+ const seen=new Set(),candidates=[];
+ for(const input of [[discovered,'twitch'],[backup,'twitch'],[main,'twitch']]){
+  for(const raw of Array.isArray(input[0])?input[0]:[]){
+   const platform=String(raw?.platform||'twitch').toLowerCase();
+   if(!['twitch','oryon','swapp','native'].includes(platform))continue;
+   const item=raw?.kind==='live'?raw:normalizeLive(raw,input[1]);
+   if(!item||!Number.isFinite(item.viewers)||item.viewers<0||item.viewers>150||seen.has(item.id))continue;
+   seen.add(item.id);candidates.push(item);
+  }
+ }
+ const verySmall=candidates.filter(x=>x.viewers<=50);
+ const max=verySmall.length>=4?50:150;
+ const active=candidates.filter(x=>x.viewers<=max);
+ const mainKeys=new Set((Array.isArray(main)?main:[]).map(x=>x.id));
+ active.sort((a,b)=>{
+  const an=a.platform==='swapp'?0:1,bn=b.platform==='swapp'?0:1;
+  const au=mainKeys.has(a.id)?1:0,bu=mainKeys.has(b.id)?1:0;
+  return an-bn||au-bu||Math.abs(a.viewers-25)-Math.abs(b.viewers-25);
+ });
+ const count=new Map(),selected=[];
+ for(const item of active){
+  const key=item.gameSlug||'unknown';
+  if((count.get(key)||0)>=3)continue;
+  count.set(key,(count.get(key)||0)+1);
+  selected.push(item);
+  if(selected.length>=Math.max(1,Math.min(24,limit)))break;
+ }
+ // When all verified small creators play the same game, show those real
+ // streams instead of leaving a rail artificially half-empty.
+ if(selected.length<Math.min(6,active.length,limit)){
+  const chosen=new Set(selected.map(x=>x.id));
+  for(const item of active){
+   if(chosen.has(item.id))continue;
+   selected.push(item);chosen.add(item.id);
+   if(selected.length>=Math.min(6,active.length,limit))break;
+  }
+ }
+ return {items:selected,max};
+}
 function readFavorites(storage){
  try{
   const saved=JSON.parse(storage.getItem(FAVORITES_KEY)||'null');
@@ -200,7 +246,7 @@ function readChannelFavorites(storage){
  }catch{return []}
 }
 if(typeof module==='object'&&module.exports)
- module.exports={API,LAB_VERSION,normalizeLive,normalizeGame,normalizeArticle,normalizeArticles,mergeLives,mergeGames,gameSlug,synopsis,readFavorites,readChannelFavorites,safeImage,cleanArticleImage};
+ module.exports={API,LAB_VERSION,normalizeLive,normalizeGame,normalizeArticle,normalizeArticles,mergeLives,mergeGames,chooseSmallCommunities,gameSlug,synopsis,readFavorites,readChannelFavorites,safeImage,cleanArticleImage};
 if(typeof document==='undefined')return;
 const root=document.getElementById('swapp-catalogue-lab');
 if(!root)return;
@@ -212,7 +258,7 @@ const create=(tag,className,text)=>{
  if(text!==undefined)node.textContent=String(text);
  return node;
 };
-const state={lives:[],games:[],articles:[],newsError:false,newsLoading:false,newsEpoch:0,featured:null,filter:'all',query:'',loading:false,failed:[],previewTimer:0,abort:null,heroItems:[],heroIndex:0,heroTimer:null,hoverTimer:null,hoverIframe:null,hoverCard:null};
+const state={lives:[],games:[],articles:[],small:[],smallCandidates:[],smallLoading:false,smallError:false,smallMax:50,smallEpoch:0,newsError:false,newsLoading:false,newsEpoch:0,featured:null,filter:'all',query:'',loading:false,failed:[],previewTimer:0,abort:null,heroItems:[],heroIndex:0,heroTimer:null,hoverTimer:null,hoverIframe:null,hoverCard:null};
 const status=$('scl-status'),hero=$('scl-feature'),featureVisual=$('scl-feature-visual'),dialog=$('scl-dialog');
 const heroDots=$('scl-feature-dots');
 const visNode=item=>{
@@ -600,14 +646,54 @@ function refreshFavorites(){
   if(item)el.setAttribute('aria-label',(pressed?'Retirer ':'Ajouter ')+item.name+(pressed?' des favoris':' aux favoris'));
  });
 }
+function refreshSmallRail(){
+ const result=chooseSmallCommunities(state.lives,state.smallCandidates,[],12);
+ state.small=result.items;
+ state.smallMax=result.max;
+ const label=$('scl-small-eyebrow');
+ if(label)label.textContent=result.max===50?'JUSQU’À 50 SPECTATEURS':'JUSQU’À 150 SPECTATEURS';
+ const visible=state.small.filter(matching);
+ fill('scl-small-cards',visible,state.smallLoading?
+  'Recherche de petites communautés réellement en direct…':
+  'Aucun petit live disponible pour cette recherche en ce moment.');
+ const area=$('scl-small-cards');
+ if(visible.length||state.smallLoading)return;
+ const info=area.querySelector('.scl-empty');
+ if(info){
+  const link=create('a','scl-small-discover','Découvrir tous les lives SWAPP');
+  link.href='/decouvrir';
+  info.append(create('span','',' '),link);
+ }
+}
+async function loadSmallCommunities(){
+ if(state.smallLoading)return;
+ const epoch=++state.smallEpoch;
+ state.smallLoading=true;state.smallError=false;state.smallCandidates=[];
+ refreshSmallRail();
+ const sources=[API.smallBackup,API.small];
+ // Independent, progressive feeds. A slow community search must not delay
+ // the homepage hero, article rail or top live rows.
+ const results=await Promise.allSettled(sources.map(async route=>{
+  const response=await fetchJson(route,route===API.small?16000:8500);
+  return Array.isArray(response.items)?response.items:[];
+ }).map(promise=>promise.then(items=>{
+  if(epoch!==state.smallEpoch)return items;
+  state.smallCandidates.push(...items);
+  refreshSmallRail();
+  return items;
+ })));
+ if(epoch!==state.smallEpoch)return;
+ state.smallError=results.every(x=>x.status==='rejected');
+ state.smallLoading=false;
+ refreshSmallRail();
+}
 function render(){
  stopHoverPreview();
  const lives=state.lives.filter(matching),games=state.games.filter(matching);
- const small=lives.filter(x=>x.viewers<=50);
  fillArticleRail(state.articles.filter(matching),state.newsError);
  fill('scl-live-cards',lives,'Aucun direct confirmé pour cette recherche.');
  fill('scl-game-cards',games,'Aucun jeu disponible pour cette recherche.');
- fill('scl-small-cards',small,'Aucune petite communauté confirmée pour cette recherche.');
+ refreshSmallRail();
  refreshFavorites();
  document.querySelectorAll('[data-scl-section]').forEach(sec=>{
   sec.hidden=state.filter!=='all'&&sec.dataset.sclSection!==state.filter;
@@ -616,9 +702,9 @@ function render(){
  // Rebind existing SWAPP Mes jeux controller to dynamically created cards.
  window.dispatchEvent(new Event('swapp:account-rendered'));
 }
-async function fetchJson(path){
+async function fetchJson(path,maxWaitMs=8500){
  const control=new AbortController();
- const timeout=setTimeout(()=>control.abort(),8500);
+ const timeout=setTimeout(()=>control.abort(),maxWaitMs);
  try{
   const response=await fetch(path,{credentials:'same-origin',headers:{Accept:'application/json'},signal:control.signal,cache:'no-store'});
   if(!response.ok)throw new Error('HTTP '+response.status);
@@ -671,6 +757,7 @@ async function load(){
  if(state.loading)return;
  state.loading=true;
  state.newsLoading=true;
+ void loadSmallCommunities();
  state.newsError=false;
  state.failed=[];
  state.articles=[];
