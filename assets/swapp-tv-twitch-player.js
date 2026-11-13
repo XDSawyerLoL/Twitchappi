@@ -15,7 +15,7 @@
   loading=new Promise((resolve,reject)=>{
    if(!root?.document)return reject(Error('no_dom'));
    const script=root.document.createElement('script');
-   script.src=SCRIPT;script.async=true;script.crossOrigin='anonymous';
+   script.src=SCRIPT;script.async=true;
    let finished=false;
    const settle=(error)=>{
     if(finished)return;finished=true;
