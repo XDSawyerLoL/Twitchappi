@@ -132,7 +132,7 @@ function readChannelFavorites(storage){
    const key=platform+':'+login;
    if(!platform||!valid.test(login)||seen.has(key))return false;
    seen.add(key);return true;
-  }).slice(0,100).map(item=>({platform:item.platform,login:String(item.login).toLowerCase(),name:escapeName(item.name),game:escapeName(item.game)}));
+  }).slice(0,100).map(item=>({platform:item.platform,login:String(item.login).toLowerCase(),name:escapeName(item.name),game:escapeName(item.game),ts:Number.isFinite(Number(item.ts))?Number(item.ts):0}));
  }catch{return []}
 }
 if(typeof module==='object'&&module.exports)
@@ -283,9 +283,11 @@ function preview(item){
   body.append(create('p','scl-preview-note','Ce live SWAPP ne propose pas encore de lecteur miniature ici. Utilise « Regarder le direct » pour ouvrir le flux complet.'));
  }
  showDialog(content);
+ refreshFavorites();
 }
 function createCard(item){
  const card=create('article','scl-card');
+ card.dataset.kind=item.kind;
  const media=visNode(item),body=create('div','scl-card-details');
  const kicker=create('span','',item.kind==='live'?(item.platform==='swapp'?'SWAPP LIVE':'TWITCH'):'JEU VIDÉO');
  const title=create('h3','',item.kind==='live'?item.name:item.game);
