@@ -2,7 +2,7 @@
   "schema": 1,
   "kind": "swapp-editorial-signals",
   "method": "Brèves rédigées à partir de sources primaires, avec revendication, intérêt et limites distincts. Ne jamais convertir automatiquement un RSS en brève vérifiée.",
-  "updatedAt": "2026-11-13T04:56:53Z",
+  "updatedAt": "2026-11-13T10:57:01Z",
   "items": [
     {
       "id": "once-human-s5-colossus-gameplay-20261112",
@@ -212,24 +212,6 @@
       "imageCredit": "Google DeepMind · Gemini Robotics 2.5"
     },
     {
-      "id": "groot2-nvidia-corl-20261109",
-      "topics": [
-        "ROBOTICS",
-        "AI"
-      ],
-      "title": "GR00T 2 : NVIDIA présente des modèles d'action et de nouvelles méthodes d'entraînement des robots",
-      "fact": "NVIDIA annonce un modèle mondial d'action, Isaac Lab 3.0 et des bancs d'essai lors de CoRL 2026 ; le groupe indique 71 % de réussite moyenne sur 50 tâches avec une démonstration par tâche.",
-      "impact": "Le transfert de gestes humains vers les robots pourrait réduire le besoin de programmer chaque mouvement.",
-      "caveat": "Le pourcentage dépend des protocoles de NVIDIA et ne représente pas un taux de succès universel en usine.",
-      "sourceName": "NVIDIA",
-      "sourceUrl": "https://blogs.nvidia.com/blog/robotics-simulation-advancements-corl/",
-      "sourceDate": "2026-11-09",
-      "reviewedAt": "2026-11-11",
-      "articleSlug": "nvidia-groot-2-robots-apprennent-simulation-isaac-lab-2026",
-      "imageUrl": "https://blogs.nvidia.com/wp-content/uploads/2026/11/corl-corp-blog-promo-pack-1920x1080-1-1280x720.png",
-      "imageCredit": "NVIDIA · GR00T 2 / CoRL"
-    },
-    {
       "id": "alpamayo2-edge-nvidia-20261110",
       "topics": [
         "ROBOTICS",
@@ -247,24 +229,6 @@
       "articleSlug": null,
       "imageUrl": "https://developer-blogs.nvidia.com/wp-content/uploads/2026/11/auto-alpamayo-2-edge-tech-blog-promo-600x338_r2-1.gif",
       "imageCredit": "NVIDIA · Alpamayo 2 Edge"
-    },
-    {
-      "id": "panasonic-t-rex-tactile-20261105",
-      "topics": [
-        "ROBOTICS",
-        "AI"
-      ],
-      "title": "Panasonic T-Rex : des robots ajustent leurs gestes grâce au toucher des doigts",
-      "fact": "Panasonic présente un modèle de manipulation à retour tactile, évalué sur douze tâches délicates avec un taux moyen de réussite annoncé de 65 %.",
-      "impact": "Le retour tactile rapide pourrait améliorer la manipulation d'objets fragiles en atelier ou en logistique.",
-      "caveat": "Il s'agit d'un résultat de recherche sur douze tâches, non d'un robot commercial prêt à remplacer des opérateurs.",
-      "sourceName": "Panasonic Newsroom",
-      "sourceUrl": "https://news.panasonic.com/global/press/en261105-2",
-      "sourceDate": "2026-11-05",
-      "reviewedAt": "2026-11-11",
-      "articleSlug": null,
-      "imageUrl": "https://news.panasonic.com/uploads/tmg_block_page/cover_image/19136/l-en261105-2-1.jpg",
-      "imageCredit": "Panasonic · robot tactile T-Rex"
     },
     {
       "id": "nvidia-snapshot-20261110",
@@ -285,6 +249,41 @@
       "imageCredit": "NVIDIA Developer · Snapshot"
     },
     {
+      "id": "outer-worlds2-side-effects-date-20261110",
+      "topics": [
+        "GAMING"
+      ],
+      "title": "The Outer Worlds 2 : premier DLC le 2 décembre",
+      "fact": "Obsidian annonce le 10 novembre l’arrivée de Side Effects Guaranteed, première partie d’une extension narrative de The Outer Worlds 2, le 2 décembre. Le studio confirme aussi une mise à jour permettant à tous les joueurs de redistribuer les compétences de leur personnage.",
+      "impact": "Le DLC ajoutera la région Elysium Valley, cinq armes et un niveau maximal porté à 36. Un personnage prédéfini de niveau 27 permettra de commencer directement cette aventure.",
+      "caveat": "Le DLC est distinct de la mise à jour pour tous ; il est inclus dans la Premium Edition et son Upgrade. La seconde partie est attendue au printemps 2027. Aucun prix français ni horaire de déploiement n’est précisé ici.",
+      "sourceName": "Obsidian Entertainment / PlayStation.Blog",
+      "sourceUrl": "https://blog.playstation.com/2026/11/10/the-outer-worlds-2s-first-dlc-arrives-december-2/",
+      "sourceDate": "2026-11-10",
+      "reviewedAt": "2026-11-13T10:57:01Z",
+      "imageUrl": "https://blog.playstation.com/tachyon/2048/11/e686260d9a10aee07a9ef785c5482efc7cb1055b.jpg",
+      "imageCredit": "Obsidian Entertainment / PlayStation.Blog · The Outer Worlds 2, Side Effects Guaranteed",
+      "articleSlug": null
+    },
+    {
+      "id": "groot2-nvidia-corl-20261109",
+      "topics": [
+        "ROBOTICS",
+        "AI"
+      ],
+      "title": "GR00T 2 : NVIDIA présente des modèles d'action et de nouvelles méthodes d'entraînement des robots",
+      "fact": "NVIDIA annonce un modèle mondial d'action, Isaac Lab 3.0 et des bancs d'essai lors de CoRL 2026 ; le groupe indique 71 % de réussite moyenne sur 50 tâches avec une démonstration par tâche.",
+      "impact": "Le transfert de gestes humains vers les robots pourrait réduire le besoin de programmer chaque mouvement.",
+      "caveat": "Le pourcentage dépend des protocoles de NVIDIA et ne représente pas un taux de succès universel en usine.",
+      "sourceName": "NVIDIA",
+      "sourceUrl": "https://blogs.nvidia.com/blog/robotics-simulation-advancements-corl/",
+      "sourceDate": "2026-11-09",
+      "reviewedAt": "2026-11-11",
+      "articleSlug": "nvidia-groot-2-robots-apprennent-simulation-isaac-lab-2026",
+      "imageUrl": "https://blogs.nvidia.com/wp-content/uploads/2026/11/corl-corp-blog-promo-pack-1920x1080-1-1280x720.png",
+      "imageCredit": "NVIDIA · GR00T 2 / CoRL"
+    },
+    {
       "id": "holoscan5-robot-arm-20261109",
       "topics": [
         "ROBOTICS",
@@ -303,22 +302,22 @@
       "imageCredit": "NVIDIA Developer · Holoscan 5"
     },
     {
-      "id": "genie4-world-simulation-20261027",
+      "id": "panasonic-t-rex-tactile-20261105",
       "topics": [
-        "FUTURE",
+        "ROBOTICS",
         "AI"
       ],
-      "title": "Genie 4 : Google présente des environnements interactifs générés en temps réel",
-      "fact": "Google DeepMind annonce un modèle de simulation d'univers interactifs avec image et audio, accessible dans un programme de recherche limité.",
-      "impact": "De tels prototypes pourraient aider à explorer rapidement des idées de jeux, de simulation ou de robotique.",
-      "caveat": "La continuité des objets, la physique et la stabilité des longues sessions restent des limites reconnues par Google.",
-      "sourceName": "Google DeepMind",
-      "sourceUrl": "https://deepmind.google/blog/genie-4-a-new-generation-of-world-simulation/",
-      "sourceDate": "2026-10-27",
+      "title": "Panasonic T-Rex : des robots ajustent leurs gestes grâce au toucher des doigts",
+      "fact": "Panasonic présente un modèle de manipulation à retour tactile, évalué sur douze tâches délicates avec un taux moyen de réussite annoncé de 65 %.",
+      "impact": "Le retour tactile rapide pourrait améliorer la manipulation d'objets fragiles en atelier ou en logistique.",
+      "caveat": "Il s'agit d'un résultat de recherche sur douze tâches, non d'un robot commercial prêt à remplacer des opérateurs.",
+      "sourceName": "Panasonic Newsroom",
+      "sourceUrl": "https://news.panasonic.com/global/press/en261105-2",
+      "sourceDate": "2026-11-05",
       "reviewedAt": "2026-11-11",
-      "articleSlug": "genie-4-google-deepmind-simulation-mondes-interactifs-2026",
-      "imageUrl": "https://lh3.googleusercontent.com/mKq26Yz8rlcAthtTHS2GaID7LuUM9a4zM16VHUszY-zyKly80QRUt5nn6V4jQN8_bJ4_UMesp1D_88ethzTEJPoo6NUPyhO76QZ7zNJM5KzfPE5GKjM=w1440-h810-n-nu",
-      "imageCredit": "Google DeepMind · Genie 4"
+      "articleSlug": null,
+      "imageUrl": "https://news.panasonic.com/uploads/tmg_block_page/cover_image/19136/l-en261105-2-1.jpg",
+      "imageCredit": "Panasonic · robot tactile T-Rex"
     },
     {
       "id": "omni12-flash-video-20261105",
@@ -392,6 +391,24 @@
       "articleSlug": null,
       "imageUrl": "https://global.discourse-cdn.com/nvidia/optimized/4X/d/5/2/d52994af92d80215e3d3308e93a40799dc7e605a_2_690x388.jpeg",
       "imageCredit": "NVIDIA Developer Forums · Isaac Lab 3.0"
+    },
+    {
+      "id": "genie4-world-simulation-20261027",
+      "topics": [
+        "FUTURE",
+        "AI"
+      ],
+      "title": "Genie 4 : Google présente des environnements interactifs générés en temps réel",
+      "fact": "Google DeepMind annonce un modèle de simulation d'univers interactifs avec image et audio, accessible dans un programme de recherche limité.",
+      "impact": "De tels prototypes pourraient aider à explorer rapidement des idées de jeux, de simulation ou de robotique.",
+      "caveat": "La continuité des objets, la physique et la stabilité des longues sessions restent des limites reconnues par Google.",
+      "sourceName": "Google DeepMind",
+      "sourceUrl": "https://deepmind.google/blog/genie-4-a-new-generation-of-world-simulation/",
+      "sourceDate": "2026-10-27",
+      "reviewedAt": "2026-11-11",
+      "articleSlug": "genie-4-google-deepmind-simulation-mondes-interactifs-2026",
+      "imageUrl": "https://lh3.googleusercontent.com/mKq26Yz8rlcAthtTHS2GaID7LuUM9a4zM16VHUszY-zyKly80QRUt5nn6V4jQN8_bJ4_UMesp1D_88ethzTEJPoo6NUPyhO76QZ7zNJM5KzfPE5GKjM=w1440-h810-n-nu",
+      "imageCredit": "Google DeepMind · Genie 4"
     }
   ]
 }
