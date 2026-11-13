@@ -77,7 +77,7 @@ function renderScreen(item,{onAir=false}={}){
  $('stv-watch').disabled=!state.selection;
  $('stv-air-state').textContent=valid&&platform==='swapp'?'ANTENNE NATIVE SWAPP':onAir&&valid?'ANTENNE ACTIVE':valid?'DÉCOUVERTE':'HORS ANTENNE';
  $('stv-air-state').style.color=onAir&&valid?'var(--tv-accent,#67dce8)':'';
- setText('stv-stage-status',valid&&platform==='swapp'?'Diffusion native SWAPP, indépendante du lecteur Twitch.':onAir&&valid?'Créateur sélectionné par la régie SWAPP TV.':valid?'Direct trouvé dans la découverte. Lecture volontaire, sans garantie de maintien en ligne.':'Aucun passage vérifié à cette heure.');
+ setText('stv-stage-status',valid&&platform==='swapp'?'Diffusion native SWAPP, indépendante du lecteur Twitch.':onAir&&valid?'Créateur sélectionné par la régie SWAPP TV.':valid?'Direct en cours de chargement automatique (son coupé). La disponibilité peut évoluer.':'Aucun passage vérifié à cette heure.');
  // SWAPP TV should behave like a TV channel: the first verified/live source
  // starts muted on arrival (browser autoplay policy), not after another click.
  // If no real source is available, stay idle; never manufacture a broadcast.
@@ -111,7 +111,16 @@ function play(){
   const parent=location.hostname;
   frame.src='https://player.twitch.tv/?'+new URLSearchParams({channel:item.login,parent,autoplay:'true',muted:'true'});
  }
- frame.allow='autoplay; fullscreen';frame.allowFullscreen=true;frame.referrerPolicy='strict-origin-when-cross-origin';
+ frame.allow='autoplay; fullscreen';frame.allowFullscreen=true;
+ frame.loading='eager';frame.referrerPolicy='strict-origin-when-cross-origin';
+ frame.addEventListener('error',()=>{
+  if(state.selection?.login!==item.login||state.playing!==item.login)return;
+  $('stv-screen').querySelector('.stv-player-layer')?.remove();
+  $('stv-screen-inner').hidden=false;
+  state.playing=null;state.consent=false;state.autoAdvance=false;
+  setText('stv-stage-status','Le lecteur externe est bloqué ou indisponible. Clique sur Regarder pour réessayer.');
+  syncWatchButton();
+ });
  layer.append(frame,by('div','stv-player-overlay','SWAPP TV  /  '+(item.onAir?'À L’ANTENNE':'DÉCOUVERTE')));
  screen.append(layer);$('stv-screen-inner').hidden=true;state.autoStartPending=false;state.playing=item.login;state.playingPlatform=item.platform;state.playingBroadcastId=item.broadcastId||null;state.consent=true;
  // Resume subsequent five-minute TV slots after a real stream starts.
@@ -637,26 +646,54 @@ function updateRotationBar(now=Date.now()){
  track.setAttribute('aria-valuetext',remaining===0?'Relais en cours':'Prochain contrôle dans '+remaining+' secondes');
  fill.style.width=(100*elapsedSeconds/TV_SLOT_SECONDS).toFixed(1)+'%';
 }
-async function init(){
- // Loading ACTUS must never postpone the first native or scheduled TV signal.
- const editorial=api('/api/actus').catch(()=>({articles:[]}));
- try{
-  await refreshQueue();
-  updateRotationBar();
-  const data=await editorial;
-  state.games=gamesFrom(data);
-  const select=$('stv-game');select.replaceChildren();
-  for(const g of state.games){const o=by('option',null,g);o.value=g;select.append(o)}
-  if(!state.games.length){const o=by('option',null,'Aucun jeu éditorial disponible');o.value='';select.append(o)}
-  if(state.queue)renderQueue(state.queue);
-  if(!state.queueMode)await discovery();
-  setInterval(refreshQueue,15000);
-  setInterval(async()=>{if(!state.queueMode){await discovery()}},180000);
- }catch(e){
-  setText('stv-stage-status','Programmation indisponible pour le moment.');
-  setText('stv-queue-status','Les données éditoriales sont indisponibles.');
-  $('stv-join').disabled=true;
+function explainEmptyStation(){
+ // No invented streamer, no invisible stalled spinner. Any real live found
+ // by the next refresh still autostarts unless the viewer clicked Stop.
+ if(state.autoStartPending&&!state.selection&&!state.consent){
+  setText('stv-stage-status',
+   'Aucun direct disponible pour le moment. Recherche automatique de vrais lives en cours…');
  }
 }
-init();
+let stationRefreshing=false;
+async function refreshStation(){
+ if(stationRefreshing)return;
+ stationRefreshing=true;
+ try{
+  await refreshQueue();
+  if(state.autoStartPending&&!state.queueMode)await discovery();
+  explainEmptyStation();
+ }finally{stationRefreshing=false}
+}
+async function init(){
+ // Previous boot awaited queue + ACTUS before looking for even one streamer:
+ // a slow MySQL queue or editorial endpoint could leave the screen blank.
+ // Start independent actual-live discovery IMMEDIATELY, concurrently with
+ // native HLS and the director. First valid source autoplays muted.
+ const editorial=api('/api/actus').catch(()=>({articles:[]}));
+ const bootQueue=refreshQueue();
+ const bootDiscovery=discovery();
+ // Periodic retries are installed before any external API resolves. A
+ // temporarily unavailable provider is never a permanent black screen.
+ setInterval(()=>{void refreshStation().catch(()=>{})},30000);
+ setInterval(()=>{if(!state.queueMode)void discovery().catch(()=>{})},180000);
+ const outcome=await Promise.allSettled([bootQueue,bootDiscovery]);
+ updateRotationBar();
+ explainEmptyStation();
+ // ACTUS is optional content for later game-specific discovery; its failure
+ // must never disable the TV station or cancel the automatic playback.
+ const data=await editorial;
+ state.games=gamesFrom(data);
+ const select=$('stv-game');select.replaceChildren();
+ for(const g of state.games){const o=by('option',null,g);o.value=g;select.append(o)}
+ if(!state.games.length){const o=by('option',null,'Aucun jeu éditorial disponible');o.value='';select.append(o)}
+ if(state.queue)renderQueue(state.queue);
+ if(!state.queueMode&&!state.consent&&state.games.length)void discovery().catch(()=>{});
+ // If a provider failed during first paint, the periodic retry will recover.
+ if(outcome.every(result=>result.status==='rejected'))explainEmptyStation();
+}
+void init().catch(error=>{
+ // Show an actual diagnostic; do not leave an infinite "Connexion…" state.
+ console.warn('[SWAPP TV] Startup:',String(error?.message||error).slice(0,140));
+ explainEmptyStation();
+});
 })();

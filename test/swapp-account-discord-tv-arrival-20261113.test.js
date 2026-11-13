@@ -48,8 +48,10 @@ test('SWAPP TV starts a real source on page arrival, muted, without restarting a
  assert.match(js,/state\.autoAdvance=false;state\.autoStartPending=false/);
  assert.match(js,/muted:'true'/);
  assert.match(js,/x\.media_verified!==true/);
- assert.match(html,/swapp-tv-broadcast\.js\?v=20261113-5min-rotation-v10/);
+ assert.match(html,/swapp-tv-broadcast\.js\?v=20261113-liveboot-v11/);
  assert.match(js,/const editorial=api\('\/api\/actus'\)\.catch/);
- assert.ok(js.indexOf('await refreshQueue();')<js.indexOf('const data=await editorial;'),
-  'initial native or on-air stream must start before slow articles response');
+ assert.ok(js.indexOf('const bootDiscovery=discovery();')<js.indexOf('const data=await editorial;'),
+  'first real live search starts immediately, before MySQL queue or slow articles');
+ assert.ok(js.indexOf('const bootQueue=refreshQueue();')<js.indexOf('await Promise.allSettled([bootQueue,bootDiscovery])'),
+  'queue request runs concurrently instead of blocking the initial stream');
 });
