@@ -164,7 +164,10 @@
   const root=tile.closest('#home,#actus');
   if(root&&window.MutationObserver){
    rootObserver=new MutationObserver(()=>{if(!tile.isConnected)cleanup();else onVisibility()});
-   rootObserver.observe(root,{childList:true,attributes:true,attributeFilter:['class'],subtree:true});
+   rootObserver.observe(root,{childList:true,attributes:true,attributeFilter:['class']});
+   // Watch tile replacement without observing every player class change.
+   if(tile.parentElement&&tile.parentElement!==root)
+    rootObserver.observe(tile.parentElement,{childList:true});
   }
   if(window.IntersectionObserver){
    observer=new IntersectionObserver(entries=>{
