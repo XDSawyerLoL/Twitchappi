@@ -1733,6 +1733,22 @@ try{
   // The endpoint reports 503 until the deployment is complete.
   console.warn('[SWAPP RELEASE] fingerprint module unavailable');
 }
+// SWAPP Discord: explicit OAuth identity, optional community webhooks and
+// verified-live notifications. Install before /:channel catches /discord.
+let swappDiscordHlsProvider=null;
+const swappDiscordConnect=require('./modules/swapp-discord-connect').createDiscordConnect({
+ app,
+ restoreSession:restoreOryonSessionFromRememberCookie,
+ findOwner:getOryonUserByLogin,
+ getOwnerById:id=>(readOryonUsers().users||[]).find(u=>String(u.id)===String(id))||null,
+ getVerifiedLive:(login,eventId)=>{
+  try{return !!swappDiscordHlsProvider?.activeStreams().some(item=>
+   item.media_verified===true&&item.login===login&&String(item.broadcast_id)===String(eventId));}
+  catch(_){return false}
+ },
+ limiter:mutationLimiter
+});
+
 // Public community entry points: no webhook or OAuth credential is ever sent.
 const {publicCommunityLinks}=require('./modules/swapp-public-community-links');
 app.get('/api/swapp/community-links',(_req,res)=>{
@@ -5037,9 +5053,14 @@ const swappDirectRelay=attachSwappDirectRelay(app,{
    console.warn('[SWAPP OBS] verified stream metadata persistence unavailable',String(error?.code||error?.name||'error'));
   }
  },
- onPublishedLive:(login,eventId)=>swappLivePush.notifyLive(login,eventId,
-  (readOryonUsers().users||[]).find(x=>x.login===login)?.current_live_title||'')
+ onPublishedLive:(login,eventId)=>{
+  // This hook runs only after a playable HLS manifest and actual TS segments.
+  void swappDiscordConnect.notifyLive(login,eventId).catch(()=>{});
+  return swappLivePush.notifyLive(login,eventId,
+   (readOryonUsers().users||[]).find(x=>x.login===login)?.current_live_title||'');
+ }
 });
+swappDiscordHlsProvider=swappDirectRelay;
 
 // Media-verified SWAPP TV inventory. Account heartbeats and offline posters
 // cannot enter this feed: a playlist and fresh HLS segments must both exist.
