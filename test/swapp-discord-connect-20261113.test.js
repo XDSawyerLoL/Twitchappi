@@ -133,6 +133,15 @@ test('verified live is a no-op when no community has opted in',async()=>{
  assert.equal(await b.integration.notifyLive('streamfr','a'.repeat(24)),false);
  assert.ok(b.queries.some(([sql])=>sql.includes('swapp_discord_communities')));
 });
+test('a verified HLS event creates a durable per-guild outbox record',async()=>{
+ const b=bootstrap({isVerified:()=>true,sqlRows:[{guild_id:id}]});
+ assert.equal(await b.integration.notifyLive('streamfr','a'.repeat(24)),true);
+ const inserted=b.queries.find(([sql])=>sql.includes('INSERT IGNORE INTO swapp_discord_live_outbox'));
+ assert.ok(inserted,'one durable event is enqueued only after video verification');
+ assert.equal(inserted[1][1],id);
+ assert.equal(inserted[1][2],'a'.repeat(24));
+ assert.equal(inserted[1][3],'streamfr');
+});
 test('community updates require SWAPP session, same-origin JSON and an explicit boolean opt-in',async()=>{
  const b=bootstrap();
  const handler=b.handlers.post.get('/api/swapp/discord/community/:guildId');
