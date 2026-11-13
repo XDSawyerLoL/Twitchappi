@@ -10,7 +10,7 @@ function page({publicHome=false}={}){
   '<title>'+(publicHome?'SWAPP — Directs, jeux et actualités':'Catalogue immersif · Laboratoire SWAPP')+'</title>'+
   '<meta name="description" content="'+(publicHome?'SWAPP réunit les créateurs en direct, les jeux à découvrir et les actualités gaming dans un catalogue immersif.':'Page de démonstration : explorer les lives et les jeux SWAPP par affiches, prévisualisations et favoris.')+'">'+
   '<link rel="stylesheet" href="/assets/swapp-unified-nav.css?v=20261113-nav-uniform-v1">'+
-  '<link rel="stylesheet" href="/assets/swapp-catalogue-lab.css?v=20261113-actus-rail-v3">';
+  '<link rel="stylesheet" href="/assets/swapp-catalogue-lab.css?v=20261113-public-home-small-v4">';
  const content='<div class="scl-shell" id="swapp-catalogue-lab">'+
   '<aside class="scl-side" aria-label="Rubriques du catalogue">'+
    '<div class="scl-side-brand">SWAPP<span>.</span><small>'+(publicHome?'EN DIRECT / ACTUALITÉ':'CATALOGUE / LAB')+'</small></div>'+
@@ -51,7 +51,7 @@ function page({publicHome=false}={}){
  return '<!doctype html><html lang="fr"><head>'+head+'</head><body class="swapp-editorial-route swapp-catalogue-lab-page'+(publicHome?' swapp-catalogue-home':'')+'">'+
   serverHeader(publicHome?'home':'categories')+content+serverMobile(publicHome?'home':'categories')+
   '<script src="/assets/swapp-article-extras.js?v=20261113-actus-rail-v3" defer></script>'+
-  '<script src="/assets/swapp-catalogue-lab.js?v=20261113-actus-rail-v3" defer></script>'+
+  '<script src="/assets/swapp-catalogue-lab.js?v=20261113-public-home-small-v4" defer></script>'+
   '<script src="/assets/swapp-my-games.js?v=20261021-account-hub-v1" defer></script>'+
   '<script src="/assets/swapp-navigation.js?v=20261113-swaper-decouvrir-v1" defer></script>'+
   '<script src="/assets/swapp-nav-session.js" defer></script>'+
