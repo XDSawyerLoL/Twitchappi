@@ -5,7 +5,7 @@ const fs=require('node:fs');
 const path=require('node:path');
 const crypto=require('node:crypto');
 const {
- createDiscordConnect,validWebhook,keyFromEnv,encryptWebhook,decryptWebhook,
+ createDiscordConnect,validWebhook,normalizeInvite,keyFromEnv,encryptWebhook,decryptWebhook,
  makeOAuthState,verifyOAuthState,webhookPayload,sameOrigin,TABLES
 }=require('../modules/swapp-discord-connect');
 const root=path.join(__dirname,'..');
@@ -75,6 +75,17 @@ test('OAuth state is short-lived, HMAC signed and tied to the same SWAPP owner a
  assert.equal(verifyOAuthState(state,'wrong secret'.repeat(4),ts+5000),null);
  assert.equal(verifyOAuthState(state.slice(0,-2)+'AA',secret,ts+5000),null);
  assert.throws(()=>makeOAuthState(creator.id,'invalid_mode',secret,ts));
+});
+test('only owner-provided official Discord invitations can be public',()=>{
+ assert.equal(normalizeInvite('https://discord.gg/SwappTest'),'https://discord.gg/SwappTest');
+ assert.equal(normalizeInvite('https://discord.com/invite/SwappTest'),'https://discord.gg/SwappTest');
+ assert.equal(normalizeInvite(''),'');
+ for(const url of ['https://discord.gg.evil.example/SwappTest',
+  'http://discord.gg/SwappTest','https://discord.gg/SwappTest?payload=1',
+  'https://discord.com/channels/123456789012345678',
+  'https://discord.gg/%2Fprivate',
+  'https://127.0.0.1/SwappTest'])
+  assert.equal(normalizeInvite(url),null,url);
 });
 test('each webhook is encrypted/authenticated, not persisted in plaintext',()=>{
  const key=keyFromEnv({SWAPP_DISCORD_ENCRYPTION_KEY:'ab'.repeat(32)});
@@ -162,4 +173,8 @@ test('Discord integration registers before the creator catch-all and listens to 
  assert.ok(server.includes('swappDiscordHlsProvider=swappDirectRelay'));
  const menu=fs.readFileSync(path.join(root,'assets/swapp-account-menu.js'),'utf8');
  assert.ok(menu.includes("discord.href='/discord'"));
+ const player=fs.readFileSync(path.join(root,'assets/swapp-creator-social-shortcuts.js'),'utf8');
+ assert.ok(player.includes('/api/swapp/discord/creator/'));
+ assert.ok(player.includes('swapp-creator-discord-chip'));
+ assert.ok(fs.readFileSync(path.join(root,'modules/swapp-catalogue-lab.js'),'utf8').includes('href="/discord"'));
 });
