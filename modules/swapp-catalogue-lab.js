@@ -1,6 +1,6 @@
 'use strict';
 /* SWAPP cinematic homepage and reversible noindex /catalogue-test laboratory. */
-const {serverHeader,serverMobile}=require('../assets/swapp-navigation');
+const {renderPage,SHARED_HEAD_SLOT}=require('./swapp-page-shell');
 const html=source=>String(source||'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 const ROUTE='/catalogue-test';
 function page({publicHome=false}={}){
@@ -12,7 +12,7 @@ function page({publicHome=false}={}){
   '<meta name="theme-color" content="#0b0d12">'+
   '<title>'+(publicHome?'SWAPP — Directs, jeux et actualités':'Catalogue immersif · Laboratoire SWAPP')+'</title>'+
   '<meta name="description" content="'+(publicHome?'SWAPP réunit les créateurs en direct, les jeux à découvrir et les actualités gaming dans un catalogue immersif.':'Page de démonstration : explorer les lives et les jeux SWAPP par affiches, prévisualisations et favoris.')+'">'+
-  '<link rel="stylesheet" href="/assets/swapp-unified-nav.css?v=20261113-nav-simple-v2">'+
+  SHARED_HEAD_SLOT+
   '<link rel="stylesheet" href="/assets/swapp-catalogue-lab.css?v=20261113-x-share-edge-hints-v7">';
  const content='<div class="scl-shell" id="swapp-catalogue-lab">'+
   '<aside class="scl-side" aria-label="Rubriques du catalogue">'+
@@ -51,14 +51,15 @@ function page({publicHome=false}={}){
    '<footer class="scl-footer">'+(publicHome?'SWAPP · Découvre les directs, les articles et les jeux qui font l’actualité.':'Prototype expérimental SWAPP.')+' Les images, articles et flux proviennent de sources publiées ou de directs disponibles. Aucun live fictif ni vidéo lancée sans interaction. <nav class="scl-legal" aria-label="Informations SWAPP"><a href="/a-propos">À propos</a><a href="/contact">Contact</a><a href="/mentions-legales">Mentions légales</a><a href="/confidentialite">Confidentialité</a><a href="/cookies">Cookies</a><a href="/cgu">CGU</a></nav></footer>'+
   '</main></div>'+
   '<dialog class="scl-dialog" id="scl-dialog" aria-labelledby="scl-dialog-title"><button class="scl-dialog-close" type="button" id="scl-dialog-close" aria-label="Fermer">×</button><div id="scl-dialog-content"></div></dialog>';
- return '<!doctype html><html lang="fr"><head>'+head+'</head><body class="swapp-editorial-route swapp-catalogue-lab-page'+(publicHome?' swapp-catalogue-home':'')+'">'+
-  serverHeader(publicHome?'home':'categories')+content+serverMobile(publicHome?'home':'categories')+
-  '<script src="/assets/swapp-article-extras.js?v=20261113-actus-rail-v3" defer></script>'+
+ return renderPage({
+  head,content,active:publicHome?'home':'categories',
+  bodyClass:'swapp-editorial-route swapp-catalogue-lab-page'+(publicHome?' swapp-catalogue-home':''),
+  scripts:'<script src="/assets/swapp-article-extras.js?v=20261113-actus-rail-v3" defer></script>'+
   '<script src="/assets/swapp-catalogue-lab.js?v=20261113-x-share-edge-hints-v7" defer></script>'+
   '<script src="/assets/swapp-my-games.js?v=20261021-account-hub-v1" defer></script>'+
   '<script src="/assets/swapp-navigation.js?v=20261113-nav-simple-v2" defer></script>'+
-  '<script src="/assets/swapp-nav-session.js" defer></script>'+
-  '</body></html>';
+  '<script src="/assets/swapp-nav-session.js" defer></script>'
+ });
 }
 function register(app){
  app.get(ROUTE,(_req,res)=>{

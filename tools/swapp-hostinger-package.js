@@ -9,9 +9,10 @@ const {execFileSync}=require('node:child_process');
 const root=path.resolve(__dirname,'..');
 const mandatory=['app.js','server.js','package.json','package-lock.json','index.html',
  'modules/swapp-hubs.js','modules/swapp-seo.js','modules/swapp-geo-pages.js','tools/swapp-geo-probe.js','modules/swapp-game-pages.js','tools/swapp-release.js','assets/swapp-social-native/social-body.html',
- 'modules/swapp-catalogue-lab.js','assets/swapp-catalogue-lab.js','assets/swapp-catalogue-lab.css',
+ 'modules/swapp-page-shell.js','modules/swapp-catalogue-lab.js','assets/swapp-catalogue-lab.js','assets/swapp-catalogue-lab.css',
  'modules/swapp-discord-connect.js','assets/swapp-discord-connect.js','assets/swapp-discord-connect.css',
  'assets/swapp-navigation.js','assets/swapp-hub-nav.js','assets/swapp-unified-nav.css',
+ 'assets/swapp-route-motion.css','assets/swapp-route-motion.js',
  'assets/swapp-account-discord-link.js','assets/swapp-tv-broadcast.js','assets/swapp-tv-twitch-player.js',
  'assets/swapp-program.css','assets/swapp-actus-app.css','modules/swapp-tv-director.js'];
 function secretLike(name){
