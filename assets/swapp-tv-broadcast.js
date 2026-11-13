@@ -295,7 +295,11 @@ async function refreshQueue(){
   if(state.native.length&&!state.selection?.login)renderScreen(state.native[0],{onAir:true});
   const data=await queueRequest;
   if(!data)throw Error('tv_queue_status_unavailable');
-  state.queue=data;state.queueMode=Boolean(data.enabled)||state.native.length>0;
+  state.queue=data;
+  // An open enrollment queue is NOT an active TV broadcast. Without a
+  // confirmed on-air director slot, start actual Twitch discovery instead.
+  state.queueMode=state.native.length>0||
+   Boolean(data.director_enabled&&safeLogin(data.on_air?.twitch_login));
   renderQueue(data);updateSlotClock();
   if(state.native.length){
    const active=state.native.find(x=>x.login===state.selection?.login&&state.selection?.platform==='swapp'&&x.broadcast_id===(state.selection?.broadcastId||null));
@@ -306,8 +310,21 @@ async function refreshQueue(){
     if(!active&&!(state.consent&&state.playing===state.selection?.login))renderScreen(item,{onAir:true});
   }else if(data.enabled){
    const item=data.director_enabled?data.on_air:null;
-   if(!item||!safeLogin(item.twitch_login)){if(!state.consent)renderScreen(null);}
-   else if(!state.consent&&(!state.selection||state.selection.login!==String(item.twitch_login).toLowerCase()||state.selection.platform!=='twitch'||!state.selection.onAir))renderScreen(item,{onAir:true});
+   if(!item||!safeLogin(item.twitch_login)){
+    if(!state.consent)renderScreen(null);
+   }else{
+    const login=String(item.twitch_login).toLowerCase();
+    const changed=!state.selection||state.selection.login!==login||
+      state.selection.platform!=='twitch'||!state.selection.onAir;
+    if(changed){
+     // A real, newly selected director slot supersedes the old one even
+     // while an existing queue player is still running.
+     if(state.consent&&state.autoAdvance)state.autoSource='queue';
+     renderScreen(item,{onAir:true});
+    }else if(state.consent&&state.autoSource==='discovery'){
+     state.autoSource='queue'; // same Twitch creator now occupies official slot
+    }
+   }
   }else if(state.selection?.platform==='swapp'&&!state.consent){
    renderScreen(null);
   }
