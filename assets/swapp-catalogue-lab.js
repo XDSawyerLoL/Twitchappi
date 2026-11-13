@@ -4,7 +4,7 @@
  */
 (function(){
 'use strict';
-const LAB_VERSION='20261113-public-home-small-v4';
+const LAB_VERSION='20261113-public-home-audience-v5';
 const API=Object.freeze({
  home:'/api/discovery/home-lives?limit=12&lang=fr',
  top:'/api/twitch/streams/top?limit=40&lang=fr',
@@ -91,11 +91,15 @@ function normalizeLive(item,defaultPlatform='twitch'){
  if(!valid.test(login))return null;
  const game=escapeName(item.game_name||item.category||item.game||'').slice(0,90);
  const title=escapeName(item.title||('En direct avec '+login)).slice(0,140);
+ const audience=item.viewer_count??item.viewers;
+ // A missing or malformed count must never become a fictional zero-viewer stream.
+ const audienceVerified=audience!==null&&audience!==undefined&&audience!==''&&
+  Number.isFinite(Number(audience))&&Number(audience)>=0;
  return {
   id:platform+':'+login,kind:'live',platform,login,
   name:escapeName(item.display_name||item.user_name||item.host_name||login)||login,
   title,game,gameSlug:gameSlug(game),summary:synopsis(game),
-  viewers:Math.max(0,Math.floor(Number(item.viewer_count??item.viewers)||0)),
+  viewers:audienceVerified?Math.floor(Number(audience)):null,audienceVerified,
   image:safeImage(item.thumbnail_url||item.img||item.banner_url||''),
   watchUrl:platform==='twitch'?'/live/twitch/'+encodeURIComponent(login):'/'+encodeURIComponent(login)
  };
@@ -185,7 +189,7 @@ function chooseSmallCommunities(main,discovered,backup,limit=12){
    const platform=String(raw?.platform||'twitch').toLowerCase();
    if(!['twitch','oryon','swapp','native'].includes(platform))continue;
    const item=raw?.kind==='live'?raw:normalizeLive(raw,input[1]);
-   if(!item||!Number.isFinite(item.viewers)||item.viewers<0||item.viewers>150||seen.has(item.id))continue;
+   if(!item||item.audienceVerified!==true||!Number.isFinite(item.viewers)||item.viewers<0||item.viewers>150||seen.has(item.id))continue;
    seen.add(item.id);candidates.push(item);
   }
  }
@@ -275,7 +279,7 @@ const visNode=item=>{
  }else frame.append(create('div','scl-no-art','Image indisponible'));
  if(item.kind==='live'){
   frame.append(create('span','scl-live-pill','DIRECT'));
-  frame.append(create('span','scl-viewer-pill',item.viewers.toLocaleString('fr-FR')+' spectateurs'));
+  frame.append(create('span','scl-viewer-pill',item.audienceVerified?item.viewers.toLocaleString('fr-FR')+' spectateurs':'Audience indisponible'));
  }
  return frame;
 };
@@ -368,7 +372,7 @@ function feature(item){
  $('scl-feature-title').textContent=item?(item.kind==='live'?item.name:item.game):'Trouver ton prochain live.';
  $('scl-feature-desc').textContent=item?(item.kind==='live'?(item.title+(item.game?' · '+item.game:'')):item.summary):
   'Le catalogue affiche uniquement des directs réellement disponibles. Aucune diffusion fictive.';
- $('scl-feature-meta').textContent=item?(item.kind==='live'?item.viewers.toLocaleString('fr-FR')+' spectateurs · '+(item.platform==='swapp'?'SWAPP LIVE':'Twitch'):'FICHE JEU · '+(state.lives.filter(x=>x.gameSlug===item.gameSlug).length)+' directs repérés'):'';
+ $('scl-feature-meta').textContent=item?(item.kind==='live'?(item.audienceVerified?item.viewers.toLocaleString('fr-FR')+' spectateurs':'Audience indisponible')+' · '+(item.platform==='swapp'?'SWAPP LIVE':'Twitch'):'FICHE JEU · '+(state.lives.filter(x=>x.gameSlug===item.gameSlug).length)+' directs repérés'):'';
  $('scl-feature-watch').textContent=item?.kind==='game'?'Voir les directs':'Regarder';
  $('scl-feature-watch').disabled=!item;
  $('scl-feature-preview').disabled=!item||item.kind!=='live';
@@ -455,7 +459,7 @@ function modalBody(item){
  body.append(title);
  body.append(create('p','',item.kind==='live'?(item.title+(item.game?' · '+item.game:'')):item.summary));
  if(item.kind==='live'){
-  body.append(create('p','scl-dialog-meta',item.viewers.toLocaleString('fr-FR')+' spectateurs · '+(item.platform==='swapp'?'SWAPP LIVE':'Twitch')));
+  body.append(create('p','scl-dialog-meta',(item.audienceVerified?item.viewers.toLocaleString('fr-FR')+' spectateurs':'Audience indisponible')+' · '+(item.platform==='swapp'?'SWAPP LIVE':'Twitch')));
  }
  body.append(actionsFor(item));
  container.append(body);
