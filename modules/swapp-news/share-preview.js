@@ -17,7 +17,7 @@ function xShareUrl(article){
 }
 function previewUrl(article){
  const slug=String(article?.slug||'');
- return SLUG.test(slug)?PREVIEW_BASE+slug+'.png':'';
+ return SLUG.test(slug)?PREVIEW_BASE+slug:'';
 }
 function thumbnailSource(article){
  for(const source of articleExtras.cardImageSources(article)){
