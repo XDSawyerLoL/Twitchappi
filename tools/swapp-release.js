@@ -28,6 +28,7 @@ const RELEASE_FILES=Object.freeze([
  'assets/swapp-discord-connect.js',
  'assets/swapp-discord-connect.css',
  'assets/swapp-account-menu.js',
+ 'assets/swapp-account-discord-link.js',
  'assets/swapp-creator-social-shortcuts.js',
  'assets/swapp-creator-social-shortcuts.css',
  'assets/swapp-catalogue-lab.css',

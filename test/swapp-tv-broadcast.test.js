@@ -66,9 +66,9 @@ test('disabled queue keeps the conductor visible while blocking enrollment',()=>
  assert.match(js,/FILE D’ATTENTE · PAUSE/);
 });
 
-test('TV continues to the next verified creator only after a viewer starts the station',()=>{
+test('TV starts automatically and continues verified rotation',()=>{
  const script=read('assets/swapp-tv-broadcast.js');
- assert.match(script,/autoAdvance:false/);
+ assert.match(script,/autoAdvance:false,autoStartPending:true/);
  assert.match(script,/state\.autoSource===\(platform==='swapp'\?'native':onAir\?'queue':'discovery'\)/);
  assert.match(script,/state\.autoSource=item\.platform==='swapp'\?'native':item\.onAir\?'queue':'discovery'/);
  assert.match(script,/function stopPlayback\(\)/);
@@ -77,7 +77,7 @@ test('TV continues to the next verified creator only after a viewer starts the s
  assert.match(script,/muted:'true'/);
  assert.match(page('tv'),/id="stv-watch" type="button" aria-pressed="false" disabled/);
 });
-test('TV preserves viewer opt-in when an on-air session ends and restarts',()=>{
+test('TV automatically starts the first on-air stream and respects Stop',()=>{
  const source=read('assets/swapp-tv-broadcast.js');
  const begin=source.indexOf('function renderScreen(');
  const end=source.indexOf('async function refreshQueue(',begin);
@@ -92,17 +92,18 @@ test('TV preserves viewer opt-in when an on-air session ends and restarts',()=>{
  const nodes={'stv-screen':screen,'stv-screen-inner':inner,'stv-watch':watch,'stv-air-state':make('span'),
  'stv-now-name':make('span'),'stv-now-game':make('span'),'stv-screen-game':make('span'),'stv-stage-status':stage};
  const $=id=>nodes[id];
- const state={selection:null,playing:null,consent:false,autoAdvance:false};
+ const state={selection:null,playing:null,consent:false,autoAdvance:false,autoStartPending:true};
  const URLSearchParams=class{constructor(obj){this.map=obj}toString(){return Object.entries(this.map).map(([k,v])=>k+'='+v).join('&')}};
- const run=new Function('state','$','by','setText','safeLogin','location','URLSearchParams','updateTwitchChat',
+ const run=new Function('state','$','by','setText','safeLogin','location','URLSearchParams','updateTwitchChat','document',
   source.slice(begin,end)+'return {renderScreen,play,stopPlayback};');
  const app=run(state,$,make,(id,value)=>{nodes[id].textContent=value},x=>/^[a-z0-9_]{3,25}$/.test(x),
-  {hostname:'swapp.tv'},URLSearchParams,()=>{});
+  {hostname:'swapp.tv'},URLSearchParams,()=>{},{visibilityState:'visible'});
  const first={twitch_login:'creator_one',creator_login:'Un',game:'Fortnite'};
  const next={twitch_login:'creator_two',creator_login:'Deux',game:'Fortnite'};
  app.renderScreen(first,{onAir:true});
- assert.equal(state.playing,null,'initial selection must not autoplay without opt-in');
- app.play();
+ assert.equal(state.playing,'creator_one','initial on-air selection autostarts');
+ assert.equal(state.autoStartPending,false);
+ assert.match(String(screen.querySelector('.stv-player-layer')?.children[0]?.src),/muted=true/);
  assert.equal(state.playing,'creator_one');
  assert.equal(watch['aria-pressed'],'true');
  app.renderScreen(null);
@@ -113,11 +114,12 @@ test('TV preserves viewer opt-in when an on-air session ends and restarts',()=>{
  assert.match(String(screen.querySelector('.stv-player-layer')?.children[0]?.src),/creator_two/);
  app.stopPlayback();
  assert.equal(state.autoAdvance,false);
+ assert.equal(state.autoStartPending,false);
  assert.equal(watch['aria-pressed'],'false');
  app.renderScreen(first,{onAir:true});
  assert.equal(state.playing,null,'manual stop disables all subsequent automatic transitions');
  app.renderScreen({login:'discovery_live',game:'Aion 2',platform:'twitch'});
- assert.equal(state.playing,null,'discovery must never start automatically');
+ assert.equal(state.playing,null,'manual stop prevents subsequent discovery autoplay');
 });
 
 test('fallback TV discovery interleaves game communities rather than ranking by audience',()=>{
@@ -237,7 +239,7 @@ test('TV native-first mapping ignores fake/offline entries and invalid logins',(
  assert.deepEqual(forward.map(x=>x.login),reverse.map(x=>x.login),
   'native creator visibility must not depend on API order or audience size');
 });
-test('TV native player resolves only to the first-party SWAPP channel',()=>{
+test('TV verified native HLS autostarts on first arrival',()=>{
  const js=read('assets/swapp-tv-broadcast.js');
  const begin=js.indexOf('function renderScreen('),end=js.indexOf('function mapNativeLives(',begin);
  assert.ok(begin>=0&&end>begin);
@@ -254,17 +256,16 @@ test('TV native player resolves only to the first-party SWAPP channel',()=>{
   'stv-now-game':make('span'),'stv-screen-game':make('span'),
   'stv-stage-status':make('span')
  };
- const state={selection:null,playing:null,consent:false,autoAdvance:false,autoSource:null,playingPlatform:null};
+ const state={selection:null,playing:null,consent:false,autoAdvance:false,autoStartPending:true,autoSource:null,playingPlatform:null};
  const run=new Function('state','$','by','setText','safeLogin','safeNativeLogin','location',
-  'URLSearchParams','updateTwitchChat',js.slice(begin,end)+
+  'URLSearchParams','updateTwitchChat','document',js.slice(begin,end)+
   'return {renderScreen,play,stopPlayback};');
  const app=run(state,id=>nodes[id],make,(id,value)=>{nodes[id].textContent=value},
   x=>/^[a-z0-9_]{3,25}$/.test(x),
   x=>/^[a-z0-9_-]{2,32}$/.test(x),{hostname:'swapp.tv'},
-  URLSearchParams,()=>{});
+  URLSearchParams,()=>{},{visibilityState:'visible'});
  app.renderScreen({login:'independent',platform:'swapp',game:'Aion 2'},{onAir:true});
- assert.equal(state.playing,null,'native playback must not start without consent');
- app.play();
+ assert.equal(state.playing,'independent','first verified native stream autostarts');
  const frame=screen.querySelector('.stv-player-layer')?.children[0];
  assert.equal(frame.src,'/api/oryon/local-relay/independent/player');
  assert.equal(state.playingPlatform,'swapp');

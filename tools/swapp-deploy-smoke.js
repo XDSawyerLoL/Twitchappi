@@ -159,7 +159,7 @@ async function verify(){
  const station=await request(origin,'/tv');
  check(station.body.includes('id="stv-slot-clock"')&&
   station.body.includes('id="stv-watch"')&&
-  station.body.includes('swapp-tv-broadcast.js?v=20261105-collective-v1'),
+  station.body.includes('swapp-tv-broadcast.js?v=20261113-arrival-autoplay-v2'),
   'SWAPP TV station layout or rotation script is stale');
  const stationJs=await request(origin,'/assets/swapp-tv-broadcast.js');
  check(stationJs.body.includes('function maybeAdvanceDiscovery(')&&
@@ -167,10 +167,12 @@ async function verify(){
   stationJs.body.includes("state.autoSource=item.platform==='swapp'?'native'")&&
   stationJs.body.includes("frame.src='/api/oryon/local-relay/'+encodeURIComponent(item.login)+'/player'")&&
   stationJs.body.includes("api('/api/swapp-tv/native-lineup')")&&
+  stationJs.body.includes('autoStartPending:true')&&
+  stationJs.body.includes('state.autoStartPending=false')&&
   stationJs.body.includes('function maybePassage(')&&
   stationJs.body.includes('function passageOffer('),
   'SWAPP TV does not expose the verified opt-in rotation logic');
- process.stdout.write('PASS /tv station native-first and consent-based relay\n');
+ process.stdout.write('PASS /tv station native-first automatic muted playback and Stop\n');
  // Viewers must receive a real SWAPP-hosted HLS engine; returning a 404,
  // an old external script, or an empty placeholder is a failed release.
  const engine=await request(origin,'/assets/hls.min.js');
@@ -450,9 +452,10 @@ async function verify(){
   !accountScript.body.includes('function viewerProfilePanel(){'),
   'Account renderer is stale or still includes shadowed legacy layout');
  const accountCss=await request(origin,'/assets/swapp-creator-workspace.css');
- check(home.body.includes('/assets/swapp-creator-workspace.css?v=20261022-auth-single-v1')&&
+ check(home.body.includes('/assets/swapp-creator-workspace.css?v=20261113-account-discord-v2')&&
    accountCss.body.includes('.swapp-account-workspace')&&
    accountCss.body.includes('.swapp-dash-columns')&&
+   accountCss.body.includes('.swapp-acct-discord-integration')&&
    accountCss.body.includes('border-radius:0!important'),
    'Old bubble-like account and creator dashboard still deployed');
  const browserIdentity=await request(origin,'/assets/swapp-game-identity.js');

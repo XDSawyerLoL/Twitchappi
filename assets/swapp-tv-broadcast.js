@@ -7,7 +7,7 @@ const safeLogin=s=>/^[a-z0-9_]{3,25}$/.test(String(s||'').toLowerCase());
 const safeNativeLogin=s=>/^[a-z0-9_-]{2,32}$/.test(String(s||'').toLowerCase());
 const gameOf=a=>typeof a?.game==='string'?a.game.trim():String(a?.game?.name||a?.game?.title||'').trim();
 const gamesFrom=data=>[...new Set((Array.isArray(data.articles)?data.articles:[]).filter(x=>x?.slug&&x.status!=='draft').map(gameOf).filter(x=>x.length>1))].slice(0,16);
-const state={queue:null,selection:null,playing:null,playingPlatform:null,playingBroadcastId:null,discovery:[],native:[],nativeIndex:0,nativeFetchedAt:0,index:0,consent:false,autoAdvance:false,autoSource:null,playStartedAt:0,games:[],queueMode:false,
+const state={queue:null,selection:null,playing:null,playingPlatform:null,playingBroadcastId:null,discovery:[],native:[],nativeIndex:0,nativeFetchedAt:0,index:0,consent:false,autoAdvance:false,autoStartPending:true,autoSource:null,playStartedAt:0,games:[],queueMode:false,
  passage:{key:'',game:'',seenLive:false,offline:0,cancelled:false,pending:false}};
 const TV_SLOT_SECONDS=600; // 10-minute SWAPP TV slot; keep aligned with swapp-tv-director.MAX_AIR_SECONDS.
 function tvTime(value){
@@ -70,9 +70,13 @@ function renderScreen(item,{onAir=false}={}){
  $('stv-air-state').textContent=valid&&platform==='swapp'?'ANTENNE NATIVE SWAPP':onAir&&valid?'ANTENNE ACTIVE':valid?'DÉCOUVERTE':'HORS ANTENNE';
  $('stv-air-state').style.color=onAir&&valid?'var(--tv-accent,#67dce8)':'';
  setText('stv-stage-status',valid&&platform==='swapp'?'Diffusion native SWAPP, indépendante du lecteur Twitch.':onAir&&valid?'Créateur sélectionné par la régie SWAPP TV.':valid?'Direct trouvé dans la découverte. Lecture volontaire, sans garantie de maintien en ligne.':'Aucun passage vérifié à cette heure.');
- // A single voluntary Play authorises subsequent verified TV transitions.
- // Do not auto-start public discovery or silently start before first consent.
- if(state.autoAdvance&&state.autoSource===(platform==='swapp'?'native':onAir?'queue':'discovery')&&valid&&!same)play();
+ // SWAPP TV should behave like a TV channel: the first verified/live source
+ // starts muted on arrival (browser autoplay policy), not after another click.
+ // If no real source is available, stay idle; never manufacture a broadcast.
+ if(state.autoStartPending&&valid&&document.visibilityState!=='hidden'){
+  state.autoStartPending=false;
+  play();
+ }else if(state.autoAdvance&&state.autoSource===(platform==='swapp'?'native':onAir?'queue':'discovery')&&valid&&!same)play();
  else syncWatchButton();
 }
 function syncWatchButton(){
@@ -82,7 +86,7 @@ function syncWatchButton(){
 }
 function stopPlayback(){
  resetPassage();
- state.consent=false;state.playing=null;state.playingPlatform=null;state.autoAdvance=false;state.autoSource=null;state.playStartedAt=0;
+ state.consent=false;state.playing=null;state.playingPlatform=null;state.autoAdvance=false;state.autoStartPending=false;state.autoSource=null;state.playStartedAt=0;
  $('stv-screen').querySelector('.stv-player-layer')?.remove();
  $('stv-screen-inner').hidden=false;
  syncWatchButton();
@@ -101,7 +105,7 @@ function play(){
  }
  frame.allow='autoplay; fullscreen';frame.allowFullscreen=true;frame.referrerPolicy='strict-origin-when-cross-origin';
  layer.append(frame,by('div','stv-player-overlay','SWAPP TV  /  '+(item.onAir?'À L’ANTENNE':'DÉCOUVERTE')));
- screen.append(layer);$('stv-screen-inner').hidden=true;state.playing=item.login;state.playingPlatform=item.platform;state.playingBroadcastId=item.broadcastId||null;state.consent=true;
+ screen.append(layer);$('stv-screen-inner').hidden=true;state.autoStartPending=false;state.playing=item.login;state.playingPlatform=item.platform;state.playingBroadcastId=item.broadcastId||null;state.consent=true;
  // Resume subsequent 10-minute TV slots only if the user started an actual
  // on-air relay. Browser embedding is muted to respect autoplay policy.
  state.autoAdvance=true;
@@ -113,7 +117,7 @@ function play(){
  void maybePassage();
 }
 // SWAPP PASSAGE: a station viewer remains with the same GAME when the
-// broadcaster really ends. No cross-game hop, no autoplay before first Play.
+// broadcaster really ends. Playback starts muted and can be stopped explicitly.
 let passageClock=null,passageBusy=false;
 const PASSAGE_KEY='swapp-passage-tab-v2';
 function recentlyWatched(){
@@ -545,13 +549,29 @@ $('stv-leave').addEventListener('click',()=>mutate('DELETE'));
 $('stv-immersive').addEventListener('click',()=>{
  const enabled=$('swapp-tv').classList.toggle('tv-immersive');if(enabled&&dock.classList.contains('is-open'))closeDock();$('stv-immersive').setAttribute('aria-pressed',String(enabled));$('stv-immersive').textContent=enabled?'← QUITTER':'⛶ IMMERSION';
 });
+// If the page opened in a background tab, begin when it becomes visible.
+document.addEventListener('visibilitychange',()=>{
+ if(document.visibilityState==='visible'&&state.autoStartPending&&state.selection)play();
+});
 async function init(){
- try{const data=await api('/api/actus');state.games=gamesFrom(data);const select=$('stv-game');select.replaceChildren();for(const g of state.games){const o=by('option',null,g);o.value=g;select.append(o)}
- if(!state.games.length){const o=by('option',null,'Aucun jeu éditorial disponible');o.value='';select.append(o)}
- await refreshQueue();if(!state.queueMode)await discovery();
- setInterval(refreshQueue,15000);
- setInterval(async()=>{if(!state.queueMode){await discovery()}},180000);
- }catch(e){setText('stv-stage-status','Programmation indisponible pour le moment.');setText('stv-queue-status','Les données éditoriales sont indisponibles.');$('stv-join').disabled=true}
+ // Loading ACTUS must never postpone the first native or scheduled TV signal.
+ const editorial=api('/api/actus').catch(()=>({articles:[]}));
+ try{
+  await refreshQueue();
+  const data=await editorial;
+  state.games=gamesFrom(data);
+  const select=$('stv-game');select.replaceChildren();
+  for(const g of state.games){const o=by('option',null,g);o.value=g;select.append(o)}
+  if(!state.games.length){const o=by('option',null,'Aucun jeu éditorial disponible');o.value='';select.append(o)}
+  if(state.queue)renderQueue(state.queue);
+  if(!state.queueMode)await discovery();
+  setInterval(refreshQueue,15000);
+  setInterval(async()=>{if(!state.queueMode){await discovery()}},180000);
+ }catch(e){
+  setText('stv-stage-status','Programmation indisponible pour le moment.');
+  setText('stv-queue-status','Les données éditoriales sont indisponibles.');
+  $('stv-join').disabled=true;
+ }
 }
 init();
 })();
