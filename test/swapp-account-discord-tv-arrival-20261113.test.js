@@ -48,7 +48,7 @@ test('SWAPP TV starts a real source on page arrival, muted, without restarting a
  assert.match(js,/state\.autoAdvance=false;state\.autoStartPending=false/);
  assert.match(js,/muted:'true'/);
  assert.match(js,/x\.media_verified!==true/);
- assert.match(html,/swapp-tv-broadcast\.js\?v=20261113-arrival-autoplay-v2/);
+ assert.match(html,/swapp-tv-broadcast\.js\?v=20261113-5min-rotation-v10/);
  assert.match(js,/const editorial=api\('\/api\/actus'\)\.catch/);
  assert.ok(js.indexOf('await refreshQueue();')<js.indexOf('const data=await editorial;'),
   'initial native or on-air stream must start before slow articles response');
