@@ -18,6 +18,10 @@ test('public homepage has a canonical indexable catalogue, original lab remains 
  assert.match(home,/<title>SWAPP — Directs, jeux et actualités<\/title>/);
  assert.match(home,/class="swapp-editorial-route swapp-catalogue-lab-page swapp-catalogue-home"/);
  assert.match(home,/href="\/\?classic=1"/);
+ assert.match(home,/href="\/mentions-legales"/);
+ assert.match(home,/href="\/confidentialite"/);
+ assert.match(home,/google-site-verification/);
+ assert.match(home,/pagead2\.googlesyndication\.com/);
  assert.match(home,/href="\/"[^>]*aria-current="page"/);
  assert.doesNotMatch(home,/meta name="robots" content="noindex/);
  assert.match(oldLab,/noindex,nofollow,noarchive/);
@@ -133,6 +137,18 @@ test('ACTUS recycles old-home article poster with real published art and interna
  assert.match(js,/const featuredMount=el\('div','swapp-actus-featured-mount'\)/);
  assert.match(read('index.html'),/swapp-actus-app\.css\?v=20261113-relocated-feature-v2/);
  assert.match(read('index.html'),/swapp-actus-app\.js\?v=20261113-relocated-feature-v2/);
+});
+test('official muted trailer from former homepage is scoped to ACTUS and never autoplays on touch devices',()=>{
+ const motion=read('assets/swapp-home-motion.js'),actus=read('assets/swapp-actus-app.js');
+ const css=read('assets/swapp-actus-app.css');
+ assert.match(actus,/window\.SwappHomeMotion\?\.attach\?\.\(link,featured\)/);
+ assert.match(motion,/tile\.closest\('#actus\.view\.active \.swapp-actus-featured-hero'\)/);
+ assert.match(motion,/tile\.closest\('#home\.view\.active'\)/);
+ assert.match(motion,/prefers-reduced-motion: reduce/);
+ assert.match(motion,/navigator\.connection\?\.saveData/);
+ assert.match(css,/\.swapp-home-motion-playing > \.swapp-home-motion/);
+ assert.match(css,/@media\(max-width:979px\),\(pointer:coarse\),\(prefers-reduced-motion:reduce\)/);
+ assert.match(read('index.html'),/swapp-home-motion\.js\?v=20261113-actus-relocation-v3/);
 });
 test('ACTUS published article hero stays responsive, without embedding the old homepage',()=>{
  const css=read('assets/swapp-actus-app.css');
