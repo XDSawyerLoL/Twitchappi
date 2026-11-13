@@ -389,8 +389,24 @@ async function discovery(){
    keys.add(key);found.push({...x,login,game,platform});
   }
  }
- // If there are no articles or their game queries are temporarily empty,
- // use Twitch's *actual live streams* endpoint, never a fabricated streamer.
+ // Prefer SWAPP's already diversified, actual-live discovery pool.
+ // This brings small communities on-screen instead of always promoting
+ // Twitch's largest channels when the editorial list is empty.
+ if(!found.length){
+  try{
+   const home=await api('/api/discovery/home-lives?limit=12&lang=fr');
+   for(const x of Array.isArray(home?.items)?home.items:[]){
+    const login=String(x.user_login||x.login||'').toLowerCase();
+    const game=String(x.game_name||x.game||'').trim();
+    if(x.platform!=='twitch'||!safeLogin(login)||game.length<2||keys.has('twitch:'+login))continue;
+    keys.add('twitch:'+login);
+    found.push({login,platform:'twitch',game,
+     display_name:String(x.user_name||x.display_name||login)});
+   }
+  }catch{}
+ }
+ // Fallback to the public Twitch "streams" API only when SWAPP's home
+ // discovery is also unavailable: these are still real live broadcasters.
  if(!found.length){
   try{
    const top=await api('/api/twitch/streams/top?limit=24');
