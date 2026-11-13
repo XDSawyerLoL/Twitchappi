@@ -5,6 +5,18 @@ const url=v=>{try{const u=new URL(v);return u.protocol==='https:'&&!u.username&&
 const date=v=>{const d=new Date(v);return v&&!Number.isNaN(d.getTime())?d.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'}):'';};
 const slugOk=s=>/^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/.test(s||'');
 
+const ACTUS_CARD_SIZES=['compact','normal','grand'];
+const ACTUS_CARD_SIZE_STORAGE_KEY='swapp:actus:card-size';
+const actusCardSize=value=>ACTUS_CARD_SIZES.includes(value)?value:'normal';
+function savedActusCardSize(){
+ try{return actusCardSize(window.localStorage.getItem(ACTUS_CARD_SIZE_STORAGE_KEY))}
+ catch(_){return 'normal'}
+}
+function rememberActusCardSize(value){
+ try{window.localStorage.setItem(ACTUS_CARD_SIZE_STORAGE_KEY,actusCardSize(value))}catch(_){}
+}
+
+
 // Editorial taxonomy: one /actus listing, with user-visible TAGS (not separate pages).
 const SWAPP_TOPICS=[
  {id:'',label:'Toutes les actualités'},
@@ -274,7 +286,40 @@ liveStatus.textContent=found.length?found.length+' créateur'+(found.length>1?'s
 for(const item of found){const login=String(item.login).toLowerCase(),native=['swapp','oryon'].includes(String(item.platform||'').toLowerCase());const link=el('a','swapp-discover-stream');link.href=native?'/'+encodeURIComponent(login):'/live/twitch/'+encodeURIComponent(login)+'?game='+encodeURIComponent(game.slice(0,90));if(!native)link.onclick=event=>{if(event.button||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;const opened=window.SwappArticlePlayer?.openFull({login,name:item.display_name||login,game});if(opened)event.preventDefault()};const image=el('div','swapp-discover-stream-cover'),src=url(item.thumbnail_url);if(src){const img=el('img');img.src=src;img.alt='';img.loading='lazy';img.onerror=()=>img.remove();image.append(img)}image.append(el('span','swapp-discover-stream-badge','EN DIRECT'));const info=el('div','swapp-discover-stream-info');info.append(el('strong','',item.display_name||login),el('span','swapp-game-connection','Même jeu · '+game),el('small','',item.title||'Regarder ce live'));link.append(image,info);liveCards.append(link)}
 }catch{if(ticket===liveTicket&&liveSection.isConnected)liveStatus.textContent='Lives temporairement indisponibles. Les articles restent accessibles.'}}
 liveSection.hidden=true;
-const gamesBar=el('div','swapp-actus-game-filters');gamesBar.setAttribute('aria-label','Explorer les jeux');node.append(gamesBar);let activeGame='',gamesExpanded=false;const count=el('p','swapp-actus-count');count.setAttribute('aria-live','polite');node.append(count);const feed=el('div','swapp-actus-grid');node.append(feed);
+const gamesBar=el('div','swapp-actus-game-filters');gamesBar.setAttribute('aria-label','Explorer les jeux');node.append(gamesBar);
+let activeGame='',gamesExpanded=false;
+const count=el('p','swapp-actus-count');
+count.setAttribute('aria-live','polite');
+const layoutTools=el('div','swapp-actus-layout-tools');
+const sizeLabel=el('span','swapp-actus-card-size-label','Taille des cartes');
+const sizeControl=el('div','swapp-actus-card-size');
+sizeControl.setAttribute('role','group');
+sizeControl.setAttribute('aria-label','Taille des cartes d’actualité');
+let activeCardSize=savedActusCardSize();
+const feed=el('div','swapp-actus-grid');
+feed.dataset.cardSize=activeCardSize;
+flashCards.dataset.cardSize=activeCardSize;
+const drawCardSizes=()=>{
+ sizeControl.replaceChildren();
+ for(const [value,label] of [['compact','Compact'],['normal','Normal'],['grand','Grand']]){
+  const button=el('button','swapp-actus-card-size-option'+(value===activeCardSize?' active':''),label);
+  button.type='button';
+  button.dataset.size=value;
+  button.setAttribute('aria-pressed',String(value===activeCardSize));
+  button.onclick=()=>{
+   if(value===activeCardSize)return;
+   activeCardSize=value;
+   feed.dataset.cardSize=value;
+   flashCards.dataset.cardSize=value;
+   rememberActusCardSize(value);
+   drawCardSizes();
+  };
+  sizeControl.append(button);
+ }
+};
+drawCardSizes();
+layoutTools.append(count,sizeLabel,sizeControl);
+node.append(layoutTools,feed);
 const update=()=>{feed.replaceChildren();const query=search.value.toLocaleLowerCase('fr').trim();const available=items.filter(x=>(!activeGame||String(x.game||'')===activeGame)&&(!category.value||(x.category||'')===category.value)&&hasTopic(x,activeTopic)&&[x.title,x.game,x.summary,x.category,...(Array.isArray(x.tags)?x.tags:[])].join(' ').toLocaleLowerCase('fr').includes(query));count.textContent=available.length+' article'+(available.length>1?'s':'')+' à découvrir';if(!available.length){feed.append(el('p','swapp-actus-state',query?'Aucun résultat.':'Aucun article complet récupéré pour le moment.'));return;}available.forEach(a=>{const c=makeCard(a);if(c)feed.append(c)});};
 search.oninput=update;category.onchange=update;feed.append(el('p','swapp-actus-state','Chargement des articles…'));
 try{const data=await fetchJson('/api/actus');if(!node.isConnected)return;items=Array.isArray(data.articles)?data.articles:[];const categories=[...new Set(items.map(x=>x.category).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'fr'));for(const name of categories){const option=el('option','',name);option.value=name;category.append(option)}
