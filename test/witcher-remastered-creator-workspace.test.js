@@ -102,3 +102,17 @@ test('creator dashboard never fabricates sessions, score, historical charts or b
  assert.match(ui,/Aucune session enregistrée avec des mesures vérifiées/);
  assert.doesNotMatch(ui,/points futurs Trade|Résumé après live préparé/);
 });
+
+test('structured game names survive editorial identity and preserve sequel boundaries',()=>{
+ const entries=[
+  [{game:{name:'The Witcher 3'},title:'The Witcher 3 Remastered : enquête'},'The Witcher 3: Wild Hunt Remastered'],
+  [{game:{name:'Cyberpunk 2077'},title:'Une mise à jour'},'Cyberpunk 2077'],
+  [{game:{title:'Aion 2'},title:'Guide Templier'},'Aion 2'],
+  [{game:{id:'12345'},title:'Article'},'']
+ ];
+ for(const [article,expected] of entries){
+  assert.equal(editorialGame(article),expected);
+  assert.equal(browser.editorialGame(article),expected);
+ }
+ assert.equal(equivalent('Aion','Aion 2'),false);
+});
