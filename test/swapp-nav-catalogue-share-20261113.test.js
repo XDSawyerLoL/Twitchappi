@@ -115,6 +115,6 @@ test('versioned SPA assets expose new navigation, catalogue and sharing without 
    assert.ok(source.includes(file+'?v='+(file==='swapp-unified-nav.css'?'20261113-nav-uniform-v1':file==='swapp-hub-nav.js'?'20261113-home-router-v2':'20261113-swaper-decouvrir-v1')));
  }
  assert.match(home,/index_script\.js\?v=20261113-catalogue-heading-v1/);
- assert.match(home,/swapp-actus-app\.js\?v=20261113-inline-share-v1/);
- assert.match(home,/swapp-actus-app\.css\?v=20261113-inline-share-v1/);
+ assert.match(home,/swapp-actus-app\.js\?v=20261113-relocated-feature-v2/);
+ assert.match(home,/swapp-actus-app\.css\?v=20261113-relocated-feature-v2/);
 });
