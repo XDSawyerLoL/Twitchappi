@@ -28,8 +28,8 @@ test('public homepage has a canonical indexable catalogue, original lab remains 
  assert.match(oldLab,/Catalogue immersif · Laboratoire SWAPP/);
  assert.doesNotMatch(oldLab,/rel="canonical" href="https:\/\/swapp\.tv\/"/);
  assert.match(oldLab,/href="\/categories"/);
- const assets=[['swapp-catalogue-lab.js','20261113-hover-rails-hero-10s-v6'],
-  ['swapp-catalogue-lab.css','20261113-hover-rails-hero-10s-v6']];
+ const assets=[['swapp-catalogue-lab.js','20261113-x-share-edge-hints-v7'],
+  ['swapp-catalogue-lab.css','20261113-x-share-edge-hints-v7']];
  for(const [name,version] of assets){
   assert.ok(home.includes(name+'?v='+version));
   assert.ok(oldLab.includes(name+'?v='+version));
@@ -149,7 +149,7 @@ test('ACTUS recycles old-home article poster with real published art and interna
  assert.match(js,/renderFeaturedActusHero\(featuredMount,items\)/);
  assert.match(js,/const featuredMount=el\('div','swapp-actus-featured-mount'\)/);
  assert.match(read('index.html'),/swapp-actus-app\.css\?v=20261113-relocated-feature-v2/);
- assert.match(read('index.html'),/swapp-actus-app\.js\?v=20261113-relocated-feature-v2/);
+ assert.match(read('index.html'),/swapp-actus-app\.js\?v=20261113-direct-x-v3/);
 });
 test('official muted trailer from former homepage is scoped to ACTUS and never autoplays on touch devices',()=>{
  const motion=read('assets/swapp-home-motion.js'),actus=read('assets/swapp-actus-app.js');
