@@ -600,6 +600,19 @@ async function verify(){
  process.stdout.write('PASS / home\n');
  const news=await request(origin,'/actus');
  check(news.body.includes('SWAPP')||news.body.includes('Swapp'),'Actualité returned an unexpected document');
+ // All native documents now share the same site shell and motion assets.
+ // The SPA's menu is populated server-side, avoiding a flash of empty nav.
+ const sharedMotion='swapp-route-motion.css?v=20261113-shared-shell-v2';
+ check(publicHome.body.includes('data-swapp-shell="shared-native-v2"')&&
+   station.body.includes('data-swapp-shell="shared-native-v2"')&&
+   publicHome.body.includes(sharedMotion)&&station.body.includes(sharedMotion)&&
+   home.body.includes(sharedMotion)&&news.body.includes(sharedMotion),
+   'The home, native SWAPP TV and SPA pages do not share transition styles');
+ check(home.body.includes('<nav id="nav" class="mainNav" aria-label="Navigation principale"><div class="navGroup">')&&
+   home.body.includes('<nav id="mobileNav" class="mobileNav" aria-label="Navigation mobile">')&&
+   news.body.includes('<nav id="nav" class="mainNav" aria-label="Navigation principale"><div class="navGroup">'),
+   'SPA still renders its menu only after client-side JavaScript');
+ process.stdout.write('PASS one native site shell and pre-rendered SPA navigation\\n');
  // A successful GitHub commit is not proof the final visual layer reached Hostinger.
  const presentation='/assets/swapp-presentation-polish.css?v=20261017-visual-audit-v16';
  check(home.body.includes(presentation),'Home uses an outdated presentation stylesheet');
