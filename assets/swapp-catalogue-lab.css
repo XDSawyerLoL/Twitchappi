@@ -503,3 +503,124 @@ body.swapp-catalogue-lab-page{
  }
  .scl-card-hover-player{animation:none;opacity:1}
 }
+
+
+/* V3 — Published SWAPP ACTUS integrated as a cinematic editorial shelf.
+ * Native article links and accessible sharing, no source-site redirects.
+ * This shelf floats beneath the hero while existing SWAPP live and game rails
+ * retain their own media sizing and independent interactions.
+ */
+#scl-articles{margin-top:-113px;z-index:10;position:relative}
+#scl-live{margin-top:18px}
+.scl-rail-head-actions{display:flex;align-items:center;gap:16px}
+.scl-all-news{
+ color:#c9e9e9!important;text-decoration:none;
+ font:800 12px/1.4 Inter,system-ui,sans-serif;
+ border-bottom:1px solid #a0d9dd66;padding-bottom:2px;
+ white-space:nowrap;
+}
+.scl-all-news:hover{text-decoration:underline;color:white!important}
+.scl-article-cards{align-items:stretch;gap:15px;scroll-padding-left:4%}
+.scl-story-card{
+ display:flex;flex:0 0 clamp(245px,25vw,360px);min-width:0;
+ flex-direction:column;align-self:flex-start;isolation:isolate;
+ background:#121924;border:1px solid #ffffff27;
+ border-radius:9px;overflow:hidden;
+ box-shadow:0 10px 26px #0008;
+ transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease;
+ scroll-snap-align:start;
+}
+.scl-story-card:hover,.scl-story-card:focus-within{
+ border-color:#8adce08f;
+ transform:translateY(-5px) scale(1.025);
+ box-shadow:0 22px 46px #000b;
+ z-index:11;
+}
+.scl-story-link{
+ display:flex;flex:1 1 auto;flex-direction:column;
+ text-decoration:none;color:inherit!important;min-width:0;
+}
+.scl-story-link:focus-visible{outline:3px solid #85eceb;outline-offset:-3px}
+.scl-story-media{
+ position:relative;width:100%;aspect-ratio:16/9;overflow:hidden;
+ background:radial-gradient(ellipse at 65% 38%,#2b435d,#0c1521 73%);
+}
+.scl-story-media:after{
+ content:"";position:absolute;inset:55% 0 0;
+ background:linear-gradient(transparent,#111923b5);
+ pointer-events:none;
+}
+.scl-story-media img{
+ display:block;width:100%;height:100%;object-fit:cover;
+ transition:transform .3s ease;
+}
+.scl-story-card:hover .scl-story-media img{transform:scale(1.045)}
+.scl-story-no-art{
+ width:100%;height:100%;display:grid;place-items:center;
+ font-size:15px;font-weight:950;letter-spacing:.12em;color:#b2dfe3;
+}
+.scl-story-no-art:before{
+ content:"◈";font-size:40px;display:block;position:absolute;
+ top:15%;opacity:.3;color:#74e5e1;
+}
+.scl-story-info{
+ min-height:141px;padding:12px 15px 14px;
+ display:flex;flex-direction:column;gap:6px;
+}
+.scl-story-category{
+ color:#8ce4e2;font-size:10px;font-weight:900;
+ letter-spacing:.1em;text-transform:uppercase;
+}
+.scl-story-info h3{
+ margin:0;font-size:16px;font-weight:900;line-height:1.24;
+ display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;
+ line-clamp:2;overflow:hidden;
+ color:#f7f9fc;
+}
+.scl-story-info p{
+ margin:0;color:#b9c6d5;font-size:12px;line-height:1.45;
+ display:-webkit-box;-webkit-box-orient:vertical;
+ -webkit-line-clamp:2;line-clamp:2;overflow:hidden;
+}
+.scl-story-date{margin-top:auto;color:#7e9bad;font-size:10px;font-weight:700}
+.scl-story-actions{
+ display:flex;align-items:center;flex-wrap:wrap;gap:9px;
+ padding:9px 14px 12px;border-top:1px solid #ffffff18;
+}
+.scl-story-share{
+ border:1px solid #73979e9c;border-radius:6px;
+ min-height:35px;padding:7px 12px;
+ background:#152a33;color:#c5f0ee;font-size:12px;font-weight:850;
+ cursor:pointer;
+}
+.scl-story-share:hover{background:#264955;border-color:#9aefeb;color:white}
+.scl-story-share:focus-visible{outline:2px solid #91eae6;outline-offset:3px}
+.scl-story-share-feedback{
+ color:#a9d9dc;font-size:11px;font-weight:720;line-height:1.3;
+}
+.scl-story-share-feedback[hidden]{display:none!important}
+.scl-story-share-url{
+ width:100%;min-width:0;padding:8px;
+ background:#0c1420;color:#fff;border:1px solid #79919c;
+ border-radius:6px;font-size:12px;
+}
+@media(max-width:950px){
+ #scl-articles{margin-top:-70px}
+ #scl-live{margin-top:18px}
+ .scl-story-card{flex-basis:clamp(245px,35vw,315px)}
+}
+@media(max-width:650px){
+ #scl-articles{margin-top:-26px}
+ #scl-live{margin-top:12px}
+ .scl-rail-head-actions{gap:8px}
+ .scl-all-news{font-size:11px}
+ .scl-article-cards{padding-top:14px;padding-bottom:24px}
+ .scl-story-card{flex-basis:min(79vw,320px)}
+ .scl-story-card:hover,.scl-story-card:focus-within{transform:none}
+ .scl-story-info{min-height:136px}
+ .scl-story-info h3{font-size:15px}
+}
+@media(prefers-reduced-motion:reduce){
+ .scl-story-card,.scl-story-media img{transition:none!important}
+ .scl-story-card:hover,.scl-story-card:focus-within{transform:none}
+}

@@ -4,11 +4,12 @@
  */
 (function(){
 'use strict';
-const LAB_VERSION='20261113-cinema-v2';
+const LAB_VERSION='20261113-actus-rail-v3';
 const API=Object.freeze({
  home:'/api/discovery/home-lives?limit=12&lang=fr',
  top:'/api/twitch/streams/top?limit=40&lang=fr',
- games:'/api/categories/top'
+ games:'/api/categories/top',
+ articles:'/api/actus'
 });
 const FAVORITES_KEY='swapp:followed-games:v1';
 const CHANNEL_KEY='oryon_v4_likes';
@@ -132,6 +133,45 @@ function mergeGames(categories,lives){
  }
  return result;
 }
+/* SWAPP ACTUS content is fetched from the published MySQL-backed catalogue,
+ * never generated from unverified feeds or off-site article URLs.
+ */
+function cleanArticleImage(value){
+ try{
+  const uri=new URL(String(value||''));
+  return uri.protocol==='https:'&&!uri.username&&!uri.password&&uri.hostname&&
+   !/\.(?:svg|svgz)(?:$|\?)/i.test(uri.pathname)?uri.href:'';
+ }catch{return ''}
+}
+function normalizeArticle(article){
+ if(!article||typeof article!=='object'||(article.status&&article.status!=='published'))return null;
+ const slug=String(article.slug||'').trim();
+ if(!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)||slug.length>150)return null;
+ const title=escapeName(article.title).slice(0,150);
+ if(!title)return null;
+ const category=escapeName(article.category||'Actualité').slice(0,55);
+ const summary=escapeName(article.summary||article.description||'').slice(0,190);
+ const publishedAt=String(article.publishedAt||article.originalPublishedAt||'');
+ const timestamp=Date.parse(publishedAt);
+ const rawCover=[article.thumbnail?.url,article.image?.url,article.imageUrl]
+  .map(cleanArticleImage).find(Boolean)||'';
+ return {
+  id:'article:'+slug,kind:'article',slug,title,category,summary,
+  game:escapeName(article.game||''),url:'/actus/'+encodeURIComponent(slug),
+  publishedAt:Number.isFinite(timestamp)?timestamp:0,image:rawCover,
+  original:article
+ };
+}
+function normalizeArticles(values){
+ if(!Array.isArray(values))return [];
+ const seen=new Set(),articles=[];
+ for(const raw of values){
+  const article=normalizeArticle(raw);
+  if(!article||seen.has(article.slug))continue;
+  seen.add(article.slug);articles.push(article);
+ }
+ return articles.sort((a,b)=>b.publishedAt-a.publishedAt).slice(0,20);
+}
 function readFavorites(storage){
  try{
   const saved=JSON.parse(storage.getItem(FAVORITES_KEY)||'null');
@@ -160,7 +200,7 @@ function readChannelFavorites(storage){
  }catch{return []}
 }
 if(typeof module==='object'&&module.exports)
- module.exports={API,LAB_VERSION,normalizeLive,normalizeGame,mergeLives,mergeGames,gameSlug,synopsis,readFavorites,readChannelFavorites,safeImage};
+ module.exports={API,LAB_VERSION,normalizeLive,normalizeGame,normalizeArticle,normalizeArticles,mergeLives,mergeGames,gameSlug,synopsis,readFavorites,readChannelFavorites,safeImage,cleanArticleImage};
 if(typeof document==='undefined')return;
 const root=document.getElementById('swapp-catalogue-lab');
 if(!root)return;
@@ -172,7 +212,7 @@ const create=(tag,className,text)=>{
  if(text!==undefined)node.textContent=String(text);
  return node;
 };
-const state={lives:[],games:[],featured:null,filter:'all',query:'',loading:false,failed:[],previewTimer:0,abort:null,heroItems:[],heroIndex:0,heroTimer:null,hoverTimer:null,hoverIframe:null,hoverCard:null};
+const state={lives:[],games:[],articles:[],newsError:false,newsLoading:false,newsEpoch:0,featured:null,filter:'all',query:'',loading:false,failed:[],previewTimer:0,abort:null,heroItems:[],heroIndex:0,heroTimer:null,hoverTimer:null,hoverIframe:null,hoverCard:null};
 const status=$('scl-status'),hero=$('scl-feature'),featureVisual=$('scl-feature-visual'),dialog=$('scl-dialog');
 const heroDots=$('scl-feature-dots');
 const visNode=item=>{
@@ -444,8 +484,89 @@ function createCard(item){
  });
  return card;
 }
+/* Article rail: on-site cards only. Sharing is an independent button, not
+ * a link that accidentally navigates to the article or its source publisher.
+ */
+function articleCover(article){
+ const area=create('div','scl-story-media');
+ const shared=window.SwappArticleExtras?.cardImageSources?.(article.original)||[];
+ const urls=[article.image,...shared].map(cleanArticleImage).filter(Boolean);
+ if(!urls.length){
+  area.append(create('div','scl-story-no-art','SWAPP · ACTUALITÉ'));
+  return area;
+ }
+ let index=0;
+ const image=create('img');
+ image.loading='lazy';image.decoding='async';image.alt='';
+ image.referrerPolicy='no-referrer';
+ image.addEventListener('error',()=>{
+  index++;
+  if(index<urls.length){image.src=urls[index];return}
+  image.remove();area.append(create('div','scl-story-no-art','SWAPP · ACTUALITÉ'));
+ });
+ image.src=urls[0];area.append(image);
+ return area;
+}
+async function shareArticle(article,tools,feedback){
+ const url=window.location.origin+article.url;
+ const report=message=>{feedback.textContent=message;feedback.hidden=false};
+ if(typeof navigator.share==='function'){
+  try{await navigator.share({title:article.title,url});report('Article partagé');return}
+  catch(error){if(error?.name==='AbortError')return}
+ }
+ try{
+  if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(url);report('Lien SWAPP copié');return}
+ }catch(_){}
+ let field=tools.querySelector('.scl-story-share-url');
+ if(!field){
+  field=create('input','scl-story-share-url');field.type='text';field.readOnly=true;
+  field.setAttribute('aria-label','Lien de l’article SWAPP à copier');
+  tools.append(field);
+ }
+ field.value=url;
+ field.focus();field.select();
+ try{
+  if(typeof document.execCommand==='function'&&document.execCommand('copy')){
+   report('Lien SWAPP copié');return
+  }
+ }catch(_){}
+ report('Lien sélectionné : copiez-le');
+}
+function createArticleCard(article){
+ const card=create('article','scl-story-card');
+ const link=create('a','scl-story-link');
+ link.href=article.url;
+ link.setAttribute('aria-label','Lire sur SWAPP : '+article.title);
+ const media=articleCover(article);
+ const body=create('div','scl-story-info');
+ const category=create('span','scl-story-category',article.category);
+ const title=create('h3','',article.title);
+ const summary=create('p','',article.summary||'Lire l’article complet sur SWAPP.');
+ const date=create('small','scl-story-date',article.publishedAt?
+  new Date(article.publishedAt).toLocaleDateString('fr-FR',{day:'numeric',month:'short',year:'numeric'}):
+  'ACTUALITÉ SWAPP');
+ body.append(category,title,summary,date);
+ link.append(media,body);
+ const actions=create('div','scl-story-actions');
+ const buttonShare=button('Partager','scl-story-share',()=>{void shareArticle(article,actions,feedback)});
+ buttonShare.setAttribute('aria-label','Partager : '+article.title);
+ const feedback=create('span','scl-story-share-feedback');
+ feedback.hidden=true;feedback.setAttribute('role','status');feedback.setAttribute('aria-live','polite');
+ actions.append(buttonShare,feedback);
+ card.append(link,actions);
+ return card;
+}
+function fillArticleRail(items,unavailable=false){
+ const host=$('scl-article-cards'),fragment=document.createDocumentFragment();
+ if(items.length)items.forEach(item=>fragment.append(createArticleCard(item)));
+ else fragment.append(empty(unavailable?
+  'Les actualités sont temporairement indisponibles. Consulte le magazine SWAPP.':
+  state.newsLoading?'Chargement des articles publiés…':
+  'Aucun article publié ne correspond à cette recherche.'));
+ host.replaceChildren(fragment);
+}
 const matching=item=>{
- const q=latin(state.query);return !q||latin([item.name,item.title,item.game].join(' ')).includes(q);
+ const q=latin(state.query);return !q||latin([item.name,item.title,item.game,item.summary,item.category].join(' ')).includes(q);
 };
 const empty=(message)=>create('p','scl-empty',message);
 function fill(id,items,placeholder){
@@ -483,6 +604,7 @@ function render(){
  stopHoverPreview();
  const lives=state.lives.filter(matching),games=state.games.filter(matching);
  const small=lives.filter(x=>x.viewers<=50);
+ fillArticleRail(state.articles.filter(matching),state.newsError);
  fill('scl-live-cards',lives,'Aucun direct confirmé pour cette recherche.');
  fill('scl-game-cards',games,'Aucun jeu disponible pour cette recherche.');
  fill('scl-small-cards',small,'Aucune petite communauté confirmée pour cette recherche.');
@@ -505,9 +627,71 @@ async function fetchJson(path){
   return data;
  }finally{clearTimeout(timeout)}
 }
+async function fetchArticles(){
+ const control=new AbortController();
+ const timeout=setTimeout(()=>control.abort(),9500);
+ try{
+  const response=await fetch(API.articles,{
+   credentials:'same-origin',
+   headers:{Accept:'application/json'},signal:control.signal,cache:'no-store'
+  });
+  if(!response.ok)throw new Error('Actualités HTTP '+response.status);
+  const payload=await response.json();
+  // Native magazine API intentionally has no success:true field.
+  if(!payload||!Array.isArray(payload.articles))throw new Error('Catalogue ACTUS invalide');
+  return payload.articles;
+ }finally{clearTimeout(timeout)}
+}
+function updateCatalogueStatus(){
+ if(state.loading){
+  status.textContent='Chargement des directs et des jeux…';
+  return;
+ }
+ status.replaceChildren();
+ status.dataset.error='false';
+ if(!state.lives.length&&!state.games.length&&!state.articles.length){
+  if(state.newsLoading){
+   status.textContent='Recherche des derniers articles publiés…';
+   return;
+  }
+  status.dataset.error='true';
+  status.append(create('span','','Aucun contenu disponible. Vérifie la connexion ou les catalogues SWAPP.'));
+  status.append(button('Réessayer','',()=>{void load()}));
+  return;
+ }
+ if(state.failed.length||state.newsError){
+  status.textContent='Catalogue partiel : certaines sources sont temporairement indisponibles. Les contenus affichés sont réels.';
+  return;
+ }
+ status.textContent=state.articles.length+' articles publiés · '+state.lives.length+
+  ' directs confirmés · '+state.games.length+' jeux à explorer'+
+  (state.newsLoading?' · Actualités en cours de chargement':'');
+}
 async function load(){
  if(state.loading)return;
- state.loading=true;status.dataset.error='false';status.replaceChildren(create('span','','Recherche des vrais lives et jeux…'));
+ state.loading=true;
+ state.newsLoading=true;
+ state.newsError=false;
+ state.failed=[];
+ state.articles=[];
+ const newsEpoch=++state.newsEpoch;
+ status.dataset.error='false';
+ status.replaceChildren(create('span','','Recherche des vrais lives et jeux…'));
+ // A slow or unavailable MySQL-backed ACTUS API must never delay live discovery.
+ void fetchArticles().then(published=>{
+  if(newsEpoch!==state.newsEpoch)return;
+  state.articles=normalizeArticles(published);
+  state.newsError=false;
+ }).catch(()=>{
+  if(newsEpoch!==state.newsEpoch)return;
+  state.newsError=true;
+  state.articles=[];
+ }).finally(()=>{
+  if(newsEpoch!==state.newsEpoch)return;
+  state.newsLoading=false;
+  fillArticleRail(state.articles.filter(matching),state.newsError);
+  updateCatalogueStatus();
+ });
  const results=await Promise.allSettled([fetchJson(API.home),fetchJson(API.top),fetchJson(API.games)]);
  const home=results[0].status==='fulfilled'?results[0].value.items:[];
  const top=results[1].status==='fulfilled'?results[1].value.items:[];
@@ -518,18 +702,10 @@ async function load(){
  setHeroItems();
  render();
  startHeroRotation();
- status.replaceChildren();
- if(!state.lives.length&&!state.games.length){
-  status.dataset.error='true';
-  status.append(create('span','','Aucun contenu disponible. Vérifie la connexion ou les flux de découverte.'));
-  status.append(button('Réessayer','',()=>{void load()}));
- }else if(state.failed.length){
-  status.textContent='Catalogue partiel : certaines sources sont temporairement indisponibles. Les éléments affichés sont réels.';
- }else{
-  status.textContent=state.lives.length+' directs confirmés · '+state.games.length+' jeux à explorer';
- }
  state.loading=false;
+ updateCatalogueStatus();
 }
+
 async function showGameLives(game){
  const section=create('div','scl-dialog-content'),body=create('div','scl-dialog-body');
  body.append(create('div','scl-dialog-meta','CRÉATEURS EN DIRECT'));

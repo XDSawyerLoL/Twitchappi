@@ -39,3 +39,18 @@
 - Versionnement CSS/JS actualisé : `20261113-cinema-v2`, sans toucher au catalogue public `/categories`.
 - Tests dédiés : `test/swapp-catalogue-cinema-20261113.test.js` (navigation du carrousel, sources réelles, comportement d'aperçu, fermeture, accessibilité, responsive). Scénario E2E `e2e/swapp-catalogue-lab.spec.cjs` actualisé mais **son exécution réelle reste nécessaire**.
 - Ne pas affirmer que le rendu navigateur ou la production Hostinger ont été vérifiés tant que les tests E2E n'ont pas été exécutés sur la nouvelle version.
+
+## V3 accueil : rail d'articles natifs — 13 novembre 2026
+
+- Le laboratoire `/catalogue-test` ajoute **À la une sur SWAPP** entre le héros cinématographique et les rails de directs : `#scl-articles` avec défilement horizontal, lien « Toutes les actualités », recherche globale et onglet de filtre « Articles ».
+- Source unique : `GET /api/actus`, la **liste d'articles publiés et vérifiés par le CMS MySQL**. Aucun RSS non vérifié, article inventé, duplication éditoriale ni URL d'éditeur utilisée comme destination de carte.
+- Lien de lecture : exclusivement `/actus/<slug>`. Bouton **Partager** indépendant : partage natif quand disponible, sinon presse-papiers et champ sélectionnable en dernier recours. Jamais de confirmation mensongère de copie.
+- Médias : `SwappArticleExtras.cardImageSources` déjà employé par le magazine officiel, avec filtre HTTPS ; fallback visuel SWAPP si l'illustration officielle est absente ou cassée. Aucun visuel fabriqué.
+- API Actus et flux live/jeux sont chargés **en parallèle indépendamment** : une panne/lenteur CMS ne bloque pas les directs, et une panne live n'empêche pas de lire les articles.
+- Mobile, clavier et réduction des animations pris en compte ; partage et ouverture de carte utilisables sans survol.
+- Ressources versionnées `20261113-actus-rail-v3`. **Aucun remplacement de la page d'accueil `/` ou de `/categories`** : le test reste volontairement non indexé jusqu'à validation navigateur.
+- Tests isolés : `test/swapp-catalogue-article-rail-20261113.test.js` et régressions cinéma/laboratoire/navigation ; E2E Playwright étendu au partage sans navigation et au filtre Articles, **non exécuté** sur navigateur réel avant déploiement.
+
+### Candidature à la future page d'accueil
+
+Ordre testé : affiche du moment → articles SWAPP → directs → univers de jeux → petites communautés → Ma liste. La migration vers `/` devra être une décision distincte, après validation des performances mobiles, du comportement réel des médias et de la qualité des publications.
