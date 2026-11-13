@@ -33,6 +33,7 @@ const RELEASE_FILES=Object.freeze([
  'assets/swapp-creator-social-shortcuts.css',
  'assets/swapp-catalogue-lab.css',
  'assets/swapp-catalogue-lab.js',
+ 'assets/swapp-actus-app.css',
  'assets/swapp-hubs.css',
  'modules/swapp-discovery-diversity.js',
  'modules/swapp-fair-admin.js',
