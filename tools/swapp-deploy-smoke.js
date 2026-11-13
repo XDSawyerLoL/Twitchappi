@@ -159,7 +159,7 @@ async function verify(){
  const station=await request(origin,'/tv');
  check(station.body.includes('id="stv-slot-clock"')&&
   station.body.includes('id="stv-watch"')&&
-  station.body.includes('swapp-tv-broadcast.js?v=20261113-arrival-autoplay-v2'),
+  station.body.includes('swapp-tv-broadcast.js?v=20261113-5min-rotation-v10'),
   'SWAPP TV station layout or rotation script is stale');
  const stationJs=await request(origin,'/assets/swapp-tv-broadcast.js');
  check(stationJs.body.includes('function maybeAdvanceDiscovery(')&&
@@ -168,6 +168,9 @@ async function verify(){
   stationJs.body.includes("frame.src='/api/oryon/local-relay/'+encodeURIComponent(item.login)+'/player'")&&
   stationJs.body.includes("api('/api/swapp-tv/native-lineup')")&&
   stationJs.body.includes('autoStartPending:true')&&
+  stationJs.body.includes('const DISCOVERY_SLOT_MS=5*60*1000')&&
+  stationJs.body.includes('function updateRotationBar(')&&
+  station.body.includes('id="stv-rotation-track"')&&
   stationJs.body.includes('state.autoStartPending=false')&&
   stationJs.body.includes('function maybePassage(')&&
   stationJs.body.includes('function passageOffer('),
@@ -305,7 +308,7 @@ async function verify(){
  const cardClient=await request(origin,'/assets/swapp-actus-app.js');
  check(cardClient.body.includes('SwappArticleExtras?.cardImageSources')&&
   cardClient.body.includes('swapp-actus-cover-fallback')&&
-  home.body.includes('swapp-actus-app.css?v=20261019-premium-live-v8'),
+  home.body.includes('swapp-actus-app.css?v=20261113-flush-hero-v10'),
   'Card thumbnails or premium missing-image style are stale');
  const cardCss=await request(origin,'/assets/swapp-actus-app.css');
  check(cardCss.body.includes('swapp-actus-cover-fallback'),
