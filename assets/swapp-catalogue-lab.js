@@ -484,8 +484,88 @@ function createCard(item){
  });
  return card;
 }
+/* Article rail: on-site cards only. Sharing is an independent button, not
+ * a link that accidentally navigates to the article or its source publisher.
+ */
+function articleCover(article){
+ const area=create('div','scl-story-media');
+ const shared=window.SwappArticleExtras?.cardImageSources?.(article.original)||[];
+ const urls=[article.image,...shared].map(cleanArticleImage).filter(Boolean);
+ if(!urls.length){
+  area.append(create('div','scl-story-no-art','SWAPP · ACTUALITÉ'));
+  return area;
+ }
+ let index=0;
+ const image=create('img');
+ image.loading='lazy';image.decoding='async';image.alt='';
+ image.referrerPolicy='no-referrer';
+ image.addEventListener('error',()=>{
+  index++;
+  if(index<urls.length){image.src=urls[index];return}
+  image.remove();area.append(create('div','scl-story-no-art','SWAPP · ACTUALITÉ'));
+ });
+ image.src=urls[0];area.append(image);
+ return area;
+}
+async function shareArticle(article,tools,feedback){
+ const url=window.location.origin+article.url;
+ const report=message=>{feedback.textContent=message;feedback.hidden=false};
+ if(typeof navigator.share==='function'){
+  try{await navigator.share({title:article.title,url});report('Article partagé');return}
+  catch(error){if(error?.name==='AbortError')return}
+ }
+ try{
+  if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(url);report('Lien SWAPP copié');return}
+ }catch(_){}
+ let field=tools.querySelector('.scl-story-share-url');
+ if(!field){
+  field=create('input','scl-story-share-url');field.type='text';field.readOnly=true;
+  field.setAttribute('aria-label','Lien de l’article SWAPP à copier');
+  tools.append(field);
+ }
+ field.value=url;
+ field.focus();field.select();
+ try{
+  if(typeof document.execCommand==='function'&&document.execCommand('copy')){
+   report('Lien SWAPP copié');return
+  }
+ }catch(_){}
+ report('Lien sélectionné : copiez-le');
+}
+function createArticleCard(article){
+ const card=create('article','scl-story-card');
+ const link=create('a','scl-story-link');
+ link.href=article.url;
+ link.setAttribute('aria-label','Lire sur SWAPP : '+article.title);
+ const media=articleCover(article);
+ const body=create('div','scl-story-info');
+ const category=create('span','scl-story-category',article.category);
+ const title=create('h3','',article.title);
+ const summary=create('p','',article.summary||'Lire l’article complet sur SWAPP.');
+ const date=create('small','scl-story-date',article.publishedAt?
+  new Date(article.publishedAt).toLocaleDateString('fr-FR',{day:'numeric',month:'short',year:'numeric'}):
+  'ACTUALITÉ SWAPP');
+ body.append(category,title,summary,date);
+ link.append(media,body);
+ const actions=create('div','scl-story-actions');
+ const buttonShare=button('Partager','scl-story-share',()=>{void shareArticle(article,actions,feedback)});
+ buttonShare.setAttribute('aria-label','Partager : '+article.title);
+ const feedback=create('span','scl-story-share-feedback');
+ feedback.hidden=true;feedback.setAttribute('role','status');feedback.setAttribute('aria-live','polite');
+ actions.append(buttonShare,feedback);
+ card.append(link,actions);
+ return card;
+}
+function fillArticleRail(items,unavailable=false){
+ const host=$('scl-article-cards'),fragment=document.createDocumentFragment();
+ if(items.length)items.forEach(item=>fragment.append(createArticleCard(item)));
+ else fragment.append(empty(unavailable?
+  'Les actualités sont temporairement indisponibles. Consulte le magazine SWAPP.':
+  'Aucun article publié ne correspond à cette recherche.'));
+ host.replaceChildren(fragment);
+}
 const matching=item=>{
- const q=latin(state.query);return !q||latin([item.name,item.title,item.game].join(' ')).includes(q);
+ const q=latin(state.query);return !q||latin([item.name,item.title,item.game,item.summary,item.category].join(' ')).includes(q);
 };
 const empty=(message)=>create('p','scl-empty',message);
 function fill(id,items,placeholder){
@@ -523,6 +603,7 @@ function render(){
  stopHoverPreview();
  const lives=state.lives.filter(matching),games=state.games.filter(matching);
  const small=lives.filter(x=>x.viewers<=50);
+ fillArticleRail(state.articles.filter(matching),state.newsError);
  fill('scl-live-cards',lives,'Aucun direct confirmé pour cette recherche.');
  fill('scl-game-cards',games,'Aucun jeu disponible pour cette recherche.');
  fill('scl-small-cards',small,'Aucune petite communauté confirmée pour cette recherche.');
