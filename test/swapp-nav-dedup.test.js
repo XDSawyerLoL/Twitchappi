@@ -5,7 +5,7 @@ const fs=require('node:fs');
 const path=require('node:path');
 const vm=require('node:vm');
 const ROOT=path.resolve(__dirname,'..');
-const EXPECTED=['Accueil','DIRECT','Jeux & catégories','Actualité','Social','Boutique','SWAPP TV'];
+const EXPECTED=['Accueil','SWAPER','DÉCOUVRIR','Actualité','Social','Boutique','SWAPP TV'];
 
 class Element {
  constructor(tag,text='',href=null){
@@ -77,7 +77,7 @@ test('navigation assets are versioned consistently on SPA and native pages',()=>
  const home=fs.readFileSync(path.join(ROOT,'index.html'),'utf8');
  const shell=fs.readFileSync(path.join(ROOT,'modules/swapp-news/site-shell.js'),'utf8');
  for(const source of [home,shell]){
-  assert.match(source,/swapp-hub-nav\.js\?v=20261113-direct-games-flat-nav-v1/);
-  assert.match(source,/swapp-navigation\.js\?v=20261113-direct-games-flat-nav-v1/);
+  assert.match(source,/swapp-hub-nav\.js\?v=20261113-swaper-decouvrir-v1/);
+  assert.match(source,/swapp-navigation\.js\?v=20261113-swaper-decouvrir-v1/);
  }
 });
