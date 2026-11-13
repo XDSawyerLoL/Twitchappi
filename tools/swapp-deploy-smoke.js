@@ -282,7 +282,7 @@ async function verify(){
  // the SPA remains reachable on /categories for creator and account journeys.
  const publicHome=await request(origin,'/');
  check(publicHome.body.includes('id="swapp-catalogue-lab"')&&
-  publicHome.body.includes('swapp-catalogue-lab.js?v=20261113-x-share-edge-hints-v7')&&
+  publicHome.body.includes('swapp-catalogue-lab.js?v=20261113-live-revalidation-v14')&&
   publicHome.body.includes('rel="canonical" href="https://swapp.tv/"')&&
   !publicHome.body.includes('name="robots" content="noindex')&&
   !publicHome.body.includes('Ancien accueil')&&!publicHome.body.includes('/?classic=1'),
@@ -291,7 +291,7 @@ async function verify(){
  check(labHome.body.includes('id="swapp-catalogue-lab"')&&
    labHome.body.includes('noindex,nofollow,noarchive'),
    'Unindexed /catalogue-test laboratory missing');
- const publicCatalogueJs=await request(origin,'/assets/swapp-catalogue-lab.js?v=20261113-x-share-edge-hints-v7');
+ const publicCatalogueJs=await request(origin,'/assets/swapp-catalogue-lab.js?v=20261113-live-revalidation-v14');
  check(publicCatalogueJs.body.includes('function chooseSmallCommunities(')&&
   publicCatalogueJs.body.includes('/api/oryon/discover/find-live?mood=petite-commu'),
   'Public homepage small-community discovery missing');
@@ -614,7 +614,7 @@ async function verify(){
    'SPA still renders its menu only after client-side JavaScript');
  process.stdout.write('PASS one native site shell and pre-rendered SPA navigation\\n');
  // A successful GitHub commit is not proof the final visual layer reached Hostinger.
- const presentation='/assets/swapp-presentation-polish.css?v=20261017-visual-audit-v16';
+ const presentation='/assets/swapp-presentation-polish.css?v=20261108-remove-purple-video-v3';
  check(home.body.includes(presentation),'Home uses an outdated presentation stylesheet');
  check(news.body.includes(presentation),'Actualité uses an outdated presentation stylesheet');
  const journey='/assets/swapp-game-journey.css?v=20261108-gta6-header-video-v2';

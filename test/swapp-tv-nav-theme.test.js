@@ -37,14 +37,16 @@ test('TV and programme follow existing SWAPP colors and layout',()=>{
  assert.doesNotMatch(tv,/href="\/jeux"/);
  assert.match(programme,/LE PROGRAMME/);
  assert.match(programme,/id="scal-grid"/);
- assert.match(tv,/20261025-tv-station-clock-v3/);
- assert.match(programme,/20261025-tv-station-clock-v3/);
+ assert.match(tv,/20261113-twitch-events-v12/);
+ assert.match(programme,/20261113-twitch-events-v12/);
 });
 test('Agenda legacy route safely redirects under TV and shared nav assets bust browser caches',()=>{
  const server=read('server.js'),shell=read('modules/swapp-news/site-shell.js'),home=read('index.html');
  assert.match(server,/app\.get\('\/tv\/programme'/);
  assert.match(server,/res\.redirect\(308,'\/tv\/programme'/);
- for(const html of [shell,home]){
+ assert.match(shell,/SHARED_HEAD_SLOT/);
+ assert.match(read('modules/swapp-page-shell.js'),/swapp-unified-nav\.css\?v=20261113-nav-simple-v2/);
+ for(const html of [page('tv'),home]){
   assert.match(html,/swapp-unified-nav\.css\?v=20261113-nav-simple-v2/);
   assert.match(html,/swapp-hub-nav\.js\?v=20261113-nav-simple-v2/);
   assert.match(html,/swapp-navigation\.js\?v=20261113-nav-simple-v2/);

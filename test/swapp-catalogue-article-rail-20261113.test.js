@@ -25,7 +25,7 @@ test('native ACTUS rail is distinct from the full magazine and absent from site 
  assert.ok(html.indexOf('id="scl-feature"')<html.indexOf('id="scl-articles"'));
  assert.ok(html.indexOf('id="scl-articles"')<html.indexOf('id="scl-live"'));
  assert.match(html,/swapp-article-extras\.js\?v=20261113-actus-rail-v3/);
- assert.match(html,/swapp-catalogue-lab\.js\?v=20261113-x-share-edge-hints-v7/);
+ assert.match(html,/swapp-catalogue-lab\.js\?v=20261113-live-revalidation-v14/);
  assert.match(html,/swapp-catalogue-lab\.css\?v=20261113-x-share-edge-hints-v7/);
  assert.match(html,/noindex,nofollow,noarchive/);
  assert.doesNotMatch(read('assets/swapp-navigation.js'),/catalogue-test/);
@@ -34,7 +34,7 @@ test('news source is the real published CMS and NOT external feeds or invented c
  assert.equal(api.API.articles,'/api/actus');
  assert.match(js,/async function fetchArticles\(\)/);
  assert.match(js,/!Array\.isArray\(payload\.articles\)/);
- assert.match(js,/Promise\.allSettled\(\[fetchJson\(API\.home\),fetchJson\(API\.top\),fetchJson\(API\.games\)\]\)/);
+ assert.match(js,/Promise\.allSettled\(\[fetchLiveInventory\(API\.home\),fetchLiveInventory\(API\.top\),fetchJson\(API\.games\)\]\)/);
  assert.match(js,/void fetchArticles\(\)\.then\(published=>/);
  assert.match(js,/state\.articles=normalizeArticles\(published\)/);
  assert.match(js,/state\.newsLoading=false/);

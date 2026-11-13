@@ -66,5 +66,5 @@ test('article creators use one discovery section, and static shop selection is h
  assert.match(shop,/sélection datée du 16 octobre 2026/);
  assert.doesNotMatch(shop,/LES 10 JEUX <em>DU MOMENT/);
  const tv=read('assets/swapp-tv-broadcast.js');
- assert.match(tv,/access\.hidden=!enabled/);
+ assert.match(tv,/if\(access\)access\.hidden=false/);
 });

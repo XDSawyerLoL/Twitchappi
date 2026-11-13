@@ -4,7 +4,7 @@
  */
 (function(){
 'use strict';
-const LAB_VERSION='20261113-x-share-edge-hints-v7';
+const LAB_VERSION='20261113-live-revalidation-v14';
 const API=Object.freeze({
  home:'/api/discovery/home-lives?limit=12&lang=fr',
  top:'/api/twitch/streams/top?limit=40&lang=fr',
@@ -13,6 +13,8 @@ const API=Object.freeze({
  small:'/api/oryon/discover/find-live?mood=petite-commu&max=150&lang=fr&source=twitch&discover=1',
  smallBackup:'/api/twitch/streams/small?lang=fr&min=0&max=150&discover=1'
 });
+// Revalidate real on-air inventory without reloading the editorial magazine.
+const LIVE_RECHECK_MS=5*60*1000;
 const FAVORITES_KEY='swapp:followed-games:v1';
 const CHANNEL_KEY='oryon_v4_likes';
 const GAME_COPY=Object.freeze({
@@ -82,6 +84,14 @@ function synopsis(game){
  const key=latin(game).replace(/\s+/g,' ');
  return GAME_COPY[key]||'Retrouve les créateurs qui explorent ce jeu. Présentation éditoriale à compléter.';
 }
+function parseAudience(value){
+ if(typeof value==='number')return Number.isSafeInteger(value)&&value>=0?value:null;
+ if(typeof value==='string'&&/^(?:0|[1-9]\d*)$/.test(value)&&value.length<=16){
+  const amount=Number(value);
+  return Number.isSafeInteger(amount)?amount:null;
+ }
+ return null;
+}
 function normalizeLive(item,defaultPlatform='twitch'){
  if(!item||typeof item!=='object')return null;
  const rawPlatform=latin(item.platform||defaultPlatform);
@@ -91,15 +101,14 @@ function normalizeLive(item,defaultPlatform='twitch'){
  if(!valid.test(login))return null;
  const game=escapeName(item.game_name||item.category||item.game||'').slice(0,90);
  const title=escapeName(item.title||('En direct avec '+login)).slice(0,140);
- const audience=item.viewer_count??item.viewers;
- // A missing or malformed count must never become a fictional zero-viewer stream.
- const audienceVerified=audience!==null&&audience!==undefined&&audience!==''&&
-  Number.isFinite(Number(audience))&&Number(audience)>=0;
+ const audience=parseAudience(item.viewer_count??item.viewers);
+ // Only trustworthy integer counts qualify for small-community discovery.
+ const audienceVerified=audience!==null;
  return {
   id:platform+':'+login,kind:'live',platform,login,
   name:escapeName(item.display_name||item.user_name||item.host_name||login)||login,
   title,game,gameSlug:gameSlug(game),summary:synopsis(game),
-  viewers:audienceVerified?Math.floor(Number(audience)):null,audienceVerified,
+  viewers:audience,audienceVerified,
   image:safeImage(item.thumbnail_url||item.img||item.banner_url||''),
   watchUrl:platform==='twitch'?'/live/twitch/'+encodeURIComponent(login):'/'+encodeURIComponent(login)
  };
@@ -250,7 +259,7 @@ function readChannelFavorites(storage){
  }catch{return []}
 }
 if(typeof module==='object'&&module.exports)
- module.exports={API,LAB_VERSION,normalizeLive,normalizeGame,normalizeArticle,normalizeArticles,mergeLives,mergeGames,chooseSmallCommunities,gameSlug,synopsis,readFavorites,readChannelFavorites,safeImage,cleanArticleImage};
+ module.exports={API,LAB_VERSION,LIVE_RECHECK_MS,parseAudience,normalizeLive,normalizeGame,normalizeArticle,normalizeArticles,mergeLives,mergeGames,chooseSmallCommunities,gameSlug,synopsis,readFavorites,readChannelFavorites,safeImage,cleanArticleImage};
 if(typeof document==='undefined')return;
 const root=document.getElementById('swapp-catalogue-lab');
 if(!root)return;
@@ -262,7 +271,7 @@ const create=(tag,className,text)=>{
  if(text!==undefined)node.textContent=String(text);
  return node;
 };
-const state={lives:[],games:[],articles:[],small:[],smallCandidates:[],smallLoading:false,smallError:false,smallMax:50,smallEpoch:0,newsError:false,newsLoading:false,newsEpoch:0,featured:null,filter:'all',query:'',loading:false,failed:[],previewTimer:0,abort:null,heroItems:[],heroIndex:0,heroTimer:null,hoverTimer:null,hoverIframe:null,hoverCard:null};
+const state={lives:[],games:[],baseCategories:[],liveLastCheck:0,liveRefreshing:false,liveEpoch:0,articles:[],small:[],smallCandidates:[],smallLoading:false,smallError:false,smallMax:50,smallEpoch:0,newsError:false,newsLoading:false,newsEpoch:0,featured:null,filter:'all',query:'',loading:false,failed:[],previewTimer:0,abort:null,heroItems:[],heroIndex:0,heroTimer:null,hoverTimer:null,hoverIframe:null,hoverCard:null};
 const status=$('scl-status'),hero=$('scl-feature'),featureVisual=$('scl-feature-visual'),dialog=$('scl-dialog');
 const heroDots=$('scl-feature-dots');
 const visNode=item=>{
@@ -700,6 +709,11 @@ async function fetchJson(path,maxWaitMs=8500){
   return data;
  }finally{clearTimeout(timeout)}
 }
+async function fetchLiveInventory(path){
+ const response=await fetchJson(path);
+ if(!Array.isArray(response.items))throw new Error('Inventaire de directs invalide');
+ return response.items;
+}
 async function fetchArticles(){
  const control=new AbortController();
  const timeout=setTimeout(()=>control.abort(),9500);
@@ -743,6 +757,7 @@ function updateCatalogueStatus(){
 async function load(){
  if(state.loading)return;
  state.loading=true;
+ ++state.liveEpoch; // Invalidate a previous background refresh before the manual retry.
  state.newsLoading=true;
  void loadSmallCommunities();
  state.newsError=false;
@@ -766,19 +781,67 @@ async function load(){
   fillArticleRail(state.articles.filter(matching),state.newsError);
   updateCatalogueStatus();
  });
- const results=await Promise.allSettled([fetchJson(API.home),fetchJson(API.top),fetchJson(API.games)]);
- const home=results[0].status==='fulfilled'?results[0].value.items:[];
- const top=results[1].status==='fulfilled'?results[1].value.items:[];
+ const results=await Promise.allSettled([fetchLiveInventory(API.home),fetchLiveInventory(API.top),fetchJson(API.games)]);
+ const home=results[0].status==='fulfilled'?results[0].value:[];
+ const top=results[1].status==='fulfilled'?results[1].value:[];
  const categories=results[2].status==='fulfilled'?results[2].value.categories:[];
  state.failed=results.map((result,i)=>result.status==='rejected'?Object.keys(API)[i]:null).filter(Boolean);
  state.lives=mergeLives(home,top);
- state.games=mergeGames(categories,state.lives);
+ state.baseCategories=categories;
+ state.games=mergeGames(state.baseCategories,state.lives);
+ state.liveLastCheck=Date.now();
  setHeroItems();
  render();
  startHeroRotation();
  state.loading=false;
  updateCatalogueStatus();
 }
+
+// Every five minutes while the catalogue is visible, verify that advertised
+// channels are STILL live. Drop unreachable sources rather than keeping stale
+// posters, and leave the published ACTUS rail untouched during this refresh.
+async function refreshLiveInventory(){
+ if(state.loading||state.liveRefreshing||document.hidden||navigator.onLine===false)return;
+ const now=Date.now();
+ if(now-state.liveLastCheck<LIVE_RECHECK_MS)return;
+ state.liveLastCheck=now;
+ state.liveRefreshing=true;
+ const epoch=++state.liveEpoch;
+ try{
+  const results=await Promise.allSettled([fetchLiveInventory(API.home),fetchLiveInventory(API.top)]);
+  if(epoch!==state.liveEpoch)return;
+  const home=results[0].status==='fulfilled'?results[0].value:[];
+  const top=results[1].status==='fulfilled'?results[1].value:[];
+  const nextLives=mergeLives(home,top);
+  const nextGames=mergeGames(state.baseCategories,nextLives);
+  const changed=JSON.stringify(state.lives)!==JSON.stringify(nextLives)||
+   JSON.stringify(state.games)!==JSON.stringify(nextGames);
+  state.lives=nextLives;
+  state.games=nextGames;
+  state.failed=state.failed.filter(x=>x==='games').concat(results.flatMap((result,i)=>
+   result.status==='rejected'?[i===0?'home':'top']:[]));
+  if(changed){
+   setHeroItems();
+   render();
+   startHeroRotation();
+  }
+  // Small communities have their own dedicated verified discovery sources.
+  void loadSmallCommunities();
+  updateCatalogueStatus();
+ }finally{state.liveRefreshing=false}
+}
+let liveRefreshTimer=0;
+function installLiveRecheck(){
+ if(liveRefreshTimer)return;
+ liveRefreshTimer=setInterval(()=>{void refreshLiveInventory()},LIVE_RECHECK_MS);
+}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)void refreshLiveInventory()});
+window.addEventListener('online',()=>{void refreshLiveInventory()});
+window.addEventListener('pageshow',()=>{installLiveRecheck();void refreshLiveInventory()});
+window.addEventListener('pagehide',()=>{
+ if(liveRefreshTimer)clearInterval(liveRefreshTimer);
+ liveRefreshTimer=0;
+});
 
 async function showGameLives(game){
  const section=create('div','scl-dialog-content'),body=create('div','scl-dialog-body');
@@ -941,5 +1004,6 @@ document.addEventListener('click',event=>{
 installRailHoverScroll();
 installRailEdgeHints();
 window.SwappCatalogueLab=Object.freeze({version:LAB_VERSION,load});
+installLiveRecheck();
 void load();
 })();

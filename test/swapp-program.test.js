@@ -21,7 +21,7 @@ test('agenda reads real Spotlight entries; SWAPP TV uses verified antenna with v
  assert.match(calendar,/\/api\/creator\/spotlight\?game=/);
  assert.match(broadcast,/\/api\/swapp-tv\/queue\/status/);
  assert.match(broadcast,/data\.director_enabled\?data\.on_air:null/);
- assert.match(broadcast,/\$\('stv-watch'\)\.addEventListener\('click',play\)/);
+ assert.match(broadcast,/\$\('stv-watch'\)\.addEventListener\('click',\(\)=>\{/);
  assert.match(broadcast,/player\.twitch\.tv/);
  assert.match(broadcast,/muted:'true'/);
  assert.match(server,/app\.get\('\/agenda'/);

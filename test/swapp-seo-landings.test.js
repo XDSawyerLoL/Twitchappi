@@ -73,8 +73,10 @@ test('RSS and sitemap share one cached article read',async()=>{
 
 test('legacy duplicate public paths redirect to one canonical destination',()=>{
  const server=fs.readFileSync(path.join(__dirname,'../server.js'),'utf8');
- assert.match(server,/app\.get\(\['\/discover','\/teams'\]/);
- assert.match(server,/res\.redirect\(301,destination\+query\)/);
+ assert.match(server,/app\.get\('\/discover'/);
+ assert.match(server,/res\.redirect\(301,'\/decouvrir'\+query\)/);
+ assert.match(server,/app\.get\(\['\/equipes','\/teams'\]/);
+ assert.match(server,/res\.redirect\(302,'\/decouvrir'\+query\)/);
 });
 
 test('html sitemap keeps a valid canonical and omits draft or hostile HTML',()=>{
@@ -228,7 +230,7 @@ test('public streamer pages get a unique self-canonical, social preview and true
  const {injectCreatorMetadata,creatorSitemapXml,robotsText}=require('../modules/swapp-seo');
  const sample={login:'stream_fr',display_name:'Le & créateur <b>',bio:'Je diffuse mes jeux préférés.',avatar_url:'https://cdn.example.test/avatar.png',channel_public:true};
  const output=injectCreatorMetadata(html,sample,'stream_fr');
- assert.match(output,/<title>Le &amp; créateur &lt;b&gt; — Chaîne SWAPP<\/title>/);
+ assert.match(output,/<title>Le &amp; créateur &lt;b&gt; · SWAPP<\/title>/);
  assert.match(output,/<link rel="canonical" href="https:\/\/swapp.tv\/stream_fr">/);
  assert.equal((output.match(/rel="canonical"/g)||[]).length,1);
  assert.match(output,/"@type":"ProfilePage"/);

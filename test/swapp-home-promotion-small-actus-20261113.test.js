@@ -28,7 +28,7 @@ test('public homepage has a canonical indexable catalogue, original lab remains 
  assert.match(oldLab,/Catalogue immersif · Laboratoire SWAPP/);
  assert.doesNotMatch(oldLab,/rel="canonical" href="https:\/\/swapp\.tv\/"/);
  assert.match(oldLab,/href="\/categories"/);
- const assets=[['swapp-catalogue-lab.js','20261113-x-share-edge-hints-v7'],
+ const assets=[['swapp-catalogue-lab.js','20261113-live-revalidation-v14'],
   ['swapp-catalogue-lab.css','20261113-x-share-edge-hints-v7']];
  for(const [name,version] of assets){
   assert.ok(home.includes(name+'?v='+version));
@@ -149,7 +149,7 @@ test('ACTUS recycles old-home article poster with real published art and interna
  assert.deepEqual(actions.children.map(x=>x.href),['/actus/article-feature-gaming','/decouvrir']);
  assert.match(js,/renderFeaturedActusHero\(featuredMount,items\)/);
  assert.match(js,/const featuredMount=el\('div','swapp-actus-featured-mount'\)/);
- assert.match(read('index.html'),/swapp-actus-app\.css\?v=20261113-relocated-feature-v2/);
+ assert.match(read('index.html'),/swapp-actus-app\.css\?v=20261113-flush-hero-v10/);
  assert.match(read('index.html'),/swapp-actus-app\.js\?v=20261113-direct-x-v3/);
 });
 test('published ACTUS hero sits flush below navigation without a spacer',()=>{

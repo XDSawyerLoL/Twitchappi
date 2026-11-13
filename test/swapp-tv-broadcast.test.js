@@ -355,11 +355,11 @@ test('new HLS broadcast ID on same SWAPP channel forces a fresh player, not a st
  const state={selection:null,playing:null,playingPlatform:null,playingBroadcastId:null,
    consent:false,autoAdvance:false,autoSource:null};
  const app=new Function('state','$','by','setText','safeLogin','safeNativeLogin','location',
-  'URLSearchParams','updateTwitchChat',js.slice(begin,end)+
+  'URLSearchParams','updateTwitchChat','document',js.slice(begin,end)+
   'return {renderScreen,play};')(
   state,id=>nodes[id],make,(id,v)=>{nodes[id].textContent=v},
   x=>/^[a-z0-9_]{3,25}$/.test(x),x=>/^[a-z0-9_-]{2,32}$/.test(x),
-  {hostname:'swapp.tv'},URLSearchParams,()=>{});
+  {hostname:'swapp.tv'},URLSearchParams,()=>{},{visibilityState:'hidden'});
  const first={login:'native_one',platform:'swapp',broadcast_id:'broadcast_alpha'};
  app.renderScreen(first,{onAir:true});
  app.play();

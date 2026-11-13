@@ -26,7 +26,7 @@ test('même contrat de menu pour toutes les pages SWAPP',()=>{
 });
 test('le serveur utilise la barre et les identifiants exacts du site de lives',()=>{
  const article=layout({content:'<main id="content">TEST</main>'});
- const home=fs.readFileSync(path.join(ROOT,'index.html'),'utf8');
+ const home=require('../modules/swapp-page-shell').hydrateSpaNavigation(fs.readFileSync(path.join(ROOT,'index.html'),'utf8'),'/actus');
  for(const marker of ['class="top"','class="topbar"','class="brand"','class="mainNav"','class="navGroup"','class="userArea"','class="userBtn"','id="mobileNav"']){
    assert.ok(article.includes(marker),marker+' missing in ACTUS');
    assert.ok(home.includes(marker),marker+' missing in SPA');
