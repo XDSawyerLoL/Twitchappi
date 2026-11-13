@@ -4,7 +4,7 @@
  */
 (function(){
 'use strict';
-const LAB_VERSION='20261113-lab-v1';
+const LAB_VERSION='20261113-cinema-v2';
 const API=Object.freeze({
  home:'/api/discovery/home-lives?limit=12&lang=fr',
  top:'/api/twitch/streams/top?limit=40&lang=fr',
@@ -172,8 +172,9 @@ const create=(tag,className,text)=>{
  if(text!==undefined)node.textContent=String(text);
  return node;
 };
-const state={lives:[],games:[],featured:null,filter:'all',query:'',loading:false,failed:[],previewTimer:0,abort:null};
+const state={lives:[],games:[],featured:null,filter:'all',query:'',loading:false,failed:[],previewTimer:0,abort:null,heroItems:[],heroIndex:0,heroTimer:null,hoverTimer:null,hoverIframe:null,hoverCard:null};
 const status=$('scl-status'),hero=$('scl-feature'),featureVisual=$('scl-feature-visual'),dialog=$('scl-dialog');
+const heroDots=$('scl-feature-dots');
 const visNode=item=>{
  const frame=create('div','scl-card-media');
  if(item.image){
@@ -193,7 +194,49 @@ const visNode=item=>{
  return frame;
 };
 const stopPreview=()=>{const node=$('scl-preview-frame');if(node)node.remove()};
+/* Only one tiny muted live preview is permitted, after deliberate desktop hover.
+ * Touch, reduced-motion, data-saver and native SWAPP streams keep still posters.
+ */
+function stopHoverPreview(){
+ if(state.hoverTimer){clearTimeout(state.hoverTimer);state.hoverTimer=null}
+ if(state.hoverIframe){state.hoverIframe.remove();state.hoverIframe=null}
+ if(state.hoverCard){state.hoverCard.classList.remove('scl-is-playing');state.hoverCard=null}
+}
+function scheduleHoverPreview(item,card,frame){
+ stopHoverPreview();
+ if(item.kind!=='live'||item.platform!=='twitch'||!item.image)return;
+ if(!window.matchMedia?.('(hover: hover) and (pointer: fine)').matches||
+     window.matchMedia?.('(prefers-reduced-motion: reduce)').matches||
+     navigator.connection?.saveData||document.hidden)return;
+ const host=String(window.location.hostname||'').toLowerCase();
+ if(!/^[a-z0-9.-]+$/.test(host))return;
+ state.hoverCard=card;
+ state.hoverTimer=setTimeout(()=>{
+  state.hoverTimer=null;
+  if(!card.isConnected||!card.matches(':hover')||document.hidden||dialog.open)return;
+  const iframe=create('iframe','scl-card-hover-player');
+  const address=new URL('https://player.twitch.tv/');
+  address.searchParams.set('channel',item.login);
+  address.searchParams.set('parent',host);
+  address.searchParams.set('autoplay','true');
+  address.searchParams.set('muted','true');
+  iframe.src=address.href;
+  iframe.title='Aperçu muet de '+item.name;
+  iframe.allow='autoplay; fullscreen';
+  iframe.referrerPolicy='strict-origin-when-cross-origin';
+  iframe.setAttribute('aria-hidden','true');
+  iframe.tabIndex=-1;
+  iframe.addEventListener('error',stopHoverPreview,{once:true});
+  frame.append(iframe);
+  state.hoverIframe=iframe;
+  card.classList.add('scl-is-playing');
+ },1250);
+}
+document.addEventListener('visibilitychange',()=>{if(document.hidden)stopHoverPreview()});
+document.addEventListener('scroll',stopHoverPreview,true);
+window.addEventListener('pagehide',stopHoverPreview);
 function showDialog(node){
+ stopHoverPreview();
  stopPreview();
  const host=$('scl-dialog-content');
  host.replaceChildren(node);
@@ -201,6 +244,7 @@ function showDialog(node){
  else dialog.setAttribute('open','');
 }
 function closeDialog(){
+ stopHoverPreview();
  stopPreview();
  if(typeof dialog.close==='function'&&dialog.open)dialog.close();
  else dialog.removeAttribute('open');
@@ -232,6 +276,8 @@ function watch(item){if(!item||item.kind!=='live')return;window.location.assign(
 function feature(item){
  state.featured=item||null;
  featureVisual.style.backgroundImage=item?.image?'url("'+item.image+'")':'';
+ hero.dataset.kind=item?.kind||'empty';
+ hero.dataset.image=item?.image?'available':'missing';
  $('scl-feature-kicker').textContent=item?(item.kind==='live'?'EN DIRECT / '+(item.platform==='swapp'?'SWAPP':'TWITCH'):'UNIVERS À DÉCOUVRIR'):'CATALOGUE / SWAPP';
  $('scl-feature-title').textContent=item?(item.kind==='live'?item.name:item.game):'Trouver ton prochain live.';
  $('scl-feature-desc').textContent=item?(item.kind==='live'?(item.title+(item.game?' · '+item.game:'')):item.summary):
@@ -241,6 +287,49 @@ function feature(item){
  $('scl-feature-watch').disabled=!item;
  $('scl-feature-preview').disabled=!item||item.kind!=='live';
  $('scl-feature-details').disabled=!item;
+}
+/* Curated from current verified sources only. No autoplay of live media in the hero. */
+function setHeroItems(){
+ const order=[...state.lives.filter(x=>x.platform==='swapp'&&x.image).slice(0,2),
+  ...state.lives.filter(x=>x.image).slice(0,5),
+  ...state.games.filter(x=>x.image).slice(0,2)];
+ const seen=new Set();
+ state.heroItems=order.filter(x=>{
+  if(!x||seen.has(x.id))return false;
+  seen.add(x.id);return true;
+ }).slice(0,6);
+ if(!state.heroItems.length)state.heroItems=[...state.lives,...state.games].slice(0,6);
+ state.heroIndex=0;
+ showHero(0);
+}
+function showHero(index){
+ const total=state.heroItems.length;
+ if(!total){heroDots.replaceChildren();feature(null);return}
+ state.heroIndex=(index%total+total)%total;
+ const item=state.heroItems[state.heroIndex];
+ feature(item);
+ heroDots.replaceChildren();
+ for(let i=0;i<total;i++){
+  const dot=create('button','scl-feature-dot');
+  dot.type='button';
+  dot.setAttribute('aria-label','Afficher la sélection '+(i+1)+' sur '+total);
+  dot.setAttribute('aria-pressed',String(i===state.heroIndex));
+  dot.addEventListener('click',()=>showHero(i));
+  heroDots.append(dot);
+ }
+ $('scl-feature-prev').disabled=total<2;
+ $('scl-feature-next').disabled=total<2;
+}
+$('scl-feature-prev').addEventListener('click',()=>showHero(state.heroIndex-1));
+$('scl-feature-next').addEventListener('click',()=>showHero(state.heroIndex+1));
+const prefersLessMotion=()=>window.matchMedia?.('(prefers-reduced-motion: reduce)').matches||false;
+function startHeroRotation(){
+ if(state.heroTimer)clearInterval(state.heroTimer);
+ if(state.heroItems.length<2)return;
+ state.heroTimer=setInterval(()=>{
+  if(document.hidden||dialog.open||hero.matches(':hover')||hero.matches(':focus-within')||prefersLessMotion())return;
+  showHero(state.heroIndex+1);
+ },9500);
 }
 $('scl-feature-watch').addEventListener('click',()=>{const item=state.featured;if(!item)return;if(item.kind==='live')watch(item);else void showGameLives(item)});
 $('scl-feature-preview').addEventListener('click',()=>{if(state.featured?.kind==='live')preview(state.featured)});
@@ -275,7 +364,9 @@ function modalBody(item){
  }
  const body=create('div','scl-dialog-body');
  body.append(create('div','scl-dialog-meta',item.kind==='live'?'DIFFUSION EN DIRECT':'UNIVERS / JEU'));
- body.append(create('h2','',item.kind==='live'?item.name:item.game));
+ const title=create('h2','',item.kind==='live'?item.name:item.game);
+ title.id='scl-dialog-title';
+ body.append(title);
  body.append(create('p','',item.kind==='live'?(item.title+(item.game?' · '+item.game:'')):item.summary));
  if(item.kind==='live'){
   body.append(create('p','scl-dialog-meta',item.viewers.toLocaleString('fr-FR')+' spectateurs · '+(item.platform==='swapp'?'SWAPP LIVE':'Twitch')));
@@ -320,9 +411,14 @@ function createCard(item){
  body.append(kicker,title,summary);
  const actions=create('div','scl-card-action-row');
  if(item.kind==='live'){
-  const link=create('a','', 'Regarder');
+  const link=create('a','scl-card-watch', '▶ Regarder');
   link.href=item.watchUrl;
   actions.append(link);
+  if(item.platform==='twitch'){
+   const peek=button('▣','scl-card-peek',()=>preview(item));
+   peek.setAttribute('aria-label','Prévisualiser '+item.name);
+   actions.append(peek);
+  }
   const save=button('♡','scl-channel-fav',()=>toggleChannelFavorite(item));
   save.dataset.sclChannelFavorite=item.id;
   save.setAttribute('aria-label','Ajouter '+item.name+' aux favoris');
@@ -338,12 +434,13 @@ function createCard(item){
  const info=button('ⓘ','scl-card-info',()=>details(item));info.setAttribute('aria-label','En savoir plus sur '+(item.kind==='live'?item.name:item.game));
  actions.append(info);body.append(actions);
  card.append(media,body);
- // Hover/focus preview updates the hero with real current data; video never autoloads.
- card.addEventListener('mouseenter',()=>{clearTimeout(state.previewTimer);state.previewTimer=setTimeout(()=>feature(item),250)});
- card.addEventListener('mouseleave',()=>clearTimeout(state.previewTimer));
- card.addEventListener('focusin',event=>{
-  if(event.target.matches('[data-swapp-follow-game]'))return;
-  feature(item);
+ // Netflix-style reveal remains inside this card. Never move the global
+ // featured hero when a user merely passes over a thumbnail.
+ card.addEventListener('mouseenter',()=>scheduleHoverPreview(item,card,media));
+ card.addEventListener('mouseleave',stopHoverPreview);
+ card.addEventListener('focusin',()=>card.classList.add('scl-is-focused'));
+ card.addEventListener('focusout',event=>{
+  if(!card.contains(event.relatedTarget))card.classList.remove('scl-is-focused');
  });
  return card;
 }
@@ -383,6 +480,7 @@ function refreshFavorites(){
  });
 }
 function render(){
+ stopHoverPreview();
  const lives=state.lives.filter(matching),games=state.games.filter(matching);
  const small=lives.filter(x=>x.viewers<=50);
  fill('scl-live-cards',lives,'Aucun direct confirmé pour cette recherche.');
@@ -417,8 +515,9 @@ async function load(){
  state.failed=results.map((result,i)=>result.status==='rejected'?Object.keys(API)[i]:null).filter(Boolean);
  state.lives=mergeLives(home,top);
  state.games=mergeGames(categories,state.lives);
- feature(state.lives[0]||state.games[0]||null);
+ setHeroItems();
  render();
+ startHeroRotation();
  status.replaceChildren();
  if(!state.lives.length&&!state.games.length){
   status.dataset.error='true';
@@ -434,7 +533,9 @@ async function load(){
 async function showGameLives(game){
  const section=create('div','scl-dialog-content'),body=create('div','scl-dialog-body');
  body.append(create('div','scl-dialog-meta','CRÉATEURS EN DIRECT'));
- body.append(create('h2','',game.game));
+ const title=create('h2','',game.game);
+ title.id='scl-dialog-title';
+ body.append(title);
  body.append(create('p','',game.summary));
  const list=create('div','scl-cards');list.style.padding='0 0 12px';
  const notice=create('p','scl-preview-note','Recherche des directs associés à ce jeu…');
