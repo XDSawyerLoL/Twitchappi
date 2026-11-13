@@ -246,3 +246,13 @@ header.top #nav.mainNav .swapp-tv-nav-cta:before{display:none!important}
 @media(max-width:1080px){
  #mobileNav.mobileNav > a[href="/categories"]{font-size:clamp(9px,2.2vw,12px)!important;letter-spacing:-.045em!important}
 }
+
+
+/* Uniform navigation casing across desktop and phone. Preserve accessible labels. */
+header.top #nav.mainNav .navGroup > a,
+#mobileNav.mobileNav > a,
+#mobileNav.mobileNav > .swapp-mobile-more > summary,
+#mobileNav.mobileNav .swapp-mobile-more-links > a{
+ text-transform:uppercase!important;
+ letter-spacing:.015em!important;
+}
