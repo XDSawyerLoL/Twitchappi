@@ -59,7 +59,7 @@
    '<a class="brand" href="/" aria-label="SWAPP — Accueil"><span class="swapp-wordmark-text">SWAPP<span class="swapp-wordmark-dot" aria-hidden="true">.</span></span></a>'+
    '<nav id="nav" class="mainNav" aria-label="Navigation principale">'+desktopNavigation(active)+'</nav>'+
    '<div class="userArea"><button type="button" id="userBtn" class="userBtn" aria-haspopup="true" aria-expanded="false">'+
-   '<img id="userAvatar" class="avatarMini" alt=""><span id="userLabel">Compte</span></button>'+
+   '<img id="userAvatar" class="avatarMini" alt=""><span id="userLabel">Se connecter</span></button>'+
    '<div id="userMenu" class="menu"><a href="/compte">Mon espace SWAPP</a></div></div></div></header>';
  }
  function serverMobile(active='actus'){

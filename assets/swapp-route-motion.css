@@ -4,8 +4,8 @@
  * No timed navigation interception: links, history and forms stay native.
  */
 :root{
- --swapp-route-enter-duration:190ms;
- --swapp-route-exit-duration:100ms;
+ --swapp-route-enter-duration:310ms;
+ --swapp-route-exit-duration:190ms;
  --swapp-route-easing:cubic-bezier(.22,1,.36,1);
 }
 main.app > .view.active.swapp-route-enter{
@@ -33,13 +33,22 @@ header.top{view-transition-name:swapp-masthead}
 ::view-transition-new(swapp-masthead),
 ::view-transition-old(swapp-mobile-masthead),
 ::view-transition-new(swapp-mobile-masthead){animation:none}
-@keyframes swapp-document-out{to{opacity:.56}}
-@keyframes swapp-document-in{from{opacity:.52}to{opacity:1}}
+@keyframes swapp-document-out{from{opacity:1;filter:blur(0)}to{opacity:.32;filter:blur(1.5px)}}
+@keyframes swapp-document-in{from{opacity:.18;filter:blur(1.5px);transform:translateY(7px)}to{opacity:1;filter:blur(0);transform:translateY(0)}}
+/* Graceful entry where cross-document View Transitions are unavailable. */
+@supports not (view-transition-name: swapp-masthead){
+ body[data-swapp-shell="shared-native-v2"] > .scl-shell,
+ body[data-swapp-shell="shared-native-v2"] > main{
+  animation:swapp-document-in var(--swapp-route-enter-duration) var(--swapp-route-easing) both;
+ }
+}
 
 /* No page animation for reduced motion users. Browser/OS scroll restoration
  * remains untouched and the SWAPP LIVE video elements are never reparented. */
 @media(prefers-reduced-motion:reduce){
- main.app > .view.active.swapp-route-enter{animation:none!important}
+ main.app > .view.active.swapp-route-enter,
+ body[data-swapp-shell="shared-native-v2"] > .scl-shell,
+ body[data-swapp-shell="shared-native-v2"] > main{animation:none!important}
  ::view-transition-old(root),
  ::view-transition-new(root),
  ::view-transition-old(swapp-masthead),

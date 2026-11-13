@@ -12,7 +12,8 @@ function page({publicHome=false}={}){
   '<meta name="theme-color" content="#0b0d12">'+
   '<title>'+(publicHome?'SWAPP — Directs, jeux et actualités':'Catalogue immersif · Laboratoire SWAPP')+'</title>'+
   '<meta name="description" content="'+(publicHome?'SWAPP réunit les créateurs en direct, les jeux à découvrir et les actualités gaming dans un catalogue immersif.':'Page de démonstration : explorer les lives et les jeux SWAPP par affiches, prévisualisations et favoris.')+'">'+
-  SHARED_HEAD_SLOT+
+  '<script src="/assets/swapp-editorial-color.js?v=20261114-native-accent-v1"></script>'+SHARED_HEAD_SLOT+
+  '<link rel="stylesheet" href="/assets/swapp-visual-polish.css?v=20261016-mobile-swipe-40">'+
   '<link rel="stylesheet" href="/assets/swapp-catalogue-lab.css?v=20261113-x-share-edge-hints-v7">';
  const content='<div class="scl-shell" id="swapp-catalogue-lab">'+
   '<aside class="scl-side" aria-label="Rubriques du catalogue">'+
@@ -58,7 +59,7 @@ function page({publicHome=false}={}){
   '<script src="/assets/swapp-catalogue-lab.js?v=20261113-live-revalidation-v14" defer></script>'+
   '<script src="/assets/swapp-my-games.js?v=20261021-account-hub-v1" defer></script>'+
   '<script src="/assets/swapp-navigation.js?v=20261113-nav-simple-v2" defer></script>'+
-  '<script src="/assets/swapp-nav-session.js" defer></script>'
+  '<script src="/assets/swapp-nav-session.js?v=20261114-native-account-v1" defer></script>'
  });
 }
 function register(app){
