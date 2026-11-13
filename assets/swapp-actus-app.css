@@ -450,3 +450,47 @@
  #actus .swapp-actus-grid[data-card-size="compact"]{grid-template-columns:repeat(2,minmax(0,1fr))!important}
  #actus .swapp-actus-grid[data-card-size="grand"]{grid-template-columns:minmax(0,1fr)!important}
 }
+
+
+/* Inline magazine sharing: a native article link and a separate accessible button.
+ * No nested <button> inside <a>, no redirect and no massive social bar.
+ */
+#actus .swapp-actus-card-link{
+ display:flex;flex:1 1 auto;flex-direction:column;min-width:0;
+ color:inherit;text-decoration:none;
+}
+#actus .swapp-actus-card-link:focus-visible{
+ outline:3px solid #75eee7;outline-offset:-3px;
+}
+#actus .swapp-actus-card-actions{
+ display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;
+ gap:8px;padding:8px 13px 12px;
+ border-top:1px solid rgba(160,189,214,.15);
+}
+#actus .swapp-actus-card-share{
+ display:inline-flex;align-items:center;justify-content:center;
+ min-height:37px;padding:8px 13px;
+ border:1px solid rgba(112,217,231,.48);
+ border-radius:9px;background:rgba(38,98,118,.13);
+ color:#b5f3f3;font:750 12px/1.2 Inter,system-ui,sans-serif;
+ cursor:pointer;transition:background .14s,border-color .14s;
+}
+#actus .swapp-actus-card-share:hover{
+ background:rgba(62,166,186,.2);border-color:#7de7ed;color:white;
+}
+#actus .swapp-actus-card-share:focus-visible{
+ outline:2px solid #8bf5f6;outline-offset:3px;
+}
+#actus .swapp-actus-card-share-status{
+ font:650 11px/1.35 Inter,system-ui,sans-serif;color:#bbdce4;
+}
+#actus .swapp-actus-card-share-status[hidden]{display:none!important}
+#actus .swapp-actus-share-url{
+ min-width:0;width:100%;max-width:100%;
+ border:1px solid rgba(127,190,213,.55);border-radius:7px;
+ padding:8px 10px;background:#101c2b;color:#f5f9ff;
+ font:500 12px/1.35 Inter,system-ui,sans-serif;
+}
+@media(prefers-reduced-motion:reduce){
+ #actus .swapp-actus-card-share{transition:none}
+}
