@@ -64,15 +64,16 @@
   frame.allowFullscreen=true;
   button.hidden=true;host.append(frame);
  });
- share?.addEventListener('click',async()=>{
-  const payload={title:document.title,text:'Découvrir ce jeu sur SWAPP FLASH',url:location.href};
-  try{
-   if(typeof navigator.share==='function'){await navigator.share(payload);if(status)status.textContent='Partage ouvert.';return}
-  }catch(error){if(error?.name==='AbortError')return}
-  try{
-   if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(location.href);
-    if(status)status.textContent='Lien copié dans le presse-papiers.';return}
-  }catch(_){}
-  if(status)status.textContent='Copie le lien depuis la barre d’adresse pour partager ce FLASH.';
+ share?.addEventListener('click',()=>{
+  const slug=String(location.pathname||'').split('/').filter(Boolean);
+  if(slug.length!==2||slug[0]!=='flash'||!/^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/.test(slug[1]))return;
+  const url='https://swapp.tv/actus/'+slug[1];
+  const intent='https://x.com/intent/tweet?'+new URLSearchParams({
+   text:String(document.title||'SWAPP FLASH').slice(0,190),url
+  }).toString();
+  const opened=window.open(intent,'_blank');
+  if(opened)opened.opener=null;
+  else window.location.assign(intent);
+  if(status)status.textContent='Publication sur X ouverte.';
  });
 })();

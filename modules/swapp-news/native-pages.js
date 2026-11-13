@@ -1,6 +1,7 @@
 'use strict';
 const {escapeHtml}=require('./article-core');
 const articleExtras=require('../../assets/swapp-article-extras');
+const sharePreview=require('./share-preview');
 const instantGaming=require('../../assets/swapp-instant-gaming');
 const {layout}=require('./site-shell');
 const {getPublicArchives}=require('./archive');
@@ -120,7 +121,7 @@ function renderArticleShare(article,baseUrl='https://swapp.tv'){
  const articleUrl=baseUrl.replace(/\/$/,'')+'/actus/'+encodeURIComponent(slug);
  const title=String(article.title||'Une actualité SWAPP').trim().slice(0,130);
  const game=String(article.game||'').trim();
- const x='https://x.com/intent/tweet?'+new URLSearchParams({text:title,url:articleUrl}).toString();
+ const x=sharePreview.xShareUrl(article);
  const blue='https://bsky.app/intent/compose?text='+encodeURIComponent(title+'\n'+articleUrl);
  const social='/social?'+new URLSearchParams(game?{game,share:'news',title,url:articleUrl}:{share:'news',title,url:articleUrl}).toString();
  const discord=publicCommunityLinks().discordInvite;
@@ -170,7 +171,7 @@ function renderNewsStory(originalArticle,{baseUrl='https://swapp.tv',relatedArti
  const isVideo=['video','trailer'].includes(article.contentType);
  const videoId=isVideo?articleExtras.trailerId(article.trailerUrl):null;
  const heroVideoId=articleExtras.heroTrailerId(article);
- const shareImage=editorialCover(article);
+ const shareImage=sharePreview.previewUrl(article);
  // Google's video rich results require uploadDate, name and thumbnailUrl.
  // Keep actual origin dates on imported editorials; never invent publish times.
  const author={'@type':'Person',name:article.author||'Rédaction SWAPP'};
@@ -185,7 +186,7 @@ function renderNewsStory(originalArticle,{baseUrl='https://swapp.tv',relatedArti
       thumbnailUrl:shareImage||'https://i.ytimg.com/vi/'+videoId+'/hqdefault.jpg',
       ...((article.trailerPublishedAt||published)?{uploadDate:article.trailerPublishedAt||published}:{})}:{})};
  const jsonLd=JSON.stringify(schema).replace(/</g,'\\u003c');
- const metadata=`<link rel="canonical" href="${escapeHtml(url)}"><meta name="keywords" content="${escapeHtml(tags.join(', '))}"><meta property="og:type" content="${isVideo?'video.other':'article'}"><meta property="og:url" content="${escapeHtml(url)}"><meta property="og:title" content="${escapeHtml(seoTitle)}"><meta property="og:description" content="${escapeHtml(seoDescription)}">${shareImage?`<meta property="og:image" content="${escapeHtml(shareImage)}"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="${escapeHtml(shareImage)}">`:''}<script type="application/ld+json">${jsonLd}</script>`;
+ const metadata=`<link rel="canonical" href="${escapeHtml(url)}"><meta name="keywords" content="${escapeHtml(tags.join(', '))}"><meta property="og:type" content="${isVideo?'video.other':'article'}"><meta property="og:url" content="${escapeHtml(url)}"><meta property="og:title" content="${escapeHtml(seoTitle)}"><meta property="og:description" content="${escapeHtml(seoDescription)}"><meta property="og:image" content="${escapeHtml(shareImage)}"><meta property="og:image:secure_url" content="${escapeHtml(shareImage)}"><meta property="og:image:alt" content="${escapeHtml(article.title||'Illustration SWAPP')}"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${escapeHtml(seoTitle)}"><meta name="twitter:description" content="${escapeHtml(seoDescription)}"><meta name="twitter:image" content="${escapeHtml(shareImage)}"><meta name="twitter:image:alt" content="${escapeHtml(article.title||'Illustration SWAPP')}"><script type="application/ld+json">${jsonLd}</script>`;
  const coverUrl=immersiveCoverUrl(article);
  const poster=heroVideoId?coverUrl||'https://i.ytimg.com/vi/'+heroVideoId+'/hqdefault.jpg':'';
  const hasGame=articleExtras.isGameArticle(article);

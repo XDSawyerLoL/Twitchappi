@@ -4,7 +4,7 @@
  */
 (function(){
 'use strict';
-const LAB_VERSION='20261113-hover-rails-hero-10s-v6';
+const LAB_VERSION='20261113-x-share-edge-hints-v7';
 const API=Object.freeze({
  home:'/api/discovery/home-lives?limit=12&lang=fr',
  top:'/api/twitch/streams/top?limit=40&lang=fr',
@@ -557,30 +557,13 @@ function articleCover(article){
  image.src=urls[0];area.append(image);
  return area;
 }
-async function shareArticle(article,tools,feedback){
- const url=window.location.origin+article.url;
- const report=message=>{feedback.textContent=message;feedback.hidden=false};
- if(typeof navigator.share==='function'){
-  try{await navigator.share({title:article.title,url});report('Article partagé');return}
-  catch(error){if(error?.name==='AbortError')return}
- }
- try{
-  if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(url);report('Lien SWAPP copié');return}
- }catch(_){}
- let field=tools.querySelector('.scl-story-share-url');
- if(!field){
-  field=create('input','scl-story-share-url');field.type='text';field.readOnly=true;
-  field.setAttribute('aria-label','Lien de l’article SWAPP à copier');
-  tools.append(field);
- }
- field.value=url;
- field.focus();field.select();
- try{
-  if(typeof document.execCommand==='function'&&document.execCommand('copy')){
-   report('Lien SWAPP copié');return
-  }
- }catch(_){}
- report('Lien sélectionné : copiez-le');
+function shareArticle(article){
+ const slug=String(article?.slug||'');
+ if(!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug))return '';
+ return 'https://x.com/intent/tweet?'+new URLSearchParams({
+  text:String(article.title||'Actualité SWAPP').slice(0,190),
+  url:'https://swapp.tv/actus/'+encodeURIComponent(slug)
+ }).toString();
 }
 function createArticleCard(article){
  const card=create('article','scl-story-card');
@@ -598,11 +581,11 @@ function createArticleCard(article){
  body.append(category,title,summary,date);
  link.append(media,body);
  const actions=create('div','scl-story-actions');
- const buttonShare=button('Partager','scl-story-share',()=>{void shareArticle(article,actions,feedback)});
- buttonShare.setAttribute('aria-label','Partager : '+article.title);
- const feedback=create('span','scl-story-share-feedback');
- feedback.hidden=true;feedback.setAttribute('role','status');feedback.setAttribute('aria-live','polite');
- actions.append(buttonShare,feedback);
+ const buttonShare=create('a','scl-story-share','Partager sur X');
+ buttonShare.href=shareArticle(article);
+ buttonShare.target='_blank';buttonShare.rel='noopener noreferrer';
+ buttonShare.setAttribute('aria-label','Partager cet article sur X : '+article.title);
+ actions.append(buttonShare);
  card.append(link,actions);
  return card;
 }
@@ -901,6 +884,44 @@ function installRailHoverScroll(){
  });
 }
 
+/* Subtle overlaid controls show that every catalogue rail scrolls.
+ * They also work as actual buttons and disappear at each boundary.
+ */
+function installRailEdgeHints(){
+ document.querySelectorAll('.scl-rail > .scl-cards').forEach(cards=>{
+  if(cards.dataset.sclEdgeHints==='ready')return;
+  cards.dataset.sclEdgeHints='ready';
+  const rail=cards.closest('.scl-rail');
+  if(!rail)return;
+  const title=rail.querySelector('h2')?.textContent||'les contenus';
+  const make=(direction)=>{
+   const control=create('button','scl-edge-arrow scl-edge-arrow-'+direction,
+     direction==='left'?'‹':'›');
+   control.type='button';
+   control.setAttribute('aria-label','Défiler '+title+' vers la '+(direction==='left'?'gauche':'droite'));
+   control.hidden=true;
+   control.addEventListener('click',()=>{
+    cards.scrollBy({left:(direction==='right'?1:-1)*Math.max(230,cards.clientWidth*.76),
+     behavior:prefersLessMotion()?'auto':'smooth'});
+   });
+   rail.append(control);
+   return control;
+  };
+  const left=make('left'),right=make('right');
+  function refresh(){
+   const max=Math.max(0,cards.scrollWidth-cards.clientWidth);
+   left.hidden=max<=8||cards.scrollLeft<=6;
+   right.hidden=max<=8||cards.scrollLeft>=max-6;
+  }
+  cards.addEventListener('scroll',refresh,{passive:true});
+  window.addEventListener('resize',refresh,{passive:true});
+  if(typeof ResizeObserver!=='undefined')new ResizeObserver(refresh).observe(cards);
+  if(typeof MutationObserver!=='undefined')
+   new MutationObserver(refresh).observe(cards,{childList:true});
+  requestAnimationFrame(refresh);
+ });
+}
+
 document.querySelectorAll('[data-scroll-left],[data-scroll-right]').forEach(button=>{
  button.addEventListener('click',()=>{
   const target=$(button.dataset.scrollLeft||button.dataset.scrollRight);
@@ -918,6 +939,7 @@ document.addEventListener('click',event=>{
  }
 });
 installRailHoverScroll();
+installRailEdgeHints();
 window.SwappCatalogueLab=Object.freeze({version:LAB_VERSION,load});
 void load();
 })();

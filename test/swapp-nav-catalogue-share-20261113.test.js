@@ -22,18 +22,18 @@ function element(tag,cls='',label=''){
   select(){this.selected=true}
  };
 }
-function harness(navigator){
- const start=app.indexOf('async function shareArticleCard(');
+function harness(){
+ const start=app.indexOf('function shareArticleCard(');
  const end=app.indexOf('function paragraphContent(',start);
- assert.ok(start>0&&end>start,'share and card functions are present');
+ assert.ok(start>0&&end>start);
  const opened=[];
- const api=new Function('el','slugOk','articleTopics','date','cover','window','location','navigator','document','open',
+ const api=new Function('el','slugOk','articleTopics','date','cover','window','location','open',
   app.slice(start,end)+';return {makeCard,shareArticleCard};')(
    element,slug=>/^[a-z0-9-]{4,110}$/.test(slug),()=>['GAMING'],()=> '13/11/2026',
    ()=>element('div','swapp-actus-cover'),
-   {SwappLocalTastes:{record(){}}},{origin:'https://swapp.tv'},navigator,
-   {execCommand(){return false}},slug=>opened.push(slug)
-  );
+   {SwappLocalTastes:{record(){}}},{origin:'https://swapp.tv'},
+   slug=>opened.push(slug)
+ );
  return {...api,opened};
 }
 const article={slug:'article-test-partage',title:'Un article SWAPP',summary:'Une analyse complète',game:'Fortnite',publishedAt:'2026-11-13T10:00:00Z'};
@@ -60,53 +60,32 @@ test('catalogue has only the requested title while keeping size controls',()=>{
  assert.ok(source.includes('catSizeControls()'));
  assert.ok(source.includes('window.catSizeControls()'));
 });
-test('each magazine card contains a native reading link AND a separate share button',()=>{
- const h=harness({});
+test('ACTUS article card has an X intent anchor separate from SWAPP reading link',()=>{
+ const h=harness();
  const card=h.makeCard(article);
  assert.equal(card.tag,'article');
- assert.equal(card.cls,'swapp-actus-card');
- const link=card.children[0],actions=card.children[1];
+ const link=card.children[0],share=card.children[1].children[0];
  assert.equal(link.tag,'a');
  assert.equal(link.href,'/actus/article-test-partage');
- assert.equal(actions.tag,'div');
- assert.equal(actions.children[0].tag,'button');
- assert.equal(actions.children[0].textContent,'Partager');
- assert.match(actions.children[0].attrs['aria-label'],/Partager l’article/);
- assert.equal(link.children.some(x=>x.tag==='button'),false);
+ assert.equal(share.tag,'a');
+ assert.equal(share.textContent,'Partager sur X');
+ assert.equal(share.target,'_blank');
+ assert.equal(share.rel,'noopener noreferrer');
+ const target=new URL(share.href);
+ assert.equal(target.origin,'https://x.com');
+ assert.equal(target.pathname,'/intent/tweet');
+ assert.equal(target.searchParams.get('url'),'https://swapp.tv/actus/'+article.slug);
+ assert.equal(target.searchParams.get('text'),article.title);
  let prevented=false;
  link.onclick({button:0,preventDefault(){prevented=true}});
  assert.equal(prevented,true);
  assert.deepEqual(h.opened,[article.slug]);
- let stopped=false;
- actions.children[0].onclick({stopPropagation(){stopped=true}});
- assert.equal(stopped,true);
- assert.deepEqual(h.opened,[article.slug],'sharing must not open the article');
 });
-test('desktop copying and native sharing use the on-site canonical article URL',async()=>{
- const copied=[];
- const h=harness({clipboard:{writeText:async link=>copied.push(link)}});
- const card=h.makeCard(article),actions=card.children[1],status=actions.children[1];
- await h.shareArticleCard(article,actions,actions.children[0],status);
- assert.deepEqual(copied,['https://swapp.tv/actus/article-test-partage']);
- assert.equal(status.textContent,'Lien copié');
- assert.equal(status.hidden,false);
- assert.deepEqual(h.opened,[]);
- const payload=[];
- const mobile=harness({share:async data=>payload.push(data)});
- const mobileCard=mobile.makeCard(article),tools=mobileCard.children[1],note=tools.children[1];
- await mobile.shareArticleCard(article,tools,tools.children[0],note);
- assert.deepEqual(payload,[{title:article.title,url:'https://swapp.tv/actus/article-test-partage'}]);
- assert.equal(note.textContent,'Partage effectué');
-});
-test('restricted clipboard leaves selectable URL, without claiming it was copied',async()=>{
- const h=harness({clipboard:{writeText:async()=>{throw Error('permission denied')}}});
- const card=h.makeCard(article),actions=card.children[1],status=actions.children[1];
- await h.shareArticleCard(article,actions,actions.children[0],status);
- const field=actions.children.find(x=>x.cls==='swapp-actus-share-url');
- assert.ok(field,'fallback exposes URL in the card');
- assert.equal(field.value,'https://swapp.tv/actus/article-test-partage');
- assert.equal(field.selected,true);
- assert.equal(status.textContent,'Lien sélectionné : copiez-le');
+test('ACTUS sharing does not use Windows native sheet',()=>{
+ assert.equal(app.includes('navigator.share('),false);
+ const h=harness();
+ assert.ok(h.shareArticleCard(article).startsWith('https://x.com/intent/tweet?'));
+ assert.equal(h.shareArticleCard({slug:'<invalid>'}), '');
 });
 test('versioned SPA assets expose new navigation, catalogue and sharing without cache collisions',()=>{
  const home=read('index.html'),shell=read('modules/swapp-news/site-shell.js');
@@ -115,6 +94,6 @@ test('versioned SPA assets expose new navigation, catalogue and sharing without 
    assert.ok(source.includes(file+'?v='+(file==='swapp-unified-nav.css'?'20261113-nav-uniform-v1':file==='swapp-hub-nav.js'?'20261113-home-router-v2':'20261113-swaper-decouvrir-v1')));
  }
  assert.match(home,/index_script\.js\?v=20261113-catalogue-heading-v1/);
- assert.match(home,/swapp-actus-app\.js\?v=20261113-relocated-feature-v2/);
+ assert.match(home,/swapp-actus-app\.js\?v=20261113-direct-x-v3/);
  assert.match(home,/swapp-actus-app\.css\?v=20261113-relocated-feature-v2/);
 });

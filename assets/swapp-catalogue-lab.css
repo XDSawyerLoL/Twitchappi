@@ -644,3 +644,28 @@ body.swapp-catalogue-lab-page{
 .scl-cards::-webkit-scrollbar{display:none;width:0;height:0}
 .scl-cards.scl-is-edge-scrolling{scroll-snap-type:none}
 .scl-cards:focus-visible{outline:2px solid #86e8ea;outline-offset:-2px}
+
+/* Direct external X share; preserve the card's compact styling. */
+.scl-story-share{display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
+
+/* V7: subtle overlay arrows indicate scrolling without gray scrollbar tracks. */
+.scl-rail{position:relative}
+.scl-edge-arrow{
+ position:absolute;z-index:14;top:50%;transform:translateY(-50%);
+ display:grid;place-items:center;width:clamp(42px,5vw,65px);
+ height:min(225px,64%);border:0;border-radius:0;
+ color:#f7fbff;font:800 37px/1 Georgia,serif;
+ background:linear-gradient(90deg,#090b10d9,#090b1088 66%,transparent);
+ text-shadow:0 2px 9px #000b;cursor:pointer;opacity:.74;
+ transition:opacity .18s,background .18s;
+}
+.scl-edge-arrow-left{left:0}
+.scl-edge-arrow-right{right:0;background:linear-gradient(270deg,#090b10d9,#090b1088 66%,transparent)}
+.scl-edge-arrow[hidden]{display:none!important}
+.scl-rail:hover .scl-edge-arrow,.scl-edge-arrow:focus-visible{opacity:1}
+.scl-edge-arrow:hover{color:#7cf0ed}
+.scl-edge-arrow:focus-visible{outline:2px solid #7cf0ed;outline-offset:-3px}
+@media (hover:none),(pointer:coarse){
+ .scl-edge-arrow{display:none!important}
+}
+@media(prefers-reduced-motion:reduce){.scl-edge-arrow{transition:none}}

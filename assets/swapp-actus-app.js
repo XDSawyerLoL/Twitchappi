@@ -121,32 +121,12 @@ function cover(article){
  img.src=candidates[0];p.append(img);
  return p;
 }
-async function shareArticleCard(a,actions,button,status){
- const address=(location.origin||'https://swapp.tv')+'/actus/'+encodeURIComponent(a.slug);
- const setStatus=message=>{status.hidden=false;status.textContent=message};
- try{
-  if(typeof navigator.share==='function'){
-   await navigator.share({title:a.title,url:address});
-   return setStatus('Partage effectué');
-  }
- }catch(error){if(error?.name==='AbortError')return}
- try{
-  if(navigator.clipboard?.writeText){
-   await navigator.clipboard.writeText(address);
-   return setStatus('Lien copié');
-  }
- }catch(_){}
- // Fallback for older or restricted browsers: expose a selectable internal URL.
- const field=actions.querySelector('.swapp-actus-share-url')||el('input','swapp-actus-share-url');
- field.type='text';field.readOnly=true;field.value=address;
- field.setAttribute('aria-label','Lien direct de l’article SWAPP');
- if(!field.parentNode)actions.append(field);
- field.focus();field.select();
- try{
-  if(typeof document.execCommand==='function'&&document.execCommand('copy'))
-   return setStatus('Lien copié');
- }catch(_){}
- setStatus('Lien sélectionné : copiez-le');
+function shareArticleCard(article){
+ if(!slugOk(article?.slug))return '';
+ return 'https://x.com/intent/tweet?'+new URLSearchParams({
+  text:String(article.title||'Actualité SWAPP').slice(0,190),
+  url:'https://swapp.tv/actus/'+encodeURIComponent(article.slug)
+ }).toString();
 }
 function makeCard(a){
  if(!slugOk(a.slug))return null;
@@ -165,16 +145,11 @@ function makeCard(a){
   e.preventDefault();window.SwappLocalTastes?.record?.(a.game);open(a.slug);
  };
  const actions=el('div','swapp-actus-card-actions');
- const share=el('button','swapp-actus-card-share','Partager');
- share.type='button';
- share.setAttribute('aria-label','Partager l’article : '+a.title);
- const status=el('span','swapp-actus-card-share-status');
- status.setAttribute('role','status');status.setAttribute('aria-live','polite');status.hidden=true;
- share.onclick=event=>{
-  event?.stopPropagation?.();
-  void shareArticleCard(a,actions,share,status);
- };
- actions.append(share,status);
+ const share=el('a','swapp-actus-card-share','Partager sur X');
+ share.href=shareArticleCard(a);
+ share.target='_blank';share.rel='noopener noreferrer';
+ share.setAttribute('aria-label','Partager cet article sur X : '+a.title);
+ actions.append(share);
  card.append(link,actions);
  return card;
 }
@@ -511,8 +486,10 @@ actions.append(read,watch,discuss);heroCopy.append(actions);
 const sharePanel=window.SwappArticleShare?.build?.(a);
 if(sharePanel){heroCopy.append(controls);article.append(sharePanel)}
 else{
- const share=el('button','swapp-reader-share','Partager l’article');share.type='button';
- share.onclick=async()=>{const address=location.origin+'/actus/'+encodeURIComponent(slug);try{if(navigator.share){await navigator.share({title:a.title,url:address});return}if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(address);share.textContent='Lien copié';return}}catch(e){if(e.name==='AbortError')return}share.textContent='Copier le lien : '+address};
+ const share=el('a','swapp-reader-share','Partager sur X');
+ share.href=shareArticleCard(a);
+ share.target='_blank';share.rel='noopener noreferrer';
+ share.setAttribute('aria-label','Partager cet article sur X : '+a.title);
  controls.append(share);heroCopy.append(controls);
 }
 // Artwork remains behind the heading. Reading progress is now a small TOC label,

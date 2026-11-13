@@ -109,6 +109,6 @@ function renderFlash(article,{baseUrl='https://swapp.tv'}={}){
   (data.cover?'<meta property="og:image" content="'+esc(data.cover)+'">':'');
  return layout({title:'FLASH · '+data.title,description:short(data.summary,150),content,metadata,active:'actus',
  scripts:'<link rel="stylesheet" href="/assets/swapp-flash.css?v=20261104-pilot">'+
- '<script src="/assets/swapp-flash.js?v=20261104-pilot" defer></script>'+'<link rel="stylesheet" href="/assets/swapp-premiere-interest.css?v=20261104-v1">'+'<script src="/assets/swapp-premiere-interest.js?v=20261104-v1" defer></script>'});
+ '<script src="/assets/swapp-flash.js?v=20261113-direct-x-v3" defer></script>'+'<link rel="stylesheet" href="/assets/swapp-premiere-interest.css?v=20261104-v1">'+'<script src="/assets/swapp-premiere-interest.js?v=20261104-v1" defer></script>'});
 }
 module.exports={model,excerpts,youtube,https,renderFlash};

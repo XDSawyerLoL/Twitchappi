@@ -25,8 +25,8 @@ test('native ACTUS rail is distinct from the full magazine and absent from site 
  assert.ok(html.indexOf('id="scl-feature"')<html.indexOf('id="scl-articles"'));
  assert.ok(html.indexOf('id="scl-articles"')<html.indexOf('id="scl-live"'));
  assert.match(html,/swapp-article-extras\.js\?v=20261113-actus-rail-v3/);
- assert.match(html,/swapp-catalogue-lab\.js\?v=20261113-hover-rails-hero-10s-v6/);
- assert.match(html,/swapp-catalogue-lab\.css\?v=20261113-hover-rails-hero-10s-v6/);
+ assert.match(html,/swapp-catalogue-lab\.js\?v=20261113-x-share-edge-hints-v7/);
+ assert.match(html,/swapp-catalogue-lab\.css\?v=20261113-x-share-edge-hints-v7/);
  assert.match(html,/noindex,nofollow,noarchive/);
  assert.doesNotMatch(read('assets/swapp-navigation.js'),/catalogue-test/);
 });
@@ -65,35 +65,23 @@ test('media accepts only valid HTTPS remote publisher art, no script or unsafe U
  const empty=api.normalizeArticle({...a,thumbnail:{url:'javascript:alert(1)'},image:null,imageUrl:''});
  assert.equal(empty.image,'');
 });
-test('article cards have separate native reading and sharing actions, with honest clipboard fallback',async()=>{
- const from=js.indexOf('async function shareArticle(article,tools,feedback){');
+test('article shelf uses a direct X share anchor, never the Windows share sheet',()=>{
+ const from=js.indexOf('function shareArticle(article){');
  const end=js.indexOf('const matching=item=>',from);
  assert.ok(from>0&&end>from);
  const code=js.slice(from,end);
- const create=(tag,cls='',text='')=>({
-  tag,cls,textContent:text,children:[],attrs:{},hidden:false,
-  setAttribute(k,v){this.attrs[k]=String(v)},
-  addEventListener(){},append(...nodes){this.children.push(...nodes)},
-  focus(){this.focused=true},select(){this.selected=true},remove(){this.removed=true},
-  querySelector(sel){return this.children.find(c=>c.cls===sel.slice(1))||null}
- });
- const copied=[],tools=create('div'),feedback=create('span');
- const navigator={clipboard:{writeText:async text=>copied.push(text)}};
- const fn=new Function('create','navigator','document','window','button','cleanArticleImage','$','empty',
-  code+';return shareArticle;')(create,navigator,{execCommand(){return false}},
-  {location:{origin:'https://swapp.tv'},SwappArticleExtras:null},
-  (text,cls,handler)=>({...create('button',cls,text),onclick:handler}),
-  api.cleanArticleImage,()=>create('div'),()=>create('p'));
  const article=api.normalizeArticle(a);
- await fn(article,tools,feedback);
- assert.deepEqual(copied,['https://swapp.tv/actus/swapp-article-officiel-2026']);
- assert.equal(feedback.textContent,'Lien SWAPP copié');
- assert.equal(feedback.hidden,false);
- assert.match(code,/const link=create\('a','scl-story-link'\)/);
- assert.match(code,/link\.href=article\.url/);
- assert.match(code,/const actions=create\('div','scl-story-actions'\)/);
- assert.match(code,/button\('Partager','scl-story-share'/);
- assert.doesNotMatch(code,/target=['"]_blank|publisher\.example\/article/);
+ const intent=new Function('article',code+';return shareArticle(article);')(article);
+ const target=new URL(intent);
+ assert.equal(target.origin,'https://x.com');
+ assert.equal(target.pathname,'/intent/tweet');
+ assert.equal(target.searchParams.get('url'),'https://swapp.tv/actus/'+article.slug);
+ assert.equal(target.searchParams.get('text'),article.title);
+ assert.match(code,/scl-story-link/);
+ assert.match(code,/scl-story-actions/);
+ assert.match(code,/Partager sur X/);
+ assert.match(code,/noopener noreferrer/);
+ assert.equal(code.includes('navigator.share('),false);
 });
 test('illustrated article cards remain navigable and touch-friendly on mobile',()=>{
  assert.match(css,/#scl-articles\{margin-top:-113px/);
