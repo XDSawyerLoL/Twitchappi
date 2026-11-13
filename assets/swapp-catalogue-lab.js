@@ -4,12 +4,14 @@
  */
 (function(){
 'use strict';
-const LAB_VERSION='20261113-actus-rail-v3';
+const LAB_VERSION='20261113-public-home-small-v4';
 const API=Object.freeze({
  home:'/api/discovery/home-lives?limit=12&lang=fr',
  top:'/api/twitch/streams/top?limit=40&lang=fr',
  games:'/api/categories/top',
- articles:'/api/actus'
+ articles:'/api/actus',
+ small:'/api/oryon/discover/find-live?mood=petite-commu&max=150&lang=fr&source=twitch&discover=1',
+ smallBackup:'/api/twitch/streams/small?lang=fr&min=0&max=150&discover=1'
 });
 const FAVORITES_KEY='swapp:followed-games:v1';
 const CHANNEL_KEY='oryon_v4_likes';
@@ -172,6 +174,40 @@ function normalizeArticles(values){
  }
  return articles.sort((a,b)=>b.publishedAt-a.publishedAt).slice(0,20);
 }
+/* Small communities are verified active sessions only. A dedicated discovery
+ * source is essential: top-ranked Twitch streams rarely have <50 viewers.
+ * Prefer <=50; if too few exist, include <=150 and update the label honestly.
+ */
+function chooseSmallCommunities(main,discovered,backup,limit=12){
+ const seen=new Set(),candidates=[];
+ for(const input of [[discovered,'twitch'],[backup,'twitch'],[main,'twitch']]){
+  for(const raw of Array.isArray(input[0])?input[0]:[]){
+   const platform=String(raw?.platform||'twitch').toLowerCase();
+   if(!['twitch','oryon','swapp','native'].includes(platform))continue;
+   const item=raw?.kind==='live'?raw:normalizeLive(raw,input[1]);
+   if(!item||!Number.isFinite(item.viewers)||item.viewers<0||item.viewers>150||seen.has(item.id))continue;
+   seen.add(item.id);candidates.push(item);
+  }
+ }
+ const verySmall=candidates.filter(x=>x.viewers<=50);
+ const max=verySmall.length>=4?50:150;
+ const active=candidates.filter(x=>x.viewers<=max);
+ const mainKeys=new Set((Array.isArray(main)?main:[]).map(x=>x.id));
+ active.sort((a,b)=>{
+  const an=a.platform==='swapp'?0:1,bn=b.platform==='swapp'?0:1;
+  const au=mainKeys.has(a.id)?1:0,bu=mainKeys.has(b.id)?1:0;
+  return an-bn||au-bu||Math.abs(a.viewers-25)-Math.abs(b.viewers-25);
+ });
+ const count=new Map(),selected=[];
+ for(const item of active){
+  const key=item.gameSlug||'unknown';
+  if((count.get(key)||0)>=3)continue;
+  count.set(key,(count.get(key)||0)+1);
+  selected.push(item);
+  if(selected.length>=Math.max(1,Math.min(24,limit)))break;
+ }
+ return {items:selected,max};
+}
 function readFavorites(storage){
  try{
   const saved=JSON.parse(storage.getItem(FAVORITES_KEY)||'null');
@@ -200,7 +236,7 @@ function readChannelFavorites(storage){
  }catch{return []}
 }
 if(typeof module==='object'&&module.exports)
- module.exports={API,LAB_VERSION,normalizeLive,normalizeGame,normalizeArticle,normalizeArticles,mergeLives,mergeGames,gameSlug,synopsis,readFavorites,readChannelFavorites,safeImage,cleanArticleImage};
+ module.exports={API,LAB_VERSION,normalizeLive,normalizeGame,normalizeArticle,normalizeArticles,mergeLives,mergeGames,chooseSmallCommunities,gameSlug,synopsis,readFavorites,readChannelFavorites,safeImage,cleanArticleImage};
 if(typeof document==='undefined')return;
 const root=document.getElementById('swapp-catalogue-lab');
 if(!root)return;
@@ -212,7 +248,7 @@ const create=(tag,className,text)=>{
  if(text!==undefined)node.textContent=String(text);
  return node;
 };
-const state={lives:[],games:[],articles:[],newsError:false,newsLoading:false,newsEpoch:0,featured:null,filter:'all',query:'',loading:false,failed:[],previewTimer:0,abort:null,heroItems:[],heroIndex:0,heroTimer:null,hoverTimer:null,hoverIframe:null,hoverCard:null};
+const state={lives:[],games:[],articles:[],small:[],smallLoading:false,smallError:false,smallMax:50,newsError:false,newsLoading:false,newsEpoch:0,featured:null,filter:'all',query:'',loading:false,failed:[],previewTimer:0,abort:null,heroItems:[],heroIndex:0,heroTimer:null,hoverTimer:null,hoverIframe:null,hoverCard:null};
 const status=$('scl-status'),hero=$('scl-feature'),featureVisual=$('scl-feature-visual'),dialog=$('scl-dialog');
 const heroDots=$('scl-feature-dots');
 const visNode=item=>{
