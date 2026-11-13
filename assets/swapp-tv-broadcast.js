@@ -15,7 +15,7 @@ const safeLogin=s=>/^[a-z0-9_]{3,25}$/.test(String(s||'').toLowerCase());
 const safeNativeLogin=s=>/^[a-z0-9_-]{2,32}$/.test(String(s||'').toLowerCase());
 const gameOf=a=>typeof a?.game==='string'?a.game.trim():String(a?.game?.name||a?.game?.title||'').trim();
 const gamesFrom=data=>[...new Set((Array.isArray(data.articles)?data.articles:[]).filter(x=>x?.slug&&x.status!=='draft').map(gameOf).filter(x=>x.length>1))].slice(0,16);
-const state={queue:null,selection:null,playing:null,playingPlatform:null,playingBroadcastId:null,discovery:[],native:[],nativeIndex:0,nativeFetchedAt:0,index:0,consent:false,autoAdvance:false,autoStartPending:true,autoSource:null,playStartedAt:0,games:[],queueMode:false,
+const state={queue:null,selection:null,playing:null,playingPlatform:null,playingBroadcastId:null,discovery:[],native:[],nativeIndex:0,nativeFetchedAt:0,index:0,consent:false,autoAdvance:false,autoStartPending:true,autoSource:null,playStartedAt:0,twitchHandle:null,twitchPlaybackState:'idle',twitchPlaybackConfirmed:false,twitchWatchdog:null,games:[],queueMode:false,
  passage:{key:'',game:'',seenLive:false,offline:0,cancelled:false,pending:false}};
 const TV_SLOT_SECONDS=300; // Five-minute verified queue slot, shared with swapp-tv-director.MAX_AIR_SECONDS.
 function tvTime(value){
@@ -68,7 +68,7 @@ function renderScreen(item,{onAir=false}={}){
  const valid=platform==='swapp'?safeNativeLogin(login):platform==='twitch'&&safeLogin(login);
  state.selection=valid?{login,platform,game:item.game||item.game_name||'Jeu',name:item.creator_login||item.display_name||login,onAir,broadcastId:item.broadcast_id||null}:null;
  const same=state.playing===login&&state.playingPlatform===platform&&state.playingBroadcastId===(state.selection?.broadcastId||null)&&state.consent&&valid;
- if(!same){state.consent=false;state.playing=null;state.playingPlatform=null;state.playingBroadcastId=null;const layer=$('stv-screen').querySelector('.stv-player-layer');if(layer)layer.remove();$('stv-screen-inner').hidden=false;}
+ if(!same){disposeTwitchPlayback();state.consent=false;state.playing=null;state.playingPlatform=null;state.playingBroadcastId=null;const layer=$('stv-screen').querySelector('.stv-player-layer');if(layer)layer.remove();$('stv-screen-inner').hidden=false;}
  if(platform==='swapp'&&typeof showChat==='function'&&activeDock==='twitch')showChat('swapp');
  if(typeof updateTwitchChat==='function')updateTwitchChat();
  const name=state.selection?.name||'Antenne en préparation';
@@ -87,50 +87,162 @@ function renderScreen(item,{onAir=false}={}){
  }else if(state.autoAdvance&&state.autoSource===(platform==='swapp'?'native':onAir?'queue':'discovery')&&valid&&!same)play();
  else syncWatchButton();
 }
+function setPlaybackHealth(message='',login=''){
+ const health=$('stv-playback-health');
+ if(!health)return;
+ health.hidden=!message;
+ health.replaceChildren();
+ if(!message)return;
+ health.append(document.createTextNode(message));
+ if(login&&safeLogin(login)){
+  const link=by('a',null,'Voir sur Twitch');
+  link.href='https://www.twitch.tv/'+encodeURIComponent(login);
+  link.target='_blank';link.rel='noopener noreferrer nofollow';
+  health.append(link);
+ }
+}
+function disposeTwitchPlayback(){
+ if(state.twitchWatchdog){clearTimeout(state.twitchWatchdog);state.twitchWatchdog=null}
+ if(state.twitchHandle){try{state.twitchHandle.destroy()}catch(_){/* old player */}state.twitchHandle=null}
+ state.twitchPlaybackState='idle';
+ state.twitchPlaybackConfirmed=false;
+ setPlaybackHealth();
+}
 function syncWatchButton(){
- const watching=Boolean(state.selection&&state.playing===state.selection.login&&state.playingPlatform===state.selection.platform&&state.consent);
- setText('stv-watch',watching?'■ ARRÊTER':'▶ REGARDER');
- $('stv-watch').setAttribute('aria-pressed',String(watching));
+ const watching=Boolean(state.selection&&state.playing===state.selection.login&&
+  state.playingPlatform===state.selection.platform&&state.consent);
+ const blocked=watching&&state.selection.platform==='twitch'&&
+  (state.twitchPlaybackState==='blocked'||state.twitchPlaybackState==='offline'||state.twitchPlaybackState==='fallback');
+ const loading=watching&&state.selection.platform==='twitch'&&state.twitchPlaybackState==='loading';
+ setText('stv-watch',blocked?'▶ LANCER TWITCH':loading?'■ ANNULER':watching?'■ ARRÊTER':'▶ REGARDER');
+ $('stv-watch').setAttribute('aria-pressed',String(watching&&!blocked&&!loading));
 }
 function stopPlayback(){
  resetPassage();
- state.consent=false;state.playing=null;state.playingPlatform=null;state.autoAdvance=false;state.autoStartPending=false;state.autoSource=null;state.playStartedAt=0;
+ disposeTwitchPlayback();
+ state.consent=false;state.playing=null;state.playingPlatform=null;state.playingBroadcastId=null;
+ state.autoAdvance=false;state.autoStartPending=false;state.autoSource=null;state.playStartedAt=0;
  $('stv-screen').querySelector('.stv-player-layer')?.remove();
  $('stv-screen-inner').hidden=false;
  syncWatchButton();
 }
+function resumeTwitchPlayback(){
+ if(!state.consent||state.selection?.platform!=='twitch'||state.playing!==state.selection.login)return;
+ state.twitchPlaybackState='loading';
+ setPlaybackHealth();
+ syncWatchButton();
+ if(state.twitchHandle?.resume())return;
+ // The provider SDK may have been blocked by tracking protection. A
+ // direct user gesture can still start the standard Twitch iframe.
+ play();
+}
 function play(){
  const item=state.selection;if(!item||(item.platform==='swapp'?!safeNativeLogin(item.login):!safeLogin(item.login)))return;
- const screen=$('stv-screen');screen.querySelector('.stv-player-layer')?.remove();
- const layer=by('div','stv-player-layer');const frame=by('iframe');
- frame.title='Direct '+(item.platform==='swapp'?'SWAPP':'Twitch')+' de '+item.name;
- if(item.platform==='swapp'){
-  // First-party channel, no Amazon domain or Twitch cookies involved.
-  frame.src='/api/oryon/local-relay/'+encodeURIComponent(item.login)+'/player';
- }else{
-  const parent=location.hostname;
-  frame.src='https://player.twitch.tv/?'+new URLSearchParams({channel:item.login,parent,autoplay:'true',muted:'true'});
+ const screen=$('stv-screen');
+ disposeTwitchPlayback();
+ screen.querySelector('.stv-player-layer')?.remove();
+ const layer=by('div','stv-player-layer');
+ const twitchSdk=item.platform==='twitch'&&typeof window!=='undefined'&&
+  typeof window.SwappTwitchPlayback?.mount==='function';
+ let sdkSlot=null;
+ const fallbackIframe=()=>{
+  const frame=by('iframe');
+  frame.title='Direct '+(item.platform==='swapp'?'SWAPP':'Twitch')+' de '+item.name;
+  if(item.platform==='swapp'){
+   frame.src='/api/oryon/local-relay/'+encodeURIComponent(item.login)+'/player';
+  }else{
+   frame.src='https://player.twitch.tv/?'+new URLSearchParams({
+    channel:item.login,parent:location.hostname,autoplay:'true',muted:'true'
+   });
+  }
+  frame.allow='autoplay; fullscreen';frame.allowFullscreen=true;
+  frame.loading='eager';frame.referrerPolicy='strict-origin-when-cross-origin';
+  frame.addEventListener?.('error',()=>{
+   if(state.selection?.login!==item.login||state.playing!==item.login)return;
+   if(item.platform==='twitch'){
+    state.twitchPlaybackState='blocked';
+    setPlaybackHealth('Le lecteur Twitch est bloqué par le navigateur. Lance la vidéo manuellement.',item.login);
+    syncWatchButton();
+   }else{
+    screen.querySelector('.stv-player-layer')?.remove();
+    $('stv-screen-inner').hidden=false;
+    state.playing=null;state.consent=false;state.autoAdvance=false;
+    setText('stv-stage-status','Direct indisponible. Clique sur Regarder pour réessayer.');
+    syncWatchButton();
+   }
+  });
+  layer.append(frame);
+  return frame;
+ };
+ if(item.platform==='swapp'||!twitchSdk)fallbackIframe();
+ else{
+  sdkSlot=by('div','stv-twitch-embed');
+  layer.append(sdkSlot);
  }
- frame.allow='autoplay; fullscreen';frame.allowFullscreen=true;
- frame.loading='eager';frame.referrerPolicy='strict-origin-when-cross-origin';
- frame.addEventListener('error',()=>{
-  if(state.selection?.login!==item.login||state.playing!==item.login)return;
-  $('stv-screen').querySelector('.stv-player-layer')?.remove();
-  $('stv-screen-inner').hidden=false;
-  state.playing=null;state.consent=false;state.autoAdvance=false;
-  setText('stv-stage-status','Le lecteur externe est bloqué ou indisponible. Clique sur Regarder pour réessayer.');
-  syncWatchButton();
- });
- layer.append(frame,by('div','stv-player-overlay','SWAPP TV  /  '+(item.onAir?'À L’ANTENNE':'DÉCOUVERTE')));
- screen.append(layer);$('stv-screen-inner').hidden=true;state.autoStartPending=false;state.playing=item.login;state.playingPlatform=item.platform;state.playingBroadcastId=item.broadcastId||null;state.consent=true;
- // Resume subsequent five-minute TV slots after a real stream starts.
- // Browser embedding remains muted to respect autoplay policy.
+ if(item.platform==='swapp'){
+  layer.append(by('div','stv-player-overlay','SWAPP TV  /  À L’ANTENNE'));
+ }
+ screen.append(layer);$('stv-screen-inner').hidden=true;
+ state.autoStartPending=false;state.playing=item.login;state.playingPlatform=item.platform;
+ state.playingBroadcastId=item.broadcastId||null;state.consent=true;
  state.autoAdvance=true;
  state.autoSource=item.platform==='swapp'?'native':item.onAir?'queue':'discovery';
  state.playStartedAt=Date.now();
+ if(item.platform==='twitch'){
+  state.twitchPlaybackState=twitchSdk?'loading':'fallback';
+  state.twitchPlaybackConfirmed=false;
+  if(twitchSdk){
+   // Runtime events are crucial: a loaded iframe is not proof of video.
+   const active=()=>state.selection?.login===item.login&&state.consent&&
+    state.playing===item.login&&state.playingPlatform==='twitch'&&
+    screen.querySelector('.stv-player-layer')===layer;
+   const blocked=(reason)=>{
+    if(!active()||state.twitchPlaybackConfirmed)return;
+    state.twitchPlaybackState='blocked';
+    if(state.twitchWatchdog){clearTimeout(state.twitchWatchdog);state.twitchWatchdog=null}
+    setPlaybackHealth('Twitch demande une action pour démarrer. Utilise « Lancer Twitch ».',item.login);
+    syncWatchButton();
+   };
+   try{
+    state.twitchHandle=window.SwappTwitchPlayback.mount({
+     container:sdkSlot,login:item.login,parent:location.hostname,
+     onReady:()=>{if(active())setPlaybackHealth('Connexion au direct Twitch…')},
+     onPlaying:()=>{
+      if(!active())return;
+      if(state.twitchWatchdog){clearTimeout(state.twitchWatchdog);state.twitchWatchdog=null}
+      state.twitchPlaybackState='playing';state.twitchPlaybackConfirmed=true;
+      state.playStartedAt=Date.now();
+      setPlaybackHealth();syncWatchButton();
+     },
+     onBlocked:blocked,
+     onOffline:()=>{
+      if(!active())return;
+      state.twitchPlaybackState='offline';
+      setPlaybackHealth('Ce créateur n’est plus en direct sur Twitch.',item.login);
+      syncWatchButton();
+     },
+     onUnavailable:()=>{
+      if(!active())return;
+      state.twitchPlaybackState='fallback';
+      fallbackIframe();
+      setPlaybackHealth('Le lecteur interactif Twitch est indisponible. Lecteur de secours chargé.',item.login);
+      syncWatchButton();
+     }
+    });
+    // Some privacy browsers suppress all provider messages without emitting
+    // PLAYBACK_BLOCKED. Never mistake that for successfully playing video.
+    state.twitchWatchdog=setTimeout(()=>{if(active()&&state.twitchPlaybackState==='loading')blocked('no_playing_event')},14000);
+   }catch(_){
+    state.twitchPlaybackState='fallback';
+    fallbackIframe();
+    setPlaybackHealth('Lecteur Twitch de secours chargé.',item.login);
+   }
+  }else{
+   setPlaybackHealth('Lecture Twitch non vérifiable. Si la vidéo reste en pause, clique sur « Lancer Twitch ».',item.login);
+  }
+ }
  resetPassage();
  syncWatchButton();
- // Establish the initial live state as soon as the viewer starts playing.
  void maybePassage();
 }
 // SWAPP PASSAGE: a station viewer remains with the same GAME when the
@@ -241,6 +353,7 @@ function passageOffer(next){
 async function maybePassage(){
  const item=state.selection;
  if(passageBusy||!state.consent||!item||state.playing!==item.login||
+    (item.platform==='twitch'&&['loading','blocked','offline'].includes(state.twitchPlaybackState))||
   state.playingPlatform!==item.platform||document.visibilityState==='hidden')return;
  const key=item.platform+':'+item.login;
  if(state.passage.key!==key){
@@ -443,6 +556,7 @@ async function discovery(){
 const DISCOVERY_SLOT_MS=5*60*1000;
 function maybeAdvanceDiscovery(now=Date.now()){
  if(state.queueMode||!state.consent||!state.autoAdvance||
+    ['blocked','loading','offline','fallback'].includes(state.twitchPlaybackState)||
     state.autoSource!=='discovery'||now-state.playStartedAt<DISCOVERY_SLOT_MS)return false;
  const candidates=state.discovery;
  if(candidates.length<2){
@@ -611,7 +725,10 @@ setInterval(()=>{updateRotationBar();maybeAdvanceDiscovery();maybeAdvanceNative(
 setInterval(()=>{void maybePassage()},25000);
 
 $('stv-watch').addEventListener('click',()=>{
- if(state.selection&&state.playing===state.selection.login&&state.playingPlatform===state.selection.platform&&state.consent)stopPlayback();
+ if(state.selection?.platform==='twitch'&&state.consent&&
+  ['blocked','offline','fallback'].includes(state.twitchPlaybackState))resumeTwitchPlayback();
+ else if(state.selection&&state.playing===state.selection.login&&
+  state.playingPlatform===state.selection.platform&&state.consent)stopPlayback();
  else play();
 });
 $('stv-join').addEventListener('click',()=>mutate('POST'));
@@ -627,7 +744,8 @@ function updateRotationBar(now=Date.now()){
  const el=$('stv-rotation'),track=$('stv-rotation-track'),
   fill=$('stv-rotation-fill'),clock=$('stv-rotation-clock'),label=$('stv-rotation-label');
  if(!el||!track||!fill||!clock||!label)return;
- const active=state.consent&&state.selection&&state.playing===state.selection.login;
+ const active=state.consent&&state.selection&&state.playing===state.selection.login&&
+  (state.selection.platform!=='twitch'||state.twitchPlaybackState===undefined||state.twitchPlaybackState==='playing');
  el.hidden=!active;
  if(!active)return;
  const serverSlot=state.autoSource==='queue'&&state.queue?.director_enabled;

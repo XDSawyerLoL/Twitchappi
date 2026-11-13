@@ -69,6 +69,7 @@ const RELEASE_FILES=Object.freeze([
  'modules/swapp-tv-queue.js',
  'assets/swapp-program.css',
  'assets/swapp-tv-broadcast.js',
+ 'assets/swapp-tv-twitch-player.js',
  'assets/swapp-tv-rotation.js',
  'assets/swapp-calendar.js',
  'modules/swapp-game-pages.js',
