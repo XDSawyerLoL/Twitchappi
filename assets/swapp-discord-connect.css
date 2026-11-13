@@ -22,3 +22,5 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid #62e5
 .sdc-account{display:flex;gap:14px;align-items:center;margin-bottom:18px}
 .sdc-account img{height:48px;width:48px;border-radius:50%;object-fit:cover}
 [hidden]{display:none!important}@media(max-width:650px){.sdc-main{padding:20px 16px}header{margin-top:48px}.sdc-panel{padding:18px}.sdc-guild{align-items:stretch;flex-direction:column}}
+.sdc-invite{width:min(250px,100%);min-height:39px;padding:8px;border:1px solid #496078;
+ border-radius:8px;background:#0c1621;color:#f3faff;font:600 12px system-ui,sans-serif}
