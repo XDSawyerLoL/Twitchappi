@@ -23,6 +23,17 @@ function validWebhook(value){
    /^\/api\/webhooks\/[0-9]{16,22}\/[A-Za-z0-9_-]{20,}$/.test(u.pathname);
  }catch{return false;}
 }
+function normalizeInvite(raw){
+ if(!raw)return '';
+ try{
+  const u=new URL(String(raw).trim());
+  if(u.protocol!=='https:'||u.port||u.username||u.password||u.search||u.hash)return null;
+  const host=u.hostname.toLowerCase(),parts=u.pathname.split('/').filter(Boolean);
+  const code=host==='discord.gg'&&parts.length===1?parts[0]:
+   ['discord.com','www.discord.com'].includes(host)&&parts.length===2&&parts[0]==='invite'?parts[1]:'';
+  return /^[a-zA-Z0-9-]{2,64}$/.test(code)?'https://discord.gg/'+code:null;
+ }catch{return null}
+}
 function keyFromEnv(env){
  const raw=String(env.SWAPP_DISCORD_ENCRYPTION_KEY||'');
  return /^[a-f0-9]{64}$/i.test(raw)?Buffer.from(raw,'hex'):null;
@@ -91,7 +102,7 @@ function webhookPayload(creator,category){
 }
 const TABLES=[
  'CREATE TABLE IF NOT EXISTS swapp_discord_identities (swapp_user_id VARCHAR(80) PRIMARY KEY, discord_user_id VARCHAR(22) NOT NULL UNIQUE, username VARCHAR(100) NOT NULL, avatar_hash VARCHAR(128) NOT NULL DEFAULT "", updated_at BIGINT NOT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4',
- 'CREATE TABLE IF NOT EXISTS swapp_discord_communities (swapp_user_id VARCHAR(80) NOT NULL, guild_id VARCHAR(22) NOT NULL, guild_name VARCHAR(100) NOT NULL, channel_id VARCHAR(22) NOT NULL, webhook_cipher TEXT NOT NULL, enabled TINYINT NOT NULL DEFAULT 1, listed TINYINT NOT NULL DEFAULT 0, updated_at BIGINT NOT NULL, PRIMARY KEY (swapp_user_id,guild_id), CONSTRAINT swapp_discord_communities_owner_fk FOREIGN KEY (swapp_user_id) REFERENCES swapp_discord_identities(swapp_user_id) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4',
+ 'CREATE TABLE IF NOT EXISTS swapp_discord_communities (swapp_user_id VARCHAR(80) NOT NULL, guild_id VARCHAR(22) NOT NULL, guild_name VARCHAR(100) NOT NULL, channel_id VARCHAR(22) NOT NULL, webhook_cipher TEXT NOT NULL, enabled TINYINT NOT NULL DEFAULT 1, listed TINYINT NOT NULL DEFAULT 0, invite_url VARCHAR(255) NOT NULL DEFAULT "", updated_at BIGINT NOT NULL, PRIMARY KEY (swapp_user_id,guild_id), CONSTRAINT swapp_discord_communities_owner_fk FOREIGN KEY (swapp_user_id) REFERENCES swapp_discord_identities(swapp_user_id) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4',
  'CREATE TABLE IF NOT EXISTS swapp_discord_live_outbox (id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY, swapp_user_id VARCHAR(80) NOT NULL, guild_id VARCHAR(22) NOT NULL, event_id VARCHAR(120) NOT NULL, creator_login VARCHAR(48) NOT NULL, status VARCHAR(16) NOT NULL DEFAULT "pending", attempts INT NOT NULL DEFAULT 0, created_at BIGINT NOT NULL, next_attempt_at BIGINT NOT NULL DEFAULT 0, lease_until BIGINT NOT NULL DEFAULT 0, message_id VARCHAR(22) DEFAULT NULL, UNIQUE KEY swapp_discord_live_once (swapp_user_id,guild_id,event_id), KEY swapp_discord_due (status,next_attempt_at)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4'
 ];
 function createDiscordConnect({app,env=process.env,mysqlFactory=null,restoreSession,findOwner,getOwnerById,getVerifiedLive,
@@ -233,14 +244,14 @@ function createDiscordConnect({app,env=process.env,mysqlFactory=null,restoreSess
   try{
    const [account,servers]=await Promise.all([
     query('SELECT discord_user_id,username,avatar_hash FROM swapp_discord_identities WHERE swapp_user_id=?',[person.id]),
-    query('SELECT guild_id,guild_name,channel_id,enabled,listed FROM swapp_discord_communities WHERE swapp_user_id=? ORDER BY guild_name LIMIT 5',[person.id])
+    query('SELECT guild_id,guild_name,channel_id,enabled,listed,invite_url FROM swapp_discord_communities WHERE swapp_user_id=? ORDER BY guild_name LIMIT 5',[person.id])
    ]);
    const user=account[0];
    return res.json({success:true,configured:true,connected:!!user,
     discord:user?{id:String(user.discord_user_id),username:user.username,
       avatar: /^[a-f0-9_]{2,128}$/i.test(user.avatar_hash)?'https://cdn.discordapp.com/avatars/'+user.discord_user_id+'/'+user.avatar_hash+'.png':null}:null,
     communities:servers.map(s=>({guild_id:String(s.guild_id),name:s.guild_name,channel_id:String(s.channel_id),
-      announcements:!!s.enabled,public:!!s.listed}))});
+      announcements:!!s.enabled,public:!!s.listed,invite:s.invite_url||''}))});
   }catch(_){return res.status(503).json({success:false,error:'discord_storage_unavailable'})}
  });
  app.get('/api/swapp/discord/creator/:login',async(req,res)=>{
@@ -250,8 +261,8 @@ function createDiscordConnect({app,env=process.env,mysqlFactory=null,restoreSess
   if(!creator||creator.channel_public===false)return res.status(404).json({success:false,error:'creator_not_found'});
   if(!enabled)return res.json({success:true,connected:false,communities:[]});
   try{
-   const rows=await query('SELECT c.guild_name FROM swapp_discord_communities c JOIN swapp_discord_identities i ON c.swapp_user_id=i.swapp_user_id WHERE c.swapp_user_id=? AND c.listed=1 AND c.enabled=1 LIMIT 5',[creator.id]);
-   return res.json({success:true,connected:rows.length>0,communities:rows.map(r=>({name:r.guild_name}))});
+   const rows=await query('SELECT c.guild_name,c.invite_url FROM swapp_discord_communities c JOIN swapp_discord_identities i ON c.swapp_user_id=i.swapp_user_id WHERE c.swapp_user_id=? AND c.listed=1 AND c.enabled=1 LIMIT 5',[creator.id]);
+   return res.json({success:true,connected:rows.length>0,communities:rows.map(r=>({name:r.guild_name,invite:normalizeInvite(r.invite_url)||''}))});
   }catch(_){return res.status(503).json({success:false,error:'discord_storage_unavailable'})}
  });
  const routes=limiter?[limiter]:[];
@@ -260,11 +271,12 @@ function createDiscordConnect({app,env=process.env,mysqlFactory=null,restoreSess
   if(!actionGuard(req,res))return;
   const person=await owner(req,res);if(!person)return;
   const guild=String(req.params.guildId||'');
-  if(!snowflake(guild)||typeof req.body?.announcements!=='boolean'||typeof req.body?.public!=='boolean')
+  const invite=normalizeInvite(req.body?.invite);
+  if(!snowflake(guild)||typeof req.body?.announcements!=='boolean'||typeof req.body?.public!=='boolean'||invite===null)
    return res.status(400).json({success:false,error:'invalid_community_settings'});
   try{
-   const rows=await query('UPDATE swapp_discord_communities SET enabled=?,listed=?,updated_at=? WHERE swapp_user_id=? AND guild_id=?',
-    [req.body.announcements?1:0,req.body.public?1:0,now(),person.id,guild]);
+   const rows=await query('UPDATE swapp_discord_communities SET enabled=?,listed=?,invite_url=?,updated_at=? WHERE swapp_user_id=? AND guild_id=?',
+    [req.body.announcements?1:0,req.body.public?1:0,invite,now(),person.id,guild]);
    return res.status(rows.affectedRows?200:404).json({success:!!rows.affectedRows});
   }catch(_){return res.status(503).json({success:false,error:'discord_storage_unavailable'})}
  });
@@ -373,4 +385,4 @@ function createDiscordConnect({app,env=process.env,mysqlFactory=null,restoreSess
  }
  return {enabled:Boolean(enabled),notifyLive,flush,ready,status:()=>({configured:Boolean(enabled),maxGuilds:MAX_GUILDS})};
 }
-module.exports={createDiscordConnect,validWebhook,keyFromEnv,encryptWebhook,decryptWebhook,makeOAuthState,verifyOAuthState,webhookPayload,sameOrigin,TABLES};
+module.exports={createDiscordConnect,validWebhook,normalizeInvite,keyFromEnv,encryptWebhook,decryptWebhook,makeOAuthState,verifyOAuthState,webhookPayload,sameOrigin,TABLES};
