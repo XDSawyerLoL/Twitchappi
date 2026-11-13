@@ -67,7 +67,7 @@
  share?.addEventListener('click',()=>{
   const slug=String(location.pathname||'').split('/').filter(Boolean);
   if(slug.length!==2||slug[0]!=='flash'||!/^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/.test(slug[1]))return;
-  const url='https://swapp.tv/flash/'+slug[1];
+  const url='https://swapp.tv/actus/'+slug[1];
   const intent='https://x.com/intent/tweet?'+new URLSearchParams({
    text:String(document.title||'SWAPP FLASH').slice(0,190),url
   }).toString();
