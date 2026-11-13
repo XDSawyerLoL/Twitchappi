@@ -32,6 +32,8 @@ test('same-document navigation is real SPA navigation, not a fake transition',()
  assert.match(js,/window\.renderHome=stableHome/);
  assert.match(js,/window\.renderNav=permanentNav/);
  assert.match(js,/window\.setView\(view\)/);
+ assert.match(js,/window\.swappNavigateSpa/);
+ assert.match(js,/document\.querySelector\('main\.app > \.view\.active'\)/);
  assert.match(js,/document\.startViewTransition/);
  assert.match(js,/prefers-reduced-motion/);
  assert.doesNotMatch(js,/location\.assign|location\.reload|innerHTML|outerHTML/);
