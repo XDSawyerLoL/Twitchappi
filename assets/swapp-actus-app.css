@@ -574,7 +574,7 @@
 #actus .swapp-actus-featured-actions .swapp-home-feature-cta.primary:hover{background:#dceff1}
 #actus .swapp-actus-featured-empty{
  display:flex;flex-direction:column;justify-content:flex-end;
- min-height:inherit;gap:12px;
+ height:100%;min-height:100%;gap:12px;
  padding:clamp(35px,7vw,105px) clamp(24px,7vw,116px);
  background:linear-gradient(135deg,#133042,#0a111e 65%);
 }
