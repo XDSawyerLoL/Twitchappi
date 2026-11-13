@@ -48,24 +48,30 @@
    };
    const announcement=toggle('Annonces live',guild.announcements);
    const listed=toggle('Afficher sur SWAPP',guild.public);
+   const invite=node('input','sdc-invite');invite.type='url';invite.value=guild.invite||'';
+   invite.placeholder='https://discord.gg/...';
+   invite.setAttribute('aria-label','Invitation publique pour '+guild.name);
+   const save=node('button','','Enregistrer');save.type='button';
    const remove=node('button','','Retirer');remove.type='button';
    async function update(){
     try{
      msg('Mise à jour…');
      await action('POST','/api/swapp/discord/community/'+guild.guild_id,{
-      announcements:announcement.input.checked,public:listed.input.checked
+      announcements:announcement.input.checked,public:listed.input.checked,
+      invite:invite.value.trim()
      });
      msg('Préférences enregistrées.');
     }catch(err){msg('Enregistrement impossible : '+err.message);void refresh()}
    }
    announcement.input.addEventListener('change',update);
    listed.input.addEventListener('change',update);
+   save.addEventListener('click',update);
    remove.addEventListener('click',async()=>{
     if(!confirm('Retirer ce serveur de SWAPP et arrêter ses annonces ?'))return;
     try{await action('DELETE','/api/swapp/discord/community/'+guild.guild_id);await refresh()}
     catch(err){msg('Suppression impossible : '+err.message)}
    });
-   controls.append(announcement.wrapper,listed.wrapper,remove);
+   controls.append(announcement.wrapper,listed.wrapper,invite,save,remove);
    item.append(details,controls);servers.append(item);
   });
   msg(oauthError||oauthSuccess+state.communities.length+' serveur(s) connecté(s). Les annonces nécessitent un flux SWAPP réellement en direct.');
