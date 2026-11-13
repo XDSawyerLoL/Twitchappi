@@ -115,7 +115,7 @@ function createDiscordConnect({app,env=process.env,mysqlFactory=null,restoreSess
  let uriValid=false,redirectValid=false;
  try{const u=new URL(mysqlUri);uriValid=u.protocol==='mysql:'&&Boolean(u.username&&u.hostname&&u.pathname!=='/');}catch{}
  try{const u=new URL(redirect);redirectValid=u.protocol==='https:'&&u.hostname==='swapp.tv'&&u.pathname==='/api/swapp/discord/callback'&&!u.search&&!u.hash;}catch{}
- const enabled=env.SWAPP_ACCOUNT_STORE==='mysql'&&snowflake(clientId)&&secret.length>=12&&key&&oauthSecret.length>=32&&uriValid&&redirectValid&&env.SWAPP_DISCORD_ENABLED!=='false';
+ const enabled=env.SWAPP_ACCOUNT_STORE==='mysql'&&snowflake(clientId)&&secret.length>=12&&key&&String(env.SESSION_SECRET||'').length>=32&&oauthSecret.length>=32&&uriValid&&redirectValid&&env.SWAPP_DISCORD_ENABLED!=='false';
  let pool=null,init=null,running=null;
  const ready=async()=>{
   if(!enabled)throw Error('discord_not_configured');
