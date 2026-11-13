@@ -35,39 +35,26 @@ test('public homepage has a canonical indexable catalogue, original lab remains 
   assert.ok(oldLab.includes(name+'?v='+version));
  }
 });
-test('root route serves only the immersive catalogue and redirects legacy bookmarks',()=>{
+test('root route uses exactly the same SPA shell as Découvrir',()=>{
  const server=read('server.js'),start=server.indexOf("app.get('/', (req, res) => {");
  const end=server.indexOf('\n});',start)+4;
  assert.ok(start>0&&end>start);
- const routes=[],warnings=[];
- new Function('app','require','console',server.slice(start,end))(
+ const routes=[];
+ new Function('app','sendSwappUi',server.slice(start,end))(
   {get(route,handler){routes.push({route,handler})}},
-  ()=>({page:({publicHome})=>publicHome?'PUBLIC_SWAPP_CATALOGUE':'LAB'}),
-  {warn:(...parts)=>warnings.push(parts.join(' '))}
+  res=>{res.sameSpa=true;return res}
  );
  const handler=routes.find(x=>x.route==='/')?.handler;
  assert.equal(typeof handler,'function');
- const response=()=>({headers:{},sent:null,redirected:null,type(name){this.mime=name;return this},
-  set(k,v){this.headers[k]=v;return this},send(body){this.sent=body;return this},
-  status(code){this.statusCode=code;return this},redirect(code,url){this.redirected={code,url};return this}});
- const publicRes=response();handler({query:{}},publicRes);
- assert.equal(publicRes.sent,'PUBLIC_SWAPP_CATALOGUE');
- assert.equal(publicRes.mime,'html');
- assert.equal(publicRes.headers['Cache-Control'],'public, max-age=45');
+ const response=()=>({headers:{},redirected:null,
+  set(k,v){this.headers[k]=v;return this},
+  redirect(code,url){this.redirected={code,url};return this}});
+ const home=response();handler({query:{}},home);
+ assert.equal(home.sameSpa,true);
  const legacy=response();handler({query:{classic:'1'}},legacy);
  assert.deepEqual(legacy.redirected,{code:308,url:'/'});
  assert.equal(legacy.headers['Cache-Control'],'no-store');
- const broken=[],appFail={get(_route,fn){broken.push(fn)}};
- new Function('app','require','console',server.slice(start,end))(
-  appFail,()=>{throw Error('incomplete Hostinger upload')},
-  {warn:(...parts)=>warnings.push(parts.join(' '))}
- );
- const failure=response();broken[0]({query:{}},failure);
- assert.equal(failure.statusCode,503);
- assert.equal(failure.headers['Cache-Control'],'no-store');
- assert.equal(failure.sent,'Accueil SWAPP temporairement indisponible.');
- assert.ok(warnings.some(x=>x.includes('Catalogue indisponible')));
- assert.equal(server.slice(start,end).includes('sendSwappUi'),false);
+ assert.doesNotMatch(server.slice(start,end),/page\(\{publicHome:true\}\)/);
 });
 test('small communities use dedicated verified sources, prefer up to 50 and accurately expand to 150',()=>{
  assert.match(catalogue.API.small,/\/api\/oryon\/discover\/find-live\?mood=petite-commu/);

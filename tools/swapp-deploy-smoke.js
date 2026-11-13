@@ -282,7 +282,8 @@ async function verify(){
  // the SPA remains reachable on /categories for creator and account journeys.
  const publicHome=await request(origin,'/');
  check(publicHome.body.includes('id="swapp-catalogue-lab"')&&
-  publicHome.body.includes('swapp-catalogue-lab.js?v=20261113-live-revalidation-v14')&&
+  publicHome.body.includes('swapp-catalogue-spa.js?v=20261114-real-spa-v16')&&
+  publicHome.body.includes('data-swapp-home-spa="v16"')&&
   publicHome.body.includes('rel="canonical" href="https://swapp.tv/"')&&
   !publicHome.body.includes('name="robots" content="noindex')&&
   !publicHome.body.includes('Ancien accueil')&&!publicHome.body.includes('/?classic=1'),
@@ -603,7 +604,9 @@ async function verify(){
  // All native documents now share the same site shell and motion assets.
  // The SPA's menu is populated server-side, avoiding a flash of empty nav.
  const sharedMotion='swapp-route-motion.css?v=20261113-shared-shell-v2';
- check(publicHome.body.includes('data-swapp-shell="shared-native-v2"')&&
+ check(publicHome.body.includes('data-swapp-home-spa="v16"')&&
+   publicHome.body.includes('<main class="app">')&&
+   !publicHome.body.includes('class="scl-side"')&&
    station.body.includes('data-swapp-shell="shared-native-v2"')&&
    publicHome.body.includes(sharedMotion)&&station.body.includes(sharedMotion)&&
    home.body.includes(sharedMotion)&&news.body.includes(sharedMotion),

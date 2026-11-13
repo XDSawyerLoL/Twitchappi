@@ -3,20 +3,9 @@
 const {renderPage,SHARED_HEAD_SLOT}=require('./swapp-page-shell');
 const html=source=>String(source||'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 const ROUTE='/catalogue-test';
-function page({publicHome=false}={}){
- const head='<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">'+
-   (publicHome?'<link rel="canonical" href="https://swapp.tv/"><meta property="og:type" content="website"><meta property="og:url" content="https://swapp.tv/">'+
-   '<meta name="google-site-verification" content="G7mGoV76GdKsvAMEGkyKILyzsiW4U-GXIfuWza9G4N4">'+
-   '<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6082969821681414" crossorigin="anonymous"></script>':
-   '<meta name="robots" content="noindex,nofollow,noarchive">')+
-  '<meta name="theme-color" content="#0b0d12">'+
-  '<title>'+(publicHome?'SWAPP — Directs, jeux et actualités':'Catalogue immersif · Laboratoire SWAPP')+'</title>'+
-  '<meta name="description" content="'+(publicHome?'SWAPP réunit les créateurs en direct, les jeux à découvrir et les actualités gaming dans un catalogue immersif.':'Page de démonstration : explorer les lives et les jeux SWAPP par affiches, prévisualisations et favoris.')+'">'+
-  '<script src="/assets/swapp-editorial-color.js?v=20261114-native-accent-v1"></script>'+SHARED_HEAD_SLOT+
-  '<link rel="stylesheet" href="/assets/swapp-visual-polish.css?v=20261016-mobile-swipe-40">'+
-  '<link rel="stylesheet" href="/assets/swapp-catalogue-lab.css?v=20261113-x-share-edge-hints-v7">';
- const content='<div class="scl-shell" id="swapp-catalogue-lab">'+
-  '<aside class="scl-side" aria-label="Rubriques du catalogue">'+
+function catalogueContent({publicHome=false}={}){
+ return '<div class="scl-shell" id="swapp-catalogue-lab">'+
+  (publicHome?'':'<aside class="scl-side" aria-label="Rubriques du catalogue">'+
    '<div class="scl-side-brand">SWAPP<span>.</span><small>'+(publicHome?'EN DIRECT / ACTUALITÉ':'CATALOGUE / LAB')+'</small></div>'+
    '<a href="#scl-feature" class="scl-side-link is-current">À la une</a>'+
    '<a href="#scl-articles" class="scl-side-link">Articles</a><a href="#scl-live" class="scl-side-link">Directs</a>'+
@@ -24,7 +13,7 @@ function page({publicHome=false}={}){
    '<a href="#scl-small" class="scl-side-link">Petites communautés</a>'+
    ''+
    '<a href="#scl-favorites" class="scl-side-link">Ma liste <span data-scl-favorites-count>0</span></a>'+
-  '</aside>'+
+  '</aside>')+
   '<main class="scl-main" id="scl-main">'+
    '<div class="scl-topline"><div><span class="scl-kicker">'+(publicHome?'SWAPP · LIVE, JEUX & ACTUALITÉS':'SWAPP ORIGINAL · EXPÉRIENCE TEST')+'</span><p>Des histoires à regarder en direct.</p></div>'+
     '<label class="scl-search"><span class="scl-visually-hidden">Rechercher un jeu ou un créateur</span>'+
@@ -52,6 +41,20 @@ function page({publicHome=false}={}){
    '<footer class="scl-footer">'+(publicHome?'SWAPP · Découvre les directs, les articles et les jeux qui font l’actualité.':'Prototype expérimental SWAPP.')+' Les images, articles et flux proviennent de sources publiées ou de directs disponibles. Aucun live fictif ni vidéo lancée sans interaction. <nav class="scl-legal" aria-label="Informations SWAPP"><a href="/a-propos">À propos</a><a href="/contact">Contact</a><a href="/mentions-legales">Mentions légales</a><a href="/confidentialite">Confidentialité</a><a href="/cookies">Cookies</a><a href="/cgu">CGU</a></nav></footer>'+
   '</main></div>'+
   '<dialog class="scl-dialog" id="scl-dialog" aria-labelledby="scl-dialog-title"><button class="scl-dialog-close" type="button" id="scl-dialog-close" aria-label="Fermer">×</button><div id="scl-dialog-content"></div></dialog>';
+}
+function page({publicHome=false}={}){
+ const head='<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">'+
+   (publicHome?'<link rel="canonical" href="https://swapp.tv/"><meta property="og:type" content="website"><meta property="og:url" content="https://swapp.tv/">'+
+   '<meta name="google-site-verification" content="G7mGoV76GdKsvAMEGkyKILyzsiW4U-GXIfuWza9G4N4">'+
+   '<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6082969821681414" crossorigin="anonymous"></script>':
+   '<meta name="robots" content="noindex,nofollow,noarchive">')+
+  '<meta name="theme-color" content="#0b0d12">'+
+  '<title>'+(publicHome?'SWAPP — Directs, jeux et actualités':'Catalogue immersif · Laboratoire SWAPP')+'</title>'+
+  '<meta name="description" content="'+(publicHome?'SWAPP réunit les créateurs en direct, les jeux à découvrir et les actualités gaming dans un catalogue immersif.':'Page de démonstration : explorer les lives et les jeux SWAPP par affiches, prévisualisations et favoris.')+'">'+
+  '<script src="/assets/swapp-editorial-color.js?v=20261114-native-accent-v1"></script>'+SHARED_HEAD_SLOT+
+  '<link rel="stylesheet" href="/assets/swapp-visual-polish.css?v=20261016-mobile-swipe-40">'+
+  '<link rel="stylesheet" href="/assets/swapp-catalogue-lab.css?v=20261113-x-share-edge-hints-v7">';
+ const content=catalogueContent({publicHome});
  return renderPage({
   head,content,active:publicHome?'home':'categories',
   bodyClass:'swapp-editorial-route swapp-catalogue-lab-page'+(publicHome?' swapp-catalogue-home':''),
@@ -70,4 +73,4 @@ function register(app){
   return res.type('html').send(page());
  });
 }
-module.exports={ROUTE,page,register,html};
+module.exports={ROUTE,page,register,html,catalogueContent};

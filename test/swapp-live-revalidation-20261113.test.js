@@ -116,5 +116,6 @@ test('background timer pauses on pagehide and revalidates when visible again',()
  assert.match(file,/window\.addEventListener\('pageshow'/);
  assert.match(file,/window\.addEventListener\('pagehide'/);
  assert.match(file,/if\(state\.loading\|\|state\.liveRefreshing\|\|document\.hidden/);
- assert.match(file,/installLiveRecheck\(\);\s*void load\(\);/);
+ assert.match(file,/installLiveRecheck\(\);\s*const spaHome/);
+ assert.match(file,/liveRefreshTimer=setInterval\(refreshWhenVisible,LIVE_RECHECK_MS\)/);
 });

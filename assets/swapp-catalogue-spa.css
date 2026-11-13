@@ -1,0 +1,37 @@
+/* True SPA homepage: shared index.html header, navigation, account and gamepad. */
+body[data-swapp-home-spa="v16"] #home.view{padding:0;min-width:0}
+body[data-swapp-home-spa="v16"] #home .scl-shell{display:block;min-height:calc(100svh - 68px);max-width:100%}
+body[data-swapp-home-spa="v16"] #home .scl-main{padding-top:0;width:100%;max-width:none}
+body[data-swapp-home-spa="v16"] #home .scl-topline{
+ position:relative;inset:auto;z-index:2;pointer-events:auto;display:flex;
+ flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between;
+ margin:0;padding:23px clamp(18px,4.5vw,90px) 10px;
+ background:#070a10;box-shadow:none;
+}
+body[data-swapp-home-spa="v16"] #home .scl-topline .scl-kicker{
+ font-size:12px;letter-spacing:.12em;font-weight:850;
+}
+body[data-swapp-home-spa="v16"] #home .scl-topline p{display:block;color:#bbc5d4;margin:4px 0 0;font-size:13px}
+body[data-swapp-home-spa="v16"] #home .scl-search{
+ position:static;pointer-events:auto;max-width:420px;width:min(38vw,420px);
+}
+body[data-swapp-home-spa="v16"] #home .scl-tabs{
+ position:relative;inset:auto;z-index:2;display:flex;flex-wrap:wrap;gap:8px;
+ justify-content:flex-start;align-items:center;margin:0;
+ padding:0 clamp(18px,4.5vw,90px) 14px;background:#070a10;
+ width:100%;max-width:none;box-shadow:none;
+}
+body[data-swapp-home-spa="v16"] #home .scl-feature{margin:0;border-radius:0}
+body[data-swapp-home-spa="v16"] #home .scl-footer{padding-bottom:38px}
+body[data-swapp-home-spa="v16"] #home .scl-rail{scroll-margin-top:96px}
+body[data-swapp-home-spa="v16"] main.app > .view.active.swapp-route-enter{
+ animation:swapp-route-reveal 260ms cubic-bezier(.22,1,.36,1) both;
+}
+@media(max-width:850px){
+ body[data-swapp-home-spa="v16"] #home .scl-topline{padding:16px 4% 9px;align-items:stretch}
+ body[data-swapp-home-spa="v16"] #home .scl-search{max-width:none;width:100%}
+ body[data-swapp-home-spa="v16"] #home .scl-tabs{padding:0 4% 12px;flex-wrap:nowrap;overflow-x:auto}
+}
+@media(prefers-reduced-motion:reduce){
+ body[data-swapp-home-spa="v16"] main.app > .view.active.swapp-route-enter{animation:none!important}
+}

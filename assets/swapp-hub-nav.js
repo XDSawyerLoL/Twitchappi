@@ -205,6 +205,9 @@
   if(location.pathname==='/'&&location.search==='')return;
   event.preventDefault();
   event.stopImmediatePropagation();
+  if(document.getElementById('swapp-catalogue-lab')&&typeof window.setView==='function'){
+   window.setView('home');return;
+  }
   location.assign('/');
  },true);
  // Multiple SPA updates can mutate the menu in one frame. Reconcile once
