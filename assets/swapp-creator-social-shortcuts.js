@@ -25,6 +25,7 @@
  };
  const LOGIN=/^[a-z0-9_-]{2,48}$/;
  const cache=new Map(),pending=new Set();
+ const discordCache=new Map(),discordPending=new Set();
  let dialog=null,fields={},dialogFor='',busy=false;
  const loginFor=page=>{
   const name=String(page?.dataset?.channelLogin||'').trim().toLowerCase();
@@ -79,13 +80,14 @@
   let row=main.querySelector('.swapp-creator-social-shortcuts');
   const visible=services.filter(([key])=>Boolean(links[key]));
   const owner=ownerFor(page);
-  if(!visible.length&&!owner){row?.remove();return}
+  const communities=discordCache.get(loginFor(page))||[];
+  if(!visible.length&&!owner&&!communities.length){row?.remove();return}
   if(!row){
    row=make('nav','swapp-creator-social-shortcuts');
    row.setAttribute('aria-label','Réseaux et liens du créateur');
    dock.append(row);
   }else if(row.parentElement!==dock)dock.append(row);
-  const mark=visible.map(([key])=>key+':'+links[key]).join('|')+'|owner='+owner;
+  const mark=visible.map(([key])=>key+':'+links[key]).join('|')+'|discord='+communities.map(x=>x.name+':'+x.invite).join('|')+'|owner='+owner;
   if(row.dataset.socialMark===mark)return;
   row.dataset.socialMark=mark;
   row.replaceChildren();
@@ -99,7 +101,24 @@
    a.append(picture(icon));
    row.append(a);
   }
+  if(communities.length){
+   row.append(make('span','swapp-creator-social-caption','Discord'));
+   for(const community of communities){
+    const name=String(community.name||'Communauté').slice(0,60);
+    if(community.invite){
+     const link=make('a','swapp-creator-discord-chip',name);
+     link.href=community.invite;link.target='_blank';link.rel='noopener noreferrer nofollow';
+     link.title='Rejoindre le serveur Discord : '+name;
+     row.append(link);
+    }else{
+     row.append(make('span','swapp-creator-discord-chip is-unlinked',name));
+    }
+   }
+  }
   if(owner){
+   const discord=make('a','swapp-creator-discord-config','Discord Connect');
+   discord.href='/discord';discord.title='Configurer les serveurs Discord reliés à SWAPP';
+   row.append(discord);
    const edit=make('button','swapp-creator-social-inline-edit','+ Liens');
    edit.type='button';edit.title='Configurer Signal, Bluesky, Mastodon et Minds';
    edit.addEventListener('click',()=>open(page));
@@ -114,6 +133,29 @@
   if(!response.ok||body.success!==true||String(body.user?.login||'').toLowerCase()!==login)
    throw Error('Profil public indisponible.');
   return body.user;
+ }
+ async function refreshDiscord(page,login){
+  if(!LOGIN.test(login)||discordCache.has(login)||discordPending.has(login))return;
+  discordPending.add(login);
+  try{
+   const response=await fetch('/api/swapp/discord/creator/'+encodeURIComponent(login),{
+    credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'},
+    signal:AbortSignal.timeout(8000)
+   });
+   const data=response.ok?await response.json():null;
+   const communities=(Array.isArray(data?.communities)?data.communities:[]).slice(0,5).map(item=>{
+    const name=String(item?.name||'').trim().slice(0,60);
+    let invite='';try{
+     const u=new URL(String(item?.invite||''));
+     if(u.protocol==='https:'&&u.hostname==='discord.gg'&&
+      /^\/[a-zA-Z0-9-]{2,64}$/.test(u.pathname)&&!u.search&&!u.hash)invite=u.href;
+    }catch(_){}
+    return {name,invite};
+   }).filter(item=>item.name);
+   discordCache.set(login,communities);
+   if(page.isConnected&&loginFor(page)===login)paint(page,cache.get(login)||blank());
+  }catch(_){discordCache.set(login,[])}
+  finally{discordPending.delete(login)}
  }
  async function refresh(page,force=false){
   const login=loginFor(page);
@@ -212,6 +254,7 @@
    const login=loginFor(page);if(!login)continue;
    if(cache.has(login))paint(page,cache.get(login));
    else void refresh(page);
+   if(!discordCache.has(login))void refreshDiscord(page,login);
    if(ownerFor(page)){
     const ownerMenu=page.querySelector('.swapp-showcase-owner-menu .swapp-showcase-menu-content');
     if(ownerMenu&&!ownerMenu.querySelector('.swapp-creator-links-edit')){
