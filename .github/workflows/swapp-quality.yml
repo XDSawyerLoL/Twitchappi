@@ -32,13 +32,14 @@ jobs:
           node --check modules/swapp-discord-connect.js
           node --check assets/swapp-discord-connect.js
           node --check assets/swapp-account-menu.js
+          node --check assets/swapp-creator-social-shortcuts.js
           node --check assets/swapp-article-extras.js
           node --check modules/swapp-news/share-preview.js
           node --check modules/swapp-news/native-pages.js
           node --check modules/swapp-news/router.js
       - name: Editorial, SOCIAL and game-identity regression tests (Node built-ins only)
         run: |
-          node --test test/swapp-seo-landings.test.js test/swapp-social-rss-images.test.js test/witcher-remastered-creator-workspace.test.js test/swapp-program.test.js test/swapp-tv-rotation.test.js test/swapp-tv-queue.test.js test/swapp-tv-director.test.js test/swapp-home-promotion-small-actus-20261113.test.js test/swapp-catalogue-article-rail-20261113.test.js test/swapp-catalogue-cinema-20261113.test.js test/swapp-nav-catalogue-share-20261113.test.js test/swapp-flat-navigation-20261113.test.js test/swapp-direct-x-preview-20261113.test.js test/swapp-discord-connect-20261113.test.js test/swapp-editor-media-seo.test.js
+          node --test test/swapp-seo-landings.test.js test/swapp-social-rss-images.test.js test/witcher-remastered-creator-workspace.test.js test/swapp-program.test.js test/swapp-tv-rotation.test.js test/swapp-tv-queue.test.js test/swapp-tv-director.test.js test/swapp-home-promotion-small-actus-20261113.test.js test/swapp-catalogue-article-rail-20261113.test.js test/swapp-catalogue-cinema-20261113.test.js test/swapp-nav-catalogue-share-20261113.test.js test/swapp-flat-navigation-20261113.test.js test/swapp-direct-x-preview-20261113.test.js test/swapp-discord-connect-20261113.test.js test/swapp-visible-bell-creator-social.test.js test/swapp-editor-media-seo.test.js
 
       - name: Préparer le paquet Hostinger à partir du commit GitHub validé
         run: node tools/swapp-hostinger-package.js --output="${{ runner.temp }}/swapp-hostinger-${GITHUB_SHA:0:12}.zip"
