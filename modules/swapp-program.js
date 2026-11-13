@@ -15,7 +15,7 @@ function page(kind){
  <aside class="scal-aside"><span class="scal-kicker">SÉLECTION DU JOUR</span><h3 id="scal-selected-label">Aujourd'hui</h3><div id="scal-day-events" aria-live="polite"><p>Sélectionne une date pour voir les rendez-vous.</p></div><div class="scal-aside-tv"><span class="scal-kicker">LA CHAÎNE</span><h3>LE LIVE<br>NE S'ARRÊTE PAS.</h3><p>Découvre les créateurs et les jeux à l'antenne.</p><a href="/tv">OUVRIR SWAPP TV ↗</a></div></aside></div></section>
  <footer class="scal-foot"><span>SWAPP / AGENDA</span><span>TOUTES LES HEURES SONT LOCALES · AUCUN ÉVÉNEMENT INVENTÉ</span></footer>
  </main>`;
- const content=tv?`<main id="swapp-tv" class="stv" data-tv-build="20261113-liveboot-v11" aria-label="SWAPP TV">
+ const content=tv?`<main id="swapp-tv" class="stv" data-tv-build="20261113-twitch-events-v12" aria-label="SWAPP TV">
   <header class="stv-mast">
    <div class="stv-brand"><span class="stv-brandline">SWAPP / GAME UNIVERSE</span><strong>SWAPP TV</strong><span class="stv-station-label">LA CHAÎNE</span></div>
   </header>
@@ -38,6 +38,7 @@ function page(kind){
      </div>
     </div>
     <div class="stv-nowbar"><div><span class="stv-label">MAINTENANT</span><strong id="stv-now-name">Antenne en préparation</strong><span id="stv-now-game">En attente de programmation</span></div><div class="stv-now-actions"><button id="stv-watch" type="button" aria-pressed="false" disabled>▶ REGARDER</button><button id="stv-dock-toggle" type="button" aria-controls="stv-dock" aria-expanded="false">◧ TCHATS / FILE</button><button id="stv-immersive" type="button" aria-pressed="false">⛶ IMMERSION</button><a class="stv-portail-entry" href="/portail">✦ PORTAIL CRÉATEURS</a></div></div>
+    <div id="stv-playback-health" class="stv-playback-health" role="status" aria-live="polite" hidden></div>
    </div>
    <aside class="stv-rail stv-dock" id="stv-dock" aria-label="Tchats et file SWAPP TV">
     <div class="stv-dock-top">
@@ -95,8 +96,9 @@ function page(kind){
    ${calendar.replace(/^<main/,'<section').replace(/<\/main>$/,'</section>')}
   </dialog>
  </main>`:calendar;
- return layout({title:tv?'SWAPP TV — La chaîne du Game Universe':'Programme SWAPP TV',description:tv?'La chaîne gaming collective, découverte équitable et directs vérifiés':'Agenda des rendez-vous Spotlight SWAPP',content,active:tv?'tv':'agenda',extraCss:PROGRAM_CSS,scripts:'<link rel="stylesheet" href="/assets/swapp-program.css?v=20261113-5min-rotation-v10">'+
-  (tv?'<script defer src="/assets/swapp-tv-broadcast.js?v=20261113-liveboot-v11"></script>':'')+
+ return layout({title:tv?'SWAPP TV — La chaîne du Game Universe':'Programme SWAPP TV',description:tv?'La chaîne gaming collective, découverte équitable et directs vérifiés':'Agenda des rendez-vous Spotlight SWAPP',content,active:tv?'tv':'agenda',extraCss:PROGRAM_CSS,scripts:'<link rel="stylesheet" href="/assets/swapp-program.css?v=20261113-twitch-events-v12">'+
+  (tv?'<script defer src="/assets/swapp-tv-twitch-player.js?v=20261113-twitch-events-v12"></script>'+
+  '<script defer src="/assets/swapp-tv-broadcast.js?v=20261113-twitch-events-v12"></script>':'')+
   '<script defer src="/assets/swapp-calendar.js?v=20261021-calendar-health-v2"></script>'});
 }
 module.exports={page};
