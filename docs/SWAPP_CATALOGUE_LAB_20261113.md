@@ -77,3 +77,12 @@ Ordre testé : affiche du moment → articles SWAPP → directs → univers de j
 - GitHub Actions manuel « SWAPP quality gate » intègre la syntaxe et les tests du catalogue, de l'accueil et de la navigation. Aucun déclenchement récurrent, aucun secret SSH/FTP ou API payante nécessaire.
 - Après réussite, le workflow assemble le ZIP Hostinger depuis le commit exact contrôlé et l'attache comme artefact téléchargeable durant 7 jours. Télécharger l'artefact, extraire le ZIP intérieur et déposer son contenu à la racine de l'application Node Hostinger existante ; conserver variables d'environnement et stockage persistant, redémarrer Node, puis exécuter `npm run verify:production`.
 - Le workflow ne déploie pas sur Hostinger : la fusion GitHub ne suffit pas pour valider la production.
+
+## V6 : rails à la souris et grand bandeau 10 s (13 novembre 2026)
+
+- Les barres de défilement grises et les flèches redondantes sont masquées sur les rails du catalogue. Les rangées gardent leur propre déplacement horizontal.
+- Une souris près du bord droit ou gauche d'un rail entraîne un défilement horizontal progressif ; celui-ci cesse au milieu, en sortie du rail, au bord de la liste, pendant un dialogue ou si la page devient invisible.
+- Le tactile conserve le glissement natif. La préférence « réduire les animations » supprime ce défilement automatique. Les zones restent atteignables par tabulation, puis par flèches gauche/droite.
+- Le grand bandeau tourne automatiquement toutes les **10 secondes** (au lieu de 9,5), sans s'animer pendant le survol, le focus clavier, l'ouverture d'un dialogue ou un onglet masqué.
+- JS et CSS du catalogue ont le cache-busting `20261113-hover-rails-hero-10s-v6`. Aucun changement sur les API, les données utilisateurs ou HLS.
+- Vérifications dans `test/swapp-catalogue-cinema-20261113.test.js`. La fusion GitHub n'entraîne pas automatiquement un déploiement Hostinger.
