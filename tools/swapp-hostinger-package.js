@@ -12,7 +12,8 @@ const mandatory=['app.js','server.js','package.json','package-lock.json','index.
  'modules/swapp-catalogue-lab.js','assets/swapp-catalogue-lab.js','assets/swapp-catalogue-lab.css',
  'modules/swapp-discord-connect.js','assets/swapp-discord-connect.js','assets/swapp-discord-connect.css',
  'assets/swapp-navigation.js','assets/swapp-hub-nav.js','assets/swapp-unified-nav.css',
- 'assets/swapp-account-discord-link.js','assets/swapp-tv-broadcast.js'];
+ 'assets/swapp-account-discord-link.js','assets/swapp-tv-broadcast.js',
+ 'assets/swapp-program.css','assets/swapp-actus-app.css','modules/swapp-tv-director.js'];
 function secretLike(name){
  const p=String(name).replace(/\\/g,'/');
  const segments=p.split('/');
