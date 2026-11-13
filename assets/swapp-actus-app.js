@@ -121,9 +121,63 @@ function cover(article){
  img.src=candidates[0];p.append(img);
  return p;
 }
-function makeCard(a){if(!slugOk(a.slug))return null;const link=el('a','swapp-actus-card');link.href='/actus/'+encodeURIComponent(a.slug);
-const info=el('div','swapp-actus-info');info.append(el('small','',a.game||a.category||'Actualité'),el('span','swapp-actus-topic-label',articleTopics(a).join(' · ')),el('h2','',a.title),el('p','',a.summary||''),el('span','',date(a.publishedAt||a.originalPublishedAt)+' · Lire l’article →'));
-link.append(cover(a),info);link.onclick=e=>{if(e.button||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey)return;e.preventDefault();window.SwappLocalTastes?.record?.(a.game);open(a.slug)};return link;}
+async function shareArticleCard(a,actions,button,status){
+ const address=(location.origin||'https://swapp.tv')+'/actus/'+encodeURIComponent(a.slug);
+ const setStatus=message=>{status.hidden=false;status.textContent=message};
+ try{
+  if(typeof navigator.share==='function'){
+   await navigator.share({title:a.title,url:address});
+   return setStatus('Partage effectué');
+  }
+ }catch(error){if(error?.name==='AbortError')return}
+ try{
+  if(navigator.clipboard?.writeText){
+   await navigator.clipboard.writeText(address);
+   return setStatus('Lien copié');
+  }
+ }catch(_){}
+ // Fallback for older or restricted browsers: expose a selectable internal URL.
+ const field=actions.querySelector('.swapp-actus-share-url')||el('input','swapp-actus-share-url');
+ field.type='text';field.readOnly=true;field.value=address;
+ field.setAttribute('aria-label','Lien direct de l’article SWAPP');
+ if(!field.parentNode)actions.append(field);
+ field.focus();field.select();
+ try{
+  if(typeof document.execCommand==='function'&&document.execCommand('copy'))
+   return setStatus('Lien copié');
+ }catch(_){}
+ setStatus('Lien sélectionné : copiez-le');
+}
+function makeCard(a){
+ if(!slugOk(a.slug))return null;
+ const card=el('article','swapp-actus-card');
+ const link=el('a','swapp-actus-card-link');
+ link.href='/actus/'+encodeURIComponent(a.slug);
+ link.setAttribute('aria-label','Lire l’article sur SWAPP : '+a.title);
+ const info=el('div','swapp-actus-info');
+ info.append(el('small','',a.game||a.category||'Actualité'),
+  el('span','swapp-actus-topic-label',articleTopics(a).join(' · ')),
+  el('h2','',a.title),el('p','',a.summary||''),
+  el('span','',date(a.publishedAt||a.originalPublishedAt)+' · Lire l’article →'));
+ link.append(cover(a),info);
+ link.onclick=e=>{
+  if(e.button||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey)return;
+  e.preventDefault();window.SwappLocalTastes?.record?.(a.game);open(a.slug);
+ };
+ const actions=el('div','swapp-actus-card-actions');
+ const share=el('button','swapp-actus-card-share','Partager');
+ share.type='button';
+ share.setAttribute('aria-label','Partager l’article : '+a.title);
+ const status=el('span','swapp-actus-card-share-status');
+ status.setAttribute('role','status');status.setAttribute('aria-live','polite');status.hidden=true;
+ share.onclick=event=>{
+  event?.stopPropagation?.();
+  void shareArticleCard(a,actions,share,status);
+ };
+ actions.append(share,status);
+ card.append(link,actions);
+ return card;
+}
 function paragraphContent(parent,raw){let list=null;for(const lineRaw of String(raw||'').split(/\r?\n/)){const line=lineRaw.trim();if(!line){list=null;continue;}let m;if((m=line.match(/^(#{2,3})\s+(.+)/))){parent.append(el('h'+m[1].length,'',m[2]));list=null;}else if((m=line.match(/^[-*]\s+(.+)/))){if(!list){list=el('ul');parent.append(list)}list.append(el('li','',m[1]));}else{list=null;parent.append(el('p','',line.replace(/\*\*(.*?)\*\*/g,'$1')));}}}
 async function showList(node){const headline=el('header','swapp-actus-head');headline.append(el('small','','SWAPP LIVE NEWS · Actualité'),el('h1','','Toutes les actualités SWAPP'),el('p','','Gaming, intelligence artificielle, robotique et technologies émergentes : un seul magazine, filtré par tags.'));node.append(headline);
 const tools=el('div','swapp-actus-tools'),search=el('input');search.type='search';search.placeholder='Rechercher un jeu ou une actualité';search.setAttribute('aria-label','Recherche Actualité');const live=el('button','swapp-actus-go-live','Découvrir les lives →');live.onclick=()=>window.setView('discover');const category=el('select','swapp-actus-category');category.setAttribute('aria-label','Filtrer par catégorie');const all=el('option','','Toutes les catégories');all.value='';category.append(all);tools.append(search,category,live);node.append(tools);
