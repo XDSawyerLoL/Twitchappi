@@ -674,7 +674,7 @@ async function loadSmallCommunities(){
  // Independent, progressive feeds. A slow community search must not delay
  // the homepage hero, article rail or top live rows.
  const results=await Promise.allSettled(sources.map(async route=>{
-  const response=await fetchJson(route);
+  const response=await fetchJson(route,route===API.small?16000:8500);
   return Array.isArray(response.items)?response.items:[];
  }).map(promise=>promise.then(items=>{
   if(epoch!==state.smallEpoch)return items;
@@ -702,9 +702,9 @@ function render(){
  // Rebind existing SWAPP Mes jeux controller to dynamically created cards.
  window.dispatchEvent(new Event('swapp:account-rendered'));
 }
-async function fetchJson(path){
+async function fetchJson(path,maxWaitMs=8500){
  const control=new AbortController();
- const timeout=setTimeout(()=>control.abort(),8500);
+ const timeout=setTimeout(()=>control.abort(),maxWaitMs);
  try{
   const response=await fetch(path,{credentials:'same-origin',headers:{Accept:'application/json'},signal:control.signal,cache:'no-store'});
   if(!response.ok)throw new Error('HTTP '+response.status);
