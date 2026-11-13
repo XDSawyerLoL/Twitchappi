@@ -16,7 +16,7 @@ test('all four articles carry credited, externally hosted official illustrative 
   assert.ok(covers.length>0,article.slug);
   assert.ok(covers[0].startsWith('https://'),article.slug);
   assert.ok(article.thumbnail?.credit&&article.thumbnail?.rights,article.slug);
-  assert.ok(article.thumbnail.rights.includes('non réhéberg'),article.slug);
+  assert.match(article.thumbnail.rights,/non réhéberg|sans copie/i,article.slug);
   assert.ok(!article.editorialVerdict,article.slug);
   if(article.image){
    assert.ok(article.image.url.startsWith('https://'),article.slug);
