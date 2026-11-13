@@ -282,7 +282,7 @@ async function verify(){
  // the SPA remains reachable on /categories for creator and account journeys.
  const publicHome=await request(origin,'/');
  check(publicHome.body.includes('id="swapp-catalogue-lab"')&&
-  publicHome.body.includes('swapp-catalogue-lab.js?v=20261113-x-share-edge-hints-v7')&&
+  publicHome.body.includes('swapp-catalogue-lab.js?v=20261113-live-revalidation-v14')&&
   publicHome.body.includes('rel="canonical" href="https://swapp.tv/"')&&
   !publicHome.body.includes('name="robots" content="noindex')&&
   !publicHome.body.includes('Ancien accueil')&&!publicHome.body.includes('/?classic=1'),
@@ -291,7 +291,7 @@ async function verify(){
  check(labHome.body.includes('id="swapp-catalogue-lab"')&&
    labHome.body.includes('noindex,nofollow,noarchive'),
    'Unindexed /catalogue-test laboratory missing');
- const publicCatalogueJs=await request(origin,'/assets/swapp-catalogue-lab.js?v=20261113-x-share-edge-hints-v7');
+ const publicCatalogueJs=await request(origin,'/assets/swapp-catalogue-lab.js?v=20261113-live-revalidation-v14');
  check(publicCatalogueJs.body.includes('function chooseSmallCommunities(')&&
   publicCatalogueJs.body.includes('/api/oryon/discover/find-live?mood=petite-commu'),
   'Public homepage small-community discovery missing');

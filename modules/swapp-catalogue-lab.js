@@ -55,7 +55,7 @@ function page({publicHome=false}={}){
   head,content,active:publicHome?'home':'categories',
   bodyClass:'swapp-editorial-route swapp-catalogue-lab-page'+(publicHome?' swapp-catalogue-home':''),
   scripts:'<script src="/assets/swapp-article-extras.js?v=20261113-actus-rail-v3" defer></script>'+
-  '<script src="/assets/swapp-catalogue-lab.js?v=20261113-x-share-edge-hints-v7" defer></script>'+
+  '<script src="/assets/swapp-catalogue-lab.js?v=20261113-live-revalidation-v14" defer></script>'+
   '<script src="/assets/swapp-my-games.js?v=20261021-account-hub-v1" defer></script>'+
   '<script src="/assets/swapp-navigation.js?v=20261113-nav-simple-v2" defer></script>'+
   '<script src="/assets/swapp-nav-session.js" defer></script>'
