@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SWAPP Live — Creator Studio</title>
+<link rel="stylesheet" href="/studio.css">
+</head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true">
+  <symbol id="i-monitor" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></symbol>
+  <symbol id="i-cog" viewBox="0 0 24 24"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"/><path d="m19 13.4 1.4 1.1-1.7 3-1.8-.6a8 8 0 0 1-2.3 1.3l-.4 1.9h-3.4l-.4-1.9a8 8 0 0 1-2.3-1.3l-1.8.6-1.7-3L6 13.4a8 8 0 0 1 0-2.8L4.6 9.5l1.7-3 1.8.6a8 8 0 0 1 2.3-1.3l.4-1.9h3.4l.4 1.9a8 8 0 0 1 2.3 1.3l1.8-.6 1.7 3L19 10.6a8 8 0 0 1 0 2.8z"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 6h9m4 0h3M4 12h3m4 0h9M4 18h9m4 0h3"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="15" cy="18" r="2"/></symbol>
+  <symbol id="i-sound" viewBox="0 0 24 24"><path d="M4 10v4h4l5 4V6L8 10H4zM17 9a5 5 0 0 1 0 6M20 6a9 9 0 0 1 0 12"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="m8 5 11 7-11 7V5z"/></symbol>
+  <symbol id="i-stop" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"/></symbol>
+  <symbol id="i-radio" viewBox="0 0 24 24"><circle cx="12" cy="12" r="2"/><path d="M16.3 7.7a6 6 0 0 1 0 8.6m-8.6 0a6 6 0 0 1 0-8.6M19.2 4.8a10 10 0 0 1 0 14.4M4.8 19.2a10 10 0 0 1 0-14.4"/></symbol>
+  <symbol id="i-external" viewBox="0 0 24 24"><path d="M13 5h6v6M19 5l-9 9"/><path d="M18 14v5H5V6h6"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 2 4 6v6c0 5 3 8 8 10 5-2 8-5 8-10V6l-8-4z"/><path d="m9 12 2 2 4-4"/></symbol>
+  <symbol id="i-camera" viewBox="0 0 24 24"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="m16 10 5-3v10l-5-3"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M6 9a7 7 0 0 1 12-2l2 5M4 12l2 5a7 7 0 0 0 12-2"/></symbol>
+</svg>
+
+<div class="shell" id="studio">
+  <aside class="rail" aria-label="Navigation du studio">
+    <div class="rail-mark" title="SWAPP Live"><span>SW</span></div>
+    <div class="rail-line"></div>
+    <nav class="rail-nav">
+      <a class="rail-link active" data-panel="studio" href="#studio" aria-current="page"><svg class="ui-icon"><use href="#i-grid"/></svg>Studio</a>
+      <a class="rail-link" data-panel="scenes" href="#scenes"><svg class="ui-icon"><use href="#i-grid"/></svg>Scènes</a>
+      <a class="rail-link" data-panel="sources" href="#sources"><svg class="ui-icon"><use href="#i-monitor"/></svg>Sources</a>
+      <a class="rail-link" data-panel="reglages" href="#reglages"><svg class="ui-icon"><use href="#i-sliders"/></svg>Réglages</a>
+      <a class="rail-link" data-panel="activite" href="#activite"><svg class="ui-icon"><use href="#i-radio"/></svg>Activité</a>
+    </nav>
+    <div class="rail-bottom">
+      <a class="rail-link" id="obsLink" data-panel="rtmp" href="#rtmp" title="Paramètres RTMP et connexion intégrés"><svg class="ui-icon"><use href="#i-cog"/></svg>RTMP</a>
+    </div>
+  </aside>
+
+  <div class="workspace">
+    <header class="topbar">
+      <div class="app-name"><div><strong>SWAPP <b>LIVE</b></strong><small>CREATOR STUDIO · WINDOWS</small></div></div>
+      <div class="top-spacer"></div>
+      <div class="privacy-note"><svg class="ui-icon"><use href="#i-shield"/></svg>Aperçu local et privé</div>
+      <span id="topLiveState" class="state-pill">HORS LIGNE</span>
+      <div class="header-divider"></div>
+      <div class="account-group"><span id="account">Compte non connecté</span><button type="button" id="connectButton" class="connect-btn">Se connecter</button></div>
+    </header>
+
+    <div class="studio-layout">
+      <aside class="left-dock" id="sources" aria-label="Scènes, sources et réglages du flux">
+        <section class="scenes-panel" id="scenes" aria-label="Scènes du direct">
+          <div class="dock-heading"><span class="kicker">Mes scènes</span><span class="side-badge">MONTAGE</span></div>
+          <p class="dock-caption">Crée des scènes et ajoute une caméra par-dessus ta capture. Les modifications s’appliquent au prochain aperçu.</p>
+          <div id="sceneList" class="scene-list" role="listbox" aria-label="Choisir une scène"></div>
+          <div class="scene-actions">
+            <button type="button" id="sceneCreate" aria-label="Créer une scène">+ Scène</button>
+            <button type="button" id="sceneDuplicate" aria-label="Dupliquer la scène">Dupliquer</button>
+            <button type="button" id="sceneRemove" aria-label="Supprimer la scène">Supprimer</button>
+          </div>
+          <label class="field" for="sceneName">Nom de la scène
+            <input id="sceneName" type="text" maxlength="55" placeholder="Nom de la scène">
+          </label>
+          <button type="button" id="sceneRename" class="tiny-control">Enregistrer le nom</button>
+          <div class="dock-heading" style="margin-top:18px"><span class="kicker">Sources de la scène</span></div>
+          <div id="sceneLayerList" class="scene-layer-list"></div>
+          <div class="camera-source-picker">
+            <label class="field" for="webcamSelect">Ajouter une webcam
+              <select id="webcamSelect"><option value="">Détection des caméras…</option></select>
+            </label>
+            <div class="scene-actions">
+              <button type="button" id="sceneAddWebcam">+ Ajouter la caméra</button>
+              <button type="button" id="sceneRefreshDevices">Actualiser</button>
+            </div>
+          </div>
+          <p class="muted-mini" id="sceneNotice" role="status">Les scènes sont enregistrées sur cet ordinateur, sans clé de diffusion.</p>
+        </section>
+        <div class="dock-divider"></div>
+        <div class="dock-heading"><span class="kicker">Sources de capture</span><span class="side-badge">WINDOWS</span></div>
+        <p class="dock-caption">Choisis ce que tu veux montrer. La source sélectionnée est utilisée au prochain aperçu.</p>
+        <div class="source-stack" role="group" aria-label="Presets de capture">
+          <button type="button" class="source-preset is-selected" data-preset="primary" aria-pressed="true"><span class="source-icon"><svg class="ui-icon"><use href="#i-monitor"/></svg></span><span><strong>Écran principal</strong><em>Moniteur 1 · DirectX</em></span></button>
+          <button type="button" class="source-preset" data-preset="secondary" aria-pressed="false"><span class="source-icon"><svg class="ui-icon"><use href="#i-monitor"/></svg></span><span><strong>Écran secondaire</strong><em>Moniteur 2 · DirectX</em></span></button>
+          <button type="button" class="source-preset" data-preset="desktop" aria-pressed="false"><span class="source-icon"><svg class="ui-icon"><use href="#i-grid"/></svg></span><span><strong>Bureau complet</strong><em>Mode compatible · GDI</em></span></button>
+          <button type="button" class="source-preset" data-preset="window" aria-pressed="false"><span class="source-icon"><svg class="ui-icon"><use href="#i-monitor"/></svg></span><span><strong>Fenêtre ou application</strong><em>Choisir une fenêtre Windows précise</em></span></button>
+          <button type="button" class="source-preset" data-preset="game" aria-pressed="false" disabled><span class="source-icon"><svg class="ui-icon"><use href="#i-camera"/></svg></span><span><strong>Jeu plein écran</strong><em id="gamePresetDetail">Nécessite le moteur libobs</em></span></button>
+          <button type="button" class="source-preset" data-preset="external" aria-pressed="false"><span class="source-icon"><svg class="ui-icon"><use href="#i-radio"/></svg></span><span><strong>RTMP externe</strong><em>Détection automatique du flux OBS</em></span></button>
+        </div>
+        <div class="window-picker" id="windowCapturePanel">
+          <label for="windowSelect">Fenêtre à diffuser</label>
+          <div class="window-picker-row">
+            <select id="windowSelect" aria-label="Fenêtre Windows à capturer"><option value="">Actualisation des fenêtres…</option></select>
+            <button type="button" id="refreshWindowsButton" title="Actualiser les fenêtres ouvertes" aria-label="Actualiser la liste des fenêtres"><svg class="ui-icon"><use href="#i-refresh"/></svg></button>
+          </div>
+          <p id="windowsStatus" role="status">Sélectionne une fenêtre visible, puis prévisualise-la.</p>
+        </div>
+        <div class="preset-status" id="presetHelp">Capture DirectX du moniteur principal. Tu peux composer une scène avec la capture et une webcam. Le changement de scène en plein direct dépend du moteur libobs.</div>
+
+        <div class="dock-divider"></div>
+        <div id="reglages" class="dock-block">
+          <div class="dock-heading"><span class="kicker">Configuration</span><svg class="ui-icon" style="color:#9299ac"><use href="#i-cog"/></svg></div>
+          <details id="advancedSettings" open>
+            <summary>Paramètres vidéo</summary>
+            <div class="details-inner">
+              <div class="field-grid">
+                <label class="field" for="display">Moniteur<select id="display"><option value="0">Écran 1</option><option value="1">Écran 2</option><option value="2">Écran 3</option><option value="3">Écran 4</option></select></label>
+                <label class="field" for="fps">Fluidité<select id="fps"><option value="30">30 IPS</option><option value="60" selected>60 IPS</option></select></label>
+              </div>
+              <div class="field-grid">
+                <label class="field" for="bitrate">Débit cible<select id="bitrate"><option value="4500">4,5 Mb/s</option><option value="6000" selected>6 Mb/s</option><option value="8000">8 Mb/s</option><option value="10000">10 Mb/s</option></select></label>
+                <label class="field" for="encoder">Encodeur<select id="encoder"><option value="auto">Automatique</option><option value="nvenc">NVIDIA NVENC</option><option value="x264">CPU · x264</option></select></label>
+              </div>
+              <label class="field" for="captureMode">Moteur de capture<select id="captureMode"><option value="auto">Automatique</option><option value="libobs">Game Capture · libobs</option><option value="ddagrab" selected>DirectX · DDAGrab</option><option value="gdigrab">Bureau entier · GDI</option><option value="window">Fenêtre précise · GDI</option><option value="external">Signal RTMP externe</option></select></label>
+              <label class="field" for="obsSource">Source OBS native<select id="obsSource" disabled><option value="game">Jeu plein écran</option><option value="display">Écran entier</option></select></label>
+            </div>
+          </details>
+        </div>
+
+        <div class="dock-divider"></div>
+        <section class="rtmp-settings" id="rtmp" aria-label="Connexion RTMP et clé de chaîne">
+          <div class="dock-heading"><span class="kicker">Connexion à SWAPP</span><span class="side-badge">AUTOMATIQUE</span></div>
+          <p class="dock-caption">Ta clé est récupérée après connexion. La capture intégrée l’utilise automatiquement. OBS externe peut utiliser ces mêmes informations, sans autre interface.</p>
+          <label class="field" for="rtmpServer">Serveur RTMP local
+            <input id="rtmpServer" type="text" value="rtmp://127.0.0.1:1935/live" readonly spellcheck="false" autocomplete="off">
+          </label>
+          <button type="button" class="tiny-control" id="copyRtmp">Copier le serveur RTMP</button>
+          <label class="field" for="streamKey">Clé de diffusion SWAPP
+            <input id="streamKey" type="password" value="" readonly spellcheck="false" autocomplete="off" placeholder="Connecte ton compte pour la récupérer">
+          </label>
+          <div class="rtmp-actions"><button type="button" class="tiny-control" id="copyKey" disabled>Copier la clé</button><button type="button" class="tiny-control" id="revealKey" disabled>Afficher</button></div>
+          <button type="button" class="text-control" id="disconnectButton" disabled>Déconnecter mon compte</button>
+        </section>
+        <div class="dock-divider"></div>
+        <section class="mixer" aria-label="Mixeur audio">
+          <div class="dock-heading"><span class="kicker"><svg class="ui-icon"><use href="#i-sound"/></svg>Entrées audio</span><span class="muted-mini">DIRECTSHOW</span></div>
+          <div class="audio-field"><label for="audio">Son du PC</label><select id="audio"><option value="">Aucun périphérique détecté</option></select></div>
+          <div class="audio-field"><label for="mic">Microphone</label><select id="mic"><option value="">Micro désactivé</option></select></div>
+          <p id="mixerAvailability">Les sources détectées sont proposées ici. Le son système nécessite Stereo Mix ou une boucle audio compatible dans cette préversion.</p>
+        </section>
+      </aside>
+
+      <main class="center-dock" aria-label="Prévisualisation et direct">
+        <div class="preview-head">
+          <div><h1>Mon studio</h1><p>Prépare ton image, puis lance ton live sur SWAPP.</p></div>
+          <div class="canvas-formats"><span>16:9</span><span>1080p cible</span></div>
+        </div>
+        <section class="frame" aria-label="Aperçu local de la capture">
+          <video id="video" autoplay muted playsinline></video>
+          <div id="emptyPreview">
+            <div class="empty-symbol"><svg class="ui-icon"><use href="#i-monitor"/></svg></div>
+            <h2>Ton écran. Ton direct.</h2>
+            <p id="previewExplanation">Choisis une source à gauche et clique sur « Prévisualiser ». Ton image apparaîtra ici avant toute diffusion publique.</p>
+          </div>
+          <span id="previewStateLabel" class="frame-tag">APERÇU INACTIF</span>
+          <div class="frame-utility"><button type="button" id="soundToggle" disabled title="Écouter le retour local avec précaution : risque d'écho">Écouter l'aperçu</button></div>
+          <span class="frame-corner" id="frameQuality">1920 × 1080 · 60 IPS cible</span>
+        </section>
+        <div class="source-status-strip">
+          <div class="status-strip-main"><svg class="ui-icon"><use href="#i-monitor"/></svg><span id="activeSourceText">Source : Écran principal</span></div>
+          <span class="status-chip" id="engineChip">Moteur : DirectX</span>
+        </div>
+
+        <section class="broadcast-controller">
+          <div class="controller-head"><h2>Contrôle du direct</h2><span>La prévisualisation ne lance pas le direct</span></div>
+          <div class="action-buttons">
+            <button type="button" id="previewButton"><svg class="ui-icon"><use href="#i-play"/></svg>Prévisualiser</button>
+            <button type="button" id="liveButton" disabled><svg class="ui-icon"><use href="#i-radio"/></svg>Lancer le direct</button>
+            <button type="button" id="stopButton" disabled><svg class="ui-icon"><use href="#i-stop"/></svg><span id="stopText">Arrêter l’aperçu</span></button>
+          </div>
+          <div id="badge" role="status" aria-live="polite">Connecte ton compte, choisis une source, puis lance l’aperçu. Aucun direct n’est actif.</div>
+          <div class="diagnostic-row"><button type="button" id="repairButton" disabled>Réparer la diffusion publique</button><a href="#rtmp">Connexion RTMP et clé</a></div>
+        </section>
+
+        <section class="metric-row" aria-label="Réglages du flux">
+          <div class="metric"><span class="metric-title">Encodeur sélectionné</span><strong id="metricEncoder">Automatique</strong><small>Réglage demandé</small></div>
+          <div class="metric"><span class="metric-title">Qualité cible</span><strong id="metricQuality">1080p · 60 IPS</strong><small>Paramètre, pas une mesure</small></div>
+          <div class="metric"><span class="metric-title">Débit cible</span><strong id="metricBitrate">6 Mb/s</strong><small>Réglage vidéo</small></div>
+        </section>
+      </main>
+
+      <aside class="right-dock" id="activite" aria-label="Canal et journal du studio">
+        <section class="right-panel">
+          <div class="right-panel-title"><h2>Mon espace créateur</h2><span class="side-badge">SWAPP</span></div>
+          <div class="profile-block">
+            <div class="avatar"><div class="avatar-icon">S</div><div><strong id="profileName">Non connecté</strong><small id="profileMeta">Connecte ton compte SWAPP</small></div></div>
+            <p id="profileHint">Ton live sera publié sur ta chaîne après avoir vérifié l'aperçu et cliqué sur « Lancer le direct ».</p>
+          </div>
+          <a href="https://swapp.tv" target="_blank" rel="noopener" id="channelLink" class="channel-link"><svg class="ui-icon"><use href="#i-external"/></svg>Ouvrir ma chaîne / mon chat</a>
+          <p class="fine-print">Le chat SWAPP s’ouvre dans ton navigateur ; le flux vidéo, la clé et les commandes de diffusion sont regroupés ici.</p>
+        </section>
+
+        <section class="right-panel activity-panel" aria-label="Événements réels du studio">
+          <div class="activity-header"><h2>Journal d'activité</h2><span class="side-badge">LOCAL</span></div>
+          <div class="activity-feed" id="activityList" role="log" aria-live="polite"></div>
+        </section>
+
+        <section class="right-panel" style="margin-top:21px">
+          <div class="right-panel-title"><h2>État des modules</h2><span class="side-badge">DIAGNOSTIC</span></div>
+          <div class="warn-box"><b>Moteur natif</b><p id="nativeNotice">Vérification du moteur libobs installé…</p></div>
+          <a class="help-link" href="#rtmp" id="obsModeShortcut">Voir la connexion RTMP intégrée au studio</a>
+          <p class="fine-print">En cas d'écran noir, tente « Bureau complet ». Certains jeux protégés ne peuvent pas être capturés par FFmpeg. Seul le moteur libobs natif peut proposer Game Capture lorsqu'il est installé.</p>
+        </section>
+      </aside>
+    </div>
+
+    <footer class="footer">
+      <span><span class="safe">●</span> Capture locale · Publication uniquement après confirmation</span>
+      <span>SWAPP Live 1.2.3 · Studio Windows · Pas de capture garantie pour les jeux protégés</span>
+    </footer>
+  </div>
+</div>
+<script src="/assets/hls.min.js"></script>
+<script src="/studio.js"></script>
+<script src="/studio-scenes.js"></script>
+</body>
+</html>

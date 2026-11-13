@@ -1,8 +1,8 @@
 {
   "name": "swapp-local-app",
-  "version": "1.1.1",
+  "version": "1.2.3",
   "private": true,
-  "description": "SWAPP Live — fidélité OBS native sans réencodage, résolution et FPS intacts, qualité source mesurée",
+  "description": "SWAPP Live Windows Creator Studio : choix de fenêtre, capture RTMP/HLS intégrée, publication SWAPP, sources OBS externes",
   "main": "main.js",
   "dependencies": {
     "express": "^4.21.2",
@@ -62,6 +62,10 @@
       {
         "from": "bin/cloudflared.exe",
         "to": "bin/cloudflared.exe"
+      },
+      {
+        "from": "libobs-runtime",
+        "to": "swapp-libobs"
       }
     ],
     "afterPack": "./scripts/ensure-electron-runtime.cjs"
