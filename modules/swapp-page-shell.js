@@ -7,7 +7,7 @@
  * navigation, mobile navigation, header CSS and cross-document transitions.
  * Do not serialize client state or re-run page scripts on history traversal.
  */
-const {serverHeader,serverMobile}=require('../assets/swapp-navigation');
+const {serverHeader,serverMobile,desktopNavigation,mobileNavigation}=require('../assets/swapp-navigation');
 const SHARED_HEAD_SLOT='<!-- swapp:shared-shell-styles -->';
 const SHARED_CSS=Object.freeze([
  '/assets/swapp-unified-nav.css?v=20261113-nav-simple-v2',
@@ -31,4 +31,27 @@ function renderPage({head='',content='',scripts='',bodyClass='swapp-editorial-ro
   serverHeader(active)+String(content||'')+serverMobile(active)+
   String(scripts||'')+'</body></html>';
 }
-module.exports={renderPage,SHARED_HEAD_SLOT,SHARED_CSS,sharedLinks};
+const SPA_ACTIVE_ROUTES=Object.freeze({
+ '/':'home','/actus':'actus','/categories':'categories',
+ '/decouvrir':'discover','/equipes':'teams','/compte':'settings',
+ '/dashboard':'dashboard','/social':'community','/boutique':'shop',
+ '/tv':'tv','/on-air':'onair','/bandes-annonces':'trailers'
+});
+function normalizePath(path){
+ return (String(path||'/').split('?')[0].replace(/\/+$/,'')||'/');
+}
+function hydrateSpaNavigation(html,path='/'){
+ // The SPA used to serve an EMPTY nav and fill it asynchronously. It flashed
+ // between the cinematic native header and the SPA header on every document
+ // hop. Pre-render only these navigation fragments; account UI is left intact.
+ const active=SPA_ACTIVE_ROUTES[normalizePath(path)]||'home';
+ const original=String(html||'');
+ const desktop=/<nav id="nav" class="mainNav"(?: [^>]*)?><\/nav>/;
+ const mobile=/<nav id="mobileNav" class="mobileNav"(?: [^>]*)?><\/nav>/;
+ if(!desktop.test(original)||!mobile.test(original))return original;
+ return original.replace(desktop,
+  '<nav id="nav" class="mainNav" aria-label="Navigation principale">'+desktopNavigation(active)+'</nav>')
+ .replace(mobile,
+  '<nav id="mobileNav" class="mobileNav" aria-label="Navigation mobile">'+mobileNavigation(active)+'</nav>');
+}
+module.exports={renderPage,hydrateSpaNavigation,normalizePath,SHARED_HEAD_SLOT,SHARED_CSS,sharedLinks};
