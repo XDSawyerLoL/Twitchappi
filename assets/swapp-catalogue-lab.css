@@ -624,3 +624,16 @@ body.swapp-catalogue-lab-page{
  .scl-story-card,.scl-story-media img{transition:none!important}
  .scl-story-card:hover,.scl-story-card:focus-within{transform:none}
 }
+
+/* Canonical public homepage: legal disclosures and real small-live fallback. */
+.scl-legal{display:flex;align-items:center;gap:10px 17px;flex-wrap:wrap;margin-top:15px}
+.scl-legal a{color:#a9dbdc!important;text-decoration:none;font-size:12px}
+.scl-legal a:hover{text-decoration:underline;color:#fff!important}
+.scl-small-discover{
+ display:inline-flex!important;align-items:center;
+ margin-top:10px;padding:8px 11px;
+ border:1px solid #76c9ca80;border-radius:7px;
+ color:#b9eae9!important;text-decoration:none;font-weight:850
+}
+.scl-small-discover:hover{background:#213643;color:#fff!important}
+@media(max-width:650px){.scl-legal{gap:10px 13px}.scl-legal a{font-size:11px}}
