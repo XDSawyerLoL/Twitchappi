@@ -55,7 +55,9 @@
       try{window.scrollTo({left:0,top:0,behavior:'instant'});}
       catch(_){window.scrollTo(0,0);}
     }
-    if(!motionEnabled())return;
+    // Explicit ViewTransition already animates the real route snapshots.
+    // Do not apply a second fading/zooming DOM animation underneath it.
+    if(!motionEnabled()||document.documentElement?.dataset?.swappMotion==='cinematic')return;
     page.classList.add('swapp-route-enter');
     arrival=page;
   }

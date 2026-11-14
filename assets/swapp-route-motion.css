@@ -54,3 +54,59 @@ header.top{view-transition-name:swapp-masthead}
  ::view-transition-old(swapp-masthead),
  ::view-transition-new(swapp-masthead){animation:none!important}
 }
+
+/* V18 cinematic continuity: motion from the actual outgoing and incoming
+ * route snapshots. No fake loading layer, timer, or second navigation shell. */
+:root{
+ --swapp-route-enter-duration:740ms;
+ --swapp-route-exit-duration:380ms;
+ --swapp-route-easing:cubic-bezier(.16,1,.3,1);
+ --swapp-route-exit-easing:cubic-bezier(.55,.02,.85,.3);
+}
+@keyframes swapp-route-reveal{
+ 0%{opacity:.12;transform:translate3d(0,24px,0) scale(1.024);filter:blur(5px) brightness(.83)}
+ 42%{opacity:.86;filter:blur(1px) brightness(.97)}
+ 100%{opacity:1;transform:translate3d(0,0,0) scale(1);filter:blur(0) brightness(1)}
+}
+main.app > .view.active.swapp-route-enter{
+ transform-origin:50% 12%;
+ animation:swapp-route-reveal var(--swapp-route-enter-duration) var(--swapp-route-easing) both;
+}
+::view-transition{background:#05080d}
+::view-transition-old(root){
+ animation:swapp-cinema-out var(--swapp-route-exit-duration) var(--swapp-route-exit-easing) both;
+ transform-origin:50% 12%;
+}
+::view-transition-new(root){
+ animation:swapp-cinema-in var(--swapp-route-enter-duration) var(--swapp-route-easing) 95ms both;
+ transform-origin:50% 12%;
+}
+@keyframes swapp-cinema-out{
+ from{opacity:1;transform:translate3d(0,0,0) scale(1);filter:blur(0) brightness(1)}
+ to{opacity:.16;transform:translate3d(0,-16px,0) scale(.985);filter:blur(3px) brightness(.65)}
+}
+@keyframes swapp-cinema-in{
+ 0%{opacity:0;transform:translate3d(0,26px,0) scale(1.025);filter:blur(6px) brightness(.78)}
+ 35%{opacity:.68;filter:blur(2px) brightness(.93)}
+ 100%{opacity:1;transform:translate3d(0,0,0) scale(1);filter:blur(0) brightness(1)}
+}
+@supports not (view-transition-name: swapp-masthead){
+ body[data-swapp-shell="shared-native-v2"] > .scl-shell,
+ body[data-swapp-shell="shared-native-v2"] > main{
+  animation:swapp-route-reveal var(--swapp-route-enter-duration) var(--swapp-route-easing) both;
+ }
+}
+@media(max-width:700px){
+ :root{--swapp-route-enter-duration:540ms;--swapp-route-exit-duration:280ms}
+ ::view-transition-new(root){animation-delay:45ms}
+}
+@media(prefers-reduced-motion:reduce){
+ main.app > .view.active.swapp-route-enter,
+ body[data-swapp-shell="shared-native-v2"] > .scl-shell,
+ body[data-swapp-shell="shared-native-v2"] > main{animation:none!important}
+ ::view-transition-old(root),::view-transition-new(root),
+ ::view-transition-old(swapp-masthead),::view-transition-new(swapp-masthead),
+ ::view-transition-old(swapp-mobile-masthead),::view-transition-new(swapp-mobile-masthead){
+  animation:none!important
+ }
+}

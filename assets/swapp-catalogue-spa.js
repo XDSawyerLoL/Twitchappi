@@ -37,13 +37,32 @@
   ['/compte','settings'],['/decouvrir','discover'],['/twitch','twitch'],
   ['/dashboard','dashboard'],['/gestionnaire','manager']
  ]);
- // A single entry point is also used by the homepage link reconciler.
+ // The router's asynchronous work must complete before the new screenshot
+ // is captured. The old void setView(view) snapshot caused abrupt cuts.
+ const knownViews=new Set(routes.values());
+ const root=document.documentElement;
+ let running=null,sequence=0;
  window.swappNavigateSpa=view=>{
-  if(!routes.has([...routes].find(([,v])=>v===view)?.[0])||typeof window.setView!=='function')return;
-  const activate=()=>{void window.setView(view)};
-  if(typeof document.startViewTransition==='function'&&!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)
-   document.startViewTransition(activate);
-  else activate();
+  if(!knownViews.has(view)||typeof window.setView!=='function')return;
+  if(document.querySelector('main.app > .view.active')?.id===view)return;
+  const activate=()=>window.setView(view);
+  if(typeof document.startViewTransition!=='function'||
+    window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches)return activate();
+  const ticket=++sequence;
+  running?.skipTransition?.();
+  root.dataset.swappMotion='cinematic';
+  try{
+   const transition=document.startViewTransition(activate);
+   running=transition;
+   Promise.resolve(transition.finished).then(
+    ()=>{if(sequence===ticket){running=null;delete root.dataset.swappMotion}},
+    ()=>{if(sequence===ticket){running=null;delete root.dataset.swappMotion}}
+   );
+   return transition;
+  }catch(_error){
+   if(sequence===ticket){running=null;delete root.dataset.swappMotion}
+   return activate();
+  }
  };
  document.addEventListener('click',event=>{
   if(event.defaultPrevented||event.button!==0||event.ctrlKey||event.metaKey||event.shiftKey||event.altKey)return;
