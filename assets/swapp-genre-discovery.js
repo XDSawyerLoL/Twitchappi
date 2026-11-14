@@ -60,7 +60,7 @@
  });
  function genreForGame(game){
   const value=normal(game);
-  if(!value)return '';
+  if(!value||['just chatting','music','asmr','irl','sports','art','talk shows podcasts','special events'].includes(value))return '';
   for(const genre of GENRES){
    if(genre.id==='autres')continue;
    if(RULES[genre.id]?.some(pattern=>pattern.test(value)))return genre.id;
