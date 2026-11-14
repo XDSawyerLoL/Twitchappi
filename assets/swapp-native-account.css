@@ -42,7 +42,7 @@ header.top #userMenu button.swapp-native-reset{
 }
 body.swapp-catalogue-lab-page{
  --scl-appearance-glow:var(--swapp-page-accent,#22d3ee);
- background:radial-gradient(ellipse at 5% 0%,color-mix(in srgb,var(--scl-appearance-glow) 5%,transparent),transparent 38%),var(--scl-bg);
+ background:radial-gradient(ellipse at 5% 0%,color-mix(in srgb,var(--scl-appearance-glow) 3%,transparent),transparent 38%),var(--swapp-glass-base,#030405);
 }
 html.swapp-editorial-theme body.swapp-catalogue-lab-page .scl-side-link.is-current{
  box-shadow:inset 3px 0 0 var(--swapp-page-accent,#22d3ee);

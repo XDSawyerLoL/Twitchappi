@@ -1,6 +1,6 @@
 /* Shared hue styling, driven exclusively by oryon_viewer_accent. No local pickers. */
 body:has(.swapp-store),body:has(.swapp-social-viewport){
- background:radial-gradient(ellipse 85% 65% at 5% 18%,color-mix(in srgb,var(--swapp-page-accent,#22d3ee) 6%,transparent),transparent 75%),radial-gradient(ellipse 75% 65% at 98% 70%,color-mix(in srgb,var(--swapp-page-accent,#22d3ee) 4%,transparent),transparent 80%),#0b101b!important;
+ background:radial-gradient(ellipse 85% 65% at 5% 18%,color-mix(in srgb,var(--swapp-page-accent,#22d3ee) 3%,transparent),transparent 75%),radial-gradient(ellipse 75% 65% at 98% 70%,color-mix(in srgb,var(--swapp-page-accent,#22d3ee) 2%,transparent),transparent 80%),#030405!important;
 }
 body:has(.swapp-store) .swapp-store-topline>span:first-child,
 body:has(.swapp-store) .swapp-editorial-top-masthead small,
@@ -14,5 +14,5 @@ body:has(.swapp-social-viewport) .swapp-social-viewport{
  --pulse-teal:var(--swapp-page-accent,#22d3ee)!important;
 }
 body:has(.stv),body:has(.scal){
- background:radial-gradient(ellipse at 12% 11%,color-mix(in srgb,var(--swapp-page-accent,#22d3ee) 5%,transparent),transparent 36%),#0b101b!important;
+ background:radial-gradient(ellipse at 12% 11%,color-mix(in srgb,var(--swapp-page-accent,#22d3ee) 3%,transparent),transparent 36%),#030405!important;
 }
