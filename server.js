@@ -327,7 +327,7 @@ app.use((req, res, next) => {
     const t0 = Date.now();
     res.on('finish', () => {
       const ms = Date.now() - t0;
-      const ip = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').toString().split(',')[0].trim();
+      const ip = String(req.ip || req.socket?.remoteAddress || '').trim();
       console.log(JSON.stringify({
         t: new Date().toISOString(),
         rid,
@@ -601,7 +601,7 @@ function swappRequestMeta(req){
   return {
     method: req?.method || '',
     route: req?.originalUrl || req?.url || '',
-    ip: req?.ip || req?.headers?.['x-forwarded-for'] || '',
+    ip: req?.ip || req?.socket?.remoteAddress || '',
     user: req?.session?.oryonUser?.login || req?.session?.twitchUser?.login || null
   };
 }

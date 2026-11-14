@@ -12,6 +12,10 @@ on:
       - 'index.html'
       - 'test/swapp-nav-utility.test.js'
       - '.github/workflows/swapp-quality.yml'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'server.js'
+      - 'test/swapp-proxy-addr-security.test.js'
   push:
     branches:
       - master
@@ -87,6 +91,13 @@ jobs:
           node --check assets/swapp-catalogue-lab.js
           node --check assets/swapp-home-news.js
           node --test test/swapp-nav-utility.test.js
+
+      - name: Verify pinned proxy-addr 2.0.8 isolated from unrelated dependencies
+        run: |
+          mkdir -p "$RUNNER_TEMP/swapp-security-deps"
+          npm install --prefix "$RUNNER_TEMP/swapp-security-deps" --no-save --ignore-scripts --omit=optional --no-audit --no-fund proxy-addr@2.0.8
+          NODE_PATH="$RUNNER_TEMP/swapp-security-deps/node_modules" node --test test/swapp-proxy-addr-security.test.js
+          npm ls --prefix "$RUNNER_TEMP/swapp-security-deps" proxy-addr --all
 
       - name: Préparer le paquet Hostinger à partir du commit GitHub validé
         run: node tools/swapp-hostinger-package.js --output="${{ runner.temp }}/swapp-hostinger-${GITHUB_SHA:0:12}.zip"
