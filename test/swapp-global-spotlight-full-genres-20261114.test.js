@@ -17,8 +17,8 @@ test('the homepage exposes every editorial genre without hiding cards in a horiz
   'combat','horreur','plateforme','roguelike','puzzle','coop','exploration',
   'rythme','action','indie','autres'])assert.ok(ids.has(id),id);
  const css=read('assets/swapp-genre-discovery.css');
- assert.match(css,/\.scl-genre-cards\{[\s\S]*?display:grid;grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
- assert.match(css,/\.scl-genre-card:nth-child\(-n\+2\)\{grid-column:span 2/);
+ assert.match(css,/\.scl-genre-cards\{[\s\S]*?display:grid;grid-template-columns:repeat\(6,minmax\(0,1fr\)\)/);
+ assert.match(css,/\.scl-genre-card:nth-child\(-n\+2\)\{grid-column:span 3/);
  assert.match(css,/@media\(max-width:700px\)/);
  assert.match(css,/\.scl-genre-cards\{grid-template-columns:repeat\(2/);
  assert.doesNotMatch(css,/\.scl-genre-cards\{[^}]*overflow-x:auto/);
