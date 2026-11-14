@@ -18,6 +18,7 @@ body.swapp-editorial-route.swapp-catalogue-home .scl-main::before{
 body[data-swapp-home-spa="v16"] #home .scl-main > .scl-genre-section,
 body.swapp-editorial-route.swapp-catalogue-home .scl-main > .scl-genre-section{position:relative;z-index:2}
 .scl-genre-section{margin:26px 0 33px;padding:0 4%;scroll-margin-top:90px}
+.scl-genre-section + #scl-articles{margin-top:16px}
 .scl-genre-heading{display:flex;align-items:end;justify-content:space-between;gap:20px;margin-bottom:16px}
 .scl-genre-heading h2{color:#f8fafc;font:850 clamp(23px,2.15vw,29px)/1.13 Inter,system-ui,sans-serif;letter-spacing:-.035em;margin:8px 0 6px}
 .scl-genre-heading h2::after{content:"";display:block;width:43px;height:3px;margin-top:9px;border-radius:10px;background:var(--swapp-page-accent,var(--scl-accent,#22d3ee))}
