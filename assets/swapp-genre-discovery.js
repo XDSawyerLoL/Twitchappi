@@ -95,7 +95,11 @@
     entry.audience=(entry.audience||0)+live.viewers;
    if(!entry.image&&live.image)entry.image=live.image;
   }
-  return [...map.values()].sort((a,b)=>b.liveCount-a.liveCount||
+  // "Autres" is a fallback, not a named genre: keep it at the end even
+  // when many unclassified games are live, so featured art stays meaningful.
+  return [...map.values()].sort((a,b)=>
+   (a.id==='autres'?1:0)-(b.id==='autres'?1:0)||
+   b.liveCount-a.liveCount||
    (b.audience??-1)-(a.audience??-1)||b.gameCount-a.gameCount||
    GENRES.findIndex(x=>x.id===a.id)-GENRES.findIndex(x=>x.id===b.id));
  }
