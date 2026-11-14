@@ -17,7 +17,9 @@ test('25 editorial genres remain available without replacing the game posters',(
   'combat','horreur','plateforme','roguelike','puzzle','coop','exploration',
   'rythme','action','indie','autres'])assert.ok(ids.has(id),id);
  const css=read('assets/swapp-genre-discovery.css');
- assert.match(css,/\.scl-genre-cards\s*\{[\s\S]*?display:grid;grid-template-columns:repeat\(auto-fit,minmax\(143px,1fr\)\)/);
+ assert.match(css,/\.scl-genre-cards\s*\{[\s\S]*?display:flex;align-items:stretch/);
+ assert.match(css,/\.scl-genre-card\s*\{[\s\S]*?aspect-ratio:1\.81\/1/);
+ assert.match(css,/\.scl-genre-visual img/);
  assert.match(css,/\.scl-game-poster\s*\{/);
  assert.match(css,/\.scl-game-poster-rank\s*\{/);
  assert.match(css,/\.scl-genre-game-rail/);
