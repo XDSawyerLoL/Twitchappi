@@ -4,7 +4,7 @@
  */
 (function(){
 'use strict';
-const LAB_VERSION='20261113-live-revalidation-v14';
+const LAB_VERSION='20261114-unified-genres-v17';
 const API=Object.freeze({
  home:'/api/discovery/home-lives?limit=12&lang=fr',
  top:'/api/twitch/streams/top?limit=40&lang=fr',
@@ -15,6 +15,7 @@ const API=Object.freeze({
 });
 // Revalidate real on-air inventory without reloading the editorial magazine.
 const LIVE_RECHECK_MS=5*60*1000;
+const genreApi=typeof window!=='undefined'?window.SwappGenreDiscovery:null;
 const FAVORITES_KEY='swapp:followed-games:v1';
 const CHANNEL_KEY='oryon_v4_likes';
 const GAME_COPY=Object.freeze({
@@ -271,7 +272,7 @@ const create=(tag,className,text)=>{
  if(text!==undefined)node.textContent=String(text);
  return node;
 };
-const state={lives:[],games:[],baseCategories:[],liveLastCheck:0,liveRefreshing:false,liveEpoch:0,articles:[],small:[],smallCandidates:[],smallLoading:false,smallError:false,smallMax:50,smallEpoch:0,newsError:false,newsLoading:false,newsEpoch:0,featured:null,filter:'all',query:'',loading:false,failed:[],previewTimer:0,abort:null,heroItems:[],heroIndex:0,heroTimer:null,hoverTimer:null,hoverIframe:null,hoverCard:null};
+const state={lives:[],games:[],baseCategories:[],liveLastCheck:0,liveRefreshing:false,liveEpoch:0,articles:[],small:[],smallCandidates:[],smallLoading:false,smallError:false,smallMax:50,smallEpoch:0,newsError:false,newsLoading:false,newsEpoch:0,featured:null,filter:'all',genre:'',query:'',loading:false,failed:[],previewTimer:0,abort:null,heroItems:[],heroIndex:0,heroTimer:null,hoverTimer:null,hoverIframe:null,hoverCard:null};
 const status=$('scl-status'),hero=$('scl-feature'),featureVisual=$('scl-feature-visual'),dialog=$('scl-dialog');
 const heroDots=$('scl-feature-dots');
 const visNode=item=>{
@@ -657,8 +658,56 @@ function fillArticleRail(items,unavailable=false){
  host.replaceChildren(fragment);
 }
 const matching=item=>{
- const q=latin(state.query);return !q||latin([item.name,item.title,item.game,item.summary,item.category].join(' ')).includes(q);
+ if(state.genre&&genreApi?.genreForGame?.(item.game||item.name)!==state.genre)return false;
+ const q=latin(state.query);
+ return !q||latin([item.name,item.title,item.game,item.summary,item.category].join(' ')).includes(q);
 };
+function setGenre(value,{scroll=true}={}){
+ const valid=genreApi?.GENRES?.some(item=>item.id===value);
+ state.genre=valid?value:'';
+ if(location.pathname==='/'||location.pathname==='/catalogue-test'){
+  const url=new URL(location.href);
+  if(state.genre)url.searchParams.set('genre',state.genre);
+  else url.searchParams.delete('genre');
+  if(scroll)url.hash='scl-live';
+  try{history.replaceState(history.state,'',url.pathname+url.search+url.hash)}catch(_error){}
+ }
+ render();
+ if(scroll)$('scl-live')?.scrollIntoView?.({behavior:prefersLessMotion()?'auto':'smooth',block:'start'});
+}
+function renderGenres(){
+ const host=$('scl-genre-cards');
+ if(!host||!genreApi)return;
+ const groups=genreApi.rankGenres(state.games,state.lives);
+ const fragment=document.createDocumentFragment();
+ for(const group of groups){
+  const card=create('button','scl-genre-card');
+  card.type='button';card.dataset.genre=group.id;
+  card.setAttribute('aria-pressed',String(state.genre===group.id));
+  card.setAttribute('aria-label','Explorer '+group.label);
+  const visual=create('span','scl-genre-visual');
+  if(group.image){
+   const image=create('img');
+   image.src=group.image;image.alt='';image.loading='lazy';image.decoding='async';
+   image.referrerPolicy='no-referrer';visual.append(image);
+  }
+  const text=create('span','scl-genre-content');
+  text.append(create('strong','',group.label),create('small','',group.description));
+  const metric=group.liveCount?
+   group.liveCount+' direct'+(group.liveCount>1?'s':'')+' confirmé'+(group.liveCount>1?'s':''):
+   group.gameCount?group.gameCount+' jeu'+(group.gameCount>1?'x':'')+' à explorer':'Explorer le genre';
+  text.append(create('span','scl-genre-metric',metric));
+  card.append(visual,text);
+  card.addEventListener('click',()=>setGenre(state.genre===group.id?'':group.id));
+  fragment.append(card);
+ }
+ host.replaceChildren(fragment);
+ const reset=$('scl-genre-reset');
+ if(reset)reset.hidden=!state.genre;
+}
+$('scl-genre-reset')?.addEventListener('click',()=>setGenre(''));
+const initialGenre=new URLSearchParams(window.location.search).get('genre');
+if(genreApi?.GENRES?.some(item=>item.id===initialGenre))state.genre=initialGenre;
 const empty=(message)=>create('p','scl-empty',message);
 function fill(id,items,placeholder){
  const host=$(id);const fragment=document.createDocumentFragment();
@@ -734,10 +783,11 @@ async function loadSmallCommunities(){
 }
 function render(){
  stopHoverPreview();
+ renderGenres();
  const lives=state.lives.filter(matching),games=state.games.filter(matching);
  fillArticleRail(state.articles.filter(matching),state.newsError);
- fill('scl-live-cards',lives,'Aucun direct confirmé pour cette recherche.');
- fill('scl-game-cards',games,'Aucun jeu disponible pour cette recherche.');
+ fill('scl-live-cards',lives,state.genre?'Aucun direct confirmé pour ce genre en ce moment.':'Aucun direct confirmé pour cette recherche.');
+ fill('scl-game-cards',games,state.genre?'Aucun jeu classé dans ce genre pour cette recherche.':'Aucun jeu disponible pour cette recherche.');
  refreshSmallRail();
  refreshFavorites();
  document.querySelectorAll('[data-scl-section]').forEach(sec=>{
