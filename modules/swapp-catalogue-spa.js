@@ -5,10 +5,10 @@ const HOME_START='<section id="home" class="view active">';
 const NEXT_VIEW='  <section id="discover" class="view"></section>';
 const STYLE='<link rel="stylesheet" href="/assets/swapp-catalogue-lab.css?v=20261114-hero-rail-spacing-v21">'+
  '<link rel="stylesheet" href="/assets/swapp-catalogue-spa.css?v=20261114-real-spa-v16">'+
- '<link rel="stylesheet" href="/assets/swapp-genre-discovery.css?v=20261114-genres-v1">';
-const SCRIPT='<script src="/assets/swapp-genre-discovery.js?v=20261114-genres-v1" defer></script>'+
- '<script src="/assets/swapp-catalogue-lab.js?v=20261114-genres-v22" defer></script>'+
- '<script src="/assets/swapp-catalogue-spa.js?v=20261114-genres-spa-v17" defer></script>';
+ '<link rel="stylesheet" href="/assets/swapp-genre-discovery.css?v=20261114-all-genres-v2">';
+const SCRIPT='<script src="/assets/swapp-genre-discovery.js?v=20261114-all-genres-v2" defer></script>'+
+ '<script src="/assets/swapp-catalogue-lab.js?v=20261114-cinema-genres-v23" defer></script>'+
+ '<script src="/assets/swapp-catalogue-spa.js?v=20261114-home-all-spa-v18" defer></script>';
 function renderIntoSpa(html){
  const source=String(html||'');
  if(source.includes('data-swapp-home-spa="v16"'))return source;
