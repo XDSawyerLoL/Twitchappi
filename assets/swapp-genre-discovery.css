@@ -45,11 +45,13 @@ body[data-swapp-home-spa="v16"] #home .scl-feature {
 .scl-genre-cards {
  display:flex;align-items:stretch;gap:12px;width:100%;margin:0;padding:0 4% 11px 0;
  box-sizing:border-box;overflow-x:auto;overflow-y:hidden;
- scroll-snap-type:x proximity;scroll-padding-left:4px;
+ scroll-snap-type:x mandatory;scroll-padding-left:0;scroll-behavior:smooth;
  scrollbar-width:none;-ms-overflow-style:none;
  overscroll-behavior-x:contain
 }
 .scl-genre-cards::-webkit-scrollbar{display:none}
+.scl-genre-cards{touch-action:pan-x pan-y;-webkit-overflow-scrolling:touch}
+.scl-genre-card{scroll-snap-align:start;scroll-snap-stop:normal}
 .scl-genre-card {
  position:relative;isolation:isolate;flex:0 0 clamp(122px,12.6vw,186px);
  width:clamp(122px,12.6vw,186px);height:auto;aspect-ratio:1.81/1;
