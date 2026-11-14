@@ -16,9 +16,15 @@ on:
       - 'package-lock.json'
       - 'server.js'
       - 'test/swapp-proxy-addr-security.test.js'
+      - 'assets/swapp-genre-discovery.*'
+      - 'assets/swapp-catalogue-spa.js'
+      - 'modules/swapp-catalogue-spa.js'
+      - 'modules/swapp-catalogue-lab.js'
+      - 'test/swapp-home-genres-20261114.test.js'
   push:
     branches:
       - master
+      - feat/swapp-home-discover-genres-20261114
       - feat/swapp-nav-search-news-badge-20261114
       - fix/swapp-hero-rail-footer-streamer-bio-20261114
       - feat/swapp-neutral-smoked-glass-20261114
@@ -98,6 +104,13 @@ jobs:
           npm install --prefix "$RUNNER_TEMP/swapp-security-deps" --no-save --ignore-scripts --omit=optional --no-audit --no-fund proxy-addr@2.0.8
           NODE_PATH="$RUNNER_TEMP/swapp-security-deps/node_modules" node --test test/swapp-proxy-addr-security.test.js
           npm ls --prefix "$RUNNER_TEMP/swapp-security-deps" proxy-addr --all
+
+      - name: Unified homepage, genre discovery and cursor spotlight
+        run: |
+          node --check assets/swapp-genre-discovery.js
+          node --check assets/swapp-catalogue-lab.js
+          node --check assets/swapp-catalogue-spa.js
+          node --test test/swapp-home-genres-20261114.test.js
 
       - name: Préparer le paquet Hostinger à partir du commit GitHub validé
         run: node tools/swapp-hostinger-package.js --output="${{ runner.temp }}/swapp-hostinger-${GITHUB_SHA:0:12}.zip"
