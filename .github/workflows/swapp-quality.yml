@@ -1,6 +1,17 @@
 name: SWAPP quality gate
 on:
   workflow_dispatch:
+  pull_request:
+    branches:
+      - master
+    paths:
+      - 'assets/swapp-nav-utility.*'
+      - 'assets/swapp-catalogue-lab.js'
+      - 'assets/swapp-home-news.js'
+      - 'modules/swapp-page-shell.js'
+      - 'index.html'
+      - 'test/swapp-nav-utility.test.js'
+      - '.github/workflows/swapp-quality.yml'
   push:
     branches:
       - master
