@@ -81,20 +81,20 @@ test('genres contain actual game posters grouped by their correct genre',()=>{
 
 test('live rail is followed by top game posters, 25 genre controls, actual genre game shelves',()=>{
  const html=catalogueContent({publicHome:true});
- const required=['scl-live','scl-top-games','scl-genres','scl-genre-shelves','scl-articles','scl-games'];
+ const required=['scl-live','scl-genres','scl-top-games','scl-games','scl-genre-shelves','scl-articles'];
  for(const id of required)assert.ok(html.includes('id="'+id+'"'),id);
  for(let i=1;i<required.length;i++)
   assert.ok(html.indexOf('id="'+required[i-1]+'"')<html.indexOf('id="'+required[i]+'"'),
    required[i-1]+' must precede '+required[i]);
- assert.match(html,/TOP DES JEUX EN CE MOMENT/);
+ assert.match(html,/LES JEUX DU MOMENT/);
  assert.match(html,/id="scl-top-games-cards"/);
  assert.match(html,/id="scl-genre-cards"/);
  assert.match(html,/id="scl-genre-shelves"/);
  const spa=renderIntoSpa(read('index.html'));
  assert.match(spa,/id="scl-top-games-cards"/);
  assert.match(spa,/id="scl-genre-shelves"/);
- assert.match(spa,/swapp-genre-discovery\.css\?v=20261114-game-posters-v3/);
- assert.match(spa,/swapp-catalogue-lab\.js\?v=20261114-top-game-rails-v25/);
+ assert.match(spa,/swapp-genre-discovery\.css\?v=20261115-movix-visual-v4/);
+ assert.match(spa,/swapp-catalogue-lab\.js\?v=20261115-movix-visual-v26/);
 });
 
 test('poster rails show valid game artwork, linked real creator discovery and no fake ranks',()=>{
@@ -112,5 +112,5 @@ test('poster rails show valid game artwork, linked real creator discovery and no
  assert.match(css,/object-fit:cover/);
  assert.match(css,/\.scl-game-poster-rank/);
  assert.match(css,/scroll-snap-type:x proximity/);
- assert.match(css,/@media\(max-width:600px\)/);
+ assert.match(css,/@media\(max-width:650px\)/);
 });
