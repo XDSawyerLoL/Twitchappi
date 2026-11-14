@@ -23,7 +23,7 @@ test('25 editorial genres remain available without replacing the game posters',(
  assert.match(css,/\.scl-game-poster\s*\{/);
  assert.match(css,/\.scl-game-poster-rank\s*\{/);
  assert.match(css,/\.scl-genre-game-rail/);
- assert.match(css,/@media\(max-width:600px\)/);
+ assert.match(css,/@media\(max-width:650px\)/);
  const renderer=read('assets/swapp-catalogue-lab.js');
  assert.match(renderer,/genreApi\.rankGenres\(state\.games,state\.lives\)/);
  assert.match(renderer,/genreApi\.rankGames\(state\.games,state\.lives\)/);
