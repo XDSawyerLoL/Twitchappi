@@ -17,6 +17,7 @@ on:
       - 'server.js'
       - 'test/swapp-proxy-addr-security.test.js'
       - 'test/swapp-websocket-driver-security.test.js'
+      - 'test/swapp-high-security-batch-20261114.test.js'
       - 'assets/swapp-genre-discovery.*'
       - 'assets/swapp-catalogue-spa.js'
       - 'modules/swapp-catalogue-spa.js'
@@ -26,6 +27,7 @@ on:
   push:
     branches:
       - master
+      - security/swapp-high-cves-batch-20261114
       - feat/swapp-home-discover-genres-20261114
       - feat/swapp-home-all-genres-global-spotlight-20261114
       - fix/swapp-websocket-driver-cve-2026-54466
@@ -132,6 +134,14 @@ jobs:
           node --check assets/swapp-hub-nav.js
           node --check assets/swapp-navigation.js
           node --test test/swapp-global-spotlight-full-genres-20261114.test.js
+
+      - name: Verify all high-CVE security locks and full production runtime
+        run: |
+          node --check test/swapp-high-security-batch-20261114.test.js
+          node --test test/swapp-high-security-batch-20261114.test.js
+          npm ci --ignore-scripts --omit=optional --no-audit --no-fund --registry=https://registry.npmjs.org --fetch-retries=1 --fetch-timeout=30000
+          SWAPP_DEPENDENCY_RUNTIME_TEST=1 node --test test/swapp-high-security-batch-20261114.test.js
+          npm ls --all node-forge body-parser @fastify/busboy @grpc/grpc-js engine.io nodemailer socket.io-parser protobufjs form-data ws uuid
 
       - name: Préparer le paquet Hostinger à partir du commit GitHub validé
         run: node tools/swapp-hostinger-package.js --output="${{ runner.temp }}/swapp-hostinger-${GITHUB_SHA:0:12}.zip"
