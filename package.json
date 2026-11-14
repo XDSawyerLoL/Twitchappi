@@ -26,7 +26,7 @@
   "dependencies": {
     "@google-cloud/storage": "^7.19.0",
     "@google/genai": "^1.25.0",
-    "body-parser": "^1.20.3",
+    "body-parser": "1.20.9",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
@@ -39,12 +39,22 @@
     "memorystore": "^1.6.7",
     "mysql2": "^3.23.1",
     "node-fetch": "^2.7.0",
-    "nodemailer": "^6.10.1",
+    "nodemailer": "10.4.1",
     "socket.io": "^4.8.1",
     "stripe": "^18.5.0"
   },
   "overrides": {
     "proxy-addr": "2.0.8",
-    "websocket-driver": "0.7.5"
+    "websocket-driver": "0.7.5",
+    "body-parser": "$body-parser",
+    "node-forge": "1.4.1",
+    "@fastify/busboy": "3.2.1",
+    "@grpc/grpc-js": "1.14.5",
+    "engine.io": "6.6.10",
+    "socket.io-parser": "4.2.7",
+    "protobufjs": "7.6.1",
+    "form-data": "2.5.6",
+    "ws": "8.21.0",
+    "uuid": "11.1.1"
   }
 }
