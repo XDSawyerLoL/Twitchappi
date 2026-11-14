@@ -20,18 +20,18 @@ body[data-swapp-home-spa="v16"] #home .scl-feature{border-radius:16px;margin:0 c
 .scl-genre-clear[hidden]{display:none!important}
 .scl-genre-clear:hover{background:#213840}
 .scl-genre-cards{
- display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-rows:minmax(198px,auto);
+ display:grid;grid-template-columns:repeat(6,minmax(0,1fr));grid-auto-rows:minmax(264px,auto);
  align-items:stretch;gap:15px;overflow:visible;padding:2px;
 }
 .scl-genre-card{
  position:relative;isolation:isolate;display:flex;align-items:stretch;
- min-width:0;width:100%;height:100%;min-height:198px;box-sizing:border-box;
+ min-width:0;width:100%;height:100%;min-height:264px;box-sizing:border-box;
  overflow:hidden;text-align:left;color:#f8fbff;cursor:pointer;
  border:1px solid #ffffff2a;border-radius:15px;background:#10141e;
  box-shadow:0 10px 31px #000a;
  transition:transform .23s ease,border-color .23s ease,box-shadow .23s ease;
 }
-.scl-genre-card:nth-child(-n+2){grid-column:span 2;min-height:266px}
+.scl-genre-card:nth-child(-n+2){grid-column:span 3;min-height:290px}
 .scl-genre-card:hover,.scl-genre-card:focus-visible,.scl-genre-card[aria-pressed="true"]{
  transform:translateY(-4px);
  border-color:var(--swapp-page-accent,var(--brand,#76e6df));
@@ -51,8 +51,8 @@ body[data-swapp-home-spa="v16"] #home .scl-feature{border-radius:16px;margin:0 c
  background:linear-gradient(90deg,#030407ec 0%,#050608a8 35%,#080a1250 80%),linear-gradient(0deg,#040609e8 0%,transparent 66%)}
 .scl-genre-card:nth-child(n+3)::before{background:linear-gradient(0deg,#030507ef 0%,#03050780 55%,#03050722 100%)}
 .scl-genre-content{position:relative;display:flex;flex-direction:column;justify-content:flex-end;
- box-sizing:border-box;width:100%;height:100%;min-height:198px;padding:17px;gap:7px}
-.scl-genre-card:nth-child(-n+2) .scl-genre-content{padding:22px;min-height:266px}
+ box-sizing:border-box;width:100%;height:100%;min-height:264px;padding:17px;gap:7px}
+.scl-genre-card:nth-child(-n+2) .scl-genre-content{padding:22px;min-height:290px}
 .scl-genre-content strong{display:block;color:#fff;font:950 clamp(21px,1.85vw,28px)/1.08 Inter,system-ui,sans-serif;
  text-shadow:0 2px 15px #000e;letter-spacing:-.035em}
 .scl-genre-card:nth-child(-n+2) .scl-genre-content strong{font-size:clamp(30px,3vw,43px)}
@@ -67,9 +67,9 @@ body[data-swapp-home-spa="v16"] #home .scl-feature{border-radius:16px;margin:0 c
  font:850 10px/1 Inter,system-ui,sans-serif;letter-spacing:.08em;color:#e7eef6}
 .scl-genre-card.has-live .scl-genre-kicker{color:#e8ffff;background:color-mix(in srgb,var(--swapp-page-accent,var(--brand,#76e6df)) 25%,#09121a)}
 @media(max-width:1050px){
- .scl-genre-cards{grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}
- .scl-genre-card:nth-child(-n+2){grid-column:span 1;min-height:210px}
- .scl-genre-card:nth-child(-n+2) .scl-genre-content{min-height:210px;padding:17px}
+ .scl-genre-cards{grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-rows:minmax(230px,auto);gap:13px}
+ .scl-genre-card:nth-child(-n+2){grid-column:span 2;min-height:252px}
+ .scl-genre-card:nth-child(-n+2) .scl-genre-content{min-height:252px;padding:17px}
  .scl-genre-card:nth-child(-n+2) .scl-genre-content strong{font-size:25px}
 }
 @media(max-width:700px){
@@ -77,9 +77,9 @@ body[data-swapp-home-spa="v16"] #home .scl-feature{border-radius:16px;margin:0 c
  .scl-genre-heading{align-items:start;flex-wrap:wrap;gap:9px}
  .scl-genre-heading h2{font-size:23px}
  .scl-genre-heading p{font-size:12px}
- .scl-genre-cards{grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:minmax(186px,auto);gap:10px}
- .scl-genre-card,.scl-genre-card:nth-child(-n+2){min-height:186px}
- .scl-genre-content,.scl-genre-card:nth-child(-n+2) .scl-genre-content{min-height:186px;padding:12px}
+ .scl-genre-cards{grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:minmax(228px,auto);gap:10px}
+ .scl-genre-card,.scl-genre-card:nth-child(-n+2){grid-column:span 1;min-height:228px}
+ .scl-genre-content,.scl-genre-card:nth-child(-n+2) .scl-genre-content{min-height:228px;padding:12px}
  .scl-genre-content strong,.scl-genre-card:nth-child(-n+2) .scl-genre-content strong{font-size:20px}
  .scl-genre-content small{font-size:11px}
  .scl-genre-kicker{top:9px;left:10px;font-size:9px}
