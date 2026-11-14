@@ -13,7 +13,8 @@ const PREMIUM_CSS='<link rel="stylesheet" href="/assets/swapp-obsidian-ice.css?v
 const SHARED_CSS=Object.freeze([
  '/assets/swapp-unified-nav.css?v=20261113-nav-simple-v2',
  '/assets/swapp-route-motion.css?v=20261114-film-cut-v19',
- '/assets/swapp-native-account.css?v=20261114-native-account-v1'
+ '/assets/swapp-native-account.css?v=20261114-native-account-v1',
+ '/assets/swapp-nav-utility.css?v=20261114-search-news-v1'
 ]);
 function escapeAttribute(value){
  return String(value||'').replace(/[&<>"']/g,ch=>({
@@ -31,7 +32,7 @@ function renderPage({head='',content='',scripts='',bodyClass='swapp-editorial-ro
  return '<!doctype html><html lang="fr"><head>'+htmlHead+
   PREMIUM_CSS+'</head><body class="'+cls+'" data-swapp-shell="shared-native-v2">'+
   serverHeader(active)+String(content||'')+serverMobile(active)+
-  String(scripts||'')+'</body></html>';
+  '<script src="/assets/swapp-nav-utility.js?v=20261114-search-news-v1" defer></script>'+String(scripts||'')+'</body></html>';
 }
 const SPA_ACTIVE_ROUTES=Object.freeze({
  '/':'home','/actus':'actus','/categories':'categories',

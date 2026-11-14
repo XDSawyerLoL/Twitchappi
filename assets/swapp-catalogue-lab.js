@@ -929,6 +929,13 @@ $('scl-search').addEventListener('input',event=>{
  state.query=event.target.value.trim().slice(0,120);
  feature(null);render();
 });
+// Apply cross-page header searches after the catalogue's own listener exists.
+const initialSearch=new URLSearchParams(window.location.search).get('q');
+if(initialSearch){
+ const nativeSearch=$('scl-search');
+ nativeSearch.value=initialSearch.slice(0,120);
+ nativeSearch.dispatchEvent(new Event('input',{bubbles:true}));
+}
 document.querySelectorAll('[data-scl-filter]').forEach(button=>{
  button.addEventListener('click',()=>{
   state.filter=button.dataset.sclFilter;
