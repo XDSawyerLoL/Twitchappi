@@ -9,7 +9,7 @@ const {desktopNavigation,mobileNavigation,items}=require('../assets/swapp-naviga
 const ROOT=path.resolve(__dirname,'..');
 const read=file=>fs.readFileSync(path.join(ROOT,file),'utf8');
 
-test('the homepage exposes every editorial genre without hiding cards in a horizontal rail',()=>{
+test('25 editorial genres remain available without replacing the game posters',()=>{
  assert.equal(GENRES.length,25);
  const ids=new Set(GENRES.map(x=>x.id));
  for(const id of ['mmorpg','fps','tps','rpg','arpg','battle-royale','moba',
@@ -17,15 +17,17 @@ test('the homepage exposes every editorial genre without hiding cards in a horiz
   'combat','horreur','plateforme','roguelike','puzzle','coop','exploration',
   'rythme','action','indie','autres'])assert.ok(ids.has(id),id);
  const css=read('assets/swapp-genre-discovery.css');
- assert.match(css,/\.scl-genre-cards\{[\s\S]*?display:grid;grid-template-columns:repeat\(6,minmax\(0,1fr\)\)/);
- assert.match(css,/\.scl-genre-card:nth-child\(-n\+2\)\{grid-column:span 3/);
- assert.match(css,/@media\(max-width:700px\)/);
- assert.match(css,/\.scl-genre-cards\{grid-template-columns:repeat\(2/);
- assert.doesNotMatch(css,/\.scl-genre-cards\{[^}]*overflow-x:auto/);
+ assert.match(css,/\.scl-genre-cards\s*\{[\s\S]*?display:grid;grid-template-columns:repeat\(auto-fit,minmax\(143px,1fr\)\)/);
+ assert.match(css,/\.scl-game-poster\s*\{/);
+ assert.match(css,/\.scl-game-poster-rank\s*\{/);
+ assert.match(css,/\.scl-genre-game-rail/);
+ assert.match(css,/@media\(max-width:600px\)/);
  const renderer=read('assets/swapp-catalogue-lab.js');
  assert.match(renderer,/genreApi\.rankGenres\(state\.games,state\.lives\)/);
- assert.match(renderer,/card\.append\(visual,kicker,text\)/);
- assert.match(renderer,/group\.liveCount\?\s*'EN DIRECT':'GENRE'/);
+ assert.match(renderer,/genreApi\.rankGames\(state\.games,state\.lives\)/);
+ assert.match(renderer,/genreApi\.groupGamesByGenre\(state\.games,state\.lives\)/);
+ assert.match(renderer,/function createGamePoster\(item,rank\)/);
+ assert.match(renderer,/group\.liveCount/);
 });
 
 test('genre classifier covers representative popular games and never turns chat into a game',()=>{
