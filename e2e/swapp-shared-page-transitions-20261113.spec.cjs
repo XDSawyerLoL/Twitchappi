@@ -16,7 +16,7 @@ test('the immersive homepage, SPA and native TV use one persistent-looking navig
   await expect(page.locator('#nav .navGroup a[href="/categories"]')).toHaveCount(1);
   await expect(page.locator('#nav .navGroup a[href="/actus"]')).toHaveCount(1);
   await expect(page.locator('#nav .navGroup a[href="/tv"]')).toHaveCount(1);
-  await expect(page.locator('link[href*="swapp-route-motion.css?v=20261114-cinematic-route-v18"]')).toHaveCount(1);
+  await expect(page.locator('link[href*="swapp-route-motion.css?v=20261114-film-cut-v19"]')).toHaveCount(1);
   if(route==='/'||route==='/tv'){
    await expect(page.locator('body')).toHaveAttribute('data-swapp-shell','shared-native-v2');
   }

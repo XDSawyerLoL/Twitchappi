@@ -9,7 +9,7 @@ const {renderPage,hydrateSpaNavigation,SHARED_CSS,SHARED_HEAD_SLOT}=require('../
 const lab=require('../modules/swapp-catalogue-lab');
 const editorial=require('../modules/swapp-news/site-shell');
 const COMMON=['swapp-unified-nav.css?v=20261113-nav-simple-v2',
- 'swapp-route-motion.css?v=20261114-cinematic-route-v18',
+ 'swapp-route-motion.css?v=20261114-film-cut-v19',
  'data-swapp-shell="shared-native-v2"','<header class="top"',
  'id="nav" class="mainNav"','id="mobileNav" class="mobileNav"'];
 
@@ -71,7 +71,7 @@ test('SPA menu is server-populated before JavaScript; no first-paint empty heade
 });
 test('shared native motion matches the existing SPA motion without new navigation interceptors',()=>{
  const css=read('assets/swapp-route-motion.css'),html=read('index.html');
- assert.match(html,/swapp-route-motion\.css\?v=20261114-cinematic-route-v18/);
+ assert.match(html,/swapp-route-motion\.css\?v=20261114-film-cut-v19/);
  assert.match(css,/@view-transition\{navigation:auto\}/);
  assert.match(css,/header\.top\{view-transition-name:swapp-masthead\}/);
  assert.match(css,/#mobileNav\.mobileNav\{view-transition-name:swapp-mobile-masthead\}/);

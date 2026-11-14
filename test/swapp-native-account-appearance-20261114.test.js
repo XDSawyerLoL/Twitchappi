@@ -14,7 +14,7 @@ test('home and native pages offer matching account, appearance and motion assets
   assert.match(markup,/id="userLabel">Se connecter<\/span>/,route+' guest button');
   assert.match(markup,/swapp-nav-session\.js\?v=20261114-native-account-v1/,route+' account controller');
   assert.match(markup,/swapp-native-account\.css\?v=20261114-native-account-v1/,route+' shared CSS');
-  assert.match(markup,/swapp-route-motion\.css\?v=20261114-cinematic-route-v18/,route+' same motion');
+  assert.match(markup,/swapp-route-motion\.css\?v=20261114-film-cut-v19/,route+' same motion');
   assert.equal((markup.match(/id="userBtn"/g)||[]).length,1);
   assert.equal((markup.match(/id="userMenu"/g)||[]).length,1);
  }
@@ -43,8 +43,8 @@ test('native account keeps existing SPA preference and session endpoint',()=>{
 test('transitions use same accent/motion across SPA and native without click interception',()=>{
  const page=read('modules/swapp-page-shell.js');
  const spa=read('index.html'),motion=read('assets/swapp-route-motion.css');
- assert.match(page,/20261114-cinematic-route-v18/);
- assert.match(spa,/20261114-cinematic-route-v18/);
+ assert.match(page,/20261114-film-cut-v19/);
+ assert.match(spa,/20261114-film-cut-v19/);
  assert.match(motion,/@view-transition\{navigation:auto\}/);
  assert.match(motion,/swapp-document-in/);
  assert.match(motion,/@supports not \(view-transition-name: swapp-masthead\)/);

@@ -585,7 +585,7 @@ async function verify(){
  check(news.body.includes('SWAPP')||news.body.includes('Swapp'),'Actualité returned an unexpected document');
  // All native documents now share the same site shell and motion assets.
  // The SPA's menu is populated server-side, avoiding a flash of empty nav.
- const sharedMotion='swapp-route-motion.css?v=20261114-cinematic-route-v18';
+ const sharedMotion='swapp-route-motion.css?v=20261114-film-cut-v19';
  check(publicHome.body.includes('data-swapp-home-spa="v16"')&&
    publicHome.body.includes('<main class="app">')&&
    !publicHome.body.includes('class="scl-side"')&&
