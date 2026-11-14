@@ -28,8 +28,40 @@
    (latest.timestamp>seen.timestamp||(latest.timestamp===seen.timestamp&&
     latest.slugs.some(slug=>!Array.isArray(seen.slugs)||!seen.slugs.includes(slug)))));
  }
+ function installPointerLight(win){
+  // One listener for the entire SWAPP interface, not just the catalogue's
+  // main column. The accent token is updated by the shared Appearance menu.
+  const doc=win.document,root=doc?.documentElement;
+  if(!root||!win.matchMedia?.('(hover: hover) and (pointer: fine)')?.matches||
+    win.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches)return;
+  let queued=false,x=0,y=0;
+  const move=event=>{
+   if(event.pointerType&&event.pointerType!=='mouse')return;
+   x=event.clientX;y=event.clientY;
+   if(queued)return;
+   queued=true;
+   const frame=typeof win.requestAnimationFrame==='function'?
+    win.requestAnimationFrame.bind(win):(callback=>callback());
+   frame(()=>{
+    queued=false;
+    root.style?.setProperty('--swapp-spot-x',x+'px');
+    root.style?.setProperty('--swapp-spot-y',y+'px');
+    root.classList?.add('swapp-global-spotlight');
+    root.classList?.toggle('swapp-global-spotlight-hidden',false);
+   });
+  };
+  doc.addEventListener('pointermove',move,{passive:true});
+  doc.addEventListener('pointerleave',()=>{
+   root.classList?.toggle('swapp-global-spotlight-hidden',true);
+  });
+  doc.addEventListener('visibilitychange',()=>{
+   if(doc.visibilityState==='hidden')
+    root.classList?.toggle('swapp-global-spotlight-hidden',true);
+  });
+ }
  function install(win){
   const doc=win.document;
+  installPointerLight(win);
   const header=doc.querySelector('header.top .topbar');
   if(!header||header.querySelector('.swapp-nav-utilities'))return;
   const utilities=doc.createElement('div');
