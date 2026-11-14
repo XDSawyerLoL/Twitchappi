@@ -37,3 +37,66 @@ test('la SPA inclut les contrôles et le catalogue conserve son filtrage natif',
  assert.match(catalogueContent({publicHome:true}),/id="scl-search"/);
  assert.match(script,/const initialSearch=new URLSearchParams\(window\.location\.search\)\.get\('q'\)/);
 });
+
+test('la loupe, le filtrage immédiat et la bulle sont opérationnels sans API extérieure',()=>{
+ const {install}=require('../assets/swapp-nav-utility');
+ const cl=()=>{const set=new Set();return {add:x=>set.add(x),contains:x=>set.has(x),toggle(x,v){if(v)set.add(x);else set.delete(x)}}};
+ const node=tag=>({
+  tagName:tag,children:[],attributes:{},listeners:{},classList:cl(),hidden:false,
+  append(...elements){this.children.push(...elements)},
+  setAttribute(k,v){this.attributes[k]=v},getAttribute(k){return this.attributes[k]||null},
+  removeAttribute(k){delete this.attributes[k]},
+  addEventListener(k,cb){this.listeners[k]=cb},
+  focus(){this.focused=true},contains(target){return this===target}
+ });
+ const header=node('div'),account=node('div'),nav=node('nav'),mobile=node('nav');
+ const catalogue=node('input'),desktopNews=node('a'),mobileNews=node('a');
+ header.querySelector=k=>k==='.userArea'?account:null;
+ header.insertBefore=element=>header.children.push(element);
+ const storage=()=>{const values=new Map();return {getItem:k=>values.get(k)||null,setItem:(k,v)=>values.set(k,v)}};
+ const listeners={};
+ const document={
+  visibilityState:'visible',documentElement:{classList:cl()},
+  querySelector:k=>k==='header.top .topbar'?header:k==='main.app > #home.view.active'?{}:null,
+  querySelectorAll:k=>k.includes('a[href="/actus"]')?[desktopNews,mobileNews]:[],
+  getElementById:k=>({'nav':nav,'mobileNav':mobile,'scl-search':catalogue})[k]||null,
+  createElement:node,addEventListener:(k,cb)=>{listeners[k]=cb}
+ };
+ let didFilter=false;
+ catalogue.dispatchEvent=event=>{if(event.type==='input')didFilter=true};
+ const win={
+  document,location:{pathname:'/',search:'',assign(){throw Error('Unwanted navigation')}},
+  Event:function(type){this.type=type},localStorage:storage(),sessionStorage:storage(),
+  addEventListener(k,cb){this[k]=cb},setInterval(){},setTimeout(){}
+ };
+ const original=global.MutationObserver;
+ global.MutationObserver=class{observe(){}};
+ try{
+  install(win);
+  const [search]=header.children[0].children;
+  const [toggle,panel]=search.children;
+  const input=panel.children[1];
+  assert.equal(panel.hidden,true);
+  toggle.listeners.click();
+  assert.equal(panel.hidden,false);
+  assert.equal(toggle.attributes['aria-expanded'],'true');
+  assert.equal(input.focused,true);
+  input.value='jeu recherché';input.listeners.input();
+  assert.equal(catalogue.value,'jeu recherché');
+  assert.equal(didFilter,true);
+  const old=[{slug:'premiere-actu',publishedAt:'2026-11-13T12:00:00Z'}];
+  const current=[{slug:'nouvelle-actu',publishedAt:'2026-11-14T12:00:00Z'}];
+  win['swapp:news-loaded']({detail:{articles:old}});
+  assert.equal(desktopNews.classList.contains('swapp-nav-news-unread'),false);
+  win['swapp:news-loaded']({detail:{articles:current}});
+  assert.equal(desktopNews.classList.contains('swapp-nav-news-unread'),true);
+  assert.equal(mobileNews.classList.contains('swapp-nav-news-unread'),true);
+  listeners.click({target:{closest:()=>desktopNews}});
+  assert.equal(desktopNews.classList.contains('swapp-nav-news-unread'),false);
+  listeners.keydown({key:'Escape',preventDefault(){}});
+  assert.equal(panel.hidden,true);
+ }finally{
+  if(original===undefined)delete global.MutationObserver;
+  else global.MutationObserver=original;
+ }
+});
