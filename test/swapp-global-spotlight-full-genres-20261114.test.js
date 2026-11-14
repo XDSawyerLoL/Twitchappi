@@ -25,7 +25,7 @@ test('the homepage exposes every editorial genre without hiding cards in a horiz
  const renderer=read('assets/swapp-catalogue-lab.js');
  assert.match(renderer,/genreApi\.rankGenres\(state\.games,state\.lives\)/);
  assert.match(renderer,/card\.append\(visual,kicker,text\)/);
- assert.match(renderer,/group\.liveCount\?'EN DIRECT':'GENRE'/);
+ assert.match(renderer,/group\.liveCount\?\s*'EN DIRECT':'GENRE'/);
 });
 
 test('genre classifier covers representative popular games and never turns chat into a game',()=>{
