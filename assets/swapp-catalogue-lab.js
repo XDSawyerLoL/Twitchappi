@@ -933,6 +933,28 @@ async function fetchLiveInventory(path){
  if(!Array.isArray(response.items))throw new Error('Inventaire de directs invalide');
  return response.items;
 }
+async function fetchGameInventory(){
+ // The Twitch categories endpoint is cursor-paginated (100 items per page).
+ // Request two real pages rather than truncating discovery to the first 60.
+ const games=[],seenCursors=new Set();
+ let cursor='';
+ for(let page=0;page<2&&games.length<180;page++){
+  const uri=new URL(API.games,window.location.origin);
+  if(cursor)uri.searchParams.set('cursor',cursor);
+  let response;
+  try{response=await fetchJson(uri.pathname+uri.search)}
+  catch(error){if(games.length)break;throw error}
+  if(!Array.isArray(response.categories)){
+   if(games.length)break;
+   throw new Error('Catalogue de jeux invalide');
+  }
+  games.push(...response.categories.slice(0,180-games.length));
+  const next=String(response.cursor||'');
+  if(!next||seenCursors.has(next))break;
+  seenCursors.add(next);cursor=next;
+ }
+ return games;
+}
 async function fetchArticles(){
  const control=new AbortController();
  const timeout=setTimeout(()=>control.abort(),9500);
@@ -1000,10 +1022,10 @@ async function load(){
   fillArticleRail(state.articles.filter(matching),state.newsError);
   updateCatalogueStatus();
  });
- const results=await Promise.allSettled([fetchLiveInventory(API.home),fetchLiveInventory(API.top),fetchJson(API.games)]);
+ const results=await Promise.allSettled([fetchLiveInventory(API.home),fetchLiveInventory(API.top),fetchGameInventory()]);
  const home=results[0].status==='fulfilled'?results[0].value:[];
  const top=results[1].status==='fulfilled'?results[1].value:[];
- const categories=results[2].status==='fulfilled'?results[2].value.categories:[];
+ const categories=results[2].status==='fulfilled'?results[2].value:[];
  state.failed=results.map((result,i)=>result.status==='rejected'?Object.keys(API)[i]:null).filter(Boolean);
  state.lives=mergeLives(home,top);
  state.baseCategories=categories;
