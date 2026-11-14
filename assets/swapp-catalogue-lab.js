@@ -4,7 +4,7 @@
  */
 (function(){
 'use strict';
-const LAB_VERSION='20261114-top-game-rails-v19';
+const LAB_VERSION='20261115-movix-visual-v20';
 const API=Object.freeze({
  home:'/api/discovery/home-lives?limit=12&lang=fr',
  top:'/api/twitch/streams/top?limit=40&lang=fr',
@@ -691,6 +691,14 @@ function renderGenres(){
   card.type='button';card.dataset.genre=group.id;
   card.setAttribute('aria-pressed',String(state.genre===group.id));
   card.setAttribute('aria-label','Voir les jeux '+group.label);
+  // Genre cover comes only from real game art or an actual live thumbnail.
+  const media=create('span','scl-genre-visual');
+  if(group.image){
+   const image=create('img');image.src=group.image;image.alt='';
+   image.loading='lazy';image.decoding='async';image.referrerPolicy='no-referrer';
+   image.addEventListener('error',()=>image.remove(),{once:true});
+   media.append(image);
+  }
   const detail=create('span','scl-genre-content');
   detail.append(create('strong','',group.label));
   const count=group.liveCount?
@@ -698,11 +706,13 @@ function renderGenres(){
    group.gameCount?group.gameCount+' jeu'+(group.gameCount>1?'x':''):
    'Explorer';
   detail.append(create('small','scl-genre-metric',count));
-  card.append(detail);
+  card.append(media,detail);
   card.addEventListener('click',()=>setGenre(state.genre===group.id?'':group.id));
   fragment.append(card);
  }
+ const offset=host.scrollLeft;
  host.replaceChildren(fragment);
+ host.scrollLeft=offset;
  const reset=$('scl-genre-reset');if(reset)reset.hidden=!state.genre;
 }
 function createGamePoster(item,rank){
@@ -724,10 +734,8 @@ function createGamePoster(item,rank){
  if(Number.isSafeInteger(rank)&&rank>=1&&rank<=99)
   card.append(create('span','scl-game-poster-rank',String(rank)));
  const info=create('span','scl-game-poster-details');
- info.append(
-  create('span','scl-game-poster-kind',item.liveCount?'EN DIRECT':'JEU VIDÉO'),
-  create('strong','scl-game-poster-title',item.game)
- );
+ card.append(create('span','scl-game-poster-kind',item.liveCount?'LIVE':'JEU'));
+ info.append(create('strong','scl-game-poster-title',item.game));
  const metric=item.liveCount?
   item.liveCount+' direct'+(item.liveCount>1?'s':'')+
    (item.audienceVerifiedCount?
@@ -759,6 +767,16 @@ function renderTopGames(){
    'Recherche des jeux disponibles…':'Aucun jeu trouvé pour ce genre.'));
  host.replaceChildren(fragment);
 }
+function renderAllGames(games){
+ const host=$('scl-game-cards');if(!host||!genreApi)return;
+ const ranked=genreApi.rankGames(games,state.lives);
+ const offset=host.scrollLeft,fragment=document.createDocumentFragment();
+ ranked.slice(0,32).forEach(item=>fragment.append(createGamePoster(item,null)));
+ if(!fragment.childNodes.length)
+  fragment.append(create('p','scl-empty',state.loading?'Chargement des jeux…':'Aucun jeu pour cette recherche.'));
+ host.replaceChildren(fragment);
+ host.scrollLeft=offset;
+}
 function renderGenreShelves(){
  const host=$('scl-genre-shelves');if(!host||!genreApi)return;
  const groups=genreApi.groupGamesByGenre(state.games,state.lives)
@@ -770,8 +788,7 @@ function renderGenreShelves(){
   const section=create('section','scl-rail scl-genre-game-rail');
   section.dataset.sclSection='game';section.id='scl-games-'+group.id;
   const head=create('div','scl-rail-head'),text=create('div');
-  text.append(create('span','scl-rail-eyebrow','JEUX PAR GENRE'));
-  const title=create('h2','',group.label+' : jeux à découvrir');
+  const title=create('h2','',group.label.toLocaleUpperCase('fr-FR'));
   title.id='scl-games-title-'+group.id;text.append(title);
   const navigation=create('div','scl-rail-nav');
   const cards=create('div','scl-cards scl-game-poster-rail scl-genre-poster-rail');
@@ -796,7 +813,11 @@ function renderGenreShelves(){
  }
  if(!fragment.childNodes.length&&state.genre)
   fragment.append(create('p','scl-empty','Aucun jeu référencé dans ce genre. Choisis une autre catégorie.'));
+ const offsets=new Map([...host.querySelectorAll('.scl-genre-game-rail .scl-game-poster-rail')]
+  .map(el=>[el.id,el.scrollLeft]));
  host.replaceChildren(fragment);
+ for(const rail of host.querySelectorAll('.scl-genre-game-rail .scl-game-poster-rail'))
+  rail.scrollLeft=offsets.get(rail.id)||0;
 }
 $('scl-genre-reset')?.addEventListener('click',()=>setGenre(''));
 const initialGenre=new URLSearchParams(window.location.search).get('genre');
@@ -882,7 +903,7 @@ function render(){
  const lives=state.lives.filter(matching),games=state.games.filter(matching);
  fillArticleRail(state.articles.filter(matching),state.newsError);
  fill('scl-live-cards',lives,state.genre?'Aucun direct confirmé pour ce genre en ce moment.':'Aucun direct confirmé pour cette recherche.');
- fill('scl-game-cards',games,state.genre?'Aucun jeu classé dans ce genre pour cette recherche.':'Aucun jeu disponible pour cette recherche.');
+ renderAllGames(games);
  refreshSmallRail();
  refreshFavorites();
  document.querySelectorAll('[data-scl-section]').forEach(sec=>{
