@@ -7,7 +7,7 @@ const STYLE='<link rel="stylesheet" href="/assets/swapp-catalogue-lab.css?v=2026
  '<link rel="stylesheet" href="/assets/swapp-catalogue-spa.css?v=20261114-real-spa-v16">'+
  '<link rel="stylesheet" href="/assets/swapp-genre-discovery.css?v=20261114-game-posters-v3">';
 const SCRIPT='<script src="/assets/swapp-genre-discovery.js?v=20261114-game-posters-v3" defer></script>'+
- '<script src="/assets/swapp-catalogue-lab.js?v=20261114-top-game-rails-v24" defer></script>'+
+ '<script src="/assets/swapp-catalogue-lab.js?v=20261114-top-game-rails-v25" defer></script>'+
  '<script src="/assets/swapp-catalogue-spa.js?v=20261114-home-all-spa-v18" defer></script>';
 function renderIntoSpa(html){
  const source=String(html||'');
