@@ -27,7 +27,7 @@ test('native ACTUS rail is distinct from the full magazine and absent from site 
  assert.ok(html.indexOf('id="scl-genres"')<html.indexOf('id="scl-top-games"'));
  assert.ok(html.indexOf('id="scl-top-games"')<html.indexOf('id="scl-articles"'));
  assert.match(html,/swapp-article-extras\.js\?v=20261113-actus-rail-v3/);
- assert.match(html,/swapp-catalogue-lab\.js\?v=20261115-movix-visual-v26/);
+ assert.match(html,/swapp-catalogue-lab\.js\?v=20261115-rail-inventory-v27/);
  assert.match(html,/swapp-catalogue-lab\.css\?v=20261114-hero-rail-spacing-v21/);
  assert.match(html,/noindex,nofollow,noarchive/);
  assert.doesNotMatch(read('assets/swapp-navigation.js'),/catalogue-test/);
