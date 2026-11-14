@@ -265,22 +265,6 @@ if(typeof document==='undefined')return;
 const root=document.getElementById('swapp-catalogue-lab');
 if(!root)return;
 const $=id=>document.getElementById(id);
-// Subtle cursor spotlight is purely visual; the selected Appearance accent
-// supplies its color via --swapp-page-accent. Never animate on touch devices.
-const spotlightSurface=$('scl-main');
-if(spotlightSurface&&window.matchMedia?.('(hover: hover) and (pointer: fine)')?.matches&&
- !window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches){
- let pending=0,x=0,y=0;
- spotlightSurface.addEventListener('pointermove',event=>{
-  x=event.clientX;y=event.clientY;
-  if(pending)return;
-  pending=requestAnimationFrame(()=>{
-   pending=0;
-   spotlightSurface.style.setProperty('--scl-pointer-x',x+'px');
-   spotlightSurface.style.setProperty('--scl-pointer-y',y+'px');
-  });
- },{passive:true});
-}
 const storage=()=>{try{return window.localStorage}catch{return {getItem(){return null},setItem(){throw Error('storage_unavailable')}}}};
 const create=(tag,className,text)=>{
  const node=document.createElement(tag);
