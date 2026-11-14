@@ -14,7 +14,7 @@ test('home and native pages offer matching account, appearance and motion assets
   assert.match(markup,/id="userLabel">Se connecter<\/span>/,route+' guest button');
   assert.match(markup,/swapp-nav-session\.js\?v=20261114-native-account-v1/,route+' account controller');
   assert.match(markup,/swapp-native-account\.css\?v=20261114-native-account-v1/,route+' shared CSS');
-  assert.match(markup,/swapp-route-motion\.css\?v=20261113-shared-shell-v2&rev=20261114-nav-motion-v3/,route+' same motion');
+  assert.match(markup,/swapp-route-motion\.css\?v=20261114-cinematic-route-v18/,route+' same motion');
   assert.equal((markup.match(/id="userBtn"/g)||[]).length,1);
   assert.equal((markup.match(/id="userMenu"/g)||[]).length,1);
  }
