@@ -6,7 +6,7 @@ const path=require('node:path');
 const {rankGames,groupGamesByGenre,GENRES}=require('../assets/swapp-genre-discovery');
 const {catalogueContent}=require('../modules/swapp-catalogue-lab');
 const {renderIntoSpa}=require('../modules/swapp-catalogue-spa');
-const {mergeGames}=require('../assets/swapp-catalogue-lab');
+const {mergeGames,normalizeGame,normalizeLive}=require('../assets/swapp-catalogue-lab');
 const root=path.join(__dirname,'..');
 const read=name=>fs.readFileSync(path.join(root,name),'utf8');
 
@@ -54,6 +54,17 @@ test('the source remains actual category feed merged with real live game names',
  assert.deepEqual(games.map(g=>g.game),['Aion 2','Cyberpunk 2077']);
  assert.deepEqual(rankGames(games,[live('tw:4','Cyberpunk 2077',12,true)])
   .map(g=>g.game),['Cyberpunk 2077','Aion 2']);
+});
+
+test('the poster requests portrait box art while live thumbnails keep widescreen resolution',()=>{
+ const game=normalizeGame({name:'Valorant',
+  box_art_url:'https://static-cdn.jtvnw.net/ttv-boxart/123-{width}x{height}.jpg'});
+ assert.equal(game.image,'https://static-cdn.jtvnw.net/ttv-boxart/123-360x480.jpg');
+ const stream=normalizeLive({user_login:'example_streamer',game_name:'Valorant',
+  thumbnail_url:'https://static-cdn.jtvnw.net/previews-ttv/live_user_example-{width}x{height}.jpg',
+  viewer_count:30});
+ assert.equal(stream.image,'https://static-cdn.jtvnw.net/previews-ttv/live_user_example-640x360.jpg');
+ assert.equal(stream.viewers,30);
 });
 
 test('genres contain actual game posters grouped by their correct genre',()=>{
