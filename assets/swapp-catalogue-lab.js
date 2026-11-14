@@ -70,9 +70,9 @@ const escapeName=value=>String(value??'').replace(/[\u0000-\u001f<>]/g,'').trim(
 const latin=value=>escapeName(value).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 const gameSlug=value=>latin(value).replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,90).replace(/-+$/,'');
 const isValidSlug=s=>typeof s==='string'&&/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(s)&&s.length>=3&&s.length<=90;
-function safeImage(value){
+function safeImage(value,width=640,height=360){
  try{
-  const source=String(value||'').replaceAll('{width}','640').replaceAll('{height}','360');
+  const source=String(value||'').replaceAll('{width}',String(width)).replaceAll('{height}',String(height));
   const url=new URL(source);
   const host=url.hostname.toLowerCase();
   const allowed=host==='swapp.tv'||host==='www.swapp.tv'||
@@ -121,7 +121,7 @@ function normalizeGame(item){
  const slug=gameSlug(game);
  if(!isValidSlug(slug))return null;
  return {id:'game:'+slug,kind:'game',name:game,game,gameSlug:slug,
-  summary:synopsis(game),image:safeImage(item.box_art_url||item.thumbnail_url||'')};
+  summary:synopsis(game),image:safeImage(item.box_art_url||item.thumbnail_url||'',360,480)};
 }
 function mergeLives(home,top){
  const all=[],seen=new Set();
