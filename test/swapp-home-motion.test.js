@@ -109,9 +109,10 @@ test('cleaner homepage has no legacy first-paint masking and mounts cinematic cl
  assert.doesNotMatch(boot,/\.homeHeroCopy1014\{display:none!important\}/);
  assert.doesNotMatch(boot,/\.homeHeroInner1014:not\(\.swapp-feature-ready\)/);
  const helper='swapp-home-motion.js?v=20261113-actus-relocation-v3';
- assert.match(html,/swapp-home-news\.js\?v=20261108-remove-purple-video-v3/);
- assert.ok(html.includes(helper));
- assert.ok(html.indexOf(helper)<html.indexOf('swapp-home-news.js?v=20261108-remove-purple-video-v3'));
+ assert.doesNotMatch(html,/swapp-home-news\.js\?v=/,'retired homepage editorial renderer cannot be loaded');
+ assert.ok(html.includes(helper),'shared ACTUS trailer remains available');
+ const served=require('../modules/swapp-catalogue-spa').renderIntoSpa(html);
+ assert.match(served,/swapp-catalogue-spa\.js\?v=20261114-real-spa-v16/);
  assert.match(read('assets/swapp-home-news.js'),/SwappHomeMotion\?\.attach\?\.\(tile,feature\)/);
 });
 

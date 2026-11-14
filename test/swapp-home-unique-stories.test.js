@@ -121,7 +121,7 @@ test('trailer is full-width cinematic 16:9 and responsive rather than 290px wide
  assert.match(css,/@media\(max-width:980px\)/);
  assert.match(css,/@media\(max-width:600px\)/);
  assert.doesNotMatch(css,/width:clamp\(190px,19vw,290px\)/);
- assert.match(html,/swapp-home-news\.js\?v=20261107-editorial-briefs-v1/);
+ assert.doesNotMatch(html,/swapp-home-news\.js\?v=/,'retired homepage renderer must not load alongside V16');
  assert.match(html,/swapp-video-gallery\.css\?v=20261025-latest-video-v1/);
 });
 
