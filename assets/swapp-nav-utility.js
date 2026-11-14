@@ -55,6 +55,13 @@
   submit.type='submit';submit.className='swapp-nav-search-submit';submit.textContent='OK';
   submit.setAttribute('aria-label','Lancer la recherche');
   panel.append(label,input,submit);search.append(toggle,panel);utilities.append(search);
+  // News notifications belong beside search, not on the Actualité menu item.
+  const bell=doc.createElement('a');
+  bell.href='/actus';bell.className='swapp-nav-news-bell';
+  bell.setAttribute('aria-label','Actualités — ouvrir le magazine SWAPP');
+  bell.title='Actualités SWAPP';
+  bell.innerHTML='<svg aria-hidden="true" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path><path d="M10 21h4"></path></svg>';
+  utilities.append(bell);
   const account=header.querySelector('.userArea');
   if(account)header.insertBefore(utilities,account);
   else header.append(utilities);
@@ -118,10 +125,15 @@
     doc.querySelector('main.app > #actus.view.active')!==null;
   }
   function paint(){
+   bell.classList.toggle('swapp-nav-news-unread',unread);
+   bell.setAttribute('aria-label',unread
+    ?'Nouvelle actualité — ouvrir le magazine SWAPP'
+    :'Actualités — ouvrir le magazine SWAPP');
+   bell.title=unread?'Nouvelle actualité SWAPP':'Actualités SWAPP';
+   // Clear any previous badge from navigation after a SPA menu rebuild.
    for(const link of doc.querySelectorAll('header.top #nav a[href="/actus"], #mobileNav a[href="/actus"]')){
-    link.classList.toggle('swapp-nav-news-unread',unread);
-    if(unread)link.setAttribute('aria-label','Actualité — nouvelle publication');
-    else if(link.getAttribute('aria-label')==='Actualité — nouvelle publication')link.removeAttribute('aria-label');
+    link.classList.toggle('swapp-nav-news-unread',false);
+    if(link.getAttribute('aria-label')==='Actualité — nouvelle publication')link.removeAttribute('aria-label');
    }
   }
   function acknowledge(){
