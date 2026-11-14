@@ -1,6 +1,13 @@
 /* SWAPP home: immersive gaming stories and verified matching live streams. */
 (() => {
  'use strict';
+ // Legacy editorial renderer: the canonical V16 catalogue is the only home news shelf.
+ // Do not mount old news cards, teaser or discovery shortcuts underneath it.
+ const spaHome=document.getElementById('home');
+ if(spaHome?.querySelector('#swapp-catalogue-lab')){
+  spaHome.querySelectorAll?.('[data-swapp-home-editorial]')?.forEach(node=>node.remove());
+  return;
+ }
  const slugOk=s=>/^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/.test(String(s||''));
  const safeUrl=s=>{try{const u=new URL(s);return u.protocol==='https:'&&!u.username&&!u.password?u.href:null}catch{return null}};
  const el=(tag,cls,content)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(content!=null)n.textContent=String(content);return n};

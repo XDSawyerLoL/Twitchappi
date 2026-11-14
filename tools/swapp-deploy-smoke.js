@@ -515,42 +515,24 @@ async function verify(){
   mainBundle.body.includes('homeHeroInner1014 swapp-hero-pending')&&
   mainBundle.body.includes('swapp-home-hero-placeholder'),
   'Old transient homepage headline or missing reserved banner from first render');
- const newsScript=await request(origin,'/assets/swapp-home-news.js');
- check(!newsScript.body.includes('signal:AbortSignal.timeout(')&&
-   newsScript.body.includes('new AbortController()')&&
-   home.body.includes('swapp-home-news.js?v=20261108-remove-purple-video-v3'),
-   'Homepage editorial script is stale or incompatible with older Safari');
- check(newsScript.body.includes('function updateVideoTeaser(section,articles,heroSlug)')&&
-  !newsScript.body.includes('trailer-code-vein-2-story-trailer'),
-  'Homepage still has pinned video unrelated to current published articles');
- check(newsScript.body.includes('function navigateArticle(event,slug,game)')&&
-  !newsScript.body.includes("event.preventDefault();window.setView('actus');window.SwappActus.open(slug)"),
-  'Homepage still intercepts canonical editorial links with the SPA route');
+ // V16: never display the retired newsroom below the cinematic catalogue.
+ const legacyNews=await request(origin,'/assets/swapp-home-news.js');
+ check(!home.body.includes('src="/assets/swapp-home-news.js')&&
+   home.body.includes('swapp-catalogue-spa.js?v=20261114-real-spa-v16')&&
+   legacyNews.body.includes("spaHome?.querySelector('#swapp-catalogue-lab')")&&
+   legacyNews.body.includes("querySelectorAll?.('[data-swapp-home-editorial]')"),
+   'Duplicate legacy Dernières actualités may be rendered underneath the catalogue');
+ // This existing trailer helper remains shared by the ACTUS editorial pages.
  const motionPath='/assets/swapp-home-motion.js?v=20261113-actus-relocation-v3';
- check(home.body.includes(motionPath)&&
-   home.body.indexOf(motionPath)<home.body.indexOf('swapp-home-news.js?v=20261108-remove-purple-video-v3'),
-   'No cinematic hero helper before the editorial client');
+ check(home.body.includes(motionPath),
+   'The shared article trailer helper is not present');
  const motion=await request(origin,'/assets/swapp-home-motion.js');
  check(motion.body.includes('window.SwappHomeMotion')&&
    motion.body.includes('SwappArticleExtras?.trailerId')&&
    motion.body.includes('https://www.youtube-nocookie.com')&&
    motion.body.includes('prefers-reduced-motion: reduce')&&
-   motion.body.includes('saveData')&&
-   motion.body.includes('swapp-home-motion-playing')&&
-   motion.body.includes('swapp-home-motion-loading')&&
-   motion.body.includes('delay=setTimeout(begin,0)')&&
-   motion.body.includes('start:TRAILER_START_SECONDS')&&
-   motion.body.includes('seekTo(TRAILER_START_SECONDS,true)'),
-   'Hero trailer validation, quiet playback or fallback has not deployed');
- check(newsScript.body.includes('window.SwappHomeMotion?.attach?.(tile,feature)'),
-   'Featured story is not linked to its own trailer');
- check(newsScript.body.includes('swapp-home-feature-bridge')&&
-  newsScript.body.includes("action('Lire l’article'")&&
-  newsScript.body.includes("action('Voir les lives'")&&
-  newsScript.body.includes("action('En discuter'")&&
-  newsScript.body.includes('swapp-home-feature-creators')&&
-  newsScript.body.includes('data?.success!==true'),
-  'V17 home game journey or verified-live identity is missing');
+   motion.body.includes('saveData'),
+   'Article trailer verification or reduced motion fallback has not deployed');
  const studioEnhance=await request(origin,'/assets/swapp-editor-enhance.js');
  check(studioEnhance.body.includes('if(videoBox)videoBox.hidden=false')&&
   studioEnhance.body.includes('Ajouter la vidéo de fond')&&

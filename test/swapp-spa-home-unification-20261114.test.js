@@ -24,6 +24,8 @@ test('Accueil and Découvrir share one real index.html app, header, account and 
  assert.match(home,/href="\/" class="active" aria-current="page"/);
  assert.match(discovery,/href="\/categories" class="active" aria-current="page"/);
  assert.equal(renderIntoSpa(home),home);
+ assert.doesNotMatch(home,/src="\/assets\/swapp-home-news\.js/);
+ assert.doesNotMatch(discovery,/src="\/assets\/swapp-home-news\.js/);
  assert.doesNotMatch(catalogueContent({publicHome:true}),/scl-side-brand/);
  assert.match(page(),/class="scl-side"/);
 });
