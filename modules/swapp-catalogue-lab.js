@@ -67,7 +67,7 @@ function page({publicHome=false}={}){
   bodyClass:'swapp-editorial-route swapp-catalogue-lab-page'+(publicHome?' swapp-catalogue-home':''),
   scripts:'<script src="/assets/swapp-article-extras.js?v=20261113-actus-rail-v3" defer></script>'+
   '<script src="/assets/swapp-genre-discovery.js?v=20261114-game-posters-v3" defer></script>'+ 
-  '<script src="/assets/swapp-catalogue-lab.js?v=20261114-top-game-rails-v24" defer></script>'+
+  '<script src="/assets/swapp-catalogue-lab.js?v=20261114-top-game-rails-v25" defer></script>'+
   '<script src="/assets/swapp-my-games.js?v=20261021-account-hub-v1" defer></script>'+
   '<script src="/assets/swapp-navigation.js?v=20261114-home-all-v3" defer></script>'+
   '<script src="/assets/swapp-nav-session.js?v=20261114-native-account-v1" defer></script>'
