@@ -93,8 +93,8 @@ test('live rail is followed by top game posters, 25 genre controls, actual genre
  const spa=renderIntoSpa(read('index.html'));
  assert.match(spa,/id="scl-top-games-cards"/);
  assert.match(spa,/id="scl-genre-shelves"/);
- assert.match(spa,/swapp-genre-discovery\.css\?v=20261115-movix-visual-v4/);
- assert.match(spa,/swapp-catalogue-lab\.js\?v=20261115-movix-visual-v26/);
+ assert.match(spa,/swapp-genre-discovery\.css\?v=20261115-genre-scroll-v5/);
+ assert.match(spa,/swapp-catalogue-lab\.js\?v=20261115-rail-inventory-v27/);
 });
 
 test('poster rails show valid game artwork, linked real creator discovery and no fake ranks',()=>{
@@ -105,9 +105,10 @@ test('poster rails show valid game artwork, linked real creator discovery and no
  assert.match(js,/void showGameLives\(item\)/);
  assert.match(js,/item\.audienceVerifiedCount\?/);
  assert.match(js,/if\(Number\.isSafeInteger\(rank\)&&rank>=1&&rank<=99\)/);
- assert.match(js,/const fallback=active\.length\?\[\]:ranked\.slice\(0,16\)/);
- assert.match(js,/heading\.textContent=active\.length\?'Top des jeux en ce moment':'Jeux à découvrir'/);
+ assert.match(js,/state\.topGameSlugs=new Set\(active\.map/);
+ assert.match(js,/heading\.textContent='Top des jeux en ce moment'/);
  assert.match(js,/state\.games\.filter\(matching\)/);
+ assert.match(js,/ranked\.slice\(0,180\)/);
  assert.match(css,/\.scl-game-poster-image img/);
  assert.match(css,/object-fit:cover/);
  assert.match(css,/\.scl-game-poster-rank/);

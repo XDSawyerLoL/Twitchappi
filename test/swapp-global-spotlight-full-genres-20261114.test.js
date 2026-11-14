@@ -102,8 +102,8 @@ test('global cursor halo tracks the mouse over the whole document and follows Ap
  assert.match(css,/--swapp-page-accent/);
  assert.match(css,/pointer-events:none/);
  assert.match(css,/prefers-reduced-motion:no-preference/);
- assert.match(read('index.html'),/swapp-nav-utility\.js\?v=20261114-global-spot-v3/);
- assert.match(read('modules/swapp-page-shell.js'),/swapp-nav-utility\.js\?v=20261114-global-spot-v3/);
+ assert.match(read('index.html'),/swapp-nav-utility\.js\?v=20261115-light-behind-v4/);
+ assert.match(read('modules/swapp-page-shell.js'),/swapp-nav-utility\.js\?v=20261115-light-behind-v4/);
  const limited=new Map();
  install({document:{documentElement:root,addEventListener:(event,callback)=>limited.set(event,callback),querySelector:()=>null},
   matchMedia:q=>({matches:q.includes('prefers-reduced-motion: reduce')})});

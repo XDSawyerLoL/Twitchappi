@@ -74,8 +74,8 @@ test('Movix style: ranks only when actual confirmed lives are present',()=>{
  assert.equal(ranked[0].audience,130);
  assert.equal(ranked[1].liveCount,0);
  const js=read('assets/swapp-catalogue-lab.js');
- assert.match(js,/active\.length\?index\+1:null/);
- assert.match(js,/heading\.textContent=active\.length\?'Top des jeux en ce moment':'Jeux à découvrir'/);
+ assert.match(js,/active\.forEach\(\(item,index\)=>fragment\.append\(createGamePoster\(item,index\+1\)\)\)/);
+ assert.match(js,/heading\.textContent='Top des jeux en ce moment'/);
  assert.match(js,/renderGenreShelves\(\)/);
 });
 
@@ -83,10 +83,10 @@ test('Movix CSS and JS versions are the same in SPA and standalone catalogue',()
  const spa=renderIntoSpa(read('index.html'));
  const native=require('../modules/swapp-catalogue-lab').page();
  for(const html of [spa,native]){
-  assert.match(html,/swapp-genre-discovery\.css\?v=20261115-movix-visual-v4/);
-  assert.match(html,/swapp-genre-discovery\.js\?v=20261115-movix-visual-v4/);
-  assert.match(html,/swapp-catalogue-lab\.js\?v=20261115-movix-visual-v26/);
+  assert.match(html,/swapp-genre-discovery\.css\?v=20261115-genre-scroll-v5/);
+  assert.match(html,/swapp-genre-discovery\.js\?v=20261115-genre-scroll-v5/);
+  assert.match(html,/swapp-catalogue-lab\.js\?v=20261115-rail-inventory-v27/);
  }
  const smoke=read('tools/swapp-deploy-smoke.js');
- assert.match(smoke,/swapp-catalogue-lab\.js\?v=20261115-movix-visual-v26/);
+ assert.match(smoke,/swapp-catalogue-lab\.js\?v=20261115-rail-inventory-v27/);
 });

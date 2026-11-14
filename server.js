@@ -7199,17 +7199,26 @@ app.get('/api/twitch/streams/top', heavyLimiter, async (req, res) => {
       });
     }
 
-    // Prefer diversity by game (one stream per game)
+    // Preserve game diversity, but do not discard every second streamer
+    // playing the same title: interleave the available streams by game.
     const byGame = new Map();
-    for (const s of items){
-      const gid = String(s.game_id || '');
-      if (!gid) continue;
-      if (!byGame.has(gid)) byGame.set(gid, s);
-      if (byGame.size >= limit) break;
+    for (const stream of items){
+      const gid = String(stream.game_id || stream.game_name || 'other');
+      if (!byGame.has(gid)) byGame.set(gid, []);
+      byGame.get(gid).push(stream);
     }
-
-    const unique = Array.from(byGame.values());
-    const gameIds = Array.from(byGame.keys());
+    const unique = [];
+    while(unique.length < limit){
+      let added = false;
+      for(const group of byGame.values()){
+        const stream = group.shift();
+        if(!stream) continue;
+        unique.push(stream);added = true;
+        if(unique.length >= limit)break;
+      }
+      if(!added)break;
+    }
+    const gameIds = Array.from(new Set(unique.map(stream=>String(stream.game_id||'')).filter(Boolean)));
 
     // Enrich with box art
     const artMap = {};
@@ -10599,7 +10608,7 @@ if(process.env.NODE_ENV !== 'production'){
 app.get('/api/discovery/home-lives', heavyLimiter, async (req,res)=>{
   try{
     const lang = String(req.query.lang || 'fr').trim().toLowerCase();
-    const limit = Math.max(1, Math.min(12, Number(req.query.limit || 3)));
+    const limit = Math.max(1, Math.min(24, Number(req.query.limit || 3)));
     const out=[]; const seen=new Set();
     function push(x, source){
       if(!x) return;

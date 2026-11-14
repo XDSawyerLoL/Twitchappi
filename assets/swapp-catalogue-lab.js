@@ -4,11 +4,11 @@
  */
 (function(){
 'use strict';
-const LAB_VERSION='20261115-movix-visual-v20';
+const LAB_VERSION='20261115-rail-inventory-v21';
 const API=Object.freeze({
- home:'/api/discovery/home-lives?limit=12&lang=fr',
- top:'/api/twitch/streams/top?limit=40&lang=fr',
- games:'/api/categories/top',
+ home:'/api/discovery/home-lives?limit=24&lang=fr',
+ top:'/api/twitch/streams/top?limit=100&lang=fr',
+ games:'/api/categories/top?limit=180',
  articles:'/api/actus',
  small:'/api/oryon/discover/find-live?mood=petite-commu&max=150&lang=fr&source=twitch&discover=1',
  smallBackup:'/api/twitch/streams/small?lang=fr&min=0&max=150&discover=1'
@@ -132,14 +132,14 @@ function mergeLives(home,top){
    seen.add(item.id);all.push(item);
   }
  }
- return all.slice(0,70);
+ return all.slice(0,140);
 }
 function mergeGames(categories,lives){
  const result=[],seen=new Set();
  for(const raw of Array.isArray(categories)?categories:[]){
   const game=normalizeGame(raw);if(!game||seen.has(game.gameSlug))continue;
   seen.add(game.gameSlug);result.push(game);
-  if(result.length>=60)break;
+  if(result.length>=180)break;
  }
  for(const live of lives){
   if(!isValidSlug(live.gameSlug)||seen.has(live.gameSlug)||NOT_GAMES.has(latin(live.game)))continue;
@@ -264,6 +264,14 @@ if(typeof module==='object'&&module.exports)
 if(typeof document==='undefined')return;
 const root=document.getElementById('swapp-catalogue-lab');
 if(!root)return;
+// SPA keeps its hidden homepage in the DOM after changing views.
+ // The global halo remains available on other pages; on Home it sits behind posters.
+ const homeView=root.closest('#home.view');
+ const syncCatalogueLight=()=>document.documentElement.classList.toggle(
+  'swapp-catalogue-spotlight',!homeView||homeView.classList.contains('active'));
+ syncCatalogueLight();
+ if(homeView&&typeof MutationObserver!=='undefined')
+  new MutationObserver(syncCatalogueLight).observe(homeView,{attributes:true,attributeFilter:['class','style','hidden']});
 const $=id=>document.getElementById(id);
 const storage=()=>{try{return window.localStorage}catch{return {getItem(){return null},setItem(){throw Error('storage_unavailable')}}}};
 const create=(tag,className,text)=>{
@@ -754,26 +762,29 @@ function renderTopGames(){
   .filter(game=>!state.genre||game.genre===state.genre)
   .filter(matching);
  const active=ranked.filter(game=>game.liveCount>0).slice(0,16);
- const fallback=active.length?[]:ranked.slice(0,16);
- heading.textContent=active.length?'Top des jeux en ce moment':'Jeux à découvrir';
+ // Keep the live-only Top independent from the rest of the catalogue.
+ state.topGameSlugs=new Set(active.map(game=>game.gameSlug));
+ heading.textContent='Top des jeux en ce moment';
  subtitle.textContent=active.length?
   'Selon les directs confirmés, puis les audiences vérifiées. Actualisé avec les lives.':
-  'Aucun classement live confirmé : sélection issue des jeux réellement disponibles.';
- const fragment=document.createDocumentFragment();
- (active.length?active:fallback).forEach((item,index)=>
-  fragment.append(createGamePoster(item,active.length?index+1:null)));
- if(!active.length&&!fallback.length)
-  fragment.append(create('p','scl-empty',state.loading?
-   'Recherche des jeux disponibles…':'Aucun jeu trouvé pour ce genre.'));
+  'Aucun classement live confirmé pour le moment.';
+ const offset=host.scrollLeft,fragment=document.createDocumentFragment();
+ active.forEach((item,index)=>fragment.append(createGamePoster(item,index+1)));
+ if(!active.length)fragment.append(create('p','scl-empty',state.loading?
+  'Recherche des directs…':'Aucun direct confirmé pour ce classement.'));
  host.replaceChildren(fragment);
+ host.scrollLeft=offset;
 }
 function renderAllGames(games){
  const host=$('scl-game-cards');if(!host||!genreApi)return;
- const ranked=genreApi.rankGames(games,state.lives);
+ // Discover different titles, not the games already displayed in the Top.
+ const ranked=genreApi.rankGames(games,[])
+  .filter(item=>!state.topGameSlugs?.has(item.gameSlug));
  const offset=host.scrollLeft,fragment=document.createDocumentFragment();
- ranked.slice(0,32).forEach(item=>fragment.append(createGamePoster(item,null)));
+ ranked.slice(0,180).forEach(item=>fragment.append(createGamePoster(item,null)));
  if(!fragment.childNodes.length)
-  fragment.append(create('p','scl-empty',state.loading?'Chargement des jeux…':'Aucun jeu pour cette recherche.'));
+  fragment.append(create('p','scl-empty',state.loading?'Chargement des jeux…':
+   'Tous les jeux disponibles figurent déjà dans le Top, ou aucun autre jeu ne correspond.'));
  host.replaceChildren(fragment);
  host.scrollLeft=offset;
 }
@@ -783,7 +794,7 @@ function renderGenreShelves(){
   .filter(group=>!state.genre||group.id===state.genre);
  const fragment=document.createDocumentFragment();
  for(const group of groups){
-  const games=group.games.filter(matching).slice(0,20);
+  const games=group.games.filter(matching);
   if(!games.length)continue;
   const section=create('section','scl-rail scl-genre-game-rail');
   section.dataset.sclSection='game';section.id='scl-games-'+group.id;
@@ -929,6 +940,28 @@ async function fetchLiveInventory(path){
  if(!Array.isArray(response.items))throw new Error('Inventaire de directs invalide');
  return response.items;
 }
+async function fetchGameInventory(){
+ // The Twitch categories endpoint is cursor-paginated (100 items per page).
+ // Request two real pages rather than truncating discovery to the first 60.
+ const games=[],seenCursors=new Set();
+ let cursor='';
+ for(let page=0;page<2&&games.length<180;page++){
+  const uri=new URL(API.games,window.location.origin);
+  if(cursor)uri.searchParams.set('cursor',cursor);
+  let response;
+  try{response=await fetchJson(uri.pathname+uri.search)}
+  catch(error){if(games.length)break;throw error}
+  if(!Array.isArray(response.categories)){
+   if(games.length)break;
+   throw new Error('Catalogue de jeux invalide');
+  }
+  games.push(...response.categories.slice(0,180-games.length));
+  const next=String(response.cursor||'');
+  if(!next||seenCursors.has(next))break;
+  seenCursors.add(next);cursor=next;
+ }
+ return games;
+}
 async function fetchArticles(){
  const control=new AbortController();
  const timeout=setTimeout(()=>control.abort(),9500);
@@ -996,10 +1029,10 @@ async function load(){
   fillArticleRail(state.articles.filter(matching),state.newsError);
   updateCatalogueStatus();
  });
- const results=await Promise.allSettled([fetchLiveInventory(API.home),fetchLiveInventory(API.top),fetchJson(API.games)]);
+ const results=await Promise.allSettled([fetchLiveInventory(API.home),fetchLiveInventory(API.top),fetchGameInventory()]);
  const home=results[0].status==='fulfilled'?results[0].value:[];
  const top=results[1].status==='fulfilled'?results[1].value:[];
- const categories=results[2].status==='fulfilled'?results[2].value.categories:[];
+ const categories=results[2].status==='fulfilled'?results[2].value:[];
  state.failed=results.map((result,i)=>result.status==='rejected'?Object.keys(API)[i]:null).filter(Boolean);
  state.lives=mergeLives(home,top);
  state.baseCategories=categories;
@@ -1216,8 +1249,28 @@ document.querySelectorAll('[data-scroll-left],[data-scroll-right]').forEach(butt
   const target=$(button.dataset.scrollLeft||button.dataset.scrollRight);
   if(!target)return;
   const direction=button.dataset.scrollLeft?-1:1;
-  target.scrollBy({left:direction*Math.max(250,target.clientWidth*.74),behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});
+  if(target.id==='scl-genre-cards'){
+   const first=target.querySelector('.scl-genre-card');
+   if(!first)return;
+   const gap=parseFloat(window.getComputedStyle(target).columnGap)||0;
+   const step=first.getBoundingClientRect().width+gap;
+   const count=Math.max(1,Math.floor(target.clientWidth/Math.max(step,1)));
+   target.scrollBy({left:direction*count*step,behavior:prefersLessMotion()?'auto':'smooth'});
+   return;
+  }
+  target.scrollBy({left:direction*Math.max(250,target.clientWidth*.74),
+   behavior:prefersLessMotion()?'auto':'smooth'});
  });
+});
+const genreRail=$('scl-genre-cards');
+genreRail?.addEventListener('keydown',event=>{
+ if(event.target!==genreRail||!['ArrowLeft','ArrowRight'].includes(event.key))return;
+ event.preventDefault();
+ const card=genreRail.querySelector('.scl-genre-card');
+ const gap=parseFloat(window.getComputedStyle(genreRail).columnGap)||0;
+ const step=(card?.getBoundingClientRect().width||140)+gap;
+ genreRail.scrollBy({left:(event.key==='ArrowRight'?1:-1)*step,
+  behavior:prefersLessMotion()?'auto':'smooth'});
 });
 window.addEventListener('swapp:library-changed',refreshFavorites);
 window.addEventListener('storage',event=>{if(event.key===FAVORITES_KEY||event.key===CHANNEL_KEY||event.key===null)refreshFavorites()});
