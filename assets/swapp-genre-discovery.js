@@ -103,5 +103,49 @@
    (b.audience??-1)-(a.audience??-1)||b.gameCount-a.gameCount||
    GENRES.findIndex(x=>x.id===a.id)-GENRES.findIndex(x=>x.id===b.id));
  }
- return Object.freeze({GENRES,genreForGame,rankGenres});
+ // Current activity is ranked from real live inventory only. A game with no
+ // confirmed live must not appear in a fabricated "top watched" leaderboard.
+ function rankGames(games,lives){
+  const candidates=new Map(),ordered=[];
+  for(const game of Array.isArray(games)?games:[]){
+   if(game?.kind!=='game')continue;
+   const name=String(game.game||game.name||'').trim();
+   const slug=String(game.gameSlug||'').toLowerCase();
+   const genre=genreForGame(name);
+   if(!name||!slug||!genre||candidates.has(slug))continue;
+   const item={...game,game:name,gameSlug:slug,genre,
+    liveCount:0,audience:null,audienceVerifiedCount:0,
+    cover:game.image||'',coverSource:game.image?'game':''};
+   candidates.set(slug,item);
+   ordered.push(item);
+  }
+  const seenLives=new Set();
+  for(const live of Array.isArray(lives)?lives:[]){
+   if(live?.kind!=='live')continue;
+   const slug=String(live.gameSlug||'').toLowerCase();
+   const id=String(live.id||'');
+   const item=candidates.get(slug);
+   if(!item||!id||seenLives.has(id))continue;
+   seenLives.add(id);
+   item.liveCount++;
+   if(live.audienceVerified===true&&Number.isSafeInteger(live.viewers)&&live.viewers>=0){
+    item.audience=(item.audience??0)+live.viewers;
+    item.audienceVerifiedCount++;
+   }
+   if(!item.cover&&live.image){item.cover=live.image;item.coverSource='live'}
+  }
+  return ordered.sort((a,b)=>
+   b.liveCount-a.liveCount||
+   (b.audience??-1)-(a.audience??-1)||
+   a.game.localeCompare(b.game,'fr',{sensitivity:'base'}));
+ }
+ function groupGamesByGenre(games,lives){
+  const ranked=rankGames(games,lives);
+  const order=rankGenres(games,lives);
+  return order.map(genre=>({
+   ...genre,
+   games:ranked.filter(game=>game.genre===genre.id)
+  })).filter(group=>group.games.length>0);
+ }
+ return Object.freeze({GENRES,genreForGame,rankGenres,rankGames,groupGamesByGenre});
 });
