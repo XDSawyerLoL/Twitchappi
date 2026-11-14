@@ -74,7 +74,7 @@ test('Movix style: ranks only when actual confirmed lives are present',()=>{
  assert.equal(ranked[0].audience,130);
  assert.equal(ranked[1].liveCount,0);
  const js=read('assets/swapp-catalogue-lab.js');
- assert.match(js,/active\.length\?index\+1:null/);
+ assert.match(js,/active\.forEach\(\(item,index\)=>fragment\.append\(createGamePoster\(item,index\+1\)\)\)/);
  assert.match(js,/heading\.textContent='Top des jeux en ce moment'/);
  assert.match(js,/renderGenreShelves\(\)/);
 });
