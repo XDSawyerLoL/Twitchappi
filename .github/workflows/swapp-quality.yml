@@ -12,6 +12,10 @@ on:
       - 'index.html'
       - 'test/swapp-nav-utility.test.js'
       - '.github/workflows/swapp-quality.yml'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'server.js'
+      - 'test/swapp-proxy-addr-security.test.js'
   push:
     branches:
       - master
@@ -87,6 +91,12 @@ jobs:
           node --check assets/swapp-catalogue-lab.js
           node --check assets/swapp-home-news.js
           node --test test/swapp-nav-utility.test.js
+
+      - name: Verify patched proxy-addr installation and IP spoofing regression
+        run: |
+          npm ci --ignore-scripts --omit=optional --no-audit --no-fund
+          node --test test/swapp-proxy-addr-security.test.js
+          npm ls proxy-addr --all
 
       - name: Préparer le paquet Hostinger à partir du commit GitHub validé
         run: node tools/swapp-hostinger-package.js --output="${{ runner.temp }}/swapp-hostinger-${GITHUB_SHA:0:12}.zip"
