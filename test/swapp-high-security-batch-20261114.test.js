@@ -5,14 +5,14 @@ const lock=require('../package-lock.json');
 const manifest=require('../package.json');
 
 const required=Object.freeze({
- 'node-forge':'1.4.1',
+ 'node-forge':'1.4.3',
  'body-parser':'1.20.9',
- '@fastify/busboy':'3.2.1',
+ '@fastify/busboy':'3.2.2',
  '@grpc/grpc-js':'1.14.5',
  'engine.io':'6.6.10',
  'nodemailer':'10.4.1',
  'socket.io-parser':'4.2.7',
- 'protobufjs':'7.6.1',
+ 'protobufjs':'7.6.5',
  'form-data':'2.5.6',
  'ws':'8.21.0',
  'uuid':'11.1.1'
@@ -45,12 +45,12 @@ test('patched subdependency ranges remain coherent for Express, body-parser and 
  assert.equal(lock.packages[''].dependencies['body-parser'],'1.20.9');
  assert.equal(lock.packages[''].dependencies.nodemailer,'10.4.1');
  assert.equal(lock.packages['node_modules/express'].dependencies['body-parser'],'~1.20.3');
- assert.equal(lock.packages['node_modules/express/node_modules/qs'].version,'6.14.2');
+ assert.equal(lock.packages['node_modules/express/node_modules/qs'].version,'6.16.1');
  assert.equal(lock.packages['node_modules/body-parser'].dependencies.qs,'~6.16.0');
- assert.equal(lock.packages['node_modules/qs'].version,'6.16.0');
+ assert.equal(lock.packages['node_modules/qs'].version,'6.16.1');
  assert.equal(lock.packages['node_modules/side-channel'].version,'1.1.1');
  assert.equal(lock.packages['node_modules/hasown'].version,'2.0.4');
- assert.equal(lock.packages['node_modules/protobufjs'].dependencies['@protobufjs/inquire'],'^1.1.2');
+ assert.equal(lock.packages['node_modules/@protobufjs/fetch'].dependencies['@protobufjs/inquire'],'^1.1.0');
  assert.equal(lock.packages['node_modules/@protobufjs/inquire'].version,'1.1.2');
  assert.equal(lock.packages['node_modules/engine.io'].dependencies.ws,'~8.21.0');
 });
