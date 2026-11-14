@@ -73,9 +73,12 @@ test('la loupe, le filtrage immédiat et la bulle sont opérationnels sans API e
  global.MutationObserver=class{observe(){}};
  try{
   install(win);
-  const [search]=header.children[0].children;
+  const [search,bell]=header.children[0].children;
   const [toggle,panel]=search.children;
   const input=panel.children[1];
+  assert.equal(bell.className,'swapp-nav-news-bell');
+  assert.equal(bell.href,'/actus');
+  assert.equal(bell.attributes['aria-label'],'Actualités — ouvrir le magazine SWAPP');
   assert.equal(panel.hidden,true);
   toggle.listeners.click();
   assert.equal(panel.hidden,false);
@@ -87,16 +90,25 @@ test('la loupe, le filtrage immédiat et la bulle sont opérationnels sans API e
   const old=[{slug:'premiere-actu',publishedAt:'2026-11-13T12:00:00Z'}];
   const current=[{slug:'nouvelle-actu',publishedAt:'2026-11-14T12:00:00Z'}];
   win['swapp:news-loaded']({detail:{articles:old}});
-  assert.equal(desktopNews.classList.contains('swapp-nav-news-unread'),false);
+  assert.equal(bell.classList.contains('swapp-nav-news-unread'),false);
   win['swapp:news-loaded']({detail:{articles:current}});
-  assert.equal(desktopNews.classList.contains('swapp-nav-news-unread'),true);
-  assert.equal(mobileNews.classList.contains('swapp-nav-news-unread'),true);
-  listeners.click({target:{closest:()=>desktopNews}});
+  assert.equal(bell.classList.contains('swapp-nav-news-unread'),true);
+  assert.equal(bell.attributes['aria-label'],'Nouvelle actualité — ouvrir le magazine SWAPP');
   assert.equal(desktopNews.classList.contains('swapp-nav-news-unread'),false);
+  assert.equal(mobileNews.classList.contains('swapp-nav-news-unread'),false);
+  listeners.click({target:{closest:()=>bell}});
+  assert.equal(bell.classList.contains('swapp-nav-news-unread'),false);
+  assert.equal(bell.attributes['aria-label'],'Actualités — ouvrir le magazine SWAPP');
   listeners.keydown({key:'Escape',preventDefault(){}});
   assert.equal(panel.hidden,true);
  }finally{
   if(original===undefined)delete global.MutationObserver;
   else global.MutationObserver=original;
  }
+});
+
+test('le point de notification est attaché à la cloche, jamais au menu Actualité',()=>{
+ const css=fs.readFileSync(path.join(__dirname,'..','assets','swapp-nav-utility.css'),'utf8');
+ assert.match(css,/\.swapp-nav-news-bell\.swapp-nav-news-unread::after/);
+ assert.doesNotMatch(css,/a\[href="\/actus"\]\.swapp-nav-news-unread/);
 });
