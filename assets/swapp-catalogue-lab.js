@@ -774,7 +774,7 @@ function renderAllGames(games){
  const ranked=genreApi.rankGames(games,[])
   .filter(item=>!state.topGameSlugs?.has(item.gameSlug));
  const offset=host.scrollLeft,fragment=document.createDocumentFragment();
- ranked.slice(0,48).forEach(item=>fragment.append(createGamePoster(item,null)));
+ ranked.slice(0,180).forEach(item=>fragment.append(createGamePoster(item,null)));
  if(!fragment.childNodes.length)
   fragment.append(create('p','scl-empty',state.loading?'Chargement des jeux…':
    'Tous les jeux disponibles figurent déjà dans le Top, ou aucun autre jeu ne correspond.'));
@@ -787,7 +787,7 @@ function renderGenreShelves(){
   .filter(group=>!state.genre||group.id===state.genre);
  const fragment=document.createDocumentFragment();
  for(const group of groups){
-  const games=group.games.filter(matching).slice(0,20);
+  const games=group.games.filter(matching);
   if(!games.length)continue;
   const section=create('section','scl-rail scl-genre-game-rail');
   section.dataset.sclSection='game';section.id='scl-games-'+group.id;
