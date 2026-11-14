@@ -43,8 +43,8 @@ test('native account keeps existing SPA preference and session endpoint',()=>{
 test('transitions use same accent/motion across SPA and native without click interception',()=>{
  const page=read('modules/swapp-page-shell.js');
  const spa=read('index.html'),motion=read('assets/swapp-route-motion.css');
- assert.match(page,/20261114-nav-motion-v3/);
- assert.match(spa,/20261114-nav-motion-v3/);
+ assert.match(page,/20261114-cinematic-route-v18/);
+ assert.match(spa,/20261114-cinematic-route-v18/);
  assert.match(motion,/@view-transition\{navigation:auto\}/);
  assert.match(motion,/swapp-document-in/);
  assert.match(motion,/@supports not \(view-transition-name: swapp-masthead\)/);
