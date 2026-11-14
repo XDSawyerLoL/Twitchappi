@@ -5,7 +5,7 @@ const fs=require('node:fs'),path=require('node:path');
 const read=p=>fs.readFileSync(path.join(__dirname,'..',p),'utf8');
 const {renderIntoSpa}=require('../modules/swapp-catalogue-spa');
 const {renderPage,SHARED_HEAD_SLOT}=require('../modules/swapp-page-shell');
-const THEME='swapp-obsidian-ice.css?v=20261114-premium-ice-v1';
+const THEME='swapp-obsidian-ice.css?v=20261114-smoked-glass-v20';
 test('one premium theme is loaded for SPA and native routes, last in the head',()=>{
  const spa=renderIntoSpa(read('index.html'));
  const native=renderPage({head:'<meta charset="utf-8">'+SHARED_HEAD_SLOT,content:'<main>ACTUS</main>'});
@@ -18,12 +18,12 @@ test('one premium theme is loaded for SPA and native routes, last in the head',(
 });
 test('the chosen hue affects only low-strength aura and selected typography',()=>{
  const css=read('assets/swapp-obsidian-ice.css');
- for(const varName of ['--swapp-ice-bg:#05080d','--swapp-ice-top:#070b11','--swapp-ice-panel:#0e151e',
+ for(const varName of ['--swapp-ice-bg:#030405','--swapp-ice-top:#050607','--swapp-ice-panel:rgba(10,12,14,.90)',
   '--swapp-ice-choice:var(--viewer-accent,var(--swapp-page-accent']){
   assert.ok(css.includes(varName),varName);
  }
- assert.match(css,/--swapp-ice-glow:color-mix\(in srgb,var\(--swapp-ice-choice\) 6%,transparent\)/);
- assert.match(css,/--swapp-ice-type:color-mix\(in srgb,var\(--swapp-ice-choice\) 62%,#f1f8ff\)/);
+ assert.match(css,/--swapp-ice-glow:color-mix\(in srgb,var\(--swapp-ice-choice\) 4%,transparent\)/);
+ assert.match(css,/--swapp-ice-type:color-mix\(in srgb,var\(--swapp-ice-choice\) 52%,#edf1f4\)/);
  assert.match(css,/--brand:#aac0cf!important/);
  assert.match(css,/--accent:#aac0cf!important/);
  assert.match(css,/#home :is\(\.scl-kicker,\.scl-rail-eyebrow,\.scl-feature-kicker\)/);
