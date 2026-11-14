@@ -23,7 +23,8 @@ test('premium film cut is legible, stable and respects reduced motion',()=>{
   '@media(prefers-reduced-motion:reduce)'
  ])assert.ok(css.includes(value),value);
  assert.match(css,/animation:swapp-film-in[^;]*65ms both/);
- assert.doesNotMatch(css,/blur\\(|scale\\(|swapp-transition-overlay|fixed;inset:0/);
+ assert.ok(!css.includes('blur(')&&!css.includes('scale('),'the page must stay sharp, without zoom');
+ assert.doesNotMatch(css,/swapp-transition-overlay|fixed;inset:0/);
  assert.match(css,/swapp-document-in/);
 });
 function harness({reduced=false,api=true}={}){
