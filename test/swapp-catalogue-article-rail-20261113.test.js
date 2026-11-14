@@ -84,7 +84,7 @@ test('article shelf uses a direct X share anchor, never the Windows share sheet'
  assert.equal(code.includes('navigator.share('),false);
 });
 test('illustrated article cards remain navigable and touch-friendly on mobile',()=>{
- assert.match(css,/#scl-articles\{margin-top:-113px/);
+ assert.ok(css.includes('#scl-articles{margin-top:clamp(28px,3vw,52px)'));
  assert.match(css,/#scl-live\{margin-top:18px/);
  assert.match(css,/\.scl-story-card/);
  assert.match(css,/\.scl-story-media img/);
