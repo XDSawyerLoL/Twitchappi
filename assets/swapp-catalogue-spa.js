@@ -71,6 +71,22 @@
   let url;
   try{url=new URL(anchor.href,location.href)}catch{return}
   if(url.origin!==location.origin||url.search||url.hash)return;
+  // Découvrir in the shared menu is now a section of the same homepage.
+  // Do not navigate to the obsolete separate categories view.
+  if(url.pathname==='/categories'){
+   event.preventDefault();
+   event.stopImmediatePropagation();
+   const transition=window.swappNavigateSpa('home');
+   const openGenres=()=>{
+    const section=document.getElementById('scl-genres');
+    if(!section)return;
+    try{history.replaceState(history.state,'','/#scl-genres')}catch(_error){}
+    section.scrollIntoView({behavior:window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches?'auto':'smooth',block:'start'});
+   };
+   if(transition?.finished)Promise.resolve(transition.finished).then(openGenres,openGenres);
+   else requestAnimationFrame(openGenres);
+   return;
+  }
   const view=routes.get(url.pathname);
   if(!view||typeof window.setView!=='function')return;
   if(url.pathname===location.pathname){event.preventDefault();return}
