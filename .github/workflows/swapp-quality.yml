@@ -139,7 +139,7 @@ jobs:
         run: |
           node --check test/swapp-high-security-batch-20261114.test.js
           node --test test/swapp-high-security-batch-20261114.test.js
-          npm ci --ignore-scripts --omit=optional --no-audit --no-fund --registry=https://registry.npmjs.org --fetch-retries=1 --fetch-timeout=30000
+          npm ci --ignore-scripts --no-audit --no-fund --registry=https://registry.npmjs.org --fetch-retries=1 --fetch-timeout=30000
           SWAPP_DEPENDENCY_RUNTIME_TEST=1 node --test test/swapp-high-security-batch-20261114.test.js
           npm ls --all node-forge body-parser @fastify/busboy @grpc/grpc-js engine.io nodemailer socket.io-parser protobufjs form-data ws uuid
 
