@@ -5,9 +5,9 @@ const HOME_START='<section id="home" class="view active">';
 const NEXT_VIEW='  <section id="discover" class="view"></section>';
 const STYLE='<link rel="stylesheet" href="/assets/swapp-catalogue-lab.css?v=20261114-hero-rail-spacing-v21">'+
  '<link rel="stylesheet" href="/assets/swapp-catalogue-spa.css?v=20261114-real-spa-v16">'+
- '<link rel="stylesheet" href="/assets/swapp-genre-discovery.css?v=20261114-game-posters-v3">';
-const SCRIPT='<script src="/assets/swapp-genre-discovery.js?v=20261114-game-posters-v3" defer></script>'+
- '<script src="/assets/swapp-catalogue-lab.js?v=20261114-top-game-rails-v25" defer></script>'+
+ '<link rel="stylesheet" href="/assets/swapp-genre-discovery.css?v=20261115-movix-visual-v4">';
+const SCRIPT='<script src="/assets/swapp-genre-discovery.js?v=20261115-movix-visual-v4" defer></script>'+
+ '<script src="/assets/swapp-catalogue-lab.js?v=20261115-movix-visual-v26" defer></script>'+
  '<script src="/assets/swapp-catalogue-spa.js?v=20261114-home-all-spa-v18" defer></script>';
 function renderIntoSpa(html){
  const source=String(html||'');
