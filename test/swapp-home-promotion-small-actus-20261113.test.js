@@ -18,8 +18,9 @@ test('public homepage has a canonical indexable catalogue, original lab remains 
  assert.match(home,/<title>SWAPP — Directs, jeux et actualités<\/title>/);
  assert.match(home,/class="swapp-editorial-route swapp-catalogue-lab-page swapp-catalogue-home"/);
  assert.doesNotMatch(home,/classic=1|Ancien accueil|Catalogue classique/);
- assert.match(home,/href="\/mentions-legales"/);
- assert.match(home,/href="\/confidentialite"/);
+ assert.doesNotMatch(home,/class="scl-footer"/);
+ assert.match(oldLab,/href="\/mentions-legales"/);
+ assert.match(oldLab,/href="\/confidentialite"/);
  assert.match(home,/google-site-verification/);
  assert.match(home,/pagead2\.googlesyndication\.com/);
  assert.match(home,/href="\/"[^>]*aria-current="page"/);
@@ -28,8 +29,8 @@ test('public homepage has a canonical indexable catalogue, original lab remains 
  assert.match(oldLab,/Catalogue immersif · Laboratoire SWAPP/);
  assert.doesNotMatch(oldLab,/rel="canonical" href="https:\/\/swapp\.tv\/"/);
  assert.match(oldLab,/href="\/categories"/);
- const assets=[['swapp-catalogue-lab.js','20261113-live-revalidation-v14'],
-  ['swapp-catalogue-lab.css','20261113-x-share-edge-hints-v7']];
+ const assets=[['swapp-catalogue-lab.js','20261114-streamer-bio-v21'],
+  ['swapp-catalogue-lab.css','20261114-hero-rail-spacing-v21']];
  for(const [name,version] of assets){
   assert.ok(home.includes(name+'?v='+version));
   assert.ok(oldLab.includes(name+'?v='+version));

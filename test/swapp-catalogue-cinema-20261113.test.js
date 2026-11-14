@@ -15,8 +15,8 @@ test('cinema lab keeps an isolated page with the real SWAPP header and versioned
  assert.match(html,/id="scl-feature-next"/);
  assert.match(html,/id="scl-feature-dots"/);
  assert.match(html,/scl-feature-vignette/);
- assert.match(html,/swapp-catalogue-lab\.js\?v=20261113-live-revalidation-v14/);
- assert.match(html,/swapp-catalogue-lab\.css\?v=20261113-x-share-edge-hints-v7/);
+ assert.match(html,/swapp-catalogue-lab\.js\?v=20261114-streamer-bio-v21/);
+ assert.match(html,/swapp-catalogue-lab\.css\?v=20261114-hero-rail-spacing-v21/);
  assert.match(html,/robots" content="noindex,nofollow,noarchive"/);
  assert.match(html,/id="nav"/);
  assert.doesNotMatch(read('assets/swapp-navigation.js'),/catalogue-test/);
@@ -147,7 +147,7 @@ test('Netflix-like hierarchy is full bleed, poster first, with desktop reveal an
   '.scl-card-details','.scl-card-action-row','.scl-card-hover-player',
   '.scl-cards-games .scl-card','.scl-side-link'])assert.ok(css.includes(selector),selector);
  assert.match(css,/\.scl-feature\{\s*margin:0;width:100%;height:clamp/);
- assert.match(css,/#scl-live\{margin-top:-113px\}/);
+ assert.ok(css.includes('#scl-live{margin-top:24px}'));
  assert.match(css,/\.scl-card:hover \.scl-card-action-row/);
  assert.match(css,/@media \(hover:none\),\(pointer:coarse\)/);
  assert.match(css,/\.scl-card-action-row\{display:flex;pointer-events:auto/);

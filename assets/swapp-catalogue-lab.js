@@ -474,7 +474,55 @@ function modalBody(item){
  container.append(body);
  return container;
 }
-function details(item){showDialog(modalBody(item));window.dispatchEvent(new Event('swapp:account-rendered'))}
+/* The creator's own biography, fetched only in an opened preview/details.
+ * User-supplied text is inserted via textContent, never interpreted as HTML.
+ */
+const streamerBioCache=new Map();
+function streamerBioEndpoint(item){
+ if(!item||item.kind!=='live')return '';
+ const login=String(item.login||'').toLowerCase();
+ if(item.platform==='twitch'&&/^[a-z0-9_]{2,25}$/.test(login))
+  return '/api/twitch/channels/'+encodeURIComponent(login)+'/bio';
+ if(item.platform==='swapp'&&/^[a-z0-9_][a-z0-9_-]{1,39}$/.test(login))
+  return '/api/oryon/profile/'+encodeURIComponent(login);
+ return '';
+}
+async function loadStreamerBiography(item,content){
+ const endpoint=streamerBioEndpoint(item);
+ const body=content?.querySelector('.scl-dialog-body');
+ if(!endpoint||!body)return;
+ const box=create('section','scl-streamer-bio');
+ const heading=create('h3','','À propos de '+item.name);
+ const description=create('p','','');
+ box.append(heading,description);
+ box.hidden=true;
+ body.insertBefore(box,body.querySelector('.scl-actions'));
+ const key=item.platform+':'+item.login;
+ const cached=streamerBioCache.get(key);
+ let biography='';
+ if(cached&&Date.now()-cached.at<10*60*1000)biography=cached.bio;
+ else{
+  try{
+   const response=await fetch(endpoint,{method:'GET',
+    headers:{Accept:'application/json'},credentials:'same-origin',
+    signal:typeof AbortSignal!=='undefined'&&AbortSignal.timeout?AbortSignal.timeout(6500):undefined});
+   if(!response.ok)return box.remove();
+   const data=await response.json();
+   const raw=item.platform==='swapp'?
+    (data?.success&&data?.user?.channel_public!==false?data.user.bio:null):
+    (data?.success&&data?.login===item.login?data.bio:null);
+   biography=typeof raw==='string'?raw.trim().slice(0,500):'';
+   if(streamerBioCache.size>=100)
+    streamerBioCache.delete(streamerBioCache.keys().next().value);
+   streamerBioCache.set(key,{at:Date.now(),bio:biography});
+  }catch(_error){return box.remove()}
+ }
+ if(!content.isConnected||$('scl-dialog-content')?.firstElementChild!==content)return;
+ if(!biography)return box.remove();
+ description.textContent=biography;
+ box.hidden=false;
+}
+function details(item){const node=modalBody(item);showDialog(node);if(item.kind==='live')void loadStreamerBiography(item,node);window.dispatchEvent(new Event('swapp:account-rendered'))}
 function preview(item){
  const content=modalBody(item);
  const body=content.querySelector('.scl-dialog-body');
@@ -498,6 +546,7 @@ function preview(item){
   body.append(create('p','scl-preview-note','Ce live SWAPP ne propose pas encore de lecteur miniature ici. Utilise « Regarder le direct » pour ouvrir le flux complet.'));
  }
  showDialog(content);
+ if(item.kind==='live')void loadStreamerBiography(item,content);
  refreshFavorites();
 }
 function createCard(item){

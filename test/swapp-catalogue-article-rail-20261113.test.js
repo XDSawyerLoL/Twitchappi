@@ -25,8 +25,8 @@ test('native ACTUS rail is distinct from the full magazine and absent from site 
  assert.ok(html.indexOf('id="scl-feature"')<html.indexOf('id="scl-articles"'));
  assert.ok(html.indexOf('id="scl-articles"')<html.indexOf('id="scl-live"'));
  assert.match(html,/swapp-article-extras\.js\?v=20261113-actus-rail-v3/);
- assert.match(html,/swapp-catalogue-lab\.js\?v=20261113-live-revalidation-v14/);
- assert.match(html,/swapp-catalogue-lab\.css\?v=20261113-x-share-edge-hints-v7/);
+ assert.match(html,/swapp-catalogue-lab\.js\?v=20261114-streamer-bio-v21/);
+ assert.match(html,/swapp-catalogue-lab\.css\?v=20261114-hero-rail-spacing-v21/);
  assert.match(html,/noindex,nofollow,noarchive/);
  assert.doesNotMatch(read('assets/swapp-navigation.js'),/catalogue-test/);
 });
@@ -84,7 +84,7 @@ test('article shelf uses a direct X share anchor, never the Windows share sheet'
  assert.equal(code.includes('navigator.share('),false);
 });
 test('illustrated article cards remain navigable and touch-friendly on mobile',()=>{
- assert.match(css,/#scl-articles\{margin-top:-113px/);
+ assert.ok(css.includes('#scl-articles{margin-top:clamp(28px,3vw,52px)'));
  assert.match(css,/#scl-live\{margin-top:18px/);
  assert.match(css,/\.scl-story-card/);
  assert.match(css,/\.scl-story-media img/);

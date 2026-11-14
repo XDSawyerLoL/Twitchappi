@@ -38,7 +38,7 @@ function catalogueContent({publicHome=false}={}){
    '<section class="scl-rail" id="scl-games" data-scl-section="game" aria-labelledby="scl-games-title"><div class="scl-rail-head"><div><span class="scl-rail-eyebrow">AFFICHES & UNIVERS</span><h2 id="scl-games-title">Explore les jeux</h2></div><div class="scl-rail-nav"><button type="button" data-scroll-left="scl-game-cards" aria-label="Défiler les jeux vers la gauche">‹</button><button type="button" data-scroll-right="scl-game-cards" aria-label="Défiler les jeux vers la droite">›</button></div></div><div class="scl-cards scl-cards-games" id="scl-game-cards"></div></section>'+
    '<section class="scl-rail" id="scl-small" data-scl-section="live" aria-labelledby="scl-small-title"><div class="scl-rail-head"><div><span class="scl-rail-eyebrow" id="scl-small-eyebrow">JUSQU’À 50 SPECTATEURS</span><h2 id="scl-small-title">Petites communautés à découvrir</h2></div><div class="scl-rail-nav"><button type="button" data-scroll-left="scl-small-cards" aria-label="Défiler les petits streams vers la gauche">‹</button><button type="button" data-scroll-right="scl-small-cards" aria-label="Défiler les petits streams vers la droite">›</button></div></div><div class="scl-cards" id="scl-small-cards"></div></section>'+
    '<section class="scl-rail" id="scl-favorites" data-scl-section="fav" aria-labelledby="scl-favorites-title"><div class="scl-rail-head"><div><span class="scl-rail-eyebrow">TA SÉLECTION</span><h2 id="scl-favorites-title">Ma liste</h2></div><a href="/mes-jeux" class="scl-library-link">Ma bibliothèque</a></div><div class="scl-cards scl-cards-favorites" id="scl-favorite-cards"></div></section>'+
-   '<footer class="scl-footer">'+(publicHome?'SWAPP · Découvre les directs, les articles et les jeux qui font l’actualité.':'Prototype expérimental SWAPP.')+' Les images, articles et flux proviennent de sources publiées ou de directs disponibles. Aucun live fictif ni vidéo lancée sans interaction. <nav class="scl-legal" aria-label="Informations SWAPP"><a href="/a-propos">À propos</a><a href="/contact">Contact</a><a href="/mentions-legales">Mentions légales</a><a href="/confidentialite">Confidentialité</a><a href="/cookies">Cookies</a><a href="/cgu">CGU</a></nav></footer>'+
+   (publicHome?'':'<footer class="scl-footer">Prototype expérimental SWAPP. Les images, articles et flux proviennent de sources publiées ou de directs disponibles. Aucun live fictif ni vidéo lancée sans interaction. <nav class="scl-legal" aria-label="Informations SWAPP"><a href="/a-propos">À propos</a><a href="/contact">Contact</a><a href="/mentions-legales">Mentions légales</a><a href="/confidentialite">Confidentialité</a><a href="/cookies">Cookies</a><a href="/cgu">CGU</a></nav></footer>')+
   '</main></div>'+
   '<dialog class="scl-dialog" id="scl-dialog" aria-labelledby="scl-dialog-title"><button class="scl-dialog-close" type="button" id="scl-dialog-close" aria-label="Fermer">×</button><div id="scl-dialog-content"></div></dialog>';
 }
@@ -53,13 +53,13 @@ function page({publicHome=false}={}){
   '<meta name="description" content="'+(publicHome?'SWAPP réunit les créateurs en direct, les jeux à découvrir et les actualités gaming dans un catalogue immersif.':'Page de démonstration : explorer les lives et les jeux SWAPP par affiches, prévisualisations et favoris.')+'">'+
   '<script src="/assets/swapp-editorial-color.js?v=20261114-native-accent-v1"></script>'+SHARED_HEAD_SLOT+
   '<link rel="stylesheet" href="/assets/swapp-visual-polish.css?v=20261016-mobile-swipe-40">'+
-  '<link rel="stylesheet" href="/assets/swapp-catalogue-lab.css?v=20261113-x-share-edge-hints-v7">';
+  '<link rel="stylesheet" href="/assets/swapp-catalogue-lab.css?v=20261114-hero-rail-spacing-v21">';
  const content=catalogueContent({publicHome});
  return renderPage({
   head,content,active:publicHome?'home':'categories',
   bodyClass:'swapp-editorial-route swapp-catalogue-lab-page'+(publicHome?' swapp-catalogue-home':''),
   scripts:'<script src="/assets/swapp-article-extras.js?v=20261113-actus-rail-v3" defer></script>'+
-  '<script src="/assets/swapp-catalogue-lab.js?v=20261113-live-revalidation-v14" defer></script>'+
+  '<script src="/assets/swapp-catalogue-lab.js?v=20261114-streamer-bio-v21" defer></script>'+
   '<script src="/assets/swapp-my-games.js?v=20261021-account-hub-v1" defer></script>'+
   '<script src="/assets/swapp-navigation.js?v=20261113-nav-simple-v2" defer></script>'+
   '<script src="/assets/swapp-nav-session.js?v=20261114-native-account-v1" defer></script>'
