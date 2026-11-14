@@ -282,7 +282,7 @@ async function verify(){
  // the SPA remains reachable on /categories for creator and account journeys.
  const publicHome=await request(origin,'/');
  check(publicHome.body.includes('id="swapp-catalogue-lab"')&&
-  publicHome.body.includes('swapp-catalogue-spa.js?v=20261114-real-spa-v16')&&
+  publicHome.body.includes('swapp-catalogue-spa.js?v=20261114-genres-spa-v17')&&
   publicHome.body.includes('data-swapp-home-spa="v16"')&&
   publicHome.body.includes('rel="canonical" href="https://swapp.tv/"')&&
   !publicHome.body.includes('name="robots" content="noindex')&&
@@ -518,7 +518,7 @@ async function verify(){
  // V16: never display the retired newsroom below the cinematic catalogue.
  const legacyNews=await request(origin,'/assets/swapp-home-news.js');
  check(!home.body.includes('src="/assets/swapp-home-news.js')&&
-   home.body.includes('swapp-catalogue-spa.js?v=20261114-real-spa-v16')&&
+   home.body.includes('swapp-catalogue-spa.js?v=20261114-genres-spa-v17')&&
    legacyNews.body.includes("spaHome?.querySelector('#swapp-catalogue-lab')")&&
    legacyNews.body.includes("querySelectorAll?.('[data-swapp-home-editorial]')"),
    'Duplicate legacy Dernières actualités may be rendered underneath the catalogue');
