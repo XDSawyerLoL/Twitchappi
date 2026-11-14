@@ -264,7 +264,14 @@ if(typeof module==='object'&&module.exports)
 if(typeof document==='undefined')return;
 const root=document.getElementById('swapp-catalogue-lab');
 if(!root)return;
-document.documentElement.classList.add('swapp-catalogue-spotlight');
+// SPA keeps its hidden homepage in the DOM after changing views.
+ // The global halo remains available on other pages; on Home it sits behind posters.
+ const homeView=root.closest('#home.view');
+ const syncCatalogueLight=()=>document.documentElement.classList.toggle(
+  'swapp-catalogue-spotlight',!homeView||homeView.classList.contains('active'));
+ syncCatalogueLight();
+ if(homeView&&typeof MutationObserver!=='undefined')
+  new MutationObserver(syncCatalogueLight).observe(homeView,{attributes:true,attributeFilter:['class','style','hidden']});
 const $=id=>document.getElementById(id);
 const storage=()=>{try{return window.localStorage}catch{return {getItem(){return null},setItem(){throw Error('storage_unavailable')}}}};
 const create=(tag,className,text)=>{
