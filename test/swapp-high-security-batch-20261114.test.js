@@ -50,7 +50,7 @@ test('patched subdependency ranges remain coherent for Express, body-parser and 
  assert.equal(lock.packages['node_modules/qs'].version,'6.16.1');
  assert.equal(lock.packages['node_modules/side-channel'].version,'1.1.1');
  assert.equal(lock.packages['node_modules/hasown'].version,'2.0.4');
- assert.equal(lock.packages['node_modules/protobufjs'].dependencies['@protobufjs/inquire'],'^1.1.2');
+ assert.equal(lock.packages['node_modules/@protobufjs/fetch'].dependencies['@protobufjs/inquire'],'^1.1.0');
  assert.equal(lock.packages['node_modules/@protobufjs/inquire'].version,'1.1.2');
  assert.equal(lock.packages['node_modules/engine.io'].dependencies.ws,'~8.21.0');
 });
