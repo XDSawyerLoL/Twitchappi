@@ -75,7 +75,7 @@ test('live rail is followed by top game posters, 25 genre controls, actual genre
  for(let i=1;i<required.length;i++)
   assert.ok(html.indexOf('id="'+required[i-1]+'"')<html.indexOf('id="'+required[i]+'"'),
    required[i-1]+' must precede '+required[i]);
- assert.match(html,/Top des jeux en ce moment/);
+ assert.match(html,/TOP DES JEUX EN CE MOMENT/);
  assert.match(html,/id="scl-top-games-cards"/);
  assert.match(html,/id="scl-genre-cards"/);
  assert.match(html,/id="scl-genre-shelves"/);
