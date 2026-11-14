@@ -1,0 +1,22 @@
+/* Navigation utility: shared on SPA and native SWAPP pages. */
+header.top .swapp-nav-utilities{display:flex;align-items:center;flex:0 0 auto;margin-left:auto;position:relative;z-index:95}
+header.top .swapp-nav-search{position:relative;display:flex;align-items:center}
+header.top .swapp-nav-search-toggle{width:40px;height:40px;min-width:40px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;color:#d9e7f0;border:1px solid rgba(176,197,218,.23);border-radius:999px;background:rgba(20,29,41,.82);padding:0}
+header.top .swapp-nav-search-toggle:hover,header.top .swapp-nav-search.is-open .swapp-nav-search-toggle{color:#8cece9;border-color:#79dcd7;background:#182c36}
+header.top .swapp-nav-search-toggle:focus-visible,header.top .swapp-nav-search-submit:focus-visible,header.top .swapp-nav-search-panel input:focus-visible{outline:2px solid #70e3df;outline-offset:3px}
+header.top .swapp-nav-search-panel{position:absolute;top:50%;right:calc(100% + 9px);transform:translateY(-50%);width:min(345px,55vw);min-height:42px;display:flex;align-items:center;gap:8px;padding:4px 6px 4px 12px;border:1px solid rgba(145,170,190,.46);border-radius:12px;background:#0d141f;box-shadow:0 12px 36px #000b;z-index:120}
+header.top .swapp-nav-search-panel[hidden]{display:none!important}
+header.top .swapp-nav-search-panel input{flex:1;min-width:0;width:100%;border:0;outline:0;color:#f5faff;background:transparent;font:500 13px/1.4 system-ui,sans-serif}
+header.top .swapp-nav-search-panel input::placeholder{color:#b2bfd0}
+header.top .swapp-nav-search-submit{flex:none;border:0;border-radius:8px;padding:8px 11px;color:#06151b;background:#85e6e0;font:800 12px/1 system-ui,sans-serif;cursor:pointer}
+.swapp-nav-visually-hidden{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+header.top #nav a[href="/actus"].swapp-nav-news-unread,#mobileNav a[href="/actus"].swapp-nav-news-unread{position:relative}
+header.top #nav a[href="/actus"].swapp-nav-news-unread::after,#mobileNav a[href="/actus"].swapp-nav-news-unread::after{content:"";position:absolute;top:3px;right:3px;width:9px;height:9px;border-radius:50%;background:#65e3db;box-shadow:0 0 0 2px #101722,0 0 10px rgba(101,227,219,.5);pointer-events:none}
+html.swapp-nav-tools-ready .scl-search{display:none!important}
+@media(max-width:850px){
+ header.top .swapp-nav-utilities{margin-left:auto}
+ header.top .swapp-nav-search-panel{position:fixed;left:12px;right:12px;top:72px;transform:none;width:auto;min-height:50px;padding:6px 8px 6px 14px}
+ header.top .swapp-nav-search-panel input{font-size:16px}
+ #mobileNav a[href="/actus"].swapp-nav-news-unread::after{top:2px;right:5px}
+}
+@media(prefers-reduced-motion:reduce){header.top .swapp-nav-search-toggle{transition:none}}
