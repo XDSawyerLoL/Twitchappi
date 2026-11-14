@@ -16,6 +16,7 @@ on:
       - 'package-lock.json'
       - 'server.js'
       - 'test/swapp-proxy-addr-security.test.js'
+      - 'test/swapp-websocket-driver-security.test.js'
       - 'assets/swapp-genre-discovery.*'
       - 'assets/swapp-catalogue-spa.js'
       - 'modules/swapp-catalogue-spa.js'
@@ -25,6 +26,7 @@ on:
     branches:
       - master
       - feat/swapp-home-discover-genres-20261114
+      - fix/swapp-websocket-driver-cve-2026-54466
       - feat/swapp-nav-search-news-badge-20261114
       - fix/swapp-hero-rail-footer-streamer-bio-20261114
       - feat/swapp-neutral-smoked-glass-20261114
@@ -111,6 +113,15 @@ jobs:
           node --check assets/swapp-catalogue-lab.js
           node --check assets/swapp-catalogue-spa.js
           node --test test/swapp-home-genres-20261114.test.js
+
+      - name: Verify patched websocket-driver 0.7.5 and frame-length regression
+        run: |
+          node --check test/swapp-websocket-driver-security.test.js
+          node --test test/swapp-websocket-driver-security.test.js
+          mkdir -p "$RUNNER_TEMP/swapp-websocket-security"
+          npm install --prefix "$RUNNER_TEMP/swapp-websocket-security" --no-save --ignore-scripts --omit=optional --no-audit --no-fund websocket-driver@0.7.5
+          SWAPP_WS_SECURITY_TEST=1 NODE_PATH="$RUNNER_TEMP/swapp-websocket-security/node_modules" node --test test/swapp-websocket-driver-security.test.js
+          npm ls --prefix "$RUNNER_TEMP/swapp-websocket-security" websocket-driver --all
 
       - name: Préparer le paquet Hostinger à partir du commit GitHub validé
         run: node tools/swapp-hostinger-package.js --output="${{ runner.temp }}/swapp-hostinger-${GITHUB_SHA:0:12}.zip"

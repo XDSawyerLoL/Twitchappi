@@ -44,6 +44,7 @@
     "stripe": "^18.5.0"
   },
   "overrides": {
-    "proxy-addr": "2.0.8"
+    "proxy-addr": "2.0.8",
+    "websocket-driver": "0.7.5"
   }
 }
