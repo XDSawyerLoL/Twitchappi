@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - feat/swapp-film-navigation-refinement-20261114
       - feat/swapp-cinematic-navigation-20261114
       - feat/swapp-premium-ice-black-20261114
       - feat/swapp-live-revalidation-20261113

@@ -9,18 +9,22 @@ const {renderIntoSpa}=require('../modules/swapp-catalogue-spa');
 test('cinematic CSS is shared by SPA and native pages',()=>{
  const spa=renderIntoSpa(read('index.html'));
  const native=renderPage({head:'<meta charset="utf-8">'+SHARED_HEAD_SLOT,content:'<main>TV</main>'});
- for(const page of [spa,native])assert.equal((page.match(/swapp-route-motion\.css\?v=20261114-cinematic-route-v18/g)||[]).length,1);
- assert.match(spa,/swapp-route-motion\.js\?v=20261114-cinematic-route-v18/);
+ for(const page of [spa,native])assert.equal((page.match(/swapp-route-motion\.css\?v=20261114-film-cut-v19/g)||[]).length,1);
+ assert.match(spa,/swapp-route-motion\.js\?v=20261114-film-cut-v19/);
  assert.match(read('assets/swapp-catalogue-spa.css'),/--swapp-route-enter-duration/);
 });
-test('cinematic depth, motion reduction, persistent header and mobile timing',()=>{
+test('premium film cut is legible, stable and respects reduced motion',()=>{
  const css=read('assets/swapp-route-motion.css');
- for(const text of ['@view-transition{navigation:auto}','--swapp-route-enter-duration:740ms','--swapp-route-exit-duration:380ms',
- '@keyframes swapp-cinema-out','@keyframes swapp-cinema-in','view-transition-name:swapp-masthead',
- 'swapp-route-exit-easing','filter:blur','@media(max-width:700px)','@media(prefers-reduced-motion:reduce)'])
-  assert.ok(css.includes(text),text);
- assert.match(css,/animation:swapp-cinema-in[^;]*95ms both/);
- assert.doesNotMatch(css,/swapp-transition-overlay|fixed;inset:0/);
+ for(const value of [
+  '@view-transition{navigation:auto}','--swapp-route-enter-duration:540ms',
+  '--swapp-route-exit-duration:240ms','@keyframes swapp-film-out','@keyframes swapp-film-in',
+  'view-transition-name:swapp-masthead','::view-transition-group(root){isolation:isolate}',
+  'clip-path:inset(0 0 0 1.6%)','@media(max-width:700px)',
+  '@media(prefers-reduced-motion:reduce)'
+ ])assert.ok(css.includes(value),value);
+ assert.match(css,/animation:swapp-film-in[^;]*65ms both/);
+ assert.doesNotMatch(css,/blur\\(|scale\\(|swapp-transition-overlay|fixed;inset:0/);
+ assert.match(css,/swapp-document-in/);
 });
 function harness({reduced=false,api=true}={}){
  const calls=[],root={dataset:{}},listeners={},current={id:'home'};
