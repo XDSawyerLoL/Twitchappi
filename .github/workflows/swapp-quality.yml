@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - master
+      - feat/swapp-movix-true-visual-20261115
       - security/swapp-moderate-cves-20261115
       - feat/swapp-home-live-top-games-genre-rails-20261114
     paths:
@@ -27,6 +28,7 @@ on:
       - 'modules/swapp-catalogue-lab.js'
       - 'test/swapp-home-genres-20261114.test.js'
       - 'test/swapp-top-games-genre-rails-20261114.test.js'
+      - 'test/swapp-movix-visual-20261115.test.js'
       - 'test/swapp-global-spotlight-full-genres-20261114.test.js'
   push:
     branches:
@@ -154,6 +156,12 @@ jobs:
           node --check assets/swapp-catalogue-lab.js
           node --check modules/swapp-catalogue-lab.js
           node --test test/swapp-top-games-genre-rails-20261114.test.js
+
+      - name: Screenshot-driven visual contract for the actual SWAPP homepage
+        run: |
+          node --check assets/swapp-catalogue-lab.js
+          node --check modules/swapp-catalogue-lab.js
+          node --test test/swapp-movix-visual-20261115.test.js
 
       - name: Préparer le paquet Hostinger à partir du commit GitHub validé
         run: node tools/swapp-hostinger-package.js --output="${{ runner.temp }}/swapp-hostinger-${GITHUB_SHA:0:12}.zip"
