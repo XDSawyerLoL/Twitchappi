@@ -13,7 +13,7 @@ test('Accueil and Découvrir share one real index.html app, header, account and 
  for(const html of [home,discovery]){
   for(const fragment of ['<main class="app">','data-swapp-home-spa="v16"','id="swapp-catalogue-lab"',
     'id="scl-articles"','id="scl-live"','id="scl-games"','id="scl-small"',
-    'id="scl-favorites"','swapp-account-menu.js','swapp-catalogue-spa.js?v=20261114-genres-spa-v17']){
+    'id="scl-favorites"','swapp-account-menu.js','swapp-catalogue-spa.js?v=20261114-home-all-spa-v18']){
     assert.ok(html.includes(fragment),fragment);
   }
   assert.equal((html.match(/<header class="top">/g)||[]).length,1);
