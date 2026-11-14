@@ -24,7 +24,7 @@
  const news=()=>{
    if(newsPromise&&Date.now()-newsFetchedAt<90000)return newsPromise;
    newsFetchedAt=Date.now();
-   newsPromise=fetchItems('/api/actus',14000).then(x=>Array.isArray(x.articles)?x.articles:[])
+   newsPromise=fetchItems('/api/actus',14000).then(x=>{const articles=Array.isArray(x.articles)?x.articles:[];window.dispatchEvent(new CustomEvent('swapp:news-loaded',{detail:{articles}}));return articles})
      .catch(()=>{newsPromise=null;return []});
    return newsPromise;
  };
