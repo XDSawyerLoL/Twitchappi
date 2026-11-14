@@ -4,7 +4,7 @@
  */
 (function(){
 'use strict';
-const LAB_VERSION='20261114-cinema-genres-v18';
+const LAB_VERSION='20261114-top-game-rails-v19';
 const API=Object.freeze({
  home:'/api/discovery/home-lives?limit=12&lang=fr',
  top:'/api/twitch/streams/top?limit=40&lang=fr',
@@ -70,9 +70,9 @@ const escapeName=value=>String(value??'').replace(/[\u0000-\u001f<>]/g,'').trim(
 const latin=value=>escapeName(value).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 const gameSlug=value=>latin(value).replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,90).replace(/-+$/,'');
 const isValidSlug=s=>typeof s==='string'&&/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(s)&&s.length>=3&&s.length<=90;
-function safeImage(value){
+function safeImage(value,width=640,height=360){
  try{
-  const source=String(value||'').replaceAll('{width}','640').replaceAll('{height}','360');
+  const source=String(value||'').replaceAll('{width}',String(width)).replaceAll('{height}',String(height));
   const url=new URL(source);
   const host=url.hostname.toLowerCase();
   const allowed=host==='swapp.tv'||host==='www.swapp.tv'||
@@ -121,7 +121,7 @@ function normalizeGame(item){
  const slug=gameSlug(game);
  if(!isValidSlug(slug))return null;
  return {id:'game:'+slug,kind:'game',name:game,game,gameSlug:slug,
-  summary:synopsis(game),image:safeImage(item.box_art_url||item.thumbnail_url||'')};
+  summary:synopsis(game),image:safeImage(item.box_art_url||item.thumbnail_url||'',360,480)};
 }
 function mergeLives(home,top){
  const all=[],seen=new Set();
@@ -675,11 +675,11 @@ function setGenre(value,{scroll=true}={}){
   const url=new URL(location.href);
   if(state.genre)url.searchParams.set('genre',state.genre);
   else url.searchParams.delete('genre');
-  if(scroll)url.hash='scl-live';
+  if(scroll)url.hash='scl-genre-shelves';
   try{history.replaceState(history.state,'',url.pathname+url.search+url.hash)}catch(_error){}
  }
  render();
- if(scroll)$('scl-live')?.scrollIntoView?.({behavior:prefersLessMotion()?'auto':'smooth',block:'start'});
+ if(scroll)$('scl-genre-shelves')?.scrollIntoView?.({behavior:prefersLessMotion()?'auto':'smooth',block:'start'});
 }
 function renderGenres(){
  const host=$('scl-genre-cards');
@@ -690,29 +690,113 @@ function renderGenres(){
   const card=create('button','scl-genre-card'+(group.liveCount?' has-live':''));
   card.type='button';card.dataset.genre=group.id;
   card.setAttribute('aria-pressed',String(state.genre===group.id));
-  card.setAttribute('aria-label','Explorer '+group.label);
-  const visual=create('span','scl-genre-visual');
-  if(group.image){
-   const image=create('img');
-   image.src=group.image;image.alt='';image.loading='lazy';image.decoding='async';
-   image.referrerPolicy='no-referrer';visual.append(image);
-  }
-  const text=create('span','scl-genre-content');
-  text.append(create('strong','',group.label),create('small','',group.description));
-  const metric=group.liveCount?
+  card.setAttribute('aria-label','Voir les jeux '+group.label);
+  const detail=create('span','scl-genre-content');
+  detail.append(create('strong','',group.label));
+  const count=group.liveCount?
    group.liveCount+' direct'+(group.liveCount>1?'s':'')+' confirmé'+(group.liveCount>1?'s':''):
-   group.gameCount?group.gameCount+' jeu'+(group.gameCount>1?'x':'')+' à explorer':'Explorer le genre';
-  text.append(create('span','scl-genre-metric',metric));
-  const kicker=create('span','scl-genre-kicker',group.liveCount?
-   'EN DIRECT':'GENRE');
-  kicker.setAttribute('aria-hidden','true');
-  card.append(visual,kicker,text);
+   group.gameCount?group.gameCount+' jeu'+(group.gameCount>1?'x':''):
+   'Explorer';
+  detail.append(create('small','scl-genre-metric',count));
+  card.append(detail);
   card.addEventListener('click',()=>setGenre(state.genre===group.id?'':group.id));
   fragment.append(card);
  }
  host.replaceChildren(fragment);
- const reset=$('scl-genre-reset');
- if(reset)reset.hidden=!state.genre;
+ const reset=$('scl-genre-reset');if(reset)reset.hidden=!state.genre;
+}
+function createGamePoster(item,rank){
+ const card=create('button','scl-game-poster');
+ card.type='button';card.dataset.gameSlug=item.gameSlug;
+ card.setAttribute('aria-label','Voir les directs de '+item.game);
+ const media=create('span','scl-game-poster-image');
+ if(item.cover){
+  const image=create('img');
+  image.src=item.cover;image.alt='';image.loading='lazy';
+  image.decoding='async';image.referrerPolicy='no-referrer';
+  image.addEventListener('error',()=>{
+   image.remove();
+   media.append(create('span','scl-game-poster-no-art',item.game));
+  },{once:true});
+  media.append(image);
+ }else media.append(create('span','scl-game-poster-no-art',item.game));
+ card.append(media);
+ if(Number.isSafeInteger(rank)&&rank>=1&&rank<=99)
+  card.append(create('span','scl-game-poster-rank',String(rank)));
+ const info=create('span','scl-game-poster-details');
+ info.append(
+  create('span','scl-game-poster-kind',item.liveCount?'EN DIRECT':'JEU VIDÉO'),
+  create('strong','scl-game-poster-title',item.game)
+ );
+ const metric=item.liveCount?
+  item.liveCount+' direct'+(item.liveCount>1?'s':'')+
+   (item.audienceVerifiedCount?
+    ' · '+item.audience.toLocaleString('fr-FR')+' spectateurs vérifiés':''):
+  'Voir les créateurs';
+ info.append(create('span','scl-game-poster-metric',metric));
+ card.append(info);
+ card.addEventListener('click',()=>{void showGameLives(item)});
+ return card;
+}
+function renderTopGames(){
+ const host=$('scl-top-games-cards'),heading=$('scl-top-games-title');
+ const subtitle=$('scl-top-games-explainer');
+ if(!host||!genreApi)return;
+ const ranked=genreApi.rankGames(state.games,state.lives)
+  .filter(game=>!state.genre||game.genre===state.genre)
+  .filter(matching);
+ const active=ranked.filter(game=>game.liveCount>0).slice(0,16);
+ const fallback=active.length?[]:ranked.slice(0,16);
+ heading.textContent=active.length?'Top des jeux en ce moment':'Jeux à découvrir';
+ subtitle.textContent=active.length?
+  'Selon les directs confirmés, puis les audiences vérifiées. Actualisé avec les lives.':
+  'Aucun classement live confirmé : sélection issue des jeux réellement disponibles.';
+ const fragment=document.createDocumentFragment();
+ (active.length?active:fallback).forEach((item,index)=>
+  fragment.append(createGamePoster(item,active.length?index+1:null)));
+ if(!active.length&&!fallback.length)
+  fragment.append(create('p','scl-empty',state.loading?
+   'Recherche des jeux disponibles…':'Aucun jeu trouvé pour ce genre.'));
+ host.replaceChildren(fragment);
+}
+function renderGenreShelves(){
+ const host=$('scl-genre-shelves');if(!host||!genreApi)return;
+ const groups=genreApi.groupGamesByGenre(state.games,state.lives)
+  .filter(group=>!state.genre||group.id===state.genre);
+ const fragment=document.createDocumentFragment();
+ for(const group of groups){
+  const games=group.games.filter(matching).slice(0,20);
+  if(!games.length)continue;
+  const section=create('section','scl-rail scl-genre-game-rail');
+  section.dataset.sclSection='game';section.id='scl-games-'+group.id;
+  const head=create('div','scl-rail-head'),text=create('div');
+  text.append(create('span','scl-rail-eyebrow','JEUX PAR GENRE'));
+  const title=create('h2','',group.label+' : jeux à découvrir');
+  title.id='scl-games-title-'+group.id;text.append(title);
+  const navigation=create('div','scl-rail-nav');
+  const cards=create('div','scl-cards scl-game-poster-rail scl-genre-poster-rail');
+  cards.id='scl-game-cards-'+group.id;cards.tabIndex=0;
+  cards.setAttribute('aria-labelledby',title.id);
+  function move(direction){
+   cards.scrollBy({left:direction*Math.max(240,cards.clientWidth*.76),
+    behavior:prefersLessMotion()?'auto':'smooth'});
+  }
+  const left=button('‹','scl-genre-arrow',()=>move(-1));
+  const right=button('›','scl-genre-arrow',()=>move(1));
+  left.setAttribute('aria-label','Défiler '+group.label+' vers la gauche');
+  right.setAttribute('aria-label','Défiler '+group.label+' vers la droite');
+  navigation.append(left,right);
+  head.append(text,navigation);
+  games.forEach(game=>cards.append(createGamePoster(game,null)));
+  cards.addEventListener('keydown',event=>{
+   if(event.target!==cards||!['ArrowLeft','ArrowRight'].includes(event.key))return;
+   event.preventDefault();move(event.key==='ArrowRight'?1:-1);
+  });
+  section.append(head,cards);fragment.append(section);
+ }
+ if(!fragment.childNodes.length&&state.genre)
+  fragment.append(create('p','scl-empty','Aucun jeu référencé dans ce genre. Choisis une autre catégorie.'));
+ host.replaceChildren(fragment);
 }
 $('scl-genre-reset')?.addEventListener('click',()=>setGenre(''));
 const initialGenre=new URLSearchParams(window.location.search).get('genre');
@@ -793,6 +877,8 @@ async function loadSmallCommunities(){
 function render(){
  stopHoverPreview();
  renderGenres();
+ renderTopGames();
+ renderGenreShelves();
  const lives=state.lives.filter(matching),games=state.games.filter(matching);
  fillArticleRail(state.articles.filter(matching),state.newsError);
  fill('scl-live-cards',lives,state.genre?'Aucun direct confirmé pour ce genre en ce moment.':'Aucun direct confirmé pour cette recherche.');

@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - master
+      - feat/swapp-home-live-top-games-genre-rails-20261114
     paths:
       - 'assets/swapp-nav-utility.*'
       - 'assets/swapp-catalogue-lab.js'
@@ -23,6 +24,7 @@ on:
       - 'modules/swapp-catalogue-spa.js'
       - 'modules/swapp-catalogue-lab.js'
       - 'test/swapp-home-genres-20261114.test.js'
+      - 'test/swapp-top-games-genre-rails-20261114.test.js'
       - 'test/swapp-global-spotlight-full-genres-20261114.test.js'
   push:
     branches:
@@ -142,6 +144,13 @@ jobs:
           npm ci --ignore-scripts --no-audit --no-fund --registry=https://registry.npmjs.org --fetch-retries=1 --fetch-timeout=30000
           SWAPP_DEPENDENCY_RUNTIME_TEST=1 node --test test/swapp-high-security-batch-20261114.test.js
           npm ls --all node-forge body-parser @fastify/busboy @grpc/grpc-js engine.io nodemailer socket.io-parser protobufjs form-data ws uuid
+
+      - name: Real top games, poster rails by genre and responsive Movix-style UI
+        run: |
+          node --check assets/swapp-genre-discovery.js
+          node --check assets/swapp-catalogue-lab.js
+          node --check modules/swapp-catalogue-lab.js
+          node --test test/swapp-top-games-genre-rails-20261114.test.js
 
       - name: Préparer le paquet Hostinger à partir du commit GitHub validé
         run: node tools/swapp-hostinger-package.js --output="${{ runner.temp }}/swapp-hostinger-${GITHUB_SHA:0:12}.zip"
