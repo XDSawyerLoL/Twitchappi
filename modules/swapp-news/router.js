@@ -241,10 +241,22 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
     }catch(e){if(fromVerifiedCache(res,String(req.params.slug)))return;next(e);}
   });
   // One canonical UI for direct navigation and SPA navigation.
-  router.get('/actus',(req,res,next)=>{
+  // Serve the same indexable editorial HTML to browsers and crawlers.
+  // The CMS published snapshot remains authoritative: never fall back to
+  // unchecked releases or expose drafts when storage is unavailable.
+  router.get('/actus',async(req,res,next)=>{
     res.set('Cache-Control','no-store');
-    if(typeof sendApp==='function')return sendApp(res);
-    return next(new Error('SWAPP app renderer unavailable'));
+    if(!isReady())return res.status(503).type('html').send('Magazine temporairement indisponible');
+    try{
+      const list=await published();
+      verifiedPublished.remember(list);
+      return res.type('html').send(renderNewsHome(list,{
+        baseUrl,category:req.query?.categorie,query:req.query?.q
+      }));
+    }catch(error){
+      console.error('[SWAPP NEWS] Magazine HTML indisponible:',String(error?.message||error).slice(0,180));
+      return res.status(503).type('html').send('Magazine temporairement indisponible');
+    }
   });
   // Shows only the connected user's own identity for secure, pinned admin setup.
   // This route never grants any permission and never returns a password or token.
