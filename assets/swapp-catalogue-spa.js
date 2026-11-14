@@ -26,7 +26,7 @@
    else anchor.removeAttribute('aria-current');
   }
  };
- if(document.querySelector('#nav .navGroup a[href="/categories"]')){
+ if(document.querySelector('#nav .navGroup a[href="/actus"]')){
   window.renderNav=permanentNav;
   try{renderNav=permanentNav}catch(_error){}
  }

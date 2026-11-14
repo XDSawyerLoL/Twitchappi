@@ -49,7 +49,7 @@ test('SPA menu is server-populated before JavaScript; no first-paint empty heade
  const html=read('index.html');
  assert.match(html,/<nav id="nav" class="mainNav"><\/nav>/);
  const routes={
-  '/categories':['Découvrir','/categories'],
+  '/':['Accueil','/'],
   '/actus':['Actualité','/actus'],
   '/compte':['Compte','/compte'],
   '/tv':['SWAPP TV','/tv']
@@ -58,7 +58,7 @@ test('SPA menu is server-populated before JavaScript; no first-paint empty heade
   const output=hydrateSpaNavigation(html,route);
   assert.match(output,/<nav id="nav" class="mainNav" aria-label="Navigation principale"><div class="navGroup">/);
   assert.match(output,/<nav id="mobileNav" class="mobileNav" aria-label="Navigation mobile"><a /);
-  assert.ok(output.includes(nav.desktopNavigation(route==='/compte'?'settings':route==='/categories'?'categories':route==='/actus'?'actus':'tv')));
+  assert.ok(output.includes(nav.desktopNavigation(route==='/compte'?'settings':route==='/'?'home':route==='/actus'?'actus':'tv')));
   assert.ok(output.includes('href="'+link+'"'),label);
   assert.ok(output.includes('aria-current="page"'),route+' active navigation');
   assert.equal((output.match(/class="navGroup"/g)||[]).length,1);

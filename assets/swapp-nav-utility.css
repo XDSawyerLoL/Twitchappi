@@ -20,3 +20,20 @@ html.swapp-nav-tools-ready .scl-search{display:none!important}
  header.top .swapp-nav-news-bell.swapp-nav-news-unread::after{top:3px;right:3px}
 }
 @media(prefers-reduced-motion:reduce){header.top .swapp-nav-search-toggle,header.top .swapp-nav-news-bell{transition:none}}
+
+/* The cursor halo is visible across SWAPP's shared SPA and native pages.
+   Rendering above the content avoids CSS stacking/background layers hiding it.
+   It is entirely pointer-transparent, motion-optional and accent-aware. */
+@media (hover:hover) and (pointer:fine) and (prefers-reduced-motion:no-preference){
+ html.swapp-global-spotlight:not(.swapp-global-spotlight-hidden)::after{
+  content:"";position:fixed;inset:0;z-index:6000;pointer-events:none;
+  background:radial-gradient(ellipse 440px 390px at var(--swapp-spot-x,-900px) var(--swapp-spot-y,-900px),
+   color-mix(in srgb,var(--swapp-page-accent,var(--brand,#68e8e1)) 30%,transparent) 0%,
+   color-mix(in srgb,var(--swapp-page-accent,var(--brand,#68e8e1)) 12%,transparent) 40%,
+   transparent 78%);
+  mix-blend-mode:screen;opacity:.75;
+ }
+}
+@media (forced-colors:active){
+ html.swapp-global-spotlight::after{display:none!important}
+}

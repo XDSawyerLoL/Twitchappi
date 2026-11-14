@@ -3,21 +3,22 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const read=p=>fs.readFileSync(path.join(__dirname,'..',p),'utf8');
 const nav=require('../assets/swapp-navigation');
 const {community}=require('../modules/swapp-hubs');
-test('six primary destinations; Swapper is nested beneath SWAPP TV',()=>{
- assert.deepEqual(nav.items.map(x=>x.label),['Accueil','Découvrir','Actualité','Social','Boutique','SWAPP TV']);
- const desktop=nav.desktopNavigation('categories');
- assert.equal((desktop.match(/<a /g)||[]).length,7); // 6 primary + 1 TV sublink
- for(const href of ['/','/categories','/actus','/social','/boutique','/tv'])
+test('five primary destinations; Swapper remains nested beneath SWAPP TV',()=>{
+ assert.deepEqual(nav.items.map(x=>x.label),['Accueil','Actualité','Social','Boutique','SWAPP TV']);
+ const desktop=nav.desktopNavigation('home');
+ assert.equal((desktop.match(/<a /g)||[]).length,6); // 5 primary + 1 TV sublink
+ for(const href of ['/','/actus','/social','/boutique','/tv'])
   assert.match(desktop,new RegExp('href="'+href+'"'));
  assert.doesNotMatch(desktop,/swapp-news-more|swapp-news-menu|href="\/equipes"/);
- assert.match(desktop,/href="\/categories" class="active" aria-current="page"/);
+ assert.match(desktop,/href="\/" class="active" aria-current="page"/);
+ assert.doesNotMatch(desktop,/href="\/categories"/);
  assert.match(desktop,/class="swapp-tv-submenu"/);
  assert.match(desktop,/href="\/decouvrir"[^>]*>Swapper<\/a>/);
  assert.ok(desktop.indexOf('href="/decouvrir"')>desktop.indexOf('href="/tv"'));
- const mobile=nav.mobileNavigation('categories');
+ const mobile=nav.mobileNavigation('home');
  const pinned=mobile.split('<details class="swapp-mobile-more">')[0];
  assert.equal((pinned.match(/<a /g)||[]).length,4);
- for(const href of ['/','/categories','/actus','/tv'])
+ for(const href of ['/','/actus','/social','/tv'])
   assert.match(pinned,new RegExp('href="'+href+'"'));
  assert.doesNotMatch(pinned,/href="\/decouvrir"/);
  assert.match(mobile,/class="swapp-mobile-tv-subnav"/);

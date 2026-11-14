@@ -8,7 +8,6 @@
  // First level stays deliberately short; SWAPER is a SWAPP TV feature.
  const items=Object.freeze([
   Object.freeze({id:'home',label:'Accueil',href:'/'}),
-  Object.freeze({id:'categories',label:'Découvrir',href:'/categories'}),
   Object.freeze({id:'actus',label:'Actualité',href:'/actus'}),
   Object.freeze({id:'community',label:'Social',href:'/social'}),
   Object.freeze({id:'shop',label:'Boutique',href:'/boutique'}),
@@ -42,7 +41,7 @@
  }
  function mobileNavigation(active='actus'){
   // Four priorities plus Plus, even on 320px screens; SWAPPER is not a fifth primary tab.
-  const pinned=items.filter(x=>['home','categories','actus','tv'].includes(x.id));
+  const pinned=items.filter(x=>['home','actus','community','tv'].includes(x.id));
   const extra=[...items.filter(x=>!pinned.includes(x)),video,podcast,account];
   const secondaryActive=extra.some(x=>x.id===active)||['guides','discover','teams'].includes(active);
   return pinned.map(x=>link(x,active)).join('')+

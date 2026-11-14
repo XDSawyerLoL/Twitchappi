@@ -4,7 +4,7 @@
  */
 (function(){
 'use strict';
-const LAB_VERSION='20261114-unified-genres-v17';
+const LAB_VERSION='20261114-cinema-genres-v18';
 const API=Object.freeze({
  home:'/api/discovery/home-lives?limit=12&lang=fr',
  top:'/api/twitch/streams/top?limit=40&lang=fr',
@@ -265,22 +265,6 @@ if(typeof document==='undefined')return;
 const root=document.getElementById('swapp-catalogue-lab');
 if(!root)return;
 const $=id=>document.getElementById(id);
-// Subtle cursor spotlight is purely visual; the selected Appearance accent
-// supplies its color via --swapp-page-accent. Never animate on touch devices.
-const spotlightSurface=$('scl-main');
-if(spotlightSurface&&window.matchMedia?.('(hover: hover) and (pointer: fine)')?.matches&&
- !window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches){
- let pending=0,x=0,y=0;
- spotlightSurface.addEventListener('pointermove',event=>{
-  x=event.clientX;y=event.clientY;
-  if(pending)return;
-  pending=requestAnimationFrame(()=>{
-   pending=0;
-   spotlightSurface.style.setProperty('--scl-pointer-x',x+'px');
-   spotlightSurface.style.setProperty('--scl-pointer-y',y+'px');
-  });
- },{passive:true});
-}
 const storage=()=>{try{return window.localStorage}catch{return {getItem(){return null},setItem(){throw Error('storage_unavailable')}}}};
 const create=(tag,className,text)=>{
  const node=document.createElement(tag);
@@ -681,6 +665,12 @@ const matching=item=>{
 function setGenre(value,{scroll=true}={}){
  const valid=genreApi?.GENRES?.some(item=>item.id===value);
  state.genre=valid?value:'';
+ // A genre opens the actual live/game shelves even if the user was looking
+ // at an Article-only filter before selecting a card.
+ state.filter='all';
+ document.querySelectorAll('[data-scl-filter]').forEach(tab=>{
+  tab.setAttribute('aria-pressed',String(tab.dataset.sclFilter==='all'));
+ });
  if(location.pathname==='/'||location.pathname==='/catalogue-test'){
   const url=new URL(location.href);
   if(state.genre)url.searchParams.set('genre',state.genre);
@@ -697,7 +687,7 @@ function renderGenres(){
  const groups=genreApi.rankGenres(state.games,state.lives);
  const fragment=document.createDocumentFragment();
  for(const group of groups){
-  const card=create('button','scl-genre-card');
+  const card=create('button','scl-genre-card'+(group.liveCount?' has-live':''));
   card.type='button';card.dataset.genre=group.id;
   card.setAttribute('aria-pressed',String(state.genre===group.id));
   card.setAttribute('aria-label','Explorer '+group.label);
@@ -713,7 +703,10 @@ function renderGenres(){
    group.liveCount+' direct'+(group.liveCount>1?'s':'')+' confirmé'+(group.liveCount>1?'s':''):
    group.gameCount?group.gameCount+' jeu'+(group.gameCount>1?'x':'')+' à explorer':'Explorer le genre';
   text.append(create('span','scl-genre-metric',metric));
-  card.append(visual,text);
+  const kicker=create('span','scl-genre-kicker',group.liveCount?
+   'EN DIRECT':'GENRE');
+  kicker.setAttribute('aria-hidden','true');
+  card.append(visual,kicker,text);
   card.addEventListener('click',()=>setGenre(state.genre===group.id?'':group.id));
   fragment.append(card);
  }
