@@ -10,7 +10,7 @@
   {href:'/tv',label:'SWAPP TV'}
  ];
  const NAV=[
-  ['/','Accueil'],['/categories','Découvrir'],['/actus','Actualité'],
+  ['/','Accueil'],['/actus','Actualité'],
   ...HUBS.map(x=>[x.href,x.label])
  ];
  // Account lives in the secondary menu but must still be recognized by
@@ -18,7 +18,7 @@
  const ACCOUNT=['/compte','Compte'];
  const SECONDARY=['/decouvrir','Swapper'];
  const norm=s=>String(s||'').replace(/\s+/g,' ').trim().toLocaleLowerCase('fr');
- const byLabel=new Map([...NAV,ACCOUNT,SECONDARY,['/decouvrir','DIRECT'],['/categories','Jeux & catégories'],['/categories','Catégories']].map(([href,label])=>[norm(label),href]));
+ const byLabel=new Map([...NAV,ACCOUNT,SECONDARY,['/decouvrir','DIRECT']].map(([href,label])=>[norm(label),href]));
  const byHref=new Set([...NAV,ACCOUNT,SECONDARY].map(([href])=>href));
  const isHub=href=>HUBS.some(x=>x.href===href);
  function dest(el){
@@ -64,7 +64,10 @@
   for(const el of [...parent.querySelectorAll('a,button')]){
    if(el.closest('#nav')!==parent&&el.closest('#mobileNav')!==parent)continue;
    // Deprecated Équipes is intentionally out of public navigation.
-   if(norm(el.textContent)==='équipes'||el.getAttribute('href')==='/equipes'){el.remove();continue;}
+   if(norm(el.textContent)==='équipes'||el.getAttribute('href')==='/equipes'||
+      norm(el.textContent)==='découvrir'||el.getAttribute('href')==='/categories'){
+    el.remove();continue;
+   }
    const href=dest(el);
    if(!href)continue;
    if(seen.has(href)){
@@ -88,8 +91,9 @@
   if(!api||typeof api.desktopNavigation!=='function'||typeof api.mobileNavigation!=='function')return false;
   const route=String(location.pathname||'/').replace(/\/+$/,'')||'/';
   const active=route==='/bandes-annonces'?'trailers':route==='/tv'?'tv':route==='/tv/programme'||route==='/agenda'?'agenda':route==='/on-air'?'onair':route==='/actus'?'actus':route==='/decouvrir'?'discover':route==='/social'?'community':route==='/boutique'?'shop':route==='/categories'?'categories':route==='/equipes'?'teams':route.startsWith('/guides')?'guides':'home';
-  const signature='simple-v2:'+(mobile?'mobile:':'desktop:')+active;
-  const valid=!!(nav.querySelector('a[href="/categories"]')&&nav.querySelector('a[href="/decouvrir"]')&&
+  const signature='simple-v3:'+(mobile?'mobile:':'desktop:')+active;
+  const valid=!!(nav.querySelector('a[href="/decouvrir"]')&&
+   !nav.querySelector('a[href="/categories"]')&&
    nav.querySelector('a[href="/actus"]')&&nav.querySelector('.swapp-tv-nav-cta')&&
    !nav.querySelector('.swapp-news-more')&&!nav.querySelector('a[href="/equipes"]')&&
    (mobile?!!nav.querySelector('.swapp-mobile-more .swapp-mobile-tv-subnav a[href="/decouvrir"]'):
@@ -109,7 +113,8 @@
   const list=nav.querySelector('.navGroup')||nav;
   // Catch legacy SPA buttons too, not just their converted anchors.
   for(const el of [...list.children]){
-   if(el.matches('a,button')&&(norm(el.textContent)==='swaper'||dest(el)==='/decouvrir'))el.remove();
+   if(el.matches('a,button')&&(norm(el.textContent)==='swaper'||dest(el)==='/decouvrir'||
+     norm(el.textContent)==='découvrir'||el.getAttribute('href')==='/categories'))el.remove();
   }
   // When the shared navigation script was blocked, keep the TV submenu usable.
   if(!list.querySelector('.swapp-tv-navigation')){
@@ -133,7 +138,7 @@
   const nav=document.getElementById('mobileNav');
   if(!nav)return;
   if(canonicalMenu(nav,true))return;
-  const pinned=['/','/categories','/actus','/tv'];
+  const pinned=['/','/actus','/social','/tv'];
   let more=nav.querySelector(':scope > .swapp-mobile-more');
   if(!more){
    more=document.createElement('details');
@@ -159,7 +164,8 @@
   }
   dedupe(nav);
   for(const el of [...nav.children,...inner.children]){
-   if(el.matches('a,button')&&(norm(el.textContent)==='swaper'||dest(el)==='/decouvrir'))el.remove();
+   if(el.matches('a,button')&&(norm(el.textContent)==='swaper'||dest(el)==='/decouvrir'||
+     norm(el.textContent)==='découvrir'||el.getAttribute('href')==='/categories'))el.remove();
   }
   const top=new Set([...nav.children].filter(el=>el!==more&&el.matches('a,button')).map(dest));
   for(const href of pinned){
