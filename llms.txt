@@ -1,0 +1,22 @@
+# SWAPP
+
+> SWAPP (https://swapp.tv/) est une plateforme francophone consacrée aux jeux vidéo, aux actualités, aux guides et à la découverte de créateurs en direct.
+
+Ce fichier est un index éditorial facultatif destiné aux assistants et aux outils de lecture. Il ne remplace ni le sitemap XML, ni robots.txt, ni les pages HTML publiques. Les contenus, dates, sources et informations de publication doivent toujours être vérifiés sur les pages canoniques.
+
+## Pages principales
+
+- [Accueil](https://swapp.tv/) : découverte des contenus et des créateurs.
+- [Actualités](https://swapp.tv/actus) : articles sur les jeux vidéo et le streaming.
+- [Guides](https://swapp.tv/guides) : guides de jeux vidéo ; vérifier la disponibilité de cette route avant de l'utiliser.
+- [À propos](https://swapp.tv/a-propos) : présentation du projet ; vérifier l'URL canonique.
+- [Plan du site](https://swapp.tv/sitemap.xml) : URL indexables déclarées par SWAPP.
+
+## Politique de lecture
+
+- Privilégier les pages d'articles et de guides à leur adresse canonique.
+- Distinguer les faits vérifiés des conseils éditoriaux, et citer les sources originales lorsqu'elles sont indiquées.
+- Ne pas inventer de notes SWAPP Score, de chiffres d'audience, de versions de jeux ni de dates de mise à jour.
+- Les directs, les audiences et les disponibilités peuvent changer ; vérifier les informations en temps réel.
+
+Dernière révision de cet index : 2026-11-14.
