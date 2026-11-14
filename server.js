@@ -1811,6 +1811,19 @@ try{
  console.warn('[SWAPP CATALOGUE LAB] Page expérimentale indisponible :',String(error?.message||error).slice(0,160));
 }
 
+// The old Découvrir entry now leads to the integrated genres on Accueil.
+// Keep /categories as a reversible bookmark alias; do not touch /decouvrir
+// (Swapper lives inside SWAPP TV) or any discovery APIs.
+app.get('/categories',(req,res)=>{
+ const query=new URLSearchParams();
+ const genre=String(req.query?.genre||'').trim().toLowerCase();
+ const allowed=new Set(['mmorpg','fps','rpg','survie','strategie','battle-royale','moba','simulation','action','autres']);
+ if(allowed.has(genre))query.set('genre',genre);
+ const game=String(req.query?.q||req.query?.game||'').trim().slice(0,120);
+ if(game)query.set('q',game);
+ res.set('Cache-Control','no-store');
+ return res.redirect(302,'/'+(query.size?'?'+query.toString():'')+'#scl-genres');
+});
 // Clean SPA URLs. /c/:login remains a compatibility alias, but public channel URLs are /pseudo.
 // Institutional documents must precede the /:creator catch-all.
 require('./modules/swapp-news/legal-pages').register(app);
