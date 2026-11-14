@@ -22,10 +22,12 @@ on:
       - 'modules/swapp-catalogue-spa.js'
       - 'modules/swapp-catalogue-lab.js'
       - 'test/swapp-home-genres-20261114.test.js'
+      - 'test/swapp-global-spotlight-full-genres-20261114.test.js'
   push:
     branches:
       - master
       - feat/swapp-home-discover-genres-20261114
+      - feat/swapp-home-all-genres-global-spotlight-20261114
       - fix/swapp-websocket-driver-cve-2026-54466
       - feat/swapp-nav-search-news-badge-20261114
       - fix/swapp-hero-rail-footer-streamer-bio-20261114
@@ -122,6 +124,14 @@ jobs:
           npm install --prefix "$RUNNER_TEMP/swapp-websocket-security" --no-save --ignore-scripts --omit=optional --no-audit --no-fund websocket-driver@0.7.5
           SWAPP_WS_SECURITY_TEST=1 NODE_PATH="$RUNNER_TEMP/swapp-websocket-security/node_modules" node --test test/swapp-websocket-driver-security.test.js
           npm ls --prefix "$RUNNER_TEMP/swapp-websocket-security" websocket-driver --all
+
+      - name: Full genre grid, five-entry navigation and global accent spotlight
+        run: |
+          node --check assets/swapp-genre-discovery.js
+          node --check assets/swapp-nav-utility.js
+          node --check assets/swapp-hub-nav.js
+          node --check assets/swapp-navigation.js
+          node --test test/swapp-global-spotlight-full-genres-20261114.test.js
 
       - name: Préparer le paquet Hostinger à partir du commit GitHub validé
         run: node tools/swapp-hostinger-package.js --output="${{ runner.temp }}/swapp-hostinger-${GITHUB_SHA:0:12}.zip"
