@@ -82,12 +82,14 @@ test('Découvrir du menu renvoie vers les genres sans casser Swapper',()=>{
 });
 
 test('le spot suit la souris dans la couleur Apparence, sans l’imposer aux mobiles',()=>{
- const css=read('assets/swapp-genre-discovery.css');
- const js=read('assets/swapp-catalogue-lab.js');
+ const css=read('assets/swapp-nav-utility.css');
+ const js=read('assets/swapp-nav-utility.js');
+ const catalogue=read('assets/swapp-catalogue-lab.js');
  assert.match(css,/--swapp-page-accent/);
- assert.match(css,/prefers-reduced-motion:reduce/);
- assert.match(css,/@media\(max-width:650px\)/);
- assert.match(js,/--scl-pointer-x/);
- assert.match(js,/genreApi\.rankGenres\(state\.games,state\.lives\)/);
- assert.match(js,/state\.genre/);
+ assert.match(css,/prefers-reduced-motion:no-preference/);
+ assert.match(css,/hover:hover/);
+ assert.match(js,/--swapp-spot-x/);
+ assert.match(js,/doc\.addEventListener\('pointermove'/);
+ assert.match(catalogue,/genreApi\.rankGenres\(state\.games,state\.lives\)/);
+ assert.match(catalogue,/state\.genre/);
 });
