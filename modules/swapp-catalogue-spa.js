@@ -3,9 +3,9 @@
 const {catalogueContent}=require('./swapp-catalogue-lab');
 const HOME_START='<section id="home" class="view active">';
 const NEXT_VIEW='  <section id="discover" class="view"></section>';
-const STYLE='<link rel="stylesheet" href="/assets/swapp-catalogue-lab.css?v=20261114-real-spa-v16">'+
+const STYLE='<link rel="stylesheet" href="/assets/swapp-catalogue-lab.css?v=20261114-hero-rail-spacing-v21">'+
  '<link rel="stylesheet" href="/assets/swapp-catalogue-spa.css?v=20261114-real-spa-v16">';
-const SCRIPT='<script src="/assets/swapp-catalogue-lab.js?v=20261114-real-spa-v16" defer></script>'+
+const SCRIPT='<script src="/assets/swapp-catalogue-lab.js?v=20261114-streamer-bio-v21" defer></script>'+
  '<script src="/assets/swapp-catalogue-spa.js?v=20261114-real-spa-v16" defer></script>';
 function renderIntoSpa(html){
  const source=String(html||'');

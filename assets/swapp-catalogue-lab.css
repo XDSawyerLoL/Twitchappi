@@ -278,7 +278,7 @@ body.swapp-catalogue-lab-page{
  position:relative;z-index:6;scroll-margin-top:145px;
  margin:10px 0 22px;overflow:visible;
 }
-#scl-live{margin-top:-113px}
+#scl-live{margin-top:24px}
 .scl-rail-head{
  padding:0 4%;margin-bottom:6px;
  position:relative;z-index:2;
@@ -510,7 +510,7 @@ body.swapp-catalogue-lab-page{
  * This shelf floats beneath the hero while existing SWAPP live and game rails
  * retain their own media sizing and independent interactions.
  */
-#scl-articles{margin-top:-113px;z-index:10;position:relative}
+#scl-articles{margin-top:clamp(28px,3vw,52px);z-index:2;position:relative}
 #scl-live{margin-top:18px}
 .scl-rail-head-actions{display:flex;align-items:center;gap:16px}
 .scl-all-news{
@@ -605,12 +605,12 @@ body.swapp-catalogue-lab-page{
  border-radius:6px;font-size:12px;
 }
 @media(max-width:950px){
- #scl-articles{margin-top:-70px}
+ #scl-articles{margin-top:28px}
  #scl-live{margin-top:18px}
  .scl-story-card{flex-basis:clamp(245px,35vw,315px)}
 }
 @media(max-width:650px){
- #scl-articles{margin-top:-26px}
+ #scl-articles{margin-top:22px}
  #scl-live{margin-top:12px}
  .scl-rail-head-actions{gap:8px}
  .scl-all-news{font-size:11px}
@@ -669,3 +669,22 @@ body.swapp-catalogue-lab-page{
  .scl-edge-arrow{display:none!important}
 }
 @media(prefers-reduced-motion:reduce){.scl-edge-arrow{transition:none}}
+
+/* V21 · The article shelf follows the featured banner in normal flow. */
+#scl-articles .scl-article-cards{
+ margin:0;
+ padding:12px 4% 30px;
+ align-items:stretch;
+}
+#scl-articles .scl-rail-head{margin-bottom:12px}
+#scl-articles .scl-story-card{align-self:stretch}
+.scl-streamer-bio{
+ padding:16px 18px;margin:14px 0 20px;
+ border:1px solid rgba(255,255,255,.12);
+ border-radius:12px;
+ background:linear-gradient(145deg,rgba(20,22,25,.96),rgba(8,9,11,.97));
+}
+.scl-streamer-bio h3{margin:0 0 10px;font-size:14px;font-weight:900;color:#f4f7fa;letter-spacing:0}
+.scl-streamer-bio p{margin:0!important;font-size:13px;color:#c4c9cf!important;line-height:1.62;white-space:pre-line;overflow-wrap:anywhere}
+@media(max-width:950px){#scl-articles .scl-article-cards{padding:12px 4% 24px}}
+@media(max-width:650px){#scl-articles .scl-article-cards{padding:10px 4% 20px;margin:0}.scl-streamer-bio{padding:14px}}

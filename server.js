@@ -6904,6 +6904,39 @@ app.post('/stream_info', async (req, res) => {
 });
 
 
+// SWAPP catalogue: request public Twitch biographies only when a viewer opens
+// a creator preview. Never expose the complete Helix user object or API token.
+const SWAPP_STREAMER_BIO_TTL_MS=15*60*1000;
+const swappTwitchBioCache=new Map();
+app.get('/api/twitch/channels/:login/bio', heavyLimiter, async (req,res)=>{
+ const login=String(req.params?.login||'').trim().toLowerCase();
+ if(!/^[a-z0-9_]{2,25}$/.test(login))
+  return res.status(400).json({success:false,bio:null,error:'Identifiant Twitch invalide'});
+ const cached=swappTwitchBioCache.get(login);
+ if(cached&&Date.now()-cached.when<SWAPP_STREAMER_BIO_TTL_MS)
+  return res.json(cached.payload);
+ if(!TWITCH_CLIENT_ID||!TWITCH_CLIENT_SECRET)
+  return res.status(503).json({success:false,bio:null,available:false});
+ try{
+  const response=await twitchAPI('users?login='+encodeURIComponent(login));
+  const user=Array.isArray(response?.data)
+   ?response.data.find(u=>String(u.login||'').toLowerCase()===login):null;
+  if(!user?.id)return res.status(404).json({success:false,bio:null});
+  const description=typeof user.description==='string'
+   ?user.description.replace(/[\u0000-\u001f\u007f]/g,' ').trim().slice(0,500):'';
+  const payload={success:true,source:'twitch',login,
+   display_name:String(user.display_name||user.login||login).slice(0,50),
+   bio:description||null};
+  if(swappTwitchBioCache.size>=160)
+   swappTwitchBioCache.delete(swappTwitchBioCache.keys().next().value);
+  swappTwitchBioCache.set(login,{when:Date.now(),payload});
+  res.set('Cache-Control','public, max-age=300');
+  return res.json(payload);
+ }catch(_error){
+  return res.status(503).json({success:false,bio:null,available:false});
+ }
+});
+
 // Recherche de chaînes Twitch pour la nouvelle page Oryon.
 // Sert à intégrer des streamers Twitch sans héberger leur flux vidéo.
 app.get('/api/twitch/channels/search', heavyLimiter, async (req, res) => {
