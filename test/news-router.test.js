@@ -272,3 +272,21 @@ test('MySQL sans migration vérifiée ne republie aucun ancien lot Firestore',as
   assert.equal(firestore.all.size,0,'no implicit release or tombstone resurrection');
  }finally{console.error=original}
 });
+
+test('GEO: la page ACTUS contient un lien canonique et les articles publiés en HTML',async()=>{
+ const {request}=setup();
+ const created=await request('POST','/api/editor/actus',{body:input});
+ const slug=created.payload.slug;
+ await request('POST','/api/editor/actus/:slug/publish',{params:{slug}});
+ const page=await request('GET','/actus');
+ assert.equal(page.statusCode,200);
+ assert.match(page.payload,/rel="canonical" href="https:\/\/swapp.tv\/actus"/);
+ assert.match(page.payload,/Un grand jeu rejoint la rédaction SWAPP/);
+ assert.match(page.payload,new RegExp('href="/actus/'+slug+'"'));
+});
+test('GEO: indisponibilité du stockage ne produit pas une fausse page indexable',async()=>{
+ const {request}=setup({isReady:()=>false});
+ const page=await request('GET','/actus');
+ assert.equal(page.statusCode,503);
+ assert.doesNotMatch(page.payload,/<article\b/i);
+});
