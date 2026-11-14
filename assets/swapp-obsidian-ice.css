@@ -1,0 +1,176 @@
+/* SWAPP · OBSIDIAN ICE
+ * Design contract: black / charcoal / cool glass are ALWAYS the base.
+ * The user's saved hue is limited to a distant glow and small typographic
+ * accents. Never tint cards, article images, video, primary buttons or text.
+ * Keep functional warning/success/live colors intact.
+ */
+:root{
+ color-scheme:dark;
+ --swapp-ice-bg:#05080d;
+ --swapp-ice-top:#070b11;
+ --swapp-ice-panel:#0e151e;
+ --swapp-ice-raised:#151f29;
+ --swapp-ice-stroke:rgba(184,207,229,.16);
+ --swapp-ice-foreground:#f3f8fc;
+ --swapp-ice-subtle:#a8b8c9;
+ --swapp-ice-choice:var(--viewer-accent,var(--swapp-page-accent,#7cd6e6));
+ --swapp-ice-type:color-mix(in srgb,var(--swapp-ice-choice) 62%,#f1f8ff);
+ --swapp-ice-glow:color-mix(in srgb,var(--swapp-ice-choice) 6%,transparent);
+ /* The old SPA binds --brand and --accent to the picker: decouple them. */
+ --brand:#aac0cf!important;
+ --accent:#aac0cf!important;
+}
+html body,
+html body:has(.swapp-store),
+html body:has(.swapp-social-viewport),
+html body:has(.stv),
+html body:has(.scal),
+html body.swapp-catalogue-lab-page{
+ background:
+  radial-gradient(ellipse 840px 500px at 8% -8%,var(--swapp-ice-glow),transparent 74%),
+  radial-gradient(ellipse 880px 740px at 108% 92%,rgba(87,122,147,.045),transparent 70%),
+  linear-gradient(180deg,#080d13 0%,#05080d 48%,#060a0f 100%)!important;
+ color:var(--swapp-ice-foreground);
+}
+/* Full article reading surfaces must not become tinted, even with a vivid swatch. */
+html.swapp-editorial-theme body.swapp-editorial-route:has(.article-wrap){
+ background:
+  radial-gradient(ellipse 880px 670px at -13% 25%,var(--swapp-ice-glow),transparent 73%),
+  var(--swapp-ice-bg)!important;
+}
+html.swapp-editorial-theme body.swapp-editorial-route .article-wrap{
+ background:
+  radial-gradient(ellipse 820px 680px at -15% 20%,var(--swapp-ice-glow),transparent 72%),
+  linear-gradient(180deg,#0a1119,#060a10 64%,#090f16)!important;
+}
+/* A restrained, frosted but legible site-wide masthead. */
+html body header.top{
+ background:rgba(5,9,14,.94)!important;
+ border-bottom:1px solid var(--swapp-ice-stroke)!important;
+ box-shadow:0 12px 36px rgba(0,0,0,.28),inset 0 -1px 0 rgba(217,236,249,.035)!important;
+}
+html body header.top .userBtn,
+html body header.top #userMenu{
+ background:linear-gradient(150deg,#141f2a,#090f17)!important;
+ border-color:var(--swapp-ice-stroke)!important;
+ color:#eff6fc!important;
+}
+html body header.top .mainNav :is(a,button).active,
+html body header.top .mainNav :is(a,button)[aria-current="page"]{
+ background:linear-gradient(180deg,#1d2934,#101820)!important;
+ color:var(--swapp-ice-foreground)!important;
+ box-shadow:inset 0 -2px 0 color-mix(in srgb,var(--swapp-ice-choice) 42%,transparent),inset 0 1px 0 #e1f4ff12!important;
+ border-color:rgba(202,220,233,.23)!important;
+}
+html body header.top .brand .swapp-wordmark-dot,
+html body .swapp-boot-wordmark .swapp-wordmark-dot{
+ color:var(--swapp-ice-type)!important;
+ text-shadow:0 0 14px color-mix(in srgb,var(--swapp-ice-choice) 18%,transparent)!important;
+}
+html body #mobileNav.mobileNav{
+ background:rgba(6,10,15,.96)!important;
+ border-top-color:var(--swapp-ice-stroke)!important;
+}
+/* Main navigation and primary actions remain ice / graphite; no full swatch fills. */
+html body .btn:not(.secondary):not(.ghost):not(.good):not(.bad),
+html body .streamBtn{
+ background:linear-gradient(145deg,#344652,#18242e)!important;
+ border:1px solid rgba(183,210,225,.32)!important;
+ color:#f5faff!important;
+ box-shadow:inset 0 1px 0 #ffffff18,0 10px 30px #0005!important;
+}
+html body .btn:not(.secondary):not(.ghost):not(.good):not(.bad):hover,
+html body .streamBtn:hover{
+ background:linear-gradient(145deg,#405461,#202f3b)!important;
+ border-color:#c4d6e0!important;
+}
+html body :is(input,select,textarea):not([type="color"]):not([type="checkbox"]):not([type="radio"]){
+ accent-color:#8da7b6;
+}
+/* Actualité: stop using the chosen swatch to fill cards, tags and CTAs. */
+html body #actus{
+ --swapp-news-accent:#aec6d4!important;
+ --swapp-news-bright:#e0edf6!important;
+ --swapp-news-edge:#5e7585!important;
+ --swapp-news-tint:#18242f!important;
+ --swapp-news-button:#c7dce7!important;
+}
+html body #actus .swapp-actus-card{
+ background:linear-gradient(180deg,#111c27,#0b131d)!important;
+ border-color:var(--swapp-ice-stroke)!important;
+}
+html body #actus :is(.swapp-actus-head small,.swapp-actus-article>small,.swapp-actus-info small,.swapp-reader-kicker-main,.swapp-reader-kicker-game){
+ color:var(--swapp-ice-type)!important;
+}
+html body #actus .swapp-actus-game-chip.active{
+ background:#1b2933!important;
+ border-color:#597386!important;
+ box-shadow:inset 0 1px 0 #ffffff0d!important;
+}
+html body #actus .swapp-actus-game-chip.active:hover{background:#22323d!important}
+/* The whole catalogue stays obsidian; only its section overlines and a thin
+ * selected tab stroke adopt the saved hue. Artwork retains its true colors. */
+html body #home .scl-shell,
+html body.swapp-catalogue-lab-page .scl-shell{
+ --scl-bg:var(--swapp-ice-bg);
+ --scl-panel:var(--swapp-ice-panel);
+ --scl-line:var(--swapp-ice-stroke);
+ --scl-accent:#b2cbd7;
+ color:var(--swapp-ice-foreground);
+}
+html body #home .scl-topline,
+html body #home .scl-tabs{
+ background:#070b11!important;
+}
+html body #home :is(.scl-kicker,.scl-rail-eyebrow,.scl-feature-kicker),
+html body.swapp-catalogue-lab-page :is(.scl-kicker,.scl-rail-eyebrow,.scl-feature-kicker){
+ color:var(--swapp-ice-type)!important;
+}
+html body #home .scl-card,
+html body.swapp-catalogue-lab-page .scl-card{
+ background:linear-gradient(180deg,#141e29,#0c141e)!important;
+ border-color:rgba(189,210,228,.18)!important;
+}
+html body #home .scl-tabs button,
+html body.swapp-catalogue-lab-page .scl-tabs button{
+ background:#151e28!important;
+ border-color:rgba(194,211,226,.15)!important;
+ color:#c9d6e1!important;
+}
+html body #home .scl-tabs button[aria-pressed="true"],
+html body.swapp-catalogue-lab-page .scl-tabs button[aria-pressed="true"]{
+ background:#26323c!important;
+ border-color:#7b94a5!important;
+ color:#f6fbff!important;
+ box-shadow:inset 0 -2px 0 color-mix(in srgb,var(--swapp-ice-choice) 40%,transparent)!important;
+}
+html body #home .scl-card-media:not(:has(img)),
+html body.swapp-catalogue-lab-page .scl-card-media:not(:has(img)){
+ background:linear-gradient(125deg,#17232c,#0c121c)!important;
+}
+html body #home .scl-search,
+html body.swapp-catalogue-lab-page .scl-search{
+ background:#0e151f!important;border-color:#40515d!important;
+}
+/* SOCIAL and boutique keep usable interface signals, but no vivid page tint. */
+html body:has(.swapp-social-viewport) .swapp-social-viewport{
+ --social-accent:#a9c4d4!important;
+ --pulse-cyan:#b6d3de!important;
+ --pulse-teal:#a9c4d4!important;
+}
+html body:has(.swapp-social-viewport) .swapp-appearance-indicator{
+ background:var(--swapp-ice-type)!important;
+ box-shadow:0 0 0 3px color-mix(in srgb,var(--swapp-ice-choice) 10%,transparent)!important;
+}
+html body:has(.swapp-store) :is(
+ .swapp-store-topline>span:first-child,
+ .swapp-editorial-top-masthead small,
+ .swapp-editorial-top-masthead h2 em,
+ .swapp-editorial-game-genre,
+ .swapp-editorial-game-foot a
+){color:var(--swapp-ice-type)!important}
+/* Do not recolor videos, media thumbnails, error/success pills or LIVE. */
+@media(prefers-reduced-motion:reduce){
+ html body header.top,
+ html body #home .scl-card{transition:none!important}
+}

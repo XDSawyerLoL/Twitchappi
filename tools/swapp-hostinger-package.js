@@ -13,7 +13,7 @@ const mandatory=['app.js','server.js','package.json','package-lock.json','index.
  'assets/swapp-catalogue-lab.js','assets/swapp-catalogue-lab.css',
  'assets/swapp-catalogue-spa.js','assets/swapp-catalogue-spa.css',
  'modules/swapp-discord-connect.js','assets/swapp-discord-connect.js','assets/swapp-discord-connect.css',
- 'assets/swapp-navigation.js','assets/swapp-hub-nav.js','assets/swapp-unified-nav.css',
+ 'assets/swapp-navigation.js','assets/swapp-hub-nav.js','assets/swapp-unified-nav.css','assets/swapp-obsidian-ice.css',
  'assets/swapp-route-motion.css','assets/swapp-route-motion.js',
  'assets/swapp-account-discord-link.js','assets/swapp-tv-broadcast.js','assets/swapp-tv-twitch-player.js',
  'assets/swapp-program.css','assets/swapp-actus-app.css','modules/swapp-tv-director.js'];

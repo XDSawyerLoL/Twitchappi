@@ -112,6 +112,7 @@ const RELEASE_FILES=Object.freeze([
  'assets/swapp-article-extras.js',
  'assets/swapp-footer.js',
  'assets/swapp-unified-nav.css',
+ 'assets/swapp-obsidian-ice.css',
  'assets/swapp-mobile-comfort.css',
  'assets/swapp-mobile-nav-follow.js',
  'assets/swapp-home-news.js',
