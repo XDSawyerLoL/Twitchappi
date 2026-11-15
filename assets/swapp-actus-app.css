@@ -704,3 +704,19 @@ html body #actus :is(.swapp-actus-cover img,.swapp-actus-featured-link img) {
  }
 }
 
+
+/* ACTUS full-viewport backdrop: the black centre and BOTH outer gutters match.
+   Do not flatten the hero image or its trailer: only the page-level surfaces. */
+html:has(body #actus.view.active),
+html body:has(#actus.view.active),
+html body:has(#actus.view.active) > main.app,
+html body:has(#actus.view.active) > main.app > #actus.view.active {
+ background-color:#030405!important;
+ background-image:none!important;
+}
+html body:has(#actus.view.active) > main.app:before,
+html body:has(#actus.view.active) > main.app:after,
+html body:has(#actus.view.active):before,
+html body:has(#actus.view.active):after {
+ background-image:none!important;
+}
