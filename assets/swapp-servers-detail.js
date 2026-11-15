@@ -12,7 +12,7 @@
   try{
    const response=await fetch('/api/swapp/serveurs/'+encodeURIComponent(id)+'/vote',{method:'POST',credentials:'same-origin',headers:{Accept:'application/json'}});
    const result=await response.json();
-   if(!response.ok)throw Error(({connexion_swapp_requise:'Connecte-toi à SWAPP pour voter.',vote_deja_effectue:'Vote déjà enregistré : tu pourras recommencer dans deux heures.',origine_invalide:'Session expirée : recharge la page.'})[result.error]||'Le vote ne peut pas être enregistré.');
+   if(!response.ok)throw Error(({connexion_swapp_requise:'Connecte-toi à SWAPP pour voter.',vote_deja_effectue:'Vote déjà enregistré : tu pourras recommencer dans deux heures.',vote_daily_limit:'Tu as atteint 3 votes sur 24 heures pour cette communauté.',origine_invalide:'Session expirée : recharge la page.'})[result.error]||'Le vote ne peut pas être enregistré.');
    say('Vote enregistré pour cette communauté.');
    const element=root.querySelector('[data-ss-profile-votes]');
    if(element&&/^\d[\d\s\u202f]*$/.test(element.textContent)){
