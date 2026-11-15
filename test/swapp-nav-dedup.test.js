@@ -5,7 +5,7 @@ const fs=require('node:fs');
 const path=require('node:path');
 const vm=require('node:vm');
 const ROOT=path.resolve(__dirname,'..');
-const EXPECTED=['Accueil','Actualité','Social','Boutique','SWAPP TV'];
+const EXPECTED=['Accueil','Actualité','Social','Boutique','SWAPP TV','SERVEUR +'];
 
 class Element {
  constructor(tag,text='',href=null){
@@ -53,22 +53,22 @@ function setup(){
    location,URL,setTimeout});
  return {nav,group,observe:()=>observer?.(),navigate:()=>navigatedTo,click:(target,mods={})=>{let prevented=false,stopped=false;clickListener({target,button:0,...mods,preventDefault(){prevented=true},stopImmediatePropagation(){stopped=true}});return {prevented,stopped}}};
 }
-test('consolidated fallback keeps five primary destinations without duplicate links',()=>{
+test('fallback keeps six requested destinations including SERVEUR + without duplicate links',()=>{
  const {nav,group}=setup();
- assert.equal(nav.querySelectorAll('a,button').length,5);
+ assert.equal(nav.querySelectorAll('a,button').length,6);
  assert.deepEqual(group.children.map(x=>x.textContent),EXPECTED);
  assert.equal(nav.children.length,1);
- assert.equal(nav.querySelectorAll('a').length,3);
+ assert.equal(nav.querySelectorAll('a').length,4);
  assert.deepEqual(group.children.slice(2).map(x=>x.getAttribute('href')),
-  ['/social','/boutique','/tv']);
+  ['/social','/boutique','/tv','/serveurs']);
  assert.equal(group.children.slice(2).every(x=>x.dataset.swappNativeRoute==='1'),true);
 });
-test('reconciling a second SPA render cannot reintroduce duplicate destinations',()=>{
+test('reconciling a second SPA render preserves six distinct destinations',()=>{
  const {nav,group,observe}=setup();
  for(const [href,label] of [['/social','Social'],['/boutique','Boutique'],['/tv','SWAPP TV']])
   group.append(new Element('a',label,href));
  observe();
- assert.equal(nav.querySelectorAll('a,button').length,5);
+ assert.equal(nav.querySelectorAll('a,button').length,6);
  assert.deepEqual(group.children.map(x=>x.textContent),EXPECTED);
 });
 test('navigation assets are versioned consistently on SPA and native pages',()=>{
