@@ -10,7 +10,7 @@ const read=name=>fs.readFileSync(path.join(__dirname,'..',name),'utf8');
 
 test('Movix reference: genre image ribbon precedes the compact poster rails',()=>{
  const html=catalogueContent({publicHome:true});
- const ordered=['scl-live','scl-genres','scl-top-games','scl-games','scl-genre-shelves','scl-articles','scl-small'];
+ const ordered=['scl-live','scl-small','scl-genres','scl-top-games','scl-games','scl-genre-shelves','scl-articles'];
  for(const id of ordered)assert.ok(html.includes('id="'+id+'"'),id);
  for(let i=1;i<ordered.length;i++)
   assert.ok(html.indexOf('id="'+ordered[i-1]+'"')<html.indexOf('id="'+ordered[i]+'"'),
