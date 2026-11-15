@@ -4,6 +4,7 @@ const crypto=require('node:crypto');
 const {renderPage,SHARED_HEAD_SLOT}=require('./swapp-page-shell');
 const {inviteCode,verifyDiscordInvite}=require('./swapp-servers-discord');
 const {renderProfile}=require('./swapp-servers-profile');
+const {getProfileEvidence}=require('./swapp-servers-stats');
 const GAMES=['Minecraft','GTA V / FiveM','GTA RP','Rust','DayZ','Cyberpunk 2077','Arma 3','Arma Reforger','ARK Survival Ascended','ARK Survival Evolved','Project Zomboid','Palworld','Red Dead Redemption 2','Garry’s Mod','Valheim','Enshrouded','Conan Exiles','SCUM','Counter-Strike 2','7 Days to Die','Eco','V Rising','Unturned','Space Engineers','Dune Awakening','Hell Let Loose','Squad','Terraria','No Man’s Sky','Satisfactory','Don’t Starve Together','Lethal Company','Discord / Multigaming','Autre'];
 const mysqlUrl=()=>process.env.SWAPP_SERVERS_MYSQL_URL||process.env.SWAPP_MYSQL_URL||'';
 let pool=null,ready=null;
@@ -22,6 +23,9 @@ async function db(){
  await pool.query('CREATE TABLE IF NOT EXISTS swapp_game_servers (id CHAR(32) PRIMARY KEY, owner_id VARCHAR(100) NOT NULL, name VARCHAR(100) NOT NULL, slug VARCHAR(90) NOT NULL UNIQUE, game VARCHAR(70) NOT NULL, description VARCHAR(1500) NOT NULL, website VARCHAR(350) NOT NULL, join_address VARCHAR(240) NOT NULL, region VARCHAR(60) NOT NULL, tags VARCHAR(250) NOT NULL, banner_url VARCHAR(350) NOT NULL, status ENUM("pending","published","rejected") NOT NULL DEFAULT "pending", created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3), KEY swapp_servers_game_status (game,status),KEY swapp_servers_owner (owner_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
  await pool.query('CREATE TABLE IF NOT EXISTS swapp_game_server_votes (server_id CHAR(32) NOT NULL, user_id VARCHAR(100) NOT NULL, voted_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3), PRIMARY KEY (server_id,user_id),KEY swapp_servers_vote_time (voted_at), CONSTRAINT swapp_game_votes_server_fk FOREIGN KEY (server_id) REFERENCES swapp_game_servers(id) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
  await pool.query('CREATE TABLE IF NOT EXISTS swapp_game_server_vote_events (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, server_id CHAR(32) NOT NULL, user_id VARCHAR(100) NOT NULL, voted_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3), KEY swapp_game_votes_rank (server_id,voted_at), CONSTRAINT swapp_game_vote_events_server_fk FOREIGN KEY (server_id) REFERENCES swapp_game_servers(id) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
+
+ await pool.query('CREATE TABLE IF NOT EXISTS swapp_game_server_click_events (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, server_id CHAR(32) NOT NULL, clicked_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3), KEY swapp_click_events_time (server_id,clicked_at), CONSTRAINT swapp_click_events_server_fk FOREIGN KEY (server_id) REFERENCES swapp_game_servers(id) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
+ await pool.query('CREATE TABLE IF NOT EXISTS swapp_game_server_reviews (id CHAR(32) PRIMARY KEY, server_id CHAR(32) NOT NULL, user_id VARCHAR(100) NOT NULL, staff TINYINT UNSIGNED NOT NULL, atmosphere TINYINT UNSIGNED NOT NULL, availability TINYINT UNSIGNED NOT NULL, comment VARCHAR(1200) NOT NULL, status ENUM("pending","published","rejected") NOT NULL DEFAULT "pending", created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3), UNIQUE KEY swapp_server_one_review (server_id,user_id), KEY swapp_reviews_moderation (status,created_at), CONSTRAINT swapp_reviews_server_fk FOREIGN KEY (server_id) REFERENCES swapp_game_servers(id) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
  })().catch(e=>{ready=null;throw e});}
  await ready;return pool;
 }
@@ -113,10 +117,12 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
   if(!game||!/^[a-z0-9][a-z0-9-]{4,89}$/.test(fiche))return res.status(404).type('text').send('Serveur introuvable');
   try{
    const sql=await getDatabase();
-   const [rows]=await sql.execute('SELECT id,name,slug,game,description,website,join_address,region,tags,banner_url FROM swapp_game_servers WHERE slug=? AND game=? AND status="published" LIMIT 1',[fiche,game]);
+   const [rows]=await sql.execute('SELECT id,name,slug,game,description,website,join_address,region,tags,banner_url,created_at FROM swapp_game_servers WHERE slug=? AND game=? AND status="published" LIMIT 1',[fiche,game]);
    if(!rows.length)return res.status(404).type('text').send('Serveur introuvable');
    const [voteRows]=await sql.execute('SELECT COUNT(*) AS total FROM swapp_game_server_vote_events WHERE server_id=? AND voted_at>=?',[rows[0].id,new Date().toISOString().slice(0,7)+'-01']);
-   return res.set('Cache-Control','no-store').type('html').send(detailPage(rows[0],Number(voteRows[0]?.total||0)));
+   const votes=Number(voteRows[0]?.total||0);
+   const evidence=await getProfileEvidence(sql,{id:rows[0].id,game,votesMonth:votes});
+   return res.set('Cache-Control','no-store').type('html').send(detailPage(rows[0],votes,evidence));
   }catch(e){console.warn('[SWAPP SERVEURS]',String(e?.message||e).slice(0,90));return res.status(503).type('text').send('Fiche temporairement indisponible')}
  });
  app.get('/api/swapp/serveurs',async(req,res)=>{
