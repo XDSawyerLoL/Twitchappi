@@ -165,7 +165,7 @@ function growthBanner(game=''){
 }
 
 function page({isAdmin=false,game=''}={}){
- const head='<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#050608"><title>'+esc(game?'Serveurs '+game+' — classement des communautés | SWAPP':'Serveurs de jeux — classements et communautés | SWAPP')+'</title><meta name="description" content="Découvre des serveurs gaming et roleplay, classe les communautés par votes et référence ton serveur sur SWAPP."><link rel="canonical" href="https://swapp.tv/serveurs'+(game?'/'+slug(game):'')+'">'+SHARED_HEAD_SLOT+'<link rel="stylesheet" href="/assets/swapp-servers.css?v=20261115-category-owner-v16">';
+ const head='<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#050608"><title>'+esc(game?'Serveurs '+game+' — classement des communautés | SWAPP':'Serveurs de jeux — classements et communautés | SWAPP')+'</title><meta name="description" content="Découvre des serveurs gaming et roleplay, classe les communautés par votes et référence ton serveur sur SWAPP."><link rel="canonical" href="https://swapp.tv/serveurs'+(game?'/'+slug(game):'')+'">'+SHARED_HEAD_SLOT+'<link rel="stylesheet" href="/assets/swapp-servers.css?v=20261115-rich-profiles-v18">';
  let content='<main class="ss ss-directory" data-ss-current-game="'+esc(game)+'">'+(game?'':growthBanner(game))+
   '<header class="ss-hero ss-directory-intro"><div class="ss-inner ss-directory-intro-layout"><div class="ss-directory-intro-copy">'+
   '<p class="ss-overline">DÉCOUVRE LES COMMUNAUTÉS SWAPP</p>'+
@@ -193,7 +193,7 @@ function page({isAdmin=false,game=''}={}){
   const end=content.indexOf('</section>',start);
   if(start>=0&&end>start){const panel=content.slice(start,end+10);content=content.replace(panel,'').replace('<section class="ss-inner ss-content">','<section class="ss-inner ss-content">'+panel)}
  }
- return renderPage({head,content,active:'servers',bodyClass:'swapp-editorial-route swapp-servers-page',scripts:'<script src="/assets/swapp-servers.js?v=20261115-listing-repair-v17" defer></script><script src="/assets/swapp-servers-review-admin.js?v=20261115-server-pro-v6" defer></script><script src="/assets/swapp-nav-session.js?v=20261114-native-account-v1" defer></script>'});
+ return renderPage({head,content,active:'servers',bodyClass:'swapp-editorial-route swapp-servers-page',scripts:'<script src="/assets/swapp-servers.js?v=20261115-rich-profiles-v18" defer></script><script src="/assets/swapp-servers-review-admin.js?v=20261115-server-pro-v6" defer></script><script src="/assets/swapp-nav-session.js?v=20261114-native-account-v1" defer></script>'});
 }
 
 const DETAIL_STEAM_GAME_IDS=Object.freeze({
@@ -232,7 +232,7 @@ function detailPage(server,votes,meta={}){
   '<title>'+esc(title)+' — '+esc(game)+' | Serveurs SWAPP</title>'+
   '<meta name="description" content="'+esc(summary)+'">'+
   '<link rel="canonical" href="'+esc(canonical)+'">'+metadata+SHARED_HEAD_SLOT+
-  '<link rel="stylesheet" href="/assets/swapp-servers.css?v=20261115-category-owner-v16">';
+  '<link rel="stylesheet" href="/assets/swapp-servers.css?v=20261115-rich-profiles-v18">';
  return renderPage({head:header,content:renderProfile({server,votes,rank:meta.rank,stats:meta.stats||null,
   reviews:meta.reviews||[],reviewSummary:meta.reviewSummary||null,cover:image,canEdit:Boolean(meta.canEdit),
   outbound:safeUrl(server.website),gamePath}),
@@ -401,7 +401,7 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
     return '<article class="ss-owner-manage-card" style="--ss-brand-accent:'+color+'"><div class="ss-owner-manage-logo">'+emblem+'</div><div class="ss-owner-manage-info"><p class="ss-overline">'+esc(item.game)+'</p><h2>'+esc(item.name)+'</h2><p>'+esc(String(item.description||'').slice(0,130))+'</p><small>'+esc(item.status==='published'?'Fiche publiée':item.status==='pending'?'Fiche en vérification':'Fiche refusée')+'</small></div><div class="ss-owner-manage-actions">'+open+modify+remove+'</div></article>';
    }).join('');
    const content='<main class="ss ss-owner-manage"><header class="ss-hero"><div class="ss-inner"><p class="ss-overline">SERVEUR + / MON ESPACE</p><h1>Mes vitrines <em>gaming.</em></h1><p>Personnalise tes serveurs, mets à jour ton logo, ta bannière, tes liens et les couleurs de ta communauté.</p><div class="ss-hero-actions"><a href="/serveurs">← Classement</a><a href="/serveurs/creer">+ Créer un serveur</a></div></div></header><section class="ss-inner ss-owner-manage-list">'+(cards||'<div class="ss-empty"><h2>Pas encore de serveur</h2><p>Crée ta première fiche pour lui donner une identité sur SWAPP.</p><a href="/serveurs/creer">Créer mon serveur</a></div>')+'<p id="ss-owner-feedback" role="status" aria-live="polite"></p></section></main>';
-   const head='<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Mes serveurs | SWAPP SERVEUR +</title>'+SHARED_HEAD_SLOT+'<link rel="stylesheet" href="/assets/swapp-servers.css?v=20261115-category-owner-v16">';
+   const head='<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Mes serveurs | SWAPP SERVEUR +</title>'+SHARED_HEAD_SLOT+'<link rel="stylesheet" href="/assets/swapp-servers.css?v=20261115-rich-profiles-v18">';
    return res.set('Cache-Control','private,no-store').type('html').send(renderPage({head,content,active:'servers',bodyClass:'swapp-editorial-route swapp-servers-page',scripts:'<script src="/assets/swapp-servers-owner.js?v=20261115-owner-delete-v1" defer></script><script src="/assets/swapp-nav-session.js?v=20261114-native-account-v1" defer></script>'}));
   }catch(e){return res.status(503).type('text').send('Espace propriétaire indisponible')}
  });
@@ -443,11 +443,21 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
   const fiche=clean(req.params.fiche,90);
   if(!game||!/^[a-z0-9][a-z0-9-]{4,89}$/.test(fiche))return res.status(404).type('text').send('Serveur introuvable');
   try{
-   const sql=await getDatabase();
-   const [rows]=await sql.execute('SELECT s.id,s.owner_id,s.name,s.slug,s.game,s.description,s.website,s.join_address,s.region,s.tags,s.banner_url,s.created_at,x.language,x.twitch_url,x.homepage_url,b.logo_url,b.banner_url AS brand_banner_url,b.accent_color,b.secondary_color,b.tagline,b.gallery_json FROM swapp_game_servers s LEFT JOIN swapp_game_server_extras x ON x.server_id=s.id LEFT JOIN swapp_game_server_branding b ON b.server_id=s.id WHERE s.slug=? AND s.game=? AND s.status="published" LIMIT 1',[fiche,game]);
+   const sql=await readDatabase();
+   let rows;
+   try{
+    [rows]=await sql.execute('SELECT s.id,s.owner_id,s.name,s.slug,s.game,s.description,s.website,s.join_address,s.region,s.tags,s.banner_url,s.created_at,x.language,x.twitch_url,x.homepage_url,b.logo_url,b.banner_url AS brand_banner_url,b.accent_color,b.secondary_color,b.tagline,b.gallery_json FROM swapp_game_servers s LEFT JOIN swapp_game_server_extras x ON x.server_id=s.id LEFT JOIN swapp_game_server_branding b ON b.server_id=s.id WHERE s.slug=? AND s.game=? AND s.status="published" LIMIT 1',[fiche,game]);
+   }catch(error){
+    if(!['ER_NO_SUCH_TABLE','ER_BAD_FIELD_ERROR','ER_TABLEACCESS_DENIED_ERROR'].includes(error?.code))throw error;
+    console.warn('[SWAPP SERVEURS] Fiche sans enrichissement facultatif',String(error.code));
+    [rows]=await sql.execute('SELECT s.id,s.owner_id,s.name,s.slug,s.game,s.description,s.website,s.join_address,s.region,s.tags,s.banner_url,s.created_at FROM swapp_game_servers s WHERE s.slug=? AND s.game=? AND s.status="published" LIMIT 1',[fiche,game]);
+   }
    if(!rows.length)return res.status(404).type('text').send('Serveur introuvable');
-   const [voteRows]=await sql.execute('SELECT COUNT(*) AS total FROM swapp_game_server_vote_events WHERE server_id=? AND voted_at>=?',[rows[0].id,new Date().toISOString().slice(0,7)+'-01']);
-   const votes=Number(voteRows[0]?.total||0);
+   let votes=null;
+   try{
+    const [voteRows]=await sql.execute('SELECT COUNT(*) AS total FROM swapp_game_server_vote_events WHERE server_id=? AND voted_at>=?',[rows[0].id,new Date().toISOString().slice(0,7)+'-01']);
+    votes=Number(voteRows[0]?.total||0);
+   }catch(error){console.warn('[SWAPP SERVEURS] Votes fiche',String(error?.code||error?.message||error).slice(0,60))}
    const evidence=await getProfileEvidence(sql,{id:rows[0].id,game,votesMonth:votes});
    return res.set('Cache-Control','no-store').type('html').send(detailPage(rows[0],votes,{...evidence,canEdit:!!account(req)&&ownerKeys(req).includes(rows[0].owner_id)}));
   }catch(e){console.warn('[SWAPP SERVEURS]',String(e?.message||e).slice(0,90));return res.status(503).type('text').send('Fiche temporairement indisponible')}
