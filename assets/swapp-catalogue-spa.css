@@ -35,3 +35,43 @@ body[data-swapp-home-spa="v16"] main.app > .view.active.swapp-route-enter{
 @media(prefers-reduced-motion:reduce){
  body[data-swapp-home-spa="v16"] main.app > .view.active.swapp-route-enter{animation:none!important}
 }
+
+
+/* Hero is flush to the shared navigation; compact controls live AFTER the
+   visual, not between the header and the live banner. */
+body[data-swapp-home-spa="v16"] #home .scl-discovery-toolbar{
+ display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+ margin:0;padding:14px clamp(18px,4.5vw,90px);
+ background:#030405;border-bottom:1px solid #ffffff16;
+}
+body[data-swapp-home-spa="v16"] #home .scl-discovery-toolbar .scl-topline{
+ position:static!important;inset:auto!important;display:block!important;
+ margin:0!important;padding:0!important;background:transparent!important;
+ width:min(330px,100%);flex:1 1 250px;box-shadow:none!important;
+}
+body[data-swapp-home-spa="v16"] #home .scl-discovery-toolbar .scl-search{
+ width:100%;max-width:100%;background:#0d1015;
+ backdrop-filter:none!important;-webkit-backdrop-filter:none!important;
+}
+body[data-swapp-home-spa="v16"] #home .scl-discovery-toolbar .scl-tabs{
+ position:static!important;inset:auto!important;width:auto!important;max-width:none!important;
+ margin:0!important;padding:0!important;flex:1 1 auto;
+ display:flex!important;flex-wrap:wrap!important;gap:6px!important;background:transparent!important;
+}
+body[data-swapp-home-spa="v16"] #home .scl-discovery-toolbar .scl-tabs button{
+ background:#111419;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;
+ border:1px solid #ffffff2b;box-shadow:none!important;min-height:37px;
+}
+body[data-swapp-home-spa="v16"] #home .scl-discovery-toolbar .scl-tabs button[aria-pressed="true"]{
+ color:#060709;background:#fff;border-color:#fff;
+}
+body[data-swapp-home-spa="v16"] #home .scl-discovery-toolbar .scl-explorer-shortcut{
+ display:inline-flex;white-space:nowrap;align-items:center;justify-content:center;
+ border:1px solid #ffffff53;border-radius:9px;padding:9px 13px;
+ color:#fff;text-decoration:none;background:#141a20;font-size:12px;font-weight:800;
+}
+@media(max-width:750px){
+ body[data-swapp-home-spa="v16"] #home .scl-discovery-toolbar{padding:12px 4%;gap:9px}
+ body[data-swapp-home-spa="v16"] #home .scl-discovery-toolbar .scl-tabs{flex-wrap:nowrap!important;overflow:auto}
+ body[data-swapp-home-spa="v16"] #home .scl-discovery-toolbar .scl-explorer-shortcut{width:100%}
+}
