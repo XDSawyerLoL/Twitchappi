@@ -119,3 +119,13 @@ Référence fonctionnelle examinée : https://top-serveurs.net/discord/server/cr
 - Les deux systèmes de votes et les vérifications des serveurs restent indépendants. Les liens externes portent les attributs \`rel="noopener noreferrer nofollow"\` et s'ouvrent sur le site d'origine.
 - Tests : \`test/swapp-servers-promo-footer-20261115.test.js\` et \`test/swapp-servers-external-discovery-20261115.test.js\` plus actualisation des assertions historiques des rails, des numéros de fichiers en cache et du menu SERVEUR +.
 - Ces modifications dans GitHub ne constituent pas un déploiement Hostinger : vérifier le bundle de l'instance, les vrais liens, la lisibilité mobile, les règles de la CMP et les tests réels du formulaire après publication.
+
+
+## Correctif annuaire Discord et suppression des fiches propriétaire — 15 novembre (soir)
+
+- Une catégorie telle que `/serveurs/discord-multigaming` affiche les fiches **publiées de cette catégorie dans le HTML initial** (requête SQL vérifiée par nom de jeu), directement après le formulaire de recherche. Les univers populaires et la grille des jeux sont ensuite affichés **plus bas** : ils ne doivent jamais repousser le résultat recherché.
+- Les fiches de catégorie sont toujours améliorées après chargement de `assets/swapp-servers.js` pour obtenir les votes du mois et la pagination. En cas d'indisponibilité SQL, afficher une erreur explicite, pas un faux zéro.
+- Sur `/serveurs/mes-serveurs`, chaque ligne (publiée, en attente ou refusée) possède désormais un bouton **Supprimer**, avec confirmation explicite et statut accessible.
+- Endpoint `DELETE /api/swapp/serveurs/:id` : session SWAPP obligatoire, contrôle `Origin`, ID hexadécimal strict, requête SQL paramétrée limitée aux deux identités propriétaires autorisées ; renvoie 404 en cas d'absence ou de non-propriété. Les clés étrangères InnoDB `ON DELETE CASCADE` retirent aussi votes, avis, compteurs de clic, données complémentaires, médias et branding. Aucune purge ou dédoublonnage automatique.
+- `assets/swapp-servers-owner.js` est déclaré parmi les fichiers obligatoires du paquet Hostinger. Les tests de non-régression vérifient le rendu de catégorie avant les suggestions, les droits de suppression et la présence du script de confirmation.
+- **Reste à vérifier en production Hostinger après déploiement** : présence effective des deux fiches Discord publiées observées dans « Mes serveurs », chargement de leur catégorie, suppression volontaire d'une fiche de test, actualisation des compteurs et absence de réapparition après redémarrage. Aucun compte ni fiche réels n'ont été supprimés durant le développement.
