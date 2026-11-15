@@ -1811,6 +1811,13 @@ try{
  console.warn('[SWAPP CATALOGUE LAB] Page expérimentale indisponible :',String(error?.message||error).slice(0,160));
 }
 
+// Native game-server directory: registration, moderated listings and MySQL-backed votes.
+try{
+ require('./modules/swapp-servers').register(app);
+}catch(error){
+ console.warn('[SWAPP SERVEURS] Module indisponible :',String(error?.message||error).slice(0,160));
+}
+
 // Dedicated Explorer routes precede generic creator routes and share the
 // original SWAPP shell, verified live feeds and existing genre classifier.
 require('./modules/swapp-explorer').register(app);
