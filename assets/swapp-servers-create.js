@@ -146,6 +146,12 @@
  form.addEventListener('submit',async event=>{
   event.preventDefault();error.replaceChildren();
   const isDiscord=game.value==='Discord / Multigaming',rawCode=discord.value.trim();
+  // One real point of contact is required for game servers, not necessarily both.
+  // The old form could submit two blanks and only show a misleading generic API error.
+  if(!isDiscord&&!address.value.trim()&&!form.elements.website.value.trim()){
+   errorMessage('Indique une adresse de connexion au jeu OU l’adresse HTTPS du site du serveur. Un seul des deux champs suffit.');
+   address.focus();return;
+  }
   if(!form.checkValidity()){focusInvalid();return}
   if(isDiscord&&!cleanDiscordCode(rawCode)){discord.focus();errorMessage('Entre un code Discord valide, par exemple AbC123, ou un lien https://discord.gg/AbC123.');return}
   const data=Object.fromEntries(new FormData(form).entries());
