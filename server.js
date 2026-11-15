@@ -1811,9 +1811,18 @@ try{
  console.warn('[SWAPP CATALOGUE LAB] Page expérimentale indisponible :',String(error?.message||error).slice(0,160));
 }
 
+// Restore an existing trusted SWAPP session before SERVEUR + access.
+app.use(/^\/(?:serveurs(?:\/|$)|api\/swapp\/serveurs(?:\/|$))/,async(req,res,next)=>{
+ try{await restoreOryonSessionFromRememberCookie(req,res,{allowUserRecovery:false})}
+ catch(e){console.warn('[SWAPP SERVEURS] Session restore:',String(e?.message||e).slice(0,90))}
+ next();
+});
+
 // Native game-server directory: registration, moderated listings and MySQL-backed votes.
 try{
- require('./modules/swapp-servers').register(app,{isAdmin:isOryonAdmin});
+ require('./modules/swapp-servers').register(app,{
+  isAdmin:req=>isOryonAdmin(req)||isAdminTwitchUser(req.session?.twitchUser)
+ });
 }catch(error){
  console.warn('[SWAPP SERVEURS] Module indisponible :',String(error?.message||error).slice(0,160));
 }
