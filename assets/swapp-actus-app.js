@@ -5,6 +5,43 @@ const url=v=>{try{const u=new URL(v);return u.protocol==='https:'&&!u.username&&
 const date=v=>{const d=new Date(v);return v&&!Number.isNaN(d.getTime())?d.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'}):'';};
 const slugOk=s=>/^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/.test(s||'');
 
+const officialTrailerId=article=>{
+ const raw=article?.trailerUrl||article?.trailer?.url||article?.videoUrl||'';
+ try{
+  const u=new URL(raw);if(u.protocol!=='https:')return null;
+  let id='';
+  if(u.hostname==='youtu.be')id=u.pathname.slice(1);
+  else if(['youtube.com','www.youtube.com','m.youtube.com','www.youtube-nocookie.com'].includes(u.hostname)){
+   id=u.pathname==='/watch'?u.searchParams.get('v')||'':u.pathname.match(/^\/(?:embed|shorts)\/([A-Za-z0-9_-]{11})$/)?.[1]||'';
+  }
+  return /^[A-Za-z0-9_-]{11}$/.test(id)?id:null;
+ }catch(_){return null}
+};
+function officialVideoStage(article,id){
+ const stage=el('div','swapp-reader-official-video-stage');
+ const start=el('button','swapp-reader-official-video-play','▶ Regarder la vidéo officielle');
+ start.type='button';start.setAttribute('aria-label','Lire la vidéo officielle : '+String(article?.title||''));
+ const poster=el('img','swapp-reader-official-video-poster');
+ poster.src='https://i.ytimg.com/vi/'+id+'/hqdefault.jpg';
+ poster.alt='';poster.loading='lazy';poster.onerror=()=>poster.remove();
+ start.append(poster);
+ start.addEventListener('click',()=>{
+  const iframe=el('iframe','swapp-reader-official-video-frame');
+  iframe.title='Vidéo officielle : '+String(article?.title||'');
+  iframe.src='https://www.youtube-nocookie.com/embed/'+encodeURIComponent(id)+'?autoplay=1&rel=0&playsinline=1';
+  iframe.allow='autoplay; encrypted-media; picture-in-picture; fullscreen';
+  iframe.allowFullscreen=true;iframe.referrerPolicy='strict-origin-when-cross-origin';
+  stage.replaceChildren(iframe);
+ });
+ stage.append(start);return stage;
+}
+function officialVideoLink(id){
+ const a=el('a','swapp-reader-official-video-link','Ouvrir la vidéo sur YouTube ↗');
+ a.href='https://www.youtube.com/watch?v='+encodeURIComponent(id);
+ a.target='_blank';a.rel='noopener noreferrer';return a;
+}
+
+
 const ACTUS_CARD_SIZES=['compact','normal','grand'];
 const ACTUS_CARD_SIZE_STORAGE_KEY='swapp:actus:card-size';
 const actusCardSize=value=>ACTUS_CARD_SIZES.includes(value)?value:'normal';
@@ -169,7 +206,7 @@ function renderFeaturedActusHero(host,articles){
   item.image?.url,item.imageUrl,item.thumbnail?.url,
   ...(window.SwappArticleExtras?.cardImageSources?.(item)||[])
  ].map(url).filter(Boolean);
- const featured=latest.find(item=>sourcesFor(item).length)||latest[0];
+ const featured=latest[0];
  const root=el('section','swapp-actus-featured-hero');
  root.setAttribute('aria-label','Article à la une sur SWAPP');
  if(!featured){
@@ -182,7 +219,8 @@ function renderFeaturedActusHero(host,articles){
  const link=el('a','swapp-home-hero-feature swapp-actus-featured-link');
  link.href='/actus/'+encodeURIComponent(featured.slug);
  link.setAttribute('aria-label','Lire l’article à la une : '+featured.title);
- const pictures=sourcesFor(featured);let pictureIndex=0;
+ const featuredVideoId=officialTrailerId(featured);
+ const pictures=sourcesFor(featured);if(featuredVideoId)pictures.unshift('https://i.ytimg.com/vi/'+featuredVideoId+'/hqdefault.jpg');let pictureIndex=0;
  if(pictures.length){
   const image=el('img','swapp-actus-featured-image');
   image.src=pictures[pictureIndex];image.alt=featured.thumbnail?.alt||featured.title||'Illustration de l’article';
@@ -208,13 +246,17 @@ function renderFeaturedActusHero(host,articles){
  const discover=el('a','swapp-home-feature-cta','Découvrir les directs');
  discover.href='/decouvrir';
  actions.append(read,discover);
+ if(featuredVideoId){
+  const videoPane=el('div','swapp-actus-featured-video');
+  videoPane.append(officialVideoStage(featured,featuredVideoId),officialVideoLink(featuredVideoId));
+  root.append(videoPane);
+ }
  root.append(link,actions);
  host.replaceChildren(root);
  // Preserve the former homepage's official muted trailer when the published
  // article supplies one; the shared helper is desktop-only and cleans up on
  // view change. The poster remains the guaranteed fallback.
- if(pictures.length&&featured.trailerUrl)
-  window.SwappHomeMotion?.attach?.(link,featured);
+ // Visible click-to-play video is independent of ambient motion and autoplay policies.
  return root;
 }
 async function showList(node){
@@ -447,7 +489,7 @@ const article=el('article','swapp-actus-article');
 const heading=el('header','swapp-reader-hero swapp-immersive-hero');
 const heroCopy=el('div','swapp-immersive-content');
 // The image belongs to the article environment, not to the header.
-const trailerId=window.SwappArticleExtras?.heroTrailerId?.(a)||null;
+const trailerId=officialTrailerId(a);
 const coverImage=url(a.image?.url||a.imageUrl);
 const heroImage=coverImage||(trailerId?'https://i.ytimg.com/vi/'+trailerId+'/hqdefault.jpg':null);
 const scene=el('div','swapp-article-scene');
@@ -494,34 +536,12 @@ else{
 }
 // Artwork remains behind the heading. Reading progress is now a small TOC label,
 // not a second horizontal line underneath the SWAPP navigation.
-// A trailer is editorial content, not merely an optional decorative background.
+// Always render an explicit video player: the hero background never substitutes for it.
 if(trailerId){
  const videoSection=el('section','swapp-reader-official-video');
  videoSection.setAttribute('aria-label','Vidéo officielle liée à cet article');
- const videoHeading=el('h2','','Vidéo officielle : '+String(a.game||'bande-annonce'));
- const videoStage=el('div','swapp-reader-official-video-stage');
- const videoButton=el('button','swapp-reader-official-video-play','▶ Regarder la vidéo officielle');
- videoButton.type='button';
- const poster=el('img','swapp-reader-official-video-poster');
- poster.src='https://i.ytimg.com/vi/'+trailerId+'/hqdefault.jpg';
- poster.alt='Aperçu de la vidéo officielle';
- poster.loading='lazy';
- poster.onerror=()=>poster.remove();
- videoButton.append(poster);
- videoButton.addEventListener('click',()=>{
-  const iframe=el('iframe','swapp-reader-official-video-frame');
-  iframe.title='Vidéo officielle '+String(a.game||a.title||'');
-  iframe.src='https://www.youtube-nocookie.com/embed/'+encodeURIComponent(trailerId)+'?autoplay=1&rel=0&playsinline=1';
-  iframe.allow='autoplay; encrypted-media; picture-in-picture; fullscreen';
-  iframe.referrerPolicy='strict-origin-when-cross-origin';
-  iframe.allowFullscreen=true;
-  videoStage.replaceChildren(iframe);
- });
- videoStage.append(videoButton);
- const direct=el('a','swapp-reader-official-video-link','Ouvrir sur YouTube ↗');
- direct.href='https://www.youtube.com/watch?v='+encodeURIComponent(trailerId);
- direct.target='_blank';direct.rel='noopener noreferrer';
- videoSection.append(videoHeading,videoStage,direct);
+ videoSection.append(el('h2','','Vidéo officielle : '+String(a.game||'bande-annonce')),
+  officialVideoStage(a,trailerId),officialVideoLink(trailerId));
  article.append(videoSection);
 }
 const reading=el('div','swapp-article-reading');
