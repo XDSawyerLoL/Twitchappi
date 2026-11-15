@@ -3,6 +3,7 @@
 const crypto=require('node:crypto');
 const {renderPage,SHARED_HEAD_SLOT}=require('./swapp-page-shell');
 const {inviteCode,verifyDiscordInvite}=require('./swapp-servers-discord');
+const {renderProfile}=require('./swapp-servers-profile');
 const GAMES=['Minecraft','GTA V / FiveM','GTA RP','Rust','DayZ','Cyberpunk 2077','Arma 3','Arma Reforger','ARK Survival Ascended','ARK Survival Evolved','Project Zomboid','Palworld','Red Dead Redemption 2','Garry’s Mod','Valheim','Enshrouded','Conan Exiles','SCUM','Counter-Strike 2','7 Days to Die','Eco','V Rising','Unturned','Space Engineers','Dune Awakening','Hell Let Loose','Squad','Terraria','No Man’s Sky','Satisfactory','Don’t Starve Together','Lethal Company','Discord / Multigaming','Autre'];
 const mysqlUrl=()=>process.env.SWAPP_SERVERS_MYSQL_URL||process.env.SWAPP_MYSQL_URL||'';
 let pool=null,ready=null;
@@ -54,34 +55,21 @@ function detailCover(game){
  const id=DETAIL_STEAM_GAME_IDS[game];
  return id?'https://cdn.cloudflare.steamstatic.com/steam/apps/'+id+'/header.jpg':'';
 }
-function detailPage(server,votes){
- const game=server.game||'',title=server.name||'Serveur',image=safeUrl(server.banner_url)||detailCover(game);
- const canonical='https://swapp.tv/serveurs/'+slug(game)+'/'+server.slug;
- const header='<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'+
-  '<title>'+esc(title)+' — serveur '+esc(game)+' | SWAPP</title>'+
-  '<meta name="description" content="'+esc(clean(server.description,154))+'">'+
+function detailPage(server,votes,meta={}){
+ const game=String(server?.game||''),title=String(server?.name||'Serveur');
+ const gamePath='/serveurs/'+slug(game);
+ const image=safeUrl(server.banner_url)||detailCover(game);
+ const canonical='https://swapp.tv'+gamePath+'/'+encodeURIComponent(server.slug);
+ const header='<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#030405">'+
+  '<title>'+esc(title)+' — '+esc(game)+' | Serveurs SWAPP</title>'+
+  '<meta name="description" content="'+esc(clean(server.description,160))+'">'+
   '<link rel="canonical" href="'+esc(canonical)+'">'+SHARED_HEAD_SLOT+
-  '<link rel="stylesheet" href="/assets/swapp-servers.css?v=20261115-discord-auto-v5">';
- const external=safeUrl(server.website);
- const nav='<a href="/serveurs/'+slug(game)+'">← Tous les serveurs '+esc(game)+'</a>';
- const cover=image?'<img class="ss-detail-art" alt="Illustration de '+esc(game)+'" src="'+esc(image)+'" loading="eager" referrerpolicy="no-referrer">':'';
- const tags=String(server.tags||'').split(',').map(t=>clean(t,35)).filter(Boolean).slice(0,8);
- const actions='<div class="ss-detail-actions">'+
-   '<button type="button" data-ss-vote-id="'+esc(server.id)+'">♥ Voter pour ce serveur</button>'+
-   (external?'<a href="'+esc(external)+'" target="_blank" rel="noopener noreferrer nofollow">Rejoindre la communauté ↗</a>':'')+'</div>';
- const content='<main class="ss ss-detail"><div class="ss-detail-top"><div class="ss-inner">'+nav+
-   '<p class="ss-overline">SERVEUR '+esc(game)+'</p><h1>'+esc(title)+'</h1>'+
-   '<p>'+esc(server.description)+'</p></div>'+cover+'</div>'+
-   '<section class="ss-inner ss-detail-body"><div class="ss-detail-stats">'+
-   '<span><strong>'+Number(votes).toLocaleString('fr-FR')+'</strong> votes ce mois</span>'+
-   '<span><strong>'+esc(server.region||'Non renseignée')+'</strong> région</span>'+
-   '<span><strong>'+esc(game)+'</strong> jeu</span></div>'+
-   '<div class="ss-tags">'+tags.map(t=>'<span>'+esc(t)+'</span>').join('')+'</div>'+actions+
-   (server.join_address?'<div class="ss-detail-connect"><span>Adresse de connexion</span><code>'+esc(server.join_address)+'</code><button type="button" data-ss-copy="'+esc(server.join_address)+'">Copier</button></div>':'')+
-   '<p role="status" id="ss-detail-feedback" aria-live="polite"></p>'+
-   '<p class="ss-detail-note">Cette fiche a été publiée après vérification automatique de l’invitation ou examen par la modération SWAPP. Une invitation vérifiée ne garantit pas la propriété du serveur. Aucune disponibilité en ligne n’est affirmée sans vérification.</p></section></main>';
- return renderPage({head:header,content,active:'servers',bodyClass:'swapp-editorial-route swapp-servers-page',
-  scripts:'<script src="/assets/swapp-servers-detail.js?v=20261115-detail-v1" defer></script><script src="/assets/swapp-nav-session.js?v=20261114-native-account-v1" defer></script>'});
+  '<link rel="stylesheet" href="/assets/swapp-servers.css?v=20261115-server-pro-v6">';
+ return renderPage({head:header,content:renderProfile({server,votes,rank:meta.rank,stats:meta.stats||null,
+  reviews:meta.reviews||[],reviewSummary:meta.reviewSummary||null,cover:image,
+  outbound:safeUrl(server.website),gamePath}),
+  active:'servers',bodyClass:'swapp-editorial-route swapp-servers-page',
+  scripts:'<script src="/assets/swapp-servers-detail.js?v=20261115-server-pro-v6" defer></script><script src="/assets/swapp-nav-session.js?v=20261114-native-account-v1" defer></script>'});
 }
 
 let lastAutoReview=0,autoReviewRunning=null,autoReviewOffset=0;
