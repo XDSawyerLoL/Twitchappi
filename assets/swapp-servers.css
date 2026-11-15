@@ -449,6 +449,21 @@ html body.swapp-servers-page{background:#030405!important;color:#eff6fa}
 @media(prefers-reduced-motion:reduce){.ss-pro-faq details,.ss-card-stat{transition:none}}
 
 
+/* SERVEUR + PROFILE COVER V19 — more visible real banner, still enough contrast behind text. */
+.ss-pro .ss-pro-backdrop img{
+ filter:brightness(.81) saturate(1.06)!important;
+ transform:none!important;
+ object-position:50% 38%;
+}
+.ss-pro .ss-pro-backdrop::after{
+ background:linear-gradient(90deg,#030405dd 0%,#03040592 39%,#03040529 74%,transparent 100%),
+  linear-gradient(0deg,#030405 0%,#030405a1 29%,transparent 74%);
+}
+@media(max-width:800px){
+ .ss-pro .ss-pro-backdrop::after{
+  background:linear-gradient(0deg,#030405 0%,#030405c7 36%,#03040525 88%);
+ }
+}
 /* SERVEUR + V19 · showcase the real owner banner rather than a narrow side thumbnail.
    Keep copy in the bottom safety zone; the upper 2/3 of the artwork stays clear. */
 .ss-directory .ss-results{
