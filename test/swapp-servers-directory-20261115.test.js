@@ -21,7 +21,7 @@ test('server listing includes coherent games, safe names and HTTPS-only URL vali
 });
 test('backend declares all public and authenticated routes',()=>{
  const seen=[];const app={get:(p,...args)=>seen.push(['GET',p,args.length]),post:(p,...args)=>seen.push(['POST',p,args.length])};
- register(app);
+ register(app,{enableAutoReview:false});
  for(const [method,route] of [['GET','/serveurs'],['GET','/api/swapp/serveurs'],['POST','/api/swapp/serveurs'],['POST','/api/swapp/serveurs/:id/vote'],['GET','/api/swapp/serveurs/moderation'],['POST','/api/swapp/serveurs/:id/moderation']])
   assert.ok(seen.some(x=>x[0]===method&&x[1]===route),method+' '+route);
  const js=read('assets/swapp-servers.js');
@@ -29,7 +29,7 @@ test('backend declares all public and authenticated routes',()=>{
  assert.match(js,/credentials:'same-origin'/);
  assert.match(read('modules/swapp-explorer.js'),/\/serveurs/);
  const server=read('server.js');
- assert.ok(server.indexOf("require('./modules/swapp-servers').register(app)")<server.indexOf("require('./modules/swapp-explorer').register(app)"));
+ assert.ok(server.indexOf("require('./modules/swapp-servers').register(app,{")<server.indexOf("require('./modules/swapp-explorer').register(app)"));
 });
 test('public listing excludes pending servers and monthly votes are based on vote events',()=>{
  const source=read('modules/swapp-servers.js');
@@ -64,7 +64,7 @@ test('published server detail page includes game-specific artwork and native joi
  assert.match(pageHtml,/steam\/apps\/252490\/header\.jpg/);
  assert.match(pageHtml,/data-ss-vote-id/);
  assert.match(pageHtml,/data-ss-copy/);
- assert.match(pageHtml,/12<\/strong> votes ce mois/);
+ assert.match(pageHtml,/data-ss-profile-votes>12/);
  assert.match(pageHtml,/\/serveurs\/rust\/serveur-test-abcdef/);
  const code=read('modules/swapp-servers.js');
  assert.match(code,/status="published" LIMIT 1/);
