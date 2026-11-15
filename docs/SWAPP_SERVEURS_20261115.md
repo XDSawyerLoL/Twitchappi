@@ -164,3 +164,18 @@ Référence fonctionnelle examinée : https://top-serveurs.net/discord/server/cr
 3. Ouvrir `/api/swapp/serveurs?game=Discord%20%2F%20Multigaming` et confirmer HTTP 200, `servers` tableau et `total` numérique **avec les fiches déjà publiées**. Une panne réelle de connexion peut encore produire 503 ; vérifier les logs Hostinger sans partager de secrets.
 4. Confirmer sur `/serveurs/discord-multigaming` que les fiches sont visibles même si les compteurs facultatifs ne répondent pas, puis tester la fiche, le vote, la modération et l'affichage mobile. Ne pas faire de suppression involontaire des trois fiches existantes.
 5. Exécuter les tests Node une seule fois sur une copie identique du code `npm test` (ou `node --test test/swapp-servers-rich-listing-and-profile-20261115.test.js`) ; aucune nouvelle GitHub Action payante.
+
+
+## 15 novembre 2026 — distinguer l'échec du classement MySQL et le blocage reCAPTCHA
+
+**Constats distincts, à ne pas confondre :**
+- Le navigateur SWAPP affichait deux erreurs simultanées : « Classement temporairement indisponible » et « Actualisation indisponible : les fiches déjà chargées restent visibles ». Le JS n'affiche désormais qu'un seul état d'erreur ; si les fiches initiales ont été rendues par le serveur, il les conserve et garde leur comptage initial.
+- Un contrôle indépendant du site public par navigateur automatisé a rencontré un challenge « Checking your browser », puis sur `/api/release` le message **« This site is exceeding reCAPTCHA Enterprise free quota »**. Les codes HTTP exacts ne pouvaient pas être mesurés pendant ce challenge. C'est un dysfonctionnement de la couche de protection du site, et **cela ne prouve pas** que l'erreur HTTP 503 constatée par l'utilisateur soit due à MySQL ou au CAPTCHA.
+- Le client distingue maintenant **HTML de challenge** et **JSON d'API**. Il n'affiche pas le détail HTTP brut au public. La console conserve la catégorie de panne et le code HTTP. Aucun mécanisme de contournement du CAPTCHA n'est introduit.
+- Le diagnostic privé administrateur `GET /api/swapp/serveurs/diagnostic` vérifie maintenant également une **vraie requête de classement** (avec votes et table branding) et sa version minimale, et les **comptages des fiches par statut**. Il ne retourne ni adresse MySQL ni noms de propriétaires, requêtes SQL complètes ou secrets. Test isolé : `ready`, `fallback_ready`, `unavailable`.
+
+**Validation en production :**
+1. Déployer le commit complet sur l'application Node Hostinger, redémarrer et comparer `/api/release` lorsque l'accès n'est pas filtré.
+2. Vérifier le challenge anti-robots et le quota reCAPTCHA Enterprise dans la configuration du fournisseur de sécurité/proxy/hébergement. Corriger sa configuration depuis son tableau de bord ; le code SWAPP ne peut pas rétablir un quota externe.
+3. Se connecter avec un compte admin, ouvrir `/api/swapp/serveurs/diagnostic` et comparer `counts.published`, `listing.status` (`ready`, `fallback_ready` ou `unavailable`) et les tables. Ne jamais copier ici la variable MySQL secrète.
+4. Ouvrir `/api/swapp/serveurs` et `/serveurs/discord-multigaming`, vérifier les données publiées, le classement et les boutons, y compris sur mobile. Une réelle panne MySQL restera visible en 503 et ne sera pas masquée par une valeur fabriquée.
