@@ -26,6 +26,7 @@ on:
       - 'assets/swapp-explorer.*'
       - 'modules/swapp-explorer.js'
       - 'test/swapp-explorer-collections-livegraph-20261115.test.js'
+      - 'test/swapp-game-banner-collections-cinema-20261115.test.js'
       - 'assets/swapp-catalogue-spa.js'
       - 'modules/swapp-catalogue-spa.js'
       - 'modules/swapp-catalogue-lab.js'
@@ -226,6 +227,13 @@ jobs:
           node --check assets/swapp-catalogue-lab.js
           node --check assets/swapp-actus-app.js
           node --test test/swapp-actus-black-all-rails-20261115.test.js
+
+      - name: Premium game banners and cinematic collections
+        run: |
+          node --check assets/swapp-catalogue-lab.js
+          node --check assets/swapp-explorer.js
+          node --check modules/swapp-explorer.js
+          node --test test/swapp-game-banner-collections-cinema-20261115.test.js
 
       - name: Préparer le paquet Hostinger à partir du commit GitHub validé
         run: node tools/swapp-hostinger-package.js --output="${{ runner.temp }}/swapp-hostinger-${GITHUB_SHA:0:12}.zip"

@@ -64,8 +64,11 @@
   return allGenres.map(g=>{
    const titles=games.filter(x=>x.genre===g.id);
    const airing=lives.filter(x=>x.genre===g.id);
-   const cover=titles.find(x=>x.cover)?.cover||airing.find(x=>x.cover)?.cover||'';
-   return {...g,games:titles,lives:airing,cover,gameCount:titles.length,liveCount:airing.length};
+   // Real, distinct artworks for each collection (no repeated placeholder).
+   const covers=[...new Set(titles.map(x=>x.cover).filter(Boolean))].slice(0,4);
+   if(!covers.length)covers.push(...[...new Set(airing.map(x=>x.cover).filter(Boolean))].slice(0,4));
+   return {...g,games:titles,lives:airing,cover:covers[0]||'',covers,
+    gameCount:titles.length,liveCount:airing.length};
   }).filter(g=>g.gameCount||g.liveCount)
    .sort((a,b)=>b.liveCount-a.liveCount||b.gameCount-a.gameCount||a.label.localeCompare(b.label,'fr'));
  }
@@ -76,20 +79,30 @@
   const e=elt(doc,'img');e.src=url;e.alt=alt||'';e.loading='lazy';e.decoding='async';
   e.referrerPolicy='no-referrer';return e;
  }
+ function collectionArtwork(doc,group){
+  const art=elt(doc,'span','sx-collection-art');
+  art.setAttribute('aria-hidden','true');
+  (group.covers||[]).slice(0,4).forEach((cover,i)=>{
+   const frame=elt(doc,'span','sx-collection-frame sx-collection-frame-'+(i+1));
+   const img=image(doc,cover,'');
+   img.addEventListener('error',()=>frame.remove(),{once:true});
+   frame.append(img);art.append(frame);
+  });
+  return art;
+ }
  function makeCollectionCard(doc,group){
-  const a=elt(doc,'a','sx-collection'+(group.cover?'':' sx-collection-empty'));
-  a.href='/explorer/collections/'+encodeURIComponent(group.id);
-  if(group.cover){
-   const art=elt(doc,'span','sx-collection-image');
-   const cover=image(doc,group.cover,'');cover.addEventListener('error',()=>cover.remove(),{once:true});
-   art.append(cover);a.append(art);
-  }
-  a.append(elt(doc,'span','sx-collection-label','COLLECTION DE JEUX'));
-  a.append(elt(doc,'strong','',group.label));
-  a.append(elt(doc,'p','',group.description));
-  a.append(elt(doc,'span','sx-collection-count',
+  const card=elt(doc,'a','sx-collection'+(group.cover?'':' sx-collection-empty'));
+  card.href='/explorer/collections/'+encodeURIComponent(group.id);
+  if(group.cover)card.append(collectionArtwork(doc,group));
+  const copy=elt(doc,'span','sx-collection-copy');
+  copy.append(elt(doc,'span','sx-collection-label','COLLECTION DE JEUX'));
+  copy.append(elt(doc,'strong','',group.label));
+  copy.append(elt(doc,'p','',group.description));
+  copy.append(elt(doc,'span','sx-collection-count',
    group.gameCount+' jeu'+(group.gameCount>1?'x':'')+' · '+group.liveCount+' direct'+(group.liveCount>1?'s':'')));
-  return a;
+  copy.append(elt(doc,'span','sx-collection-action','Découvrir la collection →'));
+  card.append(copy);
+  return card;
  }
  function makeGameCard(doc,item){
   const a=elt(doc,'a','sx-game');
@@ -183,12 +196,18 @@
   }
   function renderDetail(){
    const detail=$('sx-collection-detail'),grid=$('sx-collection-grid');
+   const heading=$('sx-collections-heading')?.closest('.sx-section-title');
+   if(heading)heading.hidden=Boolean(initialGenre);
    if(!initialGenre){detail.hidden=true;grid.hidden=false;return}
    const group=collections(state.games,state.lives,allGenres).find(x=>x.id===initialGenre);
    grid.hidden=true;detail.hidden=false;
    const label=allGenres.find(x=>x.id===initialGenre);
    $('sx-detail-title').textContent=label?.label||'Collection indisponible';
    $('sx-detail-subtitle').textContent=label?.description||'';
+   const visual=$('sx-detail-visual');
+   visual?.replaceChildren();
+   if(group?.cover)visual?.append(collectionArtwork(doc,group));
+   else if(visual)visual.append(elt(doc,'span','sx-detail-visual-empty','SWAPP · '+(label?.label||'COLLECTION')));
    const games=$('sx-detail-games'),lives=$('sx-detail-lives');
    const titles=(group?.games||[]).filter(g=>hasQuery(g.name));
    const current=(group?.lives||[]).filter(l=>hasQuery(l.name+' '+l.game));
@@ -202,7 +221,19 @@
    const host=$('sx-collection-grid');
    const groups=collections(state.games,state.lives,allGenres).filter(group=>hasQuery(group.label+' '+group.description)||
       group.games.some(g=>hasQuery(g.name))||group.lives.some(l=>hasQuery(l.name)));
-   host.replaceChildren(...groups.map(g=>makeCollectionCard(doc,g)));
+   // The featured collection is not repeated in the regular gallery.
+   host.replaceChildren(...groups.slice(initialGenre?0:1).map(g=>makeCollectionCard(doc,g)));
+   const featured=$('sx-featured-collection');
+   if(featured){
+    featured.replaceChildren();
+    // Only highlight a group with actual inventory.
+    if(groups.length&&!initialGenre){
+     const card=makeCollectionCard(doc,groups[0]);
+     card.classList.add('sx-collection-featured');
+     card.querySelector('.sx-collection-label').textContent='À LA UNE · COLLECTION ACTIVE';
+     featured.append(card);featured.hidden=false;
+    }else featured.hidden=true;
+   }
    if(!groups.length)host.append(elt(doc,'p','sx-empty','Aucune collection confirmée pour cette recherche.'));
    $('sx-count').textContent=groups.length+' collections · '+state.games.length+' jeux · '+state.lives.length+' directs';
    renderDetail();

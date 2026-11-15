@@ -3,12 +3,12 @@
 const {catalogueContent}=require('./swapp-catalogue-lab');
 const HOME_START='<section id="home" class="view active">';
 const NEXT_VIEW='  <section id="discover" class="view"></section>';
-const STYLE='<link rel="stylesheet" href="/assets/swapp-catalogue-lab.css?v=20261115-all-rails-toolbar-v27">'+
+const STYLE='<link rel="stylesheet" href="/assets/swapp-catalogue-lab.css?v=20261115-game-banners-style-v28">'+
  '<link rel="stylesheet" href="/assets/swapp-catalogue-spa.css?v=20261115-explorer-spa-v17">'+
  '<link rel="stylesheet" href="/assets/swapp-genre-discovery.css?v=20261115-hidpi-genre-v8">';
 const SCRIPT='<script src="/assets/swapp-genre-discovery.js?v=20261115-hidpi-genre-v8" defer></script>'+
  '<script src="/assets/swapp-live-surprise.js?v=20261115-obsession-v1" defer></script>'+ 
- '<script src="/assets/swapp-catalogue-lab.js?v=20261115-all-rails-v31" defer></script>'+
+ '<script src="/assets/swapp-catalogue-lab.js?v=20261115-game-banners-v32" defer></script>'+
  '<script src="/assets/swapp-catalogue-spa.js?v=20261114-home-all-spa-v18" defer></script>';
 function renderIntoSpa(html){
  const source=String(html||'');

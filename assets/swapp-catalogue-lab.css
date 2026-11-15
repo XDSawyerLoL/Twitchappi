@@ -1059,3 +1059,89 @@ body.swapp-catalogue-lab-page .scl-discovery-toolbar .scl-explorer-shortcut{
 @media(max-width:650px){
  #swapp-catalogue-lab .scl-rail-nav button{width:32px;height:32px;flex-basis:32px}
 }
+
+
+/* V33 / Actual game artwork in the live finder — no invented cover or blurry
+ * zoom. Banner uses an on-air screenshot only when its game slug matches. */
+#scl-dialog.scl-dialog-game .scl-game-live-hero{
+ position:relative;isolation:isolate;display:flex;align-items:flex-end;
+ min-height:clamp(215px,26vw,310px);overflow:hidden;
+ padding:clamp(28px,4vw,48px) clamp(18px,3.4vw,42px) 28px;
+ border-bottom:1px solid rgba(255,255,255,.17);
+ background:linear-gradient(125deg,#15191c,#030405 68%)!important;
+}
+#scl-dialog.scl-dialog-game .scl-game-live-hero::after{
+ content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;
+ background:linear-gradient(90deg,rgba(3,4,5,.97) 0%,rgba(3,4,5,.79) 39%,rgba(3,4,5,.23) 100%),
+  linear-gradient(0deg,rgba(3,4,5,.94),transparent 76%);
+}
+#scl-dialog.scl-dialog-game .scl-game-live-artwork{
+ position:absolute;inset:0;z-index:-2;pointer-events:none;
+}
+#scl-dialog.scl-dialog-game .scl-game-live-backdrop{
+ display:block;width:100%;height:100%;object-fit:cover;object-position:center;
+ filter:none!important;transform:none!important;image-rendering:auto;
+}
+#scl-dialog.scl-dialog-game .scl-game-live-hero-copy{
+ position:relative;z-index:1;max-width:min(76%,700px);
+ text-shadow:0 3px 18px rgba(0,0,0,.65);
+}
+#scl-dialog.scl-dialog-game .scl-game-live-hero-copy h2{
+ font:900 clamp(29px,4vw,51px)/1.07 Inter,system-ui,sans-serif;
+ margin:10px 0 13px;letter-spacing:-.055em;color:#fff;overflow-wrap:anywhere;
+}
+#scl-dialog.scl-dialog-game .scl-game-live-hero-copy .scl-game-live-description{
+ color:#e1e7eb;font-size:clamp(12px,1.3vw,15px);max-width:65ch;
+ line-height:1.5;margin:0 0 15px;display:-webkit-box;-webkit-box-orient:vertical;
+ -webkit-line-clamp:2;overflow:hidden;
+}
+#scl-dialog.scl-dialog-game .scl-game-live-explore{
+ display:inline-flex;align-items:center;min-height:37px;padding:8px 14px;
+ border:1px solid rgba(255,255,255,.56);border-radius:7px;
+ color:#f7f9fc;background:rgba(10,12,14,.78);text-decoration:none;
+ font:800 12px/1.3 Inter,system-ui,sans-serif;text-shadow:none;
+}
+#scl-dialog.scl-dialog-game .scl-game-live-explore:hover,
+#scl-dialog.scl-dialog-game .scl-game-live-explore:focus-visible{
+ background:#f1f4f6;color:#060708;outline-offset:2px;
+}
+#scl-dialog.scl-dialog-game .scl-game-live-poster-holder{
+ position:relative;z-index:1;display:flex;align-items:center;
+ justify-content:flex-end;margin-left:auto;min-width:0;flex:0 0 23%;
+}
+#scl-dialog.scl-dialog-game .scl-game-live-poster{
+ display:block;max-height:220px;width:auto;max-width:100%;
+ aspect-ratio:3/4;object-fit:contain;object-position:center;
+ border-radius:8px;background:#111417;box-shadow:0 20px 45px #000b;
+ border:1px solid rgba(255,255,255,.27);
+ filter:none!important;transform:none!important;image-rendering:auto;
+}
+#scl-dialog.scl-dialog-game .scl-game-live-hero + .scl-dialog-body{
+ padding-top:18px!important;background:#050506!important;
+ max-height:calc(min(88dvh,840px) - 195px);
+}
+#scl-dialog.scl-dialog-game{max-height:min(88dvh,840px)}
+#scl-dialog.scl-dialog-game .scl-game-live-modal{max-height:min(88dvh,840px);overflow-y:auto}
+#scl-dialog.scl-dialog-game .scl-game-live-modal .scl-dialog-body{
+ overflow:visible;max-height:none;
+}
+#scl-dialog.scl-dialog-game .scl-game-live-modal .scl-game-live-cards{
+ min-height:180px;
+}
+@media(max-width:650px){
+ #scl-dialog.scl-dialog-game .scl-game-live-hero{
+  min-height:245px;padding:50px 15px 22px;align-items:flex-end;
+ }
+ #scl-dialog.scl-dialog-game .scl-game-live-hero-copy{max-width:75%}
+ #scl-dialog.scl-dialog-game .scl-game-live-hero-copy h2{font-size:clamp(25px,7vw,38px)}
+ #scl-dialog.scl-dialog-game .scl-game-live-poster-holder{flex-basis:26%}
+ #scl-dialog.scl-dialog-game .scl-game-live-poster{max-height:150px}
+ #scl-dialog.scl-dialog-game .scl-game-live-hero::after{
+  background:linear-gradient(90deg,rgba(3,4,5,.94),rgba(3,4,5,.40)),
+    linear-gradient(0deg,#030405,transparent 80%);
+ }
+ #scl-dialog.scl-dialog-game .scl-game-live-modal{max-height:87dvh}
+}
+@media(prefers-reduced-motion:reduce){
+ #scl-dialog.scl-dialog-game .scl-game-live-hero *{transition:none!important}
+}

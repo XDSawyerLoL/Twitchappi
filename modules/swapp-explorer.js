@@ -11,7 +11,7 @@ function page({mode='collections',genre=''}={}){
  '<meta name="description" content="Explorez les collections de jeux et la carte interactive des créateurs réellement en direct sur SWAPP.">'+
  '<link rel="canonical" href="https://swapp.tv'+(chart?'/explorer/carte':valid?'/explorer/collections/'+valid:ROOT)+'">'+
  SHARED_HEAD_SLOT+
- '<link rel="stylesheet" href="/assets/swapp-explorer.css?v=20261115-explorer-v1">';
+ '<link rel="stylesheet" href="/assets/swapp-explorer.css?v=20261115-collections-cinema-v2">';
  const content='<main id="swapp-explorer" class="sx" data-view="'+(chart?'carte':valid?'detail':'collections')+'" data-genre="'+valid+'">'+
  '<div class="sx-lead"><p class="sx-eyebrow">SWAPP / EXPLORER</p><h1>Des univers à découvrir.<br><em>Des créateurs à rencontrer.</em></h1>'+
  '<p class="sx-intro">Parcourez les jeux et leurs communautés. Découvrez qui joue réellement en direct, et comment les univers se rejoignent.</p>'+
@@ -25,8 +25,9 @@ function page({mode='collections',genre=''}={}){
  '<div id="sx-feedback" class="sx-feedback" role="status" aria-live="polite">Chargement du catalogue vérifié…</div>'+
  '<section id="sx-collections-view" class="sx-panel" aria-label="Collections de jeux"'+(chart?' hidden':'')+'>'+
  '<div class="sx-section-title"><p>COLLECTIONS</p><h2 id="sx-collections-heading">Choisissez un univers</h2><span>Des catégories réelles, sans jeux ni audiences inventés</span></div>'+
+ '<div id="sx-featured-collection" class="sx-featured-collection" hidden></div>'+ 
  '<div id="sx-collection-grid" class="sx-collection-grid"></div>'+
- '<section id="sx-collection-detail" class="sx-detail" hidden><div class="sx-detail-heading"><a href="/explorer">← Toutes les collections</a><h2 id="sx-detail-title"></h2><p id="sx-detail-subtitle"></p></div><div id="sx-detail-games" class="sx-game-grid"></div><h3>Créateurs en direct</h3><div id="sx-detail-lives" class="sx-live-grid"></div></section>'+
+ '<section id="sx-collection-detail" class="sx-detail" hidden><div class="sx-detail-hero"><div id="sx-detail-visual" class="sx-detail-visual" aria-hidden="true"></div><div class="sx-detail-heading"><a href="/explorer">← Toutes les collections</a><span class="sx-eyebrow">COLLECTION · SWAPP</span><h2 id="sx-detail-title"></h2><p id="sx-detail-subtitle"></p></div></div><h3>Les jeux de cet univers</h3><div id="sx-detail-games" class="sx-game-grid"></div><h3>Créateurs en direct</h3><div id="sx-detail-lives" class="sx-live-grid"></div></section>'+
  '</section>'+
  '<section id="sx-graph-view" class="sx-panel" aria-label="Carte interactive des lives"'+(!chart?' hidden':'')+'>'+
  '<div class="sx-section-title"><p>LIVEGRAPH</p><h2>Les connexions du direct</h2><span>Relations constatées : créateur → jeu → genre. Aucune relation sociale présumée.</span></div>'+
@@ -39,7 +40,7 @@ function page({mode='collections',genre=''}={}){
  '</section></div></main>';
  return renderPage({head,content,active:'explorer',bodyClass:'swapp-editorial-route swapp-explorer-page',
  scripts:'<script src="/assets/swapp-genre-discovery.js?v=20261115-hidpi-genre-v8" defer></script>'+
- '<script src="/assets/swapp-explorer.js?v=20261115-explorer-v1" defer></script>'+
+ '<script src="/assets/swapp-explorer.js?v=20261115-collections-cinema-v2" defer></script>'+
  '<script src="/assets/swapp-nav-session.js?v=20261114-native-account-v1" defer></script>'});
 }
 function register(app){
