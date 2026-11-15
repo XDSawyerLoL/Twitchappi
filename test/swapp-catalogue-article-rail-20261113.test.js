@@ -27,11 +27,12 @@ test('native ACTUS rail is distinct from the full magazine and absent from site 
  assert.ok(html.indexOf('id="scl-live"')<html.indexOf('id="scl-small"'),'petites communautés après les directs');
  assert.ok(html.indexOf('id="scl-small"')<html.indexOf('id="scl-genres"'),'petites communautés avant les genres et les jeux');
  assert.equal((html.match(/id="scl-small"/g)||[]).length,1,'une seule section petites communautés');
- assert.ok(html.indexOf('id="scl-genres"')<html.indexOf('id="scl-top-games"'));
- assert.ok(html.indexOf('id="scl-top-games"')<html.indexOf('id="scl-articles"'));
+ assert.ok(html.indexOf('id="scl-articles"')<html.indexOf('id="scl-favorites"'),'articles before favorites');
+ assert.ok(html.indexOf('id="scl-favorites"')<html.indexOf('id="scl-top-games"'),'favorites before trending');
+ assert.ok(html.indexOf('id="scl-top-games"')<html.indexOf('id="scl-live"'),'trending games before live channels');
  assert.match(html,/swapp-article-extras\.js\?v=20261113-actus-rail-v3/);
  assert.match(html,/swapp-catalogue-lab\.js\?v=20261115-game-banners-v32/);
- assert.match(html,/swapp-catalogue-lab\.css\?v=20261115-game-banners-style-v28/);
+ assert.match(html,/swapp-catalogue-lab\.css\?v=20261115-magazine-first-v29/);
  assert.match(html,/noindex,nofollow,noarchive/);
  assert.doesNotMatch(read('assets/swapp-navigation.js'),/catalogue-test/);
 });
