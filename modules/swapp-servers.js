@@ -5,6 +5,8 @@ const {renderPage,SHARED_HEAD_SLOT}=require('./swapp-page-shell');
 const {inviteCode,verifyDiscordInvite}=require('./swapp-servers-discord');
 const {renderProfile}=require('./swapp-servers-profile');
 const {registerCommunity,renderCommunityPanels}=require('./swapp-servers-community');
+const {capacityValue,ensureSpecsTable,saveCapacity,readCapacity,readCardFacts}=require('./swapp-servers-card-facts');
+const {cardSignals}=require('./swapp-servers-card-ui');
 const {getProfileEvidence}=require('./swapp-servers-stats');
 const {createPage,LANGUAGES,SERVER_TYPES,discordLink,twitchLink,readTypes}=require('./swapp-servers-create');
 const {renderExternalDiscovery}=require('./swapp-servers-external-discovery');
@@ -77,6 +79,7 @@ function inputValidationErrors({body={},id='',name,description,game,website,bann
  if(len(body.brandBannerUrl)>350||(body.brandBannerUrl&&!optionalImageUrl(body.brandBannerUrl,id,'banner')))
   invalid('bannerUrl','L’image de bannière doit avoir une URL HTTPS publique ou être envoyée comme fichier.');
  if(len(body.joinAddress)>240)invalid('joinAddress','L’adresse de connexion ne doit pas dépasser 240 caractères.');
+ if(Object.prototype.hasOwnProperty.call(body,'capacity')&&Number.isNaN(capacityValue(body.capacity)))invalid('capacity','La capacité doit être comprise entre 1 et 100 000 places, ou laissée vide.');
  if(!discord&&!validListingDetails({game,website,joinAddress:join}))
   invalid('joinAddress','Indique une adresse publique de connexion au jeu, par exemple play.exemple.fr:25565, ou renseigne un site web HTTPS.');
  else if(!discord&&join&&!validJoinAddress(join))
@@ -326,17 +329,21 @@ function renderCategoryPreview(rows,game){
   const banner=ownerBanner||detailCover(game);
   const logo=optionalImageUrl(item.logoUrl,item.id,'logo');
   const initial=esc(String(item.name||'S').slice(0,1).toUpperCase());
+  const signals=cardSignals(item);
+  const tags=String(item.tags||'').split(',').map(x=>x.trim()).filter(Boolean).slice(0,4);
   return '<article class="ss-card ss-server-card ss-category-preloaded">'+
    '<a class="ss-card-image ss-category-preview-art ss-server-cover'+(ownerBanner?' ss-cover-custom':'')+'" href="'+esc(url)+'" aria-label="Découvrir la communauté '+esc(item.name)+'">'+
    (banner?'<img src="'+esc(banner)+'" alt="'+esc(ownerBanner?'Bannière de '+item.name:'Visuel du jeu '+game)+'" loading="lazy" referrerpolicy="no-referrer">':'')+
    '<span class="ss-server-logo">'+(logo?'<img src="'+esc(logo)+'" alt="Logo de '+esc(item.name)+'">':initial)+'</span>'+
    '<div class="ss-card-top"><span class="ss-card-game">'+esc(game)+'</span></div>'+
-   '<div class="ss-cover-caption"><span class="ss-cover-eyebrow">'+(ownerBanner?'BANNIÈRE DE LA COMMUNAUTÉ':'UNIVERS DU JEU')+'</span>'+
+   '<div class="ss-cover-caption">'+
    '<h3 class="ss-cover-title">'+esc(item.name)+'</h3></div></a>'+
-   '<div class="ss-card-content"><p class="ss-description">'+esc(item.description)+'</p>'+
+   '<div class="ss-card-content">'+signals.ratingHtml+'<p class="ss-description">'+esc(item.description)+'</p>'+
+   (tags.length?'<div class="ss-tags">'+tags.map(t=>'<span>'+esc(t)+'</span>').join('')+'</div>':'')+signals.factsHtml+
    '<div class="ss-card-actions"><a class="ss-category-preview-link ss-details" href="'+esc(url)+'">Voir la fiche</a>'+
    '<a class="ss-community-quick" href="'+esc(url)+'#joueurs">Trouver des joueurs</a>'+
-   '<a class="ss-community-quick" href="'+esc(url)+'#directs">Lives associés</a></div></div></article>';
+   '<a class="ss-community-quick" href="'+esc(url)+'#directs">Lives associés</a>'+ 
+   '<a class="ss-community-quick ss-vote-link" href="'+esc(url)+'#voter">Voter</a></div></div></article>';
  }).join('');
 }
 function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verifyDiscordInvite,enableAutoReview=true}={}){
