@@ -302,3 +302,152 @@ html body:has(.swapp-social-viewport) :is(
   background:#0d0f11!important;
  }
 }
+
+/* V22 / THE SAME BLACK ON EVERY SWAPP ROUTE.
+ * Root pages share a solid #030405 canvas. Content surfaces use neutral
+ * graphite (#101214) rather than the old blue/violet fills. Do not recolor
+ * video, game art, user uploads, status badges, focus outlines or thumbnails.
+ * These selectors are scoped to containers; never paint over media elements.
+ */
+:root {
+ --swapp-site-black:#030405;
+ --swapp-site-raised:#101214;
+ --swapp-site-panel:#0c0e10;
+ --swapp-site-edge:rgba(255,255,255,.13);
+ --bg:#030405!important;
+ --surface:#101214!important;
+ --surface2:#151719!important;
+ --surface3:#1b1d20!important;
+ --layer:#101214!important;
+ --layer2:#151719!important;
+}
+html,
+html body,
+html body:has(.swapp-store),
+html body:has(.swapp-social-viewport),
+html body:has(.stv),
+html body:has(.scal),
+html body.swapp-editorial-route,
+html body.swapp-catalogue-lab-page,
+html body.swapp-explorer-page {
+ background:#030405!important;
+ background-image:none!important;
+ color:#f4f7fa;
+}
+/* SPA views are not full-page tinted backgrounds. Keep their visibility
+ * mechanism intact (do not set display, opacity, filter or transform). */
+html body main.app,
+html body main.app > .view,
+html body main.app > .view.active,
+html body #swapp-catalogue-lab .scl-shell,
+html body .swapp-social-access,
+html body .swapp-actus-native,
+html body .swapp-store,
+html body .swapp-hub,
+html body .swapp-my-games,
+html body .swapp-explorer-page .sx,
+html body .game-portal,
+html body .oa-page,
+html body .oas,
+html body .sco,
+html body #swapp-portail,
+html body .swapp-independence {
+ background-color:#030405!important;
+ background-image:none!important;
+}
+/* Native editorial and game landing pages: dark article body, neutral cards,
+ * but keep full-bleed article/video/game-cover backgrounds visible. */
+html body.swapp-editorial-route .container,
+html body.swapp-editorial-route .article-wrap,
+html body.swapp-editorial-route .game-portal {
+ background-color:#030405!important;
+ background-image:none!important;
+}
+html body .game-portal .hero:not(:has(.hero-cover)),
+html body .swapp-actus-native .swapp-actus-sources,
+html body .swapp-actus-native .swapp-actus-related {
+ background:#0d0f11!important;
+}
+html body .game-portal .cards.index > .game-index-card,
+html body .game-portal .cards.index .game-index-no-art,
+html body .game-portal .cards.index .game-index-media,
+html body .game-portal .card:not(:has(img)),
+html body .swapp-hub-tile,
+html body .swapp-community-post,
+html body .swapp-community-auth-box {
+ background:#101214!important;
+ border-color:var(--swapp-site-edge)!important;
+}
+/* SWAPP TV and programming: remove navy/purple washes from the main canvas,
+ * the timetable and broadcast furniture. The actual player is untouched. */
+html body .stv,
+html body .scal,
+html body .stv-program-dialog {
+ background:#030405!important;
+}
+html body .stv .stv-screen-inner {
+ background:linear-gradient(145deg,#17191d,#08090b 70%)!important;
+}
+html body .stv :is(.stv-nowbar,.stv-rail,.stv-dock,.stv-dock-top,.stv-chat,.stv-chat-feed,.stv-twitch-chat),
+html body .stv-program-dialog :is(.stv-dialog-tools,.scal-workspace),
+html body .scal :is(.scal-head,.scal-workspace,.scal-aside,.scal-aside-tv) {
+ background:#101214!important;
+ border-color:var(--swapp-site-edge)!important;
+}
+html body .scal :is(.scal-day,.scal-day.empty) {
+ background:#0b0d0f!important;
+ border-color:var(--swapp-site-edge)!important;
+}
+html body .scal .scal-day:hover {
+ background:#191b1e!important;
+}
+html body .scal .scal-day.chosen {
+ background:#222529!important;
+}
+/* Podcast, discovery portal, marathon and creator ascension. */
+html body .oa-page :is(.oa-hero,.oa-card,.oa-empty,.oa-player),
+html body .oas :is(.oas-form,.oas-field,.oas-advanced),
+html body .sco :is(.sco-panel,.sco-stats>div,.sco-item),
+html body #swapp-portail :is(.sp-hero,.sp-stage,.sp-deck,.sp-controls) {
+ background:#101214!important;
+ border-color:var(--swapp-site-edge)!important;
+}
+/* Boutique: covers and real product photos remain in full colour. */
+html body .swapp-store :is(.swapp-store-card,.swapp-store-notice,.swapp-store-department-empty),
+html body .swapp-store :is(.swapp-store-tools input,.swapp-store-tools select),
+html body .swapp-store .swapp-store-department:not(:has(img)) {
+ background:#101214!important;
+ border-color:var(--swapp-site-edge)!important;
+}
+/* SOCIAL has a separate CSS bundle with strong blue gradients on its
+ * structural columns. These overrides intentionally do not cover posts,
+ * avatars or user images, which are governed by their own component rules. */
+html body .swapp-social-viewport,
+html body .swapp-social-viewport .pulse-shell,
+html body .swapp-social-viewport .pulse-main,
+html body .swapp-social-viewport .pulse-view,
+html body .swapp-social-viewport .pulse-feed,
+html body .swapp-social-viewport .pulse-view-head {
+ background:#030405!important;
+ background-image:none!important;
+}
+html body .swapp-social-viewport :is(.pulse-sidebar,.pulse-right,.pulse-topbar,.pulse-composer,.pulse-tabs,.pulse-message,.pulse-modal-card) {
+ background:#101214!important;
+ background-image:none!important;
+ border-color:var(--swapp-site-edge)!important;
+}
+/* Account and creator SPA panels. Do not target .hero or any player/media
+ * component; these may display genuine photos or streaming video. */
+html body main.app > :is(#discover,#twitch,#categories,#teams,#channel,#dashboard,#manager,#studio,#settings,#admin) :is(
+ .panel,.summaryItem,.modeCard,.studioAction,.creatorSide,.managerPreview
+) {
+ background:#101214!important;
+ border-color:var(--swapp-site-edge)!important;
+}
+/* Generic overlays stay black, without altering transparency of media. */
+html body header.top,
+html body #mobileNav.mobileNav {
+ background:#050607!important;
+ backdrop-filter:none!important;
+ -webkit-backdrop-filter:none!important;
+}
