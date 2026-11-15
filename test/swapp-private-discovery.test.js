@@ -112,7 +112,7 @@ test('local preferences improve relevant live ordering, but never displace SWAPP
 test('no additional section or passive impression tracking is introduced',()=>{
  const html=read('index.html'),spa=read('index_script.js');
  const editorial=read('assets/swapp-home-news.js'),actus=read('assets/swapp-actus-app.js');
- const menu=read('assets/swapp-account-menu.js');
+ const menu=read('assets/swapp-account-unified.js');
  assert.ok(html.indexOf('/assets/swapp-local-tastes.js?')<html.indexOf('/index_script.js?'));
  assert.match(spa,/SwappLocalTastes\?\.getScores\?\.\(\)/);
  assert.match(spa,/SwappLocalTastes\?\.record\?\.\(n\.game\)/);
