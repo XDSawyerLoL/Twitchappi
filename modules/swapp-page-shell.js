@@ -13,7 +13,7 @@ const PREMIUM_CSS='<link rel="stylesheet" href="/assets/swapp-obsidian-ice.css?v
 const SHARED_CSS=Object.freeze([
  '/assets/swapp-unified-nav.css?v=20261113-nav-simple-v2',
  '/assets/swapp-route-motion.css?v=20261114-film-cut-v19',
- '/assets/swapp-native-account.css?v=20261114-native-account-v1',
+ '/assets/swapp-native-account.css?v=20261116-global-account-v2',
  '/assets/swapp-nav-utility.css?v=20261115-light-behind-v4',
  '/assets/swapp-footer-native.css?v=20261115-native-footer-v1'
 ]);
