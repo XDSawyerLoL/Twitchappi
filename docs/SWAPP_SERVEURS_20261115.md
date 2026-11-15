@@ -57,3 +57,19 @@ Les fichiers JavaScript du backend, de la galerie, du lecteur de fiche, des page
 - Variables : \`SWAPP_MYSQL_URL\` ou \`SWAPP_SERVERS_MYSQL_URL\`. Le traitement périodique peut être désactivé par \`SWAPP_SERVERS_AUTO_REVIEW=0\`. Aucun secret Discord requis pour lire une invitation publique.
 - Le paquet Hostinger exige désormais aussi \`modules/swapp-servers-discord.js\`, \`assets/swapp-servers-alerts.js\` et \`assets/swapp-servers-alerts.css\`.
 - Après déploiement, faire un test en production avec une invitation Discord réelle et la session administrateur ; il est impossible de confirmer les données MySQL/les demandes actuelles depuis le dépôt GitHub. Ne pas présenter les anciennes fiches comme publiées avant contrôle réel.
+
+
+## Fiche serveur immersive V6 — inspirée par la fiche Project R
+Source étudiée : https://top-serveurs.net/cyberpunk-2077/project-r-cyberpunk-fr (15 novembre 2026).
+Le modèle SWAPP reprend **les fonctionnalités observées**, pas la marque, le HTML, les photographies ou le contenu du site tiers.
+
+- Nouvelle fiche server-rendered via \`modules/swapp-servers-profile.js\` et \`assets/swapp-servers.css\`, avec grande illustration du jeu/serveur, voile noir protecteur du texte, hiérarchie typographique, numéro de classement s'il est calculé, tags, votes/visites/avis et boutons d'action.
+- Navigation interne : Présentation, Caractéristiques, Statistiques, Avis, Voter ; mise en page 2 colonnes avec panneau de caractéristiques et intégration mobile.
+- Contenu : description du propriétaire échappée en HTML, paragraphes conservés, image propriétaire facultative, lien de sortie HTTPS validé ; aucun texte de Project R copié.
+- Statistiques réelles de SWAPP : votes journaliers (7 j), hebdomadaires (8 semaines), mensuels (12 mois), totaux enregistrés, visites enregistrées par clic sur le lien externe. Aucune population en ligne/slots inventée. Seules les interactions réellement enregistrées après mise en service figurent dans les stats : pas de reprise historique de Top-Serveurs.
+- Tables supplémentaires créées à l'initialisation : \`swapp_game_server_click_events\`, \`swapp_game_server_reviews\` avec clé unique par compte et par serveur. Aucun identifiant de visiteur n'est écrit dans l'historique des clics. Un limiteur de clics bref et éphémère en mémoire réduit la manipulation automatique des compteurs.
+- Avis : notation staff/ambiance/disponibilité de 1 à 5, commentaire de 40–1200 caractères, compte SWAPP connecté obligatoire. Un avis par compte et serveur. Enregistrement au statut \`pending\` : jamais de publication directe.
+- Modération : endpoints réservés aux administrateurs SWAPP pour approuver/refuser les avis. Les demandes d'avis s'affichent dans le panneau SERVEUR + avec les serveurs en attente ; le compteur d'administration inclut les deux types de demandes.
+- Fichiers nouveaux : \`modules/swapp-servers-profile.js\`, \`modules/swapp-servers-stats.js\`, \`assets/swapp-servers-review-admin.js\`, tests \`test/swapp-server-profile-20261115.test.js\`.
+- Déploiement Hostinger : reconstruire depuis le commit incluant les nouveaux modules, laisser le backend créer ses deux tables, vérifier les migrations, puis tester la fiche réelle publiée, le vote, le clic sortant, les deux files de modération et les graphes.
+- **Non validé en production** : tests complets sous Node, MySQL Hostinger, permissions CREATE TABLE, CDN d'illustrations, modération du premier avis et déploiement public. Les résultats manquants doivent rester absents ou marqués « Non mesuré ».
