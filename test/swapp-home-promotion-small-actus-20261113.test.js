@@ -30,7 +30,7 @@ test('public homepage has a canonical indexable catalogue, original lab remains 
  assert.doesNotMatch(oldLab,/rel="canonical" href="https:\/\/swapp\.tv\/"/);
  assert.doesNotMatch(oldLab,/href="\/categories"/);
  const assets=[['swapp-catalogue-lab.js','20261115-game-banners-v32'],
-  ['swapp-catalogue-lab.css','20261115-game-banners-style-v28']];
+  ['swapp-catalogue-lab.css','20261115-magazine-first-v29']];
  for(const [name,version] of assets){
   assert.ok(home.includes(name+'?v='+version));
   assert.ok(oldLab.includes(name+'?v='+version));
@@ -118,10 +118,11 @@ test('ACTUS recycles old-home article poster with real published art and interna
    addEventListener(){}};
   nodes.push(n);return n;
  };
- const func=new Function('el','slugOk','url','window',js.slice(begin,finish)+';return renderFeaturedActusHero;')(
+ const func=new Function('el','slugOk','url','window','officialTrailerId',js.slice(begin,finish)+';return renderFeaturedActusHero;')(
   el,s=>/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(s),
   raw=>{try{const u=new URL(raw);return u.protocol==='https:'?u.href:null}catch{return null}},
-  {SwappArticleExtras:{cardImageSources:a=>[a.thumbnail?.url].filter(Boolean)}}
+  {SwappArticleExtras:{cardImageSources:a=>[a.thumbnail?.url].filter(Boolean)}},
+  ()=>null
  );
  const host=el('div');
  const articles=[{slug:'article-feature-gaming',title:'Une actualité publiée de SWAPP',
@@ -137,8 +138,8 @@ test('ACTUS recycles old-home article poster with real published art and interna
  assert.deepEqual(actions.children.map(x=>x.href),['/actus/article-feature-gaming','/decouvrir']);
  assert.match(js,/renderFeaturedActusHero\(featuredMount,items\)/);
  assert.match(js,/const featuredMount=el\('div','swapp-actus-featured-mount'\)/);
- assert.match(read('index.html'),/swapp-actus-app\.css\?v=20261115-actus-black-v11/);
- assert.match(read('index.html'),/swapp-actus-app\.js\?v=20261113-direct-x-v3/);
+ assert.match(read('index.html'),/swapp-actus-app\.css\?v=20261115-full-black-gutters-v12/);
+ assert.match(read('index.html'),/swapp-actus-app\.js\?v=20261115-hero-motion-v3/);
 });
 test('published ACTUS hero sits flush below navigation without a spacer',()=>{
  const css=read('assets/swapp-actus-app.css');
@@ -146,7 +147,7 @@ test('published ACTUS hero sits flush below navigation without a spacer',()=>{
  assert.match(css,/#actus\.view\.active:has\(\.swapp-actus-featured-mount\)\{[^}]*padding-top:0!important/s);
  assert.match(css,/#actus \.swapp-actus-native:has\(> \.swapp-actus-featured-mount\)\{[^}]*padding-top:0!important/s);
  assert.match(css,/#actus \.swapp-actus-featured-mount\{[^}]*margin-top:0!important/s);
- assert.match(html,/swapp-actus-app\.css\?v=20261115-actus-black-v11/);
+ assert.match(html,/swapp-actus-app\.css\?v=20261115-full-black-gutters-v12/);
 });
 test('official muted trailer from former homepage is scoped to ACTUS and never autoplays on touch devices',()=>{
  const motion=read('assets/swapp-home-motion.js'),actus=read('assets/swapp-actus-app.js');

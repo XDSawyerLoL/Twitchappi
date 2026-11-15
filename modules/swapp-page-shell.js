@@ -14,7 +14,8 @@ const SHARED_CSS=Object.freeze([
  '/assets/swapp-unified-nav.css?v=20261113-nav-simple-v2',
  '/assets/swapp-route-motion.css?v=20261114-film-cut-v19',
  '/assets/swapp-native-account.css?v=20261114-native-account-v1',
- '/assets/swapp-nav-utility.css?v=20261115-light-behind-v4'
+ '/assets/swapp-nav-utility.css?v=20261115-light-behind-v4',
+ '/assets/swapp-footer-native.css?v=20261115-native-footer-v1'
 ]);
 function escapeAttribute(value){
  return String(value||'').replace(/[&<>"']/g,ch=>({
@@ -32,7 +33,9 @@ function renderPage({head='',content='',scripts='',bodyClass='swapp-editorial-ro
  return '<!doctype html><html lang="fr"><head>'+htmlHead+
   PREMIUM_CSS+'</head><body class="'+cls+'" data-swapp-shell="shared-native-v2">'+
   serverHeader(active)+String(content||'')+serverMobile(active)+
-  '<script src="/assets/swapp-nav-utility.js?v=20261115-light-behind-v4" defer></script>'+'<script src="/assets/swapp-servers-alerts.js?v=20261115-admin-alert-v2" defer></script>'+String(scripts||'')+'</body></html>';
+  '<script src="/assets/swapp-nav-utility.js?v=20261115-light-behind-v4" defer></script>'+
+  '<script src="/assets/swapp-footer.js?v=20261021-discord-invite-v1" defer></script>'+
+  '<script src="/assets/swapp-servers-alerts.js?v=20261115-admin-alert-v2" defer></script>'+String(scripts||'')+'</body></html>';
 }
 const SPA_ACTIVE_ROUTES=Object.freeze({
  '/':'home','/actus':'actus','/categories':'categories',

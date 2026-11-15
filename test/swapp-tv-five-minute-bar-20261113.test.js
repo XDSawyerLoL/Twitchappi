@@ -96,5 +96,5 @@ test('ACTUS hero starts flush under the global menu',()=>{
  assert.match(css,/#actus\.view\.active:has\(\.swapp-actus-featured-mount\)\{[^}]*padding-top:0!important/s);
  assert.match(css,/#actus \.swapp-actus-native:has\(> \.swapp-actus-featured-mount\)\{[^}]*padding-top:0!important/s);
  assert.match(css,/#actus \.swapp-actus-featured-mount\{[^}]*margin-top:0!important/s);
- assert.match(read('index.html'),/swapp-actus-app\.css\?v=20261115-actus-black-v11/);
+ assert.match(read('index.html'),/swapp-actus-app\.css\?v=20261115-full-black-gutters-v12/);
 });

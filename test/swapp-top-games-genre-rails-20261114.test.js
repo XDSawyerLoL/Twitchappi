@@ -84,9 +84,9 @@ test('genres contain actual game posters grouped by their correct genre',()=>{
  assert.equal(groups.filter(g=>g.games.length===0).length,0);
 });
 
-test('live rail is followed by top game posters, 25 genre controls, actual genre game shelves',()=>{
+test('magazine-first home keeps game posters, live rails, 25 genre controls and genre shelves',()=>{
  const html=catalogueContent({publicHome:true});
- const required=['scl-live','scl-genres','scl-top-games','scl-games','scl-genre-shelves','scl-articles'];
+ const required=['scl-articles','scl-favorites','scl-top-games','scl-live','scl-small','scl-genres','scl-games','scl-genre-shelves'];
  for(const id of required)assert.ok(html.includes('id="'+id+'"'),id);
  for(let i=1;i<required.length;i++)
   assert.ok(html.indexOf('id="'+required[i-1]+'"')<html.indexOf('id="'+required[i]+'"'),

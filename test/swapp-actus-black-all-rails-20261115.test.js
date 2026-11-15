@@ -18,7 +18,7 @@ test('ACTUS route and the real featured hero have a neutral black canvas',()=>{
  assert.match(actus,/html body #actus \.swapp-actus-featured-link::after[\s\S]*?rgba\(3,4,5,\.95\)/);
  assert.match(actus,/html body #actus \.swapp-actus-cover-fallback,[\s\S]*?background:#101214!important/);
  assert.doesNotMatch(actus.slice(actus.indexOf('/* V11 \/ ACTUS BLACK:')),/\bimg\s*\{[^}]*filter:blur\(/);
- assert.match(read('index.html'),/swapp-actus-app\.css\?v=20261115-actus-black-v11/);
+ assert.match(read('index.html'),/swapp-actus-app\.css\?v=20261115-full-black-gutters-v12/);
 });
 
 test('all static and newly generated game rails have visible arrows and keyboard access',()=>{
@@ -38,7 +38,7 @@ test('all static and newly generated game rails have visible arrows and keyboard
  assert.match(js,/installRailArrowState\(\)/);
  assert.match(css,/\.scl-genre-cards\.scl-is-edge-scrolling\{/);
  assert.match(read('modules/swapp-catalogue-spa.js'),/20261115-game-banners-v32/);
- assert.match(read('modules/swapp-catalogue-spa.js'),/20261115-game-banners-style-v28/);
+ assert.match(read('modules/swapp-catalogue-spa.js'),/20261115-magazine-first-v29/);
 });
 
 test('delegated hover scroll works after the genre shelf is dynamically rendered',()=>{
