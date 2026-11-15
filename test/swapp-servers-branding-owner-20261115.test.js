@@ -126,7 +126,9 @@ test('editor JSON cannot terminate a script element when name contains HTML',()=
 
 test('owner portfolio is a separate page, with private access and edit buttons',async()=>{
  const source=read('modules/swapp-servers.js');
- assert.ok(source.indexOf("app.get('/serveurs/mes-serveurs'")<source.indexOf("app.get('/serveurs/:jeu',(req,res)"));
+ const ownerRoute=source.indexOf("app.get('/serveurs/mes-serveurs'");
+ const gameRoute=source.indexOf("app.get('/serveurs/:jeu',");
+ assert.ok(ownerRoute>=0&&gameRoute>ownerRoute,'owner-only route must precede generic game route');
  assert.match(source,/WHERE s.owner_id IN \(\?,\?\) ORDER BY s.created_at DESC LIMIT 30/);
  assert.match(source,/Cache-Control','private,no-store/);
  assert.match(source,/ss-owner-manage-cta/);

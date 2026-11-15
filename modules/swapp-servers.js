@@ -4,6 +4,7 @@ const crypto=require('node:crypto');
 const {renderPage,SHARED_HEAD_SLOT}=require('./swapp-page-shell');
 const {inviteCode,verifyDiscordInvite}=require('./swapp-servers-discord');
 const {renderProfile}=require('./swapp-servers-profile');
+const {registerCommunity,renderCommunityPanels}=require('./swapp-servers-community');
 const {getProfileEvidence}=require('./swapp-servers-stats');
 const {createPage,LANGUAGES,SERVER_TYPES,discordLink,twitchLink,readTypes}=require('./swapp-servers-create');
 const {renderExternalDiscovery}=require('./swapp-servers-external-discovery');
@@ -165,7 +166,7 @@ function growthBanner(game=''){
 }
 
 function page({isAdmin=false,game=''}={}){
- const head='<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#050608"><title>'+esc(game?'Serveurs '+game+' — classement des communautés | SWAPP':'Serveurs de jeux — classements et communautés | SWAPP')+'</title><meta name="description" content="Découvre des serveurs gaming et roleplay, classe les communautés par votes et référence ton serveur sur SWAPP."><link rel="canonical" href="https://swapp.tv/serveurs'+(game?'/'+slug(game):'')+'">'+SHARED_HEAD_SLOT+'<link rel="stylesheet" href="/assets/swapp-servers.css?v=20261115-rich-profiles-v18">';
+ const head='<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#050608"><title>'+esc(game?'Serveurs '+game+' — classement des communautés | SWAPP':'Serveurs de jeux — classements et communautés | SWAPP')+'</title><meta name="description" content="Découvre des serveurs gaming et roleplay, classe les communautés par votes et référence ton serveur sur SWAPP."><link rel="canonical" href="https://swapp.tv/serveurs'+(game?'/'+slug(game):'')+'">'+SHARED_HEAD_SLOT+'<link rel="stylesheet" href="/assets/swapp-servers.css?v=20261115-banner-showcase-v19"><link rel="stylesheet" href="/assets/swapp-servers-community.css?v=20261115-community-v2">';
  let content='<main class="ss ss-directory" data-ss-current-game="'+esc(game)+'">'+(game?'':growthBanner(game))+
   '<header class="ss-hero ss-directory-intro"><div class="ss-inner ss-directory-intro-layout"><div class="ss-directory-intro-copy">'+
   '<p class="ss-overline">DÉCOUVRE LES COMMUNAUTÉS SWAPP</p>'+
@@ -193,7 +194,7 @@ function page({isAdmin=false,game=''}={}){
   const end=content.indexOf('</section>',start);
   if(start>=0&&end>start){const panel=content.slice(start,end+10);content=content.replace(panel,'').replace('<section class="ss-inner ss-content">','<section class="ss-inner ss-content">'+panel)}
  }
- return renderPage({head,content,active:'servers',bodyClass:'swapp-editorial-route swapp-servers-page',scripts:'<script src="/assets/swapp-servers.js?v=20261115-classify-api-v19" defer></script><script src="/assets/swapp-servers-review-admin.js?v=20261115-server-pro-v6" defer></script><script src="/assets/swapp-nav-session.js?v=20261114-native-account-v1" defer></script>'});
+ return renderPage({head,content,active:'servers',bodyClass:'swapp-editorial-route swapp-servers-page',scripts:'<script src="/assets/swapp-servers.js?v=20261115-community-banner-v20" defer></script><script src="/assets/swapp-servers-review-admin.js?v=20261115-server-pro-v6" defer></script><script src="/assets/swapp-nav-session.js?v=20261114-native-account-v1" defer></script>'});
 }
 
 const DETAIL_STEAM_GAME_IDS=Object.freeze({
@@ -232,12 +233,12 @@ function detailPage(server,votes,meta={}){
   '<title>'+esc(title)+' — '+esc(game)+' | Serveurs SWAPP</title>'+
   '<meta name="description" content="'+esc(summary)+'">'+
   '<link rel="canonical" href="'+esc(canonical)+'">'+metadata+SHARED_HEAD_SLOT+
-  '<link rel="stylesheet" href="/assets/swapp-servers.css?v=20261115-rich-profiles-v18">';
+  '<link rel="stylesheet" href="/assets/swapp-servers.css?v=20261115-banner-showcase-v19"><link rel="stylesheet" href="/assets/swapp-servers-community.css?v=20261115-community-v2">';
  return renderPage({head:header,content:renderProfile({server,votes,rank:meta.rank,stats:meta.stats||null,
   reviews:meta.reviews||[],reviewSummary:meta.reviewSummary||null,cover:image,canEdit:Boolean(meta.canEdit),
-  outbound:safeUrl(server.website),gamePath}),
+  outbound:safeUrl(server.website),gamePath,communityPanels:renderCommunityPanels(server)}),
   active:'servers',bodyClass:'swapp-editorial-route swapp-servers-page',
-  scripts:'<script src="/assets/swapp-servers-detail.js?v=20261115-server-pro-v7" defer></script><script src="/assets/swapp-nav-session.js?v=20261114-native-account-v1" defer></script>'});
+  scripts:'<script src="/assets/swapp-servers-detail.js?v=20261115-server-pro-v7" defer></script><script src="/assets/swapp-servers-community.js?v=20261115-community-v2" defer></script><script src="/assets/swapp-nav-session.js?v=20261114-native-account-v1" defer></script>'});
 }
 
 let lastAutoReview=0,autoReviewRunning=null,autoReviewOffset=0;
@@ -321,19 +322,26 @@ function renderCategoryPreview(rows,game){
  if(!rows.length)return '<div class="ss-empty"><h2>Aucune fiche publiée pour '+esc(game)+'</h2><p>Tu peux être le premier à référencer un serveur dans cette catégorie.</p><a href="/serveurs/creer?jeu='+encodeURIComponent(game)+'">Ajouter un serveur</a></div>';
  return rows.map(item=>{
   const url='/serveurs/'+slug(game)+'/'+encodeURIComponent(item.slug);
-  const banner=optionalImageUrl(item.brandBannerUrl,item.id,'banner')||safeUrl(item.banner_url)||detailCover(game);
+  const ownerBanner=optionalImageUrl(item.brandBannerUrl,item.id,'banner')||safeUrl(item.banner_url);
+  const banner=ownerBanner||detailCover(game);
   const logo=optionalImageUrl(item.logoUrl,item.id,'logo');
+  const initial=esc(String(item.name||'S').slice(0,1).toUpperCase());
   return '<article class="ss-card ss-server-card ss-category-preloaded">'+
-   '<a class="ss-card-image ss-category-preview-art" href="'+esc(url)+'" aria-label="Voir '+esc(item.name)+'">'+
-   (banner?'<img src="'+esc(banner)+'" alt="Visuel de '+esc(item.name)+'" loading="lazy" referrerpolicy="no-referrer">':'')+
-   (logo?'<span class="ss-server-logo"><img src="'+esc(logo)+'" alt="Logo de '+esc(item.name)+'"></span>':'')+'</a>'+
-   '<div class="ss-card-content"><p class="ss-overline">'+esc(game)+'</p><h3>'+esc(item.name)+'</h3><p class="ss-description">'+esc(item.description)+'</p>'+
-   '<div class="ss-card-actions"><a class="ss-category-preview-link" href="'+esc(url)+'">Voir la fiche</a></div></div></article>';
+   '<a class="ss-card-image ss-category-preview-art ss-server-cover'+(ownerBanner?' ss-cover-custom':'')+'" href="'+esc(url)+'" aria-label="Découvrir la communauté '+esc(item.name)+'">'+
+   (banner?'<img src="'+esc(banner)+'" alt="'+esc(ownerBanner?'Bannière de '+item.name:'Visuel du jeu '+game)+'" loading="lazy" referrerpolicy="no-referrer">':'')+
+   '<span class="ss-server-logo">'+(logo?'<img src="'+esc(logo)+'" alt="Logo de '+esc(item.name)+'">':initial)+'</span>'+
+   '<div class="ss-card-top"><span class="ss-card-game">'+esc(game)+'</span></div>'+
+   '<div class="ss-cover-caption"><span class="ss-cover-eyebrow">'+(ownerBanner?'BANNIÈRE DE LA COMMUNAUTÉ':'UNIVERS DU JEU')+'</span>'+
+   '<h3 class="ss-cover-title">'+esc(item.name)+'</h3></div></a>'+
+   '<div class="ss-card-content"><p class="ss-description">'+esc(item.description)+'</p>'+
+   '<div class="ss-card-actions"><a class="ss-category-preview-link ss-details" href="'+esc(url)+'">Voir la fiche</a>'+
+   '<a class="ss-community-quick" href="'+esc(url)+'#joueurs">Trouver des joueurs</a>'+
+   '<a class="ss-community-quick" href="'+esc(url)+'#directs">Lives associés</a></div></div></article>';
  }).join('');
 }
-
 function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verifyDiscordInvite,enableAutoReview=true}={}){
  const isManager=req=>Boolean(isAdmin(req));
+ registerCommunity(app,{getDatabase:()=>getDatabase===db?db({readOnly:true}):getDatabase(),account,ownerKeys,originGuard});
  const readDatabase=()=>getDatabase===db?db({readOnly:true}):getDatabase();
  // Recheck older Discord submissions too, without any paid worker or VPS.
  // One batch per instance, repeated while the application is running.
@@ -401,7 +409,7 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
     return '<article class="ss-owner-manage-card" style="--ss-brand-accent:'+color+'"><div class="ss-owner-manage-logo">'+emblem+'</div><div class="ss-owner-manage-info"><p class="ss-overline">'+esc(item.game)+'</p><h2>'+esc(item.name)+'</h2><p>'+esc(String(item.description||'').slice(0,130))+'</p><small>'+esc(item.status==='published'?'Fiche publiée':item.status==='pending'?'Fiche en vérification':'Fiche refusée')+'</small></div><div class="ss-owner-manage-actions">'+open+modify+remove+'</div></article>';
    }).join('');
    const content='<main class="ss ss-owner-manage"><header class="ss-hero"><div class="ss-inner"><p class="ss-overline">SERVEUR + / MON ESPACE</p><h1>Mes vitrines <em>gaming.</em></h1><p>Personnalise tes serveurs, mets à jour ton logo, ta bannière, tes liens et les couleurs de ta communauté.</p><div class="ss-hero-actions"><a href="/serveurs">← Classement</a><a href="/serveurs/creer">+ Créer un serveur</a></div></div></header><section class="ss-inner ss-owner-manage-list">'+(cards||'<div class="ss-empty"><h2>Pas encore de serveur</h2><p>Crée ta première fiche pour lui donner une identité sur SWAPP.</p><a href="/serveurs/creer">Créer mon serveur</a></div>')+'<p id="ss-owner-feedback" role="status" aria-live="polite"></p></section></main>';
-   const head='<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Mes serveurs | SWAPP SERVEUR +</title>'+SHARED_HEAD_SLOT+'<link rel="stylesheet" href="/assets/swapp-servers.css?v=20261115-rich-profiles-v18">';
+   const head='<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Mes serveurs | SWAPP SERVEUR +</title>'+SHARED_HEAD_SLOT+'<link rel="stylesheet" href="/assets/swapp-servers.css?v=20261115-banner-showcase-v19"><link rel="stylesheet" href="/assets/swapp-servers-community.css?v=20261115-community-v2">';
    return res.set('Cache-Control','private,no-store').type('html').send(renderPage({head,content,active:'servers',bodyClass:'swapp-editorial-route swapp-servers-page',scripts:'<script src="/assets/swapp-servers-owner.js?v=20261115-owner-delete-v1" defer></script><script src="/assets/swapp-nav-session.js?v=20261114-native-account-v1" defer></script>'}));
   }catch(e){return res.status(503).type('text').send('Espace propriétaire indisponible')}
  });

@@ -41,14 +41,14 @@
   const id=STEAM_GAME_IDS[name];
   return id?'https://cdn.cloudflare.steamstatic.com/steam/apps/'+id+'/header.jpg':'';
  };
- function artInto(host,name,preferred=''){
+ function artInto(host,name,preferred='',ownerName=''){
   const sources=[preferred,gameArt(name)].filter(Boolean);
   if(!sources.length)return;
   let index=0;
   const img=make('img','ss-game-image');
-  img.alt='Visuel du jeu '+name;
+  img.alt=preferred&&ownerName?'Bannière de '+ownerName:'Visuel du jeu '+name;
   img.loading='lazy';img.decoding='async';img.referrerPolicy='no-referrer';
-  img.onerror=()=>{if(++index<sources.length)img.src=sources[index];else img.remove()};
+  img.onerror=()=>{if(++index<sources.length){img.src=sources[index];img.alt='Visuel du jeu '+name;host.classList.remove('ss-cover-custom')}else img.remove()};
   img.src=sources[0];host.prepend(img);
  }
  const officialGameTiles=Array.from(root.querySelectorAll('.ss-game-tile[data-ss-game]'));
@@ -94,9 +94,16 @@
   const palette=gameThemes[s.game]||['#8ceaf0','#9c67ff'];
   article.style.setProperty('--ss-brand-accent',validHex(s.accentColor)?s.accentColor:palette[0]);
   article.style.setProperty('--ss-brand-secondary',validHex(s.secondaryColor)?s.secondaryColor:palette[1]);
-  const art=make('div','ss-card-image');
-  artInto(art,s.game,s.bannerUrl||'');
-  const mark=make('div','ss-server-logo');
+  // Give the community's own banner the entire cinematic cover, never a narrow sidebar.
+  // The verified game's artwork is only a fallback, not a substitute for owner branding.
+  const detailHref=s.slug&&/^[a-z0-9-]{6,90}$/.test(s.slug)?
+   '/serveurs/'+encodeURIComponent(gameSlug(s.game))+'/'+encodeURIComponent(s.slug):'';
+  const cover=safeArt(s.bannerUrl,s.id,'banner');
+  const art=make(detailHref?'a':'div','ss-card-image ss-server-cover');
+  if(detailHref){art.href=detailHref;art.setAttribute('aria-label','Découvrir la communauté '+s.name)}
+  if(cover)art.classList.add('ss-cover-custom');
+  artInto(art,s.game,cover,s.name);
+  const mark=make('span','ss-server-logo');
   const logoUrl=safeArt(s.logoUrl,s.id,'logo');
   if(logoUrl){
    const logo=make('img');logo.src=logoUrl;logo.alt='Logo de '+s.name;logo.loading='lazy';
@@ -107,7 +114,11 @@
   const top=make('div','ss-card-top');
   if(Number.isInteger(s.rank)&&s.rank>0)top.append(make('span','ss-rank','#'+s.rank));
   top.append(make('span','ss-card-game',s.game));art.append(top);
-  const content=make('div','ss-card-content'),heading=make('h3','',s.name);
+  const caption=make('div','ss-cover-caption');
+  caption.append(make('span','ss-cover-eyebrow',cover?'BANNIÈRE DE LA COMMUNAUTÉ':'UNIVERS DU JEU'));
+  caption.append(make('h3','ss-cover-title',s.name));
+  art.append(caption);
+  const content=make('div','ss-card-content');
   const tagline=s.tagline?make('p','ss-server-tagline',s.tagline):null;
   const details=make('p','ss-description',s.description);
   const meta=make('div','ss-meta');
@@ -132,7 +143,7 @@
    stat(Number(s.reviewCount)>0&&Number.isFinite(score)?score.toFixed(1).replace('.',',')+'/5':'—',
     Number(s.reviewCount)>0?number(s.reviewCount)+' avis publié'+(Number(s.reviewCount)===1?'':'s'):'aucun avis publié');
   }
-  content.append(heading);if(tagline)content.append(tagline);content.append(details,meta);
+  if(tagline)content.append(tagline);content.append(details,meta);
   if(tags.childElementCount)content.append(tags);
   content.append(metrics);
   const actions=make('div','ss-card-actions'),vote=make('button','ss-vote');
@@ -149,10 +160,12 @@
    }catch(e){feedback.textContent=e.message}finally{vote.disabled=false}
   });
   actions.append(vote);
-  if(s.slug&&/^[a-z0-9-]{6,90}$/.test(s.slug)){
+  if(detailHref){
    const detail=make('a','ss-details','Voir la fiche');
-   detail.href='/serveurs/'+encodeURIComponent(gameSlug(s.game))+'/'+encodeURIComponent(s.slug);
+   detail.href=detailHref;
    actions.append(detail);
+   const teammates=make('a','ss-community-quick','Trouver des joueurs');teammates.href=detail.href+'#joueurs';actions.append(teammates);
+   const streams=make('a','ss-community-quick','Lives associés');streams.href=detail.href+'#directs';actions.append(streams);
   }
   if(s.canEdit&&s.slug){
    const edit=make('a','ss-owner-edit','Personnaliser');

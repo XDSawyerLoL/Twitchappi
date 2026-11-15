@@ -40,7 +40,7 @@ test('failure is not mislabeled as zero servers and success counts include zero'
  const source=read('assets/swapp-servers.js');
  assert.doesNotMatch(source,/Comptage indisponible/);
  assert.match(source,/value===1\?'':'s'\)\+' inscrit/);
- assert.match(source,/Impossible de charger les serveurs pour le moment/);
+ assert.match(source,/Classement temporairement indisponible/);
  assert.match(source,/state\.status==='error'/);
  assert.match(source,/Voir les serveurs/);
  assert.match(source,/Object\.values\(n\)\.reduce/);
