@@ -173,6 +173,66 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
   }catch(e){fail(res,e)}
  });
  // Account-owned submissions are always visible even before moderation.
+
+ // Visits count only intentional clicks on published links; no user data is persisted.
+ const clickThrottle=new Map();
+ const clickSalt=crypto.randomBytes(16).toString('hex');
+ app.post('/api/swapp/serveurs/:id/visit',async(req,res)=>{
+  if(!originGuard(req))return res.status(403).json({error:'origine_invalide'});
+  const id=clean(req.params.id,32);
+  if(!/^[a-f0-9]{32}$/.test(id))return res.status(400).json({error:'serveur_invalide'});
+  const visitor=crypto.createHash('sha256').update(clickSalt+id+String(req.session?.oryonUser?.id||req.ip||'inconnu')).digest('hex');
+  const now=Date.now();
+  if(clickThrottle.size>3000){for(const [key,time] of clickThrottle){if(now-time>180000)clickThrottle.delete(key)}}
+  if(clickThrottle.has(visitor)&&now-clickThrottle.get(visitor)<30000)return res.json({recorded:false});
+  try{
+   const sql=await getDatabase();
+   const [found]=await sql.execute('SELECT id,website FROM swapp_game_servers WHERE id=? AND status="published" LIMIT 1',[id]);
+   if(!found.length||!safeUrl(found[0].website))return res.status(404).json({error:'serveur_introuvable'});
+   await sql.execute('INSERT INTO swapp_game_server_click_events (server_id) VALUES (?)',[id]);
+   clickThrottle.set(visitor,now);
+   return res.json({recorded:true});
+  }catch(e){return fail(res,e)}
+ });
+ app.post('/api/swapp/serveurs/:id/reviews',require('express').json({limit:'5kb'}),async(req,res)=>{
+  if(!originGuard(req))return res.status(403).json({error:'origine_invalide'});
+  const user=account(req);if(!user)return res.status(401).json({error:'connexion_swapp_requise'});
+  const id=clean(req.params.id,32);if(!/^[a-f0-9]{32}$/.test(id))return res.status(400).json({error:'serveur_invalide'});
+  const staff=Number(req.body?.staff),atmosphere=Number(req.body?.atmosphere),availability=Number(req.body?.availability);
+  const comment=clean(req.body?.comment,1201);
+  if([staff,atmosphere,availability].some(x=>!Number.isInteger(x)||x<1||x>5)||comment.length<40||comment.length>1200)
+   return res.status(422).json({error:'avis_invalide'});
+  try{
+   const sql=await getDatabase();
+   const [rows]=await sql.execute('SELECT id FROM swapp_game_servers WHERE id=? AND status="published" LIMIT 1',[id]);
+   if(!rows.length)return res.status(404).json({error:'serveur_introuvable'});
+   const reviewId=crypto.randomBytes(16).toString('hex');
+   try{
+    await sql.execute('INSERT INTO swapp_game_server_reviews (id,server_id,user_id,staff,atmosphere,availability,comment,status) VALUES (?,?,?,?,?,?,?,"pending")',[reviewId,id,user,staff,atmosphere,availability,comment]);
+   }catch(e){if(e.code==='ER_DUP_ENTRY')return res.status(409).json({error:'avis_deja_depose'});throw e}
+   return res.status(201).json({status:'pending',moderation:true});
+  }catch(e){return fail(res,e)}
+ });
+ app.get('/api/swapp/serveurs/reviews/moderation',async(req,res)=>{
+  if(!isManager(req))return res.status(403).json({error:'acces_refuse'});
+  try{
+   const sql=await getDatabase();
+   const [rows]=await sql.query('SELECT r.id,r.staff,r.atmosphere,r.availability,r.comment,r.created_at AS createdAt,s.name AS serverName,s.game FROM swapp_game_server_reviews r JOIN swapp_game_servers s ON s.id=r.server_id WHERE r.status="pending" ORDER BY r.created_at ASC LIMIT 100');
+   return res.set('Cache-Control','no-store').json({reviews:rows});
+  }catch(e){return fail(res,e)}
+ });
+ app.post('/api/swapp/serveurs/reviews/:id/moderation',require('express').json({limit:'2kb'}),async(req,res)=>{
+  if(!originGuard(req)||!isManager(req))return res.status(403).json({error:'acces_refuse'});
+  const id=clean(req.params.id,32),decision=clean(req.body?.status,16);
+  if(!/^[a-f0-9]{32}$/.test(id)||!['published','rejected'].includes(decision))
+   return res.status(422).json({error:'decision_invalide'});
+  try{
+   const sql=await getDatabase();
+   const [row]=await sql.execute('UPDATE swapp_game_server_reviews SET status=? WHERE id=? AND status="pending"',[decision,id]);
+   return res.json({updated:row.affectedRows===1});
+  }catch(e){return fail(res,e)}
+ });
+
  app.get('/api/swapp/serveurs/mes-fiches',async(req,res)=>{
   const user=account(req);if(!user)return res.status(401).json({error:'connexion_swapp_requise'});
   try{const sql=await getDatabase(),[rows]=await sql.execute('SELECT name,game,slug,status,created_at AS createdAt FROM swapp_game_servers WHERE owner_id=? ORDER BY created_at DESC LIMIT 30',[user]);
