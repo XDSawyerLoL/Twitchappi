@@ -77,7 +77,7 @@
  }
  function renderChart(period='monthly'){
   if(!chart)return;
-  if(!data){chart.textContent='Les statistiques ne sont pas disponibles pour le moment.';return}
+  if(!data||data.historyAvailable===false){chart.textContent='Historique temporairement indisponible. Les chiffres connus restent affichés dans la fiche.';return}
   const rows=buckets(period),max=Math.max(0,...rows.flatMap(x=>[x.votes,x.clicks]));
   chart.replaceChildren();
   if(max===0){const p=document.createElement('p');p.className='ss-pro-chart-empty';p.textContent='Aucun vote ni aucun clic enregistré sur cette période.';chart.append(p);return}
