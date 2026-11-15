@@ -15,8 +15,8 @@ test('cinema lab keeps an isolated page with the real SWAPP header and versioned
  assert.match(html,/id="scl-feature-next"/);
  assert.match(html,/id="scl-feature-dots"/);
  assert.match(html,/scl-feature-vignette/);
- assert.match(html,/swapp-catalogue-lab\.js\?v=20261115-hidpi-posters-v30/);
- assert.match(html,/swapp-catalogue-lab\.css\?v=20261115-explorer-toolbar-v26/);
+ assert.match(html,/swapp-catalogue-lab\.js\?v=20261115-all-rails-v31/);
+ assert.match(html,/swapp-catalogue-lab\.css\?v=20261115-all-rails-toolbar-v27/);
  assert.match(html,/robots" content="noindex,nofollow,noarchive"/);
  assert.match(html,/id="nav"/);
  assert.doesNotMatch(read('assets/swapp-navigation.js'),/catalogue-test/);
@@ -160,7 +160,7 @@ test('detail modal has its own correctly labelled heading',()=>{
 });
 
 test('rails hide grey scrollbars and move only at mouse edges; keyboard and touch remain usable',()=>{
- assert.match(css,/\.scl-rail-nav\{display:none!important\}/);
+ assert.match(css,/\.scl-rail-nav\{display:flex!important/);
  assert.match(css,/\.scl-cards::-webkit-scrollbar\{display:none;width:0;height:0\}/);
  assert.match(css,/\.scl-cards\.scl-is-edge-scrolling\{scroll-snap-type:none\}/);
  assert.match(js,/installRailHoverScroll\(\);/);
