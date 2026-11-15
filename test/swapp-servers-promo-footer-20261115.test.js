@@ -12,9 +12,15 @@ test('free listing promotion is the first hero, before the community ranking and
   for(const label of ['Référencement gratuit','Ajouter mon serveur','Publication automatique','Votes, avis et statistiques','100 % gratuit']){
    assert.ok(html.toLowerCase().includes(label.toLowerCase()),game+' '+label);
   }
-  assert.ok(html.indexOf('id="ss-grow-title"')<html.indexOf('ss-directory-intro'));
-  assert.ok(html.indexOf('id="ss-grow-title"')<html.indexOf('id="ss-results"'));
-  assert.ok(html.indexOf('ss-directory-intro')<html.indexOf('id="ss-results"'));
+  if(game){
+   assert.ok(html.indexOf('ss-directory-intro')<html.indexOf('id="ss-results"'));
+   assert.ok(html.indexOf('id="ss-results"')<html.indexOf('id="ss-grow-title"'),
+    'category listings should be visible before the marketing banner');
+  }else{
+   assert.ok(html.indexOf('id="ss-grow-title"')<html.indexOf('ss-directory-intro'));
+   assert.ok(html.indexOf('id="ss-grow-title"')<html.indexOf('id="ss-results"'));
+   assert.ok(html.indexOf('ss-directory-intro')<html.indexOf('id="ss-results"'));
+  }
   assert.ok(html.indexOf('id="ss-grow-title"')<html.indexOf('class="swapp-footer')||html.includes('swapp-footer.js'));
   assert.match(html,/href="\/serveurs\/creer(?:\?jeu=[^"]*)?"/);
   assert.doesNotMatch(html,/depuis 2012/i);
