@@ -6,8 +6,10 @@ const read=p=>fs.readFileSync(path.join(__dirname,'..',p),'utf8');
 test('native server directory is a real SWAPP page with usable discover and submit controls',()=>{
  const html=page();
  assert.match(html,/Serveurs de jeux — classements/);
- for(const id of ['ss-results','ss-game','ss-q','ss-sort','ss-form','ss-dialog','ss-count'])assert.match(html,new RegExp('id="'+id+'"'));
+ for(const id of ['ss-results','ss-game','ss-q','ss-sort','ss-add','ss-count'])assert.match(html,new RegExp('id="'+id+'"'));
  assert.match(html,/\/assets\/swapp-servers\.js/);
+ assert.match(html,/href="\/serveurs\/creer"/);
+ assert.doesNotMatch(html,/id="ss-dialog"/);
  assert.match(html,/\/assets\/swapp-servers\.css/);
  assert.doesNotMatch(html,/10 000 serveurs|faux serveurs|exemple de classement/);
 });
