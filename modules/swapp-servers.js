@@ -383,7 +383,7 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
    const sql=await getDatabase();
    const [rows]=await sql.execute('SELECT m.contents,m.mime FROM swapp_game_server_media m INNER JOIN swapp_game_servers s ON s.id=m.server_id WHERE m.server_id=? AND m.kind=? AND s.status="published" LIMIT 1',[id,kind]);
    if(!rows.length)return res.sendStatus(404);
-   return res.set({'Cache-Control':'public,max-age=60','X-Content-Type-Options':'nosniff','Content-Security-Policy':"default-src 'none'"}).type(rows[0].mime).send(rows[0].contents);
+   return res.set({'Cache-Control':'public,max-age=0,must-revalidate','X-Content-Type-Options':'nosniff','Content-Security-Policy':"default-src 'none'"}).type(rows[0].mime).send(rows[0].contents);
   }catch(e){return res.sendStatus(503)}
  });
 
