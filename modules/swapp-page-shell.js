@@ -32,7 +32,7 @@ function renderPage({head='',content='',scripts='',bodyClass='swapp-editorial-ro
  return '<!doctype html><html lang="fr"><head>'+htmlHead+
   PREMIUM_CSS+'</head><body class="'+cls+'" data-swapp-shell="shared-native-v2">'+
   serverHeader(active)+String(content||'')+serverMobile(active)+
-  '<script src="/assets/swapp-nav-utility.js?v=20261115-light-behind-v4" defer></script>'+String(scripts||'')+'</body></html>';
+  '<script src="/assets/swapp-nav-utility.js?v=20261115-light-behind-v4" defer></script>'+'<script src="/assets/swapp-servers-alerts.js?v=20261115-admin-alert-v1" defer></script>'+String(scripts||'')+'</body></html>';
 }
 const SPA_ACTIVE_ROUTES=Object.freeze({
  '/':'home','/actus':'actus','/categories':'categories',
