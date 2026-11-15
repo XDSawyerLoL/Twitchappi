@@ -1,0 +1,53 @@
+/* SWAPP SERVEUR + · community matchmaking and associated live cards */
+.ss-community-panel{scroll-margin-top:92px}
+.ss-community-panel h2{margin:0 0 12px;font-weight:780;letter-spacing:-.03em}
+.ss-community-panel .ss-pro-muted{line-height:1.65}
+.ss-community-form{display:grid;grid-template-columns:minmax(0,1fr) 160px;align-items:end;gap:12px;margin:22px 0 8px}
+.ss-community-form label{display:grid;gap:8px;font-weight:650;font-size:.83rem;color:#dbe0e8}
+.ss-community-form input,.ss-community-form select{width:100%;min-height:48px;border:1px solid #323946;background:#10141b;color:#f2f6fd;border-radius:11px;padding:11px 13px;font:inherit}
+.ss-community-form input:focus-visible,.ss-community-form select:focus-visible{outline:2px solid #8ceaf0;outline-offset:2px}
+.ss-community-actions{display:flex;flex-wrap:wrap;gap:9px;grid-column:1/-1;margin:4px 0}
+.ss-community-actions button,.ss-community-player button,.ss-community-watch{display:inline-flex;align-items:center;justify-content:center;border:1px solid #697a94;background:#eaf7ff;color:#10131a;border-radius:10px;font:inherit;font-weight:750;font-size:.83rem;padding:11px 16px;cursor:pointer;text-decoration:none;transition:background .18s ease,transform .18s ease}
+.ss-community-actions button:hover,.ss-community-player button:hover{background:#c9f4ff;transform:translateY(-1px)}
+.ss-community-actions .ss-community-secondary,.ss-community-player .ss-community-secondary{color:#eaf3fe;background:#171d27;border-color:#303b4d}
+.ss-community-actions .ss-community-secondary:hover,.ss-community-player .ss-community-secondary:hover{background:#283140}
+.ss-community-actions button:disabled,.ss-community-player button:disabled{opacity:.5;cursor:not-allowed}
+.ss-community-list{display:grid;gap:11px;margin:16px 0 0}
+.ss-community-player,.ss-community-live,.ss-community-offair{border:1px solid #293340;background:#10141c;border-radius:14px;padding:17px}
+.ss-community-player{display:grid;gap:9px}
+.ss-community-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.ss-community-player strong,.ss-community-offair strong{color:#f7fafc;font-size:1rem;overflow-wrap:anywhere}
+.ss-community-player p{margin:0;color:#d3dce5;line-height:1.5;overflow-wrap:anywhere}
+.ss-community-player small,.ss-community-offair small{color:#9fabbc}
+.ss-community-owner{border-radius:99px;background:#263748;color:#a7eaf6;padding:3px 9px;font-size:.75rem}
+.ss-community-empty{margin:0;color:#abb8ca;line-height:1.6}
+.ss-community-link{margin-top:25px;padding-top:23px;border-top:1px solid #313946}
+.ss-community-link h3,#ss-creator-moderation h3{margin:0 0 7px;font-size:1.06rem}
+.ss-community-link p{margin:0 0 14px;color:#aab4c2;line-height:1.6;font-size:.87rem}
+.ss-community-creator-self{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#10151d;border:1px solid #303947;border-radius:10px;padding:9px}
+.ss-community-creator-self span{font-size:.78rem;color:#b2dce5}
+.ss-community-live{display:grid;grid-template-columns:180px minmax(0,1fr);gap:15px;overflow:hidden}
+.ss-community-live-art{display:block;width:100%;height:110px;object-fit:cover;border-radius:9px;background:#181e28}
+.ss-community-live-info{display:flex;flex-wrap:wrap;align-content:center;align-items:center;gap:7px 10px;min-width:0}
+.ss-community-live-info strong{font-size:1.03rem;color:#fff;overflow-wrap:anywhere}
+.ss-community-live-info small{font-size:.77rem;color:#aab9c8}
+.ss-community-live-info p{width:100%;margin:2px 0;font-size:.88rem;color:#e4edf6}
+.ss-community-onair{border-radius:7px;padding:4px 7px;background:#e52740;color:#fff;font-weight:800;font-size:.68rem;letter-spacing:.06em}
+.ss-community-watch{font-size:.78rem;padding:8px 12px}
+.ss-community-offair{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+.ss-community-offair a{margin-left:auto;color:#b1edf5;font-size:.84rem}
+.ss-community-source-note{font-size:.78rem;color:#e8bd72}
+#ss-creator-moderation{margin-top:24px;padding-top:20px;border-top:1px solid #2b3442}
+@media(max-width:670px){
+ .ss-community-form{grid-template-columns:1fr}
+ .ss-community-live{grid-template-columns:1fr}
+ .ss-community-live-art{height:auto;aspect-ratio:16/9}
+ .ss-community-actions button{width:100%}
+ .ss-community-offair a{margin-left:0}
+}
+@media(prefers-reduced-motion:reduce){
+ .ss-community-actions button,.ss-community-player button{transition:none}
+}
+
+.ss-card-actions .ss-community-quick{display:inline-flex;align-items:center;justify-content:center;border:1px solid #334357;border-radius:9px;padding:10px 12px;background:#151f2a;color:#cdf2f8;text-decoration:none;font-size:.81rem;font-weight:680;transition:background .2s ease}
+.ss-card-actions .ss-community-quick:hover{background:#25364a;color:#fff}
