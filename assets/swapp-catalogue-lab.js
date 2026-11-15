@@ -343,9 +343,10 @@ function scheduleHoverPreview(item,card,frame){
 document.addEventListener('visibilitychange',()=>{if(document.hidden)stopHoverPreview()});
 document.addEventListener('scroll',stopHoverPreview,true);
 window.addEventListener('pagehide',stopHoverPreview);
-function showDialog(node){
+function showDialog(node,variant=''){
  stopHoverPreview();
  stopPreview();
+ dialog.classList.toggle('scl-dialog-game',variant==='game');
  const host=$('scl-dialog-content');
  host.replaceChildren(node);
  if(typeof dialog.showModal==='function'&&!dialog.open)dialog.showModal();
@@ -810,6 +811,8 @@ async function hydrateGenreCatalogue(genre){
   genreLoadStatus.set(genre,'ready');
  }catch(_error){genreLoadStatus.set(genre,'unavailable')}
  renderGenres();
+ renderTopGames();
+ renderAllGames(state.games.filter(matching));
  renderGenreShelves();
  updateCatalogueStatus();
 }
@@ -1160,15 +1163,42 @@ window.addEventListener('pagehide',()=>{
 });
 
 async function showGameLives(game){
- const section=create('div','scl-dialog-content'),body=create('div','scl-dialog-body');
- body.append(create('div','scl-dialog-meta','CRÉATEURS EN DIRECT'));
+ const section=create('div','scl-dialog-content scl-game-live-modal');
+ const body=create('div','scl-dialog-body');
+ body.append(create('div','scl-dialog-meta','DIRECTS CONFIRMÉS'));
  const title=create('h2','',game.game);
  title.id='scl-dialog-title';
  body.append(title);
- body.append(create('p','',game.summary));
- const list=create('div','scl-cards');list.style.padding='0 0 12px';
- const notice=create('p','scl-preview-note','Recherche des directs associés à ce jeu…');
- body.append(notice,list);section.append(body);showDialog(section);
+ // Generic editorial placeholders do not belong in a premium live finder.
+ const summary=String(game.summary||'');
+ if(summary&&!summary.includes('Présentation éditoriale à compléter'))
+  body.append(create('p','scl-game-live-description',summary));
+ const notice=create('p','scl-preview-note scl-game-live-notice','Recherche des créateurs en direct…');
+ const row=create('div','scl-game-live-toolbar');
+ const controls=create('div','scl-game-live-controls');
+ const list=create('div','scl-cards scl-game-live-cards');
+ list.tabIndex=0;
+ list.setAttribute('role','region');
+ list.setAttribute('aria-label','Créateurs actuellement en direct sur '+game.game);
+ const left=button('‹','scl-game-live-arrow',()=>list.scrollBy({left:-Math.max(240,list.clientWidth*.75),
+  behavior:prefersLessMotion()?'auto':'smooth'}));
+ const right=button('›','scl-game-live-arrow',()=>list.scrollBy({left:Math.max(240,list.clientWidth*.75),
+  behavior:prefersLessMotion()?'auto':'smooth'}));
+ left.setAttribute('aria-label','Créateurs précédents');
+ right.setAttribute('aria-label','Créateurs suivants');
+ controls.append(left,right);row.append(notice,controls);
+ function updateArrows(){
+  const max=Math.max(0,list.scrollWidth-list.clientWidth);
+  left.disabled=max<4||list.scrollLeft<=3;
+  right.disabled=max<4||list.scrollLeft>=max-3;
+ }
+ list.addEventListener('scroll',updateArrows,{passive:true});
+ list.addEventListener('keydown',event=>{
+  if(event.target!==list||!['ArrowLeft','ArrowRight'].includes(event.key))return;
+  event.preventDefault();(event.key==='ArrowLeft'?left:right).click();
+ });
+ body.append(row,list);section.append(body);showDialog(section,'game');
+ requestAnimationFrame(updateArrows);
  let found=state.lives.filter(x=>x.gameSlug===game.gameSlug);
  try{
   const result=await fetchJson('/api/discovery/game-lives?game='+encodeURIComponent(game.game)+'&limit=12');
@@ -1182,9 +1212,11 @@ async function showGameLives(game){
  if(found.length){
   notice.textContent=found.length+' créateur'+(found.length>1?'s':'')+' réellement en direct sur '+game.game+'.';
   list.replaceChildren(...found.slice(0,12).map(createCard));
+  requestAnimationFrame(updateArrows);
  }else{
   notice.textContent='Aucun live confirmé pour ce jeu actuellement.';
   list.replaceChildren();
+  requestAnimationFrame(updateArrows);
  }
  window.dispatchEvent(new Event('swapp:account-rendered'));
 }
