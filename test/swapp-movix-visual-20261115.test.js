@@ -85,10 +85,10 @@ test('Movix CSS and JS versions are the same in SPA and standalone catalogue',()
  for(const html of [spa,native]){
   assert.match(html,/swapp-genre-discovery\.css\?v=20261115-hidpi-genre-v8/);
   assert.match(html,/swapp-genre-discovery\.js\?v=20261115-hidpi-genre-v8/);
-  assert.match(html,/swapp-catalogue-lab\.js\?v=20261115-hidpi-posters-v30/);
+  assert.match(html,/swapp-catalogue-lab\.js\?v=20261115-all-rails-v31/);
  }
  const smoke=read('tools/swapp-deploy-smoke.js');
- assert.match(smoke,/swapp-catalogue-lab\.js\?v=20261115-hidpi-posters-v30/);
+ assert.match(smoke,/swapp-catalogue-lab\.js\?v=20261115-all-rails-v31/);
 });
 
 test('game posters use a non-blurred normal stacking context at native pixel density',()=>{
