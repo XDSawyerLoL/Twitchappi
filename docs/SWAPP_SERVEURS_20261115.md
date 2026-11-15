@@ -25,3 +25,21 @@ Le module \`modules/swapp-servers.js\` utilise \`mysql2/promise\` et la base MyS
 
 ## Évolutions non réalisées
 Monitoring réel des serveurs par protocole, avis avec modération, statistiques historiques avancées, votes de plugins (ex. Votifier), système antifraude multi-comptes renforcé. Ces fonctionnalités nécessitent des implémentations et tests supplémentaires : ne pas les annoncer comme disponibles.
+
+
+## Extension graphique et SEO du 15 novembre
+- Page /serveurs : trois univers en vedette (GTA V/FiveM, Minecraft, Rust), grille de 34 catégories réelles, filtre de jeux et portraits de jeu pertinents.
+- Fonds illustrés depuis des pages de jeux Steam (CDN Steam) ; Minecraft utilise la couverture de la catégorie Minecraft Twitch/IGDB. Une bannière de serveur déclarée par son propriétaire a priorité sur la couverture du jeu ; en cas d'échec, le visuel du jeu correspondant sert de recours. Aucune image d'un autre jeu ne doit être réutilisée.
+- Comptages par catégorie issus des fiches validées SQL : `SELECT game, COUNT(*) ... WHERE status="published"`. Un compteur inconnu n'est jamais présenté comme zéro.
+- Pages de jeu partageables : `/serveurs/minecraft`, `/serveurs/gta-rp`, etc. Les URL sont construites à partir du catalogue autorisé, pas d'une saisie libre.
+- Fiches publiques individuelles : `/serveurs/<jeu>/<fiche>`, accessibles uniquement pour les serveurs approuvés ; description, couverture, adresse, lien de connexion, région, nombre de votes du mois et bouton de vote.
+- `/serveurs` et `/explorer` ajoutés au sitemap public.
+- Les images distantes restent la propriété des ayants droit ; leur disponibilité et leurs conditions d'utilisation doivent être recontrôlées avant le déploiement.
+
+## ACTUS — correction des bandes latérales
+Quand `#actus.view.active` est affiché, la page entière (`html`, `body`, `main.app` et `#actus`) a un fond `#030405` sans image de fond. Cela ne modifie ni la bande-annonce animée de la bannière ni les illustrations des articles. Le correctif est dans `assets/swapp-actus-app.css`.
+
+## Vérifications effectuées
+Les fichiers JavaScript du backend, de la galerie, du lecteur de fiche, des pages Explorer et du serveur ont passé une vérification de syntaxe. Les éléments HTML générés ont été contrôlés en exécution isolée avec dépendances simulées : 34 jeux, 35 cartes de filtres (avec la catégorie générale), rubriques illustrées, URL canoniques par jeu, détail d'un serveur Rust, routes GET/POST et fond noir d'ACTUS.
+
+**Non vérifié** : lecture effective d'images sur tous les navigateurs, enregistrement SQL, votes réels, session administrateur sur Hostinger et mise en production. Ne pas décrire ces opérations comme accomplies.
