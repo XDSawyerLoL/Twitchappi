@@ -92,7 +92,7 @@ test('versioned SPA assets expose new navigation, catalogue and sharing without 
  const home=read('index.html'),shell=require('../modules/swapp-news/site-shell').layout({content:'<main>Test</main>'});
  for(const source of [home,shell]){
   for(const file of ['swapp-navigation.js','swapp-hub-nav.js','swapp-unified-nav.css'])
-   assert.ok(source.includes(file+'?v='+(file==='swapp-unified-nav.css'?'20261113-nav-simple-v2':file==='swapp-navigation.js'?'20261115-explorer-nav-v4':'20261114-home-all-v3')));
+   assert.ok(source.includes(file+'?v='+(file==='swapp-unified-nav.css'?'20261113-nav-simple-v2':file==='swapp-navigation.js'?'20261115-servers-menu-v5':'20261115-servers-menu-v4')));
  }
  assert.match(home,/index_script\.js\?v=20261113-catalogue-heading-v1/);
  assert.match(home,/swapp-actus-app\.js\?v=20261113-direct-x-v3/);
