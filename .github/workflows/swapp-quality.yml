@@ -37,6 +37,7 @@ on:
       - 'test/swapp-next-obsession-20261115.test.js'
       - 'test/swapp-sharp-no-blur-20261115.test.js'
       - 'assets/swapp-obsidian-ice.css'
+      - 'test/swapp-actus-black-all-rails-20261115.test.js'
       - 'test/swapp-unified-true-black-20261115.test.js'
       - 'modules/swapp-news/site-shell.js'
       - 'assets/swapp-catalogue-lab.css'
@@ -219,6 +220,12 @@ jobs:
           node --check modules/swapp-page-shell.js
           node --check modules/swapp-news/site-shell.js
           node --test test/swapp-unified-true-black-20261115.test.js
+
+      - name: ACTUS true black and all scrolling rails
+        run: |
+          node --check assets/swapp-catalogue-lab.js
+          node --check assets/swapp-actus-app.js
+          node --test test/swapp-actus-black-all-rails-20261115.test.js
 
       - name: Préparer le paquet Hostinger à partir du commit GitHub validé
         run: node tools/swapp-hostinger-package.js --output="${{ runner.temp }}/swapp-hostinger-${GITHUB_SHA:0:12}.zip"
