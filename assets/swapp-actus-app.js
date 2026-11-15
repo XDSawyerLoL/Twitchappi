@@ -494,6 +494,36 @@ else{
 }
 // Artwork remains behind the heading. Reading progress is now a small TOC label,
 // not a second horizontal line underneath the SWAPP navigation.
+// A trailer is editorial content, not merely an optional decorative background.
+if(trailerId){
+ const videoSection=el('section','swapp-reader-official-video');
+ videoSection.setAttribute('aria-label','Vidéo officielle liée à cet article');
+ const videoHeading=el('h2','','Vidéo officielle : '+String(a.game||'bande-annonce'));
+ const videoStage=el('div','swapp-reader-official-video-stage');
+ const videoButton=el('button','swapp-reader-official-video-play','▶ Regarder la vidéo officielle');
+ videoButton.type='button';
+ const poster=el('img','swapp-reader-official-video-poster');
+ poster.src='https://i.ytimg.com/vi/'+trailerId+'/hqdefault.jpg';
+ poster.alt='Aperçu de la vidéo officielle';
+ poster.loading='lazy';
+ poster.onerror=()=>poster.remove();
+ videoButton.append(poster);
+ videoButton.addEventListener('click',()=>{
+  const iframe=el('iframe','swapp-reader-official-video-frame');
+  iframe.title='Vidéo officielle '+String(a.game||a.title||'');
+  iframe.src='https://www.youtube-nocookie.com/embed/'+encodeURIComponent(trailerId)+'?autoplay=1&rel=0&playsinline=1';
+  iframe.allow='autoplay; encrypted-media; picture-in-picture; fullscreen';
+  iframe.referrerPolicy='strict-origin-when-cross-origin';
+  iframe.allowFullscreen=true;
+  videoStage.replaceChildren(iframe);
+ });
+ videoStage.append(videoButton);
+ const direct=el('a','swapp-reader-official-video-link','Ouvrir sur YouTube ↗');
+ direct.href='https://www.youtube.com/watch?v='+encodeURIComponent(trailerId);
+ direct.target='_blank';direct.rel='noopener noreferrer';
+ videoSection.append(videoHeading,videoStage,direct);
+ article.append(videoSection);
+}
 const reading=el('div','swapp-article-reading');
 const body=el('div','swapp-actus-body');body.id='article-content';paragraphContent(body,a.body);
 const sections=[...body.querySelectorAll('h2,h3')];
