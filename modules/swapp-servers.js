@@ -476,7 +476,7 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
  // Private, read-only operational diagnosis. Never expose credentials or SQL strings.
  app.get('/api/swapp/serveurs/diagnostic',async(req,res)=>{
   if(!isManager(req))return res.status(403).json({error:'acces_refuse'});
-  if(!mysqlUrl())return res.status(503).set('Cache-Control','private,no-store').json({status:'unavailable',reason:'mysql_not_configured'});
+  if(getDatabase===db&&!mysqlUrl())return res.status(503).set('Cache-Control','private,no-store').json({status:'unavailable',reason:'mysql_not_configured'});
   const required=['swapp_game_servers','swapp_game_server_vote_events','swapp_game_server_branding',
    'swapp_game_server_extras','swapp_game_server_click_events','swapp_game_server_reviews'];
   try{
