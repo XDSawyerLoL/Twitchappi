@@ -8,6 +8,11 @@ function renderProfile({server,votes=null,rank=null,stats=null,reviews=[],review
  if(!server||!/^[a-f0-9]{32}$/.test(String(server.id||'')))throw Error('invalid_server_profile');
  const name=String(server.name||''),game=String(server.game||''),description=String(server.description||'');
  const tags=String(server.tags||'').split(',').map(x=>x.trim()).filter(Boolean).slice(0,8);
+ const languageLabel=({fr:'Français',en:'English',es:'Español',de:'Deutsch',pt:'Português',it:'Italiano'})[server.language]||'';
+ const externalLink=value=>{try{const u=new URL(value);return u.protocol==='https:'&&!u.username&&!u.password?u.href:''}catch{return ''}};
+ const twitchHref=externalLink(server.twitch_url),homeHref=externalLink(server.homepage_url);
+ const socials=(twitchHref?'<a href="'+esc(twitchHref)+'" target="_blank" rel="noopener noreferrer nofollow">Chaîne Twitch ↗</a>':'')+
+  (homeHref?'<a href="'+esc(homeHref)+'" target="_blank" rel="noopener noreferrer nofollow">Site officiel ↗</a>':'');
  const count=reviewSummary?Number(reviewSummary.count||0):null;
  const mean=reviewSummary&&count?([reviewSummary.staff,reviewSummary.atmosphere,reviewSummary.availability].reduce((n,x)=>n+Number(x||0),0)/3):null;
  const img=cover?`<img src="${esc(cover)}" alt="" loading="eager" decoding="async" referrerpolicy="no-referrer">`:'';
@@ -37,7 +42,7 @@ function renderProfile({server,votes=null,rank=null,stats=null,reviews=[],review
   <form id="ss-review-form" class="ss-pro-review-form"><h3>Partager son expérience</h3><p>Un avis par compte SWAPP. Modération avant publication.</p><div class="ss-pro-review-ratings">${[['staff',"Qualité de l'équipe"],['atmosphere','Ambiance'],['availability','Disponibilité']].map(([key,label])=>'<label>'+esc(label)+'<select name="'+key+'" required><option value="">Choisir</option>'+[1,2,3,4,5].map(n=>'<option value="'+n+'">'+n+' / 5</option>').join('')+'</select></label>').join('')}</div><label>Votre avis<textarea name="comment" minlength="40" maxlength="1200" required rows="4" placeholder="Expliquez votre expérience sur ce serveur…"></textarea></label><div class="ss-pro-form-actions"><button type="submit">Soumettre mon avis</button><span role="status" id="ss-review-status" aria-live="polite"></span></div></form></section>
   <a href="${esc(gamePath)}" class="ss-pro-back">← Retour au classement ${esc(game)}</a>
  </div><aside class="ss-pro-aside" id="caracteristiques"><div class="ss-pro-aside-card"><p class="ss-overline">INFORMATIONS</p><h2>Caractéristiques</h2><dl>
- <div><dt>Jeu</dt><dd>${esc(game)}</dd></div><div><dt>Région</dt><dd>${esc(server.region||'Non renseignée')}</dd></div><div><dt>Accès</dt><dd>${outbound?'Lien disponible':'Non communiqué'}</dd></div><div><dt>Inscription</dt><dd>${esc(day(server.created_at||server.createdAt))}</dd></div><div><dt>Joueurs connectés</dt><dd>Non mesuré</dd></div><div><dt>Note moyenne</dt><dd>${rating(mean)}</dd></div></dl><div class="ss-pro-side-actions">${vote}${visit}</div>${address}<p class="ss-pro-disclaimer">Une invitation Discord vérifiée ne prouve pas la propriété du serveur ou la qualité de sa modération.</p></div>
+ <div><dt>Jeu</dt><dd>${esc(game)}</dd></div><div><dt>Région</dt><dd>${esc(server.region||'Non renseignée')}</dd></div><div><dt>Accès</dt><dd>${outbound?'Lien disponible':'Non communiqué'}</dd></div><div><dt>Langue</dt><dd>${esc(languageLabel||'Non renseignée')}</dd></div><div><dt>Inscription</dt><dd>${esc(day(server.created_at||server.createdAt))}</dd></div><div><dt>Joueurs connectés</dt><dd>Non mesuré</dd></div><div><dt>Note moyenne</dt><dd>${rating(mean)}</dd></div></dl><div class="ss-pro-side-actions">${vote}${visit}</div>${address}${socials?'<div class="ss-pro-social-links">'+socials+'</div>':''}<p class="ss-pro-disclaimer">Une invitation Discord vérifiée ne prouve pas la propriété du serveur ou la qualité de sa modération.</p></div>
  <div class="ss-pro-aside-card"><h3>Partager ce serveur</h3><button type="button" class="ss-pro-share" data-ss-share>Copier le lien SWAPP</button></div></aside></div>
  <div class="ss-pro-feedback" id="ss-detail-feedback" role="status" aria-live="polite"></div></main>`;
 }
