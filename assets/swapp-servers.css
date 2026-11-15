@@ -970,3 +970,215 @@ html body.swapp-servers-page{background:#030405!important;color:#eff6fa}
  .ss-pro .ss-pro-review-breakdown>div{flex-basis:100%;padding:9px 0!important}
  .ss-pro .ss-pro-aside dl>div{padding:10px 0}
 }
+
+
+/* V23 — refined server profile actions: ONE primary CTA, calm secondary actions.
+   Scoped to profile only, preserving directory vote and owner editor components. */
+.ss-pro{
+ --ss-cta-ice:#b3f5f1;
+ --ss-cta-ice-strong:#78e5df;
+ --ss-cta-shadow:rgba(87,230,226,.18);
+ --ss-cta-pink:#f78da4;
+}
+.ss-pro :is(.ss-pro-actions,.ss-pro-side-actions){
+ min-width:0;
+ align-items:stretch;
+}
+.ss-pro .ss-pro-hero-footer .ss-pro-actions{
+ display:flex;
+ flex:1 1 540px;
+ max-width:625px;
+ justify-content:flex-end;
+ align-items:stretch;
+ gap:10px 12px;
+ margin-left:auto;
+}
+.ss-pro :is(.ss-pro-actions,.ss-pro-side-actions)>.ss-pro-button{
+ display:inline-flex!important;
+ position:relative;
+ isolation:isolate;
+ align-items:center!important;
+ justify-content:center;
+ min-width:0!important;
+ height:auto;
+ min-height:55px!important;
+ padding:10px 17px!important;
+ border-radius:11px!important;
+ text-decoration:none!important;
+ text-transform:none!important;
+ font-family:inherit;
+ font-size:13px!important;
+ line-height:1.25;
+ letter-spacing:0!important;
+ font-weight:650!important;
+ overflow:hidden;
+ transition:background-color .18s ease,border-color .18s ease,
+   transform .18s ease,box-shadow .18s ease,color .18s ease;
+}
+.ss-pro :is(.ss-pro-actions,.ss-pro-side-actions) .ss-pro-cta-label{
+ display:flex;flex-direction:column;justify-content:center;
+ text-align:left;gap:3px;min-width:0;
+}
+.ss-pro :is(.ss-pro-actions,.ss-pro-side-actions) .ss-pro-cta-label strong{
+ display:block;font-size:13px;line-height:1.25;
+ font-weight:850;white-space:normal;
+ letter-spacing:-.01em;
+}
+.ss-pro :is(.ss-pro-actions,.ss-pro-side-actions) .ss-pro-cta-label small{
+ display:block;font-size:10px;line-height:1.3;
+ font-weight:600;letter-spacing:.005em;white-space:normal;
+}
+.ss-pro :is(.ss-pro-actions,.ss-pro-side-actions) .ss-pro-cta-symbol{
+ display:inline-flex;align-items:center;justify-content:center;
+ flex:0 0 23px;font-size:19px;line-height:1;
+ text-shadow:none!important;
+}
+.ss-pro :is(.ss-pro-actions,.ss-pro-side-actions) .ss-pro-cta-arrow{
+ flex:0 0 auto;
+ font-size:20px;line-height:1;font-weight:800;
+ margin-left:10px;align-self:center;
+ transition:transform .18s ease;
+}
+/* The community link is the only solid, luminous action. */
+.ss-pro :is(.ss-pro-actions,.ss-pro-side-actions)>.ss-pro-visit{
+ order:0;flex:1 1 285px;
+ gap:13px;justify-content:space-between;
+ color:#061b1f!important;
+ background:linear-gradient(118deg,#c4f9f1 0%,#a2ede8 52%,#78dbe9 100%)!important;
+ border:1px solid rgba(197,255,253,.75)!important;
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.62),
+  0 7px 24px -13px var(--ss-cta-shadow)!important;
+}
+.ss-pro .ss-pro-visit .ss-pro-cta-label strong{color:#07252b!important}
+.ss-pro .ss-pro-visit .ss-pro-cta-label small{color:#37575f!important}
+.ss-pro .ss-pro-visit:hover{
+ color:#061b1f!important;
+ background:linear-gradient(118deg,#e0fffa 0%,#bafbf3 55%,#8ce9f2 100%)!important;
+ border-color:#e8fffd!important;
+ transform:translateY(-2px);
+ box-shadow:0 12px 31px -14px rgba(104,238,230,.42),
+  inset 0 1px 0 rgba(255,255,255,.8)!important;
+}
+.ss-pro .ss-pro-visit:hover .ss-pro-cta-arrow{transform:translate(3px,-3px)}
+/* Voting is recognizable without becoming another wide crimson billboard. */
+.ss-pro :is(.ss-pro-actions,.ss-pro-side-actions)>.ss-pro-vote{
+ order:1;flex:1 1 184px;
+ justify-content:center;
+ gap:12px;
+ color:#f8eef1!important;
+ background:linear-gradient(120deg,#1a141c 0%,#211820 100%)!important;
+ border:1px solid rgba(248,141,164,.4)!important;
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.035)!important;
+}
+.ss-pro .ss-pro-vote .ss-pro-cta-label small{color:#c8adb7!important}
+.ss-pro .ss-pro-vote .ss-heart{
+ color:var(--ss-cta-pink)!important;
+ font-size:20px!important;
+ transform:none;
+ transition:transform .18s ease;
+}
+.ss-pro .ss-pro-vote:hover{
+ background:linear-gradient(120deg,#2b1b28,#34202c)!important;
+ border-color:rgba(255,165,188,.76)!important;
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.06)!important;
+ transform:translateY(-1px);
+}
+.ss-pro .ss-pro-vote:hover .ss-heart{transform:scale(1.1)}
+/* Owner management is a contextual link, never a third CTA. */
+.ss-pro :is(.ss-pro-actions,.ss-pro-side-actions)>.ss-pro-owner-edit{
+ order:2;flex:0 0 auto;
+ min-height:30px!important;
+ padding:4px 3px!important;
+ margin-left:auto;
+ background:transparent!important;
+ border:1px solid transparent!important;
+ box-shadow:none!important;
+ border-radius:5px!important;
+ color:#c7bddd!important;
+ gap:7px;
+}
+.ss-pro .ss-pro-owner-edit .ss-pro-cta-symbol{
+ flex-basis:16px;
+ font-size:15px;
+ color:#b5a2ee!important;
+}
+.ss-pro .ss-pro-owner-edit .ss-pro-cta-label strong{
+ font-size:12px!important;
+ color:#c9bedf!important;
+ font-weight:720!important;
+}
+.ss-pro .ss-pro-owner-edit .ss-pro-cta-label small{display:none!important}
+.ss-pro .ss-pro-owner-edit:hover{
+ transform:none!important;
+ background:rgba(178,153,235,.06)!important;
+ color:#f3e9ff!important;
+}
+.ss-pro .ss-pro-owner-edit:hover .ss-pro-cta-label strong{
+ color:#f3e9ff!important;
+ text-decoration:underline;text-underline-offset:4px;
+}
+.ss-pro :is(.ss-pro-actions,.ss-pro-side-actions)>.ss-pro-button:focus-visible{
+ outline:2px solid #e8ffff!important;outline-offset:3px;
+}
+.ss-pro :is(.ss-pro-actions,.ss-pro-side-actions)>.ss-pro-button:disabled{
+ transform:none!important;opacity:.55;cursor:not-allowed;
+}
+/* In the sidebar, preserve the same hierarchy but reduce the overall mass. */
+.ss-pro .ss-pro-aside-card .ss-pro-side-actions{
+ display:flex;flex-direction:column;
+ gap:8px!important;
+ margin:17px 0 7px!important;
+}
+.ss-pro .ss-pro-aside-card .ss-pro-side-actions>.ss-pro-button{
+ width:100%!important;
+ flex:0 0 auto;
+ min-height:52px!important;
+ padding:10px 14px!important;
+}
+.ss-pro .ss-pro-aside-card .ss-pro-side-actions>.ss-pro-vote{
+ min-height:47px!important;
+ justify-content:flex-start;
+}
+.ss-pro .ss-pro-aside-card .ss-pro-side-actions>.ss-pro-owner-edit{
+ width:auto!important;
+ align-self:flex-start;
+ min-height:31px!important;
+ margin:0!important;
+ padding:4px 5px!important;
+ justify-content:flex-start;
+}
+/* Large landscape: one join + one vote, owner link visually below them. */
+.ss-pro .ss-pro-hero-footer .ss-pro-actions>.ss-pro-owner-edit{
+ margin:0 0 0 auto;
+}
+@media(max-width:1160px){
+ .ss-pro .ss-pro-hero-footer .ss-pro-actions{
+  flex-basis:100%;
+  max-width:680px;
+  margin-left:0;
+ }
+}
+@media(max-width:700px){
+ .ss-pro .ss-pro-hero-footer .ss-pro-actions{
+  display:flex;width:100%;max-width:none;
+  gap:9px;flex-direction:column;align-items:stretch;
+ }
+ .ss-pro .ss-pro-hero-footer .ss-pro-actions>.ss-pro-button{
+  width:100%!important;flex:0 0 auto!important;
+  min-height:50px!important;
+ }
+ .ss-pro .ss-pro-hero-footer .ss-pro-actions>.ss-pro-owner-edit{
+  width:auto!important;align-self:flex-start;
+  min-height:30px!important;margin:0!important;
+ }
+ .ss-pro .ss-pro-hero-footer .ss-pro-actions>.ss-pro-vote{min-height:45px!important}
+ .ss-pro .ss-pro-actions .ss-pro-cta-label strong,
+ .ss-pro .ss-pro-side-actions .ss-pro-cta-label strong{font-size:13px}
+}
+@media(prefers-reduced-motion:reduce){
+ .ss-pro :is(.ss-pro-actions,.ss-pro-side-actions)>.ss-pro-button,
+ .ss-pro .ss-pro-cta-arrow,.ss-pro .ss-pro-vote .ss-heart{
+  transition:none!important;
+ }
+ .ss-pro .ss-pro-visit:hover,.ss-pro .ss-pro-vote:hover{transform:none!important}
+}
