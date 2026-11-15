@@ -415,6 +415,26 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
   }catch(e){if(conn)await conn.rollback().catch(()=>{});return fail(res,e)}
   finally{conn?.release?.()}
  });
+
+ app.post('/api/swapp/serveurs/:id/media/:kind/remove',async(req,res)=>{
+  if(!originGuard(req))return res.status(403).json({error:'origine_invalide'});
+  const owner=account(req),id=clean(req.params.id,32),kind=clean(req.params.kind,10);
+  if(!owner)return res.status(401).json({error:'connexion_swapp_requise'});
+  if(!/^[a-f0-9]{32}$/.test(id)||!['logo','banner'].includes(kind))return res.status(422).json({error:'media_invalide'});
+  let conn;
+  try{
+   const sql=await getDatabase();conn=await sql.getConnection();await conn.beginTransaction();
+   const [rows]=await conn.execute('SELECT id FROM swapp_game_servers WHERE id=? AND owner_id=? AND status="published" LIMIT 1 FOR UPDATE',[id,owner]);
+   if(!rows.length){await conn.rollback();return res.status(404).json({error:'serveur_introuvable'})}
+   const url=publicMediaUrl(id,kind),field=kind==='logo'?'logo_url':'banner_url';
+   await conn.execute('DELETE FROM swapp_game_server_media WHERE server_id=? AND kind=?',[id,kind]);
+   await conn.execute('UPDATE swapp_game_server_branding SET '+field+'="" WHERE server_id=? AND '+field+'=?',[id,url]);
+   if(kind==='banner')await conn.execute('UPDATE swapp_game_servers SET banner_url="" WHERE id=? AND owner_id=? AND banner_url=?',[id,owner,url]);
+   await conn.commit();return res.set('Cache-Control','no-store').json({removed:true});
+  }catch(e){if(conn)await conn.rollback().catch(()=>{});return fail(res,e)}
+  finally{conn?.release?.()}
+ });
+
  app.get('/media/serveurs/:id/:kind',async(req,res)=>{
   const id=clean(req.params.id,32),kind=clean(req.params.kind,10);
   if(!/^[a-f0-9]{32}$/.test(id)||!['logo','banner'].includes(kind))return res.sendStatus(404);
