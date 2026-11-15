@@ -18,6 +18,11 @@ on:
       - 'package.json'
       - 'package-lock.json'
       - 'server.js'
+      - 'modules/swapp-servers*'
+      - 'assets/swapp-servers*'
+      - 'modules/swapp-seo.js'
+      - 'test/swapp-server*.test.js'
+      - 'test/swapp-servers*.test.js'
       - 'test/swapp-proxy-addr-security.test.js'
       - 'test/swapp-websocket-driver-security.test.js'
       - 'test/swapp-high-security-batch-20261114.test.js'
@@ -242,5 +247,38 @@ jobs:
         with:
           name: swapp-hostinger-${{ github.sha }}
           path: ${{ runner.temp }}/swapp-hostinger-*.zip
+          if-no-files-found: error
+          retention-days: 7
+
+
+  serveur-plus:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify SERVEUR + module and client syntax
+        run: |
+          node --check modules/swapp-servers.js
+          node --check modules/swapp-servers-create.js
+          node --check modules/swapp-servers-profile.js
+          node --check modules/swapp-servers-stats.js
+          node --check modules/swapp-seo.js
+          node --check assets/swapp-servers.js
+          node --check assets/swapp-servers-create.js
+          node --check assets/swapp-servers-detail.js
+      - name: Install the pinned runtime dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Server-directory integration and regression tests
+        run: node --test test/swapp-server-*.test.js test/swapp-servers-*.test.js
+      - name: Verify reproducible Hostinger release contents
+        run: node tools/swapp-hostinger-package.js "--output=$RUNNER_TEMP/swapp-hostinger-serveur-plus.zip"
+      - name: Archive tested Hostinger release
+        uses: actions/upload-artifact@v4
+        with:
+          name: swapp-hostinger-serveur-plus-${{ github.sha }}
+          path: ${{ runner.temp }}/swapp-hostinger-serveur-plus.zip
           if-no-files-found: error
           retention-days: 7

@@ -62,7 +62,7 @@ test('reviews and click recording are protected, do not invent activity, and req
  assert.match(source,/CREATE TABLE IF NOT EXISTS swapp_game_server_reviews/);
  assert.match(source,/CREATE TABLE IF NOT EXISTS swapp_game_server_click_events/);
  assert.match(source,/swapp_game_server_reviews.*"pending"/);
- assert.match(source,/status="published" ORDER BY created_at DESC/);
+ assert.match(read('modules/swapp-servers-stats.js'),/status="published" ORDER BY created_at DESC/);
  const routes=[];
  const app={get:(p,...handlers)=>routes.push('GET '+p),post:(p,...handlers)=>routes.push('POST '+p),put:(p,...handlers)=>routes.push('PUT '+p)};
  register(app,{enableAutoReview:false});

@@ -69,6 +69,11 @@ function account(req){
  const twitch=clean(req.session?.twitchUser?.id||'',70);
  return twitch?'twitch:'+twitch:'';
 }
+function ownerKeys(req){
+ const primary=account(req);
+ const twitch=clean(req.session?.twitchUser?.id||'',70);
+ return [primary,primary&&twitch&&primary!=='twitch:'+twitch?'twitch:'+twitch:primary];
+}
 function administrator(req){const id=account(req);if(!id)return false;const pinned=String(process.env.ORYON_ADMIN_USER_IDS||'').split(',').map(x=>x.trim()).filter(Boolean);return pinned.includes(id)}
 function fail(res,e){console.warn('[SWAPP SERVEURS]',String(e.code||e.message||e).slice(0,90));return res.status(503).json({error:'annuaire_temporairement_indisponible'})}
 async function db(){
@@ -90,7 +95,7 @@ async function db(){
 }
 function page({isAdmin=false,game=''}={}){
  const head='<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#050608"><title>'+esc(game?'Serveurs '+game+' — classement des communautés | SWAPP':'Serveurs de jeux — classements et communautés | SWAPP')+'</title><meta name="description" content="Découvre des serveurs gaming et roleplay, classe les communautés par votes et référence ton serveur sur SWAPP."><link rel="canonical" href="https://swapp.tv/serveurs'+(game?'/'+slug(game):'')+'">'+SHARED_HEAD_SLOT+'<link rel="stylesheet" href="/assets/swapp-servers.css?v=20261115-brand-market-v12">';
- let content='<main class="ss" data-ss-current-game="'+esc(game)+'"><header class="ss-hero"><div class="ss-inner"><p class="ss-overline">SWAPP / EXPLORER / SERVEURS</p><h1>'+ (game?'Serveurs <em>'+esc(game)+'</em>':'Trouve ta prochaine <em>communauté.</em>')+'</h1><p>Serveurs de jeux et RP, choisis par les joueurs. Des votes réels, un référencement gratuit, aucun classement inventé.</p><div class="ss-hero-actions"><a href="/explorer">← Explorer</a><a class="ss-owner-link" href="/serveurs/mes-serveurs">Gérer mes fiches</a><a id="ss-add" href="/serveurs/creer'+(game?'?jeu='+encodeURIComponent(game):'')+'">+ Référencer mon serveur</a></div></div></header><section class="ss-inner ss-content"><div class="ss-toolbar"><label class="ss-search"><span>Rechercher</span><input id="ss-q" type="search" placeholder="Nom, jeu, RP, survie…"></label><label><span>Jeu</span><select id="ss-game"><option value="">Tous les jeux</option>'+GAMES.map(g=>'<option value="'+esc(g)+'">'+esc(g)+'</option>').join('')+'</select></label><label><span>Classement</span><select id="ss-sort"><option value="votes">Votes du mois</option><option value="recent">Plus récents</option><option value="name">Nom</option></select></label></div><section class="ss-featured" aria-labelledby="ss-featured-title"><div class="ss-games-heading"><p class="ss-overline">À LA UNE</p><h2 id="ss-featured-title">Les univers populaires</h2><p>Des jeux authentiques. Le classement des serveurs dépend uniquement des inscriptions vérifiées par SWAPP.</p></div><div id="ss-featured-games" class="ss-featured-grid" aria-label="Univers de serveurs recommandés"></div></section><section class="ss-games" aria-labelledby="ss-games-title"><div class="ss-games-heading"><p class="ss-overline">CHOISIS TON UNIVERS</p><h2 id="ss-games-title">Explorer par jeu</h2></div><label class="ss-find-game"><span>Filtrer les jeux</span><input id="ss-game-search" type="search" autocomplete="off" placeholder="Minecraft, GTA RP, Rust, DayZ…"></label><div class="ss-game-grid"><a href="/serveurs" data-ss-game="" class="ss-game-tile is-selected"><span class="ss-game-art"><span class="ss-game-fallback">SWAPP</span></span><span class="ss-game-copy"><strong>Tous les serveurs</strong><small data-ss-game-count="">Classement SWAPP</small></span></a>'+GAMES.map(g=>'<a href="/serveurs/'+slug(g)+'" data-ss-game="'+esc(g)+'" class="ss-game-tile"><span class="ss-game-art"><span class="ss-game-fallback">'+esc(g)+'</span></span><span class="ss-game-copy"><strong>'+esc(g)+'</strong><small data-ss-game-count="'+esc(g)+'">Classement SWAPP</small></span></a>').join('')+'</div></section><div class="ss-title"><div><p class="ss-overline">ANNUAIRE COMMUNAUTAIRE</p><h2>Classement des serveurs</h2></div><span id="ss-count">Chargement…</span></div><div id="ss-feedback" role="status" aria-live="polite"></div><div id="ss-results" class="ss-results"></div><section class="ss-info"><h2>Comment fonctionne le classement ?</h2><p>Les serveurs approuvés sont affichés par nombre de votes admissibles reçus pendant le mois en cours. Les inscriptions sont publiées immédiatement lorsque leurs coordonnées sont valides. Pour Discord, SWAPP vérifie l’invitation officielle. Un compte SWAPP peut renouveler son vote pour un même serveur toutes les deux heures. Les statuts de connexion ne sont affichés que s’ils ont réellement été vérifiés. Les inscriptions invalides sont refusées sans créer de file d’attente.</p></section>'+(isAdmin?'<section class="ss-admin"><h2>Validation des serveurs</h2><p>Modération des propositions reçues sur SWAPP.</p><button id="ss-review-refresh" type="button">Actualiser les demandes</button><div id="ss-review" role="status"></div><div id="ss-review-moderation"><h3>Avis à examiner</h3><div id="ss-pending-reviews" role="status" aria-live="polite"></div></div></section>':'')+'</section></main>';
+ let content='<main class="ss" data-ss-current-game="'+esc(game)+'"><header class="ss-hero"><div class="ss-inner"><p class="ss-overline">SWAPP / EXPLORER / SERVEURS</p><h1>'+ (game?'Serveurs <em>'+esc(game)+'</em>':'Trouve ta prochaine <em>communauté.</em>')+'</h1><p>Serveurs de jeux et RP, choisis par les joueurs. Des votes réels, un référencement gratuit, aucun classement inventé.</p><div class="ss-hero-actions"><a href="/explorer">← Explorer</a><a class="ss-owner-link" href="/serveurs/mes-serveurs">Gérer mes fiches</a><a id="ss-add" href="/serveurs/creer'+(game?'?jeu='+encodeURIComponent(game):'')+'">+ Référencer mon serveur</a></div></div></header><section class="ss-inner ss-content"><div class="ss-toolbar"><label class="ss-search"><span>Rechercher</span><input id="ss-q" type="search" placeholder="Nom, jeu, RP, survie…"></label><label><span>Jeu</span><select id="ss-game"><option value="">Tous les jeux</option>'+GAMES.map(g=>'<option value="'+esc(g)+'">'+esc(g)+'</option>').join('')+'</select></label><label><span>Classement</span><select id="ss-sort"><option value="votes">Votes du mois</option><option value="recent">Plus récents</option><option value="name">Nom</option></select></label></div><section class="ss-featured" aria-labelledby="ss-featured-title"><div class="ss-games-heading"><p class="ss-overline">À LA UNE</p><h2 id="ss-featured-title">Les univers populaires</h2><p>Des jeux authentiques. Le classement des serveurs dépend uniquement des inscriptions vérifiées par SWAPP.</p></div><div id="ss-featured-games" class="ss-featured-grid" aria-label="Univers de serveurs recommandés"></div></section><section class="ss-games" aria-labelledby="ss-games-title"><div class="ss-games-heading"><p class="ss-overline">CHOISIS TON UNIVERS</p><h2 id="ss-games-title">Explorer par jeu</h2></div><label class="ss-find-game"><span>Filtrer les jeux</span><input id="ss-game-search" type="search" autocomplete="off" placeholder="Minecraft, GTA RP, Rust, DayZ…"></label><div class="ss-game-grid"><a href="/serveurs" data-ss-game="" class="ss-game-tile is-selected"><span class="ss-game-art"><span class="ss-game-fallback">SWAPP</span></span><span class="ss-game-copy"><strong>Tous les serveurs</strong><small data-ss-game-count="">Classement SWAPP</small></span></a>'+GAMES.map(g=>'<a href="/serveurs/'+slug(g)+'" data-ss-game="'+esc(g)+'" class="ss-game-tile"><span class="ss-game-art"><span class="ss-game-fallback">'+esc(g)+'</span></span><span class="ss-game-copy"><strong>'+esc(g)+'</strong><small data-ss-game-count="'+esc(g)+'">Classement SWAPP</small></span></a>').join('')+'</div></section><div class="ss-title"><div><p class="ss-overline">ANNUAIRE COMMUNAUTAIRE</p><h2>Classement des serveurs</h2></div><span id="ss-count">Chargement…</span></div><div id="ss-feedback" role="status" aria-live="polite"></div><div id="ss-results" class="ss-results"></div><section class="ss-info"><h2>Comment fonctionne le classement ?</h2><p>Les serveurs approuvés sont affichés par nombre de votes admissibles reçus pendant le mois en cours. Les inscriptions sont publiées immédiatement lorsque leurs coordonnées sont valides. Pour Discord, SWAPP vérifie l’invitation officielle. Un compte SWAPP peut voter toutes les deux heures, avec un maximum de trois votes par serveur sur 24 heures. Les statuts de connexion ne sont affichés que s’ils ont réellement été vérifiés. Les inscriptions invalides sont refusées sans créer de file d’attente.</p></section>'+(isAdmin?'<section class="ss-admin"><h2>Validation des serveurs</h2><p>Modération des propositions reçues sur SWAPP.</p><button id="ss-review-refresh" type="button">Actualiser les demandes</button><div id="ss-review" role="status"></div><div id="ss-review-moderation"><h3>Avis à examiner</h3><div id="ss-pending-reviews" role="status" aria-live="polite"></div></div></section>':'')+'</section></main>';
  if(isAdmin){
   // The queue belongs directly under the heading; never hide it after all the listings.
   const start=content.indexOf('<section class="ss-admin">');
@@ -123,10 +128,19 @@ function detailPage(server,votes,meta={}){
  const gamePath='/serveurs/'+slug(game);
  const image=optionalImageUrl(server.brand_banner_url,server.id,'banner')||safeUrl(server.banner_url)||detailCover(game);
  const canonical='https://swapp.tv'+gamePath+'/'+encodeURIComponent(server.slug);
+ const summary=clean(server.tagline||server.description,160);
+ const cover=String(image||'');
+ const socialImage=cover.startsWith('/media/serveurs/')?'https://swapp.tv'+cover:safeUrl(cover);
+ const metadata='<meta property="og:type" content="website"><meta property="og:site_name" content="SWAPP">'+
+  '<meta property="og:title" content="'+esc(title+' — '+game+' | SWAPP')+'">'+
+  '<meta property="og:description" content="'+esc(summary)+'">'+
+  '<meta property="og:url" content="'+esc(canonical)+'">'+
+  (socialImage?'<meta property="og:image" content="'+esc(socialImage)+'"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="'+esc(socialImage)+'">':'')+
+  '<meta name="twitter:title" content="'+esc(title+' | SWAPP')+'"><meta name="twitter:description" content="'+esc(summary)+'">';
  const header='<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#030405">'+
   '<title>'+esc(title)+' — '+esc(game)+' | Serveurs SWAPP</title>'+
-  '<meta name="description" content="'+esc(clean(server.description,160))+'">'+
-  '<link rel="canonical" href="'+esc(canonical)+'">'+SHARED_HEAD_SLOT+
+  '<meta name="description" content="'+esc(summary)+'">'+
+  '<link rel="canonical" href="'+esc(canonical)+'">'+metadata+SHARED_HEAD_SLOT+
   '<link rel="stylesheet" href="/assets/swapp-servers.css?v=20261115-brand-market-v12">';
  return renderPage({head:header,content:renderProfile({server,votes,rank:meta.rank,stats:meta.stats||null,
   reviews:meta.reviews||[],reviewSummary:meta.reviewSummary||null,cover:image,canEdit:Boolean(meta.canEdit),
@@ -179,6 +193,32 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
 
 
  // Dedicated creation page must precede the generic /serveurs/:jeu route.
+
+ // Dynamic public sitemap index, so every real published community can be indexed.
+ app.get('/sitemap-serveurs.xml',async(_req,res)=>{
+  try{
+   const sql=await getDatabase();
+   const [rows]=await sql.query('SELECT COUNT(*) AS n FROM swapp_game_servers WHERE status="published"');
+   const count=Math.max(1,Math.ceil(Number(rows[0]?.n||0)/1000));
+   const xml='<?xml version="1.0" encoding="UTF-8"?><sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'+
+    Array.from({length:Math.min(1000,count)},(_,i)=>'<sitemap><loc>https://swapp.tv/sitemap-serveurs-'+(i+1)+'.xml</loc></sitemap>').join('')+'</sitemapindex>';
+   return res.set('Cache-Control','public,max-age=300').type('application/xml').send(xml);
+  }catch(e){return res.status(503).type('text').send('Sitemap temporairement indisponible')}
+ });
+ app.get('/sitemap-serveurs-:page.xml',async(req,res)=>{
+  const page=Number(req.params.page);
+  if(!Number.isInteger(page)||page<1||page>1000)return res.sendStatus(404);
+  try{
+   const sql=await getDatabase();
+   const [rows]=await sql.execute('SELECT slug,game,created_at FROM swapp_game_servers WHERE status="published" ORDER BY created_at ASC,id ASC LIMIT 1000 OFFSET ?',[(page-1)*1000]);
+   if(!rows.length)return res.sendStatus(404);
+   const entries=rows.map(item=>'<url><loc>https://swapp.tv/serveurs/'+slug(item.game)+'/'+encodeURIComponent(item.slug)+'</loc>'+
+    (item.created_at&&Number.isFinite(new Date(item.created_at).getTime())?'<lastmod>'+new Date(item.created_at).toISOString().slice(0,10)+'</lastmod>':'')+'</url>').join('');
+   return res.set('Cache-Control','public,max-age=300').type('application/xml')
+    .send('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'+entries+'</urlset>');
+  }catch(e){return res.status(503).type('text').send('Sitemap temporairement indisponible')}
+ });
+
  app.get('/serveurs/creer',(req,res)=>{
   const chosen=clean(req.query?.jeu,70);
   const game=GAMES.includes(chosen)?chosen:'Discord / Multigaming';
@@ -198,7 +238,7 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
   const owner=account(req);if(!owner)return res.redirect(302,'/compte');
   try{
    const sql=await getDatabase();
-   const [rows]=await sql.execute('SELECT s.id,s.name,s.slug,s.game,s.description,s.status,b.logo_url,b.banner_url,b.accent_color FROM swapp_game_servers s LEFT JOIN swapp_game_server_branding b ON b.server_id=s.id WHERE s.owner_id=? ORDER BY s.created_at DESC LIMIT 30',[owner]);
+   const [rows]=await sql.execute('SELECT s.id,s.name,s.slug,s.game,s.description,s.status,b.logo_url,b.banner_url,b.accent_color FROM swapp_game_servers s LEFT JOIN swapp_game_server_branding b ON b.server_id=s.id WHERE s.owner_id IN (?,?) ORDER BY s.created_at DESC LIMIT 30',ownerKeys(req));
    const cards=rows.map(item=>{
     const color=colorHex(item.accent_color)||DEFAULT_ACCENT;
     const logo=optionalImageUrl(item.logo_url,item.id,'logo');
@@ -219,7 +259,7 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
   if(!/^[a-z0-9][a-z0-9-]{4,89}$/.test(name))return res.status(404).type('text').send('Fiche introuvable');
   try{
    const sql=await getDatabase();
-   const [rows]=await sql.execute('SELECT s.id,s.slug,s.name,s.game,s.description,s.website,s.join_address AS joinAddress,s.region,s.tags,s.banner_url AS bannerUrl,x.language,x.twitch_url AS twitchUrl,x.homepage_url AS homepageUrl,b.logo_url AS logoUrl,b.banner_url AS brandBannerUrl,b.accent_color AS accentColor,b.secondary_color AS secondaryColor,b.tagline,b.gallery_json AS galleryJson FROM swapp_game_servers s LEFT JOIN swapp_game_server_extras x ON x.server_id=s.id LEFT JOIN swapp_game_server_branding b ON b.server_id=s.id WHERE s.slug=? AND s.owner_id=? AND s.status="published" LIMIT 1',[name,user]);
+   const [rows]=await sql.execute('SELECT s.id,s.slug,s.name,s.game,s.description,s.website,s.join_address AS joinAddress,s.region,s.tags,s.banner_url AS bannerUrl,x.language,x.twitch_url AS twitchUrl,x.homepage_url AS homepageUrl,b.logo_url AS logoUrl,b.banner_url AS brandBannerUrl,b.accent_color AS accentColor,b.secondary_color AS secondaryColor,b.tagline,b.gallery_json AS galleryJson FROM swapp_game_servers s LEFT JOIN swapp_game_server_extras x ON x.server_id=s.id LEFT JOIN swapp_game_server_branding b ON b.server_id=s.id WHERE s.slug=? AND s.owner_id IN (?,?) AND s.status="published" LIMIT 1',[name,...ownerKeys(req)]);
    if(!rows.length)return res.status(404).type('text').send('Fiche introuvable');
    return res.set('Cache-Control','private,no-store').type('html').send(createPage({game:rows[0].game,games:GAMES,edit:rows[0]}));
   }catch(e){return res.status(503).type('text').send('Éditeur temporairement indisponible')}
@@ -237,18 +277,34 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
    const [voteRows]=await sql.execute('SELECT COUNT(*) AS total FROM swapp_game_server_vote_events WHERE server_id=? AND voted_at>=?',[rows[0].id,new Date().toISOString().slice(0,7)+'-01']);
    const votes=Number(voteRows[0]?.total||0);
    const evidence=await getProfileEvidence(sql,{id:rows[0].id,game,votesMonth:votes});
-   return res.set('Cache-Control','no-store').type('html').send(detailPage(rows[0],votes,{...evidence,canEdit:rows[0].owner_id===account(req)&&!!account(req)}));
+   return res.set('Cache-Control','no-store').type('html').send(detailPage(rows[0],votes,{...evidence,canEdit:!!account(req)&&ownerKeys(req).includes(rows[0].owner_id)}));
   }catch(e){console.warn('[SWAPP SERVEURS]',String(e?.message||e).slice(0,90));return res.status(503).type('text').send('Fiche temporairement indisponible')}
  });
  app.get('/api/swapp/serveurs',async(req,res)=>{
   try{
-   const sql=await getDatabase();const game=clean(req.query.game,70),q=clean(req.query.q,100).toLowerCase(),sort=req.query.sort==='recent'?'recent':req.query.sort==='name'?'name':'votes';
-   const month=String(new Date().toISOString().slice(0,7))+'-01';
-   const order=sort==='recent'?'s.created_at DESC':sort==='name'?'s.name ASC':'votes_month DESC,s.created_at DESC';
-   const [rows]=await sql.execute('SELECT s.id,s.owner_id,s.slug,s.name,s.game,s.description,s.website,s.join_address AS joinAddress,s.region,s.tags,COALESCE(NULLIF(b.banner_url,""),s.banner_url) AS bannerUrl,b.logo_url AS logoUrl,b.accent_color AS accentColor,b.secondary_color AS secondaryColor,b.tagline,s.created_at AS createdAt,COUNT(v.id) AS votes_month FROM swapp_game_servers s LEFT JOIN swapp_game_server_branding b ON b.server_id=s.id LEFT JOIN swapp_game_server_vote_events v ON v.server_id=s.id AND v.voted_at>=? WHERE s.status="published" AND (?="" OR s.game=?) AND (?="" OR LOWER(CONCAT(s.name," ",s.description," ",s.tags," ",s.game)) LIKE CONCAT("%",?,"%")) GROUP BY s.id ORDER BY '+order+' LIMIT 100',[month,game,game,q,q]);
+   const sql=await getDatabase();
+   const game=clean(req.query?.game,70),q=clean(req.query?.q,100).toLowerCase();
+   const sort=req.query?.sort==='recent'?'recent':req.query?.sort==='name'?'name':'votes';
+   const rawPage=Number(req.query?.page||1),page=Number.isSafeInteger(rawPage)?Math.max(1,Math.min(rawPage,10000)):1;
+   const pageSize=24,offset=(page-1)*pageSize;
+   const month=new Date().toISOString().slice(0,7)+'-01';
+   const order=sort==='recent'?'s.created_at DESC,s.id ASC':sort==='name'?'s.name ASC,s.id ASC':'votes_month DESC,s.created_at ASC,s.id ASC';
+   const filter='s.status="published" AND (?="" OR s.game=?) AND (?="" OR LOWER(CONCAT(s.name," ",s.description," ",s.tags," ",s.game)) LIKE CONCAT("%",?,"%"))';
+   const args=[game,game,q,q];
+   const [totals]=await sql.execute('SELECT COUNT(*) AS n FROM swapp_game_servers s WHERE '+filter,args);
+   const total=Number(totals[0]?.n||0);
+   const [rows]=await sql.execute('SELECT s.id,s.owner_id,s.slug,s.name,s.game,s.description,s.website,s.join_address AS joinAddress,s.region,s.tags,COALESCE(NULLIF(b.banner_url,""),s.banner_url) AS bannerUrl,b.logo_url AS logoUrl,b.accent_color AS accentColor,b.secondary_color AS secondaryColor,b.tagline,s.created_at AS createdAt,COUNT(v.id) AS votes_month FROM swapp_game_servers s LEFT JOIN swapp_game_server_branding b ON b.server_id=s.id LEFT JOIN swapp_game_server_vote_events v ON v.server_id=s.id AND v.voted_at>=? WHERE '+filter+' GROUP BY s.id ORDER BY '+order+' LIMIT ? OFFSET ?',
+    [month,...args,pageSize,offset]);
    const [counts]=await sql.query('SELECT game,COUNT(*) AS count FROM swapp_game_servers WHERE status="published" GROUP BY game');
    const gameCounts=Object.fromEntries(counts.map(item=>[String(item.game),Number(item.count)]));
-   res.set('Cache-Control','public,max-age=30').json({servers:rows.map(({owner_id,...r})=>({...r,canEdit:owner_id===account(req)&&!!account(req),votes_month:Number(r.votes_month),tags:r.tags.split(',').map(t=>t.trim()).filter(Boolean)})),total:rows.length,gameCounts,ranking:'monthly_valid_votes',onlineVerified:false});
+   const owner=account(req);
+   // The result includes permissions specific to this session, so never share its cache.
+   res.set('Cache-Control','private,no-store').json({
+    servers:rows.map(({owner_id,...r},index)=>({...r,canEdit:!!owner&&ownerKeys(req).includes(owner_id),
+     rank:sort==='votes'?offset+index+1:null,votes_month:Number(r.votes_month),
+     tags:String(r.tags||'').split(',').map(t=>t.trim()).filter(Boolean)})),
+    total,page,pageSize,hasMore:offset+rows.length<total,gameCounts,ranking:'monthly_valid_votes',onlineVerified:false
+   });
   }catch(e){fail(res,e)}
  });
 
@@ -291,12 +347,12 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
    conn=typeof sql.getConnection==='function'?await sql.getConnection():sql;
    if(typeof conn.beginTransaction==='function')await conn.beginTransaction();
    // Existing pending submissions can be finished without creating a second entry.
-   const [existing]=await conn.execute('SELECT id,slug,status FROM swapp_game_servers WHERE owner_id=? AND game=? AND name=? ORDER BY created_at DESC LIMIT 1 FOR UPDATE',[owner,game,name]);
+   const [existing]=await conn.execute('SELECT id,slug,status FROM swapp_game_servers WHERE owner_id IN (?,?) AND game=? AND name=? ORDER BY created_at DESC LIMIT 1 FOR UPDATE',[...ownerKeys(req),game,name]);
    if(existing.length&&existing[0].status==='rejected'){
     if(typeof conn.rollback==='function')await conn.rollback();
     return res.status(409).json({error:'inscription_refusee'});
    }
-   const [count]=await conn.execute('SELECT COUNT(*) AS n FROM swapp_game_servers WHERE owner_id=?',[owner]);
+   const [count]=await conn.execute('SELECT COUNT(*) AS n FROM swapp_game_servers WHERE owner_id IN (?,?)',ownerKeys(req));
    if(!existing.length&&Number(count[0]?.n||0)>=5){
     if(typeof conn.rollback==='function')await conn.rollback();
     return res.status(429).json({error:'limite_de_cinq_serveurs'});
@@ -304,8 +360,8 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
    const id=existing.length?existing[0].id:crypto.randomBytes(16).toString('hex');
    const serverSlug=existing.length?existing[0].slug:(slug(name)||'serveur')+'-'+id.slice(0,7);
    if(existing.length){
-    const [updated]=await conn.execute('UPDATE swapp_game_servers SET name=?,description=?,website=?,join_address=?,region=?,tags=?,banner_url=?,status="published" WHERE id=? AND owner_id=? AND status IN ("pending","published")',
-     [name,description,mainUrl,mainJoin,region,tags,banner,id,owner]);
+    const [updated]=await conn.execute('UPDATE swapp_game_servers SET name=?,description=?,website=?,join_address=?,region=?,tags=?,banner_url=?,status="published" WHERE id=? AND owner_id IN (?,?) AND status IN ("pending","published")',
+     [name,description,mainUrl,mainJoin,region,tags,banner,id,...ownerKeys(req)]);
     if(Number(updated.affectedRows)<0)throw Error('submission_conflict');
    }else{
     await conn.execute('INSERT INTO swapp_game_servers (id,owner_id,name,slug,game,description,website,join_address,region,tags,banner_url,status) VALUES (?,?,?,?,?,?,?,?,?,?,?,"published")',
@@ -348,22 +404,24 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
   try{
    const sql=await getDatabase();conn=await sql.getConnection();
    await conn.beginTransaction();
-   const [owned]=await conn.execute('SELECT id,slug,game,website,join_address FROM swapp_game_servers WHERE id=? AND owner_id=? AND status="published" LIMIT 1 FOR UPDATE',[id,user]);
+   const [owned]=await conn.execute('SELECT id,slug,game,website,join_address FROM swapp_game_servers WHERE id=? AND owner_id IN (?,?) AND status="published" LIMIT 1 FOR UPDATE',[id,...ownerKeys(req)]);
    if(!owned.length){await conn.rollback();return res.status(404).json({error:'serveur_introuvable'})}
    if(game!==owned[0].game){await conn.rollback();return res.status(422).json({error:'jeu_non_modifiable'})}
    const discord=game==='Discord / Multigaming';
    const invite=discord?discordLink(data.discordCode||owned[0].website):'';
+   const originalInvite=discord?discordLink(owned[0].website):'';
+   const inviteChanged=discord&&invite!==originalInvite;
    if(discord&&!invite){await conn.rollback();return res.status(422).json({error:'invitation_discord_requise'})}
    if(!discord&&(!validListingDetails({game,website,joinAddress:join})||(join&&!validJoinAddress(join)))){
     await conn.rollback();return res.status(422).json({error:'informations_invalides'})
    }
-   const check=discord?await inviteVerifier(invite):{valid:true};
+   const check=inviteChanged?await inviteVerifier(invite):{valid:true,inviteUrl:owned[0].website,guildId:''};
    if(!check.valid){await conn.rollback();return res.status(422).json({error:'verification_discord_impossible',retry:true})}
    const banner=brand.banner||clean(data.bannerUrl,350);
-   await conn.execute('UPDATE swapp_game_servers SET name=?,description=?,website=?,join_address=?,region=?,tags=?,banner_url=? WHERE id=? AND owner_id=?',
-    [name,description,discord?check.inviteUrl:website,discord?'':join,region,tags,banner,id,user]);
-   await conn.execute('INSERT INTO swapp_game_server_extras (server_id,language,twitch_url,homepage_url,discord_guild_id) VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE language=VALUES(language),twitch_url=VALUES(twitch_url),homepage_url=VALUES(homepage_url),discord_guild_id=VALUES(discord_guild_id)',
-    [id,language,twitch,website,discord?clean(check.guildId,25):'']);
+   await conn.execute('UPDATE swapp_game_servers SET name=?,description=?,website=?,join_address=?,region=?,tags=?,banner_url=? WHERE id=? AND owner_id IN (?,?)',
+    [name,description,discord?(inviteChanged?check.inviteUrl:owned[0].website):website,discord?'':join,region,tags,banner,id,...ownerKeys(req)]);
+   await conn.execute('INSERT INTO swapp_game_server_extras (server_id,language,twitch_url,homepage_url,discord_guild_id) VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE language=VALUES(language),twitch_url=VALUES(twitch_url),homepage_url=VALUES(homepage_url),discord_guild_id=IF(VALUES(discord_guild_id)<>"",VALUES(discord_guild_id),discord_guild_id)',
+    [id,language,twitch,website,inviteChanged?clean(check.guildId,25):'']);
    await saveBranding(conn,id,brand);
    await conn.commit();
    return res.set('Cache-Control','no-store').json({updated:true,status:'published',id,url:'/serveurs/'+slug(game)+'/'+owned[0].slug});
@@ -388,7 +446,7 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
   let conn;
   try{
    const sql=await getDatabase();conn=await sql.getConnection();await conn.beginTransaction();
-   const [owned]=await conn.execute('SELECT id FROM swapp_game_servers WHERE id=? AND owner_id=? AND status="published" LIMIT 1 FOR UPDATE',[id,user]);
+   const [owned]=await conn.execute('SELECT id FROM swapp_game_servers WHERE id=? AND owner_id IN (?,?) AND status="published" LIMIT 1 FOR UPDATE',[id,...ownerKeys(req)]);
    if(!owned.length){await conn.rollback();return res.status(404).json({error:'serveur_introuvable'})}
    await conn.execute('INSERT INTO swapp_game_server_media (server_id,kind,mime,contents) VALUES (?,?,?,?) ON DUPLICATE KEY UPDATE mime=VALUES(mime),contents=VALUES(contents),updated_at=CURRENT_TIMESTAMP(3)',[id,kind,mime,req.body]);
    const field=kind==='logo'?'logo_url':'banner_url',url=publicMediaUrl(id,kind),baseline=normalizeBranding({},id);
@@ -397,6 +455,26 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
   }catch(e){if(conn)await conn.rollback().catch(()=>{});return fail(res,e)}
   finally{conn?.release?.()}
  });
+
+ app.post('/api/swapp/serveurs/:id/media/:kind/remove',async(req,res)=>{
+  if(!originGuard(req))return res.status(403).json({error:'origine_invalide'});
+  const owner=account(req),id=clean(req.params.id,32),kind=clean(req.params.kind,10);
+  if(!owner)return res.status(401).json({error:'connexion_swapp_requise'});
+  if(!/^[a-f0-9]{32}$/.test(id)||!['logo','banner'].includes(kind))return res.status(422).json({error:'media_invalide'});
+  let conn;
+  try{
+   const sql=await getDatabase();conn=await sql.getConnection();await conn.beginTransaction();
+   const [rows]=await conn.execute('SELECT id FROM swapp_game_servers WHERE id=? AND owner_id IN (?,?) AND status="published" LIMIT 1 FOR UPDATE',[id,...ownerKeys(req)]);
+   if(!rows.length){await conn.rollback();return res.status(404).json({error:'serveur_introuvable'})}
+   const url=publicMediaUrl(id,kind),field=kind==='logo'?'logo_url':'banner_url';
+   await conn.execute('DELETE FROM swapp_game_server_media WHERE server_id=? AND kind=?',[id,kind]);
+   await conn.execute('UPDATE swapp_game_server_branding SET '+field+'="" WHERE server_id=? AND '+field+'=?',[id,url]);
+   if(kind==='banner')await conn.execute('UPDATE swapp_game_servers SET banner_url="" WHERE id=? AND owner_id IN (?,?) AND banner_url=?',[id,...ownerKeys(req),url]);
+   await conn.commit();return res.set('Cache-Control','no-store').json({removed:true});
+  }catch(e){if(conn)await conn.rollback().catch(()=>{});return fail(res,e)}
+  finally{conn?.release?.()}
+ });
+
  app.get('/media/serveurs/:id/:kind',async(req,res)=>{
   const id=clean(req.params.id,32),kind=clean(req.params.kind,10);
   if(!/^[a-f0-9]{32}$/.test(id)||!['logo','banner'].includes(kind))return res.sendStatus(404);
@@ -419,6 +497,10 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
     const [servers]=await conn.execute('SELECT id FROM swapp_game_servers WHERE id=? AND status="published" LIMIT 1 FOR UPDATE',[id]);if(!servers.length){await conn.rollback();return res.status(404).json({error:'serveur_introuvable'})}
     const [previous]=await conn.execute('SELECT voted_at FROM swapp_game_server_votes WHERE server_id=? AND user_id=? FOR UPDATE',[id,user]);
     if(previous.length&&Date.now()-new Date(previous[0].voted_at).getTime()<7200000){await conn.rollback();return res.status(429).json({error:'vote_deja_effectue',nextVoteAt:new Date(new Date(previous[0].voted_at).getTime()+7200000).toISOString()})}
+    // The 2-hour cooldown alone permits up to 12 votes per day per account.
+    // Bound repeated boosting while preserving the current vote mechanic.
+    const [daily]=await conn.execute('SELECT COUNT(*) AS n FROM swapp_game_server_vote_events WHERE server_id=? AND user_id=? AND voted_at>=UTC_TIMESTAMP()-INTERVAL 1 DAY',[id,user]);
+    if(Number(daily[0]?.n||0)>=3){await conn.rollback();return res.status(429).json({error:'vote_daily_limit',intervalHours:24})}
     await conn.execute('INSERT INTO swapp_game_server_votes (server_id,user_id,voted_at) VALUES (?,?,NOW(3)) ON DUPLICATE KEY UPDATE voted_at=NOW(3)',[id,user]);
     await conn.execute('INSERT INTO swapp_game_server_vote_events (server_id,user_id,voted_at) VALUES (?,?,NOW(3))',[id,user]);await conn.commit();
     return res.json({success:true,intervalHours:2});
@@ -488,7 +570,7 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
 
  app.get('/api/swapp/serveurs/mes-fiches',async(req,res)=>{
   const user=account(req);if(!user)return res.status(401).json({error:'connexion_swapp_requise'});
-  try{const sql=await getDatabase(),[rows]=await sql.execute('SELECT name,game,slug,status,created_at AS createdAt FROM swapp_game_servers WHERE owner_id=? ORDER BY created_at DESC LIMIT 30',[user]);
+  try{const sql=await getDatabase(),[rows]=await sql.execute('SELECT name,game,slug,status,created_at AS createdAt FROM swapp_game_servers WHERE owner_id IN (?,?) ORDER BY created_at DESC LIMIT 30',ownerKeys(req));
    return res.set('Cache-Control','no-store').json({servers:rows})}catch(e){return fail(res,e)}
  });
  app.get('/api/swapp/serveurs/moderation/count',async(req,res)=>{

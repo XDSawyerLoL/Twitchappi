@@ -186,6 +186,16 @@
    const serverId=editId||result.id;
    for(const kind of ['logo','banner']){
     const file=fileInputs[kind]?.files?.[0];
+    if(removed[kind]&&!file&&editId){
+     const deleted=await fetch('/api/swapp/serveurs/'+encodeURIComponent(serverId)+'/media/'+kind+'/remove',{
+      method:'POST',credentials:'same-origin',headers:{Accept:'application/json'}
+     });
+     if(!deleted.ok){
+      const open=document.createElement('a');open.href=result.url;open.textContent='Ouvrir la fiche déjà enregistrée';
+      errorMessage('La fiche est enregistrée, mais la suppression de '+(kind==='logo'?'l’ancien logo':'l’ancienne bannière')+' a échoué. Réessaie.');
+      error.append(open);return;
+     }
+    }
     if(!file)continue;
     if(!/^(image\/png|image\/jpeg|image\/webp)$/.test(file.type))throw Error('Format de '+kind+' non pris en charge. Utilise PNG, JPG ou WebP.');
     submit.textContent='Envoi du '+(kind==='logo'?'logo…':'visuel de bannière…');
