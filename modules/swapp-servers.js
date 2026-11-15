@@ -497,6 +497,10 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
     const [servers]=await conn.execute('SELECT id FROM swapp_game_servers WHERE id=? AND status="published" LIMIT 1 FOR UPDATE',[id]);if(!servers.length){await conn.rollback();return res.status(404).json({error:'serveur_introuvable'})}
     const [previous]=await conn.execute('SELECT voted_at FROM swapp_game_server_votes WHERE server_id=? AND user_id=? FOR UPDATE',[id,user]);
     if(previous.length&&Date.now()-new Date(previous[0].voted_at).getTime()<7200000){await conn.rollback();return res.status(429).json({error:'vote_deja_effectue',nextVoteAt:new Date(new Date(previous[0].voted_at).getTime()+7200000).toISOString()})}
+    // The 2-hour cooldown alone permits up to 12 votes per day per account.
+    // Bound repeated boosting while preserving the current vote mechanic.
+    const [daily]=await conn.execute('SELECT COUNT(*) AS n FROM swapp_game_server_vote_events WHERE server_id=? AND user_id=? AND voted_at>=UTC_TIMESTAMP()-INTERVAL 1 DAY',[id,user]);
+    if(Number(daily[0]?.n||0)>=3){await conn.rollback();return res.status(429).json({error:'vote_daily_limit',intervalHours:24})}
     await conn.execute('INSERT INTO swapp_game_server_votes (server_id,user_id,voted_at) VALUES (?,?,NOW(3)) ON DUPLICATE KEY UPDATE voted_at=NOW(3)',[id,user]);
     await conn.execute('INSERT INTO swapp_game_server_vote_events (server_id,user_id,voted_at) VALUES (?,?,NOW(3))',[id,user]);await conn.commit();
     return res.json({success:true,intervalHours:2});
