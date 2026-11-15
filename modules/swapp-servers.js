@@ -2,6 +2,7 @@
 /* SWAPP Serveurs — native, free directory. No scraping or imported listings. */
 const crypto=require('node:crypto');
 const {renderPage,SHARED_HEAD_SLOT}=require('./swapp-page-shell');
+const {inviteCode,verifyDiscordInvite}=require('./swapp-servers-discord');
 const GAMES=['Minecraft','GTA V / FiveM','GTA RP','Rust','DayZ','Cyberpunk 2077','Arma 3','Arma Reforger','ARK Survival Ascended','ARK Survival Evolved','Project Zomboid','Palworld','Red Dead Redemption 2','Garry’s Mod','Valheim','Enshrouded','Conan Exiles','SCUM','Counter-Strike 2','7 Days to Die','Eco','V Rising','Unturned','Space Engineers','Dune Awakening','Hell Let Loose','Squad','Terraria','No Man’s Sky','Satisfactory','Don’t Starve Together','Lethal Company','Discord / Multigaming','Autre'];
 const mysqlUrl=()=>process.env.SWAPP_SERVERS_MYSQL_URL||process.env.SWAPP_MYSQL_URL||'';
 let pool=null,ready=null;
@@ -25,7 +26,13 @@ async function db(){
 }
 function page({isAdmin=false,game=''}={}){
  const head='<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#050608"><title>'+esc(game?'Serveurs '+game+' — classement des communautés | SWAPP':'Serveurs de jeux — classements et communautés | SWAPP')+'</title><meta name="description" content="Découvre des serveurs gaming et roleplay, classe les communautés par votes et référence ton serveur sur SWAPP."><link rel="canonical" href="https://swapp.tv/serveurs'+(game?'/'+slug(game):'')+'">'+SHARED_HEAD_SLOT+'<link rel="stylesheet" href="/assets/swapp-servers.css?v=20261115-real-games-cards-v4">';
- const content='<main class="ss" data-ss-current-game="'+esc(game)+'"><header class="ss-hero"><div class="ss-inner"><p class="ss-overline">SWAPP / EXPLORER / SERVEURS</p><h1>'+ (game?'Serveurs <em>'+esc(game)+'</em>':'Trouve ta prochaine <em>communauté.</em>')+'</h1><p>Serveurs de jeux et RP, choisis par les joueurs. Des votes réels, un référencement gratuit, aucun classement inventé.</p><div class="ss-hero-actions"><a href="/explorer">← Explorer</a><button id="ss-add" type="button">+ Référencer mon serveur</button></div></div></header><section class="ss-inner ss-content"><div class="ss-toolbar"><label class="ss-search"><span>Rechercher</span><input id="ss-q" type="search" placeholder="Nom, jeu, RP, survie…"></label><label><span>Jeu</span><select id="ss-game"><option value="">Tous les jeux</option>'+GAMES.map(g=>'<option value="'+esc(g)+'">'+esc(g)+'</option>').join('')+'</select></label><label><span>Classement</span><select id="ss-sort"><option value="votes">Votes du mois</option><option value="recent">Plus récents</option><option value="name">Nom</option></select></label></div><section class="ss-featured" aria-labelledby="ss-featured-title"><div class="ss-games-heading"><p class="ss-overline">À LA UNE</p><h2 id="ss-featured-title">Les univers populaires</h2><p>Des jeux authentiques. Le classement des serveurs dépend uniquement des inscriptions vérifiées par SWAPP.</p></div><div id="ss-featured-games" class="ss-featured-grid" aria-label="Univers de serveurs recommandés"></div></section><section class="ss-games" aria-labelledby="ss-games-title"><div class="ss-games-heading"><p class="ss-overline">CHOISIS TON UNIVERS</p><h2 id="ss-games-title">Explorer par jeu</h2></div><label class="ss-find-game"><span>Filtrer les jeux</span><input id="ss-game-search" type="search" autocomplete="off" placeholder="Minecraft, GTA RP, Rust, DayZ…"></label><div class="ss-game-grid"><a href="/serveurs" data-ss-game="" class="ss-game-tile is-selected"><span class="ss-game-art"><span class="ss-game-fallback">SWAPP</span></span><span class="ss-game-copy"><strong>Tous les serveurs</strong><small data-ss-game-count="">Classement SWAPP</small></span></a>'+GAMES.map(g=>'<a href="/serveurs/'+slug(g)+'" data-ss-game="'+esc(g)+'" class="ss-game-tile"><span class="ss-game-art"><span class="ss-game-fallback">'+esc(g)+'</span></span><span class="ss-game-copy"><strong>'+esc(g)+'</strong><small data-ss-game-count="'+esc(g)+'">Classement SWAPP</small></span></a>').join('')+'</div></section><div class="ss-title"><div><p class="ss-overline">ANNUAIRE COMMUNAUTAIRE</p><h2>Classement des serveurs</h2></div><span id="ss-count">Chargement…</span></div><div id="ss-feedback" role="status" aria-live="polite"></div><div id="ss-results" class="ss-results"></div><section class="ss-info"><h2>Comment fonctionne le classement ?</h2><p>Les serveurs approuvés sont affichés par nombre de votes admissibles reçus pendant le mois en cours. Un compte SWAPP peut renouveler son vote pour un même serveur toutes les deux heures. Les statuts de connexion ne sont affichés que s’ils ont réellement été vérifiés. Les nouvelles fiches passent par une validation avant d’apparaître.</p></section>'+(isAdmin?'<section class="ss-admin"><h2>Validation des serveurs</h2><p>Modération des propositions reçues sur SWAPP.</p><button id="ss-review-refresh" type="button">Actualiser les demandes</button><div id="ss-review" role="status"></div></section>':'')+'</section><dialog id="ss-dialog" class="ss-dialog"><form id="ss-form"><h2>Référencer un serveur</h2><p>Gratuit. Compte SWAPP requis. Publication après validation.</p><label>Nom du serveur<input name="name" maxlength="100" minlength="3" required></label><label>Jeu<select name="game" required>'+GAMES.map(g=>'<option value="'+esc(g)+'">'+esc(g)+'</option>').join('')+'</select></label><label>Description<textarea name="description" minlength="30" maxlength="1500" required rows="4"></textarea></label><label>Site ou lien d’invitation HTTPS<input name="website" type="url" maxlength="350" placeholder="https://…"></label><label>Adresse de connexion (facultative)<input name="joinAddress" maxlength="240" placeholder="exemple.fr:25565"></label><label>Région<input name="region" maxlength="60" value="France"></label><label>Tags (séparés par virgule)<input name="tags" maxlength="250" placeholder="RP, survie, PVE"></label><label>Bannière officielle HTTPS (facultative)<input name="bannerUrl" type="url" maxlength="350"></label><div class="ss-form-actions"><button type="button" id="ss-cancel">Annuler</button><button type="submit">Soumettre le serveur</button></div><p id="ss-form-status" role="status" aria-live="polite"></p></form></dialog></main>';
+ let content='<main class="ss" data-ss-current-game="'+esc(game)+'"><header class="ss-hero"><div class="ss-inner"><p class="ss-overline">SWAPP / EXPLORER / SERVEURS</p><h1>'+ (game?'Serveurs <em>'+esc(game)+'</em>':'Trouve ta prochaine <em>communauté.</em>')+'</h1><p>Serveurs de jeux et RP, choisis par les joueurs. Des votes réels, un référencement gratuit, aucun classement inventé.</p><div class="ss-hero-actions"><a href="/explorer">← Explorer</a><button id="ss-add" type="button">+ Référencer mon serveur</button></div></div></header><section class="ss-inner ss-content"><div class="ss-toolbar"><label class="ss-search"><span>Rechercher</span><input id="ss-q" type="search" placeholder="Nom, jeu, RP, survie…"></label><label><span>Jeu</span><select id="ss-game"><option value="">Tous les jeux</option>'+GAMES.map(g=>'<option value="'+esc(g)+'">'+esc(g)+'</option>').join('')+'</select></label><label><span>Classement</span><select id="ss-sort"><option value="votes">Votes du mois</option><option value="recent">Plus récents</option><option value="name">Nom</option></select></label></div><section class="ss-featured" aria-labelledby="ss-featured-title"><div class="ss-games-heading"><p class="ss-overline">À LA UNE</p><h2 id="ss-featured-title">Les univers populaires</h2><p>Des jeux authentiques. Le classement des serveurs dépend uniquement des inscriptions vérifiées par SWAPP.</p></div><div id="ss-featured-games" class="ss-featured-grid" aria-label="Univers de serveurs recommandés"></div></section><section class="ss-games" aria-labelledby="ss-games-title"><div class="ss-games-heading"><p class="ss-overline">CHOISIS TON UNIVERS</p><h2 id="ss-games-title">Explorer par jeu</h2></div><label class="ss-find-game"><span>Filtrer les jeux</span><input id="ss-game-search" type="search" autocomplete="off" placeholder="Minecraft, GTA RP, Rust, DayZ…"></label><div class="ss-game-grid"><a href="/serveurs" data-ss-game="" class="ss-game-tile is-selected"><span class="ss-game-art"><span class="ss-game-fallback">SWAPP</span></span><span class="ss-game-copy"><strong>Tous les serveurs</strong><small data-ss-game-count="">Classement SWAPP</small></span></a>'+GAMES.map(g=>'<a href="/serveurs/'+slug(g)+'" data-ss-game="'+esc(g)+'" class="ss-game-tile"><span class="ss-game-art"><span class="ss-game-fallback">'+esc(g)+'</span></span><span class="ss-game-copy"><strong>'+esc(g)+'</strong><small data-ss-game-count="'+esc(g)+'">Classement SWAPP</small></span></a>').join('')+'</div></section><div class="ss-title"><div><p class="ss-overline">ANNUAIRE COMMUNAUTAIRE</p><h2>Classement des serveurs</h2></div><span id="ss-count">Chargement…</span></div><div id="ss-feedback" role="status" aria-live="polite"></div><div id="ss-results" class="ss-results"></div><section class="ss-info"><h2>Comment fonctionne le classement ?</h2><p>Les serveurs approuvés sont affichés par nombre de votes admissibles reçus pendant le mois en cours. Un compte SWAPP peut renouveler son vote pour un même serveur toutes les deux heures. Les statuts de connexion ne sont affichés que s’ils ont réellement été vérifiés. Les nouvelles fiches passent par une validation avant d’apparaître.</p></section>'+(isAdmin?'<section class="ss-admin"><h2>Validation des serveurs</h2><p>Modération des propositions reçues sur SWAPP.</p><button id="ss-review-refresh" type="button">Actualiser les demandes</button><div id="ss-review" role="status"></div></section>':'')+'</section><dialog id="ss-dialog" class="ss-dialog"><form id="ss-form"><h2>Référencer un serveur</h2><p>Gratuit. Compte SWAPP requis. Publication après validation.</p><label>Nom du serveur<input name="name" maxlength="100" minlength="3" required></label><label>Jeu<select name="game" required>'+GAMES.map(g=>'<option value="'+esc(g)+'">'+esc(g)+'</option>').join('')+'</select></label><label>Description<textarea name="description" minlength="30" maxlength="1500" required rows="4"></textarea></label><label>Site ou lien d’invitation HTTPS<input name="website" type="url" maxlength="350" placeholder="https://…"></label><label>Adresse de connexion (facultative)<input name="joinAddress" maxlength="240" placeholder="exemple.fr:25565"></label><label>Région<input name="region" maxlength="60" value="France"></label><label>Tags (séparés par virgule)<input name="tags" maxlength="250" placeholder="RP, survie, PVE"></label><label>Bannière officielle HTTPS (facultative)<input name="bannerUrl" type="url" maxlength="350"></label><div class="ss-form-actions"><button type="button" id="ss-cancel">Annuler</button><button type="submit">Soumettre le serveur</button></div><p id="ss-form-status" role="status" aria-live="polite"></p></form></dialog></main>';
+ if(isAdmin){
+  // The queue belongs directly under the heading; never hide it after all the listings.
+  const start=content.indexOf('<section class="ss-admin">');
+  const end=content.indexOf('</section>',start);
+  if(start>=0&&end>start){const panel=content.slice(start,end+10);content=content.replace(panel,'').replace('<section class="ss-inner ss-content">','<section class="ss-inner ss-content">'+panel)}
+ }
  return renderPage({head,content,active:'servers',bodyClass:'swapp-editorial-route swapp-servers-page',scripts:'<script src="/assets/swapp-servers.js?v=20261115-real-games-cards-v4" defer></script><script src="/assets/swapp-nav-session.js?v=20261114-native-account-v1" defer></script>'});
 }
 
@@ -77,9 +84,37 @@ function detailPage(server,votes){
   scripts:'<script src="/assets/swapp-servers-detail.js?v=20261115-detail-v1" defer></script><script src="/assets/swapp-nav-session.js?v=20261114-native-account-v1" defer></script>'});
 }
 
-function register(app){
- app.get('/serveurs',(req,res)=>res.set('Cache-Control','no-store').type('html').send(page({isAdmin:administrator(req)})));
- app.get('/serveurs/:jeu',(req,res)=>{const game=GAMES.find(x=>slug(x)===req.params.jeu);if(!game)return res.status(404).type('text').send('Jeu introuvable');return res.set('Cache-Control','no-store').type('html').send(page({isAdmin:administrator(req),game}))});
+let lastAutoReview=0,autoReviewRunning=null;
+async function autoReviewPendingDiscord({limit=12}={}){
+ if(autoReviewRunning)return autoReviewRunning;
+ autoReviewRunning=(async()=>{
+  const sql=await db();
+  const [rows]=await sql.query('SELECT id,website,join_address AS joinAddress FROM swapp_game_servers WHERE status="pending" AND game="Discord / Multigaming" ORDER BY created_at ASC LIMIT '+Math.max(1,Math.min(25,Number(limit)||12)));
+  let approved=0;
+  for(const row of rows){
+   const proposed=inviteCode(row.website)?row.website:inviteCode(row.joinAddress)?row.joinAddress:'';
+   if(!proposed)continue;
+   const check=await verifyDiscordInvite(proposed);
+   if(!check.valid)continue;
+   const [write]=await sql.execute('UPDATE swapp_game_servers SET status="published",website=? WHERE id=? AND status="pending"',[check.inviteUrl,row.id]);
+   approved+=Number(write.affectedRows||0);
+  }
+  return {checked:rows.length,approved};
+ })().finally(()=>{autoReviewRunning=null;lastAutoReview=Date.now()});
+ return autoReviewRunning;
+}
+function register(app,{isAdmin=administrator}={}){
+ const isManager=req=>Boolean(isAdmin(req));
+ // Recheck older Discord submissions too, without any paid worker or VPS.
+ // One batch per instance, repeated while the application is running.
+ if(mysqlUrl()&&process.env.SWAPP_SERVERS_AUTO_REVIEW!=='0'){
+  const tick=()=>autoReviewPendingDiscord().catch(e=>console.warn('[SWAPP SERVEURS] Auto-validation:',String(e.message||e).slice(0,120)));
+  const initial=setTimeout(tick,10000);initial.unref?.();
+  const periodic=setInterval(tick,5*60*1000);periodic.unref?.();
+ }
+
+ app.get('/serveurs',(req,res)=>res.set('Cache-Control','no-store').type('html').send(page({isAdmin:isManager(req)})));
+ app.get('/serveurs/:jeu',(req,res)=>{const game=GAMES.find(x=>slug(x)===req.params.jeu);if(!game)return res.status(404).type('text').send('Jeu introuvable');return res.set('Cache-Control','no-store').type('html').send(page({isAdmin:isManager(req),game}))});
 
  app.get('/serveurs/:jeu/:fiche',async(req,res)=>{
   const game=GAMES.find(g=>slug(g)===req.params.jeu);
@@ -113,8 +148,14 @@ function register(app){
   try{
    const sql=await db();const [count]=await sql.execute('SELECT COUNT(*) AS n FROM swapp_game_servers WHERE owner_id=?',[user]);if(count[0].n>=5)return res.status(429).json({error:'limite_de_cinq_serveurs'});
    const id=crypto.randomBytes(16).toString('hex'),serverSlug=(slug(name)||'serveur')+'-'+id.slice(0,7);
-   await sql.execute('INSERT INTO swapp_game_servers (id,owner_id,name,slug,game,description,website,join_address,region,tags,banner_url,status) VALUES (?,?,?,?,?,?,?,?,?,?,?,"pending")',[id,user,name,serverSlug,game,description,website,join,region,tags,banner]);
-   return res.status(201).json({status:'pending',slug:serverSlug});
+   // Auto-publish only when Discord itself verifies a real guild invite.
+   // Other games cannot be authenticated by a Discord link alone.
+   const proposed=game==='Discord / Multigaming'?(inviteCode(website)?website:inviteCode(join)?join:''):'';
+   const verification=proposed?await verifyDiscordInvite(proposed):{valid:false,reason:'manual_review'};
+   const publish=Boolean(verification.valid),status=publish?'published':'pending';
+   const resolvedWebsite=publish?verification.inviteUrl:website;
+   await sql.execute('INSERT INTO swapp_game_servers (id,owner_id,name,slug,game,description,website,join_address,region,tags,banner_url,status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',[id,user,name,serverSlug,game,description,resolvedWebsite,join,region,tags,banner,status]);
+   return res.status(201).json({status,slug:serverSlug,autoVerified:publish,verification:publish?'discord_invite':verification.reason||'manual_review',url:publish?'/serveurs/'+slug(game)+'/'+serverSlug:null});
   }catch(e){fail(res,e)}
  });
  app.post('/api/swapp/serveurs/:id/vote',async(req,res)=>{
@@ -134,14 +175,25 @@ function register(app){
    }catch(e){await conn.rollback().catch(()=>{});throw e}finally{conn.release()}
   }catch(e){fail(res,e)}
  });
+ // Account-owned submissions are always visible even before moderation.
+ app.get('/api/swapp/serveurs/mes-fiches',async(req,res)=>{
+  const user=account(req);if(!user)return res.status(401).json({error:'connexion_swapp_requise'});
+  try{const sql=await db(),[rows]=await sql.execute('SELECT name,game,slug,status,created_at AS createdAt FROM swapp_game_servers WHERE owner_id=? ORDER BY created_at DESC LIMIT 30',[user]);
+   return res.set('Cache-Control','no-store').json({servers:rows})}catch(e){return fail(res,e)}
+ });
+ app.get('/api/swapp/serveurs/moderation/count',async(req,res)=>{
+  if(!isManager(req))return res.status(403).json({error:'acces_refuse'});
+  try{const sql=await db(),[rows]=await sql.query('SELECT COUNT(*) AS n FROM swapp_game_servers WHERE status="pending"');
+   res.set('Cache-Control','no-store').json({pending:Number(rows[0]?.n||0),url:'/serveurs#ss-review'})}catch(e){fail(res,e)}
+ });
  app.get('/api/swapp/serveurs/moderation',async(req,res)=>{
-  if(!administrator(req))return res.status(403).json({error:'acces_refuse'});
+  if(!isManager(req))return res.status(403).json({error:'acces_refuse'});
   try{const sql=await db(),[rows]=await sql.query('SELECT id,name,game,description,website,join_address AS joinAddress,created_at AS createdAt FROM swapp_game_servers WHERE status="pending" ORDER BY created_at ASC LIMIT 100');res.json({servers:rows})}catch(e){fail(res,e)}
  });
  app.post('/api/swapp/serveurs/:id/moderation',require('express').json({limit:'2kb'}),async(req,res)=>{
-  if(!originGuard(req)||!administrator(req))return res.status(403).json({error:'acces_refuse'});
+  if(!originGuard(req)||!isManager(req))return res.status(403).json({error:'acces_refuse'});
   const id=clean(req.params.id,32),status=clean(req.body?.status,20);if(!/^[a-f0-9]{32}$/.test(id)||!['published','rejected'].includes(status))return res.status(422).json({error:'decision_invalide'});
   try{const sql=await db(),[r]=await sql.execute('UPDATE swapp_game_servers SET status=? WHERE id=? AND status="pending"',[status,id]);res.json({updated:r.affectedRows===1})}catch(e){fail(res,e)}
  });
 }
-module.exports={register,page,detailPage,GAMES,slug,safeUrl};
+module.exports={register,page,detailPage,GAMES,slug,safeUrl,autoReviewPendingDiscord};
