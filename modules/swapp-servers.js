@@ -389,7 +389,7 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
  app.get('/serveurs/mes-serveurs',async(req,res)=>{
   const owner=account(req);if(!owner)return res.redirect(302,'/compte');
   try{
-   const sql=await getDatabase();
+   const sql=await readDatabase();
    const [rows]=await sql.execute('SELECT s.id,s.name,s.slug,s.game,s.description,s.status,b.logo_url,b.banner_url,b.accent_color FROM swapp_game_servers s LEFT JOIN swapp_game_server_branding b ON b.server_id=s.id WHERE s.owner_id IN (?,?) ORDER BY s.created_at DESC LIMIT 30',ownerKeys(req));
    const cards=rows.map(item=>{
     const color=colorHex(item.accent_color)||DEFAULT_ACCENT;
@@ -411,7 +411,7 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
   if(!user)return res.redirect(302,'/compte');
   if(!/^[a-z0-9][a-z0-9-]{4,89}$/.test(name))return res.status(404).type('text').send('Fiche introuvable');
   try{
-   const sql=await getDatabase();
+   const sql=await readDatabase();
    const [rows]=await sql.execute('SELECT s.id,s.slug,s.name,s.game,s.description,s.website,s.join_address AS joinAddress,s.region,s.tags,s.banner_url AS bannerUrl,x.language,x.twitch_url AS twitchUrl,x.homepage_url AS homepageUrl,b.logo_url AS logoUrl,b.banner_url AS brandBannerUrl,b.accent_color AS accentColor,b.secondary_color AS secondaryColor,b.tagline,b.gallery_json AS galleryJson FROM swapp_game_servers s LEFT JOIN swapp_game_server_extras x ON x.server_id=s.id LEFT JOIN swapp_game_server_branding b ON b.server_id=s.id WHERE s.slug=? AND s.owner_id IN (?,?) AND s.status="published" LIMIT 1',[name,...ownerKeys(req)]);
    if(!rows.length)return res.status(404).type('text').send('Fiche introuvable');
    return res.set('Cache-Control','private,no-store').type('html').send(createPage({game:rows[0].game,games:GAMES,edit:rows[0]}));
@@ -673,7 +673,7 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
   if(!owner)return res.status(401).json({error:'connexion_swapp_requise'});
   if(!/^[a-f0-9]{32}$/.test(id))return res.status(422).json({error:'serveur_invalide'});
   try{
-   const sql=await getDatabase();
+   const sql=await readDatabase();
    const [result]=await sql.execute('DELETE FROM swapp_game_servers WHERE id=? AND owner_id IN (?,?)',[id,...ownerKeys(req)]);
    if(Number(result.affectedRows)!==1)return res.status(404).json({error:'serveur_introuvable'});
    return res.set('Cache-Control','private,no-store').json({deleted:true,id});
