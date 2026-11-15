@@ -17,7 +17,7 @@ function catalogueContent({publicHome=false}={}){
   '<main class="scl-main" id="scl-main">'+
    '<section class="scl-feature" id="scl-feature" aria-label="Sélection du jour">'+
     '<div class="scl-feature-visual" id="scl-feature-visual" aria-hidden="true"></div><div class="scl-feature-vignette" aria-hidden="true"></div>'+
-    '<div class="scl-feature-copy"><span class="scl-feature-kicker" id="scl-feature-kicker">SÉLECTION EN DIRECT</span>'+
+    '<div class="scl-feature-copy"><span class="scl-home-eyebrow">SWAPP · LIVE, JEUX &amp; ACTUALITÉS</span><span class="scl-feature-kicker" id="scl-feature-kicker">SÉLECTION EN DIRECT</span>'+
      '<h1 id="scl-feature-title">À toi de choisir la suite.</h1>'+
      '<p id="scl-feature-desc">Le catalogue présente uniquement des émissions et des jeux réellement disponibles. Aucune session fictive.</p>'+
      '<p id="scl-feature-meta" class="scl-feature-meta" aria-live="polite"></p>'+
@@ -73,7 +73,7 @@ function page({publicHome=false}={}){
   '<meta name="description" content="'+(publicHome?'SWAPP réunit les créateurs en direct, les jeux à découvrir et les actualités gaming dans un catalogue immersif.':'Page de démonstration : explorer les lives et les jeux SWAPP par affiches, prévisualisations et favoris.')+'">'+
   '<script src="/assets/swapp-editorial-color.js?v=20261114-native-accent-v1"></script>'+SHARED_HEAD_SLOT+
   '<link rel="stylesheet" href="/assets/swapp-visual-polish.css?v=20261016-mobile-swipe-40">'+
-  '<link rel="stylesheet" href="/assets/swapp-catalogue-lab.css?v=20261115-hidpi-covers-v25"><link rel="stylesheet" href="/assets/swapp-genre-discovery.css?v=20261115-hidpi-genre-v8">';
+  '<link rel="stylesheet" href="/assets/swapp-catalogue-lab.css?v=20261115-explorer-toolbar-v26"><link rel="stylesheet" href="/assets/swapp-genre-discovery.css?v=20261115-hidpi-genre-v8">';
  const content=catalogueContent({publicHome});
  return renderPage({
   head,content,active:publicHome?'home':'categories',
