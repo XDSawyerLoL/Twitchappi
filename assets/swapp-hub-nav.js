@@ -20,7 +20,7 @@
  const norm=s=>String(s||'').replace(/\s+/g,' ').trim().toLocaleLowerCase('fr');
  const byLabel=new Map([...NAV,ACCOUNT,SECONDARY,['/decouvrir','DIRECT']].map(([href,label])=>[norm(label),href]));
  const byHref=new Set([...NAV,ACCOUNT,SECONDARY].map(([href])=>href));
- const isHub=href=>HUBS.some(x=>x.href===href);
+ const isHub=href=>HUBS.some(x=>x.href===href)||href==='/serveurs';
  function dest(el){
   const href=el.getAttribute('href');
   if(href){
@@ -53,7 +53,7 @@
    return el;
   }
   if(!isHub(href))return el;
-  const label=HUBS.find(x=>x.href===href).label;
+  const label=href==='/serveurs'?'SERVEUR +':HUBS.find(x=>x.href===href).label;
   const link=anchor(href,label,el);
   el.replaceWith(link);
   return link;
