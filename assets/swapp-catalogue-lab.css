@@ -787,7 +787,7 @@ body.swapp-catalogue-lab-page{
  overflow:hidden;background:#111319
 }
 #scl-dialog.scl-dialog-game .scl-game-live-cards .scl-card-details{
- position:relative;inset:auto;min-height:65px;
+ position:relative;inset:auto;min-height:100px;
  padding:9px 10px 12px;
  border-radius:0 0 8px 8px;
  background:#101114;color:#fff;opacity:1;
@@ -802,7 +802,20 @@ body.swapp-catalogue-lab-page{
  display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden
 }
 #scl-dialog.scl-dialog-game .scl-game-live-cards .scl-card-action-row{
- display:none
+ display:flex;align-items:center;justify-content:flex-start;gap:5px;
+ position:relative;inset:auto;margin:8px 0 0;padding:0
+}
+#scl-dialog.scl-dialog-game .scl-game-live-cards .scl-card-watch{
+ display:inline-flex;align-items:center;justify-content:center;
+ border:1px solid #5d656b;border-radius:6px;
+ padding:7px 12px;background:#202327;color:#fff!important;
+ text-decoration:none;font:750 11px/1.1 system-ui
+}
+#scl-dialog.scl-dialog-game .scl-game-live-cards .scl-card-watch:hover{
+ border-color:var(--swapp-page-accent,var(--brand,#75dad6));background:#2c3034
+}
+#scl-dialog.scl-dialog-game .scl-game-live-cards :is(.scl-card-peek,.scl-channel-fav,.scl-card-info){
+ display:none!important
 }
 .scl-genre-loading{
  display:flex;align-items:center;justify-content:center;
