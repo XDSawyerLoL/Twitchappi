@@ -15,12 +15,12 @@ function setup({existing=[],n=1,verify=async()=>({valid:true,inviteUrl:'https://
    calls.push({sql,args});
    if(sql.startsWith('SELECT id,slug,status FROM swapp_game_servers'))return[existing];
    if(sql.startsWith('SELECT COUNT(*) AS n FROM swapp_game_servers'))return[[{n}]];
-   if(sql.startsWith('INSERT INTO swapp_game_servers')||sql.startsWith('UPDATE swapp_game_servers SET name=')||sql.startsWith('INSERT INTO swapp_game_server_extras')){writes.push({sql,args});return[{affectedRows:1}]}
+   if(sql.startsWith('INSERT INTO swapp_game_servers')||sql.startsWith('UPDATE swapp_game_servers SET name=')||sql.startsWith('INSERT INTO swapp_game_server_extras')||sql.startsWith('INSERT INTO swapp_game_server_branding')){writes.push({sql,args});return[{affectedRows:1}]}
    throw Error('Unexpected SQL '+sql);
   }
  };
- const app={GET:new Map(),POST:new Map()};
- const api={get:(route,...handlers)=>app.GET.set(route,handlers.at(-1)),post:(route,...handlers)=>app.POST.set(route,handlers.at(-1))};
+ const app={GET:new Map(),POST:new Map(),PUT:new Map()};
+ const api={get:(route,...handlers)=>app.GET.set(route,handlers.at(-1)),post:(route,...handlers)=>app.POST.set(route,handlers.at(-1)),put:(route,...handlers)=>app.PUT.set(route,handlers.at(-1))};
  register(api,{enableAutoReview:false,getDatabase:async()=>({getConnection:async()=>conn}),inviteVerifier:verify});
  const res=()=>({code:200,data:null,html:null,status(n){this.code=n;return this},json(x){this.data=x;return this},type(){return this},set(){return this},send(x){this.html=x;return this}});
  const request=body=>({get:key=>key==='origin'?'https://swapp.tv':'',session:{oryonUser:{id:'member-123'}},body,query:{},params:{}});
