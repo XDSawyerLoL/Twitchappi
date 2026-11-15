@@ -41,7 +41,12 @@ function validListingDetails({game,website,joinAddress}){
 }
 
 function originGuard(req){const expected=['https://swapp.tv','https://www.swapp.tv'];const own=process.env.APP_BASE_URL; if(own)try{expected.push(new URL(own).origin)}catch{};const origin=req.get('origin');return !!origin&&expected.includes(origin)}
-function account(req){return clean(req.session?.oryonUser?.id||'',80)}
+function account(req){
+ const own=clean(req.session?.oryonUser?.id||'',80);
+ if(own)return own;
+ const twitch=clean(req.session?.twitchUser?.id||'',70);
+ return twitch?'twitch:'+twitch:'';
+}
 function administrator(req){const id=account(req);if(!id)return false;const pinned=String(process.env.ORYON_ADMIN_USER_IDS||'').split(',').map(x=>x.trim()).filter(Boolean);return pinned.includes(id)}
 function fail(res,e){console.warn('[SWAPP SERVEURS]',String(e.code||e.message||e).slice(0,90));return res.status(503).json({error:'annuaire_temporairement_indisponible'})}
 async function db(){
