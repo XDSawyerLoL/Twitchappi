@@ -16,11 +16,11 @@
   const menu=document.querySelector('#userMenu');
   if(menu){
    const old=menu.querySelector('a[data-swapp-server-mod-alert]');
-   if(!allowed||pending<=0)old?.remove();
+   if(!allowed)old?.remove();
    else{
     const a=old||document.createElement('a');
     a.dataset.swappServerModAlert='1';a.href=target;a.className='ss-review-menu-link';
-    a.textContent='SERVEUR + · '+pending+' demande'+(pending===1?'':'s')+' à examiner';
+    a.textContent=pending>0?'SERVEUR + · '+pending+' demande'+(pending===1?'':'s')+' à examiner':'SERVEUR + · Gérer les validations';
     if(!old)menu.prepend(a);
    }
   }
@@ -32,10 +32,10 @@
   const settings=document.querySelector('#settings');
   if(settings){
    let alert=settings.querySelector('[data-ss-account-alert]');
-   if(!allowed||pending<=0){alert?.remove()}
+   if(!allowed){alert?.remove()}
    else{
     if(!alert){alert=document.createElement('a');alert.dataset.ssAccountAlert='1';alert.className='ss-account-alert';settings.prepend(alert)}
-    alert.href=target;alert.textContent='SERVEUR + : '+pending+' serveur'+(pending===1?'':'s')+' en attente de validation →';
+    alert.href=target;alert.textContent=pending>0?'SERVEUR + : '+pending+' serveur'+(pending===1?'':'s')+' en attente de validation →':'SERVEUR + : gérer les serveurs et les validations →';
    }
   }
   const review=document.querySelector('#ss-review');
