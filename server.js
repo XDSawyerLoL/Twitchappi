@@ -1813,7 +1813,7 @@ try{
 
 // Native game-server directory: registration, moderated listings and MySQL-backed votes.
 try{
- require('./modules/swapp-servers').register(app);
+ require('./modules/swapp-servers').register(app,{isAdmin:isOryonAdmin});
 }catch(error){
  console.warn('[SWAPP SERVEURS] Module indisponible :',String(error?.message||error).slice(0,160));
 }
