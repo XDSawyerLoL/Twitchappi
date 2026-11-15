@@ -53,14 +53,14 @@
  const featuredGames=['GTA V / FiveM','Minecraft','Rust'];
  for(const game of featuredGames){
   if(!featuredHost)break;
-  const card=make('button','ss-featured-tile');card.type='button';card.dataset.ssFeatured=game;
+  const card=make('a','ss-featured-tile');card.href='/serveurs/'+gameSlug(game);card.dataset.ssFeatured=game;
   const picture=make('span','ss-featured-art');artInto(picture,game);
   const copy=make('span','ss-featured-copy');
   copy.append(make('small','', 'UNIVERS MULTIJOUEUR'),make('strong','',game));
   const amount=make('span','ss-featured-count','Classement SWAPP');
   amount.dataset.ssFeaturedCount=game;
   copy.append(amount);card.append(picture,copy);
-  card.addEventListener('click',()=>{setGame(game);results?.scrollIntoView({behavior:'smooth',block:'start'})});
+  card.addEventListener('click',event=>{if(event.button||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;event.preventDefault();setGame(game);results?.scrollIntoView({behavior:'smooth',block:'start'})});
   featuredHost.append(card);
  }
  function displayGameCounts(counts){
@@ -121,11 +121,12 @@
   root.querySelectorAll('[data-ss-game]').forEach(b=>{
    const selected=b.dataset.ssGame===$('#ss-game').value;
    b.classList.toggle('is-selected',selected);
-   b.setAttribute('aria-pressed',String(selected));
+   if(selected)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');
   });
  }
- root.querySelectorAll('[data-ss-game]').forEach(b=>b.addEventListener('click',()=>{
-  setGame(b.dataset.ssGame);
+ root.querySelectorAll('[data-ss-game]').forEach(b=>b.addEventListener('click',event=>{
+  if(event.button||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
+  event.preventDefault();setGame(b.dataset.ssGame);
  }));
  syncGameChips();
  window.addEventListener('popstate',()=>{
