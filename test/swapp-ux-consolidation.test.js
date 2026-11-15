@@ -3,11 +3,11 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const read=p=>fs.readFileSync(path.join(__dirname,'..',p),'utf8');
 const nav=require('../assets/swapp-navigation');
 const {community}=require('../modules/swapp-hubs');
-test('five primary destinations; Swapper remains nested beneath SWAPP TV',()=>{
+test('five core destinations plus Explorer and SERVEUR +; Swapper remains nested beneath SWAPP TV',()=>{
  assert.deepEqual(nav.items.map(x=>x.label),['Accueil','Actualité','Social','Boutique','SWAPP TV']);
  const desktop=nav.desktopNavigation('home');
- assert.equal((desktop.match(/<a /g)||[]).length,7); // 5 prior + TV sublink + Explorer
- for(const href of ['/','/actus','/social','/boutique','/tv','/explorer'])
+ assert.equal((desktop.match(/<a /g)||[]).length,8); // 5 core + TV sublink + Explorer + SERVEUR +
+ for(const href of ['/','/actus','/social','/boutique','/tv','/explorer','/serveurs'])
   assert.match(desktop,new RegExp('href="'+href+'"'));
  assert.doesNotMatch(desktop,/swapp-news-more|swapp-news-menu|href="\/equipes"/);
  assert.match(desktop,/href="\/" class="active" aria-current="page"/);
