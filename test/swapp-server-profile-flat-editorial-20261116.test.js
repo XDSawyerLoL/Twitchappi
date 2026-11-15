@@ -66,7 +66,7 @@ test('CSS flattens only server profiles, not creation or directory UI',()=>{
 });
 test('all stylesheet references are refreshed and old profile cache is not used',()=>{
  const backend=read('modules/swapp-servers.js');
- assert.match(backend,/swapp-servers\.css\?v=20261116-cta-premium-v23/);
+ assert.match(backend,/swapp-servers\.css\?v=20261116-category-hero-v24/);
  assert.match(backend,/swapp-servers-community\.css\?v=20261116-flat-community-v3/);
  assert.doesNotMatch(backend,/20261116-compact-cards-v21/);
  assert.doesNotMatch(backend,/20261115-community-v2/);

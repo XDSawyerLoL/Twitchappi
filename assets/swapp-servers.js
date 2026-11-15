@@ -2,6 +2,22 @@
 (()=> {
  const root=document.querySelector('.ss');if(!root)return;
  const $=s=>root.querySelector(s), results=$('#ss-results'),feedback=$('#ss-feedback'),count=$('#ss-count');
+ const gameHeroCount=$('#ss-game-hero-count');
+ const gameHeroImage=root.querySelector('.ss-directory-game-image');
+ if(gameHeroImage){
+  let fallbackAttempted=false;
+  const onArtworkError=()=>{
+   const fallback=gameHeroImage.dataset.ssFallback;
+   if(!fallbackAttempted&&fallback&&gameHeroImage.getAttribute('src')!==fallback){
+    fallbackAttempted=true;
+    gameHeroImage.classList.add('is-low-res-fallback');
+    gameHeroImage.src=fallback;
+   }else gameHeroImage.remove();
+  };
+  gameHeroImage.addEventListener('error',onArtworkError);
+  // The event can fire before the deferred script runs; cover that case too.
+  if(gameHeroImage.complete&&gameHeroImage.naturalWidth===0)onArtworkError();
+ }
  // Submission is handled by the dedicated /serveurs/creer page.
  const make=(tag,cls,text)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(text!==undefined)e.textContent=String(text);return e};
  const state={servers:[],loading:false,request:0,page:1,total:0,hasMore:false,status:'loading',errorMessage:'',errorKind:''};
@@ -203,7 +219,10 @@
    more.hidden=true;more.disabled=false;return;
   }
   count.hidden=state.status==='error';
-  if(state.status!=='error')count.textContent=state.total.toLocaleString('fr-FR')+' serveur'+(state.total===1?'':'s')+' référencé'+(state.total===1?'':'s');
+  if(state.status!=='error'){
+   count.textContent=state.total.toLocaleString('fr-FR')+' serveur'+(state.total===1?'':'s')+' référencé'+(state.total===1?'':'s');
+   if(gameHeroCount)gameHeroCount.textContent=count.textContent;
+  }else if(gameHeroCount&&!keepServerRendered)gameHeroCount.textContent='Nombre de serveurs indisponible';
   more.hidden=!state.hasMore||state.status==='error';more.disabled=state.loading;
   keepServerRendered=false;
   results.replaceChildren(...items.map(serverCard));
