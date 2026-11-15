@@ -31,10 +31,13 @@
   preview.tags.replaceChildren(...selected().map(tag=>{const span=document.createElement('span');span.textContent=tag;return span}));
   const banner=form.elements.bannerUrl.value.trim();
   const imgUrl=/^https:\/\/[^<>"'\s]+$/i.test(banner)?banner:gameImage(game.value);
-  const old=preview.art.querySelector('img');old?.remove();
-  if(imgUrl){
-   const img=document.createElement('img');img.src=imgUrl;img.alt='Aperçu illustratif du serveur';img.loading='lazy';img.referrerPolicy='no-referrer';
-   img.addEventListener('error',()=>img.remove(),{once:true});preview.art.prepend(img);
+  if(preview.art.dataset.currentImage!==imgUrl){
+   preview.art.dataset.currentImage=imgUrl;
+   preview.art.querySelector('img')?.remove();
+   if(imgUrl){
+    const img=document.createElement('img');img.src=imgUrl;img.alt='Aperçu illustratif du serveur';img.loading='lazy';img.referrerPolicy='no-referrer';
+    img.addEventListener('error',()=>img.remove(),{once:true});preview.art.prepend(img);
+   }
   }
  }
  function errorMessage(message){
