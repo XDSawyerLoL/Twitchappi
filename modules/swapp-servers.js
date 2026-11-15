@@ -84,18 +84,21 @@ function detailPage(server,votes){
   scripts:'<script src="/assets/swapp-servers-detail.js?v=20261115-detail-v1" defer></script><script src="/assets/swapp-nav-session.js?v=20261114-native-account-v1" defer></script>'});
 }
 
-let lastAutoReview=0,autoReviewRunning=null;
+let lastAutoReview=0,autoReviewRunning=null,autoReviewOffset=0;
 async function autoReviewPendingDiscord({limit=12,getDatabase=db,inviteVerifier=verifyDiscordInvite}={}){
  if(autoReviewRunning)return autoReviewRunning;
  autoReviewRunning=(async()=>{
   const sql=await getDatabase();
-  const [rows]=await sql.query('SELECT id,website,join_address AS joinAddress FROM swapp_game_servers WHERE status="pending" AND game="Discord / Multigaming" ORDER BY created_at ASC LIMIT '+Math.max(1,Math.min(25,Number(limit)||12)));
+  const batchSize=Math.max(1,Math.min(25,Number(limit)||12));
+  let [rows]=await sql.query('SELECT id,website,join_address AS joinAddress FROM swapp_game_servers WHERE status="pending" AND game="Discord / Multigaming" ORDER BY created_at ASC LIMIT '+batchSize+' OFFSET '+autoReviewOffset);
+  if(!rows.length&&autoReviewOffset){autoReviewOffset=0;[rows]=await sql.query('SELECT id,website,join_address AS joinAddress FROM swapp_game_servers WHERE status="pending" AND game="Discord / Multigaming" ORDER BY created_at ASC LIMIT '+batchSize)}
+  autoReviewOffset=rows.length<batchSize?0:autoReviewOffset+batchSize;
   let approved=0;
   for(const row of rows){
    const proposed=inviteCode(row.website)?row.website:inviteCode(row.joinAddress)?row.joinAddress:'';
    if(!proposed)continue;
    const check=await inviteVerifier(proposed);
-   if(!check.valid)continue;
+   if(!check.valid){if(check.reason==='discord_rate_limited')break;continue;}
    const [write]=await sql.execute('UPDATE swapp_game_servers SET status="published",website=? WHERE id=? AND status="pending"',[check.inviteUrl,row.id]);
    approved+=Number(write.affectedRows||0);
   }
