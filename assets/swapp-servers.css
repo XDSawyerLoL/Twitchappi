@@ -58,3 +58,7 @@
 .ss-detail-connect code{overflow-wrap:anywhere;color:#deffff}.ss-detail-connect button{background:#1b333c;border:1px solid #527782;color:#fff;padding:8px 12px;border-radius:7px;cursor:pointer}
 .ss-detail-note{border-top:1px solid #26363d;padding-top:18px;color:#9eb4c2;font-size:13px}
 #ss-detail-feedback{min-height:22px;color:#95eeee;font-size:13px}
+
+/* Native category links, not faux buttons. */
+.ss-featured-tile,.ss-game-grid a.ss-game-tile{text-decoration:none!important}
+.ss-featured-tile:focus-visible,.ss-game-grid a.ss-game-tile:focus-visible{outline:2px solid #a4eff1;outline-offset:3px}
