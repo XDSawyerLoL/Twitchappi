@@ -343,3 +343,42 @@ html body.swapp-servers-page{background:#030405!important;color:#eff6fa}
 @media(max-width:970px){.ss-partner-cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:610px){.ss-partner-head{align-items:start;flex-direction:column}.ss-partner-badge{font-size:11px}.ss-partner-cards{grid-template-columns:1fr}.ss-partner-card{min-height:135px}.ss-partner-card-art{min-width:90px;flex-basis:29%}}
 @media(prefers-reduced-motion:reduce){.ss-partner-card{transition:none}.ss-partner-card:hover{transform:none}}
+
+
+/* SERVEUR + V15 — marketing is the hero; real, independently navigable game pages. */
+.ss-directory>.ss-grow:first-child{padding-top:clamp(105px,11vw,165px);padding-bottom:clamp(56px,7vw,100px);border-top:0}
+.ss-directory>.ss-directory-intro{min-height:0;padding:clamp(36px,5vw,68px) 0 20px!important;background:#030405!important;border-bottom:0}
+.ss-directory-intro-layout{display:flex;align-items:center;justify-content:space-between;gap:clamp(22px,4vw,75px)}
+.ss-directory-intro-copy{flex:1;min-width:0}
+.ss-directory-intro .ss-overline{color:#9bdde9;font-size:11px;letter-spacing:.16em}
+.ss-directory-intro h1{font-size:clamp(31px,4vw,59px)!important;line-height:1.09;letter-spacing:-.055em;margin:15px 0;max-width:880px}
+.ss-directory-intro p:not(.ss-overline){font-size:clamp(14px,1.35vw,17px)!important;max-width:790px;color:#bfceda}
+.ss-directory-intro-links{display:flex;flex-wrap:wrap;align-items:center;gap:11px;margin-top:19px}
+.ss-directory-intro-links a{display:inline-flex;align-items:center;text-decoration:none;padding:11px 16px;border:1px solid #507781;background:#12232c;border-radius:8px;font-size:13px;font-weight:850;color:#c6edf5}
+.ss-directory-intro-links a:hover{background:#223b47;border-color:#97e7e4;color:#fff}
+.ss-directory-intro-art{position:relative;flex:0 0 min(38%,410px);height:clamp(168px,19vw,260px);overflow:hidden;border:1px solid #ffffff33;border-radius:15px;box-shadow:0 12px 55px #0008,0 0 26px #6fa4c126;background:linear-gradient(130deg,#28303c,#11202f)}
+.ss-directory-intro-art::after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,#04060870,transparent 65%);pointer-events:none}
+.ss-directory-intro-art img{display:block;width:100%;height:100%;object-fit:cover}
+.ss-directory .ss-content{padding-top:20px}
+.ss-directory .ss-game-grid .ss-game-tile,.ss-directory .ss-featured-tile{cursor:pointer}
+.ss-directory .ss-game-tile:focus-visible,.ss-directory .ss-featured-tile:focus-visible{outline:3px solid #95ecec;outline-offset:3px}
+.ss-directory .ss-empty{padding:clamp(26px,5vw,52px);background:radial-gradient(ellipse at 95% 0%,#32244a4b,transparent 58%),#11151c;border:1px solid #536273;border-radius:15px;min-height:210px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:12px}
+.ss-directory .ss-empty h3{margin:0;font-size:clamp(21px,2.5vw,31px);letter-spacing:-.04em;text-align:center}
+.ss-directory .ss-empty p{margin:0;max-width:610px;text-align:center}
+.ss-directory .ss-empty a,.ss-directory .ss-empty button{border-radius:9px;display:inline-flex;align-items:center;justify-content:center;padding:12px 18px;font-size:13px;font-weight:900;text-decoration:none;cursor:pointer}
+.ss-directory .ss-empty-create,.ss-directory .ss-empty-retry{background:linear-gradient(110deg,#a6f7f2,#c0b6ff);border:1px solid #b7eeee;color:#09141c}
+.ss-directory .ss-empty-external{background:#211b34;border:1px solid #967cbd;color:#eee7ff}
+.ss-directory .ss-empty a:hover,.ss-directory .ss-empty button:hover{filter:brightness(1.09)}
+/* External-category cover art is sourced from game storefronts, not Top-Serveurs. */
+.ss-partner-card-art{flex:0 0 44%;min-width:106px;overflow:hidden;background:linear-gradient(145deg,#282545,#111522)}
+.ss-partner-card-art img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:2;filter:saturate(1.13) contrast(1.05);transition:transform .25s}
+.ss-partner-card-art::after{content:"";position:absolute;inset:0;z-index:3;background:linear-gradient(90deg,#05081108 15%,#090d189c 100%),linear-gradient(0deg,#050811a8,transparent 62%);pointer-events:none}
+.ss-partner-card:hover .ss-partner-card-art img{transform:scale(1.055)}
+.ss-partner-card-fallback{position:absolute;inset:0;display:grid;place-items:center;color:var(--ss-partner-accent);font-size:clamp(22px,3vw,41px);font-weight:950}
+.ss-partner-card:has(img[src*="simpleicons.org"]) .ss-partner-card-art img{object-fit:contain;padding:26px;background:linear-gradient(140deg,#1e1d4d,#14283f)}
+.ss-partner-card-copy{gap:11px;padding:19px 17px}
+.ss-partner-card-copy>strong{font-size:clamp(17px,1.7vw,25px)}
+.ss-partner-card-cta{line-height:1.55}
+@media(max-width:970px){.ss-directory-intro-art{flex-basis:35%}.ss-directory>.ss-grow:first-child{padding-top:105px}}
+@media(max-width:650px){.ss-directory-intro-layout{flex-direction:column;align-items:stretch}.ss-directory-intro-art{flex-basis:auto;height:175px;width:100%}.ss-directory>.ss-grow:first-child{padding-top:100px}.ss-partner-card-art{flex-basis:43%}.ss-directory .ss-empty{padding:27px 17px}}
+@media(prefers-reduced-motion:reduce){.ss-partner-card-art img{transition:none}.ss-partner-card:hover .ss-partner-card-art img{transform:none}}
