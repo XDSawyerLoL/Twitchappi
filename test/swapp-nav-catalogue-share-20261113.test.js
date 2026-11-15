@@ -96,5 +96,5 @@ test('versioned SPA assets expose new navigation, catalogue and sharing without 
  }
  assert.match(home,/index_script\.js\?v=20261113-catalogue-heading-v1/);
  assert.match(home,/swapp-actus-app\.js\?v=20261113-direct-x-v3/);
- assert.match(home,/swapp-actus-app\.css\?v=20261113-flush-hero-v10/);
+ assert.match(home,/swapp-actus-app\.css\?v=20261115-actus-black-v11/);
 });
