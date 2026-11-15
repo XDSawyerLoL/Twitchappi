@@ -18,7 +18,7 @@ function evidenceDb(){
   if(sql.startsWith('SELECT COUNT(*) AS allClicks'))return [[{allClicks:18,monthClicks:7}]];
   if(sql.includes('AVG(staff)'))return [[{count:1,staff:4,atmosphere:5,availability:4}]];
   if(sql.startsWith('SELECT staff,atmosphere,availability,comment'))return [[{staff:4,atmosphere:5,availability:4,comment:'Bon serveur',createdAt:'2026-11-14T10:00:00Z'}]];
-  if(sql.startsWith('SELECT s.id,COUNT(v.id)'))return [[{id:'b'.repeat(32),votes:15},{id:server.id,votes:12}]];
+  if(sql.startsWith('SELECT s.id,(SELECT COUNT(*)'))return [[{id:'b'.repeat(32),votes:15},{id:server.id,votes:12}]];
   if(sql.startsWith('SELECT COUNT(*) AS n FROM swapp_game_server_vote_events'))return [[{n:29}]];
   throw Error('Unexpected SQL '+sql);
  }};

@@ -110,9 +110,31 @@
   const content=make('div','ss-card-content'),heading=make('h3','',s.name);
   const tagline=s.tagline?make('p','ss-server-tagline',s.tagline):null;
   const details=make('p','ss-description',s.description);
-  const meta=make('div','ss-meta');meta.append(make('span','',s.region||'Région non précisée'),make('span','',Number(s.votes_month||0).toLocaleString('fr-FR')+' vote(s) ce mois'));
-  const tags=make('div','ss-tags');(Array.isArray(s.tags)?s.tags:[]).slice(0,5).forEach(t=>tags.append(make('span','',t)));
-  content.append(heading);if(tagline)content.append(tagline);content.append(details,meta,tags);
+  const meta=make('div','ss-meta');
+  if(s.region)meta.append(make('span','',s.region));
+  const labels={fr:'Français',en:'English',es:'Español',de:'Deutsch',it:'Italiano',pt:'Português'};
+  if(s.language&&labels[s.language])meta.append(make('span','',labels[s.language]));
+  const created=s.createdAt?new Date(s.createdAt):new Date(NaN);
+  if(Number.isFinite(created.getTime())){
+   meta.append(make('span','','Ajouté le '+new Intl.DateTimeFormat('fr-FR',{day:'2-digit',month:'short',year:'numeric'}).format(created)));
+   if(Date.now()-created.getTime()>=0&&Date.now()-created.getTime()<30*86400000){
+    const fresh=make('span','ss-card-new','Nouveau');fresh.title='Ajouté sur SWAPP il y a moins de 30 jours';meta.append(fresh);
+   }
+  }
+  const tags=make('div','ss-tags');(Array.isArray(s.tags)?s.tags:[]).slice(0,6).forEach(t=>tags.append(make('span','',t)));
+  const metrics=make('div','ss-card-stats');
+  const stat=(value,label)=>{const item=make('span','ss-card-stat');item.append(make('strong','',value),make('small','',label));metrics.append(item)};
+  const number=n=>Number(n).toLocaleString('fr-FR');
+  stat(s.votes_month==null?'—':number(s.votes_month),'votes du mois');
+  if(s.clicksTotal!==undefined&&s.clicksTotal!==null)stat(number(s.clicksTotal),'clics enregistrés');
+  if(s.reviewCount!==undefined&&s.reviewCount!==null){
+   const score=Number(s.ratingAverage);
+   stat(Number(s.reviewCount)>0&&Number.isFinite(score)?score.toFixed(1).replace('.',',')+'/5':'—',
+    Number(s.reviewCount)>0?number(s.reviewCount)+' avis publié'+(Number(s.reviewCount)===1?'':'s'):'aucun avis publié');
+  }
+  content.append(heading);if(tagline)content.append(tagline);content.append(details,meta);
+  if(tags.childElementCount)content.append(tags);
+  content.append(metrics);
   const actions=make('div','ss-card-actions'),vote=make('button','ss-vote');
   const heart=make('span','ss-heart','♥');heart.setAttribute('aria-hidden','true');
   vote.append(heart,make('span','','Voter'));vote.setAttribute('aria-label','Voter pour '+s.name);
@@ -143,7 +165,8 @@
  };
  const draw=()=>{
   const items=state.servers;
-  count.textContent=state.status==='error'?'Classement indisponible':state.total.toLocaleString('fr-FR')+' serveur'+(state.total===1?'':'s')+' référencé'+(state.total===1?'':'s');
+  count.hidden=state.status==='error';
+  if(state.status!=='error')count.textContent=state.total.toLocaleString('fr-FR')+' serveur'+(state.total===1?'':'s')+' référencé'+(state.total===1?'':'s');
   more.hidden=!state.hasMore||state.status==='error';more.disabled=state.loading;
   if(state.status==='error'&&keepServerRendered&&!$('#ss-q').value.trim())return;
   keepServerRendered=false;
@@ -151,8 +174,8 @@
   if(!items.length){
    const empty=make('div','ss-empty');
    if(state.status==='error'){
-    empty.append(make('h3','','Impossible de charger les serveurs pour le moment'),
-     make('p','',state.errorMessage||'Les inscriptions ne peuvent pas être vérifiées actuellement. Réessaie dans un instant.'));
+    empty.append(make('h3','','Classement temporairement indisponible'),
+     make('p','','Les serveurs ne peuvent pas être affichés actuellement. Tes inscriptions sont conservées ; tu peux réessayer.'));
     const retry=make('button','ss-empty-retry','Réessayer');retry.type='button';retry.addEventListener('click',()=>load());empty.append(retry);
    }else if($('#ss-q').value.trim()){
     empty.append(make('h3','','Aucun serveur trouvé pour cette recherche'),
@@ -184,27 +207,25 @@
   try{
    const res=await fetch('/api/swapp/serveurs?'+params.toString(),{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}});
    if(!res.ok){
-    const reason=res.status===403?'Accès bloqué par la protection du site (HTTP 403).':
-     res.status===404?'L’API des serveurs est introuvable sur cette version du site (HTTP 404).':
-     res.status===429?'Trop de requêtes : réessaie dans un instant (HTTP 429).':
-     res.status===503?'Service ou base des serveurs temporairement indisponible (HTTP 503).':
-     'Échec du classement des serveurs (HTTP '+res.status+').';
-    throw Error(reason);
+    // Keep diagnostic HTTP information in the developer console, not the visitor UI.
+    console.warn('[SWAPP SERVEURS] GET /api/swapp/serveurs failed',res.status);
+    throw Error('Classement temporairement indisponible');
    }
    if(!(res.headers.get('content-type')||'').includes('application/json'))
-    throw Error('Le site ne renvoie pas les données du classement (réponse non JSON).');
+    throw Error('Classement temporairement indisponible');
    const data=await res.json();if(seq!==state.request)return;
    if(!data||!Array.isArray(data.servers)||!Number.isFinite(Number(data.total)))
-    throw Error('Réponse du classement incomplète : impossible de vérifier les inscriptions.');
+    throw Error('Classement temporairement indisponible');
    const items=data.servers;
    state.page=requestedPage;state.total=Number(data.total)||0;state.hasMore=Boolean(data.hasMore);state.status='ready';state.errorMessage='';
    state.servers=reset?items:state.servers.concat(items);
    displayGameCounts(data.gameCounts);
-   feedback.textContent='Classement basé sur les votes enregistrés ce mois-ci, sans faux statut en ligne.';
+   feedback.textContent=data.ranking==='temporarily_unavailable'?'Les fiches sont accessibles ; les votes ne sont pas disponibles pour le moment.':'Classement basé sur les votes enregistrés ce mois-ci, sans faux statut en ligne.';
   }catch(e){
    if(seq!==state.request)return;
-   if(reset){displayGameCounts(null);state.servers=[];state.total=0;state.status='error';state.errorMessage=e?.message||'Impossible de charger les serveurs pour le moment.'}
-   feedback.textContent=e?.message||'Impossible de charger les serveurs pour le moment.';
+   if(reset){displayGameCounts(null);state.servers=[];state.total=0;state.status='error';state.errorMessage='Classement indisponible'}
+   // Never repeat the same failure in both feedback and the empty-state card.
+   feedback.textContent=keepServerRendered?'Actualisation indisponible : les fiches déjà chargées restent visibles.':'';
   }finally{
    if(seq===state.request){state.loading=false;draw();more.disabled=false}
   }

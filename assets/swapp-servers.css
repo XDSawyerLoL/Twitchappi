@@ -404,3 +404,46 @@ html body.swapp-servers-page{background:#030405!important;color:#eff6fa}
  .ss-owner-manage-actions .ss-owner-delete{width:100%;flex:1 1 100%}
  .ss-directory[data-ss-current-game]:not([data-ss-current-game=""]) .ss-title{margin-top:18px}
 }
+
+
+/* SERVEUR + V18: readable cards, no visual holes, verified metadata only. */
+.ss-server-card .ss-card-content{justify-content:flex-start;gap:0;min-width:0}
+.ss-server-card .ss-meta{gap:8px 14px;margin:7px 0 12px}
+.ss-server-card .ss-meta>span{color:#b7c9d5;font-size:12px}
+.ss-server-card .ss-meta .ss-card-new{border:1px solid #7cdacc;background:#12342f;color:#adfff0;font-weight:850;border-radius:20px;padding:3px 9px}
+.ss-card-stats{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0 4px}
+.ss-card-stat{display:flex;flex-direction:column;gap:3px;min-width:94px;flex:1 1 100px;padding:10px 12px;background:#0b141b;border:1px solid #ffffff1a;border-radius:9px}
+.ss-card-stat strong{color:#f5fbff;font-size:18px;line-height:1.2;font-variant-numeric:tabular-nums}
+.ss-card-stat small{color:#a9bfcd;font-size:11px;line-height:1.4}
+.ss-server-card .ss-card-actions{margin-top:15px}
+.ss-pro .ss-pro-aside-card{display:flex;flex-direction:column;gap:10px}
+.ss-pro .ss-pro-aside-card .ss-pro-side-actions{margin:7px 0 0!important;gap:10px}
+.ss-pro .ss-pro-aside-card .ss-pro-social-links{padding-top:0!important;margin-top:0!important;gap:9px}
+.ss-pro .ss-pro-aside-card .ss-pro-connect{margin-top:2px}
+.ss-pro .ss-pro-aside-card .ss-pro-disclaimer{margin:6px 0 0!important}
+.ss-pro .ss-pro-aside-card .ss-pro-side-actions:empty,.ss-pro .ss-pro-social-links:empty{display:none}
+.ss-pro .ss-pro-aside-card .ss-pro-button{width:100%;min-height:49px;padding:11px 16px}
+.ss-pro .ss-pro-social-links a{min-height:45px;align-items:center}
+.ss-pro .ss-pro-aside-card dt,.ss-pro .ss-pro-aside-card dd{min-width:0;overflow-wrap:anywhere}
+.ss-pro-facts{margin:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.ss-pro-facts>div{min-width:0;border:1px solid #ffffff1b;background:#10191f;border-radius:10px;padding:16px}
+.ss-pro-facts dt{font-size:12px;font-weight:700;color:#a9bccc;margin-bottom:8px}
+.ss-pro-facts dd{margin:0;font-size:15px;font-weight:850;color:#eefafa;overflow-wrap:anywhere}
+.ss-pro-data-note{font-size:12px;line-height:1.6;color:#a8bcc8;margin:19px 0 0}
+.ss-pro-review-breakdown{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0 0 22px}
+.ss-pro-review-breakdown>div{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;border:1px solid #ffffff1d;border-radius:8px;background:#111b20;padding:14px}
+.ss-pro-review-breakdown span{color:#b8cbd6;font-size:12px}
+.ss-pro-review-breakdown strong{color:#e1f9f6;font-size:16px}
+.ss-pro-faq details{border-top:1px solid #ffffff24;padding:17px 0}
+.ss-pro-faq summary{font-weight:850;cursor:pointer;color:#e7f4f6;list-style-position:inside}
+.ss-pro-faq summary:focus-visible{outline:2px solid #91e4e8;outline-offset:4px}
+.ss-pro-faq details p{line-height:1.75;color:#bdcbd6;margin:12px 0 0;padding-left:15px}
+.ss-directory .ss-empty{scroll-margin-top:140px}
+.ss-directory .ss-empty-retry{min-width:140px}
+@media(max-width:760px){
+ .ss-pro-facts,.ss-pro-review-breakdown{grid-template-columns:1fr}
+ .ss-card-stats{gap:8px}
+ .ss-card-stat{min-width:80px;flex:1 1 30%}
+ .ss-pro .ss-pro-aside-card .ss-pro-side-actions{margin-top:5px!important}
+}
+@media(prefers-reduced-motion:reduce){.ss-pro-faq details,.ss-card-stat{transition:none}}
