@@ -51,7 +51,7 @@ test('external categories use each game own art, with Discord identified separat
  assert.equal(CATEGORY_LINKS.length,6);
  for(const category of CATEGORY_LINKS){
   assert.ok(category.cover.startsWith('https://'),category.label);
-  assert.ok(html.includes('alt="Visuel de '+category.label+'"'),category.label);
+  assert.ok(html.includes('alt="Visuel de '+category.label.replace(/&/g,'&amp;')+'"'),category.label);
   assert.ok(!category.cover.includes('top-serveurs.net'),category.label);
  }
  assert.match(source,/Steam store or Twitch category/);
