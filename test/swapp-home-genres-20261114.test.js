@@ -48,11 +48,13 @@ test('les catégories les plus actives proviennent uniquement des vrais lives',(
  assert.equal(rankGenres([],[{kind:'live',id:'a',game:'Dota 2',viewers:2500,audienceVerified:false}]).find(x=>x.id==='moba').audience,null);
 });
 
-test('un seul Accueil comprend les directs, les genres puis les actualités',()=>{
+test('un seul Accueil présente le magazine, les directs puis les genres',()=>{
  const content=catalogueContent({publicHome:true});
  for(const id of ['scl-feature','scl-live','scl-genres','scl-articles','scl-games','scl-small'])assert.ok(content.includes('id="'+id+'"'),id);
- assert.ok(content.indexOf('id="scl-live"')<content.indexOf('id="scl-genres"'));
- assert.ok(content.indexOf('id="scl-genres"')<content.indexOf('id="scl-articles"'));
+ assert.ok(content.indexOf('id="scl-articles"')<content.indexOf('id="scl-live"'),'magazine avant les directs');
+ assert.ok(content.indexOf('id="scl-live"')<content.indexOf('id="scl-small"'),'directs avant les petites communautés');
+ assert.ok(content.indexOf('id="scl-small"')<content.indexOf('id="scl-genres"'),'petites communautés avant les genres');
+ assert.ok(content.indexOf('id="scl-genres"')<content.indexOf('id="scl-games"'),'genres avant le catalogue des jeux');
  const spa=renderIntoSpa(read('index.html'));
  assert.match(spa,/swapp-genre-discovery\.js\?v=20261115-hidpi-genre-v8/);
  assert.match(spa,/swapp-genre-discovery\.css\?v=20261115-hidpi-genre-v8/);
