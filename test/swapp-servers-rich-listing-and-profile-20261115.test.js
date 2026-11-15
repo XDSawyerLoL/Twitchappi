@@ -17,6 +17,11 @@ function mock({missingOptional=false,down=false,isAdmin=false}={}){
    seen.push({sql,args});
    if(down)throw Object.assign(Error('database down'),{code:'ECONNREFUSED'});
    if(sql.startsWith('SELECT COUNT(*) AS n FROM swapp_game_servers s WHERE'))return [[{n:1}]];
+   if(sql.startsWith('SELECT COUNT(*) AS n FROM swapp_game_servers WHERE game='))return [[{n:1}]];
+   if(sql.startsWith('SELECT s.id,s.name,s.slug,s.game,s.description,s.banner_url')){
+    if(missingOptional&&sql.includes('swapp_game_server_branding'))throw Object.assign(Error('no branding'),{code:'ER_NO_SUCH_TABLE'});
+    return [[{...server,banner_url:''}]];
+   }
    if(sql.startsWith('SELECT s.id,s.owner_id,s.slug,s.name')){
     if(missingOptional&&sql.includes('swapp_game_server_branding'))throw Object.assign(Error('no branding'),{code:'ER_NO_SUCH_TABLE'});
     return [[{...server,bannerUrl:'',votes_month:missingOptional?null:7}]];
@@ -53,6 +58,14 @@ test('missing optional MySQL tables leave authentic published listing accessible
  assert.equal(r.data.ranking,'temporarily_unavailable');
  assert.equal(r.data.servers[0].reviewCount,undefined);
  assert.ok(c.seen.some(x=>x.sql.includes('NULL AS votes_month')));
+});
+test('category HTML still displays a published Discord server when branding table is missing',async()=>{
+ const c=mock({missingOptional:true}),r=c.res();
+ await c.handlers['GET /serveurs/:jeu'](c.req,r);
+ assert.equal(r.statusCode,200);
+ assert.match(r.html,/ss-category-preloaded/);
+ assert.match(r.html,/SWAPP/);
+ assert.ok(r.html.indexOf('ss-category-preloaded')<r.html.indexOf('id="ss-featured-games"'));
 });
 test('server list survives unavailable enrichment metrics',async()=>{
  const c=mock(),r=c.res();
