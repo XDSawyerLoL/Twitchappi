@@ -292,7 +292,7 @@ async function verify(){
  check(labHome.body.includes('id="swapp-catalogue-lab"')&&
    labHome.body.includes('noindex,nofollow,noarchive'),
    'Unindexed /catalogue-test laboratory missing');
- const publicCatalogueJs=await request(origin,'/assets/swapp-catalogue-lab.js?v=20261115-hidpi-posters-v30');
+ const publicCatalogueJs=await request(origin,'/assets/swapp-catalogue-lab.js?v=20261115-all-rails-v31');
  check(publicCatalogueJs.body.includes('function chooseSmallCommunities(')&&
   publicCatalogueJs.body.includes('/api/oryon/discover/find-live?mood=petite-commu'),
   'Public homepage small-community discovery missing');
@@ -321,7 +321,7 @@ async function verify(){
  const cardClient=await request(origin,'/assets/swapp-actus-app.js');
  check(cardClient.body.includes('SwappArticleExtras?.cardImageSources')&&
   cardClient.body.includes('swapp-actus-cover-fallback')&&
-  home.body.includes('swapp-actus-app.css?v=20261113-flush-hero-v10'),
+  home.body.includes('swapp-actus-app.css?v=20261115-actus-black-v11'),
   'Card thumbnails or premium missing-image style are stale');
  const cardCss=await request(origin,'/assets/swapp-actus-app.css');
  check(cardCss.body.includes('swapp-actus-cover-fallback'),

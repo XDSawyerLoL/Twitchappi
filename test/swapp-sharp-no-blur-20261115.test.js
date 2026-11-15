@@ -40,7 +40,7 @@ test('native and SPA serve a new fingerprint for all three corrected CSS resourc
  const index=read('index.html');
  const htmls=[renderIntoSpa(index),page({publicHome:true}),renderPage({head:SHARED_HEAD_SLOT,content:'<main>ACTUS</main>'})];
  const theme='swapp-obsidian-ice.css?v=20261115-unified-black-v22';
- const lab='swapp-catalogue-lab.css?v=20261115-explorer-toolbar-v26';
+ const lab='swapp-catalogue-lab.css?v=20261115-all-rails-toolbar-v27';
  const genres='swapp-genre-discovery.css?v=20261115-hidpi-genre-v8';
  for(const html of htmls){
   assert.equal(html.split(theme).length-1,1,'must use exactly one updated global theme');
