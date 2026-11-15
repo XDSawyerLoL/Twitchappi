@@ -33,10 +33,16 @@ test('genre-specific pages only recommend that same external category',()=>{
 });
 test('no API token, scraped images, external votes or phantom top-server standings',()=>{
  const module=read('modules/swapp-servers-external-discovery.js');
- for(const unexpected of ['fetch(','axios.','http.get(','server_token=','<img ','votes_month:']){
+ for(const unexpected of ['fetch(','axios.','http.get(','server_token=','votes_month:']){
   assert.ok(!module.includes(unexpected),unexpected+' must not exist in external linking');
  }
  const pack=read('tools/swapp-hostinger-package.js');
  assert.match(pack,/modules\/swapp-servers-external-discovery\.js/);
  assert.match(read('assets/swapp-servers.css'),/ss-partner-card/);
+ for(const item of CATEGORY_LINKS){
+  assert.match(item.cover,/^https:\/\/(?:cdn\.cloudflare\.steamstatic\.com|static-cdn\.jtvnw\.net|cdn\.simpleicons\.org)\//);
+  assert.ok(!item.cover.includes('top-serveurs.net'));
+ }
+ assert.match(renderExternalDiscovery(),/<img src="https:\/\//);
+ assert.doesNotMatch(renderExternalDiscovery(),/ss-partner-icon/);
 });
