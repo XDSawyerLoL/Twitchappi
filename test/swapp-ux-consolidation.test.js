@@ -6,8 +6,8 @@ const {community}=require('../modules/swapp-hubs');
 test('five primary destinations; Swapper remains nested beneath SWAPP TV',()=>{
  assert.deepEqual(nav.items.map(x=>x.label),['Accueil','Actualité','Social','Boutique','SWAPP TV']);
  const desktop=nav.desktopNavigation('home');
- assert.equal((desktop.match(/<a /g)||[]).length,6); // 5 primary + 1 TV sublink
- for(const href of ['/','/actus','/social','/boutique','/tv'])
+ assert.equal((desktop.match(/<a /g)||[]).length,7); // 5 prior + TV sublink + Explorer
+ for(const href of ['/','/actus','/social','/boutique','/tv','/explorer'])
   assert.match(desktop,new RegExp('href="'+href+'"'));
  assert.doesNotMatch(desktop,/swapp-news-more|swapp-news-menu|href="\/equipes"/);
  assert.match(desktop,/href="\/" class="active" aria-current="page"/);
