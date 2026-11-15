@@ -22,6 +22,10 @@ function mysqlConfig(env=process.env){
  return {url:'',source:null};
 }
 const mysqlUrl=()=>mysqlConfig().url;
+// One SQL predicate for both diagnosis and public listing; SQL string
+// literals use standard single quotes (compatible with ANSI_QUOTES mode).
+// CONCAT_WS ignores NULLs in older records instead of hiding them from search.
+const DIRECTORY_FILTER_SQL="s.status='published' AND (?='' OR s.game=?) AND (?='' OR LOWER(CONCAT_WS(' ',s.name,s.description,s.tags,s.game)) LIKE CONCAT('%',?,'%'))";
 let pool=null,ready=null;
 const clean=(v,n=200)=>String(v??'').trim().slice(0,n);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -534,7 +538,7 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
    let publicCount={status:'not_checked'};
    if(core){
     try{
-     const filter='s.status="published" AND (?="" OR s.game=?) AND (?="" OR LOWER(CONCAT(s.name," ",s.description," ",s.tags," ",s.game)) LIKE CONCAT("%",?,"%"))';
+     const filter=DIRECTORY_FILTER_SQL;
      const [countRows]=await sql.execute('SELECT COUNT(*) AS n FROM swapp_game_servers s WHERE '+filter,['','','','']);
      const count=Number(countRows?.[0]?.n);
      publicCount={status:'ready',...(Number.isSafeInteger(count)&&count>=0?{published:count}:{})};
@@ -595,7 +599,7 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
    const pageSize=24,offset=(page-1)*pageSize;
    const month=new Date().toISOString().slice(0,7)+'-01';
    const order=sort==='recent'?'s.created_at DESC,s.id ASC':sort==='name'?'s.name ASC,s.id ASC':'votes_month DESC,s.created_at ASC,s.id ASC';
-   const filter='s.status="published" AND (?="" OR s.game=?) AND (?="" OR LOWER(CONCAT(s.name," ",s.description," ",s.tags," ",s.game)) LIKE CONCAT("%",?,"%"))';
+   const filter=DIRECTORY_FILTER_SQL;
    const args=[game,game,q,q];
    const [totals]=await sql.execute('SELECT COUNT(*) AS n FROM swapp_game_servers s WHERE '+filter,args);
    const total=Number(totals[0]?.n||0);
