@@ -189,27 +189,77 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
    res.set('Cache-Control','public,max-age=30').json({servers:rows.map(r=>({...r,votes_month:Number(r.votes_month),tags:r.tags.split(',').map(t=>t.trim()).filter(Boolean)})),total:rows.length,gameCounts,ranking:'monthly_valid_votes',onlineVerified:false});
   }catch(e){fail(res,e)}
  });
+
+ // Create or recover one server with real field validation and an atomic metadata save.
  app.post('/api/swapp/serveurs',require('express').json({limit:'12kb'}),async(req,res)=>{
   if(!originGuard(req))return res.status(403).json({error:'origine_invalide'});
-  const user=account(req);if(!user)return res.status(401).json({error:'connexion_swapp_requise'});
-  const input=req.body||{},name=clean(input.name,100),game=clean(input.game,70),description=clean(input.description,1500);
-  const website=clean(input.website,350),banner=clean(input.bannerUrl,350),join=clean(input.joinAddress,240),region=clean(input.region||'France',60),tags=clean(input.tags,250);
-  if(name.length<3||description.length<30||!validListingDetails({game,website,joinAddress:join})||(website&&!safeUrl(website))||(join&&!validJoinAddress(join)&&!inviteCode(join))||(banner&&!safeUrl(banner)))return res.status(422).json({error:'informations_invalides'});
+  const owner=account(req);
+  if(!owner)return res.status(401).json({error:'connexion_swapp_requise'});
+  const body=req.body||{},name=clean(body.name,101),description=clean(body.description,1501),game=clean(body.game,70);
+  const website=clean(body.website,351),banner=clean(body.bannerUrl,351),join=clean(body.joinAddress,241),region=clean(body.region||'France',60);
+  const language=clean(body.language||'fr',12),twitchRaw=clean(body.twitch||body.twitchUrl,140);
+  const twitch=twitchRaw?twitchLink(twitchRaw):'';
+  const hasTypes=Array.isArray(body.types);
+  const rawTypes=hasTypes?body.types:[];
+  const types=readTypes(rawTypes);
+  const legacyTags=clean(body.tags,251);
+  const tags=hasTypes?types.join(', '):legacyTags;
+  const discord=game==='Discord / Multigaming';
+  const invite=discord?discordLink(body.discordCode||join||website):'';
+  if(name.length<3||name.length>100||description.length<30||description.length>1500||
+    !GAMES.includes(game)||!LANGUAGES.some(([code])=>code===language)||
+    website.length>350||banner.length>350||join.length>240||tags.length>250||
+    (website&&!safeUrl(website))||(banner&&!safeUrl(banner))||
+    (twitchRaw&&!twitch)||(hasTypes&&(rawTypes.length>6||types.length!==new Set(rawTypes).size))||
+    (!discord&&!validListingDetails({game,website,joinAddress:join}))||
+    (!discord&&join&&!validJoinAddress(join)))
+   return res.status(422).json({error:'informations_invalides'});
+  if(discord&&!invite)return res.status(422).json({error:'invitation_discord_requise'});
+  // Discord confirmation is separate from listing-format validation.
+  const verification=discord?await inviteVerifier(invite):{valid:true,reason:'listing_format'};
+  if(!verification.valid)return res.status(422).json({error:'verification_discord_impossible',reason:verification.reason||'discord_unavailable',retry:true});
+  const mainUrl=discord?verification.inviteUrl:website;
+  const mainJoin=discord?'':join;
+  const homepage=website?website:'';
+  const guildId=discord?clean(verification.guildId,25):'';
+  let conn;
   try{
-   const sql=await getDatabase();const [count]=await sql.execute('SELECT COUNT(*) AS n FROM swapp_game_servers WHERE owner_id=?',[user]);if(count[0].n>=5)return res.status(429).json({error:'limite_de_cinq_serveurs'});
-   const id=crypto.randomBytes(16).toString('hex'),serverSlug=(slug(name)||'serveur')+'-'+id.slice(0,7);
-   // No manual queue for valid game listings. Discord invitations must additionally
-   // be confirmed by Discord; an unavailable verification is a retryable error.
-   const discord=game==='Discord / Multigaming';
-   const proposed=discord?(inviteCode(website)?website:inviteCode(join)?join:''):'';
-   if(discord&&!proposed)return res.status(422).json({error:'invitation_discord_requise'});
-   const verification=discord?await inviteVerifier(proposed):{valid:true,reason:'listing_format'};
-   if(!verification.valid)return res.status(422).json({error:'verification_discord_impossible',reason:verification.reason||'discord_unavailable',retry:true});
-   const resolvedWebsite=discord?verification.inviteUrl:website;
-   await sql.execute('INSERT INTO swapp_game_servers (id,owner_id,name,slug,game,description,website,join_address,region,tags,banner_url,status) VALUES (?,?,?,?,?,?,?,?,?,?,?,"published")',[id,user,name,serverSlug,game,description,resolvedWebsite,join,region,tags,banner]);
-   return res.status(201).json({status:'published',slug:serverSlug,autoVerified:discord,verification:discord?'discord_invite':'listing_format',
-    onlineVerified:false,url:'/serveurs/'+slug(game)+'/'+serverSlug});
-  }catch(e){fail(res,e)}
+   const sql=await getDatabase();
+   conn=typeof sql.getConnection==='function'?await sql.getConnection():sql;
+   if(typeof conn.beginTransaction==='function')await conn.beginTransaction();
+   // Existing pending submissions can be finished without creating a second entry.
+   const [existing]=await conn.execute('SELECT id,slug,status FROM swapp_game_servers WHERE owner_id=? AND game=? AND name=? ORDER BY created_at DESC LIMIT 1',[owner,game,name]);
+   if(existing.length&&existing[0].status==='published'){
+    if(typeof conn.rollback==='function')await conn.rollback();
+    return res.status(200).json({status:'published',alreadyExists:true,slug:existing[0].slug,url:'/serveurs/'+slug(game)+'/'+existing[0].slug,onlineVerified:false});
+   }
+   const [count]=await conn.execute('SELECT COUNT(*) AS n FROM swapp_game_servers WHERE owner_id=?',[owner]);
+   if(!existing.length&&Number(count[0]?.n||0)>=5){
+    if(typeof conn.rollback==='function')await conn.rollback();
+    return res.status(429).json({error:'limite_de_cinq_serveurs'});
+   }
+   const id=existing.length?existing[0].id:crypto.randomBytes(16).toString('hex');
+   const serverSlug=existing.length?existing[0].slug:(slug(name)||'serveur')+'-'+id.slice(0,7);
+   if(existing.length){
+    const [updated]=await conn.execute('UPDATE swapp_game_servers SET name=?,description=?,website=?,join_address=?,region=?,tags=?,banner_url=?,status="published" WHERE id=? AND owner_id=? AND status="pending"',
+     [name,description,mainUrl,mainJoin,region,tags,banner,id,owner]);
+    if(updated.affectedRows!==1)throw Error('submission_conflict');
+   }else{
+    await conn.execute('INSERT INTO swapp_game_servers (id,owner_id,name,slug,game,description,website,join_address,region,tags,banner_url,status) VALUES (?,?,?,?,?,?,?,?,?,?,?,"published")',
+     [id,owner,name,serverSlug,game,description,mainUrl,mainJoin,region,tags,banner]);
+   }
+   await conn.execute('INSERT INTO swapp_game_server_extras (server_id,language,twitch_url,homepage_url,discord_guild_id) VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE language=VALUES(language),twitch_url=VALUES(twitch_url),homepage_url=VALUES(homepage_url),discord_guild_id=VALUES(discord_guild_id)',
+    [id,language,twitch,homepage,guildId]);
+   if(typeof conn.commit==='function')await conn.commit();
+   return res.status(existing.length?200:201).json({status:'published',slug:serverSlug,autoVerified:discord,
+    verification:discord?'discord_invite':'listing_format',onlineVerified:false,
+    url:'/serveurs/'+slug(game)+'/'+serverSlug});
+  }catch(e){
+   if(typeof conn?.rollback==='function')await conn.rollback().catch(()=>{});
+   return fail(res,e);
+  }finally{
+   if(typeof conn?.release==='function')conn.release();
+  }
  });
  app.post('/api/swapp/serveurs/:id/vote',async(req,res)=>{
   if(!originGuard(req))return res.status(403).json({error:'origine_invalide'});
