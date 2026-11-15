@@ -51,5 +51,38 @@
   const payload=Object.fromEntries(new FormData(form).entries());
   try{const res=await fetch('/api/swapp/serveurs',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify(payload)});const data=await res.json();if(!res.ok)throw Error(({connexion_swapp_requise:'Connecte-toi à ton compte SWAPP avant de proposer un serveur.',limite_de_cinq_serveurs:'Limite de cinq fiches par compte atteinte.',informations_invalides:'Vérifie le nom, la description, le jeu et les URL HTTPS.'})[data.error]||'Soumission indisponible.');status.textContent='Serveur soumis. La fiche est en attente de validation.';form.reset()}catch(e){status.textContent=e.message}finally{button.disabled=false}
  };
+ const admin=$('#ss-review'),adminRefresh=$('#ss-review-refresh');
+ if(admin&&adminRefresh){
+  async function review(){
+   admin.textContent='Chargement des propositions…';
+   try{
+    const response=await fetch('/api/swapp/serveurs/moderation',{credentials:'same-origin'});
+    if(!response.ok)throw Error('Modération indisponible.');
+    const data=await response.json();
+    const servers=Array.isArray(data.servers)?data.servers:[];
+    admin.replaceChildren();
+    if(!servers.length){admin.append(make('p','','Aucune proposition en attente.'));return}
+    for(const item of servers){
+     const card=make('article','ss-review-card');
+     card.append(make('h3','',item.name+' · '+item.game),make('p','',item.description),make('p','',item.website||item.joinAddress||'Aucun lien'));
+     for(const [decision,label] of [['published','Approuver'],['rejected','Refuser']]){
+      const button=make('button','',label);button.type='button';
+      button.onclick=async()=>{
+       button.disabled=true;
+       try{
+        const response=await fetch('/api/swapp/serveurs/'+encodeURIComponent(item.id)+'/moderation',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({status:decision})});
+        if(!response.ok)throw Error('Décision impossible.');
+        await review();await load();
+       }catch(error){admin.prepend(make('p','',error.message));button.disabled=false}
+      };
+      card.append(button);
+     }
+     admin.append(card);
+    }
+   }catch(error){admin.textContent=error.message}
+  }
+  adminRefresh.onclick=review;review();
+ }
+
  load();
 })();
