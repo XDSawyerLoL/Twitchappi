@@ -83,10 +83,17 @@ test('Movix CSS and JS versions are the same in SPA and standalone catalogue',()
  const spa=renderIntoSpa(read('index.html'));
  const native=require('../modules/swapp-catalogue-lab').page();
  for(const html of [spa,native]){
-  assert.match(html,/swapp-genre-discovery\.css\?v=20261115-sharp-genre-v7/);
-  assert.match(html,/swapp-genre-discovery\.js\?v=20261115-sharp-genre-v7/);
-  assert.match(html,/swapp-catalogue-lab\.js\?v=20261115-obsession-shuffle-v29/);
+  assert.match(html,/swapp-genre-discovery\.css\?v=20261115-hidpi-genre-v8/);
+  assert.match(html,/swapp-genre-discovery\.js\?v=20261115-hidpi-genre-v8/);
+  assert.match(html,/swapp-catalogue-lab\.js\?v=20261115-hidpi-posters-v30/);
  }
  const smoke=read('tools/swapp-deploy-smoke.js');
- assert.match(smoke,/swapp-catalogue-lab\.js\?v=20261115-obsession-shuffle-v29/);
+ assert.match(smoke,/swapp-catalogue-lab\.js\?v=20261115-hidpi-posters-v30/);
+});
+
+test('game posters use a non-blurred normal stacking context at native pixel density',()=>{
+ const css=read('assets/swapp-genre-discovery.css');
+ assert.match(css,/#swapp-catalogue-lab \.scl-game-poster-image\{z-index:0\}/);
+ assert.match(css,/#swapp-catalogue-lab \.scl-game-poster-image::after\{content:none!important\}/);
+ assert.match(css,/#swapp-catalogue-lab \.scl-game-poster-image img\{[\s\S]*?filter:none!important;transform:none!important/);
 });
