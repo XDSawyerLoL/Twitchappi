@@ -1,0 +1,127 @@
+{
+  "kind": "swapp-editorial-pending",
+  "schema": 1,
+  "createdAt": "2026-11-15T22:52:54.718987Z",
+  "updatedAt": "2026-11-15T22:52:54.718987Z",
+  "publicationPolicy": "Brouillons hors manifeste : ne publier qu’après levée des blocages médias et contrôles natifs. Conserver MySQL Hostinger et toutes les dépublications. publishedAt reste null jusqu’à une décision réelle de publication.",
+  "articles": [
+    {
+      "author": "Rédaction SWAPP",
+      "category": "Actualités JV",
+      "contentType": "article",
+      "status": "draft",
+      "publishedAt": null,
+      "revision": 1,
+      "image": null,
+      "thumbnail": null,
+      "editorialVerdict": null,
+      "slug": "god-of-war-sons-of-sparta-ps4-hermes-erebus-16-novembre",
+      "title": "Sons of Sparta arrive sur PS4 : deux nouveaux modes pour reprendre l’aventure",
+      "summary": "Santa Monica annonce la version PS4 et les modes Hermes et Erebus pour le 16 novembre. Les joueurs PS5 recevront également ces deux variantes.",
+      "game": "God of War Sons of Sparta",
+      "games": [
+        "God of War Sons of Sparta"
+      ],
+      "tags": [
+        "GAMING",
+        "God of War",
+        "PS4",
+        "PS5",
+        "mise à jour"
+      ],
+      "body": "God of War Sons of Sparta prépare une nouvelle étape. Le 13 novembre 2026, Santa Monica Studio a actualisé sa présentation officielle pour annoncer une version PS4 le 16 novembre. Le même rendez-vous doit apporter deux modes supplémentaires sur PS4 et PS5.\n\n## Deux façons de reprendre l’aventure\n\nHermes réunit des outils destinés au speedrun, dont un chronomètre par segments et un tableau de résultats persistant. Son accès passe par une première partie terminée ou par un code communiqué dans le billet officiel. Erebus adopte une règle plus radicale : un coup suffit à éliminer le joueur comme ses adversaires.\n\nLe choix s’effectue au lancement d’une partie, lors de la sélection d’un emplacement de sauvegarde. Il reste ensuite attaché à cette sauvegarde. Cette précision mérite d’être lue avant de commencer.\n\n## Le regard de SWAPP : deux expériences à distinguer\n\nUn mode chronométré peut donner envie de relire un parcours connu. La question n’est plus seulement de franchir un obstacle, mais de comprendre ce qui fait perdre du temps : un détour, une hésitation ou une exécution imprécise. Pour les amateurs de progression mesurable, les segments peuvent rendre les essais plus faciles à comparer qu’une impression générale de rapidité.\n\nLa règle d’Erebus pose un autre problème : quand chaque erreur peut arrêter la tentative, la prise de risque devient centrale. Elle peut encourager une lecture plus attentive des situations, mais il faudra jouer au mode pour juger si sa difficulté reste intéressante sur la durée. Une règle spectaculaire ne suffit pas, à elle seule, à démontrer un bon équilibre.\n\nCe sont deux pistes de rejouabilité, pas encore une appréciation de leur qualité. SWAPP n’attribue donc aucune note à ces nouveautés avant leur disponibilité.\n\n## Les vérifications utiles avant de jouer\n\nAu moment de la sortie, consultez les notes du correctif et vérifiez que la mise à jour est bien installée. Choisissez soigneusement votre emplacement de sauvegarde avant de tester une variante : traiter une première tentative comme un essai évite de confondre découverte et recherche de performance.\n\nPour les joueurs PS4, l’annonce ne suffit pas à établir les conditions commerciales. Aucun nouveau prix PS4 ni règle de transfert entre éditions n’est confirmé dans l’ajout consulté. Les montants figurant dans le texte de février ne sont pas présentés ici comme les tarifs du nouveau portage.\n\n## Une vidéo de contexte, correctement identifiée\n\nLa vidéo retenue est « God of War Sons of Sparta — Exploration Tips », publiée sur la chaîne PlayStation et intégrée à la présentation officielle. Elle concerne l’exploration de la version PS5 existante ; elle ne montre pas les nouveaux modes Hermes et Erebus.\n\nLa fiche partenaire proposée en fin d’article concerne uniquement l’édition PS5, indiquée hors stock lors du contrôle du 15 novembre. Elle ne permet pas de réserver une version PS4. **Lien affilié · commission possible.** Les liens rémunérés n’influencent ni le choix des sujets ni l’indépendance éditoriale de SWAPP.",
+      "trailerUrl": "https://www.youtube.com/watch?v=Hk3aJzrcgu4",
+      "sources": [
+        {
+          "label": "Santa Monica Studio — mise à jour explicite du 13 novembre 2026",
+          "url": "https://blog.playstation.com/2026/02/13/god-of-war-sons-of-sparta-what-you-need-to-know/"
+        },
+        {
+          "label": "PlayStation — vidéo officielle de conseils d’exploration PS5",
+          "url": "https://www.youtube.com/watch?v=Hk3aJzrcgu4"
+        }
+      ],
+      "seo": {
+        "title": "Sons of Sparta sur PS4 : Hermes et Erebus le 16 novembre",
+        "description": "God of War Sons of Sparta arrive sur PS4 le 16 novembre 2026. Hermes et Erebus sont aussi annoncés sur PS5 : règles, accès et limites."
+      },
+      "commercialLinks": [
+        {
+          "title": "God of War Sons of Sparta — PS5, fiche indiquée hors stock",
+          "merchant": "Instant Gaming",
+          "kind": "affiliate",
+          "url": "https://www.instant-gaming.com/en/18951-buy-god-of-war-sons-of-sparta-playstation-5-playstation-store/?currency=CAD&igr=SANSAHD"
+        }
+      ]
+    }
+  ],
+  "qualityChecks": [
+    {
+      "slug": "god-of-war-sons-of-sparta-ps4-hermes-erebus-16-novembre",
+      "sourceDate": "2026-11-13",
+      "originalSourceDate": "2026-02-13",
+      "sourceDateEvidence": "Mention explicite Updated (November 13, 2026) ; article:modified_time=2026-11-13T15:38:32-08:00. Aucune heure de sortie conservée, car absente du texte actuel.",
+      "officialVideoConfirmed": true,
+      "videoContext": "Conseils d’exploration PS5, pas une démonstration des nouveaux modes.",
+      "videoPlaybackVerified": false,
+      "videoObservation": "Contrôle du 15 novembre : lecteur intégré à la page PlayStation, titre et chaîne PlayStation identifiés ; 0:00/2:18 après activation, puis écran noir sans progression confirmée. Limite du contrôle, pas preuve d’une panne générale.",
+      "thumbnailVisualVerified": false,
+      "thumbnailEvidence": "Ancien contrôle de la vignette conservé dans les observations précédentes ; miniature YouTube à revérifier avant publication. Le visuel lead officiel est visuellement confirmé le 15 novembre.",
+      "affiliateVerified": {
+        "platform": "PS5 / PlayStation Store",
+        "region": "Le vendeur indique tous les pays du monde.",
+        "availability": "Out of stock",
+        "priceClaimed": false,
+        "existingQueryPreserved": "currency=CAD",
+        "reviewedAt": "2026-11-15T22:52:54.718987Z"
+      },
+      "blocking": [
+        "Lecture effective de la vidéo officielle et vignette YouTube à confirmer avant publication.",
+        "Contrôle public / Studio / MySQL incomplet : refus 403 ou délais dépassés depuis ce client."
+      ],
+      "reviewedAt": "2026-11-15T22:52:54.718987Z",
+      "leadImageVisualVerified": true
+    }
+  ],
+  "candidates": [
+    {
+      "key": "deepmind:pardig-satweave-open-data:2026-11-13",
+      "sourceUrl": "https://deepmind.google/blog/opening-the-datasets-behind-our-ai-weather-models/",
+      "sourceDate": "2026-11-13",
+      "decision": "Brève illustrée vérifiée ; dossier long en attente d’une vidéo officielle intégrable par le champ YouTube existant.",
+      "officialMedia": "Animations WebM sur la page officielle ; ne pas les déclarer compatibles avec trailerUrl, qui valide les URL YouTube.",
+      "caveat": "Nombre de satellites incohérent entre texte et légende (cinq/six) : chiffre écarté. Ne pas déduire la gratuité des usages Cloud ni des conditions de licence non lues.",
+      "reviewedAt": "2026-11-15T22:52:54.718987Z"
+    },
+    {
+      "key": "xbox:pc-backward-compatibility-21-additions:2026-11-12",
+      "sourceUrl": "https://news.xbox.com/en-us/2026/11/12/25-original-xbox-games-now-available-on-pc/",
+      "sourceDate": "2026-11-12",
+      "decision": "Brève illustrée vérifiée en rattrapage ; aucun dossier long sans vidéo officielle appropriée.",
+      "caveat": "21 ajouts, 25 jeux au total. Windows 11, marchés sélectionnés, conditions par titre.",
+      "reviewedAt": "2026-11-15T22:52:54.718987Z"
+    },
+    {
+      "key": "fable:deepwood-quest-and-podcast:2026-11-12",
+      "sourceUrl": "https://news.xbox.com/en-us/2026/11/13/fable-deep-dive-into-new-gameplay-with-playground-games-official-xbox-podcast/",
+      "sourceDate": "2026-11-13",
+      "reviewedAt": "2026-11-15T22:52:54.718987Z",
+      "decision": "Pas de second article : la séquence de Deepwood est déjà intégrée au manifeste dans le lot du 15 novembre. Brève centrée sur les explications du podcast et renvoyant au slug existant. Présence publique non confirmée.",
+      "existingArticleSlug": "fable-gameplay-quete-deepwood-xbox-25-ans-12-novembre-2026"
+    },
+    {
+      "key": "halo-campaign-evolved:firefight-winter-update:2026-11-12",
+      "sourceUrl": "https://news.xbox.com/en-us/2026/11/12/halo-campaign-evolved-firefight-free-update-this-winter/",
+      "sourceDate": "2026-11-12",
+      "reviewedAt": "2026-11-15T22:52:54.718987Z",
+      "decision": "Brève illustrée vérifiée en rattrapage ; dossier long en attente d’une vidéo officielle pertinente contrôlée. Aucun jour précis de sortie inventé."
+    },
+    {
+      "key": "gta-vi:xbox-cloud-console-launch:2026-11-10",
+      "sourceUrl": "https://news.xbox.com/en-us/2026/11/10/grand-theft-auto-6-comes-to-xbox-cloud-gaming-november-19/",
+      "sourceDate": "2026-11-10",
+      "reviewedAt": "2026-11-15T22:52:54.718987Z",
+      "decision": "Brève illustrée vérifiée en rattrapage : annonce cloud absente du dossier GTA VI du 8 novembre. Aucun nouveau dossier long sans médias contrôlés."
+    }
+  ]
+}
