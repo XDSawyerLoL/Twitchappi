@@ -39,3 +39,40 @@ test('public listing excludes pending servers and monthly votes are based on vot
  assert.match(source,/7200000/);
  assert.match(source,/ORYON_ADMIN_USER_IDS/);
 });
+
+
+test('game art grid and live category counts use real sources and no fabricated numbers',()=>{
+ const home=page(),minecraft=page({game:'Minecraft'});
+ assert.match(home,/id="ss-featured-games"/);
+ assert.match(home,/id="ss-game-search"/);
+ assert.match(home,/class="ss-game-tile/);
+ assert.match(minecraft,/data-ss-current-game="Minecraft"/);
+ assert.match(minecraft,/https:\/\/swapp.tv\/serveurs\/minecraft/);
+ const js=read('assets/swapp-servers.js');
+ assert.match(js,/cdn\.cloudflare\.steamstatic\.com\/steam\/apps/);
+ assert.match(js,/27471_IGDB-720x960/);
+ assert.match(js,/displayGameCounts\(data\.gameCounts\)/);
+ assert.match(js,/history\.pushState/);
+ assert.match(js,/data\.gameCounts/);
+ const api=read('modules/swapp-servers.js');
+ assert.match(api,/COUNT\(\*\) AS count FROM swapp_game_servers WHERE status="published"/);
+});
+test('published server detail page includes game-specific artwork and native join/vote controls',()=>{
+ const {detailPage}=require('../modules/swapp-servers');
+ const pageHtml=detailPage({id:'abcdef0123456789abcdef0123456789',name:'Serveur Test',slug:'serveur-test-abcdef',game:'Rust',
+  description:'Survie et événements sur une communauté réelle',website:'https://example.com',join_address:'rust.example.com:28015',region:'France',tags:'Survie,PVE',banner_url:''},12);
+ assert.match(pageHtml,/steam\/apps\/252490\/header\.jpg/);
+ assert.match(pageHtml,/data-ss-vote-id/);
+ assert.match(pageHtml,/data-ss-copy/);
+ assert.match(pageHtml,/12<\/strong> votes ce mois/);
+ assert.match(pageHtml,/\/serveurs\/rust\/serveur-test-abcdef/);
+ const code=read('modules/swapp-servers.js');
+ assert.match(code,/status="published" LIMIT 1/);
+ assert.match(code,/FOR UPDATE/);
+});
+test('magazine uses full-width solid black surrounding the central content',()=>{
+ const css=read('assets/swapp-actus-app.css');
+ assert.match(css,/ACTUS full-viewport backdrop/);
+ assert.match(css,/body:has\(#actus\.view\.active\)/);
+ assert.match(css,/background-image:none!important/);
+});
