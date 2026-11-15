@@ -338,7 +338,7 @@ function renderCategoryPreview(rows,game){
    '<div class="ss-card-top"><span class="ss-card-game">'+esc(game)+'</span></div>'+
    '<div class="ss-cover-caption">'+
    '<h3 class="ss-cover-title">'+esc(item.name)+'</h3></div></a>'+
-   '<div class="ss-card-content">'+signals.ratingHtml+'<p class="ss-description">'+esc(item.description)+'</p>'+
+   '<div class="ss-card-content"><h3 class="ss-card-heading"><a href="'+esc(url)+'">'+esc(item.name)+'</a></h3>'+signals.ratingHtml+'<p class="ss-description">'+esc(item.description)+'</p>'+
    (tags.length?'<div class="ss-tags">'+tags.map(t=>'<span>'+esc(t)+'</span>').join('')+'</div>':'')+signals.factsHtml+
    '<div class="ss-card-actions"><a class="ss-category-preview-link ss-details" href="'+esc(url)+'">Voir la fiche</a>'+
    '<a class="ss-community-quick" href="'+esc(url)+'#joueurs">Trouver des joueurs</a>'+
