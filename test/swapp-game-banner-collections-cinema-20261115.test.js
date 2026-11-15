@@ -91,7 +91,7 @@ test('new presentation is bundled via existing Hostinger release, not a paid API
  const packageText=read('tools/swapp-hostinger-package.js');
  for(const html of [spa,native]){
   assert.match(html,/20261115-game-banners-v32/);
-  assert.match(html,/20261115-game-banners-style-v28/);
+  assert.match(html,/20261115-magazine-first-v29/);
  }
  for(const asset of ['assets/swapp-catalogue-lab.js','assets/swapp-catalogue-lab.css',
   'assets/swapp-explorer.js','assets/swapp-explorer.css'])assert.ok(packageText.includes(asset),asset);
