@@ -43,3 +43,17 @@ Quand `#actus.view.active` est affiché, la page entière (`html`, `body`, `main
 Les fichiers JavaScript du backend, de la galerie, du lecteur de fiche, des pages Explorer et du serveur ont passé une vérification de syntaxe. Les éléments HTML générés ont été contrôlés en exécution isolée avec dépendances simulées : 34 jeux, 35 cartes de filtres (avec la catégorie générale), rubriques illustrées, URL canoniques par jeu, détail d'un serveur Rust, routes GET/POST et fond noir d'ACTUS.
 
 **Non vérifié** : lecture effective d'images sur tous les navigateurs, enregistrement SQL, votes réels, session administrateur sur Hostinger et mise en production. Ne pas décrire ces opérations comme accomplies.
+
+
+## Validation automatique et notifications administrateur (15 novembre, mise à jour)
+- Discord : vérification de l'invitation publique via \`GET https://discord.com/api/v10/invites/{code}?with_counts=true\` (host fixé côté serveur, HTTPS uniquement, pas de requête vers une URL fournie librement par un utilisateur). Seule une invitation **de guild Discord** valide, non expirée et renvoyant un vrai \`guild.id\` entraîne \`status=published\` automatiquement pour la catégorie \`Discord / Multigaming\`.
+- La vérification d'une invitation ne prouve pas la propriété du serveur, ni la sûreté du contenu. Si Discord est indisponible, rate-limité ou ne confirme pas l'invitation, la fiche reste \`pending\`. Les serveurs non Discord restent à modérer.
+- Les demandes Discord préexistantes en attente sont revues côté Node au démarrage puis toutes les cinq minutes, en lots bornés de 12 avec pagination et une seule révision concurrente par instance. Aucun VPS ni API payante.
+- Les comptes SWAPP suivent leurs soumissions via \`GET /api/swapp/serveurs/mes-fiches\`, statuts visibles dans « Mes serveurs ».
+- Autorisation de modération : même règle que les éditeurs et la boutique de SWAPP : \`isOryonAdmin(req) || isAdminTwitchUser(req.session?.twitchUser)\`, associée à la session SWAPP restaurée de façon fiable. Aucun droit n'est donné par un simple pseudo affiché.
+- La demande administrative est visible en haut du classement. La route privée \`GET /api/swapp/serveurs/moderation/count\` est interdite aux non-administrateurs.
+- Le script global \`assets/swapp-servers-alerts.js\` ajoute une pastille de demande à valider à SERVEUR +, une entrée dans le menu de compte et un raccourci sur la page Compte, sans changer le système de notifications des autres modules. La vérification est renouvelée environ toutes les 90 secondes quand l'onglet est visible.
+- La validation manuelle existe toujours en solution de repli; les administrateurs peuvent approuver ou refuser.
+- Variables : \`SWAPP_MYSQL_URL\` ou \`SWAPP_SERVERS_MYSQL_URL\`. Le traitement périodique peut être désactivé par \`SWAPP_SERVERS_AUTO_REVIEW=0\`. Aucun secret Discord requis pour lire une invitation publique.
+- Le paquet Hostinger exige désormais aussi \`modules/swapp-servers-discord.js\`, \`assets/swapp-servers-alerts.js\` et \`assets/swapp-servers-alerts.css\`.
+- Après déploiement, faire un test en production avec une invitation Discord réelle et la session administrateur ; il est impossible de confirmer les données MySQL/les demandes actuelles depuis le dépôt GitHub. Ne pas présenter les anciennes fiches comme publiées avant contrôle réel.
