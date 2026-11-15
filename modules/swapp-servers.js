@@ -529,6 +529,20 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
     }
    }
    const core=tables.swapp_game_servers==='ready';
+   // The public API performs a filtered count *before* any list fallback.
+   // A working table check alone cannot establish whether that count works.
+   let publicCount={status:'not_checked'};
+   if(core){
+    try{
+     const filter='s.status="published" AND (?="" OR s.game=?) AND (?="" OR LOWER(CONCAT(s.name," ",s.description," ",s.tags," ",s.game)) LIKE CONCAT("%",?,"%"))';
+     const [countRows]=await sql.execute('SELECT COUNT(*) AS n FROM swapp_game_servers s WHERE '+filter,['','','','']);
+     const count=Number(countRows?.[0]?.n);
+     publicCount={status:'ready',...(Number.isSafeInteger(count)&&count>=0?{published:count}:{})};
+    }catch(countError){
+     const code=String(countError?.code||'QUERY_ERROR');
+     publicCount={status:'unavailable',reason:code.replace(/[^a-zA-Z0-9_]/g,'').slice(0,50)};
+    }
+   }
    // Prove the same core public listing is queryable, not merely that tables exist.
    // No server names, identities, credentials or connection strings leave this route.
    let listing={status:'not_checked'},counts=null;
@@ -556,10 +570,10 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
      }
     }
    }
-   const available=core&&listing.status!=='unavailable';
+   const available=core&&publicCount.status==='ready'&&listing.status!=='unavailable';
    return res.status(available?200:503).set('Cache-Control','private,no-store').json({
     status:available?'connected':'unavailable',configSource:getDatabase===db?mysqlConfig().source:'injected',
-    tables,listing,...(counts?{counts}:{})
+    tables,publicCount,listing,...(counts?{counts}:{})
    });
   }catch(error){
    const code=String(error?.code||''),message=String(error?.message||'');
