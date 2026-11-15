@@ -66,20 +66,25 @@ async function readCardFacts(sql,rows,{fetcher=globalThis.fetch,maxDiscord=8}={}
  const marks=ids.map(()=>'?').join(',');
  const jobs=[
   ['specs','SELECT server_id,capacity FROM swapp_game_server_specs WHERE server_id IN ('+marks+')'],
-  ['lfg','SELECT server_id,COUNT(*) AS active FROM swapp_server_lfg WHERE expires_at>UTC_TIMESTAMP() AND server_id IN ('+marks+') GROUP BY server_id']
+  ['lfg','SELECT server_id,COUNT(*) AS active FROM swapp_server_lfg WHERE expires_at>UTC_TIMESTAMP() AND server_id IN ('+marks+') GROUP BY server_id'],
+  ['monthly','SELECT server_id,COUNT(*) AS votes_month FROM swapp_game_server_vote_events WHERE server_id IN ('+marks+') AND voted_at>=? GROUP BY server_id']
  ];
- const settled=await Promise.allSettled(jobs.map(([,query])=>sql.execute(query,ids)));
+ const settled=await Promise.allSettled(jobs.map(([key,query])=>sql.execute(query,key==='monthly'?[...ids,new Date().toISOString().slice(0,7)+'-01']:ids)));
  for(let i=0;i<jobs.length;i++){
   if(settled[i].status!=='fulfilled')continue;
   if(jobs[i][0]==='lfg')for(const id of ids)out.get(id).lfgCount=0;
+  if(jobs[i][0]==='monthly')for(const id of ids)out.get(id).votes_month=0;
   for(const row of settled[i].value?.[0]||[]){
    if(!out.has(row.server_id))continue;
    if(jobs[i][0]==='specs'){
     const cap=capacityValue(row.capacity);
     if(Number.isInteger(cap)&&cap>0)out.get(row.server_id).capacity=cap;
-   }else{
+   }else if(jobs[i][0]==='lfg'){
     const count=clamp(Number(row.active));
     if(count!==null)out.get(row.server_id).lfgCount=count;
+   }else{
+    const count=clamp(Number(row.votes_month));
+    if(count!==null)out.get(row.server_id).votes_month=count;
    }
   }
  }
