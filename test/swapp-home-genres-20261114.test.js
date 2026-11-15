@@ -54,8 +54,8 @@ test('un seul Accueil comprend les directs, les genres puis les actualités',()=
  assert.ok(content.indexOf('id="scl-live"')<content.indexOf('id="scl-genres"'));
  assert.ok(content.indexOf('id="scl-genres"')<content.indexOf('id="scl-articles"'));
  const spa=renderIntoSpa(read('index.html'));
- assert.match(spa,/swapp-genre-discovery\.js\?v=20261115-sharp-genre-v7/);
- assert.match(spa,/swapp-genre-discovery\.css\?v=20261115-sharp-genre-v7/);
+ assert.match(spa,/swapp-genre-discovery\.js\?v=20261115-hidpi-genre-v8/);
+ assert.match(spa,/swapp-genre-discovery\.css\?v=20261115-hidpi-genre-v8/);
  assert.match(spa,/id="scl-genre-cards"/);
 });
 
