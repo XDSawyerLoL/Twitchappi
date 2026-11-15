@@ -4,7 +4,11 @@
  const $=s=>root.querySelector(s), results=$('#ss-results'),feedback=$('#ss-feedback'),count=$('#ss-count');
  // Submission is handled by the dedicated /serveurs/creer page.
  const make=(tag,cls,text)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(text!==undefined)e.textContent=String(text);return e};
- const state={servers:[],loading:false,request:0};
+ const state={servers:[],loading:false,request:0,page:1,total:0,hasMore:false};
+ const more=make('button','ss-load-more','Afficher 24 serveurs supplémentaires');
+ more.type='button';more.hidden=true;more.setAttribute('aria-label','Charger la page suivante du classement');
+ results.after(more);
+ more.addEventListener('click',()=>load(false));
 
  const gameSlug=name=>String(name||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,75);
  const setGame=(name,updateAddress=true)=>{
@@ -101,7 +105,9 @@
    mark.append(logo);
   }else mark.textContent=String(s.name||'S').slice(0,1).toUpperCase();
   art.append(mark);
-  const top=make('div','ss-card-top');top.append(make('span','ss-rank','#'+(i+1)),make('span','ss-card-game',s.game));art.append(top);
+  const top=make('div','ss-card-top');
+  if(Number.isInteger(s.rank)&&s.rank>0)top.append(make('span','ss-rank','#'+s.rank));
+  top.append(make('span','ss-card-game',s.game));art.append(top);
   const content=make('div','ss-card-content'),heading=make('h3','',s.name);
   const tagline=s.tagline?make('p','ss-server-tagline',s.tagline):null;
   const details=make('p','ss-description',s.description);
@@ -137,16 +143,35 @@
   content.append(actions);article.append(art,content);return article;
  };
  const draw=()=>{
-  const items=state.servers;count.textContent=items.length+' serveur'+(items.length===1?'':'s')+' référencé'+(items.length===1?'':'s');
+  const items=state.servers;count.textContent=state.total.toLocaleString('fr-FR')+' serveur'+(state.total===1?'':'s')+' référencé'+(state.total===1?'':'s');
+  more.hidden=!state.hasMore;more.disabled=state.loading;
   results.replaceChildren(...items.map(serverCard));
   if(!items.length){const empty=make('div','ss-empty');empty.append(make('h3','','Aucun serveur référencé pour cette recherche'),make('p','','Référence ton serveur gratuitement : il apparaîtra dans le classement dès sa validation automatique.'));results.append(empty)}
  };
- async function load(){
+ async function load(reset=true){
+  if(state.loading&&!reset)return;
   const seq=++state.request;
-  const params=new URLSearchParams({q:$('#ss-q').value.trim(),game:$('#ss-game').value,sort:$('#ss-sort').value});
+  if(reset){state.page=1;state.servers=[];state.total=0;state.hasMore=false}
+  const requestedPage=reset?1:state.page+1;
+  const params=new URLSearchParams({q:$('#ss-q').value.trim(),game:$('#ss-game').value,sort:$('#ss-sort').value,page:String(requestedPage)});
+  state.loading=true;more.disabled=true;
   feedback.textContent='Mise à jour du classement…';
-  try{const res=await fetch('/api/swapp/serveurs?'+params.toString(),{credentials:'same-origin',headers:{Accept:'application/json'}});if(!res.ok)throw Error('L’annuaire est temporairement indisponible.');const data=await res.json();if(seq!==state.request)return;state.servers=Array.isArray(data.servers)?data.servers:[];displayGameCounts(data.gameCounts);draw();feedback.textContent='Classement basé sur les votes réels du mois, sans faux statut en ligne.'}
-  catch(e){if(seq!==state.request)return;displayGameCounts(null);results.replaceChildren();count.textContent='Indisponible';feedback.textContent=e.message}
+  try{
+   const res=await fetch('/api/swapp/serveurs?'+params.toString(),{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}});
+   if(!res.ok)throw Error('L’annuaire est temporairement indisponible.');
+   const data=await res.json();if(seq!==state.request)return;
+   const items=Array.isArray(data.servers)?data.servers:[];
+   state.page=requestedPage;state.total=Number(data.total)||0;state.hasMore=Boolean(data.hasMore);
+   state.servers=reset?items:state.servers.concat(items);
+   displayGameCounts(data.gameCounts);
+   feedback.textContent='Classement basé sur les votes enregistrés ce mois-ci, sans faux statut en ligne.';
+  }catch(e){
+   if(seq!==state.request)return;
+   if(reset){displayGameCounts(null);state.servers=[];state.total=0}
+   feedback.textContent=e.message;
+  }finally{
+   if(seq===state.request){state.loading=false;draw();more.disabled=false}
+  }
  }
  let timer;$('#ss-q').addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(load,250)});
  $('#ss-game').addEventListener('change',()=>setGame($('#ss-game').value));$('#ss-sort').addEventListener('change',load);
