@@ -16,7 +16,7 @@
  ]);
  const validColor=value=>typeof value==='string'&&/^#[a-f0-9]{6}$/i.test(value);
  const saved=()=>{try{const value=win?.localStorage?.getItem(KEY);return validColor(value)?value:DEFAULT}catch{return DEFAULT}};
- function accent(color,{persist=false,reset=false}={}){
+ function accent(color,{persist=false,reset=false,notify=true}={}){
   if(!validColor(color))return;
   try{
    if(reset)win?.localStorage?.removeItem(KEY);
@@ -30,7 +30,9 @@
    }
    root.classList.add('swapp-editorial-theme');
   }
-  if(win?.dispatchEvent&&typeof win.Event==='function')win.dispatchEvent(new win.Event('swapp:accent-change'));
+  const accountColor=doc?.getElementById?.('swapp-acct-accent');
+  if(accountColor&&accountColor.value?.toLowerCase()!==color.toLowerCase())accountColor.value=color;
+  if(notify&&win?.dispatchEvent&&typeof win.Event==='function')win.dispatchEvent(new win.Event('swapp:accent-change'));
   return color;
  }
  function el(doc,tag,cls,text){
@@ -178,7 +180,9 @@
   menu.replaceChildren(container);
   menu.classList.add('swapp-account-unified-menu','swapp-account-enhanced','swapp-native-menu');
   menu.setAttribute('aria-label','Menu du compte SWAPP');
-  accent(saved());
+  // Painting a menu must not broadcast a synthetic change and trigger
+  // another SPA render. Only actual user choices notify the application.
+  accent(saved(),{notify:false});
   return container;
  }
  return Object.freeze({render,accent,saved,buildAppearance,buildTastes,COLORS,KEY,DEFAULT});
