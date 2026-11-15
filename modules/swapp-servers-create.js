@@ -75,9 +75,9 @@ function createPage({game='Discord / Multigaming',games=[],edit=null}={}){
  const head='<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#030405"><title>'+esc(title)+' | SERVEUR + SWAPP</title>'+
  '<meta name="description" content="Publiez votre serveur de jeux ou Discord sur SWAPP. Gratuit, avec votes, avis et statistiques.">'+
  '<link rel="canonical" href="https://swapp.tv'+(edit?'/serveurs/gerer/'+encodeURIComponent(edit.slug):'/serveurs/creer')+'">'+SHARED_HEAD_SLOT+
- '<link rel="stylesheet" href="/assets/swapp-servers.css?v=20261115-create-v9">'+
- '<link rel="stylesheet" href="/assets/swapp-servers-create.css?v=20261115-personnalisation-v3">';
+ '<link rel="stylesheet" href="/assets/swapp-servers.css?v=20261115-brand-studio-v10">'+
+ '<link rel="stylesheet" href="/assets/swapp-servers-create.css?v=20261115-personnalisation-v4">';
  return renderPage({head,content,active:'servers',bodyClass:'swapp-editorial-route swapp-servers-page',
-  scripts:'<script src="/assets/swapp-servers-create.js?v=20261115-create-v2" defer></script><script src="/assets/swapp-nav-session.js?v=20261114-native-account-v1" defer></script>'});
+  scripts:'<script src="/assets/swapp-servers-create.js?v=20261115-personnalisation-v4" defer></script><script src="/assets/swapp-nav-session.js?v=20261114-native-account-v1" defer></script>'});
 }
 module.exports={createPage,SERVER_TYPES,LANGUAGES,discordLink,twitchLink,readTypes};
