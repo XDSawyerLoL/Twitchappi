@@ -68,7 +68,7 @@
   const n=counts&&typeof counts==='object'?counts:null;
   for(const item of root.querySelectorAll('[data-ss-game-count],[data-ss-featured-count]')){
    const key=item.dataset.ssGameCount??item.dataset.ssFeaturedCount;
-   const value=n?Object.prototype.hasOwnProperty.call(n,key)?Number(n[key]):0:null;
+   const value=n?(key===''?Object.values(n).reduce((sum,num)=>sum+(Number.isSafeInteger(Number(num))&&Number(num)>=0?Number(num):0),0):Object.prototype.hasOwnProperty.call(n,key)?Number(n[key]):0):null;
    item.textContent=value===null||!Number.isSafeInteger(value)||value<0?'Voir les serveurs':value.toLocaleString('fr-FR')+' serveur'+(value===1?'':'s')+' inscrit'+(value===1?'':'s');
   }
  }
