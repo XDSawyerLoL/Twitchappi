@@ -73,17 +73,44 @@
   }
  }
 
+ const gameThemes={
+  'Discord / Multigaming':['#9380ff','#ea55e5'],'Minecraft':['#72e898','#54b8dd'],
+  'GTA RP':['#fc64a9','#875eff'],'GTA V / FiveM':['#fc64a9','#875eff'],
+  'Cyberpunk 2077':['#f8e963','#ff5595'],'Rust':['#f2a056','#e45e48'],
+  'DayZ':['#e2bd78','#c34b53'],'ARK Survival Ascended':['#67eebf','#63abf1']
+ };
+ const validHex=value=>/^#[\da-fA-F]{6}$/.test(String(value||''));
+ const safeArt=(url,id,kind)=>{
+  if(typeof url!=='string')return '';
+  if(/^https:\/\/[^<>"'\s]+$/i.test(url))return url;
+  return url==='/media/serveurs/'+id+'/'+kind?url:'';
+ };
+
  const serverCard=(s,i)=>{
-  const article=make('article','ss-card');
+  const article=make('article','ss-card ss-server-card');
+  const palette=gameThemes[s.game]||['#8ceaf0','#9c67ff'];
+  article.style.setProperty('--ss-brand-accent',validHex(s.accentColor)?s.accentColor:palette[0]);
+  article.style.setProperty('--ss-brand-secondary',validHex(s.secondaryColor)?s.secondaryColor:palette[1]);
   const art=make('div','ss-card-image');
   artInto(art,s.game,s.bannerUrl||'');
+  const mark=make('div','ss-server-logo');
+  const logoUrl=safeArt(s.logoUrl,s.id,'logo');
+  if(logoUrl){
+   const logo=make('img');logo.src=logoUrl;logo.alt='Logo de '+s.name;logo.loading='lazy';
+   logo.addEventListener('error',()=>{logo.remove();mark.textContent=String(s.name||'S').slice(0,1).toUpperCase()},{once:true});
+   mark.append(logo);
+  }else mark.textContent=String(s.name||'S').slice(0,1).toUpperCase();
+  art.append(mark);
   const top=make('div','ss-card-top');top.append(make('span','ss-rank','#'+(i+1)),make('span','ss-card-game',s.game));art.append(top);
   const content=make('div','ss-card-content'),heading=make('h3','',s.name);
+  const tagline=s.tagline?make('p','ss-server-tagline',s.tagline):null;
   const details=make('p','ss-description',s.description);
   const meta=make('div','ss-meta');meta.append(make('span','',s.region||'Région non précisée'),make('span','',Number(s.votes_month||0).toLocaleString('fr-FR')+' vote(s) ce mois'));
   const tags=make('div','ss-tags');(Array.isArray(s.tags)?s.tags:[]).slice(0,5).forEach(t=>tags.append(make('span','',t)));
-  content.append(heading,details,meta,tags);
-  const actions=make('div','ss-card-actions'),vote=make('button','ss-vote','♥ Voter');
+  content.append(heading);if(tagline)content.append(tagline);content.append(details,meta,tags);
+  const actions=make('div','ss-card-actions'),vote=make('button','ss-vote');
+  const heart=make('span','ss-heart','♥');heart.setAttribute('aria-hidden','true');
+  vote.append(heart,make('span','','Voter'));vote.setAttribute('aria-label','Voter pour '+s.name);
   vote.type='button';
   vote.addEventListener('click',async()=>{
    vote.disabled=true;
@@ -100,6 +127,11 @@
    detail.href='/serveurs/'+encodeURIComponent(gameSlug(s.game))+'/'+encodeURIComponent(s.slug);
    actions.append(detail);
   }
+  if(s.canEdit&&s.slug){
+   const edit=make('a','ss-owner-edit','Personnaliser');
+   edit.href='/serveurs/gerer/'+encodeURIComponent(s.slug);
+   actions.append(edit);
+  }
   if(s.website){const link=make('a','ss-join','Rejoindre ↗');link.href=s.website;link.target='_blank';link.rel='noopener noreferrer nofollow';actions.append(link)}
   if(s.joinAddress){const address=make('button','ss-address','Copier l’adresse');address.type='button';address.onclick=async()=>{try{await navigator.clipboard.writeText(s.joinAddress);address.textContent='Adresse copiée'}catch{address.textContent=s.joinAddress}};actions.append(address)}
   content.append(actions);article.append(art,content);return article;
@@ -107,7 +139,7 @@
  const draw=()=>{
   const items=state.servers;count.textContent=items.length+' serveur'+(items.length===1?'':'s')+' référencé'+(items.length===1?'':'s');
   results.replaceChildren(...items.map(serverCard));
-  if(!items.length){const empty=make('div','ss-empty');empty.append(make('h3','','Aucun serveur référencé pour cette recherche'),make('p','','Ajoute ton serveur : les nouvelles fiches seront visibles après modération.'));results.append(empty)}
+  if(!items.length){const empty=make('div','ss-empty');empty.append(make('h3','','Aucun serveur référencé pour cette recherche'),make('p','','Référence ton serveur gratuitement : il apparaîtra dans le classement dès sa validation automatique.'));results.append(empty)}
  };
  async function load(){
   const seq=++state.request;
