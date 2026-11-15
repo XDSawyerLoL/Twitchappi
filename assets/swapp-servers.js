@@ -115,7 +115,7 @@
   if(Number.isInteger(s.rank)&&s.rank>0)top.append(make('span','ss-rank','#'+s.rank));
   top.append(make('span','ss-card-game',s.game));art.append(top);
   const caption=make('div','ss-cover-caption');
-  caption.append(make('span','ss-cover-eyebrow',cover?'BANNIÈRE DE LA COMMUNAUTÉ':'UNIVERS DU JEU'));
+  // Full community title is enough; the repetitive banner label wasted vertical space.
   caption.append(make('h3','ss-cover-title',s.name));
   art.append(caption);
   const content=make('div','ss-card-content');
@@ -133,17 +133,34 @@
    }
   }
   const tags=make('div','ss-tags');(Array.isArray(s.tags)?s.tags:[]).slice(0,6).forEach(t=>tags.append(make('span','',t)));
-  const metrics=make('div','ss-card-stats');
-  const stat=(value,label)=>{const item=make('span','ss-card-stat');item.append(make('strong','',value),make('small','',label));metrics.append(item)};
   const number=n=>Number(n).toLocaleString('fr-FR');
-  stat(s.votes_month==null?'—':number(s.votes_month),'votes du mois');
-  if(s.clicksTotal!==undefined&&s.clicksTotal!==null)stat(number(s.clicksTotal),'clics enregistrés');
-  if(s.reviewCount!==undefined&&s.reviewCount!==null){
-   const score=Number(s.ratingAverage);
-   stat(Number(s.reviewCount)>0&&Number.isFinite(score)?score.toFixed(1).replace('.',',')+'/5':'—',
-    Number(s.reviewCount)>0?number(s.reviewCount)+' avis publié'+(Number(s.reviewCount)===1?'':'s'):'aucun avis publié');
-  }
-  if(tagline)content.append(tagline);content.append(details,meta);
+  const validNum=n=>n===null||n===undefined||n===''?null:Number.isSafeInteger(Number(n))&&Number(n)>=0?Number(n):null;
+  const reviews=validNum(s.reviewCount),avg=Number(s.ratingAverage);
+  const rated=reviews>0&&Number.isFinite(avg)&&avg>=1&&avg<=5;
+  const rating=make('div','ss-card-rating');
+  const star=make('span','ss-rating-stars','★★★★★');star.setAttribute('aria-hidden','true');
+  star.style.setProperty('--ss-fill',(rated?Math.round(avg*20):0)+'%');
+  const reviewLabel=rated?avg.toFixed(1).replace('.',',')+'/5 · '+number(reviews)+' avis':reviews===0?'Aucun avis':'Avis indisponibles';
+  rating.setAttribute('aria-label',reviewLabel);
+  rating.append(star,make('span','',reviewLabel));
+  const metrics=make('div','ss-card-stats ss-card-facts');
+  const fact=(value,label)=>{
+   const cell=make('span','ss-card-fact');
+   cell.append(make('strong','',value),make('small','',label));metrics.append(cell);
+  };
+  const votes=validNum(s.votes_month),clicks=validNum(s.clicksTotal),lfg=validNum(s.lfgCount),capacity=validNum(s.capacity);
+  if(votes!==null)fact(number(votes),'votes ce mois');
+  if(clicks!==null)fact(number(clicks),'clics SWAPP');
+  if(s.game==='Discord / Multigaming'){
+   const members=validNum(s.discordMembers),online=validNum(s.discordOnline);
+   if(members!==null)fact('≈ '+number(members),'membres Discord');
+   if(online!==null)fact('≈ '+number(online),'en ligne Discord');
+   if(members===null&&online===null)fact('Indisponible','effectif Discord');
+  }else fact(capacity!==null&&capacity>0?number(capacity):'Non renseignée','capacité / slots');
+  if(lfg!==null)fact(number(lfg),'joueurs disponibles');
+  content.append(rating);
+  if(tagline)content.append(tagline);
+  content.append(details,meta);
   if(tags.childElementCount)content.append(tags);
   content.append(metrics);
   const actions=make('div','ss-card-actions'),vote=make('button','ss-vote');
