@@ -104,3 +104,7 @@
 .ss-create-section-heading>span{background:linear-gradient(145deg,#193d4c,#30244c);border-color:#8d9ed2;color:#fff}
 .ss-create-actions button{background:linear-gradient(110deg,#a1f4ed,#cbbaff);border-color:transparent}
 @media(max-width:670px){.ss-create-brand-grid,.ss-create-color-grid{grid-template-columns:1fr}}
+
+/* Accessible artwork removal controls in owner editing mode. */
+.ss-clear-media{display:inline-flex;justify-content:center;align-items:center;margin:10px 0 0;padding:10px 14px;border:1px solid #b95574;background:#381a2a;color:#ffe5ee;border-radius:8px;cursor:pointer;font-size:12px;font-weight:800}
+.ss-clear-media:hover{background:#64263b;border-color:#ff5a84}.ss-clear-media:focus-visible{outline:3px solid #9defff;outline-offset:3px}
