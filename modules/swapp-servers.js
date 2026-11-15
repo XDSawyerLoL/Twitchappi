@@ -591,8 +591,10 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
   }
  });
  app.get('/api/swapp/serveurs',async(req,res)=>{
+  let phase='mysql_connection';
   try{
    const sql=await readDatabase();
+   phase='published_count';
    const game=clean(req.query?.game,70),q=clean(req.query?.q,100).toLowerCase();
    const sort=req.query?.sort==='recent'?'recent':req.query?.sort==='name'?'name':'votes';
    const rawPage=Number(req.query?.page||1),page=Number.isSafeInteger(rawPage)?Math.max(1,Math.min(rawPage,10000)):1;
@@ -603,6 +605,7 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
    const args=[game,game,q,q];
    const [totals]=await sql.execute('SELECT COUNT(*) AS n FROM swapp_game_servers s WHERE '+filter,args);
    const total=Number(totals[0]?.n||0);
+   phase='listing';
    // Count votes separately per server: MariaDB with ONLY_FULL_GROUP_BY rejects
    // selecting nonaggregated columns from a GROUP BY s.id listing query.
 
@@ -627,6 +630,7 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
    }catch(counterError){
     console.warn('[SWAPP SERVEURS] Comptage catégories',String(counterError?.code||counterError?.message||counterError).slice(0,90));
    }
+   phase='optional_enrichment';
    const [evidence,facts]=await Promise.all([listingStats(sql,rows.map(item=>item.id)),readCardFacts(sql,rows)]);
    const owner=account(req);
    // The result includes permissions specific to this session, so never share its cache.
@@ -636,7 +640,11 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
      tags:String(r.tags||'').split(',').map(t=>t.trim()).filter(Boolean)})),
     total,page,pageSize,hasMore:offset+rows.length<total,gameCounts,ranking:rankingAvailable?'monthly_valid_votes':'temporarily_unavailable',onlineVerified:false
    });
-  }catch(e){fail(res,e)}
+  }catch(e){
+   const code=String(e?.code||'ERROR').replace(/[^A-Za-z0-9_]/g,'').slice(0,48);
+   console.warn('[SWAPP SERVEURS] GET /api/swapp/serveurs failed',{phase,code});
+   fail(res,e);
+  }
  });
 
  // Create or recover one server with real field validation and an atomic metadata save.
