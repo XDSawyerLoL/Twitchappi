@@ -242,13 +242,29 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
  });
  app.get('/api/swapp/serveurs',async(req,res)=>{
   try{
-   const sql=await getDatabase();const game=clean(req.query.game,70),q=clean(req.query.q,100).toLowerCase(),sort=req.query.sort==='recent'?'recent':req.query.sort==='name'?'name':'votes';
-   const month=String(new Date().toISOString().slice(0,7))+'-01';
-   const order=sort==='recent'?'s.created_at DESC':sort==='name'?'s.name ASC':'votes_month DESC,s.created_at DESC';
-   const [rows]=await sql.execute('SELECT s.id,s.owner_id,s.slug,s.name,s.game,s.description,s.website,s.join_address AS joinAddress,s.region,s.tags,COALESCE(NULLIF(b.banner_url,""),s.banner_url) AS bannerUrl,b.logo_url AS logoUrl,b.accent_color AS accentColor,b.secondary_color AS secondaryColor,b.tagline,s.created_at AS createdAt,COUNT(v.id) AS votes_month FROM swapp_game_servers s LEFT JOIN swapp_game_server_branding b ON b.server_id=s.id LEFT JOIN swapp_game_server_vote_events v ON v.server_id=s.id AND v.voted_at>=? WHERE s.status="published" AND (?="" OR s.game=?) AND (?="" OR LOWER(CONCAT(s.name," ",s.description," ",s.tags," ",s.game)) LIKE CONCAT("%",?,"%")) GROUP BY s.id ORDER BY '+order+' LIMIT 100',[month,game,game,q,q]);
+   const sql=await getDatabase();
+   const game=clean(req.query?.game,70),q=clean(req.query?.q,100).toLowerCase();
+   const sort=req.query?.sort==='recent'?'recent':req.query?.sort==='name'?'name':'votes';
+   const rawPage=Number(req.query?.page||1),page=Number.isSafeInteger(rawPage)?Math.max(1,Math.min(rawPage,10000)):1;
+   const pageSize=24,offset=(page-1)*pageSize;
+   const month=new Date().toISOString().slice(0,7)+'-01';
+   const order=sort==='recent'?'s.created_at DESC,s.id ASC':sort==='name'?'s.name ASC,s.id ASC':'votes_month DESC,s.created_at ASC,s.id ASC';
+   const filter='s.status="published" AND (?="" OR s.game=?) AND (?="" OR LOWER(CONCAT(s.name," ",s.description," ",s.tags," ",s.game)) LIKE CONCAT("%",?,"%"))';
+   const args=[game,game,q,q];
+   const [totals]=await sql.execute('SELECT COUNT(*) AS n FROM swapp_game_servers s WHERE '+filter,args);
+   const total=Number(totals[0]?.n||0);
+   const [rows]=await sql.execute('SELECT s.id,s.owner_id,s.slug,s.name,s.game,s.description,s.website,s.join_address AS joinAddress,s.region,s.tags,COALESCE(NULLIF(b.banner_url,""),s.banner_url) AS bannerUrl,b.logo_url AS logoUrl,b.accent_color AS accentColor,b.secondary_color AS secondaryColor,b.tagline,s.created_at AS createdAt,COUNT(v.id) AS votes_month FROM swapp_game_servers s LEFT JOIN swapp_game_server_branding b ON b.server_id=s.id LEFT JOIN swapp_game_server_vote_events v ON v.server_id=s.id AND v.voted_at>=? WHERE '+filter+' GROUP BY s.id ORDER BY '+order+' LIMIT ? OFFSET ?',
+    [month,...args,pageSize,offset]);
    const [counts]=await sql.query('SELECT game,COUNT(*) AS count FROM swapp_game_servers WHERE status="published" GROUP BY game');
    const gameCounts=Object.fromEntries(counts.map(item=>[String(item.game),Number(item.count)]));
-   res.set('Cache-Control','public,max-age=30').json({servers:rows.map(({owner_id,...r})=>({...r,canEdit:owner_id===account(req)&&!!account(req),votes_month:Number(r.votes_month),tags:r.tags.split(',').map(t=>t.trim()).filter(Boolean)})),total:rows.length,gameCounts,ranking:'monthly_valid_votes',onlineVerified:false});
+   const owner=account(req);
+   // The result includes permissions specific to this session, so never share its cache.
+   res.set('Cache-Control','private,no-store').json({
+    servers:rows.map(({owner_id,...r},index)=>({...r,canEdit:!!owner&&owner_id===owner,
+     rank:sort==='votes'?offset+index+1:null,votes_month:Number(r.votes_month),
+     tags:String(r.tags||'').split(',').map(t=>t.trim()).filter(Boolean)})),
+    total,page,pageSize,hasMore:offset+rows.length<total,gameCounts,ranking:'monthly_valid_votes',onlineVerified:false
+   });
   }catch(e){fail(res,e)}
  });
 
@@ -353,17 +369,19 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
    if(game!==owned[0].game){await conn.rollback();return res.status(422).json({error:'jeu_non_modifiable'})}
    const discord=game==='Discord / Multigaming';
    const invite=discord?discordLink(data.discordCode||owned[0].website):'';
+   const originalInvite=discord?discordLink(owned[0].website):'';
+   const inviteChanged=discord&&invite!==originalInvite;
    if(discord&&!invite){await conn.rollback();return res.status(422).json({error:'invitation_discord_requise'})}
    if(!discord&&(!validListingDetails({game,website,joinAddress:join})||(join&&!validJoinAddress(join)))){
     await conn.rollback();return res.status(422).json({error:'informations_invalides'})
    }
-   const check=discord?await inviteVerifier(invite):{valid:true};
+   const check=inviteChanged?await inviteVerifier(invite):{valid:true,inviteUrl:owned[0].website,guildId:''};
    if(!check.valid){await conn.rollback();return res.status(422).json({error:'verification_discord_impossible',retry:true})}
    const banner=brand.banner||clean(data.bannerUrl,350);
    await conn.execute('UPDATE swapp_game_servers SET name=?,description=?,website=?,join_address=?,region=?,tags=?,banner_url=? WHERE id=? AND owner_id=?',
-    [name,description,discord?check.inviteUrl:website,discord?'':join,region,tags,banner,id,user]);
-   await conn.execute('INSERT INTO swapp_game_server_extras (server_id,language,twitch_url,homepage_url,discord_guild_id) VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE language=VALUES(language),twitch_url=VALUES(twitch_url),homepage_url=VALUES(homepage_url),discord_guild_id=VALUES(discord_guild_id)',
-    [id,language,twitch,website,discord?clean(check.guildId,25):'']);
+    [name,description,discord?(inviteChanged?check.inviteUrl:owned[0].website):website,discord?'':join,region,tags,banner,id,user]);
+   await conn.execute('INSERT INTO swapp_game_server_extras (server_id,language,twitch_url,homepage_url,discord_guild_id) VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE language=VALUES(language),twitch_url=VALUES(twitch_url),homepage_url=VALUES(homepage_url),discord_guild_id=IF(VALUES(discord_guild_id)<>"",VALUES(discord_guild_id),discord_guild_id)',
+    [id,language,twitch,website,inviteChanged?clean(check.guildId,25):'']);
    await saveBranding(conn,id,brand);
    await conn.commit();
    return res.set('Cache-Control','no-store').json({updated:true,status:'published',id,url:'/serveurs/'+slug(game)+'/'+owned[0].slug});
