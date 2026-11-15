@@ -34,7 +34,13 @@
   const file=fileInputs[kind]?.files?.[0]||null;
   if(localPreviews[kind])URL.revokeObjectURL(localPreviews[kind]);
   localPreviews[kind]=file?URL.createObjectURL(file):'';
-  if(file)removed[kind]=false;
+  if(file){
+   removed[kind]=false;
+   // A chosen local file takes precedence over an older/pasted URL.
+   // Avoid rejecting a valid upload because an unrelated URL field is invalid.
+   const urlField=kind==='logo'?form.elements.logoUrl:form.elements.bannerUrl;
+   if(urlField)urlField.value='';
+  }
   refresh();
  };
  for(const kind of ['logo','banner'])fileInputs[kind]?.addEventListener('change',()=>chooseImages(kind));
@@ -128,7 +134,11 @@
    }
   });
  }
- form.addEventListener('input',event=>{if(event.target!==discord&&error.textContent)error.replaceChildren();refresh()});
+ form.addEventListener('input',event=>{
+  if(event.target?.removeAttribute)event.target.removeAttribute('aria-invalid');
+  if(event.target!==discord&&error.textContent)error.replaceChildren();
+  refresh();
+ });
  form.addEventListener('change',refresh);
  const preselected=new URLSearchParams(location.search).get('jeu');
  if(!editData&&preselected&&[...game.options].some(option=>option.value===preselected))game.value=preselected;
@@ -136,6 +146,12 @@
  form.addEventListener('submit',async event=>{
   event.preventDefault();error.replaceChildren();
   const isDiscord=game.value==='Discord / Multigaming',rawCode=discord.value.trim();
+  // One real point of contact is required for game servers, not necessarily both.
+  // The old form could submit two blanks and only show a misleading generic API error.
+  if(!isDiscord&&!address.value.trim()&&!form.elements.website.value.trim()){
+   errorMessage('Indique une adresse de connexion au jeu OU l’adresse HTTPS du site du serveur. Un seul des deux champs suffit.');
+   address.focus();return;
+  }
   if(!form.checkValidity()){focusInvalid();return}
   if(isDiscord&&!cleanDiscordCode(rawCode)){discord.focus();errorMessage('Entre un code Discord valide, par exemple AbC123, ou un lien https://discord.gg/AbC123.');return}
   const data=Object.fromEntries(new FormData(form).entries());
@@ -168,7 +184,7 @@
     const messages={
      connexion_swapp_requise:'Tu dois être connecté à ton compte SWAPP pour publier. Utilise le lien « Mon compte » puis reviens sur cette page.',
      limite_de_cinq_serveurs:'Tu as atteint la limite de cinq serveurs référencés.',
-     informations_invalides:'Certaines informations sont invalides. Vérifie le lien HTTPS, les types sélectionnés, l’adresse de connexion et la description.',
+     informations_invalides:'Vérifie les informations du formulaire : un des champs est incorrect.',
      invitation_discord_requise:'Le code ou le lien d’invitation Discord est obligatoire.',
      verification_discord_impossible:result.reason==='discord_rate_limited'?'Discord limite temporairement les vérifications. Réessaie.':'Discord ne confirme pas cette invitation. Vérifie le code et réessaie.',
      serveur_deja_inscrit:'Ce serveur figure déjà dans le classement SWAPP.',
@@ -176,7 +192,21 @@
      jeu_non_modifiable:'Le jeu ne peut pas être modifié une fois le serveur publié.',
      serveur_introuvable:'Ce serveur n’appartient pas à ton compte connecté.'
     };
-    errorMessage(messages[result.error]||'Impossible d’enregistrer ce serveur pour le moment.');
+    if(result.error==='informations_invalides'&&result.fields&&typeof result.fields==='object'){
+     const problems=Object.entries(result.fields).filter(([field,message])=>typeof message==='string'&&message.length>0);
+     if(problems.length){
+      // Server is authoritative; show precise, actionable messages without exposing input contents.
+      errorMessage(problems.slice(0,4).map(([,message])=>message).join(' '));
+      const focusField=problems[0][0]==='types'?tags.find(t=>!t.disabled):
+       problems[0][0]==='gallery'?form.elements.gallery1:
+       problems[0][0]==='branding'?form.elements.logoUrl:
+       form.elements[problems[0][0]];
+      if(focusField&&typeof focusField.focus==='function'){
+       focusField.setAttribute('aria-invalid','true');
+       focusField.focus({preventScroll:true});
+      }
+     }else errorMessage(messages[result.error]);
+    }else errorMessage(messages[result.error]||'Impossible d’enregistrer ce serveur pour le moment.');
     if(result.url&&/^\/serveurs\/[a-z0-9/-]+$/.test(result.url)){
      const anchor=document.createElement('a');anchor.href=result.url;anchor.textContent='Voir la fiche existante';error.append(anchor);
     }

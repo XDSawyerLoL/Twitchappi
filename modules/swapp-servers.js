@@ -58,6 +58,49 @@ function normalizeBranding(body={},id=''){
  const valid=(!logo||!!optionalImageUrl(logo,id,'logo'))&&(!banner||!!optionalImageUrl(banner,id,'banner'))&&!!colorHex(accent)&&!!colorHex(secondary)&&tagline.length<=140&&gallery.length<=3&&gallery.every(u=>!!safeUrl(u)&&String(u).length<=350);
  return valid?{logo:logo?optionalImageUrl(logo,id,'logo'):'',banner:banner?optionalImageUrl(banner,id,'banner'):'',accent:colorHex(accent),secondary:colorHex(secondary),tagline,gallery:JSON.stringify(gallery)}:null;
 }
+
+function inputValidationErrors({body={},id='',name,description,game,website,banner,join,language,twitchRaw,twitch,rawTypes,types,tags,discord}){
+ const fields={};
+ const invalid=(field,message)=>{if(!fields[field])fields[field]=message};
+ const len=v=>String(v??'').trim().length;
+ if(len(body.name)<3||len(body.name)>100)invalid('name','Le nom du serveur doit contenir entre 3 et 100 caractères.');
+ if(len(body.description)<30||len(body.description)>1500)invalid('description','La description doit contenir entre 30 et 1 500 caractères.');
+ if(!GAMES.includes(game))invalid('game','Sélectionne un jeu présent dans la liste SWAPP.');
+ if(!LANGUAGES.some(([code])=>code===language))invalid('language','Choisis une langue proposée dans la liste.');
+ if(len(body.website)>350||(website&&!safeUrl(website)))
+  invalid('website','Le site web doit être une URL HTTPS publique, par exemple https://exemple.fr. Laisse ce champ vide si tu n’as pas de site.');
+ if(len(body.bannerUrl)>350||(banner&&!optionalImageUrl(banner,id,'banner')))
+  invalid('bannerUrl','La bannière doit utiliser une adresse HTTPS publique, ou être ajoutée avec le bouton de fichier juste au-dessus.');
+ if(len(body.logoUrl)>350||(body.logoUrl&&!optionalImageUrl(body.logoUrl,id,'logo')))
+  invalid('logoUrl','Le logo doit utiliser une adresse HTTPS publique. Pour une image téléchargée depuis ChatGPT, sélectionne le fichier PNG/JPG/WebP plutôt que de coller son lien de téléchargement.');
+ if(len(body.brandBannerUrl)>350||(body.brandBannerUrl&&!optionalImageUrl(body.brandBannerUrl,id,'banner')))
+  invalid('bannerUrl','L’image de bannière doit avoir une URL HTTPS publique ou être envoyée comme fichier.');
+ if(len(body.joinAddress)>240)invalid('joinAddress','L’adresse de connexion ne doit pas dépasser 240 caractères.');
+ if(!discord&&!validListingDetails({game,website,joinAddress:join}))
+  invalid('joinAddress','Indique une adresse publique de connexion au jeu, par exemple play.exemple.fr:25565, ou renseigne un site web HTTPS.');
+ else if(!discord&&join&&!validJoinAddress(join))
+  invalid('joinAddress','L’adresse du jeu doit être un hôte ou une adresse IP publique, avec un port facultatif. Ne colle pas une URL complète dans ce champ.');
+ if(twitchRaw&&!twitch)invalid('twitch','Indique seulement le nom de ta chaîne Twitch ou son lien officiel.');
+ if(len(body.twitch||body.twitchUrl)>125)invalid('twitch','Le nom ou lien Twitch est trop long.');
+ if(!Array.isArray(rawTypes)||rawTypes.length>6||new Set(rawTypes).size!==rawTypes.length||types.length!==rawTypes.length)
+  invalid('types','Sélectionne au maximum six catégories proposées, sans doublons.');
+ if(len(tags)>250)invalid('types','Les catégories sélectionnées dépassent la taille autorisée.');
+ const branding=normalizeBranding(body,id);
+ if(!branding){
+  const colorA=body.accentColor||DEFAULT_ACCENT,colorB=body.secondaryColor||DEFAULT_SECONDARY;
+  if(!colorHex(colorA)||!colorHex(colorB))invalid('accentColor','Choisis une couleur valide dans le sélecteur.');
+  if(len(body.tagline)>140)invalid('tagline','Le slogan ne doit pas dépasser 140 caractères.');
+  const gallery=Array.isArray(body.gallery)?body.gallery:[];
+  if(gallery.length>3||gallery.some(v=>!safeUrl(v)||len(v)>350))
+   invalid('gallery','Les captures doivent être des URL HTTPS publiques ; trois images maximum.');
+  if(!Object.keys(fields).length)invalid('branding','Une image ou une option de personnalisation est invalide. Utilise des URL HTTPS publiques ou sélectionne tes fichiers.');
+ }
+ return fields;
+}
+function validationFailure(res,fields){
+ return res.status(422).json({error:'informations_invalides',fields});
+}
+
 async function saveBranding(conn,id,brand){
  return conn.execute('INSERT INTO swapp_game_server_branding (server_id,logo_url,banner_url,accent_color,secondary_color,tagline,gallery_json) VALUES (?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE logo_url=VALUES(logo_url),banner_url=VALUES(banner_url),accent_color=VALUES(accent_color),secondary_color=VALUES(secondary_color),tagline=VALUES(tagline),gallery_json=VALUES(gallery_json)',
   [id,brand.logo,brand.banner,brand.accent,brand.secondary,brand.tagline,brand.gallery]);
@@ -354,17 +397,11 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
   const types=readTypes(rawTypes);
   const legacyTags=clean(body.tags,251);
   const tags=hasTypes?types.join(', '):legacyTags;
-  if(!normalizeBranding(body))return res.status(422).json({error:'informations_invalides'});
   const discord=game==='Discord / Multigaming';
   const invite=discord?discordLink(body.discordCode||join||website):'';
-  if(name.length<3||name.length>100||description.length<30||description.length>1500||
-    !GAMES.includes(game)||!LANGUAGES.some(([code])=>code===language)||
-    website.length>350||banner.length>350||join.length>240||tags.length>250||
-    (website&&!safeUrl(website))||(banner&&!safeUrl(banner))||
-    (twitchRaw&&!twitch)||(hasTypes&&(rawTypes.length>6||types.length!==new Set(rawTypes).size))||
-    (!discord&&!validListingDetails({game,website,joinAddress:join}))||
-    (!discord&&join&&!validJoinAddress(join)))
-   return res.status(422).json({error:'informations_invalides'});
+  const errors=inputValidationErrors({body,name,description,game,website,banner,join,language,twitchRaw,twitch,
+   rawTypes:hasTypes?rawTypes:[],types,tags,discord});
+  if(Object.keys(errors).length)return validationFailure(res,errors);
   if(discord&&!invite)return res.status(422).json({error:'invitation_discord_requise'});
   // Discord confirmation is separate from listing-format validation.
   const verification=discord?await inviteVerifier(invite):{valid:true,reason:'listing_format'};
@@ -427,11 +464,9 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
   const rawTypes=Array.isArray(data.types)?data.types:[],types=readTypes(rawTypes);
   const tags=rawTypes.length?types.join(', '):clean(data.tags,251);
   const brand=normalizeBranding(data,id);
-  if(!brand||name.length<3||name.length>100||description.length<30||description.length>1500||
-    !GAMES.includes(game)||!LANGUAGES.some(([code])=>code===language)||
-    website.length>350||join.length>240||tags.length>250|| (website&&!safeUrl(website))||
-    (twitchRaw&&!twitch)||rawTypes.length>6||types.length!==new Set(rawTypes).size)
-   return res.status(422).json({error:'informations_invalides'});
+  const fieldErrors=inputValidationErrors({body:data,id,name,description,game,website,banner:clean(data.bannerUrl,351),
+   join,language,twitchRaw,twitch,rawTypes,types,tags,discord:game==='Discord / Multigaming'});
+  if(Object.keys(fieldErrors).length)return validationFailure(res,fieldErrors);
   let conn;
   try{
    const sql=await getDatabase();conn=await sql.getConnection();

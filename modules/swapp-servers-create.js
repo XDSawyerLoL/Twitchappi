@@ -49,7 +49,7 @@ function createPage({game='Discord / Multigaming',games=[],edit=null}={}){
  '<div class="ss-create-types" id="ss-create-types">'+typeButtons+'</div><p id="ss-create-type-count" class="ss-create-count" aria-live="polite">0 / 6 catégories sélectionnées</p></section>',
  '<section class="ss-create-section"><div class="ss-create-section-heading"><span>03</span><div><h2>Connexion au serveur</h2><p>Une invitation Discord ou une adresse réelle, selon le jeu.</p></div></div>',
  '<div id="ss-create-discord-wrap"><label>Identifiant ou lien d’invitation Discord <strong>*</strong><div class="ss-create-input-group"><span>discord.gg/</span><input name="discordCode" id="ss-create-discord" type="text" maxlength="125" placeholder="Code ou lien complet" autocomplete="off"></div></label><small>Tu peux coller un lien complet. SWAPP vérifiera l’invitation via Discord avant publication.</small></div>',
- '<div id="ss-create-address-wrap" hidden><label>Adresse de connexion au jeu <strong>*</strong><input name="joinAddress" id="ss-create-address" type="text" maxlength="240" placeholder="play.mondomaine.fr:25565" autocomplete="off"></label><small>Si ton jeu utilise une invitation ou un site web, le lien HTTPS peut remplacer l’adresse du jeu.</small></div>',
+ '<div id="ss-create-address-wrap" hidden><label>Adresse du jeu ou site HTTPS <strong>*</strong><input name="joinAddress" id="ss-create-address" type="text" maxlength="240" placeholder="play.mondomaine.fr:25565" autocomplete="off"></label><small>Pour publier, indique une adresse de connexion publique OU renseigne le site HTTPS dans les informations de base. Tu n’as pas besoin des deux.</small></div>',
  '</section>',
  '<section class="ss-create-section"><div class="ss-create-section-heading"><span>04</span><div><h2>Réseaux sociaux</h2><p>Permets aux joueurs de retrouver tes lives.</p></div></div>',
  '<label>Chaîne Twitch <small>(facultatif)</small><div class="ss-create-input-group"><span>twitch.tv/</span><input name="twitch" id="ss-create-twitch" type="text" maxlength="125" placeholder="Nom de chaîne"></div></label>',
@@ -76,8 +76,8 @@ function createPage({game='Discord / Multigaming',games=[],edit=null}={}){
  '<meta name="description" content="Publiez votre serveur de jeux ou Discord sur SWAPP. Gratuit, avec votes, avis et statistiques.">'+
  '<link rel="canonical" href="https://swapp.tv'+(edit?'/serveurs/gerer/'+encodeURIComponent(edit.slug):'/serveurs/creer')+'">'+SHARED_HEAD_SLOT+
  '<link rel="stylesheet" href="/assets/swapp-servers.css?v=20261115-brand-market-v12">'+
- '<link rel="stylesheet" href="/assets/swapp-servers-create.css?v=20261115-quality-v1">';
+ '<link rel="stylesheet" href="/assets/swapp-servers-create.css?v=20261115-precise-validation-v2">';
  return renderPage({head,content,active:'servers',bodyClass:'swapp-editorial-route swapp-servers-page',
-  scripts:'<script src="/assets/swapp-servers-create.js?v=20261115-quality-v1" defer></script><script src="/assets/swapp-nav-session.js?v=20261114-native-account-v1" defer></script>'});
+  scripts:'<script src="/assets/swapp-servers-create.js?v=20261115-precise-validation-v2" defer></script><script src="/assets/swapp-nav-session.js?v=20261114-native-account-v1" defer></script>'});
 }
 module.exports={createPage,SERVER_TYPES,LANGUAGES,discordLink,twitchLink,readTypes};
