@@ -33,6 +33,16 @@ function catalogueContent({publicHome=false}={}){
       '<button class="scl-btn scl-btn-outline" id="scl-feature-details" type="button" disabled>Plus d’informations</button></div>'+
     '</div><div class="scl-feature-switch" role="group" aria-label="Sélection à la une"><button type="button" id="scl-feature-prev" aria-label="Sélection précédente">‹</button><div class="scl-feature-dots" id="scl-feature-dots" aria-label="Sélections disponibles"></div><button type="button" id="scl-feature-next" aria-label="Sélection suivante">›</button></div></section>'+
    '<div id="scl-status" class="scl-status" role="status" aria-live="polite">Chargement des directs et des jeux…</div>'+
+   '<section class="scl-surprise" id="scl-surprise" data-scl-section="live" aria-labelledby="scl-surprise-title">'+
+    '<div class="scl-surprise-art" aria-hidden="true"><img id="scl-surprise-cover" alt="" loading="lazy" decoding="async"></div>'+
+    '<div class="scl-surprise-shade" aria-hidden="true"></div>'+
+    '<div class="scl-surprise-content"><span class="scl-surprise-eyebrow">DÉCOUVERTE ALÉATOIRE · 100 % EN DIRECT</span>'+
+     '<h2 id="scl-surprise-title">Trouvez votre prochaine obsession</h2>'+
+     '<p class="scl-surprise-lead">Un jeu, un créateur, une découverte. Laisse SWAPP choisir un vrai live pour toi.</p>'+
+     '<div class="scl-surprise-result" id="scl-surprise-result" role="status" aria-live="polite">Recherche de créateurs réellement en direct…</div>'+
+     '<div class="scl-surprise-actions"><button type="button" class="scl-surprise-shuffle" id="scl-surprise-pick">↻ Surprends-moi</button>'+
+     '<button type="button" class="scl-surprise-watch" id="scl-surprise-watch" disabled>Regarder ce live</button></div>'+
+    '</div></section>'+
    '<section class="scl-rail" id="scl-live" data-scl-section="live" aria-labelledby="scl-live-title"><div class="scl-rail-head"><div><span class="scl-rail-eyebrow">À REGARDER MAINTENANT</span><h2 id="scl-live-title">En direct sur SWAPP</h2></div><div class="scl-rail-nav"><button type="button" data-scroll-left="scl-live-cards" aria-label="Défiler les directs vers la gauche">‹</button><button type="button" data-scroll-right="scl-live-cards" aria-label="Défiler les directs vers la droite">›</button></div></div><div class="scl-cards" id="scl-live-cards"></div></section>'+
    '<section class="scl-genre-section" id="scl-genres" aria-labelledby="scl-genres-heading">'+
    '<div class="scl-genre-heading"><div><h2 id="scl-genres-heading">TROUVE TON CONTENU PAR GENRE</h2></div><div class="scl-genre-actions"><button class="scl-genre-clear" id="scl-genre-reset" type="button" hidden>Tous les genres</button><button type="button" data-scroll-left="scl-genre-cards" aria-label="Genres précédents">‹</button><button type="button" data-scroll-right="scl-genre-cards" aria-label="Genres suivants">›</button></div></div>'+
@@ -62,14 +72,15 @@ function page({publicHome=false}={}){
   '<meta name="description" content="'+(publicHome?'SWAPP réunit les créateurs en direct, les jeux à découvrir et les actualités gaming dans un catalogue immersif.':'Page de démonstration : explorer les lives et les jeux SWAPP par affiches, prévisualisations et favoris.')+'">'+
   '<script src="/assets/swapp-editorial-color.js?v=20261114-native-accent-v1"></script>'+SHARED_HEAD_SLOT+
   '<link rel="stylesheet" href="/assets/swapp-visual-polish.css?v=20261016-mobile-swipe-40">'+
-  '<link rel="stylesheet" href="/assets/swapp-catalogue-lab.css?v=20261115-black-game-dialog-v22"><link rel="stylesheet" href="/assets/swapp-genre-discovery.css?v=20261115-real-racing-v6">';
+  '<link rel="stylesheet" href="/assets/swapp-catalogue-lab.css?v=20261115-obsession-sharp-v23"><link rel="stylesheet" href="/assets/swapp-genre-discovery.css?v=20261115-real-racing-v6">';
  const content=catalogueContent({publicHome});
  return renderPage({
   head,content,active:publicHome?'home':'categories',
   bodyClass:'swapp-editorial-route swapp-catalogue-lab-page'+(publicHome?' swapp-catalogue-home':''),
   scripts:'<script src="/assets/swapp-article-extras.js?v=20261113-actus-rail-v3" defer></script>'+
   '<script src="/assets/swapp-genre-discovery.js?v=20261115-real-racing-v6" defer></script>'+ 
-  '<script src="/assets/swapp-catalogue-lab.js?v=20261115-black-genres-v28" defer></script>'+
+  '<script src="/assets/swapp-live-surprise.js?v=20261115-obsession-v1" defer></script>'+ 
+  '<script src="/assets/swapp-catalogue-lab.js?v=20261115-obsession-shuffle-v29" defer></script>'+
   '<script src="/assets/swapp-my-games.js?v=20261021-account-hub-v1" defer></script>'+
   '<script src="/assets/swapp-navigation.js?v=20261114-home-all-v3" defer></script>'+
   '<script src="/assets/swapp-nav-session.js?v=20261114-native-account-v1" defer></script>'
