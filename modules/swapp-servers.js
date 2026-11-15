@@ -446,7 +446,7 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
   let conn;
   try{
    const sql=await getDatabase();conn=await sql.getConnection();await conn.beginTransaction();
-   const [owned]=await conn.execute('SELECT id FROM swapp_game_servers WHERE id=? AND owner_id=? AND status="published" LIMIT 1 FOR UPDATE',[id,user]);
+   const [owned]=await conn.execute('SELECT id FROM swapp_game_servers WHERE id=? AND owner_id IN (?,?) AND status="published" LIMIT 1 FOR UPDATE',[id,...ownerKeys(req)]);
    if(!owned.length){await conn.rollback();return res.status(404).json({error:'serveur_introuvable'})}
    await conn.execute('INSERT INTO swapp_game_server_media (server_id,kind,mime,contents) VALUES (?,?,?,?) ON DUPLICATE KEY UPDATE mime=VALUES(mime),contents=VALUES(contents),updated_at=CURRENT_TIMESTAMP(3)',[id,kind,mime,req.body]);
    const field=kind==='logo'?'logo_url':'banner_url',url=publicMediaUrl(id,kind),baseline=normalizeBranding({},id);
