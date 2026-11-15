@@ -188,7 +188,7 @@ function page({isAdmin=false,game=''}={}){
   const end=content.indexOf('</section>',start);
   if(start>=0&&end>start){const panel=content.slice(start,end+10);content=content.replace(panel,'').replace('<section class="ss-inner ss-content">','<section class="ss-inner ss-content">'+panel)}
  }
- return renderPage({head,content,active:'servers',bodyClass:'swapp-editorial-route swapp-servers-page',scripts:'<script src="/assets/swapp-servers.js?v=20261115-category-owner-v16" defer></script><script src="/assets/swapp-servers-review-admin.js?v=20261115-server-pro-v6" defer></script><script src="/assets/swapp-nav-session.js?v=20261114-native-account-v1" defer></script>'});
+ return renderPage({head,content,active:'servers',bodyClass:'swapp-editorial-route swapp-servers-page',scripts:'<script src="/assets/swapp-servers.js?v=20261115-listing-repair-v17" defer></script><script src="/assets/swapp-servers-review-admin.js?v=20261115-server-pro-v6" defer></script><script src="/assets/swapp-nav-session.js?v=20261114-native-account-v1" defer></script>'});
 }
 
 const DETAIL_STEAM_GAME_IDS=Object.freeze({
@@ -415,10 +415,18 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
    const args=[game,game,q,q];
    const [totals]=await sql.execute('SELECT COUNT(*) AS n FROM swapp_game_servers s WHERE '+filter,args);
    const total=Number(totals[0]?.n||0);
-   const [rows]=await sql.execute('SELECT s.id,s.owner_id,s.slug,s.name,s.game,s.description,s.website,s.join_address AS joinAddress,s.region,s.tags,COALESCE(NULLIF(b.banner_url,""),s.banner_url) AS bannerUrl,b.logo_url AS logoUrl,b.accent_color AS accentColor,b.secondary_color AS secondaryColor,b.tagline,s.created_at AS createdAt,COUNT(v.id) AS votes_month FROM swapp_game_servers s LEFT JOIN swapp_game_server_branding b ON b.server_id=s.id LEFT JOIN swapp_game_server_vote_events v ON v.server_id=s.id AND v.voted_at>=? WHERE '+filter+' GROUP BY s.id ORDER BY '+order+' LIMIT ? OFFSET ?',
+   // Count votes separately per server: MariaDB with ONLY_FULL_GROUP_BY rejects
+   // selecting nonaggregated columns from a GROUP BY s.id listing query.
+   const [rows]=await sql.execute('SELECT s.id,s.owner_id,s.slug,s.name,s.game,s.description,s.website,s.join_address AS joinAddress,s.region,s.tags,COALESCE(NULLIF(b.banner_url,""),s.banner_url) AS bannerUrl,b.logo_url AS logoUrl,b.accent_color AS accentColor,b.secondary_color AS secondaryColor,b.tagline,s.created_at AS createdAt,(SELECT COUNT(*) FROM swapp_game_server_vote_events v WHERE v.server_id=s.id AND v.voted_at>=?) AS votes_month FROM swapp_game_servers s LEFT JOIN swapp_game_server_branding b ON b.server_id=s.id WHERE '+filter+' ORDER BY '+order+' LIMIT ? OFFSET ?',
     [month,...args,pageSize,offset]);
-   const [counts]=await sql.query('SELECT game,COUNT(*) AS count FROM swapp_game_servers WHERE status="published" GROUP BY game');
-   const gameCounts=Object.fromEntries(counts.map(item=>[String(item.game),Number(item.count)]));
+   // Category counters are informative; their failure must not hide listings.
+   let gameCounts=null;
+   try{
+    const [counts]=await sql.query('SELECT game,COUNT(*) AS count FROM swapp_game_servers WHERE status="published" GROUP BY game');
+    gameCounts=Object.fromEntries(counts.map(item=>[String(item.game),Number(item.count)]));
+   }catch(counterError){
+    console.warn('[SWAPP SERVEURS] Comptage catégories',String(counterError?.code||counterError?.message||counterError).slice(0,90));
+   }
    const owner=account(req);
    // The result includes permissions specific to this session, so never share its cache.
    res.set('Cache-Control','private,no-store').json({
