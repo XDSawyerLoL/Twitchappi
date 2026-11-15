@@ -1025,3 +1025,9 @@ body.swapp-catalogue-lab-page .scl-discovery-toolbar .scl-explorer-shortcut{
  body.swapp-catalogue-lab-page .scl-discovery-toolbar .scl-tabs{flex-wrap:nowrap;overflow:auto}
  body.swapp-catalogue-lab-page .scl-discovery-toolbar .scl-explorer-shortcut{width:100%;justify-content:center}
 }
+
+/* Brand label has moved INTO the live hero, not between the header and banner. */
+#swapp-catalogue-lab .scl-home-eyebrow{
+ display:block;color:#eef6fc;font:850 10px/1.4 Inter,system-ui,sans-serif;
+ letter-spacing:.19em;margin-bottom:14px;text-shadow:0 2px 12px #000c
+}
