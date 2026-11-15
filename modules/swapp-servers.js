@@ -376,7 +376,7 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
  // Recheck older Discord submissions too, without any paid worker or VPS.
  // One batch per instance, repeated while the application is running.
  if(enableAutoReview&&mysqlUrl()&&process.env.SWAPP_SERVERS_AUTO_REVIEW!=='0'){
-  const tick=()=>autoPublishPendingServers().catch(e=>console.warn('[SWAPP SERVEURS] Auto-validation:',String(e.message||e).slice(0,120)));
+  const tick=()=>autoPublishPendingServers({getDatabase:readDatabase}).catch(e=>console.warn('[SWAPP SERVEURS] Auto-validation:',String(e.code||e.message||e).slice(0,120)));
   const initial=setTimeout(tick,1500);initial.unref?.();
   const periodic=setInterval(tick,5*60*1000);periodic.unref?.();
  }
@@ -387,7 +387,7 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
  // Dynamic public sitemap index, so every real published community can be indexed.
  app.get('/sitemap-serveurs.xml',async(_req,res)=>{
   try{
-   const sql=await getDatabase();
+   const sql=await readDatabase();
    const [rows]=await sql.query('SELECT COUNT(*) AS n FROM swapp_game_servers WHERE status="published"');
    const count=Math.max(1,Math.ceil(Number(rows[0]?.n||0)/1000));
    const xml='<?xml version="1.0" encoding="UTF-8"?><sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'+
@@ -399,7 +399,7 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
   const page=Number(req.params.page);
   if(!Number.isInteger(page)||page<1||page>1000)return res.sendStatus(404);
   try{
-   const sql=await getDatabase();
+   const sql=await readDatabase();
    const [rows]=await sql.execute('SELECT slug,game,created_at FROM swapp_game_servers WHERE status="published" ORDER BY created_at ASC,id ASC LIMIT 1000 OFFSET ?',[(page-1)*1000]);
    if(!rows.length)return res.sendStatus(404);
    const entries=rows.map(item=>'<url><loc>https://swapp.tv/serveurs/'+slug(item.game)+'/'+encodeURIComponent(item.slug)+'</loc>'+
