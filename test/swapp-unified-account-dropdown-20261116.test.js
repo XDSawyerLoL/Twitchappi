@@ -72,7 +72,9 @@ test('the SPA and native route families load the same renderer before their adap
 });
 test('Twitch linking and unlinking remain on /compte; header hides OAuth controls',()=>{
  const spa=read('index_script.js');
- const account=spa.slice(spa.indexOf('async function renderSettings(){'),spa.indexOf('async function renderAdmin(){'));
+ const start=spa.indexOf('async function renderSettings(){');
+ assert.ok(start>=0);
+ const account=spa.slice(start,start+16000);
  assert.match(account,/connectTwitch\(\)/);
  assert.match(account,/logoutTwitch\(\)/);
  const adapter=read('assets/swapp-account-menu.js');
