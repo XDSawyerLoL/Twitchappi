@@ -274,4 +274,11 @@ jobs:
       - name: Server-directory integration and regression tests
         run: node --test test/swapp-server-*.test.js test/swapp-servers-*.test.js
       - name: Verify reproducible Hostinger release contents
-        run: node tools/swapp-hostinger-package.js
+        run: node tools/swapp-hostinger-package.js "--output=$RUNNER_TEMP/swapp-hostinger-serveur-plus.zip"
+      - name: Archive tested Hostinger release
+        uses: actions/upload-artifact@v4
+        with:
+          name: swapp-hostinger-serveur-plus-${{ github.sha }}
+          path: ${{ runner.temp }}/swapp-hostinger-serveur-plus.zip
+          if-no-files-found: error
+          retention-days: 7
