@@ -9,11 +9,15 @@
  const label=document.getElementById('userLabel');
  const avatar=document.getElementById('userAvatar');
  if(!document.querySelector('body.swapp-editorial-route .top .userArea')||!button||!menu)return;
+  // Some native documents also include this controller; bind only once.
+  if(menu.dataset.swappNativeBound==='1')return;
+  menu.dataset.swappNativeBound='1';
  const KEY='oryon_viewer_accent';
  const DEFAULT='#22d3ee';
  const colors=[['Cyan','#22d3ee'],['Turquoise','#2dd4bf'],['Violet','#a78bfa'],['Rose','#f472b6'],['Orange','#fb923c'],['Bleu','#60a5fa'],['Vert','#a3e635']];
  const root=document.documentElement;
- let signedIn=false,chosen=DEFAULT;
+ let signedIn=false,chosen=DEFAULT,localAccount=false,twitchAccount=false,currentUser=null;
+ let appearanceOpened=false,tastesOpened=false;
  const safeColor=value=>typeof value==='string'&&/^#[0-9a-f]{6}$/i.test(value);
  const getSaved=()=>{try{const value=localStorage.getItem(KEY);return safeColor(value)?value:DEFAULT}catch{return DEFAULT}};
  function applyAccent(value){
@@ -77,6 +81,28 @@
   details.append(summary,panel);return details;
  }
  function renderMenu(){
+  const shared=window.SwappUnifiedAccountMenu;
+  if(shared?.render){
+   shared.render(menu,{
+    signedIn,localAccount,
+    displayName:String(currentUser?.display_name||currentUser?.login||'Compte SWAPP'),
+    appearanceOpen:appearanceOpened,tastesOpen:tastesOpened,
+    onAppearanceToggle:open=>{appearanceOpened=open},
+    onTastesToggle:open=>{tastesOpened=open},
+    onClose:close,
+    onLogout:signedIn?async()=>{
+     // Disconnect the SWAPP account, or the Twitch-only session when no local
+     // identity exists. Twitch linking/unlinking itself lives on /compte.
+     const endpoint=localAccount?'/api/oryon/logout':'/twitch_logout';
+     const response=await fetch(endpoint,{
+      method:'POST',credentials:'same-origin',headers:{Accept:'application/json'}
+     });
+     if(!response.ok)throw Error('deconnexion_indisponible');
+     window.location.href='/compte';
+    }:null
+   });
+   return;
+  }
   menu.replaceChildren();
   if(signedIn){
    menu.append(link('Mon espace SWAPP','/compte'),link('Diffuser','/compte'));
@@ -87,7 +113,8 @@
   menu.setAttribute('aria-label','Menu SWAPP : compte et apparence');
   applyAccent(getSaved());
  }
- function setUser(user){
+ function setUser(user,{local=false,twitch=false}={}){
+  currentUser=user;localAccount=!!local;twitchAccount=!!twitch;
   signedIn=!!(user&&user.login);
   if(label)label.textContent=signedIn?String(user.display_name||user.login).slice(0,40):'Se connecter';
   if(avatar){
@@ -120,6 +147,7 @@
  fetch('/api/oryon/session',{method:'GET',credentials:'same-origin',cache:'no-store',
   headers:{Accept:'application/json'},signal})
  .then(response=>response.ok?response.json():null)
- .then(data=>setUser(data?.success?(data.local||data.twitch):null))
+ .then(data=>setUser(data?.success?(data.local||data.twitch):null,
+  {local:!!(data?.success&&data.local),twitch:!!(data?.success&&data.twitch)}))
  .catch(()=>setUser(null));
 })();
