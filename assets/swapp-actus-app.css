@@ -704,27 +704,3 @@ html body #actus :is(.swapp-actus-cover img,.swapp-actus-featured-link img) {
  }
 }
 
-/* Featured news: a real, explicit official video, never ambient-only. */
-#actus .swapp-actus-featured-video{
- position:absolute;right:clamp(18px,4vw,64px);top:clamp(22px,5vw,65px);
- width:min(37vw,520px);z-index:6;display:flex;flex-direction:column;gap:5px;
-}
-#actus .swapp-actus-featured-video .swapp-reader-official-video-stage{
- aspect-ratio:16/9;background:#000;border:1px solid #ffffff40;
- border-radius:12px;box-shadow:0 18px 50px #000a;overflow:hidden;
-}
-#actus .swapp-actus-featured-video .swapp-reader-official-video-link{
- align-self:flex-end;color:#e4faff;text-shadow:0 2px 6px #000;
- background:#090d14cc;padding:5px 10px;border-radius:5px;
-}
-@media(max-width:850px){
- #actus .swapp-actus-featured-hero:has(.swapp-actus-featured-video){height:clamp(580px,100vw,740px)}
- #actus .swapp-actus-featured-video{top:14px;right:4%;width:min(76vw,440px)}
- #actus .swapp-actus-featured-overlay{bottom:150px}
- #actus .swapp-actus-featured-overlay strong{font-size:clamp(26px,6vw,42px)!important;max-width:25ch}
-}
-@media(max-width:520px){
- #actus .swapp-actus-featured-video{width:92%;left:4%;right:4%}
- #actus .swapp-actus-featured-overlay{bottom:119px}
- #actus .swapp-actus-featured-actions{bottom:20px}
-}
