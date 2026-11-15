@@ -45,8 +45,10 @@ test('automatic checker approves only guild invites confirmed by Discord itself'
 test('Discord and ordinary game listings publish immediately when details are valid',async()=>{
  const inserted=[];
  const fakeDb={execute:async(sql,values)=>{
+  if(sql.startsWith('SELECT id,slug,status'))return[[]];
   if(sql.startsWith('SELECT COUNT(*) AS n'))return[[{n:0}]];
   if(sql.startsWith('INSERT INTO swapp_game_servers')){inserted.push({sql,values});return[{affectedRows:1}]}
+  if(sql.startsWith('INSERT INTO swapp_game_server_extras'))return [{affectedRows:1}];
   throw Error('Unexpected SQL '+sql);
  }};
  const app=routes({getDatabase:async()=>fakeDb,inviteVerifier:async()=>VERIFIED});
