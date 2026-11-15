@@ -94,7 +94,7 @@ test('live rail is followed by top game posters, 25 genre controls, actual genre
  assert.match(spa,/id="scl-top-games-cards"/);
  assert.match(spa,/id="scl-genre-shelves"/);
  assert.match(spa,/swapp-genre-discovery\.css\?v=20261115-real-racing-v6/);
- assert.match(spa,/swapp-catalogue-lab\.js\?v=20261115-black-genres-v28/);
+ assert.match(spa,/swapp-catalogue-lab\.js\?v=20261115-obsession-shuffle-v29/);
 });
 
 test('poster rails show valid game artwork, linked real creator discovery and no fake ranks',()=>{
