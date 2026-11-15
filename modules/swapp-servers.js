@@ -103,11 +103,11 @@ async function autoReviewPendingDiscord({limit=12,getDatabase=db,inviteVerifier=
  })().finally(()=>{autoReviewRunning=null;lastAutoReview=Date.now()});
  return autoReviewRunning;
 }
-function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verifyDiscordInvite}={}){
+function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verifyDiscordInvite,enableAutoReview=true}={}){
  const isManager=req=>Boolean(isAdmin(req));
  // Recheck older Discord submissions too, without any paid worker or VPS.
  // One batch per instance, repeated while the application is running.
- if(mysqlUrl()&&process.env.SWAPP_SERVERS_AUTO_REVIEW!=='0'){
+ if(enableAutoReview&&mysqlUrl()&&process.env.SWAPP_SERVERS_AUTO_REVIEW!=='0'){
   const tick=()=>autoReviewPendingDiscord().catch(e=>console.warn('[SWAPP SERVEURS] Auto-validation:',String(e.message||e).slice(0,120)));
   const initial=setTimeout(tick,10000);initial.unref?.();
   const periodic=setInterval(tick,5*60*1000);periodic.unref?.();
