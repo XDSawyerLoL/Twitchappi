@@ -4,7 +4,10 @@
  const $=s=>root.querySelector(s), results=$('#ss-results'),feedback=$('#ss-feedback'),count=$('#ss-count');
  // Submission is handled by the dedicated /serveurs/creer page.
  const make=(tag,cls,text)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(text!==undefined)e.textContent=String(text);return e};
- const state={servers:[],loading:false,request:0,page:1,total:0,hasMore:false,status:'loading'};
+ const state={servers:[],loading:false,request:0,page:1,total:0,hasMore:false,status:'loading',errorMessage:''};
+ // Category pages already contain verified published listings in their initial HTML.
+ // Do not erase them if the API is rejected or temporarily unavailable.
+ let keepServerRendered=!!results.querySelector('.ss-category-preloaded');
  const more=make('button','ss-load-more','Afficher 24 serveurs supplémentaires');
  more.type='button';more.hidden=true;more.setAttribute('aria-label','Charger la page suivante du classement');
  results.after(more);
@@ -142,12 +145,14 @@
   const items=state.servers;
   count.textContent=state.status==='error'?'Classement indisponible':state.total.toLocaleString('fr-FR')+' serveur'+(state.total===1?'':'s')+' référencé'+(state.total===1?'':'s');
   more.hidden=!state.hasMore||state.status==='error';more.disabled=state.loading;
+  if(state.status==='error'&&keepServerRendered&&!$('#ss-q').value.trim())return;
+  keepServerRendered=false;
   results.replaceChildren(...items.map(serverCard));
   if(!items.length){
    const empty=make('div','ss-empty');
    if(state.status==='error'){
     empty.append(make('h3','','Impossible de charger les serveurs pour le moment'),
-     make('p','','Les inscriptions ne peuvent pas être vérifiées actuellement. Le classement reste accessible dès le retour du service.'));
+     make('p','',state.errorMessage||'Les inscriptions ne peuvent pas être vérifiées actuellement. Réessaie dans un instant.'));
     const retry=make('button','ss-empty-retry','Réessayer');retry.type='button';retry.addEventListener('click',()=>load());empty.append(retry);
    }else if($('#ss-q').value.trim()){
     empty.append(make('h3','','Aucun serveur trouvé pour cette recherche'),
@@ -178,17 +183,28 @@
   feedback.textContent='Mise à jour du classement…';
   try{
    const res=await fetch('/api/swapp/serveurs?'+params.toString(),{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}});
-   if(!res.ok)throw Error('L’annuaire est temporairement indisponible.');
+   if(!res.ok){
+    const reason=res.status===403?'Accès bloqué par la protection du site (HTTP 403).':
+     res.status===404?'L’API des serveurs est introuvable sur cette version du site (HTTP 404).':
+     res.status===429?'Trop de requêtes : réessaie dans un instant (HTTP 429).':
+     res.status===503?'Service ou base des serveurs temporairement indisponible (HTTP 503).':
+     'Échec du classement des serveurs (HTTP '+res.status+').';
+    throw Error(reason);
+   }
+   if(!(res.headers.get('content-type')||'').includes('application/json'))
+    throw Error('Le site ne renvoie pas les données du classement (réponse non JSON).');
    const data=await res.json();if(seq!==state.request)return;
-   const items=Array.isArray(data.servers)?data.servers:[];
-   state.page=requestedPage;state.total=Number(data.total)||0;state.hasMore=Boolean(data.hasMore);state.status='ready';
+   if(!data||!Array.isArray(data.servers)||!Number.isFinite(Number(data.total)))
+    throw Error('Réponse du classement incomplète : impossible de vérifier les inscriptions.');
+   const items=data.servers;
+   state.page=requestedPage;state.total=Number(data.total)||0;state.hasMore=Boolean(data.hasMore);state.status='ready';state.errorMessage='';
    state.servers=reset?items:state.servers.concat(items);
    displayGameCounts(data.gameCounts);
    feedback.textContent='Classement basé sur les votes enregistrés ce mois-ci, sans faux statut en ligne.';
   }catch(e){
    if(seq!==state.request)return;
-   if(reset){displayGameCounts(null);state.servers=[];state.total=0;state.status='error'}
-   feedback.textContent=e.message;
+   if(reset){displayGameCounts(null);state.servers=[];state.total=0;state.status='error';state.errorMessage=e?.message||'Impossible de charger les serveurs pour le moment.'}
+   feedback.textContent=e?.message||'Impossible de charger les serveurs pour le moment.';
   }finally{
    if(seq===state.request){state.loading=false;draw();more.disabled=false}
   }
