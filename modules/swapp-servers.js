@@ -12,6 +12,33 @@ const clean=(v,n=200)=>String(v??'').trim().slice(0,n);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const slug=s=>clean(s,100).normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,75);
 function safeUrl(s){try{const u=new URL(s);return u.protocol==='https:'&&!u.username&&!u.password&&!['localhost','127.0.0.1'].includes(u.hostname)?u.href:''}catch{return ''}}
+// Publication is immediate once the supplied details pass objective checks.
+// We do not claim server online status: this validates the listing, not reachability.
+function validJoinAddress(value){
+ const input=clean(value,240);
+ if(!input||/[\s<>"'\\/?#@]/.test(input))return false;
+ const match=input.match(/^([a-z0-9.-]+)(?::([0-9]{1,5}))?$/i);
+ if(!match)return false;
+ const host=match[1].toLowerCase(),port=match[2]===undefined?null:Number(match[2]);
+ if(port!==null&&(!Number.isInteger(port)||port<1||port>65535))return false;
+ if(host==='localhost'||host.endsWith('.localhost')||host.endsWith('.local')||host.endsWith('.internal')||host.endsWith('.test'))return false;
+ if(/^[0-9.]+$/.test(host)){
+  const octets=host.split('.').map(Number);
+  if(octets.length!==4||octets.some(x=>!Number.isInteger(x)||x<0||x>255))return false;
+  const [a,b]=octets;
+  if(a===0||a===10||a===127||a>=224||(a===169&&b===254)||(a===172&&b>=16&&b<=31)||(a===192&&b===168)||(a===100&&b>=64&&b<=127))return false;
+  return true;
+ }
+ const parts=host.split('.');
+ return parts.length>=2&&host.length<=253&&parts.every(x=>/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(x))&&!/^\d+$/.test(parts.at(-1));
+}
+function validListingDetails({game,website,joinAddress}){
+ if(!GAMES.includes(game))return false;
+ const websiteOk=!!website&&!!safeUrl(website);
+ const joinOk=!!joinAddress&&validJoinAddress(joinAddress);
+ return websiteOk||joinOk;
+}
+
 function originGuard(req){const expected=['https://swapp.tv','https://www.swapp.tv'];const own=process.env.APP_BASE_URL; if(own)try{expected.push(new URL(own).origin)}catch{};const origin=req.get('origin');return !!origin&&expected.includes(origin)}
 function account(req){return clean(req.session?.oryonUser?.id||'',80)}
 function administrator(req){const id=account(req);if(!id)return false;const pinned=String(process.env.ORYON_ADMIN_USER_IDS||'').split(',').map(x=>x.trim()).filter(Boolean);return pinned.includes(id)}
@@ -141,18 +168,21 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
   const user=account(req);if(!user)return res.status(401).json({error:'connexion_swapp_requise'});
   const input=req.body||{},name=clean(input.name,100),game=clean(input.game,70),description=clean(input.description,1500);
   const website=clean(input.website,350),banner=clean(input.bannerUrl,350),join=clean(input.joinAddress,240),region=clean(input.region||'France',60),tags=clean(input.tags,250);
-  if(name.length<3||description.length<30||!GAMES.includes(game)||(!website&&!join)|| (website&&!safeUrl(website))||(banner&&!safeUrl(banner))||/[<>\r\n]/.test(join))return res.status(422).json({error:'informations_invalides'});
+  if(name.length<3||description.length<30||!validListingDetails({game,website,joinAddress:join})||(website&&!safeUrl(website))||(join&&!validJoinAddress(join)&&!inviteCode(join))||(banner&&!safeUrl(banner)))return res.status(422).json({error:'informations_invalides'});
   try{
    const sql=await getDatabase();const [count]=await sql.execute('SELECT COUNT(*) AS n FROM swapp_game_servers WHERE owner_id=?',[user]);if(count[0].n>=5)return res.status(429).json({error:'limite_de_cinq_serveurs'});
    const id=crypto.randomBytes(16).toString('hex'),serverSlug=(slug(name)||'serveur')+'-'+id.slice(0,7);
-   // Auto-publish only when Discord itself verifies a real guild invite.
-   // Other games cannot be authenticated by a Discord link alone.
-   const proposed=game==='Discord / Multigaming'?(inviteCode(website)?website:inviteCode(join)?join:''):'';
-   const verification=proposed?await inviteVerifier(proposed):{valid:false,reason:'manual_review'};
-   const publish=Boolean(verification.valid),status=publish?'published':'pending';
-   const resolvedWebsite=publish?verification.inviteUrl:website;
-   await sql.execute('INSERT INTO swapp_game_servers (id,owner_id,name,slug,game,description,website,join_address,region,tags,banner_url,status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',[id,user,name,serverSlug,game,description,resolvedWebsite,join,region,tags,banner,status]);
-   return res.status(201).json({status,slug:serverSlug,autoVerified:publish,verification:publish?'discord_invite':verification.reason||'manual_review',url:publish?'/serveurs/'+slug(game)+'/'+serverSlug:null});
+   // No manual queue for valid game listings. Discord invitations must additionally
+   // be confirmed by Discord; an unavailable verification is a retryable error.
+   const discord=game==='Discord / Multigaming';
+   const proposed=discord?(inviteCode(website)?website:inviteCode(join)?join:''):'';
+   if(discord&&!proposed)return res.status(422).json({error:'invitation_discord_requise'});
+   const verification=discord?await inviteVerifier(proposed):{valid:true,reason:'listing_format'};
+   if(!verification.valid)return res.status(422).json({error:'verification_discord_impossible',reason:verification.reason||'discord_unavailable',retry:true});
+   const resolvedWebsite=discord?verification.inviteUrl:website;
+   await sql.execute('INSERT INTO swapp_game_servers (id,owner_id,name,slug,game,description,website,join_address,region,tags,banner_url,status) VALUES (?,?,?,?,?,?,?,?,?,?,?,"published")',[id,user,name,serverSlug,game,description,resolvedWebsite,join,region,tags,banner]);
+   return res.status(201).json({status:'published',slug:serverSlug,autoVerified:discord,verification:discord?'discord_invite':'listing_format',
+    onlineVerified:false,url:'/serveurs/'+slug(game)+'/'+serverSlug});
   }catch(e){fail(res,e)}
  });
  app.post('/api/swapp/serveurs/:id/vote',async(req,res)=>{
