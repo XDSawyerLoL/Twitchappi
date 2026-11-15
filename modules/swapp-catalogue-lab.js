@@ -83,7 +83,7 @@ function page({publicHome=false}={}){
   '<script src="/assets/swapp-live-surprise.js?v=20261115-obsession-v1" defer></script>'+ 
   '<script src="/assets/swapp-catalogue-lab.js?v=20261115-hidpi-posters-v30" defer></script>'+
   '<script src="/assets/swapp-my-games.js?v=20261021-account-hub-v1" defer></script>'+
-  '<script src="/assets/swapp-navigation.js?v=20261114-home-all-v3" defer></script>'+
+  '<script src="/assets/swapp-navigation.js?v=20261115-explorer-nav-v4" defer></script>'+
   '<script src="/assets/swapp-nav-session.js?v=20261114-native-account-v1" defer></script>'
  });
 }
