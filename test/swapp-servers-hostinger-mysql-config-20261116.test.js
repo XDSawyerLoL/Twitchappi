@@ -34,6 +34,12 @@ test('public reads cannot create a new empty directory in a mismatched database'
  assert.doesNotMatch(guard,/CREATE TABLE/);
  assert.match(code,/swapp_servers_schema_missing/);
 });
+test('scheduled review and sitemap reads cannot initialize unrelated MySQL tables',()=>{
+ const code=src();
+ assert.match(code,/autoPublishPendingServers\(\{getDatabase:readDatabase\}\)/);
+ assert.match(code,/app\.get\('\/sitemap-serveurs\.xml',[\s\S]*?const sql=await readDatabase\(\)/);
+ assert.match(code,/app\.get\('\/sitemap-serveurs-:page\.xml',[\s\S]*?const sql=await readDatabase\(\)/);
+});
 test('the public count and directory listing use one portable, parameterized SQL filter',()=>{
  const code=src();
  assert.match(code,/const DIRECTORY_FILTER_SQL=/);
