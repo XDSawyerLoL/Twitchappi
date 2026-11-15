@@ -221,7 +221,8 @@
    const host=$('sx-collection-grid');
    const groups=collections(state.games,state.lives,allGenres).filter(group=>hasQuery(group.label+' '+group.description)||
       group.games.some(g=>hasQuery(g.name))||group.lives.some(l=>hasQuery(l.name)));
-   host.replaceChildren(...groups.map(g=>makeCollectionCard(doc,g)));
+   // The featured collection is not repeated in the regular gallery.
+   host.replaceChildren(...groups.slice(initialGenre?0:1).map(g=>makeCollectionCard(doc,g)));
    const featured=$('sx-featured-collection');
    if(featured){
     featured.replaceChildren();
