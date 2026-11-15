@@ -38,7 +38,7 @@ test('all static and newly generated game rails have visible arrows and keyboard
  assert.match(js,/installRailArrowState\(\)/);
  assert.match(css,/\.scl-genre-cards\.scl-is-edge-scrolling\{/);
  assert.match(read('modules/swapp-catalogue-spa.js'),/20261115-game-banners-v32/);
- assert.match(read('modules/swapp-catalogue-spa.js'),/20261115-game-banners-style-v28/);
+ assert.match(read('modules/swapp-catalogue-spa.js'),/20261115-magazine-first-v29/);
 });
 
 test('delegated hover scroll works after the genre shelf is dynamically rendered',()=>{
