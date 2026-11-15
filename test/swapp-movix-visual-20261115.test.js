@@ -10,7 +10,7 @@ const read=name=>fs.readFileSync(path.join(__dirname,'..',name),'utf8');
 
 test('Magazine leads home rails, and genre image ribbon precedes compact posters',()=>{
  const html=catalogueContent({publicHome:true});
- const ordered=['scl-articles','scl-favorites','scl-live','scl-small','scl-genres','scl-top-games','scl-games','scl-genre-shelves'];
+ const ordered=['scl-articles','scl-favorites','scl-top-games','scl-live','scl-small','scl-genres','scl-games','scl-genre-shelves'];
  for(const id of ordered)assert.ok(html.includes('id="'+id+'"'),id);
  for(let i=1;i<ordered.length;i++)
   assert.ok(html.indexOf('id="'+ordered[i-1]+'"')<html.indexOf('id="'+ordered[i]+'"'),
