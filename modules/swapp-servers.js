@@ -161,12 +161,12 @@ function growthBanner(game=''){
 }
 
 function page({isAdmin=false,game=''}={}){
- const head='<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#050608"><title>'+esc(game?'Serveurs '+game+' — classement des communautés | SWAPP':'Serveurs de jeux — classements et communautés | SWAPP')+'</title><meta name="description" content="Découvre des serveurs gaming et roleplay, classe les communautés par votes et référence ton serveur sur SWAPP."><link rel="canonical" href="https://swapp.tv/serveurs'+(game?'/'+slug(game):'')+'">'+SHARED_HEAD_SLOT+'<link rel="stylesheet" href="/assets/swapp-servers.css?v=20261115-category-owner-v16"><link rel="stylesheet" href="/assets/swapp-servers-community.css?v=20261115-community-v1">';
+ const head='<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#050608"><title>'+esc(game?'Serveurs '+game+' — classement des communautés | SWAPP':'Serveurs de jeux — classements et communautés | SWAPP')+'</title><meta name="description" content="Découvre des serveurs de jeux, trouve des coéquipiers disponibles et consulte les lives associés aux communautés sur SWAPP."><link rel="canonical" href="https://swapp.tv/serveurs'+(game?'/'+slug(game):'')+'">'+SHARED_HEAD_SLOT+'<link rel="stylesheet" href="/assets/swapp-servers.css?v=20261115-category-owner-v16"><link rel="stylesheet" href="/assets/swapp-servers-community.css?v=20261115-community-v1">';
  let content='<main class="ss ss-directory" data-ss-current-game="'+esc(game)+'">'+(game?'':growthBanner(game))+
   '<header class="ss-hero ss-directory-intro"><div class="ss-inner ss-directory-intro-layout"><div class="ss-directory-intro-copy">'+
   '<p class="ss-overline">DÉCOUVRE LES COMMUNAUTÉS SWAPP</p>'+
   '<h1>'+(game?'Les serveurs <em>'+esc(game)+'</em>':'Trouve ta prochaine <em>communauté.</em>')+'</h1>'+
-  '<p>'+(game?'Explore les communautés '+esc(game)+' référencées sur SWAPP. Si aucune inscription n’est disponible, sois le premier à présenter ton serveur.':'Serveurs de jeux et RP, choisis par les joueurs. Des votes réels, un référencement gratuit, aucun classement inventé.')+'</p>'+
+  '<p>'+(game?'Explore les communautés '+esc(game)+' référencées sur SWAPP. Si aucune inscription n’est disponible, sois le premier à présenter ton serveur.':'Trouve une communauté, des coéquipiers disponibles et des créateurs en direct. Référencement gratuit et votes vérifiés, sans classement inventé.')+'</p>'+
   '<div class="ss-directory-intro-links"><a href="/serveurs">Tous les serveurs</a>'+
    (game?'<a href="/serveurs/creer?jeu='+encodeURIComponent(game)+'">+ Ajouter un serveur '+esc(game)+'</a>':'<a href="/explorer">Explorer SWAPP</a>')+
   '</div></div>'+
