@@ -94,6 +94,11 @@
    }catch(e){feedback.textContent=e.message}finally{vote.disabled=false}
   });
   actions.append(vote);
+  if(s.slug&&/^[a-z0-9-]{6,90}$/.test(s.slug)){
+   const detail=make('a','ss-details','Voir la fiche');
+   detail.href='/serveurs/'+encodeURIComponent(gameSlug(s.game))+'/'+encodeURIComponent(s.slug);
+   actions.append(detail);
+  }
   if(s.website){const link=make('a','ss-join','Rejoindre ↗');link.href=s.website;link.target='_blank';link.rel='noopener noreferrer nofollow';actions.append(link)}
   if(s.joinAddress){const address=make('button','ss-address','Copier l’adresse');address.type='button';address.onclick=async()=>{try{await navigator.clipboard.writeText(s.joinAddress);address.textContent='Adresse copiée'}catch{address.textContent=s.joinAddress}};actions.append(address)}
   content.append(actions);article.append(art,content);return article;
