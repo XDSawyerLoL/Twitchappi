@@ -425,11 +425,21 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
   try{
    const sql=await readDatabase();
    // Published communities are visible in the initial HTML, independently of JS.
-   const [rows]=await sql.execute('SELECT s.id,s.name,s.slug,s.game,s.description,s.banner_url,b.logo_url AS logoUrl,b.banner_url AS brandBannerUrl FROM swapp_game_servers s LEFT JOIN swapp_game_server_branding b ON b.server_id=s.id WHERE s.game=? AND s.status="published" ORDER BY s.created_at DESC,s.id ASC LIMIT 24',[game]);
-   const [totals]=await sql.execute('SELECT COUNT(*) AS n FROM swapp_game_servers WHERE game=? AND status="published"',[game]);
-   const total=Number(totals[0]?.n||0);
+   let rows;
+   try{
+    [rows]=await sql.execute('SELECT s.id,s.name,s.slug,s.game,s.description,s.banner_url,b.logo_url AS logoUrl,b.banner_url AS brandBannerUrl FROM swapp_game_servers s LEFT JOIN swapp_game_server_branding b ON b.server_id=s.id WHERE s.game=? AND s.status="published" ORDER BY s.created_at DESC,s.id ASC LIMIT 24',[game]);
+   }catch(error){
+    if(!['ER_NO_SUCH_TABLE','ER_BAD_FIELD_ERROR','ER_TABLEACCESS_DENIED_ERROR'].includes(error?.code))throw error;
+    // If optional branding is missing, show real server records without artwork.
+    [rows]=await sql.execute('SELECT s.id,s.name,s.slug,s.game,s.description,s.banner_url FROM swapp_game_servers s WHERE s.game=? AND s.status="published" ORDER BY s.created_at DESC,s.id ASC LIMIT 24',[game]);
+   }
+   let total=null;
+   try{
+    const [totals]=await sql.execute('SELECT COUNT(*) AS n FROM swapp_game_servers WHERE game=? AND status="published"',[game]);
+    total=Number(totals[0]?.n||0);
+   }catch(error){console.warn('[SWAPP SERVEURS] Comptage catégorie',String(error?.code||error?.message||error).slice(0,70))}
    html=html.replace(marker,'<div id="ss-results" class="ss-results">'+renderCategoryPreview(rows,game)+'</div>');
-   html=html.replace('id="ss-count">Chargement…</span>','id="ss-count">'+total+' serveur'+(total===1?'':'s')+' référencé'+(total===1?'':'s')+'</span>');
+   html=html.replace('id="ss-count">Chargement…</span>','id="ss-count">'+(total===null?'Nombre indisponible':total+' serveur'+(total===1?'':'s')+' référencé'+(total===1?'':'s'))+'</span>');
   }catch(e){
    console.warn('[SWAPP SERVEURS] Catégorie',String(e?.code||e?.message||e).slice(0,90));
    html=html.replace(marker,'<div id="ss-results" class="ss-results"><div class="ss-empty"><h2>Classement temporairement indisponible</h2><p>Les fiches ne peuvent pas être vérifiées actuellement. Réessaie dans un instant.</p></div></div>');
