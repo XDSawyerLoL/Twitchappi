@@ -5,6 +5,17 @@
  const dialog=$('#ss-dialog'),form=$('#ss-form'),status=$('#ss-form-status');
  const make=(tag,cls,text)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(text!==undefined)e.textContent=String(text);return e};
  const state={servers:[],loading:false,request:0};
+ const gameSlug=name=>String(name||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,75);
+ const setGame=(name,updateAddress=true)=>{
+  $('#ss-game').value=name;
+  if(updateAddress){
+   const href='/serveurs'+(name?'/'+encodeURIComponent(gameSlug(name)):'');
+   if(location.pathname!==href)history.pushState({game:name},'',href);
+  }
+  syncGameChips();load();
+ };
+ if(root.dataset.ssCurrentGame)$('#ss-game').value=root.dataset.ssCurrentGame;
+
 
  // Genuine, game-matched publisher/store key art, never a generic or unrelated illustration.
  // Minecraft is not on Steam: use Twitch's actual Minecraft category artwork.
@@ -49,7 +60,7 @@
   const amount=make('span','ss-featured-count','Classement SWAPP');
   amount.dataset.ssFeaturedCount=game;
   copy.append(amount);card.append(picture,copy);
-  card.addEventListener('click',()=>{$('#ss-game').value=game;syncGameChips();load();document.querySelector('.ss-results')?.scrollIntoView({behavior:'smooth',block:'start'})});
+  card.addEventListener('click',()=>{setGame(game);results?.scrollIntoView({behavior:'smooth',block:'start'})});
   featuredHost.append(card);
  }
  function displayGameCounts(counts){
@@ -100,7 +111,7 @@
   catch(e){if(seq!==state.request)return;displayGameCounts(null);results.replaceChildren();count.textContent='Indisponible';feedback.textContent=e.message}
  }
  let timer;$('#ss-q').addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(load,250)});
- $('#ss-game').addEventListener('change',()=>{syncGameChips();load()});$('#ss-sort').addEventListener('change',load);
+ $('#ss-game').addEventListener('change',()=>setGame($('#ss-game').value));$('#ss-sort').addEventListener('change',load);
  function syncGameChips(){
   root.querySelectorAll('[data-ss-game]').forEach(b=>{
    const selected=b.dataset.ssGame===$('#ss-game').value;
@@ -109,9 +120,15 @@
   });
  }
  root.querySelectorAll('[data-ss-game]').forEach(b=>b.addEventListener('click',()=>{
-  $('#ss-game').value=b.dataset.ssGame;syncGameChips();load();
+  setGame(b.dataset.ssGame);
  }));
  syncGameChips();
+ window.addEventListener('popstate',()=>{
+  const slugPath=decodeURIComponent(location.pathname.split('/')[2]||'');
+  const select=Array.from($('#ss-game').options).find(o=>gameSlug(o.value)===slugPath);
+  $('#ss-game').value=select?select.value:'';
+  syncGameChips();load();
+ });
  const gameSearch=$('#ss-game-search');
  if(gameSearch)gameSearch.addEventListener('input',()=>{
   const term=gameSearch.value.trim().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
