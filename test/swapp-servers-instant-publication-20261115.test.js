@@ -3,7 +3,7 @@ const test=require('node:test'),assert=require('node:assert/strict');
 const {register,autoPublishPendingServers,page,validJoinAddress,validListingDetails}=require('../modules/swapp-servers');
 function appWith({db,verifyDiscord=async()=>({valid:true,inviteUrl:'https://discord.gg/ABC123'})}){
  const routes={};
- const app={get:(p,...h)=>routes['GET '+p]=h.at(-1),post:(p,...h)=>routes['POST '+p]=h.at(-1)};
+ const app={get:(p,...h)=>routes['GET '+p]=h.at(-1),post:(p,...h)=>routes['POST '+p]=h.at(-1),put:(p,...h)=>routes['PUT '+p]=h.at(-1)};
  register(app,{getDatabase:async()=>db,inviteVerifier:verifyDiscord,enableAutoReview:false});
  return routes;
 }
