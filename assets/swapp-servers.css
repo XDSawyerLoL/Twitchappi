@@ -62,3 +62,20 @@
 /* Native category links, not faux buttons. */
 .ss-featured-tile,.ss-game-grid a.ss-game-tile{text-decoration:none!important}
 .ss-featured-tile:focus-visible,.ss-game-grid a.ss-game-tile:focus-visible{outline:2px solid #a4eff1;outline-offset:3px}
+
+/* Account-owned listings and high-priority moderation queue. */
+.ss-owned{margin:0 0 28px;padding:20px 22px;border:1px solid #2e4b51;background:#101a1e;border-radius:12px}
+.ss-owned[hidden]{display:none!important}
+.ss-owned-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:12px;margin:0 0 12px}
+.ss-owned-head h2{margin:0;font-size:23px}
+.ss-owned-head span{font-size:13px;color:#acc1cc}
+.ss-owned-item{display:flex;align-items:center;flex-wrap:wrap;gap:12px;padding:12px 0;border-bottom:1px solid #ffffff14;font-size:14px}
+.ss-owned-item:last-child{border-bottom:0}
+.ss-owned-item strong{flex:1;min-width:170px}
+.ss-owned-status{padding:5px 9px;border-radius:6px;border:1px solid #697983;color:#d5e5eb;font-size:12px;font-weight:800}
+.ss-owned-status.ss-status-published{color:#a1f7e2;border-color:#3a987b}
+.ss-owned-status.ss-status-rejected{color:#ffb4ae;border-color:#a55555}
+.ss-owned-item a{color:#a2e9f3;text-decoration:underline;text-underline-offset:3px;font-weight:750}
+.ss-content>.ss-admin{margin:0 0 28px;border-color:#4a8589;box-shadow:0 0 0 1px #1c464936}
+.ss-content>.ss-admin h2{font-size:clamp(21px,2.4vw,29px)}
+.ss-admin #ss-review-refresh{background:#b1efec;color:#0b1314;border-color:#b1efec}
