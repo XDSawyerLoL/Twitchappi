@@ -40,6 +40,28 @@ function validListingDetails({game,website,joinAddress}){
  return websiteOk||joinOk||(game==='Discord / Multigaming'&&!!inviteCode(joinAddress));
 }
 
+const DEFAULT_ACCENT='#8ceaf0',DEFAULT_SECONDARY='#ad6bff';
+const colorHex=x=>/^#[0-9a-fA-F]{6}$/.test(String(x||''))?String(x).toLowerCase():'';
+const publicMediaUrl=(id,kind)=>'/media/serveurs/'+id+'/'+kind;
+function optionalImageUrl(value,id,kind){
+ const v=clean(value,351);
+ if(!v)return '';
+ if(id&&v===publicMediaUrl(id,kind))return v;
+ return safeUrl(v);
+}
+function normalizeBranding(body={},id=''){
+ const logo=clean(body.logoUrl,351),banner=clean(body.brandBannerUrl||body.bannerUrl,351);
+ const accent=clean(body.accentColor||DEFAULT_ACCENT,7),secondary=clean(body.secondaryColor||DEFAULT_SECONDARY,7);
+ const tagline=clean(body.tagline,141);
+ const gallery=Array.isArray(body.gallery)?body.gallery:[];
+ const valid=(!logo||!!optionalImageUrl(logo,id,'logo'))&&(!banner||!!optionalImageUrl(banner,id,'banner'))&&!!colorHex(accent)&&!!colorHex(secondary)&&tagline.length<=140&&gallery.length<=3&&gallery.every(u=>!!safeUrl(u)&&String(u).length<=350);
+ return valid?{logo:logo?optionalImageUrl(logo,id,'logo'):'',banner:banner?optionalImageUrl(banner,id,'banner'):'',accent:colorHex(accent),secondary:colorHex(secondary),tagline,gallery:JSON.stringify(gallery)}:null;
+}
+async function saveBranding(conn,id,brand){
+ return conn.execute('INSERT INTO swapp_game_server_branding (server_id,logo_url,banner_url,accent_color,secondary_color,tagline,gallery_json) VALUES (?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE logo_url=VALUES(logo_url),banner_url=VALUES(banner_url),accent_color=VALUES(accent_color),secondary_color=VALUES(secondary_color),tagline=VALUES(tagline),gallery_json=VALUES(gallery_json)',
+  [id,brand.logo,brand.banner,brand.accent,brand.secondary,brand.tagline,brand.gallery]);
+}
+
 function originGuard(req){const expected=['https://swapp.tv','https://www.swapp.tv'];const own=process.env.APP_BASE_URL; if(own)try{expected.push(new URL(own).origin)}catch{};const origin=req.get('origin');return !!origin&&expected.includes(origin)}
 function account(req){
  const own=clean(req.session?.oryonUser?.id||'',80);
@@ -61,6 +83,8 @@ async function db(){
  await pool.query('CREATE TABLE IF NOT EXISTS swapp_game_server_reviews (id CHAR(32) PRIMARY KEY, server_id CHAR(32) NOT NULL, user_id VARCHAR(100) NOT NULL, staff TINYINT UNSIGNED NOT NULL, atmosphere TINYINT UNSIGNED NOT NULL, availability TINYINT UNSIGNED NOT NULL, comment VARCHAR(1200) NOT NULL, status ENUM("pending","published","rejected") NOT NULL DEFAULT "pending", created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3), UNIQUE KEY swapp_server_one_review (server_id,user_id), KEY swapp_reviews_moderation (status,created_at), CONSTRAINT swapp_reviews_server_fk FOREIGN KEY (server_id) REFERENCES swapp_game_servers(id) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
 
  await pool.query('CREATE TABLE IF NOT EXISTS swapp_game_server_extras (server_id CHAR(32) PRIMARY KEY, language VARCHAR(12) NOT NULL DEFAULT "fr", twitch_url VARCHAR(120) NOT NULL DEFAULT "", homepage_url VARCHAR(350) NOT NULL DEFAULT "", discord_guild_id VARCHAR(25) NOT NULL DEFAULT "", CONSTRAINT swapp_server_extras_fk FOREIGN KEY (server_id) REFERENCES swapp_game_servers(id) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
+ await pool.query('CREATE TABLE IF NOT EXISTS swapp_game_server_branding (server_id CHAR(32) PRIMARY KEY, logo_url VARCHAR(350) NOT NULL DEFAULT "", banner_url VARCHAR(350) NOT NULL DEFAULT "", accent_color CHAR(7) NOT NULL DEFAULT "#8ceaf0", secondary_color CHAR(7) NOT NULL DEFAULT "#ad6bff", tagline VARCHAR(140) NOT NULL DEFAULT "", gallery_json TEXT NOT NULL, CONSTRAINT swapp_branding_server_fk FOREIGN KEY (server_id) REFERENCES swapp_game_servers(id) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
+ await pool.query('CREATE TABLE IF NOT EXISTS swapp_game_server_media (server_id CHAR(32) NOT NULL, kind ENUM("logo","banner") NOT NULL, mime VARCHAR(24) NOT NULL, contents MEDIUMBLOB NOT NULL, updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3), PRIMARY KEY (server_id,kind), CONSTRAINT swapp_server_media_fk FOREIGN KEY (server_id) REFERENCES swapp_game_servers(id) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
  })().catch(e=>{ready=null;throw e});}
  await ready;return pool;
 }
@@ -97,7 +121,7 @@ function detailCover(game){
 function detailPage(server,votes,meta={}){
  const game=String(server?.game||''),title=String(server?.name||'Serveur');
  const gamePath='/serveurs/'+slug(game);
- const image=safeUrl(server.banner_url)||detailCover(game);
+ const image=optionalImageUrl(server.brand_banner_url,server.id,'banner')||safeUrl(server.banner_url)||detailCover(game);
  const canonical='https://swapp.tv'+gamePath+'/'+encodeURIComponent(server.slug);
  const header='<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#030405">'+
   '<title>'+esc(title)+' — '+esc(game)+' | Serveurs SWAPP</title>'+
@@ -105,7 +129,7 @@ function detailPage(server,votes,meta={}){
   '<link rel="canonical" href="'+esc(canonical)+'">'+SHARED_HEAD_SLOT+
   '<link rel="stylesheet" href="/assets/swapp-servers.css?v=20261115-create-v9">';
  return renderPage({head:header,content:renderProfile({server,votes,rank:meta.rank,stats:meta.stats||null,
-  reviews:meta.reviews||[],reviewSummary:meta.reviewSummary||null,cover:image,
+  reviews:meta.reviews||[],reviewSummary:meta.reviewSummary||null,cover:image,canEdit:Boolean(meta.canEdit),
   outbound:safeUrl(server.website),gamePath}),
   active:'servers',bodyClass:'swapp-editorial-route swapp-servers-page',
   scripts:'<script src="/assets/swapp-servers-detail.js?v=20261115-server-pro-v7" defer></script><script src="/assets/swapp-nav-session.js?v=20261114-native-account-v1" defer></script>'});
@@ -175,12 +199,12 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
   if(!game||!/^[a-z0-9][a-z0-9-]{4,89}$/.test(fiche))return res.status(404).type('text').send('Serveur introuvable');
   try{
    const sql=await getDatabase();
-   const [rows]=await sql.execute('SELECT s.id,s.name,s.slug,s.game,s.description,s.website,s.join_address,s.region,s.tags,s.banner_url,s.created_at,x.language,x.twitch_url,x.homepage_url FROM swapp_game_servers s LEFT JOIN swapp_game_server_extras x ON x.server_id=s.id WHERE s.slug=? AND s.game=? AND s.status="published" LIMIT 1',[fiche,game]);
+   const [rows]=await sql.execute('SELECT s.id,s.owner_id,s.name,s.slug,s.game,s.description,s.website,s.join_address,s.region,s.tags,s.banner_url,s.created_at,x.language,x.twitch_url,x.homepage_url,b.logo_url,b.banner_url AS brand_banner_url,b.accent_color,b.secondary_color,b.tagline,b.gallery_json FROM swapp_game_servers s LEFT JOIN swapp_game_server_extras x ON x.server_id=s.id LEFT JOIN swapp_game_server_branding b ON b.server_id=s.id WHERE s.slug=? AND s.game=? AND s.status="published" LIMIT 1',[fiche,game]);
    if(!rows.length)return res.status(404).type('text').send('Serveur introuvable');
    const [voteRows]=await sql.execute('SELECT COUNT(*) AS total FROM swapp_game_server_vote_events WHERE server_id=? AND voted_at>=?',[rows[0].id,new Date().toISOString().slice(0,7)+'-01']);
    const votes=Number(voteRows[0]?.total||0);
    const evidence=await getProfileEvidence(sql,{id:rows[0].id,game,votesMonth:votes});
-   return res.set('Cache-Control','no-store').type('html').send(detailPage(rows[0],votes,evidence));
+   return res.set('Cache-Control','no-store').type('html').send(detailPage(rows[0],votes,{...evidence,canEdit:rows[0].owner_id===account(req)&&!!account(req)}));
   }catch(e){console.warn('[SWAPP SERVEURS]',String(e?.message||e).slice(0,90));return res.status(503).type('text').send('Fiche temporairement indisponible')}
  });
  app.get('/api/swapp/serveurs',async(req,res)=>{
@@ -188,10 +212,10 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
    const sql=await getDatabase();const game=clean(req.query.game,70),q=clean(req.query.q,100).toLowerCase(),sort=req.query.sort==='recent'?'recent':req.query.sort==='name'?'name':'votes';
    const month=String(new Date().toISOString().slice(0,7))+'-01';
    const order=sort==='recent'?'s.created_at DESC':sort==='name'?'s.name ASC':'votes_month DESC,s.created_at DESC';
-   const [rows]=await sql.execute('SELECT s.id,s.slug,s.name,s.game,s.description,s.website,s.join_address AS joinAddress,s.region,s.tags,s.banner_url AS bannerUrl,s.created_at AS createdAt,COUNT(v.id) AS votes_month FROM swapp_game_servers s LEFT JOIN swapp_game_server_vote_events v ON v.server_id=s.id AND v.voted_at>=? WHERE s.status="published" AND (?="" OR s.game=?) AND (?="" OR LOWER(CONCAT(s.name," ",s.description," ",s.tags," ",s.game)) LIKE CONCAT("%",?,"%")) GROUP BY s.id ORDER BY '+order+' LIMIT 100',[month,game,game,q,q]);
+   const [rows]=await sql.execute('SELECT s.id,s.owner_id,s.slug,s.name,s.game,s.description,s.website,s.join_address AS joinAddress,s.region,s.tags,COALESCE(NULLIF(b.banner_url,""),s.banner_url) AS bannerUrl,b.logo_url AS logoUrl,b.accent_color AS accentColor,b.secondary_color AS secondaryColor,b.tagline,s.created_at AS createdAt,COUNT(v.id) AS votes_month FROM swapp_game_servers s LEFT JOIN swapp_game_server_branding b ON b.server_id=s.id LEFT JOIN swapp_game_server_vote_events v ON v.server_id=s.id AND v.voted_at>=? WHERE s.status="published" AND (?="" OR s.game=?) AND (?="" OR LOWER(CONCAT(s.name," ",s.description," ",s.tags," ",s.game)) LIKE CONCAT("%",?,"%")) GROUP BY s.id ORDER BY '+order+' LIMIT 100',[month,game,game,q,q]);
    const [counts]=await sql.query('SELECT game,COUNT(*) AS count FROM swapp_game_servers WHERE status="published" GROUP BY game');
    const gameCounts=Object.fromEntries(counts.map(item=>[String(item.game),Number(item.count)]));
-   res.set('Cache-Control','public,max-age=30').json({servers:rows.map(r=>({...r,votes_month:Number(r.votes_month),tags:r.tags.split(',').map(t=>t.trim()).filter(Boolean)})),total:rows.length,gameCounts,ranking:'monthly_valid_votes',onlineVerified:false});
+   res.set('Cache-Control','public,max-age=30').json({servers:rows.map(({owner_id,...r})=>({...r,canEdit:owner_id===account(req)&&!!account(req),votes_month:Number(r.votes_month),tags:r.tags.split(',').map(t=>t.trim()).filter(Boolean)})),total:rows.length,gameCounts,ranking:'monthly_valid_votes',onlineVerified:false});
   }catch(e){fail(res,e)}
  });
 
