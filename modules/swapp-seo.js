@@ -15,7 +15,7 @@ function verifiedIndexedGame(slug){return resolveIndexedGame(slug)}
 function invalidateSeoCache(){invalidateRegisteredSeoCache()}
 function cachedGameHubForArticle(article){return lookupRegisteredGameHub(article)}
 const CORE_PATHS=Object.freeze([
- '/', '/a-propos', '/alternative-twitch', '/decouvrir', '/actus',
+ '/', '/a-propos', '/alternative-twitch', '/decouvrir', '/explorer', '/serveurs', '/actus',
  '/social', '/bandes-annonces', '/boutique', '/plan-du-site',
  ...require('./swapp-aion2-guides').PUBLIC_PATHS
 ]);
