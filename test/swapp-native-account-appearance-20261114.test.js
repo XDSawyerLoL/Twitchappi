@@ -13,7 +13,7 @@ test('home and native pages offer matching account, appearance and motion assets
  for(const [route,markup] of [['home',home],['news',news]]){
   assert.match(markup,/id="userLabel">Se connecter<\/span>/,route+' guest button');
   assert.match(markup,/swapp-nav-session\.js\?v=20261114-native-account-v1/,route+' account controller');
-  assert.match(markup,/swapp-native-account\.css\?v=20261114-native-account-v1/,route+' shared CSS');
+  assert.match(markup,/swapp-native-account\.css\?v=20261116-global-account-v2/,route+' shared CSS');
   assert.match(markup,/swapp-route-motion\.css\?v=20261114-film-cut-v19/,route+' same motion');
   assert.equal((markup.match(/id="userBtn"/g)||[]).length,1);
   assert.equal((markup.match(/id="userMenu"/g)||[]).length,1);

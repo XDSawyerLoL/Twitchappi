@@ -6,16 +6,18 @@ const path=require('node:path');
 const root=path.resolve(__dirname,'..');
 const read=f=>fs.readFileSync(path.join(root,f),'utf8');
 test('account menu keeps theme choices compact and below primary actions',()=>{
- const script=read('assets/swapp-account-menu.js');
- const styles=read('assets/swapp-visual-polish.css');
- assert.match(script,/className='swapp-account-appearance'/);
- assert.match(script,/menu\.append\(details\)/);
- assert.match(script,/\.topThemeColors button/);
- assert.match(script,/observer\.observe\(menu,\{childList:true\}\)/);
- assert.match(script,/event\.key==='Escape'/);
- assert.match(script,/menu\.classList\.remove\('open'\)/);
- assert.match(styles,/#userMenu \.topThemeColors/);
- assert.match(styles,/grid-template-columns:repeat\(7,minmax\(0,1fr\)\)!important/);
+ const adapter=read('assets/swapp-account-menu.js');
+ const shared=read('assets/swapp-account-unified.js');
+ const styles=read('assets/swapp-native-account.css');
+ assert.match(adapter,/shared\.render\(menu/);
+ assert.match(adapter,/observer\.observe\(menu,\{childList:true\}\)/);
+ assert.match(adapter,/event\.key==='Escape'/);
+ assert.match(adapter,/menu\.classList\.remove\('open'\)/);
+ assert.match(shared,/swapp-account-appearance swapp-native-appearance/);
+ assert.match(shared,/nav\.append\(item\)/);
+ assert.match(shared,/swapp-native-theme-colors/);
+ assert.match(styles,/header\.top #userMenu\.swapp-account-unified-menu/);
+ assert.match(styles,/grid-template-columns:repeat\(6,minmax\(0,1fr\)\)!important/);
 });
 test('home article cards and navigation remain wired up',()=>{
  const home=read('assets/swapp-home-news.js');

@@ -1,102 +1,64 @@
-/* Reorganize the actual SWAPP account menu without replacing its authenticated actions. */
+/* SPA account menu adapter. One renderer is shared with SWAPP native pages.
+ * Twitch account connections and disconnections are available only in /compte.
+ */
 (()=>{'use strict';
- const menu=document.getElementById('userMenu');
- const trigger=document.getElementById('userBtn');
+ const menu=document.getElementById('userMenu'),trigger=document.getElementById('userBtn');
  if(!menu||!trigger)return;
  let scheduled=false,appearanceOpened=false,tastesOpened=false;
- function enhance(){
-  scheduled=false;
-  // renderUserMenu() replaces innerHTML repeatedly: enhance each fresh render.
-  const panel=[...menu.children].find(node=>node.classList?.contains('topThemePanel')||node.classList?.contains('themeMenuBox'));
-  if(!panel)return;
-  const separator=panel.nextElementSibling;
-  if(separator?.classList?.contains('sep'))separator.remove();
-  const details=document.createElement('details');
-  details.className='swapp-account-appearance';
-  details.open=appearanceOpened;
-  const summary=document.createElement('summary');
-  summary.textContent='Apparence';
-  details.append(summary,panel);
-  details.addEventListener('toggle',()=>{appearanceOpened=details.open});
-  menu.append(details);
-  // A collapsed control inside the existing account menu, never a new page block.
-  const tastes=window.SwappLocalTastes;
-  if(tastes){
-   const local=document.createElement('details');
-   local.className='swapp-account-tastes';
-   local.open=tastesOpened;
-   const label=document.createElement('summary');
-   label.textContent='Recommandations locales';
-   const help=document.createElement('p');
-   help.textContent='Seuls les jeux que tu choisis sont conservés sur cet appareil, 30 jours maximum. Aucun historique envoyé au serveur.';
-   const controls=document.createElement('div');
-   controls.className='swapp-account-tastes-actions';
-   const toggle=document.createElement('button'),clear=document.createElement('button');
-   for(const btn of [toggle,clear])btn.type='button';
-   const refresh=()=>{
-    const enabled=tastes.isEnabled();
-    toggle.textContent=enabled?'Désactiver':'Activer';
-    toggle.setAttribute('aria-pressed',String(enabled));
-    toggle.setAttribute('aria-label',enabled?'Désactiver la personnalisation locale':'Activer la personnalisation locale');
-    clear.disabled=!enabled;
-   };
-   toggle.addEventListener('click',event=>{
-    event.stopPropagation();
-    tastes.setEnabled(!tastes.isEnabled());
-    refresh();
-    window.dispatchEvent(new Event('swapp:local-tastes-changed'));
-   });
-   clear.textContent='Effacer mes préférences';
-   clear.addEventListener('click',event=>{
-    event.stopPropagation();
-    tastes.clear();
-    clear.textContent='Préférences effacées';
-    window.dispatchEvent(new Event('swapp:local-tastes-changed'));
-   });
-   refresh();
-   controls.append(toggle,clear);
-   local.append(label,help,controls);
-   local.addEventListener('toggle',()=>{tastesOpened=local.open});
-   menu.append(local);
-  }
-  for(const color of panel.querySelectorAll('.topThemeColors button,.themeMenuRow button')){
-   const value=color.style.backgroundColor||color.getAttribute('style')||'';
-   color.type='button';
-   color.setAttribute('aria-label','Choisir '+value);
-   color.title='Choisir '+value;
-  }
-  const custom=panel.querySelector('input[type="color"]');
-  if(custom)custom.setAttribute('aria-label','Couleur personnalisée');
-  menu.classList.add('swapp-account-enhanced');
-  menu.setAttribute('aria-label','Menu du compte SWAPP');
-  trigger.setAttribute('aria-haspopup','true');
- }
- const observer=new MutationObserver(()=>{if(scheduled)return;scheduled=true;queueMicrotask(enhance)});
- observer.observe(menu,{childList:true});
- enhance();
- trigger.addEventListener('click',()=>{
-  queueMicrotask(()=>{
-   enhance();
-   trigger.setAttribute('aria-expanded',String(menu.classList.contains('open')));
-  });
- });
- // Existing inline handlers execute before bubbling: close after selecting an action.
- menu.addEventListener('click',event=>{
-  const action=event.target.closest('button,a');
-  if(!action||action.closest('.topThemeColors,.themeMenuRow'))return;
+ const close=()=>{
   menu.classList.remove('open');
   trigger.setAttribute('aria-expanded','false');
- });
- document.addEventListener('click',event=>{
-  if(!event.target.closest('.userArea')&&!menu.classList.contains('open')){
-   trigger.setAttribute('aria-expanded','false');
+ };
+ function enhance(){
+  scheduled=false;
+  // The original SPA replaces its menu at every session change; re-enhance
+  // only those fresh menus. Do not recursively enhance our own DOM changes.
+  if(menu.querySelector('.swapp-account-unified-root'))return;
+  const shared=window.SwappUnifiedAccountMenu;
+  const original=[...menu.querySelectorAll('button,a')];
+  const local=original.some(item=>/logoutOryon\s*\(/.test(item.getAttribute('onclick')||''));
+  const twitch=original.some(item=>/logoutTwitch\s*\(/.test(item.getAttribute('onclick')||''));
+  const signedIn=local||twitch||!!menu.querySelector('.small');
+  if(!shared?.render){
+   // Fail closed: even if the shared renderer is missing, the global header
+   // must never expose a Twitch OAuth action.
+   for(const item of original){
+    if(/(?:Connecter|Déconnecter) Twitch/.test(item.textContent||''))item.remove();
+   }
+   return;
   }
+  const label=document.getElementById('userLabel');
+  shared.render(menu,{
+   signedIn,localAccount:local,
+   displayName:label?.textContent||'Compte SWAPP',
+   appearanceOpen:appearanceOpened,tastesOpen:tastesOpened,
+   onAppearanceToggle:value=>{appearanceOpened=value},
+   onTastesToggle:value=>{tastesOpened=value},
+   onClose:close,
+   onBroadcast:local?()=>{if(typeof window.setView==='function')window.setView('manager');else window.location.href='/compte'}:null,
+   onLogout:signedIn?async()=>{
+    if(local&&typeof window.logoutOryon==='function')return window.logoutOryon();
+    if(twitch&&typeof window.logoutTwitch==='function')return window.logoutTwitch();
+    window.location.href='/compte';
+   }:null
+  });
+  trigger.setAttribute('aria-haspopup','true');
+  trigger.setAttribute('aria-expanded',String(menu.classList.contains('open')));
+ }
+ const schedule=()=>{if(scheduled)return;scheduled=true;queueMicrotask(enhance)};
+ const observer=new MutationObserver(schedule);
+ observer.observe(menu,{childList:true});
+ enhance();
+ trigger.addEventListener('click',()=>queueMicrotask(()=>{
+  trigger.setAttribute('aria-expanded',String(menu.classList.contains('open')));
+ }));
+ document.addEventListener('click',event=>{
+  if(!event.target.closest('.userArea')&&!menu.classList.contains('open'))
+   trigger.setAttribute('aria-expanded','false');
  });
  document.addEventListener('keydown',event=>{
   if(event.key==='Escape'&&menu.classList.contains('open')){
-   menu.classList.remove('open');
-   trigger.setAttribute('aria-expanded','false');
-   trigger.focus();
+   close();trigger.focus();
   }
  });
 })();
