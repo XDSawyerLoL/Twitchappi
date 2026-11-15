@@ -104,34 +104,44 @@ function detailPage(server,votes,meta={}){
 }
 
 let lastAutoReview=0,autoReviewRunning=null,autoReviewOffset=0;
-async function autoReviewPendingDiscord({limit=12,getDatabase=db,inviteVerifier=verifyDiscordInvite}={}){
+async function autoPublishPendingServers({limit=40,getDatabase=db,inviteVerifier=verifyDiscordInvite}={}){
  if(autoReviewRunning)return autoReviewRunning;
  autoReviewRunning=(async()=>{
-  const sql=await getDatabase();
-  const batchSize=Math.max(1,Math.min(25,Number(limit)||12));
-  let [rows]=await sql.query('SELECT id,website,join_address AS joinAddress FROM swapp_game_servers WHERE status="pending" AND game="Discord / Multigaming" ORDER BY created_at ASC LIMIT '+batchSize+' OFFSET '+autoReviewOffset);
-  if(!rows.length&&autoReviewOffset){autoReviewOffset=0;[rows]=await sql.query('SELECT id,website,join_address AS joinAddress FROM swapp_game_servers WHERE status="pending" AND game="Discord / Multigaming" ORDER BY created_at ASC LIMIT '+batchSize)}
+  const sql=await getDatabase(),batchSize=Math.max(1,Math.min(100,Number(limit)||40));
+  const find=offset=>sql.query('SELECT id,game,website,join_address AS joinAddress FROM swapp_game_servers WHERE status="pending" ORDER BY created_at ASC LIMIT '+batchSize+' OFFSET '+offset);
+  let [rows]=await find(autoReviewOffset);
+  if(!rows.length&&autoReviewOffset){autoReviewOffset=0;[rows]=await find(0)}
   autoReviewOffset=rows.length<batchSize?0:autoReviewOffset+batchSize;
-  let approved=0;
+  let approved=0,skipped=0;
   for(const row of rows){
-   const proposed=inviteCode(row.website)?row.website:inviteCode(row.joinAddress)?row.joinAddress:'';
-   if(!proposed)continue;
-   const check=await inviteVerifier(proposed);
-   if(!check.valid){if(check.reason==='discord_rate_limited')break;continue;}
-   const [write]=await sql.execute('UPDATE swapp_game_servers SET status="published",website=? WHERE id=? AND status="pending"',[check.inviteUrl,row.id]);
-   approved+=Number(write.affectedRows||0);
+   const game=clean(row.game,70),website=clean(row.website,350),join=clean(row.joinAddress,240);
+   if(!validListingDetails({game,website,joinAddress:join})||(website&&!safeUrl(website))||
+    (join&&!validJoinAddress(join)&&!(game==='Discord / Multigaming'&&inviteCode(join)))){skipped++;continue}
+   if(game==='Discord / Multigaming'){
+    const invite=inviteCode(website)?website:inviteCode(join)?join:'';
+    if(!invite){skipped++;continue}
+    const check=await inviteVerifier(invite);
+    if(!check.valid){skipped++;if(check.reason==='discord_rate_limited')break;continue}
+    const [updated]=await sql.execute('UPDATE swapp_game_servers SET status="published",website=? WHERE id=? AND status="pending"',[check.inviteUrl,row.id]);
+    approved+=Number(updated.affectedRows||0);
+   }else{
+    const [updated]=await sql.execute('UPDATE swapp_game_servers SET status="published" WHERE id=? AND status="pending"',[row.id]);
+    approved+=Number(updated.affectedRows||0);
+   }
   }
-  return {checked:rows.length,approved};
+  return {checked:rows.length,approved,skipped};
  })().finally(()=>{autoReviewRunning=null;lastAutoReview=Date.now()});
  return autoReviewRunning;
 }
+const autoReviewPendingDiscord=autoPublishPendingServers;
+
 function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verifyDiscordInvite,enableAutoReview=true}={}){
  const isManager=req=>Boolean(isAdmin(req));
  // Recheck older Discord submissions too, without any paid worker or VPS.
  // One batch per instance, repeated while the application is running.
  if(enableAutoReview&&mysqlUrl()&&process.env.SWAPP_SERVERS_AUTO_REVIEW!=='0'){
-  const tick=()=>autoReviewPendingDiscord().catch(e=>console.warn('[SWAPP SERVEURS] Auto-validation:',String(e.message||e).slice(0,120)));
-  const initial=setTimeout(tick,10000);initial.unref?.();
+  const tick=()=>autoPublishPendingServers().catch(e=>console.warn('[SWAPP SERVEURS] Auto-validation:',String(e.message||e).slice(0,120)));
+  const initial=setTimeout(tick,1500);initial.unref?.();
   const periodic=setInterval(tick,5*60*1000);periodic.unref?.();
  }
 
@@ -290,4 +300,4 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
   try{const sql=await getDatabase(),[r]=await sql.execute('UPDATE swapp_game_servers SET status=? WHERE id=? AND status="pending"',[status,id]);res.json({updated:r.affectedRows===1})}catch(e){fail(res,e)}
  });
 }
-module.exports={register,page,detailPage,GAMES,slug,safeUrl,autoReviewPendingDiscord};
+module.exports={register,page,detailPage,GAMES,slug,safeUrl,validJoinAddress,validListingDetails,autoReviewPendingDiscord,autoPublishPendingServers};
