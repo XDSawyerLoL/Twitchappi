@@ -51,3 +51,130 @@ html.swapp-editorial-theme body.swapp-catalogue-lab-page .scl-side-link.is-curre
 @media(prefers-reduced-motion:reduce){
  header.top #userMenu .swapp-native-color{transition:none!important}
 }
+
+
+/* SWAPP unified account dropdown V2 — all SPA and native routes, same layout. */
+header.top #userMenu.swapp-account-unified-menu{
+ width:min(350px,calc(100vw - 20px))!important;
+ max-height:min(77dvh,610px)!important;
+ overflow-y:auto!important;overflow-x:hidden!important;
+ overscroll-behavior:contain!important;
+ background:#0c1017!important;
+ border:1px solid #334454!important;
+ border-radius:18px!important;
+ box-shadow:0 20px 48px rgba(0,0,0,.58)!important;
+ padding:12px!important;
+ color:#eff8fc!important;
+}
+header.top #userMenu .swapp-account-unified-root{display:flex;flex-direction:column;gap:0}
+header.top #userMenu .swapp-account-status{
+ display:flex;flex-direction:column;gap:3px;
+ padding:8px 12px 14px;margin:0 0 6px;
+ border-bottom:1px solid rgba(175,203,224,.16);
+}
+header.top #userMenu .swapp-account-status span{
+ color:#a5b9ca;font-size:12px;font-weight:650
+}
+header.top #userMenu .swapp-account-status strong{
+ color:#f2f7ff;font-size:14px;font-weight:850;overflow-wrap:anywhere
+}
+header.top #userMenu .swapp-account-main-actions{
+ display:flex;flex-direction:column;gap:3px
+}
+header.top #userMenu .swapp-account-main-actions>.swapp-account-action{
+ width:100%!important;min-height:42px!important;
+ display:flex!important;align-items:center!important;text-align:left!important;
+ justify-content:flex-start!important;
+ padding:10px 12px!important;margin:0!important;
+ border:1px solid transparent!important;border-radius:10px!important;
+ background:transparent!important;color:#f1f7fc!important;
+ font:850 14px/1.35 Inter,system-ui,-apple-system,"Segoe UI",sans-serif!important;
+ text-transform:none!important;text-decoration:none!important;
+ cursor:pointer!important;
+}
+header.top #userMenu .swapp-account-main-actions>.swapp-account-action:hover,
+header.top #userMenu .swapp-account-main-actions>.swapp-account-action:focus-visible{
+ background:#1b2935!important;border-color:#456174!important
+}
+header.top #userMenu .swapp-account-main-actions>.swapp-account-action:disabled{
+ opacity:.6!important;cursor:wait!important
+}
+header.top #userMenu .swapp-account-error:empty{display:none!important}
+header.top #userMenu .swapp-account-error:not(:empty){
+ margin:8px 4px;color:#ffb4c1;font-size:12px;line-height:1.5
+}
+header.top #userMenu .swapp-account-unified-root>.swapp-account-appearance{
+ display:block!important;
+ border:1px solid #30465b!important;
+ border-radius:12px!important;
+ background:#162235!important;
+ margin:10px 0 0!important;padding:3px 9px!important;
+ min-width:0!important;
+}
+header.top #userMenu .swapp-account-unified-root>.swapp-account-appearance>summary,
+header.top #userMenu .swapp-account-unified-root>.swapp-account-tastes>summary{
+ display:list-item!important;cursor:pointer!important;
+ min-height:38px!important;
+ padding:10px 6px!important;list-style-position:inside!important;
+ font-size:13px!important;font-weight:850!important;color:#bed9e8!important;
+}
+header.top #userMenu .swapp-account-unified-root>.swapp-account-appearance[open]{
+ border-color:#53788d!important
+}
+header.top #userMenu .swapp-native-theme-panel{padding:6px 8px 12px!important}
+header.top #userMenu .swapp-native-theme-panel>p{
+ margin:0 0 9px!important;color:#b5c7d7!important;font-size:12px!important
+}
+header.top #userMenu .swapp-native-theme-colors{
+ display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr))!important;gap:7px!important;
+}
+header.top #userMenu .swapp-native-color{
+ width:100%!important;min-width:0!important;max-width:none!important;
+ height:31px!important;min-height:31px!important;
+ border-radius:8px!important;border:2px solid transparent!important;
+ background:var(--swapp-choice)!important;padding:0!important;margin:0!important;
+ cursor:pointer!important;box-shadow:none!important;
+}
+header.top #userMenu .swapp-native-color[aria-pressed="true"]{
+ border-color:#f6fbff!important;box-shadow:0 0 0 2px rgba(255,255,255,.24)!important
+}
+header.top #userMenu .swapp-native-custom-label{
+ margin:13px 0 9px!important;color:#bacddd!important
+}
+header.top #userMenu .swapp-native-custom-label input[type=color]{
+ width:46px!important;height:32px!important;min-height:32px!important;
+ padding:2px!important;cursor:pointer!important
+}
+header.top #userMenu .swapp-native-reset{
+ width:auto!important;min-height:32px!important;
+ padding:7px 9px!important;color:#bce7f2!important;
+ background:transparent!important;font-size:12px!important
+}
+header.top #userMenu .swapp-account-unified-root>.swapp-account-tastes{
+ display:block!important;margin:7px 0 0!important;
+ border:0!important;border-top:1px solid #334455!important;
+ padding:5px 6px 1px!important;
+}
+header.top #userMenu .swapp-account-tastes p{
+ margin:5px 5px 10px!important;line-height:1.5!important;
+ color:#b6cadb!important;font-size:12px!important
+}
+header.top #userMenu .swapp-account-tastes-actions{display:flex!important;flex-wrap:wrap!important;gap:7px!important}
+header.top #userMenu .swapp-account-tastes-actions>button{
+ width:auto!important;min-height:35px!important;
+ padding:8px 11px!important;background:#1a2b3c!important;
+ border:1px solid #38556a!important;border-radius:8px!important;
+ font-size:12px!important;color:#e0f1fa!important
+}
+header.top #userMenu .swapp-account-tastes-actions>button:disabled{opacity:.5!important}
+header.top #userMenu :is(.swapp-account-action,summary,button,input):focus-visible{
+ outline:2px solid var(--swapp-page-accent,#22d3ee)!important;outline-offset:2px!important
+}
+@media(max-width:570px){
+ header.top #userMenu.swapp-account-unified-menu{
+  top:calc(100% + 6px)!important;max-height:calc(100dvh - 96px)!important;
+ }
+}
+@media(prefers-reduced-motion:reduce){
+ header.top #userMenu .swapp-account-unified-root *{transition:none!important}
+}
