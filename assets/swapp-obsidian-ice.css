@@ -43,7 +43,7 @@ html.swapp-editorial-theme body.swapp-editorial-route .article-wrap{
   radial-gradient(ellipse 820px 680px at -15% 20%,var(--swapp-ice-glow),transparent 72%),
   linear-gradient(180deg,#0c0e10,#050607 64%,#08090b)!important;
 }
-/* A restrained, frosted but legible site-wide masthead. */
+/* A solid, sharp site-wide masthead — no blurred content behind it. */
 html body header.top{
  background:rgba(5,6,8,.91)!important;
  border-bottom:1px solid var(--swapp-ice-stroke)!important;
@@ -194,14 +194,15 @@ html body.swapp-catalogue-lab-page{
  --swapp-layer:#0e1013;
  --swapp-copy:#b6bcc4;
 }
-/* Neutral glass: fine top reflection, a restrained charcoal depth and
- * no blue or purple tint. Only the border responds to hovering. */
+/* Solid neutral graphite: readable in Firefox, without glass/backdrop
+ * compositing that visually softens covers, text and the top menu. */
 html body #home :is(.scl-story-card,.scl-card,.scl-empty),
 html body.swapp-catalogue-lab-page :is(.scl-story-card,.scl-card,.scl-empty){
  background:linear-gradient(180deg,rgba(17,19,22,.94) 0%,rgba(8,9,11,.97) 100%)!important;
  border:1px solid var(--swapp-glass-outline)!important;
  box-shadow:inset 0 1px 0 var(--swapp-glass-highlight),0 14px 40px rgba(0,0,0,.26)!important;
- backdrop-filter:blur(14px) saturate(92%);
+ backdrop-filter:none!important;
+ -webkit-backdrop-filter:none!important;
  color:#f4f7fa;
 }
 html body #home :is(.scl-story-card,.scl-card):hover,
@@ -280,10 +281,12 @@ html body.swapp-editorial-route :is(.article-wrap,.swapp-actus-sources,.swapp-ac
 }
 html body header.top{
  background:rgba(5,6,8,.89)!important;
- backdrop-filter:blur(22px) saturate(92%)!important;
+ backdrop-filter:none!important;
+ -webkit-backdrop-filter:none!important;
 }
 html body header.top #userMenu{
- backdrop-filter:blur(24px) saturate(92%)!important;
+ backdrop-filter:none!important;
+ -webkit-backdrop-filter:none!important;
 }
 /* Shared social cards, not avatar/media images. */
 html body:has(.swapp-social-viewport) :is(

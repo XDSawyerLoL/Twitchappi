@@ -14,7 +14,7 @@ test('black glass is the permanent base, not a blue gradient',()=>{
   '--swapp-glass-raised:rgba(16,18,21,.92)',
   '--swapp-glass-outline:rgba(255,255,255,.10)',
   'linear-gradient(180deg,#050607 0%,#030405 48%,#050607 100%)',
-  'backdrop-filter:blur(14px) saturate(92%)'
+  'backdrop-filter:none!important'
  ])assert.ok(css.includes(token),token);
  assert.match(css,/--swapp-ice-glow:color-mix\(in srgb,var\(--swapp-ice-choice\) 4%,transparent\)/);
  assert.match(css,/--swapp-ice-type:color-mix\(in srgb,var\(--swapp-ice-choice\) 52%,#edf1f4\)/);
@@ -35,7 +35,7 @@ test('frontpage editorial cards and image fallbacks are neutral smoked glass',()
 test('home and native pages load one cache-busted theme, no extra navigation',()=>{
  const home=renderIntoSpa(read('index.html'));
  const page=renderPage({head:SHARED_HEAD_SLOT,content:'<main>Actualités</main>'});
- const version='swapp-obsidian-ice.css?v=20261114-smoked-glass-v20';
+ const version='swapp-obsidian-ice.css?v=20261115-solid-sharp-theme-v21';
  for(const html of [home,page]){
   assert.equal(html.split(version).length-1,1);
   assert.ok(html.indexOf(version)<html.indexOf('</head>'));

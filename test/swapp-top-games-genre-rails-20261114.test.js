@@ -93,7 +93,7 @@ test('live rail is followed by top game posters, 25 genre controls, actual genre
  const spa=renderIntoSpa(read('index.html'));
  assert.match(spa,/id="scl-top-games-cards"/);
  assert.match(spa,/id="scl-genre-shelves"/);
- assert.match(spa,/swapp-genre-discovery\.css\?v=20261115-real-racing-v6/);
+ assert.match(spa,/swapp-genre-discovery\.css\?v=20261115-sharp-genre-v7/);
  assert.match(spa,/swapp-catalogue-lab\.js\?v=20261115-obsession-shuffle-v29/);
 });
 
