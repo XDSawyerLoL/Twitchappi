@@ -18,6 +18,7 @@ function page({mode='collections',genre=''}={}){
  '<div class="sx-switch" role="navigation" aria-label="Explorer">'+
  '<a href="/explorer" class="'+(!chart?'is-active':'')+'" '+(!chart?'aria-current="page"':'')+'>Collections</a>'+
  '<a href="/explorer/carte" class="'+(chart?'is-active':'')+'" '+(chart?'aria-current="page"':'')+'>Carte des lives</a>'+
+ '<a href="/serveurs">Serveurs de jeux</a>'+
  '</div></div>'+
  '<div class="sx-body">'+
  '<div class="sx-toolbar"><label class="sx-search"><span class="sx-visually-hidden">Rechercher dans Explorer</span><input id="sx-query" type="search" autocomplete="off" placeholder="Rechercher un jeu, un genre ou un créateur"></label>'+
