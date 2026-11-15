@@ -10,8 +10,8 @@ function response(){
   set(k,v){this.headers[k]=v;return this},json(data){this.data=data;return this}};
 }
 function routes(options){
- const byMethod={GET:new Map(),POST:new Map()};
- const app={get:(route,...handlers)=>byMethod.GET.set(route,handlers.at(-1)),post:(route,...handlers)=>byMethod.POST.set(route,handlers.at(-1))};
+ const byMethod={GET:new Map(),POST:new Map(),PUT:new Map()};
+ const app={get:(route,...handlers)=>byMethod.GET.set(route,handlers.at(-1)),post:(route,...handlers)=>byMethod.POST.set(route,handlers.at(-1)),put:(route,...handlers)=>byMethod.PUT.set(route,handlers.at(-1))};
  register(app,{enableAutoReview:false,...options});
  return byMethod;
 }
@@ -48,7 +48,7 @@ test('Discord and ordinary game listings publish immediately when details are va
   if(sql.startsWith('SELECT id,slug,status'))return[[]];
   if(sql.startsWith('SELECT COUNT(*) AS n'))return[[{n:0}]];
   if(sql.startsWith('INSERT INTO swapp_game_servers')){inserted.push({sql,values});return[{affectedRows:1}]}
-  if(sql.startsWith('INSERT INTO swapp_game_server_extras'))return [{affectedRows:1}];
+  if(sql.startsWith('INSERT INTO swapp_game_server_extras')||sql.startsWith('INSERT INTO swapp_game_server_branding'))return [{affectedRows:1}];
   throw Error('Unexpected SQL '+sql);
  }};
  const app=routes({getDatabase:async()=>fakeDb,inviteVerifier:async()=>VERIFIED});
