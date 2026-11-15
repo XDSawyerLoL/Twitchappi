@@ -833,3 +833,140 @@ html body.swapp-servers-page{background:#030405!important;color:#eff6fa}
 @media(prefers-reduced-motion:reduce){
  .ss-directory .ss-server-card:hover{transform:none}
 }
+
+
+/* SERVEUR + V22 — editorial detail page: information hierarchy, not nested cards.
+   This deliberately targets .ss-pro only, leaving directory / owner form intact. */
+.ss-pro .ss-pro-columns{gap:clamp(24px,3.5vw,54px);padding-top:32px}
+.ss-pro .ss-pro-primary>.ss-pro-panel{
+  background:transparent!important;
+  border:0!important;
+  border-bottom:1px solid #25323a!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+  margin:0!important;
+  padding:36px 0 38px!important;
+  scroll-margin-top:130px;
+}
+.ss-pro .ss-pro-primary>.ss-pro-panel:first-child{padding-top:4px!important}
+.ss-pro .ss-pro-primary>.ss-pro-panel:last-of-type{border-bottom:0!important}
+.ss-pro .ss-pro-primary>.ss-pro-panel h2{
+  font-size:clamp(24px,2.6vw,31px);
+  margin:3px 0 19px;line-height:1.2;letter-spacing:-.035em;
+}
+.ss-pro .ss-pro-primary>.ss-pro-panel .ss-overline{
+  letter-spacing:.13em;font-size:10px;font-weight:800;
+}
+.ss-pro .ss-pro-information-panel .ss-pro-facts{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  column-gap:clamp(20px,3vw,44px);row-gap:0;
+  margin:4px 0 0;
+}
+.ss-pro .ss-pro-facts>div{
+  min-width:0;margin:0;
+  padding:15px 0 17px!important;
+  background:transparent!important;border:0!important;
+  border-bottom:1px solid #27343b!important;
+  border-radius:0!important;
+}
+.ss-pro .ss-pro-facts dt{
+  font-size:12px;color:#9cafbd;font-weight:650;
+  margin-bottom:5px;line-height:1.4;
+}
+.ss-pro .ss-pro-facts dd{
+  font-size:15px;line-height:1.45;
+  color:#eff8fa;font-weight:790;
+  margin:0;overflow-wrap:anywhere;
+}
+.ss-pro .ss-pro-data-note{
+  margin:15px 0 0;line-height:1.55;color:#8fa3ae;font-size:12px;
+}
+.ss-pro .ss-pro-aside{gap:0;top:128px}
+.ss-pro .ss-pro-aside .ss-pro-aside-card{
+  background:transparent!important;
+  border:0!important;
+  border-left:1px solid #2c3d45!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+  padding:2px 0 9px 22px!important;
+}
+.ss-pro .ss-pro-aside-card h2{font-size:20px;margin:4px 0 13px}
+.ss-pro .ss-pro-aside dl>div{
+  padding:10px 0;
+  border-bottom:1px solid #202b32;
+  gap:14px;align-items:center;
+}
+.ss-pro .ss-pro-aside dt{font-size:12px;color:#a4b3be;font-weight:550}
+.ss-pro .ss-pro-aside dd{font-size:12px;line-height:1.5;font-weight:750}
+.ss-pro .ss-pro-aside-card .ss-pro-side-actions{
+  margin:18px 0 7px!important;gap:8px!important;
+}
+.ss-pro .ss-pro-aside-card .ss-pro-button{
+  min-height:44px!important;padding:10px 12px!important;
+  border-radius:7px!important;font-size:13px;
+}
+.ss-pro .ss-pro-social-links{
+  margin:5px 0 0!important;padding:0!important;
+  border-top:1px solid #26343d;
+}
+.ss-pro .ss-pro-social-links a{
+  min-height:42px!important;padding:10px 3px!important;
+  background:transparent!important;border:0!important;
+  border-bottom:1px solid #26343d!important;border-radius:0!important;
+  justify-content:space-between!important;color:#b7dbe3;
+  font-size:12px;
+}
+.ss-pro .ss-pro-social-links a:hover{color:#f1ffff!important}
+.ss-pro .ss-pro-share-inline{
+  border-top:1px solid #26343d;
+  margin-top:12px;padding-top:16px;
+}
+.ss-pro .ss-pro-share-inline h3{
+  font-size:13px;color:#afc3cb;font-weight:750;
+  margin:0 0 9px;
+}
+.ss-pro .ss-pro-share{
+  width:100%;min-height:40px;
+  background:transparent;border:1px solid #3a515d;
+  border-radius:7px;font-size:12px;
+}
+.ss-pro .ss-pro-disclaimer{font-size:11px;color:#8397a2;line-height:1.55}
+.ss-pro .ss-pro-review-breakdown{
+  display:flex;flex-wrap:wrap;gap:0;margin-bottom:18px;
+  border-top:1px solid #283840;border-bottom:1px solid #283840;
+}
+.ss-pro .ss-pro-review-breakdown>div{
+  flex:1 1 130px;min-width:0;display:flex;align-items:baseline;
+  justify-content:space-between;gap:9px;
+  padding:13px 16px 13px 0!important;
+  border:0!important;border-radius:0!important;
+  background:transparent!important;
+}
+.ss-pro .ss-pro-review-breakdown strong{font-size:15px}
+.ss-pro .ss-pro-totals{gap:24px}
+.ss-pro .ss-pro-totals>div{
+  background:transparent;border:0;border-bottom:1px solid #2a3840;
+  border-radius:0;padding:8px 0 16px;
+}
+.ss-pro .ss-pro-empty{
+  border:0;border-left:2px solid #486875;border-radius:0;
+  padding:9px 16px;text-align:left;background:transparent;
+}
+.ss-pro .ss-pro-faq details{border-color:#283740}
+.ss-pro .ss-pro-faq details:last-child{border-bottom:1px solid #283740}
+@media(max-width:800px){
+ .ss-pro .ss-pro-aside{position:static;order:0;margin-top:26px}
+ .ss-pro .ss-pro-aside .ss-pro-aside-card{
+  border:0!important;border-top:1px solid #2b3c43!important;
+  padding:19px 0 8px!important;
+ }
+ .ss-pro .ss-pro-primary>.ss-pro-panel:first-child{padding-top:12px!important}
+}
+@media(max-width:580px){
+ .ss-pro .ss-pro-columns{padding-top:15px;gap:8px}
+ .ss-pro .ss-pro-primary>.ss-pro-panel{padding:27px 0!important}
+ .ss-pro .ss-pro-information-panel .ss-pro-facts{grid-template-columns:1fr}
+ .ss-pro .ss-pro-facts>div{padding:12px 0 13px!important}
+ .ss-pro .ss-pro-review-breakdown>div{flex-basis:100%;padding:9px 0!important}
+ .ss-pro .ss-pro-aside dl>div{padding:10px 0}
+}

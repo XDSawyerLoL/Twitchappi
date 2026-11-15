@@ -31,18 +31,16 @@ function renderProfile({server,votes=null,rank=null,stats=null,reviews=[],review
  const reviewsHtml=(Array.isArray(reviews)?reviews:[]).map(r=>`<article class="ss-pro-review"><div class="ss-pro-review-title"><strong>Avis de membre SWAPP</strong><span>${rating((Number(r.staff)+Number(r.atmosphere)+Number(r.availability))/3)}</span></div><p>${esc(r.comment)}</p><time>${esc(day(r.createdAt||r.created_at))}</time></article>`).join('')||(count===null?'<p class="ss-pro-empty">Les avis sont momentanément indisponibles.</p>':'<p class="ss-pro-empty">Aucun avis publié pour le moment. Les évaluations sont vérifiées avant publication.</p>');
  const chartData=stats?JSON.stringify({history:stats.history||{},historyAvailable:stats.historyAvailable!==false,allVotes:stats.allVotes,allClicks:stats.allClicks}).replace(/</g,'\\u003c').replace(/&/g,'\\u0026'):'null';
  
+ // Practical facts are separate from votes, click statistics and reviews.
  const facts=[
-  ['Jeu / catégorie',game],['Pays / région',server.region],['Langue',languageLabel],
+  ['Jeu / catégorie',game],['Pays / région',server.region],
+  ['Langue',languageLabel],
   ['Ajouté sur SWAPP',server.created_at||server.createdAt?day(server.created_at||server.createdAt):''],
-  ['Classement du jeu',rank!=null&&Number.isInteger(Number(rank))&&Number(rank)>0?'N°'+Number(rank):''],
-  ['Votes du mois',votes==null?'':number(votes)],['Votes cumulés',stats?.allVotes==null?'':number(stats.allVotes)],
-  ['Clics enregistrés',stats?.allClicks==null?'':number(stats.allClicks)],
-  ['Avis des membres',count>0?rating(mean)+' ('+number(count)+' avis)':count===0?'Aucun avis publié':''],
   ['Catégories',tags.join(' · ')]
  ].filter(([,value])=>value!==null&&value!==undefined&&String(value).trim()!=='');
  const factsHtml='<section id="informations" class="ss-pro-panel ss-pro-information-panel"><p class="ss-overline">FICHE DE LA COMMUNAUTÉ</p><h2>Informations pratiques</h2>'+
   '<dl class="ss-pro-facts">'+facts.map(([label,value])=>'<div><dt>'+esc(label)+'</dt><dd>'+esc(value)+'</dd></div>').join('')+'</dl>'+
-  '<p class="ss-pro-data-note">Données issues des informations enregistrées sur SWAPP. Aucun nombre de joueurs en ligne n’est estimé.</p></section>';
+  '<p class="ss-pro-data-note">Informations déclarées sur SWAPP. Les statistiques et avis apparaissent dans leurs sections respectives.</p></section>';
  const availability=outbound?'Le bouton « Rejoindre la communauté » ouvre le lien indiqué par le propriétaire.':server.join_address?'L’adresse de connexion du serveur est indiquée sur cette fiche.':'Aucun lien de connexion n’est communiqué pour le moment.';
  const faqs=[
   ['Comment rejoindre '+name+' ?',availability],
@@ -76,8 +74,9 @@ function renderProfile({server,votes=null,rank=null,stats=null,reviews=[],review
   <form id="ss-review-form" class="ss-pro-review-form"><h3>Partager son expérience</h3><p>Un avis par compte SWAPP. Modération avant publication.</p><div class="ss-pro-review-ratings">${[['staff',"Qualité de l'équipe"],['atmosphere','Ambiance'],['availability','Disponibilité']].map(([key,label])=>'<label>'+esc(label)+'<select name="'+key+'" required><option value="">Choisir</option>'+[1,2,3,4,5].map(n=>'<option value="'+n+'">'+n+' / 5</option>').join('')+'</select></label>').join('')}</div><label>Votre avis<textarea name="comment" minlength="40" maxlength="1200" required rows="4" placeholder="Expliquez votre expérience sur ce serveur…"></textarea></label><div class="ss-pro-form-actions"><button type="submit">Soumettre mon avis</button><span role="status" id="ss-review-status" aria-live="polite"></span></div></form></section>
   ${faqHtml}<a href="${esc(gamePath)}" class="ss-pro-back">← Retour au classement ${esc(game)}</a>
  </div><aside class="ss-pro-aside" id="caracteristiques"><div class="ss-pro-aside-card"><p class="ss-overline">INFORMATIONS</p><h2>Caractéristiques</h2><dl>
- <div><dt>Jeu</dt><dd>${esc(game)}</dd></div><div><dt>Région</dt><dd>${esc(server.region||'Non renseignée')}</dd></div><div><dt>Accès</dt><dd>${outbound?'Lien disponible':'Non communiqué'}</dd></div><div><dt>Langue</dt><dd>${esc(languageLabel||'Non renseignée')}</dd></div><div><dt>Inscription</dt><dd>${esc(day(server.created_at||server.createdAt))}</dd></div><div><dt>Joueurs connectés</dt><dd>Non mesuré</dd></div><div><dt>Note moyenne</dt><dd>${count>0?rating(mean):count===0?'Pas encore noté':'Indisponible'}</dd></div></dl><div class="ss-pro-side-actions">${vote}${visit}${editLink}</div>${address}${socials?'<div class="ss-pro-social-links">'+socials+'</div>':''}<p class="ss-pro-disclaimer">Une invitation Discord vérifiée ne prouve pas la propriété du serveur ou la qualité de sa modération.</p></div>
- <div class="ss-pro-aside-card"><h3>Partager ce serveur</h3><button type="button" class="ss-pro-share" data-ss-share>Copier le lien SWAPP</button></div></aside></div>
+ <div><dt>Jeu</dt><dd>${esc(game)}</dd></div><div><dt>Région</dt><dd>${esc(server.region||'Non renseignée')}</dd></div><div><dt>Accès</dt><dd>${outbound?'Lien disponible':'Non communiqué'}</dd></div><div><dt>Langue</dt><dd>${esc(languageLabel||'Non renseignée')}</dd></div><div><dt>Inscription</dt><dd>${esc(day(server.created_at||server.createdAt))}</dd></div><div><dt>Joueurs connectés</dt><dd>Non mesuré</dd></div><div><dt>Note moyenne</dt><dd>${count>0?rating(mean):count===0?'Pas encore noté':'Indisponible'}</dd></div></dl><div class="ss-pro-side-actions">${vote}${visit}${editLink}</div>${address}${socials?'<div class="ss-pro-social-links">'+socials+'</div>':''}
+ <div class="ss-pro-share-inline"><h3>Partager la fiche</h3><button type="button" class="ss-pro-share" data-ss-share>Copier le lien SWAPP</button></div>
+ <p class="ss-pro-disclaimer">Une invitation Discord vérifiée ne garantit pas la modération du serveur.</p></div></aside></div>
  <div class="ss-pro-feedback" id="ss-detail-feedback" role="status" aria-live="polite"></div></main>`;
 }
 module.exports={renderProfile};
