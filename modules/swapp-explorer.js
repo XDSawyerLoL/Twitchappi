@@ -33,7 +33,7 @@ function page({mode='collections',genre=''}={}){
  '<div class="sx-graph-toolbar"><label for="sx-focus">Univers central</label><select id="sx-focus" aria-label="Choisir le jeu au centre de la carte"></select>'+
  '<span id="sx-graph-count">Aucun direct vérifié chargé</span></div>'+
  '<div class="sx-graph-layout"><div id="sx-canvas" class="sx-canvas" role="group" aria-label="Carte des jeux et créateurs en direct">'+
- '<svg id="sx-lines" viewBox="0 0 1000 560" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg><div id="sx-nodes" class="sx-nodes"></div></div>'+
+ '<svg id="sx-lines" viewBox="0 0 1000 560" preserveAspectRatio="none" aria-hidden="true"></svg><div id="sx-nodes" class="sx-nodes"></div></div>'+
  '<aside class="sx-inspector" id="sx-inspector"><p class="sx-eyebrow">DÉTAIL DU RÉSEAU</p><h3>Sélectionnez une connexion</h3><p>Chaque lien correspond à une catégorie ou un direct effectivement retrouvé.</p></aside></div>'+
  '<p class="sx-graph-legend"><span>● Jeu</span><span>● Créateur en direct</span><span>● Genre</span></p>'+
  '</section></div></main>';
