@@ -56,7 +56,7 @@ test('CSS flattens only server profiles, not creation or directory UI',()=>{
  assert.match(flat,/border-radius:0!important/);
  assert.match(flat,/\.ss-pro \.ss-pro-facts>div/);
  assert.match(flat,/\.ss-pro \.ss-pro-review-breakdown/);
- assert.match(flat,/\.ss-pro \.ss-pro-aside-card/);
+ assert.match(flat,/\.ss-pro \.ss-pro-aside \.ss-pro-aside-card/);
  assert.doesNotMatch(flat,/\.ss-directory|\.ss-owner-manage-card/);
  const community=read('assets/swapp-servers-community.css');
  assert.match(community,/people are rows, not cards inside cards/);
