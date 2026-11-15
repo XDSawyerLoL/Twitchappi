@@ -271,3 +271,7 @@ html body.swapp-servers-page{background:#030405!important;color:#eff6fa}
 .ss-owner-manage-actions .ss-owner-manage-cta{border-color:var(--ss-brand-accent);background:var(--ss-brand-accent);color:#0c1520}
 .ss-hero-actions .ss-owner-link{border-color:#7e64bc;background:#2d2246;color:#e5d6ff}
 @media(max-width:780px){.ss-owner-manage-card{grid-template-columns:64px minmax(0,1fr);gap:13px;padding:17px}.ss-owner-manage-logo{width:64px;height:64px}.ss-owner-manage-actions{grid-column:1/-1;justify-content:stretch}.ss-owner-manage-actions a{flex:1;text-align:center}}
+
+/* Quality gate: visible, keyboard-accessible pagination without fake ranks. */
+.ss-load-more{display:block;margin:28px auto 42px;padding:14px 28px;color:#06131b;background:linear-gradient(110deg,#a3f4f0,#c1afff);border:1px solid #afe9f4;border-radius:9px;font-weight:900;cursor:pointer;box-shadow:0 8px 30px #549add29}
+.ss-load-more[hidden]{display:none!important}.ss-load-more:disabled{opacity:.5;cursor:wait}.ss-load-more:focus-visible{outline:3px solid #ff456b;outline-offset:3px}
