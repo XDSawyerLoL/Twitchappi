@@ -6,7 +6,7 @@ Ajouter à SWAPP un annuaire de serveurs par jeu, inspiré de la logique publiqu
 ## Fonctionnalités écrites dans le dépôt
 - Recherche par nom, description, jeu et tags ; tri par votes du mois, récence ou nom.
 - Fiches réelles ajoutées par des comptes SWAPP existants, sans faux serveurs préchargés.
-- Soumission gratuite (cinq fiches maximum par compte), description d'au moins 30 caractères, HTTPS requis pour le site et la bannière.
+- Soumission gratuite (cinq fiches maximum par compte), description d'au moins 30 caractères, HTTPS requis pour le site et la bannière. Les coordonnées valides permettent une publication immédiate ; pas de file d'approbation générale.
 - Modération par compte administrateur ID fixé dans \`ORYON_ADMIN_USER_IDS\`, avant publication. Le panneau de modération n'est visible que par ce compte.
 - Votes serveur par compte SWAPP, renouvelables au bout de deux heures. L'historique des votes éligibles est comptabilisé dans le classement mensuel ; transactions MySQL avec verrou sur la ligne du dernier vote.
 - Aucun nombre de joueurs connectés, latence, état en ligne, avis ou récompense de plugin inventés. Aucun accès à l'API Top-Serveurs.
@@ -73,3 +73,12 @@ Le modèle SWAPP reprend **les fonctionnalités observées**, pas la marque, le 
 - Fichiers nouveaux : \`modules/swapp-servers-profile.js\`, \`modules/swapp-servers-stats.js\`, \`assets/swapp-servers-review-admin.js\`, tests \`test/swapp-server-profile-20261115.test.js\`.
 - Déploiement Hostinger : reconstruire depuis le commit incluant les nouveaux modules, laisser le backend créer ses deux tables, vérifier les migrations, puis tester la fiche réelle publiée, le vote, le clic sortant, les deux files de modération et les graphes.
 - **Non validé en production** : tests complets sous Node, MySQL Hostinger, permissions CREATE TABLE, CDN d'illustrations, modération du premier avis et déploiement public. Les résultats manquants doivent rester absents ou marqués « Non mesuré ».
+
+
+## Correction : publication immédiate et disparition du panneau « Mes serveurs » (15/11)
+- Le bloc de suivi « Mes serveurs » est supprimé du classement (HTML, JavaScript, CSS). La confirmation de création contient directement le lien vers la fiche publiée.
+- Minecraft et les autres catégories de jeux non-Discord : publication immédiate si le jeu est reconnu, que la description est valide, et qu'au moins une coordonnée de contact est correcte (URL HTTPS ou adresse d'hôte avec port facultatif). Aucun ping réseau n'est effectué et l'état « en ligne » n'est jamais inventé.
+- Discord / Multigaming : publication immédiate **uniquement si** l'API de Discord confirme une invitation de serveur valide. Une invitation invalide ou l'indisponibilité de Discord renvoie une erreur explicite ; aucune nouvelle demande bloquée en `pending` n'est créée.
+- Les **anciennes** fiches en attente sont réexaminées automatiquement au démarrage Node (1,5 s) puis toutes les cinq minutes, y compris Minecraft. Les fiches dont les coordonnées demeurent incorrectes ne sont pas publiées automatiquement.
+- Les contrôles existants restent actifs : session SWAPP requise, vérification d'origine, 5 fiches au maximum par compte, protection contre l'injection HTML et liens soumis en HTTPS.
+- Aucun déploiement ni état MySQL réel n'est confirmé par la seule modification du dépôt : l'inscription Minecraft déjà déposée se débloquera sur l'instance Hostinger après mise en production et exécution de la réconciliation, si ses données sont valides.
