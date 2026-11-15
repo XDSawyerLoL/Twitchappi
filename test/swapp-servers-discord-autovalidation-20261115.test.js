@@ -42,11 +42,11 @@ test('automatic checker approves only guild invites confirmed by Discord itself'
  const unavailable=await verifyDiscordInvite('https://discord.gg/SWAPP123',{fetcher:async()=>{throw Error('timeout')}});
  assert.equal(unavailable.valid,false);
 });
-test('a real Discord submission is published immediately but an unverified game server stays pending',async()=>{
+test('Discord and ordinary game listings publish immediately when details are valid',async()=>{
  const inserted=[];
  const fakeDb={execute:async(sql,values)=>{
   if(sql.startsWith('SELECT COUNT(*) AS n'))return[[{n:0}]];
-  if(sql.startsWith('INSERT INTO swapp_game_servers')){inserted.push(values);return[{affectedRows:1}]}
+  if(sql.startsWith('INSERT INTO swapp_game_servers')){inserted.push({sql,values});return[{affectedRows:1}]}
   throw Error('Unexpected SQL '+sql);
  }};
  const app=routes({getDatabase:async()=>fakeDb,inviteVerifier:async()=>VERIFIED});
@@ -55,25 +55,43 @@ test('a real Discord submission is published immediately but an unverified game 
  assert.equal(discord.statusCode,201);
  assert.equal(discord.data.status,'published');
  assert.equal(discord.data.autoVerified,true);
- assert.equal(inserted[0].at(-1),'published');
- assert.equal(inserted[0][6],VERIFIED.inviteUrl);
+ assert.match(inserted[0].sql,/"published"/);
+ assert.equal(inserted[0].values[6],VERIFIED.inviteUrl);
  const game=response();
- await app.POST.get('/api/swapp/serveurs')(request(body('Rust')),game);
- assert.equal(game.data.status,'pending');
+ await app.POST.get('/api/swapp/serveurs')(request({...body('Minecraft'),joinAddress:'play.swapp.fr:25565'}),game);
+ assert.equal(game.data.status,'published');
  assert.equal(game.data.autoVerified,false);
- assert.equal(inserted[1].at(-1),'pending');
+ assert.equal(game.data.verification,'listing_format');
+ assert.match(inserted[1].sql,/"published"/);
+ assert.equal(inserted[1].values[7],'play.swapp.fr:25565');
 });
-test('existing Discord listings are automatically reconciled without publishing invalid invites',async()=>{
+test('Discord verification failure returns an explicit retryable error, never a pending listing',async()=>{
+ let inserts=0;
+ const db={execute:async sql=>{
+  if(sql.startsWith('SELECT COUNT(*) AS n'))return[[{n:0}]];
+  if(sql.startsWith('INSERT INTO'))inserts++;
+  return[{}];
+ }};
+ const app=routes({getDatabase:async()=>db,inviteVerifier:async()=>({valid:false,reason:'discord_unavailable'})});
+ const result=response();
+ await app.POST.get('/api/swapp/serveurs')(request(body()),result);
+ assert.equal(result.statusCode,422);
+ assert.equal(result.data.error,'verification_discord_impossible');
+ assert.equal(inserts,0);
+});
+test('legacy pending Minecraft is published automatically while invalid Discord invites are held',async()=>{
  const changed=[];
  const fakeDb={
-  query:async()=>[[{id:'a'.repeat(32),website:'https://discord.gg/SWAPP123',joinAddress:''},
-   {id:'b'.repeat(32),website:'https://discord.gg/INVALID',joinAddress:''}]],
+  query:async()=>[[{id:'a'.repeat(32),game:'Minecraft',website:'https://swapp.tv',joinAddress:'play.swapp.fr:25565'},
+   {id:'b'.repeat(32),game:'Discord / Multigaming',website:'https://discord.gg/SWAPP123',joinAddress:''},
+   {id:'c'.repeat(32),game:'Discord / Multigaming',website:'https://discord.gg/INVALID',joinAddress:''}]],
   execute:async(sql,values)=>{changed.push({sql,values});return[{affectedRows:1}]}
  };
  const r=await autoReviewPendingDiscord({getDatabase:async()=>fakeDb,inviteVerifier:async(url)=>url.endsWith('SWAPP123')?VERIFIED:{valid:false,reason:'invite_not_found'}});
- assert.deepEqual(r,{checked:2,approved:1});
- assert.equal(changed.length,1);
- assert.match(changed[0].sql,/WHERE id=\? AND status="pending"/);
+ assert.deepEqual(r,{checked:3,approved:2,skipped:1});
+ assert.equal(changed.length,2);
+ assert.ok(changed.some(x=>x.sql.includes('SET status="published" WHERE id=?')));
+ assert.ok(changed.some(x=>x.sql.includes('SET status="published",website=?')));
 });
 test('moderation count is admin-only and the existing SWAPP guard is authoritative',async()=>{
  const db={query:async()=>[[{n:3}]]};
@@ -86,7 +104,7 @@ test('moderation count is admin-only and the existing SWAPP guard is authoritati
  assert.equal(denied.statusCode,403);
  const html=page({isAdmin:true});
  assert.ok(html.indexOf('class="ss-admin"')<html.indexOf('class="ss-toolbar"'),'admin panel must be near top');
- assert.match(html,/id="ss-owned"/);
+ assert.doesNotMatch(html,/id="ss-owned"/);
  const source=read('server.js');
  assert.match(source,/isAdmin:req=>isOryonAdmin\(req\)\|\|isAdminTwitchUser\(req\.session\?\.twitchUser\)/);
  const notifications=read('assets/swapp-servers-alerts.js');
