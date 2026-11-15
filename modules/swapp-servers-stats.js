@@ -1,35 +1,51 @@
 'use strict';
-/* Evidence: only persisted SWAPP actions. No inferred clicks, votes, rating, or player count. */
-const safeCount=n=>Number.isSafeInteger(Number(n))&&Number(n)>=0?Number(n):0;
+/* Read-only evidence from published SWAPP actions; failures never fabricate figures. */
+const safeCount=n=>n===null||n===undefined||!Number.isSafeInteger(Number(n))||Number(n)<0?null:Number(n);
 async function getProfileEvidence(sql,{id,game,votesMonth}){
  const firstMonth=new Date().toISOString().slice(0,7)+'-01';
- const [voteDays,clickDays,clickTotals,reviewTotals,reviewRows,ranking]=await Promise.all([
-  sql.execute('SELECT DATE_FORMAT(voted_at,"%Y-%m-%d") AS day,COUNT(*) AS n FROM swapp_game_server_vote_events WHERE server_id=? AND voted_at>=UTC_TIMESTAMP()-INTERVAL 370 DAY GROUP BY day ORDER BY day',[id]),
-  sql.execute('SELECT DATE_FORMAT(clicked_at,"%Y-%m-%d") AS day,COUNT(*) AS n FROM swapp_game_server_click_events WHERE server_id=? AND clicked_at>=UTC_TIMESTAMP()-INTERVAL 370 DAY GROUP BY day ORDER BY day',[id]),
-  sql.execute('SELECT COUNT(*) AS allClicks,SUM(CASE WHEN clicked_at>=? THEN 1 ELSE 0 END) AS monthClicks FROM swapp_game_server_click_events WHERE server_id=?',[firstMonth,id]),
-  sql.execute('SELECT COUNT(*) AS count,AVG(staff) AS staff,AVG(atmosphere) AS atmosphere,AVG(availability) AS availability FROM swapp_game_server_reviews WHERE server_id=? AND status="published"',[id]),
-  sql.execute('SELECT staff,atmosphere,availability,comment,created_at AS createdAt FROM swapp_game_server_reviews WHERE server_id=? AND status="published" ORDER BY created_at DESC LIMIT 20',[id]),
-  sql.execute('SELECT s.id,COUNT(v.id) AS votes FROM swapp_game_servers s LEFT JOIN swapp_game_server_vote_events v ON v.server_id=s.id AND v.voted_at>=? WHERE s.game=? AND s.status="published" GROUP BY s.id ORDER BY votes DESC,s.created_at ASC LIMIT 1000',[firstMonth,game])
- ]);
- const [allVoteRows]=await sql.execute('SELECT COUNT(*) AS n FROM swapp_game_server_vote_events WHERE server_id=?',[id]);
- const idx=ranking[0].findIndex(row=>row.id===id);
+ const jobs=[
+  ['voteDays','SELECT DATE_FORMAT(voted_at,"%Y-%m-%d") AS day,COUNT(*) AS n FROM swapp_game_server_vote_events WHERE server_id=? AND voted_at>=UTC_TIMESTAMP()-INTERVAL 370 DAY GROUP BY day ORDER BY day',[id]],
+  ['clickDays','SELECT DATE_FORMAT(clicked_at,"%Y-%m-%d") AS day,COUNT(*) AS n FROM swapp_game_server_click_events WHERE server_id=? AND clicked_at>=UTC_TIMESTAMP()-INTERVAL 370 DAY GROUP BY day ORDER BY day',[id]],
+  ['clickTotals','SELECT COUNT(*) AS allClicks,SUM(CASE WHEN clicked_at>=? THEN 1 ELSE 0 END) AS monthClicks FROM swapp_game_server_click_events WHERE server_id=?',[firstMonth,id]],
+  ['reviewTotals','SELECT COUNT(*) AS count,AVG(staff) AS staff,AVG(atmosphere) AS atmosphere,AVG(availability) AS availability FROM swapp_game_server_reviews WHERE server_id=? AND status="published"',[id]],
+  ['reviewRows','SELECT staff,atmosphere,availability,comment,created_at AS createdAt FROM swapp_game_server_reviews WHERE server_id=? AND status="published" ORDER BY created_at DESC LIMIT 20',[id]],
+  ['ranking','SELECT s.id,(SELECT COUNT(*) FROM swapp_game_server_vote_events v WHERE v.server_id=s.id AND v.voted_at>=?) AS votes FROM swapp_game_servers s WHERE s.game=? AND s.status="published" ORDER BY votes DESC,s.created_at ASC LIMIT 1000',[firstMonth,game]],
+  ['allVotes','SELECT COUNT(*) AS n FROM swapp_game_server_vote_events WHERE server_id=?',[id]]
+ ];
+ const settled=await Promise.allSettled(jobs.map(([,query,args])=>sql.execute(query,args)));
+ const data={};
+ settled.forEach((r,i)=>{
+  if(r.status==='fulfilled')data[jobs[i][0]]=Array.isArray(r.value?.[0])?r.value[0]:[];
+  else{
+   data[jobs[i][0]]=null;
+   console.warn('[SWAPP SERVEURS] Statistiques fiche',jobs[i][0],String(r.reason?.code||r.reason?.message||'unknown').slice(0,60));
+  }
+ });
+ const rankRows=data.ranking;
+ const idx=rankRows?rankRows.findIndex(r=>r.id===id):-1;
+ const reviewTotal=data.reviewTotals?.[0];
+ const hasReviews=!!reviewTotal;
+ const clicks=data.clickTotals?.[0];
  return {
   rank:idx<0?null:idx+1,
   stats:{
-   allVotes:safeCount(allVoteRows[0]?.n),allClicks:safeCount(clickTotals[0][0]?.allClicks),
-   monthVotes:safeCount(votesMonth),monthClicks:safeCount(clickTotals[0][0]?.monthClicks),
+   allVotes:data.allVotes?safeCount(data.allVotes[0]?.n):null,
+   allClicks:clicks?safeCount(clicks.allClicks):null,
+   monthVotes:safeCount(votesMonth),
+   monthClicks:clicks?safeCount(clicks.monthClicks):null,
    history:{
-    votes:voteDays[0].map(x=>({day:String(x.day),count:safeCount(x.n)})),
-    clicks:clickDays[0].map(x=>({day:String(x.day),count:safeCount(x.n)}))
-   }
+    votes:data.voteDays?.map(x=>({day:String(x.day),count:safeCount(x.n)||0}))||[],
+    clicks:data.clickDays?.map(x=>({day:String(x.day),count:safeCount(x.n)||0}))||[]
+   },
+   historyAvailable:!!data.voteDays&&!!data.clickDays
   },
-  reviews:reviewRows[0],
-  reviewSummary:{
-   count:safeCount(reviewTotals[0][0]?.count),
-   staff:reviewTotals[0][0]?.staff===null?null:Number(reviewTotals[0][0]?.staff),
-   atmosphere:reviewTotals[0][0]?.atmosphere===null?null:Number(reviewTotals[0][0]?.atmosphere),
-   availability:reviewTotals[0][0]?.availability===null?null:Number(reviewTotals[0][0]?.availability)
-  }
+  reviews:data.reviewRows||[],
+  reviewSummary:hasReviews?{
+   count:safeCount(reviewTotal.count),
+   staff:reviewTotal.staff==null?null:Number(reviewTotal.staff),
+   atmosphere:reviewTotal.atmosphere==null?null:Number(reviewTotal.atmosphere),
+   availability:reviewTotal.availability==null?null:Number(reviewTotal.availability)
+  }:null
  };
 }
 module.exports={getProfileEvidence};
