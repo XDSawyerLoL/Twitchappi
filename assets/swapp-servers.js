@@ -6,31 +6,6 @@
  const make=(tag,cls,text)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(text!==undefined)e.textContent=String(text);return e};
  const state={servers:[],loading:false,request:0};
 
- async function myServers(){
-  const section=$('#ss-owned'),container=$('#ss-owned-list');
-  if(!section||!container)return;
-  try{
-   const response=await fetch('/api/swapp/serveurs/mes-fiches',{credentials:'same-origin',cache:'no-store'});
-   if(!response.ok){section.hidden=true;return}
-   const data=await response.json(),servers=Array.isArray(data.servers)?data.servers:[];
-   if(!servers.length){section.hidden=true;return}
-   section.hidden=false;container.replaceChildren();
-   for(const s of servers){
-    const item=make('div','ss-owned-item');
-    item.append(make('strong','',s.name+' · '+s.game));
-    const status=s.status==='published'?'Publié':s.status==='rejected'?'Refusé':'En attente de vérification';
-    const indicator=make('span','ss-owned-status ss-status-'+(s.status==='published'?'published':s.status==='rejected'?'rejected':'pending'),status);
-    item.append(indicator);
-    if(s.status==='published'&&s.slug){
-     const link=make('a','', 'Voir la fiche ↗');
-     link.href='/serveurs/'+gameSlug(s.game)+'/'+encodeURIComponent(s.slug);
-     item.append(link);
-    }
-    container.append(item);
-   }
-  }catch(_){/* Do not expose other users' submissions or invent status */}
- }
-
  const gameSlug=name=>String(name||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,75);
  const setGame=(name,updateAddress=true)=>{
   $('#ss-game').value=name;
@@ -171,12 +146,37 @@
  });
  $('#ss-add').onclick=()=>dialog.showModal();$('#ss-cancel').onclick=()=>dialog.close();
  form.onsubmit=async event=>{
-  event.preventDefault();const button=form.querySelector('[type=submit]');button.disabled=true;status.textContent='Vérification…';
+  event.preventDefault();
+  const button=form.querySelector('[type=submit]');
+  button.disabled=true;status.textContent='Vérification et publication…';
   const payload=Object.fromEntries(new FormData(form).entries());
-  try{const res=await fetch('/api/swapp/serveurs',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify(payload)});const data=await res.json();if(!res.ok)throw Error(({connexion_swapp_requise:'Connecte-toi à ton compte SWAPP avant de proposer un serveur.',limite_de_cinq_serveurs:'Limite de cinq fiches par compte atteinte.',informations_invalides:'Vérifie le nom, la description, le jeu et les URL HTTPS.'})[data.error]||'Soumission indisponible.');const published=data.status==='published';
-    const message=published?'Invitation Discord vérifiée : ton serveur est publié dans le classement.':'Serveur enregistré : une vérification complémentaire est nécessaire. Tu retrouveras son état dans Mes serveurs.';
-    status.textContent=message;feedback.textContent=message;form.reset();
-    await myServers();if(published){dialog.close();await load()}}catch(e){status.textContent=e.message}finally{button.disabled=false}
+  try{
+   const response=await fetch('/api/swapp/serveurs',{
+    method:'POST',credentials:'same-origin',
+    headers:{'Content-Type':'application/json','Accept':'application/json'},
+    body:JSON.stringify(payload)
+   });
+   const data=await response.json();
+   if(!response.ok){
+    const known={
+     connexion_swapp_requise:'Connecte-toi à ton compte SWAPP avant de publier ton serveur.',
+     limite_de_cinq_serveurs:'Limite de cinq fiches par compte atteinte.',
+     informations_invalides:'Vérifie le nom, la description, le jeu et les coordonnées (site HTTPS ou adresse valide).',
+     invitation_discord_requise:'Renseigne une invitation Discord valide (discord.gg ou discord.com/invite).',
+     verification_discord_impossible:'Discord ne confirme pas cette invitation. Vérifie le lien puis réessaie ; rien n’a été publié.'
+    };
+    throw Error(known[data.error]||'Publication impossible pour le moment.');
+   }
+   if(data.status!=='published')throw Error('Le serveur n’a pas pu être publié. Réessaie.');
+   const message='Serveur publié directement dans le classement SWAPP.';
+   status.textContent=message;feedback.textContent=message;form.reset();dialog.close();
+   await load();
+   if(data.url&&/^\/serveurs\/[a-z0-9/-]+$/.test(data.url)){
+    const open=document.createElement('a');
+    open.href=data.url;open.textContent=' Voir la fiche →';open.className='ss-published-link';
+    feedback.append(open);
+   }
+  }catch(error){status.textContent=error.message}finally{button.disabled=false}
  };
  const admin=$('#ss-review'),adminRefresh=$('#ss-review-refresh');
  if(admin&&adminRefresh){
@@ -211,6 +211,5 @@
   adminRefresh.onclick=review;review();
  }
 
- myServers();
  load();
 })();
