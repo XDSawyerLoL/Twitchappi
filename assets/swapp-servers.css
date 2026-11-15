@@ -1090,6 +1090,7 @@ html body.swapp-servers-page{background:#030405!important;color:#eff6fa}
  min-height:30px!important;
  padding:4px 3px!important;
  margin-left:auto;
+ width:auto!important;
  background:transparent!important;
  border:1px solid transparent!important;
  box-shadow:none!important;
