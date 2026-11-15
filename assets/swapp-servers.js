@@ -131,6 +131,10 @@
    const detail=make('a','ss-details','Voir la fiche');
    detail.href='/serveurs/'+encodeURIComponent(gameSlug(s.game))+'/'+encodeURIComponent(s.slug);
    actions.append(detail);
+   const teammates=make('a','ss-community-quick','Trouver des joueurs');
+   teammates.href=detail.href+'#joueurs';actions.append(teammates);
+   const streams=make('a','ss-community-quick','Lives associés');
+   streams.href=detail.href+'#directs';actions.append(streams);
   }
   if(s.canEdit&&s.slug){
    const edit=make('a','ss-owner-edit','Personnaliser');
