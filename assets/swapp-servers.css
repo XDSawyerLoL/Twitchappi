@@ -192,3 +192,8 @@ html body.swapp-servers-page,html body.swapp-servers-page .ss-pro{background:#03
 .ss-review-admin-actions button:disabled{opacity:.6}
 
 .ss-published-link{margin-left:8px;color:#aeefef;text-decoration:underline;font-weight:850}
+
+/* Extra links saved by the new full-page server-creation flow. */
+.ss-pro-social-links{display:flex;flex-direction:column;gap:9px;padding-top:17px}
+.ss-pro-social-links a{display:flex;justify-content:center;padding:11px;border:1px solid #45727e;color:#d6f8fc;background:#14242e;border-radius:7px;text-decoration:none;font-size:13px;font-weight:820}
+.ss-pro-social-links a:hover{border-color:#a1eef1}
