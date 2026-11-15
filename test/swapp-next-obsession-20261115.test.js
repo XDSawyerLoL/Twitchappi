@@ -60,7 +60,7 @@ test('next obsession is a real homepage feature before the live carousel in nati
   const discovery=doc.indexOf('swapp-live-surprise.js?v=20261115-obsession-v1');
   const catalogue=doc.indexOf('swapp-catalogue-lab.js?v=20261115-hidpi-posters-v30');
   assert.ok(discovery>=0&&catalogue>discovery,'shuffle picker script loads before catalogue');
-  assert.match(doc,/swapp-catalogue-lab\.css\?v=20261115-hidpi-covers-v25/);
+  assert.match(doc,/swapp-catalogue-lab\.css\?v=20261115-explorer-toolbar-v26/);
   assert.match(doc,/Trouvez votre prochaine obsession/);
  }
 });
