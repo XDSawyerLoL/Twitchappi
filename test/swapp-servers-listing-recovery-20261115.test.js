@@ -60,14 +60,16 @@ test('a real database failure is still an error and not a fabricated zero',async
  assert.equal(h.res.data.error,'annuaire_temporairement_indisponible');
  assert.equal(h.res.data.total,undefined);
 });
-test('client keeps category SSR cards on API errors and distinguishes HTTP status',()=>{
+test('client preserves SSR listings and discriminates HTML challenges from JSON errors',()=>{
  const script=fs.readFileSync(path.join(__dirname,'../assets/swapp-servers.js'),'utf8');
  assert.match(script,/keepServerRendered/);
  assert.match(script,/\.ss-category-preloaded/);
  assert.match(script,/state\.status==='error'&&keepServerRendered/);
- assert.match(script,/HTTP 403/);
- assert.match(script,/HTTP 404/);
- assert.match(script,/HTTP 503/);
- assert.match(script,/response non JSON/);
+ assert.match(script,/async function apiFailure\(response\)/);
+ assert.match(script,/mime\.includes\('text\/html'\)/);
+ assert.match(script,/recaptcha\|captcha/);
+ assert.match(script,/kind:challenge\?'challenge':'upstream'/);
+ assert.match(script,/feedback\.textContent='';/);
+ assert.doesNotMatch(script,/Actualisation indisponible : les fiches déjà chargées restent visibles/);
  assert.match(script,/Array\.isArray\(data\.servers\)/);
 });
