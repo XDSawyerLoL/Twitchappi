@@ -22,9 +22,9 @@
   'Don’t Starve Together':322330,'Lethal Company':1966720
  });
  const gameArt=name=>{
-  if(name==='Minecraft')return 'https://static-cdn.jtvnw.net/ttv-boxart/27471-720x960.jpg';
+  if(name==='Minecraft')return 'https://static-cdn.jtvnw.net/ttv-boxart/27471_IGDB-720x960.jpg';
   const id=STEAM_GAME_IDS[name];
-  return id?'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/'+id+'/header.jpg':'';
+  return id?'https://cdn.cloudflare.steamstatic.com/steam/apps/'+id+'/header.jpg':'';
  };
  function artInto(host,name,preferred=''){
   const sources=[preferred,gameArt(name)].filter(Boolean);
