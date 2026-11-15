@@ -4,6 +4,7 @@ const crypto=require('node:crypto');
 const {renderPage,SHARED_HEAD_SLOT}=require('./swapp-page-shell');
 const {inviteCode,verifyDiscordInvite}=require('./swapp-servers-discord');
 const {renderProfile}=require('./swapp-servers-profile');
+const {registerCommunity,renderCommunityPanels}=require('./swapp-servers-community');
 const {getProfileEvidence}=require('./swapp-servers-stats');
 const {createPage,LANGUAGES,SERVER_TYPES,discordLink,twitchLink,readTypes}=require('./swapp-servers-create');
 const {renderExternalDiscovery}=require('./swapp-servers-external-discovery');
@@ -227,12 +228,12 @@ function detailPage(server,votes,meta={}){
   '<title>'+esc(title)+' — '+esc(game)+' | Serveurs SWAPP</title>'+
   '<meta name="description" content="'+esc(summary)+'">'+
   '<link rel="canonical" href="'+esc(canonical)+'">'+metadata+SHARED_HEAD_SLOT+
-  '<link rel="stylesheet" href="/assets/swapp-servers.css?v=20261115-category-owner-v16">';
+  '<link rel="stylesheet" href="/assets/swapp-servers.css?v=20261115-category-owner-v16"><link rel="stylesheet" href="/assets/swapp-servers-community.css?v=20261115-community-v1">';
  return renderPage({head:header,content:renderProfile({server,votes,rank:meta.rank,stats:meta.stats||null,
   reviews:meta.reviews||[],reviewSummary:meta.reviewSummary||null,cover:image,canEdit:Boolean(meta.canEdit),
-  outbound:safeUrl(server.website),gamePath}),
+  outbound:safeUrl(server.website),gamePath,communityPanels:renderCommunityPanels(server)}),
   active:'servers',bodyClass:'swapp-editorial-route swapp-servers-page',
-  scripts:'<script src="/assets/swapp-servers-detail.js?v=20261115-server-pro-v7" defer></script><script src="/assets/swapp-nav-session.js?v=20261114-native-account-v1" defer></script>'});
+  scripts:'<script src="/assets/swapp-servers-detail.js?v=20261115-server-pro-v7" defer></script><script src="/assets/swapp-servers-community.js?v=20261115-community-v1" defer></script><script src="/assets/swapp-nav-session.js?v=20261114-native-account-v1" defer></script>'});
 }
 
 let lastAutoReview=0,autoReviewRunning=null,autoReviewOffset=0;
@@ -285,6 +286,7 @@ function renderCategoryPreview(rows,game){
 
 function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verifyDiscordInvite,enableAutoReview=true}={}){
  const isManager=req=>Boolean(isAdmin(req));
+ registerCommunity(app,{getDatabase,account,ownerKeys,originGuard});
  // Recheck older Discord submissions too, without any paid worker or VPS.
  // One batch per instance, repeated while the application is running.
  if(enableAutoReview&&mysqlUrl()&&process.env.SWAPP_SERVERS_AUTO_REVIEW!=='0'){
