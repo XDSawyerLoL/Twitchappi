@@ -2,8 +2,58 @@
   "schema": 1,
   "kind": "swapp-editorial-signals",
   "method": "Brèves rédigées à partir de sources primaires, avec revendication, intérêt et limites distincts. Ne jamais convertir automatiquement un RSS en brève vérifiée.",
-  "updatedAt": "2026-11-13T16:59:44Z",
+  "updatedAt": "2026-11-15T22:52:54.718987Z",
   "items": [
+    {
+      "id": "god-of-war-sons-of-sparta-ps4-hermes-erebus-20261113",
+      "topics": [
+        "GAMING"
+      ],
+      "title": "Sons of Sparta : PS4, Hermes et Erebus annoncés pour le 16 novembre",
+      "fact": "Dans une mise à jour explicitement datée du 13 novembre, Santa Monica annonce Sons of Sparta sur PS4 le 16 novembre. Un patch ajoutera simultanément les modes Hermes et Erebus sur PS4 et PS5.",
+      "impact": "Hermes apporte des outils de speedrun ; Erebus fait tomber le joueur comme ses ennemis en un coup.",
+      "caveat": "La sortie reste à venir. Le mode choisi pour une sauvegarde ne pourra pas être changé. Le billet ne précise pas de nouveau tarif PS4.",
+      "sourceName": "Santa Monica Studio / PlayStation.Blog",
+      "sourceUrl": "https://blog.playstation.com/2026/02/13/god-of-war-sons-of-sparta-what-you-need-to-know/",
+      "sourceDate": "2026-11-13",
+      "reviewedAt": "2026-11-15T22:52:54.718987Z",
+      "imageUrl": "https://blog.playstation.com/tachyon/2026/02/600e22be08c93213524019a20aeccf5552a87610.jpg",
+      "imageCredit": "Sony Interactive Entertainment / Santa Monica Studio · illustration officielle de God of War Sons of Sparta"
+    },
+    {
+      "id": "fable-deepwood-gameplay-podcast-20261113",
+      "topics": [
+        "GAMING"
+      ],
+      "title": "Fable : le podcast Xbox explique la place de l’exploration dans le récit",
+      "fact": "Dans le podcast Xbox du 13 novembre, Ralph Fulton commente la séquence de Deepwood présentée pour les 25 ans de Xbox. Il décrit un récit conçu pour laisser le temps d’explorer, surtout dans sa première moitié.",
+      "impact": "La présentation donne un aperçu concret d’une région et de la place des activités libres dans la progression.",
+      "caveat": "Il s’agit d’une séquence choisie par le studio, pas d’un test indépendant. La sortie reste annoncée au 23 février 2027.",
+      "sourceName": "Xbox / Playground Games",
+      "sourceUrl": "https://news.xbox.com/en-us/2026/11/13/fable-deep-dive-into-new-gameplay-with-playground-games-official-xbox-podcast/",
+      "sourceDate": "2026-11-13",
+      "reviewedAt": "2026-11-15T22:52:54.718987Z",
+      "imageUrl": "https://xboxwire.thesourcemediaassets.com/sites/2/2026/11/Wire_EP290-b452df595ddb7f22b68e-1600x900.jpg",
+      "imageCredit": "Xbox / Playground Games · visuel du podcast officiel Fable du 13 novembre 2026",
+      "articleSlug": "fable-gameplay-quete-deepwood-xbox-25-ans-12-novembre-2026"
+    },
+    {
+      "id": "deepmind-pardig-satweave-donnees-meteo-20261113",
+      "topics": [
+        "FUTURE",
+        "AI"
+      ],
+      "title": "DeepMind ouvre les données météo PARDIG et SatWeave",
+      "fact": "Le 13 novembre, Google DeepMind annonce l’accès aux archives et aux flux de SatWeave, une mosaïque d’images satellitaires, et de PARDIG, des estimations de précipitations produites avec l’IA.",
+      "impact": "Ces données peuvent servir de base à des travaux en météo, hydrologie et climat, au-delà des propres modèles de Google.",
+      "caveat": "Ce sont des données de recherche, pas une alerte météo. PARDIG annonce environ cinq heures de latence moyenne ; les performances publiées restent celles mesurées par l’équipe.",
+      "sourceName": "Google DeepMind / équipe WeatherNext",
+      "sourceUrl": "https://deepmind.google/blog/opening-the-datasets-behind-our-ai-weather-models/",
+      "sourceDate": "2026-11-13",
+      "reviewedAt": "2026-11-15T22:52:54.718987Z",
+      "imageUrl": "https://lh3.googleusercontent.com/ggsqfaBnOayx-i7z9Kj8AeZruz8BSo0N7tsnqwH8Z3REnHcDKBt-QSA3DR4UUM8lcwklWihSARoEN2AyQFhoRFGFlk2-0-xGuKt_rtGoFwpJg8LHVQ=w1200-h630-n-nu-rw",
+      "imageCredit": "Google DeepMind · illustration officielle de l’ouverture des données PARDIG et SatWeave"
+    },
     {
       "id": "ps5-qssr-nouvelle-vague-spider-man-2-20261113",
       "topics": [
@@ -36,6 +86,38 @@
       "reviewedAt": "2026-11-13T16:59:44Z",
       "imageUrl": "https://blog.playstation.com/tachyon/2026/11/b76ffd50c3d63cbe3bcbf54cd2965dceb1a4e8b5.png",
       "imageCredit": "Ocelot Technologies / PlayStation.Blog · Guild Saga: Vanished Worlds"
+    },
+    {
+      "id": "xbox-retrocompatibilite-pc-21-ajouts-20261112",
+      "topics": [
+        "GAMING"
+      ],
+      "title": "Xbox ajoute 21 classiques sur PC et porte le catalogue à 25 jeux",
+      "fact": "Le 12 novembre, Xbox annonce 21 jeux Xbox d’origine supplémentaires sur PC, pour un total de 25. Des succès arrivent aussi dans les deux Knights of the Old Republic, BLiNX et Conker.",
+      "impact": "Davantage de classiques deviennent accessibles sur PC, avec prise en charge du clavier et de la souris annoncée pour tout ce catalogue.",
+      "caveat": "Windows 11 et un marché pris en charge sont requis. Achat ou abonnement peuvent être nécessaires selon le jeu ; les succès ne concernent pas les 25 titres.",
+      "sourceName": "Microsoft / Xbox Wire",
+      "sourceUrl": "https://news.xbox.com/en-us/2026/11/12/25-original-xbox-games-now-available-on-pc/",
+      "sourceDate": "2026-11-12",
+      "reviewedAt": "2026-11-15T22:52:54.718987Z",
+      "imageUrl": "https://xboxwire.thesourcemediaassets.com/sites/2/2026/11/111226_XBOX-Wire_PCBackCompat-JPG-6d6dbed266e723ed4c62-1600x900.jpg",
+      "imageCredit": "Microsoft / Xbox · illustration officielle du catalogue rétrocompatible sur PC"
+    },
+    {
+      "id": "halo-campaign-evolved-firefight-hiver-20261112",
+      "topics": [
+        "GAMING"
+      ],
+      "title": "Halo: Campaign Evolved recevra Firefight dans une mise à jour gratuite",
+      "fact": "Halo Studios annonce le 12 novembre l’arrivée cet hiver de Firefight, son mode de survie coopératif PvE à quatre joueurs, dans Halo: Campaign Evolved.",
+      "impact": "Les propriétaires du jeu pourront affronter des vagues d’ennemis en équipe dans un mode supplémentaire.",
+      "caveat": "Aucun jour de sortie précis n’est annoncé. La gratuité concerne la mise à jour, pas le jeu ; davantage de détails sont promis au Halo Fest des 12 et 13 décembre.",
+      "sourceName": "Halo Studios / Xbox Wire",
+      "sourceUrl": "https://news.xbox.com/en-us/2026/11/12/halo-campaign-evolved-firefight-free-update-this-winter/",
+      "sourceDate": "2026-11-12",
+      "reviewedAt": "2026-11-15T22:52:54.718987Z",
+      "imageUrl": "https://xboxwire.thesourcemediaassets.com/sites/2/2026/11/HCE_FF_XBFF-1-2273ec7fc27a458ce012-1600x900.jpg",
+      "imageCredit": "Halo Studios / Xbox · visuel officiel Firefight Update de Halo: Campaign Evolved"
     },
     {
       "id": "once-human-s5-colossus-gameplay-20261112",
@@ -155,6 +237,22 @@
       "imageCredit": "Google DeepMind · AlphaGenome 2",
       "reviewedAt": "2026-11-12T16:51:58Z",
       "articleSlug": null
+    },
+    {
+      "id": "gta-vi-xbox-cloud-console-19nov-20261110",
+      "topics": [
+        "GAMING"
+      ],
+      "title": "GTA VI : Xbox annonce le jeu en cloud sur Xbox One dès le 19 novembre",
+      "fact": "Dans son annonce du 10 novembre, Xbox prévoit GTA VI sur Xbox Cloud Gaming le 19 novembre, sur Xbox One et Xbox Series X|S. Le jeu doit être acheté séparément.",
+      "impact": "Le streaming donnera aux joueurs Xbox One un accès au jeu sans version installée localement sur cette console.",
+      "caveat": "La disponibilité dépend du marché, de l’appareil et du compte. Le cloud utilisera les réglages graphiques Xbox Series S ; aucun prix français ni accès universel n’est garanti ici.",
+      "sourceName": "Microsoft / Xbox Wire",
+      "sourceUrl": "https://news.xbox.com/en-us/2026/11/10/grand-theft-auto-6-comes-to-xbox-cloud-gaming-november-19/",
+      "sourceDate": "2026-11-10",
+      "reviewedAt": "2026-11-15T22:52:54.718987Z",
+      "imageUrl": "https://xboxwire.thesourcemediaassets.com/sites/2/2026/06/GTA-6-Official_Cover_Art_landscape-c3e36df9ed6c80b13d50.jpg",
+      "imageCredit": "Rockstar Games / Xbox Wire · illustration officielle Grand Theft Auto VI"
     },
     {
       "id": "marathon-symbiosis-date-modes-20261110",
