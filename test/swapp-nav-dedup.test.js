@@ -77,7 +77,7 @@ test('navigation assets are versioned consistently on SPA and native pages',()=>
  const home=fs.readFileSync(path.join(ROOT,'index.html'),'utf8');
  const shell=fs.readFileSync(path.join(ROOT,'modules/swapp-news/site-shell.js'),'utf8');
  for(const source of [home,shell]){
-  assert.match(source,/swapp-hub-nav\.js\?v=20261115-servers-menu-v4/);
+  assert.match(source,/swapp-hub-nav\.js\?v=20261115-servers-menu-v5/);
   assert.match(source,/swapp-navigation\.js\?v=20261115-servers-menu-v5/);
  }
 });
