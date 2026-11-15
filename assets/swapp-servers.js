@@ -44,7 +44,18 @@
   catch(e){if(seq!==state.request)return;results.replaceChildren();count.textContent='Indisponible';feedback.textContent=e.message}
  }
  let timer;$('#ss-q').addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(load,250)});
- $('#ss-game').addEventListener('change',load);$('#ss-sort').addEventListener('change',load);
+ $('#ss-game').addEventListener('change',()=>{syncGameChips();load()});$('#ss-sort').addEventListener('change',load);
+ function syncGameChips(){
+  root.querySelectorAll('[data-ss-game]').forEach(b=>{
+   const selected=b.dataset.ssGame===$('#ss-game').value;
+   b.classList.toggle('is-selected',selected);
+   b.setAttribute('aria-pressed',String(selected));
+  });
+ }
+ root.querySelectorAll('[data-ss-game]').forEach(b=>b.addEventListener('click',()=>{
+  $('#ss-game').value=b.dataset.ssGame;syncGameChips();load();
+ }));
+ syncGameChips();
  $('#ss-add').onclick=()=>dialog.showModal();$('#ss-cancel').onclick=()=>dialog.close();
  form.onsubmit=async event=>{
   event.preventDefault();const button=form.querySelector('[type=submit]');button.disabled=true;status.textContent='Vérification…';
