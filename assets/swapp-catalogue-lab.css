@@ -986,3 +986,10 @@ body[data-swapp-home-spa="v16"] #home :is(.scl-card-media img,.scl-story-media i
 body.swapp-catalogue-lab-page :is(.scl-card-media img,.scl-story-media img){
  filter:none!important;transform:none!important;image-rendering:auto
 }
+
+/* The games rail uses a separate portrait poster component, not .scl-card.
+   Keep it sharp in both native and SPA home without touching modal backdrops. */
+body[data-swapp-home-spa="v16"] #home .scl-game-poster-image img,
+body.swapp-catalogue-lab-page .scl-game-poster-image img{
+ filter:none!important;transform:none!important;image-rendering:auto;
+}
