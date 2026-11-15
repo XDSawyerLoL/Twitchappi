@@ -69,3 +69,25 @@ test('Équipes is temporarily redirected, not erased, and excluded from SEO disc
  assert.doesNotMatch(before,/\/equipes/);
  assert.doesNotMatch(seo.slice(seo.indexOf('const LANDING_LINKS='),seo.indexOf('function landingMarkup')),/\/equipes/);
 });
+
+
+test('SERVEUR + is a primary desktop link, a mobile Plus link and active on the ranking pages',()=>{
+ const {desktopNavigation,mobileNavigation,serverHeader,serverMobile,servers}=require('../assets/swapp-navigation');
+ assert.equal(servers.href,'/serveurs');
+ assert.equal(servers.label,'SERVEUR +');
+ const desktop=desktopNavigation('servers');
+ assert.match(desktop,/href="\/serveurs"[^>]*class="active"[^>]*aria-current="page">SERVEUR \+<\/a>/);
+ assert.ok(desktop.indexOf('href="/explorer"')<desktop.indexOf('href="/serveurs"'));
+ assert.equal((desktop.match(/href="\/serveurs"/g)||[]).length,1);
+ const mobile=mobileNavigation('servers');
+ assert.match(mobile,/swapp-mobile-more-links[\s\S]*href="\/serveurs"[^>]*class="active"[^>]*aria-current="page">SERVEUR \+<\/a>/);
+ assert.doesNotMatch(mobile.slice(0,mobile.indexOf('swapp-mobile-more')),/href="\/serveurs"/);
+ for(const native of [serverHeader('servers'),serverMobile('servers')]){
+  assert.match(native,/href="\/serveurs"/);
+ }
+ const serverPages=read('modules/swapp-servers.js');
+ assert.match(serverPages,/active:'servers'/);
+ const reconciler=read('assets/swapp-hub-nav.js');
+ assert.match(reconciler,/route==='\/serveurs'\|\|route\.startsWith\('\/serveurs\/'\)\?'servers'/);
+ assert.match(reconciler,/nav\.querySelector\('a\[href="\/serveurs"\]'\)/);
+});
