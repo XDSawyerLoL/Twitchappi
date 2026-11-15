@@ -228,10 +228,10 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
    conn=typeof sql.getConnection==='function'?await sql.getConnection():sql;
    if(typeof conn.beginTransaction==='function')await conn.beginTransaction();
    // Existing pending submissions can be finished without creating a second entry.
-   const [existing]=await conn.execute('SELECT id,slug,status FROM swapp_game_servers WHERE owner_id=? AND game=? AND name=? ORDER BY created_at DESC LIMIT 1',[owner,game,name]);
-   if(existing.length&&existing[0].status==='published'){
+   const [existing]=await conn.execute('SELECT id,slug,status FROM swapp_game_servers WHERE owner_id=? AND game=? AND name=? ORDER BY created_at DESC LIMIT 1 FOR UPDATE',[owner,game,name]);
+   if(existing.length&&existing[0].status==='rejected'){
     if(typeof conn.rollback==='function')await conn.rollback();
-    return res.status(200).json({status:'published',alreadyExists:true,slug:existing[0].slug,url:'/serveurs/'+slug(game)+'/'+existing[0].slug,onlineVerified:false});
+    return res.status(409).json({error:'inscription_refusee'});
    }
    const [count]=await conn.execute('SELECT COUNT(*) AS n FROM swapp_game_servers WHERE owner_id=?',[owner]);
    if(!existing.length&&Number(count[0]?.n||0)>=5){
@@ -241,9 +241,9 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
    const id=existing.length?existing[0].id:crypto.randomBytes(16).toString('hex');
    const serverSlug=existing.length?existing[0].slug:(slug(name)||'serveur')+'-'+id.slice(0,7);
    if(existing.length){
-    const [updated]=await conn.execute('UPDATE swapp_game_servers SET name=?,description=?,website=?,join_address=?,region=?,tags=?,banner_url=?,status="published" WHERE id=? AND owner_id=? AND status="pending"',
+    const [updated]=await conn.execute('UPDATE swapp_game_servers SET name=?,description=?,website=?,join_address=?,region=?,tags=?,banner_url=?,status="published" WHERE id=? AND owner_id=? AND status IN ("pending","published")',
      [name,description,mainUrl,mainJoin,region,tags,banner,id,owner]);
-    if(updated.affectedRows!==1)throw Error('submission_conflict');
+    if(Number(updated.affectedRows)<0)throw Error('submission_conflict');
    }else{
     await conn.execute('INSERT INTO swapp_game_servers (id,owner_id,name,slug,game,description,website,join_address,region,tags,banner_url,status) VALUES (?,?,?,?,?,?,?,?,?,?,?,"published")',
      [id,owner,name,serverSlug,game,description,mainUrl,mainJoin,region,tags,banner]);
@@ -251,7 +251,7 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
    await conn.execute('INSERT INTO swapp_game_server_extras (server_id,language,twitch_url,homepage_url,discord_guild_id) VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE language=VALUES(language),twitch_url=VALUES(twitch_url),homepage_url=VALUES(homepage_url),discord_guild_id=VALUES(discord_guild_id)',
     [id,language,twitch,homepage,guildId]);
    if(typeof conn.commit==='function')await conn.commit();
-   return res.status(existing.length?200:201).json({status:'published',slug:serverSlug,autoVerified:discord,
+   return res.status(existing.length?200:201).json({status:'published',updated:Boolean(existing.length),slug:serverSlug,autoVerified:discord,
     verification:discord?'discord_invite':'listing_format',onlineVerified:false,
     url:'/serveurs/'+slug(game)+'/'+serverSlug});
   }catch(e){
