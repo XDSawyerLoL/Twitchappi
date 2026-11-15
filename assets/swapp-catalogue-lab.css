@@ -639,7 +639,7 @@ body.swapp-catalogue-lab-page{
 @media(max-width:650px){.scl-legal{gap:10px 13px}.scl-legal a{font-size:11px}}
 
 /* V6: invisible shelves; native horizontal swiping is preserved on touch. */
-.scl-rail-nav{display:none!important}
+.scl-rail-nav{display:flex!important;align-items:center;gap:7px}
 .scl-cards{scrollbar-width:none;-ms-overflow-style:none}
 .scl-cards::-webkit-scrollbar{display:none;width:0;height:0}
 .scl-cards.scl-is-edge-scrolling{scroll-snap-type:none}
@@ -1030,4 +1030,32 @@ body.swapp-catalogue-lab-page .scl-discovery-toolbar .scl-explorer-shortcut{
 #swapp-catalogue-lab .scl-home-eyebrow{
  display:block;color:#eef6fc;font:850 10px/1.4 Inter,system-ui,sans-serif;
  letter-spacing:.19em;margin-bottom:14px;text-shadow:0 2px 12px #000c
+}
+
+/* V27: every catalogue shelf has usable visible scroll controls.
+ * Overlay arrows remain available on desktop; header arrows are the reliable
+ * fallback on keyboard, mobile and asynchronously hydrated genre shelves. */
+#swapp-catalogue-lab .scl-rail-nav button{
+ display:inline-grid;place-items:center;flex:0 0 36px;
+ width:36px;height:36px;border-radius:8px;
+ color:#e8eef3;background:#151719;
+ border:1px solid #50565d;box-shadow:none;
+ backdrop-filter:none!important;-webkit-backdrop-filter:none!important;
+ cursor:pointer;opacity:1;
+}
+#swapp-catalogue-lab .scl-rail-nav button:disabled,
+#swapp-catalogue-lab .scl-genre-actions button:disabled{
+ opacity:.33!important;cursor:default!important;
+}
+#swapp-catalogue-lab .scl-rail-nav button:focus-visible{
+ outline:2px solid #f1f5fa;outline-offset:2px;
+}
+#swapp-catalogue-lab .scl-rail-nav button:not(:disabled):hover{
+ background:#2b2e32;border-color:#ccd7de;
+}
+#swapp-catalogue-lab .scl-genre-cards.scl-is-edge-scrolling{
+ scroll-snap-type:none!important;
+}
+@media(max-width:650px){
+ #swapp-catalogue-lab .scl-rail-nav button{width:32px;height:32px;flex-basis:32px}
 }
