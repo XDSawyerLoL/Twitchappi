@@ -15,6 +15,7 @@ const gameRequest=(game,joinAddress='play.swapp.fr:25565',website='')=>({
 });
 test('published Minecraft listings no longer need administrator approval',async()=>{
  const inserts=[];const db={execute:async(sql,params)=>{
+  if(sql.startsWith('SELECT id,slug,status'))return [[]];
   if(sql.startsWith('SELECT COUNT(*) AS n'))return [[{n:0}]];
   if(sql.startsWith('INSERT INTO')){inserts.push({sql,params});return [{affectedRows:1}]}
   throw Error('unexpected SQL '+sql);
@@ -60,5 +61,6 @@ test('SERVEUR + no longer renders Mes serveurs tracking panel',()=>{
  const html=page();
  assert.doesNotMatch(html,/>Mes serveurs</);
  assert.doesNotMatch(html,/id="ss-owned"/);
- assert.match(html,/Publication immédiate/);
+ assert.match(html,/immédiatement/);
+ assert.match(html,/href="\/serveurs\/creer"/);
 });
