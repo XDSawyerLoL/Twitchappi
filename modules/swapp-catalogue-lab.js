@@ -15,13 +15,6 @@ function catalogueContent({publicHome=false}={}){
    '<a href="#scl-favorites" class="scl-side-link">Ma liste <span data-scl-favorites-count>0</span></a>'+
   '</aside>')+
   '<main class="scl-main" id="scl-main">'+
-   '<div class="scl-topline"><div><span class="scl-kicker">'+(publicHome?'SWAPP · LIVE, JEUX & ACTUALITÉS':'SWAPP ORIGINAL · EXPÉRIENCE TEST')+'</span><p>Des histoires à regarder en direct.</p></div>'+
-    '<label class="scl-search"><span class="scl-visually-hidden">Rechercher un jeu ou un créateur</span>'+
-     '<input id="scl-search" type="search" placeholder="Rechercher un jeu ou un créateur" autocomplete="off" aria-label="Rechercher un jeu ou un créateur"></label></div>'+
-   '<div class="scl-tabs" role="group" aria-label="Afficher"><button type="button" data-scl-filter="all" aria-pressed="true">Tout</button>'+
-    '<button type="button" data-scl-filter="live" aria-pressed="false">Directs</button><button type="button" data-scl-filter="article" aria-pressed="false">Articles</button>'+
-    '<button type="button" data-scl-filter="game" aria-pressed="false">Jeux</button>'+
-    '<button type="button" data-scl-filter="fav" aria-pressed="false">Favoris</button></div>'+
    '<section class="scl-feature" id="scl-feature" aria-label="Sélection du jour">'+
     '<div class="scl-feature-visual" id="scl-feature-visual" aria-hidden="true"></div><div class="scl-feature-vignette" aria-hidden="true"></div>'+
     '<div class="scl-feature-copy"><span class="scl-feature-kicker" id="scl-feature-kicker">SÉLECTION EN DIRECT</span>'+
@@ -32,6 +25,14 @@ function catalogueContent({publicHome=false}={}){
       '<button class="scl-btn scl-btn-neutral" id="scl-feature-preview" type="button" disabled>Prévisualiser</button>'+
       '<button class="scl-btn scl-btn-outline" id="scl-feature-details" type="button" disabled>Plus d’informations</button></div>'+
     '</div><div class="scl-feature-switch" role="group" aria-label="Sélection à la une"><button type="button" id="scl-feature-prev" aria-label="Sélection précédente">‹</button><div class="scl-feature-dots" id="scl-feature-dots" aria-label="Sélections disponibles"></div><button type="button" id="scl-feature-next" aria-label="Sélection suivante">›</button></div></section>'+
+   '<div class="scl-discovery-toolbar" aria-label="Parcourir les contenus">'+
+   '<div class="scl-topline"><label class="scl-search"><span class="scl-visually-hidden">Rechercher un jeu ou un créateur</span>'+
+    '<input id="scl-search" type="search" placeholder="Rechercher un jeu ou un créateur" autocomplete="off" aria-label="Rechercher un jeu ou un créateur"></label></div>'+
+   '<div class="scl-tabs" role="group" aria-label="Afficher"><button type="button" data-scl-filter="all" aria-pressed="true">Tout</button>'+
+    '<button type="button" data-scl-filter="live" aria-pressed="false">Directs</button><button type="button" data-scl-filter="article" aria-pressed="false">Articles</button>'+
+    '<button type="button" data-scl-filter="game" aria-pressed="false">Jeux</button>'+
+    '<button type="button" data-scl-filter="fav" aria-pressed="false">Favoris</button></div>'+
+   '<a class="scl-explorer-shortcut" href="/explorer">Explorer les univers</a></div>'+
    '<div id="scl-status" class="scl-status" role="status" aria-live="polite">Chargement des directs et des jeux…</div>'+
    '<section class="scl-surprise" id="scl-surprise" data-scl-section="live" aria-labelledby="scl-surprise-title">'+
     '<div class="scl-surprise-art" aria-hidden="true"><img id="scl-surprise-cover" alt="" loading="lazy" decoding="async"></div>'+
