@@ -462,6 +462,36 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
    return res.set('Cache-Control','no-store').type('html').send(detailPage(rows[0],votes,{...evidence,canEdit:!!account(req)&&ownerKeys(req).includes(rows[0].owner_id)}));
   }catch(e){console.warn('[SWAPP SERVEURS]',String(e?.message||e).slice(0,90));return res.status(503).type('text').send('Fiche temporairement indisponible')}
  });
+
+ // Private, read-only operational diagnosis. Never expose credentials or SQL strings.
+ app.get('/api/swapp/serveurs/diagnostic',async(req,res)=>{
+  if(!isManager(req))return res.status(403).json({error:'acces_refuse'});
+  if(!mysqlUrl())return res.status(503).set('Cache-Control','private,no-store').json({status:'unavailable',reason:'mysql_not_configured'});
+  const required=['swapp_game_servers','swapp_game_server_vote_events','swapp_game_server_branding',
+   'swapp_game_server_extras','swapp_game_server_click_events','swapp_game_server_reviews'];
+  try{
+   const sql=await readDatabase();
+   const tables={};
+   for(const table of required){
+    try{
+     // Internal literal allowlist only; no SQL identifier from request parameters.
+     await sql.query('SELECT 1 FROM '+table+' LIMIT 0');
+     tables[table]='ready';
+    }catch(error){
+     tables[table]=['ER_NO_SUCH_TABLE','ER_TABLEACCESS_DENIED_ERROR','ER_DBACCESS_DENIED_ERROR'].includes(error?.code)?'unavailable':'read_error';
+    }
+   }
+   const core=tables.swapp_game_servers==='ready';
+   return res.status(core?200:503).set('Cache-Control','private,no-store').json({status:core?'connected':'unavailable',tables});
+  }catch(error){
+   const code=String(error?.code||''),message=String(error?.message||'');
+   const reason=message==='swapp_servers_mysql_not_configured'?'mysql_not_configured':
+    ['ECONNREFUSED','ETIMEDOUT','ENOTFOUND','EHOSTUNREACH','PROTOCOL_CONNECTION_LOST'].includes(code)?'mysql_connection_failed':
+    ['ER_ACCESS_DENIED_ERROR','ER_DBACCESS_DENIED_ERROR'].includes(code)?'mysql_access_denied':
+    code==='ER_NO_SUCH_TABLE'?'schema_not_initialized':'mysql_unavailable';
+   return res.status(503).set('Cache-Control','private,no-store').json({status:'unavailable',reason});
+  }
+ });
  app.get('/api/swapp/serveurs',async(req,res)=>{
   try{
    const sql=await readDatabase();
