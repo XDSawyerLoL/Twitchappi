@@ -64,7 +64,7 @@ body.swapp-catalogue-lab-page a{color:inherit}
 .scl-card:hover,.scl-card:focus-within{border-color:#6be3df;transform:translateY(-4px);box-shadow:0 19px 30px #0008}
 .scl-card-media{position:relative;aspect-ratio:16/9;width:100%;display:flex;justify-content:center;align-items:center;background:linear-gradient(135deg,#162d41,#2a243a);overflow:hidden}
 .scl-card-media img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s}
-.scl-card:hover .scl-card-media img{transform:scale(1.065)}
+.scl-card:hover .scl-card-media img{transform:none}
 .scl-no-art{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;color:#91c9cc;font-weight:800;font-size:12px;text-align:center;padding:15px}
 .scl-no-art:before{content:"SWAPP";font-size:23px;font-weight:950;letter-spacing:-.07em;color:#b6e4e4}
 .scl-live-pill{position:absolute;top:10px;left:10px;background:#cd2740;color:#fff;border-radius:5px;padding:4px 7px;font-size:10px;font-weight:900;letter-spacing:.1em}
@@ -307,7 +307,7 @@ body.swapp-catalogue-lab-page{
  border:0;border-radius:8px;
  background:#17202c;
  box-shadow:0 7px 21px #0007;
- transform:translateZ(0);
+ transform:none;
  transform-origin:center center;
  transition:transform .22s ease,box-shadow .22s ease;
  isolation:isolate;
@@ -315,7 +315,7 @@ body.swapp-catalogue-lab-page{
 .scl-card:first-child{transform-origin:left center}
 .scl-card:last-child{transform-origin:right center}
 .scl-card:hover,.scl-card.scl-is-focused,.scl-card:focus-within{
- transform:scale(1.075);
+ transform:translateY(-3px);
  z-index:18;box-shadow:0 24px 48px #000d,0 0 0 1px #91d9e14f;
 }
 .scl-card-media{
@@ -324,7 +324,7 @@ body.swapp-catalogue-lab-page{
  aspect-ratio:16/9;overflow:hidden;
 }
 .scl-card-media img{object-fit:cover;object-position:center}
-.scl-card:hover .scl-card-media img{transform:scale(1.045)}
+.scl-card:hover .scl-card-media img{transform:none}
 .scl-card-media:after{
  content:"";pointer-events:none;position:absolute;inset:36% 0 0;
  background:linear-gradient(transparent,#080d18be 78%,#080d18f5);
@@ -532,7 +532,7 @@ body.swapp-catalogue-lab-page{
 }
 .scl-story-card:hover,.scl-story-card:focus-within{
  border-color:#8adce08f;
- transform:translateY(-5px) scale(1.025);
+ transform:translateY(-3px);
  box-shadow:0 22px 46px #000b;
  z-index:11;
 }
@@ -554,7 +554,7 @@ body.swapp-catalogue-lab-page{
  display:block;width:100%;height:100%;object-fit:cover;
  transition:transform .3s ease;
 }
-.scl-story-card:hover .scl-story-media img{transform:scale(1.045)}
+.scl-story-card:hover .scl-story-media img{transform:none}
 .scl-story-no-art{
  width:100%;height:100%;display:grid;place-items:center;
  font-size:15px;font-weight:950;letter-spacing:.12em;color:#b2dfe3;
@@ -973,4 +973,16 @@ body.swapp-catalogue-lab-page{
 }
 @media(prefers-reduced-motion:reduce){
  #swapp-catalogue-lab .scl-surprise-actions button{transition:none}
+}
+
+/* Clarity contract: avoid glass compositing/zoom on the real homepage.
+   Do not remove the intentional blur behind an explicitly opened dialog. */
+body[data-swapp-home-spa="v16"] #home :is(.scl-story-card,.scl-card,.scl-empty,.scl-card-media,.scl-story-media),
+body.swapp-catalogue-lab-page :is(.scl-story-card,.scl-card,.scl-empty,.scl-card-media,.scl-story-media){
+ backdrop-filter:none!important;-webkit-backdrop-filter:none!important;
+ filter:none!important;
+}
+body[data-swapp-home-spa="v16"] #home :is(.scl-card-media img,.scl-story-media img),
+body.swapp-catalogue-lab-page :is(.scl-card-media img,.scl-story-media img){
+ filter:none!important;transform:none!important;image-rendering:auto
 }
