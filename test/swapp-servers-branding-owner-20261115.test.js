@@ -23,7 +23,7 @@ function mock({owned=true}={}){
   execute:async(sql,args)=>{
    calls.push({sql,args});
    if(sql.startsWith('SELECT id,slug,game,website,join_address FROM swapp_game_servers'))return [owned?[{id,slug,game:row.game,website:row.website,join_address:row.joinAddress}]:[]];
-   if(sql.startsWith('SELECT id FROM swapp_game_servers WHERE id=? AND owner_id='))return [owned?[{id}]:[]];
+   if(sql.startsWith('SELECT id FROM swapp_game_servers WHERE id=? AND owner_id IN'))return [owned?[{id}]:[]];
    writes.push({sql,args});return[{affectedRows:1}];
   }
  };
@@ -127,7 +127,7 @@ test('editor JSON cannot terminate a script element when name contains HTML',()=
 test('owner portfolio is a separate page, with private access and edit buttons',async()=>{
  const source=read('modules/swapp-servers.js');
  assert.ok(source.indexOf("app.get('/serveurs/mes-serveurs'")<source.indexOf("app.get('/serveurs/:jeu',(req,res)"));
- assert.match(source,/WHERE s.owner_id=\? ORDER BY s.created_at DESC LIMIT 30/);
+ assert.match(source,/WHERE s.owner_id IN \(\?,\?\) ORDER BY s.created_at DESC LIMIT 30/);
  assert.match(source,/Cache-Control','private,no-store/);
  assert.match(source,/ss-owner-manage-cta/);
  assert.match(source,/\/serveurs\/mes-serveurs/);
