@@ -74,3 +74,33 @@
 @media(max-width:980px){.ss-create-layout{grid-template-columns:1fr}.ss-create-aside{position:static;display:grid;grid-template-columns:1fr 1fr;align-items:start}}
 @media(max-width:630px){.ss-create-fields{grid-template-columns:1fr}.ss-create-layout{padding-top:17px}.ss-create-section{padding:20px}.ss-create-aside{grid-template-columns:1fr}.ss-create-hero{padding:82px 0 36px}.ss-create-account-info{flex-wrap:wrap}.ss-create-account-info a{margin-left:auto}.ss-create-actions{flex-wrap:wrap}.ss-create-actions>*{flex:1;text-align:center}}
 @media(prefers-reduced-motion:reduce){.ss-create-type span{transition:none}}
+
+
+/* SERVEUR + BRAND STUDIO — logo, banner uploads and live accent palettes. */
+.ss-create-hero{background:radial-gradient(ellipse at 82% 0%,#533087ae,transparent 50%),radial-gradient(ellipse at 14% 80%,#136f85ab,transparent 45%),linear-gradient(135deg,#06080e,#161027 75%,#06090c)!important}
+.ss-create-perks span{border-color:#967de77d;background:#291b4180}
+.ss-create-branding{border-color:#8c75bd7b;background:radial-gradient(ellipse at 95% 0%,#3a235737,transparent 50%),#0b0f13}
+.ss-create-brand-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin:20px 0}
+.ss-create-brand-grid label{border:1px solid #ffffff22;border-radius:10px;padding:16px;background:#111a21;display:flex;flex-direction:column;gap:11px}
+.ss-create-form input[type=file]{display:block;width:100%;max-width:100%;padding:10px;border:1px dashed #6889a0;border-radius:8px;background:#0b1119;color:#e5eff6;font-size:12px}
+.ss-create-form input[type=file]::file-selector-button{background:#2e284b;border:1px solid #8e76ca;color:#f2ebff;padding:9px 12px;border-radius:7px;cursor:pointer;margin-right:10px}
+.ss-create-color-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:23px 0 15px}
+.ss-create-color-grid label{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 16px;border:1px solid #ffffff2e;background:#101820;border-radius:9px}
+.ss-create-form .ss-create-color-grid input[type=color]{width:80px;height:44px;padding:4px;background:transparent;border:1px solid #ffffff34;border-radius:8px;cursor:pointer}
+.ss-create-color-presets{display:flex;flex-wrap:wrap;gap:9px;margin:12px 0 25px}
+.ss-create-color-presets button{border:1px solid #7b85a2;border-radius:100px;background:#161b2a;color:#dce9ff;padding:9px 15px;font-size:12px;font-weight:800;cursor:pointer}
+.ss-create-color-presets button:hover,.ss-create-color-presets button:focus-visible{border-color:#a9f1f1;background:#2b2a48}
+.ss-create-gallery{border:1px solid #ffffff25;border-radius:10px;padding:15px 18px;background:#10151d}
+.ss-create-gallery summary{font-weight:850;cursor:pointer}
+.ss-create-gallery label{display:flex;flex-direction:column;gap:8px;margin-top:15px;color:#bdd1dc;font-size:13px}
+.ss-create-preview{--ss-brand-accent:#8ceaf0;--ss-brand-secondary:#ad6bff;border-color:var(--ss-brand-accent);box-shadow:0 18px 48px color-mix(in srgb,var(--ss-brand-secondary) 26%,transparent)}
+.ss-create-preview-art{background:linear-gradient(135deg,var(--ss-brand-secondary),#152530)}
+.ss-create-preview-logo{display:grid;place-items:center;position:relative;width:73px;height:73px;margin:-38px 0 14px;background:linear-gradient(145deg,var(--ss-brand-accent),var(--ss-brand-secondary));border:3px solid #f5ffff;border-radius:19px;box-shadow:0 9px 30px #000b;overflow:hidden;color:#081116;font-size:33px;font-weight:900}
+.ss-create-preview-logo img{height:100%;width:100%;object-fit:cover}
+.ss-create-preview-body h3{font-weight:900}
+.ss-create-preview-vote{background:#3d1728!important;color:#fff!important;border:1px solid #ed5071}
+.ss-create-preview-vote span{color:#ff456b;font-size:21px;vertical-align:middle;padding-right:7px}
+.ss-create-preview-tags span{background:color-mix(in srgb,var(--ss-brand-secondary) 26%,#151b27);border:1px solid #ffffff27}
+.ss-create-section-heading>span{background:linear-gradient(145deg,#193d4c,#30244c);border-color:#8d9ed2;color:#fff}
+.ss-create-actions button{background:linear-gradient(110deg,#a1f4ed,#cbbaff);border-color:transparent}
+@media(max-width:670px){.ss-create-brand-grid,.ss-create-color-grid{grid-template-columns:1fr}}
