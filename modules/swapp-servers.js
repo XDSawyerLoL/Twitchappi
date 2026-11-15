@@ -161,7 +161,7 @@ function growthBanner(game=''){
 }
 
 function page({isAdmin=false,game=''}={}){
- const head='<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#050608"><title>'+esc(game?'Serveurs '+game+' — classement des communautés | SWAPP':'Serveurs de jeux — classements et communautés | SWAPP')+'</title><meta name="description" content="Découvre des serveurs gaming et roleplay, classe les communautés par votes et référence ton serveur sur SWAPP."><link rel="canonical" href="https://swapp.tv/serveurs'+(game?'/'+slug(game):'')+'">'+SHARED_HEAD_SLOT+'<link rel="stylesheet" href="/assets/swapp-servers.css?v=20261115-category-owner-v16">';
+ const head='<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#050608"><title>'+esc(game?'Serveurs '+game+' — classement des communautés | SWAPP':'Serveurs de jeux — classements et communautés | SWAPP')+'</title><meta name="description" content="Découvre des serveurs gaming et roleplay, classe les communautés par votes et référence ton serveur sur SWAPP."><link rel="canonical" href="https://swapp.tv/serveurs'+(game?'/'+slug(game):'')+'">'+SHARED_HEAD_SLOT+'<link rel="stylesheet" href="/assets/swapp-servers.css?v=20261115-category-owner-v16"><link rel="stylesheet" href="/assets/swapp-servers-community.css?v=20261115-community-v1">';
  let content='<main class="ss ss-directory" data-ss-current-game="'+esc(game)+'">'+(game?'':growthBanner(game))+
   '<header class="ss-hero ss-directory-intro"><div class="ss-inner ss-directory-intro-layout"><div class="ss-directory-intro-copy">'+
   '<p class="ss-overline">DÉCOUVRE LES COMMUNAUTÉS SWAPP</p>'+
