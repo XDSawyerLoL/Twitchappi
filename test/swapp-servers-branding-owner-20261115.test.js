@@ -122,3 +122,25 @@ test('editor JSON cannot terminate a script element when name contains HTML',()=
  assert.doesNotMatch(html,/<script>alert\(1\)<\/script>/);
  assert.match(html,/id="ss-create-edit-data"/);
 });
+
+
+test('owner portfolio is a separate page, with private access and edit buttons',async()=>{
+ const source=read('modules/swapp-servers.js');
+ assert.ok(source.indexOf("app.get('/serveurs/mes-serveurs'")<source.indexOf("app.get('/serveurs/:jeu',(req,res)"));
+ assert.match(source,/WHERE s.owner_id=\? ORDER BY s.created_at DESC LIMIT 30/);
+ assert.match(source,/Cache-Control','private,no-store/);
+ assert.match(source,/ss-owner-manage-cta/);
+ assert.match(source,/\/serveurs\/mes-serveurs/);
+ assert.doesNotMatch(source.slice(source.indexOf('function page('),source.indexOf('const DETAIL_STEAM_GAME_IDS')),/id="ss-owned"/);
+});
+test('marketing palette is driven by saved colors and does not fake server metrics',()=>{
+ const script=read('assets/swapp-servers.js'),css=read('assets/swapp-servers.css');
+ assert.match(script,/ss-server-tagline/);
+ assert.match(script,/s\.canEdit/);
+ assert.match(script,/ss-heart/);
+ assert.match(css,/--ss-brand-secondary/);
+ assert.match(css,/ss-server-logo/);
+ assert.match(css,/ss-pro-gallery/);
+ assert.match(css,/ss-pro-vote/);
+ assert.match(read('assets/swapp-servers-create.js'),/method:editId\?'PUT':'POST'/);
+});
