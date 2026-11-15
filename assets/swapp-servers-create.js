@@ -14,7 +14,7 @@
  const gameImage=chosen=>chosen==='Minecraft'?'https://static-cdn.jtvnw.net/ttv-boxart/27471_IGDB-720x960.jpg':steamGames[chosen]?'https://cdn.cloudflare.steamstatic.com/steam/apps/'+steamGames[chosen]+'/header.jpg':'';
  function cleanDiscordCode(input){
   let code=String(input||'').trim();
-  code=code.replace(/^https?:\/\/(?:www\.)?discord\.gg\//i,'').replace(/^https?:\/\/(?:www\.)?discord(?:app)?\.com\/invite\//i,'').replace(/\/$/,'');
+  code=code.replace(/^(?:https?:\/\/)?(?:www\.)?discord\.gg\//i,'').replace(/^(?:https?:\/\/)?(?:www\.)?discord(?:app)?\.com\/invite\//i,'').replace(/\/$/,'');
   return /^[a-zA-Z0-9-]{2,64}$/.test(code)?code:'';
  }
  function refresh(){
