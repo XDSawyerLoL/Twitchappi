@@ -301,7 +301,7 @@ function renderSurprise(advance=false){
   image.removeAttribute('src');
   output.textContent=state.loading?'Recherche des vrais directs…':
    'Aucun live confirmé pour cette sélection actuellement.';
-  shuffle.disabled=!!state.loading||!state.lives.length;
+  shuffle.disabled=true;
   watchButton.disabled=true;
   return;
  }
@@ -442,9 +442,21 @@ function toggleChannelFavorite(item){
  }
 }
 function watch(item){if(!item||item.kind!=='live')return;window.location.assign(item.watchUrl)}
+// Twitch publishes several preview sizes: the 640px card thumbnail must
+// not be stretched across the 1600px homepage hero.
+function largeHeroImage(image){
+ const source=String(image||'');
+ try{
+  const url=new URL(source);
+  if((url.hostname==='static-cdn.jtvnw.net'||url.hostname.endsWith('.jtvnw.net'))&&
+    /\/previews-ttv\//.test(url.pathname))
+   url.pathname=url.pathname.replace(/-640x360(?=\.(?:jpg|jpeg|png|webp)$)/i,'-1280x720');
+  return url.href;
+ }catch{return ''}
+}
 function feature(item){
  state.featured=item||null;
- featureVisual.style.backgroundImage=item?.image?'url("'+item.image+'")':'';
+ featureVisual.style.backgroundImage=item?.image?'url("'+largeHeroImage(item.image)+'")':'';
  hero.dataset.kind=item?.kind||'empty';
  hero.dataset.image=item?.image?'available':'missing';
  $('scl-feature-kicker').textContent=item?(item.kind==='live'?'EN DIRECT / '+(item.platform==='swapp'?'SWAPP':'TWITCH'):'UNIVERS À DÉCOUVRIR'):'CATALOGUE / SWAPP';
