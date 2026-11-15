@@ -29,8 +29,8 @@ test('public homepage has a canonical indexable catalogue, original lab remains 
  assert.match(oldLab,/Catalogue immersif · Laboratoire SWAPP/);
  assert.doesNotMatch(oldLab,/rel="canonical" href="https:\/\/swapp\.tv\/"/);
  assert.doesNotMatch(oldLab,/href="\/categories"/);
- const assets=[['swapp-catalogue-lab.js','20261115-rail-inventory-v27'],
-  ['swapp-catalogue-lab.css','20261114-hero-rail-spacing-v21']];
+ const assets=[['swapp-catalogue-lab.js','20261115-black-genres-v28'],
+  ['swapp-catalogue-lab.css','20261115-black-game-dialog-v22']];
  for(const [name,version] of assets){
   assert.ok(home.includes(name+'?v='+version));
   assert.ok(oldLab.includes(name+'?v='+version));
