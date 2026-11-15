@@ -7,14 +7,14 @@ const SERVER_TYPES=Object.freeze(['Communauté','Jeux','Roleplay','Semi-RP','Sur
 const LANGUAGES=Object.freeze([['fr','Français'],['en','English'],['es','Español'],['de','Deutsch'],['pt','Português'],['it','Italiano']]);
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function discordLink(raw){
- let str=String(raw||'').trim().replace(/^https?:\/\/(www\.)?discord\.gg\//i,'').replace(/^https?:\/\/(www\.)?discord(?:app)?\.com\/invite\//i,'');
+ let str=String(raw||'').trim().replace(/^(?:https?:\/\/)?(?:www\.)?discord\.gg\//i,'').replace(/^(?:https?:\/\/)?(?:www\.)?discord(?:app)?\.com\/invite\//i,'');
  if(/^[a-z0-9-]{2,64}$/i.test(str))return 'https://discord.gg/'+str;
  return '';
 }
 function twitchLink(raw){
  let s=String(raw||'').trim();
  if(!s)return '';
- s=s.replace(/^https?:\/\/(www\.)?twitch\.tv\//i,'').replace(/^@/,'').replace(/\/$/,'');
+ s=s.replace(/^(?:https?:\/\/)?(?:www\.)?twitch\.tv\//i,'').replace(/^@/,'').replace(/\/$/,'');
  return /^[a-z0-9_]{4,25}$/i.test(s)?'https://www.twitch.tv/'+s.toLowerCase():'';
 }
 function readTypes(value){
