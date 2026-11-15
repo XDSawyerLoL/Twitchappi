@@ -46,6 +46,6 @@ test('the public count and directory listing use one portable, parameterized SQL
 test('admin diagnostics identify configuration source without exposing credentials',()=>{
  const code=src();
  assert.match(code,/configSource:getDatabase===db\?mysqlConfig\(\)\.source:'injected'/);
- assert.match(code,/publicCount,status/);
+ assert.match(code,/tables,publicCount,listing/);
  assert.doesNotMatch(code,/json\(\{[^\n]*mysqlUrl\(\)/);
 });
