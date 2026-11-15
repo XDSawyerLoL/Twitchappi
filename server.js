@@ -1614,7 +1614,7 @@ require('./modules/swapp-fair-admin').registerFairAdmin({
 });
 
 const SWAPP_CLEAN_VIEW_PATHS = new Set(['/actus','/decouvrir','/discover','/categories','/compte','/connexion','/settings','/chaine','/channel','/gestionnaire','/manager','/dashboard','/studio','/admin','/reset-password']);
-const SWAPP_RESERVED_ROOT_PATHS = new Set(['index_script.js','favicon.ico','pricing','twitch_auth_start','twitch_auth_callback','twitch_user_status','twitch_logout','firebase_status','followed_streams','get_default_stream','boost_queue','stream_info','cycle_stream','stream_boost','scan_target','critique_ia','start_raid','analyze_schedule','api','assets','actus','tech','technologies','gaming','ai','robotics','future','live-news','jeux','communaute','bandes-annonces','boutique','reset-password','contact','moderation','mentions-legales','confidentialite','cgu','cookies']);
+const SWAPP_RESERVED_ROOT_PATHS = new Set(['index_script.js','favicon.ico','pricing','twitch_auth_start','twitch_auth_callback','twitch_user_status','twitch_logout','firebase_status','followed_streams','get_default_stream','boost_queue','stream_info','cycle_stream','stream_boost','scan_target','critique_ia','start_raid','analyze_schedule','api','assets','explorer','actus','tech','technologies','gaming','ai','robotics','future','live-news','jeux','communaute','bandes-annonces','boutique','reset-password','contact','moderation','mentions-legales','confidentialite','cgu','cookies']);
 function isSwappCleanChannelSlug(slug){
   const clean = String(slug || '').trim().toLowerCase();
   return /^[a-z0-9_][a-z0-9_-]{1,39}$/.test(clean) && !SWAPP_RESERVED_ROOT_PATHS.has(clean);
@@ -1810,6 +1810,10 @@ try{
  // Never let a missing optional test-page dependency interrupt SWAPP lives.
  console.warn('[SWAPP CATALOGUE LAB] Page expérimentale indisponible :',String(error?.message||error).slice(0,160));
 }
+
+// Dedicated Explorer routes precede generic creator routes and share the
+// original SWAPP shell, verified live feeds and existing genre classifier.
+require('./modules/swapp-explorer').register(app);
 
 // The old Découvrir entry now leads to the integrated genres on Accueil.
 // Keep /categories as a reversible bookmark alias; do not touch /decouvrir

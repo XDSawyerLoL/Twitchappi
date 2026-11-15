@@ -9,9 +9,10 @@ const {execFileSync}=require('node:child_process');
 const root=path.resolve(__dirname,'..');
 const mandatory=['app.js','server.js','package.json','package-lock.json','index.html',
  'modules/swapp-hubs.js','modules/swapp-seo.js','modules/swapp-geo-pages.js','tools/swapp-geo-probe.js','modules/swapp-game-pages.js','tools/swapp-release.js','assets/swapp-social-native/social-body.html',
- 'modules/swapp-page-shell.js','modules/swapp-catalogue-lab.js','modules/swapp-catalogue-spa.js',
+ 'modules/swapp-page-shell.js','modules/swapp-catalogue-lab.js','modules/swapp-catalogue-spa.js','modules/swapp-explorer.js',
  'assets/swapp-catalogue-lab.js','assets/swapp-catalogue-lab.css',
  'assets/swapp-catalogue-spa.js','assets/swapp-catalogue-spa.css',
+ 'assets/swapp-explorer.js','assets/swapp-explorer.css',
  'modules/swapp-discord-connect.js','assets/swapp-discord-connect.js','assets/swapp-discord-connect.css',
  'assets/swapp-navigation.js','assets/swapp-hub-nav.js','assets/swapp-unified-nav.css','assets/swapp-obsidian-ice.css',
  'assets/swapp-route-motion.css','assets/swapp-route-motion.js',
