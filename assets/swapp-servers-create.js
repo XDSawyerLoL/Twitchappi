@@ -51,6 +51,17 @@
   if(invalid){invalid.focus();errorMessage('Vérifie le champ « '+(invalid.closest('label')?.textContent||invalid.name).trim().slice(0,85)+' ».');return true}
   return false;
  }
+ // The reference form displays https:// as a prefix. Accept bare domains as
+ // well, but normalize them to HTTPS rather than storing ambiguous addresses.
+ for(const field of [form.elements.website,form.elements.bannerUrl]){
+  field?.addEventListener('blur',()=>{
+   const value=field.value.trim();
+   if(value&&/^[a-z0-9][a-z0-9.-]*\.[a-z]{2,}(?:[/?#].*)?$/i.test(value)){
+    field.value='https://'+value;
+    refresh();
+   }
+  });
+ }
  form.addEventListener('input',event=>{if(event.target!==discord&&error.textContent)error.replaceChildren();refresh()});
  form.addEventListener('change',refresh);
  const preselected=new URLSearchParams(location.search).get('jeu');
