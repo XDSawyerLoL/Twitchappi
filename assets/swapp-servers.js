@@ -123,7 +123,7 @@
    try{
     const r=await fetch('/api/swapp/serveurs/'+encodeURIComponent(s.id)+'/vote',{method:'POST',credentials:'same-origin',headers:{'Accept':'application/json'}});
     const data=await r.json();
-    if(!r.ok)throw Error(({connexion_swapp_requise:'Connecte-toi à ton compte SWAPP pour voter.',vote_deja_effectue:'Tu as déjà voté pour ce serveur. Nouveau vote dans deux heures.',origine_invalide:'Session invalide, recharge la page.'})[data.error]||'Vote indisponible.');
+    if(!r.ok)throw Error(({connexion_swapp_requise:'Connecte-toi à ton compte SWAPP pour voter.',vote_deja_effectue:'Tu as déjà voté pour ce serveur. Nouveau vote dans deux heures.',vote_daily_limit:'Limite de 3 votes sur 24 heures atteinte pour ce serveur.',origine_invalide:'Session invalide, recharge la page.'})[data.error]||'Vote indisponible.');
     feedback.textContent='Vote enregistré pour '+s.name+'.';await load();
    }catch(e){feedback.textContent=e.message}finally{vote.disabled=false}
   });
