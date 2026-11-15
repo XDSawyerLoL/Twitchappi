@@ -993,3 +993,35 @@ body[data-swapp-home-spa="v16"] #home .scl-game-poster-image img,
 body.swapp-catalogue-lab-page .scl-game-poster-image img{
  filter:none!important;transform:none!important;image-rendering:auto;
 }
+
+
+/* Native /catalogue-test uses the same no-gap placement as SPA. */
+body.swapp-catalogue-lab-page .scl-discovery-toolbar{
+ display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+ padding:13px 4%;background:#030405;border-bottom:1px solid #ffffff1b
+}
+body.swapp-catalogue-lab-page .scl-discovery-toolbar .scl-topline{
+ position:static!important;inset:auto!important;display:block!important;flex:1 1 245px;
+ margin:0!important;padding:0!important;width:auto;pointer-events:auto
+}
+body.swapp-catalogue-lab-page .scl-discovery-toolbar .scl-search{
+ width:100%;max-width:none;background:#0e1318;
+ backdrop-filter:none!important;-webkit-backdrop-filter:none!important
+}
+body.swapp-catalogue-lab-page .scl-discovery-toolbar .scl-tabs{
+ position:static!important;inset:auto!important;display:flex!important;
+ flex:1 1 auto;width:auto;max-width:none;margin:0!important;padding:0!important;gap:6px!important
+}
+body.swapp-catalogue-lab-page .scl-discovery-toolbar .scl-tabs button{
+ background:#111419;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;
+ box-shadow:none!important;min-height:38px
+}
+body.swapp-catalogue-lab-page .scl-discovery-toolbar .scl-explorer-shortcut{
+ display:inline-flex;align-items:center;text-decoration:none;
+ border:1px solid #ffffff55;border-radius:8px;background:#15191f;
+ padding:9px 14px;color:#fff;font-size:12px;font-weight:800
+}
+@media(max-width:750px){
+ body.swapp-catalogue-lab-page .scl-discovery-toolbar .scl-tabs{flex-wrap:nowrap;overflow:auto}
+ body.swapp-catalogue-lab-page .scl-discovery-toolbar .scl-explorer-shortcut{width:100%;justify-content:center}
+}
