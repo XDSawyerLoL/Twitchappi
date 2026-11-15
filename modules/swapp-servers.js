@@ -28,9 +28,71 @@ function page({isAdmin=false,game=''}={}){
  const content='<main class="ss" data-ss-current-game="'+esc(game)+'"><header class="ss-hero"><div class="ss-inner"><p class="ss-overline">SWAPP / EXPLORER / SERVEURS</p><h1>'+ (game?'Serveurs <em>'+esc(game)+'</em>':'Trouve ta prochaine <em>communauté.</em>')+'</h1><p>Serveurs de jeux et RP, choisis par les joueurs. Des votes réels, un référencement gratuit, aucun classement inventé.</p><div class="ss-hero-actions"><a href="/explorer">← Explorer</a><button id="ss-add" type="button">+ Référencer mon serveur</button></div></div></header><section class="ss-inner ss-content"><div class="ss-toolbar"><label class="ss-search"><span>Rechercher</span><input id="ss-q" type="search" placeholder="Nom, jeu, RP, survie…"></label><label><span>Jeu</span><select id="ss-game"><option value="">Tous les jeux</option>'+GAMES.map(g=>'<option value="'+esc(g)+'">'+esc(g)+'</option>').join('')+'</select></label><label><span>Classement</span><select id="ss-sort"><option value="votes">Votes du mois</option><option value="recent">Plus récents</option><option value="name">Nom</option></select></label></div><section class="ss-featured" aria-labelledby="ss-featured-title"><div class="ss-games-heading"><p class="ss-overline">À LA UNE</p><h2 id="ss-featured-title">Les univers populaires</h2><p>Des jeux authentiques. Le classement des serveurs dépend uniquement des inscriptions vérifiées par SWAPP.</p></div><div id="ss-featured-games" class="ss-featured-grid" aria-label="Univers de serveurs recommandés"></div></section><section class="ss-games" aria-labelledby="ss-games-title"><div class="ss-games-heading"><p class="ss-overline">CHOISIS TON UNIVERS</p><h2 id="ss-games-title">Explorer par jeu</h2></div><label class="ss-find-game"><span>Filtrer les jeux</span><input id="ss-game-search" type="search" autocomplete="off" placeholder="Minecraft, GTA RP, Rust, DayZ…"></label><div class="ss-game-grid"><button type="button" data-ss-game="" class="ss-game-tile is-selected"><span class="ss-game-art"><span class="ss-game-fallback">SWAPP</span></span><span class="ss-game-copy"><strong>Tous les serveurs</strong><small data-ss-game-count="">Classement SWAPP</small></span></button>'+GAMES.map(g=>'<button type="button" data-ss-game="'+esc(g)+'" class="ss-game-tile"><span class="ss-game-art"><span class="ss-game-fallback">'+esc(g)+'</span></span><span class="ss-game-copy"><strong>'+esc(g)+'</strong><small data-ss-game-count="'+esc(g)+'">Classement SWAPP</small></span></button>').join('')+'</div></section><div class="ss-title"><div><p class="ss-overline">ANNUAIRE COMMUNAUTAIRE</p><h2>Classement des serveurs</h2></div><span id="ss-count">Chargement…</span></div><div id="ss-feedback" role="status" aria-live="polite"></div><div id="ss-results" class="ss-results"></div><section class="ss-info"><h2>Comment fonctionne le classement ?</h2><p>Les serveurs approuvés sont affichés par nombre de votes admissibles reçus pendant le mois en cours. Un compte SWAPP peut renouveler son vote pour un même serveur toutes les deux heures. Les statuts de connexion ne sont affichés que s’ils ont réellement été vérifiés. Les nouvelles fiches passent par une validation avant d’apparaître.</p></section>'+(isAdmin?'<section class="ss-admin"><h2>Validation des serveurs</h2><p>Modération des propositions reçues sur SWAPP.</p><button id="ss-review-refresh" type="button">Actualiser les demandes</button><div id="ss-review" role="status"></div></section>':'')+'</section><dialog id="ss-dialog" class="ss-dialog"><form id="ss-form"><h2>Référencer un serveur</h2><p>Gratuit. Compte SWAPP requis. Publication après validation.</p><label>Nom du serveur<input name="name" maxlength="100" minlength="3" required></label><label>Jeu<select name="game" required>'+GAMES.map(g=>'<option value="'+esc(g)+'">'+esc(g)+'</option>').join('')+'</select></label><label>Description<textarea name="description" minlength="30" maxlength="1500" required rows="4"></textarea></label><label>Site ou lien d’invitation HTTPS<input name="website" type="url" maxlength="350" placeholder="https://…"></label><label>Adresse de connexion (facultative)<input name="joinAddress" maxlength="240" placeholder="exemple.fr:25565"></label><label>Région<input name="region" maxlength="60" value="France"></label><label>Tags (séparés par virgule)<input name="tags" maxlength="250" placeholder="RP, survie, PVE"></label><label>Bannière officielle HTTPS (facultative)<input name="bannerUrl" type="url" maxlength="350"></label><div class="ss-form-actions"><button type="button" id="ss-cancel">Annuler</button><button type="submit">Soumettre le serveur</button></div><p id="ss-form-status" role="status" aria-live="polite"></p></form></dialog></main>';
  return renderPage({head,content,active:'explorer',bodyClass:'swapp-editorial-route swapp-servers-page',scripts:'<script src="/assets/swapp-servers.js?v=20261115-real-game-art-v2" defer></script><script src="/assets/swapp-nav-session.js?v=20261114-native-account-v1" defer></script>'});
 }
+
+const DETAIL_STEAM_GAME_IDS=Object.freeze({
+  'GTA V / FiveM':271590,'GTA RP':271590,'Rust':252490,'DayZ':221100,
+  'Cyberpunk 2077':1091500,'Arma 3':107410,'Arma Reforger':1874880,
+  'ARK Survival Ascended':2399830,'ARK Survival Evolved':346110,
+  'Project Zomboid':108600,'Palworld':1623730,'Red Dead Redemption 2':1174180,
+  'Garry’s Mod':4000,'Valheim':892970,'Enshrouded':1203620,
+  'Conan Exiles':440900,'SCUM':513710,'Counter-Strike 2':730,
+  '7 Days to Die':251570,'Eco':382310,'V Rising':1604030,
+  'Unturned':304930,'Space Engineers':244850,'Dune Awakening':1172710,
+  'Hell Let Loose':686810,'Squad':393380,'Terraria':105600,
+  'No Man’s Sky':275850,'Satisfactory':526870,
+  'Don’t Starve Together':322330,'Lethal Company':1966720
+ });
+function detailCover(game){
+ if(game==='Minecraft')return 'https://static-cdn.jtvnw.net/ttv-boxart/27471_IGDB-720x960.jpg';
+ const id=DETAIL_STEAM_GAME_IDS[game];
+ return id?'https://cdn.cloudflare.steamstatic.com/steam/apps/'+id+'/header.jpg':'';
+}
+function detailPage(server,votes){
+ const game=server.game||'',title=server.name||'Serveur',image=safeUrl(server.banner_url)||detailCover(game);
+ const canonical='https://swapp.tv/serveurs/'+slug(game)+'/'+server.slug;
+ const header='<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'+
+  '<title>'+esc(title)+' — serveur '+esc(game)+' | SWAPP</title>'+
+  '<meta name="description" content="'+esc(clean(server.description,154))+'">'+
+  '<link rel="canonical" href="'+esc(canonical)+'">'+SHARED_HEAD_SLOT+
+  '<link rel="stylesheet" href="/assets/swapp-servers.css?v=20261115-real-game-art-v2">';
+ const external=safeUrl(server.website);
+ const nav='<a href="/serveurs/'+slug(game)+'">← Tous les serveurs '+esc(game)+'</a>';
+ const cover=image?'<img class="ss-detail-art" alt="Illustration de '+esc(game)+'" src="'+esc(image)+'" loading="eager" referrerpolicy="no-referrer">':'';
+ const tags=String(server.tags||'').split(',').map(t=>clean(t,35)).filter(Boolean).slice(0,8);
+ const actions='<div class="ss-detail-actions">'+
+   '<button type="button" data-ss-vote-id="'+esc(server.id)+'">♥ Voter pour ce serveur</button>'+
+   (external?'<a href="'+esc(external)+'" target="_blank" rel="noopener noreferrer nofollow">Rejoindre la communauté ↗</a>':'')+'</div>';
+ const content='<main class="ss ss-detail"><div class="ss-detail-top"><div class="ss-inner">'+nav+
+   '<p class="ss-overline">SERVEUR '+esc(game)+'</p><h1>'+esc(title)+'</h1>'+
+   '<p>'+esc(server.description)+'</p></div>'+cover+'</div>'+
+   '<section class="ss-inner ss-detail-body"><div class="ss-detail-stats">'+
+   '<span><strong>'+Number(votes).toLocaleString('fr-FR')+'</strong> votes ce mois</span>'+
+   '<span><strong>'+esc(server.region||'Non renseignée')+'</strong> région</span>'+
+   '<span><strong>'+esc(game)+'</strong> jeu</span></div>'+
+   '<div class="ss-tags">'+tags.map(t=>'<span>'+esc(t)+'</span>').join('')+'</div>'+actions+
+   (server.join_address?'<div class="ss-detail-connect"><span>Adresse de connexion</span><code>'+esc(server.join_address)+'</code><button type="button" data-ss-copy="'+esc(server.join_address)+'">Copier</button></div>':'')+
+   '<p role="status" id="ss-detail-feedback" aria-live="polite"></p>'+
+   '<p class="ss-detail-note">Cette fiche est publiée après modération SWAPP. Aucune disponibilité en ligne n’est affirmée sans vérification.</p></section></main>';
+ return renderPage({head:header,content,active:'explorer',bodyClass:'swapp-editorial-route swapp-servers-page',
+  scripts:'<script src="/assets/swapp-servers-detail.js?v=20261115-detail-v1" defer></script><script src="/assets/swapp-nav-session.js?v=20261114-native-account-v1" defer></script>'});
+}
+
 function register(app){
  app.get('/serveurs',(req,res)=>res.set('Cache-Control','no-store').type('html').send(page({isAdmin:administrator(req)})));
  app.get('/serveurs/:jeu',(req,res)=>{const game=GAMES.find(x=>slug(x)===req.params.jeu);if(!game)return res.status(404).type('text').send('Jeu introuvable');return res.set('Cache-Control','no-store').type('html').send(page({isAdmin:administrator(req),game}))});
+
+ app.get('/serveurs/:jeu/:fiche',async(req,res)=>{
+  const game=GAMES.find(g=>slug(g)===req.params.jeu);
+  const fiche=clean(req.params.fiche,90);
+  if(!game||!/^[a-z0-9][a-z0-9-]{4,89}$/.test(fiche))return res.status(404).type('text').send('Serveur introuvable');
+  try{
+   const sql=await db();
+   const [rows]=await sql.execute('SELECT id,name,slug,game,description,website,join_address,region,tags,banner_url FROM swapp_game_servers WHERE slug=? AND game=? AND status="published" LIMIT 1',[fiche,game]);
+   if(!rows.length)return res.status(404).type('text').send('Serveur introuvable');
+   const [voteRows]=await sql.execute('SELECT COUNT(*) AS total FROM swapp_game_server_vote_events WHERE server_id=? AND voted_at>=?',[rows[0].id,new Date().toISOString().slice(0,7)+'-01']);
+   return res.set('Cache-Control','no-store').type('html').send(detailPage(rows[0],Number(voteRows[0]?.total||0)));
+  }catch(e){console.warn('[SWAPP SERVEURS]',String(e?.message||e).slice(0,90));return res.status(503).type('text').send('Fiche temporairement indisponible')}
+ });
  app.get('/api/swapp/serveurs',async(req,res)=>{
   try{
    const sql=await db();const game=clean(req.query.game,70),q=clean(req.query.q,100).toLowerCase(),sort=req.query.sort==='recent'?'recent':req.query.sort==='name'?'name':'votes';
@@ -82,4 +144,4 @@ function register(app){
   try{const sql=await db(),[r]=await sql.execute('UPDATE swapp_game_servers SET status=? WHERE id=? AND status="pending"',[status,id]);res.json({updated:r.affectedRows===1})}catch(e){fail(res,e)}
  });
 }
-module.exports={register,page,GAMES,slug,safeUrl};
+module.exports={register,page,detailPage,GAMES,slug,safeUrl};
