@@ -246,17 +246,12 @@ function renderFeaturedActusHero(host,articles){
  const discover=el('a','swapp-home-feature-cta','Découvrir les directs');
  discover.href='/decouvrir';
  actions.append(read,discover);
- if(featuredVideoId){
-  const videoPane=el('div','swapp-actus-featured-video');
-  videoPane.append(officialVideoStage(featured,featuredVideoId),officialVideoLink(featuredVideoId));
-  root.append(videoPane);
- }
  root.append(link,actions);
  host.replaceChildren(root);
- // Preserve the former homepage's official muted trailer when the published
- // article supplies one; the shared helper is desktop-only and cleans up on
- // view change. The poster remains the guaranteed fallback.
- // Visible click-to-play video is independent of ambient motion and autoplay policies.
+ // Animate the existing full-width hero, behind its editorial title.
+ // Keep the poster as a fallback when YouTube or autoplay is unavailable.
+ if(featuredVideoId&&pictures.length)
+  window.SwappHomeMotion?.attach?.(link,featured);
  return root;
 }
 async function showList(node){
