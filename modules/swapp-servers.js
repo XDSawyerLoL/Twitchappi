@@ -85,16 +85,16 @@ function detailPage(server,votes){
 }
 
 let lastAutoReview=0,autoReviewRunning=null;
-async function autoReviewPendingDiscord({limit=12}={}){
+async function autoReviewPendingDiscord({limit=12,getDatabase=db,inviteVerifier=verifyDiscordInvite}={}){
  if(autoReviewRunning)return autoReviewRunning;
  autoReviewRunning=(async()=>{
-  const sql=await db();
+  const sql=await getDatabase();
   const [rows]=await sql.query('SELECT id,website,join_address AS joinAddress FROM swapp_game_servers WHERE status="pending" AND game="Discord / Multigaming" ORDER BY created_at ASC LIMIT '+Math.max(1,Math.min(25,Number(limit)||12)));
   let approved=0;
   for(const row of rows){
    const proposed=inviteCode(row.website)?row.website:inviteCode(row.joinAddress)?row.joinAddress:'';
    if(!proposed)continue;
-   const check=await verifyDiscordInvite(proposed);
+   const check=await inviteVerifier(proposed);
    if(!check.valid)continue;
    const [write]=await sql.execute('UPDATE swapp_game_servers SET status="published",website=? WHERE id=? AND status="pending"',[check.inviteUrl,row.id]);
    approved+=Number(write.affectedRows||0);
@@ -103,7 +103,7 @@ async function autoReviewPendingDiscord({limit=12}={}){
  })().finally(()=>{autoReviewRunning=null;lastAutoReview=Date.now()});
  return autoReviewRunning;
 }
-function register(app,{isAdmin=administrator}={}){
+function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verifyDiscordInvite}={}){
  const isManager=req=>Boolean(isAdmin(req));
  // Recheck older Discord submissions too, without any paid worker or VPS.
  // One batch per instance, repeated while the application is running.
@@ -121,7 +121,7 @@ function register(app,{isAdmin=administrator}={}){
   const fiche=clean(req.params.fiche,90);
   if(!game||!/^[a-z0-9][a-z0-9-]{4,89}$/.test(fiche))return res.status(404).type('text').send('Serveur introuvable');
   try{
-   const sql=await db();
+   const sql=await getDatabase();
    const [rows]=await sql.execute('SELECT id,name,slug,game,description,website,join_address,region,tags,banner_url FROM swapp_game_servers WHERE slug=? AND game=? AND status="published" LIMIT 1',[fiche,game]);
    if(!rows.length)return res.status(404).type('text').send('Serveur introuvable');
    const [voteRows]=await sql.execute('SELECT COUNT(*) AS total FROM swapp_game_server_vote_events WHERE server_id=? AND voted_at>=?',[rows[0].id,new Date().toISOString().slice(0,7)+'-01']);
@@ -130,7 +130,7 @@ function register(app,{isAdmin=administrator}={}){
  });
  app.get('/api/swapp/serveurs',async(req,res)=>{
   try{
-   const sql=await db();const game=clean(req.query.game,70),q=clean(req.query.q,100).toLowerCase(),sort=req.query.sort==='recent'?'recent':req.query.sort==='name'?'name':'votes';
+   const sql=await getDatabase();const game=clean(req.query.game,70),q=clean(req.query.q,100).toLowerCase(),sort=req.query.sort==='recent'?'recent':req.query.sort==='name'?'name':'votes';
    const month=String(new Date().toISOString().slice(0,7))+'-01';
    const order=sort==='recent'?'s.created_at DESC':sort==='name'?'s.name ASC':'votes_month DESC,s.created_at DESC';
    const [rows]=await sql.execute('SELECT s.id,s.slug,s.name,s.game,s.description,s.website,s.join_address AS joinAddress,s.region,s.tags,s.banner_url AS bannerUrl,s.created_at AS createdAt,COUNT(v.id) AS votes_month FROM swapp_game_servers s LEFT JOIN swapp_game_server_vote_events v ON v.server_id=s.id AND v.voted_at>=? WHERE s.status="published" AND (?="" OR s.game=?) AND (?="" OR LOWER(CONCAT(s.name," ",s.description," ",s.tags," ",s.game)) LIKE CONCAT("%",?,"%")) GROUP BY s.id ORDER BY '+order+' LIMIT 100',[month,game,game,q,q]);
@@ -146,12 +146,12 @@ function register(app,{isAdmin=administrator}={}){
   const website=clean(input.website,350),banner=clean(input.bannerUrl,350),join=clean(input.joinAddress,240),region=clean(input.region||'France',60),tags=clean(input.tags,250);
   if(name.length<3||description.length<30||!GAMES.includes(game)||(!website&&!join)|| (website&&!safeUrl(website))||(banner&&!safeUrl(banner))||/[<>\r\n]/.test(join))return res.status(422).json({error:'informations_invalides'});
   try{
-   const sql=await db();const [count]=await sql.execute('SELECT COUNT(*) AS n FROM swapp_game_servers WHERE owner_id=?',[user]);if(count[0].n>=5)return res.status(429).json({error:'limite_de_cinq_serveurs'});
+   const sql=await getDatabase();const [count]=await sql.execute('SELECT COUNT(*) AS n FROM swapp_game_servers WHERE owner_id=?',[user]);if(count[0].n>=5)return res.status(429).json({error:'limite_de_cinq_serveurs'});
    const id=crypto.randomBytes(16).toString('hex'),serverSlug=(slug(name)||'serveur')+'-'+id.slice(0,7);
    // Auto-publish only when Discord itself verifies a real guild invite.
    // Other games cannot be authenticated by a Discord link alone.
    const proposed=game==='Discord / Multigaming'?(inviteCode(website)?website:inviteCode(join)?join:''):'';
-   const verification=proposed?await verifyDiscordInvite(proposed):{valid:false,reason:'manual_review'};
+   const verification=proposed?await inviteVerifier(proposed):{valid:false,reason:'manual_review'};
    const publish=Boolean(verification.valid),status=publish?'published':'pending';
    const resolvedWebsite=publish?verification.inviteUrl:website;
    await sql.execute('INSERT INTO swapp_game_servers (id,owner_id,name,slug,game,description,website,join_address,region,tags,banner_url,status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',[id,user,name,serverSlug,game,description,resolvedWebsite,join,region,tags,banner,status]);
@@ -163,7 +163,7 @@ function register(app,{isAdmin=administrator}={}){
   const user=account(req);if(!user)return res.status(401).json({error:'connexion_swapp_requise'});
   const id=clean(req.params.id,32);if(!/^[a-f0-9]{32}$/.test(id))return res.status(400).json({error:'serveur_invalide'});
   try{
-   const sql=await db(),conn=await sql.getConnection();
+   const sql=await getDatabase(),conn=await sql.getConnection();
    try{
     await conn.beginTransaction();
     const [servers]=await conn.execute('SELECT id FROM swapp_game_servers WHERE id=? AND status="published" LIMIT 1 FOR UPDATE',[id]);if(!servers.length){await conn.rollback();return res.status(404).json({error:'serveur_introuvable'})}
@@ -178,22 +178,22 @@ function register(app,{isAdmin=administrator}={}){
  // Account-owned submissions are always visible even before moderation.
  app.get('/api/swapp/serveurs/mes-fiches',async(req,res)=>{
   const user=account(req);if(!user)return res.status(401).json({error:'connexion_swapp_requise'});
-  try{const sql=await db(),[rows]=await sql.execute('SELECT name,game,slug,status,created_at AS createdAt FROM swapp_game_servers WHERE owner_id=? ORDER BY created_at DESC LIMIT 30',[user]);
+  try{const sql=await getDatabase(),[rows]=await sql.execute('SELECT name,game,slug,status,created_at AS createdAt FROM swapp_game_servers WHERE owner_id=? ORDER BY created_at DESC LIMIT 30',[user]);
    return res.set('Cache-Control','no-store').json({servers:rows})}catch(e){return fail(res,e)}
  });
  app.get('/api/swapp/serveurs/moderation/count',async(req,res)=>{
   if(!isManager(req))return res.status(403).json({error:'acces_refuse'});
-  try{const sql=await db(),[rows]=await sql.query('SELECT COUNT(*) AS n FROM swapp_game_servers WHERE status="pending"');
+  try{const sql=await getDatabase(),[rows]=await sql.query('SELECT COUNT(*) AS n FROM swapp_game_servers WHERE status="pending"');
    res.set('Cache-Control','no-store').json({pending:Number(rows[0]?.n||0),url:'/serveurs#ss-review'})}catch(e){fail(res,e)}
  });
  app.get('/api/swapp/serveurs/moderation',async(req,res)=>{
   if(!isManager(req))return res.status(403).json({error:'acces_refuse'});
-  try{const sql=await db(),[rows]=await sql.query('SELECT id,name,game,description,website,join_address AS joinAddress,created_at AS createdAt FROM swapp_game_servers WHERE status="pending" ORDER BY created_at ASC LIMIT 100');res.json({servers:rows})}catch(e){fail(res,e)}
+  try{const sql=await getDatabase(),[rows]=await sql.query('SELECT id,name,game,description,website,join_address AS joinAddress,created_at AS createdAt FROM swapp_game_servers WHERE status="pending" ORDER BY created_at ASC LIMIT 100');res.json({servers:rows})}catch(e){fail(res,e)}
  });
  app.post('/api/swapp/serveurs/:id/moderation',require('express').json({limit:'2kb'}),async(req,res)=>{
   if(!originGuard(req)||!isManager(req))return res.status(403).json({error:'acces_refuse'});
   const id=clean(req.params.id,32),status=clean(req.body?.status,20);if(!/^[a-f0-9]{32}$/.test(id)||!['published','rejected'].includes(status))return res.status(422).json({error:'decision_invalide'});
-  try{const sql=await db(),[r]=await sql.execute('UPDATE swapp_game_servers SET status=? WHERE id=? AND status="pending"',[status,id]);res.json({updated:r.affectedRows===1})}catch(e){fail(res,e)}
+  try{const sql=await getDatabase(),[r]=await sql.execute('UPDATE swapp_game_servers SET status=? WHERE id=? AND status="pending"',[status,id]);res.json({updated:r.affectedRows===1})}catch(e){fail(res,e)}
  });
 }
 module.exports={register,page,detailPage,GAMES,slug,safeUrl,autoReviewPendingDiscord};
