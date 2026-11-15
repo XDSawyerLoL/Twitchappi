@@ -13,7 +13,7 @@ La résolution des connexions suit désormais **cet ordre strict** :
 
 ## Protection des inscriptions
 
-- Les lectures publiques ne lancent plus de `CREATE TABLE` si la table centrale des serveurs est absente de la base sélectionnée. Il vaut mieux révéler une mauvaise configuration que créer silencieusement un deuxième annuaire vide.
+- Les lectures publiques ne lancent plus de `CREATE TABLE` si la table centrale des serveurs est absente de la base sélectionnée. Cette règle s'applique également aux sitemaps et à la vérification automatique périodique des inscriptions : il vaut mieux révéler une mauvaise configuration que créer silencieusement un deuxième annuaire vide.
 - Les routes explicites d'écriture/construction conservent leur initialisation existante ; aucune suppression, migration ou réécriture des inscriptions n'est déclenchée par ce correctif.
 - Les requêtes publiques et le diagnostic partagent désormais la **même expression SQL** de filtre, compatible avec le mode `ANSI_QUOTES` et avec des tags absents via `CONCAT_WS`. Les critères d'inscription publiée et les paramètres SQL restent inchangés.
 - La route `GET /api/swapp/serveurs` trace uniquement une phase et un code d'erreur : `mysql_connection`, `published_count`, `listing` ou `optional_enrichment`. Ni identifiants, ni SQL complet, ni données personnelles.
