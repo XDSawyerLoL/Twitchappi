@@ -629,6 +629,7 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
   let conn;
   try{
    const sql=await getDatabase();
+   if(Object.prototype.hasOwnProperty.call(body,'capacity')&&Number.isInteger(capacityValue(body.capacity)))await ensureSpecsTable(sql);
    conn=typeof sql.getConnection==='function'?await sql.getConnection():sql;
    if(typeof conn.beginTransaction==='function')await conn.beginTransaction();
    // Existing pending submissions can be finished without creating a second entry.
@@ -657,6 +658,7 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
    const brand=normalizeBranding(body,id);
    if(!brand)throw Error('invalid_branding');
    await saveBranding(conn,id,brand);
+   if(Object.prototype.hasOwnProperty.call(body,'capacity'))await saveCapacity(conn,id,body.capacity);
    if(typeof conn.commit==='function')await conn.commit();
    return res.status(existing.length?200:201).json({status:'published',updated:Boolean(existing.length),slug:serverSlug,autoVerified:discord,
     verification:discord?'discord_invite':'listing_format',onlineVerified:false,
@@ -685,7 +687,9 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
   if(Object.keys(fieldErrors).length)return validationFailure(res,fieldErrors);
   let conn;
   try{
-   const sql=await getDatabase();conn=await sql.getConnection();
+   const sql=await getDatabase();
+   if(Object.prototype.hasOwnProperty.call(data,'capacity')&&Number.isInteger(capacityValue(data.capacity)))await ensureSpecsTable(sql);
+   conn=await sql.getConnection();
    await conn.beginTransaction();
    const [owned]=await conn.execute('SELECT id,slug,game,website,join_address FROM swapp_game_servers WHERE id=? AND owner_id IN (?,?) AND status="published" LIMIT 1 FOR UPDATE',[id,...ownerKeys(req)]);
    if(!owned.length){await conn.rollback();return res.status(404).json({error:'serveur_introuvable'})}
@@ -706,6 +710,7 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
    await conn.execute('INSERT INTO swapp_game_server_extras (server_id,language,twitch_url,homepage_url,discord_guild_id) VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE language=VALUES(language),twitch_url=VALUES(twitch_url),homepage_url=VALUES(homepage_url),discord_guild_id=IF(VALUES(discord_guild_id)<>"",VALUES(discord_guild_id),discord_guild_id)',
     [id,language,twitch,website,inviteChanged?clean(check.guildId,25):'']);
    await saveBranding(conn,id,brand);
+   if(Object.prototype.hasOwnProperty.call(data,'capacity'))await saveCapacity(conn,id,data.capacity);
    await conn.commit();
    return res.set('Cache-Control','no-store').json({updated:true,status:'published',id,url:'/serveurs/'+slug(game)+'/'+owned[0].slug});
   }catch(e){if(conn)await conn.rollback().catch(()=>{});return fail(res,e)}
