@@ -80,9 +80,9 @@
   if(!data){chart.textContent='Les statistiques ne sont pas disponibles pour le moment.';return}
   const rows=buckets(period),max=Math.max(0,...rows.flatMap(x=>[x.votes,x.clicks]));
   chart.replaceChildren();
-  if(max===0){const p=document.createElement('p');p.className='ss-pro-chart-empty';p.textContent='Aucun vote ni aucune visite enregistrés sur cette période.';chart.append(p);return}
+  if(max===0){const p=document.createElement('p');p.className='ss-pro-chart-empty';p.textContent='Aucun vote ni aucun clic enregistré sur cette période.';chart.append(p);return}
   for(const row of rows){
-   const col=document.createElement('div');col.className='ss-pro-chart-col';col.title=row.label+' : '+row.votes+' votes et '+row.clicks+' visites';
+   const col=document.createElement('div');col.className='ss-pro-chart-col';col.title=row.label+' : '+row.votes+' votes et '+row.clicks+' clics';
    const total=document.createElement('strong');total.textContent=String(row.votes+row.clicks);
    const bars=document.createElement('div');bars.className='ss-pro-bars';
    for(const value of [row.votes,row.clicks]){
@@ -91,7 +91,7 @@
    const label=document.createElement('small');label.textContent=row.label;
    col.append(total,bars,label);chart.append(col);
   }
-  chart.setAttribute('aria-label',rows.map(r=>r.label+' : '+r.votes+' votes, '+r.clicks+' visites').join(' ; '));
+  chart.setAttribute('aria-label',rows.map(r=>r.label+' : '+r.votes+' votes, '+r.clicks+' clics').join(' ; '));
  }
  for(const button of root.querySelectorAll('[data-ss-period]'))button.addEventListener('click',()=>{
   root.querySelectorAll('[data-ss-period]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));
