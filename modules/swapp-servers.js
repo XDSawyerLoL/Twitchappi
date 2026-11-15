@@ -169,7 +169,7 @@ function growthBanner(game=''){
 }
 
 function page({isAdmin=false,game=''}={}){
- const head='<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#050608"><title>'+esc(game?'Serveurs '+game+' — classement des communautés | SWAPP':'Serveurs de jeux — classements et communautés | SWAPP')+'</title><meta name="description" content="Découvre des serveurs gaming et roleplay, classe les communautés par votes et référence ton serveur sur SWAPP."><link rel="canonical" href="https://swapp.tv/serveurs'+(game?'/'+slug(game):'')+'">'+SHARED_HEAD_SLOT+'<link rel="stylesheet" href="/assets/swapp-servers.css?v=20261115-banner-showcase-v19"><link rel="stylesheet" href="/assets/swapp-servers-community.css?v=20261115-community-v2">';
+ const head='<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#050608"><title>'+esc(game?'Serveurs '+game+' — classement des communautés | SWAPP':'Serveurs de jeux — classements et communautés | SWAPP')+'</title><meta name="description" content="Découvre des serveurs gaming et roleplay, classe les communautés par votes et référence ton serveur sur SWAPP."><link rel="canonical" href="https://swapp.tv/serveurs'+(game?'/'+slug(game):'')+'">'+SHARED_HEAD_SLOT+'<link rel="stylesheet" href="/assets/swapp-servers.css?v=20261116-compact-cards-v21"><link rel="stylesheet" href="/assets/swapp-servers-community.css?v=20261115-community-v2">';
  let content='<main class="ss ss-directory" data-ss-current-game="'+esc(game)+'">'+(game?'':growthBanner(game))+
   '<header class="ss-hero ss-directory-intro"><div class="ss-inner ss-directory-intro-layout"><div class="ss-directory-intro-copy">'+
   '<p class="ss-overline">DÉCOUVRE LES COMMUNAUTÉS SWAPP</p>'+
@@ -197,7 +197,7 @@ function page({isAdmin=false,game=''}={}){
   const end=content.indexOf('</section>',start);
   if(start>=0&&end>start){const panel=content.slice(start,end+10);content=content.replace(panel,'').replace('<section class="ss-inner ss-content">','<section class="ss-inner ss-content">'+panel)}
  }
- return renderPage({head,content,active:'servers',bodyClass:'swapp-editorial-route swapp-servers-page',scripts:'<script src="/assets/swapp-servers.js?v=20261115-community-banner-v20" defer></script><script src="/assets/swapp-servers-review-admin.js?v=20261115-server-pro-v6" defer></script><script src="/assets/swapp-nav-session.js?v=20261114-native-account-v1" defer></script>'});
+ return renderPage({head,content,active:'servers',bodyClass:'swapp-editorial-route swapp-servers-page',scripts:'<script src="/assets/swapp-servers.js?v=20261116-compact-cards-v21" defer></script><script src="/assets/swapp-servers-review-admin.js?v=20261115-server-pro-v6" defer></script><script src="/assets/swapp-nav-session.js?v=20261114-native-account-v1" defer></script>'});
 }
 
 const DETAIL_STEAM_GAME_IDS=Object.freeze({
@@ -236,7 +236,7 @@ function detailPage(server,votes,meta={}){
   '<title>'+esc(title)+' — '+esc(game)+' | Serveurs SWAPP</title>'+
   '<meta name="description" content="'+esc(summary)+'">'+
   '<link rel="canonical" href="'+esc(canonical)+'">'+metadata+SHARED_HEAD_SLOT+
-  '<link rel="stylesheet" href="/assets/swapp-servers.css?v=20261115-banner-showcase-v19"><link rel="stylesheet" href="/assets/swapp-servers-community.css?v=20261115-community-v2">';
+  '<link rel="stylesheet" href="/assets/swapp-servers.css?v=20261116-compact-cards-v21"><link rel="stylesheet" href="/assets/swapp-servers-community.css?v=20261115-community-v2">';
  return renderPage({head:header,content:renderProfile({server,votes,rank:meta.rank,stats:meta.stats||null,
   reviews:meta.reviews||[],reviewSummary:meta.reviewSummary||null,cover:image,canEdit:Boolean(meta.canEdit),
   outbound:safeUrl(server.website),gamePath,communityPanels:renderCommunityPanels(server)}),
@@ -416,7 +416,7 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
     return '<article class="ss-owner-manage-card" style="--ss-brand-accent:'+color+'"><div class="ss-owner-manage-logo">'+emblem+'</div><div class="ss-owner-manage-info"><p class="ss-overline">'+esc(item.game)+'</p><h2>'+esc(item.name)+'</h2><p>'+esc(String(item.description||'').slice(0,130))+'</p><small>'+esc(item.status==='published'?'Fiche publiée':item.status==='pending'?'Fiche en vérification':'Fiche refusée')+'</small></div><div class="ss-owner-manage-actions">'+open+modify+remove+'</div></article>';
    }).join('');
    const content='<main class="ss ss-owner-manage"><header class="ss-hero"><div class="ss-inner"><p class="ss-overline">SERVEUR + / MON ESPACE</p><h1>Mes vitrines <em>gaming.</em></h1><p>Personnalise tes serveurs, mets à jour ton logo, ta bannière, tes liens et les couleurs de ta communauté.</p><div class="ss-hero-actions"><a href="/serveurs">← Classement</a><a href="/serveurs/creer">+ Créer un serveur</a></div></div></header><section class="ss-inner ss-owner-manage-list">'+(cards||'<div class="ss-empty"><h2>Pas encore de serveur</h2><p>Crée ta première fiche pour lui donner une identité sur SWAPP.</p><a href="/serveurs/creer">Créer mon serveur</a></div>')+'<p id="ss-owner-feedback" role="status" aria-live="polite"></p></section></main>';
-   const head='<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Mes serveurs | SWAPP SERVEUR +</title>'+SHARED_HEAD_SLOT+'<link rel="stylesheet" href="/assets/swapp-servers.css?v=20261115-banner-showcase-v19"><link rel="stylesheet" href="/assets/swapp-servers-community.css?v=20261115-community-v2">';
+   const head='<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Mes serveurs | SWAPP SERVEUR +</title>'+SHARED_HEAD_SLOT+'<link rel="stylesheet" href="/assets/swapp-servers.css?v=20261116-compact-cards-v21"><link rel="stylesheet" href="/assets/swapp-servers-community.css?v=20261115-community-v2">';
    return res.set('Cache-Control','private,no-store').type('html').send(renderPage({head,content,active:'servers',bodyClass:'swapp-editorial-route swapp-servers-page',scripts:'<script src="/assets/swapp-servers-owner.js?v=20261115-owner-delete-v1" defer></script><script src="/assets/swapp-nav-session.js?v=20261114-native-account-v1" defer></script>'}));
   }catch(e){return res.status(503).type('text').send('Espace propriétaire indisponible')}
  });
@@ -429,7 +429,8 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
    const sql=await readDatabase();
    const [rows]=await sql.execute('SELECT s.id,s.slug,s.name,s.game,s.description,s.website,s.join_address AS joinAddress,s.region,s.tags,s.banner_url AS bannerUrl,x.language,x.twitch_url AS twitchUrl,x.homepage_url AS homepageUrl,b.logo_url AS logoUrl,b.banner_url AS brandBannerUrl,b.accent_color AS accentColor,b.secondary_color AS secondaryColor,b.tagline,b.gallery_json AS galleryJson FROM swapp_game_servers s LEFT JOIN swapp_game_server_extras x ON x.server_id=s.id LEFT JOIN swapp_game_server_branding b ON b.server_id=s.id WHERE s.slug=? AND s.owner_id IN (?,?) AND s.status="published" LIMIT 1',[name,...ownerKeys(req)]);
    if(!rows.length)return res.status(404).type('text').send('Fiche introuvable');
-   return res.set('Cache-Control','private,no-store').type('html').send(createPage({game:rows[0].game,games:GAMES,edit:rows[0]}));
+   const capacity=await readCapacity(sql,rows[0].id);
+   return res.set('Cache-Control','private,no-store').type('html').send(createPage({game:rows[0].game,games:GAMES,edit:{...rows[0],capacity}}));
   }catch(e){return res.status(503).type('text').send('Éditeur temporairement indisponible')}
  });
  app.get('/serveurs/:jeu',async(req,res)=>{
@@ -442,18 +443,20 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
    // Published communities are visible in the initial HTML, independently of JS.
    let rows;
    try{
-    [rows]=await sql.execute('SELECT s.id,s.name,s.slug,s.game,s.description,s.banner_url,b.logo_url AS logoUrl,b.banner_url AS brandBannerUrl FROM swapp_game_servers s LEFT JOIN swapp_game_server_branding b ON b.server_id=s.id WHERE s.game=? AND s.status="published" ORDER BY s.created_at DESC,s.id ASC LIMIT 24',[game]);
+    [rows]=await sql.execute('SELECT s.id,s.name,s.slug,s.game,s.description,s.banner_url,s.website,s.tags,s.region,b.logo_url AS logoUrl,b.banner_url AS brandBannerUrl FROM swapp_game_servers s LEFT JOIN swapp_game_server_branding b ON b.server_id=s.id WHERE s.game=? AND s.status="published" ORDER BY s.created_at DESC,s.id ASC LIMIT 24',[game]);
    }catch(error){
     if(!['ER_NO_SUCH_TABLE','ER_BAD_FIELD_ERROR','ER_TABLEACCESS_DENIED_ERROR'].includes(error?.code))throw error;
     // If optional branding is missing, show real server records without artwork.
-    [rows]=await sql.execute('SELECT s.id,s.name,s.slug,s.game,s.description,s.banner_url FROM swapp_game_servers s WHERE s.game=? AND s.status="published" ORDER BY s.created_at DESC,s.id ASC LIMIT 24',[game]);
+    [rows]=await sql.execute('SELECT s.id,s.name,s.slug,s.game,s.description,s.banner_url,s.website,s.tags,s.region FROM swapp_game_servers s WHERE s.game=? AND s.status="published" ORDER BY s.created_at DESC,s.id ASC LIMIT 24',[game]);
    }
    let total=null;
    try{
     const [totals]=await sql.execute('SELECT COUNT(*) AS n FROM swapp_game_servers WHERE game=? AND status="published"',[game]);
     total=Number(totals[0]?.n||0);
    }catch(error){console.warn('[SWAPP SERVEURS] Comptage catégorie',String(error?.code||error?.message||error).slice(0,70))}
-   html=html.replace(marker,'<div id="ss-results" class="ss-results">'+renderCategoryPreview(rows,game)+'</div>');
+   const [stats,facts]=await Promise.all([listingStats(sql,rows.map(r=>r.id)),readCardFacts(sql,rows)]);
+   const hydrated=rows.map(row=>({...row,...(stats.get(row.id)||{}),...(facts.get(row.id)||{})}));
+   html=html.replace(marker,'<div id="ss-results" class="ss-results">'+renderCategoryPreview(hydrated,game)+'</div>');
    html=html.replace('id="ss-count">Chargement…</span>','id="ss-count">'+(total===null?'Nombre indisponible':total+' serveur'+(total===1?'':'s')+' référencé'+(total===1?'':'s'))+'</span>');
   }catch(e){
    console.warn('[SWAPP SERVEURS] Catégorie',String(e?.code||e?.message||e).slice(0,90));
@@ -584,11 +587,11 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
    }catch(counterError){
     console.warn('[SWAPP SERVEURS] Comptage catégories',String(counterError?.code||counterError?.message||counterError).slice(0,90));
    }
-   const evidence=await listingStats(sql,rows.map(item=>item.id));
+   const [evidence,facts]=await Promise.all([listingStats(sql,rows.map(item=>item.id)),readCardFacts(sql,rows)]);
    const owner=account(req);
    // The result includes permissions specific to this session, so never share its cache.
    res.set('Cache-Control','private,no-store').json({
-    servers:rows.map(({owner_id,...r},index)=>({...r,...(evidence.get(r.id)||{}),canEdit:!!owner&&ownerKeys(req).includes(owner_id),
+    servers:rows.map(({owner_id,...r},index)=>({...r,...(evidence.get(r.id)||{}),...(facts.get(r.id)||{}),canEdit:!!owner&&ownerKeys(req).includes(owner_id),
      rank:sort==='votes'&&rankingAvailable?offset+index+1:null,votes_month:r.votes_month==null?null:Number(r.votes_month),
      tags:String(r.tags||'').split(',').map(t=>t.trim()).filter(Boolean)})),
     total,page,pageSize,hasMore:offset+rows.length<total,gameCounts,ranking:rankingAvailable?'monthly_valid_votes':'temporarily_unavailable',onlineVerified:false
