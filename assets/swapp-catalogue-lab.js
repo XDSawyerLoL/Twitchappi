@@ -4,7 +4,7 @@
  */
 (function(){
 'use strict';
-const LAB_VERSION='20261115-hidpi-posters-v30';
+const LAB_VERSION='20261115-all-rails-v31';
 const API=Object.freeze({
  home:'/api/discovery/home-lives?limit=24&lang=fr',
  top:'/api/twitch/streams/top?limit=100&lang=fr',
@@ -1069,6 +1069,7 @@ function render(){
  if(!state.featured||!matching(state.featured))feature(lives[0]||games[0]||null);
  // Rebind existing SWAPP Mes jeux controller to dynamically created cards.
  window.dispatchEvent(new Event('swapp:account-rendered'));
+ scheduleRailArrowState();
 }
 async function fetchJson(path,maxWaitMs=8500){
  const control=new AbortController();
@@ -1424,6 +1425,82 @@ function installRailEdgeHints(){
  });
 }
 
+
+/* Event delegation handles game genre shelves created AFTER the initial load,
+ * and the separate "Trouve ton contenu par genre" carousel. */
+function installDynamicRailHoverScroll(){
+ const allowed=()=>window.matchMedia?.('(hover: hover) and (pointer: fine)').matches&&
+  !prefersLessMotion()&&!navigator.connection?.saveData;
+ let rail=null,x=null,frame=0,previous=0;
+ function stop(){
+  if(frame)cancelAnimationFrame(frame);
+  frame=0;x=null;previous=0;
+  rail?.classList.remove('scl-is-edge-scrolling');rail=null;
+ }
+ function tick(now){
+  frame=0;
+  if(!rail||x===null||document.hidden||dialog.open||!allowed()||!rail.isConnected){stop();return}
+  const box=rail.getBoundingClientRect();
+  const max=Math.max(0,rail.scrollWidth-rail.clientWidth);
+  if(max<1){stop();return}
+  const edge=Math.min(140,Math.max(55,box.width*.22));
+  const left=Math.min(1,Math.max(0,(box.left+edge-x)/edge));
+  const right=Math.min(1,Math.max(0,(x-(box.right-edge))/edge));
+  const speed=right>0?right:-left;
+  if(!speed||speed<0&&rail.scrollLeft<=0||speed>0&&rail.scrollLeft>=max){
+   rail.classList.remove('scl-is-edge-scrolling');previous=0;return;
+  }
+  rail.classList.add('scl-is-edge-scrolling');
+  const dt=previous?Math.min(32,Math.max(1,now-previous)):16;
+  previous=now;
+  rail.scrollLeft=Math.max(0,Math.min(max,rail.scrollLeft+speed*(160+300*Math.abs(speed))*dt/1000));
+  frame=requestAnimationFrame(tick);
+ }
+ root.addEventListener('pointermove',event=>{
+  if(event.pointerType&&event.pointerType!=='mouse'){stop();return}
+  const next=event.target.closest?.('#scl-genre-cards, .scl-genre-game-rail > .scl-cards')||null;
+  if(!next||!allowed()||document.hidden||dialog.open){stop();return}
+  if(next!==rail){stop();rail=next}
+  x=event.clientX;
+  if(!frame)frame=requestAnimationFrame(tick);
+ },{passive:true});
+ root.addEventListener('pointerleave',stop);
+ root.addEventListener('pointercancel',stop);
+ root.addEventListener('focusin',stop);
+ document.addEventListener('visibilitychange',()=>{if(document.hidden)stop()});
+ window.addEventListener('pagehide',stop);
+}
+/* Disabled buttons accurately indicate an empty or non-overflowing rail. */
+let railArrowFrame=0;
+function syncRailArrowState(){
+ root.querySelectorAll('.scl-rail').forEach(section=>{
+  const track=section.querySelector(':scope > .scl-cards');
+  const buttons=section.querySelectorAll('.scl-rail-nav button');
+  if(!track||buttons.length<2)return;
+  const max=Math.max(0,track.scrollWidth-track.clientWidth);
+  buttons[0].disabled=max<=5||track.scrollLeft<=4;
+  buttons[1].disabled=max<=5||track.scrollLeft>=max-4;
+ });
+ const genres=$('scl-genre-cards');
+ if(genres){
+  const max=Math.max(0,genres.scrollWidth-genres.clientWidth);
+  root.querySelectorAll('.scl-genre-actions button[data-scroll-left],.scl-genre-actions button[data-scroll-right]').forEach(control=>{
+   control.disabled=max<=5||(control.dataset.scrollLeft?genres.scrollLeft<=4:genres.scrollLeft>=max-4);
+  });
+ }
+}
+function scheduleRailArrowState(){
+ if(railArrowFrame)return;
+ railArrowFrame=requestAnimationFrame(()=>{railArrowFrame=0;syncRailArrowState()});
+}
+function installRailArrowState(){
+ root.addEventListener('scroll',scheduleRailArrowState,true);
+ window.addEventListener('resize',scheduleRailArrowState,{passive:true});
+ if(typeof MutationObserver!=='undefined')
+  new MutationObserver(scheduleRailArrowState).observe(root,{subtree:true,childList:true});
+ scheduleRailArrowState();
+}
+
 document.querySelectorAll('[data-scroll-left],[data-scroll-right]').forEach(button=>{
  button.addEventListener('click',()=>{
   const target=$(button.dataset.scrollLeft||button.dataset.scrollRight);
@@ -1461,7 +1538,9 @@ document.addEventListener('click',event=>{
  }
 });
 installRailHoverScroll();
+installDynamicRailHoverScroll();
 installRailEdgeHints();
+installRailArrowState();
 window.SwappCatalogueLab=Object.freeze({version:LAB_VERSION,load});
 installLiveRecheck();
 const spaHome=root.closest?.('#home.view');
