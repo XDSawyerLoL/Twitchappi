@@ -138,3 +138,29 @@ Référence fonctionnelle examinée : https://top-serveurs.net/discord/server/cr
 - Le JavaScript client conserve les fiches publiées qui étaient déjà rendues dans le HTML initial de la catégorie lorsque son appel API échoue. Les réponses 403 (filtrage), 404 (route), 429 (quota) et 503 (service/base) sont désormais différenciées, sans divulguer d'information sensible.
 - Tests : `test/swapp-servers-listing-recovery-20261115.test.js` (mode SQL strict, compteurs optionnels, panne DB, repli SSR et statuts HTTP).
 - **Cause en production non confirmée** : sans accès aux logs Hostinger, un 403 de protection, un 503 de connexion MySQL et une absence de déploiement restent possibles. Après déploiement, contrôler `/api/release`, puis `/api/swapp/serveurs?game=Discord%20%2F%20Multigaming`. Une réponse saine est HTTP 200, JSON, `servers` tableau et `total` numérique, avec de vraies inscriptions publiées. Comparer également le code de réponse en cas d'erreur et les journaux Node, sans exposer les secrets.
+
+
+## Incident HTTP 503 et enrichissement de SERVEUR + — correctif 15 novembre 2026
+
+### Diagnostic de la panne (sans inventer sa cause)
+- Le panneau de classement n'affiche plus deux fois « HTTP 503 » : une unique carte d'indisponibilité et un bouton Réessayer sont visibles si aucune fiche confirmée ne peut être affichée.
+- Le code HTTP reste dans la console du navigateur. Le détail de la base MySQL n'est jamais exposé aux visiteurs.
+- Les fiches de catégorie déjà rendues dans le HTML ne sont plus effacées lorsqu'une actualisation API échoue.
+- Les routes GET d'annuaire et de fiche peuvent désormais utiliser la base existante **sans exécuter huit CREATE TABLE au préalable** lorsque la table principale existe et est lisible ; une première installation sans table principale conserve le mécanisme de création contrôlée.
+- Si une table facultative de branding, vote ou statistiques est absente/illisible, les fiches réellement publiées restent disponibles grâce à des requêtes minimales en lecture seule ; rangs, votes et statistiques non vérifiés sont affichés **indisponibles**, jamais 0 fictif.
+- **Une absence de configuration MySQL, des identifiants incorrects ou une base réellement hors ligne continuent à produire un vrai HTTP 503** : ces pannes ne peuvent pas être réparées en CSS ou en remplaçant des valeurs.
+- Pour un compte administrateur uniquement, ouvrir `/api/swapp/serveurs/diagnostic` après déploiement. La réponse structurée expose la disponibilité de la table centrale et des tables facultatives, ou une catégorie d'erreur (configuration absente, connexion impossible, accès refusé, schéma indisponible) sans divulguer hôte, mot de passe ni requêtes.
+
+### Fiches et cartes enrichies
+- Chaque carte affiche les faits présents : région, langue de l'inscription, date d'ajout, catégories, votes mensuels, clics enregistrés, nombre d'avis et note issue des avis publiés. Une mention « Nouveau » est calculée uniquement à partir d'une date enregistrée de moins de 30 jours.
+- Une fiche dispose d'un bloc « Informations pratiques » avec les données effectivement enregistrées, d'une répartition des notes équipe/ambiance/disponibilité et d'une FAQ fondée sur son mode d'accès, la règle des votes et la modération.
+- Le grand espace entre « Personnaliser ma fiche » et les liens Twitch / site officiel est supprimé dans la colonne latérale : espacements cohérents et sections non renseignées non affichées.
+- La note, les avis, les clics et les historiques manquants ne sont pas simulés. Les nombres de membres connectés, places, whitelist, plateforme et état en ligne n'étant pas réellement stockés/vérifiés, ces valeurs ne sont pas inventées ; tout nouvel élément nécessitera collecte propriétaire et persistance.
+- Pas de service payant ni de nouvelle base : les données complémentaires sont regroupées par lots bornés sur les tables MySQL déjà prévues.
+
+### Acceptation Hostinger indispensable
+1. Déployer **l'empreinte du commit fusionné**, redémarrer Node, consulter `/api/release` et confirmer que les ressources JS/CSS affichées sont celles de la nouvelle version.
+2. Ouvrir, connecté en tant qu'administrateur, `/api/swapp/serveurs/diagnostic` et lire `status` et `tables` ; sans le privilège administrateur, 403 est normal.
+3. Ouvrir `/api/swapp/serveurs?game=Discord%20%2F%20Multigaming` et confirmer HTTP 200, `servers` tableau et `total` numérique **avec les fiches déjà publiées**. Une panne réelle de connexion peut encore produire 503 ; vérifier les logs Hostinger sans partager de secrets.
+4. Confirmer sur `/serveurs/discord-multigaming` que les fiches sont visibles même si les compteurs facultatifs ne répondent pas, puis tester la fiche, le vote, la modération et l'affichage mobile. Ne pas faire de suppression involontaire des trois fiches existantes.
+5. Exécuter les tests Node une seule fois sur une copie identique du code `npm test` (ou `node --test test/swapp-servers-rich-listing-and-profile-20261115.test.js`) ; aucune nouvelle GitHub Action payante.
