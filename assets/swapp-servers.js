@@ -4,7 +4,7 @@
  const $=s=>root.querySelector(s), results=$('#ss-results'),feedback=$('#ss-feedback'),count=$('#ss-count');
  // Submission is handled by the dedicated /serveurs/creer page.
  const make=(tag,cls,text)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(text!==undefined)e.textContent=String(text);return e};
- const state={servers:[],loading:false,request:0,page:1,total:0,hasMore:false,status:'loading',errorMessage:''};
+ const state={servers:[],loading:false,request:0,page:1,total:0,hasMore:false,status:'loading',errorMessage:'',errorKind:''};
  // Category pages already contain verified published listings in their initial HTML.
  // Do not erase them if the API is rejected or temporarily unavailable.
  let keepServerRendered=!!results.querySelector('.ss-category-preloaded');
@@ -165,17 +165,25 @@
  };
  const draw=()=>{
   const items=state.servers;
+  if(state.status==='error'&&keepServerRendered&&!$('#ss-q').value.trim()){
+   // Keep already rendered published listings and their verified count intact.
+   more.hidden=true;more.disabled=false;return;
+  }
   count.hidden=state.status==='error';
   if(state.status!=='error')count.textContent=state.total.toLocaleString('fr-FR')+' serveur'+(state.total===1?'':'s')+' référencé'+(state.total===1?'':'s');
   more.hidden=!state.hasMore||state.status==='error';more.disabled=state.loading;
-  if(state.status==='error'&&keepServerRendered&&!$('#ss-q').value.trim())return;
   keepServerRendered=false;
   results.replaceChildren(...items.map(serverCard));
   if(!items.length){
    const empty=make('div','ss-empty');
    if(state.status==='error'){
-    empty.append(make('h3','','Classement temporairement indisponible'),
-     make('p','','Les serveurs ne peuvent pas être affichés actuellement. Tes inscriptions sont conservées ; tu peux réessayer.'));
+    const blocked=state.errorKind==='challenge';
+    empty.append(make('h3','',blocked?'Vérification du site nécessaire':'Classement temporairement indisponible'),
+     make('p','',blocked?'La protection du site empêche actuellement le chargement du classement. Vérifie ton accès, puis réessaie.':'Le classement ne répond pas actuellement. Les inscriptions existantes ne sont pas modifiées.'));
+    if(blocked){
+     const verify=make('a','ss-empty-external','Vérifier mon accès au site');
+     verify.href='/api/swapp/serveurs';verify.target='_blank';verify.rel='noopener noreferrer';empty.append(verify);
+    }
     const retry=make('button','ss-empty-retry','Réessayer');retry.type='button';retry.addEventListener('click',()=>load());empty.append(retry);
    }else if($('#ss-q').value.trim()){
     empty.append(make('h3','','Aucun serveur trouvé pour cette recherche'),
@@ -196,6 +204,16 @@
    results.append(empty)
   }
  };
+ // HTTP 503 from SWAPP (JSON) and a browser challenge (HTML) are different.
+ async function apiFailure(response){
+  const mime=(response.headers.get('content-type')||'').toLowerCase();
+  if(mime.includes('text/html')){
+   const html=(await response.text().catch(()=>'' )).slice(0,16000);
+   const challenge=/checking your browser|verify that you are not a robot|recaptcha|captcha|just a moment|browser verification|challenge-platform/i.test(html);
+   return Object.assign(Error('Classement temporairement indisponible'),{kind:challenge?'challenge':'upstream',httpStatus:response.status});
+  }
+  return Object.assign(Error('Classement temporairement indisponible'),{kind:mime.includes('json')?'api':'network',httpStatus:response.status});
+ }
  async function load(reset=true){
   if(state.loading&&!reset)return;
   const seq=++state.request;
@@ -206,26 +224,26 @@
   feedback.textContent='Mise à jour du classement…';
   try{
    const res=await fetch('/api/swapp/serveurs?'+params.toString(),{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}});
-   if(!res.ok){
-    // Keep diagnostic HTTP information in the developer console, not the visitor UI.
-    console.warn('[SWAPP SERVEURS] GET /api/swapp/serveurs failed',res.status);
-    throw Error('Classement temporairement indisponible');
-   }
-   if(!(res.headers.get('content-type')||'').includes('application/json'))
-    throw Error('Classement temporairement indisponible');
+   if(!res.ok)throw await apiFailure(res);
+   if(!(res.headers.get('content-type')||'').toLowerCase().includes('application/json'))
+    throw await apiFailure(res);
    const data=await res.json();if(seq!==state.request)return;
    if(!data||!Array.isArray(data.servers)||!Number.isFinite(Number(data.total)))
     throw Error('Classement temporairement indisponible');
    const items=data.servers;
-   state.page=requestedPage;state.total=Number(data.total)||0;state.hasMore=Boolean(data.hasMore);state.status='ready';state.errorMessage='';
+   state.page=requestedPage;state.total=Number(data.total)||0;state.hasMore=Boolean(data.hasMore);state.status='ready';state.errorMessage='';state.errorKind='';
    state.servers=reset?items:state.servers.concat(items);
    displayGameCounts(data.gameCounts);
    feedback.textContent=data.ranking==='temporarily_unavailable'?'Les fiches sont accessibles ; les votes ne sont pas disponibles pour le moment.':'Classement basé sur les votes enregistrés ce mois-ci, sans faux statut en ligne.';
   }catch(e){
    if(seq!==state.request)return;
-   if(reset){displayGameCounts(null);state.servers=[];state.total=0;state.status='error';state.errorMessage='Classement indisponible'}
-   // Never repeat the same failure in both feedback and the empty-state card.
-   feedback.textContent=keepServerRendered?'Actualisation indisponible : les fiches déjà chargées restent visibles.':'';
+   if(reset){
+    displayGameCounts(null);state.servers=[];state.total=0;state.status='error';
+    state.errorMessage='Classement temporairement indisponible';state.errorKind=e?.kind||'api';
+   }
+   // One error surface only, whether the category was SSR-rendered or not.
+   feedback.textContent='';
+   console.warn('[SWAPP SERVEURS] Echec chargement annuaire',{type:e?.kind||'unknown',httpStatus:e?.httpStatus||null});
   }finally{
    if(seq===state.request){state.loading=false;draw();more.disabled=false}
   }
