@@ -72,15 +72,15 @@ function page({publicHome=false}={}){
   '<meta name="description" content="'+(publicHome?'SWAPP réunit les créateurs en direct, les jeux à découvrir et les actualités gaming dans un catalogue immersif.':'Page de démonstration : explorer les lives et les jeux SWAPP par affiches, prévisualisations et favoris.')+'">'+
   '<script src="/assets/swapp-editorial-color.js?v=20261114-native-accent-v1"></script>'+SHARED_HEAD_SLOT+
   '<link rel="stylesheet" href="/assets/swapp-visual-polish.css?v=20261016-mobile-swipe-40">'+
-  '<link rel="stylesheet" href="/assets/swapp-catalogue-lab.css?v=20261115-no-blur-home-v24"><link rel="stylesheet" href="/assets/swapp-genre-discovery.css?v=20261115-sharp-genre-v7">';
+  '<link rel="stylesheet" href="/assets/swapp-catalogue-lab.css?v=20261115-hidpi-covers-v25"><link rel="stylesheet" href="/assets/swapp-genre-discovery.css?v=20261115-hidpi-genre-v8">';
  const content=catalogueContent({publicHome});
  return renderPage({
   head,content,active:publicHome?'home':'categories',
   bodyClass:'swapp-editorial-route swapp-catalogue-lab-page'+(publicHome?' swapp-catalogue-home':''),
   scripts:'<script src="/assets/swapp-article-extras.js?v=20261113-actus-rail-v3" defer></script>'+
-  '<script src="/assets/swapp-genre-discovery.js?v=20261115-sharp-genre-v7" defer></script>'+ 
+  '<script src="/assets/swapp-genre-discovery.js?v=20261115-hidpi-genre-v8" defer></script>'+ 
   '<script src="/assets/swapp-live-surprise.js?v=20261115-obsession-v1" defer></script>'+ 
-  '<script src="/assets/swapp-catalogue-lab.js?v=20261115-obsession-shuffle-v29" defer></script>'+
+  '<script src="/assets/swapp-catalogue-lab.js?v=20261115-hidpi-posters-v30" defer></script>'+
   '<script src="/assets/swapp-my-games.js?v=20261021-account-hub-v1" defer></script>'+
   '<script src="/assets/swapp-navigation.js?v=20261114-home-all-v3" defer></script>'+
   '<script src="/assets/swapp-nav-session.js?v=20261114-native-account-v1" defer></script>'
