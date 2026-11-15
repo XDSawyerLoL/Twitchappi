@@ -4,7 +4,7 @@
  */
 (function(){
 'use strict';
-const LAB_VERSION='20261115-all-rails-v31';
+const LAB_VERSION='20261115-game-banners-v32';
 const API=Object.freeze({
  home:'/api/discovery/home-lives?limit=24&lang=fr',
  top:'/api/twitch/streams/top?limit=100&lang=fr',
@@ -92,6 +92,15 @@ function sharpGameArt(value){
   url.pathname=url.pathname.replace(/-\d{2,4}x\d{2,4}(?=\.(?:jpe?g|png|webp)$)/i,'-720x960');
  }
  return url.href;
+}
+/* Game artwork is real Twitch box art; wide cinematic scenes come only from
+ * thumbnail images of independently verified currently live matching games. */
+function gameBannerSources(game,lives=[]){
+ const poster=sharpGameArt(game?.cover||game?.image||'');
+ const slug=gameSlug(game?.game||game?.name||'');
+ const live=(Array.isArray(lives)?lives:[]).find(item=>
+  item?.kind==='live'&&item.gameSlug===slug&&item.image&&safeImage(item.image,1280,720));
+ return {poster,backdrop:live?safeImage(live.image,1280,720):'',source:live?'live':'poster'};
 }
 function synopsis(game){
  const key=latin(game).replace(/\s+/g,' ');
@@ -272,7 +281,7 @@ function readChannelFavorites(storage){
  }catch{return []}
 }
 if(typeof module==='object'&&module.exports)
- module.exports={API,LAB_VERSION,LIVE_RECHECK_MS,parseAudience,normalizeLive,normalizeGame,normalizeArticle,normalizeArticles,mergeLives,mergeGames,chooseSmallCommunities,gameSlug,synopsis,readFavorites,readChannelFavorites,safeImage,sharpGameArt,cleanArticleImage};
+ module.exports={API,LAB_VERSION,LIVE_RECHECK_MS,parseAudience,normalizeLive,normalizeGame,normalizeArticle,normalizeArticles,mergeLives,mergeGames,chooseSmallCommunities,gameSlug,synopsis,readFavorites,readChannelFavorites,safeImage,sharpGameArt,gameBannerSources,cleanArticleImage};
 if(typeof document==='undefined')return;
 const root=document.getElementById('swapp-catalogue-lab');
 if(!root)return;
@@ -1250,14 +1259,46 @@ window.addEventListener('pagehide',()=>{
 async function showGameLives(game){
  const section=create('div','scl-dialog-content scl-game-live-modal');
  const body=create('div','scl-dialog-body');
- body.append(create('div','scl-dialog-meta','DIRECTS CONFIRMÉS'));
+ const hero=create('header','scl-game-live-hero');
+ const imageLayer=create('div','scl-game-live-artwork');
+ const posterHolder=create('div','scl-game-live-poster-holder');
+ const text=create('div','scl-game-live-hero-copy');
+ const kicker=create('div','scl-dialog-meta','SWAPP · UNIVERS DE JEU');
  const title=create('h2','',game.game);
  title.id='scl-dialog-title';
- body.append(title);
- // Generic editorial placeholders do not belong in a premium live finder.
  const summary=String(game.summary||'');
+ text.append(kicker,title);
  if(summary&&!summary.includes('Présentation éditoriale à compléter'))
-  body.append(create('p','scl-game-live-description',summary));
+  text.append(create('p','scl-game-live-description',summary));
+ const genre=genreApi?.genreForGame?.(game.game);
+ if(genre&&genreApi?.GENRES?.some(item=>item.id===genre)){
+  const name=genreApi.GENRES.find(item=>item.id===genre).label;
+  const link=create('a','scl-game-live-explore','Explorer la collection '+name+' →');
+  link.href='/explorer/collections/'+encodeURIComponent(genre);
+  text.append(link);
+ }
+ hero.append(imageLayer,text,posterHolder);
+ function paintBanner(lives){
+  const art=gameBannerSources(game,lives);
+  imageLayer.replaceChildren();
+  posterHolder.replaceChildren();
+  if(art.backdrop){
+   const image=create('img','scl-game-live-backdrop');
+   image.src=art.backdrop;image.alt='';
+   image.decoding='async';image.referrerPolicy='no-referrer';
+   image.addEventListener('error',()=>image.remove(),{once:true});
+   imageLayer.append(image);
+  }
+  if(art.poster){
+   const poster=create('img','scl-game-live-poster');
+   poster.src=art.poster;poster.alt='Jaquette de '+game.game;
+   poster.decoding='async';poster.referrerPolicy='no-referrer';
+   poster.addEventListener('error',()=>poster.remove(),{once:true});
+   posterHolder.append(poster);
+  }
+  hero.dataset.backdrop=art.backdrop?'live':'none';
+ }
+ paintBanner(state.lives);
  const notice=create('p','scl-preview-note scl-game-live-notice','Recherche des créateurs en direct…');
  const row=create('div','scl-game-live-toolbar');
  const controls=create('div','scl-game-live-controls');
@@ -1282,7 +1323,7 @@ async function showGameLives(game){
   if(event.target!==list||!['ArrowLeft','ArrowRight'].includes(event.key))return;
   event.preventDefault();(event.key==='ArrowLeft'?left:right).click();
  });
- body.append(row,list);section.append(body);showDialog(section,'game');
+ body.append(row,list);section.append(hero,body);showDialog(section,'game');
  requestAnimationFrame(updateArrows);
  let found=state.lives.filter(x=>x.gameSlug===game.gameSlug);
  try{
@@ -1293,7 +1334,8 @@ async function showGameLives(game){
  }catch{
   notice.textContent=found.length?'Résultats locaux uniquement : recherche étendue indisponible.':'Recherche des créateurs indisponible pour le moment.';
  }
- if(!dialog.open)return;
+ if(!dialog.open||!section.isConnected||$('scl-dialog-content')?.firstElementChild!==section)return;
+ paintBanner(found);
  if(found.length){
   notice.textContent=found.length+' créateur'+(found.length>1?'s':'')+' réellement en direct sur '+game.game+'.';
   list.replaceChildren(...found.slice(0,12).map(createCard));
