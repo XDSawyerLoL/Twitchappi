@@ -97,7 +97,8 @@
      const response=await fetch(endpoint,{
       method:'POST',credentials:'same-origin',headers:{Accept:'application/json'}
      });
-     if(!response.ok)throw Error('deconnexion_indisponible');
+     const outcome=await response.json().catch(()=>null);
+     if(!response.ok||outcome?.success===false)throw Error('deconnexion_indisponible');
      window.location.href='/compte';
     }:null
    });
