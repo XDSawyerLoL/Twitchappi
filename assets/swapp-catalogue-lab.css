@@ -839,3 +839,138 @@ body.swapp-catalogue-lab-page{
 @media(prefers-reduced-motion:reduce){
  #scl-dialog.scl-dialog-game .scl-game-live-cards{scroll-behavior:auto}
 }
+
+
+/* SWAPP — next obsession / sharp cinema homepage.
+ * Live art remains crisp and behind text; no full-page blur layers.
+ */
+#swapp-catalogue-lab .scl-surprise{
+ position:relative;isolation:isolate;overflow:hidden;
+ margin:20px 4% 34px;min-height:clamp(255px,25vw,355px);
+ display:flex;align-items:center;box-sizing:border-box;
+ background:#050506;color:#fff;border:1px solid #ffffff25;
+ border-radius:14px;box-shadow:0 9px 31px #0008;
+ scroll-margin-top:100px
+}
+#swapp-catalogue-lab .scl-surprise-art{
+ position:absolute;z-index:-2;right:0;top:0;bottom:0;
+ width:56%;overflow:hidden;background:linear-gradient(130deg,#151e2b,#06080a)
+}
+#swapp-catalogue-lab .scl-surprise-art img{
+ display:block;width:100%;height:100%;object-fit:cover;
+ object-position:center;filter:none!important;
+ image-rendering:auto
+}
+#swapp-catalogue-lab .scl-surprise-shade{
+ position:absolute;z-index:-1;inset:0;pointer-events:none;
+ background:linear-gradient(90deg,#050506 0%,#050506 33%,
+  #050506e9 47%,#05050658 77%,#0505060d 100%),
+  linear-gradient(0deg,#0505067a,transparent 65%)
+}
+#swapp-catalogue-lab .scl-surprise-content{
+ position:relative;z-index:2;width:min(730px,68%);
+ padding:clamp(20px,3vw,37px);
+ box-sizing:border-box
+}
+#swapp-catalogue-lab .scl-surprise-eyebrow{
+ display:block;font:850 10px/1.3 Inter,system-ui,sans-serif;
+ letter-spacing:.16em;color:var(--swapp-page-accent,var(--brand,#6fe5df));
+ text-transform:uppercase;margin-bottom:12px
+}
+#swapp-catalogue-lab .scl-surprise h2{
+ font:900 clamp(24px,3.1vw,43px)/1.08 Inter,system-ui,sans-serif;
+ letter-spacing:-.035em;color:#fff;margin:0 0 12px;text-wrap:balance;
+ text-shadow:0 2px 5px #0007
+}
+#swapp-catalogue-lab .scl-surprise-lead{
+ margin:0 0 17px;max-width:510px;
+ font:500 clamp(12px,1.05vw,14px)/1.55 Inter,system-ui,sans-serif;
+ color:#c5cbd3
+}
+#swapp-catalogue-lab .scl-surprise-result{
+ display:flex;flex-direction:column;align-items:flex-start;gap:5px;
+ min-height:46px;max-width:580px;padding:0;margin:0 0 18px;
+ color:#c9d4dd;font-size:12px;line-height:1.45
+}
+#swapp-catalogue-lab .scl-surprise-creator{
+ font:900 clamp(18px,1.65vw,23px)/1.12 Inter,system-ui,sans-serif;
+ color:#fff;overflow-wrap:anywhere
+}
+#swapp-catalogue-lab .scl-surprise-game{
+ font:650 12px/1.35 Inter,system-ui,sans-serif;color:#a9b9c8
+}
+#swapp-catalogue-lab .scl-surprise-actions{
+ display:flex;align-items:center;flex-wrap:wrap;gap:9px
+}
+#swapp-catalogue-lab .scl-surprise-actions button{
+ display:inline-flex;align-items:center;justify-content:center;
+ min-height:43px;border-radius:8px;padding:10px 16px;
+ font:850 12px/1.1 Inter,system-ui,sans-serif;
+ border:1px solid #ffffff48;cursor:pointer;
+ transition:background .14s ease,border-color .14s ease
+}
+#swapp-catalogue-lab .scl-surprise-shuffle{
+ color:#061011;background:var(--swapp-page-accent,var(--brand,#86e4df));
+ border-color:transparent!important
+}
+#swapp-catalogue-lab .scl-surprise-shuffle:hover:not(:disabled){
+ filter:brightness(1.12)
+}
+#swapp-catalogue-lab .scl-surprise-watch{
+ color:#fff;background:#181a1f
+}
+#swapp-catalogue-lab .scl-surprise-watch:hover:not(:disabled){
+ background:#2b2e32;border-color:var(--swapp-page-accent,var(--brand,#86e4df))
+}
+#swapp-catalogue-lab .scl-surprise-actions button:disabled{
+ opacity:.4;cursor:not-allowed
+}
+#swapp-catalogue-lab .scl-surprise-actions button:focus-visible{
+ outline:2px solid #fff;outline-offset:3px
+}
+#swapp-catalogue-lab .scl-surprise[data-has-live="false"] .scl-surprise-art img{
+ display:none
+}
+/* The old glass overlays and dark image filters made the interface look
+ * soft: render all cover art at natural sharpness, without backdrop blur on
+ * the actual homepage's navigation/search controls. Text stays contrasted. */
+#swapp-catalogue-lab .scl-feature-visual,
+#swapp-catalogue-lab :is(.scl-card-media img,.scl-game-poster-image img,.scl-genre-visual img){
+ filter:none!important;image-rendering:auto
+}
+#swapp-catalogue-lab .scl-feature-vignette{
+ background:linear-gradient(90deg,#050506ed 0%,#050506a6 30%,
+ #05050635 65%,transparent 90%),
+ linear-gradient(0deg,#050506e0 0%,#0505063b 23%,transparent 52%)
+}
+#swapp-catalogue-lab :is(.scl-search,.scl-tabs button,.scl-feature-switch>button,.scl-rail-nav button){
+ backdrop-filter:none!important;-webkit-backdrop-filter:none!important
+}
+#swapp-catalogue-lab .scl-topline p,
+#swapp-catalogue-lab .scl-rail-head h2{
+ text-shadow:none
+}
+@media(max-width:850px){
+ #swapp-catalogue-lab .scl-surprise-art{width:68%}
+ #swapp-catalogue-lab .scl-surprise-content{width:80%}
+ #swapp-catalogue-lab .scl-surprise-shade{
+  background:linear-gradient(90deg,#050506 0%,#050506eb 38%,#05050677 80%,#05050630)
+ }
+}
+@media(max-width:650px){
+ #swapp-catalogue-lab .scl-surprise{
+  margin:13px 3% 23px;min-height:325px;align-items:flex-end
+ }
+ #swapp-catalogue-lab .scl-surprise-art{width:100%;height:100%}
+ #swapp-catalogue-lab .scl-surprise-content{width:100%;padding:21px 17px 20px}
+ #swapp-catalogue-lab .scl-surprise-shade{
+  background:linear-gradient(0deg,#050506 0%,#050506f5 42%,#0505068a 74%,#05050639 100%)
+ }
+ #swapp-catalogue-lab .scl-surprise h2{font-size:27px;margin-bottom:7px}
+ #swapp-catalogue-lab .scl-surprise-lead{font-size:12px;margin-bottom:10px}
+ #swapp-catalogue-lab .scl-surprise-result{margin-bottom:11px;min-height:40px}
+ #swapp-catalogue-lab .scl-surprise-actions button{flex:1 1 140px;padding:9px}
+}
+@media(prefers-reduced-motion:reduce){
+ #swapp-catalogue-lab .scl-surprise-actions button{transition:none}
+}
