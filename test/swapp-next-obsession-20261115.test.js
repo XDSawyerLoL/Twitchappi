@@ -46,7 +46,7 @@ test('random discovery honors user-selected genre without manufacturing a stream
 
 test('next obsession is a real homepage feature before the live carousel in native and SPA',()=>{
  const homepage=catalogueContent({publicHome:true});
- const ordered=['scl-feature','scl-surprise','scl-live','scl-genres','scl-top-games'];
+ const ordered=['scl-feature','scl-surprise','scl-articles','scl-favorites','scl-top-games','scl-live','scl-small','scl-genres'];
  for(const id of ordered)assert.ok(homepage.includes('id="'+id+'"'),id);
  for(let i=1;i<ordered.length;i++)
   assert.ok(homepage.indexOf('id="'+ordered[i-1]+'"')<homepage.indexOf('id="'+ordered[i]+'"'));
@@ -60,7 +60,7 @@ test('next obsession is a real homepage feature before the live carousel in nati
   const discovery=doc.indexOf('swapp-live-surprise.js?v=20261115-obsession-v1');
   const catalogue=doc.indexOf('swapp-catalogue-lab.js?v=20261115-game-banners-v32');
   assert.ok(discovery>=0&&catalogue>discovery,'shuffle picker script loads before catalogue');
-  assert.match(doc,/swapp-catalogue-lab\.css\?v=20261115-game-banners-style-v28/);
+  assert.match(doc,/swapp-catalogue-lab\.css\?v=20261115-magazine-first-v29/);
   assert.match(doc,/Trouvez votre prochaine obsession/);
  }
 });
