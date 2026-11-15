@@ -191,6 +191,18 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
   return res.set('Cache-Control','no-store').type('html').send(createPage({game,games:GAMES}));
  });
  app.get('/serveurs',(req,res)=>res.set('Cache-Control','no-store').type('html').send(page({isAdmin:isManager(req)})));
+ // Private owner editor: neither knowing a slug nor being a SWAPP admin grants editing rights.
+ app.get('/serveurs/gerer/:slug',async(req,res)=>{
+  const user=account(req),name=clean(req.params.slug,90);
+  if(!user)return res.redirect(302,'/compte');
+  if(!/^[a-z0-9][a-z0-9-]{4,89}$/.test(name))return res.status(404).type('text').send('Fiche introuvable');
+  try{
+   const sql=await getDatabase();
+   const [rows]=await sql.execute('SELECT s.id,s.slug,s.name,s.game,s.description,s.website,s.join_address AS joinAddress,s.region,s.tags,s.banner_url AS bannerUrl,x.language,x.twitch_url AS twitchUrl,x.homepage_url AS homepageUrl,b.logo_url AS logoUrl,b.banner_url AS brandBannerUrl,b.accent_color AS accentColor,b.secondary_color AS secondaryColor,b.tagline,b.gallery_json AS galleryJson FROM swapp_game_servers s LEFT JOIN swapp_game_server_extras x ON x.server_id=s.id LEFT JOIN swapp_game_server_branding b ON b.server_id=s.id WHERE s.slug=? AND s.owner_id=? AND s.status="published" LIMIT 1',[name,user]);
+   if(!rows.length)return res.status(404).type('text').send('Fiche introuvable');
+   return res.set('Cache-Control','private,no-store').type('html').send(createPage({game:rows[0].game,games:GAMES,edit:rows[0]}));
+  }catch(e){return res.status(503).type('text').send('Éditeur temporairement indisponible')}
+ });
  app.get('/serveurs/:jeu',(req,res)=>{const game=GAMES.find(x=>slug(x)===req.params.jeu);if(!game)return res.status(404).type('text').send('Jeu introuvable');return res.set('Cache-Control','no-store').type('html').send(page({isAdmin:isManager(req),game}))});
 
  app.get('/serveurs/:jeu/:fiche',async(req,res)=>{
@@ -233,6 +245,7 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
   const types=readTypes(rawTypes);
   const legacyTags=clean(body.tags,251);
   const tags=hasTypes?types.join(', '):legacyTags;
+  if(!normalizeBranding(body))return res.status(422).json({error:'informations_invalides'});
   const discord=game==='Discord / Multigaming';
   const invite=discord?discordLink(body.discordCode||join||website):'';
   if(name.length<3||name.length>100||description.length<30||description.length>1500||
@@ -294,18 +307,6 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
   }
  });
 
- // Private owner editor: neither knowing a slug nor being a SWAPP admin grants editing rights.
- app.get('/serveurs/gerer/:slug',async(req,res)=>{
-  const user=account(req),name=clean(req.params.slug,90);
-  if(!user)return res.redirect(302,'/compte');
-  if(!/^[a-z0-9][a-z0-9-]{4,89}$/.test(name))return res.status(404).type('text').send('Fiche introuvable');
-  try{
-   const sql=await getDatabase();
-   const [rows]=await sql.execute('SELECT s.id,s.slug,s.name,s.game,s.description,s.website,s.join_address AS joinAddress,s.region,s.tags,s.banner_url AS bannerUrl,x.language,x.twitch_url AS twitchUrl,x.homepage_url AS homepageUrl,b.logo_url AS logoUrl,b.banner_url AS brandBannerUrl,b.accent_color AS accentColor,b.secondary_color AS secondaryColor,b.tagline,b.gallery_json AS galleryJson FROM swapp_game_servers s LEFT JOIN swapp_game_server_extras x ON x.server_id=s.id LEFT JOIN swapp_game_server_branding b ON b.server_id=s.id WHERE s.slug=? AND s.owner_id=? AND s.status="published" LIMIT 1',[name,user]);
-   if(!rows.length)return res.status(404).type('text').send('Fiche introuvable');
-   return res.set('Cache-Control','private,no-store').type('html').send(createPage({game:rows[0].game,games:GAMES,edit:rows[0]}));
-  }catch(e){return res.status(503).type('text').send('Éditeur temporairement indisponible')}
- });
  app.put('/api/swapp/serveurs/:id',require('express').json({limit:'16kb'}),async(req,res)=>{
   if(!originGuard(req))return res.status(403).json({error:'origine_invalide'});
   const user=account(req),id=clean(req.params.id,32);
