@@ -158,7 +158,10 @@
    if(members===null&&online===null)fact('Indisponible','effectif Discord');
   }else fact(capacity!==null&&capacity>0?number(capacity):'Non renseignée','capacité / slots');
   if(lfg!==null)fact(number(lfg),'joueurs disponibles');
-  content.append(rating);
+  const heading=make('h3','ss-card-heading');
+  const headingLink=make('a','',s.name);headingLink.href=detailHref||'#';
+  heading.append(headingLink);
+  content.append(heading,rating);
   if(tagline)content.append(tagline);
   content.append(details,meta);
   if(tags.childElementCount)content.append(tags);
