@@ -318,3 +318,28 @@ html body.swapp-servers-page{background:#030405!important;color:#eff6fa}
 @media(max-width:1040px){.ss-grow-layout{grid-template-columns:1fr}.ss-grow-showcase{min-height:325px}.ss-grow-showcase-card{width:260px;padding:21px}.ss-grow-showcase-card--back{transform:rotate(8deg) translate(30px,-24px)}.ss-grow-showcase-card--front{min-height:280px;transform:rotate(-6deg) translate(-20px,17px)}.ss-grow-brandmark{width:70px;height:70px;font-size:45px}}
 @media(max-width:660px){.ss-grow{padding:54px 0}.ss-grow-kicker{font-size:10px;letter-spacing:.1em}.ss-grow-benefits{grid-template-columns:1fr;gap:11px;margin:24px 0}.ss-grow-benefits>div{display:grid;grid-template-columns:36px 1fr;column-gap:13px;padding:13px}.ss-grow-benefits>div>span{grid-row:1/3}.ss-grow-benefits strong{align-self:end}.ss-grow-benefits small{align-self:start}.ss-grow-showcase{display:none}.ss-grow-actions>*{flex:1;white-space:nowrap}.ss-grow-cta{flex:1 1 100%}}
 @media(prefers-reduced-motion:reduce){.ss-grow-cta{transition:none}.ss-grow-cta:hover{transform:none}}
+
+
+/* External discovery is plainly attributed and never joins SWAPP's own vote ranking. */
+.ss-partner-discovery{margin-top:clamp(42px,6vw,80px);margin-bottom:clamp(45px,6vw,78px)}
+.ss-partner-head{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:25px}
+.ss-partner-head h2{font-size:clamp(27px,3.5vw,46px);font-weight:950;letter-spacing:-.05em;line-height:1.1;color:#f5f8ff;margin:8px 0 10px}
+.ss-partner-head h2 em{font-style:normal;color:#bdacf9}
+.ss-partner-head p:not(.ss-overline){font-size:14px;line-height:1.7;color:#bdc8d8;margin:0;max-width:640px}
+.ss-partner-badge{flex:none;padding:9px 14px;border-radius:999px;background:#322341;border:1px solid #8769bb;color:#e0d5ff;font-size:12px;font-weight:800}
+.ss-partner-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px}
+.ss-partner-card{position:relative;display:flex;align-items:stretch;gap:0;min-width:0;min-height:166px;background:linear-gradient(125deg,#171a25,#0d1119);border-radius:15px;border:1px solid color-mix(in srgb,var(--ss-partner-accent) 37%,#303846);text-decoration:none;overflow:hidden;transition:transform .17s,border-color .17s,box-shadow .17s}
+.ss-partner-card:hover{transform:translateY(-3px);border-color:var(--ss-partner-accent);box-shadow:0 14px 40px color-mix(in srgb,var(--ss-partner-accent) 16%,transparent)}
+.ss-partner-card-art{display:grid;place-items:center;position:relative;flex:0 0 31%;min-width:82px;background:radial-gradient(circle at 62% 34%,color-mix(in srgb,var(--ss-partner-accent) 43%,#171c24),#121322 72%);border-right:1px solid #ffffff17}
+.ss-partner-icon{font-size:clamp(29px,3.2vw,49px);line-height:1;font-weight:1000;letter-spacing:-.08em;color:var(--ss-partner-accent);text-shadow:0 5px 23px color-mix(in srgb,var(--ss-partner-accent) 40%,transparent)}
+.ss-partner-spark{position:absolute;right:12px;top:11px;color:var(--ss-partner-accent);font-size:17px}
+.ss-partner-card-copy{display:flex;flex-direction:column;justify-content:center;min-width:0;gap:10px;padding:18px 16px}
+.ss-partner-source{font-size:10px;font-weight:900;letter-spacing:.11em;color:var(--ss-partner-accent)}
+.ss-partner-card-copy>strong{font-size:clamp(18px,1.8vw,25px);line-height:1.1;font-weight:900;color:#f6f8ff;letter-spacing:-.035em}
+.ss-partner-card-cta{font-size:12px;color:#dce7fb;font-weight:800}
+.ss-partner-card-cta span{color:var(--ss-partner-accent);font-size:15px}
+.ss-partner-disclaimer{font-size:12px;line-height:1.7;color:#9fafbe;margin:17px 0 0;max-width:950px}
+.ss-partner-card:focus-visible{outline:3px solid #c3f7f5;outline-offset:4px}
+@media(max-width:970px){.ss-partner-cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:610px){.ss-partner-head{align-items:start;flex-direction:column}.ss-partner-badge{font-size:11px}.ss-partner-cards{grid-template-columns:1fr}.ss-partner-card{min-height:135px}.ss-partner-card-art{min-width:90px;flex-basis:29%}}
+@media(prefers-reduced-motion:reduce){.ss-partner-card{transition:none}.ss-partner-card:hover{transform:none}}
