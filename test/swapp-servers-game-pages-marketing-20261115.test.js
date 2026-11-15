@@ -13,15 +13,15 @@ test('marketing hero is first, community intro follows, and ranking remains belo
  assert.match(html,/href="\/serveurs\/creer"/);
  assert.doesNotMatch(html,/SWAPP \/ EXPLORER \/ SERVEURS/);
 });
-test('every game tile is a server-side link even when its category contains no servers',()=>{
+test('every game tile is a server-side link even when its category contains no servers',async()=>{
  const html=page();
  const routes={};
- register({get:(p,...h)=>routes[p]=h.at(-1),post(){},put(){}},{enableAutoReview:false});
+ register({get:(p,...h)=>routes[p]=h.at(-1),post(){},put(){}},{enableAutoReview:false,getDatabase:async()=>({execute:async(sql)=>sql.startsWith('SELECT COUNT(*)')?[[{n:0}]]:[[]]})});
  const res=()=>({code:200,status(v){this.code=v;return this},type(){return this},set(){return this},send(v){this.html=v;return this}});
  for(const game of GAMES){
   const href='/serveurs/'+slug(game);
   assert.ok(html.includes('href="'+href+'" data-ss-game="'+game.replace(/&/g,'&amp;')+'"'),'missing category '+game);
-  const r=res();routes['/serveurs/:jeu']({params:{jeu:slug(game)}},r);
+  const r=res();await routes['/serveurs/:jeu']({params:{jeu:slug(game)}},r);
   assert.equal(r.code,200,game);
   assert.match(r.html,/ss-directory-intro/);
   assert.ok(r.html.includes('href="/serveurs/creer?jeu='+encodeURIComponent(game)+'"'),game+' create link');
