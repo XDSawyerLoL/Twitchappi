@@ -84,14 +84,17 @@ test('a pending duplicate is completed in place instead of consuming a new slot'
  assert.ok(!ctx.writes.some(x=>x.sql.startsWith('INSERT INTO swapp_game_servers')));
  assert.deepEqual(ctx.events,['begin','commit','release']);
 });
-test('an already-published duplicate returns its existing URL, without saving again',async()=>{
+test('an already-published server can be repaired and updated, never duplicated',async()=>{
  const ctx=setup({existing:[{id:'c'.repeat(32),slug:'deja-publie-ccccccc',status:'published'}]});
  const response=ctx.res();
  await ctx.app.POST.get('/api/swapp/serveurs')(ctx.request(example()),response);
  assert.equal(response.code,200);
- assert.equal(response.data.alreadyExists,true);
- assert.equal(ctx.writes.length,0);
- assert.deepEqual(ctx.events,['begin','rollback','release']);
+ assert.equal(response.data.updated,true);
+ assert.equal(response.data.url,'/serveurs/discord-multigaming/deja-publie-ccccccc');
+ assert.ok(ctx.writes.some(x=>x.sql.startsWith('UPDATE swapp_game_servers SET name=')));
+ assert.ok(ctx.writes.some(x=>x.sql.startsWith('INSERT INTO swapp_game_server_extras')));
+ assert.ok(!ctx.writes.some(x=>x.sql.startsWith('INSERT INTO swapp_game_servers')));
+ assert.deepEqual(ctx.events,['begin','commit','release']);
 });
 test('Discord check failure refuses creation before database access',async()=>{
  const ctx=setup({verify:async()=>({valid:false,reason:'invite_not_found'})});
