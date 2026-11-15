@@ -4,7 +4,7 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
 const {register}=require('../modules/swapp-servers');
-function harness({isAdmin=true,missingBranding=false,offline=false}={}){
+function harness({isAdmin=true,missingBranding=false,offline=false,filterFails=false}={}){
  const routes={},calls=[];
  const db={
   query:async(sql)=>{
@@ -21,6 +21,11 @@ function harness({isAdmin=true,missingBranding=false,offline=false}={}){
   execute:async(sql,args)=>{
    calls.push(sql);
    if(offline)throw Object.assign(Error('down'),{code:'ECONNREFUSED'});
+   if(sql.startsWith('SELECT COUNT(*) AS n FROM swapp_game_servers s WHERE')){
+    if(filterFails)throw Object.assign(Error('filtered query invalid'),{code:'ER_BAD_FIELD_ERROR'});
+    assert.equal(args.length,4);
+    return [[{n:2}]];
+   }
    if(sql.includes('LEFT JOIN swapp_game_server_branding')){
     if(missingBranding)throw Object.assign(Error('missing'),{code:'ER_NO_SUCH_TABLE'});
     assert.equal(args.length,1);
@@ -42,6 +47,7 @@ test('diagnostic checks the actual ranking SQL and reports populated statuses',a
  assert.equal(r.code,200);
  assert.deepEqual(r.data.counts,{published:2,pending:1});
  assert.equal(r.data.listing.status,'ready');
+ assert.deepEqual(r.data.publicCount,{status:'ready',published:2});
  assert.equal(r.data.listing.mode,'ranking_with_branding');
  assert.ok(a.calls.some(q=>q.includes('LEFT JOIN swapp_game_server_branding')));
  assert.equal(r.headers['Cache-Control'],'private,no-store');
@@ -52,8 +58,17 @@ test('missing optional branding is isolated and reports a minimal listing still 
  await a.route(a.request,r);
  assert.equal(r.code,200);
  assert.equal(r.data.listing.status,'fallback_ready');
+ assert.equal(r.data.publicCount.status,'ready');
  assert.equal(r.data.listing.reason,'missing_or_denied_optional_table');
  assert.equal(r.data.tables.swapp_game_server_branding,'unavailable');
+});
+test('a broken public SQL filter is detected even when the tables are readable',async()=>{
+ const a=harness({filterFails:true}),r=a.response();
+ await a.route(a.request,r);
+ assert.equal(r.code,503);
+ assert.equal(r.data.status,'unavailable');
+ assert.deepEqual(r.data.publicCount,{status:'unavailable',reason:'ER_BAD_FIELD_ERROR'});
+ assert.ok(a.calls.some(q=>q.startsWith('SELECT COUNT(*) AS n FROM swapp_game_servers s WHERE')));
 });
 test('a MySQL connection failure yields genuine 503 without a false count',async()=>{
  const a=harness({offline:true}),r=a.response();

@@ -11,7 +11,21 @@ const {getProfileEvidence}=require('./swapp-servers-stats');
 const {createPage,LANGUAGES,SERVER_TYPES,discordLink,twitchLink,readTypes}=require('./swapp-servers-create');
 const {renderExternalDiscovery}=require('./swapp-servers-external-discovery');
 const GAMES=['Minecraft','GTA V / FiveM','GTA RP','Rust','DayZ','Cyberpunk 2077','Arma 3','Arma Reforger','ARK Survival Ascended','ARK Survival Evolved','Project Zomboid','Palworld','Red Dead Redemption 2','Garry’s Mod','Valheim','Enshrouded','Conan Exiles','SCUM','Counter-Strike 2','7 Days to Die','Eco','V Rising','Unturned','Space Engineers','Dune Awakening','Hell Let Loose','Squad','Terraria','No Man’s Sky','Satisfactory','Don’t Starve Together','Lethal Company','Discord / Multigaming','Autre'];
-const mysqlUrl=()=>process.env.SWAPP_SERVERS_MYSQL_URL||process.env.SWAPP_MYSQL_URL||'';
+// Use the same credential resolution as SWAPP's MySQL account store.
+ // Dedicated server credentials win; the shared connection wins over the
+ // account-specific one. Never fall back to generic DATABASE_URL (Postgres).
+function mysqlConfig(env=process.env){
+ for(const source of ['SWAPP_SERVERS_MYSQL_URL','SWAPP_MYSQL_URL','SWAPP_ACCOUNT_MYSQL_URL']){
+  const url=String(env?.[source]||'').trim();
+  if(url)return {url,source};
+ }
+ return {url:'',source:null};
+}
+const mysqlUrl=()=>mysqlConfig().url;
+// One SQL predicate for both diagnosis and public listing; SQL string
+// literals use standard single quotes (compatible with ANSI_QUOTES mode).
+// CONCAT_WS ignores NULLs in older records instead of hiding them from search.
+const DIRECTORY_FILTER_SQL="s.status='published' AND (?='' OR s.game=?) AND (?='' OR LOWER(CONCAT_WS(' ',s.name,s.description,s.tags,s.game)) LIKE CONCAT('%',?,'%'))";
 let pool=null,ready=null;
 const clean=(v,n=200)=>String(v??'').trim().slice(0,n);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -129,8 +143,17 @@ async function db({readOnly=false}={}){
  if(!pool){const mysql=require('mysql2/promise');pool=mysql.createPool({uri:mysqlUrl(),connectionLimit:3,waitForConnections:true,queueLimit:40,connectTimeout:5000});}
  // Serve established listings even when the Hostinger SQL user cannot run DDL.
  if(readOnly){
+  // A read request must never create fresh empty tables in the wrong database.
+  // Schema creation remains part of explicit write/setup paths only.
   try{await pool.query('SELECT id FROM swapp_game_servers LIMIT 0');return pool}
-  catch(error){if(error?.code!=='ER_NO_SUCH_TABLE')throw error}
+  catch(error){
+   if(error?.code==='ER_NO_SUCH_TABLE'){
+    const missing=Error('swapp_servers_schema_missing');
+    missing.code='SWAPP_SERVERS_SCHEMA_MISSING';
+    throw missing;
+   }
+   throw error;
+  }
  }
  if(!ready){ready=(async()=>{
  await pool.query('CREATE TABLE IF NOT EXISTS swapp_game_servers (id CHAR(32) PRIMARY KEY, owner_id VARCHAR(100) NOT NULL, name VARCHAR(100) NOT NULL, slug VARCHAR(90) NOT NULL UNIQUE, game VARCHAR(70) NOT NULL, description VARCHAR(1500) NOT NULL, website VARCHAR(350) NOT NULL, join_address VARCHAR(240) NOT NULL, region VARCHAR(60) NOT NULL, tags VARCHAR(250) NOT NULL, banner_url VARCHAR(350) NOT NULL, status ENUM("pending","published","rejected") NOT NULL DEFAULT "pending", created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3), KEY swapp_servers_game_status (game,status),KEY swapp_servers_owner (owner_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
@@ -365,7 +388,7 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
  // Recheck older Discord submissions too, without any paid worker or VPS.
  // One batch per instance, repeated while the application is running.
  if(enableAutoReview&&mysqlUrl()&&process.env.SWAPP_SERVERS_AUTO_REVIEW!=='0'){
-  const tick=()=>autoPublishPendingServers().catch(e=>console.warn('[SWAPP SERVEURS] Auto-validation:',String(e.message||e).slice(0,120)));
+  const tick=()=>autoPublishPendingServers({getDatabase:readDatabase}).catch(e=>console.warn('[SWAPP SERVEURS] Auto-validation:',String(e.code||e.message||e).slice(0,120)));
   const initial=setTimeout(tick,1500);initial.unref?.();
   const periodic=setInterval(tick,5*60*1000);periodic.unref?.();
  }
@@ -376,7 +399,7 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
  // Dynamic public sitemap index, so every real published community can be indexed.
  app.get('/sitemap-serveurs.xml',async(_req,res)=>{
   try{
-   const sql=await getDatabase();
+   const sql=await readDatabase();
    const [rows]=await sql.query('SELECT COUNT(*) AS n FROM swapp_game_servers WHERE status="published"');
    const count=Math.max(1,Math.ceil(Number(rows[0]?.n||0)/1000));
    const xml='<?xml version="1.0" encoding="UTF-8"?><sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'+
@@ -388,7 +411,7 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
   const page=Number(req.params.page);
   if(!Number.isInteger(page)||page<1||page>1000)return res.sendStatus(404);
   try{
-   const sql=await getDatabase();
+   const sql=await readDatabase();
    const [rows]=await sql.execute('SELECT slug,game,created_at FROM swapp_game_servers WHERE status="published" ORDER BY created_at ASC,id ASC LIMIT 1000 OFFSET ?',[(page-1)*1000]);
    if(!rows.length)return res.sendStatus(404);
    const entries=rows.map(item=>'<url><loc>https://swapp.tv/serveurs/'+slug(item.game)+'/'+encodeURIComponent(item.slug)+'</loc>'+
@@ -510,7 +533,7 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
  // Private, read-only operational diagnosis. Never expose credentials or SQL strings.
  app.get('/api/swapp/serveurs/diagnostic',async(req,res)=>{
   if(!isManager(req))return res.status(403).json({error:'acces_refuse'});
-  if(getDatabase===db&&!mysqlUrl())return res.status(503).set('Cache-Control','private,no-store').json({status:'unavailable',reason:'mysql_not_configured'});
+  if(getDatabase===db&&!mysqlUrl())return res.status(503).set('Cache-Control','private,no-store').json({status:'unavailable',reason:'mysql_not_configured',configSource:null});
   const required=['swapp_game_servers','swapp_game_server_vote_events','swapp_game_server_branding',
    'swapp_game_server_extras','swapp_game_server_click_events','swapp_game_server_reviews'];
   try{
@@ -526,6 +549,20 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
     }
    }
    const core=tables.swapp_game_servers==='ready';
+   // The public API performs a filtered count *before* any list fallback.
+   // A working table check alone cannot establish whether that count works.
+   let publicCount={status:'not_checked'};
+   if(core){
+    try{
+     const filter=DIRECTORY_FILTER_SQL;
+     const [countRows]=await sql.execute('SELECT COUNT(*) AS n FROM swapp_game_servers s WHERE '+filter,['','','','']);
+     const count=Number(countRows?.[0]?.n);
+     publicCount={status:'ready',...(Number.isSafeInteger(count)&&count>=0?{published:count}:{})};
+    }catch(countError){
+     const code=String(countError?.code||'QUERY_ERROR');
+     publicCount={status:'unavailable',reason:code.replace(/[^a-zA-Z0-9_]/g,'').slice(0,50)};
+    }
+   }
    // Prove the same core public listing is queryable, not merely that tables exist.
    // No server names, identities, credentials or connection strings leave this route.
    let listing={status:'not_checked'},counts=null;
@@ -553,32 +590,38 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
      }
     }
    }
-   const available=core&&listing.status!=='unavailable';
+   const available=core&&publicCount.status==='ready'&&listing.status!=='unavailable';
    return res.status(available?200:503).set('Cache-Control','private,no-store').json({
-    status:available?'connected':'unavailable',tables,listing,...(counts?{counts}:{})
+    status:available?'connected':'unavailable',configSource:getDatabase===db?mysqlConfig().source:'injected',
+    tables,publicCount,listing,...(counts?{counts}:{})
    });
   }catch(error){
    const code=String(error?.code||''),message=String(error?.message||'');
    const reason=message==='swapp_servers_mysql_not_configured'?'mysql_not_configured':
     ['ECONNREFUSED','ETIMEDOUT','ENOTFOUND','EHOSTUNREACH','PROTOCOL_CONNECTION_LOST'].includes(code)?'mysql_connection_failed':
     ['ER_ACCESS_DENIED_ERROR','ER_DBACCESS_DENIED_ERROR'].includes(code)?'mysql_access_denied':
-    code==='ER_NO_SUCH_TABLE'?'schema_not_initialized':'mysql_unavailable';
-   return res.status(503).set('Cache-Control','private,no-store').json({status:'unavailable',reason});
+    ['ER_NO_SUCH_TABLE','SWAPP_SERVERS_SCHEMA_MISSING'].includes(code)?'schema_not_initialized':'mysql_unavailable';
+   return res.status(503).set('Cache-Control','private,no-store').json({
+    status:'unavailable',reason,configSource:getDatabase===db?mysqlConfig().source:'injected'
+   });
   }
  });
  app.get('/api/swapp/serveurs',async(req,res)=>{
+  let phase='mysql_connection';
   try{
    const sql=await readDatabase();
+   phase='published_count';
    const game=clean(req.query?.game,70),q=clean(req.query?.q,100).toLowerCase();
    const sort=req.query?.sort==='recent'?'recent':req.query?.sort==='name'?'name':'votes';
    const rawPage=Number(req.query?.page||1),page=Number.isSafeInteger(rawPage)?Math.max(1,Math.min(rawPage,10000)):1;
    const pageSize=24,offset=(page-1)*pageSize;
    const month=new Date().toISOString().slice(0,7)+'-01';
    const order=sort==='recent'?'s.created_at DESC,s.id ASC':sort==='name'?'s.name ASC,s.id ASC':'votes_month DESC,s.created_at ASC,s.id ASC';
-   const filter='s.status="published" AND (?="" OR s.game=?) AND (?="" OR LOWER(CONCAT(s.name," ",s.description," ",s.tags," ",s.game)) LIKE CONCAT("%",?,"%"))';
+   const filter=DIRECTORY_FILTER_SQL;
    const args=[game,game,q,q];
    const [totals]=await sql.execute('SELECT COUNT(*) AS n FROM swapp_game_servers s WHERE '+filter,args);
    const total=Number(totals[0]?.n||0);
+   phase='listing';
    // Count votes separately per server: MariaDB with ONLY_FULL_GROUP_BY rejects
    // selecting nonaggregated columns from a GROUP BY s.id listing query.
 
@@ -603,6 +646,7 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
    }catch(counterError){
     console.warn('[SWAPP SERVEURS] Comptage catégories',String(counterError?.code||counterError?.message||counterError).slice(0,90));
    }
+   phase='optional_enrichment';
    const [evidence,facts]=await Promise.all([listingStats(sql,rows.map(item=>item.id)),readCardFacts(sql,rows)]);
    const owner=account(req);
    // The result includes permissions specific to this session, so never share its cache.
@@ -612,7 +656,11 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
      tags:String(r.tags||'').split(',').map(t=>t.trim()).filter(Boolean)})),
     total,page,pageSize,hasMore:offset+rows.length<total,gameCounts,ranking:rankingAvailable?'monthly_valid_votes':'temporarily_unavailable',onlineVerified:false
    });
-  }catch(e){fail(res,e)}
+  }catch(e){
+   const code=String(e?.code||'ERROR').replace(/[^A-Za-z0-9_]/g,'').slice(0,48);
+   console.warn('[SWAPP SERVEURS] GET /api/swapp/serveurs failed',{phase,code});
+   fail(res,e);
+  }
  });
 
  // Create or recover one server with real field validation and an atomic metadata save.
@@ -917,4 +965,4 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
   try{const sql=await getDatabase(),[r]=await sql.execute('UPDATE swapp_game_servers SET status=? WHERE id=? AND status="pending"',[status,id]);res.json({updated:r.affectedRows===1})}catch(e){fail(res,e)}
  });
 }
-module.exports={register,page,detailPage,GAMES,slug,safeUrl,validJoinAddress,validListingDetails,autoReviewPendingDiscord,autoPublishPendingServers};
+module.exports={register,page,detailPage,GAMES,slug,safeUrl,validJoinAddress,validListingDetails,autoReviewPendingDiscord,autoPublishPendingServers,mysqlConfig};
