@@ -54,8 +54,8 @@ function renderCommunityPanels(server){
   '<div id="ss-lfg-list" class="ss-community-list"><p>Recherche des joueurs disponibles…</p></div></section>'+
   '<section id="directs" class="ss-pro-panel ss-community-panel" data-ss-owner-twitch="'+escapeHtml(channel)+'">'+
   '<p class="ss-overline">CRÉATEURS DE LA COMMUNAUTÉ</p><h2>Lives associés</h2>'+
-  '<p class="ss-pro-muted">Seules les chaînes associées et réellement présentes dans les directs vérifiés par SWAPP sont affichées « en direct ». Une chaîne absente des résultats n’est pas considérée hors ligne.</p>'+
   '<div id="ss-community-lives" class="ss-community-list"><p>Vérification des directs…</p></div>'+
+  '<p class="ss-community-explainer">Seuls les directs vérifiés sont signalés en ligne. Une chaîne sans direct confirmé n’est pas nécessairement hors ligne.</p>'+
   '<div class="ss-community-link"><h3>Associer ma chaîne</h3><p>Demande volontaire depuis ton compte SWAPP ou Twitch. Le propriétaire de cette communauté doit accepter l’association.</p>'+
   '<div id="ss-creator-actions" class="ss-community-actions"></div><p id="ss-creator-status" class="ss-pro-muted" role="status" aria-live="polite"></p></div>'+
   '<div id="ss-creator-moderation" hidden><h3>Associations à valider</h3><div id="ss-creator-pending" class="ss-community-list"></div></div>'+
