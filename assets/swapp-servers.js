@@ -4,20 +4,16 @@
  const $=s=>root.querySelector(s), results=$('#ss-results'),feedback=$('#ss-feedback'),count=$('#ss-count');
  // Submission is handled by the dedicated /serveurs/creer page.
  const make=(tag,cls,text)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(text!==undefined)e.textContent=String(text);return e};
- const state={servers:[],loading:false,request:0,page:1,total:0,hasMore:false};
+ const state={servers:[],loading:false,request:0,page:1,total:0,hasMore:false,status:'loading'};
  const more=make('button','ss-load-more','Afficher 24 serveurs supplémentaires');
  more.type='button';more.hidden=true;more.setAttribute('aria-label','Charger la page suivante du classement');
  results.after(more);
  more.addEventListener('click',()=>load(false));
 
  const gameSlug=name=>String(name||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,75);
- const setGame=(name,updateAddress=true)=>{
-  $('#ss-game').value=name;
-  if(updateAddress){
-   const href='/serveurs'+(name?'/'+encodeURIComponent(gameSlug(name)):'');
-   if(location.pathname!==href)history.pushState({game:name},'',href);
-  }
-  syncGameChips();load();
+ const setGame=name=>{
+  const next='/serveurs'+(name?'/'+encodeURIComponent(gameSlug(name)):'');
+  if(location.pathname!==next)location.assign(next);
  };
  if(root.dataset.ssCurrentGame)$('#ss-game').value=root.dataset.ssCurrentGame;
 
@@ -65,7 +61,7 @@
   const amount=make('span','ss-featured-count','Classement SWAPP');
   amount.dataset.ssFeaturedCount=game;
   copy.append(amount);card.append(picture,copy);
-  card.addEventListener('click',event=>{if(event.button||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;event.preventDefault();setGame(game);results?.scrollIntoView({behavior:'smooth',block:'start'})});
+  // Keep a real anchor: the server renders the category page even with zero listings.
   featuredHost.append(card);
  }
  function displayGameCounts(counts){
@@ -73,7 +69,7 @@
   for(const item of root.querySelectorAll('[data-ss-game-count],[data-ss-featured-count]')){
    const key=item.dataset.ssGameCount??item.dataset.ssFeaturedCount;
    const value=n?Object.prototype.hasOwnProperty.call(n,key)?Number(n[key]):0:null;
-   item.textContent=value===null?'Comptage indisponible':Number(value).toLocaleString('fr-FR')+' serveur'+(value===1?'':'s')+' SWAPP';
+   item.textContent=value===null||!Number.isSafeInteger(value)||value<0?'Voir les serveurs':value.toLocaleString('fr-FR')+' serveur'+(value===1?'':'s')+' inscrit'+(value===1?'':'s');
   }
  }
 
@@ -143,15 +139,39 @@
   content.append(actions);article.append(art,content);return article;
  };
  const draw=()=>{
-  const items=state.servers;count.textContent=state.total.toLocaleString('fr-FR')+' serveur'+(state.total===1?'':'s')+' référencé'+(state.total===1?'':'s');
-  more.hidden=!state.hasMore;more.disabled=state.loading;
+  const items=state.servers;
+  count.textContent=state.status==='error'?'Classement indisponible':state.total.toLocaleString('fr-FR')+' serveur'+(state.total===1?'':'s')+' référencé'+(state.total===1?'':'s');
+  more.hidden=!state.hasMore||state.status==='error';more.disabled=state.loading;
   results.replaceChildren(...items.map(serverCard));
-  if(!items.length){const empty=make('div','ss-empty');empty.append(make('h3','','Aucun serveur référencé pour cette recherche'),make('p','','Référence ton serveur gratuitement : il apparaîtra dans le classement dès sa validation automatique.'));results.append(empty)}
+  if(!items.length){
+   const empty=make('div','ss-empty');
+   if(state.status==='error'){
+    empty.append(make('h3','','Impossible de charger les serveurs pour le moment'),
+     make('p','','Les inscriptions ne peuvent pas être vérifiées actuellement. Le classement reste accessible dès le retour du service.'));
+    const retry=make('button','ss-empty-retry','Réessayer');retry.type='button';retry.addEventListener('click',()=>load());empty.append(retry);
+   }else if($('#ss-q').value.trim()){
+    empty.append(make('h3','','Aucun serveur trouvé pour cette recherche'),
+     make('p','','Modifie tes critères de recherche ou explore les autres communautés.'));
+   }else{
+    const selected=$('#ss-game').value;
+    empty.append(make('h3','',selected?'Aucun serveur inscrit sur SWAPP pour '+selected+'.':'Aucun serveur inscrit sur SWAPP pour le moment.'),
+     make('p','','Sois le premier à présenter ta communauté et à rejoindre ce classement.'));
+    const create=make('a','ss-empty-create','Ajouter le premier serveur');
+    create.href='/serveurs/creer'+(selected?'?jeu='+encodeURIComponent(selected):'');
+    empty.append(create);
+    const external=document.querySelector('.ss-partner-card[href]');
+    if(selected&&external){
+     const other=make('a','ss-empty-external','Voir le classement externe ↗');
+     other.href=external.href;other.target='_blank';other.rel='noopener noreferrer nofollow';empty.append(other);
+    }
+   }
+   results.append(empty)
+  }
  };
  async function load(reset=true){
   if(state.loading&&!reset)return;
   const seq=++state.request;
-  if(reset){state.page=1;state.servers=[];state.total=0;state.hasMore=false}
+  if(reset){state.page=1;state.servers=[];state.total=0;state.hasMore=false;state.status='loading'}
   const requestedPage=reset?1:state.page+1;
   const params=new URLSearchParams({q:$('#ss-q').value.trim(),game:$('#ss-game').value,sort:$('#ss-sort').value,page:String(requestedPage)});
   state.loading=true;more.disabled=true;
@@ -161,13 +181,13 @@
    if(!res.ok)throw Error('L’annuaire est temporairement indisponible.');
    const data=await res.json();if(seq!==state.request)return;
    const items=Array.isArray(data.servers)?data.servers:[];
-   state.page=requestedPage;state.total=Number(data.total)||0;state.hasMore=Boolean(data.hasMore);
+   state.page=requestedPage;state.total=Number(data.total)||0;state.hasMore=Boolean(data.hasMore);state.status='ready';
    state.servers=reset?items:state.servers.concat(items);
    displayGameCounts(data.gameCounts);
    feedback.textContent='Classement basé sur les votes enregistrés ce mois-ci, sans faux statut en ligne.';
   }catch(e){
    if(seq!==state.request)return;
-   if(reset){displayGameCounts(null);state.servers=[];state.total=0}
+   if(reset){displayGameCounts(null);state.servers=[];state.total=0;state.status='error'}
    feedback.textContent=e.message;
   }finally{
    if(seq===state.request){state.loading=false;draw();more.disabled=false}
@@ -182,17 +202,9 @@
    if(selected)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');
   });
  }
- root.querySelectorAll('[data-ss-game]').forEach(b=>b.addEventListener('click',event=>{
-  if(event.button||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
-  event.preventDefault();setGame(b.dataset.ssGame);
- }));
+ // Category tiles are real links; do not hijack them with pushState.
+ // Their server-rendered destinations exist even when no server is registered.
  syncGameChips();
- window.addEventListener('popstate',()=>{
-  const slugPath=decodeURIComponent(location.pathname.split('/')[2]||'');
-  const select=Array.from($('#ss-game').options).find(o=>gameSlug(o.value)===slugPath);
-  $('#ss-game').value=select?select.value:'';
-  syncGameChips();load();
- });
  const gameSearch=$('#ss-game-search');
  if(gameSearch)gameSearch.addEventListener('input',()=>{
   const term=gameSearch.value.trim().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
