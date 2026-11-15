@@ -54,7 +54,10 @@ test('game art grid and live category counts use real sources and no fabricated 
  assert.match(js,/cdn\.cloudflare\.steamstatic\.com\/steam\/apps/);
  assert.match(js,/27471_IGDB-720x960/);
  assert.match(js,/displayGameCounts\(data\.gameCounts\)/);
- assert.match(js,/history\.pushState/);
+ assert.doesNotMatch(js,/Comptage indisponible/);
+ assert.doesNotMatch(js,/history\.pushState/);
+ assert.match(js,/location\.assign\(next\)/);
+ assert.match(js,/Aucun serveur inscrit sur SWAPP pour/);
  assert.match(js,/data\.gameCounts/);
  const api=read('modules/swapp-servers.js');
  assert.match(api,/COUNT\(\*\) AS count FROM swapp_game_servers WHERE status="published"/);

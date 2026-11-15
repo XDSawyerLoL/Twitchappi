@@ -6,13 +6,15 @@ const {page,detailPage}=require('../modules/swapp-servers');
 const {createPage}=require('../modules/swapp-servers-create');
 const {renderPage,SHARED_HEAD_SLOT}=require('../modules/swapp-page-shell');
 
-test('free listing promotion appears after the actual ranking on general and game-specific directory routes',()=>{
+test('free listing promotion is the first hero, before the community ranking and footer',()=>{
  for(const game of ['', 'Minecraft','Discord / Multigaming']){
   const html=page({game});
   for(const label of ['Référencement gratuit','Ajouter mon serveur','Publication automatique','Votes, avis et statistiques','100 % gratuit']){
    assert.ok(html.toLowerCase().includes(label.toLowerCase()),game+' '+label);
   }
-  assert.ok(html.indexOf('id="ss-results"')<html.indexOf('id="ss-grow-title"'));
+  assert.ok(html.indexOf('id="ss-grow-title"')<html.indexOf('ss-directory-intro'));
+  assert.ok(html.indexOf('id="ss-grow-title"')<html.indexOf('id="ss-results"'));
+  assert.ok(html.indexOf('ss-directory-intro')<html.indexOf('id="ss-results"'));
   assert.ok(html.indexOf('id="ss-grow-title"')<html.indexOf('class="swapp-footer')||html.includes('swapp-footer.js'));
   assert.match(html,/href="\/serveurs\/creer(?:\?jeu=[^"]*)?"/);
   assert.doesNotMatch(html,/depuis 2012/i);
