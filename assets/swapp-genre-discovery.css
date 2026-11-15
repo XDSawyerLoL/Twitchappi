@@ -198,3 +198,13 @@ body[data-swapp-home-spa="v16"] #home .scl-feature {
  .scl-genre-card,.scl-game-poster,.scl-genre-visual img,.scl-game-poster-image img,
  .scl-game-poster-details{transition:none!important}
 }
+
+/* Cover clarity: poster images occupy their own normal stacking layer.
+   Never rasterize or darken the game art on hover or in the carousel. */
+#swapp-catalogue-lab .scl-game-poster-image{z-index:0}
+#swapp-catalogue-lab .scl-game-poster-image::after{content:none!important}
+#swapp-catalogue-lab .scl-game-poster:hover,
+#swapp-catalogue-lab .scl-game-poster:focus-visible{transform:none!important}
+#swapp-catalogue-lab .scl-game-poster-image img{
+ filter:none!important;transform:none!important;image-rendering:auto;
+}

@@ -3,12 +3,12 @@
 const {catalogueContent}=require('./swapp-catalogue-lab');
 const HOME_START='<section id="home" class="view active">';
 const NEXT_VIEW='  <section id="discover" class="view"></section>';
-const STYLE='<link rel="stylesheet" href="/assets/swapp-catalogue-lab.css?v=20261115-no-blur-home-v24">'+
+const STYLE='<link rel="stylesheet" href="/assets/swapp-catalogue-lab.css?v=20261115-hidpi-covers-v25">'+
  '<link rel="stylesheet" href="/assets/swapp-catalogue-spa.css?v=20261114-real-spa-v16">'+
- '<link rel="stylesheet" href="/assets/swapp-genre-discovery.css?v=20261115-sharp-genre-v7">';
-const SCRIPT='<script src="/assets/swapp-genre-discovery.js?v=20261115-sharp-genre-v7" defer></script>'+
+ '<link rel="stylesheet" href="/assets/swapp-genre-discovery.css?v=20261115-hidpi-genre-v8">';
+const SCRIPT='<script src="/assets/swapp-genre-discovery.js?v=20261115-hidpi-genre-v8" defer></script>'+
  '<script src="/assets/swapp-live-surprise.js?v=20261115-obsession-v1" defer></script>'+ 
- '<script src="/assets/swapp-catalogue-lab.js?v=20261115-obsession-shuffle-v29" defer></script>'+
+ '<script src="/assets/swapp-catalogue-lab.js?v=20261115-hidpi-posters-v30" defer></script>'+
  '<script src="/assets/swapp-catalogue-spa.js?v=20261114-home-all-spa-v18" defer></script>';
 function renderIntoSpa(html){
  const source=String(html||'');

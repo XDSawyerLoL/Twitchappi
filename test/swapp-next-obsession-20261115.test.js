@@ -58,9 +58,9 @@ test('next obsession is a real homepage feature before the live carousel in nati
  const spa=renderIntoSpa(read('index.html'));
  for(const doc of [native,spa]){
   const discovery=doc.indexOf('swapp-live-surprise.js?v=20261115-obsession-v1');
-  const catalogue=doc.indexOf('swapp-catalogue-lab.js?v=20261115-obsession-shuffle-v29');
+  const catalogue=doc.indexOf('swapp-catalogue-lab.js?v=20261115-hidpi-posters-v30');
   assert.ok(discovery>=0&&catalogue>discovery,'shuffle picker script loads before catalogue');
-  assert.match(doc,/swapp-catalogue-lab\.css\?v=20261115-no-blur-home-v24/);
+  assert.match(doc,/swapp-catalogue-lab\.css\?v=20261115-hidpi-covers-v25/);
   assert.match(doc,/Trouvez votre prochaine obsession/);
  }
 });

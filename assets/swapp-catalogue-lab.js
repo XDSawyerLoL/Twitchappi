@@ -4,7 +4,7 @@
  */
 (function(){
 'use strict';
-const LAB_VERSION='20261115-obsession-shuffle-v29';
+const LAB_VERSION='20261115-hidpi-posters-v30';
 const API=Object.freeze({
  home:'/api/discovery/home-lives?limit=24&lang=fr',
  top:'/api/twitch/streams/top?limit=100&lang=fr',
@@ -82,6 +82,17 @@ function safeImage(value,width=640,height=360){
   return url.protocol==='https:'&&!url.username&&!url.password&&allowed?url.href:'';
  }catch{return ''}
 }
+// Twitch emits both template and fixed-size box-art URLs. For high-DPI
+// catalogue posters, upgrade only validated official Twitch box-art sources.
+function sharpGameArt(value){
+ const source=safeImage(value,720,960);
+ if(!source)return '';
+ const url=new URL(source);
+ if(url.hostname==='static-cdn.jtvnw.net'&&url.pathname.startsWith('/ttv-boxart/')){
+  url.pathname=url.pathname.replace(/-\d{2,4}x\d{2,4}(?=\.(?:jpe?g|png|webp)$)/i,'-720x960');
+ }
+ return url.href;
+}
 function synopsis(game){
  const key=latin(game).replace(/\s+/g,' ');
  return GAME_COPY[key]||'Retrouve les créateurs qui explorent ce jeu. Présentation éditoriale à compléter.';
@@ -122,7 +133,7 @@ function normalizeGame(item){
  const slug=gameSlug(game);
  if(!isValidSlug(slug))return null;
  return {id:'game:'+slug,kind:'game',name:game,game,gameSlug:slug,
-  summary:synopsis(game),image:safeImage(item.box_art_url||item.thumbnail_url||'',360,480)};
+  summary:synopsis(game),image:sharpGameArt(item.box_art_url||item.thumbnail_url||'')};
 }
 function mergeLives(home,top){
  const all=[],seen=new Set();
@@ -261,7 +272,7 @@ function readChannelFavorites(storage){
  }catch{return []}
 }
 if(typeof module==='object'&&module.exports)
- module.exports={API,LAB_VERSION,LIVE_RECHECK_MS,parseAudience,normalizeLive,normalizeGame,normalizeArticle,normalizeArticles,mergeLives,mergeGames,chooseSmallCommunities,gameSlug,synopsis,readFavorites,readChannelFavorites,safeImage,cleanArticleImage};
+ module.exports={API,LAB_VERSION,LIVE_RECHECK_MS,parseAudience,normalizeLive,normalizeGame,normalizeArticle,normalizeArticles,mergeLives,mergeGames,chooseSmallCommunities,gameSlug,synopsis,readFavorites,readChannelFavorites,safeImage,sharpGameArt,cleanArticleImage};
 if(typeof document==='undefined')return;
 const root=document.getElementById('swapp-catalogue-lab');
 if(!root)return;

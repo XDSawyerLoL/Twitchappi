@@ -59,7 +59,12 @@ test('the source remains actual category feed merged with real live game names',
 test('the poster requests portrait box art while live thumbnails keep widescreen resolution',()=>{
  const game=normalizeGame({name:'Valorant',
   box_art_url:'https://static-cdn.jtvnw.net/ttv-boxart/123-{width}x{height}.jpg'});
- assert.equal(game.image,'https://static-cdn.jtvnw.net/ttv-boxart/123-360x480.jpg');
+ assert.equal(game.image,'https://static-cdn.jtvnw.net/ttv-boxart/123-720x960.jpg');
+ const fixed=normalizeGame({name:'Minecraft',
+  box_art_url:'https://static-cdn.jtvnw.net/ttv-boxart/123-285x380.jpg'});
+ assert.equal(fixed.image,'https://static-cdn.jtvnw.net/ttv-boxart/123-720x960.jpg');
+ const other=normalizeGame({name:'Other game',box_art_url:'https://swapp.tv/cover.jpg'});
+ assert.equal(other.image,'https://swapp.tv/cover.jpg');
  const stream=normalizeLive({user_login:'example_streamer',game_name:'Valorant',
   thumbnail_url:'https://static-cdn.jtvnw.net/previews-ttv/live_user_example-{width}x{height}.jpg',
   viewer_count:30});
@@ -93,8 +98,8 @@ test('live rail is followed by top game posters, 25 genre controls, actual genre
  const spa=renderIntoSpa(read('index.html'));
  assert.match(spa,/id="scl-top-games-cards"/);
  assert.match(spa,/id="scl-genre-shelves"/);
- assert.match(spa,/swapp-genre-discovery\.css\?v=20261115-sharp-genre-v7/);
- assert.match(spa,/swapp-catalogue-lab\.js\?v=20261115-obsession-shuffle-v29/);
+ assert.match(spa,/swapp-genre-discovery\.css\?v=20261115-hidpi-genre-v8/);
+ assert.match(spa,/swapp-catalogue-lab\.js\?v=20261115-hidpi-posters-v30/);
 });
 
 test('poster rails show valid game artwork, linked real creator discovery and no fake ranks',()=>{

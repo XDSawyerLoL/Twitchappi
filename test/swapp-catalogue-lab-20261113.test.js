@@ -60,6 +60,7 @@ test('game covers come from real feeds; no invented poster, title or rating',()=
   {id:'4',name:'Just Chatting',box_art_url:'https://static-cdn.jtvnw.net/ttv-boxart/4-285x380.jpg'}],[]);
  assert.equal(games.length,1);
  assert.equal(games[0].gameSlug,'minecraft');
+ assert.equal(games[0].image,'https://static-cdn.jtvnw.net/ttv-boxart/123-720x960.jpg');
  assert.match(games[0].summary,/Explore/);
  assert.equal(catalog.normalizeGame({name:'',box_art_url:''}),null);
  assert.equal(catalog.safeImage('javascript:alert(1)'),'');
