@@ -19,6 +19,7 @@ async function db(){
  if(!ready){ready=(async()=>{
  await pool.query('CREATE TABLE IF NOT EXISTS swapp_game_servers (id CHAR(32) PRIMARY KEY, owner_id VARCHAR(100) NOT NULL, name VARCHAR(100) NOT NULL, slug VARCHAR(90) NOT NULL UNIQUE, game VARCHAR(70) NOT NULL, description VARCHAR(1500) NOT NULL, website VARCHAR(350) NOT NULL, join_address VARCHAR(240) NOT NULL, region VARCHAR(60) NOT NULL, tags VARCHAR(250) NOT NULL, banner_url VARCHAR(350) NOT NULL, status ENUM("pending","published","rejected") NOT NULL DEFAULT "pending", created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3), KEY swapp_servers_game_status (game,status),KEY swapp_servers_owner (owner_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
  await pool.query('CREATE TABLE IF NOT EXISTS swapp_game_server_votes (server_id CHAR(32) NOT NULL, user_id VARCHAR(100) NOT NULL, voted_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3), PRIMARY KEY (server_id,user_id),KEY swapp_servers_vote_time (voted_at), CONSTRAINT swapp_game_votes_server_fk FOREIGN KEY (server_id) REFERENCES swapp_game_servers(id) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
+ await pool.query('CREATE TABLE IF NOT EXISTS swapp_game_server_vote_events (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, server_id CHAR(32) NOT NULL, user_id VARCHAR(100) NOT NULL, voted_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3), KEY swapp_game_votes_rank (server_id,voted_at), CONSTRAINT swapp_game_vote_events_server_fk FOREIGN KEY (server_id) REFERENCES swapp_game_servers(id) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
  })().catch(e=>{ready=null;throw e});}
  await ready;return pool;
 }
@@ -34,8 +35,8 @@ function register(app){
    const sql=await db();const game=clean(req.query.game,70),q=clean(req.query.q,100).toLowerCase(),sort=req.query.sort==='recent'?'recent':req.query.sort==='name'?'name':'votes';
    const month=String(new Date().toISOString().slice(0,7))+'-01';
    const order=sort==='recent'?'s.created_at DESC':sort==='name'?'s.name ASC':'votes_month DESC,s.created_at DESC';
-   const [rows]=await sql.execute('SELECT s.id,s.slug,s.name,s.game,s.description,s.website,s.join_address AS joinAddress,s.region,s.tags,s.banner_url AS bannerUrl,s.created_at AS createdAt,COUNT(v.user_id) AS votes_month FROM swapp_game_servers s LEFT JOIN swapp_game_server_votes v ON v.server_id=s.id AND v.voted_at>=? WHERE s.status="published" AND (?="" OR s.game=?) AND (?="" OR LOWER(CONCAT(s.name," ",s.description," ",s.tags," ",s.game)) LIKE CONCAT("%",?,"%")) GROUP BY s.id ORDER BY '+order+' LIMIT 100',[month,game,game,q,q]);
-   res.set('Cache-Control','public,max-age=30').json({servers:rows.map(r=>({...r,votes_month:Number(r.votes_month),tags:r.tags.split(',').map(t=>t.trim()).filter(Boolean)})),total:rows.length,ranking:'monthly_unique_votes',onlineVerified:false});
+   const [rows]=await sql.execute('SELECT s.id,s.slug,s.name,s.game,s.description,s.website,s.join_address AS joinAddress,s.region,s.tags,s.banner_url AS bannerUrl,s.created_at AS createdAt,COUNT(v.id) AS votes_month FROM swapp_game_servers s LEFT JOIN swapp_game_server_vote_events v ON v.server_id=s.id AND v.voted_at>=? WHERE s.status="published" AND (?="" OR s.game=?) AND (?="" OR LOWER(CONCAT(s.name," ",s.description," ",s.tags," ",s.game)) LIKE CONCAT("%",?,"%")) GROUP BY s.id ORDER BY '+order+' LIMIT 100',[month,game,game,q,q]);
+   res.set('Cache-Control','public,max-age=30').json({servers:rows.map(r=>({...r,votes_month:Number(r.votes_month),tags:r.tags.split(',').map(t=>t.trim()).filter(Boolean)})),total:rows.length,ranking:'monthly_valid_votes',onlineVerified:false});
   }catch(e){fail(res,e)}
  });
  app.post('/api/swapp/serveurs',require('express').json({limit:'12kb'}),async(req,res)=>{
@@ -62,7 +63,8 @@ function register(app){
     const [servers]=await conn.execute('SELECT id FROM swapp_game_servers WHERE id=? AND status="published" LIMIT 1',[id]);if(!servers.length){await conn.rollback();return res.status(404).json({error:'serveur_introuvable'})}
     const [previous]=await conn.execute('SELECT voted_at FROM swapp_game_server_votes WHERE server_id=? AND user_id=? FOR UPDATE',[id,user]);
     if(previous.length&&Date.now()-new Date(previous[0].voted_at).getTime()<7200000){await conn.rollback();return res.status(429).json({error:'vote_deja_effectue',nextVoteAt:new Date(new Date(previous[0].voted_at).getTime()+7200000).toISOString()})}
-    await conn.execute('INSERT INTO swapp_game_server_votes (server_id,user_id,voted_at) VALUES (?,?,NOW(3)) ON DUPLICATE KEY UPDATE voted_at=NOW(3)',[id,user]);await conn.commit();
+    await conn.execute('INSERT INTO swapp_game_server_votes (server_id,user_id,voted_at) VALUES (?,?,NOW(3)) ON DUPLICATE KEY UPDATE voted_at=NOW(3)',[id,user]);
+    await conn.execute('INSERT INTO swapp_game_server_vote_events (server_id,user_id,voted_at) VALUES (?,?,NOW(3))',[id,user]);await conn.commit();
     return res.json({success:true,intervalHours:2});
    }catch(e){await conn.rollback().catch(()=>{});throw e}finally{conn.release()}
   }catch(e){fail(res,e)}
