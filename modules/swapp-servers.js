@@ -279,10 +279,13 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
    }
    await conn.execute('INSERT INTO swapp_game_server_extras (server_id,language,twitch_url,homepage_url,discord_guild_id) VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE language=VALUES(language),twitch_url=VALUES(twitch_url),homepage_url=VALUES(homepage_url),discord_guild_id=VALUES(discord_guild_id)',
     [id,language,twitch,homepage,guildId]);
+   const brand=normalizeBranding(body,id);
+   if(!brand)throw Error('invalid_branding');
+   await saveBranding(conn,id,brand);
    if(typeof conn.commit==='function')await conn.commit();
    return res.status(existing.length?200:201).json({status:'published',updated:Boolean(existing.length),slug:serverSlug,autoVerified:discord,
     verification:discord?'discord_invite':'listing_format',onlineVerified:false,
-    url:'/serveurs/'+slug(game)+'/'+serverSlug});
+    id,url:'/serveurs/'+slug(game)+'/'+serverSlug});
   }catch(e){
    if(typeof conn?.rollback==='function')await conn.rollback().catch(()=>{});
    return fail(res,e);
@@ -290,6 +293,99 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
    if(typeof conn?.release==='function')conn.release();
   }
  });
+
+ // Private owner editor: neither knowing a slug nor being a SWAPP admin grants editing rights.
+ app.get('/serveurs/gerer/:slug',async(req,res)=>{
+  const user=account(req),name=clean(req.params.slug,90);
+  if(!user)return res.redirect(302,'/compte');
+  if(!/^[a-z0-9][a-z0-9-]{4,89}$/.test(name))return res.status(404).type('text').send('Fiche introuvable');
+  try{
+   const sql=await getDatabase();
+   const [rows]=await sql.execute('SELECT s.id,s.slug,s.name,s.game,s.description,s.website,s.join_address AS joinAddress,s.region,s.tags,s.banner_url AS bannerUrl,x.language,x.twitch_url AS twitchUrl,x.homepage_url AS homepageUrl,b.logo_url AS logoUrl,b.banner_url AS brandBannerUrl,b.accent_color AS accentColor,b.secondary_color AS secondaryColor,b.tagline,b.gallery_json AS galleryJson FROM swapp_game_servers s LEFT JOIN swapp_game_server_extras x ON x.server_id=s.id LEFT JOIN swapp_game_server_branding b ON b.server_id=s.id WHERE s.slug=? AND s.owner_id=? AND s.status="published" LIMIT 1',[name,user]);
+   if(!rows.length)return res.status(404).type('text').send('Fiche introuvable');
+   return res.set('Cache-Control','private,no-store').type('html').send(createPage({game:rows[0].game,games:GAMES,edit:rows[0]}));
+  }catch(e){return res.status(503).type('text').send('Éditeur temporairement indisponible')}
+ });
+ app.put('/api/swapp/serveurs/:id',require('express').json({limit:'16kb'}),async(req,res)=>{
+  if(!originGuard(req))return res.status(403).json({error:'origine_invalide'});
+  const user=account(req),id=clean(req.params.id,32);
+  if(!user)return res.status(401).json({error:'connexion_swapp_requise'});
+  if(!/^[a-f0-9]{32}$/.test(id))return res.status(422).json({error:'serveur_invalide'});
+  const data=req.body||{},name=clean(data.name,101),description=clean(data.description,1501);
+  const game=clean(data.game,70),website=clean(data.website,351),join=clean(data.joinAddress,241),region=clean(data.region||'France',60);
+  const language=clean(data.language||'fr',12),twitchRaw=clean(data.twitch||data.twitchUrl,140),twitch=twitchRaw?twitchLink(twitchRaw):'';
+  const rawTypes=Array.isArray(data.types)?data.types:[],types=readTypes(rawTypes);
+  const tags=rawTypes.length?types.join(', '):clean(data.tags,251);
+  const brand=normalizeBranding(data,id);
+  if(!brand||name.length<3||name.length>100||description.length<30||description.length>1500||
+    !GAMES.includes(game)||!LANGUAGES.some(([code])=>code===language)||
+    website.length>350||join.length>240||tags.length>250|| (website&&!safeUrl(website))||
+    (twitchRaw&&!twitch)||rawTypes.length>6||types.length!==new Set(rawTypes).size)
+   return res.status(422).json({error:'informations_invalides'});
+  let conn;
+  try{
+   const sql=await getDatabase();conn=await sql.getConnection();
+   await conn.beginTransaction();
+   const [owned]=await conn.execute('SELECT id,slug,game,website,join_address FROM swapp_game_servers WHERE id=? AND owner_id=? AND status="published" LIMIT 1 FOR UPDATE',[id,user]);
+   if(!owned.length){await conn.rollback();return res.status(404).json({error:'serveur_introuvable'})}
+   if(game!==owned[0].game){await conn.rollback();return res.status(422).json({error:'jeu_non_modifiable'})}
+   const discord=game==='Discord / Multigaming';
+   const invite=discord?discordLink(data.discordCode||owned[0].website):'';
+   if(discord&&!invite){await conn.rollback();return res.status(422).json({error:'invitation_discord_requise'})}
+   if(!discord&&(!validListingDetails({game,website,joinAddress:join})||(join&&!validJoinAddress(join)))){
+    await conn.rollback();return res.status(422).json({error:'informations_invalides'})
+   }
+   const check=discord?await inviteVerifier(invite):{valid:true};
+   if(!check.valid){await conn.rollback();return res.status(422).json({error:'verification_discord_impossible',retry:true})}
+   const banner=brand.banner||clean(data.bannerUrl,350);
+   await conn.execute('UPDATE swapp_game_servers SET name=?,description=?,website=?,join_address=?,region=?,tags=?,banner_url=? WHERE id=? AND owner_id=?',
+    [name,description,discord?check.inviteUrl:website,discord?'':join,region,tags,banner,id,user]);
+   await conn.execute('INSERT INTO swapp_game_server_extras (server_id,language,twitch_url,homepage_url,discord_guild_id) VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE language=VALUES(language),twitch_url=VALUES(twitch_url),homepage_url=VALUES(homepage_url),discord_guild_id=VALUES(discord_guild_id)',
+    [id,language,twitch,website,discord?clean(check.guildId,25):'']);
+   await saveBranding(conn,id,brand);
+   await conn.commit();
+   return res.set('Cache-Control','no-store').json({updated:true,status:'published',id,url:'/serveurs/'+slug(game)+'/'+owned[0].slug});
+  }catch(e){if(conn)await conn.rollback().catch(()=>{});return fail(res,e)}
+  finally{conn?.release?.()}
+ });
+ // Images persist in the same MySQL database, so a Hostinger deployment cannot discard uploaded branding.
+ const sniffImage=bytes=>{
+  if(!Buffer.isBuffer(bytes)||bytes.length<100||bytes.length>2*1024*1024)return '';
+  if(bytes.length>8&&bytes.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10])))return 'image/png';
+  if(bytes[0]===255&&bytes[1]===216&&bytes[2]===255)return 'image/jpeg';
+  if(bytes.toString('ascii',0,4)==='RIFF'&&bytes.toString('ascii',8,12)==='WEBP')return 'image/webp';
+  return '';
+ };
+ app.put('/api/swapp/serveurs/:id/media/:kind',require('express').raw({type:['image/png','image/jpeg','image/webp'],limit:'2mb'}),async(req,res)=>{
+  if(!originGuard(req))return res.status(403).json({error:'origine_invalide'});
+  const user=account(req),id=clean(req.params.id,32),kind=clean(req.params.kind,10);
+  if(!user)return res.status(401).json({error:'connexion_swapp_requise'});
+  if(!/^[a-f0-9]{32}$/.test(id)||!['logo','banner'].includes(kind))return res.status(422).json({error:'media_invalide'});
+  const mime=sniffImage(req.body);
+  if(!mime)return res.status(415).json({error:'image_non_supportee',maxBytes:2*1024*1024});
+  let conn;
+  try{
+   const sql=await getDatabase();conn=await sql.getConnection();await conn.beginTransaction();
+   const [owned]=await conn.execute('SELECT id FROM swapp_game_servers WHERE id=? AND owner_id=? AND status="published" LIMIT 1 FOR UPDATE',[id,user]);
+   if(!owned.length){await conn.rollback();return res.status(404).json({error:'serveur_introuvable'})}
+   await conn.execute('INSERT INTO swapp_game_server_media (server_id,kind,mime,contents) VALUES (?,?,?,?) ON DUPLICATE KEY UPDATE mime=VALUES(mime),contents=VALUES(contents),updated_at=CURRENT_TIMESTAMP(3)',[id,kind,mime,req.body]);
+   const field=kind==='logo'?'logo_url':'banner_url',url=publicMediaUrl(id,kind),baseline=normalizeBranding({},id);
+   await conn.execute('INSERT INTO swapp_game_server_branding (server_id,logo_url,banner_url,accent_color,secondary_color,tagline,gallery_json) VALUES (?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE '+field+'=VALUES('+field+')',[id,kind==='logo'?url:'',kind==='banner'?url:'',baseline.accent,baseline.secondary,'','[]']);
+   await conn.commit();return res.json({url,mime});
+  }catch(e){if(conn)await conn.rollback().catch(()=>{});return fail(res,e)}
+  finally{conn?.release?.()}
+ });
+ app.get('/media/serveurs/:id/:kind',async(req,res)=>{
+  const id=clean(req.params.id,32),kind=clean(req.params.kind,10);
+  if(!/^[a-f0-9]{32}$/.test(id)||!['logo','banner'].includes(kind))return res.sendStatus(404);
+  try{
+   const sql=await getDatabase();
+   const [rows]=await sql.execute('SELECT m.contents,m.mime FROM swapp_game_server_media m INNER JOIN swapp_game_servers s ON s.id=m.server_id WHERE m.server_id=? AND m.kind=? AND s.status="published" LIMIT 1',[id,kind]);
+   if(!rows.length)return res.sendStatus(404);
+   return res.set({'Cache-Control':'public,max-age=60','X-Content-Type-Options':'nosniff','Content-Security-Policy':"default-src 'none'"}).type(rows[0].mime).send(rows[0].contents);
+  }catch(e){return res.sendStatus(503)}
+ });
+
  app.post('/api/swapp/serveurs/:id/vote',async(req,res)=>{
   if(!originGuard(req))return res.status(403).json({error:'origine_invalide'});
   const user=account(req);if(!user)return res.status(401).json({error:'connexion_swapp_requise'});
