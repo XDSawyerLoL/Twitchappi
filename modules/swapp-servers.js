@@ -467,8 +467,20 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
    const total=Number(totals[0]?.n||0);
    // Count votes separately per server: MariaDB with ONLY_FULL_GROUP_BY rejects
    // selecting nonaggregated columns from a GROUP BY s.id listing query.
-   const [rows]=await sql.execute('SELECT s.id,s.owner_id,s.slug,s.name,s.game,s.description,s.website,s.join_address AS joinAddress,s.region,s.tags,COALESCE(NULLIF(b.banner_url,""),s.banner_url) AS bannerUrl,b.logo_url AS logoUrl,b.accent_color AS accentColor,b.secondary_color AS secondaryColor,b.tagline,s.created_at AS createdAt,(SELECT COUNT(*) FROM swapp_game_server_vote_events v WHERE v.server_id=s.id AND v.voted_at>=?) AS votes_month FROM swapp_game_servers s LEFT JOIN swapp_game_server_branding b ON b.server_id=s.id WHERE '+filter+' ORDER BY '+order+' LIMIT ? OFFSET ?',
-    [month,...args,pageSize,offset]);
+
+   let rows,rankingAvailable=true;
+   try{
+    [rows]=await sql.execute('SELECT s.id,s.owner_id,s.slug,s.name,s.game,s.description,s.website,s.join_address AS joinAddress,s.region,s.tags,COALESCE(NULLIF(b.banner_url,""),s.banner_url) AS bannerUrl,b.logo_url AS logoUrl,b.accent_color AS accentColor,b.secondary_color AS secondaryColor,b.tagline,s.created_at AS createdAt,(SELECT COUNT(*) FROM swapp_game_server_vote_events v WHERE v.server_id=s.id AND v.voted_at>=?) AS votes_month FROM swapp_game_servers s LEFT JOIN swapp_game_server_branding b ON b.server_id=s.id WHERE '+filter+' ORDER BY '+order+' LIMIT ? OFFSET ?',
+     [month,...args,pageSize,offset]);
+   }catch(listingError){
+    // Missing/denied optional branding or vote tables must not hide real published names.
+    if(!['ER_NO_SUCH_TABLE','ER_BAD_FIELD_ERROR','ER_TABLEACCESS_DENIED_ERROR'].includes(listingError?.code))throw listingError;
+    console.warn('[SWAPP SERVEURS] Lecture minimale sans statistiques',String(listingError.code).slice(0,60));
+    const fallbackOrder=sort==='name'?'s.name ASC,s.id ASC':'s.created_at DESC,s.id ASC';
+    [rows]=await sql.execute('SELECT s.id,s.owner_id,s.slug,s.name,s.game,s.description,s.website,s.join_address AS joinAddress,s.region,s.tags,s.banner_url AS bannerUrl,s.created_at AS createdAt,NULL AS votes_month FROM swapp_game_servers s WHERE '+filter+' ORDER BY '+fallbackOrder+' LIMIT ? OFFSET ?',
+     [...args,pageSize,offset]);
+    rankingAvailable=false;
+   }
    // Category counters are informative; their failure must not hide listings.
    let gameCounts=null;
    try{
@@ -482,9 +494,9 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
    // The result includes permissions specific to this session, so never share its cache.
    res.set('Cache-Control','private,no-store').json({
     servers:rows.map(({owner_id,...r},index)=>({...r,...(evidence.get(r.id)||{}),canEdit:!!owner&&ownerKeys(req).includes(owner_id),
-     rank:sort==='votes'?offset+index+1:null,votes_month:Number(r.votes_month),
+     rank:sort==='votes'&&rankingAvailable?offset+index+1:null,votes_month:r.votes_month==null?null:Number(r.votes_month),
      tags:String(r.tags||'').split(',').map(t=>t.trim()).filter(Boolean)})),
-    total,page,pageSize,hasMore:offset+rows.length<total,gameCounts,ranking:'monthly_valid_votes',onlineVerified:false
+    total,page,pageSize,hasMore:offset+rows.length<total,gameCounts,ranking:rankingAvailable?'monthly_valid_votes':'temporarily_unavailable',onlineVerified:false
    });
   }catch(e){fail(res,e)}
  });
