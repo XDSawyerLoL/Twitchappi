@@ -48,7 +48,7 @@ test('Agenda legacy route safely redirects under TV and shared nav assets bust b
  assert.match(read('modules/swapp-page-shell.js'),/swapp-unified-nav\.css\?v=20261113-nav-simple-v2/);
  for(const html of [page('tv'),home]){
   assert.match(html,/swapp-unified-nav\.css\?v=20261113-nav-simple-v2/);
-  assert.match(html,/swapp-hub-nav\.js\?v=20261114-home-all-v3/);
-  assert.match(html,/swapp-navigation\.js\?v=20261115-explorer-nav-v4/);
+  assert.match(html,/swapp-hub-nav\.js\?v=20261115-servers-menu-v4/);
+  assert.match(html,/swapp-navigation\.js\?v=20261115-servers-menu-v5/);
  }
 });
