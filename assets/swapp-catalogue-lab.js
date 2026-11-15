@@ -4,7 +4,7 @@
  */
 (function(){
 'use strict';
-const LAB_VERSION='20261115-obsession-shuffle-v29';
+const LAB_VERSION='20261115-hidpi-posters-v30';
 const API=Object.freeze({
  home:'/api/discovery/home-lives?limit=24&lang=fr',
  top:'/api/twitch/streams/top?limit=100&lang=fr',
