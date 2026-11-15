@@ -190,3 +190,15 @@ html body.swapp-servers-page,html body.swapp-servers-page .ss-pro{background:#03
 @media(max-width:800px){.ss-pro-columns{grid-template-columns:1fr}.ss-pro-aside{position:static;order:-1}.ss-pro-breadcrumb{margin-bottom:36px}.ss-pro-hero{min-height:540px}}
 @media(max-width:570px){.ss-pro-hero-inner{padding-top:24px;padding-bottom:26px}.ss-pro-intro{gap:12px;align-items:flex-start}.ss-pro-art{flex-basis:90px;height:105px}.ss-pro-intro-copy h1{font-size:clamp(27px,7vw,38px)}.ss-pro-intro-copy>p:last-child{display:none}.ss-pro-hero-footer{margin-top:22px}.ss-pro-metrics{width:100%}.ss-pro-metrics>div{min-width:0;flex:1;padding:12px 10px}.ss-pro-metrics strong{font-size:22px}.ss-pro-metrics small{font-size:10px;white-space:normal}.ss-pro-actions{width:100%}.ss-pro-actions>*{flex:1;min-width:140px}.ss-pro-tabs .ss-inner{gap:19px}.ss-pro-tabs a{min-height:54px;font-size:12px}.ss-pro-review-ratings{grid-template-columns:1fr}.ss-pro-panel{padding:20px}.ss-pro-chart{min-height:190px}}
 @media(prefers-reduced-motion:reduce){.ss-pro-button{transition:none}}
+
+/* Moderated member reviews appear in the existing SERVEUR + admin queue. */
+#ss-review-moderation{margin-top:24px;padding-top:20px;border-top:1px solid #ffffff28}
+#ss-review-moderation h3{font-size:21px;margin:0 0 15px}
+.ss-review-admin-item{background:#091317;border:1px solid #38515b;border-radius:9px;padding:17px 20px;margin-bottom:12px}
+.ss-review-admin-item h4{font-size:17px;margin:0 0 10px}
+.ss-review-admin-item p{white-space:pre-wrap;line-height:1.65;color:#d3e0e7;overflow-wrap:anywhere}
+.ss-review-admin-item small{display:block;color:#a8c2ce}
+.ss-review-admin-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+.ss-review-admin-actions button{padding:11px 15px!important;font-size:13px!important}
+.ss-review-admin-actions button:first-child{background:#a9f3ef!important;color:#06151c!important;border-color:#a9f3ef!important}
+.ss-review-admin-actions button:disabled{opacity:.6}
