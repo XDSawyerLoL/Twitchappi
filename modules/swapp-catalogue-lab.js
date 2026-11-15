@@ -74,7 +74,7 @@ function page({publicHome=false}={}){
   '<meta name="description" content="'+(publicHome?'SWAPP réunit les créateurs en direct, les jeux à découvrir et les actualités gaming dans un catalogue immersif.':'Page de démonstration : explorer les lives et les jeux SWAPP par affiches, prévisualisations et favoris.')+'">'+
   '<script src="/assets/swapp-editorial-color.js?v=20261114-native-accent-v1"></script>'+SHARED_HEAD_SLOT+
   '<link rel="stylesheet" href="/assets/swapp-visual-polish.css?v=20261016-mobile-swipe-40">'+
-  '<link rel="stylesheet" href="/assets/swapp-catalogue-lab.css?v=20261115-game-banners-style-v28"><link rel="stylesheet" href="/assets/swapp-genre-discovery.css?v=20261115-hidpi-genre-v8">';
+  '<link rel="stylesheet" href="/assets/swapp-catalogue-lab.css?v=20261115-magazine-first-v29"><link rel="stylesheet" href="/assets/swapp-genre-discovery.css?v=20261115-hidpi-genre-v8">';
  const content=catalogueContent({publicHome});
  return renderPage({
   head,content,active:publicHome?'home':'categories',
