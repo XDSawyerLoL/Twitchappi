@@ -4,7 +4,7 @@
  */
 (function(){
 'use strict';
-const LAB_VERSION='20261115-black-modal-real-genres-v22';
+const LAB_VERSION='20261115-obsession-shuffle-v29';
 const API=Object.freeze({
  home:'/api/discovery/home-lives?limit=24&lang=fr',
  top:'/api/twitch/streams/top?limit=100&lang=fr',
@@ -16,6 +16,7 @@ const API=Object.freeze({
 // Revalidate real on-air inventory without reloading the editorial magazine.
 const LIVE_RECHECK_MS=5*60*1000;
 const genreApi=typeof window!=='undefined'?window.SwappGenreDiscovery:null;
+const surpriseApi=typeof window!=='undefined'?window.SwappLiveSurprise:null;
 const FAVORITES_KEY='swapp:followed-games:v1';
 const CHANNEL_KEY='oryon_v4_likes';
 const GAME_COPY=Object.freeze({
@@ -282,6 +283,65 @@ const create=(tag,className,text)=>{
 };
 const state={lives:[],games:[],baseCategories:[],liveLastCheck:0,liveRefreshing:false,liveEpoch:0,articles:[],small:[],smallCandidates:[],smallLoading:false,smallError:false,smallMax:50,smallEpoch:0,newsError:false,newsLoading:false,newsEpoch:0,featured:null,filter:'all',genre:'',query:'',loading:false,failed:[],previewTimer:0,abort:null,heroItems:[],heroIndex:0,heroTimer:null,hoverTimer:null,hoverIframe:null,hoverCard:null};
 const status=$('scl-status'),hero=$('scl-feature'),featureVisual=$('scl-feature-visual'),dialog=$('scl-dialog');
+// The user's choice and recent history are local to this view; nothing is
+// fabricated or persisted about the audience, game or stream status.
+let surpriseCurrent=null;
+let surpriseHistory=[];
+function renderSurprise(advance=false){
+ const section=$('scl-surprise');
+ if(!section)return;
+ const output=$('scl-surprise-result');
+ const image=$('scl-surprise-cover');
+ const shuffle=$('scl-surprise-pick');
+ const watchButton=$('scl-surprise-watch');
+ const pool=state.lives.filter(item=>item.kind==='live'&&matching(item));
+ if(!pool.length){
+  surpriseCurrent=null;
+  section.dataset.hasLive='false';
+  image.removeAttribute('src');
+  output.textContent=state.loading?'Recherche des vrais directs…':
+   'Aucun live confirmé pour cette sélection actuellement.';
+  shuffle.disabled=!!state.loading||!state.lives.length;
+  watchButton.disabled=true;
+  return;
+ }
+ const valid=surpriseCurrent&&pool.some(item=>item.id===surpriseCurrent.id);
+ if(advance||!valid){
+  surpriseCurrent=surpriseApi?.pickSurprise(pool,{
+   recentIds:surpriseHistory,
+   genre:state.genre,
+   genreForGame:genreApi?.genreForGame,
+   random:Math.random
+  })||null;
+  if(surpriseCurrent)surpriseHistory=[...surpriseHistory,surpriseCurrent.id].slice(-8);
+ }
+ const chosen=surpriseCurrent;
+ if(!chosen){
+  section.dataset.hasLive='false';
+  output.textContent='Impossible de sélectionner un direct vérifié.';
+  watchButton.disabled=true;shuffle.disabled=true;
+  return;
+ }
+ section.dataset.hasLive='true';
+ const name=create('strong','scl-surprise-creator',chosen.name||chosen.login);
+ const subtitle=create('span','scl-surprise-game',[
+  chosen.game||'Jeu non renseigné',
+  chosen.audienceVerified?chosen.viewers.toLocaleString('fr-FR')+' spectateurs':'Audience indisponible'
+ ].join(' · '));
+ output.replaceChildren(name,subtitle);
+ if(chosen.image){
+  if(image.getAttribute('src')!==chosen.image)image.src=chosen.image;
+ }else image.removeAttribute('src');
+ shuffle.disabled=false;
+ watchButton.disabled=false;
+ watchButton.setAttribute('aria-label','Regarder le direct de '+(chosen.name||chosen.login));
+}
+$('scl-surprise-pick')?.addEventListener('click',()=>renderSurprise(true));
+$('scl-surprise-watch')?.addEventListener('click',()=>watch(surpriseCurrent));
+$('scl-surprise-cover')?.addEventListener('error',event=>{
+ event.target.removeAttribute('src');
+});
+
 const heroDots=$('scl-feature-dots');
 const visNode=item=>{
  const frame=create('div','scl-card-media');
@@ -970,6 +1030,7 @@ async function loadSmallCommunities(){
 }
 function render(){
  stopHoverPreview();
+ renderSurprise();
  renderGenres();
  renderTopGames();
  renderGenreShelves();
