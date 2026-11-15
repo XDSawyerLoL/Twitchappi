@@ -82,7 +82,7 @@ test('moderation count is admin-only and the existing SWAPP guard is authoritati
  const ok=response(),denied=response();
  await a.GET.get('/api/swapp/serveurs/moderation/count')(request(),ok);
  await b.GET.get('/api/swapp/serveurs/moderation/count')(request(),denied);
- assert.deepEqual(ok.data,{pending:3,url:'/serveurs#ss-review'});
+ assert.deepEqual(ok.data,{pending:6,serversPending:3,reviewsPending:3,url:'/serveurs#ss-review'});
  assert.equal(denied.statusCode,403);
  const html=page({isAdmin:true});
  assert.ok(html.indexOf('class="ss-admin"')<html.indexOf('class="ss-toolbar"'),'admin panel must be near top');
