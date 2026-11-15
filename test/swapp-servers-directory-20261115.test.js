@@ -22,7 +22,7 @@ test('server listing includes coherent games, safe names and HTTPS-only URL vali
  assert.equal(safeUrl('https://example.com'),'https://example.com/');
 });
 test('backend declares all public and authenticated routes',()=>{
- const seen=[];const app={get:(p,...args)=>seen.push(['GET',p,args.length]),post:(p,...args)=>seen.push(['POST',p,args.length])};
+ const seen=[];const app={get:(p,...args)=>seen.push(['GET',p,args.length]),post:(p,...args)=>seen.push(['POST',p,args.length]),put:(p,...args)=>seen.push(['PUT',p,args.length])};
  register(app,{enableAutoReview:false});
  for(const [method,route] of [['GET','/serveurs'],['GET','/api/swapp/serveurs'],['POST','/api/swapp/serveurs'],['POST','/api/swapp/serveurs/:id/vote'],['GET','/api/swapp/serveurs/moderation'],['POST','/api/swapp/serveurs/:id/moderation']])
   assert.ok(seen.some(x=>x[0]===method&&x[1]===route),method+' '+route);
