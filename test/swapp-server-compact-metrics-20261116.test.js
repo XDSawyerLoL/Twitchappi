@@ -15,7 +15,7 @@ test('rating stars are visible but never populated from unverified numbers',()=>
  assert.match(real.factsHtml,/128/);
  assert.match(real.factsHtml,/312/);
  assert.match(real.factsHtml,/3/);
- const unknown=cardSignals({game:'Discord / Multigaming'});
+ const unknown=cardSignals({game:'Discord / Multigaming',website:'https://discord.gg/test123'});
  assert.match(unknown.ratingHtml,/--ss-fill:0%/);
  assert.match(unknown.ratingHtml,/Avis indisponibles/);
  assert.match(unknown.factsHtml,/effectif Discord/);
