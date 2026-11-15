@@ -7099,6 +7099,24 @@ app.get('/api/categories/top', async (req, res) => {
 });
 
 
+// Targeted verified genres: popular games/top omits most titles in smaller
+// genres (racing, puzzles, etc). Search the real Twitch category database and
+// cache results, rather than populating shelves with made-up titles.
+const swappGenreCatalogue=require('./modules/swapp-genre-catalogue').createGenreCatalogue(twitchAPI);
+app.get('/api/categories/genre', heavyLimiter, async(req,res)=>{
+ const genre=String(req.query.genre||'').trim().toLowerCase();
+ if(!Object.hasOwn(swappGenreCatalogue.SEEDS,genre))
+  return res.status(400).json({success:false,error:'Genre inconnu'});
+ try{
+  const categories=await swappGenreCatalogue.get(genre);
+  res.set('Cache-Control','public, max-age=180, stale-while-revalidate=600');
+  return res.json({success:true,source:'twitch-verified',genre,categories});
+ }catch(error){
+  console.warn('[SWAPP GENRES] Twitch category search failed:',genre,String(error?.message||error).slice(0,160));
+  return res.status(503).json({success:false,error:'Catalogue du genre temporairement indisponible'});
+ }
+});
+
 // Search categories (pour la barre de recherche TwitFlix)
 // - retourne un tableau de cat\u00E9gories (m\u00EAmes champs que /api/categories/top)
 app.get('/api/categories/search', async (req, res) => {

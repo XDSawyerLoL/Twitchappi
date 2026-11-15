@@ -3,11 +3,11 @@
 const {catalogueContent}=require('./swapp-catalogue-lab');
 const HOME_START='<section id="home" class="view active">';
 const NEXT_VIEW='  <section id="discover" class="view"></section>';
-const STYLE='<link rel="stylesheet" href="/assets/swapp-catalogue-lab.css?v=20261114-hero-rail-spacing-v21">'+
+const STYLE='<link rel="stylesheet" href="/assets/swapp-catalogue-lab.css?v=20261115-black-game-dialog-v22">'+
  '<link rel="stylesheet" href="/assets/swapp-catalogue-spa.css?v=20261114-real-spa-v16">'+
- '<link rel="stylesheet" href="/assets/swapp-genre-discovery.css?v=20261115-genre-scroll-v5">';
-const SCRIPT='<script src="/assets/swapp-genre-discovery.js?v=20261115-genre-scroll-v5" defer></script>'+
- '<script src="/assets/swapp-catalogue-lab.js?v=20261115-rail-inventory-v27" defer></script>'+
+ '<link rel="stylesheet" href="/assets/swapp-genre-discovery.css?v=20261115-real-racing-v6">';
+const SCRIPT='<script src="/assets/swapp-genre-discovery.js?v=20261115-real-racing-v6" defer></script>'+
+ '<script src="/assets/swapp-catalogue-lab.js?v=20261115-black-genres-v28" defer></script>'+
  '<script src="/assets/swapp-catalogue-spa.js?v=20261114-home-all-spa-v18" defer></script>';
 function renderIntoSpa(html){
  const source=String(html||'');

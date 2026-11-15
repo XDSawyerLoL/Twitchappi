@@ -30,10 +30,13 @@ on:
       - 'test/swapp-top-games-genre-rails-20261114.test.js'
       - 'test/swapp-movix-visual-20261115.test.js'
       - 'test/swapp-home-rail-fixes-20261115.test.js'
+      - 'test/swapp-black-genre-live-dialog-20261115.test.js'
+      - 'modules/swapp-genre-catalogue.js'
       - 'test/swapp-global-spotlight-full-genres-20261114.test.js'
   push:
     branches:
       - master
+      - fix/swapp-black-game-modal-full-genres-20261115
       - fix/swapp-home-rails-lights-inventory-20261115
       - security/swapp-high-cves-batch-20261114
       - feat/swapp-home-discover-genres-20261114
@@ -170,6 +173,14 @@ jobs:
           node --check assets/swapp-catalogue-lab.js
           node --check server.js
           node --test test/swapp-home-rail-fixes-20261115.test.js
+
+      - name: Black live modal and verified complete genre shelves
+        run: |
+          node --check modules/swapp-genre-catalogue.js
+          node --check assets/swapp-genre-discovery.js
+          node --check assets/swapp-catalogue-lab.js
+          node --check server.js
+          node --test test/swapp-black-genre-live-dialog-20261115.test.js
 
       - name: Préparer le paquet Hostinger à partir du commit GitHub validé
         run: node tools/swapp-hostinger-package.js --output="${{ runner.temp }}/swapp-hostinger-${GITHUB_SHA:0:12}.zip"

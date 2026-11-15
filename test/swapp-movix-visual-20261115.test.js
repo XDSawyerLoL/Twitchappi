@@ -83,10 +83,10 @@ test('Movix CSS and JS versions are the same in SPA and standalone catalogue',()
  const spa=renderIntoSpa(read('index.html'));
  const native=require('../modules/swapp-catalogue-lab').page();
  for(const html of [spa,native]){
-  assert.match(html,/swapp-genre-discovery\.css\?v=20261115-genre-scroll-v5/);
-  assert.match(html,/swapp-genre-discovery\.js\?v=20261115-genre-scroll-v5/);
-  assert.match(html,/swapp-catalogue-lab\.js\?v=20261115-rail-inventory-v27/);
+  assert.match(html,/swapp-genre-discovery\.css\?v=20261115-real-racing-v6/);
+  assert.match(html,/swapp-genre-discovery\.js\?v=20261115-real-racing-v6/);
+  assert.match(html,/swapp-catalogue-lab\.js\?v=20261115-black-genres-v28/);
  }
  const smoke=read('tools/swapp-deploy-smoke.js');
- assert.match(smoke,/swapp-catalogue-lab\.js\?v=20261115-rail-inventory-v27/);
+ assert.match(smoke,/swapp-catalogue-lab\.js\?v=20261115-black-genres-v28/);
 });

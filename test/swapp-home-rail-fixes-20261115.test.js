@@ -81,5 +81,5 @@ test('genre carousel arrow scrolls by actual card width, with keyboard support',
  assert.match(js,/getComputedStyle\(target\)\.columnGap/);
  assert.match(js,/direction\*count\*step/);
  assert.match(js,/genreRail\?\.addEventListener\('keydown'/);
- assert.match(read('modules/swapp-catalogue-spa.js'),/swapp-catalogue-lab\.js\?v=20261115-rail-inventory-v27/);
+ assert.match(read('modules/swapp-catalogue-spa.js'),/swapp-catalogue-lab\.js\?v=20261115-black-genres-v28/);
 });
