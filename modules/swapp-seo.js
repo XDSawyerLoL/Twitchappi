@@ -198,7 +198,8 @@ function robotsText(){
   'Disallow: /api/\nDisallow: /actus/studio\nDisallow: /boutique/admin\n'+
   'Sitemap: '+ORIGIN+'/sitemap.xml\n'+
   'Sitemap: '+ORIGIN+'/news-sitemap.xml\n'+
-  'Sitemap: '+ORIGIN+'/creators-sitemap.xml\n';
+  'Sitemap: '+ORIGIN+'/creators-sitemap.xml\n'+
+  'Sitemap: '+ORIGIN+'/sitemap-serveurs.xml\n';
 }
 function rssXml(articles=[]){
  const valid=(Array.isArray(articles)?articles:[]).filter(article=>
