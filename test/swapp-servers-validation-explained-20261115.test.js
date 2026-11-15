@@ -40,7 +40,7 @@ test('missing website AND join address returns actionable field error and no dat
  const ctx=api(),res=ctx.response();const payload=basic();payload.website='';
  await ctx.routes['POST /api/swapp/serveurs'](ctx.request(payload),res);
  assert.equal(res.code,422);assert.equal(res.payload.error,'informations_invalides');
- assert.match(res.payload.fields.joinAddress,/adresse de connexion/i);
+ assert.match(res.payload.fields.joinAddress,/adresse publique de connexion/i);
  assert.equal(ctx.writes.length,0);
 });
 test('pasting a ChatGPT download link into a logo URL yields logo-specific guidance',async()=>{
