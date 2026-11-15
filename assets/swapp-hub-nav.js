@@ -11,7 +11,7 @@
  ];
  const NAV=[
   ['/','Accueil'],['/actus','Actualité'],
-  ...HUBS.map(x=>[x.href,x.label])
+  ...HUBS.map(x=>[x.href,x.label]),['/serveurs','SERVEUR +']
  ];
  // Account lives in the secondary menu but must still be recognized by
  // reconciliation; otherwise every MutationObserver pass adds another link.
@@ -90,11 +90,11 @@
   const api=typeof window!=='undefined'?window.SwappNavigation:null;
   if(!api||typeof api.desktopNavigation!=='function'||typeof api.mobileNavigation!=='function')return false;
   const route=String(location.pathname||'/').replace(/\/+$/,'')||'/';
-  const active=route==='/bandes-annonces'?'trailers':route==='/tv'?'tv':route==='/tv/programme'||route==='/agenda'?'agenda':route==='/on-air'?'onair':route==='/actus'?'actus':route==='/decouvrir'?'discover':route==='/social'?'community':route==='/boutique'?'shop':route==='/categories'?'categories':route==='/equipes'?'teams':route.startsWith('/guides')?'guides':'home';
-  const signature='simple-v3:'+(mobile?'mobile:':'desktop:')+active;
+  const active=route==='/serveurs'||route.startsWith('/serveurs/')?'servers':route==='/explorer'||route.startsWith('/explorer/')?'explorer':route==='/bandes-annonces'?'trailers':route==='/tv'?'tv':route==='/tv/programme'||route==='/agenda'?'agenda':route==='/on-air'?'onair':route==='/actus'?'actus':route==='/decouvrir'?'discover':route==='/social'?'community':route==='/boutique'?'shop':route==='/categories'?'categories':route==='/equipes'?'teams':route.startsWith('/guides')?'guides':'home';
+  const signature='simple-v4-servers:'+(mobile?'mobile:':'desktop:')+active;
   const valid=!!(nav.querySelector('a[href="/decouvrir"]')&&
    !nav.querySelector('a[href="/categories"]')&&
-   nav.querySelector('a[href="/actus"]')&&nav.querySelector('.swapp-tv-nav-cta')&&
+   nav.querySelector('a[href="/actus"]')&&nav.querySelector('a[href="/serveurs"]')&&nav.querySelector('.swapp-tv-nav-cta')&&
    !nav.querySelector('.swapp-news-more')&&!nav.querySelector('a[href="/equipes"]')&&
    (mobile?!!nav.querySelector('.swapp-mobile-more .swapp-mobile-tv-subnav a[href="/decouvrir"]'):
     !!nav.querySelector('.swapp-tv-submenu a[href="/decouvrir"]')));
@@ -133,6 +133,7 @@
   for(const {href,label} of HUBS){
    if(!found.has(href))list.append(anchor(href,label));
   }
+  if(!found.has('/serveurs'))list.append(anchor('/serveurs','SERVEUR +'));
  }
  function mobile(){
   const nav=document.getElementById('mobileNav');
