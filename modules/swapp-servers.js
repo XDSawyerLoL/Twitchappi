@@ -69,6 +69,11 @@ function account(req){
  const twitch=clean(req.session?.twitchUser?.id||'',70);
  return twitch?'twitch:'+twitch:'';
 }
+function ownerKeys(req){
+ const primary=account(req);
+ const twitch=clean(req.session?.twitchUser?.id||'',70);
+ return [primary,primary&&twitch&&primary!=='twitch:'+twitch?'twitch:'+twitch:primary];
+}
 function administrator(req){const id=account(req);if(!id)return false;const pinned=String(process.env.ORYON_ADMIN_USER_IDS||'').split(',').map(x=>x.trim()).filter(Boolean);return pinned.includes(id)}
 function fail(res,e){console.warn('[SWAPP SERVEURS]',String(e.code||e.message||e).slice(0,90));return res.status(503).json({error:'annuaire_temporairement_indisponible'})}
 async function db(){
@@ -207,7 +212,7 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
   const owner=account(req);if(!owner)return res.redirect(302,'/compte');
   try{
    const sql=await getDatabase();
-   const [rows]=await sql.execute('SELECT s.id,s.name,s.slug,s.game,s.description,s.status,b.logo_url,b.banner_url,b.accent_color FROM swapp_game_servers s LEFT JOIN swapp_game_server_branding b ON b.server_id=s.id WHERE s.owner_id=? ORDER BY s.created_at DESC LIMIT 30',[owner]);
+   const [rows]=await sql.execute('SELECT s.id,s.name,s.slug,s.game,s.description,s.status,b.logo_url,b.banner_url,b.accent_color FROM swapp_game_servers s LEFT JOIN swapp_game_server_branding b ON b.server_id=s.id WHERE s.owner_id IN (?,?) ORDER BY s.created_at DESC LIMIT 30',ownerKeys(req));
    const cards=rows.map(item=>{
     const color=colorHex(item.accent_color)||DEFAULT_ACCENT;
     const logo=optionalImageUrl(item.logo_url,item.id,'logo');
@@ -228,7 +233,7 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
   if(!/^[a-z0-9][a-z0-9-]{4,89}$/.test(name))return res.status(404).type('text').send('Fiche introuvable');
   try{
    const sql=await getDatabase();
-   const [rows]=await sql.execute('SELECT s.id,s.slug,s.name,s.game,s.description,s.website,s.join_address AS joinAddress,s.region,s.tags,s.banner_url AS bannerUrl,x.language,x.twitch_url AS twitchUrl,x.homepage_url AS homepageUrl,b.logo_url AS logoUrl,b.banner_url AS brandBannerUrl,b.accent_color AS accentColor,b.secondary_color AS secondaryColor,b.tagline,b.gallery_json AS galleryJson FROM swapp_game_servers s LEFT JOIN swapp_game_server_extras x ON x.server_id=s.id LEFT JOIN swapp_game_server_branding b ON b.server_id=s.id WHERE s.slug=? AND s.owner_id=? AND s.status="published" LIMIT 1',[name,user]);
+   const [rows]=await sql.execute('SELECT s.id,s.slug,s.name,s.game,s.description,s.website,s.join_address AS joinAddress,s.region,s.tags,s.banner_url AS bannerUrl,x.language,x.twitch_url AS twitchUrl,x.homepage_url AS homepageUrl,b.logo_url AS logoUrl,b.banner_url AS brandBannerUrl,b.accent_color AS accentColor,b.secondary_color AS secondaryColor,b.tagline,b.gallery_json AS galleryJson FROM swapp_game_servers s LEFT JOIN swapp_game_server_extras x ON x.server_id=s.id LEFT JOIN swapp_game_server_branding b ON b.server_id=s.id WHERE s.slug=? AND s.owner_id IN (?,?) AND s.status="published" LIMIT 1',[name,...ownerKeys(req)]);
    if(!rows.length)return res.status(404).type('text').send('Fiche introuvable');
    return res.set('Cache-Control','private,no-store').type('html').send(createPage({game:rows[0].game,games:GAMES,edit:rows[0]}));
   }catch(e){return res.status(503).type('text').send('Éditeur temporairement indisponible')}
@@ -246,7 +251,7 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
    const [voteRows]=await sql.execute('SELECT COUNT(*) AS total FROM swapp_game_server_vote_events WHERE server_id=? AND voted_at>=?',[rows[0].id,new Date().toISOString().slice(0,7)+'-01']);
    const votes=Number(voteRows[0]?.total||0);
    const evidence=await getProfileEvidence(sql,{id:rows[0].id,game,votesMonth:votes});
-   return res.set('Cache-Control','no-store').type('html').send(detailPage(rows[0],votes,{...evidence,canEdit:rows[0].owner_id===account(req)&&!!account(req)}));
+   return res.set('Cache-Control','no-store').type('html').send(detailPage(rows[0],votes,{...evidence,canEdit:!!account(req)&&ownerKeys(req).includes(rows[0].owner_id)}));
   }catch(e){console.warn('[SWAPP SERVEURS]',String(e?.message||e).slice(0,90));return res.status(503).type('text').send('Fiche temporairement indisponible')}
  });
  app.get('/api/swapp/serveurs',async(req,res)=>{
@@ -269,7 +274,7 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
    const owner=account(req);
    // The result includes permissions specific to this session, so never share its cache.
    res.set('Cache-Control','private,no-store').json({
-    servers:rows.map(({owner_id,...r},index)=>({...r,canEdit:!!owner&&owner_id===owner,
+    servers:rows.map(({owner_id,...r},index)=>({...r,canEdit:!!owner&&ownerKeys(req).includes(owner_id),
      rank:sort==='votes'?offset+index+1:null,votes_month:Number(r.votes_month),
      tags:String(r.tags||'').split(',').map(t=>t.trim()).filter(Boolean)})),
     total,page,pageSize,hasMore:offset+rows.length<total,gameCounts,ranking:'monthly_valid_votes',onlineVerified:false
@@ -316,12 +321,12 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
    conn=typeof sql.getConnection==='function'?await sql.getConnection():sql;
    if(typeof conn.beginTransaction==='function')await conn.beginTransaction();
    // Existing pending submissions can be finished without creating a second entry.
-   const [existing]=await conn.execute('SELECT id,slug,status FROM swapp_game_servers WHERE owner_id=? AND game=? AND name=? ORDER BY created_at DESC LIMIT 1 FOR UPDATE',[owner,game,name]);
+   const [existing]=await conn.execute('SELECT id,slug,status FROM swapp_game_servers WHERE owner_id IN (?,?) AND game=? AND name=? ORDER BY created_at DESC LIMIT 1 FOR UPDATE',[...ownerKeys(req),game,name]);
    if(existing.length&&existing[0].status==='rejected'){
     if(typeof conn.rollback==='function')await conn.rollback();
     return res.status(409).json({error:'inscription_refusee'});
    }
-   const [count]=await conn.execute('SELECT COUNT(*) AS n FROM swapp_game_servers WHERE owner_id=?',[owner]);
+   const [count]=await conn.execute('SELECT COUNT(*) AS n FROM swapp_game_servers WHERE owner_id IN (?,?)',ownerKeys(req));
    if(!existing.length&&Number(count[0]?.n||0)>=5){
     if(typeof conn.rollback==='function')await conn.rollback();
     return res.status(429).json({error:'limite_de_cinq_serveurs'});
@@ -329,8 +334,8 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
    const id=existing.length?existing[0].id:crypto.randomBytes(16).toString('hex');
    const serverSlug=existing.length?existing[0].slug:(slug(name)||'serveur')+'-'+id.slice(0,7);
    if(existing.length){
-    const [updated]=await conn.execute('UPDATE swapp_game_servers SET name=?,description=?,website=?,join_address=?,region=?,tags=?,banner_url=?,status="published" WHERE id=? AND owner_id=? AND status IN ("pending","published")',
-     [name,description,mainUrl,mainJoin,region,tags,banner,id,owner]);
+    const [updated]=await conn.execute('UPDATE swapp_game_servers SET name=?,description=?,website=?,join_address=?,region=?,tags=?,banner_url=?,status="published" WHERE id=? AND owner_id IN (?,?) AND status IN ("pending","published")',
+     [name,description,mainUrl,mainJoin,region,tags,banner,id,...ownerKeys(req)]);
     if(Number(updated.affectedRows)<0)throw Error('submission_conflict');
    }else{
     await conn.execute('INSERT INTO swapp_game_servers (id,owner_id,name,slug,game,description,website,join_address,region,tags,banner_url,status) VALUES (?,?,?,?,?,?,?,?,?,?,?,"published")',
@@ -373,7 +378,7 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
   try{
    const sql=await getDatabase();conn=await sql.getConnection();
    await conn.beginTransaction();
-   const [owned]=await conn.execute('SELECT id,slug,game,website,join_address FROM swapp_game_servers WHERE id=? AND owner_id=? AND status="published" LIMIT 1 FOR UPDATE',[id,user]);
+   const [owned]=await conn.execute('SELECT id,slug,game,website,join_address FROM swapp_game_servers WHERE id=? AND owner_id IN (?,?) AND status="published" LIMIT 1 FOR UPDATE',[id,...ownerKeys(req)]);
    if(!owned.length){await conn.rollback();return res.status(404).json({error:'serveur_introuvable'})}
    if(game!==owned[0].game){await conn.rollback();return res.status(422).json({error:'jeu_non_modifiable'})}
    const discord=game==='Discord / Multigaming';
@@ -387,8 +392,8 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
    const check=inviteChanged?await inviteVerifier(invite):{valid:true,inviteUrl:owned[0].website,guildId:''};
    if(!check.valid){await conn.rollback();return res.status(422).json({error:'verification_discord_impossible',retry:true})}
    const banner=brand.banner||clean(data.bannerUrl,350);
-   await conn.execute('UPDATE swapp_game_servers SET name=?,description=?,website=?,join_address=?,region=?,tags=?,banner_url=? WHERE id=? AND owner_id=?',
-    [name,description,discord?(inviteChanged?check.inviteUrl:owned[0].website):website,discord?'':join,region,tags,banner,id,user]);
+   await conn.execute('UPDATE swapp_game_servers SET name=?,description=?,website=?,join_address=?,region=?,tags=?,banner_url=? WHERE id=? AND owner_id IN (?,?)',
+    [name,description,discord?(inviteChanged?check.inviteUrl:owned[0].website):website,discord?'':join,region,tags,banner,id,...ownerKeys(req)]);
    await conn.execute('INSERT INTO swapp_game_server_extras (server_id,language,twitch_url,homepage_url,discord_guild_id) VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE language=VALUES(language),twitch_url=VALUES(twitch_url),homepage_url=VALUES(homepage_url),discord_guild_id=IF(VALUES(discord_guild_id)<>"",VALUES(discord_guild_id),discord_guild_id)',
     [id,language,twitch,website,inviteChanged?clean(check.guildId,25):'']);
    await saveBranding(conn,id,brand);
@@ -433,12 +438,12 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
   let conn;
   try{
    const sql=await getDatabase();conn=await sql.getConnection();await conn.beginTransaction();
-   const [rows]=await conn.execute('SELECT id FROM swapp_game_servers WHERE id=? AND owner_id=? AND status="published" LIMIT 1 FOR UPDATE',[id,owner]);
+   const [rows]=await conn.execute('SELECT id FROM swapp_game_servers WHERE id=? AND owner_id IN (?,?) AND status="published" LIMIT 1 FOR UPDATE',[id,...ownerKeys(req)]);
    if(!rows.length){await conn.rollback();return res.status(404).json({error:'serveur_introuvable'})}
    const url=publicMediaUrl(id,kind),field=kind==='logo'?'logo_url':'banner_url';
    await conn.execute('DELETE FROM swapp_game_server_media WHERE server_id=? AND kind=?',[id,kind]);
    await conn.execute('UPDATE swapp_game_server_branding SET '+field+'="" WHERE server_id=? AND '+field+'=?',[id,url]);
-   if(kind==='banner')await conn.execute('UPDATE swapp_game_servers SET banner_url="" WHERE id=? AND owner_id=? AND banner_url=?',[id,owner,url]);
+   if(kind==='banner')await conn.execute('UPDATE swapp_game_servers SET banner_url="" WHERE id=? AND owner_id IN (?,?) AND banner_url=?',[id,...ownerKeys(req),url]);
    await conn.commit();return res.set('Cache-Control','no-store').json({removed:true});
   }catch(e){if(conn)await conn.rollback().catch(()=>{});return fail(res,e)}
   finally{conn?.release?.()}
@@ -535,7 +540,7 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
 
  app.get('/api/swapp/serveurs/mes-fiches',async(req,res)=>{
   const user=account(req);if(!user)return res.status(401).json({error:'connexion_swapp_requise'});
-  try{const sql=await getDatabase(),[rows]=await sql.execute('SELECT name,game,slug,status,created_at AS createdAt FROM swapp_game_servers WHERE owner_id=? ORDER BY created_at DESC LIMIT 30',[user]);
+  try{const sql=await getDatabase(),[rows]=await sql.execute('SELECT name,game,slug,status,created_at AS createdAt FROM swapp_game_servers WHERE owner_id IN (?,?) ORDER BY created_at DESC LIMIT 30',ownerKeys(req));
    return res.set('Cache-Control','no-store').json({servers:rows})}catch(e){return fail(res,e)}
  });
  app.get('/api/swapp/serveurs/moderation/count',async(req,res)=>{
