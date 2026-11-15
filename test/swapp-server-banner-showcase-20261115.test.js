@@ -31,7 +31,7 @@ test('the native category page gives a genuine owner banner full-width cinematic
  assert.match(response.html,/class="ss-card-image ss-category-preview-art ss-server-cover ss-cover-custom"/);
  assert.match(response.html,/src="https:\/\/example.org\/citadelle-banner\.jpg"/);
  assert.match(response.html,/class="ss-cover-title">La Citadelle RP/);
- assert.match(response.html,/BANNIÈRE DE LA COMMUNAUTÉ/);
+ assert.match(response.html,/alt="Bannière de La Citadelle RP"/);
  assert.match(response.html,/href="\/serveurs\/rust\/citadelle-rp-abcdef#joueurs"/);
  assert.match(response.html,/href="\/serveurs\/rust\/citadelle-rp-abcdef#directs"/);
 });
@@ -39,7 +39,7 @@ test('no owner banner transparently falls back to genuine matching game artwork'
  const response=await category({...row,brandBannerUrl:'',banner_url:''});
  assert.equal(response.statusCode,200);
  assert.match(response.html,/steam\/apps\/252490\/header\.jpg/);
- assert.match(response.html,/UNIVERS DU JEU/);
+ assert.match(response.html,/alt="Visuel du jeu Rust"/);
  assert.doesNotMatch(response.html,/class="ss-card-image ss-category-preview-art ss-server-cover ss-cover-custom"/);
 });
 test('client cards prioritize a real banner and keep fallback with accessible identity',()=>{

@@ -685,3 +685,151 @@ html body.swapp-servers-page{background:#030405!important;color:#eff6fa}
  .ss-directory .ss-server-card .ss-card-image>img{transition:none!important}
  .ss-directory .ss-server-card:hover .ss-card-image>img{transform:none!important}
 }
+
+
+/* SERVEUR + V21 — dense leaderboard. The full owner banner is visible without
+   turning one listing into a 700px-tall promotional card. */
+.ss-directory .ss-results{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
+.ss-directory .ss-server-card{
+ display:grid;grid-template-columns:minmax(260px,35%) minmax(0,1fr);
+ grid-template-rows:minmax(220px,auto);align-items:stretch;
+ min-height:220px;max-height:none;overflow:hidden;
+ background:#0b0f14!important;border-radius:14px!important;
+ box-shadow:0 7px 23px #0008!important;
+}
+.ss-directory .ss-server-card:hover{transform:translateY(-2px)}
+.ss-directory .ss-server-card .ss-card-image{
+ display:block;position:relative;height:100%;min-height:220px;
+ width:100%;aspect-ratio:auto;align-self:stretch;
+ border-right:1px solid #ffffff20;
+}
+.ss-directory .ss-server-card .ss-card-image>img{
+ width:100%;height:100%;object-fit:cover;object-position:center center;
+}
+.ss-directory .ss-server-card .ss-card-image::before{
+ background:linear-gradient(180deg,#04071138 0%,transparent 38%,#0407117a 100%);
+}
+.ss-directory .ss-server-card .ss-cover-caption{display:none!important}
+.ss-directory .ss-server-card .ss-server-logo{
+ width:60px;height:60px;left:17px;bottom:16px;border-radius:13px;
+}
+.ss-directory .ss-server-card .ss-card-top{top:13px;left:14px;right:14px}
+.ss-directory .ss-server-card .ss-card-content{
+ display:flex;flex-direction:column;justify-content:center;align-items:stretch;
+ min-height:0!important;padding:17px 21px!important;gap:0;
+ overflow:hidden;
+}
+.ss-directory .ss-server-card .ss-card-heading{
+ font-size:clamp(18px,1.7vw,23px);font-weight:900;line-height:1.16;
+ letter-spacing:-.035em;color:#f5f9fc;margin:0 0 6px;
+ display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+}
+.ss-directory .ss-server-card .ss-card-heading a{
+ color:inherit;text-decoration:none;
+}
+.ss-directory .ss-server-card .ss-card-heading a:hover{
+ color:var(--ss-brand-accent,#8ceaf0);
+}
+.ss-directory .ss-server-card .ss-card-rating{
+ display:flex;align-items:center;flex-wrap:wrap;gap:8px;
+ color:#c3d0db;font-size:12px;font-weight:750;line-height:1.3;
+ margin:0 0 7px;
+}
+.ss-directory .ss-server-card .ss-rating-stars{
+ --ss-fill:0%;
+ display:inline-block;white-space:nowrap;letter-spacing:1.2px;
+ font-size:19px;font-weight:900;line-height:1;
+ color:transparent;background-image:linear-gradient(to right,#ffc451 var(--ss-fill),#5d6671 var(--ss-fill));
+ -webkit-background-clip:text;background-clip:text;
+}
+.ss-directory .ss-server-card .ss-server-tagline{
+ font-size:12px;line-height:1.25;margin:0 0 5px;
+ white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.ss-directory .ss-server-card .ss-description{
+ margin:0 0 7px;font-size:12px;line-height:1.45;
+ color:#b9c7d1;-webkit-line-clamp:2;max-width:none;
+}
+.ss-directory .ss-server-card .ss-meta{
+ margin:0 0 6px;gap:5px 9px;font-size:11px;
+}
+.ss-directory .ss-server-card .ss-meta>span{
+ font-size:11px;color:#a9bbca;
+}
+.ss-directory .ss-server-card .ss-tags{
+ gap:6px;margin:1px 0 8px;
+}
+.ss-directory .ss-server-card .ss-tags>span{
+ font-size:10px;padding:3px 7px;line-height:1.35;
+}
+.ss-directory .ss-server-card .ss-card-facts{
+ display:flex;flex-wrap:wrap;align-items:stretch;gap:7px;
+ margin:3px 0 8px;min-width:0;
+}
+.ss-directory .ss-server-card .ss-card-fact{
+ flex:0 1 auto;min-width:92px;max-width:175px;
+ display:flex;flex-direction:column;justify-content:center;gap:3px;
+ padding:6px 10px;border:1px solid #ffffff1c;
+ background:#111a23;border-radius:8px;white-space:normal;
+}
+.ss-directory .ss-server-card .ss-card-fact strong{
+ color:#ecf7fb;font-size:14px;line-height:1.15;font-weight:900;
+ font-variant-numeric:tabular-nums;overflow-wrap:anywhere;
+}
+.ss-directory .ss-server-card .ss-card-fact small{
+ font-size:10px;color:#a9bdc8;line-height:1.25;
+}
+.ss-directory .ss-server-card .ss-card-actions{
+ display:flex;align-items:center;flex-wrap:wrap;gap:7px;
+ padding-top:7px;margin:0;border-top:1px solid #ffffff16;
+}
+.ss-directory .ss-server-card .ss-card-actions>*,
+.ss-directory .ss-server-card .ss-card-actions .ss-details{
+ display:inline-flex;align-items:center;justify-content:center;
+ flex:0 1 auto;min-height:34px!important;
+ padding:7px 12px!important;border-radius:7px;
+ font-size:11px!important;line-height:1.2;
+ font-weight:850;white-space:nowrap;
+}
+.ss-directory .ss-server-card .ss-card-actions .ss-details{order:0;flex-basis:auto!important}
+.ss-directory .ss-server-card .ss-card-actions .ss-community-quick{background:#141e27;color:#d2ebf0;border-color:#314959}
+.ss-directory .ss-server-card .ss-card-actions a[href$="#joueurs"]{order:1}
+.ss-directory .ss-server-card .ss-card-actions a[href$="#directs"]{order:2}
+.ss-directory .ss-server-card .ss-card-actions .ss-vote,
+.ss-directory .ss-server-card .ss-card-actions .ss-vote-link{
+ order:3;background:#2b1720;color:#ffced7;border:1px solid #9f455a;
+}
+.ss-directory .ss-server-card .ss-card-actions .ss-heart{
+ font-size:15px;text-shadow:none;
+}
+.ss-directory .ss-server-card .ss-card-actions .ss-join,
+.ss-directory .ss-server-card .ss-card-actions .ss-owner-edit{
+ order:4;
+}
+@media(max-width:900px){
+ .ss-directory .ss-server-card{
+  grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto;min-height:0;
+ }
+ .ss-directory .ss-server-card .ss-card-image{
+  height:auto;min-height:0;aspect-ratio:2.7/1;border-right:0;border-bottom:1px solid #ffffff20;
+ }
+ .ss-directory .ss-server-card .ss-card-content{padding:16px 18px!important}
+ .ss-directory .ss-server-card .ss-card-fact{min-width:95px}
+}
+@media(max-width:520px){
+ .ss-directory .ss-server-card .ss-card-image{aspect-ratio:2.05/1;min-height:155px}
+ .ss-directory .ss-server-card .ss-card-content{padding:14px!important}
+ .ss-directory .ss-server-card .ss-card-heading{font-size:19px}
+ .ss-directory .ss-server-card .ss-card-facts{gap:5px}
+ .ss-directory .ss-server-card .ss-card-fact{
+  flex:1 1 calc(50% - 6px);max-width:none;min-width:0;padding:7px 9px;
+ }
+ .ss-directory .ss-server-card .ss-card-actions>*,
+ .ss-directory .ss-server-card .ss-card-actions .ss-details{
+  flex:1 1 calc(50% - 7px);padding:8px 7px!important;white-space:normal;
+ }
+ .ss-directory .ss-server-card .ss-server-logo{width:50px;height:50px}
+}
+@media(prefers-reduced-motion:reduce){
+ .ss-directory .ss-server-card:hover{transform:none}
+}

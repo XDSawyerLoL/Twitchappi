@@ -5,6 +5,8 @@ const {renderPage,SHARED_HEAD_SLOT}=require('./swapp-page-shell');
 const {inviteCode,verifyDiscordInvite}=require('./swapp-servers-discord');
 const {renderProfile}=require('./swapp-servers-profile');
 const {registerCommunity,renderCommunityPanels}=require('./swapp-servers-community');
+const {capacityValue,ensureSpecsTable,saveCapacity,readCapacity,readCardFacts}=require('./swapp-servers-card-facts');
+const {cardSignals}=require('./swapp-servers-card-ui');
 const {getProfileEvidence}=require('./swapp-servers-stats');
 const {createPage,LANGUAGES,SERVER_TYPES,discordLink,twitchLink,readTypes}=require('./swapp-servers-create');
 const {renderExternalDiscovery}=require('./swapp-servers-external-discovery');
@@ -77,6 +79,7 @@ function inputValidationErrors({body={},id='',name,description,game,website,bann
  if(len(body.brandBannerUrl)>350||(body.brandBannerUrl&&!optionalImageUrl(body.brandBannerUrl,id,'banner')))
   invalid('bannerUrl','L’image de bannière doit avoir une URL HTTPS publique ou être envoyée comme fichier.');
  if(len(body.joinAddress)>240)invalid('joinAddress','L’adresse de connexion ne doit pas dépasser 240 caractères.');
+ if(Object.prototype.hasOwnProperty.call(body,'capacity')&&Number.isNaN(capacityValue(body.capacity)))invalid('capacity','La capacité doit être comprise entre 1 et 100 000 places, ou laissée vide.');
  if(!discord&&!validListingDetails({game,website,joinAddress:join}))
   invalid('joinAddress','Indique une adresse publique de connexion au jeu, par exemple play.exemple.fr:25565, ou renseigne un site web HTTPS.');
  else if(!discord&&join&&!validJoinAddress(join))
@@ -166,7 +169,7 @@ function growthBanner(game=''){
 }
 
 function page({isAdmin=false,game=''}={}){
- const head='<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#050608"><title>'+esc(game?'Serveurs '+game+' — classement des communautés | SWAPP':'Serveurs de jeux — classements et communautés | SWAPP')+'</title><meta name="description" content="Découvre des serveurs gaming et roleplay, classe les communautés par votes et référence ton serveur sur SWAPP."><link rel="canonical" href="https://swapp.tv/serveurs'+(game?'/'+slug(game):'')+'">'+SHARED_HEAD_SLOT+'<link rel="stylesheet" href="/assets/swapp-servers.css?v=20261115-banner-showcase-v19"><link rel="stylesheet" href="/assets/swapp-servers-community.css?v=20261115-community-v2">';
+ const head='<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#050608"><title>'+esc(game?'Serveurs '+game+' — classement des communautés | SWAPP':'Serveurs de jeux — classements et communautés | SWAPP')+'</title><meta name="description" content="Découvre des serveurs gaming et roleplay, classe les communautés par votes et référence ton serveur sur SWAPP."><link rel="canonical" href="https://swapp.tv/serveurs'+(game?'/'+slug(game):'')+'">'+SHARED_HEAD_SLOT+'<link rel="stylesheet" href="/assets/swapp-servers.css?v=20261116-compact-cards-v21"><link rel="stylesheet" href="/assets/swapp-servers-community.css?v=20261115-community-v2">';
  let content='<main class="ss ss-directory" data-ss-current-game="'+esc(game)+'">'+(game?'':growthBanner(game))+
   '<header class="ss-hero ss-directory-intro"><div class="ss-inner ss-directory-intro-layout"><div class="ss-directory-intro-copy">'+
   '<p class="ss-overline">DÉCOUVRE LES COMMUNAUTÉS SWAPP</p>'+
@@ -194,7 +197,7 @@ function page({isAdmin=false,game=''}={}){
   const end=content.indexOf('</section>',start);
   if(start>=0&&end>start){const panel=content.slice(start,end+10);content=content.replace(panel,'').replace('<section class="ss-inner ss-content">','<section class="ss-inner ss-content">'+panel)}
  }
- return renderPage({head,content,active:'servers',bodyClass:'swapp-editorial-route swapp-servers-page',scripts:'<script src="/assets/swapp-servers.js?v=20261115-community-banner-v20" defer></script><script src="/assets/swapp-servers-review-admin.js?v=20261115-server-pro-v6" defer></script><script src="/assets/swapp-nav-session.js?v=20261114-native-account-v1" defer></script>'});
+ return renderPage({head,content,active:'servers',bodyClass:'swapp-editorial-route swapp-servers-page',scripts:'<script src="/assets/swapp-servers.js?v=20261116-compact-cards-v21" defer></script><script src="/assets/swapp-servers-review-admin.js?v=20261115-server-pro-v6" defer></script><script src="/assets/swapp-nav-session.js?v=20261114-native-account-v1" defer></script>'});
 }
 
 const DETAIL_STEAM_GAME_IDS=Object.freeze({
@@ -233,7 +236,7 @@ function detailPage(server,votes,meta={}){
   '<title>'+esc(title)+' — '+esc(game)+' | Serveurs SWAPP</title>'+
   '<meta name="description" content="'+esc(summary)+'">'+
   '<link rel="canonical" href="'+esc(canonical)+'">'+metadata+SHARED_HEAD_SLOT+
-  '<link rel="stylesheet" href="/assets/swapp-servers.css?v=20261115-banner-showcase-v19"><link rel="stylesheet" href="/assets/swapp-servers-community.css?v=20261115-community-v2">';
+  '<link rel="stylesheet" href="/assets/swapp-servers.css?v=20261116-compact-cards-v21"><link rel="stylesheet" href="/assets/swapp-servers-community.css?v=20261115-community-v2">';
  return renderPage({head:header,content:renderProfile({server,votes,rank:meta.rank,stats:meta.stats||null,
   reviews:meta.reviews||[],reviewSummary:meta.reviewSummary||null,cover:image,canEdit:Boolean(meta.canEdit),
   outbound:safeUrl(server.website),gamePath,communityPanels:renderCommunityPanels(server)}),
@@ -326,17 +329,21 @@ function renderCategoryPreview(rows,game){
   const banner=ownerBanner||detailCover(game);
   const logo=optionalImageUrl(item.logoUrl,item.id,'logo');
   const initial=esc(String(item.name||'S').slice(0,1).toUpperCase());
+  const signals=cardSignals(item);
+  const tags=String(item.tags||'').split(',').map(x=>x.trim()).filter(Boolean).slice(0,4);
   return '<article class="ss-card ss-server-card ss-category-preloaded">'+
    '<a class="ss-card-image ss-category-preview-art ss-server-cover'+(ownerBanner?' ss-cover-custom':'')+'" href="'+esc(url)+'" aria-label="Découvrir la communauté '+esc(item.name)+'">'+
    (banner?'<img src="'+esc(banner)+'" alt="'+esc(ownerBanner?'Bannière de '+item.name:'Visuel du jeu '+game)+'" loading="lazy" referrerpolicy="no-referrer">':'')+
    '<span class="ss-server-logo">'+(logo?'<img src="'+esc(logo)+'" alt="Logo de '+esc(item.name)+'">':initial)+'</span>'+
    '<div class="ss-card-top"><span class="ss-card-game">'+esc(game)+'</span></div>'+
-   '<div class="ss-cover-caption"><span class="ss-cover-eyebrow">'+(ownerBanner?'BANNIÈRE DE LA COMMUNAUTÉ':'UNIVERS DU JEU')+'</span>'+
+   '<div class="ss-cover-caption">'+
    '<h3 class="ss-cover-title">'+esc(item.name)+'</h3></div></a>'+
-   '<div class="ss-card-content"><p class="ss-description">'+esc(item.description)+'</p>'+
+   '<div class="ss-card-content"><h3 class="ss-card-heading"><a href="'+esc(url)+'">'+esc(item.name)+'</a></h3>'+signals.ratingHtml+'<p class="ss-description">'+esc(item.description)+'</p>'+
+   (tags.length?'<div class="ss-tags">'+tags.map(t=>'<span>'+esc(t)+'</span>').join('')+'</div>':'')+signals.factsHtml+
    '<div class="ss-card-actions"><a class="ss-category-preview-link ss-details" href="'+esc(url)+'">Voir la fiche</a>'+
    '<a class="ss-community-quick" href="'+esc(url)+'#joueurs">Trouver des joueurs</a>'+
-   '<a class="ss-community-quick" href="'+esc(url)+'#directs">Lives associés</a></div></div></article>';
+   '<a class="ss-community-quick" href="'+esc(url)+'#directs">Lives associés</a>'+ 
+   '<a class="ss-community-quick ss-vote-link" href="'+esc(url)+'#voter">Voter</a></div></div></article>';
  }).join('');
 }
 function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verifyDiscordInvite,enableAutoReview=true}={}){
@@ -409,7 +416,7 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
     return '<article class="ss-owner-manage-card" style="--ss-brand-accent:'+color+'"><div class="ss-owner-manage-logo">'+emblem+'</div><div class="ss-owner-manage-info"><p class="ss-overline">'+esc(item.game)+'</p><h2>'+esc(item.name)+'</h2><p>'+esc(String(item.description||'').slice(0,130))+'</p><small>'+esc(item.status==='published'?'Fiche publiée':item.status==='pending'?'Fiche en vérification':'Fiche refusée')+'</small></div><div class="ss-owner-manage-actions">'+open+modify+remove+'</div></article>';
    }).join('');
    const content='<main class="ss ss-owner-manage"><header class="ss-hero"><div class="ss-inner"><p class="ss-overline">SERVEUR + / MON ESPACE</p><h1>Mes vitrines <em>gaming.</em></h1><p>Personnalise tes serveurs, mets à jour ton logo, ta bannière, tes liens et les couleurs de ta communauté.</p><div class="ss-hero-actions"><a href="/serveurs">← Classement</a><a href="/serveurs/creer">+ Créer un serveur</a></div></div></header><section class="ss-inner ss-owner-manage-list">'+(cards||'<div class="ss-empty"><h2>Pas encore de serveur</h2><p>Crée ta première fiche pour lui donner une identité sur SWAPP.</p><a href="/serveurs/creer">Créer mon serveur</a></div>')+'<p id="ss-owner-feedback" role="status" aria-live="polite"></p></section></main>';
-   const head='<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Mes serveurs | SWAPP SERVEUR +</title>'+SHARED_HEAD_SLOT+'<link rel="stylesheet" href="/assets/swapp-servers.css?v=20261115-banner-showcase-v19"><link rel="stylesheet" href="/assets/swapp-servers-community.css?v=20261115-community-v2">';
+   const head='<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Mes serveurs | SWAPP SERVEUR +</title>'+SHARED_HEAD_SLOT+'<link rel="stylesheet" href="/assets/swapp-servers.css?v=20261116-compact-cards-v21"><link rel="stylesheet" href="/assets/swapp-servers-community.css?v=20261115-community-v2">';
    return res.set('Cache-Control','private,no-store').type('html').send(renderPage({head,content,active:'servers',bodyClass:'swapp-editorial-route swapp-servers-page',scripts:'<script src="/assets/swapp-servers-owner.js?v=20261115-owner-delete-v1" defer></script><script src="/assets/swapp-nav-session.js?v=20261114-native-account-v1" defer></script>'}));
   }catch(e){return res.status(503).type('text').send('Espace propriétaire indisponible')}
  });
@@ -422,7 +429,8 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
    const sql=await readDatabase();
    const [rows]=await sql.execute('SELECT s.id,s.slug,s.name,s.game,s.description,s.website,s.join_address AS joinAddress,s.region,s.tags,s.banner_url AS bannerUrl,x.language,x.twitch_url AS twitchUrl,x.homepage_url AS homepageUrl,b.logo_url AS logoUrl,b.banner_url AS brandBannerUrl,b.accent_color AS accentColor,b.secondary_color AS secondaryColor,b.tagline,b.gallery_json AS galleryJson FROM swapp_game_servers s LEFT JOIN swapp_game_server_extras x ON x.server_id=s.id LEFT JOIN swapp_game_server_branding b ON b.server_id=s.id WHERE s.slug=? AND s.owner_id IN (?,?) AND s.status="published" LIMIT 1',[name,...ownerKeys(req)]);
    if(!rows.length)return res.status(404).type('text').send('Fiche introuvable');
-   return res.set('Cache-Control','private,no-store').type('html').send(createPage({game:rows[0].game,games:GAMES,edit:rows[0]}));
+   const capacity=await readCapacity(sql,rows[0].id);
+   return res.set('Cache-Control','private,no-store').type('html').send(createPage({game:rows[0].game,games:GAMES,edit:{...rows[0],capacity}}));
   }catch(e){return res.status(503).type('text').send('Éditeur temporairement indisponible')}
  });
  app.get('/serveurs/:jeu',async(req,res)=>{
@@ -435,18 +443,20 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
    // Published communities are visible in the initial HTML, independently of JS.
    let rows;
    try{
-    [rows]=await sql.execute('SELECT s.id,s.name,s.slug,s.game,s.description,s.banner_url,b.logo_url AS logoUrl,b.banner_url AS brandBannerUrl FROM swapp_game_servers s LEFT JOIN swapp_game_server_branding b ON b.server_id=s.id WHERE s.game=? AND s.status="published" ORDER BY s.created_at DESC,s.id ASC LIMIT 24',[game]);
+    [rows]=await sql.execute('SELECT s.id,s.name,s.slug,s.game,s.description,s.banner_url,s.website,s.tags,s.region,b.logo_url AS logoUrl,b.banner_url AS brandBannerUrl FROM swapp_game_servers s LEFT JOIN swapp_game_server_branding b ON b.server_id=s.id WHERE s.game=? AND s.status="published" ORDER BY s.created_at DESC,s.id ASC LIMIT 24',[game]);
    }catch(error){
     if(!['ER_NO_SUCH_TABLE','ER_BAD_FIELD_ERROR','ER_TABLEACCESS_DENIED_ERROR'].includes(error?.code))throw error;
     // If optional branding is missing, show real server records without artwork.
-    [rows]=await sql.execute('SELECT s.id,s.name,s.slug,s.game,s.description,s.banner_url FROM swapp_game_servers s WHERE s.game=? AND s.status="published" ORDER BY s.created_at DESC,s.id ASC LIMIT 24',[game]);
+    [rows]=await sql.execute('SELECT s.id,s.name,s.slug,s.game,s.description,s.banner_url,s.website,s.tags,s.region FROM swapp_game_servers s WHERE s.game=? AND s.status="published" ORDER BY s.created_at DESC,s.id ASC LIMIT 24',[game]);
    }
    let total=null;
    try{
     const [totals]=await sql.execute('SELECT COUNT(*) AS n FROM swapp_game_servers WHERE game=? AND status="published"',[game]);
     total=Number(totals[0]?.n||0);
    }catch(error){console.warn('[SWAPP SERVEURS] Comptage catégorie',String(error?.code||error?.message||error).slice(0,70))}
-   html=html.replace(marker,'<div id="ss-results" class="ss-results">'+renderCategoryPreview(rows,game)+'</div>');
+   const [stats,facts]=await Promise.all([listingStats(sql,rows.map(r=>r.id)),readCardFacts(sql,rows)]);
+   const hydrated=rows.map(row=>({...row,...(stats.get(row.id)||{}),...(facts.get(row.id)||{})}));
+   html=html.replace(marker,'<div id="ss-results" class="ss-results">'+renderCategoryPreview(hydrated,game)+'</div>');
    html=html.replace('id="ss-count">Chargement…</span>','id="ss-count">'+(total===null?'Nombre indisponible':total+' serveur'+(total===1?'':'s')+' référencé'+(total===1?'':'s'))+'</span>');
   }catch(e){
    console.warn('[SWAPP SERVEURS] Catégorie',String(e?.code||e?.message||e).slice(0,90));
@@ -577,11 +587,11 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
    }catch(counterError){
     console.warn('[SWAPP SERVEURS] Comptage catégories',String(counterError?.code||counterError?.message||counterError).slice(0,90));
    }
-   const evidence=await listingStats(sql,rows.map(item=>item.id));
+   const [evidence,facts]=await Promise.all([listingStats(sql,rows.map(item=>item.id)),readCardFacts(sql,rows)]);
    const owner=account(req);
    // The result includes permissions specific to this session, so never share its cache.
    res.set('Cache-Control','private,no-store').json({
-    servers:rows.map(({owner_id,...r},index)=>({...r,...(evidence.get(r.id)||{}),canEdit:!!owner&&ownerKeys(req).includes(owner_id),
+    servers:rows.map(({owner_id,...r},index)=>({...r,...(evidence.get(r.id)||{}),...(facts.get(r.id)||{}),canEdit:!!owner&&ownerKeys(req).includes(owner_id),
      rank:sort==='votes'&&rankingAvailable?offset+index+1:null,votes_month:r.votes_month==null?null:Number(r.votes_month),
      tags:String(r.tags||'').split(',').map(t=>t.trim()).filter(Boolean)})),
     total,page,pageSize,hasMore:offset+rows.length<total,gameCounts,ranking:rankingAvailable?'monthly_valid_votes':'temporarily_unavailable',onlineVerified:false
@@ -619,6 +629,7 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
   let conn;
   try{
    const sql=await getDatabase();
+   if(Object.prototype.hasOwnProperty.call(body,'capacity')&&Number.isInteger(capacityValue(body.capacity)))await ensureSpecsTable(sql);
    conn=typeof sql.getConnection==='function'?await sql.getConnection():sql;
    if(typeof conn.beginTransaction==='function')await conn.beginTransaction();
    // Existing pending submissions can be finished without creating a second entry.
@@ -647,6 +658,7 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
    const brand=normalizeBranding(body,id);
    if(!brand)throw Error('invalid_branding');
    await saveBranding(conn,id,brand);
+   if(Object.prototype.hasOwnProperty.call(body,'capacity'))await saveCapacity(conn,id,body.capacity);
    if(typeof conn.commit==='function')await conn.commit();
    return res.status(existing.length?200:201).json({status:'published',updated:Boolean(existing.length),slug:serverSlug,autoVerified:discord,
     verification:discord?'discord_invite':'listing_format',onlineVerified:false,
@@ -675,7 +687,9 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
   if(Object.keys(fieldErrors).length)return validationFailure(res,fieldErrors);
   let conn;
   try{
-   const sql=await getDatabase();conn=await sql.getConnection();
+   const sql=await getDatabase();
+   if(Object.prototype.hasOwnProperty.call(data,'capacity')&&Number.isInteger(capacityValue(data.capacity)))await ensureSpecsTable(sql);
+   conn=await sql.getConnection();
    await conn.beginTransaction();
    const [owned]=await conn.execute('SELECT id,slug,game,website,join_address FROM swapp_game_servers WHERE id=? AND owner_id IN (?,?) AND status="published" LIMIT 1 FOR UPDATE',[id,...ownerKeys(req)]);
    if(!owned.length){await conn.rollback();return res.status(404).json({error:'serveur_introuvable'})}
@@ -696,6 +710,7 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
    await conn.execute('INSERT INTO swapp_game_server_extras (server_id,language,twitch_url,homepage_url,discord_guild_id) VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE language=VALUES(language),twitch_url=VALUES(twitch_url),homepage_url=VALUES(homepage_url),discord_guild_id=IF(VALUES(discord_guild_id)<>"",VALUES(discord_guild_id),discord_guild_id)',
     [id,language,twitch,website,inviteChanged?clean(check.guildId,25):'']);
    await saveBranding(conn,id,brand);
+   if(Object.prototype.hasOwnProperty.call(data,'capacity'))await saveCapacity(conn,id,data.capacity);
    await conn.commit();
    return res.set('Cache-Control','no-store').json({updated:true,status:'published',id,url:'/serveurs/'+slug(game)+'/'+owned[0].slug});
   }catch(e){if(conn)await conn.rollback().catch(()=>{});return fail(res,e)}

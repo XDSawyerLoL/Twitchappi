@@ -60,7 +60,7 @@
   colors.accent.value=accent;colors.secondary.value=secondary;refresh();
  });
  if(editData){
-  for(const field of ['name','description','language','region','tagline']){
+  for(const field of ['name','description','language','region','tagline','capacity']){
    if(form.elements[field]&&editData[field]!=null)form.elements[field].value=String(editData[field]);
   }
   game.value=editData.game||game.value;game.disabled=true;
@@ -89,6 +89,7 @@
  function refresh(){
   const isDiscord=game.value==='Discord / Multigaming';
   discordWrap.hidden=!isDiscord;addressWrap.hidden=isDiscord;
+  const capacityWrap=$('#ss-create-capacity-wrap');if(capacityWrap)capacityWrap.hidden=isDiscord;
   discord.required=isDiscord;address.required=false;
   counter.textContent=description.value.length.toLocaleString('fr-FR')+' / 1 500 caractères';
   const count=selected().length;
