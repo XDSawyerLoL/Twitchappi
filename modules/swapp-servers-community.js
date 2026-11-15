@@ -150,7 +150,7 @@ function registerCommunity(app,{getDatabase,account,ownerKeys,originGuard}){
    const db=await database(),item=await server(db,req.params.id);
    if(!item)return res.status(404).json({error:'serveur_introuvable'});
    const id=crypto.randomBytes(16).toString('hex');
-   await db.execute('INSERT INTO swapp_server_creators (id,server_id,user_id,platform,creator_login,status,created_at) VALUES (?,?,?,?,?,"pending",UTC_TIMESTAMP()) ON DUPLICATE KEY UPDATE creator_login=VALUES(creator_login)',
+   await db.execute('INSERT INTO swapp_server_creators (id,server_id,user_id,platform,creator_login,status,created_at) VALUES (?,?,?,?,?,"pending",UTC_TIMESTAMP()) ON DUPLICATE KEY UPDATE status=IF(creator_login=VALUES(creator_login),status,"pending"),creator_login=VALUES(creator_login)',
     [id,item.id,account(req),platform,login]);
    return res.set('Cache-Control','private,no-store').json({requested:true,status:'pending'});
   }catch(e){return sendError(res,e)}
