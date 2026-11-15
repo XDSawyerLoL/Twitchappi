@@ -14,6 +14,7 @@
   Object.freeze({id:'tv',label:'SWAPP TV',href:'/tv'})
  ]);
  const explorer=Object.freeze({id:'explorer',label:'Explorer',href:'/explorer'});
+ const servers=Object.freeze({id:'servers',label:'SERVEUR +',href:'/serveurs'});
  const swapper=Object.freeze({id:'swapper',label:'Swapper',href:'/decouvrir'});
  const video=Object.freeze({id:'trailers',label:'Vidéos',href:'/bandes-annonces'});
  const podcast=Object.freeze({id:'onair',label:'PODCAST',href:'/on-air'});
@@ -38,12 +39,12 @@
    link(swapper,active)+'</div></details></div>';
  }
  function desktopNavigation(active='actus'){
-  return '<div class="navGroup">'+items.map(x=>x.id==='tv'?tvMenu(active):link(x,active)).join('')+link(explorer,active)+'</div>';
+  return '<div class="navGroup">'+items.map(x=>x.id==='tv'?tvMenu(active):link(x,active)).join('')+link(explorer,active)+link(servers,active)+'</div>';
  }
  function mobileNavigation(active='actus'){
   // Four priorities plus Plus, even on 320px screens; SWAPPER is not a fifth primary tab.
   const pinned=items.filter(x=>['home','actus','community','tv'].includes(x.id));
-  const extra=[...items.filter(x=>!pinned.includes(x)),explorer,video,podcast,account];
+  const extra=[...items.filter(x=>!pinned.includes(x)),explorer,servers,video,podcast,account];
   const secondaryActive=extra.some(x=>x.id===active)||['guides','discover','teams'].includes(active);
   return pinned.map(x=>link(x,active)).join('')+
    '<details class="swapp-mobile-more"><summary'+(secondaryActive?' class="active"':'')+
@@ -65,5 +66,5 @@
  function serverMobile(active='actus'){
   return '<nav id="mobileNav" class="mobileNav" aria-label="Navigation mobile">'+mobileNavigation(active)+'</nav>';
  }
- return Object.freeze({items,explorer,swapper,video,podcast,account,link,desktopNavigation,mobileNavigation,serverHeader,serverMobile});
+ return Object.freeze({items,explorer,servers,swapper,video,podcast,account,link,desktopNavigation,mobileNavigation,serverHeader,serverMobile});
 });
