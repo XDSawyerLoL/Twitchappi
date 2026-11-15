@@ -194,7 +194,7 @@ function page({isAdmin=false,game=''}={}){
   const end=content.indexOf('</section>',start);
   if(start>=0&&end>start){const panel=content.slice(start,end+10);content=content.replace(panel,'').replace('<section class="ss-inner ss-content">','<section class="ss-inner ss-content">'+panel)}
  }
- return renderPage({head,content,active:'servers',bodyClass:'swapp-editorial-route swapp-servers-page',scripts:'<script src="/assets/swapp-servers.js?v=20261115-rich-profiles-v18" defer></script><script src="/assets/swapp-servers-review-admin.js?v=20261115-server-pro-v6" defer></script><script src="/assets/swapp-nav-session.js?v=20261114-native-account-v1" defer></script>'});
+ return renderPage({head,content,active:'servers',bodyClass:'swapp-editorial-route swapp-servers-page',scripts:'<script src="/assets/swapp-servers.js?v=20261115-community-banner-v20" defer></script><script src="/assets/swapp-servers-review-admin.js?v=20261115-server-pro-v6" defer></script><script src="/assets/swapp-nav-session.js?v=20261114-native-account-v1" defer></script>'});
 }
 
 const DETAIL_STEAM_GAME_IDS=Object.freeze({
@@ -500,7 +500,37 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
     }
    }
    const core=tables.swapp_game_servers==='ready';
-   return res.status(core?200:503).set('Cache-Control','private,no-store').json({status:core?'connected':'unavailable',tables});
+   // Prove the same core public listing is queryable, not merely that tables exist.
+   // No server names, identities, credentials or connection strings leave this route.
+   let listing={status:'not_checked'},counts=null;
+   if(core){
+    try{
+     const [statusRows]=await sql.query('SELECT status,COUNT(*) AS n FROM swapp_game_servers GROUP BY status');
+     counts=Object.fromEntries(statusRows.map(row=>[String(row.status),Number(row.n)||0]));
+    }catch(error){
+     console.warn('[SWAPP SERVEURS] Diagnostic counts',String(error?.code||error?.message||error).slice(0,80));
+    }
+    const month=new Date().toISOString().slice(0,7)+'-01';
+    try{
+     await sql.execute('SELECT s.id,b.logo_url,(SELECT COUNT(*) FROM swapp_game_server_vote_events v WHERE v.server_id=s.id AND v.voted_at>=?) AS votes_month FROM swapp_game_servers s LEFT JOIN swapp_game_server_branding b ON b.server_id=s.id WHERE s.status="published" ORDER BY votes_month DESC LIMIT 1',[month]);
+     listing={status:'ready',mode:'ranking_with_branding'};
+    }catch(error){
+     const optional=['ER_NO_SUCH_TABLE','ER_BAD_FIELD_ERROR','ER_TABLEACCESS_DENIED_ERROR'].includes(error?.code);
+     const code=optional?'missing_or_denied_optional_table':
+      ['ER_PARSE_ERROR','ER_WRONG_FIELD_WITH_GROUP'].includes(error?.code)?'listing_sql_error':
+      ['ER_ACCESS_DENIED_ERROR','ER_DBACCESS_DENIED_ERROR'].includes(error?.code)?'mysql_access_denied':'query_failed';
+     try{
+      await sql.query('SELECT id FROM swapp_game_servers WHERE status="published" LIMIT 1');
+      listing={status:'fallback_ready',mode:'base_only',reason:code};
+     }catch(coreError){
+      listing={status:'unavailable',reason:String(coreError?.code||'query_failed').replace(/[^A-Z0-9_]/gi,'').slice(0,50)};
+     }
+    }
+   }
+   const available=core&&listing.status!=='unavailable';
+   return res.status(available?200:503).set('Cache-Control','private,no-store').json({
+    status:available?'connected':'unavailable',tables,listing,...(counts?{counts}:{})
+   });
   }catch(error){
    const code=String(error?.code||''),message=String(error?.message||'');
    const reason=message==='swapp_servers_mysql_not_configured'?'mysql_not_configured':
