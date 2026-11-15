@@ -48,3 +48,6 @@
 @media(prefers-reduced-motion:reduce){
  .ss-community-actions button,.ss-community-player button{transition:none}
 }
+
+.ss-card-actions .ss-community-quick{display:inline-flex;align-items:center;justify-content:center;border:1px solid #334357;border-radius:9px;padding:10px 12px;background:#151f2a;color:#cdf2f8;text-decoration:none;font-size:.81rem;font-weight:680;transition:background .2s ease}
+.ss-card-actions .ss-community-quick:hover{background:#25364a;color:#fff}
