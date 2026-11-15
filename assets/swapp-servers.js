@@ -114,7 +114,7 @@
   if(s.region)meta.append(make('span','',s.region));
   const labels={fr:'Français',en:'English',es:'Español',de:'Deutsch',it:'Italiano',pt:'Português'};
   if(s.language&&labels[s.language])meta.append(make('span','',labels[s.language]));
-  const created=new Date(s.createdAt);
+  const created=s.createdAt?new Date(s.createdAt):new Date(NaN);
   if(Number.isFinite(created.getTime())){
    meta.append(make('span','','Ajouté le '+new Intl.DateTimeFormat('fr-FR',{day:'2-digit',month:'short',year:'numeric'}).format(created)));
    if(Date.now()-created.getTime()>=0&&Date.now()-created.getTime()<30*86400000){
