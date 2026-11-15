@@ -20,7 +20,7 @@ test('Explorer has a real native route for collections, the graph and genre deta
   assert.match(html,/id="nav"/);
   assert.match(html,/href="\/explorer"/);
   assert.match(html,/id="sx-query"/);
-  assert.match(html,/swapp-explorer\.js\?v=20261115-explorer-v1/);
+  assert.match(html,/swapp-explorer\.js\?v=20261115-collections-cinema-v2/);
   assert.match(html,/swapp-genre-discovery\.js\?v=20261115-hidpi-genre-v8/);
  }
  assert.match(collections,/data-view="collections"/);
