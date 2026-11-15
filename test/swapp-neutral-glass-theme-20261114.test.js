@@ -35,7 +35,7 @@ test('frontpage editorial cards and image fallbacks are neutral smoked glass',()
 test('home and native pages load one cache-busted theme, no extra navigation',()=>{
  const home=renderIntoSpa(read('index.html'));
  const page=renderPage({head:SHARED_HEAD_SLOT,content:'<main>Actualités</main>'});
- const version='swapp-obsidian-ice.css?v=20261115-solid-sharp-theme-v21';
+ const version='swapp-obsidian-ice.css?v=20261115-unified-black-v22';
  for(const html of [home,page]){
   assert.equal(html.split(version).length-1,1);
   assert.ok(html.indexOf(version)<html.indexOf('</head>'));

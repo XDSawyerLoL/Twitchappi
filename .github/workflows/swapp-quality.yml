@@ -37,6 +37,8 @@ on:
       - 'test/swapp-next-obsession-20261115.test.js'
       - 'test/swapp-sharp-no-blur-20261115.test.js'
       - 'assets/swapp-obsidian-ice.css'
+      - 'test/swapp-unified-true-black-20261115.test.js'
+      - 'modules/swapp-news/site-shell.js'
       - 'assets/swapp-catalogue-lab.css'
       - 'assets/swapp-genre-discovery.css'
       - 'assets/swapp-live-surprise.js'
@@ -211,6 +213,12 @@ jobs:
           node --check assets/swapp-explorer.js
           node --check assets/swapp-navigation.js
           node --test test/swapp-explorer-collections-livegraph-20261115.test.js
+
+      - name: Unified black background contract (SPA and native)
+        run: |
+          node --check modules/swapp-page-shell.js
+          node --check modules/swapp-news/site-shell.js
+          node --test test/swapp-unified-true-black-20261115.test.js
 
       - name: Préparer le paquet Hostinger à partir du commit GitHub validé
         run: node tools/swapp-hostinger-package.js --output="${{ runner.temp }}/swapp-hostinger-${GITHUB_SHA:0:12}.zip"
