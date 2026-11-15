@@ -64,7 +64,7 @@ test('reviews and click recording are protected, do not invent activity, and req
  assert.match(source,/swapp_game_server_reviews.*"pending"/);
  assert.match(source,/status="published" ORDER BY created_at DESC/);
  const routes=[];
- const app={get:(p,...handlers)=>routes.push('GET '+p),post:(p,...handlers)=>routes.push('POST '+p)};
+ const app={get:(p,...handlers)=>routes.push('GET '+p),post:(p,...handlers)=>routes.push('POST '+p),put:(p,...handlers)=>routes.push('PUT '+p)};
  register(app,{enableAutoReview:false});
  for(const name of ['POST /api/swapp/serveurs/:id/visit','POST /api/swapp/serveurs/:id/reviews',
   'GET /api/swapp/serveurs/reviews/moderation','POST /api/swapp/serveurs/reviews/:id/moderation'])
