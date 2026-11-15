@@ -77,10 +77,10 @@ body[data-swapp-home-spa="v16"] #home .scl-feature {
 }
 .scl-genre-visual{position:absolute;inset:0;z-index:-2;overflow:hidden;pointer-events:none}
 .scl-genre-visual img{width:100%;height:100%;display:block;object-fit:cover;object-position:center 33%;
- filter:brightness(.6) saturate(.95);transition:transform .25s ease,filter .25s ease}
-.scl-genre-card:hover .scl-genre-visual img{transform:scale(1.055);filter:brightness(.72) saturate(1.04)}
+ filter:none;transition:none}
+.scl-genre-card:hover .scl-genre-visual img{transform:none;filter:none}
 .scl-genre-card::after{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;
- background:linear-gradient(90deg,#02030840,#01020855),linear-gradient(0deg,#05070b50,transparent)}
+ background:linear-gradient(90deg,#02030830,#01020840),linear-gradient(0deg,#05070b40,transparent)}
 .scl-genre-content{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;
  gap:4px;width:100%;height:100%;padding:7px;box-sizing:border-box}
 .scl-genre-content strong{
@@ -130,9 +130,9 @@ body[data-swapp-home-spa="v16"] #home .scl-feature {
 }
 .scl-game-poster-image img{
  display:block;width:100%;height:100%;object-fit:cover;object-position:center 32%;
- filter:saturate(1.03) brightness(.94);transition:transform .25s ease,filter .25s ease
+ filter:none;transition:none
 }
-.scl-game-poster:hover .scl-game-poster-image img{transform:scale(1.055);filter:brightness(.76)}
+.scl-game-poster:hover .scl-game-poster-image img{transform:none;filter:none}
 .scl-game-poster-image::after{content:"";position:absolute;inset:0;pointer-events:none;
  background:linear-gradient(180deg,#05090f15 0%,transparent 40%,#03070a3d 100%)}
 .scl-game-poster-no-art{display:flex;height:100%;box-sizing:border-box;align-items:center;justify-content:center;
