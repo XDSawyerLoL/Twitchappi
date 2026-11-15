@@ -33,7 +33,10 @@ function renderPage({head='',content='',scripts='',bodyClass='swapp-editorial-ro
  return '<!doctype html><html lang="fr"><head>'+htmlHead+
   PREMIUM_CSS+'</head><body class="'+cls+'" data-swapp-shell="shared-native-v2">'+
   serverHeader(active)+String(content||'')+serverMobile(active)+
-  '<script src="/assets/swapp-nav-utility.js?v=20261115-light-behind-v4" defer></script>'+
+  '<script src="/assets/swapp-local-tastes.js?v=20261015-private-36" defer></script>'+ 
+   '<script src="/assets/swapp-account-unified.js?v=20261116-global-account-v1" defer></script>'+
+   '<script src="/assets/swapp-nav-session.js?v=20261116-global-account-v2" defer></script>'+
+   '<script src="/assets/swapp-nav-utility.js?v=20261115-light-behind-v4" defer></script>'+
   '<script src="/assets/swapp-footer.js?v=20261021-discord-invite-v1" defer></script>'+
   '<script src="/assets/swapp-servers-alerts.js?v=20261115-admin-alert-v2" defer></script>'+String(scripts||'')+'</body></html>';
 }
