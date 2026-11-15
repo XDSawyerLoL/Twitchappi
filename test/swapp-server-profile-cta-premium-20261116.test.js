@@ -64,6 +64,6 @@ test('CTA CSS overrides legacy saturated buttons without affecting directory or 
 });
 test('cache busted on all routes sharing profile stylesheet',()=>{
  const backend=read('modules/swapp-servers.js');
- assert.ok((backend.match(/swapp-servers\.css\?v=20261116-cta-premium-v23/g)||[]).length>=3);
+ assert.ok((backend.match(/swapp-servers\.css\?v=20261116-category-hero-v24/g)||[]).length>=3);
  assert.doesNotMatch(backend,/20261116-flat-profile-v22/);
 });
