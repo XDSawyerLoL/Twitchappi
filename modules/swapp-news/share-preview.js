@@ -22,8 +22,9 @@ function previewUrl(article){
 function allowedSource(raw){
  try{
   const u=new URL(String(raw||''));
-  if(u.protocol!=='https:'||u.port||u.username||u.password||u.search||u.hash)return null;
+  if(u.protocol!=='https:'||u.port||u.username||u.password||u.hash)return null;
   const host=u.hostname.toLowerCase(),path=u.pathname;
+  if(u.search&&host!=='images.ctfassets.net')return null;
   if(HOSTS.has(host)&&/^\/vi\/[A-Za-z0-9_-]{11}\/(?:hqdefault|mqdefault|maxresdefault|sddefault|0)\.jpg$/.test(path))
    return u.href;
   // Official editorial hosts and fixed image publishing paths only.
@@ -34,6 +35,10 @@ function allowedSource(raw){
    return u.href;
   if(host==='blogs.nvidia.com'&&/^\/wp-content\/uploads\/20\d{2}\/\d{2}\/[a-zA-Z0-9_./-]+\.(?:jpe?g|png)$/.test(path))
    return u.href;
+  if(host==='xboxwire.thesourcemediaassets.com'&&/^\/sites\/2\/20\d{2}\/\d{2}\/[a-zA-Z0-9_./-]+\.jpe?g$/.test(path))return u.href;
+  if(host==='images.ctfassets.net'&&/^\/kftzwdyauwt9\/[a-zA-Z0-9]+\/[a-zA-Z0-9]+\/[a-zA-Z0-9_.-]+\.png$/.test(path)&&
+     [...u.searchParams.keys()].every(key=>['w','h','fit'].includes(key))&&
+     u.searchParams.get('w')==='1600'&&u.searchParams.get('h')==='900'&&u.searchParams.get('fit')==='fill')return u.href;
   return null;
  }catch(_){return null}
 }
