@@ -3276,6 +3276,7 @@ async function updateDailyRollupsForStream(stream, nowMs) {
       }, { merge: true });
     });
   } catch (e) {
+    if (isFirestorePermissionDenied(e)) { __legacyFirestoreAnalyticsDenied = true; return; }
     console.error("\u274C [DAILY] channel rollup:", e.message);
   }
 }
@@ -3352,6 +3353,7 @@ async function collectAnalyticsSnapshot() {
 
     console.log(`\uD83D\uDCCA [CRON] Snapshot saved: viewers=${totalViewers}, live=${streams.length}`);
   } catch (e) {
+    if (isFirestorePermissionDenied(e)) { __legacyFirestoreAnalyticsDenied = true; console.warn('[SWAPP] Legacy Firestore snapshot disabled after PERMISSION_DENIED.'); return; }
     console.error("\u274C [CRON] Snapshot error:", e.message);
   }
 }
