@@ -1,0 +1,173 @@
+{
+  "kind": "swapp-editorial-release",
+  "release": "2026-11-16-ai-tech-derelikt",
+  "description": "Quatre articles IA/Tech et un jeu vidéo, tous avec visuels sociaux officiels et sources primaires.",
+  "articles": [
+    {
+      "slug": "derelikt-horreur-spatiale-ps5-sortie-novembre-2026",
+      "title": "Derelikt : l'horreur spatiale façon PlayStation 1 arrive sur PS5",
+      "summary": "Un survival horror spatial indépendant joue la carte des graphismes de la fin des années 1990, avec enquête et gestion de ressources.",
+      "body": "**Derelikt** est annoncé sur PlayStation 5 pour le 13 novembre 2026. Son créateur Philipp Jensen revendique une direction artistique inspirée des jeux d'horreur de la première PlayStation.\n\n## Une station spatiale qui tourne mal\n\nL'action se déroule sur l'avant-poste Von Neumann, situé près d'un astéroïde anormal en orbite autour de Saturne. Le joueur incarne un intervenant chargé de retrouver une équipe d'excavation disparue. L'exploration se double de rencontres avec des survivants aux récits contradictoires.\n\n## L'horreur rétro au service du gameplay\n\nLe jeu associe textures peintes à la main, éclairage par couleurs de sommets et déformations visuelles volontaires à des mécaniques d'exploration, de combat, de puzzles et de gestion des ressources. Plus d'une douzaine de personnages peuvent être rencontrés.\n\n**Analyse SWAPP :** l'intérêt ne réside pas seulement dans le filtre nostalgique. Les choix visuels peuvent renforcer la tension et l'incertitude, à condition que les systèmes de jeu suivent. Les qualités finales restent à juger manette en main.",
+      "game": "Derelikt",
+      "games": [
+        "Derelikt"
+      ],
+      "tags": [
+        "GAMING",
+        "PS5",
+        "Horreur"
+      ],
+      "seo": {
+        "title": "Derelikt : l'horreur spatiale façon PlayStation 1 arrive sur PS5",
+        "description": "Un survival horror spatial indépendant joue la carte des graphismes de la fin des années 1990, avec enquête et gestion de ressources."
+      },
+      "author": "Rédaction SWAPP",
+      "category": "Actualités JV",
+      "contentType": "article",
+      "status": "published",
+      "revision": 1,
+      "image": "https://blog.playstation.com/tachyon/2048/11/646bca9666d03e4befc0e440f34d1e961ac329e0.jpg",
+      "thumbnail": "https://blog.playstation.com/tachyon/2048/11/646bca9666d03e4befc0e440f34d1e961ac329e0.jpg",
+      "publishedAt": "2026-11-16T10:15:00.000Z",
+      "trailerUrl": null,
+      "commercialLinks": [],
+      "sources": [
+        {
+          "label": "Annonce officielle",
+          "url": "https://blog.playstation.com/2026/11/02/90s-style-sci-fi-horror-derelikt-launches-nov-13-on-ps5/"
+        }
+      ]
+    },
+    {
+      "slug": "gemini-4-carbon-google-agents-ia-novembre-2026",
+      "title": "Gemini 4 Carbon : Google veut confier des missions complexes à ses agents IA",
+      "summary": "Google ouvre l'accès à Gemini 4 Carbon, modèle conçu pour le raisonnement approfondi, la programmation et les tâches autonomes de longue durée.",
+      "body": "**Google annonce le 10 novembre 2026 l'ouverture de Gemini 4 Carbon** aux développeurs, entreprises, scientifiques et utilisateurs. Le modèle cible des travaux difficiles nécessitant une succession d'étapes et de vérifications.\n\n## Un modèle pour les problèmes complexes\n\nGoogle met en avant la recherche scientifique, le développement logiciel et la cybersécurité. Carbon est destiné aux cas où un modèle plus léger ne suffit pas, tandis que Gemini 4 Argon reste présenté comme une solution adaptée à la majorité des tâches courantes.\n\n## L'autonomie n'efface pas la supervision\n\nLes workflows de longue durée permettent à un agent de planifier, tester puis réviser ses actions. Cela ne constitue pas une garantie d'exactitude : les résultats doivent rester contrôlables et les coûts de calcul surveillés.\n\n**Analyse SWAPP :** la compétition se déplace de la conversation vers l'exécution de missions. Pour les petites structures, le véritable critère sera le rapport entre fiabilité, coût et autonomie effective.",
+      "game": "Technologie",
+      "games": [],
+      "tags": [
+        "AI",
+        "FUTURE"
+      ],
+      "seo": {
+        "title": "Gemini 4 Carbon : Google veut confier des missions complexes à ses agents IA",
+        "description": "Google ouvre l'accès à Gemini 4 Carbon, modèle conçu pour le raisonnement approfondi, la programmation et les tâches autonomes de longue durée."
+      },
+      "author": "Rédaction SWAPP",
+      "category": "Technologie",
+      "contentType": "article",
+      "status": "published",
+      "revision": 1,
+      "image": "https://storage.googleapis.com/gweb-uniblog-publish-prod/images/gemini_4_carbon_key_art_16-9_lockup.width-1300.jpg",
+      "thumbnail": "https://storage.googleapis.com/gweb-uniblog-publish-prod/images/gemini_4_carbon_key_art_16-9_lockup.width-1300.jpg",
+      "publishedAt": "2026-11-16T10:15:00.000Z",
+      "trailerUrl": null,
+      "commercialLinks": [],
+      "sources": [
+        {
+          "label": "Annonce officielle",
+          "url": "https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-4-carbon-now-available/"
+        }
+      ]
+    },
+    {
+      "slug": "gpt-6-cyber-openai-failles-firefox-linux-2026",
+      "title": "GPT-6 Cyber : OpenAI automatise la recherche de failles dans Firefox et Linux",
+      "summary": "OpenAI présente un modèle spécialisé dans la découverte et la validation de vulnérabilités, avec des résultats annoncés sur Firefox et Linux.",
+      "body": "**OpenAI présente GPT-6 Cyber le 5 novembre 2026**, un modèle spécialisé dans la recherche de vulnérabilités et les tests de sécurité autorisés.\n\n## Des découvertes dans des logiciels majeurs\n\nL'entreprise rapporte avoir identifié 81 vulnérabilités inédites de gravité élevée dans Firefox et développé des démonstrations d'exploitation de failles Linux. Ces chiffres proviennent des travaux annoncés par OpenAI et ne signifient pas que toutes les failles seraient exploitables sur les versions corrigées.\n\n## Des capacités puissantes, des risques réels\n\nLa recherche automatisée peut accélérer les corrections, mais elle augmente également le potentiel de détournement. OpenAI indique renforcer les contrôles de périmètre, la surveillance des usages et l'accès réservé à des défenseurs autorisés.\n\n**Analyse SWAPP :** le bénéfice dépendra moins du nombre de failles détectées que de la rapidité avec laquelle elles seront corrigées et de la capacité à empêcher les usages abusifs.",
+      "game": "Technologie",
+      "games": [],
+      "tags": [
+        "AI",
+        "TECH",
+        "CYBERSECURITY"
+      ],
+      "seo": {
+        "title": "GPT-6 Cyber : OpenAI automatise la recherche de failles dans Firefox et Linux",
+        "description": "OpenAI présente un modèle spécialisé dans la découverte et la validation de vulnérabilités, avec des résultats annoncés sur Firefox et Linux."
+      },
+      "author": "Rédaction SWAPP",
+      "category": "Technologie",
+      "contentType": "article",
+      "status": "published",
+      "revision": 1,
+      "image": "https://images.ctfassets.net/kftzwdyauwt9/73cvZmLsj7WIXQAgMDX8kz/4996c7a084b81e21a8f1357fe395c30b/gpt-6-cyber-social.png?w=1600&h=900&fit=fill",
+      "thumbnail": "https://images.ctfassets.net/kftzwdyauwt9/73cvZmLsj7WIXQAgMDX8kz/4996c7a084b81e21a8f1357fe395c30b/gpt-6-cyber-social.png?w=1600&h=900&fit=fill",
+      "publishedAt": "2026-11-16T10:15:00.000Z",
+      "trailerUrl": null,
+      "commercialLinks": [],
+      "sources": [
+        {
+          "label": "Annonce officielle",
+          "url": "https://openai.com/index/introducing-gpt-6-cyber/"
+        }
+      ]
+    },
+    {
+      "slug": "google-search-gemini-4-hydrogen-recherche-2026",
+      "title": "Google Search intègre Gemini 4 Hydrogen : ce qui change pour les recherches",
+      "summary": "Google annonce un nouveau modèle dans son moteur de recherche, avec des réponses plus visuelles et une meilleure compréhension des demandes complexes.",
+      "body": "**Google annonce le 12 novembre 2026 l'intégration de Gemini 4 Hydrogen à Search**, avec un déploiement présenté comme mondial.\n\n## Des recherches plus complexes\n\nLe moteur doit mieux comprendre les demandes à plusieurs parties, les formulations imprécises et les questions détaillées. Google met également en avant une exploration simultanée de sous-sujets pour proposer des liens plus pertinents.\n\n## Des résultats plus visuels\n\nLes réponses peuvent inclure davantage d'images, de tableaux comparatifs et de présentations structurées. Pour les sites indépendants, la question est de savoir si ces réponses feront découvrir davantage de sources ou réduiront les visites directes.\n\n**Analyse SWAPP :** les moteurs de recherche deviennent des interfaces de synthèse. La visibilité des éditeurs dépendra de plus en plus de la citation effective des sources et de la qualité des contenus originaux.",
+      "game": "Technologie",
+      "games": [],
+      "tags": [
+        "AI",
+        "TECH",
+        "FUTURE"
+      ],
+      "seo": {
+        "title": "Google Search intègre Gemini 4 Hydrogen : ce qui change pour les recherches",
+        "description": "Google annonce un nouveau modèle dans son moteur de recherche, avec des réponses plus visuelles et une meilleure compréhension des demandes complexes."
+      },
+      "author": "Rédaction SWAPP",
+      "category": "Technologie",
+      "contentType": "article",
+      "status": "published",
+      "revision": 1,
+      "image": "https://storage.googleapis.com/gweb-uniblog-publish-prod/images/HydrogenUI_socialshare.width-1300.png",
+      "thumbnail": "https://storage.googleapis.com/gweb-uniblog-publish-prod/images/HydrogenUI_socialshare.width-1300.png",
+      "publishedAt": "2026-11-16T10:15:00.000Z",
+      "trailerUrl": null,
+      "commercialLinks": [],
+      "sources": [
+        {
+          "label": "Annonce officielle",
+          "url": "https://blog.google/products-and-platforms/products/search/gemini-4-hydrogen-search-upgrade/"
+        }
+      ]
+    },
+    {
+      "slug": "chatgpt-wallet-paiements-agents-ia-2026",
+      "title": "ChatGPT Wallet : OpenAI lance les paiements autorisés pour les agents IA",
+      "summary": "OpenAI présente un portefeuille permettant à certains agents d'effectuer des achats après validation biométrique, sans leur communiquer les données réelles de carte.",
+      "body": "**OpenAI présente ChatGPT Wallet le 13 novembre 2026**, un système de paiement conçu pour les agents effectuant des achats au nom d'un utilisateur.\n\n## Un achat approuvé par l'utilisateur\n\nL'utilisateur enregistre une carte éligible puis vérifie le commerçant, les articles et le montant avant chaque achat. Une validation de sécurité, notamment biométrique, est requise. Le commerçant reçoit un jeton de paiement plutôt que les coordonnées réelles de la carte.\n\n## Un lancement limité\n\nLe service commence aux États-Unis pour certains abonnés ChatGPT Pro utilisant dots et disposant de cartes admissibles. Il ne s'agit pas d'une disponibilité générale en France ni d'une autorisation illimitée d'achats autonomes.\n\n**Analyse SWAPP :** le commerce piloté par agents pourrait transformer les boutiques en ligne, mais les questions de consentement, de litiges et de contrôle des dépenses restent centrales.",
+      "game": "Technologie",
+      "games": [],
+      "tags": [
+        "AI",
+        "FUTURE",
+        "TECH"
+      ],
+      "seo": {
+        "title": "ChatGPT Wallet : OpenAI lance les paiements autorisés pour les agents IA",
+        "description": "OpenAI présente un portefeuille permettant à certains agents d'effectuer des achats après validation biométrique, sans leur communiquer les données réelles de carte."
+      },
+      "author": "Rédaction SWAPP",
+      "category": "Technologie",
+      "contentType": "article",
+      "status": "published",
+      "revision": 1,
+      "image": "https://images.ctfassets.net/kftzwdyauwt9/2xTvIZkcQhKk3VNFioQ4CR/4efb84a6adbddb41311f6b18158fad8b/introducing-chatgpt-wallet-social.png?w=1600&h=900&fit=fill",
+      "thumbnail": "https://images.ctfassets.net/kftzwdyauwt9/2xTvIZkcQhKk3VNFioQ4CR/4efb84a6adbddb41311f6b18158fad8b/introducing-chatgpt-wallet-social.png?w=1600&h=900&fit=fill",
+      "publishedAt": "2026-11-16T10:15:00.000Z",
+      "trailerUrl": null,
+      "commercialLinks": [],
+      "sources": [
+        {
+          "label": "Annonce officielle",
+          "url": "https://openai.com/index/introducing-chatgpt-wallet/"
+        }
+      ]
+    }
+  ]
+}
