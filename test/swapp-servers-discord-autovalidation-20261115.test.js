@@ -111,5 +111,8 @@ test('moderation count is admin-only and the existing SWAPP guard is authoritati
  assert.match(source,/isAdmin:req=>isOryonAdmin\(req\)\|\|isAdminTwitchUser\(req\.session\?\.twitchUser\)/);
  const notifications=read('assets/swapp-servers-alerts.js');
  assert.match(notifications,/moderation\/count/);
+ assert.match(notifications,/accessDenied/);
+ assert.match(notifications,/body\.error==='acces_refuse'/);
+ assert.match(notifications,/window\.__swappServersModerationAlertsBooted/);
  assert.match(notifications,/data-ss-account-alert/);
 });

@@ -94,4 +94,7 @@ test('client uses a single accessible failure state and preserves existing categ
  assert.doesNotMatch(code,/Actualisation indisponible : les fiches déjà chargées restent visibles/);
  assert.match(code,/if\(state\.status==='error'&&keepServerRendered/);
  assert.match(code,/more\.hidden=true;more\.disabled=false;return;/);
+ assert.match(code,/ssDirectoryBooted/);
+ assert.match(code,/blockedUntil/);
+ assert.match(code,/activeRequest\.abort\(\)/);
 });
