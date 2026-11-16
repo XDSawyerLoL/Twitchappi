@@ -62,7 +62,7 @@ test('backfill batches statements instead of issuing one INSERT per row',async()
  assert.deepEqual(result,{posts:130,messages:67});
  const inserts=calls.filter(c=>c.sql.startsWith('INSERT INTO swapp_social_native_posts_v2')||
   c.sql.startsWith('INSERT INTO swapp_social_native_messages_v2'));
- assert.equal(inserts.length,6,'130 posts => 3 batches, 67 messages => 2 batches, plus index metadata is separate');
+ assert.equal(inserts.length,5,'130 posts => 3 batches and 67 messages => 2 batches');
  assert.ok(inserts.every(c=>c.args.length<=64*7));
 });
 
