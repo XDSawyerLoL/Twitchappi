@@ -190,7 +190,7 @@ if (FIRESTORE_RUNTIME_ENABLED && admin) {
     console.warn('⚠️ [FIREBASE] désactivé, fallback local:', error.message);
   }
 } else {
-  console.info('[SWAPP STORAGE] Legacy Firestore retired: use Hostinger MySQL.');
+  // No legacy Firebase startup log: Firestore is permanently disabled.
 }
 
 // =========================================================
@@ -3110,15 +3110,13 @@ function computeGrowthScore({ avgViewers = 0, growthPct = 0, volatility = 0, hou
 // =========================================================
 // 2C. CRON SNAPSHOTS -> Firestore
 // =========================================================
-const ENABLE_CRON = FIRESTORE_RUNTIME_ENABLED && (process.env.ENABLE_CRON || 'false').toLowerCase() === 'true';
+const ENABLE_CRON = false; // Retired Firestore-only job, never opt in again.
 const SNAPSHOT_EVERY_MIN = parseInt(process.env.SNAPSHOT_EVERY_MIN || '5', 10);
 
 // Tracked channels (targeted collection for 20-200 viewers):
 // - stored by Twitch user_id (stable)
 // - snapshots collected even if the channel is not in top100 FR
-const ENABLE_TRACKED_CRON = FIRESTORE_RUNTIME_ENABLED && (process.env.ENABLE_TRACKED_CRON || 'false').toLowerCase() === 'true';
-if((process.env.ENABLE_CRON||'').toLowerCase()==='true'||(process.env.ENABLE_TRACKED_CRON||'').toLowerCase()==='true')
- console.warn('[SWAPP STORAGE] Legacy Firestore analytics CRON flags ignored.');
+const ENABLE_TRACKED_CRON = false; // Retired Firestore-only job, never opt in again.
 const TRACKED_EVERY_MIN = parseInt(process.env.TRACKED_EVERY_MIN || String(SNAPSHOT_EVERY_MIN || 5), 10);
 const TRACKED_MAX = parseInt(process.env.TRACKED_MAX || '500', 10);
 
@@ -3544,16 +3542,12 @@ if (ENABLE_CRON) {
   console.log(` - CRON ENABLED = true`);
   setInterval(collectAnalyticsSnapshot, SNAPSHOT_EVERY_MIN * 60 * 1000);
   collectAnalyticsSnapshot().catch(() => {});
-} else {
-  console.log(` - CRON ENABLED = false`);
 }
 
 if (ENABLE_TRACKED_CRON) {
   console.log(` - TRACKED CRON ENABLED = true`);
   setInterval(collectTrackedSnapshot, TRACKED_EVERY_MIN * 60 * 1000);
   collectTrackedSnapshot().catch(() => {});
-} else {
-  console.log(` - TRACKED CRON ENABLED = false`);
 }
 
 // =========================================================
