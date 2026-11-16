@@ -509,7 +509,14 @@ function injectSpaMetadata(html,pathname='/'){
    '<meta property="og:description" content="'+encodeXml(info.description)+'">'+
    '<meta property="og:url" content="'+ORIGIN+path+'">'+
    '<meta property="og:locale" content="fr_FR">'+
-   '<meta name="twitter:card" content="summary">'+
+   '<meta property="og:image" content="'+ORIGIN+'/swapp-share-card.png">'+
+   '<meta property="og:image:secure_url" content="'+ORIGIN+'/swapp-share-card.png">'+
+   '<meta property="og:image:type" content="image/png">'+
+   '<meta property="og:image:width" content="1200">'+
+   '<meta property="og:image:height" content="630">'+
+   '<meta property="og:image:alt" content="SWAPP · Lives, jeux vidéo et communautés">'+
+   '<meta name="twitter:card" content="summary_large_image">'+
+   '<meta name="twitter:image" content="'+ORIGIN+'/swapp-share-card.png">'+
    '<meta name="twitter:title" content="'+encodeXml(info.title)+'">'+
    '<meta name="twitter:description" content="'+encodeXml(info.description)+'">'+
    '<link rel="alternate" type="application/rss+xml" title="Actualité SWAPP" href="'+ORIGIN+'/feed.xml">'+
