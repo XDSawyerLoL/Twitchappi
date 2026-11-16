@@ -363,3 +363,17 @@
  .ss-pro .ss-lfg-section :is(button,input,select){transition:none!important}
  .ss-pro .ss-lfg-primary:hover{transform:none!important}
 }
+
+
+/* Explicit anonymous onboarding without another large information card. */
+.ss-pro .ss-lfg-signin{
+ display:block;margin:15px 0 0;padding:11px 0 0;
+ border-top:1px solid #2a4350;
+ color:#a9c1ca;font-size:12px;line-height:1.6;
+}
+.ss-pro .ss-lfg-signin[hidden]{display:none!important}
+.ss-pro .ss-lfg-signin a{
+ color:#b1f1ed;font-weight:800;text-decoration:underline;
+ text-decoration-color:rgba(158,234,226,.47);text-underline-offset:3px;
+}
+.ss-pro .ss-lfg-signin a:hover{color:#e7fffa}
