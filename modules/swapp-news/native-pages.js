@@ -177,7 +177,13 @@ function renderNewsStory(originalArticle,{baseUrl='https://swapp.tv',relatedArti
  const shareImage=sharePreview.thumbnailSource(article)||sharePreview.previewUrl(article);
  // Google's video rich results require uploadDate, name and thumbnailUrl.
  // Keep actual origin dates on imported editorials; never invent publish times.
- const author={'@type':'Person',name:article.author||'Rédaction SWAPP'};
+ const byline=String(article.author||'').trim()||'Rédaction SWAPP';
+ // Only the actual SWAPP newsroom can be tied to a verified organization URL.
+ // Do not invent personal profile URLs for external or named contributors.
+ const editorialByline=/^(?:rédaction swapp|swapp)$/i.test(byline);
+ const author=editorialByline?
+  {'@type':'Organization',name:byline,url:'https://swapp.tv/a-propos'}:
+  {'@type':'Person',name:byline};
  const publisher={'@type':'Organization',name:'SWAPP',url:'https://swapp.tv'};
  const schema={'@context':'https://schema.org','@type':isVideo?'VideoObject':article.category==='Dossiers'?'Article':'NewsArticle',
    name:seoTitle,headline:seoTitle,description:seoDescription,
