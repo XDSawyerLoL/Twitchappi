@@ -1,0 +1,216 @@
+{
+  "kind": "swapp-editorial-pending",
+  "schema": 1,
+  "createdAt": "2026-11-16T23:04:06Z",
+  "updatedAt": "2026-11-16T23:04:06Z",
+  "publicationPolicy": "Hors manifeste. Ne pas publier un article sans vidéo intégrable, vignette contrôlée et rapprochement Studio. Une brève peut être intégrée aux signaux après lecture de la source et vérification du visuel officiel lié à l’événement ; sa diffusion publique reste à contrôler.",
+  "articles": [
+    {
+      "slug": "spirit-crossing-lancement-pc-switch-cozy-club-novembre-2026",
+      "title": "Spirit Crossing ouvre son monde social : ce qu’il faut savoir avant de s’installer",
+      "summary": "Spry Fox annonce le lancement de Spirit Crossing le 16 novembre 2026. Achat du jeu, abonnement facultatif et différences entre versions : les points utiles avant de rejoindre ce monde en ligne.",
+      "body": "Spry Fox annonce le lancement de Spirit Crossing le 16 novembre 2026 sur PC, via Steam et Epic Games Store, ainsi que sur Nintendo Switch et Switch 2. Les notes de version 16.0 accompagnent cette annonce. Le studio présente un monde multijoueur qui mise sur les rencontres et la création d’un lieu de vie.\n\n## Un monde partagé, sans obligation de faire la conversation\n\nLa fiche officielle Steam décrit une aventure au-dessus des nuages : on y construit une maison, aide des esprits et participe à des activités avec d’autres joueurs. Les personnes rencontrées apparaissent d’abord comme des silhouettes ; partager une activité permet de révéler leur apparence. Le studio indique aussi qu’il est possible de limiter les interactions sociales.\n\nLe jeu demande une connexion Internet, même si l’on préfère explorer seul. Steam mentionne une interface et des sous-titres en français, ainsi qu’un âge minimum de 13 ans. Il faut donc distinguer la liberté de rester discret d’un véritable mode hors ligne.\n\n## Un achat initial et un club facultatif\n\nLe Cozy Club est présenté comme une formule mensuelle optionnelle. Les achats sur Steam, Epic et les deux consoles Nintendo comprennent trente jours de cette formule, activables ultérieurement. Spry Fox indique que les vêtements et éléments de décoration ne sont pas réservés exclusivement aux abonnés.\n\nAucun prix français n’est retenu ici. Une annonce de lancement ne suffit pas à garantir que chaque boutique régionale a déjà ouvert ses ventes : la version de la fiche Steam consultée affichait encore un compte à rebours antérieur au déblocage.\n\n## Sur Switch, choisir la bonne version\n\nLa fiche Nintendo américaine de la version Switch 2 précise qu’il s’agit d’un produit distinct de la version Switch. Elle avertit que les sauvegardes et contenus additionnels ne sont pas compatibles entre les deux éditions. Cet avertissement mérite d’être vérifié dans la boutique de sa région avant un achat ou un changement de console.\n\nNintendo répertorie un joueur par console et des sessions en ligne, avec Nintendo Switch Online pour les fonctions multijoueurs concernées. Ces indications ne constituent pas une promesse d’écran partagé. Elles ne garantissent pas non plus le transfert d’une progression vers toutes les autres plateformes.\n\n## Analyse SWAPP : le rythme du groupe fera la différence\n\nL’intérêt d’un monde social se mesure autant à la facilité d’y revenir qu’à la quantité d’activités proposées. Pour un groupe d’amis, le premier critère sera de pouvoir se retrouver simplement, puis de garder une place pour ceux qui jouent moins souvent. Construire un lieu ensemble peut créer cette continuité ; cela peut aussi devenir contraignant si les horaires et les attentes divergent.\n\nLa présentation de Spry Fox pose une intention. Elle ne remplace pas un test de la stabilité des serveurs, de la modération ou de la progression sur plusieurs semaines. Avant de prolonger un abonnement facultatif, mieux vaut distinguer l’envie de soutenir le studio de l’utilité des avantages pour ses propres habitudes.\n\n## Pour aller plus loin\n\nLa fiche Instant Gaming correspond à l’édition PC Steam et annonce une compatibilité mondiale. Elle était indiquée hors stock lors de la consultation ; aucun tarif ni réduction n’est repris.\n\nLien affilié · commission possible. Les liens rémunérés n’influencent pas l’indépendance éditoriale de SWAPP.",
+      "game": "Spirit Crossing",
+      "games": [
+        "Spirit Crossing"
+      ],
+      "tags": [
+        "GAMING",
+        "Spirit Crossing",
+        "Spry Fox",
+        "multijoueur",
+        "Nintendo Switch 2"
+      ],
+      "seo": {
+        "title": "Spirit Crossing : lancement, Cozy Club et versions Switch",
+        "description": "Spirit Crossing : annonce du 16 novembre 2026, abonnement facultatif, connexion requise et différences entre versions Switch. Les faits vérifiés."
+      },
+      "author": "Rédaction SWAPP",
+      "category": "Actualités JV",
+      "contentType": "article",
+      "status": "draft",
+      "publishedAt": null,
+      "trailerUrl": "https://www.youtube.com/watch?v=tl27LPgOHGs",
+      "image": null,
+      "thumbnail": null,
+      "editorialVerdict": null,
+      "commercialLinks": [
+        {
+          "title": "Spirit Crossing — PC (Steam), hors stock au contrôle",
+          "merchant": "Instant Gaming",
+          "kind": "affiliate",
+          "url": "https://www.instant-gaming.com/fr/21341-acheter-spirit-crossing-pc-steam/?igr=SANSAHD"
+        }
+      ],
+      "sources": [
+        {
+          "label": "Spry Fox — lancement et notes 16.0, 16 novembre 2026",
+          "url": "https://spryfox.com/2026/11/16/spirit-crossing-launch-patch-notes-for-version-16-0/"
+        },
+        {
+          "label": "Steam — fiche officielle : langues, connexion et caractéristiques",
+          "url": "https://store.steampowered.com/app/2321960/"
+        },
+        {
+          "label": "Nintendo — fiche Switch 2 et avertissement sur les éditions, boutique américaine",
+          "url": "https://www.nintendo.com/us/store/products/spirit-crossing-switch-2/"
+        },
+        {
+          "label": "Spry Fox — bande-annonce de lancement liée depuis les notes officielles",
+          "url": "https://www.youtube.com/watch?v=tl27LPgOHGs"
+        }
+      ],
+      "qualityGate": {
+        "reviewedAt": "2026-11-16T23:04:06Z",
+        "officialSourcesRead": true,
+        "sourceDate": "2026-11-16",
+        "officialVideoLinkedByStudio": true,
+        "videoPlaybackVerified": false,
+        "videoEmbeddabilityVerified": false,
+        "thumbnailVisualChecked": false,
+        "repositoryEventDedupVerified": true,
+        "studioDedupVerified": false,
+        "productionVerified": false,
+        "readyForPublish": false
+      },
+      "notes": "Brouillon hors manifeste. Le lecteur YouTube retourne une limitation de récupération et sa lecture ne peut pas être contrôlée dans cette session. La miniature YouTube reste à inspecter visuellement. Le visuel d’ouverture lié par Spry Fox est identifié pour la brève, mais ne remplace pas le contrôle de la vignette et du lecteur de l’article. La disponibilité Steam récupérée est possiblement mise en cache : conserver l’attribution au studio. Fiche Instant Gaming exacte lue en français, PC Steam et compatibilité mondiale confirmés, hors stock ; ne pas reprendre sa date de sortie divergente du 15 novembre."
+    }
+  ],
+  "candidates": [
+    {
+      "id": "star-wars-galactic-racer-free-play-20261116",
+      "topics": [
+        "GAMING"
+      ],
+      "title": "Star Wars: Galactic Racer — mode Free Play et écran partagé",
+      "sourceUrl": "https://x.com/SWGalacticRacer/status/2122361971131462031",
+      "reportedSourceDate": "2026-11-16",
+      "reviewedAt": "2026-11-16T23:04:06Z",
+      "status": "pending_primary_access",
+      "verified": false,
+      "notes": "Signalé par plusieurs médias pour début 2027, jusqu’à quatre joueurs locaux. URL primaire exacte identifiée depuis Gematsu, mais X/Twitter retourne 403. Profil Bluesky du jeu consulté ; le post canonique n’a pas été récupéré. Ne pas transformer la reprise journalistique en brève vérifiée. Médias pertinents et éventuelle vidéo à contrôler."
+    },
+    {
+      "id": "nvidia-rubin-hpc-20261116",
+      "topics": [
+        "FUTURE",
+        "AI"
+      ],
+      "title": "NVIDIA Rubin HPC pour le calcul scientifique",
+      "sourceUrl": "https://blogs.nvidia.com/blog/rubin-hpc/",
+      "reportedSourceDate": "2026-11-16",
+      "reviewedAt": "2026-11-16T23:04:06Z",
+      "status": "pending_primary_full_read",
+      "verified": false,
+      "notes": "Annonce découverte dans la recherche officielle, mais l’ouverture complète échoue. Pas de chiffres de performance retenus, pas de visuel ni vidéo validés."
+    },
+    {
+      "id": "nvidia-ibm-fermilab-plateforme-quantique-20261116",
+      "topics": [
+        "FUTURE",
+        "AI"
+      ],
+      "title": "IBM, NVIDIA et Fermilab préparent une plateforme quantique commune",
+      "sourceUrl": "https://nvidianews.nvidia.com/news/nvidia-announces-collaboration-with-ibm-and-fermi-national-accelerator-laboratory-to-launch-quantum-classical-codesign-platform-plus-error-correction-breakthrough-to-advance-practical-quantum-computing",
+      "sourceDate": "2026-11-16",
+      "reviewedAt": "2026-11-16T23:04:06Z",
+      "status": "source_verified_signal_prepared_article_media_pending",
+      "verifiedForLongArticle": false,
+      "additionalSourceUrl": "https://news.fnal.gov/2026/11/fermilab-ibm-and-nvidia-plan-modular-quantum-computing-co-design-platform-to-advance-scientific-discovery/",
+      "notes": "Deux pages primaires lues : projet de plateforme, pas réalisation générale démontrée. Visuel officiel conceptuel exact identifié sur la page Fermilab, crédit composite conservé. Aucune vidéo pertinente intégrable validée pour un article long."
+    }
+  ],
+  "mediaEvidence": [
+    {
+      "event": "spirit-crossing-lancement-cozy-club-20261116",
+      "primaryPage": "https://spryfox.com/2026/11/16/spirit-crossing-launch-patch-notes-for-version-16-0/",
+      "imageUrl": "https://spryfox.com/wp-content/uploads/2026/11/GroupShot_16.9.png",
+      "relationship": "Image d’ouverture directement liée dans les notes officielles Spry Fox",
+      "imageRetrieval": "Le clic sur le média renvoie une réponse image ; une seconde ouverture directe échoue. Rendu dans SWAPP non contrôlé.",
+      "pixelInspection": false,
+      "articleThumbnailVerified": false
+    },
+    {
+      "event": "nvidia-ibm-fermilab-plateforme-quantique-20261116",
+      "primaryPage": "https://news.fnal.gov/2026/11/fermilab-ibm-and-nvidia-plan-modular-quantum-computing-co-design-platform-to-advance-scientific-discovery/",
+      "imageUrl": "https://news.fnal.gov/wp-content/uploads/2026/11/FINAL-Co-design-platform-trio-1024x400.jpg",
+      "relationship": "Illustration conceptuelle directement liée et légendée par Fermilab pour le projet IBM/NVIDIA/Fermilab",
+      "imageRetrieval": "Le lien de la page primaire renvoie une réponse image. Légende détaillée et crédits lus. Rendu dans SWAPP non contrôlé.",
+      "pixelInspection": false,
+      "articleThumbnailVerified": false
+    }
+  ],
+  "review": {
+    "startedAt": "2026-11-16T22:58:31Z",
+    "checkedAt": "2026-11-16T23:04:06Z",
+    "recentSearchStart": "2026-11-16T16:58:31Z",
+    "catchUpStart": "2026-10-21T20:32:18.881531Z",
+    "coverageComplete": false,
+    "manifest": {
+      "sha": "f9ea38d44ddfc7998cad58d77ff275a435075993",
+      "releases": 28,
+      "articles": 49
+    },
+    "signalsBefore": {
+      "count": 34,
+      "sha": "9dcca0a436c5af95f2b9fffb84708aee5d13bdb1"
+    },
+    "earlierPreparedWork": {
+      "pendingFile": "swapp-editorial-pending-20261116-minecraft-nvidia.json",
+      "pendingBlobSha": "220856cc0dd384614d29f2bf80a844b582feb781",
+      "signalsCommit": "23690bce5714ed361040c0c788e15d2b974f82b2",
+      "note": "Les deux brèves Minecraft Dungeons II et Rainbow Six Siege de l’après-midi sont présentes, et ne sont pas ajoutées une seconde fois."
+    },
+    "duplicatesAndDecisions": [
+      {
+        "event": "PlayStation Plus novembre 2026",
+        "decision": "Deux articles du même événement restent au manifeste ; aucune troisième publication ni restauration Studio.",
+        "slugs": [
+          "playstation-plus-novembre-2026-death-stranding-2-atomfall-dragon-quest",
+          "playstation-plus-novembre-2026-death-stranding-2-atomfall"
+        ]
+      },
+      {
+        "event": "The Elder Scrolls VI: Sentinel",
+        "decision": "Post Bethesda du 3 novembre relu, titre et développement confirmés dans ce post. Aucun fait supplémentaire du lot amplifié.",
+        "primary": "https://bsky.app/profile/bethesdastudios.com/post/3mzg5pmb4mk2p"
+      },
+      {
+        "event": "BioWare / Mass Effect et Serious Sam",
+        "decision": "Sources originales du 21 octobre relues, aucun développement nouveau trouvé dans les pages consultées."
+      },
+      {
+        "event": "Voxtral 3",
+        "decision": "Écarté comme fausse nouveauté : le journal officiel situe le lancement au 20 octobre, avant la fenêtre de rattrapage. La date récente du résultat de recherche n’est pas la date du fait.",
+        "primary": "https://docs.mistral.ai/resources/changelogs"
+      },
+      {
+        "event": "The Game Awards 2026",
+        "decision": "Le site officiel annonce la révélation des nominations le 17 novembre à 17 h GMT ; aucune liste de nommés inventée.",
+        "primary": "https://thegameawards.com/"
+      }
+    ],
+    "production": {
+      "verified": false,
+      "observedArticleTitlesInSitemap": 49,
+      "observedLatestTitlesInActus": 8,
+      "method": "Consultation des pages publiques par récupération web ; aucune preuve du rendu interactif complet",
+      "apiActus": "inaccessible_via_retrieval",
+      "releaseStatus": "inaccessible_via_retrieval",
+      "storageStatus": "inaccessible_via_retrieval",
+      "signals": "inaccessible_via_retrieval",
+      "httpStatusThisCheck": null
+    },
+    "tracking": {
+      "canonicalRegisterUpdated": false,
+      "lastSuccessfulCheckAdvanced": false,
+      "reason": "Aucun environnement d’exécution local disponible ; la tentative de remplacement du registre échoue avant téléversement. Conserver ces éléments pour rapprochement non destructif lors du rétablissement."
+    },
+    "limitations": [
+      "L’historique depuis le 21 octobre n’a pas été intégralement contrôlé.",
+      "Les informations sans heure officielle ne sont pas arbitrairement classées dans les seules six dernières heures.",
+      "Pas de contrôle visuel local ni de lecture vidéo dans cette session.",
+      "Aucun changement CMS, MySQL, sécurité, navigation ou carrousel."
+    ]
+  }
+}
