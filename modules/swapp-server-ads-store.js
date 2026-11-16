@@ -26,7 +26,7 @@ function createServerAdsStore({uri=process.env.SWAPP_MYSQL_URL||process.env.SWAP
  async function eligible(slot){
   if(!VALID_SLOT.has(slot))return [];
   const now=clock(),p=await ready();
-  const [rows]=await p.execute('SELECT id,server_id,plan_id,status,payment_verified,review_status,starts_at,ends_at,slots_json FROM swapp_server_ad_campaigns WHERE status=? AND payment_verified=1 AND review_status=? AND starts_at<=? AND ends_at>? LIMIT 100',['active','approved',now,now]);
+  const [rows]=await p.execute('SELECT id,server_id,plan_id,status,payment_verified,review_status,starts_at,ends_at,slots_json FROM swapp_server_ad_campaigns WHERE status=? AND payment_verified=1 AND review_status=? AND starts_at<=? AND ends_at>? ORDER BY id ASC LIMIT 100',['active','approved',now,now]);
   return rows.map(row=>{
    let slots;try{slots=JSON.parse(row.slots_json)}catch{slots=[]}
    return {id:row.id,serverId:row.server_id,planId:row.plan_id,status:row.status,
@@ -34,6 +34,8 @@ function createServerAdsStore({uri=process.env.SWAPP_MYSQL_URL||process.env.SWAP
     startsAt:Number(row.starts_at),endsAt:Number(row.ends_at),slots};
   }).filter(c=>validCampaign(c,now)&&c.slots.includes(slot));
  }
+ // impressionsToday must come from a trusted, persistent counter once reporting is enabled.
+ // Until then this selector rotates eligible campaigns but does not enforce a real frequency cap.
  async function pick(slot,{seed=0,impressionsToday={}}={}){
   return selectSponsored(await eligible(slot),{slot,now:clock(),seed,impressionsToday});
  }
