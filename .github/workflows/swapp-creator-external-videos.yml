@@ -11,6 +11,9 @@ on:
       - 'test/swapp-commercial-catalogue.test.js'
       - 'test/swapp-server-ads.test.js'
       - 'assets/swapp-social-premium-preview.*'
+      - 'assets/swapp-server-ads-showcase.*'
+      - 'assets/swapp-servers.js'
+      - 'modules/swapp-servers.js'
       - 'index.html'
       - 'tools/swapp-release.js'
       - 'lib/swapp-creator-external-videos.js'
@@ -42,5 +45,8 @@ jobs:
           node --check lib/swapp-server-ads.js
           node --check modules/swapp-server-ads-store.js
           node --check assets/swapp-social-premium-preview.js
+          node --check assets/swapp-server-ads-showcase.js
+          node --check assets/swapp-servers.js
+          node --check modules/swapp-servers.js
       - name: Provider and security unit tests
         run: node --test test/swapp-creator-external-videos.test.js test/swapp-creator-external-video-routes.test.js test/swapp-creator-external-video-store.test.js test/swapp-commercial-catalogue.test.js
