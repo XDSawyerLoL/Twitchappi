@@ -1,0 +1,119 @@
+{
+  "kind": "swapp-editorial-pending",
+  "schema": 1,
+  "createdAt": "2026-11-16T17:31:37.000Z",
+  "updatedAt": "2026-11-16T17:31:37.000Z",
+  "publicationPolicy": "Hors manifeste : ne pas publier les dossiers tant que les contrôles de médias, de déduplication et de production manquants ne sont pas résolus. Préserver toutes les modifications et dépublications Studio.",
+  "articles": [
+    {
+      "slug": "minecraft-dungeons-ii-humblers-awaken-dlc-1-decembre-2026",
+      "title": "Minecraft Dungeons II : The Humblers Awaken arrive le 1er décembre",
+      "summary": "Mojang détaille le premier DLC de Minecraft Dungeons II et une mise à jour gratuite distincte. Contenu, éditions et points à vérifier avant le lancement du 1er décembre.",
+      "body": "Mojang a détaillé The Humblers Awaken le 15 novembre 2026. Ce premier DLC payant de Minecraft Dungeons II est annoncé pour le 1er décembre, en même temps qu’une mise à jour gratuite. Le programme comprend donc deux ensembles de contenus, dont l’accès ne repose pas sur le même achat.\n\n## Une nouvelle expédition dans le Sift\n\nLe DLC promet des quêtes dans des zones souterraines et des paysages de champignons, face aux humblers. Trois artefacts actifs et quatre talismans passifs enrichiront l’équipement. La mise à jour gratuite ajoutera notamment des donjons d’épreuve aux défis quotidiens et hebdomadaires.\n\n## Une dimension qui appartient déjà à l’aventure\n\nLe Sift n’est pas une nouveauté inventée pour cette extension. Xbox le présentait dès le 26 septembre comme une dimension du jeu de base, associé à un lancement le 29 septembre. Ce territoire possède ses propres créatures et des règles environnementales susceptibles de modifier l’exploration. Le communiqué citait notamment les biomes Meadows et Carapace.\n\nCette présentation annonçait aussi l’intégration du Sift dans Minecraft en 2027. Il s’agit d’un projet distinct : la date du 1er décembre concerne l’extension de Dungeons II, et ne permet pas d’annoncer l’arrivée de cette dimension dans Java ou Bedrock à cette échéance.\n\n## Vérifier son édition avant tout achat\n\nLa FAQ officielle décrit Dungeons II comme un action-RPG, jouable sans avoir terminé son prédécesseur. Elle confirme Windows et Steam, Xbox Series X|S, PlayStation 5, Nintendo Switch et Switch 2 pour le jeu de base. Elle mentionne la coopération locale, le jeu en ligne entre plateformes et la possibilité de combiner les deux.\n\nLa Deluxe Edition comprend le jeu ainsi que les DLC 1 et 2 lorsqu’ils sont disponibles. Les propriétaires de cette édition ont donc intérêt à consulter leurs contenus inclus avant un achat séparé. Les mentions légales précisent qu’un abonnement propre à la plateforme est nécessaire pour la coopération en ligne sur console.\n\nLe tarif français du DLC et son heure de déploiement ne sont pas établis par les documents consultés. Les plateformes du jeu de base ne constituent pas, à elles seules, une preuve d’ouverture simultanée de chaque boutique régionale.\n\n## Analyse SWAPP : l’intérêt se jouera dans la variété\n\nLe renouvellement d’un action-RPG ne se mesure pas seulement au nombre d’objets ajoutés. Des ennemis différents peuvent obliger à revoir ses habitudes ; des équipements supplémentaires peuvent aussi rester anecdotiques si les combinaisons déjà dominantes gardent tout leur avantage. Ce sont des critères d’évaluation, pas des qualités que nous attribuons à une extension encore attendue.\n\nPour un groupe d’amis, la décision utile sera de préciser le contenu auquel chacun souhaite accéder. Revenir ensemble pour des défis récurrents et acheter une campagne supplémentaire répondent à des envies différentes. La bande-annonce officielle associée présente l’extension dans un montage promotionnel : elle ne remplace ni un essai indépendant, ni une mesure de sa durée ou de sa stabilité.",
+      "game": "Minecraft Dungeons II",
+      "games": [
+        "Minecraft Dungeons II"
+      ],
+      "tags": [
+        "GAMING",
+        "Minecraft Dungeons II",
+        "DLC",
+        "Mojang",
+        "coopération"
+      ],
+      "seo": {
+        "title": "Minecraft Dungeons II : The Humblers Awaken, date et contenu",
+        "description": "The Humblers Awaken est annoncé pour le 1er décembre 2026. DLC payant, mise à jour gratuite, Deluxe Edition et informations pratiques vérifiées."
+      },
+      "author": "Rédaction SWAPP",
+      "category": "Actualités JV",
+      "contentType": "article",
+      "status": "draft",
+      "publishedAt": null,
+      "trailerUrl": "https://www.youtube.com/watch?v=s0w_pTOXDBQ",
+      "image": {
+        "url": "https://i.ytimg.com/vi/s0w_pTOXDBQ/hqdefault.jpg",
+        "credit": "Mojang Studios / Minecraft · miniature de la bande-annonce officielle The Humblers Awaken",
+        "rights": "Miniature YouTube distante du trailer officiel ; aucun réhébergement ni modification."
+      },
+      "thumbnail": {
+        "url": "https://i.ytimg.com/vi/s0w_pTOXDBQ/hqdefault.jpg",
+        "credit": "Mojang Studios / Minecraft",
+        "rights": "Miniature YouTube distante de la vidéo officielle pertinente ; non réhébergée.",
+        "alt": "Minecraft Dungeons II — The Humblers Awaken, miniature de la bande-annonce officielle",
+        "position": "center"
+      },
+      "commercialLinks": [],
+      "editorialVerdict": null,
+      "sources": [
+        {
+          "label": "Mojang — date et contenu de The Humblers Awaken, 15 novembre 2026",
+          "url": "https://www.minecraft.net/en-us/article/the-humblers-awaken"
+        },
+        {
+          "label": "Mojang — FAQ, plateformes, coopération et Deluxe Edition",
+          "url": "https://www.minecraft.net/en-us/about-dungeons-ii"
+        },
+        {
+          "label": "Xbox — présentation du Sift dans le jeu de base, 26 septembre 2026",
+          "url": "https://news.xbox.com/en-us/2026/09/26/minecraft-new-dimension-sift-dungeons-2/"
+        },
+        {
+          "label": "Minecraft — bande-annonce officielle The Humblers Awaken",
+          "url": "https://www.youtube.com/watch?v=s0w_pTOXDBQ"
+        }
+      ],
+      "qualityGate": {
+        "officialSourcesRead": true,
+        "sourceDate": "2026-11-15",
+        "reviewedAt": "2026-11-16T17:31:37.000Z",
+        "officialVideoIdentified": true,
+        "embedOptionAvailable": true,
+        "videoEmbeddabilityVerified": false,
+        "videoPlaybackVerified": false,
+        "thumbnailVisualChecked": true,
+        "repositoryEventDedupVerified": true,
+        "studioDedupVerified": false,
+        "productionVerified": false,
+        "readyForPublish": false
+      },
+      "notes": "Brouillon hors manifeste. La chaîne Minecraft vérifiée et l’option YouTube Embed sont confirmées ; l’aperçu reste à 0:00 / 1:14 dans le navigateur de contrôle. Ne pas confondre présence de l’iframe et lecture fonctionnelle. Prix français et heure régionale non confirmés. Fiche Instant Gaming du DLC non vérifiée : aucun lien de substitution vers le jeu de base. publishedAt à renseigner au moment d’une activation réellement autorisée par les contrôles."
+    }
+  ],
+  "candidates": [
+    {
+      "id": "nvidia-nemotron-for-science-20261116",
+      "topics": [
+        "AI",
+        "FUTURE"
+      ],
+      "title": "NVIDIA présente Nemotron for Science",
+      "fact": "Le 16 novembre, NVIDIA présente un ensemble associant Nemotron 3.5 Super VL, des recettes d’adaptation et le jeu de données de chimie LitmusBench v0.2, annoncé avec près de 50 000 questions.",
+      "impact": "Les chercheurs peuvent adapter et évaluer des agents pour des tâches scientifiques spécialisées.",
+      "caveat": "Les performances sont rapportées par NVIDIA et ses partenaires ; elles ne prouvent pas une validation clinique ni une fiabilité générale.",
+      "sourceName": "NVIDIA",
+      "sourceUrl": "https://nvidianews.nvidia.com/news/nvidia-introduces-nemotron-for-science-to-accelerate-discoveries-with-agents",
+      "sourceDate": "2026-11-16",
+      "reviewedAt": "2026-11-16T17:31:37.000Z",
+      "status": "candidate_media_blocked",
+      "blocker": "Page primaire HTTP 200 lue ; images officielles og:image, lead et téléchargement HTTP 403. Pas de brève illustrée publique tant que l’image ne peut pas être contrôlée."
+    },
+    {
+      "id": "nvidia-vera-hpc-rack-20261116",
+      "topics": [
+        "FUTURE",
+        "AI"
+      ],
+      "title": "NVIDIA annonce une plateforme Vera pour le calcul scientifique",
+      "fact": "NVIDIA annonce le 16 novembre une plateforme HPC réunissant 192 processeurs Vera et le réseau Quantum-X800 InfiniBand. Les premiers racks partenaires sont attendus début 2027.",
+      "impact": "La plateforme vise les simulations scientifiques et les applications exigeantes en mémoire ; le centre allemand DKRZ prévoit des processeurs Vera pour HLRE-5.",
+      "caveat": "Les performances annoncées viennent des tests du constructeur. Le système HLRE-5 est attendu début 2028, distinctement de la disponibilité commerciale des racks.",
+      "sourceName": "NVIDIA",
+      "sourceUrl": "https://nvidianews.nvidia.com/news/nvidia-expands-vera-cpu-platform-to-accelerate-scientific-discovery",
+      "sourceDate": "2026-11-16",
+      "reviewedAt": "2026-11-16T17:31:37.000Z",
+      "status": "candidate_media_blocked",
+      "blocker": "Page primaire HTTP 200 lue ; trois URLs d’images officielles retournent HTTP 403. Aucun visuel de substitution."
+    }
+  ]
+}
