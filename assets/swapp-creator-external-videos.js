@@ -4,7 +4,8 @@
 const root=document.getElementById('channel');if(!root)return;
 const login=page=>{
  const profile=typeof state!=='undefined'?state.channelProfile:null;
- const value=String(page.dataset.channelLogin||profile?.login||'').toLowerCase();
+ const pathname=(location.pathname||'').match(/^\/(?:c\/)?([a-z0-9_-]{2,48})\/?$/i);
+ const value=String(page.dataset.channelLogin||pathname?.[1]||profile?.login||'').toLowerCase();
  return /^[a-z0-9_-]{2,48}$/.test(value)?value:'';
 };
 const el=(tag,cls,text)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(text)n.textContent=text;return n};
@@ -88,15 +89,23 @@ async function load(page,force){
  if(!page.isConnected)return;
  const creator=login(page);if(!creator)return;
  const existing=page.querySelector('.swapp-external-videos');if(existing)existing.remove();
+ page.querySelector('[data-swapp-videos-nav]')?.remove();
  const owner=page.dataset.channelOwner==='true';
  try{
   const data=await api('/api/creator/external-videos/'+encodeURIComponent(creator));
+  if(!page.isConnected||login(page)!==creator)return;
   if(!data.videos?.length&&!owner)return;
   const section=el('section','swapp-external-videos');
   section.id='swappCreatorVideos';section.dataset.creator=creator;
   const anchor=page.querySelector('.channelBelowLive')||page.querySelector('#channelAboutSection');
   if(anchor)anchor.before(section);else page.append(section);
   render(page,section,data.videos,owner,creator);
+  const nav=page.querySelector('.channelSubNav');
+  if(nav&&!nav.querySelector('[data-swapp-videos-nav]')){
+   const button=el('button','','Vidéos');button.type='button';button.dataset.swappVideosNav='1';
+   button.onclick=()=>section.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
+   nav.append(button);
+  }
  }catch(e){if(owner){const section=el('section','swapp-external-videos');section.append(el('p','',e.message));page.append(section)}}
 }
 let scheduled=false;
