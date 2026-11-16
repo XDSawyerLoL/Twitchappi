@@ -53,7 +53,20 @@ function createEditorialReleaseSync({firestore,articles,releaseArticles=[],clock
      for(const a of validated){
        const outcome=await firestore.runTransaction(async tx=>{
          const ref=articles.doc(a.slug),snapshot=await tx.get(ref);
-         if(snapshot.exists)return 'already_exists';
+         if(snapshot.exists){
+           const existing=snapshot.data()||{};
+           // Repair only never-edited, still-published release imports whose
+           // cover was absent at adoption. Preserve every editor revision,
+           // withdrawal, custom image and other CMS field.
+           if(existing.provenance==='swapp-editorial-release'&&
+              existing.status==='published'&&existing.revision===1&&
+              !existing.image?.url&&!existing.thumbnail?.url&&
+              a.image?.url&&a.thumbnail?.url){
+             tx.update(ref,{image:a.image,thumbnail:a.thumbnail,updatedAt:clock()});
+             return 'media_repaired';
+           }
+           return 'already_exists';
+         }
          const now=clock();
          if(recordDiscordPublication)await recordDiscordPublication(tx,a,now);
          tx.create(ref,{...a,status:'published',revision:1,createdAt:now,updatedAt:now,
@@ -63,7 +76,7 @@ function createEditorialReleaseSync({firestore,articles,releaseArticles=[],clock
        results.push({slug:a.slug,status:outcome});
      }
      done=true;
-     return {complete:true,created:results.filter(x=>x.status==='created').length,results};
+     return {complete:true,created:results.filter(x=>x.status==='created').length,mediaRepaired:results.filter(x=>x.status==='media_repaired').length,results};
    })().finally(()=>{inFlight=null;});
    return inFlight;
  }
