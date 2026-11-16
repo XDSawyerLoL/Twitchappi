@@ -76,7 +76,7 @@ function viewStory(story,section){
  dialog.setAttribute('aria-label',story.title||'Story SWAPP');
  const close=el('button','swapp-story-close','Fermer');
  close.type='button';close.setAttribute('aria-label','Fermer la story');
- close.onclick=()=>dialog.close();
+ close.onclick=()=>{if(typeof dialog.close==='function')dialog.close();else dialog.remove()};
  const stage=visual(story,true);
  const video=videoLink(story);
  if(video){
@@ -111,7 +111,7 @@ function render(page,section,stories,creator,owner){
   const open=el('button','swapp-story-open');
   open.type='button';open.setAttribute('aria-label','Voir la story '+story.title);
   open.append(visual(story));
-  open.onclick=()=>viewStory(story,section);
+  open.onclick=()=>{if(Date.parse(story.expiresAt)<=Date.now()){void load(page,true);return}viewStory(story,section)};
   card.append(open);
   const foot=el('div','swapp-story-foot');
   foot.append(el('span','',remaining(story.expiresAt)));
@@ -178,10 +178,13 @@ async function load(page,force=false){
  if(!page.isConnected)return;
  const creator=login(page);if(!creator)return;
  page.querySelectorAll('.swapp-creator-stories').forEach(n=>n.remove());
+ page.querySelector('[data-swapp-stories-nav]')?.remove();
+ const requestSeq=Number(page.dataset.storyRequestSeq||0)+1;
+ page.dataset.storyRequestSeq=String(requestSeq);
  const owner=page.dataset.channelOwner==='true';
  try{
   const data=await api(base(creator));
-  if(!page.isConnected||login(page)!==creator||page.dataset.storyCreator!==creator)return;
+  if(!page.isConnected||login(page)!==creator||page.dataset.storyCreator!==creator||page.dataset.storyRequestSeq!==String(requestSeq))return;
   const stories=Array.isArray(data.stories)?data.stories.filter(s=>Date.parse(s.expiresAt)>Date.now()):[];
   if(!stories.length&&!owner)return;
   const section=el('section','swapp-creator-stories');
@@ -191,8 +194,16 @@ async function load(page,force=false){
    page.querySelector('.channelBelowLive')||page.querySelector('#channelAboutSection');
   if(anchor)anchor.before(section);else page.append(section);
   render(page,section,stories,creator,owner);
+  const nav=page.querySelector('.channelSubNav');
+  if(nav){
+   nav.hidden=false;
+   const button=el('button','','Stories');button.type='button';
+   button.dataset.swappStoriesNav='1';
+   button.onclick=()=>section.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
+   nav.append(button);
+  }
  }catch(error){
-  if(owner&&page.isConnected&&login(page)===creator){
+  if(owner&&page.isConnected&&login(page)===creator&&page.dataset.storyRequestSeq===String(requestSeq)){
    const section=el('section','swapp-creator-stories');
    section.append(el('p','swapp-story-action-status',error.message));
    page.append(section);
@@ -216,4 +227,10 @@ new MutationObserver(changes=>{
  if(changes.some(c=>c.target===root||c.target.classList?.contains('creatorRefine')))scan();
 }).observe(root,{subtree:true,childList:true,attributes:true,attributeFilter:['data-channel-polished','class']});
 scan();
+document.addEventListener('visibilitychange',()=>{
+ if(document.hidden||!root.classList.contains('active'))return;
+ for(const page of root.querySelectorAll('.creatorRefine')){
+  if(page.dataset.storyCreator===login(page))void load(page,true);
+ }
+});
 })();
