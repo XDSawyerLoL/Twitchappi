@@ -96,7 +96,7 @@ test('unavailable official artwork falls back to a real branded PNG without an i
 });
 test('social crawlers read complete OG and X tags from server HTML, not JavaScript',()=>{
  const html=renderNewsStory(article);
- const image='https://swapp.tv/actus/og-image/'+slug;
+ const image='https://i.ytimg.com/vi/VQRLujxTm3c/hqdefault.jpg';
  for(const tag of [
   '<meta property="og:image" content="'+image+'">',
   '<meta name="twitter:image" content="'+image+'">',
@@ -166,4 +166,13 @@ test('social previews accept official November Xbox and OpenAI art but reject un
   'https://images.ctfassets.net/kftzwdyauwt9/73cvZmLsj7WIXQAgMDX8kz/4996c7a084b81e21a8f1357fe395c30b/gpt-6-cyber-social.png?url=http://localhost',
   'https://xboxwire.thesourcemediaassets.com/sites/2/2026/11/file.jpg?redirect=https://evil.example'
  ])assert.equal(preview.allowedSource(bad),null);
+});
+
+test('published official editorial image appears directly in social HTML metadata',()=>{
+ const official='https://blog.playstation.com/tachyon/2026/11/official-artwork.jpg';
+ const html=renderNewsStory({...article,trailerUrl:null,contentType:'article',thumbnail:{url:official}});
+ assert.ok(html.includes('<meta property="og:image" content="'+official+'">'));
+ assert.ok(html.includes('<meta name="twitter:image" content="'+official+'">'));
+ const unknown=renderNewsStory({...article,trailerUrl:null,contentType:'article',thumbnail:{url:'https://unknown.example/art.jpg'}});
+ assert.ok(unknown.includes('<meta property="og:image" content="https://swapp.tv/actus/og-image/'+slug+'">'));
 });
