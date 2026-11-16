@@ -51,7 +51,13 @@
         }
       ],
       "editorialPreviousBody": "**Microsoft élargit son programme de rétrocompatibilité sur PC.** Le 12 novembre 2026, Xbox annonce l'arrivée de 21 titres supplémentaires de sa première console. Ils rejoignent quatre jeux déjà disponibles, pour un total de 25.\n\n## Morrowind, KOTOR et TimeSplitters de retour\n\nParmi les nouveaux arrivants figurent **The Elder Scrolls III: Morrowind**, **Star Wars: Knights of the Old Republic**, **Star Wars Battlefront II**, **TimeSplitters 2** et **TimeSplitters: Future Perfect**. Cette sélection permet de retrouver plusieurs pans de l'histoire du jeu vidéo sans posséder le matériel d'origine.\n\n## Des succès ajoutés aux anciens jeux\n\nXbox introduit des succès pour KOTOR, KOTOR II, BLiNX et Conker: Live and Reloaded. Ils sont également pris en charge sur certaines consoles Xbox compatibles. La prise en charge clavier-souris est annoncée pour l'ensemble des 25 titres sur PC.\n\n## Les limites à connaître\n\nL'offre nécessite **Windows 11** et dépend des pays pris en charge. L'achat des jeux ou un abonnement Game Pass peut être nécessaire selon le titre. Il ne s'agit donc pas d'une distribution gratuite de 25 jeux.\n\n**Analyse SWAPP :** la rétrocompatibilité n'est pas qu'un argument nostalgique : elle rend accessibles des jeux parfois difficiles à retrouver et pose la question de la préservation durable des catalogues.",
-      "editorialPreviousSummary": "Microsoft ajoute 21 classiques Xbox sur PC, portant le catalogue rétrocompatible à 25 titres, avec des succès pour plusieurs jeux cultes."
+      "editorialPreviousSummary": "Microsoft ajoute 21 classiques Xbox sur PC, portant le catalogue rétrocompatible à 25 titres, avec des succès pour plusieurs jeux cultes.",
+      "editorialPreviousSources": [
+        {
+          "label": "Annonce officielle",
+          "url": "https://news.xbox.com/en-us/2026/11/12/25-original-xbox-games-now-available-on-pc/"
+        }
+      ]
     },
     {
       "slug": "ps5-qssr-spider-man-2-arc-raiders-no-mans-sky-2026",
@@ -101,7 +107,13 @@
         }
       ],
       "editorialPreviousBody": "**Sony accélère le déploiement de QSSR**, une technologie de reconstruction d'image guidée par intelligence artificielle, sur PlayStation 5. Dans une communication du 13 novembre, le constructeur détaille les jeux concernés.\n\n## Spider-Man 2 ouvre la marche\n\nInsomniac Games indique que la mise à jour de **Marvel's Spider-Man 2** est déjà disponible. Elle vise une image plus stable et des détails plus nets, aussi bien dans les modes Fidélité que Performance.\n\n## D'autres studios préparent leurs mises à jour\n\n**ARC Raiders**, **The Finals** et **No Man's Sky** doivent recevoir QSSR prochainement. Remedy annonce également une mise à jour pour **Control Resonant** en décembre, tandis que **Hell Let Loose: Vietnam** fait partie des jeux prévus.\n\n## Une évolution sans changement de console\n\nQSSR partage des bases techniques avec PSSR, la technologie utilisée sur PS5 Pro. Sony explique que son objectif est de mieux reconstruire les détails de l'image sur la console déjà possédée par les joueurs. Les gains exacts peuvent varier selon les jeux et devront être évalués sur des versions mises à jour.\n\n**Analyse SWAPP :** le véritable intérêt n'est pas la promesse abstraite de l'IA, mais la possibilité d'améliorer la lisibilité et la stabilité visuelle de jeux existants.",
-      "editorialPreviousSummary": "Sony étend son upscaling guidé par IA sur PS5 : Spider-Man 2 est déjà mis à jour, tandis que No Man's Sky et ARC Raiders doivent suivre."
+      "editorialPreviousSummary": "Sony étend son upscaling guidé par IA sur PS5 : Spider-Man 2 est déjà mis à jour, tandis que No Man's Sky et ARC Raiders doivent suivre.",
+      "editorialPreviousSources": [
+        {
+          "label": "Annonce officielle",
+          "url": "https://blog.playstation.com/2026/11/13/qssr-arrives-in-marvels-spider-man-2-control-resonant-the-finals-arc-raiders-and-hell-let-loose-vietnam/"
+        }
+      ]
     },
     {
       "slug": "playstation-plus-novembre-2026-death-stranding-2-atomfall",
