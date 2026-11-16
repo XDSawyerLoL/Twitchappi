@@ -219,3 +219,12 @@ test('all public SPA landing cards expose a first-party PNG readable by X',()=>{
  assert.match(server,/brandedPng\(\{title:/);
  assert.match(server,/public, max-age=86400, no-transform/);
 });
+
+test('SPA public pages emit exactly one description and one canonical',()=>{
+ const raw='<html><head><title>Generic</title><meta name="description" content="generic"><link rel="canonical" href="https://swapp.tv/"></head></html>';
+ for(const url of ['/','/actus','/decouvrir']){
+  const page=injectSpaMetadata(raw,url);
+  assert.equal((page.match(/<meta name="description"/g)||[]).length,1,url);
+  assert.equal((page.match(/<link rel="canonical"/g)||[]).length,1,url);
+ }
+});
