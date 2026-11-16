@@ -2,7 +2,7 @@
   "kind": "swapp-editorial-pending",
   "schema": 1,
   "createdAt": "2026-11-16T23:04:06Z",
-  "updatedAt": "2026-11-16T23:04:06Z",
+  "updatedAt": "2026-11-16T23:08:21Z",
   "publicationPolicy": "Hors manifeste. Ne pas publier un article sans vidéo intégrable, vignette contrôlée et rapprochement Studio. Une brève peut être intégrée aux signaux après lecture de la source et vérification du visuel officiel lié à l’événement ; sa diffusion publique reste à contrôler.",
   "articles": [
     {
@@ -199,7 +199,26 @@
       "releaseStatus": "inaccessible_via_retrieval",
       "storageStatus": "inaccessible_via_retrieval",
       "signals": "inaccessible_via_retrieval",
-      "httpStatusThisCheck": null
+      "httpStatusThisCheck": null,
+      "postCommit": {
+        "checkedAt": "2026-11-16T23:08:21Z",
+        "signalsEndpoint": {
+          "url": "https://swapp.tv/api/actus/signaux",
+          "result": "inaccessible_via_retrieval",
+          "httpStatus": null
+        },
+        "actusPage": {
+          "url": "https://swapp.tv/actus",
+          "result": "page_read_eight_existing_november_16_titles",
+          "newSignalsVisibleInRetrievedText": false
+        },
+        "existingArticleProbe": {
+          "url": "https://swapp.tv/actus/derelikt-horreur-spatiale-ps5-sortie-novembre-2026",
+          "result": "inaccessible_via_retrieval",
+          "httpStatus": null
+        },
+        "conclusion": "Le commit et sa relecture confirment la préparation dans GitHub, pas la diffusion effective des nouvelles brèves. Aucune lecture vidéo ni vérification du rendu interactif."
+      }
     },
     "tracking": {
       "canonicalRegisterUpdated": false,
@@ -211,6 +230,29 @@
       "Les informations sans heure officielle ne sont pas arbitrairement classées dans les seules six dernières heures.",
       "Pas de contrôle visuel local ni de lecture vidéo dans cette session.",
       "Aucun changement CMS, MySQL, sécurité, navigation ou carrousel."
-    ]
+    ],
+    "finalCheckAt": "2026-11-16T23:08:21Z",
+    "savedWork": {
+      "status": "prepared_in_github_publication_unconfirmed",
+      "pendingCreationCommit": "036a75e2c49a0f660f00e4d12c5e1a215affee86",
+      "signalsCommit": "3bd4c6000f592487b27fe269febe91d7a8599945",
+      "signalsBlobSha": "b7089283a0230e8b674b900d4634fb7c8cdc743b",
+      "signalCount": 36,
+      "newSignalIds": [
+        "spirit-crossing-lancement-cozy-club-20261116",
+        "nvidia-ibm-fermilab-plateforme-quantique-20261116"
+      ],
+      "signalsReadBackExact": true,
+      "draftReadBackExact": true,
+      "previous34SignalsPreserved": true,
+      "manifestUnchanged": true,
+      "newLongArticlesPublished": 0
+    },
+    "notificationDecision": {
+      "status": "prepared_for_owner_response_not_delivery_confirmed",
+      "reason": "Nouvelles annonces importantes préparées mais diffusion non confirmée ; nouvel échec de sauvegarde du registre lié à l’environnement d’exécution indisponible.",
+      "repeatedFirewallIncidentAlertSuppressed": true,
+      "deliveryConfirmed": false
+    }
   }
 }
