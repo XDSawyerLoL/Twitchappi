@@ -58,7 +58,7 @@ function renderCommunityPanels(server){
   '<label class="ss-lfg-field ss-lfg-voice" for="ss-lfg-voice"><span>Vocal souhaité</span><select id="ss-lfg-voice" name="voice"><option value="either">Peu importe</option><option value="yes">Avec vocal</option><option value="no">Sans vocal</option></select></label></div>'+
   '<div class="ss-community-actions ss-lfg-actions"><button type="submit" class="ss-lfg-primary"><span class="ss-lfg-action-mark" aria-hidden="true">✦</span><span class="ss-lfg-action-label"><strong>Me rendre disponible</strong><small>Mon annonce sera visible 1 heure</small></span><span class="ss-lfg-action-arrow" aria-hidden="true">↗</span></button>'+
   '<button type="button" class="ss-lfg-secondary" id="ss-lfg-remove" hidden>Retirer ma disponibilité</button></div>'+
-  '</form><p id="ss-lfg-status" class="ss-lfg-feedback" role="status" aria-live="polite"></p>'+
+  '<p id="ss-lfg-signin" class="ss-lfg-signin" hidden>Pour publier ta disponibilité, <a href="/compte">connecte-toi à ton compte SWAPP</a>.</p></form><p id="ss-lfg-status" class="ss-lfg-feedback" role="status" aria-live="polite"></p>'+
   '<div class="ss-lfg-results-head"><div><p class="ss-overline">DANS CETTE COMMUNAUTÉ</p><h3>Joueurs disponibles</h3></div><span class="ss-lfg-results-hint">Uniquement les annonces encore valides</span></div>'+
   '<div id="ss-lfg-list" class="ss-community-list ss-lfg-results" aria-live="polite" aria-busy="true"><p class="ss-lfg-loading">Recherche des disponibilités déclarées…</p></div></section>'+
   '<section id="directs" class="ss-pro-panel ss-community-panel" data-ss-owner-twitch="'+escapeHtml(channel)+'">'+
@@ -119,7 +119,7 @@ function registerCommunity(app,{getDatabase,account,ownerKeys,originGuard}){
     .filter(c=>loginFormat[c.platform].test(c.login));
    return res.set('Cache-Control','private,no-store').json({
     players:players.map(({user_id,...row})=>({...row,mine:Boolean(user&&user===user_id)})),
-    creators:approved.map(publicCreator),pending,mine,owner,available
+    creators:approved.map(publicCreator),pending,mine,owner,authenticated:!!user,available
    });
   }catch(e){return sendError(res,e)}
  });
