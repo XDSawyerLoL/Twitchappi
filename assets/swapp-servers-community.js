@@ -96,6 +96,28 @@
    }
   }
   if(!available.length)creatorActions.append(make('p','ss-community-empty','Connecte ton compte SWAPP (et Twitch pour associer ta chaîne Twitch).'));
+  const discordOptIn=$('#ss-discord-stream-optin');
+  if(discordOptIn){
+   const eligible=linked.some(x=>x.platform==='twitch'&&x.status==='approved');
+   discordOptIn.hidden=!eligible;
+   discordOptIn.replaceChildren();
+   if(eligible){
+    const enabled=Boolean(current.mine?.discordStreaming);
+    const title=make('strong','','Détection de mes diffusions via Discord');
+    const info=make('small','',enabled?
+     'Autorisation activée : uniquement sur cette communauté, pour ton compte Discord relié à SWAPP.':
+     'Facultatif : nécessite Discord Connect, ta chaîne Twitch approuvée et le bot autorisé dans ce serveur.');
+    const button=make('button','ss-community-secondary',enabled?'Désactiver':'Autoriser l’affichage');
+    button.type='button';
+    button.addEventListener('click',()=>{
+     button.disabled=true;
+     creatorAction('/discord-stream/opt-in',{enabled:!enabled},enabled?'Détection Discord désactivée.':
+      'Autorisation enregistrée. Le signal n’apparaîtra qu’avec une activité Streaming reçue du bot.')
+      .finally(()=>{button.disabled=false});
+    });
+    discordOptIn.append(title,info,button);
+   }
+  }
   const mod=$('#ss-creator-moderation'),pending=$('#ss-creator-pending');
   mod.hidden=!current.owner;
   pending.replaceChildren();
@@ -154,12 +176,21 @@
   for(const c of members)affiliates.set(c.platform+':'+c.login,{...c,source:'Créateur approuvé'});
   if(/^[a-z0-9_]{2,25}$/.test(ownerTwitch)&&!affiliates.has('twitch:'+ownerTwitch))
    affiliates.set('twitch:'+ownerTwitch,{platform:'twitch',login:ownerTwitch,source:'Chaîne renseignée sur la fiche'});
-  if(!liveChecked&&!liveFailure){
+  const discordSignals=new Map();
+  for(const signal of (Array.isArray(current.discordStreaming)?current.discordStreaming:[])){
+   if(signal.platform==='twitch'&&/^[a-z0-9_]{2,25}$/.test(signal.login)&&
+      affiliates.has('twitch:'+signal.login))discordSignals.set('twitch:'+signal.login,signal);
+  }
+  if(!liveChecked&&!liveFailure&&!discordSignals.size){
    lives.append(make('p','ss-community-empty','Vérification des directs…'));return;
   }
   const active=[...affiliates.values()].map(person=>({...person,live:liveItems.find(l=>l.platform===person.platform&&l.login===person.login)}))
    .filter(c=>Boolean(c.live));
-  const inactive=[...affiliates.values()].filter(c=>!active.some(x=>x.platform===c.platform&&x.login===c.login));
+  const activeKeys=new Set(active.map(c=>c.platform+':'+c.login));
+  const signalOnly=[...affiliates.values()].filter(c=>!activeKeys.has(c.platform+':'+c.login)&&
+   discordSignals.has(c.platform+':'+c.login));
+  const inactive=[...affiliates.values()].filter(c=>!activeKeys.has(c.platform+':'+c.login)&&
+   !discordSignals.has(c.platform+':'+c.login));
   for(const item of active){
    const card=make('article','ss-community-live');
    if(item.live.thumb){
@@ -174,7 +205,17 @@
    open.href=item.platform==='swapp'?'/'+encodeURIComponent(item.login):'/live/twitch/'+encodeURIComponent(item.login);
    info.append(open);card.append(info);lives.append(card);
   }
-  if(!active.length)lives.append(make('p','ss-community-empty',liveChecked?
+  for(const item of signalOnly){
+   const card=make('article','ss-community-live ss-community-discord-detected');
+   const info=make('div','ss-community-live-info');
+   info.append(make('span','ss-community-discord-badge','STREAMING SUR DISCORD'),make('strong','',item.login));
+   info.append(make('p','',
+    'Discord a récemment signalé une activité Streaming pour ce créateur. Le direct n’est pas encore confirmé par les flux SWAPP.'));
+   const open=make('a','ss-community-watch','Voir la chaîne');
+   open.href='/live/twitch/'+encodeURIComponent(item.login);
+   info.append(open);card.append(info);lives.append(card);
+  }
+  if(!active.length&&!signalOnly.length)lives.append(make('p','ss-community-empty',liveChecked?
    'Aucun direct associé confirmé dans les flux actuellement remontés par SWAPP.':
    'Vérification des directs momentanément indisponible.'));
   for(const item of inactive){
