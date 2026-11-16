@@ -2,7 +2,7 @@
   "schema": 1,
   "kind": "swapp-editorial-signals",
   "method": "Brèves rédigées à partir de sources primaires, avec revendication, intérêt et limites distincts. Ne jamais convertir automatiquement un RSS en brève vérifiée.",
-  "updatedAt": "2026-11-15T22:52:54.718987Z",
+  "updatedAt": "2026-11-16T04:42:41Z",
   "items": [
     {
       "id": "god-of-war-sons-of-sparta-ps4-hermes-erebus-20261113",
@@ -12,11 +12,11 @@
       "title": "Sons of Sparta : PS4, Hermes et Erebus annoncés pour le 16 novembre",
       "fact": "Dans une mise à jour explicitement datée du 13 novembre, Santa Monica annonce Sons of Sparta sur PS4 le 16 novembre. Un patch ajoutera simultanément les modes Hermes et Erebus sur PS4 et PS5.",
       "impact": "Hermes apporte des outils de speedrun ; Erebus fait tomber le joueur comme ses ennemis en un coup.",
-      "caveat": "La sortie reste à venir. Le mode choisi pour une sauvegarde ne pourra pas être changé. Le billet ne précise pas de nouveau tarif PS4.",
+      "caveat": "L’annonce fixe la sortie au 16 novembre ; le déploiement effectif n’est pas confirmé par ce contrôle. Le mode choisi pour une sauvegarde ne pourra pas être changé. Aucun nouveau tarif PS4 n’est précisé.",
       "sourceName": "Santa Monica Studio / PlayStation.Blog",
       "sourceUrl": "https://blog.playstation.com/2026/02/13/god-of-war-sons-of-sparta-what-you-need-to-know/",
       "sourceDate": "2026-11-13",
-      "reviewedAt": "2026-11-15T22:52:54.718987Z",
+      "reviewedAt": "2026-11-16T04:42:41Z",
       "imageUrl": "https://blog.playstation.com/tachyon/2026/02/600e22be08c93213524019a20aeccf5552a87610.jpg",
       "imageCredit": "Sony Interactive Entertainment / Santa Monica Studio · illustration officielle de God of War Sons of Sparta"
     },
@@ -86,6 +86,22 @@
       "reviewedAt": "2026-11-13T16:59:44Z",
       "imageUrl": "https://blog.playstation.com/tachyon/2026/11/b76ffd50c3d63cbe3bcbf54cd2965dceb1a4e8b5.png",
       "imageCredit": "Ocelot Technologies / PlayStation.Blog · Guild Saga: Vanished Worlds"
+    },
+    {
+      "id": "pikmin4-switch2-academie-dandori-sortie-20261112",
+      "topics": [
+        "GAMING"
+      ],
+      "title": "Pikmin 4 et l’Académie Dandori sont disponibles sur Switch 2",
+      "fact": "Nintendo France confirme la sortie le 12 novembre de Pikmin 4 – Nintendo Switch 2 Edition + Académie Dandori. Cette édition ajoute notamment des commandes vocales pour Otchin et un mode consacré aux défis d’organisation.",
+      "impact": "Les joueurs peuvent acheter l’édition complète ou un pack de mise à niveau s’ils possèdent déjà Pikmin 4 sur Switch.",
+      "caveat": "La mise à niveau est payante. Les 72 stages de l’Académie sont déployés progressivement, à raison de six par mois ; ils ne sont pas tous proposés dès la sortie.",
+      "sourceName": "Nintendo France",
+      "sourceUrl": "https://www.nintendo.com/fr-fr/Jeux/Nintendo-Switch-2-Edition/Pikmin-4-Nintendo-Switch-2-Edition-Academie-Dandori-3188744.html",
+      "sourceDate": "2026-11-12",
+      "reviewedAt": "2026-11-16T04:42:41Z",
+      "imageUrl": "https://www.nintendo.com/eu/media/images/assets/nintendo_switch_2_games/pikmin4nintendoswitch2editiondandoriacademy/16x9_Pikmin4NS2EditionDandoriAcademy_FR_image1280w.jpg",
+      "imageCredit": "Nintendo · visuel officiel français de Pikmin 4 – Nintendo Switch 2 Edition + Académie Dandori"
     },
     {
       "id": "xbox-retrocompatibilite-pc-21-ajouts-20261112",
