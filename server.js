@@ -1270,7 +1270,7 @@ function swappUiFilePath(){
   const found = candidates.find(f => fs.existsSync(path.join(__dirname, f)));
   return found ? path.join(__dirname, found) : null;
 }
-function sendSwappUi(res){
+function sendSwappUi(res,{editorialHighlights=[]}={}){
   const found = swappUiFilePath();
   if (!found) return res.status(500).send('UI introuvable sur le serveur.');
   // Route-specific metadata makes SWAPP shareable and indexable without
@@ -1281,7 +1281,10 @@ function sendSwappUi(res){
     // Render the SAME navigation as the native catalogue/editorial shell
     // before any client JS executes. No empty-header flash or route jump.
     const integrated=require('./modules/swapp-catalogue-spa').renderIntoSpa(seo);
-    const output=require('./modules/swapp-page-shell').hydrateSpaNavigation(integrated,res.req?.path||'/');
+    let output=require('./modules/swapp-page-shell').hydrateSpaNavigation(integrated,res.req?.path||'/');
+    if(res.req?.path==='/actus'&&editorialHighlights.length){
+      output=require('./modules/swapp-seo').injectEditorialTeasers(output,editorialHighlights);
+    }
     res.set('Cache-Control','no-store');
     return res.type('html').send(output);
   }catch(error){
