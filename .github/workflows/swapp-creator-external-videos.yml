@@ -2,6 +2,9 @@ name: SWAPP Creator external videos checks
 on:
   pull_request:
     paths:
+      - 'server.js'
+      - 'index.html'
+      - 'tools/swapp-release.js'
       - 'lib/swapp-creator-external-videos.js'
       - 'modules/swapp-creator-external-video-*.js'
       - 'assets/swapp-creator-external-videos.*'
