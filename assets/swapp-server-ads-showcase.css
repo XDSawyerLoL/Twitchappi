@@ -1,20 +1,24 @@
-/* Sponsored inventory information — editorial, wide and restrained. */
-.ss .ss-sponsor-showcase{position:relative;margin:26px 0 30px;padding:clamp(24px,3vw,46px);border:1px solid rgba(170,202,224,.18);border-radius:5px;background:linear-gradient(105deg,#111923,#070a0f 64%,#0b1118);color:#f5f8fd;overflow:hidden}
-.ss .ss-sponsor-showcase:before{content:'';position:absolute;top:-180px;right:-120px;width:440px;height:440px;background:radial-gradient(circle,rgba(89,145,180,.13),transparent 68%);pointer-events:none}
-.ss .ss-sponsor-overline{font-size:10px;letter-spacing:.18em;font-weight:800;color:#91c7df;margin-bottom:16px}
-.ss .ss-sponsor-layout{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(320px,.9fr);gap:clamp(20px,3vw,52px);align-items:center}
-.ss .ss-sponsor-copy h2{font-size:clamp(25px,3vw,44px);line-height:1.08;letter-spacing:-.05em;max-width:16ch;margin:0 0 15px}
-.ss .ss-sponsor-copy p{font-size:14px;line-height:1.6;color:#afbbca;max-width:48ch;margin:0 0 22px}
-.ss .ss-sponsor-link{display:inline-flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #8fbdd3;color:#e5f6ff;text-decoration:none;font-size:13px;font-weight:750}
-.ss .ss-sponsor-link:hover{color:white;border-color:white}
-.ss .ss-sponsor-prices{display:grid;gap:0}
-.ss .ss-sponsor-prices>div{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;padding:13px 0;border-bottom:1px solid rgba(255,255,255,.13)}
-.ss .ss-sponsor-prices>div:first-child{border-top:1px solid rgba(255,255,255,.13)}
-.ss .ss-sponsor-prices span{font-size:13px;font-weight:650}
-.ss .ss-sponsor-prices strong{grid-column:2;grid-row:1/3;font-size:23px;letter-spacing:-.04em;align-self:center}
-.ss .ss-sponsor-prices small{font-size:11px;color:#a7b4c3}
-.ss .ss-sponsor-disclaimer{font-size:11px;color:#8493a5;margin:20px 0 0}
-@media(max-width:780px){.ss .ss-sponsor-layout{grid-template-columns:1fr}.ss .ss-sponsor-copy h2{max-width:none}.ss .ss-sponsor-showcase{padding:22px}}
+/* SERVEUR+ brand campaign: a cinematic ad strip, never pricing cards. */
+.ss .ss-sponsor-showcase{position:relative;isolation:isolate;display:grid;grid-template-columns:minmax(150px,24%) minmax(0,1fr) auto;align-items:center;gap:clamp(16px,3vw,42px);margin:22px 0 26px;padding:0 28px 0 0;min-height:182px;border:1px solid rgba(185,204,220,.14);border-radius:3px;background:linear-gradient(108deg,#0c1721 0%,#0a0f16 55%,#080b10 100%);color:#f6f9fd;overflow:hidden}
+.ss .ss-sponsor-showcase:before{content:'';position:absolute;inset:0;background:linear-gradient(105deg,transparent 38%,rgba(49,91,119,.11) 73%,transparent);pointer-events:none}
+.ss .ss-sponsor-art{position:relative;align-self:stretch;min-height:182px;overflow:hidden;background:radial-gradient(ellipse at 50% 55%,rgba(73,158,193,.24),transparent 65%),repeating-linear-gradient(120deg,transparent 0 28px,rgba(147,205,226,.045) 29px 30px),linear-gradient(130deg,#101f2d,#050a10);display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ss .ss-sponsor-art:after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent 65%,#0a1017 100%);pointer-events:none}
+.ss .ss-sponsor-art-ring{position:absolute;width:155px;height:155px;border:1px solid rgba(131,207,236,.26);border-radius:50%;box-shadow:0 0 0 28px rgba(110,180,215,.035),0 0 0 58px rgba(110,180,215,.025);transform:rotate(-24deg) scaleX(.8)}
+.ss .ss-sponsor-art-cross{position:relative;font-size:58px;font-weight:200;line-height:1;color:#94d4ec;text-shadow:0 0 30px rgba(92,190,225,.45)}
+.ss .ss-sponsor-art-word{position:relative;font-size:18px;font-weight:900;letter-spacing:.24em;color:#fff}
+.ss .ss-sponsor-art-sub{position:relative;margin-top:5px;font-size:8px;letter-spacing:.23em;color:#a4b9c9}
+.ss .ss-sponsor-content{position:relative;min-width:0;padding:21px 0}
+.ss .ss-sponsor-overline{font-size:9px;font-weight:800;letter-spacing:.19em;color:#8ec5de;margin-bottom:9px}
+.ss .ss-sponsor-content h2{font-size:clamp(21px,2.15vw,31px);font-weight:800;line-height:1.12;letter-spacing:-.035em;margin:0 0 9px}
+.ss .ss-sponsor-content>p:not(.ss-sponsor-disclaimer){font-size:12px;line-height:1.5;color:#b1bfcc;max-width:49ch;margin:0 0 12px}
+.ss .ss-sponsor-link{display:inline-flex;align-items:center;gap:12px;color:#f3f8fc;text-decoration:none;font-size:12px;font-weight:800;letter-spacing:.02em;border-bottom:1px solid #8cbcd2;padding-bottom:5px}
+.ss .ss-sponsor-link:hover{color:#9bd9f2;border-color:#9bd9f2}
+.ss .ss-sponsor-disclaimer{font-size:10px;color:#8295a5;margin:12px 0 0}
+.ss .ss-sponsor-price-line{position:relative;align-self:center;white-space:nowrap;font-size:11px;color:#9aaebe;border-left:1px solid rgba(184,208,227,.18);padding-left:22px}
+.ss .ss-sponsor-price-line strong{display:block;font-size:27px;line-height:1.3;color:#fff;letter-spacing:-.04em}
+.ss .ss-sponsor-price-line span{font-size:10px;color:#899aaa}
+@media(max-width:860px){.ss .ss-sponsor-showcase{grid-template-columns:120px minmax(0,1fr);gap:16px;padding-right:16px}.ss .ss-sponsor-price-line{grid-column:2;border:0;padding:0;margin:-16px 0 15px}.ss .ss-sponsor-price-line strong{display:inline;font-size:18px;margin-left:6px}.ss .ss-sponsor-art{min-height:100%;}.ss .ss-sponsor-content{padding:16px 0}}
+@media(max-width:520px){.ss .ss-sponsor-showcase{grid-template-columns:82px minmax(0,1fr);gap:12px;padding-right:12px;min-height:165px}.ss .ss-sponsor-art{min-height:100%}.ss .ss-sponsor-art-ring{width:90px;height:90px}.ss .ss-sponsor-art-cross{font-size:36px}.ss .ss-sponsor-art-word{font-size:10px;letter-spacing:.12em}.ss .ss-sponsor-art-sub{font-size:5px}.ss .ss-sponsor-content h2{font-size:19px}.ss .ss-sponsor-content>p:not(.ss-sponsor-disclaimer){font-size:11px}.ss .ss-sponsor-disclaimer{font-size:9px}.ss .ss-sponsor-price-line{margin:-10px 0 12px}}
 
 /* Verified placement: visually separate from free ranking and visibly labelled. */
 .ss .ss-sponsored-placement{margin:0 0 25px;padding:20px 24px;border-left:3px solid #83bfdc;background:linear-gradient(90deg,#101b25,#080d13);color:#f4f8ff}
