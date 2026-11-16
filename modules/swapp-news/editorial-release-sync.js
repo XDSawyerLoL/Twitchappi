@@ -4,11 +4,11 @@
  * same persistent collection used by SWAPP Studio. Only existing, trusted,
  * checked-in editorial articles can be promoted here.
  *
- * Firestore is the authority after adoption. A document with the same slug,
- * including a withdrawn article, is NEVER overwritten or resurrected.
- * Existing release articles already adopted to Firestore never generate new
- * announcements. Only newly created release records schedule a Discord event,
- * within the same Firestore transaction, preserving editorial idempotency.
+ * The CMS (MySQL on Hostinger) is authoritative after adoption. Existing
+ * drafts/withdrawals and editor revisions must never be resurrected.
+ * A small number of revised official-source articles may be upgraded exactly
+ * once, but only after their original body, summary and source list match the
+ * checked-in baseline byte-for-byte under a transactional row lock.
  */
 const {assertArticle}=require('./article-core');
 const fs=require('node:fs');
@@ -36,12 +36,21 @@ function createEditorialReleaseSync({firestore,articles,releaseArticles=[],clock
  if(typeof firestore?.runTransaction!=='function'||typeof articles?.doc!=='function')
   throw Error('Persistance editorial requise');
  if(!Array.isArray(releaseArticles))throw Error('Lot editorial invalide');
+ const priorVersions=new Map();
  const validated=releaseArticles.map(item=>{
    const article=assertArticle(item,{publish:true});
    if(article.slug!==item.slug)throw Error('Slug editorial modifie: '+item.slug);
    const publishedAt=item.publishedAt;
    if(!publishedAt||!Number.isFinite(new Date(publishedAt).getTime()))
     throw Error('Date de publication manquante: '+item.slug);
+   if(Object.prototype.hasOwnProperty.call(item,'editorialPreviousBody')){
+    if(typeof item.editorialPreviousBody!=='string'||item.editorialPreviousBody.length<40||
+       typeof item.editorialPreviousSummary!=='string'||
+       !Array.isArray(item.editorialPreviousSources)||
+       item.editorialPreviousBody===article.body)throw Error('Base revision editoriale invalide: '+item.slug);
+    priorVersions.set(article.slug,{body:item.editorialPreviousBody,
+      summary:item.editorialPreviousSummary,sources:item.editorialPreviousSources});
+   }
    return {...article,publishedAt:new Date(publishedAt).toISOString()};
  });
  let done=false,inFlight=null;
@@ -55,6 +64,19 @@ function createEditorialReleaseSync({firestore,articles,releaseArticles=[],clock
          const ref=articles.doc(a.slug),snapshot=await tx.get(ref);
          if(snapshot.exists){
            const existing=snapshot.data()||{};
+           // A reviewed editorial revision is safe only if every compared
+           // original field is unchanged. Any Studio edit, other provenance,
+           // withdrawal or new revision wins and prevents the update.
+           const baseline=priorVersions.get(a.slug);
+           if(baseline&&existing.provenance==='swapp-editorial-release'&&
+              existing.status==='published'&&existing.revision===1&&
+              existing.legacySuppressRecovery!==true&&existing.title===a.title&&
+              existing.body===baseline.body&&existing.summary===baseline.summary&&
+              JSON.stringify(existing.sources||[])===JSON.stringify(baseline.sources)){
+             tx.update(ref,{body:a.body,summary:a.summary,sources:a.sources,
+               revision:2,updatedAt:clock()});
+             return 'editorial_enriched';
+           }
            // Repair only never-edited, still-published release imports whose
            // cover was absent at adoption. Preserve every editor revision,
            // withdrawal, custom image and other CMS field.
@@ -76,7 +98,8 @@ function createEditorialReleaseSync({firestore,articles,releaseArticles=[],clock
        results.push({slug:a.slug,status:outcome});
      }
      done=true;
-     return {complete:true,created:results.filter(x=>x.status==='created').length,mediaRepaired:results.filter(x=>x.status==='media_repaired').length,results};
+     return {complete:true,created:results.filter(x=>x.status==='created').length,mediaRepaired:results.filter(x=>x.status==='media_repaired').length,
+       editorialEnriched:results.filter(x=>x.status==='editorial_enriched').length,results};
    })().finally(()=>{inFlight=null;});
    return inFlight;
  }
