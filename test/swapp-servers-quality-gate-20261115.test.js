@@ -1,7 +1,7 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path');
-const {register,detailPage}=require('../modules/swapp-servers');
+const {register,detailPage,page}=require('../modules/swapp-servers');
 const read=name=>fs.readFileSync(path.join(__dirname,'..',name),'utf8');
 const ID='a'.repeat(32),G='Minecraft';
 const base={id:ID,owner_id:'owner-1',slug:'sample-aaaaaaa',name:'Sample RP',game:G,
@@ -144,4 +144,12 @@ test('public server profiles emit OpenGraph/Twitter meta and sitemap index route
  assert.equal(r.statusCode,200);
  assert.match(r.data,/sitemap-serveurs-2\.xml/);
  assert.match(read('modules/swapp-seo.js'),/sitemap-serveurs\.xml/);
+});
+
+test('server directory and category landing pages expose first-party X previews',()=>{
+ for(const html of [page(),page({game:'Minecraft'})]){
+  assert.match(html,/name="twitter:card" content="summary_large_image"/);
+  assert.match(html,/name="twitter:image" content="https:\/\/swapp\.tv\/swapp-share-card\.png"/);
+  assert.match(html,/property="og:image" content="https:\/\/swapp\.tv\/swapp-share-card\.png"/);
+ }
 });
