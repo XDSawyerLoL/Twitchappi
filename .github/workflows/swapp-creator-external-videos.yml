@@ -1,0 +1,29 @@
+name: SWAPP Creator external videos checks
+on:
+  pull_request:
+    paths:
+      - 'lib/swapp-creator-external-videos.js'
+      - 'modules/swapp-creator-external-video-*.js'
+      - 'assets/swapp-creator-external-videos.*'
+      - 'test/swapp-creator-external-videos.test.js'
+      - '.github/workflows/swapp-creator-external-videos.yml'
+  workflow_dispatch:
+jobs:
+  creator-videos:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax validation
+        run: |
+          node --check lib/swapp-creator-external-videos.js
+          node --check modules/swapp-creator-external-video-store.js
+          node --check modules/swapp-creator-external-video-routes.js
+          node --check assets/swapp-creator-external-videos.js
+          node --check server.js
+      - name: Provider and security unit tests
+        run: node --test test/swapp-creator-external-videos.test.js
