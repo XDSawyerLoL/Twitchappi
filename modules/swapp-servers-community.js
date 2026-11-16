@@ -45,14 +45,23 @@ function renderCommunityPanels(server){
   if(u.protocol==='https:'&&u.hostname==='www.twitch.tv'&&/^\/[a-z0-9_]{2,25}\/?$/i.test(u.pathname))
    channel=u.pathname.split('/')[1].toLowerCase();
  }catch(_){}
- return '<section id="joueurs" class="ss-pro-panel ss-community-panel" data-ss-community>'+
-  '<p class="ss-overline">RENCONTRES EN TEMPS RÉEL</p><h2>Recherche de joueurs</h2>'+
-  '<p class="ss-pro-muted">Des membres signalent volontairement leur disponibilité pour une heure. Aucun faux compteur ni statut supposé.</p>'+
-  '<form id="ss-lfg-form" class="ss-community-form"><label>Ton annonce (facultatif)<input name="message" maxlength="160" placeholder="Je cherche une équipe pour une partie coop…"></label>'+
-  '<label>Vocal<select name="voice"><option value="either">Peu importe</option><option value="yes">Avec vocal</option><option value="no">Sans vocal</option></select></label>'+
-  '<div class="ss-community-actions"><button type="submit">Je suis disponible pendant 1 h</button><button type="button" id="ss-lfg-remove" hidden>Retirer ma disponibilité</button></div></form>'+
-  '<p id="ss-lfg-status" class="ss-pro-muted" role="status" aria-live="polite"></p>'+
-  '<div id="ss-lfg-list" class="ss-community-list"><p>Recherche des joueurs disponibles…</p></div></section>'+
+ return '<section id="joueurs" class="ss-pro-panel ss-community-panel ss-lfg-section" data-ss-community>'+
+  '<div class="ss-lfg-heading"><div class="ss-lfg-headline">'+
+  '<p class="ss-overline">RENCONTRES · DISPONIBILITÉS DÉCLARÉES</p>'+
+  '<h2>Trouve ta prochaine équipe.</h2>'+
+  '<p class="ss-lfg-lead">Une session à organiser ? Signale que tu cherches des joueurs et retrouve des membres de cette communauté sans parcourir tous les salons Discord.</p>'+
+  '<div class="ss-lfg-benefits"><span>Visible pendant 1 heure</span><span>Annonce modifiable</span><span>Aucune présence inventée</span></div></div>'+
+  '<div class="ss-lfg-presence" aria-live="polite" aria-atomic="true"><span class="ss-lfg-presence-kicker"><i aria-hidden="true"></i>Disponibilités déclarées</span>'+
+  '<strong id="ss-lfg-count">—</strong><small id="ss-lfg-count-label">Vérification en cours</small></div></div>'+
+  '<form id="ss-lfg-form" class="ss-community-form ss-lfg-composer">'+
+  '<div class="ss-lfg-composer-title"><div><h3>Fais savoir que tu es disponible</h3><p>Une annonce, une préférence vocal, et tu es visible dans cette communauté.</p></div><span class="ss-lfg-duration">60 min</span></div>'+
+  '<div class="ss-lfg-fields"><label class="ss-lfg-field ss-lfg-message" for="ss-lfg-message"><span>Ton annonce <em>facultative</em></span><input id="ss-lfg-message" name="message" maxlength="160" autocomplete="off" placeholder="Ex. : Je cherche deux joueurs pour une session coop ce soir…"></label>'+
+  '<label class="ss-lfg-field ss-lfg-voice" for="ss-lfg-voice"><span>Vocal souhaité</span><select id="ss-lfg-voice" name="voice"><option value="either">Peu importe</option><option value="yes">Avec vocal</option><option value="no">Sans vocal</option></select></label></div>'+
+  '<div class="ss-community-actions ss-lfg-actions"><button type="submit" class="ss-lfg-primary"><span class="ss-lfg-action-mark" aria-hidden="true">✦</span><span class="ss-lfg-action-label"><strong>Me rendre disponible</strong><small>Mon annonce sera visible 1 heure</small></span><span class="ss-lfg-action-arrow" aria-hidden="true">↗</span></button>'+
+  '<button type="button" class="ss-lfg-secondary" id="ss-lfg-remove" hidden>Retirer ma disponibilité</button></div>'+
+  '<p id="ss-lfg-signin" class="ss-lfg-signin" hidden>Pour publier ta disponibilité, <a href="/compte">connecte-toi à ton compte SWAPP</a>.</p></form><p id="ss-lfg-status" class="ss-lfg-feedback" role="status" aria-live="polite"></p>'+
+  '<div class="ss-lfg-results-head"><div><p class="ss-overline">DANS CETTE COMMUNAUTÉ</p><h3>Joueurs disponibles</h3></div><span class="ss-lfg-results-hint">Uniquement les annonces encore valides</span></div>'+
+  '<div id="ss-lfg-list" class="ss-community-list ss-lfg-results" aria-live="polite" aria-busy="true"><p class="ss-lfg-loading">Recherche des disponibilités déclarées…</p></div></section>'+
   '<section id="directs" class="ss-pro-panel ss-community-panel" data-ss-owner-twitch="'+escapeHtml(channel)+'">'+
   '<p class="ss-overline">CRÉATEURS DE LA COMMUNAUTÉ</p><h2>Lives associés</h2>'+
   '<div id="ss-community-lives" class="ss-community-list"><p>Vérification des directs…</p></div>'+
@@ -117,7 +126,7 @@ function registerCommunity(app,{getDatabase,account,ownerKeys,originGuard}){
     .filter(c=>loginFormat[c.platform].test(c.login));
    return res.set('Cache-Control','private,no-store').json({
     players:players.map(({user_id,...row})=>({...row,mine:Boolean(user&&user===user_id)})),
-    creators:approved.map(publicCreator),pending,mine,owner,available,
+    creators:approved.map(publicCreator),pending,mine,owner,authenticated:!!user,available,
     discordStreaming:discordStream.items,discordSignalAvailable:discordStream.available
    });
   }catch(e){return sendError(res,e)}
