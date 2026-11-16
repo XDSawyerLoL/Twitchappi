@@ -63,6 +63,19 @@ test('the layout is responsive and never overlaps the voice selector',()=>{
  assert.match(css,/@media\(max-width:420px\)/);
  assert.match(css,/@media\(prefers-reduced-motion:reduce\)/);
 });
+test('anonymous users see a genuine sign-in path instead of an HTTP 401 on submit',()=>{
+ const html=markup();
+ assert.match(html,/id="ss-lfg-signin" class="ss-lfg-signin" hidden/);
+ assert.match(html,/href="\/compte">connecte-toi/);
+ const backend=read('modules/swapp-servers-community.js');
+ assert.match(backend,/authenticated:!!user/);
+ const script=read('assets/swapp-servers-community.js');
+ assert.match(script,/signInHint\.hidden=!anonymous/);
+ assert.match(script,/anonymous\?'Se connecter pour publier'/);
+ assert.match(script,/if\(current\?\.authenticated===false\)\{window\.location\.href='\/compte';return\}/);
+ const css=read('assets/swapp-servers-community.css');
+ assert.match(css,/\.ss-lfg-signin\[hidden\]\{display:none!important\}/);
+});
 test('matchmaking refresh and live feeds have separate polling rates',()=>{
  const script=read('assets/swapp-servers-community.js');
  assert.match(script,/const presenceTicker=setInterval/);
