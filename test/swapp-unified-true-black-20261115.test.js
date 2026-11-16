@@ -4,7 +4,7 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path');
 const read=p=>fs.readFileSync(path.resolve(__dirname,'..',p),'utf8');
 const stylesheet=read('assets/swapp-obsidian-ice.css');
-const version='swapp-obsidian-ice.css?v=20261115-unified-black-v22';
+const version='swapp-obsidian-ice.css?v=20261116-unified-black-v23';
 
 test('homepage and native pages use one cache-busted black contract',()=>{
  const {renderIntoSpa}=require('../modules/swapp-catalogue-spa');
