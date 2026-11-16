@@ -266,6 +266,7 @@ jobs:
           node --check modules/swapp-servers-profile.js
           node --check modules/swapp-servers-stats.js
           node --check modules/swapp-servers-community.js
+          node --check modules/swapp-discord-streamer-signals.js
           node --check modules/swapp-servers-card-facts.js
           node --check modules/swapp-servers-card-ui.js
           node --check modules/swapp-seo.js
