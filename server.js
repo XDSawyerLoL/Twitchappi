@@ -161,11 +161,13 @@ function readFirebaseServiceAccountFromEnv(){
   return null;
 }
 
+// MySQL cutover: Firestore cannot be enabled by stale Hostinger credentials.
+const FIRESTORE_RUNTIME_ENABLED=false;
 let serviceAccount = null;
 let db = makeFirestoreStub();
 let firestoreOk = false;
 let firestoreSource = null;
-if (admin) {
+if (FIRESTORE_RUNTIME_ENABLED && admin) {
   try {
     const found = readFirebaseServiceAccountFromEnv();
     if(found?.account){
@@ -188,7 +190,7 @@ if (admin) {
     console.warn('⚠️ [FIREBASE] désactivé, fallback local:', error.message);
   }
 } else {
-  console.warn('⚠️ [FIREBASE] firebase-admin indisponible: fallback local.');
+  console.info('[SWAPP STORAGE] Legacy Firestore retired: use Hostinger MySQL.');
 }
 
 // =========================================================
@@ -1654,15 +1656,16 @@ app.get('/api/actus/signaux',async(_req,res)=>{
 // SWAPP ACTUS / JUSTPLAYER — independent editorial storage.
 // In Hostinger MySQL mode, the CMS no longer depends on the global Firebase
 // availability flag (which can be affected by unrelated chat operations).
-const newsMysqlUrl=process.env.SWAPP_NEWS_MYSQL_URL||process.env.SWAPP_MYSQL_URL||'';
+const newsMysqlUrl=process.env.SWAPP_NEWS_MYSQL_URL||process.env.SWAPP_MYSQL_URL||process.env.SWAPP_ACCOUNT_MYSQL_URL||'';
 const newsBackendPreference=String(process.env.SWAPP_NEWS_BACKEND||'').toLowerCase();
-const newsUseMysql=newsBackendPreference==='mysql'||
- (newsBackendPreference!=='firestore'&&process.env.SWAPP_ACCOUNT_STORE==='mysql'&&!!newsMysqlUrl);
+// This app no longer offers the retired Firestore news backend.
+const newsUseMysql=!!newsMysqlUrl;
+if(newsBackendPreference==='firestore')console.warn('[SWAPP NEWS] Obsolete Firestore setting ignored: using MySQL only.');
 const newsStorage=newsUseMysql
  ?require('./modules/swapp-news/mysql-store').createNewsMysqlStore({uri:newsMysqlUrl})
- :db;
+ :null;
 if (String(process.env.SWAPP_NEWS_ENABLED || 'true').toLowerCase() === 'true') {
-  if (newsUseMysql || (firestoreOk && typeof db.runTransaction === 'function')) {
+  if (newsUseMysql) {
     const {createNewsRouter} = require('./modules/swapp-news/router');
     const {makeNewsEditorGuard} = require('./modules/swapp-news/editor-auth');
     const allowedNewsOrigins = ['https://swapp.tv','https://www.swapp.tv',
@@ -1691,11 +1694,11 @@ if (String(process.env.SWAPP_NEWS_ENABLED || 'true').toLowerCase() === 'true') {
     app.use(createNewsRouter({
       express, firestore: newsStorage, requireEditor: requireNewsEditor,
       canEdit: isNewsEditor,
-      isReady: () => newsUseMysql ? !!newsMysqlUrl : firestoreOk,
+      isReady: () => newsUseMysql && !!newsMysqlUrl,
       baseUrl: 'https://swapp.tv',
       sendApp: sendSwappUi
     }));
-    console.log('[SWAPP NEWS] Rédaction activée via '+(newsUseMysql?'Hostinger MySQL':'Firestore')+'.');
+    console.log('[SWAPP NEWS] Rédaction activée via Hostinger MySQL.');
   } else {
     console.warn('[SWAPP NEWS] Stockage éditorial indisponible : module non activé.');
     // The ACTUS shell must remain reachable even while its API/storage is offline.
@@ -3089,13 +3092,15 @@ function computeGrowthScore({ avgViewers = 0, growthPct = 0, volatility = 0, hou
 // =========================================================
 // 2C. CRON SNAPSHOTS -> Firestore
 // =========================================================
-const ENABLE_CRON = (process.env.ENABLE_CRON || 'false').toLowerCase() === 'true';
+const ENABLE_CRON = FIRESTORE_RUNTIME_ENABLED && (process.env.ENABLE_CRON || 'false').toLowerCase() === 'true';
 const SNAPSHOT_EVERY_MIN = parseInt(process.env.SNAPSHOT_EVERY_MIN || '5', 10);
 
 // Tracked channels (targeted collection for 20-200 viewers):
 // - stored by Twitch user_id (stable)
 // - snapshots collected even if the channel is not in top100 FR
-const ENABLE_TRACKED_CRON = (process.env.ENABLE_TRACKED_CRON || 'false').toLowerCase() === 'true';
+const ENABLE_TRACKED_CRON = FIRESTORE_RUNTIME_ENABLED && (process.env.ENABLE_TRACKED_CRON || 'false').toLowerCase() === 'true';
+if((process.env.ENABLE_CRON||'').toLowerCase()==='true'||(process.env.ENABLE_TRACKED_CRON||'').toLowerCase()==='true')
+ console.warn('[SWAPP STORAGE] Legacy Firestore analytics CRON flags ignored.');
 const TRACKED_EVERY_MIN = parseInt(process.env.TRACKED_EVERY_MIN || String(SNAPSHOT_EVERY_MIN || 5), 10);
 const TRACKED_MAX = parseInt(process.env.TRACKED_MAX || '500', 10);
 
