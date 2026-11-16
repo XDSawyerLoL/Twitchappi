@@ -1782,6 +1782,23 @@ app.get('/api/release',(_req,res)=>{
 });
 app.get('/favicon.ico', (_req,res)=>sendPublicFile(res, 'favicon.ico', 'image/x-icon'));
 
+// SWAPP social card for homepage and SPA landing pages. It is self-hosted,
+// database-free and always a real 1200x630 PNG; WebP auto-optimization must not
+// transform the response used by X, Facebook or Discord.
+let swappSocialCardPng;
+app.get('/swapp-share-card.png',(_req,res)=>{
+ try{
+  if(!swappSocialCardPng)swappSocialCardPng=require('./modules/swapp-news/share-preview').brandedPng({title:'LIVES JEUX ACTUS COMMUNAUTES'});
+  return res.set('Cache-Control','public, max-age=86400, no-transform')
+   .set('X-Content-Type-Options','nosniff')
+   .type('image/png')
+   .send(swappSocialCardPng);
+ }catch(error){
+  console.error('[SWAPP SHARE] Social card unavailable:',String(error?.message||error).slice(0,100));
+  return res.status(503).set('Cache-Control','no-store').end();
+ }
+});
+
 // Page principale (UI)
 app.get('/', (req, res) => {
   if(String(req.query?.classic||'')==='1'){
