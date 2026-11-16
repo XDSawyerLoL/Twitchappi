@@ -12,10 +12,11 @@ const {recommend}=require('./content-metadata');
 const catalog=require('../../data/justplayer-public-catalog.json');
 const {createEditorialReleaseSync,loadEditorialReleases}=require('./editorial-release-sync');
 const {selectEditorialReleaseCandidates}=require('./editorial-release-selection');
+const {reviewPublication,requirePublicationReview}=require('./editorial-quality');
 const {createVerifiedPublishedCache}=require('./verified-cache');
 const {createDiscordPublisher}=require('./discord-publisher');
 const swappReleaseArticles=loadEditorialReleases();
-const swappReleaseBySlug=new Map(swappReleaseArticles.map(article=>[article.slug,article]));
+
 const {publicArticle,recoveredArticle,nativeSlug,legacyDraft}=require('./editorial-identity');
 const {registerArticleScores}=require('./article-scores');
 const {registerEditorInsights}=require('./editor-insights');
@@ -60,6 +61,8 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
   // Keep old editorial withdrawal history authoritative until migration.
   const migrationVerified=!mysqlMode||process.env.SWAPP_NEWS_MIGRATION_VERIFIED==='1';
   const releaseCandidates=selectEditorialReleaseCandidates(swappReleaseArticles,{mysqlMode,migrationVerified});
+  // A blocked new thin release must not reappear through direct article fallback.
+  const swappReleaseBySlug=new Map(releaseCandidates.map(article=>[article.slug,article]));
   const articles=firestore.collection('swapp_news_articles');
   const outbox=firestore.collection('swapp_news_outbox');
   const importKeys=firestore.collection('swapp_news_import_keys');
@@ -420,8 +423,9 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
   router.post('/api/editor/actus/validate',...editor,(req,res)=>{
     try{
       const validated=assertArticle(req.body,{publish:true});
+      const review=reviewPublication(validated);
       return res.json({valid:true,slug:validated.slug,contentType:validated.contentType,
-        games:validated.games,tags:validated.tags,seo:validated.seo,
+        games:validated.games,tags:validated.tags,seo:validated.seo,editorialReview:review,
         mediaReady:!['video','trailer'].includes(validated.contentType)||!!validated.trailerUrl});
     }catch(error){
       if(isValidation(error))return res.status(422).json({valid:false,error:String(error.message)});
@@ -562,6 +566,9 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
         if(old.status==='published')return {code:200,slug,status:'published',alreadyPublished:true};
         if(!['draft','review'].includes(old.status))return {code:409,error:'Statut incompatible'};
         assertArticle(old,{publish:true});
+        // Existing articles remain editable. New publications in production
+        // must satisfy SWAPP's minimal editorial review standards.
+        requirePublicationReview(old,{production:process.env.NODE_ENV==='production'});
         const now=new Date().toISOString(),revision=Number(old.revision||1);
         const eventId=`article_${slug}_r${revision}`;
         // Atomically schedule Discord only for the initial publication of a slug.
