@@ -23,6 +23,21 @@ test('all games with at least one verified published article get a GAME UNIVERSE
  assert.equal(gameSlug('Pókemon GO'),'pokemon-go');
  assert.doesNotMatch(JSON.stringify(groups),/Secret|Non publié/);
 });
+test('GAME UNIVERSE links players to real SERVEUR+ categories only',()=>{
+ const {serverCategoryFor,renderMyGames}=require('../modules/swapp-game-pages');
+ assert.equal(serverCategoryFor('Cyberpunk 2077'),'/serveurs/cyberpunk-2077');
+ assert.equal(serverCategoryFor('7 Days to Die'),'/serveurs/7-days-to-die');
+ assert.equal(serverCategoryFor('Grand Theft Auto VI'),'/serveurs');
+ assert.equal(serverCategoryFor('<script>'),'/serveurs');
+ const cyberpunk=gameHubs([
+  {slug:'cyberpunk-first',title:'Cyberpunk : première publication',game:'Cyberpunk 2077',status:'published'},
+  {slug:'cyberpunk-second',title:'Cyberpunk : seconde publication',game:'Cyberpunk 2077',status:'published'}
+ ])[0];
+ assert.match(renderGamePage(cyberpunk),/href="\/serveurs\/cyberpunk-2077"/);
+ assert.match(renderMyGames([cyberpunk]),/href="\/serveurs\/cyberpunk-2077"/);
+ assert.match(renderGamePage(gameHubs(published)[0]),/href="\/serveurs"/);
+ assert.doesNotMatch(renderGamePage(gameHubs(published)[0]),/href="\/serveurs\/grand-theft-auto-vi"/);
+});
 test('game hub HTML contains real editorial links, canonical, shared live shelf and no invented content',()=>{
  const page=renderGamePage(gameHubs(published)[0]);
  assert.match(page,/<h1>Grand Theft Auto VI : actualités et lives<\/h1>/);
