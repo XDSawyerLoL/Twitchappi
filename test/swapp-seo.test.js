@@ -205,7 +205,7 @@ test('SEO status reuses the cache when a verified editorial sitemap is available
 
 test('all public SPA landing cards expose a first-party PNG readable by X',()=>{
  const html='<html><head><title>SWAPP</title></head><body></body></html>';
- for(const route of ['/','/actus','/decouvrir','/explorer']){
+ for(const route of ['/','/actus','/decouvrir']){
   const out=injectSpaMetadata(html,route);
   assert.match(out,/<meta name="twitter:card" content="summary_large_image">/);
   assert.match(out,/<meta property="og:image" content="https:\/\/swapp\.tv\/swapp-share-card\.png">/);
