@@ -153,3 +153,17 @@ test('overlaid desktop arrows appear only when there is content left to scroll',
  cards.scrollLeft=0;arrows[1].events.click();
  assert.ok(cards.scrollLeft>0);
 });
+
+test('social previews accept official November Xbox and OpenAI art but reject untrusted image URLs',()=>{
+ const xbox='https://xboxwire.thesourcemediaassets.com/sites/2/2026/11/111226_XBOX-Wire_PCBackCompat-JPG-6d6dbed266e723ed4c62.jpg';
+ const openai='https://images.ctfassets.net/kftzwdyauwt9/73cvZmLsj7WIXQAgMDX8kz/4996c7a084b81e21a8f1357fe395c30b/gpt-6-cyber-social.png?w=1600&h=900&fit=fill';
+ assert.equal(preview.allowedSource(xbox),xbox);
+ assert.equal(preview.allowedSource(openai),openai);
+ assert.equal(preview.thumbnailSource({...article,trailerUrl:null,thumbnail:{url:openai}}),openai);
+ for(const bad of [
+  'https://xboxwire.thesourcemediaassets.com/admin/private.jpg',
+  'https://images.ctfassets.net/otheraccount/file/image.png?w=1600&h=900&fit=fill',
+  'https://images.ctfassets.net/kftzwdyauwt9/73cvZmLsj7WIXQAgMDX8kz/4996c7a084b81e21a8f1357fe395c30b/gpt-6-cyber-social.png?url=http://localhost',
+  'https://xboxwire.thesourcemediaassets.com/sites/2/2026/11/file.jpg?redirect=https://evil.example'
+ ])assert.equal(preview.allowedSource(bad),null);
+});
