@@ -61,6 +61,12 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
   // Keep old editorial withdrawal history authoritative until migration.
   const migrationVerified=!mysqlMode||process.env.SWAPP_NEWS_MIGRATION_VERIFIED==='1';
   const releaseCandidates=selectEditorialReleaseCandidates(swappReleaseArticles,{mysqlMode,migrationVerified});
+  const eligibleSlugs=new Set(releaseCandidates.map(a=>a.slug));
+  const editorialHeld=swappReleaseArticles.filter(a=>!eligibleSlugs.has(a.slug)&&
+    Date.parse(a.publishedAt||'')>=Date.parse('2026-11-17T00:00:00.000Z')&&
+    !reviewPublication(a).ready);
+  if(editorialHeld.length)console.warn('[SWAPP EDITORIAL] Releases held for human quality review:',
+    editorialHeld.map(a=>a.slug).join(', '));
   // A blocked new thin release must not reappear through direct article fallback.
   const swappReleaseBySlug=new Map(releaseCandidates.map(article=>[article.slug,article]));
   const articles=firestore.collection('swapp_news_articles');
@@ -281,6 +287,13 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
   });
   // Shows only the connected user's own identity for secure, pinned admin setup.
   // This route never grants any permission and never returns a password or token.
+  // Explicit, read-only list for editors: rejected new releases are not
+  // silently lost or published through legacy fallbacks.
+  router.get('/api/editor/actus/quality-queue',...editor,(_req,res)=>{
+    res.set('Cache-Control','no-store');
+    return res.json({held:editorialHeld.map(a=>({slug:a.slug,title:a.title,
+      issues:reviewPublication(a).issues})),total:editorialHeld.length});
+  });
   router.get('/api/editor/actus/identity',(req,res)=>{
     res.set('Cache-Control','no-store');
     const user=req.session?.oryonUser;
