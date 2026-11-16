@@ -161,11 +161,13 @@ function readFirebaseServiceAccountFromEnv(){
   return null;
 }
 
+// MySQL cutover: Firestore cannot be enabled by stale Hostinger credentials.
+const FIRESTORE_RUNTIME_ENABLED=false;
 let serviceAccount = null;
 let db = makeFirestoreStub();
 let firestoreOk = false;
 let firestoreSource = null;
-if (admin) {
+if (FIRESTORE_RUNTIME_ENABLED && admin) {
   try {
     const found = readFirebaseServiceAccountFromEnv();
     if(found?.account){
@@ -188,7 +190,7 @@ if (admin) {
     console.warn('⚠️ [FIREBASE] désactivé, fallback local:', error.message);
   }
 } else {
-  console.warn('⚠️ [FIREBASE] firebase-admin indisponible: fallback local.');
+  console.info('[SWAPP STORAGE] Legacy Firestore retired: use Hostinger MySQL.');
 }
 
 // =========================================================
@@ -715,7 +717,7 @@ async function steamFetchPlayerSummary(steamid){
 async function verifyFirebaseIdTokenFromReq(req){
   const auth = String(req.headers.authorization || '').trim();
   const token = auth.startsWith('Bearer ') ? auth.slice(7).trim() : (req.body?.idToken ? String(req.body.idToken).trim() : '');
-  if(!token) return null;
+  if(!FIRESTORE_RUNTIME_ENABLED || !token) return null;
   try{
     return await admin.auth().verifyIdToken(token);
   }catch(e){
@@ -832,6 +834,7 @@ app.get('/api/steam/me', async (req, res) => {
 
 // Persist Steam link to Firestore for the currently logged-in Firebase user
 app.post('/api/steam/link', async (req, res) => {
+  if(!FIRESTORE_RUNTIME_ENABLED)return res.status(410).json({success:false,error:'firebase_steam_link_retired'});
   try{
     const s = req.session?.steam;
     if(!s?.steamid) return res.status(400).json({ success:false, error:'Steam non connect\u00E9 (session)' });
@@ -1654,15 +1657,16 @@ app.get('/api/actus/signaux',async(_req,res)=>{
 // SWAPP ACTUS / JUSTPLAYER — independent editorial storage.
 // In Hostinger MySQL mode, the CMS no longer depends on the global Firebase
 // availability flag (which can be affected by unrelated chat operations).
-const newsMysqlUrl=process.env.SWAPP_NEWS_MYSQL_URL||process.env.SWAPP_MYSQL_URL||'';
+const newsMysqlUrl=process.env.SWAPP_NEWS_MYSQL_URL||process.env.SWAPP_MYSQL_URL||process.env.SWAPP_ACCOUNT_MYSQL_URL||'';
 const newsBackendPreference=String(process.env.SWAPP_NEWS_BACKEND||'').toLowerCase();
-const newsUseMysql=newsBackendPreference==='mysql'||
- (newsBackendPreference!=='firestore'&&process.env.SWAPP_ACCOUNT_STORE==='mysql'&&!!newsMysqlUrl);
+// This app no longer offers the retired Firestore news backend.
+const newsUseMysql=!!newsMysqlUrl;
+if(newsBackendPreference==='firestore')console.warn('[SWAPP NEWS] Obsolete Firestore setting ignored: using MySQL only.');
 const newsStorage=newsUseMysql
  ?require('./modules/swapp-news/mysql-store').createNewsMysqlStore({uri:newsMysqlUrl})
- :db;
+ :null;
 if (String(process.env.SWAPP_NEWS_ENABLED || 'true').toLowerCase() === 'true') {
-  if (newsUseMysql || (firestoreOk && typeof db.runTransaction === 'function')) {
+  if (newsUseMysql) {
     const {createNewsRouter} = require('./modules/swapp-news/router');
     const {makeNewsEditorGuard} = require('./modules/swapp-news/editor-auth');
     const allowedNewsOrigins = ['https://swapp.tv','https://www.swapp.tv',
@@ -1691,11 +1695,11 @@ if (String(process.env.SWAPP_NEWS_ENABLED || 'true').toLowerCase() === 'true') {
     app.use(createNewsRouter({
       express, firestore: newsStorage, requireEditor: requireNewsEditor,
       canEdit: isNewsEditor,
-      isReady: () => newsUseMysql ? !!newsMysqlUrl : firestoreOk,
+      isReady: () => newsUseMysql && !!newsMysqlUrl,
       baseUrl: 'https://swapp.tv',
       sendApp: sendSwappUi
     }));
-    console.log('[SWAPP NEWS] Rédaction activée via '+(newsUseMysql?'Hostinger MySQL':'Firestore')+'.');
+    console.log('[SWAPP NEWS] Rédaction activée via Hostinger MySQL.');
   } else {
     console.warn('[SWAPP NEWS] Stockage éditorial indisponible : module non activé.');
     // The ACTUS shell must remain reachable even while its API/storage is offline.
@@ -3089,13 +3093,15 @@ function computeGrowthScore({ avgViewers = 0, growthPct = 0, volatility = 0, hou
 // =========================================================
 // 2C. CRON SNAPSHOTS -> Firestore
 // =========================================================
-const ENABLE_CRON = (process.env.ENABLE_CRON || 'false').toLowerCase() === 'true';
+const ENABLE_CRON = FIRESTORE_RUNTIME_ENABLED && (process.env.ENABLE_CRON || 'false').toLowerCase() === 'true';
 const SNAPSHOT_EVERY_MIN = parseInt(process.env.SNAPSHOT_EVERY_MIN || '5', 10);
 
 // Tracked channels (targeted collection for 20-200 viewers):
 // - stored by Twitch user_id (stable)
 // - snapshots collected even if the channel is not in top100 FR
-const ENABLE_TRACKED_CRON = (process.env.ENABLE_TRACKED_CRON || 'false').toLowerCase() === 'true';
+const ENABLE_TRACKED_CRON = FIRESTORE_RUNTIME_ENABLED && (process.env.ENABLE_TRACKED_CRON || 'false').toLowerCase() === 'true';
+if((process.env.ENABLE_CRON||'').toLowerCase()==='true'||(process.env.ENABLE_TRACKED_CRON||'').toLowerCase()==='true')
+ console.warn('[SWAPP STORAGE] Legacy Firestore analytics CRON flags ignored.');
 const TRACKED_EVERY_MIN = parseInt(process.env.TRACKED_EVERY_MIN || String(SNAPSHOT_EVERY_MIN || 5), 10);
 const TRACKED_MAX = parseInt(process.env.TRACKED_MAX || '500', 10);
 
@@ -3121,6 +3127,7 @@ async function resolveTwitchUserByLogin(login){
 
 // API: add/enable a tracked channel by login (server resolves to user_id)
 app.post('/api/tracked_channels/add', async (req, res) => {
+  if(!FIRESTORE_RUNTIME_ENABLED)return res.status(410).json({success:false,error:'legacy_firestore_tracking_retired'});
   try{
     const login = String(req.body?.login || req.query?.login || '').trim();
     if(!login) return res.status(400).json({ success:false, message:'login requis' });
@@ -3146,6 +3153,7 @@ app.post('/api/tracked_channels/add', async (req, res) => {
 });
 
 app.post('/api/tracked_channels/disable', async (req, res) => {
+  if(!FIRESTORE_RUNTIME_ENABLED)return res.status(410).json({success:false,error:'legacy_firestore_tracking_retired'});
   try{
     const id = String(req.body?.user_id || req.query?.user_id || '').trim();
     if(!id) return res.status(400).json({ success:false, message:'user_id requis' });
@@ -3160,6 +3168,7 @@ app.post('/api/tracked_channels/disable', async (req, res) => {
 });
 
 app.get('/api/tracked_channels/list', async (req, res) => {
+  if(!FIRESTORE_RUNTIME_ENABLED)return res.status(410).json({success:false,error:'legacy_firestore_tracking_retired'});
   try{
     const limit = Math.min(parseInt(String(req.query.limit || '50'),10) || 50, 200);
     const q = await db.collection('tracked_channels').orderBy('updated_at','desc').limit(limit).get();
@@ -3176,7 +3185,7 @@ let __legacyFirestoreAnalyticsDenied = false;
 let __oryonGenericFirestoreDenied = false;
 const isFirestorePermissionDenied = e => /PERMISSION_DENIED|permission denied on resource/i.test(String(e?.message||e));
 async function upsertChannelMetaFromStream(stream, nowMs) {
-  if (__channelMetaFirestoreDisabled || __legacyFirestoreAnalyticsDenied) return;
+  if (!FIRESTORE_RUNTIME_ENABLED || __channelMetaFirestoreDisabled || __legacyFirestoreAnalyticsDenied) return;
   if (!(firestoreOk && db && typeof db.collection === 'function')) return;
   const uid = safeDocId(stream.user_id ?? stream.userId);
   if (!uid) return;
@@ -3211,7 +3220,7 @@ async function upsertChannelMetaFromStream(stream, nowMs) {
 }
 
 async function upsertGameMeta(gameId, gameName) {
-  if (!gameId) return;
+  if (!FIRESTORE_RUNTIME_ENABLED || !gameId) return;
   try {
     await db.collection('games').doc(String(gameId)).set({
       name: gameName || null,
@@ -3228,7 +3237,7 @@ function safeDocId(v) {
 }
 
 async function updateDailyRollupsForStream(stream, nowMs) {
-  if (__legacyFirestoreAnalyticsDenied) return;
+  if (!FIRESTORE_RUNTIME_ENABLED || __legacyFirestoreAnalyticsDenied) return;
   const viewers = Number(stream.viewer_count || 0);
   const dayKey = yyyy_mm_dd_from_ms(nowMs);
   if (!dayKey) {
@@ -3282,7 +3291,7 @@ async function updateDailyRollupsForStream(stream, nowMs) {
 }
 
 async function collectAnalyticsSnapshot() {
-  if (__legacyFirestoreAnalyticsDenied) return;
+  if (!FIRESTORE_RUNTIME_ENABLED || __legacyFirestoreAnalyticsDenied) return;
   const now = Date.now();
   try {
     const data = await twitchAPI('streams?first=100&language=fr');
@@ -3362,6 +3371,7 @@ async function collectAnalyticsSnapshot() {
 // Tracked channels snapshots (by Twitch user_id)
 // ---------------------------------------------------------
 async function updateTrackedDailyRollups(userId, snapObj, nowMs){
+  if(!FIRESTORE_RUNTIME_ENABLED)return;
   const viewers = Number(snapObj.viewer_count || 0);
   const dayKey = yyyy_mm_dd_from_ms(nowMs);
   if (!dayKey) return;
@@ -3410,6 +3420,7 @@ async function updateTrackedDailyRollups(userId, snapObj, nowMs){
 }
 
 async function collectTrackedSnapshot(){
+  if(!FIRESTORE_RUNTIME_ENABLED)return;
   const now = Date.now();
   try{
     const q = await db.collection('tracked_channels')
@@ -4196,6 +4207,16 @@ app.use('/api/oryon', async (req, res, next) => {
   next();
 });
 
+// Prove that the public instance runs the real MySQL-only code. No secrets.
+app.get('/api/swapp/storage-runtime',(_req,res)=>
+ res.set('Cache-Control','no-store').json({
+  success:true,firestoreRuntime:FIRESTORE_RUNTIME_ENABLED,
+  firebaseAppInitialized:!!admin?.apps?.length,
+  legacySnapshotCron:ENABLE_CRON,legacyTrackedCron:ENABLE_TRACKED_CRON,
+  accountsBackend:SWAPP_MYSQL_ACCOUNTS?'mysql':'unconfigured',
+  accountsReady:SWAPP_MYSQL_ACCOUNTS&&swappMysqlAccountsReady,
+  newsBackend:newsUseMysql?'mysql':'unavailable'
+ }));
 app.get('/api/oryon/persistence-status', async (_req, res) => {
   try{ await ORYON_USERS_READY; }catch(_){}
   if(SWAPP_MYSQL_ACCOUNTS&&!swappMysqlAccountsReady)await swappMysqlAccountsRecovery.ensure();
@@ -4214,9 +4235,9 @@ app.get('/api/oryon/persistence-status', async (_req, res) => {
     firestore_source: firestoreSource || null,
     persistence: __oryonUsersPersistence,
     users: (__oryonUsersCache?.users||[]).length,
-    requires_env: firestoreOk ? [] : ['FIREBASE_SERVICE_KEY or FIREBASE_SERVICE_ACCOUNT or FIREBASE_SERVICE_KEY_BASE64'],
-    github_deploy_safe: !!firestoreOk,
-    warning: firestoreOk ? null : 'Sans Firestore, une mise à jour GitHub/Hostinger peut effacer les comptes locaux.'
+    requires_env:['SWAPP_ACCOUNT_STORE=mysql','SWAPP_MYSQL_URL'],
+    github_deploy_safe:false,
+    warning:'Comptes non durables: configurer Hostinger MySQL. Firestore retiré.',
   });
 });
 function normalizeOryonLogin(v){
@@ -11378,8 +11399,8 @@ async function importSwappAdminBackup(raw, options = {}){
     dry_run:dryRun
   };
   if(dryRun) return { success:true, imported:false, dry_run:true, counts, conflicts:normalized.login_conflicts || [] };
-  if(IS_PROD && !(firestoreOk && db && typeof db.collection === 'function')){
-    throw new Error('firestore_required_for_import_in_production');
+  if(IS_PROD && (!SWAPP_MYSQL_ACCOUNTS || !swappMysqlAccountsReady)){
+    throw new Error('mysql_accounts_required_for_import_in_production');
   }
   await writeOryonUsersAndWait({ users: normalized.users });
   __oryonViewerLearningCache = nextViewer || {};

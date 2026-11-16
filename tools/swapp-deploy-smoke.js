@@ -57,6 +57,20 @@ async function verify(){
   'DEPLOYMENT DRIFT: production='+remote.fingerprint+' checkout='+expected.fingerprint+
   '. Deploy current GitHub version to Hostinger and restart Node. Do not mark the site verified.');
  process.stdout.write('PASS release fingerprint '+remote.fingerprint.slice(0,16)+'\n');
+ // Production runtime must prove legacy Firestore is disabled.
+ const state=await request(origin,'/api/swapp/storage-runtime');
+ check((state.response.headers.get('content-type')||'').includes('application/json'),
+  'Storage runtime route returned HTML/WAF instead of JSON');
+ let storage;
+ try{storage=JSON.parse(state.body)}catch{throw Error('SWAPP storage runtime is not JSON')}
+ check(storage.success===true&&storage.firestoreRuntime===false&&
+  storage.firebaseAppInitialized===false&&storage.legacySnapshotCron===false&&
+  storage.legacyTrackedCron===false,
+  'Firestore or the retired analytics cron is active in Hostinger');
+ check(storage.accountsBackend==='mysql'&&storage.accountsReady===true&&
+  storage.newsBackend==='mysql',
+  'Production MySQL accounts/news are not ready');
+ process.stdout.write('PASS Firestore retired and MySQL account/news ready\n');
  const ads=await request(origin,'/ads.txt');
  check(ads.body.trim()==='google.com, pub-6082969821681414, DIRECT, f08c47fec0942fa0','AdSense ads.txt seller declaration differs');
  check((ads.response.headers.get('content-type')||'').startsWith('text/plain'),'AdSense ads.txt is not served as text/plain');
