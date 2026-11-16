@@ -19,3 +19,19 @@ test('all creator workspaces share the same dark surface',()=>{
  assert.match(css,/--swapp-workspace-panel:#101215/);
  assert.doesNotMatch(css,/background:#141f2c!important/);
 });
+
+test('safe YouTube artwork and inline title editing have no autoplay',()=>{
+ const a=src.indexOf('function videoEmbed(v){'),b=src.indexOf('\nfunction card(v){',a);
+ assert.ok(a>=0&&b>a);
+ const helpers=new Function('URL',src.slice(a,b)+';return {videoThumbnail,sourceName};')(URL);
+ const id='aBcD12ef_G-';
+ assert.equal(helpers.videoThumbnail({url:'https://youtu.be/'+id}),'https://i.ytimg.com/vi/'+id+'/hqdefault.jpg');
+ assert.equal(helpers.videoThumbnail({url:'https://youtube.com.evil.test/watch?v='+id}),'');
+ assert.equal(helpers.videoThumbnail({url:'https://odysee.com/@user:abcd/video:1234'}),'');
+ assert.equal(helpers.sourceName({url:'https://odysee.com/@user:abcd/video:1234'}),'Odysee');
+ assert.match(src,/image\.loading='lazy'/);
+ assert.match(src,/image\.referrerPolicy='no-referrer'/);
+ assert.match(src,/Titre de la vidéo/);
+ assert.match(src,/input\.addEventListener\('input'/);
+ assert.ok(src.indexOf('stage.append(image)')<src.indexOf("play.addEventListener('click'"));
+});

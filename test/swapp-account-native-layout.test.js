@@ -138,7 +138,7 @@ test('only the active menu uses the same intuitive account navigation, without m
 
 test('Creator Studio visuals and embedded media use their updated cache keys',()=>{
  const html=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
- for(const asset of ['swapp-creator-external-videos.js?v=20261116-studio-preview-v3',
-  'swapp-creator-external-videos.css?v=20261116-studio-preview-v3',
+ for(const asset of ['swapp-creator-external-videos.js?v=20261116-video-art-v4',
+  'swapp-creator-external-videos.css?v=20261116-video-art-v4',
   'swapp-creator-workspace.css?v=20261116-obsidian-studio-v3'])assert.ok(html.includes(asset),asset);
 });
