@@ -4,7 +4,7 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const os=require('node:os');
 const path=require('node:path');
-const {RELEASE_FILES,releaseInfo}=require('../tools/swapp-release');
+const {RELEASE_FILES,editorialReleaseFiles,releaseInfo}=require('../tools/swapp-release');
 const {baseUrl}=require('../tools/swapp-deploy-smoke');
 
 test('release fingerprint is deterministic, content-sensitive and non-secret',()=>{
@@ -32,6 +32,34 @@ test('release fingerprint is deterministic, content-sensitive and non-secret',()
  }finally{fs.rmSync(dir,{recursive:true,force:true})}
 });
 
+test('published editorial JSON and release manifest are part of the release fingerprint',()=>{
+ assert.ok(RELEASE_FILES.includes('data/swapp-editorial-releases.json'));
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'swapp-news-release-'));
+ try{
+  for(const name of RELEASE_FILES){
+   const full=path.join(dir,name);fs.mkdirSync(path.dirname(full),{recursive:true});
+   fs.writeFileSync(full,'initial: '+name+'\\n','utf8');
+  }
+  const baseline=releaseInfo(dir,{});
+  assert.equal(baseline.complete,true);
+  const published='swapp-veille-native-20991231-news-release.json';
+  const full=path.join(dir,'data',published);
+  fs.writeFileSync(full,'{"published":true}\\n','utf8');
+  assert.deepEqual(editorialReleaseFiles(dir),['data/'+published]);
+  const fresh=releaseInfo(dir,{});
+  assert.equal(fresh.complete,true);
+  assert.equal(fresh.trackedFiles,baseline.trackedFiles+1);
+  assert.notEqual(fresh.fingerprint,baseline.fingerprint);
+  fs.appendFileSync(full,'{"changed":true}\\n');
+  assert.notEqual(releaseInfo(dir,{}).fingerprint,fresh.fingerprint);
+  fs.writeFileSync(path.join(dir,'data/swapp-editorial-releases.json'),
+    JSON.stringify({schema:1,releases:[published]}));
+  fs.unlinkSync(full);
+  const missing=releaseInfo(dir,{});
+  assert.equal(missing.complete,false,'published release missing from deployment');
+  assert.ok(missing.missing.includes('data/'+published));
+ }finally{fs.rmSync(dir,{recursive:true,force:true})}
+});
 test('release endpoint is public but explicitly uncached and fails closed',()=>{
  const server=fs.readFileSync(path.join(__dirname,'..','server.js'),'utf8');
  assert.match(server,/SWAPP_DEPLOY_RELEASE=require\('\.\/tools\/swapp-release'\)\.releaseInfo\(__dirname\)/);
