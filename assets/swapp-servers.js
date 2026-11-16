@@ -1,6 +1,8 @@
 'use strict';
 (()=> {
  const root=document.querySelector('.ss');if(!root)return;
+ if(root.dataset.ssDirectoryBooted==='1')return;
+ root.dataset.ssDirectoryBooted='1';
  const $=s=>root.querySelector(s), results=$('#ss-results'),feedback=$('#ss-feedback'),count=$('#ss-count');
  const gameHeroCount=$('#ss-game-hero-count');
  const gameHeroImage=root.querySelector('.ss-directory-game-image');
@@ -237,7 +239,7 @@
      const verify=make('a','ss-empty-external','Vérifier mon accès au site');
      verify.href='/api/swapp/serveurs';verify.target='_blank';verify.rel='noopener noreferrer';empty.append(verify);
     }
-    const retry=make('button','ss-empty-retry','Réessayer');retry.type='button';retry.addEventListener('click',()=>load());empty.append(retry);
+    const retry=make('button','ss-empty-retry','Réessayer');retry.type='button';retry.addEventListener('click',()=>load(true,true));empty.append(retry);
    }else if($('#ss-q').value.trim()){
     empty.append(make('h3','','Aucun serveur trouvé pour cette recherche'),
      make('p','','Modifie tes critères de recherche ou explore les autres communautés.'));
@@ -267,16 +269,24 @@
   }
   return Object.assign(Error('Classement temporairement indisponible'),{kind:mime.includes('json')?'api':'network',httpStatus:response.status});
  }
- async function load(reset=true){
+ let activeRequest=null,failedKey='',blockedUntil=0;
+ async function load(reset=true,force=false){
   if(state.loading&&!reset)return;
-  const seq=++state.request;
-  if(reset){state.page=1;state.servers=[];state.total=0;state.hasMore=false;state.status='loading'}
   const requestedPage=reset?1:state.page+1;
   const params=new URLSearchParams({q:$('#ss-q').value.trim(),game:$('#ss-game').value,sort:$('#ss-sort').value,page:String(requestedPage)});
+  const key=params.toString();
+  if(!force&&failedKey===key&&Date.now()<blockedUntil)return;
+  if(reset&&activeRequest)activeRequest.abort();
+  const controller=new AbortController();activeRequest=controller;
+  const seq=++state.request;
+  if(reset){state.page=1;state.servers=[];state.total=0;state.hasMore=false;state.status='loading'}
   state.loading=true;more.disabled=true;
   feedback.textContent='Mise à jour du classement…';
   try{
-   const res=await fetch('/api/swapp/serveurs?'+params.toString(),{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}});
+   const res=await fetch('/api/swapp/serveurs?'+key,{
+    credentials:'same-origin',cache:'no-store',signal:controller.signal,
+    headers:{Accept:'application/json'}
+   });
    if(!res.ok)throw await apiFailure(res);
    if(!(res.headers.get('content-type')||'').toLowerCase().includes('application/json'))
     throw await apiFailure(res);
@@ -285,11 +295,14 @@
     throw Error('Classement temporairement indisponible');
    const items=data.servers;
    state.page=requestedPage;state.total=Number(data.total)||0;state.hasMore=Boolean(data.hasMore);state.status='ready';state.errorMessage='';state.errorKind='';
+   failedKey='';blockedUntil=0;
    state.servers=reset?items:state.servers.concat(items);
    displayGameCounts(data.gameCounts);
    feedback.textContent=data.ranking==='temporarily_unavailable'?'Les fiches sont accessibles ; les votes ne sont pas disponibles pour le moment.':'Classement basé sur les votes enregistrés ce mois-ci, sans faux statut en ligne.';
   }catch(e){
-   if(seq!==state.request)return;
+   if(seq!==state.request||e?.name==='AbortError')return;
+   failedKey=key;
+   blockedUntil=Date.now()+(e?.httpStatus===429?60000:20000);
    if(reset){
     displayGameCounts(null);state.servers=[];state.total=0;state.status='error';
     state.errorMessage='Classement temporairement indisponible';state.errorKind=e?.kind||'api';
@@ -298,7 +311,10 @@
    feedback.textContent='';
    console.warn('[SWAPP SERVEURS] Echec chargement annuaire',{type:e?.kind||'unknown',httpStatus:e?.httpStatus||null});
   }finally{
-   if(seq===state.request){state.loading=false;draw();more.disabled=false}
+   if(seq===state.request){
+    state.loading=false;if(activeRequest===controller)activeRequest=null;
+    draw();more.disabled=false
+   }
   }
  }
  let timer;$('#ss-q').addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(load,250)});
