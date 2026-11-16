@@ -21,7 +21,7 @@ function startTechWatch({enabled=process.env.SWAPP_TECH_WATCH_ENABLED!=='0' && !
      if(!result.checks.some(x=>x.ok))throw Error('All source feeds failed');
      const saved=await saveCandidates(pool,result.candidates);
      return {saved,checks:result.checks};
-    });
+    },{intervalMs});
     log.info('[SWAPP TECH WATCH]',outcome.skipped||('Saved '+outcome.saved+' unverified candidates'));
    }finally{await pool.end();}
   }
