@@ -121,7 +121,12 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
     // Versioned editorial release follows the usual native rendering paths.
     // Never resurrect an article explicitly withdrawn or overwrite a Firestore draft.
     const allSlugs=new Set(records.map(item=>String(item.id||item.data?.slug||'')));
-    if(mysqlMode&&!migrationVerified&&!original.length)throw Error('news_migration_required');
+    // A fresh MySQL magazine may contain only newly approved post-cutover releases.
+    // Do not block those releases merely because the historical Firestore import
+    // remains unverified. Older releases are excluded by releaseCandidates and
+    // existing CMS records (including withdrawals) still take precedence.
+    if(mysqlMode&&!migrationVerified&&!original.length&&!releaseCandidates.length)
+      throw Error('news_migration_required');
     const editorialFallback=releaseCandidates.filter(item=>!allSlugs.has(item.slug)
       &&!oldTitles.has(String(item.title||'').toLowerCase())
       &&!withdrawnTitles.has(String(item.title||'').toLowerCase()));
