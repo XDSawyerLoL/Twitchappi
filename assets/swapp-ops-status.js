@@ -26,6 +26,16 @@
    detail:d.enabled?'Créneaux activés':'Inactif · '+(d.accounts_mysql?'prérequis de comptes prêts':'comptes SWAPP MySQL requis')
   })},
   {name:'Fair Discovery',url:'/api/discovery/fair-summary',describe:d=>({ok:d.enabled===true,detail:d.enabled?'Activé · échantillon '+String(d.sample||'indisponible'):'Désactivé'})},
+  {name:'Articles publics',url:'/api/actus',key:'news',describe:d=>{
+   const articles=Array.isArray(d.articles)?d.articles:[];
+   const visible=articles.filter(a=>a&&typeof a.slug==='string'&&
+    /^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/.test(a.slug)&&
+    typeof a.title==='string'&&a.title.trim().length>=5&&(!a.status||a.status==='published'));
+   const degraded=d.degraded===true;
+   return {ok:visible.length>0&&!degraded,detail:degraded?
+    'Cache de secours · CMS à rétablir':visible.length?
+    visible.length+' article(s) accessibles publiquement':'Aucune actualité publique vérifiée'};
+  }},
   {name:'Actualités',url:'/api/actus/release-status',describe:d=>({ok:d.releaseCount>0&&d.releaseCount===d.editableCount,detail:String(d.editableCount||0)+' / '+String(d.releaseCount||0)+' articles du lot éditables'})},
   {name:'Discord',url:'/api/editor/actus/discord/status',describe:d=>({ok:d.discord?.enabled===true,detail:d.discord?.enabled?'Annonce automatique configurée':'À configurer sur Hostinger'})},
   {name:'Liens communautaires',url:'/api/swapp/community-links',describe:d=>({ok:!!d.discordInvite,detail:[d.discordInvite?'Invitation Discord prête':'Invitation Discord à renseigner',d.xProfile?'X relié':'X non relié',d.blueskyProfile?'Bluesky relié':'Bluesky non relié'].join(' · ')})},
@@ -54,12 +64,12 @@
   }));
   if(!host.isConnected)return;
   const readiness=Object.fromEntries(services.map((service,index)=>[service.key||service.name,results[index]]));
-  const required=['accounts','social','tv','spotlight'];
+  const required=['accounts','social','tv','spotlight','news'];
   const missing=required.filter(key=>readiness[key]?.ok!==true);
   launch.textContent=missing.length===0
    ? 'Parcours P0 : prérequis techniques déclarés actifs. Tests réels de connexion, file et réservations encore nécessaires.'
    : 'Lancement P0 bloqué · '+missing.length+' prérequis à traiter : '+
-      missing.map(key=>({accounts:'comptes MySQL',social:'SOCIAL / initialisation',tv:'régie TV',spotlight:'Spotlight'})[key]).join(', ')+
+      missing.map(key=>({accounts:'comptes MySQL',social:'SOCIAL / initialisation',tv:'régie TV',spotlight:'Spotlight',news:'actualités publiques'})[key]).join(', ')+
       '. Ne pas basculer les comptes ou ouvrir les réservations sans test à deux comptes.';
   launch.dataset.ready=missing.length===0?'candidate':'blocked';
   for(let i=0;i<services.length;i++){

@@ -581,6 +581,26 @@ async function verify(){
  process.stdout.write('PASS Discover mobile layout and relevance ordering\n');
  check(home.body.includes('SWAPP'),'Home returned an unexpected document');
  process.stdout.write('PASS / home\n');
+
+ // A page can load its JS perfectly while displaying no public editorial.
+ // Validate actual published items separately from the HTML shell and release metadata.
+ const publicNews=await request(origin,'/api/actus');
+ check((publicNews.response.headers.get('content-type')||'').includes('application/json'),
+   '/api/actus returned HTML instead of JSON');
+ let publicNewsCatalog;
+ try{publicNewsCatalog=JSON.parse(publicNews.body)}
+ catch{throw Error('/api/actus returned invalid JSON')}
+ check(Array.isArray(publicNewsCatalog.articles),'/api/actus has no article list');
+ const publicArticles=publicNewsCatalog.articles.filter(item=>item&&
+   typeof item.slug==='string'&&/^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/.test(item.slug)&&
+   typeof item.title==='string'&&item.title.trim().length>=5&&
+   (!item.status||item.status==='published'));
+ check(publicArticles.length>0,
+   'PUBLIC EDITORIAL EMPTY: /api/actus has no valid published articles. Check the MySQL CMS adoption and publication.');
+ check(publicNewsCatalog.degraded!==true&&
+   publicNews.response.headers.get('x-swapp-editorial-state')!=='verified-stale',
+   'PUBLIC EDITORIAL DEGRADED: /api/actus is using an in-memory rescue snapshot, not a healthy CMS.');
+ process.stdout.write('PASS /api/actus · '+publicArticles.length+' published article(s) actually visible through public API\\n');
  const news=await request(origin,'/actus');
  check(news.body.includes('SWAPP')||news.body.includes('Swapp'),'Actualité returned an unexpected document');
  // All native documents now share the same site shell and motion assets.

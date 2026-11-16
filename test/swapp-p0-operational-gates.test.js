@@ -9,6 +9,7 @@ const clean={
  tv:{enabled:true,director_enabled:true,waiting:[]},
  spotlight:{enabled:true,accounts_mysql:true},
  editorial:{releaseCount:6,editableCount:6},
+ news:{articles:[{slug:'swapp-valid-test',title:'SWAPP article public publié',status:'published',publishedAt:'2026-11-16T08:00:00Z'}]},
  fairness:{enabled:true,sample:'limited-aggregate'}
 };
 test('safe P0 pilot technical preflight requires each critical verified service',()=>{
@@ -16,7 +17,7 @@ test('safe P0 pilot technical preflight requires each critical verified service'
  assert.equal(all.ready_for_pilot,true);
  assert.deepEqual(all.blockers,[]);
  assert.match(all.note,/deux comptes/);
- assert.equal(all.statuses.length,7);
+ assert.equal(all.statuses.length,8);
 });
 test('real production-like Firestore and paused TV + Spotlight are blocked',()=>{
  const r=evaluate({...clean,
@@ -52,6 +53,17 @@ test('unknown and failed status endpoints are never considered green',()=>{
  assert.equal(r.statuses.find(s=>s.key==='accounts').ok,null);
  assert.equal(r.statuses.find(s=>s.key==='spotlight').ok,null);
 });
+test('P0 blocks an empty or fallback-only magazine even when releases are editable',()=>{
+ const empty=evaluate({...clean,news:{articles:[]}});
+ assert.equal(empty.ready_for_pilot,false);
+ assert.ok(empty.blockers.includes('news'));
+ assert.match(empty.statuses.find(s=>s.key==='news').detail,/Aucun article/);
+ const fallback=evaluate({...clean,news:{...clean.news,degraded:true}});
+ assert.equal(fallback.ready_for_pilot,false);
+ assert.match(fallback.statuses.find(s=>s.key==='news').detail,/cache de secours/);
+ const draft=evaluate({...clean,news:{articles:[{slug:'private-draft',title:'Brouillon privé',status:'draft'}]}});
+ assert.equal(draft.ready_for_pilot,false);
+});
 test('P1 editorial or fair flags warn without claiming pilot performance',()=>{
  const r=evaluate({...clean,editorial:{releaseCount:6,editableCount:0},fairness:{enabled:false}});
  assert.equal(r.ready_for_pilot,true);
@@ -73,7 +85,7 @@ test('collector makes only public bounded GET requests with no credentials',asyn
  };
  const report=await collect({origin:'https://swapp.tv',fetchImpl,timeoutMs:2000});
  assert.equal(report.ready_for_pilot,true);
- assert.equal(calls.length,7);
+ assert.equal(calls.length,8);
  assert.ok(calls.every(c=>c.options.method==='GET'));
  assert.ok(calls.every(c=>!c.options.credentials&&!c.options.body));
 });
@@ -83,10 +95,18 @@ test('existing admin operations panel visibly includes all critical gates',()=>{
  assert.match(ui,/name:'SOCIAL'/);
  assert.match(ui,/name:'SWAPP TV'/);
  assert.match(ui,/name:'Spotlight'/);
+ assert.match(ui,/name:'Articles publics'/);
+ assert.match(ui,/news:'actualités publiques'/);
  assert.match(ui,/Lancement P0 bloqué/);
  assert.match(ui,/role','status/);
  assert.match(ui,/SWAPP_SOCIAL_FRESH_START_APPROVED|autorisations d’initialisation temporaire/);
  assert.doesNotMatch(ui,/method:'POST'|localStorage|sessionStorage/);
+});
+test('production smoke checks real editorial API content, not just its JS shell',()=>{
+ const smoke=read('tools/swapp-deploy-smoke.js');
+ assert.match(smoke,/request\(origin,'\/api\/actus'\)/);
+ assert.match(smoke,/PUBLIC EDITORIAL EMPTY/);
+ assert.match(smoke,/PUBLIC EDITORIAL DEGRADED/);
 });
 test('command is manual, with no CI, new cron or user account mutation',()=>{
  const pkg=JSON.parse(read('package.json'));

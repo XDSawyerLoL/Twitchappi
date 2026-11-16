@@ -5,6 +5,13 @@ const {layout}=require('./swapp-news/site-shell');
 const {searchNames}=require('./swapp-news/game-identity');
 const {cardImageSources}=require('../assets/swapp-article-extras');
 const {publicCommunityLinks}=require('./swapp-public-community-links');
+// Derive routes from SERVEUR+ real categories: no fictitious per-game directories.
+const {GAMES:SERVER_GAMES,slug:serverGameSlug}=require('./swapp-servers');
+function serverCategoryFor(game){
+ const normalized=String(game||'').trim().toLocaleLowerCase('fr');
+ const match=SERVER_GAMES.find(item=>item.toLocaleLowerCase('fr')===normalized);
+ return match?'/serveurs/'+encodeURIComponent(serverGameSlug(match)):'/serveurs';
+}
 const ORIGIN='https://swapp.tv';
 const SLUG=/^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/;
 const GAME=/^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -143,19 +150,16 @@ function renderGamePage(group){
   '<link rel="canonical" href="'+url+'"><meta property="og:type" content="website"><meta property="og:url" content="'+url+'"><meta property="og:title" content="'+html(title)+'"><meta property="og:description" content="'+html(description)+'>'+
   (cover?'<meta property="og:image" content="'+html(cover)+'"><meta name="twitter:card" content="summary_large_image">':'<meta name="twitter:card" content="summary">')+structuredData(pageSchema);
  const channels=publicCommunityLinks();
- const xShare='https://x.com/intent/tweet?'+new URLSearchParams({
-  text:group.game+' : découvre les actualités et les créateurs sur SWAPP',
-  url
- }).toString();
- const blueskyShare='https://bsky.app/intent/compose?text='+encodeURIComponent(group.game+' : actualités et créateurs sur SWAPP\n'+url);
  const socialUrl='/social?game='+encodeURIComponent(group.game);
+ const serversUrl=serverCategoryFor(group.game);
+ const serversLabel=serversUrl==='/serveurs'?
+   'Explorer les communautés SERVEUR +':'Trouver des joueurs et serveurs sur '+group.game;
  const discordJoin=channels.discordInvite
    ?'<a href="'+html(channels.discordInvite)+'" target="_blank" rel="noopener noreferrer">Rejoindre le Discord SWAPP ↗</a>':'';
  const communityActions='<section class="game-universe-share" aria-labelledby="game-universe-share-title">'+
-  '<div><span class="universe-kicker">FAIS VIVRE CET UNIVERS</span><h2 id="game-universe-share-title">Retrouve les autres joueurs.</h2><p>Partage ce jeu et prolonge les échanges dans la communauté.</p></div>'+
-  '<div class="actions"><a href="'+html(xShare)+'" target="_blank" rel="noopener noreferrer">Partager ce jeu sur X ↗</a>'+
-  '<a href="'+html(socialUrl)+'">Discuter sur SWAPP SOCIAL ↗</a>'+ 
-  '<a href="'+html(blueskyShare)+'" target="_blank" rel="noopener noreferrer">Partager sur Bluesky ↗</a>'+discordJoin+'</div></section>';
+  '<div><span class="universe-kicker">FAIS VIVRE CET UNIVERS</span><h2 id="game-universe-share-title">Retrouve les autres joueurs.</h2><p>Découvre une communauté, trouve des coéquipiers et discute du jeu sans quitter l’univers SWAPP.</p></div>'+
+  '<div class="actions"><a href="'+html(serversUrl)+'">'+html(serversLabel)+' →</a>'+
+  '<a href="'+html(socialUrl)+'">Discuter sur SWAPP SOCIAL ↗</a>'+discordJoin+'</div></section>';
  const latestFlash=group.articles.find(a=>a?.status==='published'&&/^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/.test(String(a.slug||''))&&String(a.summary||'').trim().length>=40);
  const flashLink=latestFlash?'<a href="/flash/'+encodeURIComponent(latestFlash.slug)+'">Voir le dernier FLASH →</a>':'';
  const premiereInterest='<section class="swp-interest" data-swapp-premiere-interest data-game="'+html(group.game)+'" hidden aria-label="Soutenir une future présentation du jeu">'+
@@ -197,7 +201,7 @@ function renderMyGames(groups=[]){
   return '<article class="mg-card" data-swapp-game-card data-game-slug="'+html(g.slug)+'" data-game-name="'+html(g.game)+'">'+
    '<div class="mg-card-top"><div><span class="mg-eyebrow">'+g.count+' publication'+(g.count>1?'s':'')+' vérifiée'+(g.count>1?'s':'')+'</span><h3>'+html(g.game)+'</h3><p>Actualités, lives, joueurs et boutique</p></div><button type="button" data-swapp-follow-game data-game-slug="'+html(g.slug)+'" data-game-name="'+html(g.game)+'" aria-pressed="false">＋ Suivre ce jeu</button></div>'+
    '<span class="mg-new" data-my-games-news hidden></span><div class="mg-card-latest">'+recent+'</div>'+
-   '<div class="mg-card-links"><button type="button" data-swapp-wishlist-game data-game-slug="'+html(g.slug)+'" data-game-name="'+html(g.game)+'" aria-pressed="false">♡ Ajouter aux envies</button><a href="/jeux/'+encodeURIComponent(g.slug)+'">Dossier et lives →</a><a href="/social?game='+encodeURIComponent(g.game)+'">Salons du jeu</a><a href="/boutique">Voir la boutique</a><button type="button" data-my-games-mark-seen hidden>Marquer comme vues</button></div></article>';
+   '<div class="mg-card-links"><button type="button" data-swapp-wishlist-game data-game-slug="'+html(g.slug)+'" data-game-name="'+html(g.game)+'" aria-pressed="false">♡ Ajouter aux envies</button><a href="/jeux/'+encodeURIComponent(g.slug)+'">Dossier et lives →</a><a href="/social?game='+encodeURIComponent(g.game)+'">Salons du jeu</a><a href="'+html(serverCategoryFor(g.game))+'">Trouver des joueurs et communautés →</a><button type="button" data-my-games-mark-seen hidden>Marquer comme vues</button></div></article>';
  }).join('');
  const body='<main class="swapp-my-games" data-swapp-library-root>'+
   '<p class="breadcrumb"><a href="/">SWAPP</a> / <a href="/jeux">Jeux</a> / Ma sélection</p>'+
@@ -242,4 +246,4 @@ function renderMyGames(groups=[]){
  return layout({title:'Mes jeux',description:'Ta sélection personnelle de jeux, actualités et créateurs sur SWAPP.',content:body,metadata:meta,active:'games'});
 }
 
-module.exports={canonicalGame,gameSlug,gameHubUrl,gameHubs,renderGameIndex,renderGamePage,renderMyGames};
+module.exports={canonicalGame,gameSlug,gameHubUrl,gameHubs,serverCategoryFor,renderGameIndex,renderGamePage,renderMyGames};
