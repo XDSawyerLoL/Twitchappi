@@ -73,8 +73,14 @@ function createEditorialReleaseSync({firestore,articles,releaseArticles=[],clock
               existing.legacySuppressRecovery!==true&&existing.title===a.title&&
               existing.body===baseline.body&&existing.summary===baseline.summary&&
               JSON.stringify(existing.sources||[])===JSON.stringify(baseline.sources)){
-             tx.update(ref,{body:a.body,summary:a.summary,sources:a.sources,
-               revision:2,updatedAt:clock()});
+             const patch={body:a.body,summary:a.summary,sources:a.sources,
+               revision:2,updatedAt:clock()};
+             // A release can also carry its missing, licensed cover. Repair
+             // both in the same transaction, never replacing manual artwork.
+             if(!existing.image?.url&&!existing.thumbnail?.url&&a.image?.url&&a.thumbnail?.url){
+               patch.image=a.image;patch.thumbnail=a.thumbnail;
+             }
+             tx.update(ref,patch);
              return 'editorial_enriched';
            }
            // Repair only never-edited, still-published release imports whose
