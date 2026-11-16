@@ -245,11 +245,36 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
       return original?res.json(recoveredArticle(original)):res.status(404).json({error:'Article introuvable'});
     }catch(e){if(fromVerifiedCache(res,String(req.params.slug)))return;next(e);}
   });
-  // One canonical UI for direct navigation and SPA navigation.
-  router.get('/actus',(req,res,next)=>{
+  // The magazine should be informative in the initial HTML, even before
+  // JavaScript and /api/actus execute. Read *only* published CMS records,
+  // retain the existing SPA, and amortize MySQL reads across page requests.
+  let highlightsCache={expires:0,records:[]},highlightsPending=null;
+  async function editorialHighlights(){
+    if(Date.now()<highlightsCache.expires)return highlightsCache.records;
+    if(highlightsPending)return highlightsPending;
+    highlightsPending=(async()=>{
+      const snap=await articles.where('status','==','published').limit(120).get();
+      const records=snap.docs.map(doc=>({...doc.data(),slug:doc.data()?.slug||doc.id}))
+        .filter(article=>article.status==='published');
+      highlightsCache={expires:Date.now()+5*60*1000,records};
+      return records;
+    })().finally(()=>{highlightsPending=null;});
+    return highlightsPending;
+  }
+  // One canonical UI for direct navigation and SPA navigation. This server
+  // render is the same for human visitors and automated crawlers.
+  router.get('/actus',async(req,res,next)=>{
     res.set('Cache-Control','no-store');
-    if(typeof sendApp==='function')return sendApp(res);
-    return next(new Error('SWAPP app renderer unavailable'));
+    if(typeof sendApp!=='function')return next(new Error('SWAPP app renderer unavailable'));
+    let highlights=[];
+    if(isReady()){
+      try{highlights=await editorialHighlights();}
+      catch(error){
+        highlightsCache={expires:Date.now()+60*1000,records:[]};
+        console.warn('[SWAPP NEWS] Initial editorial listing unavailable:',String(error?.code||error?.message||error).slice(0,120));
+      }
+    }
+    return sendApp(res,{editorialHighlights:highlights});
   });
   // Shows only the connected user's own identity for secure, pinned admin setup.
   // This route never grants any permission and never returns a password or token.
