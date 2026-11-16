@@ -23,35 +23,42 @@
  placement.hidden=true;
  placement.setAttribute('aria-label','Communauté sponsorisée');
  section.after(placement);
- const renderSponsored=()=>{
-  const slot=root.dataset.ssCurrentGame?'server_category':'server_discovery';
-  fetch('/api/swapp/server-ads/slot/'+slot,{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}})
-   .then(res=>res.ok?res.json():null)
-   .then(data=>{
-    const ad=data?.sponsored;
-    if(!ad||ad.sponsored!==true||ad.label!=='Publicité'||typeof ad.serverId!=='string')return;
-    const match=[...root.querySelectorAll('[data-ss-server-id]')].find(node=>node.dataset.ssServerId===ad.serverId);
-    if(!match){placement.hidden=true;return}
-    const link=match.querySelector('a.ss-card-image[href^="/serveurs/"]');
-    if(!link){placement.hidden=true;return}
-    const title=match.querySelector('.ss-cover-caption')?.textContent?.trim()||'Communauté SWAPP';
-    const game=match.querySelector('.ss-card-game')?.textContent?.trim()||'';
-    placement.replaceChildren();
-    const heading=document.createElement('div');
-    heading.className='ss-sponsored-label';
-    heading.textContent='PUBLICITÉ · COMMUNAUTÉ SPONSORISÉE';
-    const destination=document.createElement('a');
-    destination.className='ss-sponsored-destination';
-    destination.href=link.getAttribute('href');
-    const name=document.createElement('strong');name.textContent=title.slice(0,100);
-    const detail=document.createElement('span');detail.textContent=game?game+' · Découvrir le serveur':'Découvrir le serveur';
-    destination.append(name,detail);
-    placement.append(heading,destination);
-    placement.hidden=false;
-   }).catch(()=>{placement.hidden=true});
+ // Fetch once, then match against directory cards as they load asynchronously.
+ // Never issue one network request per MutationObserver event.
+ let campaign=null,finished=false;
+ let observer;
+ const update=()=>{
+  if(!campaign)return;
+  const match=[...results.querySelectorAll('[data-ss-server-id]')].find(node=>node.dataset.ssServerId===campaign.serverId);
+  if(!match){placement.hidden=true;return}
+  const link=match.querySelector('a.ss-card-image[href^="/serveurs/"]');
+  if(!link){placement.hidden=true;return}
+  const href=link.getAttribute('href');
+  if(!/^\/serveurs\/[a-z0-9-]+\/[a-z0-9-]+$/.test(href)){placement.hidden=true;return}
+  const title=match.querySelector('.ss-cover-caption')?.textContent?.trim()||'Communauté SWAPP';
+  const game=match.querySelector('.ss-card-game')?.textContent?.trim()||'';
+  const heading=document.createElement('div');
+  heading.className='ss-sponsored-label';
+  heading.textContent='PUBLICITÉ · COMMUNAUTÉ SPONSORISÉE';
+  const destination=document.createElement('a');
+  destination.className='ss-sponsored-destination';
+  destination.href=href;
+  const name=document.createElement('strong');name.textContent=title.slice(0,100);
+  const detail=document.createElement('span');detail.textContent=game?game+' · Découvrir le serveur':'Découvrir le serveur';
+  destination.append(name,detail);
+  placement.replaceChildren(heading,destination);
+  placement.hidden=false;
  };
- renderSponsored();
- const watcher=new MutationObserver(()=>{if(!placement.hidden||!root.isConnected)return;renderSponsored()});
- watcher.observe(results,{childList:true});
- setTimeout(()=>watcher.disconnect(),15000);
+ observer=new MutationObserver(()=>{if(finished&&root.isConnected)update()});
+ observer.observe(results,{childList:true});
+ const slot=root.dataset.ssCurrentGame?'server_category':'server_discovery';
+ fetch('/api/swapp/server-ads/slot/'+slot,{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}})
+  .then(res=>res.ok?res.json():null)
+  .then(data=>{
+   const ad=data?.sponsored;
+   if(ad?.sponsored===true&&ad.label==='Publicité'&&typeof ad.serverId==='string')campaign=ad;
+   finished=true;update();
+  }).catch(()=>{finished=true;placement.hidden=true});
+ window.addEventListener('pagehide',()=>observer.disconnect(),{once:true});
+
 })();
