@@ -12,6 +12,7 @@
  const players=$('#ss-lfg-list'),lives=$('#ss-community-lives'),form=$('#ss-lfg-form');
  const remove=$('#ss-lfg-remove'),playerStatus=$('#ss-lfg-status');
  const availableCount=$('#ss-lfg-count'),availableLabel=$('#ss-lfg-count-label');
+ const signInHint=$('#ss-lfg-signin');
  const submitButton=form?.querySelector('[type="submit"]');
  const creatorStatus=$('#ss-creator-status'),creatorActions=$('#ss-creator-actions');
  const ownerTwitch=String(root.querySelector('[data-ss-owner-twitch]')?.dataset.ssOwnerTwitch||'');
@@ -46,13 +47,14 @@
   players.replaceChildren();
   players.setAttribute('aria-busy','false');
   const entries=Array.isArray(current.players)?current.players:[];
-  const mine=Boolean(current.mine?.lfg);
+  const mine=Boolean(current.mine?.lfg),anonymous=current.authenticated===false;
   if(remove)remove.hidden=!mine;
+  if(signInHint)signInHint.hidden=!anonymous;
   if(submitButton){
    const title=submitButton.querySelector('.ss-lfg-action-label strong');
    const detail=submitButton.querySelector('.ss-lfg-action-label small');
-   if(title)title.textContent=mine?'Actualiser ma disponibilité':'Me rendre disponible';
-   if(detail)detail.textContent=mine?'Prolonger ma visibilité d’une heure':'Mon annonce sera visible 1 heure';
+   if(title)title.textContent=anonymous?'Se connecter pour publier':mine?'Actualiser ma disponibilité':'Me rendre disponible';
+   if(detail)detail.textContent=anonymous?'Compte SWAPP requis':mine?'Prolonger ma visibilité d’une heure':'Mon annonce sera visible 1 heure';
   }
   if(availableCount)availableCount.textContent=entries.length>=30?'30+':String(entries.length);
   if(availableLabel)availableLabel.textContent=entries.length===0?'Aucun joueur signalé':
@@ -93,7 +95,9 @@
   }
  }
  async function submitPlayer(event){
-  event.preventDefault();const button=form.querySelector('[type="submit"]');button.disabled=true;
+  event.preventDefault();
+  if(current?.authenticated===false){window.location.href='/compte';return}
+  const button=form.querySelector('[type="submit"]');button.disabled=true;
   try{
    await call('/lfg',{message:form.elements.message.value,voice:form.elements.voice.value});
    message(playerStatus,'Tu es visible pendant une heure. Les joueurs peuvent maintenant te retrouver dans cette communauté.');
