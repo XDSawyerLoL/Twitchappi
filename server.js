@@ -5309,6 +5309,26 @@ app.get('/api/swapp/commercial/catalogue',(req,res)=>{
  return res.json(require('./lib/swapp-commercial-catalogue').publicCatalogue());
 });
 
+// SERVEUR+ ad inventory is read-only until signed checkout + moderation exist.
+// No paid campaigns are created by this endpoint, and organic rank is untouched.
+let swappServerAdsStore;
+app.get('/api/swapp/server-ads/slot/:slot',async(req,res)=>{
+ res.setHeader('Cache-Control','no-store');
+ const slot=String(req.params.slot||'');
+ if(!['server_category','server_discovery','site_editorial'].includes(slot))
+  return res.status(400).json({error:'invalid_ad_slot'});
+ if(!process.env.SWAPP_MYSQL_URL&&!process.env.SWAPP_ACCOUNT_MYSQL_URL)
+  return res.json({sponsored:null,available:false});
+ try{
+  if(!swappServerAdsStore)swappServerAdsStore=require('./modules/swapp-server-ads-store').createServerAdsStore();
+  const sponsored=await swappServerAdsStore.pick(slot,{seed:Math.floor(Date.now()/60000)});
+  return res.json({sponsored,available:true});
+ }catch(error){
+  console.warn('[SERVEUR+ ADS]',String(error.code||'inventory_unavailable'));
+  return res.status(503).json({error:'inventory_unavailable'});
+ }
+});
+
 // Public login lookup, private viewer-follow state. No list of another
 // user's follows is ever exposed to an unauthenticated viewer.
 require('./modules/swapp-creator-external-video-routes').installCreatorVideos(app,{restoreSession:restoreOryonSessionFromRememberCookie,readUsers:readOryonUsers,mutationLimiter});
