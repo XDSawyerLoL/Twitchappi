@@ -5,8 +5,11 @@ on:
       - 'server.js'
       - 'lib/swapp-commercial-catalogue.js'
       - 'lib/swapp-server-ads.js'
+      - 'lib/swapp-server-ad-requests.js'
+      - 'test/swapp-server-ad-requests.test.js'
       - 'modules/swapp-server-ads-store.js'
       - 'test/swapp-server-ads-store.test.js'
+      - 'test/swapp-server-ad-requests.test.js'
       - 'test/swapp-server-ads.test.js'
       - 'test/swapp-commercial-catalogue.test.js'
       - 'test/swapp-server-ads.test.js'
@@ -43,6 +46,7 @@ jobs:
           node --check server.js
           node --check lib/swapp-commercial-catalogue.js
           node --check lib/swapp-server-ads.js
+          node --check lib/swapp-server-ad-requests.js
           node --check modules/swapp-server-ads-store.js
           node --check assets/swapp-social-premium-preview.js
           node --check assets/swapp-server-ads-showcase.js
