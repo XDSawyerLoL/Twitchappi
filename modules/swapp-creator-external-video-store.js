@@ -4,7 +4,7 @@
  */
 const {normalizeVideos}=require('../lib/swapp-creator-external-videos');
 const LOGIN=/^[a-z0-9_-]{2,48}$/;
-function createCreatorVideoStore({uri=process.env.SWAPP_MYSQL_URL,mysqlFactory}={}){
+function createCreatorVideoStore({uri=process.env.SWAPP_MYSQL_URL||process.env.SWAPP_ACCOUNT_MYSQL_URL,mysqlFactory}={}){
  if(!uri||!/^mysql:\/\//.test(uri))throw Error('creator_video_mysql_not_configured');
  let pool,initializing;
  async function ready(){
@@ -18,7 +18,7 @@ function createCreatorVideoStore({uri=process.env.SWAPP_MYSQL_URL,mysqlFactory}=
  }
  function login(value){const s=String(value||'').toLowerCase();if(!LOGIN.test(s))throw Error('invalid_creator_login');return s}
  async function list(creator){
-  const p=await ready(),name=login(creator);
+  const name=login(creator),p=await ready();
   const [rows]=await p.execute('SELECT provider,video_id AS id,url,title,position,pinned FROM swapp_creator_external_videos WHERE creator_login=? ORDER BY position ASC LIMIT 5',[name]);
   return rows.map(r=>({...r,pinned:!!r.pinned}));
  }
