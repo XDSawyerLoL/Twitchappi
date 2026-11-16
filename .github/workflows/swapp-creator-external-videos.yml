@@ -5,6 +5,8 @@ on:
       - 'server.js'
       - 'lib/swapp-commercial-catalogue.js'
       - 'lib/swapp-server-ads.js'
+      - 'modules/swapp-server-ads-store.js'
+      - 'test/swapp-server-ads-store.test.js'
       - 'test/swapp-server-ads.test.js'
       - 'test/swapp-commercial-catalogue.test.js'
       - 'test/swapp-server-ads.test.js'
@@ -38,6 +40,7 @@ jobs:
           node --check server.js
           node --check lib/swapp-commercial-catalogue.js
           node --check lib/swapp-server-ads.js
+          node --check modules/swapp-server-ads-store.js
           node --check assets/swapp-social-premium-preview.js
       - name: Provider and security unit tests
         run: node --test test/swapp-creator-external-videos.test.js test/swapp-creator-external-video-routes.test.js test/swapp-creator-external-video-store.test.js test/swapp-commercial-catalogue.test.js
