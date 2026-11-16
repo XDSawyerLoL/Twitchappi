@@ -6,3 +6,4 @@ Disallow: /boutique/admin
 Sitemap: https://swapp.tv/sitemap.xml
 Sitemap: https://swapp.tv/news-sitemap.xml
 Sitemap: https://swapp.tv/creators-sitemap.xml
+Sitemap: https://swapp.tv/sitemap-serveurs.xml
