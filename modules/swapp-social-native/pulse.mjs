@@ -91,15 +91,35 @@ async function mutateStore(fn){
 }
 function mapSet(map,key){if(!map[key])map[key]=[];return map[key]}
 function blocked(store,a,b){return!!((store.blocks[a]||[]).includes(b)||(store.blocks[b]||[]).includes(a))}
+// Cache display-only aggregates for the lifetime of one parsed snapshot.
+// A fresh readStore/mutateStore yields a fresh store object; WeakMap prevents
+// cross-request retention of users, private messages and post data.
+const VIEW_METRICS=new WeakMap();
+function viewMetrics(store){
+ let cached=VIEW_METRICS.get(store);
+ if(cached)return cached;
+ const followers=new Map(),replies=new Map();
+ for(const arr of Object.values(store.follows||{})){
+  // One follower per account (not one for each accidental duplicate entry).
+  for(const targetId of new Set(Array.isArray(arr)?arr:[]))
+   followers.set(targetId,(followers.get(targetId)||0)+1);
+ }
+ for(const post of Object.values(store.posts||{})){
+  if(post&&!post.deletedAt&&post.replyToId)
+   replies.set(post.replyToId,(replies.get(post.replyToId)||0)+1);
+ }
+ cached={followers,replies};VIEW_METRICS.set(store,cached);return cached;
+}
+
 function publicUser(user,store,viewerId=''){
-  const followers=Object.values(store.follows||{}).filter(arr=>arr.includes(user.id)).length;
+  const followers=viewMetrics(store).followers.get(user.id)||0;
   return{id:user.id,handle:user.handle,displayName:user.displayName,bio:user.bio||'',avatar:user.avatar||'',verified:!!user.verified,createdAt:user.createdAt,followers,following:(store.follows[user.id]||[]).length,isFollowing:viewerId?(store.follows[viewerId]||[]).includes(user.id):false}
 }
 function visibleTo(store,post,viewerId=''){if(!post||post.deletedAt)return false;if(post.circleId)return!!viewerId&&!!(store.circleMembers[post.circleId]||{})[viewerId];return!viewerId||!blocked(store,viewerId,post.authorId)}
 function postView(post,store,viewerId=''){
   const author=store.users[post.authorId];if(!author)return null;
   const likes=store.likes[post.id]||[],reposts=store.reposts[post.id]||[],bookmarks=store.bookmarks[viewerId]||[];
-  const replies=Object.values(store.posts).filter(p=>!p.deletedAt&&p.replyToId===post.id).length;
+  const replies=viewMetrics(store).replies.get(post.id)||0;
   const q=post.quotePostId&&store.posts[post.quotePostId];
   return{id:post.id,author:publicUser(author,store,viewerId),body:post.body,createdAt:post.createdAt,replyToId:post.replyToId||null,quotePostId:post.quotePostId||null,circleId:post.circleId||null,linkUrl:post.linkUrl||'',linkTitle:post.linkTitle||'',imageUrl:post.imageUrl||'',mediaUrl:post.mediaUrl||'',mediaType:post.mediaType||'',quote:q&&visibleTo(store,q,viewerId)&&store.users[q.authorId]?{id:q.id,body:q.body,createdAt:q.createdAt,author:publicUser(store.users[q.authorId],store,viewerId),linkUrl:q.linkUrl||'',linkTitle:q.linkTitle||'',imageUrl:q.imageUrl||'',mediaUrl:q.mediaUrl||''}:null,counts:{likes:likes.length,reposts:reposts.length,replies},viewer:{liked:likes.includes(viewerId),reposted:reposts.includes(viewerId),bookmarked:bookmarks.includes(post.id),canDelete:Boolean(viewerId&&post.authorId===viewerId)}}
 }
