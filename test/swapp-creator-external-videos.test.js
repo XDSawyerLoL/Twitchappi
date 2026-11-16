@@ -18,3 +18,21 @@ test('caps list and blocks duplicates',()=>{
  assert.throws(()=>normalizeVideos(Array(6).fill({url:yt})),/Maximum/);
  assert.throws(()=>normalizeVideos([{url:yt},{url:'https://youtube.com/watch?v=dQw4w9WgXcQ'}]),/déjà/);
 });
+
+test('rejects broken canonical links and null entries safely',()=>{
+ for(const url of [
+  'https://youtu.be/dQw4w9WgXcQ/extra',
+  'https://www.youtube.com/shorts/dQw4w9WgXcQ/extra',
+  'https://www.youtube.com/live/dQw4w9WgXcQ/extra',
+  'https://youtu.be/dQw4w9WgXcQ#fragment',
+  'https://odysee.com/@channel:abc123/video:def456#fragment'
+ ])assert.equal(parseVideoUrl(url),null,url);
+ assert.throws(()=>normalizeVideos([null]),/Lien vidéo/);
+ assert.throws(()=>normalizeVideos([{}]),/Lien vidéo/);
+});
+test('canonicalizes Shorts and live links to same YouTube video',()=>{
+ const shorts=parseVideoUrl('https://www.youtube.com/shorts/dQw4w9WgXcQ');
+ const live=parseVideoUrl('https://www.youtube.com/live/dQw4w9WgXcQ');
+ assert.equal(shorts.id,live.id);
+ assert.throws(()=>normalizeVideos([{url:'https://youtu.be/dQw4w9WgXcQ'},{url:'https://www.youtube.com/shorts/dQw4w9WgXcQ'}]),/déjà/);
+});
