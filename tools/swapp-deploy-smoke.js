@@ -468,7 +468,7 @@ async function verify(){
   !accountScript.body.includes('function viewerProfilePanel(){'),
   'Account renderer is stale or still includes shadowed legacy layout');
  const accountCss=await request(origin,'/assets/swapp-creator-workspace.css');
- check(home.body.includes('/assets/swapp-creator-workspace.css?v=20261113-account-discord-v2')&&
+ check(home.body.includes('/assets/swapp-creator-workspace.css?v=20261116-obsidian-studio-v3')&&
    accountCss.body.includes('.swapp-account-workspace')&&
    accountCss.body.includes('.swapp-dash-columns')&&
    accountCss.body.includes('.swapp-acct-discord-integration')&&
@@ -562,7 +562,7 @@ async function verify(){
  const discover=await request(origin,'/decouvrir');
  check(discover.body.includes('swapp-discover-comfort.js?v=20261019-fair-discovery-v27'),
   'Discover has an old mobile UI release');
- check(discover.body.includes('index_script.js?v=20261024-black-screen-v4'),
+ check(discover.body.includes('index_script.js?v=20261113-catalogue-heading-v1'),
   'Discover still references an old V4 player script');
  const comfort=await request(origin,'/assets/swapp-discover-comfort.js');
  check(comfort.body.includes('swapp-discover-no-image')&&comfort.body.includes('v4SwipeCard')&&

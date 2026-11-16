@@ -102,7 +102,7 @@ test('planning fields have labels and never collapse into clipped one-line input
 test('new account code and styling are cache-busted and included in deploy checks',()=>{
  const html=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
  const smoke=fs.readFileSync(path.join(__dirname,'..','tools/swapp-deploy-smoke.js'),'utf8');
- for(const source of ['index_script.js?v=20261024-black-screen-v4','swapp-creator-workspace.css?v=20261116-obsidian-studio-v3']){
+ for(const source of ['index_script.js?v=20261113-catalogue-heading-v1','swapp-creator-workspace.css?v=20261116-obsidian-studio-v3']){
   assert.ok(html.includes(source),source);
   assert.ok(smoke.includes(source),source);
  }
