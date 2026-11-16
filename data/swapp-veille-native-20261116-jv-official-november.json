@@ -25,8 +25,14 @@
       "contentType": "article",
       "status": "published",
       "revision": 1,
-      "image": "https://xboxwire.thesourcemediaassets.com/sites/2/2026/11/111226_XBOX-Wire_PCBackCompat-JPG-6d6dbed266e723ed4c62.jpg",
-      "thumbnail": "https://xboxwire.thesourcemediaassets.com/sites/2/2026/11/111226_XBOX-Wire_PCBackCompat-JPG-6d6dbed266e723ed4c62.jpg",
+      "image": {
+        "url": "https://xboxwire.thesourcemediaassets.com/sites/2/2026/11/111226_XBOX-Wire_PCBackCompat-JPG-6d6dbed266e723ed4c62.jpg",
+        "alt": "Visuel officiel — Xbox : 25 jeux de la console originale désormais accessibles sur PC"
+      },
+      "thumbnail": {
+        "url": "https://xboxwire.thesourcemediaassets.com/sites/2/2026/11/111226_XBOX-Wire_PCBackCompat-JPG-6d6dbed266e723ed4c62.jpg",
+        "alt": "Visuel officiel — Xbox : 25 jeux de la console originale désormais accessibles sur PC"
+      },
       "publishedAt": "2026-11-16T10:00:00.000Z",
       "trailerUrl": null,
       "commercialLinks": [],
@@ -59,8 +65,14 @@
       "contentType": "article",
       "status": "published",
       "revision": 1,
-      "image": "https://blog.playstation.com/tachyon/2026/11/84a6eb5f0831acb87ad7b548df366dcf10547aaf-scaled.jpg",
-      "thumbnail": "https://blog.playstation.com/tachyon/2026/11/84a6eb5f0831acb87ad7b548df366dcf10547aaf-scaled.jpg",
+      "image": {
+        "url": "https://blog.playstation.com/tachyon/2026/11/84a6eb5f0831acb87ad7b548df366dcf10547aaf-scaled.jpg",
+        "alt": "Visuel officiel — PS5 : la technologie QSSR améliore Spider-Man 2 et arrive sur d'autres jeux"
+      },
+      "thumbnail": {
+        "url": "https://blog.playstation.com/tachyon/2026/11/84a6eb5f0831acb87ad7b548df366dcf10547aaf-scaled.jpg",
+        "alt": "Visuel officiel — PS5 : la technologie QSSR améliore Spider-Man 2 et arrive sur d'autres jeux"
+      },
       "publishedAt": "2026-11-16T10:00:00.000Z",
       "trailerUrl": null,
       "commercialLinks": [],
@@ -92,8 +104,14 @@
       "contentType": "article",
       "status": "published",
       "revision": 1,
-      "image": "https://blog.playstation.com/tachyon/2026/11/6ae8af767f59801bb5a0ceabf7fe915f00eed004.jpg",
-      "thumbnail": "https://blog.playstation.com/tachyon/2026/11/6ae8af767f59801bb5a0ceabf7fe915f00eed004.jpg",
+      "image": {
+        "url": "https://blog.playstation.com/tachyon/2026/11/6ae8af767f59801bb5a0ceabf7fe915f00eed004.jpg",
+        "alt": "Visuel officiel — PlayStation Plus : Death Stranding 2, Atomfall et Dragon Quest III arrivent en novembre"
+      },
+      "thumbnail": {
+        "url": "https://blog.playstation.com/tachyon/2026/11/6ae8af767f59801bb5a0ceabf7fe915f00eed004.jpg",
+        "alt": "Visuel officiel — PlayStation Plus : Death Stranding 2, Atomfall et Dragon Quest III arrivent en novembre"
+      },
       "publishedAt": "2026-11-16T10:00:00.000Z",
       "trailerUrl": null,
       "commercialLinks": [],
