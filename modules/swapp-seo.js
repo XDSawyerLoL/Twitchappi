@@ -501,6 +501,9 @@ function injectSpaMetadata(html,pathname='/'){
  if(!info&&!hidden)return raw;
  let result=raw.replace(/<link\s+rel=["']canonical["'][^>]*>\s*/gi,'');
  if(info){
+  // The SPA shell already contains a generic description: replace it rather
+  // than returning two conflicting meta descriptions on indexable routes.
+  result=result.replace(/<meta\s+name=["']description["'][^>]*>\s*/gi,'');
   const tags='<meta name="description" content="'+encodeXml(info.description)+'">'+
    '<link rel="canonical" href="'+ORIGIN+path+'">'+
    '<meta property="og:type" content="website">'+
