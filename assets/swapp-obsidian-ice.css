@@ -458,3 +458,52 @@ html.swapp-editorial-theme body.swapp-editorial-route .article-wrap {
  background:#030405!important;
  background-image:none!important;
 }
+
+/* SWAPP 2026-11-16 / ONE OBSIDIAN CANVAS
+   Only structural backgrounds: never filters, masks, opacity or recolouring
+   on <img>, poster, iframe, video or live-state indicators. */
+:root{
+ --swapp-canvas:#030405;--swapp-canvas-surface:#101215;
+ --swapp-canvas-raised:#171a1e;--swapp-canvas-line:rgba(224,237,248,.13);
+ --swapp-canvas-copy:#f4f7fa;--swapp-canvas-muted:#abb7c2;
+}
+html body.swapp-servers-page,
+html body.swapp-servers-page .ss,
+html body.swapp-editorial-route,
+html body :is(#home.view.active,#actus.view.active,#discover.view.active,#channel.view.active,#settings.view.active,#manager.view.active,#studio.view.active){
+ background-color:var(--swapp-canvas)!important;color:var(--swapp-canvas-copy);
+}
+html body.swapp-editorial-route .game-portal{
+ background-color:transparent!important;color:var(--swapp-canvas-copy);
+}
+html body.swapp-editorial-route .game-portal :is(.hero,.card,.game-index-card){
+ background-color:var(--swapp-canvas-surface)!important;
+ border-color:var(--swapp-canvas-line)!important;
+}
+html body.swapp-editorial-route :is(.story-card,.hero-main,.hero-side,.sources-panel){
+ background-color:var(--swapp-canvas-surface)!important;
+ border-color:var(--swapp-canvas-line)!important;
+}
+/* SERVEUR+ gets the same depth and editorial strokes as Actus and Creator. */
+html body.swapp-servers-page .ss :is(.ss-toolbar,.ss-card,.ss-server-card,.ss-details-card){
+ background-color:var(--swapp-canvas-surface)!important;
+ border-color:var(--swapp-canvas-line)!important;
+}
+html body.swapp-servers-page .ss :is(.ss-card,.ss-server-card):hover{
+ border-color:rgba(229,239,248,.25)!important;
+}
+html body.swapp-servers-page .ss :is(.ss-description,.ss-title>span,.ss-toolbar label){
+ color:var(--swapp-canvas-muted);
+}
+html body.swapp-servers-page .ss a:focus-visible,
+html body.swapp-editorial-route .game-portal a:focus-visible{
+ outline:2px solid #c2dfed;outline-offset:3px;
+}
+/* Do not blur real game art: blur belongs in decorative lighting only. */
+html body.swapp-servers-page .ss :is(.ss-card-image,.ss-server-cover) img,
+html body.swapp-editorial-route :is(.game-portal,.story-card) img{
+ filter:none!important;backdrop-filter:none!important;
+}
+@media(prefers-reduced-motion:reduce){
+ html body.swapp-servers-page .ss :is(.ss-card,.ss-server-card){transition:none!important}
+}

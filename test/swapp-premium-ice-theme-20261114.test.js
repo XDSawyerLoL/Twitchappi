@@ -5,7 +5,7 @@ const fs=require('node:fs'),path=require('node:path');
 const read=p=>fs.readFileSync(path.join(__dirname,'..',p),'utf8');
 const {renderIntoSpa}=require('../modules/swapp-catalogue-spa');
 const {renderPage,SHARED_HEAD_SLOT}=require('../modules/swapp-page-shell');
-const THEME='swapp-obsidian-ice.css?v=20261115-unified-black-v22';
+const THEME='swapp-obsidian-ice.css?v=20261116-unified-black-v23';
 test('one premium theme is loaded for SPA and native routes, last in the head',()=>{
  const spa=renderIntoSpa(read('index.html'));
  const native=renderPage({head:'<meta charset="utf-8">'+SHARED_HEAD_SLOT,content:'<main>ACTUS</main>'});

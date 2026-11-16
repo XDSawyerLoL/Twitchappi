@@ -39,7 +39,7 @@ test('poster and genre artwork remain unfiltered even while hovered',()=>{
 test('native and SPA serve a new fingerprint for all three corrected CSS resources',()=>{
  const index=read('index.html');
  const htmls=[renderIntoSpa(index),page({publicHome:true}),renderPage({head:SHARED_HEAD_SLOT,content:'<main>ACTUS</main>'})];
- const theme='swapp-obsidian-ice.css?v=20261115-unified-black-v22';
+ const theme='swapp-obsidian-ice.css?v=20261116-unified-black-v23';
  const lab='swapp-catalogue-lab.css?v=20261115-magazine-first-v29';
  const genres='swapp-genre-discovery.css?v=20261115-hidpi-genre-v8';
  for(const html of htmls){

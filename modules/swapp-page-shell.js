@@ -9,7 +9,7 @@
  */
 const {serverHeader,serverMobile,desktopNavigation,mobileNavigation}=require('../assets/swapp-navigation');
 const SHARED_HEAD_SLOT='<!-- swapp:shared-shell-styles -->';
-const PREMIUM_CSS='<link rel="stylesheet" href="/assets/swapp-obsidian-ice.css?v=20261115-unified-black-v22">';
+const PREMIUM_CSS='<link rel="stylesheet" href="/assets/swapp-obsidian-ice.css?v=20261116-unified-black-v23">';
 const SHARED_CSS=Object.freeze([
  '/assets/swapp-unified-nav.css?v=20261113-nav-simple-v2',
  '/assets/swapp-route-motion.css?v=20261114-film-cut-v19',
