@@ -16,6 +16,7 @@ const RELEASE_FILES=Object.freeze([
  'modules/swapp-shop-catalog.js',
  'modules/swapp-shop-router.js',
  'data/swapp-shop.json',
+ 'data/swapp-editorial-releases.json',
  'assets/swapp-shop.css',
  'assets/swapp-storefront.js',
  'assets/swapp-shop-admin.css',
@@ -228,10 +229,31 @@ const RELEASE_FILES=Object.freeze([
  'ads.txt',
  'robots.txt'
 ]);
+// Include real editorial release content in the deploy parity hash.
+// This prevents a deploy from appearing current while its news JSON is stale.
+// The allowlisted manifest entries are included even when absent on disk:
+// a missing published release therefore makes the package incomplete.
+const NATIVE_EDITORIAL_JSON=/^swapp-veille-native-[a-z0-9-]+\.json$/;
+function editorialReleaseFiles(base){
+ const dataDir=path.resolve(base,'data');
+ const names=new Set();
+ try{
+  for(const entry of fs.readdirSync(dataDir,{withFileTypes:true}))
+   if(entry.isFile()&&NATIVE_EDITORIAL_JSON.test(entry.name))names.add(entry.name);
+ }catch(_){}
+ try{
+  const manifest=JSON.parse(fs.readFileSync(path.join(dataDir,'swapp-editorial-releases.json'),'utf8'));
+  if(Array.isArray(manifest.releases))
+   for(const name of manifest.releases)
+    if(typeof name==='string'&&NATIVE_EDITORIAL_JSON.test(name))names.add(name);
+ }catch(_){}
+ return [...names].sort().map(name=>'data/'+name);
+}
 function releaseInfo(base=path.resolve(__dirname,'..'),env=process.env){
  const hash=crypto.createHash('sha256');
  const missing=[];
- for(const name of RELEASE_FILES){
+ const tracked=[...new Set([...RELEASE_FILES,...editorialReleaseFiles(base)])];
+ for(const name of tracked){
   const full=path.resolve(base,name);
   try{
    const stat=fs.statSync(full);
@@ -248,11 +270,11 @@ function releaseInfo(base=path.resolve(__dirname,'..'),env=process.env){
   fingerprint:missing.length===0?hash.digest('hex'):null,
   revision:/^[a-f0-9]{7,40}$/i.test(revision)?revision.toLowerCase():null,
   complete:missing.length===0,
-  trackedFiles:RELEASE_FILES.length,
+  trackedFiles:tracked.length,
   missing
  };
 }
-module.exports={RELEASE_FILES,releaseInfo};
+module.exports={RELEASE_FILES,editorialReleaseFiles,releaseInfo};
 if(require.main===module){
  const info=releaseInfo();
  process.stdout.write(JSON.stringify(info,null,2)+'\n');
