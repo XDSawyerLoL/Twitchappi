@@ -209,3 +209,20 @@ test('only newsroom may publish a justified SWAPP game verdict; readers have no 
  assert.throws(()=>assertArticle({...input,editorialVerdict:{score:5,text:'Bon jeu'}},{publish:true}),/justification rédactionnelle/);
  assert.throws(()=>assertArticle({...input,editorialVerdict:{text:details}},{publish:true}),/sélectionne une note/);
 });
+
+test('SWAPP editorial author has a real URL without inventing contributor profile links',()=>{
+ const publishedAt='2026-11-16T13:00:00.000Z';
+ const schemaFor=byline=>{
+  const item=assertArticle({...input,contentType:'article',trailerUrl:null,author:byline},{publish:true});
+  const markup=renderNewsStory({...item,status:'published',publishedAt});
+  const tag='<script type="application/ld+json">';
+  const start=markup.indexOf(tag);
+  assert.ok(start>=0);
+  return JSON.parse(markup.slice(start+tag.length).split('</script>')[0]);
+ };
+ const newsroom=schemaFor('Rédaction SWAPP');
+ assert.deepEqual(newsroom.author,{'@type':'Organization',name:'Rédaction SWAPP',url:'https://swapp.tv/a-propos'});
+ const contributor=schemaFor('Sansahd');
+ assert.deepEqual(contributor.author,{'@type':'Person',name:'Sansahd'});
+ assert.equal(contributor.author.url,undefined);
+});
