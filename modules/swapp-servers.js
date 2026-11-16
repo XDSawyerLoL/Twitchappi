@@ -962,6 +962,10 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
   try{const sql=await getDatabase(),[rows]=await sql.execute('SELECT name,game,slug,status,created_at AS createdAt FROM swapp_game_servers WHERE owner_id IN (?,?) ORDER BY created_at DESC LIMIT 30',ownerKeys(req));
    return res.set('Cache-Control','no-store').json({servers:rows})}catch(e){return fail(res,e)}
  });
+ // Cheap session capability probe: public, no DB query, no private statistics.
+ // The browser must call the protected count only when it is authorized.
+ app.get('/api/swapp/serveurs/moderation/access',(req,res)=>
+  res.set('Cache-Control','private,no-store').json({canModerate:isManager(req)}));
  app.get('/api/swapp/serveurs/moderation/count',async(req,res)=>{
   if(!isManager(req))return res.status(403).json({error:'acces_refuse'});
   try{
