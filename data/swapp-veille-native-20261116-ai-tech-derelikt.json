@@ -26,8 +26,14 @@
       "contentType": "article",
       "status": "published",
       "revision": 1,
-      "image": "https://blog.playstation.com/tachyon/2048/11/646bca9666d03e4befc0e440f34d1e961ac329e0.jpg",
-      "thumbnail": "https://blog.playstation.com/tachyon/2048/11/646bca9666d03e4befc0e440f34d1e961ac329e0.jpg",
+      "image": {
+        "url": "https://blog.playstation.com/tachyon/2048/11/646bca9666d03e4befc0e440f34d1e961ac329e0.jpg",
+        "alt": "Visuel officiel — Derelikt : l'horreur spatiale façon PlayStation 1 arrive sur PS5"
+      },
+      "thumbnail": {
+        "url": "https://blog.playstation.com/tachyon/2048/11/646bca9666d03e4befc0e440f34d1e961ac329e0.jpg",
+        "alt": "Visuel officiel — Derelikt : l'horreur spatiale façon PlayStation 1 arrive sur PS5"
+      },
       "publishedAt": "2026-11-16T10:15:00.000Z",
       "trailerUrl": null,
       "commercialLinks": [],
@@ -58,8 +64,14 @@
       "contentType": "article",
       "status": "published",
       "revision": 1,
-      "image": "https://storage.googleapis.com/gweb-uniblog-publish-prod/images/gemini_4_carbon_key_art_16-9_lockup.width-1300.jpg",
-      "thumbnail": "https://storage.googleapis.com/gweb-uniblog-publish-prod/images/gemini_4_carbon_key_art_16-9_lockup.width-1300.jpg",
+      "image": {
+        "url": "https://storage.googleapis.com/gweb-uniblog-publish-prod/images/gemini_4_carbon_key_art_16-9_lockup.width-1300.jpg",
+        "alt": "Visuel officiel — Gemini 4 Carbon : Google veut confier des missions complexes à ses agents IA"
+      },
+      "thumbnail": {
+        "url": "https://storage.googleapis.com/gweb-uniblog-publish-prod/images/gemini_4_carbon_key_art_16-9_lockup.width-1300.jpg",
+        "alt": "Visuel officiel — Gemini 4 Carbon : Google veut confier des missions complexes à ses agents IA"
+      },
       "publishedAt": "2026-11-16T10:15:00.000Z",
       "trailerUrl": null,
       "commercialLinks": [],
@@ -91,8 +103,14 @@
       "contentType": "article",
       "status": "published",
       "revision": 1,
-      "image": "https://images.ctfassets.net/kftzwdyauwt9/73cvZmLsj7WIXQAgMDX8kz/4996c7a084b81e21a8f1357fe395c30b/gpt-6-cyber-social.png?w=1600&h=900&fit=fill",
-      "thumbnail": "https://images.ctfassets.net/kftzwdyauwt9/73cvZmLsj7WIXQAgMDX8kz/4996c7a084b81e21a8f1357fe395c30b/gpt-6-cyber-social.png?w=1600&h=900&fit=fill",
+      "image": {
+        "url": "https://images.ctfassets.net/kftzwdyauwt9/73cvZmLsj7WIXQAgMDX8kz/4996c7a084b81e21a8f1357fe395c30b/gpt-6-cyber-social.png?w=1600&h=900&fit=fill",
+        "alt": "Visuel officiel — GPT-6 Cyber : OpenAI automatise la recherche de failles dans Firefox et Linux"
+      },
+      "thumbnail": {
+        "url": "https://images.ctfassets.net/kftzwdyauwt9/73cvZmLsj7WIXQAgMDX8kz/4996c7a084b81e21a8f1357fe395c30b/gpt-6-cyber-social.png?w=1600&h=900&fit=fill",
+        "alt": "Visuel officiel — GPT-6 Cyber : OpenAI automatise la recherche de failles dans Firefox et Linux"
+      },
       "publishedAt": "2026-11-16T10:15:00.000Z",
       "trailerUrl": null,
       "commercialLinks": [],
@@ -124,8 +142,14 @@
       "contentType": "article",
       "status": "published",
       "revision": 1,
-      "image": "https://storage.googleapis.com/gweb-uniblog-publish-prod/images/HydrogenUI_socialshare.width-1300.png",
-      "thumbnail": "https://storage.googleapis.com/gweb-uniblog-publish-prod/images/HydrogenUI_socialshare.width-1300.png",
+      "image": {
+        "url": "https://storage.googleapis.com/gweb-uniblog-publish-prod/images/HydrogenUI_socialshare.width-1300.png",
+        "alt": "Visuel officiel — Google Search intègre Gemini 4 Hydrogen : ce qui change pour les recherches"
+      },
+      "thumbnail": {
+        "url": "https://storage.googleapis.com/gweb-uniblog-publish-prod/images/HydrogenUI_socialshare.width-1300.png",
+        "alt": "Visuel officiel — Google Search intègre Gemini 4 Hydrogen : ce qui change pour les recherches"
+      },
       "publishedAt": "2026-11-16T10:15:00.000Z",
       "trailerUrl": null,
       "commercialLinks": [],
@@ -157,8 +181,14 @@
       "contentType": "article",
       "status": "published",
       "revision": 1,
-      "image": "https://images.ctfassets.net/kftzwdyauwt9/2xTvIZkcQhKk3VNFioQ4CR/4efb84a6adbddb41311f6b18158fad8b/introducing-chatgpt-wallet-social.png?w=1600&h=900&fit=fill",
-      "thumbnail": "https://images.ctfassets.net/kftzwdyauwt9/2xTvIZkcQhKk3VNFioQ4CR/4efb84a6adbddb41311f6b18158fad8b/introducing-chatgpt-wallet-social.png?w=1600&h=900&fit=fill",
+      "image": {
+        "url": "https://images.ctfassets.net/kftzwdyauwt9/2xTvIZkcQhKk3VNFioQ4CR/4efb84a6adbddb41311f6b18158fad8b/introducing-chatgpt-wallet-social.png?w=1600&h=900&fit=fill",
+        "alt": "Visuel officiel — ChatGPT Wallet : OpenAI lance les paiements autorisés pour les agents IA"
+      },
+      "thumbnail": {
+        "url": "https://images.ctfassets.net/kftzwdyauwt9/2xTvIZkcQhKk3VNFioQ4CR/4efb84a6adbddb41311f6b18158fad8b/introducing-chatgpt-wallet-social.png?w=1600&h=900&fit=fill",
+        "alt": "Visuel officiel — ChatGPT Wallet : OpenAI lance les paiements autorisés pour les agents IA"
+      },
       "publishedAt": "2026-11-16T10:15:00.000Z",
       "trailerUrl": null,
       "commercialLinks": [],
