@@ -115,11 +115,11 @@ function scan(){
   if(!root.classList.contains('active'))return;
   for(const page of root.querySelectorAll('.creatorRefine')){
    const creator=login(page);
-   if(!creator||page.dataset.externalVideosCreator===creator)continue;
+   if(!creator||page.dataset.channelPolished!=='1'||page.dataset.externalVideosCreator===creator)continue;
    page.dataset.externalVideosCreator=creator;void load(page);
   }
  });
 }
-new MutationObserver(scan).observe(root,{childList:true,subtree:true});
+new MutationObserver(scan).observe(root,{childList:true,subtree:true,attributes:true,attributeFilter:['data-channel-polished','class']});
 scan();
 })();
