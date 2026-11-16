@@ -499,11 +499,6 @@ html body.swapp-servers-page .ss a:focus-visible,
 html body.swapp-editorial-route .game-portal a:focus-visible{
  outline:2px solid #c2dfed;outline-offset:3px;
 }
-/* Do not blur real game art: blur belongs in decorative lighting only. */
-html body.swapp-servers-page .ss :is(.ss-card-image,.ss-server-cover) img,
-html body.swapp-editorial-route :is(.game-portal,.story-card) img{
- filter:none!important;backdrop-filter:none!important;
-}
 @media(prefers-reduced-motion:reduce){
  html body.swapp-servers-page .ss :is(.ss-card,.ss-server-card){transition:none!important}
 }

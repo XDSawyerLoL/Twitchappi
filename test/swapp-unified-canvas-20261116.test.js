@@ -15,6 +15,6 @@ test('home, game universe, editorial, creator and SERVEUR+ use neutral black str
  assert.match(css,/--swapp-canvas:#030405/);
  assert.match(css,/--swapp-canvas-surface:#101215/);
  assert.match(css,/--swapp-canvas-line:rgba\(224,237,248,\.13\)/);
- assert.match(css,/img\{\n filter:none!important;backdrop-filter:none!important/);
+ assert.doesNotMatch(css,/img\s*\{[^}]*filter:|video\s*\{[^}]*filter:/i);
  assert.doesNotMatch(css,/img\{\s*opacity:0/);
 });
