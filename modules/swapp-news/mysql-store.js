@@ -7,7 +7,7 @@
  */
 const COLLECTIONS = new Set([
  'swapp_news_articles', 'swapp_news_outbox', 'swapp_news_import_keys',
- 'swapp_news_discord_outbox', 'swapp_article_scores', 'swapp_article_votes'
+ 'swapp_news_discord_outbox', 'swapp_news_social_outbox', 'swapp_article_scores', 'swapp_article_votes'
 ]);
 const DDL = `CREATE TABLE IF NOT EXISTS swapp_news_documents (
   collection_name VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
