@@ -310,7 +310,7 @@ app.use(helmet({
       styleSrc: ["'self'", "'unsafe-inline'", "https:"],
       scriptSrc: ["'self'", "'unsafe-inline'", "https:"],
       connectSrc: ["'self'", "https:", "wss:", "ws:"],
-      frameSrc: ["'self'", "https://player.twitch.tv", "https://www.twitch.tv", "https://embed.twitch.tv", "https://www.youtube.com", "https://www.youtube-nocookie.com", "https://www.youtube.com/embed", "https://www.youtube-nocookie.com/embed", "https://justplayer.fr", "https://www.justplayer.fr", "https://googleads.g.doubleclick.net", "https://tpc.googlesyndication.com"],
+      frameSrc: ["'self'", "https://player.twitch.tv", "https://www.twitch.tv", "https://embed.twitch.tv", "https://www.youtube.com", "https://www.youtube-nocookie.com", "https://www.youtube.com/embed", "https://www.youtube-nocookie.com/embed", "https://odysee.com", "https://www.odysee.com", "https://justplayer.fr", "https://www.justplayer.fr", "https://googleads.g.doubleclick.net", "https://tpc.googlesyndication.com"],
     }
   } : false
 }));
