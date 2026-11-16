@@ -35,12 +35,28 @@ async function saveCandidates(pool,candidates){
  }
  return saved;
 }
-async function withWatchLock(pool,work){
+// A MySQL advisory lock only prevents simultaneous runs. Hostinger may start
+// multiple Node workers a few seconds apart, so persist the next eligibility
+// decision as well. This avoids duplicate feed requests across processes.
+const SCHEDULE_DDL=`CREATE TABLE IF NOT EXISTS swapp_tech_watch_schedule (
+ name VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL PRIMARY KEY,
+ last_started_ms BIGINT UNSIGNED NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`;
+async function withWatchLock(pool,work,{intervalMs=0,nowMs=()=>Date.now()}={}){
  const conn=await pool.getConnection();
  try{
   const [rows]=await conn.query('SELECT GET_LOCK(?,0) AS acquired',['swapp_tech_watch_collect_v1']);
   if(rows?.[0]?.acquired!==1)return {skipped:'another_instance_running'};
-  try{return await work();}finally{await conn.query('SELECT RELEASE_LOCK(?)',['swapp_tech_watch_collect_v1']);}
+  try{
+   if(intervalMs>0){
+    await conn.query(SCHEDULE_DDL);
+    const [previous]=await conn.execute('SELECT last_started_ms FROM swapp_tech_watch_schedule WHERE name=?',['collection']);
+    const now=nowMs(),last=Number(previous?.[0]?.last_started_ms||0);
+    if(last>0&&now>=last&&now-last<intervalMs)return {skipped:'recently_collected'};
+    await conn.execute('INSERT INTO swapp_tech_watch_schedule (name,last_started_ms) VALUES (?,?) ON DUPLICATE KEY UPDATE last_started_ms=VALUES(last_started_ms)',['collection',now]);
+   }
+   return await work();
+  }finally{await conn.query('SELECT RELEASE_LOCK(?)',['swapp_tech_watch_collect_v1']);}
  }finally{conn.release();}
 }
-module.exports={DDL,assertCandidate,saveCandidates,withWatchLock};
+module.exports={DDL,SCHEDULE_DDL,assertCandidate,saveCandidates,withWatchLock};
