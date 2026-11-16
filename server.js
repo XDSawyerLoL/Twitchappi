@@ -5305,6 +5305,8 @@ app.post('/api/oryon/stream-key/regenerate', mutationLimiter, async (req, res) =
 
 // Public login lookup, private viewer-follow state. No list of another
 // user's follows is ever exposed to an unauthenticated viewer.
+require('./modules/swapp-creator-external-video-routes').installCreatorVideos(app,{restoreSession:restoreOryonSessionFromRememberCookie,readUsers:readOryonUsers,mutationLimiter});
+
 app.get('/api/oryon/follow/:login', async(req,res)=>{
   try{
     await ORYON_USERS_READY.catch(()=>{});
