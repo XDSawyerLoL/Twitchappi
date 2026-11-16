@@ -93,7 +93,7 @@ async function load(page,force){
  const owner=page.dataset.channelOwner==='true';
  try{
   const data=await api('/api/creator/external-videos/'+encodeURIComponent(creator));
-  if(!page.isConnected||login(page)!==creator)return;
+  if(!page.isConnected||login(page)!==creator||page.dataset.externalVideosCreator!==creator)return;
   if(!data.videos?.length&&!owner)return;
   const section=el('section','swapp-external-videos');
   section.id='swappCreatorVideos';section.dataset.creator=creator;
@@ -106,7 +106,7 @@ async function load(page,force){
    button.onclick=()=>section.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
    nav.append(button);
   }
- }catch(e){if(owner){const section=el('section','swapp-external-videos');section.append(el('p','',e.message));page.append(section)}}
+ }catch(e){if(owner&&page.isConnected&&login(page)===creator){const section=el('section','swapp-external-videos');section.append(el('p','',e.message));page.append(section)}}
 }
 let scheduled=false;
 function scan(){
@@ -120,6 +120,8 @@ function scan(){
   }
  });
 }
-new MutationObserver(scan).observe(root,{childList:true,subtree:true,attributes:true,attributeFilter:['data-channel-polished','class']});
+new MutationObserver(changes=>{
+ if(changes.some(c=>c.target===root||c.target.classList?.contains('creatorRefine')))scan();
+}).observe(root,{childList:true,subtree:true,attributes:true,attributeFilter:['data-channel-polished','class']});
 scan();
 })();
