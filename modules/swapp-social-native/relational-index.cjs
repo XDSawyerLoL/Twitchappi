@@ -101,9 +101,69 @@ async function rebuildIndex(conn,snapshot,{maxPosts=10000,maxMessages=20000}={})
  const messageRows=messages.map(([id,row])=>messageRow(id,row));
  await conn.execute('DELETE FROM swapp_social_native_posts_v2');
  await conn.execute('DELETE FROM swapp_social_native_messages_v2');
- for(const row of postRows)await conn.execute(INSERT_POST,row);
- for(const row of messageRows)await conn.execute(INSERT_MESSAGE,row);
+ // One bounded prepared INSERT per batch: prevents tens of thousands of roundtrips
+ // while keeping the same transactional lock and rollback semantics.
+ const batchSize=64;
+ for(const [table,columns,rows,updateKeys] of [
+  ['swapp_social_native_posts_v2',
+   ['id','author_id','circle_id','reply_to_id','created_at','deleted_at','payload_json'],
+   postRows,['author_id','circle_id','reply_to_id','created_at','deleted_at','payload_json']],
+  ['swapp_social_native_messages_v2',
+   ['id','conversation_key','sender_id','recipient_id','created_at','read_at','payload_json'],
+   messageRows,['conversation_key','sender_id','recipient_id','created_at','read_at','payload_json']]
+ ]){
+  for(let offset=0;offset<rows.length;offset+=batchSize){
+   const part=rows.slice(offset,offset+batchSize);
+   const placeholders=part.map(()=> '('+columns.map(()=>'?').join(',')+')').join(',');
+   const update=updateKeys.map(col=>col+'=VALUES('+col+')').join(',');
+   const sql='INSERT INTO '+table+' ('+columns.join(',')+') VALUES '+placeholders+
+     ' ON DUPLICATE KEY UPDATE '+update;
+   await conn.execute(sql,part.flat());
+  }
+ }
  await conn.execute('INSERT INTO swapp_social_native_index_meta (store_key,migration_version) VALUES (?,?) ON DUPLICATE KEY UPDATE migration_version=VALUES(migration_version),updated_at=CURRENT_TIMESTAMP',['pulse',VERSION]);
  return {posts:postRows.length,messages:messageRows.length};
 }
-module.exports={VERSION,SQL,ensureSchema,capture,syncDelta,rebuildIndex,mysqlDate,postRow,messageRow};
+
+/**
+ * Verify the SQL index against the same authoritative source snapshot.
+ * No user content or identifiers are returned or logged on drift.
+ * A read-only REPEATABLE READ transaction keeps the two views consistent.
+ */
+async function verifyIndex(conn,snapshot){
+ validStore(snapshot);
+ await assertReady(conn);
+ const result={ok:true,posts:{expected:0,actual:0,mismatched:0},messages:{expected:0,actual:0,mismatched:0}};
+ const checks=[
+  ['posts','swapp_social_native_posts_v2',record=>({
+   author_id:record.authorId,circle_id:record.circleId||null,
+   reply_to_id:record.replyToId||null
+  })],
+  ['messages','swapp_social_native_messages_v2',record=>({
+   conversation_key:record.conversationKey,sender_id:record.senderId,
+   recipient_id:record.recipientId
+  })]
+ ];
+ for(const [kind,table,fields] of checks){
+  const expected=serializeMap(snapshot[kind]);
+  const [rows]=await conn.execute('SELECT id,payload_json,'+
+   Object.keys(fields(Object.values(snapshot[kind])[0]||{})).join(',')+
+   ' FROM '+table);
+  const seen=new Set();
+  const stat=result[kind];stat.expected=expected.size;stat.actual=rows.length;
+  for(const row of rows){
+   const source=snapshot[kind][row.id];
+   // Detect duplicates, missing source rows, drifted JSON and stale indexed keys.
+   const attributes=source?fields(source):null;
+   const correct=Boolean(source)&&!seen.has(row.id)&&expected.get(row.id)===row.payload_json&&
+    Object.entries(attributes).every(([field,value])=>row[field]===value);
+   if(!correct)stat.mismatched++;
+   seen.add(row.id);
+  }
+  for(const identifier of expected.keys())if(!seen.has(identifier))stat.mismatched++;
+  if(stat.mismatched||stat.expected!==stat.actual)result.ok=false;
+ }
+ return result;
+}
+
+module.exports={VERSION,SQL,ensureSchema,capture,syncDelta,rebuildIndex,verifyIndex,mysqlDate,postRow,messageRow};

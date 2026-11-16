@@ -51,3 +51,56 @@ test('production keeps dual writes disabled unless explicitly enabled',()=>{
  assert.match(src,/if\(RELATIONAL_DUALWRITE\)await relationalIndex\.syncDelta\(conn,before,store\)/);
  assert.ok(src.indexOf('relationalIndex.syncDelta')<src.indexOf('await conn.commit()'));
 });
+
+
+test('backfill batches statements instead of issuing one INSERT per row',async()=>{
+ const calls=[],conn={execute:async(sql,args)=>{calls.push({sql,args});return [{affectedRows:1}]}};
+ const posts={},messages={};
+ for(let i=0;i<130;i++)posts['p_'+i]={...post('p_'+i)};
+ for(let i=0;i<67;i++)messages['m_'+i]={...msg('m_'+i)};
+ const result=await rebuildIndex(conn,{posts,messages});
+ assert.deepEqual(result,{posts:130,messages:67});
+ const inserts=calls.filter(c=>c.sql.startsWith('INSERT INTO swapp_social_native_posts_v2')||
+  c.sql.startsWith('INSERT INTO swapp_social_native_messages_v2'));
+ assert.equal(inserts.length,5,'130 posts => 3 batches and 67 messages => 2 batches');
+ assert.ok(inserts.every(c=>c.args.length<=64*7));
+});
+
+test('index parity detects missing, altered and untrusted rows without revealing private texts',async()=>{
+ const {verifyIndex}=require('../modules/swapp-social-native/relational-index.cjs');
+ const state={posts:{p_abc:post()},messages:{m_abc:msg()}};
+ function connection({missing=false,altered=false}={}){
+  return {execute:async sql=>{
+   if(sql.startsWith('SELECT migration_version'))return [[{migration_version:1}]];
+   if(sql.includes('FROM swapp_social_native_posts_v2'))return [[missing?[]:[{
+    id:'p_abc',payload_json:JSON.stringify(state.posts.p_abc),
+    author_id:'u_one',circle_id:null,reply_to_id:null
+   }]].flat()];
+   if(sql.includes('FROM swapp_social_native_messages_v2'))return [[{
+    id:'m_abc',payload_json:altered?'{"wrong":true}':JSON.stringify(state.messages.m_abc),
+    conversation_key:'u_one:u_two',sender_id:'u_one',recipient_id:'u_two'
+   }]];
+   throw Error('Unexpected '+sql);
+  }};
+ }
+ const verified=await verifyIndex(connection(),state);
+ assert.equal(verified.ok,true);
+ assert.equal((await verifyIndex(connection({missing:true}),state)).ok,false);
+ const drift=await verifyIndex(connection({altered:true}),state);
+ assert.equal(drift.ok,false);
+ assert.equal(drift.messages.mismatched,1);
+ assert.doesNotMatch(JSON.stringify(drift),/Message privé|m_abc|u_one/);
+});
+test('verification requires the migration marker even when source is empty',async()=>{
+ const {verifyIndex}=require('../modules/swapp-social-native/relational-index.cjs');
+ await assert.rejects(verifyIndex({execute:async()=>[[]]},{posts:{},messages:{}}),/backfill_required/);
+});
+test('CLI exposes status, apply and verify with consistent transactions and rollback',()=>{
+ const fs=require('node:fs'),path=require('node:path');
+ const cli=fs.readFileSync(path.join(__dirname,'../tools/swapp-social-relational-migrate.cjs'),'utf8');
+ assert.match(cli,/process.argv.includes\('--verify'\)/);
+ assert.match(cli,/SET TRANSACTION ISOLATION LEVEL REPEATABLE READ/);
+ assert.match(cli,/const checked=await verifyIndex\(conn,snapshot\)/);
+ assert.match(cli,/if\(!checked.ok\)throw Error\('social_relational_index_drift'\)/);
+ assert.ok(cli.indexOf('if(!checked.ok)throw')<cli.indexOf('await conn.commit()'));
+});
