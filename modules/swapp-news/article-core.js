@@ -115,9 +115,15 @@ function newsLayout(title, description, inner, metadata = '') {
 function renderArticle(article, {baseUrl = 'https://swapp.tv'} = {}) {
   const canonical = `${baseUrl}/actus/${encodeURIComponent(article.slug)}`;
   const desc = article.summary || article.body.slice(0, 220);
+  const byline=String(article.author||'').trim()||'Rédaction SWAPP';
+  const isNewsroom=/^(?:rédaction swapp|swapp)$/i.test(byline);
+  const author=isNewsroom?
+    {'@type':'Organization',name:byline,url:'https://swapp.tv/a-propos'}:
+    {'@type':'Person',name:byline};
   const jsonLd = JSON.stringify({'@context':'https://schema.org','@type':'NewsArticle',headline:article.title,description:desc,
-    datePublished:article.originalPublishedAt || article.publishedAt,dateModified:article.updatedAt,
-    author:{'@type':'Organization',name:article.author},mainEntityOfPage:canonical
+    ...(article.originalPublishedAt||article.publishedAt?{datePublished:article.originalPublishedAt||article.publishedAt}:{}),
+    ...(article.updatedAt?{dateModified:article.updatedAt}:{}),
+    author,mainEntityOfPage:canonical
   }).replace(/</g,'\\u003c');
   const meta = `<link rel="canonical" href="${escapeHtml(canonical)}"><meta property="og:type" content="article"><meta property="og:title" content="${escapeHtml(article.title)}"><meta property="og:description" content="${escapeHtml(desc)}"><meta property="og:url" content="${escapeHtml(canonical)}">${article.image ? `<meta property="og:image" content="${escapeHtml(article.image.url)}">` : ''}<script type="application/ld+json">${jsonLd}</script>`;
   const paras = article.body.split(/\n\s*\n/).filter(Boolean).map(x=>`<p>${escapeHtml(x)}</p>`).join('');
