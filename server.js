@@ -3172,8 +3172,11 @@ app.get('/api/tracked_channels/list', async (req, res) => {
 });
 
 let __channelMetaFirestoreDisabled = false;
+let __legacyFirestoreAnalyticsDenied = false;
+let __oryonGenericFirestoreDenied = false;
+const isFirestorePermissionDenied = e => /PERMISSION_DENIED|permission denied on resource/i.test(String(e?.message||e));
 async function upsertChannelMetaFromStream(stream, nowMs) {
-  if (__channelMetaFirestoreDisabled) return;
+  if (__channelMetaFirestoreDisabled || __legacyFirestoreAnalyticsDenied) return;
   if (!(firestoreOk && db && typeof db.collection === 'function')) return;
   const uid = safeDocId(stream.user_id ?? stream.userId);
   if (!uid) return;
@@ -3192,6 +3195,12 @@ async function upsertChannelMetaFromStream(stream, nowMs) {
     await ref.set(payload, { merge: true });
   } catch (e) {
     const msg = String(e && e.message || e);
+    if (isFirestorePermissionDenied(e)) {
+      __channelMetaFirestoreDisabled = true;
+      __legacyFirestoreAnalyticsDenied = true;
+      console.warn('[SWAPP] Legacy Firestore analytics disabled after PERMISSION_DENIED; public routes remain active.');
+      return;
+    }
     if (msg.includes('google-gax') && msg.includes('fallback')) {
       __channelMetaFirestoreDisabled = true;
       console.error('❌ [FIRESTORE] upsertChannelMetaFromStream désactivé: dépendances Google incompatibles. Corriger package.json puis réinstaller node_modules. Détail:', msg);
@@ -3219,6 +3228,7 @@ function safeDocId(v) {
 }
 
 async function updateDailyRollupsForStream(stream, nowMs) {
+  if (__legacyFirestoreAnalyticsDenied) return;
   const viewers = Number(stream.viewer_count || 0);
   const dayKey = yyyy_mm_dd_from_ms(nowMs);
   if (!dayKey) {
@@ -3271,6 +3281,7 @@ async function updateDailyRollupsForStream(stream, nowMs) {
 }
 
 async function collectAnalyticsSnapshot() {
+  if (__legacyFirestoreAnalyticsDenied) return;
   const now = Date.now();
   try {
     const data = await twitchAPI('streams?first=100&language=fr');
@@ -4143,14 +4154,14 @@ async function loadOryonGenericStatePersistent(){
   for(const name of ORYON_GENERIC_STATE_FILES){
     const key = oryonStateKeyFromFile(name);
     let loaded = false;
-    if(firestoreOk && db && typeof db.collection === 'function'){
+    if(!__oryonGenericFirestoreDenied && firestoreOk && db && typeof db.collection === 'function'){
       try{
         const snap = await db.collection('oryon_state_files').doc(key).get();
         if(snap.exists && snap.data()?.payload && typeof snap.data().payload === 'object'){
           __oryonGenericStateCache[key] = snap.data().payload;
           loaded = true;
         }
-      }catch(e){ console.warn('[ORYON] generic Firestore load failed:', key, e.message); }
+      }catch(e){ if(isFirestorePermissionDenied(e)){ __oryonGenericFirestoreDenied=true; console.warn('[ORYON] Legacy Firestore state inaccessible; using available local fallback.'); } else console.warn('[ORYON] generic Firestore load failed:', key, e.message); }
     }
     if(!loaded){
       try{
@@ -4167,10 +4178,10 @@ async function persistOryonGenericState(file, data){
     if(!fs.existsSync(ORYON_DATA_DIR)) fs.mkdirSync(ORYON_DATA_DIR,{recursive:true});
     fs.writeFileSync(oryonFallbackPathForKey(key), JSON.stringify(data || {}, null, 2));
   }catch(e){ console.warn('[ORYON] generic JSON write failed:', key, e.message); }
-  if(firestoreOk && db && typeof db.collection === 'function'){
+  if(!__oryonGenericFirestoreDenied && firestoreOk && db && typeof db.collection === 'function'){
     try{
       await db.collection('oryon_state_files').doc(key).set({payload:data || {}, updatedAt:Date.now(), source:'oryon-generic-state'}, {merge:true});
-    }catch(e){ console.warn('[ORYON] generic Firestore write failed:', key, e.message); }
+    }catch(e){ if(isFirestorePermissionDenied(e)){ __oryonGenericFirestoreDenied=true; console.warn('[ORYON] Legacy Firestore writes disabled; local fallback remains active.'); } else console.warn('[ORYON] generic Firestore write failed:', key, e.message); }
   }
 }
 const ORYON_STATE_READY = loadOryonGenericStatePersistent();
