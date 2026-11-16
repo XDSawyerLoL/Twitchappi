@@ -31,9 +31,10 @@ function installCreatorVideos(app,{restoreSession,readUsers,mutationLimiter}){
    if(!owner||owner.id!==current.id)return res.status(403).json({success:false,error:'Modification non autorisée.'});
    // Reject cross-origin browser mutations; do not trust a client-supplied login.
    const origin=req.get('origin');
-   if(!origin||new URL(origin).origin!==req.protocol+'://'+req.get('host'))
+   if(!origin||!['https://swapp.tv','https://www.swapp.tv', ...(process.env.NODE_ENV==='production'?[]:['http://localhost:3000','http://127.0.0.1:3000'])].includes(origin))
     return res.status(403).json({success:false,error:'Origine non autorisée.'});
-   const videos=normalizeVideos(req.body?.videos);
+   if(!Array.isArray(req.body?.videos))return res.status(400).json({success:false,error:'Liste de vidéos invalide.'});
+   const videos=normalizeVideos(req.body.videos);
    if(videos.filter(v=>v.pinned).length>1)return res.status(400).json({success:false,error:'Une seule vidéo à la une.'});
    await getStore().replace(target,videos);
    res.setHeader('Cache-Control','no-store');
