@@ -16,6 +16,11 @@ const TABLE='CREATE TABLE IF NOT EXISTS swapp_server_discord_stream_presence ('+
  'PRIMARY KEY(server_id,swapp_user_id),KEY swapp_discord_presence_expiry(expires_at),'+
  'CONSTRAINT swapp_discord_presence_server_fk FOREIGN KEY(server_id) REFERENCES swapp_game_servers(id) ON DELETE CASCADE) '+
  'ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci';
+const OPTIN_TABLE='CREATE TABLE IF NOT EXISTS swapp_server_discord_stream_optin ('+
+ 'server_id CHAR(32) NOT NULL,swapp_user_id VARCHAR(100) NOT NULL,'+
+ 'updated_at DATETIME NOT NULL,PRIMARY KEY(server_id,swapp_user_id),'+
+ 'CONSTRAINT swapp_discord_stream_optin_server_fk FOREIGN KEY(server_id) REFERENCES swapp_game_servers(id) ON DELETE CASCADE) '+
+ 'ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci';
 const clean=x=>String(x??'').trim();
 function twitchStream(raw){
  if(!raw||Number(raw.type)!==1)return null;
@@ -39,6 +44,7 @@ async function approvedCreatorRows(sql,userId,guildId){
  if(!userId||!SNOWFLAKE.test(guildId))return [];
  const [rows]=await sql.execute(
   'SELECT c.server_id,c.creator_login FROM swapp_server_creators c '+
+  'JOIN swapp_server_discord_stream_optin o ON o.server_id=c.server_id AND o.swapp_user_id=c.user_id '+
   'JOIN swapp_game_server_extras x ON x.server_id=c.server_id '+
   'JOIN swapp_game_servers s ON s.id=c.server_id '+
   'WHERE c.user_id=? AND x.discord_guild_id=? AND c.platform="twitch" '+
@@ -63,6 +69,26 @@ async function applyPresence(sql,{guildId,userId,stream}){
  }
  return rows.length;
 }
+async function isOptedIn(sql,serverId,userId){
+ if(!SERVER_ID.test(String(serverId))||!userId)return false;
+ try{
+  const [rows]=await sql.execute('SELECT 1 FROM swapp_server_discord_stream_optin WHERE server_id=? AND swapp_user_id=? LIMIT 1',[serverId,userId]);
+  return rows.length>0;
+ }catch(error){return false}
+}
+async function setOptIn(sql,serverId,userId,enabled){
+ if(!SERVER_ID.test(String(serverId))||!userId)throw Error('invalid_opt_in');
+ if(enabled){
+  await sql.query(OPTIN_TABLE);
+  await sql.execute('INSERT INTO swapp_server_discord_stream_optin(server_id,swapp_user_id,updated_at) VALUES (?,?,UTC_TIMESTAMP()) ON DUPLICATE KEY UPDATE updated_at=UTC_TIMESTAMP()',[serverId,userId]);
+ }else{
+  try{await sql.execute('DELETE FROM swapp_server_discord_stream_optin WHERE server_id=? AND swapp_user_id=?',[serverId,userId])}
+  catch(error){if(error?.code!=='ER_NO_SUCH_TABLE')throw error}
+  try{await sql.execute('DELETE FROM swapp_server_discord_stream_presence WHERE server_id=? AND swapp_user_id=?',[serverId,userId])}
+  catch(error){if(error?.code!=='ER_NO_SUCH_TABLE')throw error}
+ }
+ return enabled;
+}
 async function readDiscordStreamers(sql,serverId){
  if(!SERVER_ID.test(String(serverId)))return {items:[],available:false};
  try{
@@ -83,6 +109,7 @@ function createPresenceBridge({env=process.env,getDatabase,WebSocketCtor=globalT
  const enabled=env.SWAPP_DISCORD_PRESENCE_ENABLED==='1'&&token.length>20&&
   typeof getDatabase==='function'&&typeof WebSocketCtor==='function';
  let socket=null,heartbeat=null,retry=null,lastSeq=null,sessionId='',resumeUrl='',started=false;
+ const activeKnown=new Map();
  let retryDelay=2500,pool=null,initialize=null,accounts=null;
  const stamp=()=>{if(heartbeat){clearInterval(heartbeat);heartbeat=null}};
  function send(packet){if(socket?.readyState===1)socket.send(JSON.stringify(packet))}
@@ -99,12 +126,18 @@ function createPresenceBridge({env=process.env,getDatabase,WebSocketCtor=globalT
  }
  async function database(){
   pool=await getDatabase();
-  if(!initialize)initialize=pool.query(TABLE).catch(e=>{initialize=null;throw e});
+  if(!initialize)initialize=(async()=>{await pool.query(OPTIN_TABLE);await pool.query(TABLE)})().catch(e=>{initialize=null;throw e});
   await initialize;return pool;
  }
  async function process(event){
   const presence=extractPresence(event);
   if(!presence)return;
+  // Ignore passive status updates from unrelated guild members.
+  const key=presence.guildId+':'+presence.discordId;
+  if(!presence.stream&&!activeKnown.has(key))return;
+  if(presence.stream)activeKnown.set(key,Date.now());
+  else activeKnown.delete(key);
+  if(activeKnown.size>300)activeKnown.delete(activeKnown.keys().next().value);
   // Presence events are advisory. Non-registered members are never persisted.
   const userId=await identity(presence.discordId);
   if(!userId)return;
@@ -121,7 +154,7 @@ function createPresenceBridge({env=process.env,getDatabase,WebSocketCtor=globalT
  function connect(){
   if(!started)return;
   try{
-   socket=new WebSocketCtor(resumeUrl||'wss://gateway.discord.gg/?v=10&encoding=json');
+   socket=new WebSocketCtor((resumeUrl?resumeUrl.replace(/\/?$/,''):'wss://gateway.discord.gg')+'/?v=10&encoding=json');
    socket.addEventListener('message',event=>{
     let data;try{data=JSON.parse(event.data)}catch{return}
     if(typeof data.s==='number')lastSeq=data.s;
@@ -159,4 +192,4 @@ function createPresenceBridge({env=process.env,getDatabase,WebSocketCtor=globalT
  }
  return {enabled,start,stop,process};
 }
-module.exports={twitchStream,extractPresence,approvedCreatorRows,applyPresence,readDiscordStreamers,createPresenceBridge};
+module.exports={twitchStream,extractPresence,approvedCreatorRows,applyPresence,readDiscordStreamers,isOptedIn,setOptIn,createPresenceBridge};
