@@ -17,6 +17,25 @@ async function request(path,ua=agents.X){
 }
 function check(condition,message){if(!condition)throw Error(message)}
 async function run(){
+ // The homepage and Explorer must expose a first-party, content-type-stable
+ // social card even when article APIs are unavailable.
+ for(const route of ['/','/explorer']){
+  for(const [network,ua] of Object.entries(agents)){
+   const page=await request(route,ua);
+   check(page.status===200,network+' crawler cannot read '+route+': HTTP '+page.status+' (check Hostinger CDN anti-bot protection)');
+   const html=await page.text();
+   check(html.includes('<meta name="twitter:card" content="summary_large_image">'),route+': large social card missing');
+   const image='https://swapp.tv/swapp-share-card.png';
+   check(html.includes('<meta property="og:image" content="'+image+'">'),route+': OG image missing');
+   check(html.includes('<meta name="twitter:image" content="'+image+'">'),route+': X image missing');
+   const preview=await request('/swapp-share-card.png',ua);
+   check(preview.status===200,network+' image HTTP '+preview.status+' for '+route);
+   check((preview.headers.get('content-type')||'').toLowerCase().startsWith('image/png'),route+': preview is not a PNG (WebP conversion must be disabled for this asset)');
+   const bytes=await preview.arrayBuffer();
+   check(bytes.byteLength>=2000&&bytes.byteLength<4500000,route+': unexpected PNG size '+bytes.byteLength);
+   console.log('PASS',route,network,'PNG',bytes.byteLength);
+  }
+ }
  const supplied=String(process.env.SWAPP_VERIFY_SLUG||'').trim();
  let articles=[];
  if(supplied){check(slugOk(supplied),'Invalid SWAPP_VERIFY_SLUG');articles=[{slug:supplied}];}
