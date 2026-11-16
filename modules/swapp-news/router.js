@@ -296,6 +296,33 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
     return res.json({held:editorialHeld.map(a=>({slug:a.slug,title:a.title,
       issues:reviewPublication(a).issues})),total:editorialHeld.length});
   });
+  // On-demand, authenticated audit of the ACTUAL CMS. The release-file
+  // report cannot detect editor changes or MySQL-only articles. Do not mutate,
+  // auto-unpublish or run any background scanning task here.
+  router.get('/api/editor/actus/quality-audit',...editor,async(_req,res,next)=>{
+    try{
+      const snapshot=await articles.limit(500).get();
+      const publishedDocs=snapshot.docs.map(doc=>({...doc.data(),slug:doc.data()?.slug||doc.id}))
+        .filter(item=>item.status==='published');
+      const items=publishedDocs.map(article=>{
+        const review=reviewPublication(article);
+        const sourceCount=Array.isArray(article.sources)?article.sources.length:0;
+        const charCount=String(article.body||'').trim().length;
+        const issues=[...review.issues];
+        if(article.contentType!=='post'&&charCount<1400&&!issues.includes('texte_trop_court'))
+          issues.push('analyse_a_approfondir');
+        if(article.contentType!=='post'&&sourceCount===1)
+          issues.push('source_unique_a_relire');
+        return {slug:article.slug,title:String(article.title||'').slice(0,160),
+          kind:String(article.contentType||'article'),characters:charCount,
+          sourceCount,issues};
+      }).sort((a,b)=>b.issues.length-a.issues.length||a.slug.localeCompare(b.slug));
+      res.set('Cache-Control','private,no-store');
+      return res.json({scope:'published_mysql_cms_read_only',published:items.length,
+        toReview:items.filter(item=>item.issues.length).length,items,
+        note:'Heuristiques internes SWAPP : ni certification AdSense, ni évaluation de l’originalité factuelle.'});
+    }catch(error){next(error);}
+  });
   router.get('/api/editor/actus/identity',(req,res)=>{
     res.set('Cache-Control','no-store');
     const user=req.session?.oryonUser;
