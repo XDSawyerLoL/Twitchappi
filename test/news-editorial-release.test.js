@@ -91,3 +91,56 @@ test('repairs missing images only on untouched published release records',async(
   assert.deepEqual(local.records.get(withCover.slug),original);
  }
 });
+
+test('only untouched published 2026 releases receive their checked-in editorial enrichment',async()=>{
+ const revisions=loadEditorialReleases().filter(a=>typeof a.editorialPreviousBody==='string');
+ assert.ok(revisions.length>=2,'Expected two reviewed Xbox / QSSR release revisions');
+ for(const entry of revisions){
+  const store=mockStore();
+  const original={slug:entry.slug,title:entry.title,
+   body:entry.editorialPreviousBody,summary:entry.editorialPreviousSummary,
+   sources:entry.editorialPreviousSources,status:'published',revision:1,
+   provenance:'swapp-editorial-release',legacySuppressRecovery:false,
+   publishedAt:entry.publishedAt,createdAt:'2026-11-16T10:00:00.000Z'};
+  store.records.set(entry.slug,original);
+  const applied=await createEditorialReleaseSync({...store,releaseArticles:[entry],
+   clock:()=> '2026-11-16T18:00:00.000Z'}).sync();
+  assert.equal(applied.editorialEnriched,1,entry.slug);
+  const after=store.records.get(entry.slug);
+  assert.equal(after.body,entry.body);
+  assert.equal(after.summary,entry.summary);
+  assert.deepEqual(after.sources,entry.sources);
+  assert.equal(after.revision,2);
+  assert.equal(after.publishedAt,entry.publishedAt,'do not invent a new original publication time');
+  const again=await createEditorialReleaseSync({...store,releaseArticles:[entry]}).sync();
+  assert.equal(again.editorialEnriched,0,'second process must not reapply revision');
+ }
+});
+
+test('editor edits, withdrawn posts and mismatched baselines block automatic editorial updates',async()=>{
+ const entry=loadEditorialReleases().find(a=>typeof a.editorialPreviousBody==='string');
+ assert.ok(entry);
+ const original={slug:entry.slug,title:entry.title,
+  body:entry.editorialPreviousBody,summary:entry.editorialPreviousSummary,
+  sources:entry.editorialPreviousSources,status:'published',revision:1,
+  provenance:'swapp-editorial-release',legacySuppressRecovery:false};
+ const variations=[
+  {...original,body:original.body+' Correction Studio'},
+  {...original,summary:original.summary+' Validation locale'},
+  {...original,sources:[...original.sources,{url:'https://publisher.example/source',label:'Ajout manuel'}]},
+  {...original,status:'draft'},
+  {...original,revision:2},
+  {...original,provenance:'manual'},
+  {...original,legacySuppressRecovery:true}
+ ];
+ for(const variant of variations){
+  const store=mockStore();store.records.set(entry.slug,variant);
+  const result=await createEditorialReleaseSync({...store,releaseArticles:[entry]}).sync();
+  assert.equal(result.editorialEnriched,0);
+  assert.deepEqual(store.records.get(entry.slug),variant);
+ }
+ const invalid={...entry,editorialPreviousSources:'not_an_array'};
+ const store=mockStore();
+ assert.throws(()=>createEditorialReleaseSync({...store,releaseArticles:[invalid]}),
+  /Base revision editoriale invalide/);
+});
