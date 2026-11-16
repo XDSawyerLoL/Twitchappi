@@ -78,7 +78,11 @@ async function main(){
     TWITCH_REDIRECT_URI: current.TWITCH_REDIRECT_URI || 'https://swapp.tv/twitch_auth_callback',
     ORYON_LIVE_SIGNAL_TIMEOUT_MS: current.ORYON_LIVE_SIGNAL_TIMEOUT_MS || '45000',
     ORYON_NATIVE_RECONNECT_GRACE_MS: current.ORYON_NATIVE_RECONNECT_GRACE_MS || '120000',
-    SWAPP_EMAIL_FROM: current.SWAPP_EMAIL_FROM || 'noreply@swapp.tv'
+    SWAPP_EMAIL_FROM: current.SWAPP_EMAIL_FROM || 'noreply@swapp.tv',
+    SWAPP_ACCOUNT_STORE:'mysql',
+    SWAPP_NEWS_BACKEND:'mysql',
+    ENABLE_CRON:'false',
+    ENABLE_TRACKED_CRON:'false'
   };
   if(!nonInteractive){
     values.PUBLIC_BASE_URL = await ask('URL publique', values.PUBLIC_BASE_URL);
@@ -87,8 +91,6 @@ async function main(){
     values.SWAPP_EMAIL_FROM = await ask('Email expéditeur', values.SWAPP_EMAIL_FROM);
     const addResend = await ask('Coller RESEND_API_KEY maintenant ? laisser vide sinon', current.RESEND_API_KEY || '');
     if(addResend) values.RESEND_API_KEY = addResend;
-    const keepFirebase = await ask('FIREBASE_SERVICE_KEY_BASE64 déjà configuré chez Hostinger ? oui/non', current.FIREBASE_SERVICE_KEY_BASE64 ? 'oui' : 'oui');
-    if(current.FIREBASE_SERVICE_KEY_BASE64 && keepFirebase.toLowerCase().startsWith('o')) values.FIREBASE_SERVICE_KEY_BASE64 = current.FIREBASE_SERVICE_KEY_BASE64;
   }else if(current.RESEND_API_KEY) values.RESEND_API_KEY = current.RESEND_API_KEY;
 
   writeEnv(quickEnvPath, values);
@@ -105,6 +107,7 @@ async function main(){
   console.log('npm --prefix local-agent install');
   console.log('npm run stream:check');
   console.log('npm start');
+  console.log('Configurer SWAPP_MYSQL_URL dans les secrets Hostinger. Les clés Firebase ne sont plus utilisées.');
   ask.close();
 }
 main().catch(e=>{ console.error('Setup impossible:', e.message); process.exit(1); });
