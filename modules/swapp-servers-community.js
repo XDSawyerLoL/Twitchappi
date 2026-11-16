@@ -4,6 +4,7 @@
  * merely from a Twitch link or a game category match.
  */
 const crypto=require('node:crypto');
+const {createPresenceBridge,readDiscordStreamers,isOptedIn,setOptIn}=require('./swapp-discord-streamer-signals');
 const ID=/^[a-f0-9]{32}$/;
 const clean=(x,n)=>String(x??'').replace(/[\u0000-\u001f\u007f<>]/g,' ').replace(/\s+/g,' ').trim().slice(0,n);
 const escapeHtml=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
@@ -55,14 +56,19 @@ function renderCommunityPanels(server){
   '<section id="directs" class="ss-pro-panel ss-community-panel" data-ss-owner-twitch="'+escapeHtml(channel)+'">'+
   '<p class="ss-overline">CRÉATEURS DE LA COMMUNAUTÉ</p><h2>Lives associés</h2>'+
   '<div id="ss-community-lives" class="ss-community-list"><p>Vérification des directs…</p></div>'+
+  '<p class="ss-community-discord-help">Les créateurs ayant relié Discord et Twitch peuvent autoriser la détection de leur activité Streaming. Ce signal ne prouve pas à lui seul qu’un direct est confirmé par SWAPP.</p>'+
   '<p class="ss-community-explainer">Seuls les directs vérifiés sont signalés en ligne. Une chaîne sans direct confirmé n’est pas nécessairement hors ligne.</p>'+
   '<div class="ss-community-link"><h3>Associer ma chaîne</h3><p>Demande volontaire depuis ton compte SWAPP ou Twitch. Le propriétaire de cette communauté doit accepter l’association.</p>'+
-  '<div id="ss-creator-actions" class="ss-community-actions"></div><p id="ss-creator-status" class="ss-pro-muted" role="status" aria-live="polite"></p></div>'+
+  '<div id="ss-creator-actions" class="ss-community-actions"></div>'+
+  '<div id="ss-discord-stream-optin" class="ss-discord-stream-optin" hidden></div>'+
+  '<p id="ss-creator-status" class="ss-pro-muted" role="status" aria-live="polite"></p></div>'+
   '<div id="ss-creator-moderation" hidden><h3>Associations à valider</h3><div id="ss-creator-pending" class="ss-community-list"></div></div>'+
   '</section>';
 }
 function registerCommunity(app,{getDatabase,account,ownerKeys,originGuard}){
  if(typeof getDatabase!=='function'||typeof account!=='function'||typeof originGuard!=='function')throw Error('swapp_community_dependencies_missing');
+ const presenceBridge=createPresenceBridge({getDatabase});
+ presenceBridge.start();
  let initialized=null;
  async function database(){
   const pool=await getDatabase();
@@ -94,13 +100,14 @@ function registerCommunity(app,{getDatabase,account,ownerKeys,originGuard}){
     db.execute('SELECT id,platform,creator_login,status,user_id FROM swapp_server_creators WHERE server_id=? AND status="approved" ORDER BY created_at DESC LIMIT 30',[item.id])
    ]);
    const user=account(req),owner=isOwner(req,item);
+   const discordStream=await readDiscordStreamers(db,item.id);
    let mine={lfg:false,creators:[]},pending=[];
    if(user){
     const [[lfg],[links]]=await Promise.all([
      db.execute('SELECT 1 AS found FROM swapp_server_lfg WHERE server_id=? AND user_id=? AND expires_at>UTC_TIMESTAMP() LIMIT 1',[item.id,user]),
      db.execute('SELECT id,platform,creator_login,status FROM swapp_server_creators WHERE server_id=? AND user_id=?',[item.id,user])
     ]);
-    mine={lfg:!!lfg.length,creators:links.map(publicCreator)};
+    mine={lfg:!!lfg.length,creators:links.map(publicCreator),discordStreaming:await isOptedIn(db,item.id,user)};
    }
    if(owner){
     const [rows]=await db.execute('SELECT id,platform,creator_login,status FROM swapp_server_creators WHERE server_id=? AND status="pending" ORDER BY created_at ASC LIMIT 30',[item.id]);
@@ -110,8 +117,31 @@ function registerCommunity(app,{getDatabase,account,ownerKeys,originGuard}){
     .filter(c=>loginFormat[c.platform].test(c.login));
    return res.set('Cache-Control','private,no-store').json({
     players:players.map(({user_id,...row})=>({...row,mine:Boolean(user&&user===user_id)})),
-    creators:approved.map(publicCreator),pending,mine,owner,available
+    creators:approved.map(publicCreator),pending,mine,owner,available,
+    discordStreaming:discordStream.items,discordSignalAvailable:discordStream.available
    });
+  }catch(e){return sendError(res,e)}
+ });
+ app.post('/api/swapp/serveurs/:id/discord-stream/opt-in',require('express').json({limit:'1kb'}),async(req,res)=>{
+  if(invalid(res,req,true))return;
+  if(typeof req.body?.enabled!=='boolean')return res.status(422).json({error:'consentement_invalide'});
+  // Discord Connect is associated with the SWAPP account, not a Twitch-only session.
+  const ownerUser=String(req.session?.oryonUser?.id||'');
+  if(!ownerUser||ownerUser!==account(req))return res.status(403).json({error:'compte_swapp_requis'});
+  try{
+   const db=await database(),item=await server(db,req.params.id);
+   if(!item)return res.status(404).json({error:'serveur_introuvable'});
+   if(req.body.enabled){
+    const [[creator],[guild]]=await Promise.all([
+     db.execute('SELECT 1 AS allowed FROM swapp_server_creators WHERE server_id=? AND user_id=? AND platform="twitch" AND status="approved" LIMIT 1',[item.id,ownerUser]),
+     db.execute('SELECT discord_guild_id FROM swapp_game_server_extras WHERE server_id=? LIMIT 1',[item.id])
+    ]);
+    if(!creator.length)return res.status(403).json({error:'association_twitch_approuvee_requise'});
+    if(!/^[0-9]{15,22}$/.test(String(guild[0]?.discord_guild_id||'')))
+     return res.status(422).json({error:'communaute_discord_non_reliee'});
+   }
+   await setOptIn(db,item.id,ownerUser,req.body.enabled);
+   return res.set('Cache-Control','private,no-store').json({enabled:req.body.enabled,liveDetected:false});
   }catch(e){return sendError(res,e)}
  });
  app.post('/api/swapp/serveurs/:id/lfg',require('express').json({limit:'2kb'}),async(req,res)=>{

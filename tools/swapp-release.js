@@ -28,6 +28,7 @@ const RELEASE_FILES=Object.freeze([
  'modules/swapp-servers.js',
  'modules/swapp-servers-profile.js',
  'modules/swapp-servers-community.js',
+ 'modules/swapp-discord-streamer-signals.js',
  'modules/swapp-servers-card-facts.js',
  'modules/swapp-servers-card-ui.js',
  'modules/swapp-servers-create.js',

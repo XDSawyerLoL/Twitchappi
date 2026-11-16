@@ -113,3 +113,37 @@
  .ss-pro .ss-community-live-art{width:100%;height:auto;aspect-ratio:16/9}
  .ss-pro .ss-community-offair a{width:100%;margin-left:0}
 }
+
+
+/* Discord Streaming presence is opt-in and explicitly separate from a verified live. */
+.ss-pro .ss-community-discord-help{
+ margin:11px 0 0;color:#9cb2c0;font-size:12px;line-height:1.55;max-width:78ch;
+}
+.ss-pro .ss-discord-stream-optin{
+ display:flex;flex-wrap:wrap;align-items:center;gap:7px 14px;
+ padding:16px 0;border-top:1px solid #293945;margin-top:16px;
+}
+.ss-pro .ss-discord-stream-optin[hidden]{display:none!important}
+.ss-pro .ss-discord-stream-optin strong{
+ flex:1 1 100%;font-size:13px;color:#eaf6fa;font-weight:850;
+}
+.ss-pro .ss-discord-stream-optin small{
+ flex:1 1 340px;color:#a6bac6;line-height:1.5;
+}
+.ss-pro .ss-discord-stream-optin button{
+ cursor:pointer;min-height:35px;background:#152732;color:#d9f4fa;
+ border:1px solid #3d7185;border-radius:7px;padding:7px 12px;
+ font:inherit;font-size:12px;font-weight:800;
+}
+.ss-pro .ss-discord-stream-optin button:disabled{opacity:.5;cursor:wait}
+.ss-pro .ss-discord-stream-optin button:focus-visible{
+ outline:2px solid #8ceaf0;outline-offset:2px
+}
+.ss-pro .ss-community-discord-badge{
+ padding:4px 7px;background:#32213a;color:#eac8ff;
+ border:1px solid #754b89;border-radius:5px;
+ letter-spacing:.05em;font-size:10px;font-weight:850;
+}
+.ss-pro .ss-community-discord-detected .ss-community-live-info p{
+ color:#adc4d0;font-size:13px;line-height:1.5;
+}
