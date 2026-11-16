@@ -29,7 +29,7 @@ async function createWindow(){
   if(!started){started=true;require('./server')}
   await waitForLocalServer();
   const win=new BrowserWindow({
-   width:1180,height:820,minWidth:900,minHeight:620,title:'SWAPP Live',
+   width:1510,height:920,minWidth:1050,minHeight:680,title:'SWAPP Live — Creator Studio',
    autoHideMenuBar:true,backgroundColor:'#070914',
    webPreferences:{contextIsolation:true,nodeIntegration:false,sandbox:true}
   });
@@ -37,7 +37,7 @@ async function createWindow(){
    try{const u=new URL(url);if(u.protocol==='https:' && (u.hostname==='swapp.tv'||u.hostname.endsWith('.swapp.tv')))shell.openExternal(url);}catch(_){}
    return{action:'deny'};
   });
-  await win.loadURL('http://127.0.0.1:'+port+'/');
+  await win.loadURL('http://127.0.0.1:'+port+'/studio');
  }catch(err){
   dialog.showErrorBox('SWAPP Live — démarrage impossible',String(err?.message||err));
   app.quit();
