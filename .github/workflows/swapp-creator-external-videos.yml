@@ -4,7 +4,10 @@ on:
     paths:
       - 'server.js'
       - 'lib/swapp-commercial-catalogue.js'
+      - 'lib/swapp-server-ads.js'
+      - 'test/swapp-server-ads.test.js'
       - 'test/swapp-commercial-catalogue.test.js'
+      - 'test/swapp-server-ads.test.js'
       - 'assets/swapp-social-premium-preview.*'
       - 'index.html'
       - 'tools/swapp-release.js'
@@ -34,6 +37,7 @@ jobs:
           node --check assets/swapp-creator-external-videos.js
           node --check server.js
           node --check lib/swapp-commercial-catalogue.js
+          node --check lib/swapp-server-ads.js
           node --check assets/swapp-social-premium-preview.js
       - name: Provider and security unit tests
         run: node --test test/swapp-creator-external-videos.test.js test/swapp-creator-external-video-routes.test.js test/swapp-creator-external-video-store.test.js test/swapp-commercial-catalogue.test.js
