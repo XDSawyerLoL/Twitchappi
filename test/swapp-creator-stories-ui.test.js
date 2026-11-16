@@ -43,3 +43,12 @@ test('channel stories are linked in profile navigation and refresh after visibil
  assert.match(js,/document\.addEventListener\('visibilitychange'/);
  assert.match(js,/Date\.parse\(story\.expiresAt\)<=Date\.now\(\)/);
 });
+
+test('production smoke verifies story media and the real Node route instead of SPA fallback',()=>{
+ const smoke=read('tools/swapp-deploy-smoke.js');
+ assert.match(smoke,/storyJs=await request\(origin,'\/assets\/swapp-creator-stories\.js'\)/);
+ assert.match(smoke,/storyCss=await request\(origin,'\/assets\/swapp-creator-stories\.css'\)/);
+ assert.match(smoke,/fetch\(origin\+'\/api\/creator\/stories\/!'/);
+ assert.match(smoke,/probe\.status===400/);
+ assert.match(smoke,/payload\?\.error==='Créateur invalide\.'/);
+});

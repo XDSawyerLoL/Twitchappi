@@ -474,6 +474,30 @@ async function verify(){
    accountCss.body.includes('.swapp-acct-discord-integration')&&
    accountCss.body.includes('border-radius:0!important'),
    'Old bubble-like account and creator dashboard still deployed');
+ // Creator Stories: verify both visible artwork and real Node API.
+ const storyJs=await request(origin,'/assets/swapp-creator-stories.js');
+ const storyCss=await request(origin,'/assets/swapp-creator-stories.css');
+ check(home.body.includes('swapp-creator-stories.js?v=20261116-stories-v2')&&
+  home.body.includes('swapp-creator-stories.css?v=20261116-stories-v2')&&
+  storyJs.body.includes("'/api/creator/stories/'")&&
+  storyJs.body.includes('swapp-story-composer')&&
+  storyCss.body.includes('.swapp-story-photo')&&
+  storyCss.body.includes('aspect-ratio:9/16'),
+  'Creator Stories assets missing or cached: deploy current index.html, CSS and JS.');
+ const storyAbort=new AbortController();
+ const storyTimer=setTimeout(()=>storyAbort.abort(),12000);
+ try{
+  const probe=await fetch(origin+'/api/creator/stories/!',{
+   redirect:'manual',cache:'no-store',signal:storyAbort.signal,
+   headers:{Accept:'application/json','Cache-Control':'no-cache'}
+  });
+  let payload=null;
+  try{payload=await probe.json()}catch{}
+  check(probe.status===400&&payload?.success===false&&
+   payload?.error==='Créateur invalide.',
+   'Creator Stories backend missing: the Node route is unavailable or returning cached HTML.');
+ }finally{clearTimeout(storyTimer)}
+ process.stdout.write('PASS Creator Stories frontend and real Node backend\n');
  const browserIdentity=await request(origin,'/assets/swapp-game-identity.js');
  check(browserIdentity.body.includes('The Witcher 3: Wild Hunt Remastered')&&
    browserIdentity.body.includes('The Witcher 3: Wild Hunt'),
