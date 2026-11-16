@@ -77,6 +77,9 @@ function attachSwappDirectRelay(app, opts={}){
       audioTrack:parsed.audioTrack==='present'||parsed.audioTrack==='missing'?parsed.audioTrack:'unknown'};
    }
   }catch(_){}
+  // Cross-worker media is verified only if the playlist matches its active
+  // broadcast identity. Missing/stale metadata cannot validate a live.
+  if(!metadata)return null;
   return {manifest,names,latest,metadata,segmentStamp};
  }
  function shareAcceptedMedia(login,name,body,room){
