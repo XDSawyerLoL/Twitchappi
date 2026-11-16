@@ -24,6 +24,14 @@ test('old ENABLE_CRON/ENABLE_TRACKED_CRON=true are ignored',()=>{
   assert.match(source.slice(start,start+350),/if\s*\(!FIRESTORE_RUNTIME_ENABLED/,'missing guard '+method);
  }
 });
+test('retired jobs never emit misleading Firestore startup warnings',()=>{
+ assert.match(source,/const ENABLE_CRON = false;/);
+ assert.match(source,/const ENABLE_TRACKED_CRON = false;/);
+ assert.doesNotMatch(source,/Legacy Firestore analytics CRON flags ignored/);
+ assert.doesNotMatch(source,/CRON ENABLED = false/);
+ assert.doesNotMatch(source,/TRACKED CRON ENABLED = false/);
+ assert.doesNotMatch(source,/Legacy Firestore retired: use Hostinger MySQL/);
+});
 test('retired tracked and Firebase Steam endpoints fail explicitly, no fake writes',()=>{
  const regexp=/app\.(?:get|post)\('\/api\/tracked_channels\/(?:add|disable|list)'[^\n]*\n\s*if\(!FIRESTORE_RUNTIME_ENABLED\)return res\.status\(410\)/g;
  assert.equal((source.match(regexp)||[]).length,3);
