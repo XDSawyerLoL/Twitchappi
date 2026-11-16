@@ -10,6 +10,13 @@ function page({mode='collections',genre=''}={}){
  '<meta name="theme-color" content="#050607"><title>Explorer les univers et les directs | SWAPP</title>'+
  '<meta name="description" content="Explorez les collections de jeux et la carte interactive des créateurs réellement en direct sur SWAPP.">'+
  '<link rel="canonical" href="https://swapp.tv'+(chart?'/explorer/carte':valid?'/explorer/collections/'+valid:ROOT)+'">'+
+ '<meta property="og:type" content="website"><meta property="og:site_name" content="SWAPP">'+
+ '<meta property="og:title" content="Explorer les univers et les directs | SWAPP">'+
+ '<meta property="og:description" content="Collections de jeux et créateurs réellement en direct sur SWAPP.">'+
+ '<meta property="og:image" content="https://swapp.tv/swapp-share-card.png">'+
+ '<meta property="og:image:secure_url" content="https://swapp.tv/swapp-share-card.png">'+
+ '<meta property="og:image:type" content="image/png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">'+
+ '<meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="https://swapp.tv/swapp-share-card.png">'+
  SHARED_HEAD_SLOT+
  '<link rel="stylesheet" href="/assets/swapp-explorer.css?v=20261115-collections-cinema-v2">';
  const content='<main id="swapp-explorer" class="sx" data-view="'+(chart?'carte':valid?'detail':'collections')+'" data-genre="'+valid+'">'+
