@@ -7,7 +7,7 @@
  window.__swappServersModerationAlertsBooted=true;
  const css=document.createElement('link');css.rel='stylesheet';css.href='/assets/swapp-servers-alerts.css?v=20261116-admin-flood-v2';
  document.head.append(css);
- let pending=0,allowed=false,requesting=false,accessDenied=false,backoffUntil=0;
+ let pending=0,allowed=false,requesting=false,accessDenied=false,backoffUntil=0,moderationCapability=null;
  const target='/serveurs#ss-review';
  function badge(text){const b=document.createElement('span');b.className='ss-pending-badge';b.textContent=text;return b}
  function render(){
@@ -50,15 +50,31 @@
   // A session rejected by the real admin guard must not be polled again.
   if(accessDenied&&!force)return;
   if(!force&&Date.now()<backoffUntil)return;
-  if(force){accessDenied=false;backoffUntil=0}
+  if(force){accessDenied=false;backoffUntil=0;moderationCapability=null}
   requesting=true;
   try{
+   if(moderationCapability!==true){
+    const capability=await fetch('/api/swapp/serveurs/moderation/access',{
+     credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}
+    });
+    const mime=(capability.headers.get('content-type')||'').toLowerCase();
+    if(!capability.ok||!mime.includes('json')){
+     allowed=false;pending=0;
+     backoffUntil=Date.now()+((capability.status===403||!mime.includes('json'))?600000:120000);
+     return;
+    }
+    const session=await capability.json();
+    if(session.canModerate!==true){
+     moderationCapability=false;accessDenied=true;allowed=false;pending=0;return;
+    }
+    moderationCapability=true;
+   }
    const res=await fetch('/api/swapp/serveurs/moderation/count',{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}});
    if(res.status===401||res.status===403){
     const mime=(res.headers.get('content-type')||'').toLowerCase();
     const body=mime.includes('json')?await res.json().catch(()=>({})):{};
     if(res.status===401||body.error==='acces_refuse'){
-     accessDenied=true;allowed=false;pending=0;return;
+     accessDenied=true;moderationCapability=false;allowed=false;pending=0;return;
     }
     // WAF HTML challenges are NOT proof that this account is not an admin.
     allowed=false;pending=0;backoffUntil=Date.now()+600000;return;
@@ -70,7 +86,7 @@
    if(!(res.headers.get('content-type')||'').toLowerCase().includes('json')){
     allowed=false;pending=0;backoffUntil=Date.now()+300000;return;
    }
-   const data=await res.json();allowed=true;accessDenied=false;backoffUntil=0;
+   const data=await res.json();allowed=true;accessDenied=false;moderationCapability=true;backoffUntil=0;
    pending=Math.max(0,Math.min(999,Number(data.pending)||0));
   }catch(_){backoffUntil=Date.now()+120000}
   finally{requesting=false;schedule()}
