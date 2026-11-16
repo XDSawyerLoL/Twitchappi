@@ -194,7 +194,7 @@ function growthBanner(game=''){
 function page({isAdmin=false,game=''}={}){
  const gameHeroImage=game?categoryHeroCover(game):'';
  const gameHeroFallback=game?detailCover(game):'';
- const head='<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#050608"><title>'+esc(game?'Serveurs '+game+' — classement des communautés | SWAPP':'Serveurs de jeux — classements et communautés | SWAPP')+'</title><meta name="description" content="Découvre des serveurs gaming et roleplay, classe les communautés par votes et référence ton serveur sur SWAPP."><link rel="canonical" href="https://swapp.tv/serveurs'+(game?'/'+slug(game):'')+'">'+SHARED_HEAD_SLOT+'<link rel="stylesheet" href="/assets/swapp-servers.css?v=20261116-category-hero-v24"><link rel="stylesheet" href="/assets/swapp-servers-community.css?v=20261116-lfg-discord-v5">';
+ const head='<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#050608"><title>'+esc(game?'Serveurs '+game+' — classement des communautés | SWAPP':'Serveurs de jeux — classements et communautés | SWAPP')+'</title><meta name="description" content="Découvre des serveurs gaming et roleplay, classe les communautés par votes et référence ton serveur sur SWAPP."><link rel="canonical" href="https://swapp.tv/serveurs'+(game?'/'+slug(game):'')+'">'+SHARED_HEAD_SLOT+'<link rel="stylesheet" href="/assets/swapp-servers.css?v=20261116-category-hero-v24"><link rel="stylesheet" href="/assets/swapp-servers-community.css?v=20261116-lfg-discord-v5"><link rel="stylesheet" href="/assets/swapp-server-ads-showcase.css?v=20261116-1">';
  let content='<main class="ss ss-directory" data-ss-current-game="'+esc(game)+'">'+(game?'':growthBanner(game))+
   '<header class="ss-hero ss-directory-intro'+(game?' ss-directory-game-hero':'')+'">'+
   (gameHeroImage?'<div class="ss-directory-game-backdrop" aria-hidden="true"><img class="ss-directory-game-image" src="'+esc(gameHeroImage)+'" data-ss-fallback="'+esc(gameHeroFallback)+'" alt="" fetchpriority="high" decoding="async" referrerpolicy="no-referrer"></div>':'')+
@@ -226,7 +226,7 @@ function page({isAdmin=false,game=''}={}){
   const end=content.indexOf('</section>',start);
   if(start>=0&&end>start){const panel=content.slice(start,end+10);content=content.replace(panel,'').replace('<section class="ss-inner ss-content">','<section class="ss-inner ss-content">'+panel)}
  }
- return renderPage({head,content,active:'servers',bodyClass:'swapp-editorial-route swapp-servers-page',scripts:'<script src="/assets/swapp-servers.js?v=20261116-category-hero-v24" defer></script><script src="/assets/swapp-servers-review-admin.js?v=20261115-server-pro-v6" defer></script><script src="/assets/swapp-nav-session.js?v=20261114-native-account-v1" defer></script>'});
+ return renderPage({head,content,active:'servers',bodyClass:'swapp-editorial-route swapp-servers-page',scripts:'<script src="/assets/swapp-servers.js?v=20261116-category-hero-v24" defer></script><script src="/assets/swapp-server-ads-showcase.js?v=20261116-1" defer></script><script src="/assets/swapp-servers-review-admin.js?v=20261115-server-pro-v6" defer></script><script src="/assets/swapp-nav-session.js?v=20261114-native-account-v1" defer></script>'});
 }
 
 const DETAIL_STEAM_GAME_IDS=Object.freeze({

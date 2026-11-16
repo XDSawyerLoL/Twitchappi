@@ -107,6 +107,7 @@
 
  const serverCard=(s,i)=>{
   const article=make('article','ss-card ss-server-card');
+  if(s.id!==undefined&&s.id!==null)article.dataset.ssServerId=String(s.id);
   const palette=gameThemes[s.game]||['#8ceaf0','#9c67ff'];
   article.style.setProperty('--ss-brand-accent',validHex(s.accentColor)?s.accentColor:palette[0]);
   article.style.setProperty('--ss-brand-secondary',validHex(s.secondaryColor)?s.secondaryColor:palette[1]);

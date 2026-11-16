@@ -1,0 +1,59 @@
+name: SWAPP Creator external videos checks
+on:
+  pull_request:
+    paths:
+      - 'server.js'
+      - 'lib/swapp-commercial-catalogue.js'
+      - 'lib/swapp-server-ads.js'
+      - 'lib/swapp-server-ad-requests.js'
+      - 'modules/swapp-server-ad-requests-store.js'
+      - 'test/swapp-server-ad-requests-store.test.js'
+      - 'test/swapp-server-ad-requests.test.js'
+      - 'modules/swapp-server-ads-store.js'
+      - 'test/swapp-server-ads-store.test.js'
+      - 'test/swapp-server-ad-requests.test.js'
+      - 'test/swapp-server-ads.test.js'
+      - 'test/swapp-commercial-catalogue.test.js'
+      - 'test/swapp-server-ads.test.js'
+      - 'assets/swapp-social-premium-preview.*'
+      - 'assets/swapp-server-ads-showcase.*'
+      - 'assets/swapp-servers.js'
+      - 'modules/swapp-servers.js'
+      - 'index.html'
+      - 'tools/swapp-release.js'
+      - 'lib/swapp-creator-external-videos.js'
+      - 'modules/swapp-creator-external-video-*.js'
+      - 'assets/swapp-creator-external-videos.*'
+      - 'test/swapp-creator-external-videos.test.js'
+      - 'test/swapp-creator-external-video-routes.test.js'
+      - 'test/swapp-creator-external-video-store.test.js'
+      - '.github/workflows/swapp-creator-external-videos.yml'
+  workflow_dispatch:
+jobs:
+  creator-videos:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax validation
+        run: |
+          node --check lib/swapp-creator-external-videos.js
+          node --check modules/swapp-creator-external-video-store.js
+          node --check modules/swapp-creator-external-video-routes.js
+          node --check assets/swapp-creator-external-videos.js
+          node --check server.js
+          node --check lib/swapp-commercial-catalogue.js
+          node --check lib/swapp-server-ads.js
+          node --check lib/swapp-server-ad-requests.js
+          node --check modules/swapp-server-ad-requests-store.js
+          node --check modules/swapp-server-ads-store.js
+          node --check assets/swapp-social-premium-preview.js
+          node --check assets/swapp-server-ads-showcase.js
+          node --check assets/swapp-servers.js
+          node --check modules/swapp-servers.js
+      - name: Provider and security unit tests
+        run: node --test test/swapp-creator-external-videos.test.js test/swapp-creator-external-video-routes.test.js test/swapp-creator-external-video-store.test.js test/swapp-commercial-catalogue.test.js

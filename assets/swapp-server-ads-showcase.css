@@ -1,0 +1,27 @@
+/* Sponsored inventory information — editorial, wide and restrained. */
+.ss .ss-sponsor-showcase{position:relative;margin:26px 0 30px;padding:clamp(24px,3vw,46px);border:1px solid rgba(170,202,224,.18);border-radius:5px;background:linear-gradient(105deg,#111923,#070a0f 64%,#0b1118);color:#f5f8fd;overflow:hidden}
+.ss .ss-sponsor-showcase:before{content:'';position:absolute;top:-180px;right:-120px;width:440px;height:440px;background:radial-gradient(circle,rgba(89,145,180,.13),transparent 68%);pointer-events:none}
+.ss .ss-sponsor-overline{font-size:10px;letter-spacing:.18em;font-weight:800;color:#91c7df;margin-bottom:16px}
+.ss .ss-sponsor-layout{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(320px,.9fr);gap:clamp(20px,3vw,52px);align-items:center}
+.ss .ss-sponsor-copy h2{font-size:clamp(25px,3vw,44px);line-height:1.08;letter-spacing:-.05em;max-width:16ch;margin:0 0 15px}
+.ss .ss-sponsor-copy p{font-size:14px;line-height:1.6;color:#afbbca;max-width:48ch;margin:0 0 22px}
+.ss .ss-sponsor-link{display:inline-flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #8fbdd3;color:#e5f6ff;text-decoration:none;font-size:13px;font-weight:750}
+.ss .ss-sponsor-link:hover{color:white;border-color:white}
+.ss .ss-sponsor-prices{display:grid;gap:0}
+.ss .ss-sponsor-prices>div{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;padding:13px 0;border-bottom:1px solid rgba(255,255,255,.13)}
+.ss .ss-sponsor-prices>div:first-child{border-top:1px solid rgba(255,255,255,.13)}
+.ss .ss-sponsor-prices span{font-size:13px;font-weight:650}
+.ss .ss-sponsor-prices strong{grid-column:2;grid-row:1/3;font-size:23px;letter-spacing:-.04em;align-self:center}
+.ss .ss-sponsor-prices small{font-size:11px;color:#a7b4c3}
+.ss .ss-sponsor-disclaimer{font-size:11px;color:#8493a5;margin:20px 0 0}
+@media(max-width:780px){.ss .ss-sponsor-layout{grid-template-columns:1fr}.ss .ss-sponsor-copy h2{max-width:none}.ss .ss-sponsor-showcase{padding:22px}}
+
+/* Verified placement: visually separate from free ranking and visibly labelled. */
+.ss .ss-sponsored-placement{margin:0 0 25px;padding:20px 24px;border-left:3px solid #83bfdc;background:linear-gradient(90deg,#101b25,#080d13);color:#f4f8ff}
+.ss .ss-sponsored-placement[hidden]{display:none!important}
+.ss .ss-sponsored-label{font-size:10px;font-weight:800;letter-spacing:.15em;color:#a4c8d9;margin-bottom:10px}
+.ss .ss-sponsored-destination{display:flex;justify-content:space-between;align-items:center;gap:20px;color:inherit;text-decoration:none}
+.ss .ss-sponsored-destination strong{font-size:clamp(18px,2.1vw,27px);letter-spacing:-.035em}
+.ss .ss-sponsored-destination span{font-size:12px;color:#a5b7c8}
+.ss .ss-sponsored-destination:hover strong{text-decoration:underline;text-underline-offset:4px}
+@media(max-width:650px){.ss .ss-sponsored-destination{align-items:start;flex-direction:column;gap:5px}.ss .ss-sponsored-placement{padding:18px}}

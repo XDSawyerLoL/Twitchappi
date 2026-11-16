@@ -1,0 +1,20 @@
+/* Social Premium: restrained editorial presentation, no pill/card overload. */
+#swappSocialNative .swapp-social-premium-preview{margin:38px 0 20px;padding:25px 0 0;background:transparent;color:#f6f7fa;border:0;border-top:1px solid rgba(255,255,255,.16);border-radius:0}
+#swappSocialNative .swapp-social-premium-head{display:flex;align-items:start;justify-content:space-between;gap:20px;margin-bottom:22px}
+#swappSocialNative .swapp-social-premium-eyebrow{font-size:10px;letter-spacing:.16em;font-weight:800;color:#8fbfd4;margin:0 0 8px}
+#swappSocialNative .swapp-social-premium-head h2{font-size:clamp(24px,2.6vw,38px);letter-spacing:-.045em;line-height:1.08;margin:0 0 9px}
+#swappSocialNative .swapp-social-premium-head p:not(.swapp-social-premium-eyebrow){color:#aeb9c8;font-size:14px;max-width:60ch;line-height:1.55;margin:0}
+#swappSocialNative .swapp-social-premium-status{font-size:11px;color:#aab6c5;white-space:nowrap;padding-top:7px}
+#swappSocialNative .swapp-social-premium-tiers{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:clamp(16px,2.5vw,40px)}
+#swappSocialNative .swapp-social-premium-tiers article{padding:18px 0 20px;border-top:2px solid #4a5866;background:transparent;border-radius:0}
+#swappSocialNative .swapp-social-premium-tiers article:nth-child(2){border-top-color:#a3c5d7}
+#swappSocialNative .swapp-social-premium-tier-head{display:flex;align-items:center;gap:10px}
+#swappSocialNative .swapp-social-premium-tier-head h3{font-size:16px;margin:0}
+#swappSocialNative .swapp-social-premium-dot{display:inline-block;width:14px;height:14px;flex:0 0 14px;border-radius:50%;border:1px solid rgba(255,255,255,.6)}
+#swappSocialNative .swapp-social-premium-dot-plus{background:linear-gradient(135deg,#d2f5ff,#4c9cc6)}
+#swappSocialNative .swapp-social-premium-dot-max{background:linear-gradient(135deg,#fff,#91a7c7 50%,#e8e8f2)}
+#swappSocialNative .swapp-social-premium-price{font-size:clamp(23px,2.4vw,34px);font-weight:800;letter-spacing:-.04em;margin:14px 0}
+#swappSocialNative .swapp-social-premium-price small{font-size:11px;font-weight:500;letter-spacing:0;color:#b2bfcb}
+#swappSocialNative .swapp-social-premium-tiers article>p:last-child{font-size:13px;color:#b3becc;line-height:1.5;margin:0}
+#swappSocialNative .swapp-social-premium-note{font-size:11px;color:#98a6b7;line-height:1.5;margin:18px 0 0}
+@media(max-width:650px){#swappSocialNative .swapp-social-premium-head{display:block}#swappSocialNative .swapp-social-premium-status{display:block;margin-top:10px}#swappSocialNative .swapp-social-premium-tiers{grid-template-columns:1fr}}
