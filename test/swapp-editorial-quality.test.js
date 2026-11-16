@@ -32,4 +32,8 @@ test('new thin releases are excluded even with migration verified, while older r
  assert.match(code,/new Map\(releaseCandidates\.map\(article=>\[article\.slug,article\]\)\)/);
  assert.match(code,/requirePublicationReview\(old,\{production:process\.env\.NODE_ENV==='production'\}\)/);
  assert.match(code,/router\.get\('\/api\/editor\/actus\/quality-queue',\.\.\.editor/);
+ assert.match(code,/router\.get\('\/api\/editor\/actus\/quality-audit',\.\.\.editor/);
+ assert.match(code,/scope:'published_mysql_cms_read_only'/);
+ assert.match(code,/publishedDocs\.map\(article=>/);
+ assert.match(code,/Cache-Control','private,no-store/);
 });
