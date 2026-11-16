@@ -3,7 +3,7 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
-const {injectSpaMetadata,rssXml,registerSeoRoutes}=require('../modules/swapp-seo');
+const {injectSpaMetadata,injectEditorialTeasers,rssXml,registerSeoRoutes}=require('../modules/swapp-seo');
 const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
 
 test('secondary public routes keep their crawlable editorial introductions',()=>{
@@ -304,4 +304,27 @@ test('Search Console verification survives alternate Hostinger UI_FILE without d
  assert.match(joined,new RegExp(token));
  const file=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
  assert.equal((injectSpaMetadata(file,'/').match(/google-site-verification/g)||[]).length,1);
+});
+
+test('published, substantial, sourced stories are readable in the initial ACTUS HTML',()=>{
+ const shell=injectSpaMetadata(html,'/actus');
+ const good={slug:'forte-analyse-de-jeu-video',status:'published',
+  title:'Analyse des choix de production du jeu & de son studio',
+  summary:'Ce dossier donne aux lecteurs les éléments pour comprendre les décisions de production et leurs conséquences sur la version finale.',
+  body:'Un article original avec des faits observables et une analyse détaillée. '.repeat(15),
+  sources:[{url:'https://example.org/official'}],publishedAt:'2026-11-16T12:00:00Z'};
+ const bad={...good,slug:'brouillon-secret',status:'draft',title:'Texte privé à ne pas publier'};
+ const out=injectEditorialTeasers(shell,[good,bad]);
+ assert.match(out,/data-swapp-editorial-ssr="1"/);
+ assert.match(out,/href="\/actus\/forte-analyse-de-jeu-video"/);
+ assert.match(out,/jeu &amp; de son studio/);
+ assert.doesNotMatch(out,/brouillon-secret|Texte privé à ne pas publier/);
+ assert.equal((out.match(/data-swapp-editorial-ssr/g)||[]).length,1);
+ assert.equal(injectEditorialTeasers(out,[good]),out,'must not duplicate article selection');
+});
+test('no article placeholder is invented when the CMS has no qualifying publications',()=>{
+ const raw=injectSpaMetadata(html,'/actus');
+ const data=[{slug:'tiny-note',title:'Un court titre de vidéo',summary:'A short text',body:'Nothing',status:'published',sources:[]}];
+ assert.equal(injectEditorialTeasers(raw,data),raw);
+ assert.equal(injectEditorialTeasers(raw,[]),raw);
 });
