@@ -21,3 +21,27 @@ test('database lock skips concurrent instances',async()=>{
  const result=await withWatchLock(pool,()=>{throw Error('must not run')});
  assert.equal(result.skipped,'another_instance_running');assert.equal(released,true);
 });
+
+test('cooldown is shared between workers after the MySQL advisory lock is released',async()=>{
+ let last=0,executions=0,releases=0;
+ const conn={
+  async query(sql){
+   if(sql.startsWith('SELECT GET_LOCK'))return [[{acquired:1}]];
+   if(sql.startsWith('SELECT RELEASE_LOCK')){releases++;return [[]];}
+   if(sql.startsWith('CREATE TABLE'))return [[]];
+   throw Error('unexpected query '+sql);
+  },
+  async execute(sql,params){
+   if(sql.startsWith('SELECT last_started_ms'))return [[last?{last_started_ms:last}:undefined].filter(Boolean)];
+   if(sql.startsWith('INSERT INTO swapp_tech_watch_schedule')){last=params[1];return [[]];}
+   throw Error('unexpected execute '+sql);
+  },
+  release(){}
+ };
+ const pool={getConnection:async()=>conn},run=()=>{executions++;return {saved:1};};
+ assert.deepEqual(await withWatchLock(pool,run,{intervalMs:3600000,nowMs:()=>10000000}),{saved:1});
+ assert.deepEqual(await withWatchLock(pool,run,{intervalMs:3600000,nowMs:()=>10010000}),{skipped:'recently_collected'});
+ assert.deepEqual(await withWatchLock(pool,run,{intervalMs:3600000,nowMs:()=>13600000}),{saved:1});
+ assert.equal(executions,2);
+ assert.equal(releases,3);
+});
