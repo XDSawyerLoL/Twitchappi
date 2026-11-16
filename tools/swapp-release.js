@@ -149,6 +149,7 @@ const RELEASE_FILES=Object.freeze([
  'lib/swapp-commercial-catalogue.js',
  'lib/swapp-server-ads.js',
  'lib/swapp-server-ad-requests.js',
+ 'modules/swapp-server-ad-requests-store.js',
  'modules/swapp-server-ads-store.js',
  'assets/swapp-server-ads-showcase.js',
  'assets/swapp-server-ads-showcase.css',
