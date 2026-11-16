@@ -54,6 +54,7 @@ La demander via **AdSense → Sites** uniquement lorsque les problèmes constat�
 - Barème éditorial interne dans `modules/swapp-news/editorial-quality.js` : un article substantiel, un résumé utile et une source HTTPS minimale. Ce barème est **interne** ; il ne représente **pas** les critères chiffrés de Google.
 - À partir du 17 novembre 2026 (UTC), les nouvelles releases qui échouent au contrôle sont exclues des candidats publiables sans bloquer les anciennes publications.
 - Les éditeurs peuvent consulter les éléments en attente via `/api/editor/actus/quality-queue` après authentification. Les nouvelles publications dans le Studio sont également contrôlées en production.
+- Un second endpoint authentifié, `/api/editor/actus/quality-audit`, examine à la demande les articles **effectivement publiés dans MySQL** et retourne les sujets à relire, sans les modifier ni lancer de tâche de fond.
 - **Important** : un contrôle automatique ne prouve ni l'originalité ni l'exactitude du fond. Tout article exige encore une relecture éditoriale avant publication.
 
 ### Vérifications indispensables avant réexamen
