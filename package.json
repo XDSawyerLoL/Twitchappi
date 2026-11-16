@@ -20,7 +20,8 @@
     "verify:social": "node tools/swapp-social-smoke.js",
     "audit:p0": "node tools/swapp-p0-audit.js",
     "social:relational:status": "node tools/swapp-social-relational-migrate.cjs",
-    "social:relational:backfill": "node tools/swapp-social-relational-migrate.cjs --apply"
+    "social:relational:backfill": "node tools/swapp-social-relational-migrate.cjs --apply",
+    "social:relational:verify": "node tools/swapp-social-relational-migrate.cjs --verify"
   },
   "engines": {
     "node": ">=20"

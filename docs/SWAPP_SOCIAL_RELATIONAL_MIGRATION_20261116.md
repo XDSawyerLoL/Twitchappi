@@ -16,8 +16,13 @@ encore le goulot d'étranglement des écritures JSON globales.
    puis lancer explicitement : \`npm run social:relational:backfill\`.
    La commande réalise le backfill dans une transaction et verrouille la source
    pour garantir une copie cohérente. En cas d'échec, rollback de l'index.
-5. Contrôler les comptages SQL et les comptes avec deux vrais utilisateurs.
-6. **Seulement après** validation, configurer \`SWAPP_SOCIAL_RELATIONAL_DUALWRITE=1\`
+5. **Vérifier la parité SQL** avant toute activation : `npm run social:relational:verify`.
+   Le script compare les publications et messages à la source, dans une transaction
+   de lecture cohérente. Il retourne seulement les compteurs, jamais les messages,
+   et échoue si un contenu, une clé indexée ou une ligne ne correspond pas.
+   Le backfill vérifie aussi cette parité **avant son COMMIT**.
+6. Contrôler les comptages SQL et les comptes avec deux vrais utilisateurs.
+7. **Seulement après** validation, configurer \`SWAPP_SOCIAL_RELATIONAL_DUALWRITE=1\`
    et redémarrer Node. Toute mutation de publication ou message met alors à jour
    le JSON historique et ses lignes relationnelles dans **la même transaction**.
 
@@ -32,3 +37,9 @@ L'index n'est PAS une source alternative de connexion, de sessions ou d'identit�
 + scénario réel publication, modification, suppression, message lu, reconnexion
 sur deux comptes et contrôle d'exactitude des tables. Ne pas déclarer la
 migration complète sur la base des tests unitaires seuls.
+
+## Performance et limites
+Le backfill insère désormais les lignes par lots de 64 au lieu d'une requête
+par publication/message. Le verrou est conservé jusqu'au contrôle de parité,
+ce qui impose une maintenance et un volume de données conforme aux plafonds.
+Les tables restent une projection : le fil public ne lit pas encore depuis SQL.
