@@ -148,6 +148,7 @@ const RELEASE_FILES=Object.freeze([
  'modules/swapp-creator-external-video-routes.js',
  'lib/swapp-commercial-catalogue.js',
  'lib/swapp-server-ads.js',
+ 'lib/swapp-server-ad-requests.js',
  'modules/swapp-server-ads-store.js',
  'assets/swapp-server-ads-showcase.js',
  'assets/swapp-server-ads-showcase.css',
