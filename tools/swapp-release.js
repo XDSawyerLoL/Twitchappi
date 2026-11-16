@@ -141,6 +141,8 @@ const RELEASE_FILES=Object.freeze([
  'assets/swapp-channel-polish.js',
  'assets/swapp-creator-external-videos.js',
  'assets/swapp-creator-external-videos.css',
+ 'assets/swapp-social-premium-preview.js',
+ 'assets/swapp-social-premium-preview.css',
  'lib/swapp-creator-external-videos.js',
  'modules/swapp-creator-external-video-store.js',
  'modules/swapp-creator-external-video-routes.js',
