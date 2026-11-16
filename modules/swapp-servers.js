@@ -221,7 +221,14 @@ function growthBanner(game=''){
 function page({isAdmin=false,game=''}={}){
  const gameHeroImage=game?categoryHeroCover(game):'';
  const gameHeroFallback=game?detailCover(game):'';
- const head='<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#050608"><title>'+esc(game?'Serveurs '+game+' — classement des communautés | SWAPP':'Serveurs de jeux — classements et communautés | SWAPP')+'</title><meta name="description" content="Découvre des serveurs gaming et roleplay, classe les communautés par votes et référence ton serveur sur SWAPP."><link rel="canonical" href="https://swapp.tv/serveurs'+(game?'/'+slug(game):'')+'">'+SHARED_HEAD_SLOT+'<link rel="stylesheet" href="/assets/swapp-servers.css?v=20261116-category-hero-v24"><link rel="stylesheet" href="/assets/swapp-servers-community.css?v=20261116-lfg-discord-v5"><link rel="stylesheet" href="/assets/swapp-server-ads-showcase.css?v=20261116-1">';
+ const head='<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#050608"><title>'+esc(game?'Serveurs '+game+' — classement des communautés | SWAPP':'Serveurs de jeux — classements et communautés | SWAPP')+'</title><meta name="description" content="Découvre des serveurs gaming et roleplay, classe les communautés par votes et référence ton serveur sur SWAPP."><link rel="canonical" href="https://swapp.tv/serveurs'+(game?'/'+slug(game):'')+'">'+'<meta property="og:type" content="website"><meta property="og:site_name" content="SWAPP">'+
+ '<meta property="og:title" content="'+esc(game?'Serveurs '+game+' | SWAPP':'SERVEUR+ · Communautés gaming | SWAPP')+'">'+
+ '<meta property="og:url" content="https://swapp.tv/serveurs'+(game?'/'+slug(game):'')+'">'+
+ '<meta property="og:description" content="Découvre les communautés gaming et roleplay sur SWAPP.">'+
+ '<meta property="og:image" content="https://swapp.tv/swapp-share-card.png">'+
+ '<meta property="og:image:secure_url" content="https://swapp.tv/swapp-share-card.png">'+
+ '<meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="https://swapp.tv/swapp-share-card.png">'+
+ SHARED_HEAD_SLOT+'<link rel="stylesheet" href="/assets/swapp-servers.css?v=20261116-category-hero-v24"><link rel="stylesheet" href="/assets/swapp-servers-community.css?v=20261116-lfg-discord-v5"><link rel="stylesheet" href="/assets/swapp-server-ads-showcase.css?v=20261116-1">';
  let content='<main class="ss ss-directory" data-ss-current-game="'+esc(game)+'">'+(game?'':growthBanner(game))+
   '<header class="ss-hero ss-directory-intro'+(game?' ss-directory-game-hero':'')+'">'+
   (gameHeroImage?'<div class="ss-directory-game-backdrop" aria-hidden="true"><img class="ss-directory-game-image" src="'+esc(gameHeroImage)+'" data-ss-fallback="'+esc(gameHeroFallback)+'" alt="" fetchpriority="high" decoding="async" referrerpolicy="no-referrer"></div>':'')+
