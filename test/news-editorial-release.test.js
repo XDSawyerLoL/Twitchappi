@@ -11,12 +11,18 @@ function mockStore(){
   const pending=[];
   const tx={
    async get(ref){return {exists:records.has(ref.id),data:()=>clone(records.get(ref.id))}},
-   create(ref,record){pending.push({ref,record:clone(record)})}
+   create(ref,record){pending.push({kind:'create',ref,record:clone(record)})},
+   update(ref,patch){pending.push({kind:'update',ref,patch:clone(patch)})}
   };
   const result=await fn(tx);
   for(const item of pending){
-   if(records.has(item.ref.id))throw Error('already exists');
-   records.set(item.ref.id,item.record);
+   if(item.kind==='update'){
+    if(!records.has(item.ref.id))throw Error('missing record');
+    records.set(item.ref.id,{...records.get(item.ref.id),...item.patch});
+   }else{
+    if(records.has(item.ref.id))throw Error('already exists');
+    records.set(item.ref.id,item.record);
+   }
   }
   return result;
  }};
@@ -62,4 +68,26 @@ test('respects any existing editor revision or withdrawn draft',async()=>{
  assert.equal(store.records.get(releases[0].slug).revision,5);
  assert.equal(store.records.get(releases[1].slug).status,'draft');
  assert.equal(store.records.size,releases.length);
+});
+
+test('repairs missing images only on untouched published release records',async()=>{
+ const store=mockStore();
+ const releases=loadEditorialReleases();
+ const withCover=releases.find(a=>a.image?.url&&a.thumbnail?.url);
+ assert.ok(withCover,'At least one release must have an official cover');
+ const base={slug:withCover.slug,status:'published',revision:1,provenance:'swapp-editorial-release',image:null,thumbnail:null,title:'Original'};
+ store.records.set(withCover.slug,base);
+ const sync=createEditorialReleaseSync({...store,releaseArticles:[withCover]});
+ const result=await sync.sync();
+ assert.equal(result.mediaRepaired,1);
+ assert.equal(store.records.get(withCover.slug).image.url,withCover.image.url);
+ assert.equal(store.records.get(withCover.slug).title,'Original');
+ const protectedCases=[{...base,revision:2},{...base,status:'draft'},{...base,provenance:'manual'},{...base,image:{url:'https://example.com/custom.jpg'}}];
+ for(const original of protectedCases){
+  const local=mockStore();local.records.set(withCover.slug,original);
+  const run=createEditorialReleaseSync({...local,releaseArticles:[withCover]});
+  const out=await run.sync();
+  assert.equal(out.mediaRepaired,0);
+  assert.deepEqual(local.records.get(withCover.slug),original);
+ }
 });
