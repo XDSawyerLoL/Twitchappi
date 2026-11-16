@@ -11,6 +11,8 @@
  const make=(tag,cls,value)=>{const el=document.createElement(tag);if(cls)el.className=cls;if(value!==undefined)el.textContent=String(value);return el};
  const players=$('#ss-lfg-list'),lives=$('#ss-community-lives'),form=$('#ss-lfg-form');
  const remove=$('#ss-lfg-remove'),playerStatus=$('#ss-lfg-status');
+ const availableCount=$('#ss-lfg-count'),availableLabel=$('#ss-lfg-count-label');
+ const submitButton=form?.querySelector('[type="submit"]');
  const creatorStatus=$('#ss-creator-status'),creatorActions=$('#ss-creator-actions');
  const ownerTwitch=String(root.querySelector('[data-ss-owner-twitch]')?.dataset.ssOwnerTwitch||'');
  const endpoint='/api/swapp/serveurs/'+encodeURIComponent(id);
@@ -42,33 +44,66 @@
  function drawPlayers(){
   if(!players||!current)return;
   players.replaceChildren();
+  players.setAttribute('aria-busy','false');
   const entries=Array.isArray(current.players)?current.players:[];
-  remove.hidden=!current.mine?.lfg;
-  if(!entries.length){players.append(make('p','ss-community-empty','Personne n’a signalé sa disponibilité dans cette communauté.'));return}
+  const mine=Boolean(current.mine?.lfg);
+  if(remove)remove.hidden=!mine;
+  if(submitButton){
+   const title=submitButton.querySelector('.ss-lfg-action-label strong');
+   const detail=submitButton.querySelector('.ss-lfg-action-label small');
+   if(title)title.textContent=mine?'Actualiser ma disponibilité':'Me rendre disponible';
+   if(detail)detail.textContent=mine?'Prolonger ma visibilité d’une heure':'Mon annonce sera visible 1 heure';
+  }
+  if(availableCount)availableCount.textContent=entries.length>=30?'30+':String(entries.length);
+  if(availableLabel)availableLabel.textContent=entries.length===0?'Aucun joueur signalé':
+   entries.length===1?'Joueur disponible':'Joueurs disponibles';
+  if(!entries.length){
+   const empty=make('div','ss-lfg-empty');
+   const visual=make('span','ss-lfg-empty-icon','✦');visual.setAttribute('aria-hidden','true');
+   const content=make('div','ss-lfg-empty-copy');
+   content.append(make('strong','','La prochaine équipe commence avec toi.'),
+    make('p','','Personne n’a encore publié de disponibilité ici. Fais-toi connaître et invite d’autres joueurs à te rejoindre.'));
+   const action=make('button','ss-lfg-empty-action','Publier ma disponibilité');
+   action.type='button';
+   action.addEventListener('click',()=>{
+    form?.scrollIntoView({behavior:window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches?'auto':'smooth',block:'center'});
+    form?.elements?.message?.focus();
+   });
+   empty.append(visual,content,action);players.append(empty);return;
+  }
   for(const person of entries){
-   const card=make('article','ss-community-player');
-   const first=make('div','ss-community-row');
+   const card=make('article','ss-community-player ss-lfg-player');
+   const avatar=make('span','ss-lfg-avatar',String(person.name||'J').trim().charAt(0).toUpperCase()||'J');
+   avatar.setAttribute('aria-hidden','true');
+   const info=make('div','ss-lfg-player-info');
+   const first=make('div','ss-community-row ss-lfg-player-heading');
    first.append(make('strong','',person.name||'Joueur SWAPP'));
-   if(person.mine)first.append(make('span','ss-community-owner','Moi'));
-   card.append(first);
+   if(person.mine)first.append(make('span','ss-community-owner','Mon annonce'));
+   info.append(first);
    const note=String(person.message||'').trim();
-   if(note)card.append(make('p','',note));
-   card.append(make('small','',voiceLabel[person.voice]||'Vocal au choix'));
-   players.append(card);
+   if(note)info.append(make('p','',note));
+   const meta=make('div','ss-lfg-player-meta');
+   meta.append(make('span','ss-lfg-voice-badge',voiceLabel[person.voice]||'Vocal au choix'));
+   const expiration=Date.parse(String(person.expires_at||''));
+   if(Number.isFinite(expiration)){
+    const minutes=Math.ceil((expiration-Date.now())/60000);
+    if(minutes>0&&minutes<=60)meta.append(make('small','','Encore '+minutes+' min'));
+   }
+   info.append(meta);card.append(avatar,info);players.append(card);
   }
  }
  async function submitPlayer(event){
   event.preventDefault();const button=form.querySelector('[type="submit"]');button.disabled=true;
   try{
    await call('/lfg',{message:form.elements.message.value,voice:form.elements.voice.value});
-   message(playerStatus,'Disponibilité publiée pour une heure. Pour rejoindre une partie, utilise les coordonnées de la communauté.');
+   message(playerStatus,'Tu es visible pendant une heure. Les joueurs peuvent maintenant te retrouver dans cette communauté.');
    await refresh();
   }catch(error){message(playerStatus,error.message)}finally{button.disabled=false}
  }
  form?.addEventListener('submit',submitPlayer);
  remove?.addEventListener('click',async()=>{
   remove.disabled=true;
-  try{await call('/lfg/remove');message(playerStatus,'Ta disponibilité a été retirée.');await refresh()}
+  try{await call('/lfg/remove');message(playerStatus,'Ta disponibilité a été retirée. Tu pourras la republier quand tu voudras.');await refresh()}
   catch(error){message(playerStatus,error.message)}finally{remove.disabled=false}
  });
  async function creatorAction(path,body,success){
@@ -190,17 +225,32 @@
  async function init(){
   try{await refresh()}catch(error){
    message(playerStatus,error.message);
-   players.replaceChildren(make('p','ss-community-empty','Disponibilités momentanément indisponibles.'));
+   if(players){
+    players.setAttribute('aria-busy','false');
+    players.replaceChildren(make('p','ss-community-empty','Impossible de vérifier les disponibilités pour le moment.'));
+   }
+   if(availableCount)availableCount.textContent='—';
+   if(availableLabel)availableLabel.textContent='Données non vérifiées';
    lives.replaceChildren(make('p','ss-community-empty','Impossible de vérifier les créateurs de cette communauté.'));
    return;
   }
   getVerifiedLives().catch(()=>{liveFailure=true;drawLives()});
  }
  init();
- const ticker=setInterval(()=>{
+ // Presence expires after 60 minutes. Update the visible module each minute.
+ // Keep external Twitch/SWAPP discovery at its existing 5-minute cadence.
+ const presenceTicker=setInterval(()=>{
   if(document.visibilityState!=='visible')return;
-  refresh().catch(()=>{});
+  refresh().catch(()=>{
+   if(availableCount)availableCount.textContent='—';
+   if(availableLabel)availableLabel.textContent='Mise à jour indisponible';
+  });
+ },60*1000);
+ const liveTicker=setInterval(()=>{
+  if(document.visibilityState!=='visible')return;
   getVerifiedLives().catch(()=>{});
  },5*60*1000);
- window.addEventListener('pagehide',()=>clearInterval(ticker),{once:true});
+ window.addEventListener('pagehide',()=>{
+  clearInterval(presenceTicker);clearInterval(liveTicker);
+ },{once:true});
 })();
