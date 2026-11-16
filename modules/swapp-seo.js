@@ -479,6 +479,40 @@ function enhanceLandingHtml(html,path){
  return result.slice(0,end)+content+result.slice(end);
 }
 
+// Readable public editorial entry points, visible to both people and crawlers
+// without relying on a client-side data fetch. Only verified CMS publications
+// are passed in by the news router; no fallback drafts or fictitious inventory.
+function injectEditorialTeasers(html,articles=[]){
+ const raw=String(html||'');
+ const open='<section id="actus" class="view" aria-label="Actualités SWAPP">';
+ const start=raw.indexOf(open);
+ if(start<0||!Array.isArray(articles)||!articles.length)return raw;
+ const end=raw.indexOf('</section>',start+open.length);
+ if(end<0||raw.includes('data-swapp-editorial-ssr="1"'))return raw;
+ const validSlug=/^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/;
+ const eligible=articles.filter(a=>a&&a.status==='published'&&validSlug.test(String(a.slug||''))&&
+  String(a.title||'').trim().length>=16&&String(a.summary||'').trim().length>=60&&
+  String(a.body||'').trim().length>=350&&Array.isArray(a.sources)&&a.sources.some(x=>/^https:\/\//.test(String(x?.url||''))));
+ const seen=new Set();
+ const links=eligible.filter(a=>{if(seen.has(a.slug))return false;seen.add(a.slug);return true})
+  .sort((a,b)=>String(b.originalPublishedAt||b.publishedAt||'').localeCompare(String(a.originalPublishedAt||a.publishedAt||'')))
+  .slice(0,8).map(a=>{
+   const href='/actus/'+encodeURIComponent(a.slug);
+   const date=new Date(a.originalPublishedAt||a.publishedAt||'');
+   const when=Number.isFinite(date.getTime())?'<time datetime="'+encodeXml(date.toISOString().slice(0,10))+'">'+encodeXml(date.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric',timeZone:'UTC'}))+'</time>':'';
+   return '<article class="swapp-ssr-editorial-card"><a href="'+href+'"><h3>'+encodeXml(a.title)+'</h3></a>'+
+    '<p>'+encodeXml(String(a.summary).trim().slice(0,280))+'</p>'+when+'</article>';
+  }).join('');
+ if(!links)return raw;
+ const markup='<section class="swapp-ssr-editorial" data-swapp-editorial-ssr="1" aria-labelledby="swapp-ssr-editorial-title">'+
+  '<h2 id="swapp-ssr-editorial-title">Articles de la rédaction SWAPP</h2>'+
+  '<p>Nos publications vérifiées, à lire directement sur SWAPP.</p>'+
+  '<div class="swapp-ssr-editorial-grid">'+links+'</div></section>';
+ const styles='<style>.swapp-ssr-editorial{max-width:1240px;margin:28px auto 52px;padding:0 24px;color:#f5f7fa;font:400 15px/1.55 system-ui,sans-serif}.swapp-ssr-editorial h2{font-size:clamp(23px,3vw,34px);margin:0 0 8px}.swapp-ssr-editorial>p{color:#9daebb;margin:0 0 20px}.swapp-ssr-editorial-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:14px}.swapp-ssr-editorial-card{padding:18px;background:#10151c;border:1px solid #ffffff1b;border-radius:8px}.swapp-ssr-editorial-card h3{font-size:17px;line-height:1.3;margin:0 0 12px}.swapp-ssr-editorial-card a{color:#fff;text-decoration:none}.swapp-ssr-editorial-card a:hover{text-decoration:underline}.swapp-ssr-editorial-card p{color:#bcc7d1;margin:0 0 14px}.swapp-ssr-editorial-card time{font-size:12px;color:#8babbc}</style>';
+ const output=raw.slice(0,end)+markup+raw.slice(end);
+ return output.replace('</head>',styles+'</head>');
+}
+
 const NOINDEX_PATHS=new Set(['/compte','/connexion','/settings','/gestionnaire','/manager','/dashboard','/studio','/admin','/boutique/admin','/reset-password']);
 // Search Console HTML-tag ownership is checked on the public homepage's
 // server-rendered <head>. Some hosts override index.html via UI_FILE.
@@ -529,4 +563,4 @@ function injectSpaMetadata(html,pathname='/'){
  }
  return result.replace('</head>','<meta name="robots" content="noindex,nofollow"></head>');
 }
-module.exports={ORIGIN,CORE_PATHS,INDEXNOW_KEY,INDEXNOW_KEY_PATH,sitemapEntries,sitemapXml,newsSitemapXml,creatorSitemapXml,sitemapHtml,rssXml,robotsText,registerSeoRoutes,invalidateSeoCache,cachedGameHubForArticle,verifiedIndexedGame,notifyIndexNow,ensureSearchConsoleMeta,injectSpaMetadata,injectCreatorMetadata};
+module.exports={ORIGIN,CORE_PATHS,INDEXNOW_KEY,INDEXNOW_KEY_PATH,sitemapEntries,sitemapXml,newsSitemapXml,creatorSitemapXml,sitemapHtml,rssXml,robotsText,registerSeoRoutes,invalidateSeoCache,cachedGameHubForArticle,verifiedIndexedGame,notifyIndexNow,ensureSearchConsoleMeta,injectSpaMetadata,injectCreatorMetadata,injectEditorialTeasers};
