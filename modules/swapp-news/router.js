@@ -84,6 +84,8 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
     if(process.env.NODE_ENV!=='production'||!isReady())return;
     try{
       const result=await releaseSync.sync();
+      if(result.editorialEnriched>0)console.info('[SWAPP EDITORIAL] Source-verified revisions applied:',
+        result.results.filter(r=>r.status==='editorial_enriched').map(r=>r.slug).join(', '));
       if(result.created>0)discordPublisher.kick();
     }catch(error){console.warn('[SWAPP EDITORIAL] Adoption CMS reportee:',String(error?.message||error).slice(0,180));}
   };
