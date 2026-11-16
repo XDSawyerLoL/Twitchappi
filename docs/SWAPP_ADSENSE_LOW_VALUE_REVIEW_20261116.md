@@ -36,3 +36,32 @@ Source officielle : https://support.google.com/adsense/answer/10015918?hl=fr
 
 ## Demande de réexamen
 La demander via **AdSense → Sites** uniquement lorsque les problèmes constatés sont réellement résolus sur le site public. Aucun seuil chiffré de pages ni délai d'approbation ne peut être garanti.
+
+## Actions éditoriales complémentaires — 16 novembre 2026
+
+### Deux dossiers approfondis et vérifiés
+- `xbox-25-jeux-originaux-pc-retrocompatibilite-novembre-2026` : dossier étendu (1 332 → 4 885 caractères), avec distinctions catalogue/Game Pass, nouveaux succès, choix selon les genres et précautions avant achat. Sources officielles Xbox Wire et page de compatibilité Xbox.
+- `ps5-qssr-spider-man-2-arc-raiders-no-mans-sky-2026` : dossier étendu (1 278 → 4 163 caractères), statut des différentes mises à jour, distinction QSSR/PSSR et protocole de comparaison honnête. Sources PlayStation Blog et notes de version Insomniac.
+- Les deux nouvelles versions sont enregistrées dans les releases versionnées, et non introduites comme de nouveaux articles dupliqués.
+- Le module `editorial-release-sync.js` ne réécrit un article MySQL existant que si son contenu, son résumé et ses sources correspondent **exactement** à la version précédente. Les versions manuellement modifiées, retirées ou provenant d'une autre source sont conservées. Aucune édition MySQL n'est revendiquée sans déploiement et contrôle.
+
+### Guide durable original, au-delà des communiqués
+- Nouvelle page `/guides/choisir-communaute-gaming` : grille concrète de sélection, critères d'activité, modération, disponibilité effective des joueurs, distinction entre Discord, live et serveur de jeu, sécurité des nouveaux membres.
+- Page native avec HTML complet sans JS, liens internes vers SERVEUR+ et Explorer, déclaration de sources et limites de la méthode, et inscription dans le sitemap.
+- Aucun serveur, chiffre de membres, classement ou témoignage inventé.
+
+### Prévention des contenus faibles à venir
+- Barème éditorial interne dans `modules/swapp-news/editorial-quality.js` : un article substantiel, un résumé utile et une source HTTPS minimale. Ce barème est **interne** ; il ne représente **pas** les critères chiffrés de Google.
+- À partir du 17 novembre 2026 (UTC), les nouvelles releases qui échouent au contrôle sont exclues des candidats publiables sans bloquer les anciennes publications.
+- Les éditeurs peuvent consulter les éléments en attente via `/api/editor/actus/quality-queue` après authentification. Les nouvelles publications dans le Studio sont également contrôlées en production.
+- **Important** : un contrôle automatique ne prouve ni l'originalité ni l'exactitude du fond. Tout article exige encore une relecture éditoriale avant publication.
+
+### Vérifications indispensables avant réexamen
+1. Déployer le code sur Hostinger ; contrôler le rendu réel de `/actus` et `/guides/choisir-communaute-gaming`, ainsi que les deux articles révisés.
+2. Examiner le résultat des mises à jour MySQL : le contenu ne doit être enrichi que si la version d'origine était intacte.
+3. Renseigner les pages légales avec **les informations authentiques**, en particulier l'éditeur réel, les coordonnées de contact et les mentions RGPD. Aucune adresse ou identité n'a été inventée.
+4. Examiner les autres articles dans la vraie base MySQL. L'audit des releases ne suffit pas à lui seul.
+5. Valider que les robots légitimes ne reçoivent pas d'erreur CDN, puis tester la navigation sur mobile et sans connexion.
+6. Demander le réexamen Google uniquement lorsque le site public est durablement conforme.
+
+Références : https://support.google.com/adsense/answer/10015918?hl=fr ; https://developers.google.com/search/docs/fundamentals/creating-helpful-content?hl=fr .
