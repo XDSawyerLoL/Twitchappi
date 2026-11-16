@@ -202,3 +202,20 @@ test('SEO status reuses the cache when a verified editorial sitemap is available
  assert.match(news.body,/https:\/\/swapp\.tv\/actus\/real-story-today/);
  assert.equal(h.reads(),1);
 });
+
+test('all public SPA landing cards expose a first-party PNG readable by X',()=>{
+ const html='<html><head><title>SWAPP</title></head><body></body></html>';
+ for(const route of ['/','/actus','/decouvrir','/explorer']){
+  const out=injectSpaMetadata(html,route);
+  assert.match(out,/<meta name="twitter:card" content="summary_large_image">/);
+  assert.match(out,/<meta property="og:image" content="https:\/\/swapp\.tv\/swapp-share-card\.png">/);
+  assert.match(out,/<meta name="twitter:image" content="https:\/\/swapp\.tv\/swapp-share-card\.png">/);
+  assert.match(out,/<meta property="og:image:type" content="image\/png">/);
+  assert.match(out,/<meta property="og:image:width" content="1200">/);
+  assert.match(out,/<meta property="og:image:height" content="630">/);
+ }
+ const server=fs.readFileSync(path.join(root,'server.js'),'utf8');
+ assert.match(server,/app\.get\('\/swapp-share-card\.png'/);
+ assert.match(server,/brandedPng\(\{title:/);
+ assert.match(server,/public, max-age=86400, no-transform/);
+});
