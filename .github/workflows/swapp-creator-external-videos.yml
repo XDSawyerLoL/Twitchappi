@@ -6,6 +6,7 @@ on:
       - 'modules/swapp-creator-external-video-*.js'
       - 'assets/swapp-creator-external-videos.*'
       - 'test/swapp-creator-external-videos.test.js'
+      - 'test/swapp-creator-external-video-routes.test.js'
       - '.github/workflows/swapp-creator-external-videos.yml'
   workflow_dispatch:
 jobs:
@@ -26,4 +27,4 @@ jobs:
           node --check assets/swapp-creator-external-videos.js
           node --check server.js
       - name: Provider and security unit tests
-        run: node --test test/swapp-creator-external-videos.test.js
+        run: node --test test/swapp-creator-external-videos.test.js test/swapp-creator-external-video-routes.test.js
