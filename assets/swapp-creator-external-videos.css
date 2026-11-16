@@ -112,3 +112,13 @@
 @media(prefers-reduced-motion:reduce){
  #channel .swapp-external-video-stage{transition:none!important}
 }
+
+/* Creator Studio preview with the same obsidian visual language. */
+#channel .swapp-external-video-subtitle,#channel .swapp-external-video-editor-intro{color:#b9c4cf;font-size:13px;line-height:1.5;max-width:68ch}
+#channel .swapp-external-video-heading{flex-wrap:wrap}
+#channel .swapp-external-video-heading .swapp-external-video-subtitle{flex-basis:100%;margin:0}
+#channel .swapp-external-video-draft-preview{margin:20px 0;padding:18px 0;border-top:1px solid rgba(235,242,247,.14);border-bottom:1px solid rgba(235,242,247,.14)}
+#channel .swapp-external-video-draft-preview h3{font-size:13px;letter-spacing:.06em;margin:0 0 12px}
+#channel .swapp-external-video-draft-preview .swapp-external-video-rail{overflow-x:auto;overscroll-behavior-inline:contain}
+#channel .swapp-external-video-editor-row:focus-within{outline:1px solid rgba(230,243,251,.28);outline-offset:2px}
+@media(prefers-reduced-motion:reduce){#channel .swapp-external-video-draft-preview *{scroll-behavior:auto!important}}

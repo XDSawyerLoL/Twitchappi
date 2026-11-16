@@ -11,9 +11,19 @@ const login=page=>{
 const el=(tag,cls,text)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(text)n.textContent=text;return n};
 function videoEmbed(v){
  try{
-  const u=new URL(v.url);
-  if(v.provider==='youtube'&&u.hostname==='www.youtube.com'&&/^[\w-]{11}$/.test(u.searchParams.get('v')||''))return 'https://www.youtube-nocookie.com/embed/'+u.searchParams.get('v');
-  if(v.provider==='odysee'&&u.hostname==='odysee.com'&&/^\/@[^/]+:[a-z0-9]+\/[^/]+:[a-z0-9]+$/i.test(u.pathname))return 'https://odysee.com/$/embed/'+u.pathname.slice(1);
+  const u=new URL(String(v?.url||''));
+  if(u.protocol!=='https:'||u.username||u.password||u.port||u.hash)return '';
+  const host=u.hostname.toLowerCase().replace(/\.$/,'');
+  let id='';
+  if(host==='youtu.be'&&/^\/[\w-]{11}\/?$/.test(u.pathname))id=u.pathname.split('/')[1];
+  else if(['youtube.com','www.youtube.com','m.youtube.com'].includes(host)){
+   if(u.pathname==='/watch')id=u.searchParams.get('v')||'';
+   else if(/^\/(shorts|live|embed)\/[\w-]{11}\/?$/.test(u.pathname))id=u.pathname.split('/')[2];
+  }
+  if(id&&/^[\w-]{11}$/.test(id))return 'https://www.youtube-nocookie.com/embed/'+id;
+  if(['odysee.com','www.odysee.com'].includes(host)&&
+     /^\/@[^/]+:[a-z0-9]+\/[^/]+:[a-z0-9]+\/?$/i.test(u.pathname))
+   return 'https://odysee.com/$/embed/'+u.pathname.slice(1).replace(/\/$/,'');
  }catch(_){}
  return '';
 }
@@ -45,7 +55,8 @@ async function api(path,options){
 function render(page,section,videos,owner,creator){
  section.replaceChildren();
  const header=el('div','swapp-external-video-heading');
- header.append(el('h2','','Vidéos du créateur'));
+ header.append(el('h2','',owner?'Creator Studio · Mes vidéos':'Vidéos du créateur'));
+ if(owner)header.append(el('p','swapp-external-video-subtitle','Organise tes cinq vidéos externes sans hébergement SWAPP.'));
  if(owner){const edit=el('button','swapp-external-video-edit','Gérer mes vidéos');edit.type='button';edit.onclick=()=>editor(section,videos,creator,()=>load(page,true));header.append(edit)}
  section.append(header);
  if(!videos.length){if(owner)section.append(el('p','','Ajoute jusqu’à cinq vidéos Odysee ou YouTube.'));else section.remove();return}
@@ -57,8 +68,10 @@ function render(page,section,videos,owner,creator){
 function editor(section,initial,creator,refresh){
  const pageRefresh=refresh;
  let videos=initial.map(v=>({...v}));section.replaceChildren();
- section.append(el('h2','','Gérer mes vidéos'));
+ section.append(el('h2','','Creator Studio · Organiser mes vidéos'));
+ section.append(el('p','swapp-external-video-editor-intro','Prévisualise, classe et choisis une vidéo à la une avant de publier.'));
  const list=el('div','swapp-external-video-editor-list');section.append(list);
+ const preview=el('div','swapp-external-video-draft-preview');preview.setAttribute('aria-label','Aperçu de ma sélection');section.append(preview);
  const message=el('p','swapp-external-video-message');message.setAttribute('role','status');message.setAttribute('aria-live','polite');
  const form=el('form','swapp-external-video-form');
  const url=el('input');url.type='url';url.placeholder='Lien Odysee ou YouTube';url.required=true;url.maxLength=320;
@@ -70,11 +83,18 @@ function editor(section,initial,creator,refresh){
  const cancel=el('button','','Annuler');cancel.type='button';cancel.onclick=refresh;
  actions.append(save,cancel);section.append(actions);
  function draw(){
-  list.replaceChildren();
+  list.replaceChildren();preview.replaceChildren();
   message.textContent=videos.length+'/5 vidéos sélectionnées';
+  if(videos.length){
+   preview.append(el('h3','','Aperçu avant publication'));
+   const rail=el('div','swapp-external-video-rail');
+   const prioritized=[...videos].sort((a,b)=>Number(!!b.pinned)-Number(!!a.pinned));
+   prioritized.forEach(v=>rail.append(card(v)));
+   preview.append(rail);
+  }
   videos.forEach((v,i)=>{
    const line=el('div','swapp-external-video-editor-row');
-   line.append(el('span','',v.title||v.url));
+   line.append(el('span','',(v.pinned?'À la une · ':'')+(v.title||v.url)));
    for(const [label,fn] of [['À la une',()=>{videos.forEach(x=>x.pinned=false);v.pinned=true;draw()}],['↑',()=>{if(i){[videos[i-1],videos[i]]=[videos[i],videos[i-1]];draw()}}],['↓',()=>{if(i<videos.length-1){[videos[i+1],videos[i]]=[videos[i],videos[i+1]];draw()}}],['Supprimer',()=>{videos.splice(i,1);draw()}]]){
     const b=el('button','',label);b.type='button';b.onclick=fn;line.append(b);
    }list.append(line);

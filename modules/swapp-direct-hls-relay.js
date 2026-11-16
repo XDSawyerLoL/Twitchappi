@@ -615,14 +615,15 @@ function attachSwappDirectRelay(app, opts={}){
  app.get('/api/oryon/local-relay/:login/index.m3u8',(req,res)=>{
   notCached(res);
   const login=cleanLogin(req.params.login),r=login&&liveRoom(login);
-  const manifest=sharedMediaView(login)?.manifest||r?.manifest;
+  // Don't advertise an old playlist when OBS has stopped producing frames.
+  const manifest=sharedMediaView(login)?.manifest||(hasFreshVideo(r)?r.manifest:null);
   if(!manifest)return res.sendStatus(404);
   res.type('application/vnd.apple.mpegurl').send(manifest);
  });
  app.get('/api/oryon/local-relay/:login/dvr.m3u8',(req,res)=>{
   notCached(res);
   const login=cleanLogin(req.params.login),r=login&&liveRoom(login);
-  const manifest=r&&r.manifest?dvrManifest(r):'';
+  const manifest=hasFreshVideo(r)?dvrManifest(r):'';
   if(!manifest)return res.sendStatus(404);
   res.type('application/vnd.apple.mpegurl').send(manifest);
  });
@@ -666,7 +667,10 @@ function attachSwappDirectRelay(app, opts={}){
   notCached(res);
   const login=cleanLogin(req.params.login),name=cleanName(req.params.segment),r=login&&liveRoom(login);
   if(!login||!name||!name.endsWith('.ts'))return res.sendStatus(404);
-  const bytes=sharedRead(login,name)||r?.segments.get(name);
+  // Every served TS segment must belong to a genuinely fresh live window.
+  const shared=sharedMediaView(login);
+  const bytes=(shared&&shared.names.includes(name)?sharedRead(login,name):null)||
+    (hasFreshVideo(r)?r.segments.get(name):null);
   if(!bytes){
    // A slow viewer can fall outside a bounded in-memory HLS window.
    // Surface this to the owner without logging IPs or private keys.

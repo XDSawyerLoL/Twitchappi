@@ -9,7 +9,7 @@ function backend(){
  const mod={exports:{}};
  vm.runInNewContext(source,{
   require(p){if(p==='express')return express;if(p.startsWith('./'))return require('../modules/'+p.slice(2));return require(p)},
-  module:mod,process:{env:{}},Buffer,Date,setInterval(){return{unref(){}}}
+  module:mod,__dirname:path.join(__dirname,'..','modules'),process:{env:{}},Buffer,Date,setInterval(){return{unref(){}}}
  });
  const app={get:(p,fn)=>routes.get.set(p,fn),post:(p,...fns)=>routes.post.set(p,fns.at(-1)),
   put:(p,...fns)=>routes.put.set(p,fns.at(-1))};
@@ -19,7 +19,8 @@ function backend(){
   lookupDashboardOwner:async()=>({login:'vnhz'})
  });
  const call=async(method,route,options={})=>{
-  const fn=routes[method].get(route);assert.ok(fn,'missing '+route);
+  const paramRoute=route.replace(/\/vnhz(?=\/)/g,'/:login');
+  const fn=routes[method].get(route)||routes[method].get(paramRoute);assert.ok(fn,'missing '+route);
   const headers={},req={params:{login:'vnhz',segment:options.segment},
    query:{cid:'a'.repeat(48),file:options.file},headers:{},body:options.body,
    get(key){if(key==='x-swapp-media-name')return this.headers['x-swapp-media-name']||'';

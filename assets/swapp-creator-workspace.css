@@ -1,10 +1,10 @@
 /* SWAPP Account / native renderer. Replaces the old settings styles rather than stacking another override. */
-:root{--swapp-workspace-line:rgba(174,198,217,.19);--swapp-workspace-type:#f3f7fd;--swapp-workspace-muted:#aebed0;--swapp-workspace-accent:var(--swapp-side-light,var(--brand,#76e7e3))}
+:root{--swapp-workspace-line:rgba(225,238,246,.14);--swapp-workspace-type:#f3f7fd;--swapp-workspace-muted:#aebed0;--swapp-workspace-accent:#a6c9d7}
 #settings.view.active,#dashboard.view.active,#manager.view.active,#studio.view.active{min-width:0;color:var(--swapp-workspace-type);padding-bottom:88px}
 #settings .swapp-account-workspace-v2{width:min(1390px,calc(100% - clamp(28px,5vw,90px)));margin:0 auto;padding:clamp(28px,4.8vw,72px) 0 88px;min-width:0}
 #settings .swapp-acct-header{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:0 0 clamp(22px,3vw,38px);border-bottom:1px solid var(--swapp-workspace-line)}
 #settings .swapp-acct-identity{display:flex;align-items:center;gap:22px;min-width:0}
-#settings .swapp-acct-monogram{display:grid;flex:none;place-items:center;width:clamp(62px,7vw,93px);aspect-ratio:1;border:1px solid var(--swapp-workspace-line);border-radius:7px;background:linear-gradient(135deg,#273449,#111c2a);font-size:clamp(26px,4vw,42px);font-weight:850}
+#settings .swapp-acct-monogram{display:grid;flex:none;place-items:center;width:clamp(62px,7vw,93px);aspect-ratio:1;border:1px solid var(--swapp-workspace-line);border-radius:7px;background:linear-gradient(135deg,#202427,#101214);font-size:clamp(26px,4vw,42px);font-weight:850}
 #settings .swapp-acct-kicker{display:block;font-size:11px;letter-spacing:.145em;font-weight:820;color:var(--swapp-workspace-accent);text-transform:uppercase;margin-bottom:10px}
 #settings .swapp-acct-identity h1{font-size:clamp(32px,4.4vw,62px)!important;letter-spacing:-.065em;line-height:1.05;margin:0 0 10px!important;overflow-wrap:anywhere}
 #settings .swapp-acct-identity p{font-size:13px;color:var(--swapp-workspace-muted);margin:0;line-height:1.5}
@@ -111,7 +111,7 @@
 .swapp-creator-workspace .swapp-workspace-brand strong{font-size:20px;letter-spacing:-.05em}
 .swapp-creator-workspace .creatorSide nav{display:flex;flex-direction:column;gap:0}
 .swapp-creator-workspace .creatorSide button{border:0!important;border-radius:0!important;box-shadow:none!important;background:none!important;color:#b5c5d8!important;font-weight:740;text-align:left!important;padding:14px 15px 14px 11px!important;min-height:47px;border-left:2px solid transparent!important;transition:background-color .15s}
-.swapp-creator-workspace .creatorSide button.active,.swapp-creator-workspace .creatorSide button[aria-current=page]{background:rgba(112,215,222,.085)!important;border-left-color:var(--swapp-workspace-accent)!important;color:#fff!important}
+.swapp-creator-workspace .creatorSide button.active,.swapp-creator-workspace .creatorSide button[aria-current=page]{background:rgba(219,238,248,.07)!important;border-left-color:var(--swapp-workspace-accent)!important;color:#fff!important}
 .swapp-creator-workspace .creatorSide button:hover{background:#ffffff0a!important;color:white!important}
 .swapp-creator-workspace .swapp-workspace-exit{display:block;margin:22px 15px 0 0;padding-top:18px;border-top:1px solid var(--swapp-workspace-line);color:var(--swapp-workspace-accent);font-size:12px;font-weight:750}
 .swapp-creator-workspace>.swapp-creator-main{min-width:0;width:100%;padding:0!important;margin:0!important}
@@ -119,10 +119,10 @@
 .swapp-creator-workspace .postLiveBox,.swapp-creator-workspace .obsBox{
  border-radius:0!important;box-shadow:none!important;background-image:none!important;
 }
-.swapp-creator-workspace .panel{background:#141f2c!important;border:1px solid var(--swapp-workspace-line)!important;padding:clamp(16px,2vw,27px)!important;min-width:0}
+.swapp-creator-workspace .panel{background:#101215!important;border:1px solid var(--swapp-workspace-line)!important;padding:clamp(16px,2vw,27px)!important;min-width:0}
 .swapp-creator-workspace .panel h2,.swapp-creator-workspace .obsBox h2{font-size:clamp(18px,2vw,25px);letter-spacing:-.035em;line-height:1.25;margin:0 0 16px}
 .swapp-creator-workspace .stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--swapp-workspace-line);margin:0}
-.swapp-creator-workspace .stat{display:flex;flex-direction:column;gap:8px;min-width:0;padding:19px 20px!important;background:#152132!important;border:0!important}
+.swapp-creator-workspace .stat{display:flex;flex-direction:column;gap:8px;min-width:0;padding:19px 20px!important;background:#151719!important;border:0!important}
 .swapp-creator-workspace .stat b{font-size:clamp(22px,2.7vw,38px);font-weight:850;letter-spacing:-.055em}
 .swapp-creator-workspace .stat .small,.swapp-creator-workspace .summaryItem .small{font-size:12px;color:var(--swapp-workspace-muted)}
 .swapp-creator-workspace .summaryList{display:flex;flex-direction:column;gap:0!important}
@@ -142,7 +142,7 @@
 #manager .managerHero>.panel,#manager .managerHero>.obsBox{min-width:0;margin:0;border:0!important;background:#131f30!important;padding:clamp(18px,2vw,26px)!important}
 #manager .managerPreview,#manager .managerPreview .player{border-radius:5px!important;overflow:hidden}
 #studio .sideLayout{display:grid;grid-template-columns:220px minmax(0,1fr);gap:1px;background:var(--swapp-workspace-line)}
-#studio .sideLayout>.side{padding:10px!important;display:flex;flex-direction:column;background:#141f2c!important;gap:0}
+#studio .sideLayout>.side{padding:10px!important;display:flex;flex-direction:column;background:#101215!important;gap:0}
 #studio .sideLayout>.side button{border-radius:0!important;background:none!important;box-shadow:none!important;text-align:left;padding:12px 10px!important}
 #studio .sideLayout>.side button.active{border-left:2px solid var(--swapp-workspace-accent);background:#ffffff12!important}
 #studio .sideLayout>.panel{margin:0;border:0!important}
@@ -402,3 +402,22 @@
  #settings .swapp-acct-discord-integration p{flex:auto}
  #settings .swapp-acct-discord-link{width:100%}
 }
+
+/* Unified neutral creator canvas: account, manager and Studio. */
+#settings.view.active,#dashboard.view.active,#manager.view.active,#studio.view.active{
+ --swapp-workspace-bg:#030405;--swapp-workspace-panel:#101215;
+ --swapp-workspace-raised:#171a1e;--swapp-workspace-hairline:rgba(225,238,246,.14);
+ background-color:var(--swapp-workspace-bg)!important;color:#f4f7fa;
+}
+.swapp-creator-workspace .panel,.swapp-creator-workspace .modeCard,
+.swapp-creator-workspace .postLiveBox,.swapp-creator-workspace .obsBox,
+#studio .sideLayout>.side{
+ background:var(--swapp-workspace-panel,#101215)!important;
+ border-color:var(--swapp-workspace-hairline,rgba(225,238,246,.14))!important;
+}
+.swapp-creator-workspace :is(.stat,.summaryItem){
+ background:var(--swapp-workspace-raised,#171a1e)!important;
+ border-color:var(--swapp-workspace-hairline,rgba(225,238,246,.14))!important;
+}
+.swapp-creator-workspace :is(.panel,.obsBox,.postLiveBox):focus-within{border-color:rgba(220,237,247,.25)!important}
+@media (prefers-reduced-motion:reduce){.swapp-creator-workspace .creatorSide button{transition:none!important}}
