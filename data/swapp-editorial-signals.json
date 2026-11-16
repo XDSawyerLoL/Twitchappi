@@ -2,8 +2,40 @@
   "schema": 1,
   "kind": "swapp-editorial-signals",
   "method": "Brèves rédigées à partir de sources primaires, avec revendication, intérêt et limites distincts. Ne jamais convertir automatiquement un RSS en brève vérifiée.",
-  "updatedAt": "2026-11-16T04:42:41Z",
+  "updatedAt": "2026-11-16T17:35:19.000Z",
   "items": [
+    {
+      "id": "minecraft-dungeons-ii-humblers-date-contenu-20261115",
+      "topics": [
+        "GAMING"
+      ],
+      "title": "Minecraft Dungeons II : The Humblers Awaken prévu le 1er décembre",
+      "fact": "Mojang détaille le 15 novembre son premier DLC payant, attendu le 1er décembre avec une mise à jour gratuite distincte.",
+      "impact": "Les joueurs pourront choisir entre la nouvelle aventure payante et les défis ajoutés au jeu par la mise à jour.",
+      "caveat": "Le lancement reste à venir. Aucun prix français ni horaire régional n’est confirmé dans l’annonce consultée.",
+      "sourceName": "Mojang Studios / Minecraft",
+      "sourceUrl": "https://www.minecraft.net/en-us/article/the-humblers-awaken",
+      "sourceDate": "2026-11-15",
+      "reviewedAt": "2026-11-16T17:31:37.000Z",
+      "imageUrl": "https://www.minecraft.net/content/dam/minecraftnet/games/spicewood/key-art/DLC1_Header_1170x500.jpg",
+      "imageCredit": "Mojang Studios / Minecraft · illustration officielle de The Humblers Awaken"
+    },
+    {
+      "id": "rainbow-six-siege-vital-signal-doc-ranked-20261115",
+      "topics": [
+        "GAMING"
+      ],
+      "title": "Rainbow Six Siege : Vital Signal remanie Doc et le classement",
+      "fact": "Ubisoft annonce le 15 novembre Operation Vital Signal pour le 1er décembre. Doc pourra soigner à distance et le classement séparera les files Solo/Duo et Flex.",
+      "impact": "Les joueurs seuls ou en duo disposeront d’un rang distinct de celui des groupes ; la refonte de Doc modifiera l’organisation des soins en défense.",
+      "caveat": "Ce calendrier est annoncé, pas déjà déployé. Les demi-renforts resteront expérimentaux, avec un test prévu du 19 janvier au 2 février 2027.",
+      "sourceName": "Ubisoft / Rainbow Six Siege",
+      "sourceUrl": "https://news.ubisoft.com/fr-fr/article/57b0TcWurSuTMn9oJD4fJ4/rainbow-six-siege-operation-vital-signal-doc-remaster-new-mbz19-weapon-ranked-overhaul-and-more",
+      "sourceDate": "2026-11-15",
+      "reviewedAt": "2026-11-16T17:31:37.000Z",
+      "imageUrl": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/OHNaGvyJoIdpLLpWtbuL3/99f96d45bc8495d6dd446591df45d15a/R6S_OperationVitalSignal_Announce.jpg",
+      "imageCredit": "Ubisoft · visuel officiel Rainbow Six Siege — Operation Vital Signal"
+    },
     {
       "id": "god-of-war-sons-of-sparta-ps4-hermes-erebus-20261113",
       "topics": [
@@ -160,7 +192,7 @@
       "title": "DOOM: The Dark Ages fixe Slaughter au 16 novembre",
       "fact": "Bethesda annonce le 12 novembre que Slaughter Mode arrivera le 16 novembre dans DOOM: The Dark Ages | Revelations. Ce mode enchaîne des vagues aléatoires et permet de sécuriser ses récompenses ou de les risquer pour augmenter les gains.",
       "impact": "Les propriétaires de Revelations, de la Premium Edition ou du Premium Upgrade recevront ce mode sans supplément.",
-      "caveat": "Posséder uniquement le jeu de base ne suffit pas. L’annonce ne précise pas l’heure de déploiement ; la sortie du mode reste à venir.",
+      "caveat": "Posséder uniquement le jeu de base ne suffit pas. La date annoncée est le 16 novembre ; l’heure et le déploiement effectif du mode ne sont pas confirmés par ce contrôle.",
       "sourceName": "Bethesda Softworks / Slayers Club",
       "sourceUrl": "https://slayersclub.bethesda.net/en-US/news/doom-the-dark-ages-revelations-slaughter-mode-release-date",
       "sourceDate": "2026-11-12",
