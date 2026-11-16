@@ -5332,6 +5332,7 @@ app.get('/api/swapp/server-ads/slot/:slot',async(req,res)=>{
 // Public login lookup, private viewer-follow state. No list of another
 // user's follows is ever exposed to an unauthenticated viewer.
 require('./modules/swapp-creator-external-video-routes').installCreatorVideos(app,{restoreSession:restoreOryonSessionFromRememberCookie,readUsers:readOryonUsers,mutationLimiter});
+require('./modules/swapp-creator-story-routes').installCreatorStories(app,{restoreSession:restoreOryonSessionFromRememberCookie,readUsers:readOryonUsers,mutationLimiter});
 
 app.get('/api/oryon/follow/:login', async(req,res)=>{
   try{
