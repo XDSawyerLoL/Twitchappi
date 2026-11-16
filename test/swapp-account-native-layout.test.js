@@ -102,7 +102,7 @@ test('planning fields have labels and never collapse into clipped one-line input
 test('new account code and styling are cache-busted and included in deploy checks',()=>{
  const html=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
  const smoke=fs.readFileSync(path.join(__dirname,'..','tools/swapp-deploy-smoke.js'),'utf8');
- for(const source of ['index_script.js?v=20261024-black-screen-v4','swapp-creator-workspace.css?v=20261113-account-discord-v2']){
+ for(const source of ['index_script.js?v=20261024-black-screen-v4','swapp-creator-workspace.css?v=20261116-obsidian-studio-v3']){
   assert.ok(html.includes(source),source);
   assert.ok(smoke.includes(source),source);
  }
@@ -134,4 +134,11 @@ test('only the active menu uses the same intuitive account navigation, without m
  assert.doesNotMatch(menu,/Mes jeux et envies|Studio administrateur|Gestion Boutique|Fair Discovery|Ma chaîne|Outils créateur/);
  assert.match(account(),/data-swapp-admin-tools/);
  assert.match(account(),/api\/editor\/actus\/access/);
+});
+
+test('Creator Studio visuals and embedded media use their updated cache keys',()=>{
+ const html=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
+ for(const asset of ['swapp-creator-external-videos.js?v=20261116-studio-preview-v3',
+  'swapp-creator-external-videos.css?v=20261116-studio-preview-v3',
+  'swapp-creator-workspace.css?v=20261116-obsidian-studio-v3'])assert.ok(html.includes(asset),asset);
 });
