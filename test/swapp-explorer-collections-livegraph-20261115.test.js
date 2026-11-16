@@ -119,3 +119,12 @@ test('Explorer is packaged and mounted before generic creator routing',()=>{
   assert.ok(read('tools/swapp-release.js').includes(file),file+' absent from release manifest');
  }
 });
+
+test('Explorer supplies X and Open Graph images without client JavaScript',()=>{
+ for(const html of [page(),page({mode:'carte'}),page({genre:'rpg'})]){
+  assert.match(html,/property="og:image" content="https:\/\/swapp\.tv\/swapp-share-card\.png"/);
+  assert.match(html,/name="twitter:image" content="https:\/\/swapp\.tv\/swapp-share-card\.png"/);
+  assert.match(html,/name="twitter:card" content="summary_large_image"/);
+  assert.match(html,/property="og:image:width" content="1200"/);
+ }
+});
