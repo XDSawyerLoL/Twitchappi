@@ -5303,6 +5303,12 @@ app.post('/api/oryon/stream-key/regenerate', mutationLimiter, async (req, res) =
   }catch(e){ res.status(500).json({ success:false, error:e.message }); }
 });
 
+// Read-only catalogue: pricing proposals only; no checkout or premium rights.
+app.get('/api/swapp/commercial/catalogue',(req,res)=>{
+ res.setHeader('Cache-Control','public, max-age=300');
+ return res.json(require('./lib/swapp-commercial-catalogue').publicCatalogue());
+});
+
 // Public login lookup, private viewer-follow state. No list of another
 // user's follows is ever exposed to an unauthenticated viewer.
 require('./modules/swapp-creator-external-video-routes').installCreatorVideos(app,{restoreSession:restoreOryonSessionFromRememberCookie,readUsers:readOryonUsers,mutationLimiter});
