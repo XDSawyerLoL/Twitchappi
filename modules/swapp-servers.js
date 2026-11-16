@@ -25,7 +25,15 @@ const mysqlUrl=()=>mysqlConfig().url;
 // One SQL predicate for both diagnosis and public listing; SQL string
 // literals use standard single quotes (compatible with ANSI_QUOTES mode).
 // CONCAT_WS ignores NULLs in older records instead of hiding them from search.
-const DIRECTORY_FILTER_SQL="s.status='published' AND (?='' OR s.game=?) AND (?='' OR LOWER(CONCAT_WS(' ',s.name,s.description,s.tags,s.game)) LIKE CONCAT('%',?,'%'))";
+// Hostinger MariaDB may contain text columns in different collations. Explicitly
+// normalise both sides of comparisons; never ALTER existing tables as a read fix.
+const directoryUtf8 = expression => '(CONVERT(' + expression + ' USING utf8mb4) COLLATE utf8mb4_unicode_ci)';
+const DIRECTORY_FILTER_SQL="s.status='published' AND ("+
+ directoryUtf8('?')+"="+directoryUtf8("_utf8mb4''")+" OR "+
+ directoryUtf8('s.game')+"="+directoryUtf8('?')+") AND ("+
+ directoryUtf8('?')+"="+directoryUtf8("_utf8mb4''")+" OR "+
+ "LOWER(CONCAT_WS(' ',"+['s.name','s.description','s.tags','s.game'].map(directoryUtf8).join(',')+")) LIKE "+
+ directoryUtf8("CONCAT('%',?,'%')")+")";
 let pool=null,ready=null,readSchemaPromise=null,readSchemaValidUntil=0;
 const clean=(v,n=200)=>String(v??'').trim().slice(0,n);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
