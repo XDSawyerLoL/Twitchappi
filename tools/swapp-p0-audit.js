@@ -11,6 +11,7 @@ const ENDPOINTS=Object.freeze({
  tv:'/api/swapp-tv/queue/status',
  spotlight:'/api/creator/spotlight/status',
  editorial:'/api/actus/release-status',
+ news:'/api/actus',
  fairness:'/api/discovery/fair-summary'
 });
 const checks=[
@@ -49,6 +50,28 @@ const checks=[
    detail:(d.editableCount||0)+'/'+(d.releaseCount||0)+' articles versionnés éditables',
    action:'Vérifier page publique, affiche, vidéo, sources et panneau Studio sur une publication récente.'
  })},
+ {key:'news',label:'Articles publics',severity:'P0',judge:d=>{
+   const articles=Array.isArray(d.articles)?d.articles:[];
+   const visible=articles.filter(a=>a&&typeof a.slug==='string'&&
+     /^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/.test(a.slug)&&
+     typeof a.title==='string'&&a.title.trim().length>=5&&
+     (!a.status||a.status==='published'));
+   const degraded=d.degraded===true;
+   const newest=visible.reduce((max,a)=>{
+     const time=Date.parse(a.publishedAt||'');
+     return Number.isFinite(time)&&time>max?time:max;
+   },0);
+   return {
+     ok:visible.length>0&&!degraded,
+     detail:degraded?'Catalogue servi depuis un cache de secours':
+       visible.length?visible.length+' article(s) publics'+
+         (newest?' · dernier '+new Date(newest).toISOString().slice(0,10):''):
+         'Aucun article public confirmé',
+     action:degraded?
+       'Rétablir le CMS et vérifier GET /api/actus sans cache de secours.':
+       'Vérifier GET /api/actus, migration MySQL, publication et rendu sur /actus.'
+   };
+ }},
  {key:'fairness',label:'Découverte équitable',severity:'P1',judge:d=>({
    ok:d.enabled===true,
    detail:d.enabled?'Actif · mesure '+String(d.sample||'limitée'):'Désactivé',
@@ -84,10 +107,15 @@ async function collect({origin='https://swapp.tv',fetchImpl=global.fetch,timeout
   const timeout=setTimeout(()=>ac.abort(),timeoutMs);
   try{
    const response=await fetchImpl(base+path,{method:'GET',headers:{Accept:'application/json'},cache:'no-store',redirect:'error',signal:ac.signal});
-   if(!response.ok)return[key,{error:'HTTP '+response.status}];
+   if(!response.ok)return[key,{error:response.status===403?
+     'HTTP 403 · vérification externe bloquée (protection possible, panne visiteur non démontrée)':
+     'HTTP '+response.status}];
    const type=response.headers?.get?.('content-type')||'';
    if(!type.includes('json'))return[key,{error:'Contenu non JSON'}];
-   return[key,await response.json()];
+   const payload=await response.json();
+   if(key==='news'&&response.headers?.get?.('x-swapp-editorial-state')==='verified-stale'&&
+      payload&&typeof payload==='object')payload.degraded=true;
+   return[key,payload];
   }catch(error){return[key,{error:error?.name==='AbortError'?'Délai dépassé':'Contrôle indisponible'}]}
   finally{clearTimeout(timeout)}
  }));
