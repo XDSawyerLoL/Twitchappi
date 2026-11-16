@@ -2,8 +2,41 @@
   "schema": 1,
   "kind": "swapp-editorial-signals",
   "method": "Brèves rédigées à partir de sources primaires, avec revendication, intérêt et limites distincts. Ne jamais convertir automatiquement un RSS en brève vérifiée.",
-  "updatedAt": "2026-11-16T17:35:19.000Z",
+  "updatedAt": "2026-11-16T23:05:22Z",
   "items": [
+    {
+      "id": "spirit-crossing-lancement-cozy-club-20261116",
+      "topics": [
+        "GAMING"
+      ],
+      "title": "Spirit Crossing : Spry Fox annonce le lancement sur PC et Switch",
+      "fact": "Le 16 novembre, Spry Fox annonce le lancement de Spirit Crossing sur Steam, Epic Games Store, Switch et Switch 2, accompagné des notes de version 16.0.",
+      "impact": "Ce jeu multijoueur social associe exploration et construction. Le Cozy Club est un abonnement facultatif, distinct de l’achat du jeu.",
+      "caveat": "La fiche Steam consultée conserve un état antérieur au déblocage : l’ouverture effective de chaque boutique régionale et le prix français ne sont pas confirmés ici.",
+      "sourceName": "Spry Fox",
+      "sourceUrl": "https://spryfox.com/2026/11/16/spirit-crossing-launch-patch-notes-for-version-16-0/",
+      "sourceDate": "2026-11-16",
+      "reviewedAt": "2026-11-16T23:04:06Z",
+      "imageUrl": "https://spryfox.com/wp-content/uploads/2026/11/GroupShot_16.9.png",
+      "imageCredit": "Spry Fox · image d’ouverture officielle des notes de lancement de Spirit Crossing"
+    },
+    {
+      "id": "nvidia-ibm-fermilab-plateforme-quantique-20261116",
+      "topics": [
+        "FUTURE",
+        "AI"
+      ],
+      "title": "IBM, NVIDIA et Fermilab préparent une plateforme quantique commune",
+      "fact": "Le 16 novembre, NVIDIA annonce avec IBM et Fermilab un projet de plateforme associant processeurs quantiques et calcul accéléré, pour étudier les architectures modulaires et la correction d’erreurs.",
+      "impact": "Les chercheurs pourraient tester ensemble le matériel, les logiciels et les besoins de la physique des particules avant de concevoir des systèmes plus grands.",
+      "caveat": "Il s’agit d’un projet de recherche. L’annonce ne démontre ni ordinateur quantique généraliste opérationnel ni avantage universel sur le calcul classique.",
+      "sourceName": "NVIDIA / IBM / Fermilab",
+      "sourceUrl": "https://nvidianews.nvidia.com/news/nvidia-announces-collaboration-with-ibm-and-fermi-national-accelerator-laboratory-to-launch-quantum-classical-codesign-platform-plus-error-correction-breakthrough-to-advance-practical-quantum-computing",
+      "sourceDate": "2026-11-16",
+      "reviewedAt": "2026-11-16T23:04:06Z",
+      "imageUrl": "https://news.fnal.gov/wp-content/uploads/2026/11/FINAL-Co-design-platform-trio-1024x400.jpg",
+      "imageCredit": "IBM ; Ryan Postel / Fermilab ; NVIDIA · illustration conceptuelle officielle publiée par Fermilab"
+    },
     {
       "id": "minecraft-dungeons-ii-humblers-date-contenu-20261115",
       "topics": [
