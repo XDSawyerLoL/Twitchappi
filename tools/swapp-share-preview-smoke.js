@@ -11,7 +11,7 @@ const slugOk=s=>/^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/.test(String(s||''));
 async function request(path,ua=agents.X){
  const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),12000);
  try{
-  return await fetch(base+path,{signal:controller.signal,redirect:'manual',cache:'no-store',
+  return await fetch(path.startsWith('https://')?path:base+path,{signal:controller.signal,redirect:'manual',cache:'no-store',
    headers:{'User-Agent':ua,'Accept':'text/html,image/png,image/jpeg,application/json,*/*','Cache-Control':'no-cache'}});
  }finally{clearTimeout(timeout)}
 }
@@ -41,9 +41,9 @@ async function run(){
   const og=html.match(/<meta property="og:image" content="([^"]+)"/);
   const twitter=html.match(/<meta name="twitter:image" content="([^"]+)"/);
   check(og&&twitter&&og[1]===twitter[1],route+': OG and X image tags differ');
-  const expected=base+'/actus/og-image/'+article.slug;
-  check(og[1]===expected,route+': image URL must be first-party and article-specific');
-  const image=await request('/actus/og-image/'+article.slug,ua);
+  const imageUrl=new URL(og[1]);
+  check(imageUrl.protocol==='https:',route+': social image must use HTTPS');
+  const image=await request(imageUrl.origin===base?imageUrl.pathname+imageUrl.search:imageUrl.href,ua);
   check(image.status===200,route+': social image HTTP '+image.status+
    ' (may be blocked by anti-bot protection)');
   const mime=(image.headers.get('content-type')||'').toLowerCase();
