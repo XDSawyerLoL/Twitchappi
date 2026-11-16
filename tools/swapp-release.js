@@ -35,6 +35,8 @@ const RELEASE_FILES=Object.freeze([
  'modules/swapp-servers-create.js',
  'assets/swapp-servers-create.js',
  'assets/swapp-servers.js',
+ 'assets/swapp-servers-alerts.js',
+ 'assets/swapp-servers-alerts.css',
  'assets/swapp-servers.css',
  'assets/swapp-servers-community.js',
  'assets/swapp-servers-community.css',
