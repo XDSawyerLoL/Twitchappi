@@ -26,7 +26,7 @@ const mysqlUrl=()=>mysqlConfig().url;
 // literals use standard single quotes (compatible with ANSI_QUOTES mode).
 // CONCAT_WS ignores NULLs in older records instead of hiding them from search.
 const DIRECTORY_FILTER_SQL="s.status='published' AND (?='' OR s.game=?) AND (?='' OR LOWER(CONCAT_WS(' ',s.name,s.description,s.tags,s.game)) LIKE CONCAT('%',?,'%'))";
-let pool=null,ready=null;
+let pool=null,ready=null,readSchemaPromise=null,readSchemaValidUntil=0;
 const clean=(v,n=200)=>String(v??'').trim().slice(0,n);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const slug=s=>clean(s,100).normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,75);
@@ -137,7 +137,18 @@ function ownerKeys(req){
  return [primary,primary&&twitch&&primary!=='twitch:'+twitch?'twitch:'+twitch:primary];
 }
 function administrator(req){const id=account(req);if(!id)return false;const pinned=String(process.env.ORYON_ADMIN_USER_IDS||'').split(',').map(x=>x.trim()).filter(Boolean);return pinned.includes(id)}
-function fail(res,e){console.warn('[SWAPP SERVEURS]',String(e.code||e.message||e).slice(0,90));return res.status(503).json({error:'annuaire_temporairement_indisponible'})}
+function fail(res,e){
+ const code=String(e?.code||'').replace(/[^A-Za-z0-9_]/g,'').slice(0,40);
+ const reason=e?.message==='swapp_servers_mysql_not_configured'?'mysql_not_configured':
+  code==='SWAPP_SERVERS_SCHEMA_MISSING'?'schema_missing':
+  ['ECONNREFUSED','ETIMEDOUT','ENOTFOUND','EHOSTUNREACH','PROTOCOL_CONNECTION_LOST'].includes(code)?'mysql_connection_failed':
+  ['ER_ACCESS_DENIED_ERROR','ER_DBACCESS_DENIED_ERROR'].includes(code)?'mysql_access_denied':
+  ['ER_BAD_FIELD_ERROR','ER_PARSE_ERROR','ER_WRONG_FIELD_WITH_GROUP'].includes(code)?'sql_schema_mismatch':'service_unavailable';
+ console.warn('[SWAPP SERVEURS] outage',{reason,code:code||'ERROR'});
+ // No fabricated zero results; this response tells clients when to retry.
+ return res.set('Cache-Control','no-store').set('Retry-After','20')
+  .status(503).json({error:'annuaire_temporairement_indisponible',reason});
+}
 async function db({readOnly=false}={}){
  if(!mysqlUrl())throw Error('swapp_servers_mysql_not_configured');
  if(!pool){const mysql=require('mysql2/promise');pool=mysql.createPool({uri:mysqlUrl(),connectionLimit:3,waitForConnections:true,queueLimit:40,connectTimeout:5000});}
@@ -145,15 +156,23 @@ async function db({readOnly=false}={}){
  if(readOnly){
   // A read request must never create fresh empty tables in the wrong database.
   // Schema creation remains part of explicit write/setup paths only.
-  try{await pool.query('SELECT id FROM swapp_game_servers LIMIT 0');return pool}
-  catch(error){
-   if(error?.code==='ER_NO_SUCH_TABLE'){
-    const missing=Error('swapp_servers_schema_missing');
-    missing.code='SWAPP_SERVERS_SCHEMA_MISSING';
-    throw missing;
-   }
-   throw error;
-  }
+  if(Date.now()<readSchemaValidUntil)return pool;
+  // Don't query system schema on every anonymous GET. Share concurrent reads;
+  // cache successes for 15 seconds, but NEVER hide failed probes.
+  if(!readSchemaPromise)readSchemaPromise=(async()=>{
+   try{
+    await pool.query('SELECT id FROM swapp_game_servers LIMIT 0');
+    readSchemaValidUntil=Date.now()+15000;
+   }catch(error){
+    if(error?.code==='ER_NO_SUCH_TABLE'){
+     const missing=Error('swapp_servers_schema_missing');
+     missing.code='SWAPP_SERVERS_SCHEMA_MISSING';
+     throw missing;
+    }
+    throw error;
+   }finally{readSchemaPromise=null}
+  })();
+  await readSchemaPromise;return pool;
  }
  if(!ready){ready=(async()=>{
  await pool.query('CREATE TABLE IF NOT EXISTS swapp_game_servers (id CHAR(32) PRIMARY KEY, owner_id VARCHAR(100) NOT NULL, name VARCHAR(100) NOT NULL, slug VARCHAR(90) NOT NULL UNIQUE, game VARCHAR(70) NOT NULL, description VARCHAR(1500) NOT NULL, website VARCHAR(350) NOT NULL, join_address VARCHAR(240) NOT NULL, region VARCHAR(60) NOT NULL, tags VARCHAR(250) NOT NULL, banner_url VARCHAR(350) NOT NULL, status ENUM("pending","published","rejected") NOT NULL DEFAULT "pending", created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3), KEY swapp_servers_game_status (game,status),KEY swapp_servers_owner (owner_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
@@ -627,11 +646,11 @@ function register(app,{isAdmin=administrator,getDatabase=db,inviteVerifier=verif
 
    let rows,rankingAvailable=true;
    try{
-    [rows]=await sql.execute('SELECT s.id,s.owner_id,s.slug,s.name,s.game,s.description,s.website,s.join_address AS joinAddress,s.region,s.tags,COALESCE(NULLIF(b.banner_url,""),s.banner_url) AS bannerUrl,b.logo_url AS logoUrl,b.accent_color AS accentColor,b.secondary_color AS secondaryColor,b.tagline,s.created_at AS createdAt,(SELECT COUNT(*) FROM swapp_game_server_vote_events v WHERE v.server_id=s.id AND v.voted_at>=?) AS votes_month FROM swapp_game_servers s LEFT JOIN swapp_game_server_branding b ON b.server_id=s.id WHERE '+filter+' ORDER BY '+order+' LIMIT ? OFFSET ?',
+    [rows]=await sql.execute('SELECT s.id,s.owner_id,s.slug,s.name,s.game,s.description,s.website,s.join_address AS joinAddress,s.region,s.tags,COALESCE(NULLIF(b.banner_url,\'\'),s.banner_url) AS bannerUrl,b.logo_url AS logoUrl,b.accent_color AS accentColor,b.secondary_color AS secondaryColor,b.tagline,s.created_at AS createdAt,(SELECT COUNT(*) FROM swapp_game_server_vote_events v WHERE v.server_id=s.id AND v.voted_at>=?) AS votes_month FROM swapp_game_servers s LEFT JOIN swapp_game_server_branding b ON b.server_id=s.id WHERE '+filter+' ORDER BY '+order+' LIMIT ? OFFSET ?',
      [month,...args,pageSize,offset]);
    }catch(listingError){
     // Missing/denied optional branding or vote tables must not hide real published names.
-    if(!['ER_NO_SUCH_TABLE','ER_BAD_FIELD_ERROR','ER_TABLEACCESS_DENIED_ERROR'].includes(listingError?.code))throw listingError;
+    if(!['ER_NO_SUCH_TABLE','ER_BAD_FIELD_ERROR','ER_TABLEACCESS_DENIED_ERROR','ER_PARSE_ERROR','ER_WRONG_FIELD_WITH_GROUP'].includes(listingError?.code))throw listingError;
     console.warn('[SWAPP SERVEURS] Lecture minimale sans statistiques',String(listingError.code).slice(0,60));
     const fallbackOrder=sort==='name'?'s.name ASC,s.id ASC':'s.created_at DESC,s.id ASC';
     [rows]=await sql.execute('SELECT s.id,s.owner_id,s.slug,s.name,s.game,s.description,s.website,s.join_address AS joinAddress,s.region,s.tags,s.banner_url AS bannerUrl,s.created_at AS createdAt,NULL AS votes_month FROM swapp_game_servers s WHERE '+filter+' ORDER BY '+fallbackOrder+' LIMIT ? OFFSET ?',
