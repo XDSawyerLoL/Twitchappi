@@ -3,8 +3,8 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const read=file=>fs.readFileSync(path.join(__dirname,'..',file),'utf8');
 test('Creator story UI is loaded with real content on the existing channel',()=>{
  const html=read('index.html'),js=read('assets/swapp-creator-stories.js'),css=read('assets/swapp-creator-stories.css');
- assert.match(html,/swapp-creator-stories\.js\?v=20261116-stories-v1/);
- assert.match(html,/swapp-creator-stories\.css\?v=20261116-stories-v1/);
+ assert.match(html,/swapp-creator-stories\.js\?v=20261116-stories-v2/);
+ assert.match(html,/swapp-creator-stories\.css\?v=20261116-stories-v2/);
  assert.match(js,/\/api\/creator\/stories\//);
  assert.match(js,/void load\(page,true\)/);
  assert.match(js,/showModal\(\)/);
@@ -34,4 +34,12 @@ test('stories and MySQL migration sources enter release parity fingerprint',()=>
  for(const file of ['swapp-creator-stories.js','swapp-creator-stories.css',
   'lib/swapp-creator-stories.js','modules/swapp-creator-story-routes.js',
   'modules/swapp-creator-story-store.js'])assert.ok(r.includes(file),file);
+});
+
+test('channel stories are linked in profile navigation and refresh after visibility changes',()=>{
+ const js=read('assets/swapp-creator-stories.js');
+ assert.match(js,/dataset\.swappStoriesNav='1'/);
+ assert.match(js,/page\.dataset\.storyRequestSeq/);
+ assert.match(js,/document\.addEventListener\('visibilitychange'/);
+ assert.match(js,/Date\.parse\(story\.expiresAt\)<=Date\.now\(\)/);
 });
