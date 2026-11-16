@@ -30,8 +30,8 @@ test('GAME UNIVERSE links players to real SERVEUR+ categories only',()=>{
  assert.equal(serverCategoryFor('Grand Theft Auto VI'),'/serveurs');
  assert.equal(serverCategoryFor('<script>'),'/serveurs');
  const cyberpunk=gameHubs([
-  {slug:'cyberpunk-first',title:'Cyberpunk : première publication',game:'Cyberpunk 2077',status:'published'},
-  {slug:'cyberpunk-second',title:'Cyberpunk : seconde publication',game:'Cyberpunk 2077',status:'published'}
+  {slug:'cyberpunk-first',title:'Cyberpunk : première publication',summary:'Présentation de la mise à jour vérifiée.',game:'Cyberpunk 2077',status:'published'},
+  {slug:'cyberpunk-second',title:'Cyberpunk : seconde publication',summary:'Informations communautaires vérifiées.',game:'Cyberpunk 2077',status:'published'}
  ])[0];
  assert.match(renderGamePage(cyberpunk),/href="\/serveurs\/cyberpunk-2077"/);
  assert.match(renderMyGames([cyberpunk]),/href="\/serveurs\/cyberpunk-2077"/);
