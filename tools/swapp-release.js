@@ -225,6 +225,9 @@ const RELEASE_FILES=Object.freeze([
  'assets/swapp-social-native/gif-picker.js',
  'modules/swapp-social-gifs.js',
  'modules/swapp-social-native/pulse.mjs',
+ 'modules/swapp-social-native/relational-index.cjs',
+ 'migrations/mysql/012_swapp_social_native_relational.sql',
+ 'tools/swapp-social-relational-migrate.cjs',
  'modules/swapp-social-native-proxy.js',
  'ads.txt',
  'robots.txt'
