@@ -31,4 +31,5 @@ test('new thin releases are excluded even with migration verified, while older r
  const code=fs.readFileSync(path.join(__dirname,'../modules/swapp-news/router.js'),'utf8');
  assert.match(code,/new Map\(releaseCandidates\.map\(article=>\[article\.slug,article\]\)\)/);
  assert.match(code,/requirePublicationReview\(old,\{production:process\.env\.NODE_ENV==='production'\}\)/);
+ assert.match(code,/router\.get\('\/api\/editor\/actus\/quality-queue',\.\.\.editor/);
 });
