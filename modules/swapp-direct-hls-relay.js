@@ -592,7 +592,8 @@ function attachSwappDirectRelay(app, opts={}){
    media_fresh:sharedActive||hasFreshVideo(r),
    shared_storage_enabled:!!sharedRoot,shared_media_ready:sharedActive,worker:process.pid,
    audio_track:shared?.metadata?.audioTrack||r?.audioTrack||'unknown',
-   dvr_seconds:r?Math.round(Math.min(80,historySeconds(r))):0,preview_ready:!!r?.clip,
+   dvr_seconds:r&&hasFreshVideo(r)?Math.round(Math.min(80,historySeconds(r))):0,
+   preview_ready:Boolean(r?.clip&&hasFreshVideo(r)),poster_ready:Boolean(r?.poster&&hasFreshVideo(r)),
    segment_bytes_in_memory:r?.bytes||0,segment_memory_budget:MAX_ROOM_BYTES,
    missing_segment_requests:r?.missingSegmentRequests||0});
  });
@@ -600,11 +601,13 @@ function attachSwappDirectRelay(app, opts={}){
   notCached(res);
   const login=cleanLogin(req.params.login),r=login&&liveRoom(login);
   const shared=sharedMediaView(login);
-  const latest=shared?.latest||r?.playlistNames?.at(-1)||null;
-  const chunk=(shared?.latest&&sharedRead(login,shared.latest))||(latest&&r?.segments.get(latest));
-  const active=hasFreshVideo(r)||Boolean(shared&&chunk);
+  const memoryFresh=hasFreshVideo(r);
+  const latest=shared?.latest||(memoryFresh?r.playlistNames.at(-1):null);
+  const chunk=(shared?.latest&&sharedRead(login,shared.latest))||
+   (memoryFresh&&latest?r.segments.get(latest):null);
+  const active=memoryFresh||Boolean(shared&&chunk);
   res.json({success:true,active,instance:process.pid,
-   playlist_ready:!!r?.manifest||!!shared,segment_ready:!!chunk,media_fresh:active,
+   playlist_ready:memoryFresh||!!shared,segment_ready:!!chunk,media_fresh:active,
    segment_age_ms:r?.lastSegmentAt?Math.max(0,Date.now()-r.lastSegmentAt):null,
    latest_segment:latest,
    latest_bytes:chunk?.length||0,ts_sync_byte:chunk?.[0]===0x47,
@@ -628,8 +631,9 @@ function attachSwappDirectRelay(app, opts={}){
   res.type('application/vnd.apple.mpegurl').send(manifest);
  });
  app.get('/api/oryon/local-relay/:login/preview.mp4',(req,res)=>{
+  notCached(res);
   const login=cleanLogin(req.params.login),r=login&&liveRoom(login);
-  if(!r?.clip)return res.sendStatus(404);
+  if(!r?.clip||!hasFreshVideo(r))return res.sendStatus(404);
   res.set('Cache-Control','public, max-age=45, s-maxage=45');
   res.set('X-Content-Type-Options','nosniff');
   res.set('Accept-Ranges','bytes');
@@ -648,8 +652,9 @@ function attachSwappDirectRelay(app, opts={}){
   res.type('video/mp4').send(r.clip);
  });
  app.get('/api/oryon/local-relay/:login/poster.jpg',(req,res)=>{
+  notCached(res);
   const login=cleanLogin(req.params.login),r=login&&liveRoom(login);
-  if(!r?.poster)return res.sendStatus(404);
+  if(!r?.poster||!hasFreshVideo(r))return res.sendStatus(404);
   // Dynamic live frame: do not serve stale posters when OBS is offline.
   res.set('Cache-Control','public, max-age=25, s-maxage=25');
   res.set('X-Content-Type-Options','nosniff');
@@ -719,11 +724,11 @@ function attachSwappDirectRelay(app, opts={}){
   },
   posterForLogin(login){
    const r=liveRoom(cleanLogin(login));
-   return r?.poster&&r?.manifest?{url:'/api/oryon/local-relay/'+encodeURIComponent(login)+'/poster.jpg',updatedAt:r.posterAt,bytes:r.poster.length}:null;
+   return r?.poster&&hasFreshVideo(r)?{url:'/api/oryon/local-relay/'+encodeURIComponent(login)+'/poster.jpg',updatedAt:r.posterAt,bytes:r.poster.length}:null;
   },
   clipForLogin(login){
    const r=liveRoom(cleanLogin(login));
-   return r?.clip&&r?.manifest?{url:'/api/oryon/local-relay/'+encodeURIComponent(login)+'/preview.mp4',updatedAt:r.clipAt,bytes:r.clip.length}:null;
+   return r?.clip&&hasFreshVideo(r)?{url:'/api/oryon/local-relay/'+encodeURIComponent(login)+'/preview.mp4',updatedAt:r.clipAt,bytes:r.clip.length}:null;
   }
  };
 }
