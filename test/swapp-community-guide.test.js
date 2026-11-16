@@ -1,0 +1,32 @@
+'use strict';
+const test=require('node:test'),assert=require('node:assert/strict');
+const fs=require('node:fs'),path=require('node:path');
+const {page,register,URL}=require('../modules/swapp-community-guide');
+const {sitemapEntries}=require('../modules/swapp-seo');
+test('community guide is an original readable document without scripts or invented ratings',()=>{
+ const html=page();
+ assert.match(html,/<h1>Comment trouver un serveur/);
+ assert.match(html,/checklist avant de rejoindre/i);
+ assert.match(html,/modération/i);
+ assert.match(html,/href="\/serveurs"/);
+ assert.match(html,/href="\/explorer"/);
+ assert.match(html,/name="twitter:card" content="summary_large_image"/);
+ assert.match(html,/<script type="application\/ld\+json">/);
+ assert.match(html,/rel="canonical" href="https:\/\/swapp\.tv\/guides\/choisir-communaute-gaming"/);
+ assert.doesNotMatch(html,/data-ad-slot|onclick=/);
+ assert.match(html,/data-swapp-shell="shared-native-v2"/);
+});
+test('community guide route responds with HTML and stays in sitemap and server directory',()=>{
+ const routes=new Map();register({get:(key,handler)=>routes.set(key,handler)});
+ const handler=routes.get('/guides/choisir-communaute-gaming');
+ assert.equal(typeof handler,'function');
+ const res={headers:{},set(k,v){this.headers[k]=v;return this},type(v){this.typeValue=v;return this},send(body){this.body=body;return this}};
+ handler({},res);
+ assert.equal(res.typeValue,'html');
+ assert.ok(res.body.includes('checklist avant de rejoindre'));
+ assert.equal(sitemapEntries([]).filter(x=>x.loc===URL).length,1);
+ const server=fs.readFileSync(path.join(__dirname,'../server.js'),'utf8');
+ assert.match(server,/swapp-community-guide'\)\.register\(app\)/);
+ const directory=fs.readFileSync(path.join(__dirname,'../modules/swapp-servers.js'),'utf8');
+ assert.match(directory,/href="\/guides\/choisir-communaute-gaming"/);
+});
