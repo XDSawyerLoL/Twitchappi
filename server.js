@@ -5732,13 +5732,19 @@ function emptyViewerProfile(identity){
     eventCount: 0
   };
 }
+let __oryonViewerProfileFirestoreDenied = false;
 async function readViewerProfile(identity){
   const id = discoverDocId(identity?.id || 'guest');
-  if(firestoreOk && db && typeof db.collection === 'function'){
+  if(!__oryonViewerProfileFirestoreDenied && firestoreOk && db && typeof db.collection === 'function'){
     try{
       const snap = await db.collection('oryon_viewer_profiles').doc(id).get();
       if(snap.exists) return { ...emptyViewerProfile(identity), ...snap.data(), viewerId: identity.id, type: identity.type, login: identity.login || snap.data()?.login || null };
-    }catch(e){ console.warn('[DISCOVERY] Firestore viewer profile read failed:', e.message); }
+    }catch(e){
+      if(isFirestorePermissionDenied(e)){
+        __oryonViewerProfileFirestoreDenied = true;
+        console.warn('[DISCOVERY] Viewer profile Firestore denied; using local fallback for this process.');
+      } else console.warn('[DISCOVERY] Firestore viewer profile read failed:', e.message);
+    }
   }
   const data = readViewerLearningLocal();
   return { ...emptyViewerProfile(identity), ...(data[id] || {}), viewerId: identity.id, type: identity.type, login: identity.login || data[id]?.login || null };
@@ -5749,10 +5755,15 @@ async function writeViewerProfile(identity, profile){
   const data = readViewerLearningLocal();
   data[id] = payload;
   writeViewerLearningLocal(data);
-  if(firestoreOk && db && typeof db.collection === 'function'){
+  if(!__oryonViewerProfileFirestoreDenied && firestoreOk && db && typeof db.collection === 'function'){
     try{
       await db.collection('oryon_viewer_profiles').doc(id).set(payload, { merge:true });
-    }catch(e){ console.warn('[DISCOVERY] Firestore viewer profile write failed:', e.message); }
+    }catch(e){
+      if(isFirestorePermissionDenied(e)){
+        __oryonViewerProfileFirestoreDenied = true;
+        console.warn('[DISCOVERY] Viewer profile Firestore writes denied; using local fallback for this process.');
+      } else console.warn('[DISCOVERY] Firestore viewer profile write failed:', e.message);
+    }
   }
   return payload;
 }
