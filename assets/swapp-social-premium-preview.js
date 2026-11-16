@@ -28,6 +28,8 @@
    <p class="swapp-social-premium-note">Aucun paiement n'est proposé actuellement. Les pastilles illustrées sont des aperçus, pas des badges de vérification.</p>`;
   area.append(section);
  }
- if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});
- else mount();
+ const observer=new MutationObserver(()=>{mount();if(document.querySelector('[data-swapp-social-premium]'))observer.disconnect()});
+ function start(){mount();if(!document.querySelector('[data-swapp-social-premium]'))observer.observe(document.body,{childList:true,subtree:true})}
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});
+ else start();
 })();
