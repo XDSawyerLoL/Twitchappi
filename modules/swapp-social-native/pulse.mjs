@@ -2,6 +2,7 @@
 // Persist ONLY to a migrated Hostinger MySQL snapshot. No JSON/Firestore fallback;
 // no automatic empty-store creation and no contact with Render from this module.
 import { randomBytes, createHash, scryptSync, timingSafeEqual } from 'node:crypto';
+import relationalIndex from './relational-index.cjs';
 import { newQuanticChallenge, validQuanticChallenge, identityFingerprint, verifyQuanticProof,
   normalizeQuanticAssertion, QUANTIC_CHALLENGE_MS, QUANTIC_SESSION_MS } from './quantic-id-auth.mjs';
 
@@ -15,6 +16,8 @@ const usePostgres=false;
 const useMysql=Boolean(SWAPP_SOCIAL_MYSQL_URL);
 const SOCIAL_STORE_TABLE='swapp_social_native_store';
 const SOCIAL_STORE_KEY='pulse';
+// Opt-in only after manual, transactional backfill; default legacy snapshot remains authoritative.
+const RELATIONAL_DUALWRITE=process.env.SWAPP_SOCIAL_RELATIONAL_DUALWRITE==='1';
 function requireImportedSnapshot(rows){
  if(!Array.isArray(rows)||!rows.length)throw Object.assign(new Error('social_mysql_import_required'),{status:503});
  const data=typeof rows[0].data==='string'?JSON.parse(rows[0].data):rows[0].data;
@@ -74,10 +77,13 @@ async function mutateStore(fn){
   await conn.beginTransaction();
   const [rows]=await conn.execute('SELECT data FROM swapp_social_native_store WHERE store_key=? FOR UPDATE',['pulse']);
   const store=requireImportedSnapshot(rows);
+  const before=RELATIONAL_DUALWRITE?relationalIndex.capture(store):null;
   const out=await fn(store);
   const [result]=await conn.execute('UPDATE swapp_social_native_store SET data=? WHERE store_key=?',
     [JSON.stringify(store),'pulse']);
   if(result.affectedRows!==1)throw Object.assign(new Error('social_mysql_write_failed'),{status:503});
+  // Same MySQL transaction: a projection failure rolls back BOTH stores.
+  if(RELATIONAL_DUALWRITE)await relationalIndex.syncDelta(conn,before,store);
   await conn.commit();
   return out;
  }catch(e){await conn.rollback();throw e}
