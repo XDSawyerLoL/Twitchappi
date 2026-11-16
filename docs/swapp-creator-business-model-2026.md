@@ -9,7 +9,7 @@ SWAPP n'est pas un hébergeur vidéo payant ni une copie de Twitch. C'est le **p
 
 | | Gratuit | SWAPP Creator Plus | SWAPP Creator Studio |
 |---|---|---|---|
-| Prix indicatif TTC / mois | 0 € | **4,90 €** | **9,90 €** |
+| Prix indicatif TTC / mois | 0 € | **12,99 €** | **24,99 €** |
 | Profil, direct, chat, communauté, découverte | Oui | Oui | Oui |
 | Vidéos externes | 5 | 5 | 5 |
 | Présentation et liens | Oui | Oui | Oui |
@@ -65,3 +65,41 @@ Les prix indicatifs sont TTC, sous hypothèse **TVA française de 20 %** ; les f
 - Rails et sections éditoriales cohérents entre Accueil, Creator, Serveur+ et Actus.
 - La page créateur doit ressembler à une destination de divertissement et à un portfolio vivant, non à un panneau d'administration.
 - Les outils d'édition ne s'affichent qu'au propriétaire, en mode édition ; l'expérience visiteur reste propre.
+
+## Décision commerciale du 16 novembre — Social et publicité SERVEUR+
+
+### Tarifs publics envisagés (TTC, mensuel sauf campagnes)
+| Produit | Tarif | Statut |
+|---|---:|---|
+| SWAPP Social+ | 5,99 €/mois | Proposition, non commercialisée |
+| SWAPP Social Premium | 9,99 €/mois | Proposition, non commercialisée |
+| SWAPP Creator Plus | 12,99 €/mois | Proposition, non commercialisée |
+| SWAPP Creator Studio | 24,99 €/mois | Proposition, non commercialisée |
+| SERVEUR+ Découverte | 14,90 €/7 jours | Proposition, non commercialisée |
+| SERVEUR+ Visibilité | 39,90 €/30 jours | Proposition, non commercialisée |
+| SERVEUR+ Campagne | 79,90 €/30 jours | Proposition, non commercialisée |
+
+### Social : pastille de soutien payante
+- Social+ : symbole bleu glacier discret après le nom.
+- Social Premium : symbole argenté / irisé, animation limitée, option de réduction de mouvement.
+- Le libellé accessible et l'infobulle indiquent « Abonné Social+ » ou « Abonné Social Premium », **jamais « Compte vérifié »**.
+- Pastille uniquement si l'abonnement est **actif et vérifié côté serveur** ; jamais sur un simple champ libre de profil, un paramètre URL ou un état local.
+- Aucun privilège de classement organique, d'autorité ou de modération pour les abonnés.
+- Le profil gratuit reste fonctionnel et attrayant.
+- À prévoir : source de vérité abonnement, webhook de paiement signé, date d'expiration, révocation, annulation, litiges, affichage sur publications/commentaires/profil, tests de fraude et d'accessibilité.
+
+### SERVEUR+ : régie publicitaire séparée du classement
+- Acheter une **campagne étiquetée « Publicité »** ; ne jamais acheter de points, votes ou de place dans le classement organique.
+- Espaces : catégorie de jeu, rail SERVEUR+ et éventuellement emplacement éditorial SWAPP selon forfait.
+- Inventaire limité, rotation équitable entre campagnes, plafond de fréquence par utilisateur, dates de diffusion et capacité disponibles.
+- Reporting : impressions visibles, clics, CTR, budget dépensé, dates ; pas de faux résultats, pas de promesse de trafic garanti.
+- Validation manuelle initiale des créations et des destinations, protections anti-fraude, refus des contenus trompeurs, règles de publicité applicables.
+- Paiement après vérification de l'inventaire et de la capacité de diffusion ; remboursement/avoir si la campagne ne peut être délivrée selon les conditions annoncées.
+- Pas de pixels de suivi tiers par défaut ; minimiser les données personnelles.
+
+### Dépendances avant ouverture
+1. Un vrai service d'abonnements, de facturation et de révocation, avec statut serveur.
+2. Un inventaire publicitaire et un moteur de diffusion mesurable.
+3. Une page de tarifs honnête, CGV, politique de remboursement et mentions fiscales.
+4. Des tests de paiement, annulation, échec de webhook, expiration, usurpation de pastille et de séparation classement/publicité.
+5. Validation juridique : règles de publicité et de protection des consommateurs applicables en France/UE.
