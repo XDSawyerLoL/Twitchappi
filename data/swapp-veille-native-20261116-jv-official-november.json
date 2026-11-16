@@ -1,0 +1,108 @@
+{
+  "kind": "swapp-editorial-release",
+  "release": "2026-11-16-jv-official-november",
+  "description": "Trois actualités gaming sourcées avec images officielles distantes, sans bande-annonce inventée.",
+  "articles": [
+    {
+      "slug": "xbox-25-jeux-originaux-pc-retrocompatibilite-novembre-2026",
+      "title": "Xbox : 25 jeux de la console originale désormais accessibles sur PC",
+      "summary": "Microsoft ajoute 21 classiques Xbox sur PC, portant le catalogue rétrocompatible à 25 titres, avec des succès pour plusieurs jeux cultes.",
+      "body": "**Microsoft élargit son programme de rétrocompatibilité sur PC.** Le 12 novembre 2026, Xbox annonce l'arrivée de 21 titres supplémentaires de sa première console. Ils rejoignent quatre jeux déjà disponibles, pour un total de 25.\n\n## Morrowind, KOTOR et TimeSplitters de retour\n\nParmi les nouveaux arrivants figurent **The Elder Scrolls III: Morrowind**, **Star Wars: Knights of the Old Republic**, **Star Wars Battlefront II**, **TimeSplitters 2** et **TimeSplitters: Future Perfect**. Cette sélection permet de retrouver plusieurs pans de l'histoire du jeu vidéo sans posséder le matériel d'origine.\n\n## Des succès ajoutés aux anciens jeux\n\nXbox introduit des succès pour KOTOR, KOTOR II, BLiNX et Conker: Live and Reloaded. Ils sont également pris en charge sur certaines consoles Xbox compatibles. La prise en charge clavier-souris est annoncée pour l'ensemble des 25 titres sur PC.\n\n## Les limites à connaître\n\nL'offre nécessite **Windows 11** et dépend des pays pris en charge. L'achat des jeux ou un abonnement Game Pass peut être nécessaire selon le titre. Il ne s'agit donc pas d'une distribution gratuite de 25 jeux.\n\n**Analyse SWAPP :** la rétrocompatibilité n'est pas qu'un argument nostalgique : elle rend accessibles des jeux parfois difficiles à retrouver et pose la question de la préservation durable des catalogues.",
+      "game": "Xbox",
+      "games": [],
+      "tags": [
+        "GAMING",
+        "Xbox",
+        "PC",
+        "Rétrocompatibilité"
+      ],
+      "seo": {
+        "title": "Xbox : 25 jeux de la console originale désormais accessibles sur PC",
+        "description": "Microsoft ajoute 21 classiques Xbox sur PC, portant le catalogue rétrocompatible à 25 titres, avec des succès pour plusieurs jeux cultes."
+      },
+      "author": "Rédaction SWAPP",
+      "category": "Actualités JV",
+      "contentType": "article",
+      "status": "published",
+      "revision": 1,
+      "image": "https://xboxwire.thesourcemediaassets.com/sites/2/2026/11/111226_XBOX-Wire_PCBackCompat-JPG-6d6dbed266e723ed4c62.jpg",
+      "thumbnail": "https://xboxwire.thesourcemediaassets.com/sites/2/2026/11/111226_XBOX-Wire_PCBackCompat-JPG-6d6dbed266e723ed4c62.jpg",
+      "publishedAt": "2026-11-16T10:00:00.000Z",
+      "trailerUrl": null,
+      "commercialLinks": [],
+      "sources": [
+        {
+          "label": "Annonce officielle",
+          "url": "https://news.xbox.com/en-us/2026/11/12/25-original-xbox-games-now-available-on-pc/"
+        }
+      ]
+    },
+    {
+      "slug": "ps5-qssr-spider-man-2-arc-raiders-no-mans-sky-2026",
+      "title": "PS5 : la technologie QSSR améliore Spider-Man 2 et arrive sur d'autres jeux",
+      "summary": "Sony étend son upscaling guidé par IA sur PS5 : Spider-Man 2 est déjà mis à jour, tandis que No Man's Sky et ARC Raiders doivent suivre.",
+      "body": "**Sony accélère le déploiement de QSSR**, une technologie de reconstruction d'image guidée par intelligence artificielle, sur PlayStation 5. Dans une communication du 13 novembre, le constructeur détaille les jeux concernés.\n\n## Spider-Man 2 ouvre la marche\n\nInsomniac Games indique que la mise à jour de **Marvel's Spider-Man 2** est déjà disponible. Elle vise une image plus stable et des détails plus nets, aussi bien dans les modes Fidélité que Performance.\n\n## D'autres studios préparent leurs mises à jour\n\n**ARC Raiders**, **The Finals** et **No Man's Sky** doivent recevoir QSSR prochainement. Remedy annonce également une mise à jour pour **Control Resonant** en décembre, tandis que **Hell Let Loose: Vietnam** fait partie des jeux prévus.\n\n## Une évolution sans changement de console\n\nQSSR partage des bases techniques avec PSSR, la technologie utilisée sur PS5 Pro. Sony explique que son objectif est de mieux reconstruire les détails de l'image sur la console déjà possédée par les joueurs. Les gains exacts peuvent varier selon les jeux et devront être évalués sur des versions mises à jour.\n\n**Analyse SWAPP :** le véritable intérêt n'est pas la promesse abstraite de l'IA, mais la possibilité d'améliorer la lisibilité et la stabilité visuelle de jeux existants.",
+      "game": "PlayStation 5",
+      "games": [],
+      "tags": [
+        "GAMING",
+        "PlayStation 5",
+        "TECH",
+        "AI"
+      ],
+      "seo": {
+        "title": "PS5 : la technologie QSSR améliore Spider-Man 2 et arrive sur d'autres jeux",
+        "description": "Sony étend son upscaling guidé par IA sur PS5 : Spider-Man 2 est déjà mis à jour, tandis que No Man's Sky et ARC Raiders doivent suivre."
+      },
+      "author": "Rédaction SWAPP",
+      "category": "Actualités JV",
+      "contentType": "article",
+      "status": "published",
+      "revision": 1,
+      "image": "https://blog.playstation.com/tachyon/2026/11/84a6eb5f0831acb87ad7b548df366dcf10547aaf-scaled.jpg",
+      "thumbnail": "https://blog.playstation.com/tachyon/2026/11/84a6eb5f0831acb87ad7b548df366dcf10547aaf-scaled.jpg",
+      "publishedAt": "2026-11-16T10:00:00.000Z",
+      "trailerUrl": null,
+      "commercialLinks": [],
+      "sources": [
+        {
+          "label": "Annonce officielle",
+          "url": "https://blog.playstation.com/2026/11/13/qssr-arrives-in-marvels-spider-man-2-control-resonant-the-finals-arc-raiders-and-hell-let-loose-vietnam/"
+        }
+      ]
+    },
+    {
+      "slug": "playstation-plus-novembre-2026-death-stranding-2-atomfall",
+      "title": "PlayStation Plus : Death Stranding 2, Atomfall et Dragon Quest III arrivent en novembre",
+      "summary": "Sony dévoile les ajouts de novembre 2026 au catalogue PlayStation Plus Extra et Premium, avec Death Stranding 2 en tête d'affiche.",
+      "body": "**Le catalogue PlayStation Plus de novembre 2026 mise sur des aventures très différentes.** Sony confirme notamment l'arrivée de **Death Stranding 2: On the Beach**, **Atomfall** et **Dragon Quest III HD-2D Remake**.\n\n## Death Stranding 2 en tête d'affiche\n\nLa suite imaginée par Kojima Productions entraîne Sam dans une nouvelle traversée, cette fois en Australie. Les déplacements, les infrastructures à construire et les phénomènes environnementaux occupent une place centrale dans cette aventure.\n\n## De la survie et du jeu de rôle\n\n**Atomfall** propose une exploration inquiétante de la campagne britannique, entre survie, enquêtes et affrontements. **Dragon Quest III HD-2D Remake** offre un RPG classique revisité, tandis que **Like a Dragon: Pirate Yakuza in Hawaii** mise sur une aventure de pirates décalée.\n\n## Attention aux dates et aux abonnements\n\nSony annonce une disponibilité générale du catalogue à partir du **17 novembre**, avec des exceptions selon les jeux et les régions. Like a Dragon: Pirate Yakuza in Hawaii est notamment annoncé pour le 24 novembre dans certains marchés. Les titres Extra et Premium ne doivent pas être confondus avec les jeux mensuels conservables sous conditions.\n\n**Analyse SWAPP :** ce mois est intéressant pour alterner grande aventure narrative, survie et RPG sans acheter immédiatement chaque jeu au prix fort.",
+      "game": "PlayStation Plus",
+      "games": [],
+      "tags": [
+        "GAMING",
+        "PlayStation Plus",
+        "PS5"
+      ],
+      "seo": {
+        "title": "PlayStation Plus : Death Stranding 2, Atomfall et Dragon Quest III arrivent en novembre",
+        "description": "Sony dévoile les ajouts de novembre 2026 au catalogue PlayStation Plus Extra et Premium, avec Death Stranding 2 en tête d'affiche."
+      },
+      "author": "Rédaction SWAPP",
+      "category": "Actualités JV",
+      "contentType": "article",
+      "status": "published",
+      "revision": 1,
+      "image": "https://blog.playstation.com/tachyon/2026/11/6ae8af767f59801bb5a0ceabf7fe915f00eed004.jpg",
+      "thumbnail": "https://blog.playstation.com/tachyon/2026/11/6ae8af767f59801bb5a0ceabf7fe915f00eed004.jpg",
+      "publishedAt": "2026-11-16T10:00:00.000Z",
+      "trailerUrl": null,
+      "commercialLinks": [],
+      "sources": [
+        {
+          "label": "Annonce officielle",
+          "url": "https://blog.playstation.com/2026/11/10/playstation-plus-game-catalog-for-november-death-stranding-2-on-the-beach-like-a-dragon-pirate-yakuza-in-hawaii-atomfall-dragon-quest-iii-hd-2d-remake-and-more/"
+        }
+      ]
+    }
+  ]
+}
