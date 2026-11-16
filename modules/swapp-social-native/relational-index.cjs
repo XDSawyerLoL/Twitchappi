@@ -166,4 +166,39 @@ async function verifyIndex(conn,snapshot){
  return result;
 }
 
-module.exports={VERSION,SQL,ensureSchema,capture,syncDelta,rebuildIndex,verifyIndex,mysqlDate,postRow,messageRow};
+
+/**
+ * Pilot read path. SQL supplies the indexed candidate set, but visibility,
+ * identity, quotes, likes and response bodies remain based on the same
+ * authoritative legacy snapshot. Any mismatch fails closed (503).
+ */
+async function indexedPosts(conn,store,{kind,ownerOrPost,expectedCount}){
+ validStore(store);
+ if(!Number.isSafeInteger(expectedCount)||expectedCount<0)throw Error('social_relational_invalid_count');
+ await assertReady(conn);
+ const identifier=String(ownerOrPost||'');
+ if(!ID.test(identifier)){
+  if(expectedCount===0)return [];
+  throw Error('social_relational_index_drift');
+ }
+ const byReply=kind==='replies',byAuthor=kind==='author';
+ if(!byReply&&!byAuthor)throw Error('social_relational_invalid_query');
+ const sql=byReply?
+  'SELECT id,payload_json FROM swapp_social_native_posts_v2 WHERE reply_to_id=? AND deleted_at IS NULL ORDER BY created_at ASC,id ASC':
+  'SELECT id,payload_json FROM swapp_social_native_posts_v2 WHERE author_id=? AND reply_to_id IS NULL AND deleted_at IS NULL ORDER BY created_at DESC,id ASC';
+ const [rows]=await conn.execute(sql,[identifier]);
+ if(rows.length!==expectedCount)throw Error('social_relational_index_drift');
+ const seen=new Set(),posts=[];
+ for(const row of rows){
+  const post=store.posts[row.id];
+  const valid=post&&!post.deletedAt&&!seen.has(row.id)&&
+   (byReply?post.replyToId===identifier:
+    post.authorId===identifier&&!post.replyToId)&&
+   JSON.stringify(post)===row.payload_json;
+  if(!valid)throw Error('social_relational_index_drift');
+  seen.add(row.id);posts.push(post);
+ }
+ return posts;
+}
+
+module.exports={VERSION,SQL,ensureSchema,capture,syncDelta,rebuildIndex,verifyIndex,indexedPosts,mysqlDate,postRow,messageRow};

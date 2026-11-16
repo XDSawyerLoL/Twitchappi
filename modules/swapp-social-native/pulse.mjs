@@ -18,6 +18,10 @@ const SOCIAL_STORE_TABLE='swapp_social_native_store';
 const SOCIAL_STORE_KEY='pulse';
 // Opt-in only after manual, transactional backfill; default legacy snapshot remains authoritative.
 const RELATIONAL_DUALWRITE=process.env.SWAPP_SOCIAL_RELATIONAL_DUALWRITE==='1';
+// A guarded read-only pilot: never allow SQL reads without atomic dual writes.
+const RELATIONAL_READS=RELATIONAL_DUALWRITE&&process.env.SWAPP_SOCIAL_RELATIONAL_READS==='1';
+if(process.env.SWAPP_SOCIAL_RELATIONAL_READS==='1'&&!RELATIONAL_DUALWRITE)
+ console.warn('[SWAPP SOCIAL] SQL reads disabled: enable and validate dual-write first.');
 function requireImportedSnapshot(rows){
  if(!Array.isArray(rows)||!rows.length)throw Object.assign(new Error('social_mysql_import_required'),{status:503});
  const data=typeof rows[0].data==='string'?JSON.parse(rows[0].data):rows[0].data;
@@ -71,6 +75,21 @@ async function readStore(){
  const [rows]=await p.execute('SELECT data FROM swapp_social_native_store WHERE store_key=?',['pulse']);
  return requireImportedSnapshot(rows);
 }
+async function readStoreProject(fn){
+ if(!RELATIONAL_READS)return fn(await readStore(),null);
+ const conn=await (await pool()).getConnection();
+ try{
+  // One snapshot across legacy JSON and relational index, even if another
+  // worker updates a post between these two SELECT statements.
+  await conn.query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ');
+  await conn.beginTransaction();
+  const [rows]=await conn.execute('SELECT data FROM swapp_social_native_store WHERE store_key=?',['pulse']);
+  const result=await fn(requireImportedSnapshot(rows),conn);
+  await conn.commit();
+  return result;
+ }catch(error){await conn.rollback().catch(()=>{});throw error}
+ finally{conn.release()}
+}
 async function mutateStore(fn){
  const p=await pool(),conn=await p.getConnection();
  try{
@@ -98,17 +117,18 @@ const VIEW_METRICS=new WeakMap();
 function viewMetrics(store){
  let cached=VIEW_METRICS.get(store);
  if(cached)return cached;
- const followers=new Map(),replies=new Map();
+ const followers=new Map(),replies=new Map(),topLevelByAuthor=new Map();
  for(const arr of Object.values(store.follows||{})){
   // One follower per account (not one for each accidental duplicate entry).
   for(const targetId of new Set(Array.isArray(arr)?arr:[]))
    followers.set(targetId,(followers.get(targetId)||0)+1);
  }
  for(const post of Object.values(store.posts||{})){
-  if(post&&!post.deletedAt&&post.replyToId)
-   replies.set(post.replyToId,(replies.get(post.replyToId)||0)+1);
+  if(!post||post.deletedAt)continue;
+  if(post.replyToId)replies.set(post.replyToId,(replies.get(post.replyToId)||0)+1);
+  else topLevelByAuthor.set(post.authorId,(topLevelByAuthor.get(post.authorId)||0)+1);
  }
- cached={followers,replies};VIEW_METRICS.set(store,cached);return cached;
+ cached={followers,replies,topLevelByAuthor};VIEW_METRICS.set(store,cached);return cached;
 }
 
 function publicUser(user,store,viewerId=''){
@@ -261,13 +281,36 @@ export async function handlePulse(req,res,url,corsHeaders={}){
     if(m&&req.method==='DELETE'){const out=await mutateStore(store=>{const s=store.sessions[sha(bearer(req))],user=s&&store.users[s.userId],post=store.posts[m[1]];if(!user)return{error:'unauthorized'};if(!post||post.deletedAt)return{error:'not_found'};if(post.authorId!==user.id)return{error:'forbidden'};post.deletedAt=now();delete store.likes[post.id];delete store.reposts[post.id];return{ok:true}});json(res,out.error?(out.error==='unauthorized'?401:out.error==='forbidden'?403:404):200,out,corsHeaders);return true}
 
     m=route.match(/^\/api\/pulse\/posts\/([^/]+)\/replies$/);
-    if(m&&req.method==='GET'){const store=await readStore(),a=await auth(req,store),viewer=a?.user.id||'',posts=Object.values(store.posts).filter(p=>p.replyToId===m[1]&&visibleTo(store,p,viewer)).sort((x,y)=>Date.parse(x.createdAt)-Date.parse(y.createdAt));json(res,200,{posts:posts.map(p=>postView(p,store,viewer)).filter(Boolean)},corsHeaders);return true}
+    if(m&&req.method==='GET'){
+      const result=await readStoreProject(async(store,conn)=>{
+       const a=await auth(req,store),viewer=a?.user.id||'';
+       const posts=conn?await relationalIndex.indexedPosts(conn,store,{kind:'replies',
+        ownerOrPost:m[1],expectedCount:viewMetrics(store).replies.get(m[1])||0}):
+        Object.values(store.posts).filter(p=>p.replyToId===m[1]&&visibleTo(store,p,viewer));
+       const visible=posts.filter(p=>visibleTo(store,p,viewer))
+        .sort((x,y)=>Date.parse(x.createdAt)-Date.parse(y.createdAt));
+       return {posts:visible.map(p=>postView(p,store,viewer)).filter(Boolean)};
+      });
+      json(res,200,result,corsHeaders);return true
+    }
 
     m=route.match(/^\/api\/pulse\/posts\/([^/]+)\/(like|repost|bookmark)$/);
     if(m&&req.method==='POST'){const postId=m[1],action=m[2],out=await mutateStore(store=>{const s=store.sessions[sha(bearer(req))],user=s&&store.users[s.userId],post=store.posts[postId];if(!user)return{error:'unauthorized'};if(!post||post.deletedAt)return{error:'not_found'};const map=action==='like'?store.likes:action==='repost'?store.reposts:store.bookmarks,key=action==='bookmark'?user.id:postId,arr=mapSet(map,key),target=action==='bookmark'?postId:user.id,i=arr.indexOf(target),active=i<0;if(active)arr.push(target);else arr.splice(i,1);if(active&&action!=='bookmark')notify(store,post.authorId,{actorId:user.id,type:action,objectId:post.id});return{ok:true,active,post:postView(post,store,user.id)}});json(res,out.error?(out.error==='unauthorized'?401:404):200,out,corsHeaders);return true}
 
     m=route.match(/^\/api\/pulse\/users\/([a-z0-9_]{3,24})$/);
-    if(m&&req.method==='GET'){const store=await readStore(),a=await auth(req,store),uid=store.handles[m[1]],user=uid&&store.users[uid];if(!user){json(res,404,{error:'not_found'},corsHeaders);return true}const posts=Object.values(store.posts).filter(p=>p.authorId===uid&&!p.replyToId&&visibleTo(store,p,a?.user.id||'')).sort((x,y)=>Date.parse(y.createdAt)-Date.parse(x.createdAt)).slice(0,40);json(res,200,{user:publicUser(user,store,a?.user.id||''),posts:posts.map(p=>postView(p,store,a?.user.id||''))},corsHeaders);return true}
+    if(m&&req.method==='GET'){
+      const result=await readStoreProject(async(store,conn)=>{
+       const a=await auth(req,store),viewer=a?.user.id||'',uid=store.handles[m[1]],user=uid&&store.users[uid];
+       if(!user)return null;
+       const posts=conn?await relationalIndex.indexedPosts(conn,store,{kind:'author',
+        ownerOrPost:uid,expectedCount:viewMetrics(store).topLevelByAuthor.get(uid)||0}):
+        Object.values(store.posts).filter(p=>p.authorId===uid&&!p.replyToId);
+       const visible=posts.filter(p=>visibleTo(store,p,viewer))
+        .sort((x,y)=>Date.parse(y.createdAt)-Date.parse(x.createdAt)).slice(0,40);
+       return {user:publicUser(user,store,viewer),posts:visible.map(p=>postView(p,store,viewer))};
+      });
+      json(res,result?200:404,result||{error:'not_found'},corsHeaders);return true
+    }
 
     m=route.match(/^\/api\/pulse\/users\/([a-z0-9_]{3,24})\/follow$/);
     if(m&&req.method==='POST'){const out=await mutateStore(store=>{const s=store.sessions[sha(bearer(req))],user=s&&store.users[s.userId],targetId=store.handles[m[1]];if(!user)return{error:'unauthorized'};if(!targetId)return{error:'not_found'};if(targetId===user.id)return{error:'self_follow'};const arr=mapSet(store.follows,user.id),i=arr.indexOf(targetId),active=i<0;if(active)arr.push(targetId);else arr.splice(i,1);if(active)notify(store,targetId,{actorId:user.id,type:'follow',objectId:user.id});return{ok:true,active,user:publicUser(store.users[targetId],store,user.id)}});json(res,out.error?(out.error==='unauthorized'?401:out.error==='not_found'?404:400):200,out,corsHeaders);return true}

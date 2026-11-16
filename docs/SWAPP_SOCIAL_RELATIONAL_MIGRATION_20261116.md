@@ -43,3 +43,27 @@ Le backfill insère désormais les lignes par lots de 64 au lieu d'une requête
 par publication/message. Le verrou est conservé jusqu'au contrôle de parité,
 ce qui impose une maintenance et un volume de données conforme aux plafonds.
 Les tables restent une projection : le fil public ne lit pas encore depuis SQL.
+
+## Lecture relationnelle expérimentale (étape 2, opt-in)
+
+Après le backfill et la vérification intégrale des comptes sur Hostinger, il est
+possible de tester la lecture des **réponses à une publication** et des
+**publications d'un profil** depuis les index MySQL, sans changer les autres routes :
+
+1. Activer `SWAPP_SOCIAL_RELATIONAL_DUALWRITE=1`, redémarrer et vérifier qu'il n'y
+   a ni erreur d'écriture ni incohérence.
+2. Exécuter `npm run social:relational:verify` dans une fenêtre sans mutations concurrentes
+   (ou via transaction de lecture cohérente). Ne poursuivre que si `ok:true`.
+3. Activer séparément `SWAPP_SOCIAL_RELATIONAL_READS=1` puis redémarrer Node.
+   Le second flag est ignoré si la double écriture n'est pas active.
+4. Tester deux comptes, réponses publiques/privées, blocages, publications
+   supprimées, activité concurrente et versions dans le navigateur.
+5. Revenir immédiatement au lecteur historique en retirant seulement
+   `SWAPP_SOCIAL_RELATIONAL_READS` en cas de dérive.
+
+Les requêtes SQL et le magasin JSON sont lus dans une seule transaction
+REPEATABLE READ : les comptes d'accès, les règles de visibilité et les
+éléments affichés continuent de venir de la source historique. Les index SQL
+sont refusés si les comptes ou le JSON des lignes diffèrent, renvoyant 503.
+La recherche, la messagerie et le fil général **ne basculent pas** encore ;
+le goulot de la grosse ligne JSON est donc toujours présent.
