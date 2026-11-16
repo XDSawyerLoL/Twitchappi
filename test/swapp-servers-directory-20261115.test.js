@@ -35,7 +35,7 @@ test('backend declares all public and authenticated routes',()=>{
 });
 test('public listing excludes pending servers and monthly votes are based on vote events',()=>{
  const source=read('modules/swapp-servers.js');
- assert.match(source,/s\.status="published" AND/);
+ assert.match(source,/s\.status=[\x27"]published[\x27"] AND/);
  assert.match(source,/swapp_game_server_vote_events/);
  assert.match(source,/FOR UPDATE/);
  assert.match(source,/7200000/);
