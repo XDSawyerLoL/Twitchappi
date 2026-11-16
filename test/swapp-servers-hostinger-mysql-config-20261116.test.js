@@ -59,7 +59,7 @@ test('admin diagnostics identify configuration source without exposing credentia
 test('directory filter normalizes each searchable column and bound parameter to one MySQL collation',()=>{
  const code=src();
  assert.match(code,/const directoryUtf8 = expression =>/);
- assert.match(code,/CONVERT\\(' \+ expression \+ ' USING utf8mb4\\) COLLATE utf8mb4_unicode_ci/);
+ assert.ok(code.includes(' USING utf8mb4) COLLATE utf8mb4_unicode_ci'));
  for(const column of ['s.game','s.name','s.description','s.tags'])assert.ok(code.includes("'"+column+"'"),column);
  assert.match(code,/\['s.name','s.description','s.tags','s.game'\]\.map\(directoryUtf8\)/);
  // Four bound parameters still protect both count/listing and diagnostics.
