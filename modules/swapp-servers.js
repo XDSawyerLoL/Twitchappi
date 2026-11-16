@@ -287,12 +287,14 @@ function detailPage(server,votes,meta={}){
  const canonical='https://swapp.tv'+gamePath+'/'+encodeURIComponent(server.slug);
  const summary=clean(server.tagline||server.description,160);
  const cover=String(image||'');
- const socialImage=cover.startsWith('/media/serveurs/')?'https://swapp.tv'+cover:safeUrl(cover);
+ const socialImage=(cover.startsWith('/media/serveurs/')?'https://swapp.tv'+cover:safeUrl(cover))||'https://swapp.tv/swapp-share-card.png';
  const metadata='<meta property="og:type" content="website"><meta property="og:site_name" content="SWAPP">'+
   '<meta property="og:title" content="'+esc(title+' — '+game+' | SWAPP')+'">'+
   '<meta property="og:description" content="'+esc(summary)+'">'+
   '<meta property="og:url" content="'+esc(canonical)+'">'+
-  (socialImage?'<meta property="og:image" content="'+esc(socialImage)+'"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="'+esc(socialImage)+'">':'')+
+  '<meta property="og:image" content="'+esc(socialImage)+'"><meta property="og:image:secure_url" content="'+esc(socialImage)+'">'+
+  '<meta property="og:image:alt" content="'+esc(title+' — communauté '+game)+'">'+
+  '<meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="'+esc(socialImage)+'">'+
   '<meta name="twitter:title" content="'+esc(title+' | SWAPP')+'"><meta name="twitter:description" content="'+esc(summary)+'">';
  const header='<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#030405">'+
   '<title>'+esc(title)+' — '+esc(game)+' | Serveurs SWAPP</title>'+
