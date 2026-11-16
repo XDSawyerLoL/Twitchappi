@@ -171,7 +171,10 @@ function renderNewsStory(originalArticle,{baseUrl='https://swapp.tv',relatedArti
  const isVideo=['video','trailer'].includes(article.contentType);
  const videoId=isVideo?articleExtras.trailerId(article.trailerUrl):null;
  const heroVideoId=articleExtras.heroTrailerId(article);
- const shareImage=sharePreview.previewUrl(article);
+ // Prefer the verified official HTTPS artwork directly for social crawlers.
+ // This avoids an extra dynamic SWAPP image endpoint request, which may be
+ // blocked by hosting anti-bot rules. Unapproved hosts retain our PNG fallback.
+ const shareImage=sharePreview.thumbnailSource(article)||sharePreview.previewUrl(article);
  // Google's video rich results require uploadDate, name and thumbnailUrl.
  // Keep actual origin dates on imported editorials; never invent publish times.
  const author={'@type':'Person',name:article.author||'Rédaction SWAPP'};
