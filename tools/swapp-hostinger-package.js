@@ -8,7 +8,7 @@ const crypto=require('node:crypto');
 const {execFileSync}=require('node:child_process');
 const root=path.resolve(__dirname,'..');
 const mandatory=['app.js','server.js','package.json','package-lock.json','index.html',
- 'modules/swapp-hubs.js','modules/swapp-seo.js','modules/swapp-geo-pages.js','tools/swapp-geo-probe.js','modules/swapp-game-pages.js','tools/swapp-release.js','assets/swapp-social-native/social-body.html',
+ 'modules/swapp-hubs.js','modules/swapp-devgames.js','assets/swapp-devgames.css','assets/swapp-devgames.js','modules/swapp-seo.js','modules/swapp-geo-pages.js','tools/swapp-geo-probe.js','modules/swapp-game-pages.js','tools/swapp-release.js','assets/swapp-social-native/social-body.html',
  'modules/swapp-page-shell.js','modules/swapp-catalogue-lab.js','modules/swapp-catalogue-spa.js','modules/swapp-explorer.js',
  'modules/swapp-servers.js','modules/swapp-servers-external-discovery.js','modules/swapp-servers-create.js','assets/swapp-servers-create.js','assets/swapp-servers-create.css','modules/swapp-servers-profile.js','modules/swapp-servers-stats.js','assets/swapp-servers.js','assets/swapp-servers.css','assets/swapp-servers-owner.js','assets/swapp-servers-detail.js','assets/swapp-servers-review-admin.js',
  'modules/swapp-servers-community.js','assets/swapp-servers-community.js','assets/swapp-servers-community.css',

@@ -15,6 +15,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: DevGames CV40 static-asset and navigation regression
+        run: |
+          node --check modules/swapp-devgames.js
+          node --check assets/swapp-devgames.js
+          node --test test/swapp-devgames.test.js
       - name: Syntax checks (no dependency install)
         run: |
           node --check server.js

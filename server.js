@@ -1857,6 +1857,10 @@ try{
 // original SWAPP shell, verified live feeds and existing genre classifier.
 require('./modules/swapp-explorer').register(app);
 
+// SWAPP DevGames: playable original projects, isolated from live/video APIs.
+try{ require('./modules/swapp-devgames').register(app); }
+catch(error){ console.warn('[SWAPP DEVGAMES] Module indisponible :',String(error?.message||error).slice(0,160)); }
+
 // The old Découvrir entry now leads to the integrated genres on Accueil.
 // Keep /categories as a reversible bookmark alias; do not touch /decouvrir
 // (Swapper lives inside SWAPP TV) or any discovery APIs.

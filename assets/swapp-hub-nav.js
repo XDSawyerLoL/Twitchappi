@@ -7,7 +7,8 @@
  const HUBS=[
   {href:'/social',label:'Social'},
   {href:'/boutique',label:'Boutique'},
-  {href:'/tv',label:'SWAPP TV'}
+  {href:'/tv',label:'SWAPP TV'},
+  {href:'/devgames',label:'DevGames'}
  ];
  const NAV=[
   ['/','Accueil'],['/actus','Actualité'],
@@ -90,11 +91,11 @@
   const api=typeof window!=='undefined'?window.SwappNavigation:null;
   if(!api||typeof api.desktopNavigation!=='function'||typeof api.mobileNavigation!=='function')return false;
   const route=String(location.pathname||'/').replace(/\/+$/,'')||'/';
-  const active=route==='/serveurs'||route.startsWith('/serveurs/')?'servers':route==='/explorer'||route.startsWith('/explorer/')?'explorer':route==='/bandes-annonces'?'trailers':route==='/tv'?'tv':route==='/tv/programme'||route==='/agenda'?'agenda':route==='/on-air'?'onair':route==='/actus'?'actus':route==='/decouvrir'?'discover':route==='/social'?'community':route==='/boutique'?'shop':route==='/categories'?'categories':route==='/equipes'?'teams':route.startsWith('/guides')?'guides':'home';
-  const signature='simple-v4-servers:'+(mobile?'mobile:':'desktop:')+active;
+  const active=route==='/serveurs'||route.startsWith('/serveurs/')?'servers':route==='/explorer'||route.startsWith('/explorer/')?'explorer':route==='/devgames'||route.startsWith('/devgames/')?'devgames':route==='/bandes-annonces'?'trailers':route==='/tv'?'tv':route==='/tv/programme'||route==='/agenda'?'agenda':route==='/on-air'?'onair':route==='/actus'?'actus':route==='/decouvrir'?'discover':route==='/social'?'community':route==='/boutique'?'shop':route==='/categories'?'categories':route==='/equipes'?'teams':route.startsWith('/guides')?'guides':'home';
+  const signature='simple-v5-devgames:'+(mobile?'mobile:':'desktop:')+active;
   const valid=!!(nav.querySelector('a[href="/decouvrir"]')&&
    !nav.querySelector('a[href="/categories"]')&&
-   nav.querySelector('a[href="/actus"]')&&nav.querySelector('a[href="/serveurs"]')&&nav.querySelector('.swapp-tv-nav-cta')&&
+   nav.querySelector('a[href="/actus"]')&&nav.querySelector('a[href="/serveurs"]')&&nav.querySelector('a[href="/devgames"]')&&nav.querySelector('.swapp-tv-nav-cta')&&
    !nav.querySelector('.swapp-news-more')&&!nav.querySelector('a[href="/equipes"]')&&
    (mobile?!!nav.querySelector('.swapp-mobile-more .swapp-mobile-tv-subnav a[href="/decouvrir"]'):
     !!nav.querySelector('.swapp-tv-submenu a[href="/decouvrir"]')));

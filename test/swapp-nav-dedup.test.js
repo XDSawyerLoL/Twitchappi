@@ -5,7 +5,7 @@ const fs=require('node:fs');
 const path=require('node:path');
 const vm=require('node:vm');
 const ROOT=path.resolve(__dirname,'..');
-const EXPECTED=['Accueil','Actualité','Social','Boutique','SWAPP TV','SERVEUR +'];
+const EXPECTED=['Accueil','Actualité','Social','Boutique','SWAPP TV','SERVEUR +','DevGames'];
 
 class Element {
  constructor(tag,text='',href=null){
@@ -53,22 +53,22 @@ function setup(){
    location,URL,setTimeout});
  return {nav,group,observe:()=>observer?.(),navigate:()=>navigatedTo,click:(target,mods={})=>{let prevented=false,stopped=false;clickListener({target,button:0,...mods,preventDefault(){prevented=true},stopImmediatePropagation(){stopped=true}});return {prevented,stopped}}};
 }
-test('fallback keeps six requested destinations including SERVEUR + without duplicate links',()=>{
+test('fallback keeps seven requested destinations including SERVEUR + without duplicate links',()=>{
  const {nav,group}=setup();
- assert.equal(nav.querySelectorAll('a,button').length,6);
+ assert.equal(nav.querySelectorAll('a,button').length,7);
  assert.deepEqual(group.children.map(x=>x.textContent),EXPECTED);
  assert.equal(nav.children.length,1);
- assert.equal(nav.querySelectorAll('a').length,4);
+ assert.equal(nav.querySelectorAll('a').length,5);
  assert.deepEqual(group.children.slice(2).map(x=>x.getAttribute('href')),
-  ['/social','/boutique','/tv','/serveurs']);
+  ['/social','/boutique','/tv','/serveurs','/devgames']);
  assert.equal(group.children.slice(2).every(x=>x.dataset.swappNativeRoute==='1'),true);
 });
-test('reconciling a second SPA render preserves six distinct destinations',()=>{
+test('reconciling a second SPA render preserves seven distinct destinations',()=>{
  const {nav,group,observe}=setup();
  for(const [href,label] of [['/social','Social'],['/boutique','Boutique'],['/tv','SWAPP TV']])
   group.append(new Element('a',label,href));
  observe();
- assert.equal(nav.querySelectorAll('a,button').length,6);
+ assert.equal(nav.querySelectorAll('a,button').length,7);
  assert.deepEqual(group.children.map(x=>x.textContent),EXPECTED);
 });
 test('navigation assets are versioned consistently on SPA and native pages',()=>{
@@ -77,7 +77,7 @@ test('navigation assets are versioned consistently on SPA and native pages',()=>
  const home=fs.readFileSync(path.join(ROOT,'index.html'),'utf8');
  const shell=fs.readFileSync(path.join(ROOT,'modules/swapp-news/site-shell.js'),'utf8');
  for(const source of [home,shell]){
-  assert.match(source,/swapp-hub-nav\.js\?v=20261115-servers-menu-v5/);
-  assert.match(source,/swapp-navigation\.js\?v=20261115-servers-menu-v5/);
+  assert.match(source,/swapp-hub-nav\.js\?v=20261117-devgames-v1/);
+  assert.match(source,/swapp-navigation\.js\?v=20261117-devgames-v1/);
  }
 });
