@@ -42,3 +42,17 @@ Ne pas confondre les statistiques annoncées avant la sortie avec les fonctions 
 
 ## Historique
 - **18/11/2026 — v0.1** : premier guide original, méthodologie de progression prudente, sources officielles, divergences entre fiches indexées, réserves sur les médias, le patch et la publication. **Non publié.**
+
+## Vérification éditoriale complémentaire — 18/11/2026, v0.2
+- **Sortie effective :** 17 novembre 2026, accès anticipé Steam ; confirmation directe du développeur et communiqué Jagex. Le numéro précis de build reste non vérifié.
+- **Niveau maximal :** le communiqué Jagex évoque un plafond porté à 120, tandis que la note de préparation au lancement du 12 novembre indique explicitement **99 pour le contenu d'accès anticipé disponible**. Ne pas présenter 120 comme atteignable au lancement. La communication porte vraisemblablement sur des horizons différents ; la chronologie de déploiement du niveau 120 n'est pas confirmée.
+- **Compétences :** Jagex annonce 29 compétences et cinq nouvelles au total ; l'annonce développeur du 12 novembre détaille trois compétences supplémentaires débloquées par rapport à la démo (Astrology, Herblore, Agility). Ces chiffres ne décrivent pas la même comparaison et ne doivent pas être fusionnés en un inventaire prétendument testé.
+- **Portages :** Android et iOS annoncés pour 2027, non disponibles au lancement Steam ; sauvegardes de démo transférables selon la note officielle. La version Steam est l'objet de ce guide.
+- **Prix :** le communiqué Jagex indique 14,49 € ; le billet de sortie du développeur indique 13,99 €. Divergence non résolue, donc aucun prix affirmé dans le guide ; vérifier le tarif réellement affiché selon pays et date.
+- **Médias :** bande-annonce officielle identifiée : https://youtu.be/NhEuYBsIZuk (éditeur/développeur : Jagex / Games by Malcs). Ne pas héberger de copie ; la réutilisation distante de sa miniature doit rester conforme au mécanisme existant et aux droits applicables.
+- **Sources primaires ajoutées :** https://www.jagex.com/news/melvor-idle-2-a-runescape-adventure-is-available-now-on-pc-in-steam-early-access (17/11) ; https://news.melvoridle.com/melvor-idle-2-a-runescape-adventure-is-now-available-in-steam-early-access/ (17/11) ; https://store.steampowered.com/news/app/3218350/view/676263236341858602 (12/11) ; https://news.melvoridle.com/early-access-patch-notes/ (notes officielles à confronter à la build active).
+- **Corroboration indépendante :** Inven Global, 17/11/2026, https://www.invenglobal.com/articles/28722/melvor-idle-2-a-runescape-adventure-launches-in-steam-early-access-with-five-new-skills ; confirme le lancement, pas une popularité chiffrée.
+- **État de publication :** /guides et /api/actus/{storage-status,release-status} non vérifiables depuis les contrôles externes du 18/11 ; aucune preuve d'adoption MySQL. **Brouillon uniquement, manifeste inchangé.**
+
+## Historique complémentaire
+- **18/11/2026 — v0.2** : sources de sortie et notes de lancement ajoutées, clarification 99/120, cinq nouvelles compétences contre trois ajouts depuis la démo, portages et prix divergents ; aucun statut de publication revendiqué.
