@@ -59,7 +59,7 @@ Le nouveau module modules/swapp-autonomy/planner.js définit les neuf moteurs, l
 
 Les intervalles sont des objectifs théoriques, **pas des crons activés**. Le lancement effectif nécessitera un verrou idempotent MySQL, le contrôle des API externes et la preuve des permissions. Les moteurs publication commerciale et packaging exigent des validations explicites. Les tarifs, paiements et remboursements ne sont pas modifiables automatiquement par ce planificateur.
 
-Contrôle ciblé : node --test test/swapp-autonomy-healthcheck.test.js test/swapp-autonomy-planner.test.js. Treize tests passent en copie isolée Node.js 22.16.0 au 19/11/2026 ; exécution de la suite complète et vérification de production toujours requises.
+Contrôle ciblé : node --test test/swapp-autonomy-healthcheck.test.js test/swapp-autonomy-planner.test.js. Treize tests initiaux passent en copie isolée Node.js 22.16.0 au 19/11/2026 ; exécution de la suite complète et vérification de production toujours requises.
 
 ## 19 novembre 2026 — Registre de verrouillage MySQL non activé
 
@@ -67,6 +67,12 @@ Le fichier modules/swapp-autonomy/run-ledger.js prépare un verrou entre instanc
 
 Le schéma InnoDB proposé est dans docs/sql/SWAPP_AUTONOMY_RUNS_V1.sql : **aucune migration n'a été appliquée à Hostinger**, et aucun moteur ni cron n'est activé. Le registre ne sera intégré qu'après examen de la migration, sauvegarde, test d'intégration avec MySQL réel, mesures de charge et confirmation de l'environnement d'exécution.
 
-**Tests exécutés : 19/19 réussis**, avec Node.js 22.16.0 sur une copie locale isolée des modules, dont six scénarios utilisant un simulateur db.execute pour les états de bail et les erreurs. Ce résultat ne remplace ni le test d'intégration MySQL ni la suite complète du dépôt, qui n'est pas disponible localement (accès GitHub en ligne de commande bloqué par DNS).
+**Tests exécutés : 20/20 réussis**, avec Node.js 22.16.0 sur une copie locale isolée des modules, dont six scénarios utilisant un simulateur db.execute pour les états de bail et les erreurs. Ce résultat ne remplace ni le test d'intégration MySQL ni la suite complète du dépôt, qui n'est pas disponible localement (accès GitHub en ligne de commande bloqué par DNS).
 
 **Important :** un bail valide protège le registre, mais n'empêche pas à lui seul un vieux worker d'effectuer une action externe après expiration. Chaque futur moteur devra vérifier la propriété avant les mutations et imposer une idempotence métier réelle. La PR doit rester en brouillon jusqu'à des contrôles CI et déploiement satisfaisants.
+
+## Correctif d'équité du planificateur
+
+Un premier scénario a révélé qu'un moteur Watchdog disponible chaque minute pouvait occuper systématiquement la seule place d'exécution et empêcher Live et Magazine de démarrer. Le planificateur trie maintenant les moteurs éligibles selon le retard relatif depuis leur dernière tentative, en donnant la priorité aux moteurs jamais exécutés. Le scénario de 12 passages avec `maxJobs=1` vérifie que les trois moteurs finissent par être sélectionnés. **Ce mécanisme exige qu'un futur exécuteur persiste `lastAttemptMs` après chaque tentative.** Aucun worker réel n'est actif.
+
+La suite ciblée complète des modules préparés compte 20 tests, tous réussis en environnement isolé Node.js 22.16.0. L'absence de tests MySQL réel, du checkout complet et le CI du dépôt restent des conditions bloquantes avant fusion/déploiement.
