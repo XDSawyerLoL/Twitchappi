@@ -10,6 +10,7 @@ const DEFAULT_ENDPOINTS = Object.freeze([
 function classify(status) {
   if(status===200)return 'ok';
   if(status===403||status===429)return 'restricted';
+  if(status>=300&&status<400)return 'redirect';
   if(status===404)return 'missing';
   if(status>=500)return 'unavailable';
   return 'unexpected';
@@ -17,11 +18,12 @@ function classify(status) {
 async function probe({baseUrl='https://swapp.tv',fetchImpl=globalThis.fetch,endpoints=DEFAULT_ENDPOINTS,timeoutMs=4500}={}) {
   if(typeof fetchImpl!=='function')throw new TypeError('fetchImpl required');
   const root=new URL(baseUrl);
-  if(!['https:','http:'].includes(root.protocol))throw new TypeError('Invalid origin');
+  if(!['https:','http:'].includes(root.protocol)||root.username||root.password||root.search||root.hash||root.pathname!=='/')throw new TypeError('Invalid origin');
   if(!Number.isInteger(timeoutMs)||timeoutMs<100||timeoutMs>15000)throw new RangeError('Invalid timeout');
+  if(!Array.isArray(endpoints)||endpoints.length>12)throw new RangeError('Invalid endpoint count');
   const results=[];
   for(const endpoint of endpoints) {
-    if(!/^\/[a-z0-9/_-]+$/i.test(endpoint.path))throw new TypeError('Invalid endpoint path');
+    if(typeof endpoint?.name!=='string'||!endpoint.name||!/^\/[a-z0-9/_-]+$/i.test(endpoint.path)||endpoint.path.includes('//')||endpoint.path.includes('..'))throw new TypeError('Invalid endpoint path');
     const started=Date.now();
     const controller=new AbortController();
     const timer=setTimeout(()=>controller.abort(),timeoutMs);
