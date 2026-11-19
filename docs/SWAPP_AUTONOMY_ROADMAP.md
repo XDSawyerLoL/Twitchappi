@@ -1,22 +1,54 @@
-# SWAPP Autonomy — phase 1 : surveillance sans mutation
+# SWAPP AUTONOMY — Phase 1, contrôle sûr (19 novembre 2026)
 
-Ce chantier initialise le socle technique de supervision des neuf moteurs envisagés. **Il ne signifie pas que SWAPP est autonome** et ne modifie ni les routes, ni MySQL, ni HLS/OBS, ni les paiements.
+## Constat important
 
-## Exécution
-- `node tools/swapp-autonomy-healthcheck.js` : requêtes GET séquentielles vers cinq routes publiques de production ; timeout individuel 4,5 s ; sortie JSON et code de sortie 0 si tout répond HTTP 200, 1 si au moins une route échoue, 2 si configuration invalide.
-- `node --test test/swapp-autonomy-healthcheck.test.js` : tests déterministes sans réseau.
-- Aucune tâche cron, aucun worker résident, aucun accès aux identifiants, aucune écriture de production. Lancer à la demande pour commencer.
-- HTTP 403/429 = accès restreint (peut provenir du pare-feu) ; 404 = route absente ; 5xx = indisponible ; aucune de ces situations ne prouve une absence de contenus.
-- Ce script ne restaure pas les services, n'efface pas les caches, ne redémarre rien. Ne jamais déclencher de relance sans contrôle anti-boucle et mesure de l'état réel.
+Les routes GET /api/actus et /api/actus/release-status invoquent ensureReleaseEditable() dans modules/swapp-news/router.js, ce qui peut **écrire en MySQL** pour adopter des lots éditoriaux. Elles sont donc exclues explicitement du watchdog, même si elles utilisent HTTP GET. La route /api/actus/storage-status interroge la base ; elle reste hors de la surveillance légère.
 
-## Feuille de route conditionnelle
-1. Mesurer les endpoints existants et documenter les faux positifs (pare-feu, bots, CAPTCHA). Ne pas contourner les protections.
-2. Définir le contrat MySQL pour chaque moteur (identifiant idempotent, origine, date, TTL, état, journal et propriétaire).
-3. Agrégation Live via quotas et API autorisées ; cache vérifié et filtrage des chaînes AFK **estimatif**.
-4. Pipeline éditorial existant : validation des sources, des droits médias, des doublons et adoption MySQL. Pas de publication automatique avant preuve d'adoption et rendu public.
-5. Social, podcast et boutique : sorties vérifiées, droits et règles commerciales, limites de coût.
-6. SAV : réponses automatiques sur FAQ vérifiées, escalade humaine pour litiges et remboursements.
-7. Watchdog : déclenchement planifié seulement après mesures de charge, limites et validation des permissions Hostinger.
+Le watchdog a été limité à deux routes sans effet de bord vérifiées dans server.js :
+- /api/release : exige service=swapp, complete=true, fingerprint SHA-256 au format valide ;
+- /api/swapp/storage-runtime : exige MySQL prêt pour comptes/news et anciens runtime Firestore/cron désactivés.
 
-## Critères de recette
-Chaque module doit prouver une exécution idempotente, une panne simulée récupérable, l'absence de secrets dans les logs, une mesure de consommation, des journaux consultables et un contrôle de production. **100 % d'autonomie ne peut être garanti** ; le bon objectif est une exploitation sans intervention ordinaire, avec escalade des exceptions.
+Un succès n'atteste **pas** que toute la plateforme fonctionne, ni que chaque requête SQL réussit. Le contrôle de fingerprint ne compare pas le code à une copie locale ; utiliser npm run verify:production pour cela.
+
+## Mode opératoire
+
+- node --check tools/swapp-autonomy-healthcheck.js
+- node --test test/swapp-autonomy-healthcheck.test.js
+- node tools/swapp-autonomy-healthcheck.js
+
+Deux GET séquentiels, timeout 4,5 s par route, corps JSON plafonné à 16 Kio, sans journalisation du contenu ni de secrets. Les HTTP 200 HTML (CAPTCHA), JSON invalides, statuts métier incohérents, redirections et 403/429 ne sont pas considérés comme sains. Les 403/429 indiquent un accès restreint, **pas** une panne prouvée. Seuls swapp.tv / www.swapp.tv en HTTPS et localhost en HTTP sont autorisés. Aucun cron, redémarrage, purge, écriture MySQL ni déploiement automatique n'est initié.
+
+**Tests :** six scénarios ciblés exécutés avec succès dans une copie isolée sous Node.js 22.16.0 le 19/11/2026. Il reste à exécuter ces tests et la suite complète dans un checkout du dépôt, puis à contrôler les résultats en production.
+
+## Les neuf moteurs et leur critère de recette
+
+| Moteur | Livrable | Garde-fou |
+|---|---|---|
+| 1. Watchdog | État d'exploitation horodaté, alerte utile | Pas de mutateur caché ni redémarrage en boucle |
+| 2. Live & Surprends-moi | Classements datés issus des APIs autorisées | Quotas, cache, absence d'invention de viewers |
+| 3. Magazine & Guides | Articles originaux avec sources et médias vérifiés | Anti-doublons, validation qualité, adoption MySQL prouvée |
+| 4. Social & Podcast | Résumés, mises en avant, audio réel | Consentement, licences, coût TTS mesuré |
+| 5. Boutique | Ordre de vitrines par pertinence observée | Aucun changement autonome des prix |
+| 6. Veille commerciale | Décisions d'opportunité datées | Mesurer conversion réelle et coût, pas prédire des ventes comme faits |
+| 7. Production & Packaging | Produit exploitable avec contrôles de fichier | Vérification licences, hashes et livraison |
+| 8. Publication & SEO | Offres consultables avec historiques de révision | Prix et mentions légales sous contrôle |
+| 9. Pilotage & SAV | Détection de problèmes et FAQ simples | Litiges, remboursements et paiements escaladés |
+
+## Architecture d'exploitation souhaitée
+
+- MySQL Hostinger comme base de données persistante unique ; pas de SQLite parallèle, VPS, GitHub Actions facturables ni API IA payante.
+- Futur registre MySQL d'exécution : moteur, run_id, dedup_key sous contrainte UNIQUE, provenance, date, état, durée, tentatives, consommation, date limite du cache, erreur expurgée.
+- Orchestration conditionnelle avec limite de concurrence, backoff, respect de Retry-After, circuit breaker, expiration du cache clairement affichée.
+- La publication ne doit jamais ressusciter un article retiré, contourner l'éditeur ou accepter un contenu sans droits médias. Contrôler pages publiques, état CMS et déploiement.
+- Ne pas faire fonctionner neuf workers permanents sur l'hébergement mutualisé ; commencer par des opérations courtes, contrôlées et mesurées.
+- Les processus à conséquences financières, contractuelles ou impliquant des données sensibles restent soumis à autorisation et contrôle humain.
+
+## Avant fusion et activation
+
+1. Réexécuter les tests dans le vrai dépôt, exécuter les tests existants concernés, examiner les changements et confirmer la compatibilité Node/Hostinger.
+2. Vérifier les deux routes réelles sans contourner les restrictions WAF.
+3. Vérifier l'empreinte du checkout et des ressources de production après déploiement ; un commit n'est pas une preuve.
+4. Mesurer la charge avant toute planification à la minute.
+5. Pour chaque moteur, établir : tests, source réelle, idempotence SQL entre instances, limites de ressources, récupération après panne, qualité et preuve de résultat.
+
+**Statut :** cette PR apporte seulement un watchdog sûr et sa documentation. SWAPP ne doit pas être déclaré autonome tant que les neuf moteurs n'ont pas chacun passé leur recette réelle. Une autonomie absolue sans intervention humaine exceptionnelle n'est pas une garantie réaliste.
