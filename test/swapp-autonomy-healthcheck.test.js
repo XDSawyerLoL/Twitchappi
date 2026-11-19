@@ -60,3 +60,11 @@ test('timeout/failed network are reported without leaking responses', async () =
   assert.equal(response.results[0].state, 'timeout');
   assert.ok(!JSON.stringify(response).includes('private-token'));
 });
+
+test('aborted JSON stream reports timeout rather than invalid payload', async () => {
+  const result = await probe({endpoints: [{name: 'release', path: '/api/release'}],
+    fetchImpl: async () => ({status: 200, headers: new Headers({'content-type': 'application/json'}),
+      body: {getReader: () => ({read: async () => {const e = new Error('aborted'); e.name = 'AbortError'; throw e;},
+        cancel: async () => {}})}})});
+  assert.equal(result.results[0].state, 'timeout');
+});
