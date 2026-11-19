@@ -59,4 +59,4 @@ Le nouveau module modules/swapp-autonomy/planner.js définit les neuf moteurs, l
 
 Les intervalles sont des objectifs théoriques, **pas des crons activés**. Le lancement effectif nécessitera un verrou idempotent MySQL, le contrôle des API externes et la preuve des permissions. Les moteurs publication commerciale et packaging exigent des validations explicites. Les tarifs, paiements et remboursements ne sont pas modifiables automatiquement par ce planificateur.
 
-Contrôle ciblé : node --test test/swapp-autonomy-healthcheck.test.js test/swapp-autonomy-planner.test.js. Douze tests passent en copie isolée Node.js 22.16.0 au 19/11/2026 ; exécution de la suite complète et vérification de production toujours requises.
+Contrôle ciblé : node --test test/swapp-autonomy-healthcheck.test.js test/swapp-autonomy-planner.test.js. Treize tests passent en copie isolée Node.js 22.16.0 au 19/11/2026 ; exécution de la suite complète et vérification de production toujours requises.
