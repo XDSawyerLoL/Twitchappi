@@ -21,3 +21,13 @@ test('checks endpoints read-only and reports failure',async()=>{
 test('rejects non-path targets',async()=>{
   await assert.rejects(()=>probe({endpoints:[{name:'bad',path:'https://other.site/'}],fetchImpl:async()=>({status:200})}),/Invalid endpoint/);
 });
+
+test('redirect is not accepted as a healthy response',async()=>{
+  const result=await probe({endpoints:[{name:'news',path:'/api/actus'}],fetchImpl:async()=>({status:302})});
+  assert.equal(result.healthy,false);
+  assert.equal(result.results[0].state,'redirect');
+});
+test('rejects unsafe origins and too many targets',async()=>{
+  await assert.rejects(()=>probe({baseUrl:'https://user:pass@swapp.tv/'}),/Invalid origin/);
+  await assert.rejects(()=>probe({endpoints:Array.from({length:13},(_,i)=>({name:String(i),path:'/api/actus'}))}),/Invalid endpoint count/);
+});
