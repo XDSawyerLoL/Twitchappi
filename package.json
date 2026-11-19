@@ -10,6 +10,7 @@
     "test:news": "node --test test/news*.test.js test/justplayer-import.test.js",
     "justplayer:prepare": "node tools/justplayer-import.js",
     "test": "node --test test/*.test.js",
+    "test:autonomy": "node --test test/swapp-autonomy-*.test.js",
     "release:info": "node tools/swapp-release.js",
     "verify:production": "node tools/swapp-deploy-smoke.js",
     "verify:geo": "node tools/swapp-geo-probe.js",
