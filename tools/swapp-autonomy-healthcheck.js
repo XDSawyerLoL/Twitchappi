@@ -89,6 +89,7 @@ async function probe({baseUrl = 'https://swapp.tv', fetchImpl = globalThis.fetch
             const data = JSON.parse(await readBounded(response));
             if (!verifyPayload(ALLOWED_PATHS[endpoint.path], data)) state = 'invalid-payload';
           } catch (error) {
+            if (error?.name === 'AbortError') throw error;
             state = error instanceof RangeError ? 'oversize' : 'invalid-payload';
           }
         }
