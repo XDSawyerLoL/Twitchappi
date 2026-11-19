@@ -52,3 +52,11 @@ Deux GET séquentiels, timeout 4,5 s par route, corps JSON plafonné à 16 Kio, 
 5. Pour chaque moteur, établir : tests, source réelle, idempotence SQL entre instances, limites de ressources, récupération après panne, qualité et preuve de résultat.
 
 **Statut :** cette PR apporte seulement un watchdog sûr et sa documentation. SWAPP ne doit pas être déclaré autonome tant que les neuf moteurs n'ont pas chacun passé leur recette réelle. Une autonomie absolue sans intervention humaine exceptionnelle n'est pas une garantie réaliste.
+
+## Planificateur déterministe (sans exécution)
+
+Le nouveau module modules/swapp-autonomy/planner.js définit les neuf moteurs, leurs intervalles indicatifs, leurs prérequis et un ordre de priorité. Aucun moteur n'est activé par défaut. planRuns() est une fonction pure : elle propose au maximum une tâche par défaut (plafond technique trois), classe les tâches non éligibles comme disabled, unready, cooldown ou capacity, et émet une clé de déduplication liée à une tranche horaire. Le planificateur **ne lance aucune tâche et n'écrit aucune donnée** : les clés proposées ne garantissent pas l'unicité entre processus sans contrainte MySQL.
+
+Les intervalles sont des objectifs théoriques, **pas des crons activés**. Le lancement effectif nécessitera un verrou idempotent MySQL, le contrôle des API externes et la preuve des permissions. Les moteurs publication commerciale et packaging exigent des validations explicites. Les tarifs, paiements et remboursements ne sont pas modifiables automatiquement par ce planificateur.
+
+Contrôle ciblé : node --test test/swapp-autonomy-healthcheck.test.js test/swapp-autonomy-planner.test.js. Douze tests passent en copie isolée Node.js 22.16.0 au 19/11/2026 ; exécution de la suite complète et vérification de production toujours requises.
