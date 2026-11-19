@@ -38,3 +38,21 @@ test('invalid schedules fail closed', () => {
   assert.throws(() => planRuns({nowMs: 123, maxJobs: 50}), /cap/);
   assert.throws(() => planRuns({nowMs: 123, enabled: ['watchdog'], lastAttemptMs: {watchdog: 124}}), /timestamp/);
 });
+
+test('fair scheduling prevents frequent watchdog from starving slower engines', () => {
+  const readiness = {mysql: true, liveApis: true, editorialReview: true};
+  const enabled = ['watchdog', 'live', 'magazine'];
+  const lastAttemptMs = {};
+  const selected = [];
+  for (let tick = 0; tick < 12; tick++) {
+    const nowMs = 86_400_000 + tick * 60_000;
+    const plan = planRuns({nowMs, enabled, readiness, lastAttemptMs, maxJobs: 1});
+    if (plan.jobs.length) {
+      selected.push(plan.jobs[0].id);
+      lastAttemptMs[plan.jobs[0].id] = nowMs;
+    }
+  }
+  assert.ok(selected.includes('watchdog'));
+  assert.ok(selected.includes('live'));
+  assert.ok(selected.includes('magazine'));
+});
