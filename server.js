@@ -4233,6 +4233,31 @@ app.get('/api/swapp/storage-runtime',(_req,res)=>
   accountsReady:SWAPP_MYSQL_ACCOUNTS&&swappMysqlAccountsReady,
   newsBackend:newsUseMysql?'mysql':'unavailable'
  }));
+// Passive monitoring of this Node process. Never performs HTTP, SQL or repair.
+let swappAutonomyWatchdog = null;
+try {
+  const {createRuntimeWatchdog} = require('./modules/swapp-autonomy/runtime-watchdog');
+  swappAutonomyWatchdog = createRuntimeWatchdog({
+    readState: () => ({
+      releaseComplete: SWAPP_DEPLOY_RELEASE.complete === true,
+      accountsMysqlReady: SWAPP_MYSQL_ACCOUNTS === true && swappMysqlAccountsReady === true,
+      newsMysqlConfigured: newsUseMysql === true,
+      firestoreDisabled: FIRESTORE_RUNTIME_ENABLED === false && !admin?.apps?.length,
+      legacyCronsDisabled: ENABLE_CRON === false && ENABLE_TRACKED_CRON === false
+    }),
+    log: state => console.warn('[SWAPP AUTONOMY WATCHDOG]', state)
+  });
+  if (process.env.NODE_ENV === 'production') swappAutonomyWatchdog.start();
+} catch (_) {console.warn('[SWAPP AUTONOMY WATCHDOG] module_unavailable');}
+app.get('/api/swapp/autonomy/status', (_req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.set('X-Content-Type-Options', 'nosniff');
+  if (!swappAutonomyWatchdog)
+    return res.status(503).json({success: false, error: 'watchdog_unavailable'});
+  if (process.env.NODE_ENV !== 'production') swappAutonomyWatchdog.check();
+  return res.json({success: true, ...swappAutonomyWatchdog.status()});
+});
+
 app.get('/api/oryon/persistence-status', async (_req, res) => {
   try{ await ORYON_USERS_READY; }catch(_){}
   if(SWAPP_MYSQL_ACCOUNTS&&!swappMysqlAccountsReady)await swappMysqlAccountsRecovery.ensure();

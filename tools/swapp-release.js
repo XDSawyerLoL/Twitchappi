@@ -7,6 +7,7 @@ const crypto=require('node:crypto');
 
 const RELEASE_FILES=Object.freeze([
  'server.js',
+ 'modules/swapp-autonomy/runtime-watchdog.js',
  'app.js',
  'package.json',
  'package-lock.json',
