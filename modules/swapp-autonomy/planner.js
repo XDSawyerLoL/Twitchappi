@@ -17,8 +17,8 @@ function planRuns({nowMs, enabled = [], readiness = {}, lastAttemptMs = {}, maxJ
       new Set(enabled).size !== enabled.length) throw new TypeError('Invalid enabled engines');
   if (!Number.isInteger(maxJobs) || maxJobs < 1 || maxJobs > 3) throw new RangeError('Invalid job cap');
   const allowed = new Set(enabled);
-  const jobs = [], skipped = [];
-  for (const rule of ENGINE_RULES) {
+  const jobs = [], skipped = [], candidates = [];
+  for (const [position, rule] of ENGINE_RULES.entries()) {
     if (!allowed.has(rule.id)) { skipped.push({id: rule.id, reason: 'disabled'}); continue; }
     const missing = rule.requires.filter(key => readiness[key] !== true);
     if (missing.length) { skipped.push({id: rule.id, reason: 'unready', missing}); continue; }
@@ -28,6 +28,18 @@ function planRuns({nowMs, enabled = [], readiness = {}, lastAttemptMs = {}, maxJ
     if (last !== undefined && nowMs - last < rule.intervalMs) {
       skipped.push({id: rule.id, reason: 'cooldown'}); continue;
     }
+    // Prioritize never-run work, then the most overdue job.
+    // Without this, a 60-second watchdog could starve Live and Magazine.
+    const score = last === undefined ? Infinity : (nowMs - last) / rule.intervalMs;
+    candidates.push({rule, position, score});
+  }
+  candidates.sort((a, b) => {
+    if (a.score === b.score) return a.position - b.position;
+    if (a.score === Infinity) return -1;
+    if (b.score === Infinity) return 1;
+    return b.score - a.score;
+  });
+  for (const {rule} of candidates) {
     if (jobs.length >= maxJobs) { skipped.push({id: rule.id, reason: 'capacity'}); continue; }
     const slot = Math.floor(nowMs / rule.intervalMs);
     jobs.push({id: rule.id, intervalMs: rule.intervalMs, dedupKey: rule.id + ':' + slot});
