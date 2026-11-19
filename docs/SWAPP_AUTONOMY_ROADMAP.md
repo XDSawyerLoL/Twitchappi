@@ -60,3 +60,13 @@ Le nouveau module modules/swapp-autonomy/planner.js définit les neuf moteurs, l
 Les intervalles sont des objectifs théoriques, **pas des crons activés**. Le lancement effectif nécessitera un verrou idempotent MySQL, le contrôle des API externes et la preuve des permissions. Les moteurs publication commerciale et packaging exigent des validations explicites. Les tarifs, paiements et remboursements ne sont pas modifiables automatiquement par ce planificateur.
 
 Contrôle ciblé : node --test test/swapp-autonomy-healthcheck.test.js test/swapp-autonomy-planner.test.js. Treize tests passent en copie isolée Node.js 22.16.0 au 19/11/2026 ; exécution de la suite complète et vérification de production toujours requises.
+
+## 19 novembre 2026 — Registre de verrouillage MySQL non activé
+
+Le fichier modules/swapp-autonomy/run-ledger.js prépare un verrou entre instances : réservation, renouvellement et clôture avec jeton de propriété. Les requêtes sont paramétrées via l'interface mysql2/promise déjà utilisée par SWAPP. Une contrainte UNIQUE (engine_id, dedup_key) empêche deux réservations du même créneau. Le jeton empêche un ancien exécutant de renouveler ou de clôturer le bail d'un successeur. En cas de base absente, aucune exécution de secours.
+
+Le schéma InnoDB proposé est dans docs/sql/SWAPP_AUTONOMY_RUNS_V1.sql : **aucune migration n'a été appliquée à Hostinger**, et aucun moteur ni cron n'est activé. Le registre ne sera intégré qu'après examen de la migration, sauvegarde, test d'intégration avec MySQL réel, mesures de charge et confirmation de l'environnement d'exécution.
+
+**Tests exécutés : 19/19 réussis**, avec Node.js 22.16.0 sur une copie locale isolée des modules, dont six scénarios utilisant un simulateur db.execute pour les états de bail et les erreurs. Ce résultat ne remplace ni le test d'intégration MySQL ni la suite complète du dépôt, qui n'est pas disponible localement (accès GitHub en ligne de commande bloqué par DNS).
+
+**Important :** un bail valide protège le registre, mais n'empêche pas à lui seul un vieux worker d'effectuer une action externe après expiration. Chaque futur moteur devra vérifier la propriété avant les mutations et imposer une idempotence métier réelle. La PR doit rester en brouillon jusqu'à des contrôles CI et déploiement satisfaisants.
