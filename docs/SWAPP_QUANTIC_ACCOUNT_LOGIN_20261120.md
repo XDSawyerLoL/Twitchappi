@@ -1,40 +1,21 @@
-# Quantic ID : connexion au véritable compte SWAPP
+# Quantic ID — identité SWAPP unifiée (20 novembre 2026)
 
-**Statut : implémentation en revue et tests CI obligatoires avant production.**
+**PR #329 : intégration dans le module principal de connexion SWAPP.**
+La seule interface de connexion se trouve sur `/compte`, dans le formulaire SWAPP habituel. L'ancien panneau `Quantic ID · Présence éphémère` et celui de connexion Quantic ne sont plus montés.
 
-## Pourquoi la présence seule ne suffisait pas
-La présence Quantic ID affichait un nom sur /compte mais **ne créait pas de session SWAPP**. Une présence cryptographiquement authentifiée ne donne pas automatiquement le droit d'accéder à un compte existant.
+## Utilisation
+1. Sur `/compte`, cliquer sur **le logo officiel Identity Vault** placé sous le formulaire de connexion SWAPP. Aucun identifiant ou mot de passe SWAPP supplémentaire n'est demandé.
+2. Le navigateur cherche `http://127.0.0.1:47621`. Identity Vault doit être installé, déverrouillé et autorisé pour `https://swapp.tv`. Si le coffre est verrouillé, le système ne contourne pas sa protection.
+3. Le coffre signe un défi aléatoire, à usage unique, lié à l'origine SWAPP. L'API vérifie la preuve, trouve l'identité cryptographique déjà associée au compte SWAPP et crée une vraie session Express SWAPP. Le profil et les droits normaux du compte sont conservés ; les privilèges admin ne sont pas accordés par Quantic seul.
+4. Pour une identité jamais associée, se connecter au compte SWAPP habituel **une fois**, puis cliquer sur le logo dans le compte connecté pour autoriser l'association. Aucune ressaisie du mot de passe n'est requise dans cette étape. Une identité inconnue n'ouvre pas de compte SWAPP par hasard.
+5. La présence éphémère n'a plus de bouton indépendant. Elle découle automatiquement de la connexion SWAPP authentifiée + Identity Vault actif et s'éteint si la preuve locale n'est plus renouvelée (TTL de présence 10 secondes). Les signatures et clés privées restent dans le coffre.
+6. La session créée par Quantic possède une durée de vie de 30 secondes, renouvelable par de nouvelles signatures via le gardien de session. Le verrouillage du coffre empêche le renouvellement et la session est révoquée au prochain contrôle.
 
-## Parcours correct
-1. Se connecter normalement avec son compte SWAPP habituel.
-2. Dans /compte, rubrique « Quantic ID · Connexion à mon compte SWAPP », entrer **une fois le mot de passe SWAPP actuel**, puis « Associer Quantic ID à mon compte ».
-3. Déverrouiller Quantic Identity Vault v0.4.1, confirmer l'autorisation du domaine SWAPP et laisser le coffre signer le défi.
-4. La liaison est persistée dans **MySQL Hostinger** (`swapp_quantic_account_bindings`) : identifiant cryptographique HMAC-SHA256 (non réversible), ID stable du compte SWAPP, date de liaison. Aucun mot de passe, clé privée ou preuve brute stockée.
-5. Se déconnecter du compte SWAPP. Depuis /compte, cliquer « Me connecter à SWAPP avec Quantic ID ». Le coffre signe un nouveau défi. Si le même identifiant est associé, la **vraie session Express** de ce compte est ouverte ; le compte, son profil et sa chaîne restent les mêmes.
-6. Verrouiller Quantic ID : le JavaScript du navigateur signale la fermeture du coffre et déconnecte la session, y compris via Socket.IO. Si la requête ne parvient pas au serveur (navigateur fermé, coupure réseau), la session expire **au plus tard à son prochain contrôle au-delà de 30 secondes**.
-7. Pour supprimer la liaison, se reconnecter avec son mot de passe SWAPP et choisir « Dissocier Quantic ID ». Une session ouverte seulement avec Quantic ID ne peut pas dissocier l'identité.
-
-## Protections
-- Aucune identité Quantic ID inconnue ne peut créer un nouveau compte ou prendre le compte SWAPP existant d'un tiers.
-- Le **premier lien exige à la fois une session SWAPP existante, son mot de passe actuel et une signature Quantic valide**.
-- Le défi de connexion est aléatoire, unique, limité dans le temps, associé à l'origine et à la session.
-- La liaison persistante impose les contraintes MySQL UNIQUE, empêchant une même clé d'être attribuée à deux comptes ou un compte à deux clés sans dissociation.
-- La session a une durée de 30 secondes renouvelée en signant un nouveau défi. Le verrouillage met fin à la possibilité de renouvellement ; aucun cookie SWAPP « Se souvenir de moi » longue durée n'est émis.
-- Les comptes ayant besoin de privilèges administrateur doivent se réauthentifier avec leur moyen habituel : **Quantic ID seul ne donne aucun droit admin**.
-- La session mémorisée par `memorystore` reste **locale à un processus Node**. Si Hostinger exécute plusieurs processus sans store partagé, la session sera interrompue ou le défi introuvable ; la synchronisation multiworker reste une condition préalable à la production publique.
-- Les clés restent dans Identity Vault. Le site ne conserve que l'empreinte HMAC du QID, le compte associé et un état de session expirant.
-- Les caches de présence Quantic ID restent une fonctionnalité facultative distincte de l'authentification SWAPP.
-
-## Pré-requis d'hébergement
-- `SWAPP_ACCOUNT_STORE=mysql` + une URL MySQL du compte SWAPP valide.
-- `SESSION_SECRET` stable de **24 caractères minimum**, sans le mettre dans le dépôt. Une rotation rendrait les associations existantes introuvables, à prévoir dans un protocole de migration.
-- Identity Vault >= 0.4.1 sur l'ordinateur de l'utilisateur, autorisation de l'origine SWAPP.
-- Tests CI complets et validation navigateur, routage MySQL et contrôles anti-bot avant déploiement Hostinger.
-
-## À valider avant annonce
-- `npm ci` et test `test/swapp-quantic-account-login.test.js`.
-- Test de l'association et de la connexion sur le véritable compte SWAPP, contrôle de l'affichage /compte et de /api/oryon/session.
-- Verrouillage manuel, USB retirée, navigateur fermé, sessions Socket.IO, onglets multiples, coupures réseau et double instance.
-- Audit de sécurité et sauvegarde MySQL avant exposition à tous les utilisateurs.
-
-**Ne pas présenter cela comme une certification de sécurité ou un système SSO universel.**
+## Points de sécurité et validation
+- Liaison : session SWAPP déjà authentifiée + clic explicite sur le logo + signature valide. Pas d'association par simple similitude de pseudo.
+- Unicité MySQL via `swapp_quantic_account_bindings` et HMAC de l'identifiant cryptographique ; les clés privées ne quittent pas Identity Vault.
+- Aucun nouveau mot de passe Quantic ID demandé par SWAPP ; verrouillage et autorisations locales de Vault toujours applicables.
+- Déconnexion SWAPP et renouvellement de session restent indépendants des démonstrations de présence.
+- L'absence de service local ou l'interdiction d'accès loopback par le navigateur doit afficher une erreur explicite.
+- Tester la vraie session `/api/oryon/session`, le rendu du logo, le premier lien, une clé inconnue, une clé incorrecte, le verrouillage de Vault, la réouverture, plusieurs onglets, Socket.IO et le comportement en cas de coupure réseau.
+- Vérifier CI puis déploiement Hostinger et rendu réel avant d'affirmer que la production est opérationnelle. Une fusion GitHub n'est pas une preuve de déploiement.

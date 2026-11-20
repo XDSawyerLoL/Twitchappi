@@ -92,21 +92,18 @@ test('Unknown Quantic identity cannot open or hijack any SWAPP account',async t=
  assert.equal(ctx.bindings.size,0);
 });
 
-test('Link requires an existing SWAPP account, its password and a real signature',async t=>{
+test('Link requires an existing SWAPP account and a real signature, without another password',async t=>{
  const ctx=await fixture(t),q=ctx.identity;
  const failed=await ctx.request('/api/quantic-id/account/challenge',{purpose:'link'});
  assert.equal(failed.status,401);
  await ctx.request('/__test/password-login',{});
- const wrongPassword=await ctx.challengeAndProof('link',q,'wrong');
- assert.equal(wrongPassword.status,403);
- assert.equal(ctx.bindings.size,0);
- const link=await ctx.challengeAndProof('link',q,'current-password');
+ const link=await ctx.challengeAndProof('link',q);
  assert.equal(link.status,200,JSON.stringify(link.data));
  assert.equal(ctx.bindings.size,1);
  assert.equal(ctx.bindings.get(digest(q.keyId,ctx.secret)),'aa11aa11aa11aa11aa11aa11');
  const status=await ctx.request('/api/quantic-id/account/status');
  assert.equal(status.data.linked,true);
- const again=await ctx.challengeAndProof('link',q,'current-password');
+ const again=await ctx.challengeAndProof('link',q);
  assert.equal(again.status,409);
 });
 
@@ -157,17 +154,18 @@ test('Wrong audience, key mismatch and replayed proof cannot renew a SWAPP sessi
  assert.equal(stillValid.status,200);
 });
 
-test('SWAPP user can unlink Quantic ID only after normal password sign-in',async t=>{
+test('SWAPP user can unlink using a signed proof after normal sign-in',async t=>{
  const ctx=await fixture(t),q=ctx.identity;
  await ctx.request('/__test/password-login',{});
  assert.equal((await ctx.challengeAndProof('link',q,'current-password')).status,200);
  await ctx.request('/__test/logout',{});
  assert.equal((await ctx.challengeAndProof('login',q)).status,200);
- assert.equal((await ctx.request('/api/quantic-id/account/unlink',{password:'current-password'})).status,401);
+ assert.equal((await ctx.request('/api/quantic-id/account/challenge',{purpose:'unlink'})).status,401);
  await ctx.request('/__test/logout',{});
  await ctx.request('/__test/password-login',{});
- assert.equal((await ctx.request('/api/quantic-id/account/unlink',{password:'wrong'})).status,403);
- const unlinked=await ctx.request('/api/quantic-id/account/unlink',{password:'current-password'});
+ const other=identity();
+ assert.equal((await ctx.challengeAndProof('unlink',other)).status,403);
+ const unlinked=await ctx.challengeAndProof('unlink',q);
  assert.equal(unlinked.status,200);
  assert.equal(unlinked.data.unlinked,true);
  await ctx.request('/__test/logout',{});

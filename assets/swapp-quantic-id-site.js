@@ -1,267 +1,130 @@
-/* Optional Quantic ID presence on SWAPP /compte, never a substitute for a SWAPP session. */
+/* Quantic Identity Vault: one logo inside SWAPP's existing login form.
+ * Local Vault proofs open the genuine SWAPP account session; presence follows the
+ * authenticated identity automatically. No second account or presence panel. */
 (()=>{'use strict';
+ const BASE='/api/quantic-id',VAULT='http://127.0.0.1:47621';
+ const LOCAL={mode:'cors',credentials:'omit',cache:'no-store',targetAddressSpace:'loopback'};
+ const ICON='/assets/brand-icons/quantic-identity-vault-mark.svg';
  const ROOT=document.getElementById('settings');
- if(!ROOT)return;
- const BRIDGE='http://127.0.0.1:47621',ENDPOINT='/api/quantic-id';
- // Chrome/Edge require explicit loopback targeting and site permission (LNA).
- const LOOPBACK_FETCH={mode:'cors',credentials:'omit',cache:'no-store',targetAddressSpace:'loopback'};
- async function loopbackPermission(){
-  try{
-   if(!navigator.permissions?.query)return 'unknown';
-   const state=await navigator.permissions.query({name:'loopback-network'});
-   return state?.state||'unknown';
-  }catch{return 'unknown'} // Older browsers do not recognize the permission.
- }
- function networkAdvice(where){
-  return where==='vault'
-    ?'Impossible de joindre Quantic Identity Vault sur cet ordinateur (127.0.0.1:47621). Ouvre Identity Vault et installe sa dernière version, puis autorise SWAPP à accéder aux applications sur cet appareil dans les paramètres de ton navigateur.'
-    :'Le serveur SWAPP ne répond pas. Vérifie la disponibilité du site et son déploiement Hostinger.';
- }
- async function localFetch(route,options={}){
-  try{
-   return await fetch(BRIDGE+route,{...LOOPBACK_FETCH,...options});
-  }catch(error){
-   const permission=await loopbackPermission();
-   if(permission==='denied')throw Error('Accès local refusé par le navigateur. Autorise les « applications sur cet appareil » / l’accès loopback pour swapp.tv dans les paramètres du site.');
-   if(error?.name==='TimeoutError')throw Error('Identity Vault ne répond pas dans le délai prévu. Vérifie qu’il fonctionne sur ton PC.');
-   throw Error(networkAdvice('vault'));
-  }
- }
- let active=false,busy=false,clock=0,lastProof=0,lastPresencePoll=0,section=null,label=null,button=null,stopButton=null,seen=null;
- const message=text=>{if(label)label.textContent=text};
- async function post(url,body){
-  let r;
-  try{r=await fetch(ENDPOINT+'/'+url,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body),cache:'no-store',credentials:'same-origin'});}
-  catch{throw Error(networkAdvice('swapp'))}
-  const type=r.headers.get('content-type')||'';
-  if(!type.includes('application/json')){
-   // Read only a small prefix; never display or log arbitrary server HTML.
-   const excerpt=(await r.text()).slice(0,2048);
-   if(/recaptcha|captcha|quota exceeded|quota.*exceeded|vérification.*robot|verify.*human|security check/i.test(excerpt)){
-    throw Error('La protection anti-bot intercepte l’API Quantic ID. Vérifie le quota et les règles du pare-feu avant de retester.');
-   }
-   if(/<!doctype html|<html/i.test(excerpt)){
-    throw Error('Le serveur SWAPP renvoie la page du site au lieu de l’API Quantic ID. Redéploie la branche master de SWAPP sur Hostinger et redémarre Node.js.');
-   }
-   throw Error('API Quantic ID inaccessible : le serveur ne renvoie pas de JSON (HTTP '+r.status+').');
-  }
-  let data;
-  try{data=await r.json()}catch{throw Error('La réponse de l’API SWAPP est illisible.')}
-  if(!r.ok){
-   if(r.status===404)throw Error('API Quantic ID absente sur Hostinger : SWAPP n’a pas encore la version serveur nécessaire.');
-   if(r.status===429)throw Error('Trop de demandes Quantic ID. Réessaie sans multiplier les connexions.');
-   throw Error('API SWAPP : '+(data.error||'requête refusée')+' (HTTP '+r.status+').');
-  }
+ let busy=false,present=false,lastPresenceProof=0,activeSession=false,linked=false,quanticSession=false;
+ let loginControl=null,linkControl=null;
+ const listen=new Set();
+ const errorLabels={
+  quantic_identity_not_linked:'Cette identité n’est pas encore associée. Connecte-toi normalement une fois, puis associe Identity Vault dans ton compte.',
+  swapp_password_login_required:'Connecte-toi d’abord à ton compte SWAPP habituel pour autoriser la liaison.',
+  quantic_account_already_linked:'Ce compte possède déjà une identité Quantic ID associée.',
+  quantic_identity_already_linked:'Cette identité est déjà associée à un autre compte.',
+  quantic_identity_mismatch:'La signature ne correspond pas à l’identité associée.',
+  quantic_login_not_configured:'Quantic ID n’est pas encore configuré côté serveur SWAPP.',
+  quantic_store_unavailable:'Le stockage du compte SWAPP est momentanément indisponible.',
+  quantic_session_expired:'La session Quantic ID a expiré. Reconnecte-toi.'
+ };
+ async function remote(route,body){
+  const res=await fetch(BASE+'/account/'+route,{method:body===undefined?'GET':'POST',cache:'no-store',credentials:'same-origin',
+   ...(body===undefined?{}:{headers:{'content-type':'application/json'},body:JSON.stringify(body)})});
+  if(!String(res.headers.get('content-type')||'').includes('application/json'))throw Error('Le serveur SWAPP ne renvoie pas l’API Quantic ID.');
+  const data=await res.json();if(!res.ok)throw Error(errorLabels[data.error]||data.error||'Connexion Quantic ID refusée.');
   return data;
  }
- async function localStatus(){
-  const result=await localFetch('/v1/status',{signal:AbortSignal.timeout(4500)});
-  if(!result.ok)throw Error('Identity Vault répond HTTP '+result.status+' : vérifie que sa version autorise https://swapp.tv.');
-  let data;
-  try{data=await result.json()}catch{throw Error('Identity Vault renvoie un statut invalide.')}
-  if(data.product!=='Quantic Identity Vault')throw Error('Service local non reconnu : Quantic Identity Vault attendu.');
+ async function vault(route,options={}){
+  try{return await fetch(VAULT+route,{...LOCAL,...options,signal:AbortSignal.timeout(12000)});}
+  catch{throw Error('Identity Vault est introuvable. Démarre l’application sur cet ordinateur et autorise l’accès local dans ton navigateur.');}
+ }
+ async function available(){
+  const r=await vault('/v1/status');if(!r.ok)throw Error('Identity Vault ne répond pas (HTTP '+r.status+').');
+  const data=await r.json();
+  if(data.product!=='Quantic Identity Vault')throw Error('Le service local n’est pas Identity Vault.');
+  if(!data.identityAvailable)throw Error('Identity Vault est verrouillé. Déverrouille ton coffre pour signer la connexion.');
   return data;
  }
- async function identityProof(purpose){
-  const status=await localStatus();
-  if(!status.identityAvailable)throw Error('Déverrouille Quantic Identity Vault sur cet ordinateur');
-  const nonce=await post('challenge',{purpose});
-  const signed=await localFetch('/v1/assert',{method:'POST',headers:{'content-type':'application/json'},
-   body:JSON.stringify({challenge:nonce.challenge,audience:nonce.audience}),signal:AbortSignal.timeout(20000)});
-  if(!signed.ok){
-   if(signed.status===423)throw Error('Quantic ID est verrouillé. Déverrouille le coffre puis réessaie.');
-   if(signed.status===403)throw Error('Ce site n’est pas autorisé par Identity Vault : installe la version compatible SWAPP.');
-   throw Error('Signature refusée par Identity Vault (HTTP '+signed.status+'). Vérifie son autorisation pour swapp.tv.');
-  }
+ async function prove(purpose,account=true){
+  const state=await available();
+  const nonce=account?await remote('challenge',{purpose}):await presence('challenge',{purpose});
+  const signed=await vault('/v1/assert',{method:'POST',headers:{'content-type':'application/json'},
+   body:JSON.stringify({challenge:nonce.challenge,audience:nonce.audience})});
+  if(!signed.ok)throw Error('Signature refusée par Identity Vault (HTTP '+signed.status+').');
   const proof=await signed.json();
-  const approved=await localStatus().catch(()=>status);
-  return {challenge:nonce.challenge,proof,alias:approved.label||'Utilisateur Quantic'};
+  if(account)return remote('prove',{purpose,challenge:nonce.challenge,proof});
+  return {challenge:nonce.challenge,proof,alias:state.label||'Quantic ID'};
  }
- let accountCard=null,accountMessage=null,accountPassword=null,accountLink=null,accountLogin=null,accountUnlink=null,accountLogout=null;
- async function signedAccountRequest(action,body){
-  const response=await fetch(ENDPOINT+'/account/'+action,{method:'POST',credentials:'same-origin',cache:'no-store',
+ async function presence(route,body){
+  const res=await fetch(BASE+'/'+route,{method:'POST',cache:'no-store',credentials:'same-origin',
    headers:{'content-type':'application/json'},body:JSON.stringify(body)});
-  const type=response.headers.get('content-type')||'';
-  if(!type.includes('application/json'))throw Error('API Quantic ID indisponible sur SWAPP');
-  const data=await response.json();
-  if(!response.ok){
-   const errors={
-    quantic_login_not_configured:'Connexion Quantic ID non configurée sur ce serveur.',
-    quantic_identity_not_linked:'Cette identité Quantic ID n’est pas encore liée à un compte SWAPP. Connecte-toi une fois avec ton mot de passe pour l’associer.',
-    swapp_password_invalid:'Mot de passe SWAPP incorrect.',
-    quantic_account_already_linked:'Ce compte possède déjà une identité Quantic ID associée.',
-    quantic_identity_already_linked:'Cette identité Quantic ID est déjà associée à un autre compte SWAPP.',
-    quantic_session_expired:'La session Quantic ID a expiré : reconnecte-toi.',
-    quantic_store_unavailable:'Le stockage MySQL SWAPP est temporairement indisponible.'
-   };
-   throw Error(errors[data.error]||data.error||'Échec de la connexion Quantic ID');
+  if(!res.ok)throw Error('Présence Quantic indisponible.');
+  return res.json();
+ }
+ function output(text){
+  for(const node of listen)if(node.isConnected)node.textContent=text;
+ }
+ function iconButton(id,label){
+  const button=document.createElement('button');button.id=id;button.type='button';button.className='swapp-vault-logo-button';
+  button.setAttribute('aria-label',label);button.title=label;
+  const image=document.createElement('img');image.src=ICON;image.alt='';image.width=46;image.height=46;image.loading='eager';
+  button.append(image);return button;
+ }
+ function messageNode(){
+  const n=document.createElement('p');n.className='swapp-vault-inline-status';n.setAttribute('role','status');n.setAttribute('aria-live','polite');
+  listen.add(n);return n;
+ }
+ function mount(){
+  const form=document.getElementById('loginForm');
+  if(form&&!document.getElementById('swapp-vault-primary-login')){
+   const slot=document.createElement('div');slot.className='swapp-vault-login-option';
+   const title=document.createElement('span');title.className='swapp-vault-option-label';title.textContent='Ou avec Identity Vault';
+   const button=iconButton('swapp-vault-primary-login','Se connecter à SWAPP avec Identity Vault');
+   const msg=messageNode();slot.append(title,button,msg);
+   // Remain inside the main login panel; the button never submits the password form.
+   form.append(slot);loginControl=button;button.addEventListener('click',()=>void authorize('login'));
   }
-  return data;
- }
- async function signedAccountProof(purpose,password){
-  const state=await localStatus();
-  if(!state.identityAvailable)throw Error('Déverrouille Identity Vault pour continuer');
-  const nonce=await signedAccountRequest('challenge',{purpose});
-  const response=await localFetch('/v1/assert',{method:'POST',headers:{'content-type':'application/json'},
-   body:JSON.stringify({challenge:nonce.challenge,audience:nonce.audience}),signal:AbortSignal.timeout(20000)});
-  if(!response.ok)throw Error('Signature refusée. Autorise SWAPP dans Identity Vault.');
-  const proof=await response.json();
-  return signedAccountRequest('prove',{purpose,challenge:nonce.challenge,proof,...(password?{password}:{})});
- }
- async function refreshAccountControls(){
-  if(!accountCard)return;
-  let data;
-  try{
-   const response=await fetch(ENDPOINT+'/account/status',{cache:'no-store',credentials:'same-origin'});
-   data=await response.json();
-   if(!response.ok)throw Error(data.error||'Connexion indisponible');
-  }catch{
-   accountMessage.textContent='Connexion Quantic ID indisponible sur cette version du serveur SWAPP.';
-   accountLink.hidden=true;accountLogin.hidden=true;accountUnlink.hidden=true;accountLogout.hidden=true;accountPassword.hidden=true;
-   return;
+  // First-time association belongs to the existing logged-in account view, not a separate card.
+  if(ROOT&&activeSession&&!quanticSession&&!linked&&!document.getElementById('swapp-vault-link-action')){
+   const row=document.createElement('div');row.id='swapp-vault-link-action';row.className='swapp-vault-link-inline';
+   const label=document.createElement('span');label.textContent='Associer Identity Vault à ce compte';
+   const button=iconButton('swapp-vault-link-button','Associer mon Quantic ID à mon compte SWAPP');
+   row.append(label,button,messageNode());ROOT.prepend(row);linkControl=button;
+   button.addEventListener('click',()=>void authorize('link'));
   }
-  accountPassword.hidden=Boolean(data.quanticSession)||!data.loggedIn;
-  accountLink.hidden=!data.loggedIn||data.linked||data.quanticSession;
-  accountUnlink.hidden=!data.loggedIn||!data.linked||data.quanticSession;
-  accountLogin.hidden=Boolean(data.loggedIn);
-  accountLogout.hidden=!data.quanticSession;
-  accountMessage.textContent=data.quanticSession
-   ?'Session SWAPP ouverte avec Quantic ID : '+data.login+'. Verrouiller Identity Vault ferme cette session.'
-   :data.loggedIn
-    ?data.linked?'Compte '+data.login+' déjà associé à Quantic ID.':'Compte '+data.login+' connecté. Associe ton identité Quantic ID une seule fois.'
-    :'Connecte-toi avec Quantic ID si tu l’as déjà associé. Sinon, connecte-toi une fois à ton compte SWAPP avec ton mot de passe et associe-le.';
+  if(ROOT&&(!activeSession||linked||quanticSession)){
+   const old=ROOT.querySelector('#swapp-vault-link-action');if(old){old.remove();linkControl=null;}
+  }
  }
- async function performAccount(action){
-  const buttons=[accountLink,accountLogin,accountUnlink,accountLogout];
-  buttons.forEach(node=>{node.disabled=true});
-  const password=accountPassword?.value||'';
-  accountMessage.textContent='Vérification de la connexion Quantic ID…';
+ async function status(){
+  const data=await remote('status');
+  activeSession=Boolean(data.loggedIn);linked=Boolean(data.linked);quanticSession=Boolean(data.quanticSession);
+  mount();return data;
+ }
+ async function authorize(purpose){
+  if(busy)return;
+  busy=true;const buttons=[loginControl,linkControl].filter(Boolean);buttons.forEach(b=>b.disabled=true);
+  output(purpose==='login'?'Détection et vérification de ton Identity Vault…':'Association sécurisée avec ton compte SWAPP…');
   try{
-   if(action==='link'){
-    if(!password)throw Error('Saisis ton mot de passe SWAPP pour autoriser la première association.');
-    await signedAccountProof('link',password);
-    accountPassword.value='';
-    accountMessage.textContent='Quantic ID associé à ton compte SWAPP. Tu peux te déconnecter, puis revenir avec Quantic ID.';
-   }else if(action==='login'){
-    await signedAccountProof('login');
+   await prove(purpose);
+   if(purpose==='login'){
     window.dispatchEvent(new Event('swapp:quantic-session-started'));
-    location.assign('/compte');
-    return;
-   }else if(action==='unlink'){
-    if(!password)throw Error('Le mot de passe SWAPP est requis pour dissocier ton identité.');
-    await signedAccountRequest('unlink',{password});
-    accountPassword.value='';
-    accountMessage.textContent='Quantic ID dissocié de ce compte SWAPP.';
-   }else if(action==='logout'){
-    await signedAccountRequest('logout',{});
-    location.assign('/compte');
-    return;
+    location.assign('/compte');return;
    }
-   await refreshAccountControls();
-  }catch(e){
-   accountMessage.textContent=e?.message||'Action Quantic ID refusée.';
-  }finally{buttons.forEach(node=>{node.disabled=false})}
+   await status();output('Identity Vault associé. Le même logo permettra désormais de te connecter.');
+  }catch(e){output(e?.message||'Connexion impossible.');}
+  finally{busy=false;buttons.forEach(b=>b.disabled=false);}
  }
- function buildAccountCard(){
-  if(!ROOT||ROOT.querySelector('#swapp-quantic-account-login'))return;
-  accountCard=document.createElement('section');accountCard.id='swapp-quantic-account-login';accountCard.className='swapp-quantic-card';
-  const h=document.createElement('h3');h.textContent='Quantic ID · Connexion à mon compte SWAPP';
-  const description=document.createElement('p');description.textContent='Associe une seule fois ton compte SWAPP à ta clé Quantic ID. Ensuite, une signature de ton coffre déverrouillé suffit à ouvrir ta session SWAPP.';
-  accountMessage=document.createElement('p');accountMessage.setAttribute('role','status');accountMessage.textContent='Recherche de la session SWAPP…';
-  accountPassword=document.createElement('input');accountPassword.type='password';accountPassword.placeholder='Mot de passe actuel du compte SWAPP';accountPassword.autocomplete='current-password';accountPassword.setAttribute('aria-label','Mot de passe SWAPP pour associer ou dissocier Quantic ID');
-  const makeButton=(label,action)=>{
-   const b=document.createElement('button');b.type='button';b.textContent=label;
-   b.addEventListener('click',()=>void performAccount(action));return b;
-  };
-  accountLink=makeButton('Associer Quantic ID à mon compte','link');
-  accountLogin=makeButton('Me connecter à SWAPP avec Quantic ID','login');
-  accountUnlink=makeButton('Dissocier Quantic ID','unlink');
-  accountLogout=makeButton('Me déconnecter de Quantic ID','logout');
-  accountCard.append(h,description,accountMessage,accountPassword,accountLink,accountLogin,accountUnlink,accountLogout);
-  ROOT.append(accountCard);
-  void refreshAccountControls();
- }
- function controls(){if(button)button.disabled=busy||active;if(stopButton)stopButton.disabled=busy||!active}
- function build(){
-  if(!ROOT||ROOT.querySelector('#swapp-quantic-id-presence'))return;
-  section=document.createElement('section');section.id='swapp-quantic-id-presence';section.className='swapp-quantic-card';
-  const heading=document.createElement('h3');heading.textContent='Quantic ID · Présence éphémère';
-  const help=document.createElement('p');help.textContent='Active ton identité sur SWAPP sans transmettre ta clé privée. Ta présence disparaît au verrouillage ou après 10 secondes sans preuve renouvelée. Cette connexion ne remplace pas encore ton compte SWAPP.';
-  button=document.createElement('button');button.type='button';button.textContent='Activer ma présence Quantic ID';
-  stopButton=document.createElement('button');stopButton.type='button';stopButton.textContent='Verrouiller ma présence';stopButton.className='swapp-quantic-secondary';
-  label=document.createElement('p');label.setAttribute('role','status');label.textContent='Identité non visible sur SWAPP.';
-  seen=document.createElement('p');seen.className='swapp-quantic-presence-list';
-  const download=document.createElement('a');
-  download.href='https://github.com/XDSawyerLoL/Human-Agency-Engine/releases/tag/quantic-identity-vault-v0.4.1';
-  download.target='_blank';download.rel='noopener noreferrer';
-  download.className='swapp-quantic-install-link';
-  download.textContent='Télécharger Identity Vault v0.4.1 pour Windows';
-  const instructions=document.createElement('p');
-  instructions.textContent='Application à lancer sur ce PC. Si Edge le demande, autorise les applications sur cet appareil pour SWAPP.';
-  section.append(heading,help,download,instructions,button,stopButton,label,seen);
-  ROOT.append(section);
-  buildAccountCard();
-  // Account sign-in is the primary Quantic ID feature, presence stays an optional demonstration.
-  if(accountCard)ROOT.insertBefore(accountCard,section);
-  button.addEventListener('click',()=>void activate());
-  stopButton.addEventListener('click',()=>void lock());
-  controls();
- }
- async function activate(){
-  if(busy||active)return;
-  busy=true;controls();message('Signature Quantic ID en cours...');
+ async function renewPresence(){
+  if(busy||!(activeSession&&linked))return;
   try{
-   const assertion=await identityProof('activate');
-   await post('activate',assertion);
-   active=true;lastProof=Date.now();
-   message('Identité Quantic ID visible sur SWAPP (présence temporaire).');
-  }catch(e){message('Activation impossible : '+(e?.message||'connexion refusée'))}
-  finally{busy=false;controls();}
- }
- async function lock(){
-  if(busy)return;
-  active=false;
-  try{await post('lock',{})}catch(_){}
-  message('Présence Quantic ID révoquée ou en expiration.');
-  controls();
- }
- async function refresh(){
-  if(!section||!section.isConnected)return;
-  try{
-   const data=await(await fetch(ENDPOINT+'/visible',{cache:'no-store'})).json();
-   seen.textContent=data.users?.length?'Présences Quantic ID sur SWAPP : '+data.users.map(x=>x.alias).join(', '):'Aucune présence Quantic ID actuellement.';
-  }catch{seen.textContent='Présences indisponibles.'}
- }
- async function heartbeat(){
-  if(busy)return;
-  if(active){
-   busy=true;controls();
-   try{
-    const status=await localStatus();
-    if(!status.identityAvailable)throw Error('coffre verrouillé');
-    if(Date.now()-lastProof>4500){
-     const assertion=await identityProof('renew');
-     await post('renew',assertion);
-     lastProof=Date.now();
-    }
-   }catch{
-    active=false;
-    await post('lock',{}).catch(()=>{});
-    message('Coffre verrouillé ou inaccessible : présence supprimée.');
-   }finally{busy=false;controls();}
-  }
-  if(active && Date.now()-lastPresencePoll>=8000 && document.visibilityState==='visible'){
-    lastPresencePoll=Date.now();
-    await refresh();
+   await available();
+   if(Date.now()-lastPresenceProof<7000)return;
+   const assertion=await prove(present?'renew':'activate',false);
+   await presence(present?'renew':'activate',assertion);
+   present=true;lastPresenceProof=Date.now();
+  }catch{
+   if(present){present=false;await presence('lock',{}).catch(()=>{});}
   }
  }
  window.addEventListener('pagehide',()=>{
-  if(!active)return;
-  active=false;
-  navigator.sendBeacon(ENDPOINT+'/lock',new Blob(['{}'],{type:'application/json'}));
+  if(present)navigator.sendBeacon(BASE+'/lock',new Blob(['{}'],{type:'application/json'}));
  });
- const observer=new MutationObserver(()=>{if(!ROOT.querySelector('#swapp-quantic-id-presence'))build();else if(!ROOT.querySelector('#swapp-quantic-account-login'))buildAccountCard()});
- observer.observe(ROOT,{childList:true});
- build();void refresh();
- clock=window.setInterval(()=>void heartbeat(),1600);
+ document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')void status().then(renewPresence).catch(()=>{});});
+ // The SPA regenerates /compte forms after navigation: keep only the logo button.
+ const observer=new MutationObserver(()=>mount());observer.observe(document.body,{childList:true,subtree:true});
+ mount();void status().then(renewPresence).catch(()=>{});
+ window.setInterval(()=>void renewPresence(),7000);
 })();
