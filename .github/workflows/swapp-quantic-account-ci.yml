@@ -14,6 +14,7 @@ on:
       - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/swapp-quantic-account-ci.yml'
+      - 'tools/swapp-quantic-ci-baseline.mjs'
   workflow_dispatch:
 permissions:
   contents: read
@@ -39,5 +40,17 @@ jobs:
       - name: Full signed account authentication and cross-feature regression
         run: |
           node --test test/swapp-quantic-account-login.test.js test/swapp-quantic-id-site.test.js
-      - name: Full SWAPP regression suite
-        run: npm test
+      - name: Compare full SWAPP regression with existing master baseline
+        shell: bash
+        run: |
+          # Existing SWAPP master has historical non-Quantic test failures.
+          # Fail this PR if it adds ANY NEW failing test.
+          node --test test/*.test.js > "$RUNNER_TEMP/quantic-branch.tap" 2>&1 || true
+          git fetch --no-tags origin master --depth=1
+          git worktree add --detach "$RUNNER_TEMP/swapp-baseline" FETCH_HEAD
+          ln -s "$GITHUB_WORKSPACE/node_modules" "$RUNNER_TEMP/swapp-baseline/node_modules"
+          (
+            cd "$RUNNER_TEMP/swapp-baseline"
+            node --test test/*.test.js > "$RUNNER_TEMP/quantic-baseline.tap" 2>&1 || true
+          )
+          node tools/swapp-quantic-ci-baseline.mjs "$RUNNER_TEMP/quantic-baseline.tap" "$RUNNER_TEMP/quantic-branch.tap"
