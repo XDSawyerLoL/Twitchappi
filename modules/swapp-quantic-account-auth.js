@@ -152,16 +152,21 @@ function createAccountRouter(express,{
  });
  router.get('/status',async(req,res)=>{
   const s=req.session||{},active=Boolean(s.quanticAuth&&s.quanticAuth.expiresAt>now());
-  let linked=false;
-  if(s.oryonUser?.id)try{linked=Boolean(await store.getKey(s.oryonUser.id))}catch{return error(res,503,'quantic_store_unavailable')}
-  return res.json({success:true,loggedIn:Boolean(s.oryonUser?.id),login:s.oryonUser?.login||null,linked,quanticSession:active,expiresAt:active?s.quanticAuth.expiresAt:null,leaseMs:AUTH_LEASE_MS});
+  let linked=false,recoveryReady=false;
+  if(s.oryonUser?.id)try{
+   linked=Boolean(await store.getKey(s.oryonUser.id));
+   recoveryReady=active&&linked&&typeof store.hasRecovery==='function'&&await store.hasRecovery(s.oryonUser.id);
+  }catch{return error(res,503,'quantic_store_unavailable')}
+  return res.json({success:true,loggedIn:Boolean(s.oryonUser?.id),login:s.oryonUser?.login||null,linked,quanticSession:active,recoveryReady,expiresAt:active?s.quanticAuth.expiresAt:null,leaseMs:AUTH_LEASE_MS});
  });
  router.post('/challenge',limited,async(req,res)=>{
   const purpose=req.body.purpose,s=req.session||{},account=s.oryonUser;
-  if(!['link','login','renew','unlink'].includes(purpose))return error(res,400,'quantic_purpose_invalid');
+  if(!['link','login','renew','unlink','recover','recovery-enroll'].includes(purpose))return error(res,400,'quantic_purpose_invalid');
   if(['link','unlink'].includes(purpose)&&(!account?.id||s.quanticAuth))return error(res,401,'swapp_password_login_required');
   if(['link','unlink'].includes(purpose)&&!recentPassword(s))return error(res,401,'swapp_recent_password_required');
-  if(purpose==='login'&&account?.id)return error(res,409,'swapp_already_logged_in');
+  if(['login','recover'].includes(purpose)&&account?.id)return error(res,409,'swapp_already_logged_in');
+  if(purpose==='recovery-enroll'&&(!account?.id||!s.quanticAuth||s.quanticAuth.expiresAt<=now()))
+   return error(res,401,'quantic_session_expired');
   if(purpose==='renew'&&(!account?.id||!s.quanticAuth||s.quanticAuth.expiresAt<=now()))return error(res,401,'quantic_session_expired');
   const challenge=randomBytes(32).toString('base64url'),audience=req.get('Origin');
   req.session.quanticPending={challenge,purpose,audience,userId:account?.id||null,expiresAt:now()+CHALLENGE_MS};
@@ -203,6 +208,40 @@ function createAccountRouter(express,{
     if(!linked||linked!==hash)return error(res,403,'quantic_identity_mismatch');
     return res.json({success:true,unlinked:await store.unbind(s.oryonUser.id)});
    }catch{return error(res,503,'quantic_store_unavailable')}
+  }
+  if(pending.purpose==='recovery-enroll'){
+   if(!s.quanticAuth||s.quanticAuth.hash!==hash||s.quanticAuth.expiresAt<=now()||s.oryonUser?.id!==pending.userId)
+    return error(res,401,'quantic_session_expired');
+   try{
+    if(await store.getKey(s.oryonUser.id)!==hash)return error(res,401,'quantic_link_revoked');
+    const codes=generateRecoveryCodes();
+    await store.setRecoveryCodes(s.oryonUser.id,codes.map(code=>recoveryDigest(code,secret)));
+    return res.json({success:true,recoveryCodes:codes,count:codes.length});
+   }catch{return error(res,503,'quantic_store_unavailable')}
+  }
+  if(pending.purpose==='recover'){
+   if(s.oryonUser?.id)return error(res,409,'swapp_already_logged_in');
+   let recoveryHash;
+   try{recoveryHash=recoveryDigest(req.body.recoveryCode,secret)}
+   catch{return error(res,401,'quantic_recovery_invalid')}
+   let user;
+   try{
+    if(typeof store.recoverAccount!=='function')return error(res,503,'quantic_recovery_unavailable');
+    const id=await store.recoverAccount(hash,recoveryHash);
+    await refreshUsers();
+    user=findUser(id);
+    if(!user)return error(res,503,'quantic_account_refresh_failed');
+   }catch(e){return error(res,e?.message==='quantic_recovery_invalid'?401:e?.code==='ER_DUP_ENTRY'?409:503,
+     e?.message==='quantic_recovery_invalid'?'quantic_recovery_invalid':e?.code==='ER_DUP_ENTRY'?'quantic_identity_already_linked':'quantic_store_unavailable')}
+   try{
+    await new Promise((ok,no)=>req.session.regenerate(e=>e?no(e):ok()));
+    req.session.oryonUser={...toSession(user),is_admin:false};
+    req.session.twitchUser=null;
+    req.session.quanticAuth={hash,expiresAt:now()+AUTH_LEASE_MS};
+    clearRemember(res);
+    await save(req);
+    return res.json({success:true,authenticated:true,recovered:true,login:user.login,expiresAt:req.session.quanticAuth.expiresAt});
+   }catch{return error(res,503,'quantic_session_unavailable')}
   }
   if(pending.purpose==='login'){
    if(s.oryonUser?.id)return error(res,409,'swapp_already_logged_in');
@@ -285,4 +324,4 @@ function createLeaseGuard({now=Date.now,clearRemember=()=>{}}={}){
   req.session.save(error=>error?next(error):next());
  };
 }
-module.exports={createBindingStore,createAccountRouter,createLeaseGuard,digest,requiresVaultAuthentication,FRESH_PASSWORD_MS,AUTH_LEASE_MS,CHALLENGE_MS,DDL};
+module.exports={createBindingStore,createAccountRouter,createLeaseGuard,digest,generateRecoveryCodes,recoveryDigest,requiresVaultAuthentication,FRESH_PASSWORD_MS,AUTH_LEASE_MS,CHALLENGE_MS,DDL,RECOVERY_DDL};
