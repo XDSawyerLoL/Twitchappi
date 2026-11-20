@@ -45,7 +45,8 @@ async function fixture(t){
  app.use(session({secret:'testing-only-express-session-secret',resave:false,saveUninitialized:false,cookie:{sameSite:'lax'}}));
  app.use(createLeaseGuard({now:()=>time,clearRemember:()=>{clearCount++}}));
  app.post('/__test/password-login',(req,res)=>{
-  req.session.oryonUser={id:existing.id,login:existing.login};
+  const user=createdUsers.get(req.body?.userId)||existing;
+  req.session.oryonUser={id:user.id,login:user.login};
   req.session.save(error=>error?res.status(500).end():res.json({success:true}));
  });
  app.post('/__test/logout',(req,res)=>{
@@ -205,9 +206,11 @@ test('A new Quantic-only account cannot remove its last login factor',async t=>{
  const ctx=await fixture(t),key=ctx.identity;
  assert.equal((await ctx.challengeAndProof('login',key,undefined,{createIfMissing:true})).status,200);
  await ctx.request('/__test/logout',{});
- await ctx.request('/__test/password-login',{});
- // The other normally authenticated SWAPP account does not own the new Vault identity.
- assert.equal((await ctx.challengeAndProof('unlink',key)).status,403);
+ const created=[...ctx.createdUsers.values()][0];
+ await ctx.request('/__test/password-login',{userId:created.id});
+ assert.equal((await ctx.challengeAndProof('unlink',key)).status,409);
+ assert.equal(ctx.createdUsers.size,1);
+ assert.equal(ctx.bindings.size,1);
 });
 test('Forged assertions and users with an existing account cannot silently auto-bind identity',async t=>{
  const ctx=await fixture(t),key=ctx.identity;
