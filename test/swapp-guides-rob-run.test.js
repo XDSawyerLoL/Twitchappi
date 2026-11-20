@@ -61,3 +61,34 @@ test('no fabricated proof or checkout and no paid dependencies',()=>{
  assert.match(raw,/source/i);
  assert.match(raw,/accès anticipé/i);
 });
+
+test('publisher artwork is real, visible and credited on both pages',()=>{
+ const html=renderRobRun(),index=renderIndex();
+ for(const page of [html,index]){
+  assert.match(page,/shared\.fastly\.steamstatic\.com\/store_item_assets\/steam\/apps\/4262460/);
+  assert.match(page,/sg-hero-image/);
+  assert.match(page,/© Kefir \/ Steam/);
+  assert.match(page,/<img[^>]+alt=/);
+  assert.match(page,/og:image/);
+ }
+ assert.match(index,/blogfiles\.ncsoft\.net/);
+ assert.match(index,/© NCSOFT/);
+ assert.match(html,/sg-inline-photo/);
+});
+test('guides use full-bleed photographic editorial layout, not bubble cards',()=>{
+ const raw=fs.readFileSync(path.join(root,'modules/swapp-guides-rob-run.js'),'utf8');
+ const html=renderIndex();
+ assert.match(raw,/\.sg-feature-row/);
+ assert.match(raw,/\.sg-sectionhead/);
+ assert.match(raw,/\.sg-hero-image/);
+ assert.doesNotMatch(raw,/\.sg-card\{|\.sg-cards\{|sg-stamp|sg-cta|radial-gradient\([^)]*#15212a/);
+ assert.match(html,/sg-feature-row/);
+ assert.doesNotMatch(html,/sg-card|sg-cards/);
+});
+test('official artwork is direct-loaded and no fictional or generic placeholders are used',()=>{
+ const src=fs.readFileSync(path.join(root,'modules/swapp-guides-rob-run.js'),'utf8');
+ assert.match(src,/page_bg_raw\.jpg/);
+ assert.match(src,/capsule_616x353\.jpg/);
+ assert.doesNotMatch(src,/unsplash|pexels|placeholder\.com|picsum|lorem ipsum/);
+ assert.doesNotMatch(src,/sg-row-picture[^]*<svg/);
+});
