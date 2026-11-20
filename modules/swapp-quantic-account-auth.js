@@ -311,15 +311,31 @@ function createAccountRouter(express,{
  });
  return router;
 }
-function createLeaseGuard({now=Date.now,clearRemember=()=>{}}={}){
- return (req,res,next)=>{
-  const q=req.session?.quanticAuth;
-  if(!q)return next();
-  if(Number.isFinite(q.expiresAt)&&q.expiresAt>now())return next();
+function createLeaseGuard({now=Date.now,clearRemember=()=>{},getBoundKey,getSessionUser}={}){
+ return async (req,res,next)=>{
+  // Static assets have no account-specific content. Avoid a DB read for each
+  // CSS/image/video request from a logged-in browser.
+  if(/^\/(?:assets\/|favicon\.ico$|index_script\.js$)/.test(req.path||''))return next();
+  const q=req.session?.quanticAuth,sessionUser=req.session?.oryonUser;
+  if(!q){
+   try{
+    if(!sessionUser?.id||typeof getSessionUser!=='function'||
+       !requiresVaultAuthentication(await getSessionUser(sessionUser.id)))return next();
+   }catch{return res.status(503).set('Cache-Control','no-store').json({success:false,error:'quantic_account_guard_unavailable'})}
+  }else if(Number.isFinite(q.expiresAt)&&q.expiresAt>now()&&sessionUser?.id){
+   // Database lookup immediately revokes old sessions on recovery/rotation,
+   // even when an attacker has copied a SWAPP session cookie.
+   if(typeof getBoundKey==='function'){
+    try{
+     if(await getBoundKey(sessionUser.id)===q.hash)return next();
+    }catch{return res.status(503).set('Cache-Control','no-store').json({success:false,error:'quantic_account_guard_unavailable'})}
+   }else return next();
+  }
   req.session.quanticAuth=null;
   req.session.oryonUser=null;
   req.session.twitchUser=null;
   req.session.quanticPending=null;
+  req.session.swappPasswordAuthenticatedAt=null;
   clearRemember(res);
   req.session.save(error=>error?next(error):next());
  };
