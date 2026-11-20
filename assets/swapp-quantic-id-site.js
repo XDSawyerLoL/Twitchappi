@@ -66,8 +66,9 @@ async function status(){
 async function action(kind){
  if(busy)return;busy=true;[primary,unlink,logout].forEach(n=>n.disabled=true);
  try{
-  if(kind==='logout'){await account('logout',{});location.assign('/compte');return;}
+  if(kind==='logout'){sessionStorage.setItem('quantic-manual-logout','1');await account('logout',{});location.assign('/compte');return;}
   say(kind==='link'?'Vérification de la liaison Quantic ID…':'Signature Quantic ID en cours…');
+  if(kind==='login')sessionStorage.removeItem('quantic-manual-logout');
   await signed(kind);
   if(kind==='login'){window.dispatchEvent(new Event('swapp:quantic-session-started'));location.assign('/compte');return;}
   await status();
@@ -102,7 +103,7 @@ async function tick(){
    if(present){present=false;await presenceRequest('lock',{}).catch(()=>{});}
    return;
   }
-  if(!loggedIn&&!autoAttempted){autoAttempted=true;await action('login');return;}
+  if(!loggedIn&&!autoAttempted&&!sessionStorage.getItem('quantic-manual-logout')){autoAttempted=true;await action('login');return;}
   // Presence is derived from an authenticated account that has an associated Quantic identity.
   if(!(loggedIn&&linked))return;
   if(Date.now()-lastProof>5000){
