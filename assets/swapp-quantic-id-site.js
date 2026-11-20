@@ -6,8 +6,8 @@
  const LOCAL={mode:'cors',credentials:'omit',cache:'no-store',targetAddressSpace:'loopback'};
  const ICON='/assets/brand-icons/quantic-identity-vault-mark.svg';
  const ROOT=document.getElementById('settings');
- let busy=false,present=false,lastPresenceProof=0,activeSession=false,linked=false,quanticSession=false;
- let loginControl=null,linkControl=null;
+ let busy=false,present=false,lastPresenceProof=0,activeSession=false,linked=false,quanticSession=false,recoveryReady=false,strict=false;
+ let loginControl=null,linkControl=null,recoverControl=null,enrollControl=null,strictControl=null;
  const listen=new Set();
  const errorLabels={
   quantic_identity_not_linked:'Cette identité n’est pas associée à SWAPP.',
@@ -23,7 +23,11 @@
   quantic_registration_not_configured:'Création de compte Quantic ID indisponible sur SWAPP.',
   quantic_registration_rate_limited:'Trop de créations de comptes. Réessaie plus tard.',
   quantic_registration_collision:'La création a rencontré un conflit. Réessaie.',
-  quantic_account_capacity_reached:'SWAPP ne peut plus créer de nouveaux comptes pour le moment.'
+  quantic_account_capacity_reached:'SWAPP ne peut plus créer de nouveaux comptes pour le moment.',
+  quantic_recovery_invalid:'Code de récupération invalide ou déjà utilisé.',
+  quantic_recovery_required:'Crée et conserve d’abord tes codes de récupération avant d’activer Identity Vault obligatoire.',
+  quantic_recovery_unavailable:'Récupération Identity Vault non configurée.',
+  quantic_strict_unavailable:'Mode de connexion obligatoire temporairement indisponible.'
  };
  async function remote(route,body){
   const res=await fetch(BASE+'/account/'+route,{method:body===undefined?'GET':'POST',cache:'no-store',credentials:'same-origin',
@@ -43,14 +47,14 @@
   if(!data.identityAvailable)throw Error('Identity Vault est verrouillé. Déverrouille ton coffre pour signer la connexion.');
   return data;
  }
- async function prove(purpose,account=true){
+ async function prove(purpose,account=true,extra={}){
   const state=await available();
   const nonce=account?await remote('challenge',{purpose}):await presence('challenge',{purpose});
   const signed=await vault('/v1/assert',{method:'POST',headers:{'content-type':'application/json'},
    body:JSON.stringify({challenge:nonce.challenge,audience:nonce.audience})});
   if(!signed.ok)throw Error('Signature refusée par Identity Vault (HTTP '+signed.status+').');
   const proof=await signed.json();
-  if(account)return remote('prove',{purpose,challenge:nonce.challenge,proof,...(purpose==='login'?{createIfMissing:true}:{})});
+  if(account)return remote('prove',{purpose,challenge:nonce.challenge,proof,...(purpose==='login'?{createIfMissing:true}:{}),...extra});
   return {challenge:nonce.challenge,proof,alias:state.label||'Quantic ID'};
  }
  async function presence(route,body){
@@ -85,6 +89,13 @@
    const button=iconButton('swapp-vault-primary-login','Se connecter ou créer mon compte SWAPP avec Identity Vault');
    const msg=messageNode();slot.append(title,button,msg);
    // Remain inside the main login panel; the button never submits the password form.
+   const recover=document.createElement('button');recover.type='button';recover.id='swapp-vault-recovery-login';
+   recover.textContent='Récupérer mon compte avec un code';recover.className='swapp-vault-inline-recovery';
+   slot.append(recover);recoverControl=recover;
+   recover.addEventListener('click',()=>{
+    const code=window.prompt('Saisis un des codes de récupération Quantic ID conservés hors de ton coffre. Le nouveau coffre doit être déverrouillé.');
+    if(code&&code.trim())void authorize('recover',{recoveryCode:code.trim()});
+   });
    form.append(slot);loginControl=button;button.addEventListener('click',()=>void authorize('login'));
   }
   // First-time association belongs to the existing logged-in account view, not a separate card.
@@ -95,27 +106,61 @@
    row.append(label,button,messageNode());ROOT.prepend(row);linkControl=button;
    button.addEventListener('click',()=>void authorize('link'));
   }
+  if(ROOT&&activeSession&&quanticSession&&linked&&!document.getElementById('swapp-vault-recovery-actions')){
+   const row=document.createElement('div');row.id='swapp-vault-recovery-actions';row.className='swapp-vault-link-inline';
+   const enroll=document.createElement('button');enroll.type='button';enroll.textContent=recoveryReady?'Renouveler mes codes de récupération':'Créer mes codes de récupération';
+   enroll.className='swapp-vault-inline-recovery';enrollControl=enroll;row.append(enroll);
+   enroll.addEventListener('click',()=>{if(window.confirm('Les anciens codes de récupération seront invalidés. Les nouveaux codes seront montrés UNE seule fois. Continuer ?'))void authorize('recovery-enroll')});
+   if(recoveryReady&&!strict){
+    const enforce=document.createElement('button');enforce.type='button';enforce.textContent='Rendre Identity Vault obligatoire';
+    enforce.className='swapp-vault-inline-recovery';strictControl=enforce;row.append(enforce);
+    enforce.addEventListener('click',()=>{if(window.confirm('Une fois activé, le mot de passe et les anciens jetons ne connecteront plus ce compte. Conserve tes codes hors du coffre. Confirmer ?'))void authorize('strict-enable')});
+   }
+   row.append(messageNode());ROOT.prepend(row);
+  }
+  if(ROOT){
+   const action=ROOT.querySelector('#swapp-vault-recovery-actions');
+   if(action&&(!activeSession||!quanticSession||!linked)){
+    action.remove();enrollControl=null;strictControl=null;
+   }else if(action){
+    if(enrollControl)enrollControl.textContent=recoveryReady?'Renouveler mes codes de récupération':'Créer mes codes de récupération';
+    if(strictControl)strictControl.hidden=Boolean(strict||!recoveryReady);
+   }
+  }
   if(ROOT&&(!activeSession||linked||quanticSession)){
    const old=ROOT.querySelector('#swapp-vault-link-action');if(old){old.remove();linkControl=null;}
   }
  }
  async function status(){
   const data=await remote('status');
-  activeSession=Boolean(data.loggedIn);linked=Boolean(data.linked);quanticSession=Boolean(data.quanticSession);
+  activeSession=Boolean(data.loggedIn);linked=Boolean(data.linked);quanticSession=Boolean(data.quanticSession);recoveryReady=Boolean(data.recoveryReady);strict=Boolean(data.strict);
   mount();return data;
  }
- async function authorize(purpose){
+ async function authorize(purpose,extra={}){
   if(busy)return;
-  busy=true;const buttons=[loginControl,linkControl].filter(Boolean);buttons.forEach(b=>b.disabled=true);
-  output(purpose==='login'?'Recherche de ton compte ou création si l’identité est nouvelle…':'Association sécurisée avec ton compte SWAPP…');
+  busy=true;const buttons=[loginControl,linkControl,recoverControl,enrollControl,strictControl].filter(Boolean);buttons.forEach(b=>b.disabled=true);
+  output(purpose==='login'?'Recherche de ton compte ou création si l’identité est nouvelle…':
+   purpose==='recover'?'Vérification du nouveau coffre et du code de récupération…':'Vérification cryptographique Identity Vault…');
   try{
-   const result=await prove(purpose);
+   const result=await prove(purpose,true,extra);
    if(purpose==='login'&&result.created)sessionStorage.setItem('swapp-quantic-new-account','1');
-   if(purpose==='login'){
+   if(purpose==='login'||purpose==='recover'){
     window.dispatchEvent(new Event('swapp:quantic-session-started'));
     location.assign('/compte');return;
    }
-   await status();output('Identity Vault associé. Le même logo permettra désormais de te connecter.');
+   await status();
+   if(purpose==='recovery-enroll'){
+    const row=document.getElementById('swapp-vault-recovery-actions');
+    if(row){
+     const old=row.querySelector('#swapp-vault-recovery-codes');if(old)old.remove();
+     const container=document.createElement('div');container.id='swapp-vault-recovery-codes';
+     const note=document.createElement('p');note.textContent='Codes affichés une seule fois. Copie-les et conserve-les HORS de la clé USB et de cet ordinateur. Tout nouvel enregistrement invalide les anciens.';
+     const codes=document.createElement('textarea');codes.readOnly=true;codes.rows=9;codes.value=result.recoveryCodes.join('\n');codes.setAttribute('aria-label','Codes de récupération à sauvegarder');
+     container.append(note,codes);row.append(container);
+    }
+    output('Enregistre tes huit codes maintenant : aucun des codes n’est conservé en clair côté serveur.');
+   }else if(purpose==='strict-enable')output('Identity Vault est maintenant obligatoire pour ce compte. Les anciennes connexions ont été invalidées.');
+   else output('Identity Vault associé. Le même logo permettra désormais de te connecter.');
   }catch(e){output(e?.message||'Connexion impossible.');}
   finally{busy=false;buttons.forEach(b=>b.disabled=false);}
  }
