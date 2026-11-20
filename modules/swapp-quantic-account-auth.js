@@ -119,7 +119,7 @@ function createBindingStore({mysqlUri,pool,mysqlFactory}={}){
  };
 }
 function createAccountRouter(express,{
- secret,store,verifyPassword,findUser,refreshUsers,toSession,clearRemember,newUserFactory,
+ secret,store,verifyPassword,findUser,refreshUsers,toSession,clearRemember,newUserFactory,enforceVaultOnly,
  now=Date.now,production=process.env.NODE_ENV==='production',enabled=process.env.SWAPP_ACCOUNT_STORE==='mysql'
 }={}){
  if(![verifyPassword,findUser,refreshUsers,toSession,clearRemember].every(f=>typeof f==='function'))
@@ -152,20 +152,21 @@ function createAccountRouter(express,{
  });
  router.get('/status',async(req,res)=>{
   const s=req.session||{},active=Boolean(s.quanticAuth&&s.quanticAuth.expiresAt>now());
-  let linked=false,recoveryReady=false;
+  let linked=false,recoveryReady=false,strict=false;
   if(s.oryonUser?.id)try{
    linked=Boolean(await store.getKey(s.oryonUser.id));
    recoveryReady=active&&linked&&typeof store.hasRecovery==='function'&&await store.hasRecovery(s.oryonUser.id);
+   strict=active&&requiresVaultAuthentication(findUser(s.oryonUser.id));
   }catch{return error(res,503,'quantic_store_unavailable')}
-  return res.json({success:true,loggedIn:Boolean(s.oryonUser?.id),login:s.oryonUser?.login||null,linked,quanticSession:active,recoveryReady,expiresAt:active?s.quanticAuth.expiresAt:null,leaseMs:AUTH_LEASE_MS});
+  return res.json({success:true,loggedIn:Boolean(s.oryonUser?.id),login:s.oryonUser?.login||null,linked,quanticSession:active,recoveryReady,strict,expiresAt:active?s.quanticAuth.expiresAt:null,leaseMs:AUTH_LEASE_MS});
  });
  router.post('/challenge',limited,async(req,res)=>{
   const purpose=req.body.purpose,s=req.session||{},account=s.oryonUser;
-  if(!['link','login','renew','unlink','recover','recovery-enroll'].includes(purpose))return error(res,400,'quantic_purpose_invalid');
+  if(!['link','login','renew','unlink','recover','recovery-enroll','strict-enable'].includes(purpose))return error(res,400,'quantic_purpose_invalid');
   if(['link','unlink'].includes(purpose)&&(!account?.id||s.quanticAuth))return error(res,401,'swapp_password_login_required');
   if(['link','unlink'].includes(purpose)&&!recentPassword(s))return error(res,401,'swapp_recent_password_required');
   if(['login','recover'].includes(purpose)&&account?.id)return error(res,409,'swapp_already_logged_in');
-  if(purpose==='recovery-enroll'&&(!account?.id||!s.quanticAuth||s.quanticAuth.expiresAt<=now()))
+  if(['recovery-enroll','strict-enable'].includes(purpose)&&(!account?.id||!s.quanticAuth||s.quanticAuth.expiresAt<=now()))
    return error(res,401,'quantic_session_expired');
   if(purpose==='renew'&&(!account?.id||!s.quanticAuth||s.quanticAuth.expiresAt<=now()))return error(res,401,'quantic_session_expired');
   const challenge=randomBytes(32).toString('base64url'),audience=req.get('Origin');
@@ -217,6 +218,17 @@ function createAccountRouter(express,{
     const codes=generateRecoveryCodes();
     await store.setRecoveryCodes(s.oryonUser.id,codes.map(code=>recoveryDigest(code,secret)));
     return res.json({success:true,recoveryCodes:codes,count:codes.length});
+   }catch{return error(res,503,'quantic_store_unavailable')}
+  }
+  if(pending.purpose==='strict-enable'){
+   if(!s.quanticAuth||s.quanticAuth.hash!==hash||s.quanticAuth.expiresAt<=now()||s.oryonUser?.id!==pending.userId)
+    return error(res,401,'quantic_session_expired');
+   try{
+    if(await store.getKey(s.oryonUser.id)!==hash)return error(res,401,'quantic_link_revoked');
+    if(!await store.hasRecovery(s.oryonUser.id))return error(res,409,'quantic_recovery_required');
+    if(typeof enforceVaultOnly!=='function')return error(res,503,'quantic_strict_unavailable');
+    await enforceVaultOnly(s.oryonUser.id);
+    return res.json({success:true,strict:true});
    }catch{return error(res,503,'quantic_store_unavailable')}
   }
   if(pending.purpose==='recover'){
