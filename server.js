@@ -10765,6 +10765,7 @@ const SWAPP_LIVE_TRENDS_ENABLED=IS_PROD &&
   process.env.SWAPP_LIVE_TRENDS_ENABLED!=='0' &&
   Boolean(newsMysqlUrl && TWITCH_CLIENT_ID && TWITCH_CLIENT_SECRET);
 let swappLiveTrendCollector=null;
+let swappLiveTrendPool=null;
 if(SWAPP_LIVE_TRENDS_ENABLED){
  try{
   const mysqlUrl=new URL(newsMysqlUrl);
@@ -10789,6 +10790,7 @@ if(SWAPP_LIVE_TRENDS_ENABLED){
    db:trendPool,fetchStreams:fetchLiveTrendSample,replayTitle,enabled:true,
    log:code=>console.warn('[SWAPP LIVE TRENDS] collector',code)
   });
+  swappLiveTrendPool=trendPool;
   swappLiveTrendCollector.start();
  }catch(_){console.warn('[SWAPP LIVE TRENDS] unavailable');}
 }
@@ -10801,6 +10803,21 @@ app.get('/api/swapp/autonomy/live-trends',heavyLimiter,async(_req,res)=>{
   return res.json({success:true,...report});
  }catch(_){return res.status(503).json({success:false,state:'unavailable',games:[]});}
 });
+
+// Editorial opportunities share the already-open trends pool; no new connections.
+// Missing modules during a partial Hostinger upload cannot break the site.
+try{
+ require('./modules/swapp-autonomy/editorial-radar-router').registerEditorialRadar(app,{
+  getTrends:()=>swappLiveTrendCollector?swappLiveTrendCollector.report():Promise.resolve({state:'disabled'}),
+  getPool:()=>swappLiveTrendPool,limiter:heavyLimiter
+ });
+}catch(_){
+ console.warn('[SWAPP EDITORIAL RADAR] module_unavailable');
+ app.get('/api/swapp/autonomy/editorial-opportunities',heavyLimiter,(_req,res)=>{
+  res.set('Cache-Control','no-store');
+  return res.status(503).json({success:false,state:'unavailable',opportunities:[]});
+ });
+}
 
 app.get('/api/discovery/home-lives', heavyLimiter, async (req,res)=>{
   try{
