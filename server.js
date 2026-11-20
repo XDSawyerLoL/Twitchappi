@@ -4580,6 +4580,17 @@ app.use('/api/quantic-id/account',swappQuanticAccount.createAccountRouter(expres
  refreshUsers:loadOryonUsersPersistent,
  toSession:sessionOryonUser,
  clearRemember:clearOryonRememberCookie,
+ enforceVaultOnly:async id=>{
+  await loadOryonUsersPersistent();
+  if(oryonProductionRequiresDurableStorage())throw Error('quantic_store_unavailable');
+  const data=readOryonUsers();
+  const owner=(data.users||[]).find(user=>String(user.id)===String(id));
+  if(!owner)throw Error('quantic_account_missing');
+  owner.quantic_required=true;
+  // Invalidate all classic remember tokens. The replacement token is never sent.
+  issueOryonRememberToken(owner,data);
+  await writeOryonUsersAndWait(data);
+ },
  // Only a verified Quantic proof can reach this factory. Never infer ownership
  // from a label, email or existing SWAPP username.
  newUserFactory:()=>{
@@ -11847,6 +11858,7 @@ app.post('/api/oryon/client-recover', async (req, res) => {
     const data = readOryonUsers();
     let user = (data.users||[]).find(u => u.login === backup.login);
     if(user){
+      if(requiresVaultAuthentication(user))return res.status(403).json({success:false,error:'quantic_vault_required'});
       if(!token || !verifyOryonRememberToken(user, token)) return res.status(401).json({success:false,error:'Ce pseudo existe déjà. Reconnecte-toi avec le mot de passe ou un jeton valide.'});
       Object.assign(user, {...backup, id:user.id, password_hash:user.password_hash, remember_tokens:user.remember_tokens, createdAt:user.createdAt || Date.now(), updatedAt:Date.now()});
       ensureOryonUserShape(user, { ensureStreamKey:true });
