@@ -10804,11 +10804,17 @@ app.get('/api/discovery/home-lives', heavyLimiter, async (req,res)=>{
     // No new provider request, viewer tracking or paid recommendation engine.
     const ranked=require('./modules/swapp-home-discovery').rankHomeLives(out,{limit});
     const reportable=fairMetrics.enabled()?ranked.map(item=>({...item,fairProof:fairMetrics.issue(item,{placement:'home'})})):ranked;
+    // Derived from already-fetched streams: no extra provider requests or SQL.
+    let liveCuration=null;
+    try{
+      liveCuration=require('./modules/swapp-autonomy/live-curation')
+        .createLiveCuration({items:reportable,candidates:out});
+    }catch(_){console.warn('[SWAPP LIVE CURATION] unavailable');}
     if(fairMetrics.enabled())res.set('Cache-Control','private, no-store');
     if(fairOffers.enabled())res.once('finish',()=>{
       if(res.statusCode===200)fairOffers.capture(reportable,{placement:'home'});
     });
-    res.json({ success:true, items: reportable, fairMetrics:{enabled:fairMetrics.enabled(),placement:'home',sample:'opt-in-only'}, source: ranked.length?'public-discovery':'empty', twitchConfigured:!!(TWITCH_CLIENT_ID&&TWITCH_CLIENT_SECRET), firestore:!!firestoreOk });
+    res.json({ success:true, items: reportable, liveCuration, fairMetrics:{enabled:fairMetrics.enabled(),placement:'home',sample:'opt-in-only'}, source: ranked.length?'public-discovery':'empty', twitchConfigured:!!(TWITCH_CLIENT_ID&&TWITCH_CLIENT_SECRET), firestore:!!firestoreOk });
   }catch(e){ res.json({ success:false, error:e.message, items:[] }); }
 });
 
