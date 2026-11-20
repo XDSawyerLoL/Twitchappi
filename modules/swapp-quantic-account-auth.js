@@ -43,6 +43,13 @@ function createBindingStore({mysqlUri,pool,mysqlFactory}={}){
  return {
   async getUser(hash){await ready();const [rows]=await client.execute('SELECT user_id FROM swapp_quantic_account_bindings WHERE key_hash=? LIMIT 1',[hash]);return rows[0]?.user_id||null},
   async getKey(id){await ready();const [rows]=await client.execute('SELECT key_hash FROM swapp_quantic_account_bindings WHERE user_id=? LIMIT 1',[id]);return rows[0]?.key_hash||null},
+  async isVaultOnly(id){
+   await ready();
+   // Source of truth shared by all Hostinger Node workers, not an in-memory
+   // account snapshot that might remain stale after strict activation.
+   const [rows]=await client.execute("SELECT JSON_UNQUOTE(JSON_EXTRACT(payload_json,'$.quantic_required')) AS strict_flag, JSON_UNQUOTE(JSON_EXTRACT(payload_json,'$.quantic_only')) AS only_flag FROM swapp_oryon_accounts WHERE user_id=? LIMIT 1",[id]);
+   return rows?.[0]?.strict_flag==='true'||rows?.[0]?.only_flag==='true';
+  },
   async bind(id,hash){await ready();await client.execute('INSERT INTO swapp_quantic_account_bindings (key_hash,user_id,created_at) VALUES (?,?,?)',[hash,id,Date.now()])},
   async unbind(id){await ready();const [result]=await client.execute('DELETE FROM swapp_quantic_account_bindings WHERE user_id=?',[id]);return result.affectedRows>0},
   async hasRecovery(id){
