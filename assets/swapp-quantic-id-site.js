@@ -34,7 +34,17 @@
   try{r=await fetch(ENDPOINT+'/'+url,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body),cache:'no-store',credentials:'same-origin'});}
   catch{throw Error(networkAdvice('swapp'))}
   const type=r.headers.get('content-type')||'';
-  if(!type.includes('application/json'))throw Error('SWAPP renvoie une page HTML à la place de l’API Quantic ID. Vérifie le déploiement Hostinger ou une page de vérification anti-bot.');
+  if(!type.includes('application/json')){
+   // Read only a small prefix; never display or log arbitrary server HTML.
+   const excerpt=(await r.text()).slice(0,2048);
+   if(/recaptcha|captcha|quota exceeded|quota.*exceeded|vérification.*robot|verify.*human|security check/i.test(excerpt)){
+    throw Error('La protection anti-bot intercepte l’API Quantic ID. Vérifie le quota et les règles du pare-feu avant de retester.');
+   }
+   if(/<!doctype html|<html[\\s>]/i.test(excerpt)){
+    throw Error('Le serveur SWAPP renvoie la page du site au lieu de l’API Quantic ID. Redéploie la branche master de SWAPP sur Hostinger et redémarre Node.js.');
+   }
+   throw Error('API Quantic ID inaccessible : le serveur ne renvoie pas de JSON (HTTP '+r.status+').');
+  }
   let data;
   try{data=await r.json()}catch{throw Error('La réponse de l’API SWAPP est illisible.')}
   if(!r.ok){
@@ -133,7 +143,7 @@
     message('Coffre verrouillé ou inaccessible : présence supprimée.');
    }finally{busy=false;controls();}
   }
-  if(Date.now()-lastPresencePoll>=8000 && document.visibilityState==='visible'){
+  if(active && Date.now()-lastPresencePoll>=8000 && document.visibilityState==='visible'){
     lastPresencePoll=Date.now();
     await refresh();
   }
