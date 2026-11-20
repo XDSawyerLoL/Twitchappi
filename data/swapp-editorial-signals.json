@@ -2,8 +2,90 @@
   "schema": 1,
   "kind": "swapp-editorial-signals",
   "method": "Brèves rédigées à partir de sources primaires, avec revendication, intérêt et limites distincts. Ne jamais convertir automatiquement un RSS en brève vérifiée.",
-  "updatedAt": "2026-11-16T23:05:22Z",
+  "updatedAt": "2026-11-20T05:00:40Z",
   "items": [
+    {
+      "id": "gta-vi-lancement-ps5-xbox-series-20261119",
+      "topics": [
+        "GAMING"
+      ],
+      "title": "GTA VI : Rockstar confirme le lancement sur PS5 et Xbox Series",
+      "fact": "Rockstar annonce le 19 novembre 2026 la sortie mondiale de Grand Theft Auto VI sur PS5 et Xbox Series X|S, avec Jason et Lucia dans l’État de Leonida.",
+      "impact": "L’annonce de lancement remplace désormais l’attente d’une date : les joueurs des deux familles de consoles peuvent se référer aux boutiques officielles et aux consignes d’installation.",
+      "caveat": "Cette annonce ne confirme aucune sortie PC. Prix français, stocks locaux et performances ne sont pas établis par ce contrôle.",
+      "sourceName": "Rockstar Games",
+      "sourceUrl": "https://www.rockstargames.com/newswire/article/39akk424a9oo53/grand-theft-auto-vi-now-available",
+      "sourceDate": "2026-11-19",
+      "reviewedAt": "2026-11-20T05:00:40Z",
+      "imageUrl": "https://media-rockstargames-com.akamaized.net/tina-uploads/posts/39akk424a9oo53/e470e29da13848abd31dfd8ea0e95a0eeffd0511.jpg",
+      "imageCredit": "Rockstar Games · illustration officielle de Grand Theft Auto VI publiée avec l’annonce de lancement"
+    },
+    {
+      "id": "genie-4-gemini-api-ai-studio-20261119",
+      "topics": [
+        "FUTURE",
+        "AI"
+      ],
+      "title": "Genie 4 arrive dans l’API Gemini et Google AI Studio",
+      "fact": "Le 19 novembre, Google ouvre Genie 4 aux développeurs dans l’API Gemini, via l’API Interactions, et dans Google AI Studio. Texte ou image peuvent servir de point de départ à un monde interactif.",
+      "impact": "Cette nouvelle interface permet de prototyper des expériences contrôlables au clavier et par instructions, avec vidéo continue et son synchronisé, selon Google.",
+      "caveat": "L’ouverture de l’API ne démontre pas la fiabilité d’un moteur de jeu complet ni d’un simulateur physique. Les conditions d’accès et limites doivent être consultées avant utilisation.",
+      "sourceName": "Google",
+      "sourceUrl": "https://blog.google/innovation-and-ai/technology/developers-tools/genie-4-in-gemini-api/",
+      "sourceDate": "2026-11-19",
+      "reviewedAt": "2026-11-20T05:00:40Z",
+      "imageUrl": "https://storage.googleapis.com/gweb-uniblog-publish-prod/images/Genie_4_Social_Share.max-1440x810.png",
+      "imageCredit": "Google · visuel officiel Genie 4 dans l’API Gemini et Google AI Studio"
+    },
+    {
+      "id": "esa-plasma-observatory-selection-m7-20261119",
+      "topics": [
+        "FUTURE"
+      ],
+      "title": "L’ESA sélectionne Plasma Observatory et ses sept satellites",
+      "fact": "Les États membres de l’ESA ont sélectionné Plasma Observatory le 19 novembre comme prochaine mission scientifique de classe moyenne. Sept satellites doivent mesurer ensemble les échanges d’énergie dans la magnétosphère terrestre.",
+      "impact": "Des observations simultanées à plusieurs échelles doivent relier les phénomènes rapides et locaux aux transformations plus vastes du plasma autour de la Terre.",
+      "caveat": "Il s’agit d’une sélection, pas encore de l’adoption autorisant la construction. Le lancement reste envisagé à titre provisoire pour la fin des années 2030.",
+      "sourceName": "ESA",
+      "sourceUrl": "https://www.esa.int/articles/about-us/directorates/science/seven-spacecraft-observatory-to-study-plasma-universe",
+      "sourceDate": "2026-11-19",
+      "reviewedAt": "2026-11-20T05:00:40Z",
+      "imageUrl": "https://media.esa.int/global/public/common/image/2026/11/402687/image-thumb__402687__social_share/magnetospheric-system.5305b624.jpg",
+      "imageCredit": "ESA · vue d’artiste de l’environnement plasma terrestre, illustration officielle de l’annonce"
+    },
+    {
+      "id": "gemini-4-neon-annonce-acces-20261118",
+      "topics": [
+        "AI"
+      ],
+      "title": "Google lance Gemini 4 Neon pour ses usages avancés",
+      "fact": "Google présente Gemini 4 Neon le 18 novembre et annonce son accès dans l’API Gemini payante, Google AI Studio et ses offres éligibles. Le modèle accepte un contexte pouvant atteindre un million de tokens.",
+      "impact": "Cette capacité vise notamment l’analyse de grands ensembles de documents et les tâches de programmation, sous réserve des limites propres au produit utilisé.",
+      "caveat": "Les gains de performance publiés sont les mesures de Google. Ils ne garantissent ni l’exactitude des réponses ni une disponibilité identique pour chaque formule, compte ou région.",
+      "sourceName": "Google",
+      "sourceUrl": "https://blog.google/innovation-and-ai/models-and-research/gemini-models/introducing-gemini-4-neon/",
+      "sourceDate": "2026-11-18",
+      "reviewedAt": "2026-11-20T05:00:40Z",
+      "imageUrl": "https://storage.googleapis.com/gweb-uniblog-publish-prod/images/gemini-4-neon__blog-header__sm.width-1300.png",
+      "imageCredit": "Google · image d’ouverture officielle Gemini 4 Neon"
+    },
+    {
+      "id": "nvidia-rtx-spark-pc-ia-locale-20261118",
+      "topics": [
+        "FUTURE",
+        "AI"
+      ],
+      "title": "NVIDIA annonce les premiers PC RTX Spark pour l’IA locale",
+      "fact": "NVIDIA annonce le 18 novembre la disponibilité de premiers ordinateurs RTX Spark sous Windows sur Arm chez ASUS, Dell et MSI. Cette plateforme compacte associe un processeur Grace, une puce Blackwell RTX et jusqu’à 128 Go de mémoire unifiée.",
+      "impact": "Ces machines visent l’exécution locale de modèles compatibles et des usages créatifs, sans transmettre nécessairement chaque traitement à un serveur distant.",
+      "caveat": "Disponibilité et tarifs français ne sont pas confirmés ici. Les performances annoncées dépendent des modèles, des logiciels et de leur compatibilité avec Windows sur Arm.",
+      "sourceName": "NVIDIA",
+      "sourceUrl": "https://blogs.nvidia.com/blog/rtx-spark-desktop-local-ai-available-now/",
+      "sourceDate": "2026-11-18",
+      "reviewedAt": "2026-11-20T05:00:40Z",
+      "imageUrl": "https://blogs.nvidia.com/wp-content/uploads/2026/11/nv-blog-1280x680-2-1.jpg",
+      "imageCredit": "NVIDIA · illustration officielle de l’annonce RTX Spark et de l’IA locale"
+    },
     {
       "id": "spirit-crossing-lancement-cozy-club-20261116",
       "topics": [
