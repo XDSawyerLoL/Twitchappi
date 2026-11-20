@@ -40,7 +40,7 @@
    if(/recaptcha|captcha|quota exceeded|quota.*exceeded|vérification.*robot|verify.*human|security check/i.test(excerpt)){
     throw Error('La protection anti-bot intercepte l’API Quantic ID. Vérifie le quota et les règles du pare-feu avant de retester.');
    }
-   if(/<!doctype html|<html[\\s>]/i.test(excerpt)){
+   if(/<!doctype html|<html/i.test(excerpt)){
     throw Error('Le serveur SWAPP renvoie la page du site au lieu de l’API Quantic ID. Redéploie la branche master de SWAPP sur Hostinger et redémarre Node.js.');
    }
    throw Error('API Quantic ID inaccessible : le serveur ne renvoie pas de JSON (HTTP '+r.status+').');
