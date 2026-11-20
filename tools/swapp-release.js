@@ -7,6 +7,7 @@ const crypto=require('node:crypto');
 
 const RELEASE_FILES=Object.freeze([
  'server.js',
+ 'modules/swapp-guides-rob-run.js',
  'modules/swapp-autonomy/runtime-watchdog.js',
  'modules/swapp-autonomy/live-curation.js',
  'modules/swapp-autonomy/live-trends.js',

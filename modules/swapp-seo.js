@@ -16,7 +16,7 @@ function invalidateSeoCache(){invalidateRegisteredSeoCache()}
 function cachedGameHubForArticle(article){return lookupRegisteredGameHub(article)}
 const CORE_PATHS=Object.freeze([
  '/', '/a-propos', '/alternative-twitch', '/decouvrir', '/explorer', '/serveurs', '/actus',
- '/social', '/bandes-annonces', '/boutique', '/plan-du-site', '/guides/choisir-communaute-gaming',
+ '/social', '/bandes-annonces', '/boutique', '/plan-du-site', '/guides', '/guides/rob-run', '/guides/choisir-communaute-gaming',
  ...require('./swapp-aion2-guides').PUBLIC_PATHS
 ]);
 const SLUG=/^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/;

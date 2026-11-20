@@ -1714,6 +1714,8 @@ if (String(process.env.SWAPP_NEWS_ENABLED || 'true').toLowerCase() === 'true') {
 require('./modules/swapp-aion2-guides').registerAion2Routes(app);
 // Original SWAPP editorial guide: useful, independent of MySQL and JavaScript.
 require('./modules/swapp-community-guide').register(app);
+// Public index and real ROB RUN guide; no MySQL or Twitch writes.
+require('./modules/swapp-guides-rob-run').register(app);
 
 // Search engines need genuine, crawlable URLs. This does not create a cron,
 // analytics tracker, third-party API call or paid workflow. Published records
