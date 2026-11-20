@@ -3,24 +3,66 @@
  const ROOT=document.getElementById('settings');
  if(!ROOT)return;
  const BRIDGE='http://127.0.0.1:47621',ENDPOINT='/api/quantic-id';
+ // Chrome/Edge require explicit loopback targeting and site permission (LNA).
+ const LOOPBACK_FETCH={mode:'cors',credentials:'omit',cache:'no-store',targetAddressSpace:'loopback'};
+ async function loopbackPermission(){
+  try{
+   if(!navigator.permissions?.query)return 'unknown';
+   const state=await navigator.permissions.query({name:'loopback-network'});
+   return state?.state||'unknown';
+  }catch{return 'unknown'} // Older browsers do not recognize the permission.
+ }
+ function networkAdvice(where){
+  return where==='vault'
+    ?'Impossible de joindre Quantic Identity Vault sur cet ordinateur (127.0.0.1:47621). Ouvre Identity Vault et installe sa dernière version, puis autorise SWAPP à accéder aux applications sur cet appareil dans les paramètres de ton navigateur.'
+    :'Le serveur SWAPP ne répond pas. Vérifie la disponibilité du site et son déploiement Hostinger.';
+ }
+ async function localFetch(route,options={}){
+  try{
+   return await fetch(BRIDGE+route,{...LOOPBACK_FETCH,...options});
+  }catch(error){
+   const permission=await loopbackPermission();
+   if(permission==='denied')throw Error('Accès local refusé par le navigateur. Autorise les « applications sur cet appareil » / l’accès loopback pour swapp.tv dans les paramètres du site.');
+   if(error?.name==='TimeoutError')throw Error('Identity Vault ne répond pas dans le délai prévu. Vérifie qu’il fonctionne sur ton PC.');
+   throw Error(networkAdvice('vault'));
+  }
+ }
  let active=false,busy=false,clock=0,lastProof=0,lastPresencePoll=0,section=null,label=null,button=null,stopButton=null,seen=null;
  const message=text=>{if(label)label.textContent=text};
  async function post(url,body){
-  const r=await fetch(ENDPOINT+'/'+url,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body),cache:'no-store',credentials:'same-origin'});
-  const data=await r.json();if(!r.ok)throw Error(data.error||'quantic_api_unavailable');return data;
+  let r;
+  try{r=await fetch(ENDPOINT+'/'+url,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body),cache:'no-store',credentials:'same-origin'});}
+  catch{throw Error(networkAdvice('swapp'))}
+  const type=r.headers.get('content-type')||'';
+  if(!type.includes('application/json'))throw Error('SWAPP renvoie une page HTML à la place de l’API Quantic ID. Vérifie le déploiement Hostinger ou une page de vérification anti-bot.');
+  let data;
+  try{data=await r.json()}catch{throw Error('La réponse de l’API SWAPP est illisible.')}
+  if(!r.ok){
+   if(r.status===404)throw Error('API Quantic ID absente sur Hostinger : SWAPP n’a pas encore la version serveur nécessaire.');
+   if(r.status===429)throw Error('Trop de demandes Quantic ID. Réessaie sans multiplier les connexions.');
+   throw Error('API SWAPP : '+(data.error||'requête refusée')+' (HTTP '+r.status+').');
+  }
+  return data;
  }
  async function localStatus(){
-  const result=await fetch(BRIDGE+'/v1/status',{cache:'no-store',signal:AbortSignal.timeout(2500)});
-  if(!result.ok)throw Error('Identity Vault indisponible');
-  return result.json();
+  const result=await localFetch('/v1/status',{signal:AbortSignal.timeout(4500)});
+  if(!result.ok)throw Error('Identity Vault répond HTTP '+result.status+' : vérifie que sa version autorise https://swapp.tv.');
+  let data;
+  try{data=await result.json()}catch{throw Error('Identity Vault renvoie un statut invalide.')}
+  if(data.product!=='Quantic Identity Vault')throw Error('Service local non reconnu : Quantic Identity Vault attendu.');
+  return data;
  }
  async function identityProof(purpose){
   const status=await localStatus();
   if(!status.identityAvailable)throw Error('Déverrouille Quantic Identity Vault sur cet ordinateur');
   const nonce=await post('challenge',{purpose});
-  const signed=await fetch(BRIDGE+'/v1/assert',{method:'POST',headers:{'content-type':'application/json'},
-   body:JSON.stringify({challenge:nonce.challenge,audience:nonce.audience}),cache:'no-store',signal:AbortSignal.timeout(10000)});
-  if(!signed.ok)throw Error('Autorise SWAPP dans Quantic Identity Vault (application mise à jour requise)');
+  const signed=await localFetch('/v1/assert',{method:'POST',headers:{'content-type':'application/json'},
+   body:JSON.stringify({challenge:nonce.challenge,audience:nonce.audience}),signal:AbortSignal.timeout(20000)});
+  if(!signed.ok){
+   if(signed.status===423)throw Error('Quantic ID est verrouillé. Déverrouille le coffre puis réessaie.');
+   if(signed.status===403)throw Error('Ce site n’est pas autorisé par Identity Vault : installe la version compatible SWAPP.');
+   throw Error('Signature refusée par Identity Vault (HTTP '+signed.status+'). Vérifie son autorisation pour swapp.tv.');
+  }
   const proof=await signed.json();
   const approved=await localStatus().catch(()=>status);
   return {challenge:nonce.challenge,proof,alias:approved.label||'Utilisateur Quantic'};
