@@ -129,7 +129,9 @@ function createTrendCollector({db, fetchStreams, replayTitle, now=Date.now,
   if (!enabled) return {state:'disabled',enabled:false,games:[]};
   if (cache.report && cache.until > now()) return cache.report;
   try {
-   await ensure();
+   // Strict read path: table creation is owned exclusively by tick().
+   // A GET must never initialize schema or race an autonomous collection.
+   // Before the first successful tick, a missing table yields unavailable.
    const [rows]=await db.execute(`SELECT bucket,sample_json FROM swapp_live_trend_samples WHERE state='ready' ORDER BY bucket DESC LIMIT 2`);
    const result={enabled:true,...trendReport(rows,now()),collector:status()};
    cache={until:now()+60000,report:result};
