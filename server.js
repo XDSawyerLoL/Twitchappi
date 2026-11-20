@@ -311,7 +311,7 @@ app.use(helmet({
       fontSrc: ["'self'", "https:", "data:"],
       styleSrc: ["'self'", "'unsafe-inline'", "https:"],
       scriptSrc: ["'self'", "'unsafe-inline'", "https:"],
-      connectSrc: ["'self'", "https:", "wss:", "ws:"],
+      connectSrc: ["'self'", "https:", "wss:", "ws:", "http://127.0.0.1:47621"],
       frameSrc: ["'self'", "https://player.twitch.tv", "https://www.twitch.tv", "https://embed.twitch.tv", "https://www.youtube.com", "https://www.youtube-nocookie.com", "https://www.youtube.com/embed", "https://www.youtube-nocookie.com/embed", "https://odysee.com", "https://www.odysee.com", "https://justplayer.fr", "https://www.justplayer.fr", "https://googleads.g.doubleclick.net", "https://tpc.googlesyndication.com"],
     }
   } : false
@@ -469,6 +469,10 @@ const sessionMiddleware = session({
 });
 
 app.use(sessionMiddleware);
+ // Opt-in Quantic ID site presence. NEVER grants an existing SWAPP account,
+ // streamer, moderator or editor session. No database or permanent identifier.
+ app.use('/api/quantic-id',require('./modules/swapp-quantic-id-presence').createQuanticPresenceRouter(express));
+
 
 
 // =========================================================

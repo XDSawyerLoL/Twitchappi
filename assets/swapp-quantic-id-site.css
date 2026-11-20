@@ -1,0 +1,8 @@
+
+#swapp-quantic-id-presence.swapp-quantic-card{padding:20px;margin:18px 0;border:1px solid #3a637d;border-radius:16px;background:linear-gradient(135deg,#0d1d29,#142333);color:#eef7ff;box-shadow:0 15px 40px #0003}
+#swapp-quantic-id-presence h3{font-size:19px;font-weight:800;letter-spacing:-.02em;margin:0 0 8px;color:#e5f8ff}
+#swapp-quantic-id-presence p{font-size:13px;line-height:1.6;color:#c0d4e3}
+#swapp-quantic-id-presence button{cursor:pointer;background:#6fd3f4;color:#051723;font:700 13px/1.2 system-ui;border:0;padding:11px 15px;border-radius:9px;margin:6px 8px 4px 0}
+#swapp-quantic-id-presence button.swapp-quantic-secondary{background:#263947;color:#eaf8ff;border:1px solid #507186}
+#swapp-quantic-id-presence button:disabled{opacity:.5;cursor:not-allowed}
+#swapp-quantic-id-presence [role="status"]{font-weight:700;color:#f4fbff}
