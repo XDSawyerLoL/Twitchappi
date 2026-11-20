@@ -13,6 +13,13 @@ const AUTH_LEASE_MS=30000,CHALLENGE_MS=120000,FRESH_PASSWORD_MS=5*60*1000;
 function requiresVaultAuthentication(user){return user?.quantic_only===true||user?.quantic_required===true;}
 const {accountRow,MAX_USERS:MAX_ACCOUNT_USERS}=require('./swapp-oryon-mysql-accounts');
 const DDL='CREATE TABLE IF NOT EXISTS swapp_quantic_account_bindings (key_hash CHAR(64) NOT NULL PRIMARY KEY,user_id VARCHAR(80) NOT NULL,created_at BIGINT NOT NULL,UNIQUE KEY swapp_quantic_one_account_key (user_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci';
+const RECOVERY_DDL='CREATE TABLE IF NOT EXISTS swapp_quantic_recovery_codes (code_hash CHAR(64) NOT NULL PRIMARY KEY,user_id VARCHAR(80) NOT NULL,created_at BIGINT NOT NULL,INDEX swapp_quantic_recovery_account (user_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci';
+function generateRecoveryCodes(){return Array.from({length:8},()=> 'qrc_'+randomBytes(32).toString('base64url'))}
+function recoveryDigest(code,secret){
+ if(!/^qrc_[A-Za-z0-9_-]{43}$/.test(String(code||''))||typeof secret!=='string'||secret.length<24)
+  throw Error('quantic_recovery_invalid');
+ return createHmac('sha256',secret).update('swapp-quantic-recovery:v1:').update(code).digest('hex');
+}
 
 function digest(keyId,secret){
  if(!/^qid_[a-f0-9]{32}$/.test(String(keyId||''))||typeof secret!=='string'||secret.length<24)throw Error('quantic_binding_not_configured');
@@ -29,6 +36,7 @@ function createBindingStore({mysqlUri,pool,mysqlFactory}={}){
     client=factory.createPool({uri:url.href,connectionLimit:2,waitForConnections:true,queueLimit:25,connectTimeout:5000});
    }
    await client.query(DDL);
+   await client.query(RECOVERY_DDL);
   })().catch(error=>{init=null;throw error});
   await init;
  }
@@ -37,6 +45,50 @@ function createBindingStore({mysqlUri,pool,mysqlFactory}={}){
   async getKey(id){await ready();const [rows]=await client.execute('SELECT key_hash FROM swapp_quantic_account_bindings WHERE user_id=? LIMIT 1',[id]);return rows[0]?.key_hash||null},
   async bind(id,hash){await ready();await client.execute('INSERT INTO swapp_quantic_account_bindings (key_hash,user_id,created_at) VALUES (?,?,?)',[hash,id,Date.now()])},
   async unbind(id){await ready();const [result]=await client.execute('DELETE FROM swapp_quantic_account_bindings WHERE user_id=?',[id]);return result.affectedRows>0},
+  async hasRecovery(id){
+   await ready();
+   const [rows]=await client.execute('SELECT code_hash FROM swapp_quantic_recovery_codes WHERE user_id=? LIMIT 1',[id]);
+   return Boolean(rows?.length);
+  },
+  async setRecoveryCodes(id,hashes){
+   if(!Array.isArray(hashes)||hashes.length!==8||new Set(hashes).size!==8||
+      hashes.some(hash=>!/^[a-f0-9]{64}$/.test(hash)))throw Error('quantic_recovery_invalid');
+   await ready();
+   const conn=await client.getConnection();
+   try{
+    await conn.beginTransaction();
+    const [linked]=await conn.execute('SELECT key_hash FROM swapp_quantic_account_bindings WHERE user_id=? LIMIT 1 FOR UPDATE',[id]);
+    if(!linked?.length)throw Error('quantic_identity_not_linked');
+    await conn.execute('DELETE FROM swapp_quantic_recovery_codes WHERE user_id=?',[id]);
+    for(const hash of hashes){
+     await conn.execute('INSERT INTO swapp_quantic_recovery_codes (code_hash,user_id,created_at) VALUES (?,?,?)',[hash,id,Date.now()]);
+    }
+    await conn.commit();
+    return true;
+   }catch(error){try{await conn.rollback()}catch{}throw error}
+   finally{conn.release()}
+  },
+  async recoverAccount(newHash,recoveryHash){
+   if(!/^[a-f0-9]{64}$/.test(String(newHash||''))||!/^[a-f0-9]{64}$/.test(String(recoveryHash||'')))
+    throw Error('quantic_recovery_invalid');
+   await ready();
+   const conn=await client.getConnection();
+   try{
+    await conn.beginTransaction();
+    const [rows]=await conn.execute('SELECT user_id FROM swapp_quantic_recovery_codes WHERE code_hash=? LIMIT 1 FOR UPDATE',[recoveryHash]);
+    const id=rows?.[0]?.user_id;
+    if(!id)throw Error('quantic_recovery_invalid');
+    const [bindings]=await conn.execute('SELECT key_hash FROM swapp_quantic_account_bindings WHERE user_id=? LIMIT 1 FOR UPDATE',[id]);
+    if(!bindings?.length||bindings[0].key_hash===newHash)throw Error('quantic_recovery_invalid');
+    const [updated]=await conn.execute('UPDATE swapp_quantic_account_bindings SET key_hash=? WHERE user_id=? AND key_hash=?',[newHash,id,bindings[0].key_hash]);
+    if(updated?.affectedRows!==1)throw Error('quantic_recovery_invalid');
+    // Revoke every recovery code after rotation; the user must enroll fresh codes.
+    await conn.execute('DELETE FROM swapp_quantic_recovery_codes WHERE user_id=?',[id]);
+    await conn.commit();
+    return id;
+   }catch(error){try{await conn.rollback()}catch{}throw error}
+   finally{conn.release()}
+  },
   // A new SWAPP account and its Quantic binding must commit together: never orphan an account.
   async createAccountForKey(hash,user){
    if(!/^[a-f0-9]{64}$/.test(String(hash||'')))throw Error('quantic_invalid_key_hash');
