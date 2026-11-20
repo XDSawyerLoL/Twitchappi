@@ -907,6 +907,12 @@ const staticOptions = {
       res.setHeader('Expires','0');
       return;
     }
+    // Every UI JS/CSS asset must revalidate on a navigation/reload after a
+    // deploy. Express keeps Last-Modified / ETag so unchanged files can use
+    // HTTP 304 instead of a full transfer (important for Hostinger bandwidth).
+    if(/\.(?:js|css)$/.test(staticPath)){
+      res.setHeader('Cache-Control','public,max-age=0,no-cache,must-revalidate');
+    }
     // ACTUS is actively iterated: these small files must not leave readers
     // on the old hero while the main HTML has already been deployed.
     if(/(?:^|[\\/])(?:swapp-actus-app\.(?:js|css)|swapp-article-immersive(?:-compat)?\.(?:js|css)|swapp-reader-(?:studio|experience)\.(?:js|css)|swapp-neural-narration\.js)$/.test(staticPath)){
@@ -1643,18 +1649,11 @@ function isSwappCleanChannelSlug(slug){
   const clean = String(slug || '').trim().toLowerCase();
   return /^[a-z0-9_][a-z0-9_-]{1,39}$/.test(clean) && !SWAPP_RESERVED_ROOT_PATHS.has(clean);
 }
-app.get('/index_script.js', (req,res)=>{
-  // This 1MB+ SPA bundle was downloaded again on every navigation/reload.
-  // Cache the explicitly versioned URL briefly, but never cache unversioned
-  // script requests (which are used by older deployment entrypoints).
-  if(typeof req.query?.v==='string'&&/^[a-zA-Z0-9_-]{4,85}$/.test(req.query.v)){
-    res.setHeader('Cache-Control','public, max-age=1800');
-  }else{
-    res.setHeader('Cache-Control','no-store, no-cache, must-revalidate');
-  }
+app.get('/index_script.js', (_req,res)=>{
+  // Revalidate this large JS bundle on every navigation after a deployment.
+  // A matching ETag / Last-Modified still yields 304 without re-downloading.
+  res.setHeader('Cache-Control','public,max-age=0,no-cache,must-revalidate');
   res.type('application/javascript');
-  // sendFile normally emits Cache-Control itself. Do not overwrite our
-  // version-aware caching rule with its default max-age=0 header.
   return res.sendFile(path.join(__dirname,'index_script.js'),{cacheControl:false});
 });
 // Editorial briefs and official-source watch, embedded in the EXISTING /actus screen.
