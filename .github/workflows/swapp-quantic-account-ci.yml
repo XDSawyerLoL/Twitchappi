@@ -39,3 +39,5 @@ jobs:
       - name: Full signed account authentication and cross-feature regression
         run: |
           node --test test/swapp-quantic-account-login.test.js test/swapp-quantic-id-site.test.js
+      - name: Full SWAPP regression suite
+        run: npm test
