@@ -2,7 +2,7 @@
 /*
  * Quantic ID account sign-in, separate from the volatile presence demo.
  * Never attach an unlinked public key to a SWAPP account.
- * First link requires an authenticated SWAPP session + CURRENT account password.
+ * First link requires an authenticated SWAPP session, explicit consent and a valid Vault signature.
  */
 const {createHmac,randomBytes}=require('node:crypto');
 const {rateLimit}=require('express-rate-limit');
@@ -63,8 +63,8 @@ function createAccountRouter(express,{
  });
  router.post('/challenge',limited,async(req,res)=>{
   const purpose=req.body.purpose,s=req.session||{},account=s.oryonUser;
-  if(!['link','login','renew'].includes(purpose))return error(res,400,'quantic_purpose_invalid');
-  if(purpose==='link'&&(!account?.id||s.quanticAuth))return error(res,401,'swapp_password_login_required');
+  if(!['link','login','renew','unlink'].includes(purpose))return error(res,400,'quantic_purpose_invalid');
+  if(['link','unlink'].includes(purpose)&&(!account?.id||s.quanticAuth))return error(res,401,'swapp_password_login_required');
   if(purpose==='login'&&account?.id)return error(res,409,'swapp_already_logged_in');
   if(purpose==='renew'&&(!account?.id||!s.quanticAuth||s.quanticAuth.expiresAt<=now()))return error(res,401,'quantic_session_expired');
   const challenge=randomBytes(32).toString('base64url'),audience=req.get('Origin');
@@ -88,13 +88,20 @@ function createAccountRouter(express,{
    if(!s.oryonUser?.id||s.quanticAuth)return error(res,401,'swapp_password_login_required');
    try{
     await refreshUsers();
-    const user=findUser(s.oryonUser.id),password=req.body.password;
-    if(!user||typeof password!=='string'||password.length>512||!verifyPassword(password,user.password_hash))
-     return error(res,403,'swapp_password_invalid');
+    const user=findUser(s.oryonUser.id);
+    if(!user)return error(res,401,'swapp_password_login_required');
     if(await store.getKey(user.id))return error(res,409,'quantic_account_already_linked');
     await store.bind(user.id,hash);
     return res.json({success:true,linked:true,login:user.login});
    }catch(e){return error(res,e?.code==='ER_DUP_ENTRY'?409:503,e?.code==='ER_DUP_ENTRY'?'quantic_identity_already_linked':'quantic_store_unavailable')}
+  }
+  if(pending.purpose==='unlink'){
+   if(!s.oryonUser?.id||s.quanticAuth)return error(res,401,'swapp_password_login_required');
+   try{
+    const linked=await store.getKey(s.oryonUser.id);
+    if(!linked||linked!==hash)return error(res,403,'quantic_identity_mismatch');
+    return res.json({success:true,unlinked:await store.unbind(s.oryonUser.id)});
+   }catch{return error(res,503,'quantic_store_unavailable')}
   }
   if(pending.purpose==='login'){
    if(s.oryonUser?.id)return error(res,409,'swapp_already_logged_in');
@@ -125,6 +132,7 @@ function createAccountRouter(express,{
   }
   return error(res,400,'quantic_purpose_invalid');
  });
+ /* Legacy password-based unlink stays temporarily for compatibility; UI uses signed unlink. */
  router.post('/unlink',limited,async(req,res)=>{
   const s=req.session||{};
   if(!s.oryonUser?.id||s.quanticAuth)return error(res,401,'swapp_password_login_required');
