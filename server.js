@@ -469,20 +469,10 @@ const sessionMiddleware = session({
 });
 
 app.use(sessionMiddleware);
-// Quantic ID-issued SWAPP sessions expire server-side even if the browser closes.
-app.use((req,res,next)=>{
- const q=req.session?.quanticAuth;
- if(!q)return next();
- if(!Number.isFinite(q.expiresAt)||q.expiresAt<=Date.now()){
-  req.session.quanticAuth=null;
-  req.session.oryonUser=null;
-  req.session.twitchUser=null;
-  req.session.quanticPending=null;
-  clearOryonRememberCookie(res);
-  return req.session.save(error=>error?next(error):next());
- }
- next();
-});
+// Every protected route checks the Quantic ID lease before using SWAPP identity.
+app.use(require('./modules/swapp-quantic-account-auth').createLeaseGuard({
+ clearRemember:clearOryonRememberCookie
+}));
  // Opt-in Quantic ID site presence. NEVER grants an existing SWAPP account,
  // streamer, moderator or editor session. No database or permanent identifier.
  app.use('/api/quantic-id',require('./modules/swapp-quantic-id-presence').createQuanticPresenceRouter(express));
@@ -9153,7 +9143,27 @@ io.engine.on('connection_error', (err) => {
 });
 
 io.use((socket, next) => {
-  sessionMiddleware(socket.request, {}, next);
+  sessionMiddleware(socket.request, {}, err=>{
+    if(err)return next(err);
+    if(socket.request?.session?.quanticAuth?.expiresAt<=Date.now())
+      return next(new Error('quantic_session_expired'));
+    next();
+  });
+});
+// Existing Socket.IO connections must lose Quantic-issued privileges when
+// their browser locks, the session ends or the short server-side lease expires.
+io.on('connection',socket=>{
+  if(!socket.request?.session?.quanticAuth)return;
+  const check=()=>{
+    if(!socket.connected)return;
+    socket.request.session.reload(error=>{
+      const q=socket.request.session?.quanticAuth;
+      if(error||!q||q.expiresAt<=Date.now())socket.disconnect(true);
+    });
+  };
+  const timer=setInterval(check,3000);
+  timer.unref?.();
+  socket.on('disconnect',()=>clearInterval(timer));
 });
 
 // SWAPP channel moderation: registered before the native chat socket handlers.
