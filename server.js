@@ -10758,6 +10758,50 @@ if(process.env.NODE_ENV !== 'production'){
 
 
 
+// Autonomous bounded Twitch sample: one global 5-minute slot via MySQL.
+// Enabled only on the production Node process with real Twitch and MySQL config.
+// Setting SWAPP_LIVE_TRENDS_ENABLED=0 is the emergency off switch.
+const SWAPP_LIVE_TRENDS_ENABLED=IS_PROD &&
+  process.env.SWAPP_LIVE_TRENDS_ENABLED!=='0' &&
+  Boolean(newsMysqlUrl && TWITCH_CLIENT_ID && TWITCH_CLIENT_SECRET);
+let swappLiveTrendCollector=null;
+if(SWAPP_LIVE_TRENDS_ENABLED){
+ try{
+  const mysqlUrl=new URL(newsMysqlUrl);
+  if(mysqlUrl.protocol!=='mysql:'||!mysqlUrl.hostname||!mysqlUrl.username)throw Error('mysql-url-invalid');
+  const trendPool=require('mysql2/promise').createPool({
+   uri:newsMysqlUrl,connectionLimit:1,waitForConnections:true,queueLimit:4,
+   connectTimeout:5000,enableKeepAlive:true,timezone:'Z'
+  });
+  const {createTrendCollector}=require('./modules/swapp-autonomy/live-trends');
+  const {replayTitle}=require('./modules/swapp-discovery-diversity');
+  async function fetchLiveTrendSample(){
+   let timer;
+   try{
+    const data=await Promise.race([
+     twitchAPI('streams?first=100&language=fr'),
+     new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('sample_timeout')),12000);timer.unref?.();})
+    ]);
+    return data?.data;
+   }finally{clearTimeout(timer);}
+  }
+  swappLiveTrendCollector=createTrendCollector({
+   db:trendPool,fetchStreams:fetchLiveTrendSample,replayTitle,enabled:true,
+   log:code=>console.warn('[SWAPP LIVE TRENDS] collector',code)
+  });
+  swappLiveTrendCollector.start();
+ }catch(_){console.warn('[SWAPP LIVE TRENDS] unavailable');}
+}
+app.get('/api/swapp/autonomy/live-trends',heavyLimiter,async(_req,res)=>{
+ res.set('Cache-Control','no-store');
+ res.set('X-Content-Type-Options','nosniff');
+ if(!swappLiveTrendCollector)return res.status(503).json({success:false,state:'disabled',enabled:false});
+ try{
+  const report=await swappLiveTrendCollector.report();
+  return res.json({success:true,...report});
+ }catch(_){return res.status(503).json({success:false,state:'unavailable',games:[]});}
+});
+
 app.get('/api/discovery/home-lives', heavyLimiter, async (req,res)=>{
   try{
     const lang = String(req.query.lang || 'fr').trim().toLowerCase();
