@@ -2,8 +2,58 @@
   "schema": 1,
   "kind": "swapp-editorial-signals",
   "method": "Brèves rédigées à partir de sources primaires, avec revendication, intérêt et limites distincts. Ne jamais convertir automatiquement un RSS en brève vérifiée.",
-  "updatedAt": "2026-11-20T10:56:28Z",
+  "updatedAt": "2026-11-20T23:30:05.503Z",
   "items": [
+    {
+      "id": "myth-of-empires-throne-saison4-voidbound-realm-20261120",
+      "topics": [
+        "GAMING"
+      ],
+      "title": "Myth of Empires: Throne lance sa saison 4 dans les airs",
+      "fact": "L’équipe de Myth of Empires: Throne annonce le lancement de la saison 4 le 20 novembre à 14 h UTC, soit 15 h à Paris. Voidbound Realm ajoute une carte flottante, deux montures volantes et le Northern Azure Kun, une plateforme aérienne mobile.",
+      "impact": "Les groupes disposent d’un nouveau terrain d’exploration, de construction et d’affrontement, avec des événements et récompenses de lancement.",
+      "caveat": "Les montures volantes restent limitées à Voidbound Realm pendant la saison. L’annonce ne démontre ni les performances des serveurs ni l’équilibrage en jeu.",
+      "sourceName": "Angela Game / Celestial Star Studios · équipe officielle Myth of Empires: Throne",
+      "sourceUrl": "https://playthrone.mythofempires.com/newsdetail/386",
+      "sourceDate": "2026-11-20",
+      "reviewedAt": "2026-11-20T23:30:05.503Z",
+      "imageUrl": "https://att-throne.mythofempires.com/WebSiteResources/moet_official/img/2100_800EN.jpg",
+      "imageCredit": "Angela Game / Celestial Star Studios · visuel officiel des événements de saison 4",
+      "articleSlug": "myth-of-empires-throne-saison-4-voidbound-realm-lancement"
+    },
+    {
+      "id": "steam-machine-reservations-512go-attente-2to-20261119",
+      "topics": [
+        "GAMING"
+      ],
+      "title": "Steam Machine : achat direct en 512 Go, liste d’attente fermée en 2 To",
+      "fact": "Le 19 novembre, Valve annonce avoir traité toutes les réservations du modèle 512 Go et ouvert l’achat direct tant que ses stocks le permettent. Les inscriptions à la liste d’attente du modèle 2 To ferment ; les personnes déjà inscrites conservent leur place.",
+      "impact": "L’accès à une commande dépend désormais du modèle et de l’état du stock. Valve distingue les réservations ayant reçu une invitation des personnes encore sur liste d’attente.",
+      "caveat": "Une place en attente ne garantit pas une machine. Les stocks et prix français ne sont pas établis ici ; Valve ne fixe pas encore le volume ni le prix des prochains approvisionnements.",
+      "sourceName": "Valve · Steam Hardware",
+      "sourceUrl": "https://store.steampowered.com/news/group/45479024/view/687522235410285038",
+      "sourceDate": "2026-11-19",
+      "reviewedAt": "2026-11-20T23:30:05.503Z",
+      "imageUrl": "https://clan.fastly.steamstatic.com/images/45479024/c9d521025947cc63525d0822a6322ed0f75875ea.jpg",
+      "imageCredit": "Valve · image officielle Steam Machine accompagnant l’annonce du 19 novembre"
+    },
+    {
+      "id": "nvidia-microsoft-azure-local-jetson-cosmos-20261119",
+      "topics": [
+        "ROBOTICS",
+        "AI"
+      ],
+      "title": "NVIDIA et Microsoft annoncent Azure Local sur Jetson pour l’IA industrielle",
+      "fact": "Le 19 novembre, NVIDIA annonce l’extension d’Azure Local aux plateformes Jetson Thor et Jetson Orin pour des usages de vision industrielle, de robotique et d’opérations autonomes. Les modèles d’IA physique Cosmos sont aussi annoncés pour Foundry Local.",
+      "impact": "Les entreprises pourront envisager des applications d’IA plus proches des équipements, en complément des déploiements dans le cloud.",
+      "caveat": "Il s’agit d’intégrations annoncées : ce texte ne confirme pas une disponibilité générale de tous les composants, leur prix ni des performances industrielles indépendamment mesurées.",
+      "sourceName": "NVIDIA · annonce Microsoft Ignite",
+      "sourceUrl": "https://blogs.nvidia.com/blog/microsoft-ignite-accelerated-computing-azure-windows-pcs/",
+      "sourceDate": "2026-11-19",
+      "reviewedAt": "2026-11-20T23:30:05.503Z",
+      "imageUrl": "https://blogs.nvidia.com/wp-content/uploads/2026/11/nvidia-microsoft.png",
+      "imageCredit": "NVIDIA · visuel officiel de l’annonce commune NVIDIA et Microsoft"
+    },
     {
       "id": "apex-legends-bannissements-errones-anticheat-20261119",
       "topics": [
