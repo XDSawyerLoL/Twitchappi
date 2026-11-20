@@ -144,4 +144,17 @@ function createAccountRouter(express,{
  });
  return router;
 }
-module.exports={createBindingStore,createAccountRouter,digest,AUTH_LEASE_MS,CHALLENGE_MS,DDL};
+function createLeaseGuard({now=Date.now,clearRemember=()=>{}}={}){
+ return (req,res,next)=>{
+  const q=req.session?.quanticAuth;
+  if(!q)return next();
+  if(Number.isFinite(q.expiresAt)&&q.expiresAt>now())return next();
+  req.session.quanticAuth=null;
+  req.session.oryonUser=null;
+  req.session.twitchUser=null;
+  req.session.quanticPending=null;
+  clearRemember(res);
+  req.session.save(error=>error?next(error):next());
+ };
+}
+module.exports={createBindingStore,createAccountRouter,createLeaseGuard,digest,AUTH_LEASE_MS,CHALLENGE_MS,DDL};
