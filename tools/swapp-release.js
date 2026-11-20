@@ -10,6 +10,8 @@ const RELEASE_FILES=Object.freeze([
  'modules/swapp-autonomy/runtime-watchdog.js',
  'modules/swapp-autonomy/live-curation.js',
  'modules/swapp-autonomy/live-trends.js',
+ 'modules/swapp-autonomy/editorial-radar.js',
+ 'modules/swapp-autonomy/editorial-radar-router.js',
  'app.js',
  'package.json',
  'package-lock.json',
