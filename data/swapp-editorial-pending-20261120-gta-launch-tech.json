@@ -1,0 +1,257 @@
+{
+  "kind": "swapp-editorial-pending",
+  "schema": 1,
+  "createdAt": "2026-11-20T05:00:40Z",
+  "updatedAt": "2026-11-20T05:00:40Z",
+  "publicationPolicy": "Brouillons et éléments de preuve uniquement. Ne pas ajouter ce fichier au manifeste des releases ; aucune publication longue avant validation du média et des contrôles requis.",
+  "articles": [
+    {
+      "slug": "gta-vi-lancement-19-novembre-2026-editions-installation",
+      "title": "GTA VI est disponible : consoles, éditions et installation, les repères du lancement",
+      "summary": "Rockstar confirme la sortie de GTA VI le 19 novembre 2026 sur PS5 et Xbox Series X|S. Voici les informations vérifiées sur Leonida, les éditions et la préparation du téléchargement.",
+      "body": "Grand Theft Auto VI est sorti le 19 novembre 2026 sur PlayStation 5 et Xbox Series X|S. Rockstar accompagne ce lancement mondial d’une nouvelle annonce officielle. Pour les joueurs, l’enjeu devient concret : choisir la bonne édition, préparer l’installation et distinguer les informations confirmées des promesses qui restent à évaluer manette en main.\n\n## Leonida ouvre ses portes\n\nL’aventure suit Jason et Lucia dans l’État fictif de Leonida. La présentation de Rockstar publiée sur PlayStation.Blog décrit une histoire où les deux protagonistes se retrouvent pris dans une conspiration après un coup qui tourne mal. Vice City demeure un point de repère central, mais le terrain annoncé ne se limite pas à ses quartiers urbains.\n\nLe studio présente six régions : Vice City, Leonida Keys, Grassrivers, Port Gellhorn, Ambrosia et Mount Kalaga. Cette diversité doit faire passer le voyage des zones côtières aux marais et aux reliefs. Elle décrit le cadre proposé ; elle ne suffit pas, à elle seule, à mesurer la richesse des activités ou la qualité de leur renouvellement.\n\nRockstar précise aussi que les radios et les podcasts à la demande peuvent accompagner les déplacements en véhicule, mais également l’exploration à pied avec un casque dans le jeu. Ce détail donne un aperçu de la place accordée à l’ambiance sonore, au-delà de la seule conduite.\n\n## Deux familles de consoles au lancement\n\nL’annonce du 19 novembre porte sur PS5 et Xbox Series X|S. Elle ne fournit pas de date de sortie PC. Un joueur sur ordinateur doit donc attendre une communication spécifique avant de prendre pour acquise une disponibilité sur sa plateforme.\n\nLa communication de lancement permet de distinguer la sortie effective du calendrier annoncé auparavant. Elle ne renseigne toutefois pas chaque stock local, chaque prix régional ou l’état ponctuel des services de téléchargement. Ces éléments doivent être contrôlés sur la boutique utilisée.\n\n## Éditions et boîte : vérifier ce que l’on achète\n\nLa FAQ Rockstar, actualisée le 18 novembre, distingue les éditions Standard et Ultimate. Elle indique aussi la possibilité d’acquérir séparément la mise à niveau vers Ultimate. Ce choix doit se faire à partir du contenu détaillé de l’offre, sans confondre bonus d’édition et nécessité pour accéder à l’aventure de base.\n\nAutre point pratique : la FAQ décrit la version en boîte comme contenant un code de téléchargement, sans disque. Acheter une boîte ne dispense donc pas de télécharger le jeu. Rockstar rappelle par ailleurs l’importance de la région d’activation du code et du compte de la plateforme. Une offre affichée dans une autre région ne constitue pas automatiquement une solution utilisable en France.\n\n## Préparer l’espace de stockage sur PS5\n\nDans son guide du 3 novembre, PlayStation demandait de libérer au moins 212 Go pour préparer le téléchargement sur PS5. Il s’agit d’une consigne d’espace libre, pas d’une mesure indépendante de la taille définitive après installation et mises à jour. Avant de supprimer d’autres jeux, mieux vaut vérifier l’espace demandé directement par la console.\n\n## Notre lecture : le lancement ouvre le temps de l’évaluation\n\nLa sortie transforme une attente en expérience accessible sur les consoles annoncées. Pour autant, ce dossier de lancement n’est pas un test : les informations du studio ne permettent pas de noter les performances, la stabilité ou la profondeur des conséquences offertes au joueur. Ces questions demandent des observations distinctes.\n\nLe repère utile reste simple : la sortie console est confirmée, tandis que la version PC, les performances constatées et les conditions commerciales françaises doivent faire l’objet de vérifications séparées. La vidéo associée est un spot promotionnel officiel de lancement ; elle ne doit pas être présentée comme une démonstration exhaustive du gameplay.",
+      "game": "Grand Theft Auto VI",
+      "games": [
+        "Grand Theft Auto VI"
+      ],
+      "tags": [
+        "GAMING",
+        "GTA VI",
+        "Rockstar Games",
+        "PS5",
+        "Xbox Series X|S"
+      ],
+      "seo": {
+        "title": "GTA VI disponible : sortie, consoles et éditions confirmées",
+        "description": "GTA VI est sorti le 19 novembre 2026 sur PS5 et Xbox Series X|S. Le point vérifié sur Leonida, les éditions, les codes et l’espace de stockage."
+      },
+      "author": "Rédaction SWAPP",
+      "category": "Actualités JV",
+      "contentType": "article",
+      "status": "draft",
+      "publishedAt": null,
+      "trailerUrl": "https://www.youtube.com/watch?v=_yl5ELcmugI",
+      "image": null,
+      "thumbnail": null,
+      "editorialVerdict": null,
+      "commercialLinks": [],
+      "sources": [
+        {
+          "label": "Rockstar Games — annonce officielle de lancement, 19 novembre 2026",
+          "url": "https://www.rockstargames.com/newswire/article/39akk424a9oo53/grand-theft-auto-vi-now-available"
+        },
+        {
+          "label": "Rockstar Games sur PlayStation.Blog — présentation du lancement, 18 novembre 2026",
+          "url": "https://blog.playstation.com/2026/11/18/grand-theft-auto-vi-launches-tomorrow-november-19/"
+        },
+        {
+          "label": "Rockstar Support — plateformes, éditions et versions, mise à jour du 18 novembre 2026",
+          "url": "https://support.rockstargames.com/articles/4QfG4FmZCf5W1gS8jy4UVT/grand-theft-auto-vi-platform-editions-and-versions"
+        },
+        {
+          "label": "PlayStation.Blog — préparation du téléchargement sur PS5, 3 novembre 2026",
+          "url": "https://blog.playstation.com/2026/11/03/grand-theft-auto-vi-pre-download-begins-november-10/"
+        }
+      ],
+      "qualityGate": {
+        "readyToPublish": false,
+        "primarySourcesRead": true,
+        "officialVideoIdentified": true,
+        "officialEmbedPresent": true,
+        "videoPlaybackVerified": false,
+        "thumbnailVisualVerified": true,
+        "articleInManifest": false,
+        "productionVerified": false,
+        "blockers": [
+          "Le lecteur YouTube intégré sur la page officielle Rockstar reste à 0:00 / 0:30 après deux tentatives bornées ; fonctionnement non confirmé.",
+          "Le catalogue public et l’état CMS ne sont pas contrôlables depuis ce client : HTTP 403 Bot Verification sur /api/actus."
+        ]
+      },
+      "notes": {
+        "factDate": "2026-11-19",
+        "reviewedAt": "2026-11-20T05:00:40Z",
+        "newDevelopment": "Sortie effective du 19 novembre, distincte du dossier de préparation du 8 novembre et de l’annonce Xbox Cloud du 10 novembre.",
+        "relatedExistingSlug": "gta-6-dossier-complet-sortie-19-novembre-2026-vice-city-leonida",
+        "publicInternalLinkInserted": false,
+        "cardImageSourcesExpected": "https://i.ytimg.com/vi/_yl5ELcmugI/hqdefault.jpg",
+        "trailerCharacterization": "Spot promotionnel officiel de lancement de 30 secondes ; pas un test ni du gameplay exhaustif.",
+        "affiliateReview": {
+          "checkedAt": "2026-11-20T05:00:40Z",
+          "url": "https://www.instant-gaming.com/fr/23244-acheter-grand-theft-auto-vi-xbox-series-x-s-microsoft-store/",
+          "selectedRegion": "Amérique latine",
+          "platform": "Xbox Series X|S / Microsoft Store",
+          "compatibleWithFranceVerified": false,
+          "decision": "Aucun lien affilié ajouté. La fiche consultée indique une restriction régionale ; une variante France compatible n’a pas été vérifiée. Ce point seul ne bloque pas la publication."
+        }
+      }
+    }
+  ],
+  "candidates": [
+    {
+      "key": "genie-4-gemini-api-ai-studio-20261119",
+      "topics": [
+        "FUTURE",
+        "AI"
+      ],
+      "title": "Genie 4 arrive dans l’API Gemini et Google AI Studio",
+      "sourceUrl": "https://blog.google/innovation-and-ai/technology/developers-tools/genie-4-in-gemini-api/",
+      "sourceDate": "2026-11-19",
+      "reviewedAt": "2026-11-20T05:00:40Z",
+      "status": "verified_flash_longform_candidate",
+      "fact": "Le 19 novembre, Google ouvre Genie 4 aux développeurs dans l’API Gemini, via l’API Interactions, et dans Google AI Studio. Texte ou image peuvent servir de point de départ à un monde interactif.",
+      "imageUrl": "https://storage.googleapis.com/gweb-uniblog-publish-prod/images/Genie_4_Social_Share.max-1440x810.png",
+      "imageCredit": "Google · visuel officiel Genie 4 dans l’API Gemini et Google AI Studio",
+      "officialImageVisualVerified": true,
+      "officialVideoPlaybackVerified": false,
+      "missing": [
+        "Vidéo officielle pertinente dont la lecture est vérifiée avant un dossier long.",
+        "Contrôle public de publication et d’éditabilité CMS."
+      ]
+    },
+    {
+      "key": "esa-plasma-observatory-selection-m7-20261119",
+      "topics": [
+        "FUTURE"
+      ],
+      "title": "L’ESA sélectionne Plasma Observatory et ses sept satellites",
+      "sourceUrl": "https://www.esa.int/articles/about-us/directorates/science/seven-spacecraft-observatory-to-study-plasma-universe",
+      "sourceDate": "2026-11-19",
+      "reviewedAt": "2026-11-20T05:00:40Z",
+      "status": "verified_flash_longform_candidate",
+      "fact": "Les États membres de l’ESA ont sélectionné Plasma Observatory le 19 novembre comme prochaine mission scientifique de classe moyenne. Sept satellites doivent mesurer ensemble les échanges d’énergie dans la magnétosphère terrestre.",
+      "imageUrl": "https://media.esa.int/global/public/common/image/2026/11/402687/image-thumb__402687__social_share/magnetospheric-system.5305b624.jpg",
+      "imageCredit": "ESA · vue d’artiste de l’environnement plasma terrestre, illustration officielle de l’annonce",
+      "officialImageVisualVerified": true,
+      "officialVideoPlaybackVerified": false,
+      "missing": [
+        "Vidéo officielle pertinente dont la lecture est vérifiée avant un dossier long.",
+        "Contrôle public de publication et d’éditabilité CMS."
+      ]
+    },
+    {
+      "key": "gemini-4-neon-annonce-acces-20261118",
+      "topics": [
+        "AI"
+      ],
+      "title": "Google lance Gemini 4 Neon pour ses usages avancés",
+      "sourceUrl": "https://blog.google/innovation-and-ai/models-and-research/gemini-models/introducing-gemini-4-neon/",
+      "sourceDate": "2026-11-18",
+      "reviewedAt": "2026-11-20T05:00:40Z",
+      "status": "verified_flash_longform_candidate",
+      "fact": "Google présente Gemini 4 Neon le 18 novembre et annonce son accès dans l’API Gemini payante, Google AI Studio et ses offres éligibles. Le modèle accepte un contexte pouvant atteindre un million de tokens.",
+      "imageUrl": "https://storage.googleapis.com/gweb-uniblog-publish-prod/images/gemini-4-neon__blog-header__sm.width-1300.png",
+      "imageCredit": "Google · image d’ouverture officielle Gemini 4 Neon",
+      "officialImageVisualVerified": true,
+      "officialVideoPlaybackVerified": false,
+      "missing": [
+        "Vidéo officielle pertinente dont la lecture est vérifiée avant un dossier long.",
+        "Contrôle public de publication et d’éditabilité CMS."
+      ]
+    },
+    {
+      "key": "nvidia-rtx-spark-pc-ia-locale-20261118",
+      "topics": [
+        "FUTURE",
+        "AI"
+      ],
+      "title": "NVIDIA annonce les premiers PC RTX Spark pour l’IA locale",
+      "sourceUrl": "https://blogs.nvidia.com/blog/rtx-spark-desktop-local-ai-available-now/",
+      "sourceDate": "2026-11-18",
+      "reviewedAt": "2026-11-20T05:00:40Z",
+      "status": "verified_flash_longform_candidate",
+      "fact": "NVIDIA annonce le 18 novembre la disponibilité de premiers ordinateurs RTX Spark sous Windows sur Arm chez ASUS, Dell et MSI. Cette plateforme compacte associe un processeur Grace, une puce Blackwell RTX et jusqu’à 128 Go de mémoire unifiée.",
+      "imageUrl": "https://blogs.nvidia.com/wp-content/uploads/2026/11/nv-blog-1280x680-2-1.jpg",
+      "imageCredit": "NVIDIA · illustration officielle de l’annonce RTX Spark et de l’IA locale",
+      "officialImageVisualVerified": true,
+      "officialVideoPlaybackVerified": false,
+      "missing": [
+        "Vidéo officielle pertinente dont la lecture est vérifiée avant un dossier long.",
+        "Contrôle public de publication et d’éditabilité CMS."
+      ]
+    }
+  ],
+  "mediaEvidence": {
+    "checkedAt": "2026-11-20T05:00:40Z",
+    "officialSourceImages": [
+      {
+        "signalId": "gta-vi-lancement-ps5-xbox-series-20261119",
+        "sourceUrl": "https://www.rockstargames.com/newswire/article/39akk424a9oo53/grand-theft-auto-vi-now-available",
+        "imageUrl": "https://media-rockstargames-com.akamaized.net/tina-uploads/posts/39akk424a9oo53/e470e29da13848abd31dfd8ea0e95a0eeffd0511.jpg",
+        "httpStatus": 200,
+        "visuallyInspected": true,
+        "match": "Image og:image exacte consultée sur la source primaire ; sujet et crédit contrôlés.",
+        "rehosted": false
+      },
+      {
+        "signalId": "genie-4-gemini-api-ai-studio-20261119",
+        "sourceUrl": "https://blog.google/innovation-and-ai/technology/developers-tools/genie-4-in-gemini-api/",
+        "imageUrl": "https://storage.googleapis.com/gweb-uniblog-publish-prod/images/Genie_4_Social_Share.max-1440x810.png",
+        "httpStatus": 200,
+        "visuallyInspected": true,
+        "match": "Image og:image exacte consultée sur la source primaire ; sujet et crédit contrôlés.",
+        "rehosted": false
+      },
+      {
+        "signalId": "esa-plasma-observatory-selection-m7-20261119",
+        "sourceUrl": "https://www.esa.int/articles/about-us/directorates/science/seven-spacecraft-observatory-to-study-plasma-universe",
+        "imageUrl": "https://media.esa.int/global/public/common/image/2026/11/402687/image-thumb__402687__social_share/magnetospheric-system.5305b624.jpg",
+        "httpStatus": 200,
+        "visuallyInspected": true,
+        "match": "Image og:image exacte consultée sur la source primaire ; sujet et crédit contrôlés.",
+        "rehosted": false
+      },
+      {
+        "signalId": "gemini-4-neon-annonce-acces-20261118",
+        "sourceUrl": "https://blog.google/innovation-and-ai/models-and-research/gemini-models/introducing-gemini-4-neon/",
+        "imageUrl": "https://storage.googleapis.com/gweb-uniblog-publish-prod/images/gemini-4-neon__blog-header__sm.width-1300.png",
+        "httpStatus": 200,
+        "visuallyInspected": true,
+        "match": "Image og:image exacte consultée sur la source primaire ; sujet et crédit contrôlés.",
+        "rehosted": false
+      },
+      {
+        "signalId": "nvidia-rtx-spark-pc-ia-locale-20261118",
+        "sourceUrl": "https://blogs.nvidia.com/blog/rtx-spark-desktop-local-ai-available-now/",
+        "imageUrl": "https://blogs.nvidia.com/wp-content/uploads/2026/11/nv-blog-1280x680-2-1.jpg",
+        "httpStatus": 200,
+        "visuallyInspected": true,
+        "match": "Image og:image exacte consultée sur la source primaire ; sujet et crédit contrôlés.",
+        "rehosted": false
+      }
+    ],
+    "gtaTrailer": {
+      "officialPage": "https://www.rockstargames.com/VI/out-now",
+      "embedUrl": "https://www.youtube-nocookie.com/embed/_yl5ELcmugI?autoplay=0&enablejsapi=1",
+      "watchUrl": "https://www.youtube.com/watch?v=_yl5ELcmugI",
+      "channel": "Rockstar Games",
+      "thumbnailUrl": "https://i.ytimg.com/vi/_yl5ELcmugI/hqdefault.jpg",
+      "thumbnailHttpStatus": 200,
+      "thumbnailVisualVerified": true,
+      "playbackObserved": "Écran noir, compteur 0:00 / 0:30 ; aucune progression observée.",
+      "playbackVerified": false,
+      "captchaAttempted": false
+    }
+  },
+  "review": {
+    "status": "prepared_not_published",
+    "researchPerformed": true,
+    "reviewedAt": "2026-11-20T05:00:40Z",
+    "repositoryReleaseCount": 28,
+    "repositoryArticleCount": 49,
+    "previousSignalCount": 36,
+    "proposedNewSignalIds": [
+      "gta-vi-lancement-ps5-xbox-series-20261119",
+      "genie-4-gemini-api-ai-studio-20261119",
+      "esa-plasma-observatory-selection-m7-20261119",
+      "gemini-4-neon-annonce-acces-20261118",
+      "nvidia-rtx-spark-pc-ia-locale-20261118"
+    ],
+    "deduplication": "Jeu ou sujet + événement + date officielle + URL primaire canonique ; tous les 28 lots et les 36 brèves relus.",
+    "publicInventoryComplete": false,
+    "publicControlBlock": "HTTP 403 Bot Verification",
+    "newReleaseAdded": false,
+    "publicationConfirmed": false,
+    "securityModified": false,
+    "paidServicesUsed": false
+  }
+}
