@@ -43,4 +43,6 @@ test('SWAPP site integrates Quantic ID without hijacking SWAPP sessions',()=>{
  assert.match(html,/swapp-quantic-id-site\.js/);
  assert.match(ui,/ENDPOINT\+'\/visible'/);
  assert.doesNotMatch(ui,/oryonUser|twitchUser|SWAPP_ADMIN|localStorage/);
+ assert.match(ui,/swapp-quantic-id-unified/);
+ assert.doesNotMatch(ui,/swapp-quantic-id-presence|swapp-quantic-account-login|Mot de passe actuel du compte SWAPP/);
 });
