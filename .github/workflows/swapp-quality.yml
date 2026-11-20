@@ -77,14 +77,17 @@ jobs:
           node --check assets/swapp-catalogue-spa.js
           node --test test/swapp-home-genres-20261114.test.js
 
-      - name: Verify patched websocket-driver 0.7.5 and frame-length regression
+      - name: Verify patched websocket-driver 0.8.0 and frame-length regression
         run: |
           node --check test/swapp-websocket-driver-security.test.js
           node --test test/swapp-websocket-driver-security.test.js
           mkdir -p "$RUNNER_TEMP/swapp-websocket-security"
-          npm install --prefix "$RUNNER_TEMP/swapp-websocket-security" --no-save --ignore-scripts --omit=optional --no-audit --no-fund websocket-driver@0.7.5
+          npm install --prefix "$RUNNER_TEMP/swapp-websocket-security" --no-save --ignore-scripts --omit=optional --no-audit --no-fund websocket-driver@0.8.0
           SWAPP_WS_SECURITY_TEST=1 NODE_PATH="$RUNNER_TEMP/swapp-websocket-security/node_modules" node --test test/swapp-websocket-driver-security.test.js
           npm ls --prefix "$RUNNER_TEMP/swapp-websocket-security" websocket-driver --all
+      - name: Check express-rate-limit security lock (pre-install)
+        run: |
+          node --test test/swapp-rate-limit-security-20261120.test.js
 
       - name: Full genre grid, five-entry navigation and global accent spotlight
         run: |
@@ -102,6 +105,9 @@ jobs:
           npm ci --ignore-scripts --no-audit --no-fund --registry=https://registry.npmjs.org --fetch-retries=1 --fetch-timeout=30000
           SWAPP_DEPENDENCY_RUNTIME_TEST=1 SWAPP_MODERATE_CVE_RUNTIME_TEST=1 node --test test/swapp-high-security-batch-20261114.test.js test/swapp-moderate-cve-security-20261115.test.js
           npm ls --all node-forge qs body-parser @fastify/busboy @grpc/grpc-js engine.io nodemailer socket.io-parser protobufjs fast-xml-builder fast-xml-parser form-data ws uuid
+          npm ls --all websocket-driver websocket-extensions express-rate-limit ip-address debug
+          SWAPP_WS_SECURITY_TEST=1 node --test test/swapp-websocket-driver-security.test.js
+          SWAPP_RATE_LIMIT_RUNTIME_TEST=1 node --test test/swapp-rate-limit-security-20261120.test.js
 
       - name: Real top games, poster rails by genre and responsive Movix-style UI
         run: |
