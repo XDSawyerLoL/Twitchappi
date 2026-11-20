@@ -900,7 +900,7 @@ const staticOptions = {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     // Identity Vault login scripts must refresh immediately after a deploy.
     // Do not change caching for other JS/CSS or erase existing sessions.
-    if(/(?:^|[\\/])(?:swapp-quantic-id-site\\.(?:js|css)|swapp-quantic-login-keeper\\.js)$/.test(staticPath)){
+    if(/(?:swapp-quantic-id-site\.(?:js|css)|swapp-quantic-login-keeper\.js)$/.test(staticPath)){
       res.setHeader('Cache-Control','no-store, no-cache, must-revalidate, proxy-revalidate');
       res.setHeader('Surrogate-Control','no-store');
       res.setHeader('Pragma','no-cache');
