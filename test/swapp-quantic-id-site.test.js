@@ -41,7 +41,7 @@ test('SWAPP site integrates Quantic ID without hijacking SWAPP sessions',()=>{
  const ui=fs.readFileSync(require.resolve('../assets/swapp-quantic-id-site.js'),'utf8');
  assert.match(server,/\/api\/quantic-id/);
  assert.match(html,/swapp-quantic-id-site\.js/);
- assert.match(ui,/\/account\/\+/);
+ assert.match(ui,/const BASE='\/api\/quantic-id'/);
  assert.doesNotMatch(ui,/oryonUser|twitchUser|SWAPP_ADMIN|localStorage/);
  assert.match(ui,/swapp-vault-primary-login/);
  assert.match(ui,/document\.getElementById\('loginForm'\)/);
