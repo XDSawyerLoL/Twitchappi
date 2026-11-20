@@ -3,7 +3,7 @@
  const ROOT=document.getElementById('settings');
  if(!ROOT)return;
  const BRIDGE='http://127.0.0.1:47621',ENDPOINT='/api/quantic-id';
- let active=false,busy=false,clock=0,lastProof=0,section=null,label=null,button=null,stopButton=null,seen=null;
+ let active=false,busy=false,clock=0,lastProof=0,lastPresencePoll=0,section=null,label=null,button=null,stopButton=null,seen=null;
  const message=text=>{if(label)label.textContent=text};
  async function post(url,body){
   const r=await fetch(ENDPOINT+'/'+url,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body),cache:'no-store',credentials:'same-origin'});
@@ -84,7 +84,10 @@
     message('Coffre verrouillé ou inaccessible : présence supprimée.');
    }finally{busy=false;controls();}
   }
-  await refresh();
+  if(Date.now()-lastPresencePoll>=8000 && document.visibilityState==='visible'){
+    lastPresencePoll=Date.now();
+    await refresh();
+  }
  }
  window.addEventListener('pagehide',()=>{
   if(!active)return;
