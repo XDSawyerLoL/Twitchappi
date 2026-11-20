@@ -43,7 +43,7 @@ function buildEditorialRadar({trends, articles = [], catalogueStatus = 'availabl
       Number.isInteger(g.deltaStreams) && Number.isSafeInteger(g.deltaObservedViewers) &&
       Number.isInteger(g.deltaSmallStreams) &&
       (g.deltaStreams > 0 || g.deltaObservedViewers > 0 || g.deltaSmallStreams > 0))
-    .sort((a, b) => b.deltaStreams - a.deltaStreams ||
+    .sort((a, b) => Math.max(0, b.deltaStreams) - Math.max(0, a.deltaStreams) ||
       b.deltaObservedViewers - a.deltaObservedViewers ||
       b.deltaSmallStreams - a.deltaSmallStreams || a.game.localeCompare(b.game));
   const seen = new Set(), opportunities = [];
