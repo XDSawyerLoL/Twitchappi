@@ -40,47 +40,74 @@ function head(title,description,pathname,kind){
   "<meta name='description' content='"+E(description)+"'><link rel='canonical' href='"+url+"'>"+
   "<meta property='og:type' content='"+kind+"'><meta property='og:title' content='"+E(title)+"'>"+
   "<meta property='og:description' content='"+E(description)+"'><meta property='og:url' content='"+url+"'>"+
-  "<meta property='og:image' content='"+ORIGIN+"/swapp-share-card.png'>"+
+  "<meta property='og:image' content='"+ROB_COVER+"'>"+
+  "<meta property='og:image:alt' content='Visuel officiel ROB RUN par Kefir'>"+
+  "<meta name='twitter:card' content='summary_large_image'>"+
+  "<meta name='twitter:image' content='"+ROB_COVER+"'>"+
   "<script type='application/ld+json'>"+JSON.stringify(schema).replace(/</g,'\\u003c')+"</script>"+
   SHARED_HEAD_SLOT+"<style>"+CSS+"</style>";
 }
 function renderRobRun(){
  const title='ROB RUN : bien débuter et comprendre la mise à jour du 17 novembre | SWAPP';
  const desc='Guide ROB RUN : premiers pas, police, clans, stockage, patch du 17 novembre 2026 et configuration PC. Conseils originaux et sources officielles.';
- const hero="<main class='sg-page'><div class='sg-wrap'><header class='sg-hero'>"+
-  "<p class='sg-label'><a href='/guides'>SWAPP Guides</a> / ROB RUN</p>"+
+ const hero="<main class='sg-page'><header class='sg-hero'>"+
+  "<img class='sg-hero-image' src='"+ROB_HERO+"' alt='Décor désertique de ROB RUN, capture promotionnelle officielle Kefir' fetchpriority='high' decoding='async'>"+
+  "<div class='sg-wrap'><p class='sg-kicker'><a href='/guides'>SWAPP GUIDES</a> / ROB RUN / GRAND FORMAT</p>"+
   "<h1>ROB RUN : partir de rien, sans tout perdre</h1>"+
-  "<p class='sg-lead'>Les bons réflexes pour entrer dans le crime sandbox de Kefir : comprendre le risque, organiser ses premières sorties et repérer les règles réellement modifiées en novembre.</p>"+
-  "<p class='sg-stamp'>Guide original SWAPP · Révision du 20 novembre 2026 · Jeu PC en accès anticipé depuis le 4 novembre</p>"+
-  "<div class='sg-cta'><a href='"+STEAM+"' target='_blank' rel='noopener noreferrer'>Fiche Steam officielle</a>"+
-  "<a href='"+PATCH+"' target='_blank' rel='noopener noreferrer'>Notes Kefir du 17 novembre</a></div></header>";
+  "<p class='sg-lead'>Apprendre à survivre dans le crime sandbox multijoueur de Kefir : gérer le risque, comprendre les affrontements et intégrer les vraies modifications de novembre.</p>"+
+  "<p class='sg-meta'>DOSSIER PRATIQUE · 20 NOVEMBRE 2026 · ACCÈS ANTICIPÉ PC</p>"+
+  "<div class='sg-actions'><a class='sg-action' href='"+STEAM+"' target='_blank' rel='noopener noreferrer'>Le jeu sur Steam</a>"+
+  "<a class='sg-action alt' href='"+PATCH+"' target='_blank' rel='noopener noreferrer'>Mise à jour du 17 novembre</a></div>"+
+  "<p class='sg-artcredit'>Image officielle du jeu : © Kefir / Steam</p></div></header>";
+ const ribbon="<div class='sg-wrap'><div class='sg-deck' aria-label='Informations sur le guide'>"+
+  "<div><strong>HUIT CHAPITRES</strong><span>Bien débuter, police, raids et repaires</span></div>"+
+  "<div><strong>VERSION 20.11.2026</strong><span>Correctif officiel du 17 novembre pris en compte</span></div>"+
+  "<div><strong>SOURCES PRIMAIRES</strong><span>Fiche et notes officielles de Kefir</span></div></div>";
  const chapterHtml=SECTIONS.map(s=>"<section id='"+s.id+"'><h2>"+E(s.title)+"</h2>"+s.body+"</section>").join('');
- const aside="<aside class='sg-side' aria-label='Sommaire'>"+
+ const aside="<aside class='sg-side' aria-label='Sommaire du guide'><strong>PARCOURIR LE DOSSIER</strong>"+
   SECTIONS.map(s=>"<a href='#"+s.id+"'>"+E(s.title)+"</a>").join('')+"</aside>";
- const article="<article class='sg-main'><p class='sg-note'><strong>Notre méthode :</strong> les faits de jeu et les changements du patch sont liés aux annonces de Kefir. Les routines proposées sont des conseils SWAPP, pas des tests réalisés manette en main, ni des statistiques garanties.</p>"+
+ const article="<article class='sg-main'>"+
+  "<p class='sg-first'>ROB RUN ne pardonne pas l'improvisation. Les premières heures servent moins à amasser des richesses qu'à comprendre comment les autres joueurs peuvent bouleverser une situation.</p>"+
+  "<figure class='sg-inline-photo'><img src='"+ROB_COVER+"' alt='Illustration de couverture officielle du jeu ROB RUN : personnage dans un décor désertique' loading='lazy' decoding='async'>"+
+  "<figcaption>Illustration promotionnelle officielle de ROB RUN — © Kefir / Steam. Visuel du jeu, pas une capture de partie réalisée par SWAPP.</figcaption></figure>"+
+  "<div class='sg-note'><strong>Notre méthode :</strong> les règles et changements cités proviennent des annonces de Kefir. Les conseils de progression sont des recommandations SWAPP, sans statistiques inventées ni prétention à un test en jeu.</div>"+
   chapterHtml+"<section class='sg-source'><h2>Sources, crédits et révisions</h2>"+
-  "<p><a href='"+STEAM+"' target='_blank' rel='noopener noreferrer'>Kefir — fiche Steam ROB RUN</a> : description, sortie du 4 novembre, prix, langue et configuration. "+
-  "<a href='"+PATCH+"' target='_blank' rel='noopener noreferrer'>Kefir — Patch Notes du 17 novembre 2026</a> : changements de progression, prison, vocal, échanges et connexion.</p>"+
-  "<p>Mis à jour le 20 novembre 2026. Aucun visuel tiers reproduit, aucune vidéo de réupload et aucune information de gameplay inventée. Les règles d’accès anticipé peuvent changer : contrôle les notes officielles plus récentes.</p>"+
+  "<p><a href='"+STEAM+"' target='_blank' rel='noopener noreferrer'>Kefir — fiche Steam ROB RUN</a> : sortie du 4 novembre, fonctionnement et configuration. "+
+  "<a href='"+PATCH+"' target='_blank' rel='noopener noreferrer'>Kefir — notes officielles du 17 novembre 2026</a> : progression, prison, vocal, échanges et stabilité.</p>"+
+  "<p>Visuels promotionnels officiels © Kefir / Steam, chargés directement depuis l'hébergement Steam. Révision éditoriale du 20 novembre 2026. Ces informations peuvent évoluer pendant l'accès anticipé.</p>"+
   "<p><a href='/guides'>Tous les guides</a> · <a href='/actus'>Magazine SWAPP</a> · <a href='/explorer'>Explorer les directs</a></p></section></article>";
- return renderPage({head:head(title,desc,PATH,'article'),content:hero+
+ return renderPage({head:head(title,desc,PATH,'article'),content:hero+ribbon+
   "<div class='sg-columns'>"+article+aside+"</div></div></main>",
   active:'discover',bodyClass:'swapp-editorial-route swapp-guide-page'});
 }
 function renderIndex(){
  const title='SWAPP Guides : apprendre et progresser dans les jeux';
- const desc='Guide ROB RUN, parcours Aion 2 et méthode pour choisir une communauté gaming active. Des conseils originaux, sourcés et révisables.';
- const guides=[
-  ['/guides/rob-run','ROB RUN','Débuter, sécuriser son butin, comprendre les clans et le patch du 17 novembre 2026.','NOUVEAU · 20 NOVEMBRE'],
-  ['/guides/aion-2','Aion 2','Classes, progression, équipement, donjons, PvE et PvP en dix chapitres.','PARCOURS · 10 CHAPITRES'],
-  ['/guides/choisir-communaute-gaming','Choisir sa communauté','Vérifier les horaires, la modération, les joueurs réellement actifs et les règles.','MÉTHODE · COMMUNAUTÉS']
- ];
- const cards=guides.map(x=>"<a class='sg-card' href='"+x[0]+"'><small>"+E(x[3])+"</small><strong>"+E(x[1])+"</strong><span>"+E(x[2])+"</span></a>").join('');
- const html="<main class='sg-page'><div class='sg-wrap'><header class='sg-hero'><p class='sg-label'>SWAPP / Guides</p>"+
-  "<h1>Apprendre sans perdre son temps</h1><p class='sg-lead'>Des guides pour comprendre les jeux et les communautés. Les méthodes sont distinctes des faits vérifiés : pas de chiffres fictifs, ni de fausses promesses.</p></header>"+
-  "<section aria-label='Guides disponibles'><div class='sg-cards'>"+cards+"</div></section>"+
-  "<p class='sg-source'>Pour les annonces récentes, consulte <a href='/actus'>le Magazine SWAPP</a>.</p></div></main>";
- return renderPage({head:head(title,desc,'/guides','website'),content:html,
+ const desc='Guides immersifs SWAPP : ROB RUN, Aion 2 et communautés gaming. Visuels authentiques, sources officielles, conseils et mises à jour.';
+ const hero="<main class='sg-page'><header class='sg-hero sg-index-hero'>"+
+  "<img class='sg-hero-image' src='"+ROB_HERO+"' alt='Vue panoramique du désert de ROB RUN, illustration officielle Kefir' fetchpriority='high' decoding='async'>"+
+  "<div class='sg-wrap'><p class='sg-kicker'>SWAPP / GUIDES & STRATÉGIES</p>"+
+  "<h1>Découvrir un jeu.<br>En maîtriser les règles.</h1>"+
+  "<p class='sg-lead'>De vrais guides pour faire ses premiers choix, comprendre les mécaniques et suivre les changements. Du contenu rédigé, sourcé et révisable, pas une succession de fiches vides.</p>"+
+  "<div class='sg-actions'><a class='sg-action' href='/guides/rob-run'>À LA UNE : ROB RUN</a>"+
+  "<a class='sg-action alt' href='/guides/aion-2'>EXPLORER AION 2</a></div>"+
+  "<p class='sg-artcredit'>À la une : illustration officielle ROB RUN © Kefir / Steam</p></div></header>";
+ const feature="<div class='sg-wrap'><section aria-label='Guides de jeux publiés'>"+
+  "<div class='sg-sectionhead'><h2>Guides de jeux</h2><span>PARCOURS ORIGINAUX · SOURCES VÉRIFIABLES</span></div>"+
+  "<div class='sg-feature-row'><a class='sg-row-picture' href='/guides/rob-run' aria-label='Ouvrir le guide ROB RUN'><img src='"+ROB_COVER+"' alt='Couverture officielle de ROB RUN par Kefir' loading='lazy' decoding='async'></a>"+
+  "<div class='sg-row-text'><p class='sg-kicker'>20 NOVEMBRE 2026 / PREMIERS PAS</p><h3><a href='/guides/rob-run'>ROB RUN</a></h3>"+
+  "<p>Butin, police, clans, repaires : les premières décisions et les changements confirmés du patch du 17 novembre.</p>"+
+  "<a class='sg-row-link' href='/guides/rob-run'>LIRE LE GUIDE</a><p class='sg-artcredit'>© Kefir / Steam</p></div></div>"+
+  "<div class='sg-feature-row'><a class='sg-row-picture' href='/guides/aion-2' aria-label='Ouvrir le parcours Aion 2'><img src='"+AION_HERO+"' alt='Personnages et logo officiels Aion 2, visuel NCSOFT' loading='lazy' decoding='async'></a>"+
+  "<div class='sg-row-text'><p class='sg-kicker'>MMORPG / ACADÉMIE</p><h3><a href='/guides/aion-2'>Aion 2</a></h3>"+
+  "<p>Un parcours complet : classes, progression, équipement, donjons, PvE et PvP. Dix chapitres pour comprendre avant de farmer.</p>"+
+  "<a class='sg-row-link' href='/guides/aion-2'>EXPLORER L'ACADÉMIE</a><p class='sg-artcredit'>© NCSOFT</p></div></div>"+
+  "</section><section aria-label='Guide des communautés'>"+
+  "<div class='sg-sectionhead'><h2>Communautés & joueurs</h2><span>CHOISIR EN CONNAISSANCE DE CAUSE</span></div>"+
+  "<div class='sg-community-row'><div><p class='sg-kicker'>COMMUNAUTÉS / MÉTHODE</p><h3><a href='/guides/choisir-communaute-gaming'>Trouver les bons joueurs</a></h3></div>"+
+  "<div><p>Horaires, modération, activité réelle : comment rejoindre un serveur où l'on joue véritablement ensemble, au-delà des simples compteurs.</p>"+
+  "<a class='sg-action' href='/guides/choisir-communaute-gaming'>LIRE LE GUIDE</a></div></div></section>"+
+  "<p class='sg-footer-note'>Images des jeux fournies par leurs éditeurs respectifs. Les guides restent indépendants des produits ou services promus.</p></div></main>";
+ return renderPage({head:head(title,desc,'/guides','website'),content:hero+feature,
   active:'discover',bodyClass:'swapp-editorial-route swapp-guide-page'});
 }
 function register(app){
