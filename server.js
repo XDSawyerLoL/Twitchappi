@@ -4588,6 +4588,15 @@ app.use('/api/quantic-id/account',swappQuanticAccount.createAccountRouter(expres
  refreshUsers:loadOryonUsersPersistent,
  toSession:sessionOryonUser,
  clearRemember:clearOryonRememberCookie,
+ onRecoveryRotate:async id=>{
+  // Disconnect live sockets for this account on the current Node instance.
+  // Other instances reject the old binding through their periodic DB checks.
+  for(const namespace of io._nsps?.values()||[]){
+   for(const socket of namespace.sockets?.values()||[]){
+    if(String(socket.request?.session?.oryonUser?.id||'')===String(id))socket.disconnect(true);
+   }
+  }
+ },
  enforceVaultOnly:async id=>{
   await loadOryonUsersPersistent();
   if(oryonProductionRequiresDurableStorage())throw Error('quantic_store_unavailable');
@@ -9199,28 +9208,45 @@ io.engine.on('connection_error', (err) => {
   console.warn('\u26A0\uFE0F [SOCKET] connection_error:', err.code, err.message);
 });
 
-io.use((socket, next) => {
-  sessionMiddleware(socket.request, {}, err=>{
-    if(err)return next(err);
-    if(socket.request?.session?.quanticAuth?.expiresAt<=Date.now())
-      return next(new Error('quantic_session_expired'));
-    next();
-  });
+async function swappSocketSessionAllowed(session){
+ const id=session?.oryonUser?.id;
+ if(!id)return true;
+ const q=session?.quanticAuth;
+ if(q){
+  if(!Number.isFinite(q.expiresAt)||q.expiresAt<=Date.now()||!swappQuanticBindings)return false;
+  return await swappQuanticBindings.getKey(id)===q.hash;
+ }
+ // A legacy socket cannot bypass a Vault-only account on another Node worker.
+ return !swappQuanticBindings||!await swappQuanticBindings.isVaultOnly(id);
+}
+io.use((socket,next)=>{
+ sessionMiddleware(socket.request,{},async err=>{
+  if(err)return next(err);
+  try{
+   if(!await swappSocketSessionAllowed(socket.request?.session))
+    return next(new Error('quantic_session_revoked'));
+   next();
+  }catch{return next(new Error('quantic_session_guard_unavailable'))}
+ });
 });
-// Existing Socket.IO connections must lose Quantic-issued privileges when
-// their browser locks, the session ends or the short server-side lease expires.
+// Re-check sessions during existing socket connections, not only at handshake.
+// This revokes copied sessions on every worker without Redis or a VPS.
 io.on('connection',socket=>{
-  if(!socket.request?.session?.quanticAuth)return;
-  const check=()=>{
-    if(!socket.connected)return;
-    socket.request.session.reload(error=>{
-      const q=socket.request.session?.quanticAuth;
-      if(error||!q||q.expiresAt<=Date.now())socket.disconnect(true);
-    });
-  };
-  const timer=setInterval(check,3000);
-  timer.unref?.();
-  socket.on('disconnect',()=>clearInterval(timer));
+ if(!socket.request?.session?.oryonUser?.id)return;
+ let busy=false;
+ const check=()=>{
+  if(busy||!socket.connected)return;
+  busy=true;
+  socket.request.session.reload(async error=>{
+   try{
+    if(error||!await swappSocketSessionAllowed(socket.request?.session))socket.disconnect(true);
+   }catch{socket.disconnect(true)}
+   finally{busy=false}
+  });
+ };
+ const timer=setInterval(check,10000);
+ timer.unref?.();
+ socket.on('disconnect',()=>clearInterval(timer));
 });
 
 // SWAPP channel moderation: registered before the native chat socket handlers.
