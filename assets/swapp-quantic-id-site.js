@@ -6,7 +6,7 @@
  const LOCAL={mode:'cors',credentials:'omit',cache:'no-store',targetAddressSpace:'loopback'};
  const ICON='/assets/brand-icons/quantic-identity-vault-mark.svg';
  const ROOT=document.getElementById('settings');
- let busy=false,present=false,lastPresenceProof=0,activeSession=false,linked=false,quanticSession=false,recoveryReady=false,strict=false;
+ let busy=false,presenceBusy=false,present=false,lastPresenceProof=0,activeSession=false,linked=false,quanticSession=false,recoveryReady=false,strict=false;
  let loginControl=null,linkControl=null,recoverControl=null,enrollControl=null,strictControl=null;
  const listen=new Set();
  const errorLabels={
@@ -64,7 +64,7 @@
   return res.json();
  }
  function output(text){
-  for(const node of listen)if(node.isConnected)node.textContent=text;
+  for(const node of listen)if(node.isConnected&&node.textContent!==text)node.textContent=text;
  }
  function iconButton(id,label){
   const button=document.createElement('button');button.id=id;button.type='button';button.className='swapp-vault-logo-button';
@@ -130,8 +130,16 @@
    if(action&&(!activeSession||!quanticSession||!linked)){
     action.remove();enrollControl=null;strictControl=null;
    }else if(action){
-    if(enrollControl)enrollControl.textContent=recoveryReady?'Renouveler mes codes de récupération':'Créer mes codes de récupération';
-    if(strictControl)strictControl.hidden=Boolean(strict||!recoveryReady);
+    // Setting textContent always creates a childList mutation, even for an unchanged label.
+    // Keep mount() idempotent: it also runs from a MutationObserver on the entire SPA.
+    if(enrollControl){
+     const label=recoveryReady?'Renouveler mes codes de récupération':'Créer mes codes de récupération';
+     if(enrollControl.textContent!==label)enrollControl.textContent=label;
+    }
+    if(strictControl){
+     const hidden=Boolean(strict||!recoveryReady);
+     if(strictControl.hidden!==hidden)strictControl.hidden=hidden;
+    }
    }
   }
   if(ROOT&&(!activeSession||linked||quanticSession)){
@@ -172,7 +180,8 @@
   finally{busy=false;buttons.forEach(b=>b.disabled=false);}
  }
  async function renewPresence(){
-  if(busy||!(activeSession&&linked))return;
+  if(busy||presenceBusy||!(activeSession&&linked))return;
+  presenceBusy=true;
   try{
    await available();
    if(Date.now()-lastPresenceProof<7000)return;
@@ -181,14 +190,22 @@
    present=true;lastPresenceProof=Date.now();
   }catch{
    if(present){present=false;await presence('lock',{}).catch(()=>{});}
-  }
+  }finally{presenceBusy=false;}
  }
  window.addEventListener('pagehide',()=>{
   if(present)navigator.sendBeacon(BASE+'/lock',new Blob(['{}'],{type:'application/json'}));
  });
  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')void status().then(renewPresence).catch(()=>{});});
  // The SPA regenerates /compte forms after navigation: keep only the logo button.
- const observer=new MutationObserver(()=>mount());observer.observe(document.body,{childList:true,subtree:true});
+ // Ignore our own label/status changes, which must never recursively remount the SPA.
+ const observer=new MutationObserver(records=>{
+  if(records.every(record=>{
+   const target=record.target?.nodeType===1?record.target:record.target?.parentElement;
+   return Boolean(target?.closest?.('.swapp-vault-login-option,.swapp-vault-link-inline,#swapp-vault-welcome'));
+  }))return;
+  mount();
+ });
+ observer.observe(document.body,{childList:true,subtree:true});
  mount();void status().then(renewPresence).catch(()=>{});
  window.setInterval(()=>void renewPresence(),7000);
 })();
