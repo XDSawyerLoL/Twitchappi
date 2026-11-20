@@ -469,6 +469,10 @@ const sessionMiddleware = session({
 });
 
 app.use(sessionMiddleware);
+// Every protected route checks the Quantic ID lease before using SWAPP identity.
+app.use(require('./modules/swapp-quantic-account-auth').createLeaseGuard({
+ clearRemember:clearOryonRememberCookie
+}));
  // Opt-in Quantic ID site presence. NEVER grants an existing SWAPP account,
  // streamer, moderator or editor session. No database or permanent identifier.
  app.use('/api/quantic-id',require('./modules/swapp-quantic-id-presence').createQuanticPresenceRouter(express));
@@ -4457,11 +4461,13 @@ async function sendSwappPasswordResetEmail(req, user, token){
 // Vérification email désactivée pour accélérer les tests produit.
 // Les comptes sont utilisables immédiatement. La validation email pourra être réactivée plus tard.
 function getOryonSocketUser(socket){
+  if(socket.request?.session?.quanticAuth?.expiresAt<=Date.now())return null;
   const local = socket.request?.session?.oryonUser;
   if(local?.id) return { id: local.id, login: local.login, display_name: local.display_name || local.login, type:'oryon' };
   return null;
 }
 function getAnySocketDisplay(socket){
+  if(socket.request?.session?.quanticAuth?.expiresAt<=Date.now())return null;
   const local = socket.request?.session?.oryonUser;
   if(local?.id) return { id: local.id, login: local.login, display_name: local.display_name || local.login, type:'oryon' };
   const tw = socket.request?.session?.twitchUser;
@@ -4545,6 +4551,21 @@ app.get('/api/webrtc/config', (req, res) => {
   res.json(getWebRtcConfigPayload());
 });
 
+// Persist Quantic ID account links in the existing Hostinger MySQL database.
+const swappQuanticAccount=require('./modules/swapp-quantic-account-auth');
+const swappQuanticBindings=SWAPP_MYSQL_ACCOUNTS
+ ?swappQuanticAccount.createBindingStore({mysqlUri:process.env.SWAPP_ACCOUNT_MYSQL_URL||process.env.SWAPP_MYSQL_URL||process.env.DATABASE_URL})
+ :null;
+app.use('/api/quantic-id/account',swappQuanticAccount.createAccountRouter(express,{
+ secret:configuredSessionSecret,store:swappQuanticBindings,
+ enabled:SWAPP_MYSQL_ACCOUNTS&&Boolean(configuredSessionSecret),
+ verifyPassword:verifyOryonPassword,
+ findUser:id=>(readOryonUsers().users||[]).find(u=>String(u.id)===String(id))||null,
+ refreshUsers:loadOryonUsersPersistent,
+ toSession:sessionOryonUser,
+ clearRemember:clearOryonRememberCookie,
+ production:IS_PROD
+}));
 app.get('/api/oryon/session', async (req, res) => {
   try{
     await restoreOryonSessionFromRememberCookie(req, res);
@@ -4705,6 +4726,8 @@ app.post('/api/oryon/restore-session', async (req, res) => {
 });
 
 app.post('/api/oryon/logout', (req, res) => {
+  req.session.quanticAuth = null;
+  req.session.quanticPending = null;
   req.session.oryonUser = null;
   req.session.twitchUser = null;
   req.session.twitch_oauth_state = null;
@@ -6839,6 +6862,8 @@ function requireOryonOwner(req,res, login){
 }
 function adminLogins(){ const raw = String(process.env.ORYON_ADMIN_LOGINS || process.env.ADMIN_LOGINS || ''); return raw.split(',').map(normalizeOryonLogin).filter(Boolean); }
 function isOryonAdmin(req){
+ // Quantic-only sign-in cannot grant administrator privileges without password step-up.
+ if(req.session?.quanticAuth)return false;
  const cur=req.session?.oryonUser;
  if(!cur?.id||!cur?.login||!adminLogins().includes(normalizeOryonLogin(cur.login)))return false;
  // Optional hard binding: once ORYON_ADMIN_USER_IDS is set, a matching login
@@ -9118,7 +9143,27 @@ io.engine.on('connection_error', (err) => {
 });
 
 io.use((socket, next) => {
-  sessionMiddleware(socket.request, {}, next);
+  sessionMiddleware(socket.request, {}, err=>{
+    if(err)return next(err);
+    if(socket.request?.session?.quanticAuth?.expiresAt<=Date.now())
+      return next(new Error('quantic_session_expired'));
+    next();
+  });
+});
+// Existing Socket.IO connections must lose Quantic-issued privileges when
+// their browser locks, the session ends or the short server-side lease expires.
+io.on('connection',socket=>{
+  if(!socket.request?.session?.quanticAuth)return;
+  const check=()=>{
+    if(!socket.connected)return;
+    socket.request.session.reload(error=>{
+      const q=socket.request.session?.quanticAuth;
+      if(error||!q||q.expiresAt<=Date.now())socket.disconnect(true);
+    });
+  };
+  const timer=setInterval(check,3000);
+  timer.unref?.();
+  socket.on('disconnect',()=>clearInterval(timer));
 });
 
 // SWAPP channel moderation: registered before the native chat socket handlers.
