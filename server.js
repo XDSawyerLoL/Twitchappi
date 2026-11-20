@@ -469,6 +469,10 @@ const sessionMiddleware = session({
 });
 
 app.use(sessionMiddleware);
+ // Opt-in Quantic ID site presence. NEVER grants an existing SWAPP account,
+ // streamer, moderator or editor session. No database or permanent identifier.
+ app.use('/api/quantic-id',require('./modules/swapp-quantic-id-presence').createQuanticPresenceRouter(express));
+
 
 
 // =========================================================
