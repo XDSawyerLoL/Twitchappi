@@ -160,7 +160,7 @@ test('SWAPP user can unlink using a signed proof after normal sign-in',async t=>
  assert.equal((await ctx.challengeAndProof('link',q,'current-password')).status,200);
  await ctx.request('/__test/logout',{});
  assert.equal((await ctx.challengeAndProof('login',q)).status,200);
- assert.equal((await ctx.challengeAndProof('unlink',q)).status,401);
+ assert.equal((await ctx.request('/api/quantic-id/account/challenge',{purpose:'unlink'})).status,401);
  await ctx.request('/__test/logout',{});
  await ctx.request('/__test/password-login',{});
  const other=identity();
