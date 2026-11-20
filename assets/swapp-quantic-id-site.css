@@ -1,18 +1,9 @@
-
-#swapp-quantic-id-presence.swapp-quantic-card{padding:20px;margin:18px 0;border:1px solid #3a637d;border-radius:16px;background:linear-gradient(135deg,#0d1d29,#142333);color:#eef7ff;box-shadow:0 15px 40px #0003}
-#swapp-quantic-id-presence h3{font-size:19px;font-weight:800;letter-spacing:-.02em;margin:0 0 8px;color:#e5f8ff}
-#swapp-quantic-id-presence p{font-size:13px;line-height:1.6;color:#c0d4e3}
-#swapp-quantic-id-presence button{cursor:pointer;background:#6fd3f4;color:#051723;font:700 13px/1.2 system-ui;border:0;padding:11px 15px;border-radius:9px;margin:6px 8px 4px 0}
-#swapp-quantic-id-presence button.swapp-quantic-secondary{background:#263947;color:#eaf8ff;border:1px solid #507186}
-#swapp-quantic-id-presence button:disabled{opacity:.5;cursor:not-allowed}
-#swapp-quantic-id-presence [role="status"]{font-weight:700;color:#f4fbff}
-
-#swapp-quantic-id-presence a.swapp-quantic-install-link{display:inline-block;color:#81dcff;text-decoration:underline;text-underline-offset:3px;font-size:13px;font-weight:700;margin:6px 0}
-
-#swapp-quantic-account-login.swapp-quantic-card{margin:18px 0 24px;padding:22px;border:1px solid #3a637d;border-radius:14px;background:#111d29;color:#eaf8ff}
-#swapp-quantic-account-login h3{margin:0 0 10px;font-size:19px;color:#eaf8ff}
-#swapp-quantic-account-login p{font-size:13px;line-height:1.6;color:#c6d8e4}
-#swapp-quantic-account-login input{display:block;width:min(100%,430px);margin:12px 0;border:1px solid #48657b;border-radius:8px;background:#0b1520;color:#fff;padding:11px 13px}
-#swapp-quantic-account-login button{background:#78c9ed;color:#071725;font:700 13px/1.2 system-ui;padding:12px 16px;border:0;border-radius:9px;margin:8px 8px 8px 0;cursor:pointer}
-#swapp-quantic-account-login button:disabled{opacity:.55;cursor:default}
-#swapp-quantic-account-login [hidden]{display:none!important}
+#swapp-quantic-id-unified.swapp-quantic-card{margin:18px 0 24px;padding:22px;border:1px solid #3a637d;border-radius:14px;background:#111d29;color:#eaf8ff}
+#swapp-quantic-id-unified h3{margin:0 0 10px;font-size:19px;color:#eaf8ff}
+#swapp-quantic-id-unified p{font-size:13px;line-height:1.6;color:#c6d8e4}
+#swapp-quantic-id-unified button{cursor:pointer;background:#78c9ed;color:#071725;font:700 13px/1.2 system-ui;padding:12px 16px;border:0;border-radius:9px;margin:8px 8px 8px 0}
+#swapp-quantic-id-unified button.swapp-quantic-secondary{background:#263947;color:#eaf8ff;border:1px solid #507186}
+#swapp-quantic-id-unified button:disabled{opacity:.5;cursor:not-allowed}
+#swapp-quantic-id-unified [role="status"]{font-weight:700;color:#f4fbff}
+#swapp-quantic-id-unified a.swapp-quantic-install-link{display:inline-block;color:#81dcff;text-decoration:underline;text-underline-offset:3px;font-size:13px;font-weight:700;margin:6px 0}
+#swapp-quantic-id-unified [hidden]{display:none!important}
