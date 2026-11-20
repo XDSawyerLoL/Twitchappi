@@ -67,3 +67,25 @@ test('invalid snapshots fail closed and an empty verified pool is explicit', () 
   assert.equal(empty.surpriseIndex,null);
   assert.equal(empty.eligibleSmallCount,0);
 });
+
+test('actual Home ranking excludes rediffusion tags without changing original pool', () => {
+  const {rankHomeLives}=require('../modules/swapp-home-discovery');
+  const rows=[
+    live('creator_a','Albion Online',94,{tags:['Rediffusion']}),
+    live('creator_b','Star Citizen',94,{title:'AFK STREAM 24/7'}),
+    live('creator_c','Dofus',96,{title:'En direct avec les viewers'})
+  ];
+  const ranked=rankHomeLives(rows,{limit:12});
+  assert.deepEqual(ranked.map(row=>row.login),['creator_c']);
+  assert.equal(rows.length,3);
+  assert.equal(rows[0].tags[0],'Rediffusion');
+});
+test('Surprise pointer remains valid when signed proof is present', () => {
+  const items=[
+    live('creator_a','Star Citizen',56,{fairProof:'first-signed'}),
+    live('creator_b','Dofus',77,{fairProof:'second-signed'})
+  ];
+  const result=createLiveCuration({items,nowMs:180000});
+  assert.equal(typeof items[result.surpriseIndex].fairProof,'string');
+  assert.equal(result.homeCount,2);
+});
