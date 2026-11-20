@@ -482,6 +482,7 @@ app.use(require('./modules/swapp-quantic-account-auth').createLeaseGuard({
 // =========================================================
 // SWAPP — session persistante compte local
 // =========================================================
+const {requiresVaultAuthentication}=require('./modules/swapp-quantic-account-auth');
 const SWAPP_REMEMBER_COOKIE = 'swapp.remember';
 const SWAPP_REMEMBER_MAX_AGE_MS = Math.max(24 * 60 * 60 * 1000, Number(process.env.SWAPP_REMEMBER_MAX_AGE_MS || 180 * 24 * 60 * 60 * 1000));
 function swappRememberSecret(){
@@ -558,12 +559,15 @@ async function restoreOryonSessionFromRememberCookie(req, res, {allowUserRecover
     const data = readOryonUsers();
     let user = (data.users || []).find(u => normalizeOryonLogin(u.login) === login);
     if(user){
+      // A Quantic-only or strict account cannot be restored through an older cookie.
+      if(requiresVaultAuthentication(user))return null;
       if(!verifyOryonRememberToken(user, payload.remember_token)) return null;
       ensureOryonUserShape(user, { ensureStreamKey:true });
     }else{
       if(!allowUserRecovery)return null; // Editor access must never resurrect an account.
       const backup = publicRecoverUserPayload(payload.user || {});
       if(!backup || normalizeOryonLogin(backup.login) !== login) return null;
+      if(requiresVaultAuthentication(payload.user)||requiresVaultAuthentication(backup))return null;
       if(!oryonLoginAvailable(data, login)) return null;
       user = ensureOryonUserShape({
         id: crypto.randomBytes(12).toString('hex'),
@@ -4623,7 +4627,9 @@ app.post('/api/oryon/register', async (req, res) => {
     data.users.push(user);
     const remember_token = issueOryonRememberToken(user, data);
     const persistResult = await writeOryonUsersAndWait(data);
+    await new Promise((ok,no)=>req.session.regenerate(err=>err?no(err):ok()));
     req.session.oryonUser = sessionOryonUser(user);
+    req.session.swappPasswordAuthenticatedAt = Date.now();
     req.session.twitchUser = user.twitch_link || null;
     setOryonRememberCookie(res, user, remember_token);
     req.session.save(() => res.json({ success:true, user: publicOryonUser(user), remember_token, emailVerificationRequired:false, persistence:persistResult||null }));
@@ -4643,7 +4649,7 @@ app.get('/api/oryon/verify-email', (req, res) => {
   }catch(e){ res.status(500).send('Erreur: ' + e.message); }
 });
 
-app.post('/api/oryon/login', async (req, res) => {
+app.post('/api/oryon/login', authLimiter, async (req, res) => {
   try{
     try{ await loadOryonUsersPersistent(); }catch(_){}
     const login = normalizeOryonLogin(req.body?.login);
@@ -4651,11 +4657,14 @@ app.post('/api/oryon/login', async (req, res) => {
     if(oryonProductionRequiresDurableStorage()) return res.status(503).json({ success:false, error:'Stockage durable des comptes indisponible : vérifier MySQL ou la configuration du stockage sélectionné.' });
     const data = readOryonUsers();
     const user = data.users.find(u => u.login === login);
-    if(!user || !verifyOryonPassword(password, user.password_hash)) return res.status(401).json({ success:false, error:'Identifiants invalides.' });
+    if(!user || requiresVaultAuthentication(user) || !verifyOryonPassword(password, user.password_hash)) return res.status(401).json({ success:false, error:'Identifiants invalides.' });
     ensureOryonUserShape(user, { ensureStreamKey:true });
     const remember_token = issueOryonRememberToken(user, data);
     const persistResult = await writeOryonUsersAndWait(data);
+    // Rotate session ID after successful password login (fixation protection).
+    await new Promise((ok,no)=>req.session.regenerate(err=>err?no(err):ok()));
     req.session.oryonUser = sessionOryonUser(user);
+    req.session.swappPasswordAuthenticatedAt = Date.now();
     req.session.twitchUser = user.twitch_link || null;
     setOryonRememberCookie(res, user, remember_token);
     req.session.save(() => res.json({ success:true, user: publicOryonUser(user), remember_token, persistence:persistResult||null }));
@@ -4674,7 +4683,7 @@ app.post('/api/oryon/password/forgot', authLimiter, async (req, res) => {
     if(identity.length < 3) return res.status(400).json({ success:false, error:'Indique ton email ou ton pseudo.' });
     const data = readOryonUsers();
     const user = findOryonUserForPasswordRecovery(data, identity);
-    if(user?.email){
+    if(user?.email&&!requiresVaultAuthentication(user)){
       const token = makeOryonPasswordResetToken();
       user.password_reset_token_hash = hashOryonPasswordResetToken(token);
       user.password_reset_expires_at = Date.now() + SWAPP_PASSWORD_RESET_TTL_MS;
@@ -4711,7 +4720,7 @@ app.post('/api/oryon/password/reset', authLimiter, async (req, res) => {
     const tokenHash = hashOryonPasswordResetToken(token);
     const now = Date.now();
     const user = (data.users || []).find(u => String(u.password_reset_token_hash || '') === tokenHash && Number(u.password_reset_expires_at || 0) > now);
-    if(!user) return res.status(400).json({ success:false, error:'Lien invalide ou expiré. Demande un nouveau lien.' });
+    if(!user || requiresVaultAuthentication(user)) return res.status(400).json({ success:false, error:'Lien invalide ou expiré. Demande un nouveau lien.' });
     user.password_hash = hashOryonPassword(password);
     user.password_changed_at = now;
     user.password_reset_token_hash = null;
@@ -4740,7 +4749,7 @@ app.post('/api/oryon/restore-session', async (req, res) => {
     if(oryonProductionRequiresDurableStorage()) return res.status(503).json({ success:false, error:'Stockage durable des comptes indisponible : vérifier MySQL ou la configuration du stockage sélectionné.' });
     const data = readOryonUsers();
     const user = data.users.find(u => u.login === login);
-    if(!user || !verifyOryonRememberToken(user, token)) return res.status(401).json({success:false,error:'Session expirée. Reconnecte-toi une fois.'});
+    if(!user || requiresVaultAuthentication(user) || !verifyOryonRememberToken(user, token)) return res.status(401).json({success:false,error:'Session expirée. Reconnecte-toi une fois.'});
     ensureOryonUserShape(user, { ensureStreamKey:true });
     await writeOryonUsersAndWait(data);
     req.session.oryonUser = sessionOryonUser(user);
@@ -4753,6 +4762,7 @@ app.post('/api/oryon/restore-session', async (req, res) => {
 app.post('/api/oryon/logout', (req, res) => {
   req.session.quanticAuth = null;
   req.session.quanticPending = null;
+  req.session.swappPasswordAuthenticatedAt = null;
   req.session.oryonUser = null;
   req.session.twitchUser = null;
   req.session.twitch_oauth_state = null;
