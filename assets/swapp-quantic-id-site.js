@@ -10,14 +10,18 @@
  let loginControl=null,linkControl=null;
  const listen=new Set();
  const errorLabels={
-  quantic_identity_not_linked:'Cette identité n’est pas encore associée. Connecte-toi normalement une fois, puis associe Identity Vault dans ton compte.',
+  quantic_identity_not_linked:'Cette identité n’est pas associée à SWAPP.',
   swapp_password_login_required:'Connecte-toi d’abord à ton compte SWAPP habituel pour autoriser la liaison.',
   quantic_account_already_linked:'Ce compte possède déjà une identité Quantic ID associée.',
   quantic_identity_already_linked:'Cette identité est déjà associée à un autre compte.',
   quantic_identity_mismatch:'La signature ne correspond pas à l’identité associée.',
   quantic_login_not_configured:'Quantic ID n’est pas encore configuré côté serveur SWAPP.',
   quantic_store_unavailable:'Le stockage du compte SWAPP est momentanément indisponible.',
-  quantic_session_expired:'La session Quantic ID a expiré. Reconnecte-toi.'
+  quantic_session_expired:'La session Quantic ID a expiré. Reconnecte-toi.',
+  quantic_registration_not_configured:'Création de compte Quantic ID indisponible sur SWAPP.',
+  quantic_registration_rate_limited:'Trop de créations de comptes. Réessaie plus tard.',
+  quantic_registration_collision:'La création a rencontré un conflit. Réessaie.',
+  quantic_account_capacity_reached:'SWAPP ne peut plus créer de nouveaux comptes pour le moment.'
  };
  async function remote(route,body){
   const res=await fetch(BASE+'/account/'+route,{method:body===undefined?'GET':'POST',cache:'no-store',credentials:'same-origin',
@@ -44,7 +48,7 @@
    body:JSON.stringify({challenge:nonce.challenge,audience:nonce.audience})});
   if(!signed.ok)throw Error('Signature refusée par Identity Vault (HTTP '+signed.status+').');
   const proof=await signed.json();
-  if(account)return remote('prove',{purpose,challenge:nonce.challenge,proof});
+  if(account)return remote('prove',{purpose,challenge:nonce.challenge,proof,...(purpose==='login'?{createIfMissing:true}:{})});
   return {challenge:nonce.challenge,proof,alias:state.label||'Quantic ID'};
  }
  async function presence(route,body){
@@ -70,8 +74,8 @@
   const form=document.getElementById('loginForm');
   if(form&&!document.getElementById('swapp-vault-primary-login')){
    const slot=document.createElement('div');slot.className='swapp-vault-login-option';
-   const title=document.createElement('span');title.className='swapp-vault-option-label';title.textContent='Ou avec Identity Vault';
-   const button=iconButton('swapp-vault-primary-login','Se connecter à SWAPP avec Identity Vault');
+   const title=document.createElement('span');title.className='swapp-vault-option-label';title.textContent='Connexion ou inscription avec Identity Vault';
+   const button=iconButton('swapp-vault-primary-login','Se connecter ou créer mon compte SWAPP avec Identity Vault');
    const msg=messageNode();slot.append(title,button,msg);
    // Remain inside the main login panel; the button never submits the password form.
    form.append(slot);loginControl=button;button.addEventListener('click',()=>void authorize('login'));
@@ -96,9 +100,10 @@
  async function authorize(purpose){
   if(busy)return;
   busy=true;const buttons=[loginControl,linkControl].filter(Boolean);buttons.forEach(b=>b.disabled=true);
-  output(purpose==='login'?'Détection et vérification de ton Identity Vault…':'Association sécurisée avec ton compte SWAPP…');
+  output(purpose==='login'?'Recherche de ton compte ou création si l’identité est nouvelle…':'Association sécurisée avec ton compte SWAPP…');
   try{
-   await prove(purpose);
+   const result=await prove(purpose);
+   if(purpose==='login'&&result.created)sessionStorage.setItem('swapp-quantic-new-account','1');
    if(purpose==='login'){
     window.dispatchEvent(new Event('swapp:quantic-session-started'));
     location.assign('/compte');return;
