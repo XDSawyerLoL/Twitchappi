@@ -8,6 +8,7 @@ const {createHmac,randomBytes}=require('node:crypto');
 const {rateLimit}=require('express-rate-limit');
 const {verifySignedAssertion,originAllowed}=require('./swapp-quantic-id-presence');
 const AUTH_LEASE_MS=30000,CHALLENGE_MS=120000;
+const {accountRow,MAX_USERS:MAX_ACCOUNT_USERS}=require('./swapp-oryon-mysql-accounts');
 const DDL='CREATE TABLE IF NOT EXISTS swapp_quantic_account_bindings (key_hash CHAR(64) NOT NULL PRIMARY KEY,user_id VARCHAR(80) NOT NULL,created_at BIGINT NOT NULL,UNIQUE KEY swapp_quantic_one_account_key (user_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci';
 
 function digest(keyId,secret){
@@ -32,16 +33,53 @@ function createBindingStore({mysqlUri,pool,mysqlFactory}={}){
   async getUser(hash){await ready();const [rows]=await client.execute('SELECT user_id FROM swapp_quantic_account_bindings WHERE key_hash=? LIMIT 1',[hash]);return rows[0]?.user_id||null},
   async getKey(id){await ready();const [rows]=await client.execute('SELECT key_hash FROM swapp_quantic_account_bindings WHERE user_id=? LIMIT 1',[id]);return rows[0]?.key_hash||null},
   async bind(id,hash){await ready();await client.execute('INSERT INTO swapp_quantic_account_bindings (key_hash,user_id,created_at) VALUES (?,?,?)',[hash,id,Date.now()])},
-  async unbind(id){await ready();const [result]=await client.execute('DELETE FROM swapp_quantic_account_bindings WHERE user_id=?',[id]);return result.affectedRows>0}
+  async unbind(id){await ready();const [result]=await client.execute('DELETE FROM swapp_quantic_account_bindings WHERE user_id=?',[id]);return result.affectedRows>0},
+  // A new SWAPP account and its Quantic binding must commit together: never orphan an account.
+  async createAccountForKey(hash,user){
+   if(!/^[a-f0-9]{64}$/.test(String(hash||'')))throw Error('quantic_invalid_key_hash');
+   const row=accountRow(user);
+   await ready();
+   const conn=await client.getConnection();
+   try{
+    await conn.beginTransaction();
+    const [counts]=await conn.execute('SELECT COUNT(*) AS count FROM swapp_oryon_accounts');
+    if(Number(counts?.[0]?.count)>=MAX_ACCOUNT_USERS){const err=Error('quantic_account_capacity_reached');err.code='QUANTIC_ACCOUNT_CAPACITY';throw err}
+    await conn.execute('INSERT INTO swapp_oryon_accounts (user_id,login,email,payload_json,updated_at) VALUES (?,?,?,?,?)',
+     [row.id,row.login,row.email,row.payload,Date.now()]);
+    await conn.execute('INSERT INTO swapp_quantic_account_bindings (key_hash,user_id,created_at) VALUES (?,?,?)',
+     [hash,row.id,Date.now()]);
+    await conn.commit();
+    return {id:row.id,created:true};
+   }catch(error){
+    try{await conn.rollback()}catch{}
+    if(error?.code==='ER_DUP_ENTRY'){
+     // A simultaneous request may already have registered this key. Reuse it, never mint a second account.
+     const id=await this.getUser(hash);
+     if(id)return {id,created:false};
+     const collision=Error('quantic_registration_collision');collision.code='QUANTIC_ACCOUNT_COLLISION';throw collision;
+    }
+    throw error;
+   }finally{conn.release()}
+  }
  };
 }
 function createAccountRouter(express,{
- secret,store,verifyPassword,findUser,refreshUsers,toSession,clearRemember,
+ secret,store,verifyPassword,findUser,refreshUsers,toSession,clearRemember,newUserFactory,
  now=Date.now,production=process.env.NODE_ENV==='production',enabled=process.env.SWAPP_ACCOUNT_STORE==='mysql'
 }={}){
  if(![verifyPassword,findUser,refreshUsers,toSession,clearRemember].every(f=>typeof f==='function'))
   throw Error('quantic_auth_callbacks_missing');
  const router=express.Router(),limited=rateLimit({windowMs:60000,limit:20,standardHeaders:true,legacyHeaders:false});
+ // Extra throttle runs ONLY after a valid signature for an identity not yet linked.
+ const registrationLimited=rateLimit({windowMs:60*60*1000,limit:3,standardHeaders:true,legacyHeaders:false,message:{success:false,error:'quantic_registration_rate_limited'}});
+ const enforceRegistrationLimit=(req,res)=>new Promise(resolve=>{
+  let done=false;
+  const complete=ok=>{if(done)return;done=true;res.removeListener('finish',onFinish);resolve(ok)};
+  const onFinish=()=>complete(false);
+  res.once('finish',onFinish);
+  try{Promise.resolve(registrationLimited(req,res,()=>complete(true))).catch(()=>complete(false))}
+  catch{complete(false)}
+ });
  const error=(res,status,code)=>res.status(status).json({success:false,error:code});
  const save=req=>new Promise((ok,no)=>req.session.save(e=>e?no(e):ok()));
  router.use((req,res,next)=>{
@@ -98,6 +136,9 @@ function createAccountRouter(express,{
   if(pending.purpose==='unlink'){
    if(!s.oryonUser?.id||s.quanticAuth)return error(res,401,'swapp_password_login_required');
    try{
+    await refreshUsers();
+    const owner=findUser(s.oryonUser.id);
+    if(owner?.quantic_only)return error(res,409,'quantic_only_account_recovery_required');
     const linked=await store.getKey(s.oryonUser.id);
     if(!linked||linked!==hash)return error(res,403,'quantic_identity_mismatch');
     return res.json({success:true,unlinked:await store.unbind(s.oryonUser.id)});
@@ -106,9 +147,26 @@ function createAccountRouter(express,{
   if(pending.purpose==='login'){
    if(s.oryonUser?.id)return error(res,409,'swapp_already_logged_in');
    let user;
-   try{const id=await store.getUser(hash);if(!id)return error(res,401,'quantic_identity_not_linked');await refreshUsers();user=findUser(id)}
-   catch{return error(res,503,'quantic_store_unavailable')}
-   if(!user)return error(res,401,'quantic_identity_not_linked');
+   let created=false;
+   try{
+    let id=await store.getUser(hash);
+    if(!id){
+     if(req.body.createIfMissing!==true)return error(res,401,'quantic_identity_not_linked');
+     if(typeof newUserFactory!=='function'||typeof store.createAccountForKey!=='function')
+      return error(res,503,'quantic_registration_not_configured');
+     const allowed=await enforceRegistrationLimit(req,res);
+     if(!allowed)return; // 429 was already sent by express-rate-limit.
+     const generated=newUserFactory();
+     const result=await store.createAccountForKey(hash,generated);
+     id=result.id;created=Boolean(result.created);
+    }
+    await refreshUsers();user=findUser(id);
+    if(!user)return error(res,503,'quantic_account_refresh_failed');
+   }catch(e){
+    if(e?.code==='QUANTIC_ACCOUNT_CAPACITY')return error(res,503,'quantic_account_capacity_reached');
+    if(e?.code==='QUANTIC_ACCOUNT_COLLISION')return error(res,409,'quantic_registration_collision');
+    return error(res,503,'quantic_store_unavailable');
+   }
    try{
     await new Promise((ok,no)=>req.session.regenerate(e=>e?no(e):ok()));
     req.session.oryonUser={...toSession(user),is_admin:false};
@@ -116,7 +174,7 @@ function createAccountRouter(express,{
     req.session.quanticAuth={hash,expiresAt:now()+AUTH_LEASE_MS};
     clearRemember(res);
     await save(req);
-    return res.json({success:true,authenticated:true,login:user.login,expiresAt:req.session.quanticAuth.expiresAt});
+    return res.json({success:true,authenticated:true,created,login:user.login,expiresAt:req.session.quanticAuth.expiresAt});
    }catch{return error(res,503,'quantic_session_unavailable')}
   }
   if(pending.purpose==='renew'){

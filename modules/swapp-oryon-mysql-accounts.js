@@ -154,4 +154,4 @@ function createMysqlAccountsStore({uri,pool,mysqlFactory}={}){
  }
  return {ensure,load,save,savePanelImage,getPanelImage,get ready(){return ready}};
 }
-module.exports={createMysqlAccountsStore,createMysqlAccountsRecovery,accountRow,validateUri,DDL};
+module.exports={createMysqlAccountsStore,createMysqlAccountsRecovery,accountRow,validateUri,DDL,MAX_USERS};

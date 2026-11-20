@@ -1,21 +1,29 @@
-# Quantic ID — identité SWAPP unifiée (20 novembre 2026)
+# Quantic Identity Vault — connexion et inscription natives SWAPP
 
-**PR #329 : intégration dans le module principal de connexion SWAPP.**
-La seule interface de connexion se trouve sur `/compte`, dans le formulaire SWAPP habituel. L'ancien panneau `Quantic ID · Présence éphémère` et celui de connexion Quantic ne sont plus montés.
+Date de conception : 20 novembre 2026. Implémentation PR #330.
 
-## Utilisation
-1. Sur `/compte`, cliquer sur **le logo officiel Identity Vault** placé sous le formulaire de connexion SWAPP. Aucun identifiant ou mot de passe SWAPP supplémentaire n'est demandé.
-2. Le navigateur cherche `http://127.0.0.1:47621`. Identity Vault doit être installé, déverrouillé et autorisé pour `https://swapp.tv`. Si le coffre est verrouillé, le système ne contourne pas sa protection.
-3. Le coffre signe un défi aléatoire, à usage unique, lié à l'origine SWAPP. L'API vérifie la preuve, trouve l'identité cryptographique déjà associée au compte SWAPP et crée une vraie session Express SWAPP. Le profil et les droits normaux du compte sont conservés ; les privilèges admin ne sont pas accordés par Quantic seul.
-4. Pour une identité jamais associée, se connecter au compte SWAPP habituel **une fois**, puis cliquer sur le logo dans le compte connecté pour autoriser l'association. Aucune ressaisie du mot de passe n'est requise dans cette étape. Une identité inconnue n'ouvre pas de compte SWAPP par hasard.
-5. La présence éphémère n'a plus de bouton indépendant. Elle découle automatiquement de la connexion SWAPP authentifiée + Identity Vault actif et s'éteint si la preuve locale n'est plus renouvelée (TTL de présence 10 secondes). Les signatures et clés privées restent dans le coffre.
-6. La session créée par Quantic possède une durée de vie de 30 secondes, renouvelable par de nouvelles signatures via le gardien de session. Le verrouillage du coffre empêche le renouvellement et la session est révoquée au prochain contrôle.
+## Un seul logo dans le formulaire principal
 
-## Points de sécurité et validation
-- Liaison : session SWAPP déjà authentifiée + clic explicite sur le logo + signature valide. Pas d'association par simple similitude de pseudo.
-- Unicité MySQL via `swapp_quantic_account_bindings` et HMAC de l'identifiant cryptographique ; les clés privées ne quittent pas Identity Vault.
-- Aucun nouveau mot de passe Quantic ID demandé par SWAPP ; verrouillage et autorisations locales de Vault toujours applicables.
-- Déconnexion SWAPP et renouvellement de session restent indépendants des démonstrations de présence.
-- L'absence de service local ou l'interdiction d'accès loopback par le navigateur doit afficher une erreur explicite.
-- Tester la vraie session `/api/oryon/session`, le rendu du logo, le premier lien, une clé inconnue, une clé incorrecte, le verrouillage de Vault, la réouverture, plusieurs onglets, Socket.IO et le comportement en cas de coupure réseau.
-- Vérifier CI puis déploiement Hostinger et rendu réel avant d'affirmer que la production est opérationnelle. Une fusion GitHub n'est pas une preuve de déploiement.
+Sur `/compte`, le logo Identity Vault constitue une méthode d'authentification alternative au pseudo et au mot de passe SWAPP, sans panneau distinct ni double présence.
+
+Au clic, le navigateur contacte Identity Vault local à `127.0.0.1:47621`, contrôle qu'il est déverrouillé et autorisé pour l'origine SWAPP, puis lui fait signer un défi unique et limité dans le temps.
+
+- **Identité Quantic déjà associée :** SWAPP trouve l'identifiant cryptographique HMAC en MySQL, restaure exactement l'ancien compte et ouvre la session Express.
+- **Identité Quantic inconnue :** le même clic et la même signature donnent lieu à la création d'un nouveau compte SWAPP + liaison Quantic ID en transaction MySQL unique ; le compte est immédiatement connecté. Nom et ID sont générés aléatoirement. L'identité inconnue ne peut jamais s'approprier un compte existant en prétendant porter le même alias ou e-mail.
+- **Compte SWAPP existant non encore associé :** se connecter une fois par la méthode habituelle, puis cliquer sur l'option d'association Identity Vault depuis le compte déjà ouvert. Le lien exige la signature cryptographique du coffre ; pas de ressaisie du mot de passe SWAPP.
+
+## Stockage et protections
+
+La création fait simultanément les INSERT dans `swapp_oryon_accounts` et `swapp_quantic_account_bindings`, dans **une seule transaction**. En cas de défaillance d'écriture ou de doublon, rollback intégral. Les contraintes MySQL interdisent l'affectation d'une même identité Quantic à deux comptes. Un plafond de comptes et un limiteur de création sont conservés pour éviter les inscriptions massives.
+
+Le compte Quantic-only possède un mot de passe aléatoire inconnu de son titulaire, et une adresse technique réservée en `.invalid` dans le stockage pour satisfaire le schéma existant. Cette adresse n'est ni une adresse vérifiée ni un moyen de récupération et n'est pas exposée dans la session. L'association ne divulgue ni la clé privée ni le secret de session à SWAPP.
+
+Les comptes Quantic-only ne peuvent pas dissocier leur unique moyen d'authentification avant qu'un autre mode de récupération ou de connexion soit disponible. **Risque à traiter** : sans procédure de récupération de coffre ou identifiant de secours, perdre Identity Vault peut rendre le compte inaccessible. Une future itération devra permettre de rattacher puis de vérifier une adresse de récupération.
+
+Les sessions Quantic ID expirent au bout de 30 secondes sans renouvellement de preuve par le coffre. La présence éphémère est dérivée de la session, et non actionnée par un second bouton.
+
+## Validation et mise en production
+
+- Exécuter la CI du dépôt sur `test/swapp-quantic-account-login.test.js` et `test/swapp-quantic-id-site.test.js` : signatures invalides, création, reconnexion sans doublon, conservation du compte existant, rollback MySQL, dissociation interdite.
+- Déployer `master` sur Hostinger avec la méthode hPanel existante : la fusion GitHub **n'est pas** le déploiement de l'application Node.
+- Tester en conditions réelles le clic sur le logo, la détection locale (Chrome/Edge et permission loopback), la session `/api/oryon/session`, l'absence de double panneau et le verrouillage de Vault.

@@ -4335,7 +4335,7 @@ function isOryonLiveSignalFresh(u){
 function publicOryonUser(u){
   if(!u) return null;
   const localLiveFresh = isOryonLiveSignalFresh(u);
-  return { id:u.id, login:u.login, display_name:u.display_name || u.login, email:u.email || null, email_verified: !!u.email_verified, createdAt:u.createdAt || null, channel_id:u.channel_id || u.id, channel_public:u.channel_public !== false, public_path:u.public_path || swappChannelPathForLogin(u.login), public_url:u.public_url || swappChannelPathForLogin(u.login), channel_createdAt:u.channel_createdAt || u.createdAt || null, channel_updatedAt:u.channel_updatedAt || u.updatedAt || null, bio:u.bio||'', avatar_url:u.avatar_url||'', banner_url:u.banner_url||'', offline_image_url:u.offline_image_url||'', channel_theme:normalizeChannelTheme(u.channel_theme,u.login), channel_social_links:normalizeChannelSocialLinks(u.channel_social_links), tags:Array.isArray(u.tags)?u.tags:[], language:u.language||'fr', content_rating:u.content_rating||'general', followers_count:Number(u.followers_count||0), likes_count:Number(u.likes_count||0), channel_badges:Array.isArray(u.channel_badges)?u.channel_badges.slice(0,8):[], channel_panels:Array.isArray(u.channel_panels)?u.channel_panels.slice(0,8):[], channel_vignettes:Array.isArray(u.channel_vignettes)?u.channel_vignettes.slice(0,8):[], channel_links:Array.isArray(u.channel_links)?u.channel_links.slice(0,8):[], peertube_embed_url:u.peertube_embed_url||'', peertube_watch_url:u.peertube_watch_url||'', external_live_platform:u.external_live_platform||'', live_status:localLiveFresh?'live':(u.live_status||'offline'), is_live:localLiveFresh || String(u.live_status||'')==='live', live_started_at:u.live_started_at||null, last_live_ended_at:u.last_live_ended_at||null, channel_last_seen:u.channel_last_seen||u.local_agent_last_seen||null, current_live_title:u.current_live_title||'', current_live_category:u.current_live_category||'', current_live_tags:Array.isArray(u.current_live_tags)?u.current_live_tags:[], oryon_local_player_url:localLiveFresh?(u.oryon_local_player_url||''):'', oryon_local_status_url:localLiveFresh?(u.oryon_local_status_url||''):'', local_agent_live:localLiveFresh, local_agent_last_seen:u.local_agent_last_seen||null, live_signal_timeout_ms:oryonLiveSignalTimeoutMs() };
+  return { id:u.id, login:u.login, display_name:u.display_name || u.login, email:(/\.invalid$/i.test(String(u.email||''))?null:(u.email||null)), email_verified: !!u.email_verified, createdAt:u.createdAt || null, channel_id:u.channel_id || u.id, channel_public:u.channel_public !== false, public_path:u.public_path || swappChannelPathForLogin(u.login), public_url:u.public_url || swappChannelPathForLogin(u.login), channel_createdAt:u.channel_createdAt || u.createdAt || null, channel_updatedAt:u.channel_updatedAt || u.updatedAt || null, bio:u.bio||'', avatar_url:u.avatar_url||'', banner_url:u.banner_url||'', offline_image_url:u.offline_image_url||'', channel_theme:normalizeChannelTheme(u.channel_theme,u.login), channel_social_links:normalizeChannelSocialLinks(u.channel_social_links), tags:Array.isArray(u.tags)?u.tags:[], language:u.language||'fr', content_rating:u.content_rating||'general', followers_count:Number(u.followers_count||0), likes_count:Number(u.likes_count||0), channel_badges:Array.isArray(u.channel_badges)?u.channel_badges.slice(0,8):[], channel_panels:Array.isArray(u.channel_panels)?u.channel_panels.slice(0,8):[], channel_vignettes:Array.isArray(u.channel_vignettes)?u.channel_vignettes.slice(0,8):[], channel_links:Array.isArray(u.channel_links)?u.channel_links.slice(0,8):[], peertube_embed_url:u.peertube_embed_url||'', peertube_watch_url:u.peertube_watch_url||'', external_live_platform:u.external_live_platform||'', live_status:localLiveFresh?'live':(u.live_status||'offline'), is_live:localLiveFresh || String(u.live_status||'')==='live', live_started_at:u.live_started_at||null, last_live_ended_at:u.last_live_ended_at||null, channel_last_seen:u.channel_last_seen||u.local_agent_last_seen||null, current_live_title:u.current_live_title||'', current_live_category:u.current_live_category||'', current_live_tags:Array.isArray(u.current_live_tags)?u.current_live_tags:[], oryon_local_player_url:localLiveFresh?(u.oryon_local_player_url||''):'', oryon_local_status_url:localLiveFresh?(u.oryon_local_status_url||''):'', local_agent_live:localLiveFresh, local_agent_last_seen:u.local_agent_last_seen||null, live_signal_timeout_ms:oryonLiveSignalTimeoutMs() };
 }
 function publicOryonChannelUser(u){
   const pub = publicOryonUser(u);
@@ -4359,7 +4359,7 @@ function swappSessionAvatarUrl(user){
 }
 function sessionOryonUser(u){
   if(!u) return null;
-  return { id:u.id, login:u.login, display_name:u.display_name || u.login, email:u.email || null, is_admin: !!u.is_admin, avatar_url: swappSessionAvatarUrl(u), channel_badges:Array.isArray(u.channel_badges)?u.channel_badges.slice(0,8):[] };
+  return { id:u.id, login:u.login, display_name:u.display_name || u.login, email:(/\.invalid$/i.test(String(u.email||''))?null:(u.email||null)), is_admin: !!u.is_admin, avatar_url: swappSessionAvatarUrl(u), channel_badges:Array.isArray(u.channel_badges)?u.channel_badges.slice(0,8):[] };
 }
 function normalizeOryonEmail(v){ return String(v || '').trim().toLowerCase().slice(0, 160); }
 function isValidEmail(v){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v || '')); }
@@ -4564,6 +4564,22 @@ app.use('/api/quantic-id/account',swappQuanticAccount.createAccountRouter(expres
  refreshUsers:loadOryonUsersPersistent,
  toSession:sessionOryonUser,
  clearRemember:clearOryonRememberCookie,
+ // Only a verified Quantic proof can reach this factory. Never infer ownership
+ // from a label, email or existing SWAPP username.
+ newUserFactory:()=>{
+  const id=crypto.randomBytes(12).toString('hex');
+  const login='vault_'+crypto.randomBytes(10).toString('hex');
+  const now=Date.now();
+  const user=ensureOryonUserShape({
+   id,login,display_name:'Membre Quantic',email:'quantic-'+id+'@accounts.swapp.invalid',
+   email_verified:false,email_verify_token:null,
+   // An inaccessible random password prevents password login to a Vault-only account.
+   password_hash:hashOryonPassword(crypto.randomBytes(32).toString('base64url')),
+   quantic_only:true,auth_provider:'quantic-id',channel_public:false,
+   createdAt:now,updatedAt:now,channel_createdAt:now
+  },{ensureStreamKey:true});
+  return user;
+ },
  production:IS_PROD
 }));
 app.get('/api/oryon/session', async (req, res) => {
