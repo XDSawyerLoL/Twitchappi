@@ -2,7 +2,7 @@
   "kind": "swapp-editorial-pending",
   "schema": 1,
   "createdAt": "2026-11-20T05:00:40Z",
-  "updatedAt": "2026-11-20T05:00:40Z",
+  "updatedAt": "2026-11-20T10:56:28Z",
   "publicationPolicy": "Brouillons et éléments de preuve uniquement. Ne pas ajouter ce fichier au manifeste des releases ; aucune publication longue avant validation du média et des contrôles requis.",
   "articles": [
     {
@@ -168,6 +168,27 @@
         "Vidéo officielle pertinente dont la lecture est vérifiée avant un dossier long.",
         "Contrôle public de publication et d’éditabilité CMS."
       ]
+    },
+    {
+      "key": "apex-legends-bannissements-errones-anticheat-20261119",
+      "topics": [
+        "GAMING"
+      ],
+      "title": "Apex Legends : environ 1 000 bannissements erronés annulés",
+      "sourceUrl": "https://steamcommunity.com/games/1172470/announcements/detail/680767470935475033",
+      "canonicalPrimaryUrl": "https://store.steampowered.com/news/app/1172470/view/680767470935475032",
+      "sourceDate": "2026-11-19",
+      "reviewedAt": "2026-11-20T10:56:28Z",
+      "status": "verified_flash_no_longform",
+      "fact": "Respawn indique le 19 novembre qu’une mise à jour déployée la veille a banni à tort environ 1 000 joueurs. La détection concernée a été désactivée et tous les bannissements de ce premier groupe ont été annulés.",
+      "impact": "Les joueurs concernés par cette erreur peuvent retrouver leur compte. L’équipe corrige aussi un problème distinct qui compliquait la levée de certains bannissements matériels.",
+      "caveat": "Pour ce second problème, Respawn annonce une correction technique mais précise que les comptes affectés sont encore en cours de rétablissement. Aucun bilan définitif ni délai individuel n’est fourni.",
+      "imageUrl": "https://clan.akamai.steamstatic.com/images/38098458/0d7c5d1311e5ddb8524c3c2d938c02b919efe29e.png",
+      "imageCredit": "Respawn Entertainment / Electronic Arts · visuel officiel Anti-Cheat Update du 19 novembre 2026",
+      "officialImageVisualVerified": true,
+      "officialVideoPlaybackVerified": false,
+      "decision": "Brève courte adaptée à cette correction ; pas de long article forcé. Aucun tarif ni périmètre de plateformes non établi n’est ajouté.",
+      "publicationConfirmed": false
     }
   ],
   "mediaEvidence": {
@@ -252,6 +273,35 @@
     "newReleaseAdded": false,
     "publicationConfirmed": false,
     "securityModified": false,
-    "paidServicesUsed": false
+    "paidServicesUsed": false,
+    "followupChecks": [
+      {
+        "runId": "426f6783-3dc8-832e-8609-e678339556f1",
+        "reviewedAt": "2026-11-20T10:56:28Z",
+        "status": "partial_public_and_video_checks",
+        "manifestReleaseCount": 28,
+        "manifestArticleCount": 49,
+        "signalsBeforeThisCheck": 41,
+        "radar": {
+          "url": "https://swapp.tv/api/swapp/autonomy/editorial-opportunities",
+          "httpStatus": 403,
+          "responseTitle": "Bot Verification",
+          "checkedAt": "2026-11-20T10:49:42.072430Z",
+          "extraTwitchRequests": 0
+        },
+        "gtaVideo": {
+          "url": "https://www.rockstargames.com/VI/out-now",
+          "officialEmbed": "https://www.youtube-nocookie.com/embed/_yl5ELcmugI?autoplay=0&enablejsapi=1",
+          "officialChannel": "Rockstar Games",
+          "observation": "Lecture sollicitée ; capture finale : écran noir et compteur 0:00 / 0:30. Lecture effective non confirmée.",
+          "playbackVerified": false
+        },
+        "newSignalId": "apex-legends-bannissements-errones-anticheat-20261119",
+        "duplicate": "AlphaProof Code du 10 novembre : source relue, déjà présent dans alphaproof-code-signal-20261110 ; aucune nouvelle brève.",
+        "publicationConfirmed": false,
+        "newReleaseAdded": false,
+        "securityModified": false
+      }
+    ]
   }
 }
