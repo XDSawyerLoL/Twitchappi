@@ -77,7 +77,14 @@
   stopButton=document.createElement('button');stopButton.type='button';stopButton.textContent='Verrouiller ma présence';stopButton.className='swapp-quantic-secondary';
   label=document.createElement('p');label.setAttribute('role','status');label.textContent='Identité non visible sur SWAPP.';
   seen=document.createElement('p');seen.className='swapp-quantic-presence-list';
-  section.append(heading,help,button,stopButton,label,seen);
+  const download=document.createElement('a');
+  download.href='https://github.com/XDSawyerLoL/Human-Agency-Engine/releases/tag/quantic-identity-vault-v0.4.1';
+  download.target='_blank';download.rel='noopener noreferrer';
+  download.className='swapp-quantic-install-link';
+  download.textContent='Télécharger Identity Vault v0.4.1 pour Windows';
+  const instructions=document.createElement('p');
+  instructions.textContent='Application à lancer sur ce PC. Si Edge le demande, autorise les applications sur cet appareil pour SWAPP.';
+  section.append(heading,help,download,instructions,button,stopButton,label,seen);
   ROOT.append(section);
   button.addEventListener('click',()=>void activate());
   stopButton.addEventListener('click',()=>void lock());
