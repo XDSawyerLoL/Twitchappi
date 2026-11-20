@@ -2,7 +2,7 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const {createHash,generateKeyPairSync,sign}=require('node:crypto');
-const {createBindingStore,createAccountRouter,createLeaseGuard,digest,AUTH_LEASE_MS}=require('../modules/swapp-quantic-account-auth');
+const {createBindingStore,createAccountRouter,createLeaseGuard,digest,requiresVaultAuthentication,FRESH_PASSWORD_MS,AUTH_LEASE_MS}=require('../modules/swapp-quantic-account-auth');
 
 function identity(){
  const pair=generateKeyPairSync('ed25519');
@@ -47,10 +47,11 @@ async function fixture(t){
  app.post('/__test/password-login',(req,res)=>{
   const user=createdUsers.get(req.body?.userId)||existing;
   req.session.oryonUser={id:user.id,login:user.login};
+  if(req.body?.remembered!==true)req.session.swappPasswordAuthenticatedAt=time;
   req.session.save(error=>error?res.status(500).end():res.json({success:true}));
  });
  app.post('/__test/logout',(req,res)=>{
-  req.session.oryonUser=null;req.session.quanticAuth=null;
+  req.session.oryonUser=null;req.session.quanticAuth=null;req.session.swappPasswordAuthenticatedAt=null;
   req.session.save(error=>error?res.status(500).end():res.json({success:true}));
  });
  app.use('/api/quantic-id/account',createAccountRouter(express,{
@@ -277,4 +278,48 @@ test('MySQL Quantic signup inserts account and binding in one transaction or rol
  const repeated=await store.createAccountForKey(hash,{...u,id:'auto_222222',login:'vault_other',email:'quantic-b@accounts.swapp.invalid'});
  assert.deepEqual(repeated,{id:u.id,created:false});
  assert.equal(liveAccounts.size,1);
+});
+
+test('legacy account mode guard requires Vault for Quantic-only and optional strict accounts',()=>{
+ assert.equal(requiresVaultAuthentication({quantic_only:true}),true);
+ assert.equal(requiresVaultAuthentication({quantic_required:true}),true);
+ assert.equal(requiresVaultAuthentication({quantic_only:false}),false);
+ assert.equal(requiresVaultAuthentication({}),false);
+});
+test('linking a new Vault key rejects remembered and stale password sessions',async t=>{
+ const c=await fixture(t),q=c.identity;
+ await c.request('/__test/password-login',{remembered:true});
+ const remembered=await c.request('/api/quantic-id/account/challenge',{purpose:'link'});
+ assert.equal(remembered.status,401);
+ assert.equal(remembered.data.error,'swapp_recent_password_required');
+ await c.request('/__test/logout',{});
+ await c.request('/__test/password-login',{});
+ c.setTime(c.time+FRESH_PASSWORD_MS+1);
+ const stale=await c.request('/api/quantic-id/account/challenge',{purpose:'link'});
+ assert.equal(stale.status,401);
+ assert.equal(stale.data.error,'swapp_recent_password_required');
+ await c.request('/__test/logout',{});
+ await c.request('/__test/password-login',{});
+ assert.equal((await c.challengeAndProof('link',q)).status,200);
+});
+test('legacy password unlink cannot remove the only Quantic factor',async t=>{
+ const c=await fixture(t),q=c.identity;
+ const signed=await c.challengeAndProof('login',q,undefined,{createIfMissing:true});
+ assert.equal(signed.status,200);
+ const created=[...c.createdUsers.values()][0];
+ await c.request('/__test/logout',{});
+ await c.request('/__test/password-login',{userId:created.id});
+ const bypass=await c.request('/api/quantic-id/account/unlink',{password:undefined});
+ assert.equal(bypass.status,409);
+ assert.equal(bypass.data.error,'quantic_only_account_recovery_required');
+ assert.equal(c.bindings.size,1);
+});
+test('server disables password, remember and reset fallback for Quantic-only accounts',()=>{
+ const fs=require('node:fs');
+ const src=fs.readFileSync(require.resolve('../server.js'),'utf8');
+ assert.match(src,/if\(requiresVaultAuthentication\(user\)\)return null/);
+ assert.match(src,/if\(!user \|\| requiresVaultAuthentication\(user\) \|\| !verifyOryonPassword/);
+ assert.match(src,/if\(!user \|\| requiresVaultAuthentication\(user\) \|\| !verifyOryonRememberToken/);
+ assert.match(src,/app\.post\('\/api\/oryon\/login', authLimiter/);
+ assert.match(src,/req\.session\.regenerate\(err=>err\?no\(err\):ok\(\)\)/);
 });
