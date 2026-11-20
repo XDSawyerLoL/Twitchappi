@@ -32,7 +32,7 @@ test('CVE-2026-54466: draft75 length header is rejected before it overflows',{
 },()=>{
  const packageInfo=require('../node_modules/websocket-driver/package.json');
  assert.equal(packageInfo.version,safeVersion);
- const Draft75=require('websocket-driver/lib/websocket/driver/draft75');
+ const Draft75=require('../node_modules/websocket-driver/lib/websocket/driver/draft75');
  const parse=bytes=>{
   const driver={
    readyState:1,
