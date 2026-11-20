@@ -2,8 +2,24 @@
   "schema": 1,
   "kind": "swapp-editorial-signals",
   "method": "Brèves rédigées à partir de sources primaires, avec revendication, intérêt et limites distincts. Ne jamais convertir automatiquement un RSS en brève vérifiée.",
-  "updatedAt": "2026-11-20T05:00:40Z",
+  "updatedAt": "2026-11-20T10:56:28Z",
   "items": [
+    {
+      "id": "apex-legends-bannissements-errones-anticheat-20261119",
+      "topics": [
+        "GAMING"
+      ],
+      "title": "Apex Legends : environ 1 000 bannissements erronés annulés",
+      "fact": "Respawn indique le 19 novembre qu’une mise à jour déployée la veille a banni à tort environ 1 000 joueurs. La détection concernée a été désactivée et tous les bannissements de ce premier groupe ont été annulés.",
+      "impact": "Les joueurs concernés par cette erreur peuvent retrouver leur compte. L’équipe corrige aussi un problème distinct qui compliquait la levée de certains bannissements matériels.",
+      "caveat": "Pour ce second problème, Respawn annonce une correction technique mais précise que les comptes affectés sont encore en cours de rétablissement. Aucun bilan définitif ni délai individuel n’est fourni.",
+      "sourceName": "Respawn Entertainment / Apex Legends · annonce officielle Steam",
+      "sourceUrl": "https://steamcommunity.com/games/1172470/announcements/detail/680767470935475033",
+      "sourceDate": "2026-11-19",
+      "reviewedAt": "2026-11-20T10:56:28Z",
+      "imageUrl": "https://clan.akamai.steamstatic.com/images/38098458/0d7c5d1311e5ddb8524c3c2d938c02b919efe29e.png",
+      "imageCredit": "Respawn Entertainment / Electronic Arts · visuel officiel Anti-Cheat Update du 19 novembre 2026"
+    },
     {
       "id": "gta-vi-lancement-ps5-xbox-series-20261119",
       "topics": [
