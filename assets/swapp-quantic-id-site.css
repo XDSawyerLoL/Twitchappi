@@ -6,3 +6,5 @@
 #swapp-quantic-id-presence button.swapp-quantic-secondary{background:#263947;color:#eaf8ff;border:1px solid #507186}
 #swapp-quantic-id-presence button:disabled{opacity:.5;cursor:not-allowed}
 #swapp-quantic-id-presence [role="status"]{font-weight:700;color:#f4fbff}
+
+#swapp-quantic-id-presence a.swapp-quantic-install-link{display:inline-block;color:#81dcff;text-decoration:underline;text-underline-offset:3px;font-size:13px;font-weight:700;margin:6px 0}
