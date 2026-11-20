@@ -471,7 +471,10 @@ const sessionMiddleware = session({
 app.use(sessionMiddleware);
 // Every protected route checks the Quantic ID lease before using SWAPP identity.
 app.use(require('./modules/swapp-quantic-account-auth').createLeaseGuard({
- clearRemember:clearOryonRememberCookie
+ clearRemember:clearOryonRememberCookie,
+ // Protect old SWAPP sessions across Node instances immediately after key rotation.
+ getBoundKey:id=>swappQuanticBindings?swappQuanticBindings.getKey(id):null,
+ getSessionUser:id=>(readOryonUsers().users||[]).find(user=>String(user.id)===String(id))||null
 }));
  // Opt-in Quantic ID site presence. NEVER grants an existing SWAPP account,
  // streamer, moderator or editor session. No database or permanent identifier.
