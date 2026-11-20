@@ -1,0 +1,229 @@
+{
+  "kind": "swapp-editorial-checkpoint",
+  "schema": 1,
+  "checkedAt": "2026-11-20T23:31:50.324Z",
+  "status": "prepared_in_github_production_unconfirmed",
+  "coverage": {
+    "recentWindowStart": "2026-11-20T17:23:41Z",
+    "recentWindowEnd": "2026-11-20T23:31:50.324Z",
+    "primaryResearchPerformed": true,
+    "fullCatchupComplete": false,
+    "reason": "Le registre de continuité demandé est inaccessible ; le point de reprise courant ne peut pas être relu. Catalogue GitHub et pages publiques consultés, rattrapage des dossiers vérifiés des 19 et 20 novembre.",
+    "lastSuccessfulCheckAdvanced": false
+  },
+  "catalogue": {
+    "before": {
+      "releaseFiles": 28,
+      "articles": 49,
+      "signals": 42
+    },
+    "after": {
+      "releaseFiles": 29,
+      "articles": 50,
+      "signals": 45
+    },
+    "deduplication": "jeu ou produit + événement + date officielle + URL primaire canonique ; les 28 lots du manifeste ont été relus",
+    "studioOverrides": "Aucune modification des lignes CMS existantes, aucun réimport historique, aucune modification des droits ou secrets."
+  },
+  "prepared": {
+    "releaseFile": "data/swapp-veille-native-20261121-myth-throne-saison4.json",
+    "slug": "myth-of-empires-throne-saison-4-voidbound-realm-lancement",
+    "articleUrl": "https://swapp.tv/actus/myth-of-empires-throne-saison-4-voidbound-realm-lancement",
+    "releaseCommit": "f373f5fb40c5f578c69c1cf48d16501241322b61",
+    "manifestCommit": "9e652fdf283035b8fb85c7768c58b6df8a8eef10",
+    "signalsCommit": "a66f28d915247796eae428e0b23a31d149231867",
+    "signalIds": [
+      "myth-of-empires-throne-saison4-voidbound-realm-20261120",
+      "steam-machine-reservations-512go-attente-2to-20261119",
+      "nvidia-microsoft-azure-local-jetson-cosmos-20261119"
+    ],
+    "githubReadbackVerified": true,
+    "productionConfirmed": false,
+    "editableInStudio": null
+  },
+  "quality": {
+    "nativeAssertArticlePassed": true,
+    "sourceCount": 4,
+    "officialTrailer": {
+      "url": "https://www.youtube.com/watch?v=ByLXJRFoL9E",
+      "title": "Myth of Empires: Throne – Season 4: Voidbound Realm | Official Trailer",
+      "channelName": "Myth of Empires: Throne",
+      "lengthSeconds": 94,
+      "playabilityStatus": "OK",
+      "playableInEmbed": true,
+      "checkedAt": "2026-11-20T23:27:27.697406Z",
+      "playbackOnSwappVerified": false
+    },
+    "images": {
+      "visuallyReviewedAt": "2026-11-20T23:31:50.324Z",
+      "correctSubjects": true,
+      "remoteOnly": true,
+      "urls": [
+        "https://i.ytimg.com/vi/ByLXJRFoL9E/hqdefault.jpg",
+        "https://att-throne.mythofempires.com/WebSiteResources/moet_official/img/2100_800EN.jpg",
+        "https://clan.fastly.steamstatic.com/images/45479024/c9d521025947cc63525d0822a6322ed0f75875ea.jpg",
+        "https://blogs.nvidia.com/wp-content/uploads/2026/11/nvidia-microsoft.png"
+      ]
+    },
+    "affiliate": {
+      "added": false,
+      "urlChecked": "https://www.instant-gaming.com/en/22412-download-myth-of-empires-throne-pc-steam/",
+      "result": "HTTP 403 ; plateforme/région/offre commerciale non revérifiables dans ce contrôle. Aucun lien substitué."
+    }
+  },
+  "productionChecks": [
+    {
+      "url": "https://swapp.tv/actus/myth-of-empires-throne-saison-4-voidbound-realm-lancement",
+      "error": "The read operation timed out",
+      "checkedAt": "2026-11-20T23:30:52.837892+00:00"
+    },
+    {
+      "url": "https://swapp.tv/api/actus",
+      "error": "The read operation timed out",
+      "checkedAt": "2026-11-20T23:30:52.837752+00:00"
+    },
+    {
+      "url": "https://swapp.tv/api/actus/release-status",
+      "status": 403,
+      "contentType": "text/html",
+      "checkedAt": "2026-11-20T23:30:33.694771+00:00",
+      "botVerification": true,
+      "containsNewSlug": false
+    },
+    {
+      "url": "https://swapp.tv/api/actus/storage-status",
+      "status": 403,
+      "contentType": "text/html",
+      "checkedAt": "2026-11-20T23:30:50.618505+00:00",
+      "botVerification": true,
+      "containsNewSlug": false
+    },
+    {
+      "url": "https://swapp.tv/api/actus/signaux",
+      "status": 403,
+      "contentType": "text/html",
+      "checkedAt": "2026-11-20T23:30:40.626692+00:00",
+      "botVerification": true,
+      "containsNewSlug": false
+    },
+    {
+      "url": "https://swapp.tv/plan-du-site",
+      "error": "The read operation timed out",
+      "checkedAt": "2026-11-20T23:30:59.405304+00:00"
+    },
+    {
+      "url": "https://swapp.tv/api/release",
+      "error": "The read operation timed out",
+      "checkedAt": "2026-11-20T23:31:06.390636+00:00"
+    },
+    {
+      "url": "https://swapp.tv/api/swapp/autonomy/editorial-opportunities",
+      "status": 403,
+      "contentType": "text/html",
+      "checkedAt": "2026-11-20T23:31:00.881492+00:00",
+      "botVerification": false,
+      "containsNewSlug": false
+    }
+  ],
+  "publicationLimitations": [
+    "Titre, texte, vignette, carte, lecteur vidéo, sources, partage et flux Social non confirmés sur la page déployée.",
+    "Statut MySQL et editableInStudio non lisibles.",
+    "Le plan du site consultable via la recherche présente encore les 49 articles antérieurs ; ce résultat ne prouve pas le SHA déployé.",
+    "Aucun statut de déploiement retourné par les statuts GitHub du commit de signaux ; absence de statut ne prouve pas un échec."
+  ],
+  "sourcesReviewed": [
+    {
+      "label": "Équipe Myth of Empires: Throne — lancement et événements, 20 novembre 2026",
+      "url": "https://playthrone.mythofempires.com/newsdetail/386"
+    },
+    {
+      "label": "Équipe Myth of Empires: Throne — notes de mise à jour de la saison 4, 18 novembre 2026",
+      "url": "https://playthrone.mythofempires.com/newsdetail/377"
+    },
+    {
+      "label": "Équipe Myth of Empires: Throne — règles et calendrier, 17 novembre 2026",
+      "url": "https://playthrone.mythofempires.com/newsdetail/373"
+    },
+    {
+      "label": "Angela Game / Celestial Star Studios — communiqué de lancement diffusé sur Games Press, 20 novembre 2026",
+      "url": "https://www.gamespress.com/en-US/Myth-of-Empires-Throne-Takes-Warfare-to-the-Skies-as-Season-4-Launches"
+    },
+    {
+      "label": "Valve · Steam Hardware",
+      "url": "https://store.steampowered.com/news/group/45479024/view/687522235410285038"
+    },
+    {
+      "label": "NVIDIA · annonce Microsoft Ignite",
+      "url": "https://blogs.nvidia.com/blog/microsoft-ignite-accelerated-computing-azure-windows-pcs/"
+    }
+  ],
+  "decisions": [
+    {
+      "event": "The Elder Scrolls VI: Sentinel",
+      "sourceUrl": "https://bsky.app/profile/bethesdastudios.com/post/3mzg5pmb4mk2p",
+      "sourceDate": "2026-11-03",
+      "decision": "Source Bethesda relue : mention du nom et développement en cours seulement. Pas de nouvelle publication, pas d'extrapolation sur sortie ou gameplay."
+    },
+    {
+      "event": "Gemini Robotics 2.5, Genie 4, Gemini 4 Neon, PARDIG et SatWeave",
+      "decision": "Déjà présents dans les lots ou signaux ; aucun développement substantiel distinct retenu."
+    },
+    {
+      "event": "PlayStation Podcast 553",
+      "sourceUrl": "https://blog.playstation.com/2026/11/20/official-playstation-podcast-episode-553-peak-gaming/",
+      "decision": "Récapitulatif consulté ; aucune nouvelle brève créée sur les annonces déjà couvertes."
+    },
+    {
+      "event": "Mistral Pixtral Large et KI für Deutschland",
+      "decision": "Résultats réindexés datant respectivement de 2024 et 2025 ; exclus de la nouveauté."
+    }
+  ],
+  "candidates": [
+    {
+      "event": "Calendrier Xbox du 23 au 27 novembre, dont Arkheron Game Preview",
+      "sourceUrl": "https://news.xbox.com/en-us/2026/11/20/next-week-on-xbox-new-games-for-november-23-to-27/",
+      "sourceDate": "2026-11-20",
+      "status": "pending_review",
+      "missing": [
+        "Pertinence majeure à établir individuellement",
+        "Date originale de chaque annonce",
+        "Vidéo et image officielles correspondant au jeu",
+        "Disponibilité régionale"
+      ]
+    },
+    {
+      "event": "ESA Earth Action El Niño Dashboard",
+      "sourceUrl": "https://eo4society.esa.int/2026/11/18/exploring-el-nino-and-its-impacts-from-space/",
+      "sourceDate": "2026-11-18",
+      "status": "pending_review",
+      "missing": [
+        "Importance éditoriale et nouveauté détaillée",
+        "Média officiel précis et contrôle visuel"
+      ],
+      "note": "Piste de recherche ; aucune brève validée créée."
+    },
+    {
+      "event": "GTA VI lancement",
+      "draftFile": "data/swapp-editorial-pending-20261120-gta-launch-tech.json",
+      "status": "draft_existing_unchanged",
+      "note": "La brève de lancement existe déjà. Dossier long non dupliqué ; contrôles vidéo et production restent à terminer."
+    }
+  ],
+  "continuity": {
+    "registryRead": "404 Library file not found",
+    "exactTitleSearch": "Aucun résultat correspondant au registre demandé",
+    "registryWritten": false,
+    "historyOverwritten": false,
+    "replacementRegistryCreated": false,
+    "checkpointPurpose": "Résultats de ce contrôle uniquement, à réconcilier avec le registre existant lorsque son accès est rétabli."
+  },
+  "notification": {
+    "eligibleReason": "Nouveau dossier majeur prêt dans GitHub mais diffusion non confirmée ; incident persistant depuis plus de 24 heures dans le dernier résultat disponible.",
+    "deliveryConfirmed": false,
+    "repeatIncidentAlertBefore": "2026-11-21T23:33:00Z"
+  },
+  "costsAdded": false,
+  "extraTwitchRequests": 0,
+  "independentSocialMessagesSent": 0,
+  "securityBypassAttempted": false
+}
