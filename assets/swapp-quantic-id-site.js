@@ -93,8 +93,15 @@
    recover.textContent='Récupérer mon compte avec un code';recover.className='swapp-vault-inline-recovery';
    slot.append(recover);recoverControl=recover;
    recover.addEventListener('click',()=>{
-    const code=window.prompt('Saisis un des codes de récupération Quantic ID conservés hors de ton coffre. Le nouveau coffre doit être déverrouillé.');
-    if(code&&code.trim())void authorize('recover',{recoveryCode:code.trim()});
+    let field=slot.querySelector('#swapp-vault-recovery-code');
+    if(!field){
+     field=document.createElement('input');field.id='swapp-vault-recovery-code';field.type='password';
+     field.autocomplete='off';field.maxLength=60;field.placeholder='Code de récupération Quantic ID';
+     field.setAttribute('aria-label','Code secret de récupération à usage unique');
+     recover.before(field);recover.textContent='Valider ce code';field.focus();return;
+    }
+    const code=field.value.trim();field.value='';field.remove();recover.textContent='Récupérer mon compte avec un code';
+    if(code)void authorize('recover',{recoveryCode:code});
    });
    form.append(slot);loginControl=button;button.addEventListener('click',()=>void authorize('login'));
   }
