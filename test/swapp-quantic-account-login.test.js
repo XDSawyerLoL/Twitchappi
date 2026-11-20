@@ -2,7 +2,7 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const {createHash,generateKeyPairSync,sign}=require('node:crypto');
-const {createBindingStore,createAccountRouter,createLeaseGuard,digest,requiresVaultAuthentication,FRESH_PASSWORD_MS,AUTH_LEASE_MS}=require('../modules/swapp-quantic-account-auth');
+const {createBindingStore,createAccountRouter,createLeaseGuard,digest,generateRecoveryCodes,recoveryDigest,requiresVaultAuthentication,FRESH_PASSWORD_MS,AUTH_LEASE_MS}=require('../modules/swapp-quantic-account-auth');
 
 function identity(){
  const pair=generateKeyPairSync('ed25519');
@@ -20,7 +20,7 @@ function identity(){
 async function fixture(t){
  const express=require('express'),session=require('express-session');
  let time=Date.now(),clearCount=0;
- const bindings=new Map(),reverse=new Map(),createdUsers=new Map();
+ const bindings=new Map(),reverse=new Map(),createdUsers=new Map(),recovery=new Map();
  let generated=0;
  const existing={id:'aa11aa11aa11aa11aa11aa11',login:'alice',password_hash:'current-password'};
  const store={
@@ -31,6 +31,21 @@ async function fixture(t){
    bindings.set(key,id);reverse.set(id,key);
   },
   async unbind(id){const key=reverse.get(id);if(!key)return false;reverse.delete(id);bindings.delete(key);return true},
+  async hasRecovery(id){return [...recovery.values()].some(owner=>owner===id)},
+  async setRecoveryCodes(id,hashes){
+   if(!reverse.has(id))throw Error('no binding');
+   for(const [hash,owner] of recovery)if(owner===id)recovery.delete(hash);
+   for(const hash of hashes)recovery.set(hash,id);
+  },
+  async recoverAccount(newHash,recoveryHash){
+   const id=recovery.get(recoveryHash);
+   if(!id||bindings.has(newHash))throw Error('quantic_recovery_invalid');
+   const old=reverse.get(id);
+   if(!old||old===newHash)throw Error('quantic_recovery_invalid');
+   bindings.delete(old);bindings.set(newHash,id);reverse.set(id,newHash);
+   for(const [code,owner] of recovery)if(owner===id)recovery.delete(code);
+   return id;
+  },
   async createAccountForKey(hash,user){
    const existing=bindings.get(hash);
    if(existing)return {id:existing,created:false};
@@ -43,7 +58,10 @@ async function fixture(t){
  const app=express();
  app.use(express.json());
  app.use(session({secret:'testing-only-express-session-secret',resave:false,saveUninitialized:false,cookie:{sameSite:'lax'}}));
- app.use(createLeaseGuard({now:()=>time,clearRemember:()=>{clearCount++}}));
+ app.use(createLeaseGuard({now:()=>time,clearRemember:()=>{clearCount++},
+  getBoundKey:id=>reverse.get(id)||null,
+  getSessionUser:id=>id===existing.id?existing:(createdUsers.get(id)||null)
+ }));
  app.post('/__test/password-login',(req,res)=>{
   const user=createdUsers.get(req.body?.userId)||existing;
   req.session.oryonUser={id:user.id,login:user.login};
@@ -59,6 +77,7 @@ async function fixture(t){
   verifyPassword:(password,hash)=>password===hash,
   findUser:id=>id===existing.id?existing:(createdUsers.get(id)||null),
   newUserFactory:()=>({id:'auto_'+(++generated),login:'vault_'+generated,display_name:'Membre Quantic',quantic_only:true}),
+  enforceVaultOnly:async id=>{const u=id===existing.id?existing:createdUsers.get(id);if(!u)throw Error('missing');u.quantic_required=true},
   refreshUsers:async()=>{},
   toSession:user=>({id:user.id,login:user.login,is_admin:false}),
   clearRemember:()=>{clearCount++}
@@ -85,7 +104,7 @@ async function fixture(t){
   return request('/api/quantic-id/account/prove',{purpose,challenge,proof,...(password!==undefined?{password}:{}),...options});
  }
  return {request,challengeAndProof,identity:identity(),origin,get time(){return time},setTime:v=>{time=v},bindings,reverse,createdUsers,secret,
-  get clearCount(){return clearCount}};
+  get clearCount(){return clearCount},recovery,existing};
 }
 
 test('Quantic account fingerprints are HMAC scoped, no reversible QID stored',()=>{
@@ -322,4 +341,90 @@ test('server disables password, remember and reset fallback for Quantic-only acc
  assert.match(src,/if\(!user \|\| requiresVaultAuthentication\(user\) \|\| !verifyOryonRememberToken/);
  assert.match(src,/app\.post\('\/api\/oryon\/login', authLimiter/);
  assert.match(src,/req\.session\.regenerate\(err=>err\?no\(err\):ok\(\)\)/);
+});
+
+test('Recovery codes are uniformly random, secret-scoped, hashed and not reversible',()=>{
+ const codes=generateRecoveryCodes();
+ assert.equal(codes.length,8);
+ assert.equal(new Set(codes).size,8);
+ const s='S'.repeat(48);
+ for(const code of codes){
+  assert.match(code,/^qrc_[A-Za-z0-9_-]{43}$/);
+  const hash=recoveryDigest(code,s);
+  assert.match(hash,/^[a-f0-9]{64}$/);
+  assert.equal(hash.includes(code),false);
+  assert.notEqual(hash,recoveryDigest(code,'T'.repeat(48)));
+ }
+ assert.throws(()=>recoveryDigest('qrc_123',s),/quantic_recovery_invalid/);
+});
+test('Vault signed enrollment displays 8 codes once, one code atomically replaces a copied private key',async t=>{
+ const c=await fixture(t),old=c.identity,newKey=identity();
+ const first=await c.challengeAndProof('login',old,undefined,{createIfMissing:true});
+ assert.equal(first.status,200);
+ const account=first.data.login;
+ const enroll=await c.challengeAndProof('recovery-enroll',old);
+ assert.equal(enroll.status,200,JSON.stringify(enroll.data));
+ assert.equal(enroll.data.recoveryCodes.length,8);
+ assert.equal(c.recovery.size,8);
+ const code=enroll.data.recoveryCodes[0];
+ assert.equal(c.recovery.has(recoveryDigest(code,c.secret)),true);
+ const status=await c.request('/api/quantic-id/account/status');
+ assert.equal(status.data.recoveryReady,true);
+ await c.request('/__test/logout',{});
+ const invalid=await c.challengeAndProof('recover',newKey,undefined,{recoveryCode:'qrc_'+'x'.repeat(43)});
+ assert.equal(invalid.status,401);
+ const rotated=await c.challengeAndProof('recover',newKey,undefined,{recoveryCode:code});
+ assert.equal(rotated.status,200,JSON.stringify(rotated.data));
+ assert.equal(rotated.data.recovered,true);
+ assert.equal(rotated.data.login,account);
+ assert.equal(c.recovery.size,0,'all previous recovery codes revoked on rotation');
+ await c.request('/__test/logout',{});
+ const replay=await c.challengeAndProof('recover',identity(),undefined,{recoveryCode:code});
+ assert.equal(replay.status,401);
+ assert.equal((await c.challengeAndProof('login',old)).status,401,'old copied key revoked');
+ assert.equal((await c.challengeAndProof('login',newKey)).status,200,'new Vault key recovers same account');
+});
+test('Classic SWAPP accounts require signed Vault and offline recovery before enabling mandatory Vault mode',async t=>{
+ const c=await fixture(t),key=c.identity;
+ await c.request('/__test/password-login',{});
+ assert.equal((await c.challengeAndProof('link',key)).status,200);
+ await c.request('/__test/logout',{});
+ assert.equal((await c.challengeAndProof('login',key)).status,200);
+ const withoutCodes=await c.challengeAndProof('strict-enable',key);
+ assert.equal(withoutCodes.status,409);
+ assert.equal(withoutCodes.data.error,'quantic_recovery_required');
+ assert.equal((await c.challengeAndProof('recovery-enroll',key)).status,200);
+ const strict=await c.challengeAndProof('strict-enable',key);
+ assert.equal(strict.status,200);
+ assert.equal(c.existing.quantic_required,true);
+ await c.request('/__test/logout',{});
+ await c.request('/__test/password-login',{});
+ const oldSession=await c.request('/api/quantic-id/account/status');
+ assert.equal(oldSession.data.loggedIn,false,'legacy password session rejected by guard');
+ assert.equal((await c.challengeAndProof('login',key)).status,200);
+ assert.equal((await c.request('/api/quantic-id/account/status')).data.strict,true);
+});
+test('Server rejects a copied SWAPP session immediately after Vault key rotation',async()=>{
+ let saved=false,cleared=0,nextCalled=false;
+ const req={path:'/api/oryon/session',session:{
+  oryonUser:{id:'user-1'},quanticAuth:{hash:'a'.repeat(64),expiresAt:Date.now()+20000},
+  save:callback=>{saved=true;callback(null)}
+ }};
+ const res={clearCookie:()=>{},set:()=>res,status:()=>res,json:()=>res};
+ const guard=createLeaseGuard({
+  getBoundKey:async()=> 'b'.repeat(64),clearRemember:()=>{cleared++}
+ });
+ await guard(req,res,()=>{nextCalled=true});
+ assert.equal(saved,true);
+ assert.equal(nextCalled,true);
+ assert.equal(req.session.quanticAuth,null);
+ assert.equal(req.session.oryonUser,null);
+ assert.equal(cleared,1);
+});
+test('Source guards all classic account backdoors before accepting Vault mandatory mode',()=>{
+ const fs=require('node:fs'),src=fs.readFileSync(require.resolve('../server.js'),'utf8');
+ assert.match(src,/getBoundKey:id=>swappQuanticBindings/);
+ assert.match(src,/enforceVaultOnly:async id=>/);
+ assert.match(src,/quantic_required=true/);
+ assert.match(src,/if\(requiresVaultAuthentication\(user\)\)return res\.status\(403\)/);
 });
