@@ -20,7 +20,7 @@ function identity(){
 async function fixture(t){
  const express=require('express'),session=require('express-session');
  let time=Date.now(),clearCount=0;
- const bindings=new Map(),reverse=new Map(),createdUsers=new Map(),recovery=new Map();
+ const bindings=new Map(),reverse=new Map(),createdUsers=new Map(),recovery=new Map(),strictAccounts=new Set();
  let generated=0;
  const existing={id:'aa11aa11aa11aa11aa11aa11',login:'alice',password_hash:'current-password'};
  const store={
@@ -31,6 +31,11 @@ async function fixture(t){
    bindings.set(key,id);reverse.set(id,key);
   },
   async unbind(id){const key=reverse.get(id);if(!key)return false;reverse.delete(id);bindings.delete(key);return true},
+  async isVaultOnly(id){return strictAccounts.has(id)||Boolean(createdUsers.get(id)?.quantic_only)},
+  async enableVaultOnly(id){
+   if(!reverse.has(id)||![...recovery.values()].includes(id))throw Error('quantic_recovery_required');
+   strictAccounts.add(id);return true;
+  },
   async hasRecovery(id){return [...recovery.values()].some(owner=>owner===id)},
   async setRecoveryCodes(id,hashes){
    if(!reverse.has(id))throw Error('no binding');
