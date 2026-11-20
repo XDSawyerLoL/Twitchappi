@@ -228,7 +228,7 @@ test('A new Quantic-only account cannot remove its last login factor',async t=>{
  await ctx.request('/__test/logout',{});
  const created=[...ctx.createdUsers.values()][0];
  await ctx.request('/__test/password-login',{userId:created.id});
- assert.equal((await ctx.challengeAndProof('unlink',key)).status,409);
+ assert.equal((await ctx.request('/api/quantic-id/account/challenge',{purpose:'unlink'})).status,401);
  assert.equal(ctx.createdUsers.size,1);
  assert.equal(ctx.bindings.size,1);
 });
@@ -329,8 +329,7 @@ test('legacy password unlink cannot remove the only Quantic factor',async t=>{
  await c.request('/__test/logout',{});
  await c.request('/__test/password-login',{userId:created.id});
  const bypass=await c.request('/api/quantic-id/account/unlink',{password:undefined});
- assert.equal(bypass.status,409);
- assert.equal(bypass.data.error,'quantic_only_account_recovery_required');
+ assert.equal(bypass.status,401,'legacy session is rejected before unlink is evaluated');
  assert.equal(c.bindings.size,1);
 });
 test('server disables password, remember and reset fallback for Quantic-only accounts',()=>{
