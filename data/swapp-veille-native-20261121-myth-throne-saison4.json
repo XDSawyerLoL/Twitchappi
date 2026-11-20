@@ -1,0 +1,65 @@
+{
+  "kind": "swapp-editorial-release",
+  "release": "2026-11-21-myth-throne-saison4",
+  "description": "Lancement de la saison 4 le 20 novembre, sources officielles et bande-annonce vérifiées. Confirmation de production suivie séparément.",
+  "articles": [
+    {
+      "slug": "myth-of-empires-throne-saison-4-voidbound-realm-lancement",
+      "title": "Myth of Empires: Throne : la saison 4 ouvre les guerres du ciel dans Voidbound Realm",
+      "summary": "Lancée le 20 novembre, la saison 4 ajoute une carte d'îles flottantes, des montures volantes et une plateforme vivante à construire. Dates, accès gratuit et limites à connaître.",
+      "game": "Myth of Empires: Throne",
+      "games": [
+        "Myth of Empires: Throne"
+      ],
+      "tags": [
+        "GAMING",
+        "Myth of Empires: Throne",
+        "saison 4",
+        "Voidbound Realm",
+        "PC"
+      ],
+      "body": "La saison 4 de Myth of Empires: Throne a démarré le 20 novembre 2026 à 14 h UTC, soit 15 h à Paris. Le studio annonce une campagne de trois mois pour ce jeu de guerre multijoueur en bac à sable gratuit sur PC. Son changement le plus visible est géographique : Voidbound Realm transporte les affrontements sur des îles flottantes, avec des montures volantes et une créature géante capable d'accueillir des constructions.\n\n## Un territoire de 64 km² à conquérir dans les airs\n\nLa présentation officielle des règles décrit une nouvelle carte de 64 km². La Mystic Crane et le Wildfire Phoenix permettent de se déplacer dans ce paysage suspendu. Le Northern Azure Kun occupe une place différente : une fois équipé de sa plateforme dédiée, son dos peut recevoir des structures. Il devient ainsi un support mobile pour les activités d'une guilde.\n\nLe communiqué de lancement précise qu'aucun niveau minimum n'est nécessaire pour entrer dans Voidbound Realm. Cela concerne l'accès à la carte : les équipements et les systèmes de progression conservent leurs propres conditions. La saison est annoncée jusqu'au 20 février 2027.\n\n## Voler impose aussi de gérer une ressource\n\nLes notes de mise à jour détaillent le rôle du Spiritual Qi. Les montures volantes en consomment lorsqu'elles utilisent leurs compétences ; les joueurs peuvent absorber des concentrations de cette énergie pour reconstituer leurs réserves. Sur les serveurs européens, ces concentrations apparaissent chaque jour entre 19 h et 21 h UTC, soit entre 20 h et 22 h à Paris à la date du lancement.\n\nAutre restriction à connaître avant d'organiser une expédition : pendant cette saison, les montures volantes ne peuvent pas être transférées vers des cartes autres que Voidbound Realm, y compris les champs de bataille. Leur arrivée ne transforme donc pas tous les territoires du jeu en zones de combat aérien.\n\n## De nouveaux objectifs pour les guildes et les joueurs\n\nLa saison ajoute des défis de secte, des classements individuels et le système Military Pay. Ce dernier récompense les combats contre des ennemis et permet d'échanger le butin accumulé contre des Copper Coins auprès d'un Boundary Marker. Mourir avec ce butin expose une partie de celui-ci à la récupération par d'autres joueurs.\n\nLes nouveautés comprennent également deux guerriers légendaires, Sun Ce et Taishi Ci, ainsi qu'un pangolin capable de récolter des minerais. L'ensemble associe donc exploration, collecte et affrontements, au-delà du seul ajout de créatures volantes.\n\n## Accès gratuit et bonus de lancement : les distinctions utiles\n\nMyth of Empires: Throne et le contenu de cette saison sont proposés sans prix d'entrée sur Steam, d'après le communiqué du 20 novembre. Cela ne signifie pas que tous les objets du jeu sont gratuits : l'annonce des événements distingue les récompenses de connexion des opérations commerciales de la boutique.\n\nLa première semaine de bonus court jusqu'au 27 novembre à 12 h UTC, soit 13 h à Paris. Elle double notamment les récoltes agricoles, la vitesse de dressage des guerriers et des chevaux, ainsi que l'expérience des compétences professionnelles. Un programme de récompenses de connexion se poursuit jusqu'au 4 décembre à 00 h UTC, donc 1 h à Paris. Les modalités et récompenses exactes restent consultables dans l'annonce officielle.\n\n## Analyse SWAPP : un changement d'organisation à éprouver\n\nLa nouveauté la plus intéressante pour un groupe est la combinaison entre mobilité aérienne et construction. Transporter une base et défendre des ressources en hauteur pourrait modifier les itinéraires, la préparation des sorties et la répartition des rôles. C'est une lecture des mécaniques annoncées, pas le résultat d'un essai : l'équilibrage, la stabilité des serveurs et la qualité des affrontements à grande échelle restent à évaluer en jeu.\n\nLa vidéo associée est la bande-annonce officielle de la saison 4, d'une durée de 1 minute 34. Elle présente Voidbound Realm et ses créatures dans un montage promotionnel ; elle ne constitue pas une démonstration indépendante des performances. La vignette distante provient de cette même vidéo officielle.",
+      "trailerUrl": "https://www.youtube.com/watch?v=ByLXJRFoL9E",
+      "sources": [
+        {
+          "label": "Équipe Myth of Empires: Throne — lancement et événements, 20 novembre 2026",
+          "url": "https://playthrone.mythofempires.com/newsdetail/386"
+        },
+        {
+          "label": "Équipe Myth of Empires: Throne — notes de mise à jour de la saison 4, 18 novembre 2026",
+          "url": "https://playthrone.mythofempires.com/newsdetail/377"
+        },
+        {
+          "label": "Équipe Myth of Empires: Throne — règles et calendrier, 17 novembre 2026",
+          "url": "https://playthrone.mythofempires.com/newsdetail/373"
+        },
+        {
+          "label": "Angela Game / Celestial Star Studios — communiqué de lancement diffusé sur Games Press, 20 novembre 2026",
+          "url": "https://www.gamespress.com/en-US/Myth-of-Empires-Throne-Takes-Warfare-to-the-Skies-as-Season-4-Launches"
+        }
+      ],
+      "seo": {
+        "title": "Myth of Empires: Throne saison 4 : carte, montures et dates",
+        "description": "La saison 4 de Myth of Empires: Throne est lancée : Voidbound Realm, montures volantes, accès gratuit et horaires européens expliqués."
+      },
+      "author": "Rédaction SWAPP",
+      "category": "Actualités JV",
+      "contentType": "article",
+      "publishedAt": "2026-11-20T23:28:42.978Z",
+      "status": "published",
+      "revision": 1,
+      "image": null,
+      "thumbnail": {
+        "url": "https://i.ytimg.com/vi/ByLXJRFoL9E/hqdefault.jpg",
+        "credit": "Angela Game / Celestial Star Studios · chaîne officielle Myth of Empires: Throne",
+        "rights": "Miniature distante de la bande-annonce officielle YouTube intégrable ; affichage lié à la vidéo, sans réhébergement.",
+        "alt": "Voidbound Realm : îles flottantes, grue, phénix et Northern Azure Kun — saison 4",
+        "position": "center"
+      },
+      "commercialLinks": [],
+      "editorialVerdict": null,
+      "legacyUrl": null,
+      "originalPublishedAt": null
+    }
+  ]
+}
