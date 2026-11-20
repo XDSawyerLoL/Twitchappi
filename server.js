@@ -474,7 +474,9 @@ app.use(require('./modules/swapp-quantic-account-auth').createLeaseGuard({
  clearRemember:clearOryonRememberCookie,
  // Protect old SWAPP sessions across Node instances immediately after key rotation.
  getBoundKey:id=>swappQuanticBindings?swappQuanticBindings.getKey(id):null,
- getSessionUser:id=>(readOryonUsers().users||[]).find(user=>String(user.id)===String(id))||null
+ getSessionUser:async id=>({
+  quantic_required:swappQuanticBindings?await swappQuanticBindings.isVaultOnly(id):false
+ })
 }));
  // Opt-in Quantic ID site presence. NEVER grants an existing SWAPP account,
  // streamer, moderator or editor session. No database or permanent identifier.
