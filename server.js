@@ -471,7 +471,12 @@ const sessionMiddleware = session({
 app.use(sessionMiddleware);
 // Every protected route checks the Quantic ID lease before using SWAPP identity.
 app.use(require('./modules/swapp-quantic-account-auth').createLeaseGuard({
- clearRemember:clearOryonRememberCookie
+ clearRemember:clearOryonRememberCookie,
+ // Protect old SWAPP sessions across Node instances immediately after key rotation.
+ getBoundKey:id=>swappQuanticBindings?swappQuanticBindings.getKey(id):null,
+ getSessionUser:async id=>({
+  quantic_required:swappQuanticBindings?await swappQuanticBindings.isVaultOnly(id):false
+ })
 }));
  // Opt-in Quantic ID site presence. NEVER grants an existing SWAPP account,
  // streamer, moderator or editor session. No database or permanent identifier.
@@ -484,6 +489,12 @@ app.use(require('./modules/swapp-quantic-account-auth').createLeaseGuard({
 // =========================================================
 const {requiresVaultAuthentication}=require('./modules/swapp-quantic-account-auth');
 const SWAPP_REMEMBER_COOKIE = 'swapp.remember';
+async function swappAccountRequiresVault(user){
+ if(!user?.id)return false;
+ if(requiresVaultAuthentication(user))return true;
+ // Query the immutable policy table, not a possibly stale Node snapshot.
+ return swappQuanticBindings?await swappQuanticBindings.isVaultOnly(user.id):false;
+}
 const SWAPP_REMEMBER_MAX_AGE_MS = Math.max(24 * 60 * 60 * 1000, Number(process.env.SWAPP_REMEMBER_MAX_AGE_MS || 180 * 24 * 60 * 60 * 1000));
 function swappRememberSecret(){
   return String(process.env.SWAPP_ACCOUNT_RECOVERY_SECRET || configuredSessionSecret || process.env.SWAPP_ADMIN_KEY || generatedSessionSecret || DEV_SESSION_SECRET || 'swapp-dev-secret');
@@ -560,11 +571,11 @@ async function restoreOryonSessionFromRememberCookie(req, res, {allowUserRecover
     let user = (data.users || []).find(u => normalizeOryonLogin(u.login) === login);
     if(user){
       // A Quantic-only or strict account cannot be restored through an older cookie.
-      if(requiresVaultAuthentication(user))return null;
+      if(await swappAccountRequiresVault(user))return null;
       if(!verifyOryonRememberToken(user, payload.remember_token)) return null;
       ensureOryonUserShape(user, { ensureStreamKey:true });
     }else{
-      if(!allowUserRecovery)return null; // Editor access must never resurrect an account.
+      if(!allowUserRecovery||SWAPP_MYSQL_ACCOUNTS)return null; // Durable MySQL accounts must never be resurrected from a cookie.
       const backup = publicRecoverUserPayload(payload.user || {});
       if(!backup || normalizeOryonLogin(backup.login) !== login) return null;
       if(requiresVaultAuthentication(payload.user)||requiresVaultAuthentication(backup))return null;
@@ -4577,6 +4588,26 @@ app.use('/api/quantic-id/account',swappQuanticAccount.createAccountRouter(expres
  refreshUsers:loadOryonUsersPersistent,
  toSession:sessionOryonUser,
  clearRemember:clearOryonRememberCookie,
+ onRecoveryRotate:async id=>{
+  // Disconnect live sockets for this account on the current Node instance.
+  // Other instances reject the old binding through their periodic DB checks.
+  for(const namespace of io._nsps?.values()||[]){
+   for(const socket of namespace.sockets?.values()||[]){
+    if(String(socket.request?.session?.oryonUser?.id||'')===String(id))socket.disconnect(true);
+   }
+  }
+ },
+ enforceVaultOnly:async id=>{
+  await loadOryonUsersPersistent();
+  if(oryonProductionRequiresDurableStorage())throw Error('quantic_store_unavailable');
+  const data=readOryonUsers();
+  const owner=(data.users||[]).find(user=>String(user.id)===String(id));
+  if(!owner)throw Error('quantic_account_missing');
+  owner.quantic_required=true;
+  // Invalidate all classic remember tokens. The replacement token is never sent.
+  issueOryonRememberToken(owner,data);
+  await writeOryonUsersAndWait(data);
+ },
  // Only a verified Quantic proof can reach this factory. Never infer ownership
  // from a label, email or existing SWAPP username.
  newUserFactory:()=>{
@@ -4657,7 +4688,7 @@ app.post('/api/oryon/login', authLimiter, async (req, res) => {
     if(oryonProductionRequiresDurableStorage()) return res.status(503).json({ success:false, error:'Stockage durable des comptes indisponible : vérifier MySQL ou la configuration du stockage sélectionné.' });
     const data = readOryonUsers();
     const user = data.users.find(u => u.login === login);
-    if(!user || requiresVaultAuthentication(user) || !verifyOryonPassword(password, user.password_hash)) return res.status(401).json({ success:false, error:'Identifiants invalides.' });
+    if(!user || await swappAccountRequiresVault(user) || !verifyOryonPassword(password, user.password_hash)) return res.status(401).json({ success:false, error:'Identifiants invalides.' });
     ensureOryonUserShape(user, { ensureStreamKey:true });
     const remember_token = issueOryonRememberToken(user, data);
     const persistResult = await writeOryonUsersAndWait(data);
@@ -4683,7 +4714,7 @@ app.post('/api/oryon/password/forgot', authLimiter, async (req, res) => {
     if(identity.length < 3) return res.status(400).json({ success:false, error:'Indique ton email ou ton pseudo.' });
     const data = readOryonUsers();
     const user = findOryonUserForPasswordRecovery(data, identity);
-    if(user?.email&&!requiresVaultAuthentication(user)){
+    if(user?.email&&!await swappAccountRequiresVault(user)){
       const token = makeOryonPasswordResetToken();
       user.password_reset_token_hash = hashOryonPasswordResetToken(token);
       user.password_reset_expires_at = Date.now() + SWAPP_PASSWORD_RESET_TTL_MS;
@@ -4720,7 +4751,7 @@ app.post('/api/oryon/password/reset', authLimiter, async (req, res) => {
     const tokenHash = hashOryonPasswordResetToken(token);
     const now = Date.now();
     const user = (data.users || []).find(u => String(u.password_reset_token_hash || '') === tokenHash && Number(u.password_reset_expires_at || 0) > now);
-    if(!user || requiresVaultAuthentication(user)) return res.status(400).json({ success:false, error:'Lien invalide ou expiré. Demande un nouveau lien.' });
+    if(!user || await swappAccountRequiresVault(user)) return res.status(400).json({ success:false, error:'Lien invalide ou expiré. Demande un nouveau lien.' });
     user.password_hash = hashOryonPassword(password);
     user.password_changed_at = now;
     user.password_reset_token_hash = null;
@@ -4749,7 +4780,7 @@ app.post('/api/oryon/restore-session', async (req, res) => {
     if(oryonProductionRequiresDurableStorage()) return res.status(503).json({ success:false, error:'Stockage durable des comptes indisponible : vérifier MySQL ou la configuration du stockage sélectionné.' });
     const data = readOryonUsers();
     const user = data.users.find(u => u.login === login);
-    if(!user || requiresVaultAuthentication(user) || !verifyOryonRememberToken(user, token)) return res.status(401).json({success:false,error:'Session expirée. Reconnecte-toi une fois.'});
+    if(!user || await swappAccountRequiresVault(user) || !verifyOryonRememberToken(user, token)) return res.status(401).json({success:false,error:'Session expirée. Reconnecte-toi une fois.'});
     ensureOryonUserShape(user, { ensureStreamKey:true });
     await writeOryonUsersAndWait(data);
     req.session.oryonUser = sessionOryonUser(user);
@@ -9177,28 +9208,45 @@ io.engine.on('connection_error', (err) => {
   console.warn('\u26A0\uFE0F [SOCKET] connection_error:', err.code, err.message);
 });
 
-io.use((socket, next) => {
-  sessionMiddleware(socket.request, {}, err=>{
-    if(err)return next(err);
-    if(socket.request?.session?.quanticAuth?.expiresAt<=Date.now())
-      return next(new Error('quantic_session_expired'));
-    next();
-  });
+async function swappSocketSessionAllowed(session){
+ const id=session?.oryonUser?.id;
+ if(!id)return true;
+ const q=session?.quanticAuth;
+ if(q){
+  if(!Number.isFinite(q.expiresAt)||q.expiresAt<=Date.now()||!swappQuanticBindings)return false;
+  return await swappQuanticBindings.getKey(id)===q.hash;
+ }
+ // A legacy socket cannot bypass a Vault-only account on another Node worker.
+ return !swappQuanticBindings||!await swappQuanticBindings.isVaultOnly(id);
+}
+io.use((socket,next)=>{
+ sessionMiddleware(socket.request,{},async err=>{
+  if(err)return next(err);
+  try{
+   if(!await swappSocketSessionAllowed(socket.request?.session))
+    return next(new Error('quantic_session_revoked'));
+   next();
+  }catch{return next(new Error('quantic_session_guard_unavailable'))}
+ });
 });
-// Existing Socket.IO connections must lose Quantic-issued privileges when
-// their browser locks, the session ends or the short server-side lease expires.
+// Re-check sessions during existing socket connections, not only at handshake.
+// This revokes copied sessions on every worker without Redis or a VPS.
 io.on('connection',socket=>{
-  if(!socket.request?.session?.quanticAuth)return;
-  const check=()=>{
-    if(!socket.connected)return;
-    socket.request.session.reload(error=>{
-      const q=socket.request.session?.quanticAuth;
-      if(error||!q||q.expiresAt<=Date.now())socket.disconnect(true);
-    });
-  };
-  const timer=setInterval(check,3000);
-  timer.unref?.();
-  socket.on('disconnect',()=>clearInterval(timer));
+ if(!socket.request?.session?.oryonUser?.id)return;
+ let busy=false;
+ const check=()=>{
+  if(busy||!socket.connected)return;
+  busy=true;
+  socket.request.session.reload(async error=>{
+   try{
+    if(error||!await swappSocketSessionAllowed(socket.request?.session))socket.disconnect(true);
+   }catch{socket.disconnect(true)}
+   finally{busy=false}
+  });
+ };
+ const timer=setInterval(check,10000);
+ timer.unref?.();
+ socket.on('disconnect',()=>clearInterval(timer));
 });
 
 // SWAPP channel moderation: registered before the native chat socket handlers.
@@ -11844,6 +11892,7 @@ app.post('/api/oryon/client-recover', async (req, res) => {
     const data = readOryonUsers();
     let user = (data.users||[]).find(u => u.login === backup.login);
     if(user){
+      if(await swappAccountRequiresVault(user))return res.status(403).json({success:false,error:'quantic_vault_required'});
       if(!token || !verifyOryonRememberToken(user, token)) return res.status(401).json({success:false,error:'Ce pseudo existe déjà. Reconnecte-toi avec le mot de passe ou un jeton valide.'});
       Object.assign(user, {...backup, id:user.id, password_hash:user.password_hash, remember_tokens:user.remember_tokens, createdAt:user.createdAt || Date.now(), updatedAt:Date.now()});
       ensureOryonUserShape(user, { ensureStreamKey:true });

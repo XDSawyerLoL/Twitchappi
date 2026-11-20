@@ -10,4 +10,12 @@
 #settings .swapp-vault-inline-status:empty{display:none}
 #settings .swapp-vault-link-inline{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:14px 0;padding:10px 0;border-bottom:1px solid var(--line,#28303a);color:var(--muted,#abb8ca);font-size:13px}
 #settings .swapp-vault-link-inline .swapp-vault-inline-status{flex-basis:100%;text-align:left}
+/* Integrate account recovery into existing SWAPP typography, not a new card. */
+#settings .swapp-vault-inline-recovery{appearance:none;border:0;background:transparent;color:var(--muted,#b4c7d3);font:inherit;font-size:12px;text-decoration:underline;text-underline-offset:3px;cursor:pointer;padding:4px 0}
+#settings .swapp-vault-inline-recovery:hover,#settings .swapp-vault-inline-recovery:focus-visible{color:#65cce0}
+#settings .swapp-vault-inline-recovery:disabled{opacity:.55;cursor:wait}
+#settings #swapp-vault-recovery-code{width:min(100%,360px);min-height:36px;border:1px solid var(--line,#28303a);background:#081019;color:#e8f2f6;padding:8px 10px;font-family:inherit;font-size:12px}
+#settings #swapp-vault-recovery-codes{flex:1 1 100%;max-width:100%;display:flex;flex-direction:column;gap:6px}
+#settings #swapp-vault-recovery-codes p{margin:0;max-width:560px;font-size:12px;line-height:1.5}
+#settings #swapp-vault-recovery-codes textarea{width:min(100%,490px);min-height:180px;resize:vertical;border:1px solid var(--line,#28303a);background:#081019;color:#e8f2f6;padding:10px;font:12px/1.65 ui-monospace,Consolas,monospace}
 @media(prefers-reduced-motion:reduce){#settings .swapp-vault-logo-button{transition:none}#settings .swapp-vault-logo-button:hover{transform:none}}

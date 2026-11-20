@@ -10,6 +10,7 @@ on:
       - 'index.html'
       - 'server.js'
       - 'test/swapp-quantic-account-login.test.js'
+      - 'test/swapp-quantic-recovery-mysql.test.js'
       - 'test/swapp-quantic-id-site.test.js'
       - 'package.json'
       - 'package-lock.json'
@@ -39,7 +40,7 @@ jobs:
           npm ls express express-session mysql2 express-rate-limit websocket-driver --all
       - name: Full signed account authentication and cross-feature regression
         run: |
-          node --test test/swapp-quantic-account-login.test.js test/swapp-quantic-id-site.test.js
+          node --test test/swapp-quantic-account-login.test.js test/swapp-quantic-id-site.test.js test/swapp-quantic-recovery-mysql.test.js
       - name: Compare full SWAPP regression with existing master baseline
         shell: bash
         run: |
