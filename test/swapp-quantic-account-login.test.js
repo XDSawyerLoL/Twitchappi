@@ -2,7 +2,7 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const {createHash,generateKeyPairSync,sign}=require('node:crypto');
-const {createAccountRouter,createLeaseGuard,digest,AUTH_LEASE_MS}=require('../modules/swapp-quantic-account-auth');
+const {createBindingStore,createAccountRouter,createLeaseGuard,digest,AUTH_LEASE_MS}=require('../modules/swapp-quantic-account-auth');
 
 function identity(){
  const pair=generateKeyPairSync('ed25519');
@@ -224,4 +224,57 @@ test('Forged assertions and users with an existing account cannot silently auto-
  const denied=await ctx.request('/api/quantic-id/account/prove',{purpose:'login',challenge:started.data.challenge,proof:spoof,createIfMissing:true});
  assert.equal(denied.status,401);
  assert.equal(ctx.createdUsers.size,0);
+});
+
+test('MySQL Quantic signup inserts account and binding in one transaction or rolls both back',async()=>{
+ const liveAccounts=new Map(),liveBindings=new Map();
+ let tx=null,failBinding=false,rollbacks=0;
+ const conn={
+  async beginTransaction(){tx={accounts:new Map(liveAccounts),bindings:new Map(liveBindings)}},
+  async commit(){liveAccounts.clear();liveBindings.clear();for(const [k,v] of tx.accounts)liveAccounts.set(k,v);for(const [k,v] of tx.bindings)liveBindings.set(k,v);tx=null},
+  async rollback(){rollbacks++;tx=null},
+  release(){},
+  async execute(sql,params=[]){
+   if(sql.startsWith('SELECT COUNT(*)'))return [[{count:tx.accounts.size}],[]];
+   if(sql.startsWith('INSERT INTO swapp_oryon_accounts')){
+    if([...tx.accounts.values()].some(u=>u.login===params[1]||u.email===params[2]))
+     throw Object.assign(Error('duplicate account'),{code:'ER_DUP_ENTRY'});
+    tx.accounts.set(params[0],{login:params[1],email:params[2],payload_json:params[3]});
+    return [{affectedRows:1},[]];
+   }
+   if(sql.startsWith('INSERT INTO swapp_quantic_account_bindings')){
+    if(failBinding)throw Error('database binding failure');
+    if(tx.bindings.has(params[0]))throw Object.assign(Error('duplicate key'),{code:'ER_DUP_ENTRY'});
+    tx.bindings.set(params[0],params[1]);return [{affectedRows:1},[]];
+   }
+   throw Error('Unexpected transaction SQL '+sql);
+  }
+ };
+ const pool={
+  async query(){return [[],[]]},
+  getConnection:async()=>conn,
+  async execute(sql,params=[]){
+   if(sql.startsWith('SELECT user_id FROM swapp_quantic_account_bindings WHERE key_hash=?'))
+    return [liveBindings.has(params[0])?[{user_id:liveBindings.get(params[0])}]:[],[]];
+   throw Error('Unexpected lookup SQL '+sql);
+  }
+ };
+ const store=createBindingStore({pool});
+ const hash='a'.repeat(64),u={
+  id:'auto_123456',login:'vault_abcdef',email:'quantic-a@accounts.swapp.invalid',
+  password_hash:'random-hashed-password',quantic_only:true
+ };
+ failBinding=true;
+ await assert.rejects(store.createAccountForKey(hash,u),/database binding failure/);
+ assert.equal(rollbacks,1);
+ assert.equal(liveAccounts.size,0);
+ assert.equal(liveBindings.size,0);
+ failBinding=false;
+ const created=await store.createAccountForKey(hash,u);
+ assert.deepEqual(created,{id:u.id,created:true});
+ assert.equal(liveAccounts.size,1);
+ assert.equal(liveBindings.get(hash),u.id);
+ const repeated=await store.createAccountForKey(hash,{...u,id:'auto_222222',login:'vault_other',email:'quantic-b@accounts.swapp.invalid'});
+ assert.deepEqual(repeated,{id:u.id,created:false});
+ assert.equal(liveAccounts.size,1);
 });
