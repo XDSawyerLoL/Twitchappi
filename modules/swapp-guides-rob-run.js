@@ -5,20 +5,12 @@ const {renderPage,SHARED_HEAD_SLOT}=require('./swapp-page-shell');
 const ORIGIN='https://swapp.tv', PATH='/guides/rob-run', UPDATED='2026-11-20';
 const STEAM='https://store.steampowered.com/app/4262460/ROB_RUN/';
 const PATCH='https://steamcommunity.com/ogg/4262460/announcements/detail/717921532895037155';
+// Verified original publisher artwork; no stock images or fabricated captures.
+const ROB_HERO='https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/4262460/dab8256c1dff89eff8f8b6d5e25327a68d8659dc/page_bg_raw.jpg?t=1793811654';
+const ROB_COVER='https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/4262460/eb2c70e5d9af9f4d74f36f0a60487e84b4911a39/capsule_616x353.jpg?t=1793811654';
+const AION_HERO='https://blogfiles.ncsoft.net/news/186b69f6-2a8d-4e72-9076-c72221de00b5.jpg';
 const E=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const CSS=".sg-page{background:#050608;color:#f5f7fb;min-height:80vh;padding:40px clamp(16px,4vw,52px) 85px;font:400 16px/1.75 system-ui,Segoe UI,sans-serif}"+
-".sg-wrap{max-width:1120px;margin:auto}.sg-hero{padding:clamp(25px,5vw,60px);border:1px solid #728c9b52;border-radius:18px;background:radial-gradient(ellipse at 100% 0%,#2a4b5a40,transparent 50%),linear-gradient(135deg,#121a23,#07090c)}"+
-".sg-label{color:#9bc9df;text-transform:uppercase;letter-spacing:.16em;font-size:12px;font-weight:900}.sg-hero h1{font-size:clamp(37px,6vw,74px);letter-spacing:-.06em;line-height:1.07;max-width:19ch;margin:14px 0 22px}"+
-".sg-lead{font-size:clamp(17px,2vw,21px);max-width:850px;color:#c9dce5;line-height:1.55}.sg-stamp{color:#9bb9c7;font-size:13px}"+
-".sg-page a{color:#9ce5f7;text-underline-offset:4px}.sg-cta{display:flex;flex-wrap:wrap;gap:16px;margin-top:28px}.sg-cta a{padding:10px 15px;border:1px solid #73919d77;border-radius:9px;color:white;text-decoration:none}"+
-".sg-columns{display:grid;grid-template-columns:minmax(0,1fr) 230px;gap:48px;margin-top:34px}.sg-main{max-width:790px}"+
-".sg-main h2{font-size:clamp(24px,2.8vw,35px);line-height:1.24;letter-spacing:-.035em;margin:45px 0 14px}.sg-main p,.sg-main li{color:#c7d4dd}.sg-main li{margin:10px 0}.sg-main ul,.sg-main ol{padding-left:22px}"+
-".sg-note{border-left:3px solid #80d6e7;background:#0c1a24;padding:17px 20px;color:#e5f1f6;margin:26px 0}.sg-side{position:sticky;top:108px;align-self:start;border-top:1px solid #506575;padding-top:15px}"+
-".sg-side a{display:block;font-size:13px;padding:8px 0;text-decoration:none;color:#b6cad6}.sg-source{border-top:1px solid #516474;margin-top:50px;padding-top:24px;font-size:14px;color:#aebecb}"+
-".sg-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px;margin-top:32px}.sg-card{min-height:180px;display:flex;flex-direction:column;gap:10px;padding:24px;border:1px solid #66859470;border-radius:15px;background:linear-gradient(135deg,#15212a,#090d12);text-decoration:none!important}"+
-".sg-card strong{font-size:24px;color:white}.sg-card small{font-size:11px;color:#a2ccd7;text-transform:uppercase;letter-spacing:.1em}.sg-card span{color:#c5d3dd;font-size:14px}"+
-"@media(max-width:800px){.sg-columns{display:flex;flex-direction:column-reverse}.sg-side{position:static;display:flex;flex-wrap:wrap;gap:9px 18px}.sg-side a{padding:2px 0}}"+
-"@media(max-width:540px){.sg-page{padding:22px 14px 54px}.sg-hero{padding:26px 19px}.sg-hero h1{max-width:none}.sg-main h2{margin-top:32px}}";
+const CSS="\n/* SWAPP: black editorial, flat rules and native game imagery. Zero rounded cards. */\n.sg-page{background:#030405;color:#f5f7fb;min-height:85vh;padding:0 0 95px;font:400 16px/1.7 system-ui,Segoe UI,Arial,sans-serif;--sg-line:#ffffff28;--sg-accent:#9ae0e6}\n.sg-page *{box-sizing:border-box}.sg-page a{color:inherit;text-decoration:none}.sg-page a:hover{color:#b9f6fc}.sg-page a:focus-visible{outline:2px solid var(--sg-accent);outline-offset:3px}\n.sg-wrap{width:min(1510px,100%);margin:0 auto;padding:0 clamp(16px,3.6vw,56px)}\n.sg-hero{position:relative;isolation:isolate;min-height:clamp(480px,50vw,740px);display:flex;align-items:flex-end;overflow:hidden;border:0;border-radius:0;background:#0a0b0c}\n.sg-hero-image{position:absolute;inset:0;z-index:-2;display:block;width:100%;height:100%;object-fit:cover;object-position:center;filter:brightness(.82) saturate(.86)}\n.sg-hero:before{content:\"\";position:absolute;inset:0;z-index:-1;background:linear-gradient(90deg,#030405f2 0%,#030405c4 33%,#03040521 85%),linear-gradient(0deg,#030405 0%,transparent 60%)}\n.sg-hero>.sg-wrap{width:100%;padding-top:100px;padding-bottom:clamp(45px,7vw,100px)}\n.sg-kicker{font-size:11px;font-weight:850;letter-spacing:.19em;text-transform:uppercase;color:var(--sg-accent)}\n.sg-hero h1{font-size:clamp(44px,6.7vw,98px);line-height:1.02;font-weight:900;letter-spacing:-.065em;max-width:850px;margin:16px 0 23px;text-wrap:balance}\n.sg-lead{font-size:clamp(17px,1.9vw,21px);max-width:715px;color:#d7e0e7;line-height:1.55;margin:0}\n.sg-meta{font-size:12px;color:#b6c4cc;margin:26px 0 0}.sg-artcredit{font-size:11px;color:#9dafba;margin:12px 0 0}\n.sg-actions{display:flex;gap:16px 30px;align-items:center;flex-wrap:wrap;margin:29px 0 0}\n.sg-action{border-bottom:1px solid var(--sg-accent);padding:7px 0;font-size:12px;font-weight:850;letter-spacing:.09em;text-transform:uppercase}\n.sg-action.alt{border-bottom-color:#c1cbd466}\n.sg-deck{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:30px;padding:25px 0;border-block:1px solid var(--sg-line)}\n.sg-deck div+div{border-left:1px solid var(--sg-line);padding-left:25px}\n.sg-deck strong{font-size:14px;display:block}.sg-deck span{font-size:12px;color:#9cabb7;display:block;margin-top:3px}\n.sg-columns{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:clamp(25px,6vw,90px);padding-top:45px}\n.sg-main{max-width:825px;min-width:0}.sg-main h2{font-size:clamp(26px,3.2vw,40px);letter-spacing:-.04em;line-height:1.18;margin:56px 0 18px}\n.sg-main h2:before{content:\"\";display:block;width:42px;height:2px;background:var(--sg-accent);margin-bottom:18px}\n.sg-main p,.sg-main li{color:#c1ccd5}.sg-main li{margin:10px 0}.sg-main ul,.sg-main ol{padding-left:22px}.sg-main strong{color:white}\n.sg-first{font-size:19px;color:#e2e9ef!important}.sg-note{border-left:2px solid var(--sg-accent);padding-left:19px;margin:29px 0 39px;color:#c4d4de}\n.sg-inline-photo{display:block;margin:33px 0 45px;max-width:730px}.sg-inline-photo img{width:100%;display:block;object-fit:cover}.sg-inline-photo figcaption{font-size:11px;color:#9aaebd;margin-top:10px}\n.sg-side{position:sticky;top:109px;align-self:start;border-top:1px solid var(--sg-line);padding-top:19px}\n.sg-side strong{display:block;font-size:11px;letter-spacing:.16em;margin-bottom:7px;color:#dbe5ea}\n.sg-side a{display:block;padding:9px 0;border-bottom:1px solid #ffffff12;color:#aebbc7;font-size:13px}\n.sg-source{margin-top:60px;padding-top:25px;border-top:1px solid var(--sg-line);font-size:13px;color:#a8bac7}\n.sg-source h2{font-size:22px;margin:0 0 12px}.sg-source h2:before{display:none}.sg-source a{color:#9ddae6;text-decoration:underline}\n.sg-sectionhead{display:flex;justify-content:space-between;align-items:end;gap:20px;margin:50px 0 8px;border-bottom:1px solid var(--sg-line);padding-bottom:17px}\n.sg-sectionhead h2{font-size:clamp(26px,3vw,42px);letter-spacing:-.04em;line-height:1.1;margin:0}.sg-sectionhead span{font-size:12px;color:#91acb9}\n.sg-feature-row{display:grid;grid-template-columns:minmax(260px,44%) 1fr;gap:clamp(22px,4vw,56px);align-items:center;padding:24px 0;border-bottom:1px solid var(--sg-line)}\n.sg-row-picture{display:block;position:relative;aspect-ratio:16/9;overflow:hidden;background:#11181e}.sg-row-picture img{width:100%;height:100%;object-fit:cover;object-position:center;display:block;transition:transform .35s}\n.sg-feature-row:hover .sg-row-picture img{transform:scale(1.02)}\n.sg-row-text h3{font-size:clamp(27px,3.2vw,44px);line-height:1.05;letter-spacing:-.04em;margin:11px 0}\n.sg-row-text p{font-size:15px;color:#adbec9;line-height:1.55;max-width:53ch;margin:0 0 23px}.sg-row-link{display:inline-block;color:#ddedf1;border-bottom:1px solid var(--sg-accent);font-size:12px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;padding-bottom:7px}\n.sg-community-row{padding:34px 0;border-bottom:1px solid var(--sg-line);display:grid;grid-template-columns:37% 1fr;align-items:center;gap:32px}\n.sg-community-row h3{font-size:clamp(25px,3vw,40px);margin:9px 0;letter-spacing:-.04em}.sg-community-row p{color:#acbdc8;max-width:59ch}\n.sg-footer-note{font-size:12px;color:#92a8b7;margin:25px 0}\n@media(max-width:850px){.sg-columns{grid-template-columns:1fr}.sg-side{grid-row:1;position:static;display:flex;flex-wrap:wrap;gap:6px 15px}.sg-side strong{width:100%}.sg-side a{border:0;padding:3px 0}.sg-feature-row{grid-template-columns:44% 1fr}}\n@media(max-width:650px){.sg-page{padding-bottom:55px}.sg-hero{min-height:560px}.sg-hero-image{object-position:58% center}.sg-hero:before{background:linear-gradient(0deg,#030405 0%,#030405bd 46%,#0304052b 92%)}.sg-hero>.sg-wrap{padding-top:65px;padding-bottom:36px}.sg-hero h1{font-size:clamp(39px,11vw,63px)}.sg-deck{grid-template-columns:1fr;gap:10px}.sg-deck div+div{border:0;border-top:1px solid var(--sg-line);padding:10px 0 0}.sg-feature-row,.sg-community-row{grid-template-columns:1fr}.sg-sectionhead{margin-top:34px}.sg-columns{padding-top:25px}.sg-main h2{margin-top:40px}}\n@media(prefers-reduced-motion:reduce){.sg-row-picture img{transition:none;transform:none!important}}\n";
 const SECTIONS=Object.freeze([
  {id:'comprendre',title:'1. Comprendre ce que ROB RUN demande vraiment',
   body:"<p>Développé et édité par <strong>Kefir</strong>, ROB RUN est un crime sandbox multijoueur en monde ouvert, lancé sur Steam en accès anticipé le <strong>4 novembre 2026</strong>. Le jeu est <strong>gratuit</strong>, avec achats intégrés. Sa fiche annonce des affrontements entre vrais joueurs : policiers, criminels et membres de groupes ont leurs propres objectifs. Il ne s’agit pas d’une campagne scénarisée solo ni d’un monde où chaque confrontation est prévisible.</p><p>Ton premier objectif devrait être de comprendre le risque avant d’accumuler du butin. La présentation officielle insiste sur la possibilité de tout perdre. Choisis donc une activité courte, repère un retour possible et distingue ce que tu es prêt à risquer de ce que tu préfères conserver. Ces conseils sont une méthode SWAPP, pas une mécanique secrète.</p>"},
@@ -48,47 +40,74 @@ function head(title,description,pathname,kind){
   "<meta name='description' content='"+E(description)+"'><link rel='canonical' href='"+url+"'>"+
   "<meta property='og:type' content='"+kind+"'><meta property='og:title' content='"+E(title)+"'>"+
   "<meta property='og:description' content='"+E(description)+"'><meta property='og:url' content='"+url+"'>"+
-  "<meta property='og:image' content='"+ORIGIN+"/swapp-share-card.png'>"+
+  "<meta property='og:image' content='"+ROB_COVER+"'>"+
+  "<meta property='og:image:alt' content='Visuel officiel ROB RUN par Kefir'>"+
+  "<meta name='twitter:card' content='summary_large_image'>"+
+  "<meta name='twitter:image' content='"+ROB_COVER+"'>"+
   "<script type='application/ld+json'>"+JSON.stringify(schema).replace(/</g,'\\u003c')+"</script>"+
   SHARED_HEAD_SLOT+"<style>"+CSS+"</style>";
 }
 function renderRobRun(){
  const title='ROB RUN : bien débuter et comprendre la mise à jour du 17 novembre | SWAPP';
  const desc='Guide ROB RUN : premiers pas, police, clans, stockage, patch du 17 novembre 2026 et configuration PC. Conseils originaux et sources officielles.';
- const hero="<main class='sg-page'><div class='sg-wrap'><header class='sg-hero'>"+
-  "<p class='sg-label'><a href='/guides'>SWAPP Guides</a> / ROB RUN</p>"+
+ const hero="<main class='sg-page'><header class='sg-hero'>"+
+  "<img class='sg-hero-image' src='"+ROB_HERO+"' alt='Décor désertique de ROB RUN, capture promotionnelle officielle Kefir' fetchpriority='high' decoding='async'>"+
+  "<div class='sg-wrap'><p class='sg-kicker'><a href='/guides'>SWAPP GUIDES</a> / ROB RUN / GRAND FORMAT</p>"+
   "<h1>ROB RUN : partir de rien, sans tout perdre</h1>"+
-  "<p class='sg-lead'>Les bons réflexes pour entrer dans le crime sandbox de Kefir : comprendre le risque, organiser ses premières sorties et repérer les règles réellement modifiées en novembre.</p>"+
-  "<p class='sg-stamp'>Guide original SWAPP · Révision du 20 novembre 2026 · Jeu PC en accès anticipé depuis le 4 novembre</p>"+
-  "<div class='sg-cta'><a href='"+STEAM+"' target='_blank' rel='noopener noreferrer'>Fiche Steam officielle</a>"+
-  "<a href='"+PATCH+"' target='_blank' rel='noopener noreferrer'>Notes Kefir du 17 novembre</a></div></header>";
+  "<p class='sg-lead'>Apprendre à survivre dans le crime sandbox multijoueur de Kefir : gérer le risque, comprendre les affrontements et intégrer les vraies modifications de novembre.</p>"+
+  "<p class='sg-meta'>DOSSIER PRATIQUE · 20 NOVEMBRE 2026 · ACCÈS ANTICIPÉ PC</p>"+
+  "<div class='sg-actions'><a class='sg-action' href='"+STEAM+"' target='_blank' rel='noopener noreferrer'>Le jeu sur Steam</a>"+
+  "<a class='sg-action alt' href='"+PATCH+"' target='_blank' rel='noopener noreferrer'>Mise à jour du 17 novembre</a></div>"+
+  "<p class='sg-artcredit'>Image officielle du jeu : © Kefir / Steam</p></div></header>";
+ const ribbon="<div class='sg-wrap'><div class='sg-deck' aria-label='Informations sur le guide'>"+
+  "<div><strong>HUIT CHAPITRES</strong><span>Bien débuter, police, raids et repaires</span></div>"+
+  "<div><strong>VERSION 20.11.2026</strong><span>Correctif officiel du 17 novembre pris en compte</span></div>"+
+  "<div><strong>SOURCES PRIMAIRES</strong><span>Fiche et notes officielles de Kefir</span></div></div>";
  const chapterHtml=SECTIONS.map(s=>"<section id='"+s.id+"'><h2>"+E(s.title)+"</h2>"+s.body+"</section>").join('');
- const aside="<aside class='sg-side' aria-label='Sommaire'>"+
+ const aside="<aside class='sg-side' aria-label='Sommaire du guide'><strong>PARCOURIR LE DOSSIER</strong>"+
   SECTIONS.map(s=>"<a href='#"+s.id+"'>"+E(s.title)+"</a>").join('')+"</aside>";
- const article="<article class='sg-main'><p class='sg-note'><strong>Notre méthode :</strong> les faits de jeu et les changements du patch sont liés aux annonces de Kefir. Les routines proposées sont des conseils SWAPP, pas des tests réalisés manette en main, ni des statistiques garanties.</p>"+
+ const article="<article class='sg-main'>"+
+  "<p class='sg-first'>ROB RUN ne pardonne pas l'improvisation. Les premières heures servent moins à amasser des richesses qu'à comprendre comment les autres joueurs peuvent bouleverser une situation.</p>"+
+  "<figure class='sg-inline-photo'><img src='"+ROB_COVER+"' alt='Illustration de couverture officielle du jeu ROB RUN : personnage dans un décor désertique' loading='lazy' decoding='async'>"+
+  "<figcaption>Illustration promotionnelle officielle de ROB RUN — © Kefir / Steam. Visuel du jeu, pas une capture de partie réalisée par SWAPP.</figcaption></figure>"+
+  "<div class='sg-note'><strong>Notre méthode :</strong> les règles et changements cités proviennent des annonces de Kefir. Les conseils de progression sont des recommandations SWAPP, sans statistiques inventées ni prétention à un test en jeu.</div>"+
   chapterHtml+"<section class='sg-source'><h2>Sources, crédits et révisions</h2>"+
-  "<p><a href='"+STEAM+"' target='_blank' rel='noopener noreferrer'>Kefir — fiche Steam ROB RUN</a> : description, sortie du 4 novembre, prix, langue et configuration. "+
-  "<a href='"+PATCH+"' target='_blank' rel='noopener noreferrer'>Kefir — Patch Notes du 17 novembre 2026</a> : changements de progression, prison, vocal, échanges et connexion.</p>"+
-  "<p>Mis à jour le 20 novembre 2026. Aucun visuel tiers reproduit, aucune vidéo de réupload et aucune information de gameplay inventée. Les règles d’accès anticipé peuvent changer : contrôle les notes officielles plus récentes.</p>"+
+  "<p><a href='"+STEAM+"' target='_blank' rel='noopener noreferrer'>Kefir — fiche Steam ROB RUN</a> : sortie du 4 novembre, fonctionnement et configuration. "+
+  "<a href='"+PATCH+"' target='_blank' rel='noopener noreferrer'>Kefir — notes officielles du 17 novembre 2026</a> : progression, prison, vocal, échanges et stabilité.</p>"+
+  "<p>Visuels promotionnels officiels © Kefir / Steam, chargés directement depuis l'hébergement Steam. Révision éditoriale du 20 novembre 2026. Ces informations peuvent évoluer pendant l'accès anticipé.</p>"+
   "<p><a href='/guides'>Tous les guides</a> · <a href='/actus'>Magazine SWAPP</a> · <a href='/explorer'>Explorer les directs</a></p></section></article>";
- return renderPage({head:head(title,desc,PATH,'article'),content:hero+
+ return renderPage({head:head(title,desc,PATH,'article'),content:hero+ribbon+
   "<div class='sg-columns'>"+article+aside+"</div></div></main>",
   active:'discover',bodyClass:'swapp-editorial-route swapp-guide-page'});
 }
 function renderIndex(){
  const title='SWAPP Guides : apprendre et progresser dans les jeux';
- const desc='Guide ROB RUN, parcours Aion 2 et méthode pour choisir une communauté gaming active. Des conseils originaux, sourcés et révisables.';
- const guides=[
-  ['/guides/rob-run','ROB RUN','Débuter, sécuriser son butin, comprendre les clans et le patch du 17 novembre 2026.','NOUVEAU · 20 NOVEMBRE'],
-  ['/guides/aion-2','Aion 2','Classes, progression, équipement, donjons, PvE et PvP en dix chapitres.','PARCOURS · 10 CHAPITRES'],
-  ['/guides/choisir-communaute-gaming','Choisir sa communauté','Vérifier les horaires, la modération, les joueurs réellement actifs et les règles.','MÉTHODE · COMMUNAUTÉS']
- ];
- const cards=guides.map(x=>"<a class='sg-card' href='"+x[0]+"'><small>"+E(x[3])+"</small><strong>"+E(x[1])+"</strong><span>"+E(x[2])+"</span></a>").join('');
- const html="<main class='sg-page'><div class='sg-wrap'><header class='sg-hero'><p class='sg-label'>SWAPP / Guides</p>"+
-  "<h1>Apprendre sans perdre son temps</h1><p class='sg-lead'>Des guides pour comprendre les jeux et les communautés. Les méthodes sont distinctes des faits vérifiés : pas de chiffres fictifs, ni de fausses promesses.</p></header>"+
-  "<section aria-label='Guides disponibles'><div class='sg-cards'>"+cards+"</div></section>"+
-  "<p class='sg-source'>Pour les annonces récentes, consulte <a href='/actus'>le Magazine SWAPP</a>.</p></div></main>";
- return renderPage({head:head(title,desc,'/guides','website'),content:html,
+ const desc='Guides immersifs SWAPP : ROB RUN, Aion 2 et communautés gaming. Visuels authentiques, sources officielles, conseils et mises à jour.';
+ const hero="<main class='sg-page'><header class='sg-hero sg-index-hero'>"+
+  "<img class='sg-hero-image' src='"+ROB_HERO+"' alt='Vue panoramique du désert de ROB RUN, illustration officielle Kefir' fetchpriority='high' decoding='async'>"+
+  "<div class='sg-wrap'><p class='sg-kicker'>SWAPP / GUIDES & STRATÉGIES</p>"+
+  "<h1>Découvrir un jeu.<br>En maîtriser les règles.</h1>"+
+  "<p class='sg-lead'>De vrais guides pour faire ses premiers choix, comprendre les mécaniques et suivre les changements. Du contenu rédigé, sourcé et révisable, pas une succession de fiches vides.</p>"+
+  "<div class='sg-actions'><a class='sg-action' href='/guides/rob-run'>À LA UNE : ROB RUN</a>"+
+  "<a class='sg-action alt' href='/guides/aion-2'>EXPLORER AION 2</a></div>"+
+  "<p class='sg-artcredit'>À la une : illustration officielle ROB RUN © Kefir / Steam</p></div></header>";
+ const feature="<div class='sg-wrap'><section aria-label='Guides de jeux publiés'>"+
+  "<div class='sg-sectionhead'><h2>Guides de jeux</h2><span>PARCOURS ORIGINAUX · SOURCES VÉRIFIABLES</span></div>"+
+  "<div class='sg-feature-row'><a class='sg-row-picture' href='/guides/rob-run' aria-label='Ouvrir le guide ROB RUN'><img src='"+ROB_COVER+"' alt='Couverture officielle de ROB RUN par Kefir' loading='lazy' decoding='async'></a>"+
+  "<div class='sg-row-text'><p class='sg-kicker'>20 NOVEMBRE 2026 / PREMIERS PAS</p><h3><a href='/guides/rob-run'>ROB RUN</a></h3>"+
+  "<p>Butin, police, clans, repaires : les premières décisions et les changements confirmés du patch du 17 novembre.</p>"+
+  "<a class='sg-row-link' href='/guides/rob-run'>LIRE LE GUIDE</a><p class='sg-artcredit'>© Kefir / Steam</p></div></div>"+
+  "<div class='sg-feature-row'><a class='sg-row-picture' href='/guides/aion-2' aria-label='Ouvrir le parcours Aion 2'><img src='"+AION_HERO+"' alt='Personnages et logo officiels Aion 2, visuel NCSOFT' loading='lazy' decoding='async'></a>"+
+  "<div class='sg-row-text'><p class='sg-kicker'>MMORPG / ACADÉMIE</p><h3><a href='/guides/aion-2'>Aion 2</a></h3>"+
+  "<p>Un parcours complet : classes, progression, équipement, donjons, PvE et PvP. Dix chapitres pour comprendre avant de farmer.</p>"+
+  "<a class='sg-row-link' href='/guides/aion-2'>EXPLORER L'ACADÉMIE</a><p class='sg-artcredit'>© NCSOFT</p></div></div>"+
+  "</section><section aria-label='Guide des communautés'>"+
+  "<div class='sg-sectionhead'><h2>Communautés & joueurs</h2><span>CHOISIR EN CONNAISSANCE DE CAUSE</span></div>"+
+  "<div class='sg-community-row'><div><p class='sg-kicker'>COMMUNAUTÉS / MÉTHODE</p><h3><a href='/guides/choisir-communaute-gaming'>Trouver les bons joueurs</a></h3></div>"+
+  "<div><p>Horaires, modération, activité réelle : comment rejoindre un serveur où l'on joue véritablement ensemble, au-delà des simples compteurs.</p>"+
+  "<a class='sg-action' href='/guides/choisir-communaute-gaming'>LIRE LE GUIDE</a></div></div></section>"+
+  "<p class='sg-footer-note'>Images des jeux fournies par leurs éditeurs respectifs. Les guides restent indépendants des produits ou services promus.</p></div></main>";
+ return renderPage({head:head(title,desc,'/guides','website'),content:hero+feature,
   active:'discover',bodyClass:'swapp-editorial-route swapp-guide-page'});
 }
 function register(app){
