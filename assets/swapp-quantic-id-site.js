@@ -12,6 +12,8 @@
  const errorLabels={
   quantic_identity_not_linked:'Cette identité n’est pas associée à SWAPP.',
   swapp_password_login_required:'Connecte-toi d’abord à ton compte SWAPP habituel pour autoriser la liaison.',
+  swapp_recent_password_required:'Pour protéger ton compte contre le vol de session, reconnecte-toi avec ton mot de passe SWAPP avant d’associer ou retirer Identity Vault.',
+  quantic_only_account_recovery_required:'Compte protégé par Identity Vault : ajoute d’abord un autre moyen de récupération vérifié avant de retirer le coffre.',
   quantic_account_already_linked:'Ce compte possède déjà une identité Quantic ID associée.',
   quantic_identity_already_linked:'Cette identité est déjà associée à un autre compte.',
   quantic_identity_mismatch:'La signature ne correspond pas à l’identité associée.',
