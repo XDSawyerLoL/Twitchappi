@@ -20,7 +20,8 @@ function identity(){
 async function fixture(t){
  const express=require('express'),session=require('express-session');
  let time=Date.now(),clearCount=0;
- const bindings=new Map(),reverse=new Map();
+ const bindings=new Map(),reverse=new Map(),createdUsers=new Map();
+ let generated=0;
  const existing={id:'aa11aa11aa11aa11aa11aa11',login:'alice',password_hash:'current-password'};
  const store={
   async getUser(key){return bindings.get(key)||null},
@@ -29,7 +30,14 @@ async function fixture(t){
    if(bindings.has(key)||reverse.has(id)){const e=Error('duplicate');e.code='ER_DUP_ENTRY';throw e}
    bindings.set(key,id);reverse.set(id,key);
   },
-  async unbind(id){const key=reverse.get(id);if(!key)return false;reverse.delete(id);bindings.delete(key);return true}
+  async unbind(id){const key=reverse.get(id);if(!key)return false;reverse.delete(id);bindings.delete(key);return true},
+  async createAccountForKey(hash,user){
+   const existing=bindings.get(hash);
+   if(existing)return {id:existing,created:false};
+   if(reverse.has(user.id))throw Error('duplicate identity');
+   createdUsers.set(user.id,user);bindings.set(hash,user.id);reverse.set(user.id,hash);
+   return {id:user.id,created:true};
+  }
  };
  const secret='S'.repeat(48);
  const app=express();
@@ -47,7 +55,8 @@ async function fixture(t){
  app.use('/api/quantic-id/account',createAccountRouter(express,{
   secret,store,enabled:true,production:false,now:()=>time,
   verifyPassword:(password,hash)=>password===hash,
-  findUser:id=>id===existing.id?existing:null,
+  findUser:id=>id===existing.id?existing:(createdUsers.get(id)||null),
+  newUserFactory:()=>({id:'auto_'+(++generated),login:'vault_'+generated,display_name:'Membre Quantic',quantic_only:true}),
   refreshUsers:async()=>{},
   toSession:user=>({id:user.id,login:user.login,is_admin:false}),
   clearRemember:()=>{clearCount++}
@@ -67,13 +76,13 @@ async function fixture(t){
   const data=await response.json();
   return {status:response.status,data};
  }
- async function challengeAndProof(purpose,key,password){
+ async function challengeAndProof(purpose,key,password,options={}){
   const start=await request('/api/quantic-id/account/challenge',{purpose});
   assert.equal(start.status,200,JSON.stringify(start.data));
   const challenge=start.data.challenge,proof=key.sign(challenge,origin,time);
-  return request('/api/quantic-id/account/prove',{purpose,challenge,proof,...(password!==undefined?{password}:{})});
+  return request('/api/quantic-id/account/prove',{purpose,challenge,proof,...(password!==undefined?{password}:{}),...options});
  }
- return {request,challengeAndProof,identity:identity(),origin,get time(){return time},setTime:v=>{time=v},bindings,reverse,secret,
+ return {request,challengeAndProof,identity:identity(),origin,get time(){return time},setTime:v=>{time=v},bindings,reverse,createdUsers,secret,
   get clearCount(){return clearCount}};
 }
 
@@ -170,4 +179,46 @@ test('SWAPP user can unlink using a signed proof after normal sign-in',async t=>
  assert.equal(unlinked.data.unlinked,true);
  await ctx.request('/__test/logout',{});
  assert.equal((await ctx.challengeAndProof('login',q)).status,401);
+});
+
+test('Unknown signed Vault identity creates exactly one separate real SWAPP account on explicit login consent',async t=>{
+ const ctx=await fixture(t),key=ctx.identity;
+ const result=await ctx.challengeAndProof('login',key,undefined,{createIfMissing:true});
+ assert.equal(result.status,200,JSON.stringify(result.data));
+ assert.equal(result.data.created,true);
+ const first=await ctx.request('/api/quantic-id/account/status');
+ assert.equal(first.data.loggedIn,true);
+ assert.equal(first.data.quanticSession,true);
+ assert.equal(ctx.createdUsers.size,1);
+ const created=[...ctx.createdUsers.values()][0];
+ assert.equal(created.quantic_only,true);
+ assert.equal(first.data.login,created.login);
+ assert.notEqual(created.id,'aa11aa11aa11aa11aa11aa11');
+ await ctx.request('/__test/logout',{});
+ const second=await ctx.challengeAndProof('login',key,undefined,{createIfMissing:true});
+ assert.equal(second.status,200);
+ assert.equal(second.data.created,false);
+ assert.equal(second.data.login,created.login);
+ assert.equal(ctx.createdUsers.size,1);
+});
+test('A new Quantic-only account cannot remove its last login factor',async t=>{
+ const ctx=await fixture(t),key=ctx.identity;
+ assert.equal((await ctx.challengeAndProof('login',key,undefined,{createIfMissing:true})).status,200);
+ await ctx.request('/__test/logout',{});
+ await ctx.request('/__test/password-login',{});
+ // The other normally authenticated SWAPP account does not own the new Vault identity.
+ assert.equal((await ctx.challengeAndProof('unlink',key)).status,403);
+});
+test('Forged assertions and users with an existing account cannot silently auto-bind identity',async t=>{
+ const ctx=await fixture(t),key=ctx.identity;
+ await ctx.request('/__test/password-login',{});
+ assert.equal((await ctx.request('/api/quantic-id/account/challenge',{purpose:'login'})).status,409);
+ assert.equal(ctx.createdUsers.size,0);
+ await ctx.request('/__test/logout',{});
+ const started=await ctx.request('/api/quantic-id/account/challenge',{purpose:'login'});
+ const spoof=key.sign(started.data.challenge,ctx.origin,ctx.time);
+ spoof.signature='A'.repeat(86);
+ const denied=await ctx.request('/api/quantic-id/account/prove',{purpose:'login',challenge:started.data.challenge,proof:spoof,createIfMissing:true});
+ assert.equal(denied.status,401);
+ assert.equal(ctx.createdUsers.size,0);
 });
