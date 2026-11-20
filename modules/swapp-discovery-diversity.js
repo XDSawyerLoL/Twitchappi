@@ -20,9 +20,14 @@ function gameKey(row){
  return normalizeGame(searchNames(raw)[0]||raw);
 }
 function replayTitle(row){
- const title=String(row?.title||'').normalize('NFKD')
+ const clean=value=>String(value||'').normalize('NFKD')
   .replace(/[\u0300-\u036f]/g,'').toLowerCase();
- return /\b(rediffusions?|replays?|reruns?|vods?|best[ -]?of)\b|en\s+boucle/.test(title);
+ const title=clean(row?.title).slice(0,500);
+ // Provider tags can explicitly mark a broadcast as a rerun,
+ // even if its title reads like an ordinary live.
+ const tags=Array.isArray(row?.tags)?row.tags.slice(0,30).map(clean):[];
+ const replay=/(?:\b(?:rediff(?:usions?)?|replays?|reruns?|vods?|best[ -]?of|afk)\b|en\s+boucle|\b24\s*\/\s*7\b)/i;
+ return replay.test(title)||tags.some(tag=>replay.test(tag));
 }
 function audience(row){
  const value=Number(row?.viewer_count??row?.viewers);
