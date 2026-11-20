@@ -12,14 +12,14 @@ test('large main SPA bundle is deferred and not main-thread parser blocking',()=
  assert.ok(html.indexOf('src="/assets/swapp-navigation.js?') < html.indexOf('src="/index_script.js?'));
 });
 
-test('large versioned SPA bundle is cacheable while old unversioned requests are not',()=>{
+test('large SPA JS uses conditional cache revalidation after deployment',()=>{
  const server=read('server.js');
- assert.match(server,/app\.get\('\/index_script\.js',\s*\(req,res\)/);
- assert.match(server,/req\.query\?\.v/);
- assert.match(server,/public, max-age=1800/);
- assert.match(server,/no-store, no-cache, must-revalidate/);
+ assert.match(server,/app\.get\('\/index_script\.js',/);
+ assert.match(server,/public,max-age=0,no-cache,must-revalidate/);
  assert.match(server,/cacheControl:false/);
- assert.match(server,/maxAge: '30m'/);
+ assert.match(server,/maxAge: '30m'/); // Applies only to images/media, not JS/CSS.
+ assert.match(server,/if\(\/\\\.\(\?:js\|css\)\$\/\.test\(staticPath\)\)/);
+ assert.doesNotMatch(server,/public, max-age=1800/);
 });
 
 test('homepage news observer no longer traverses all live cards on each mutation',()=>{
