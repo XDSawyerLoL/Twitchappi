@@ -144,7 +144,7 @@ function createBindingStore({mysqlUri,pool,mysqlFactory}={}){
  };
 }
 function createAccountRouter(express,{
- secret,store,verifyPassword,findUser,refreshUsers,toSession,clearRemember,newUserFactory,enforceVaultOnly,
+ secret,store,verifyPassword,findUser,refreshUsers,toSession,clearRemember,newUserFactory,enforceVaultOnly,onRecoveryRotate,
  now=Date.now,production=process.env.NODE_ENV==='production',enabled=process.env.SWAPP_ACCOUNT_STORE==='mysql'
 }={}){
  if(![verifyPassword,findUser,refreshUsers,toSession,clearRemember].every(f=>typeof f==='function'))
@@ -266,6 +266,9 @@ function createAccountRouter(express,{
    try{
     if(typeof store.recoverAccount!=='function')return error(res,503,'quantic_recovery_unavailable');
     const id=await store.recoverAccount(hash,recoveryHash);
+    // Immediately disconnect local sockets; remote Node workers use the
+    // durable key-binding check on their next socket authorization pass.
+    if(typeof onRecoveryRotate==='function')try{await onRecoveryRotate(id)}catch{}
     await refreshUsers();
     user=findUser(id);
     if(!user)return error(res,503,'quantic_account_refresh_failed');
