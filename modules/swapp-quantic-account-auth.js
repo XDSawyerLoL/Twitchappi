@@ -7,7 +7,10 @@
 const {createHmac,randomBytes}=require('node:crypto');
 const {rateLimit}=require('express-rate-limit');
 const {verifySignedAssertion,originAllowed}=require('./swapp-quantic-id-presence');
-const AUTH_LEASE_MS=30000,CHALLENGE_MS=120000;
+const AUTH_LEASE_MS=30000,CHALLENGE_MS=120000,FRESH_PASSWORD_MS=5*60*1000;
+// A Quantic-only account must never fall back to an unproven password, stale
+// remember token or email-reset route. Future strict mode can reuse this guard.
+function requiresVaultAuthentication(user){return user?.quantic_only===true||user?.quantic_required===true;}
 const {accountRow,MAX_USERS:MAX_ACCOUNT_USERS}=require('./swapp-oryon-mysql-accounts');
 const DDL='CREATE TABLE IF NOT EXISTS swapp_quantic_account_bindings (key_hash CHAR(64) NOT NULL PRIMARY KEY,user_id VARCHAR(80) NOT NULL,created_at BIGINT NOT NULL,UNIQUE KEY swapp_quantic_one_account_key (user_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci';
 
@@ -82,6 +85,8 @@ function createAccountRouter(express,{
  });
  const error=(res,status,code)=>res.status(status).json({success:false,error:code});
  const save=req=>new Promise((ok,no)=>req.session.save(e=>e?no(e):ok()));
+ const recentPassword=s=>Number.isFinite(s?.swappPasswordAuthenticatedAt)&&s.swappPasswordAuthenticatedAt>0&&
+   now()>=s.swappPasswordAuthenticatedAt&&now()-s.swappPasswordAuthenticatedAt<=FRESH_PASSWORD_MS;
  router.use((req,res,next)=>{
   res.set('Cache-Control','no-store');
   if(!enabled||!store||typeof secret!=='string'||secret.length<24)return error(res,503,'quantic_login_not_configured');
@@ -103,6 +108,7 @@ function createAccountRouter(express,{
   const purpose=req.body.purpose,s=req.session||{},account=s.oryonUser;
   if(!['link','login','renew','unlink'].includes(purpose))return error(res,400,'quantic_purpose_invalid');
   if(['link','unlink'].includes(purpose)&&(!account?.id||s.quanticAuth))return error(res,401,'swapp_password_login_required');
+  if(['link','unlink'].includes(purpose)&&!recentPassword(s))return error(res,401,'swapp_recent_password_required');
   if(purpose==='login'&&account?.id)return error(res,409,'swapp_already_logged_in');
   if(purpose==='renew'&&(!account?.id||!s.quanticAuth||s.quanticAuth.expiresAt<=now()))return error(res,401,'quantic_session_expired');
   const challenge=randomBytes(32).toString('base64url'),audience=req.get('Origin');
@@ -124,6 +130,7 @@ function createAccountRouter(express,{
   }catch{return error(res,401,'quantic_invalid_signature')}
   if(pending.purpose==='link'){
    if(!s.oryonUser?.id||s.quanticAuth)return error(res,401,'swapp_password_login_required');
+   if(!recentPassword(s))return error(res,401,'swapp_recent_password_required');
    try{
     await refreshUsers();
     const user=findUser(s.oryonUser.id);
@@ -135,10 +142,11 @@ function createAccountRouter(express,{
   }
   if(pending.purpose==='unlink'){
    if(!s.oryonUser?.id||s.quanticAuth)return error(res,401,'swapp_password_login_required');
+   if(!recentPassword(s))return error(res,401,'swapp_recent_password_required');
    try{
     await refreshUsers();
     const owner=findUser(s.oryonUser.id);
-    if(owner?.quantic_only)return error(res,409,'quantic_only_account_recovery_required');
+    if(requiresVaultAuthentication(owner))return error(res,409,'quantic_only_account_recovery_required');
     const linked=await store.getKey(s.oryonUser.id);
     if(!linked||linked!==hash)return error(res,403,'quantic_identity_mismatch');
     return res.json({success:true,unlinked:await store.unbind(s.oryonUser.id)});
@@ -194,8 +202,10 @@ function createAccountRouter(express,{
  router.post('/unlink',limited,async(req,res)=>{
   const s=req.session||{};
   if(!s.oryonUser?.id||s.quanticAuth)return error(res,401,'swapp_password_login_required');
+  if(!recentPassword(s))return error(res,401,'swapp_recent_password_required');
   try{
    await refreshUsers();const user=findUser(s.oryonUser.id),pwd=req.body.password;
+   if(requiresVaultAuthentication(user))return error(res,409,'quantic_only_account_recovery_required');
    if(!user||typeof pwd!=='string'||pwd.length>512||!verifyPassword(pwd,user.password_hash))
     return error(res,403,'swapp_password_invalid');
    return res.json({success:true,unlinked:await store.unbind(user.id)});
@@ -223,4 +233,4 @@ function createLeaseGuard({now=Date.now,clearRemember=()=>{}}={}){
   req.session.save(error=>error?next(error):next());
  };
 }
-module.exports={createBindingStore,createAccountRouter,createLeaseGuard,digest,AUTH_LEASE_MS,CHALLENGE_MS,DDL};
+module.exports={createBindingStore,createAccountRouter,createLeaseGuard,digest,requiresVaultAuthentication,FRESH_PASSWORD_MS,AUTH_LEASE_MS,CHALLENGE_MS,DDL};
