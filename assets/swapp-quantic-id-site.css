@@ -1,9 +1,13 @@
-#swapp-quantic-id-unified.swapp-quantic-card{margin:18px 0 24px;padding:22px;border:1px solid #3a637d;border-radius:14px;background:#111d29;color:#eaf8ff}
-#swapp-quantic-id-unified h3{margin:0 0 10px;font-size:19px;color:#eaf8ff}
-#swapp-quantic-id-unified p{font-size:13px;line-height:1.6;color:#c6d8e4}
-#swapp-quantic-id-unified button{cursor:pointer;background:#78c9ed;color:#071725;font:700 13px/1.2 system-ui;padding:12px 16px;border:0;border-radius:9px;margin:8px 8px 8px 0}
-#swapp-quantic-id-unified button.swapp-quantic-secondary{background:#263947;color:#eaf8ff;border:1px solid #507186}
-#swapp-quantic-id-unified button:disabled{opacity:.5;cursor:not-allowed}
-#swapp-quantic-id-unified [role="status"]{font-weight:700;color:#f4fbff}
-#swapp-quantic-id-unified a.swapp-quantic-install-link{display:inline-block;color:#81dcff;text-decoration:underline;text-underline-offset:3px;font-size:13px;font-weight:700;margin:6px 0}
-#swapp-quantic-id-unified [hidden]{display:none!important}
+/* Identity Vault uses the EXISTING SWAPP sign-in panel, never an extra auth card. */
+#settings .swapp-vault-login-option{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;margin:14px 0 0;padding:13px 0 2px;border-top:1px solid var(--line,#28303a)}
+#settings .swapp-vault-option-label{color:var(--muted,#abb8ca);font-size:12px;font-weight:650}
+#settings .swapp-vault-logo-button{display:inline-flex!important;align-items:center;justify-content:center;width:58px;height:58px;padding:6px;border:1px solid #ffffff3a;border-radius:16px;background:#0a111a;cursor:pointer;transition:border-color .15s ease,transform .15s ease}
+#settings .swapp-vault-logo-button img{width:46px;height:46px;object-fit:contain;display:block;border-radius:12px}
+#settings .swapp-vault-logo-button:hover{border-color:#3cbfd4;transform:translateY(-1px)}
+#settings .swapp-vault-logo-button:focus-visible{outline:2px solid #3cbfd4;outline-offset:3px}
+#settings .swapp-vault-logo-button:disabled{opacity:.55;cursor:wait}
+#settings .swapp-vault-inline-status{max-width:350px;margin:0;text-align:center;font-size:12px;line-height:1.45;color:#b4c7d3;overflow-wrap:anywhere}
+#settings .swapp-vault-inline-status:empty{display:none}
+#settings .swapp-vault-link-inline{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:14px 0;padding:10px 0;border-bottom:1px solid var(--line,#28303a);color:var(--muted,#abb8ca);font-size:13px}
+#settings .swapp-vault-link-inline .swapp-vault-inline-status{flex-basis:100%;text-align:left}
+@media(prefers-reduced-motion:reduce){#settings .swapp-vault-logo-button{transition:none}#settings .swapp-vault-logo-button:hover{transform:none}}
