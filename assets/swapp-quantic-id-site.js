@@ -71,6 +71,11 @@
   listen.add(n);return n;
  }
  function mount(){
+  if(ROOT&&activeSession&&sessionStorage.getItem('swapp-quantic-new-account')==='1'&&!ROOT.querySelector('#swapp-vault-welcome')){
+   const note=document.createElement('p');note.id='swapp-vault-welcome';note.className='swapp-vault-inline-status';
+   note.textContent='Compte SWAPP créé avec Identity Vault. Conserve l’accès à ton coffre : aucun moyen de récupération par e-mail n’est encore associé.';
+   ROOT.prepend(note);sessionStorage.removeItem('swapp-quantic-new-account');
+  }
   const form=document.getElementById('loginForm');
   if(form&&!document.getElementById('swapp-vault-primary-login')){
    const slot=document.createElement('div');slot.className='swapp-vault-login-option';
