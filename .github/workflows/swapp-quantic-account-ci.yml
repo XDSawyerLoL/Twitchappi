@@ -1,0 +1,41 @@
+name: Quantic ID SWAPP Account Security
+on:
+  pull_request:
+    paths:
+      - 'modules/swapp-quantic-account-auth.js'
+      - 'modules/swapp-quantic-id-presence.js'
+      - 'assets/swapp-quantic-id-site.js'
+      - 'assets/swapp-quantic-login-keeper.js'
+      - 'modules/swapp-page-shell.js'
+      - 'index.html'
+      - 'server.js'
+      - 'test/swapp-quantic-account-login.test.js'
+      - 'test/swapp-quantic-id-site.test.js'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/swapp-quantic-account-ci.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install production dependencies exactly as Hostinger will use them
+        run: npm ci --ignore-scripts --no-fund --no-audit
+      - name: Syntax and package guards
+        run: |
+          npm run check
+          node --check modules/swapp-quantic-account-auth.js
+          node --check assets/swapp-quantic-login-keeper.js
+          node --check assets/swapp-quantic-id-site.js
+          npm ls express express-session mysql2 express-rate-limit websocket-driver --all
+      - name: Full signed account authentication and cross-feature regression
+        run: |
+          node --test test/swapp-quantic-account-login.test.js test/swapp-quantic-id-site.test.js
