@@ -340,9 +340,9 @@ test('legacy password unlink cannot remove the only Quantic factor',async t=>{
 test('server disables password, remember and reset fallback for Quantic-only accounts',()=>{
  const fs=require('node:fs');
  const src=fs.readFileSync(require.resolve('../server.js'),'utf8');
- assert.match(src,/if\(requiresVaultAuthentication\(user\)\)return null/);
- assert.match(src,/if\(!user \|\| requiresVaultAuthentication\(user\) \|\| !verifyOryonPassword/);
- assert.match(src,/if\(!user \|\| requiresVaultAuthentication\(user\) \|\| !verifyOryonRememberToken/);
+ assert.ok(src.includes('if(await swappAccountRequiresVault(user))return null'));
+ assert.ok(src.includes('!user || await swappAccountRequiresVault(user) || !verifyOryonPassword'));
+ assert.ok(src.includes('!user || await swappAccountRequiresVault(user) || !verifyOryonRememberToken'));
  assert.match(src,/app\.post\('\/api\/oryon\/login', authLimiter/);
  assert.match(src,/req\.session\.regenerate\(err=>err\?no\(err\):ok\(\)\)/);
 });
@@ -430,5 +430,5 @@ test('Source guards all classic account backdoors before accepting Vault mandato
  assert.match(src,/getBoundKey:id=>swappQuanticBindings/);
  assert.match(src,/enforceVaultOnly:async id=>/);
  assert.match(src,/quantic_required=true/);
- assert.match(src,/if\(requiresVaultAuthentication\(user\)\)return res\.status\(403\)/);
+ assert.ok(src.includes('if(await swappAccountRequiresVault(user))return res.status(403)'));
 });
