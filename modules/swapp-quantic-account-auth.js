@@ -14,6 +14,7 @@ function requiresVaultAuthentication(user){return user?.quantic_only===true||use
 const {accountRow,MAX_USERS:MAX_ACCOUNT_USERS}=require('./swapp-oryon-mysql-accounts');
 const DDL='CREATE TABLE IF NOT EXISTS swapp_quantic_account_bindings (key_hash CHAR(64) NOT NULL PRIMARY KEY,user_id VARCHAR(80) NOT NULL,created_at BIGINT NOT NULL,UNIQUE KEY swapp_quantic_one_account_key (user_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci';
 const RECOVERY_DDL='CREATE TABLE IF NOT EXISTS swapp_quantic_recovery_codes (code_hash CHAR(64) NOT NULL PRIMARY KEY,user_id VARCHAR(80) NOT NULL,created_at BIGINT NOT NULL,INDEX swapp_quantic_recovery_account (user_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci';
+const STRICT_DDL='CREATE TABLE IF NOT EXISTS swapp_quantic_strict_accounts (user_id VARCHAR(80) NOT NULL PRIMARY KEY,enforced_at BIGINT NOT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci';
 function generateRecoveryCodes(){return Array.from({length:8},()=> 'qrc_'+randomBytes(32).toString('base64url'))}
 function recoveryDigest(code,secret){
  if(!/^qrc_[A-Za-z0-9_-]{43}$/.test(String(code||''))||typeof secret!=='string'||secret.length<24)
@@ -37,6 +38,7 @@ function createBindingStore({mysqlUri,pool,mysqlFactory}={}){
    }
    await client.query(DDL);
    await client.query(RECOVERY_DDL);
+   await client.query(STRICT_DDL);
   })().catch(error=>{init=null;throw error});
   await init;
  }
@@ -45,10 +47,26 @@ function createBindingStore({mysqlUri,pool,mysqlFactory}={}){
   async getKey(id){await ready();const [rows]=await client.execute('SELECT key_hash FROM swapp_quantic_account_bindings WHERE user_id=? LIMIT 1',[id]);return rows[0]?.key_hash||null},
   async isVaultOnly(id){
    await ready();
-   // Source of truth shared by all Hostinger Node workers, not an in-memory
-   // account snapshot that might remain stale after strict activation.
+   // Dedicated table is authoritative across Node workers. A stale mutable
+   // account JSON snapshot cannot accidentally downgrade a protected account.
+   const [strict]=await client.execute('SELECT user_id FROM swapp_quantic_strict_accounts WHERE user_id=? LIMIT 1',[id]);
+   if(strict?.length)return true;
    const [rows]=await client.execute("SELECT JSON_UNQUOTE(JSON_EXTRACT(payload_json,'$.quantic_required')) AS strict_flag, JSON_UNQUOTE(JSON_EXTRACT(payload_json,'$.quantic_only')) AS only_flag FROM swapp_oryon_accounts WHERE user_id=? LIMIT 1",[id]);
    return rows?.[0]?.strict_flag==='true'||rows?.[0]?.only_flag==='true';
+  },
+  async enableVaultOnly(id){
+   await ready();
+   const conn=await client.getConnection();
+   try{
+    await conn.beginTransaction();
+    const [keys]=await conn.execute('SELECT key_hash FROM swapp_quantic_account_bindings WHERE user_id=? LIMIT 1 FOR UPDATE',[id]);
+    const [codes]=await conn.execute('SELECT code_hash FROM swapp_quantic_recovery_codes WHERE user_id=? LIMIT 1 FOR UPDATE',[id]);
+    if(!keys?.length||!codes?.length)throw Error('quantic_recovery_required');
+    await conn.execute('INSERT INTO swapp_quantic_strict_accounts (user_id,enforced_at) VALUES (?,?) ON DUPLICATE KEY UPDATE enforced_at=VALUES(enforced_at)',[id,Date.now()]);
+    await conn.commit();
+    return true;
+   }catch(e){try{await conn.rollback()}catch{}throw e}
+   finally{conn.release()}
   },
   async bind(id,hash){await ready();await client.execute('INSERT INTO swapp_quantic_account_bindings (key_hash,user_id,created_at) VALUES (?,?,?)',[hash,id,Date.now()])},
   async unbind(id){await ready();const [result]=await client.execute('DELETE FROM swapp_quantic_account_bindings WHERE user_id=?',[id]);return result.affectedRows>0},
@@ -163,7 +181,7 @@ function createAccountRouter(express,{
   if(s.oryonUser?.id)try{
    linked=Boolean(await store.getKey(s.oryonUser.id));
    recoveryReady=active&&linked&&typeof store.hasRecovery==='function'&&await store.hasRecovery(s.oryonUser.id);
-   strict=active&&requiresVaultAuthentication(findUser(s.oryonUser.id));
+   strict=active&&(typeof store.isVaultOnly==='function'?await store.isVaultOnly(s.oryonUser.id):requiresVaultAuthentication(findUser(s.oryonUser.id)));
   }catch{return error(res,503,'quantic_store_unavailable')}
   return res.json({success:true,loggedIn:Boolean(s.oryonUser?.id),login:s.oryonUser?.login||null,linked,quanticSession:active,recoveryReady,strict,expiresAt:active?s.quanticAuth.expiresAt:null,leaseMs:AUTH_LEASE_MS});
  });
@@ -233,7 +251,8 @@ function createAccountRouter(express,{
    try{
     if(await store.getKey(s.oryonUser.id)!==hash)return error(res,401,'quantic_link_revoked');
     if(!await store.hasRecovery(s.oryonUser.id))return error(res,409,'quantic_recovery_required');
-    if(typeof enforceVaultOnly!=='function')return error(res,503,'quantic_strict_unavailable');
+    if(typeof enforceVaultOnly!=='function'||typeof store.enableVaultOnly!=='function')return error(res,503,'quantic_strict_unavailable');
+    await store.enableVaultOnly(s.oryonUser.id);
     await enforceVaultOnly(s.oryonUser.id);
     return res.json({success:true,strict:true});
    }catch{return error(res,503,'quantic_store_unavailable')}
@@ -359,4 +378,4 @@ function createLeaseGuard({now=Date.now,clearRemember=()=>{},getBoundKey,getSess
   req.session.save(error=>error?next(error):next());
  };
 }
-module.exports={createBindingStore,createAccountRouter,createLeaseGuard,digest,generateRecoveryCodes,recoveryDigest,requiresVaultAuthentication,FRESH_PASSWORD_MS,AUTH_LEASE_MS,CHALLENGE_MS,DDL,RECOVERY_DDL};
+module.exports={createBindingStore,createAccountRouter,createLeaseGuard,digest,generateRecoveryCodes,recoveryDigest,requiresVaultAuthentication,FRESH_PASSWORD_MS,AUTH_LEASE_MS,CHALLENGE_MS,DDL,RECOVERY_DDL,STRICT_DDL};
