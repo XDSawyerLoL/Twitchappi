@@ -38,7 +38,7 @@ test('all 11 vulnerable npm packages and nested copies are patched',()=>{
   assert.equal(manifest.overrides[name],version,'forced dependency: '+name);
  }
  assert.equal(manifest.overrides['proxy-addr'],'2.0.8');
- assert.equal(manifest.overrides['websocket-driver'],'0.7.5');
+ assert.equal(manifest.overrides['websocket-driver'],'0.8.0');
 });
 
 test('patched subdependency ranges remain coherent for Express, body-parser and protobufjs',()=>{
