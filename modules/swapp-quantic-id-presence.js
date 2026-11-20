@@ -9,7 +9,7 @@ const {createHash,createPublicKey,randomBytes,verify}=require('node:crypto');
 const rateLimit=require('express-rate-limit');
 
 const TTL_MS=10_000;
-const CHALLENGE_MS=10_000;
+const CHALLENGE_MS=60_000;
 const LIMIT=3000;
 const COOKIE='swapp_qid_presence';
 
@@ -91,6 +91,7 @@ function createQuanticPresenceRouter(express,{now=Date.now,prod=process.env.NODE
     if(!['activate','renew'].includes(purpose))return res.status(400).json({error:'quantic_purpose_invalid'});
     const prior=purpose==='renew'?sessions.get(readToken(req)):null;
     if(purpose==='renew'&&!prior)return res.status(401).json({error:'quantic_presence_expired'});
+    if(challenges.size>=1024)return res.status(429).json({error:'quantic_challenge_capacity'});
     const challenge=randomBytes(32).toString('base64url');
     const audience=req.get('Origin');
     challenges.set(challenge,{purpose,token:prior?readToken(req):null,audience,expiresAt:now()+CHALLENGE_MS});
@@ -118,6 +119,7 @@ function createQuanticPresenceRouter(express,{now=Date.now,prod=process.env.NODE
       alias=typeof req.body.alias==='string'?req.body.alias.trim().slice(0,64):'';
       if(!alias||/[\x00-\x1f\x7f<>]/.test(alias))alias='Utilisateur Quantic';
     }
+    if(sessions.size>=1024)return res.status(429).json({error:'quantic_presence_capacity'});
     const token=randomBytes(32).toString('base64url');
     const expiresAt=now()+TTL_MS;
     sessions.set(token,{keyId,alias,expiresAt});

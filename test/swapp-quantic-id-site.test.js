@@ -27,6 +27,7 @@ test('forged and expired proofs are rejected',()=>{
  const old=createProof({issuedAt:'2020-01-01T00:00:00.000Z'});
  assert.throws(()=>verifySignedAssertion({proof:old.proof,challenge:old.challenge,audience:'https://swapp.tv'}));
  assert.equal(TTL_MS,10000);
+ assert.match(fs.readFileSync(require.resolve('../modules/swapp-quantic-id-presence.js'),'utf8'),/CHALLENGE_MS=60_000/);
 });
 test('production strictly permits SWAPP origin only',()=>{
  assert.equal(originAllowed('https://swapp.tv'),true);

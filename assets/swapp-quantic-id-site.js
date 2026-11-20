@@ -21,7 +21,9 @@
   const signed=await fetch(BRIDGE+'/v1/assert',{method:'POST',headers:{'content-type':'application/json'},
    body:JSON.stringify({challenge:nonce.challenge,audience:nonce.audience}),cache:'no-store',signal:AbortSignal.timeout(10000)});
   if(!signed.ok)throw Error('Autorise SWAPP dans Quantic Identity Vault (application mise à jour requise)');
-  return {challenge:nonce.challenge,proof:await signed.json(),alias:status.label||'Utilisateur Quantic'};
+  const proof=await signed.json();
+  const approved=await localStatus().catch(()=>status);
+  return {challenge:nonce.challenge,proof,alias:approved.label||'Utilisateur Quantic'};
  }
  function controls(){if(button)button.disabled=busy||active;if(stopButton)stopButton.disabled=busy||!active}
  function build(){
