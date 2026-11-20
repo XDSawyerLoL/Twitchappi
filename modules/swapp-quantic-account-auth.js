@@ -72,7 +72,14 @@ function createAccountRouter(express,{
  const router=express.Router(),limited=rateLimit({windowMs:60000,limit:20,standardHeaders:true,legacyHeaders:false});
  // Extra throttle runs ONLY after a valid signature for an identity not yet linked.
  const registrationLimited=rateLimit({windowMs:60*60*1000,limit:3,standardHeaders:true,legacyHeaders:false,message:{success:false,error:'quantic_registration_rate_limited'}});
- const enforceRegistrationLimit=(req,res)=>new Promise(resolve=>{try{registrationLimited(req,res,()=>resolve(true));}catch{resolve(false)}});
+ const enforceRegistrationLimit=(req,res)=>new Promise(resolve=>{
+  let done=false;
+  const complete=ok=>{if(done)return;done=true;res.removeListener('finish',onFinish);resolve(ok)};
+  const onFinish=()=>complete(false);
+  res.once('finish',onFinish);
+  try{Promise.resolve(registrationLimited(req,res,()=>complete(true))).catch(()=>complete(false))}
+  catch{complete(false)}
+ });
  const error=(res,status,code)=>res.status(status).json({success:false,error:code});
  const save=req=>new Promise((ok,no)=>req.session.save(e=>e?no(e):ok()));
  router.use((req,res,next)=>{
