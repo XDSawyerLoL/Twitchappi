@@ -6,7 +6,7 @@ const ORIGIN='https://swapp.tv', PATH='/guides/rob-run', UPDATED='2026-11-20';
 const STEAM='https://store.steampowered.com/app/4262460/ROB_RUN/';
 const PATCH='https://steamcommunity.com/ogg/4262460/announcements/detail/717921532895037155';
 // Verified original publisher artwork; no stock images or fabricated captures.
-const ROB_HERO='https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/4262460/61dff3c7ebce05c75d9d60d69440b099d16cfd02/library_hero_2x.jpg';
+const ROB_HERO='https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/4262460/dab8256c1dff89eff8f8b6d5e25327a68d8659dc/page_bg_raw.jpg?t=1793811654';
 const ROB_COVER='https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/4262460/eb2c70e5d9af9f4d74f36f0a60487e84b4911a39/capsule_616x353.jpg?t=1793811654';
 const AION_HERO='https://blogfiles.ncsoft.net/news/186b69f6-2a8d-4e72-9076-c72221de00b5.jpg';
 const E=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
