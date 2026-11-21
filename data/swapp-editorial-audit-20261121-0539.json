@@ -1,0 +1,291 @@
+{
+  "schema": 1,
+  "kind": "swapp-editorial-audit",
+  "checkedAt": "2026-11-21T04:48:26.591Z",
+  "status": "prepared_in_github_production_unconfirmed",
+  "previousAudit": "data/swapp-editorial-audit-20261121-0023.json",
+  "coverage": {
+    "recentWindowStart": "2026-11-20T22:38:55Z",
+    "recentWindowEnd": "2026-11-21T04:38:55Z",
+    "freshWebSearchPerformed": true,
+    "catchupPerformed": true,
+    "catchupComplete": false,
+    "reason": "Le registre de continuité demandé est inaccessible ; impossible de connaître et d’avancer son dernier contrôle complet. Vérification de rattrapage des candidats, des lots et de sources officielles récentes."
+  },
+  "registry": {
+    "name": "SWAPP-veille-actualites.json",
+    "readResult": "404 Library file not found",
+    "exactTitleSearchResult": "aucun résultat exact",
+    "writePerformed": false,
+    "lastSuccessfulCheckAtAdvanced": false,
+    "duplicateRegistryCreated": false
+  },
+  "inventory": {
+    "branch": "master",
+    "releaseFilesRead": 29,
+    "articlesRead": 50,
+    "manifestCountBefore": 29,
+    "manifestCountAfter": 30,
+    "articleCountAfter": 51,
+    "signalCountBefore": 45,
+    "signalCountAfter": 46,
+    "dedupe": "jeu + événement + date officielle + URL primaire canonique",
+    "sourceMatchFoundBefore": false,
+    "priorStudioState": "non vérifiable : API production bloquée ; aucun article existant réécrit"
+  },
+  "research": {
+    "primaryIndexesConsulted": [
+      "https://news.xbox.com/en-us/2026/11/20/next-week-on-xbox-new-games-for-november-23-to-27/",
+      "https://store.steampowered.com/updated/",
+      "https://deepmind.google/blog/",
+      "https://mistral.ai/news/",
+      "https://blogs.nvidia.com/",
+      "https://www.esa.int/Newsroom"
+    ],
+    "decisions": [
+      {
+        "subject": "Arkheron",
+        "eventDate": "2026-11-18",
+        "decision": "Rattrapage substantiel absent des lots et signaux : conditions d’accès des communautés partenaires. Ne pas présenter comme annonce du 21 novembre.",
+        "sources": [
+          {
+            "label": "Bonfire Studios — serveurs partenaires et conditions, 18 novembre 2026",
+            "url": "https://www.arkheron.com/en_US/news/partner_servers_announcement/"
+          },
+          {
+            "label": "Bonfire Studios — prix américain et Friend Pass, 9 novembre 2026",
+            "url": "https://www.arkheron.com/en_US/news/pricing-announcement/"
+          },
+          {
+            "label": "Bonfire Studios — ouverture de l’accès anticipé, 29 octobre 2026",
+            "url": "https://www.arkheron.com/en_US/news/earlyaccess_announcement/"
+          },
+          {
+            "label": "Arkheron — présentation officielle du jeu",
+            "url": "https://www.arkheron.com/en_US/"
+          }
+        ]
+      },
+      {
+        "subject": "Myth of Empires: Throne saison 4",
+        "decision": "Lot précédent retrouvé dans le manifeste. Aucun doublon ; contrôle public toujours bloqué."
+      },
+      {
+        "subject": "Valve Steam Machine / NVIDIA Microsoft",
+        "decision": "Brèves du contrôle précédent conservées ; aucun doublon."
+      },
+      {
+        "subject": "Gemini Neon, Genie 4, NVIDIA RTX Spark, ESA Plasma",
+        "decision": "Sujets déjà recensés ; aucune republication sans développement substantiel."
+      },
+      {
+        "subject": "Résultats scientifiques NVIDIA datés de novembre 2025",
+        "decision": "Exclus des nouveautés : date de republication/indexation insuffisante."
+      },
+      {
+        "subject": "Mistral",
+        "decision": "Page officielle consultée ; dernier sujet mis en avant daté du 5 novembre, pas de nouveauté qualifiée dans la fenêtre récente."
+      },
+      {
+        "subject": "The Elder Scrolls VI: Sentinel",
+        "source": "https://bsky.app/profile/bethesdastudios.com/post/3mzg5pmb4mk2p",
+        "sourceDate": "2026-11-03T15:28:48.586Z",
+        "decision": "Message du compte de domaine Bethesda consulté : nom et poursuite du développement seulement. Aucun nouveau gameplay, calendrier ni fait supplémentaire déduit ; lot existant non amplifié."
+      },
+      {
+        "subject": "Candidats du 29 octobre",
+        "decision": "Fichier relu ; pas de publication forcée de dossiers incomplets ni de remise en ligne d’articles retirés."
+      }
+    ]
+  },
+  "prepared": {
+    "releasePath": "data/swapp-veille-native-20261121-arkheron-acces-communautaire.json",
+    "slug": "arkheron-acces-gratuit-lancement-discord-serveurs-partenaires",
+    "sourceEventDate": "2026-11-18",
+    "articleWords": 704,
+    "publicationClaim": "préparé dans GitHub ; mise en ligne sur SWAPP non confirmée",
+    "intendedPublicUrl": "https://swapp.tv/actus/arkheron-acces-gratuit-lancement-discord-serveurs-partenaires",
+    "publicUrlVerified": false,
+    "signalId": "arkheron-serveurs-partenaires-acces-gratuit-20261118",
+    "signalEndpointVerified": false,
+    "releaseCommit": "73fa171f796c3e7b277d1c888642ff5daab7d0d0",
+    "manifestCommit": "8946b2a6a6cb7693920d293d2e8c17f2dc923687",
+    "signalCommit": "b7da9b74a4b2d5fa782e160c3522735bb8fdf2e9",
+    "signalArticleLinkCommit": "9efe8b9527c574a5e49aad7e6cd7d241340bbe12",
+    "validation": {
+      "json": true,
+      "nativeAssertArticlePublish": true,
+      "cardImageSources": true,
+      "commercialLinkNative": true,
+      "previousSignalsPreserved": true,
+      "releaseReadbackExact": true,
+      "manifestReadbackExact": true,
+      "signalsReadbackExact": true
+    },
+    "media": {
+      "trailerUrl": "https://www.youtube.com/watch?v=2q-vxoejYf4",
+      "officialChannel": "Arkheron / @playarkheron",
+      "channelId": "UCtq4UXB7-Ebe4p2JC7d7jGA",
+      "originalVideoPublishedAt": "2025-09-17T09:00:20-07:00",
+      "watchHttpStatus": 200,
+      "playabilityStatus": "OK",
+      "playableInEmbed": true,
+      "availableInFrance": true,
+      "thumbnail": "https://i.ytimg.com/vi/2q-vxoejYf4/hqdefault.jpg",
+      "thumbnailHttpStatus": 200,
+      "thumbnailVisuallyChecked": true,
+      "flashImage": "https://www.arkheron.com/160850/1795028074-ark_partnerserver_16x9.png",
+      "flashImageHttpStatus": 200,
+      "flashImageVisuallyChecked": true,
+      "flashImageMatchedToPrimaryPage": true,
+      "remoteImagesNotRehosted": true,
+      "embedProbeNote": "La requête d’iframe isolée renvoyait Error 153 (configuration). La page watch ensuite consultée fournit playabilityStatus OK et playableInEmbed true. Le rendu sur SWAPP reste non vérifié."
+    },
+    "affiliate": {
+      "url": "https://www.instant-gaming.com/en/20461-buy-arkheron-pc-steam/?igr=SANSAHD",
+      "game": "Arkheron",
+      "platform": "PC Steam",
+      "region": "La fiche consultée indique tous pays, y compris la France.",
+      "edition": "fiche standard, aucune édition Supporter annoncée",
+      "priceClaimed": false,
+      "stockClaimed": false,
+      "nativeField": "commercialLinks",
+      "disclosureInBody": true
+    }
+  },
+  "productionChecks": {
+    "production-check.json": [
+      {
+        "url": "https://swapp.tv/api/swapp/autonomy/editorial-opportunities",
+        "status": 403,
+        "contentType": "text/html",
+        "checkedAt": "2026-11-21T04:40:09.564717+00:00",
+        "botVerification": true,
+        "containsPreparedSlug": false
+      },
+      {
+        "url": "https://swapp.tv/actus/myth-of-empires-throne-saison-4-voidbound-realm-lancement",
+        "status": 403,
+        "contentType": "text/html",
+        "checkedAt": "2026-11-21T04:40:10.498385+00:00",
+        "botVerification": true,
+        "containsPreparedSlug": false
+      },
+      {
+        "url": "https://swapp.tv/actus",
+        "status": 403,
+        "contentType": "text/html",
+        "checkedAt": "2026-11-21T04:40:10.416354+00:00",
+        "botVerification": true,
+        "containsPreparedSlug": false
+      },
+      {
+        "url": "https://swapp.tv/api/actus",
+        "status": 403,
+        "contentType": "text/html",
+        "checkedAt": "2026-11-21T04:40:20.496581+00:00",
+        "botVerification": true,
+        "containsPreparedSlug": false
+      },
+      {
+        "url": "https://swapp.tv/api/actus/release-status",
+        "status": 403,
+        "contentType": "text/html",
+        "checkedAt": "2026-11-21T04:40:09.552756+00:00",
+        "botVerification": true,
+        "containsPreparedSlug": false
+      },
+      {
+        "url": "https://swapp.tv/api/actus/storage-status",
+        "error": "The read operation timed out",
+        "checkedAt": "2026-11-21T04:40:26.588757+00:00"
+      },
+      {
+        "url": "https://swapp.tv/api/actus/signaux",
+        "error": "The read operation timed out",
+        "checkedAt": "2026-11-21T04:40:26.588650+00:00"
+      },
+      {
+        "url": "https://swapp.tv/plan-du-site",
+        "status": 403,
+        "contentType": "text/html",
+        "checkedAt": "2026-11-21T04:40:21.000258+00:00",
+        "botVerification": true,
+        "containsPreparedSlug": false
+      },
+      {
+        "url": "https://swapp.tv/api/release",
+        "error": "The read operation timed out",
+        "checkedAt": "2026-11-21T04:40:26.588532+00:00"
+      }
+    ],
+    "postcommit-check.json": [
+      {
+        "url": "https://swapp.tv/actus/arkheron-acces-gratuit-lancement-discord-serveurs-partenaires",
+        "checkedAt": "2026-11-21T04:47:10.448450+00:00",
+        "error": "The read operation timed out"
+      },
+      {
+        "url": "https://swapp.tv/api/actus/release-status",
+        "checkedAt": "2026-11-21T04:47:10.449094+00:00",
+        "status": 403,
+        "botVerification": true
+      },
+      {
+        "url": "https://swapp.tv/api/actus/storage-status",
+        "checkedAt": "2026-11-21T04:47:10.449524+00:00",
+        "status": 403,
+        "botVerification": true
+      },
+      {
+        "url": "https://swapp.tv/api/actus/signaux",
+        "checkedAt": "2026-11-21T04:47:18.208125+00:00",
+        "status": 403,
+        "botVerification": true
+      },
+      {
+        "url": "https://swapp.tv/api/actus",
+        "checkedAt": "2026-11-21T04:47:21.208027+00:00",
+        "error": "The read operation timed out"
+      },
+      {
+        "url": "https://swapp.tv/plan-du-site",
+        "checkedAt": "2026-11-21T04:47:25.344047+00:00",
+        "error": "The read operation timed out"
+      },
+      {
+        "url": "https://swapp.tv/api/release",
+        "checkedAt": "2026-11-21T04:47:30.922089+00:00",
+        "status": 403,
+        "botVerification": true
+      }
+    ]
+  },
+  "unverified": [
+    "déploiement du commit",
+    "adoption MySQL Hostinger",
+    "editableInStudio=true",
+    "texte et titre de la nouvelle page publique",
+    "carte et vignette dans /actus",
+    "lecture du trailer sur SWAPP",
+    "liens et transparence affiliée en production",
+    "apparition du slug au plan du site",
+    "SWAPP FLASH public",
+    "RSS Social"
+  ],
+  "radar": {
+    "status": 403,
+    "usedAsAnnouncementEvidence": false,
+    "extraTwitchQueries": false
+  },
+  "notification": {
+    "sent": false,
+    "reason": "Aucun nouveau contenu confirmé en ligne. Le même incident WAF et registre a déjà été signalé moins de 24 heures auparavant.",
+    "previousIncidentNotificationAt": "2026-11-20T23:32:20.087Z"
+  },
+  "changesOutsideEditorialData": false,
+  "newPaidServices": false,
+  "newWorkflow": false,
+  "securityBypass": false,
+  "independentSocialMessage": false
+}
