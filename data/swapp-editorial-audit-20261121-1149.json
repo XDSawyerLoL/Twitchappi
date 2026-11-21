@@ -1,0 +1,350 @@
+{
+  "schema": 1,
+  "kind": "swapp-editorial-audit",
+  "startedAt": "2026-11-21T10:48:42Z",
+  "checkedAt": "2026-11-21T11:00:12Z",
+  "status": "prepared_in_github_production_unconfirmed",
+  "previousAudit": "data/swapp-editorial-audit-20261121-0539.json",
+  "coverage": {
+    "recentWindowStart": "2026-11-21T04:48:42Z",
+    "recentWindowEnd": "2026-11-21T10:48:42Z",
+    "freshWebSearchPerformed": true,
+    "catchupPerformed": true,
+    "catchupComplete": false,
+    "reason": "Le registre demandé est introuvable. Sa borne last_successful_check_at ne peut pas être lue ; rattrapage des annonces officielles récentes et des dossiers en attente sans certifier la couverture complète."
+  },
+  "registry": {
+    "name": "SWAPP-veille-actualites.json",
+    "readResult": "404 Library file not found",
+    "exactTitleSearchResult": "aucun résultat exact",
+    "writePerformed": false,
+    "lastSuccessfulCheckAtAdvanced": false,
+    "duplicateRegistryCreated": false
+  },
+  "inventory": {
+    "branch": "master",
+    "releaseFilesRead": 30,
+    "articlesRead": 51,
+    "manifestCountBefore": 30,
+    "manifestCountAfter": 31,
+    "articleCountAfter": 52,
+    "signalCountBefore": 46,
+    "signalCountAfter": 47,
+    "dedupe": "jeu + événement + date officielle + URL primaire canonique",
+    "newEventAbsentFromExistingReleasesAndSignals": true,
+    "priorStudioState": "API de production inaccessible ; aucune modification d’article existant ni restauration de dépublication"
+  },
+  "research": {
+    "primaryIndexesConsulted": [
+      "https://www.take2games.com/ir/press-releases",
+      "https://deepmind.google/blog/",
+      "https://mistral.ai/news/",
+      "https://blogs.nvidia.com/",
+      "https://www.esa.int/news-media/news"
+    ],
+    "searchAreas": [
+      "annonces officielles Nintendo, PlayStation, Xbox, Steam News des 20 et 21 novembre 2026",
+      "Rockstar / Take-Two : nouveau bilan commercial",
+      "BioWare / Mass Effect : recherche d’évolution primaire distincte",
+      "Google DeepMind, Mistral, NVIDIA, robotique et ESA"
+    ],
+    "decisions": [
+      {
+        "subject": "Grand Theft Auto VI — premier bilan commercial",
+        "sourceEventDate": "2026-11-20",
+        "sourcePublishedAt": "2026-11-20T19:20:00Z",
+        "metricPeriodEndDate": "2026-11-19",
+        "decision": "Nouveau développement absent du dossier antérieur et de la brève de lancement : estimation des ventes au détail. Article et FLASH préparés via le mécanisme natif.",
+        "sources": [
+          {
+            "label": "Rockstar Games / Take-Two — estimation commerciale, 20 novembre 2026",
+            "url": "https://www.take2games.com/ir/news/grand-theft-auto-vi-shatters-entertainment-box-office-records"
+          },
+          {
+            "label": "Rockstar Games / Take-Two — lancement et plateformes, 19 novembre 2026",
+            "url": "https://www.take2games.com/ir/news/rockstar-games-announces-grand-theft-auto-vi-now-available"
+          },
+          {
+            "label": "Rockstar Support — éditions, versions et régions des codes, mise à jour du 18 novembre 2026",
+            "url": "https://support.rockstargames.com/articles/4QfG4FmZCf5W1gS8jy4UVT/grand-theft-auto-vi-platform-editions-and-versions"
+          },
+          {
+            "label": "Rockstar Games — Trailer 2 officiel, 6 mai 2025",
+            "url": "https://www.youtube.com/watch?v=VQRLujxTm3c"
+          }
+        ],
+        "interpretationLimits": [
+          "3,79 milliards de dollars : estimation de ventes au détail mondiales de l’éditeur, pas un bénéfice.",
+          "32,5 millions d’exemplaires : période antérieure à la sortie, pas ventes de la seule première journée.",
+          "Aucun prix de vente, record critique, portage ou calendrier supplémentaire déduit."
+        ]
+      },
+      {
+        "subject": "Myth of Empires: Throne — saison 4",
+        "decision": "Présent dans les pages /actus et /plan-du-site restituées par la recherche web. La page réellement ouverte dans le navigateur répond 403 : amélioration de visibilité documentaire, sans certification de publication complète ni nouvelle annonce."
+      },
+      {
+        "subject": "Arkheron — accès communautaire",
+        "decision": "Lot du contrôle précédent retrouvé ; pas de doublon. Mise en ligne non vérifiée."
+      },
+      {
+        "subject": "Gemini 4 Neon, Genie 4 API, NVIDIA RTX Spark, NVIDIA Microsoft, ESA Plasma Observatory",
+        "decision": "Sujets déjà présents dans les brèves ; aucune republication sans développement substantiel."
+      },
+      {
+        "subject": "Mistral",
+        "decision": "Index primaire consulté ; dernière entrée affichée datée du 5 novembre, aucune nouvelle entrée qualifiée dans la fenêtre récente."
+      },
+      {
+        "subject": "BioWare / Mass Effect — fermeture le 20 novembre évoquée dans la presse",
+        "status": "pending_primary_confirmation",
+        "decision": "Recherche effectuée ; pas de nouvelle source EA/BioWare établissant un développement distinct de l’annonce du 21 octobre. Aucun nouveau fait public ajouté sur cette base."
+      },
+      {
+        "subject": "The Elder Scrolls VI: Sentinel",
+        "source": "https://bsky.app/profile/bethesdastudios.com/post/3mzg5pmb4mk2p",
+        "sourceDate": "2026-11-03",
+        "decision": "Ancien message du compte de domaine Bethesda consulté ; aucune nouvelle annonce de gameplay, de date ou de plateforme établie. Lot existant non amplifié."
+      },
+      {
+        "subject": "Candidats du 29 octobre",
+        "decision": "Les huit brouillons ont été relus. Aucun statut draft ni retrait Studio n’a été annulé."
+      },
+      {
+        "subject": "Résultats secondaires ou anciennes publications réindexées",
+        "decision": "Exclus comme preuves d’annonce nouvelle ; seuls les faits primaires effectivement consultés alimentent le nouveau lot."
+      }
+    ]
+  },
+  "prepared": {
+    "releasePath": "data/swapp-veille-native-20261121-gta-vi-bilan-commercial.json",
+    "slug": "gta-vi-ventes-premier-jour-estimation-rockstar-novembre-2026",
+    "sourceEventDate": "2026-11-20",
+    "articleWords": 608,
+    "publicationClaim": "préparé dans GitHub ; publication SWAPP non confirmée",
+    "intendedPublicUrl": "https://swapp.tv/actus/gta-vi-ventes-premier-jour-estimation-rockstar-novembre-2026",
+    "publicUrlVerified": false,
+    "signalId": "gta-vi-estimation-ventes-detail-premier-jour-20261120",
+    "signalEndpointVerified": false,
+    "releaseCommit": "19a3b6e504ba0e6ff7ecfc531081b2fd8fbdde81",
+    "manifestCommit": "29943f0efd295a285609d10edcb5cf8db1ba5325",
+    "signalCommit": "36b1626c58083dbf952bedd6068454f447eaa245",
+    "validation": {
+      "json": true,
+      "nativePublishValidation": true,
+      "uniqueSlug": true,
+      "newCanonicalEventSource": true,
+      "cardImageSources": [
+        "https://i.ytimg.com/vi/VQRLujxTm3c/hqdefault.jpg",
+        "https://img.youtube.com/vi/VQRLujxTm3c/hqdefault.jpg"
+      ],
+      "affiliateVisible": true,
+      "commercialLinkNative": true,
+      "sourceCount": 4,
+      "bodyWords": 608,
+      "htmlLength": 13025,
+      "previousSignalsPreserved": true,
+      "releaseReadbackExact": true,
+      "manifestReadbackExact": true,
+      "signalsReadbackExact": true
+    },
+    "media": {
+      "trailerUrl": "https://www.youtube.com/watch?v=VQRLujxTm3c",
+      "officialChannel": "Rockstar Games",
+      "channelId": "UC6VcWc1rAoWdBCM0JxrRQ3A",
+      "originalVideoPublishedAt": "2025-05-06T06:29:04-07:00",
+      "watchHttpStatus": 200,
+      "playabilityStatus": "OK",
+      "playableInEmbed": true,
+      "availableInFrance": true,
+      "thumbnail": "https://i.ytimg.com/vi/VQRLujxTm3c/hqdefault.jpg",
+      "thumbnailHttpStatus": 200,
+      "thumbnailVisuallyChecked": true,
+      "flashImage": "https://mms.businesswire.com/media/20261120446139/en/2978423/4/Grand_Theft_Auto_VI_Official_Cover_Art_Hi-Res.jpg",
+      "flashImageHttpStatus": 200,
+      "flashImageVisuallyChecked": true,
+      "flashImageMatchedToPrimaryPage": true,
+      "remoteImagesNotRehosted": true,
+      "rejectedVideo": {
+        "url": "https://www.youtube.com/watch?v=tJbzMqJGH4k",
+        "reason": "LOGIN_REQUIRED : vérification d’âge ; vidéo non retenue, aucun contournement"
+      },
+      "productionPlayerVerified": false
+    },
+    "affiliate": {
+      "url": "https://www.instant-gaming.com/fr/15505-acheter-grand-theft-auto-vi-xbox-series-x-s-microsoft-store/?igr=SANSAHD",
+      "game": "Grand Theft Auto VI",
+      "platform": "Xbox Series X|S — Microsoft Store",
+      "region": "Fiche précise consultée : compatible dans tous les pays du monde, incluant la France.",
+      "edition": "standard",
+      "rejectedRegionalOffers": [
+        "23244 : Latin America",
+        "23246 : Latin America"
+      ],
+      "priceClaimed": false,
+      "stockClaimed": false,
+      "nativeField": "commercialLinks",
+      "exactDisclosureInBody": true,
+      "editorialIndependenceDisclosure": true,
+      "productionAppearanceVerified": false
+    }
+  },
+  "productionChecks": {
+    "before": [
+      {
+        "url": "https://swapp.tv/api/swapp/autonomy/editorial-opportunities",
+        "checkedAt": "2026-11-21T10:50:07.769232+00:00",
+        "error": "The read operation timed out"
+      },
+      {
+        "url": "https://swapp.tv/actus",
+        "checkedAt": "2026-11-21T10:50:07.769820+00:00",
+        "status": 403,
+        "sample": "<!DOCTYPE html>\n<html>\n<head>\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1, shrink-to-fit=no\">\n    <meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\">\n    <meta http-equiv=\"Content-Type\" content=\"text/html; charset=windows-1252\">\n    <title>Bot Verification</title>\n    <script>\n        function onSubmit() {\n            document.getElementById('lsrecaptcha-form').submit("
+      },
+      {
+        "url": "https://swapp.tv/api/actus",
+        "checkedAt": "2026-11-21T10:50:07.770394+00:00",
+        "error": "The read operation timed out"
+      },
+      {
+        "url": "https://swapp.tv/api/actus/release-status",
+        "checkedAt": "2026-11-21T10:50:13.928465+00:00",
+        "status": 403,
+        "sample": "<!DOCTYPE html>\n<html>\n<head>\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1, shrink-to-fit=no\">\n    <meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\">\n    <meta http-equiv=\"Content-Type\" content=\"text/html; charset=windows-1252\">\n    <title>Bot Verification</title>\n    <script>\n        function onSubmit() {\n            document.getElementById('lsrecaptcha-form').submit("
+      },
+      {
+        "url": "https://swapp.tv/api/actus/storage-status",
+        "checkedAt": "2026-11-21T10:50:20.900508+00:00",
+        "error": "The read operation timed out"
+      },
+      {
+        "url": "https://swapp.tv/api/actus/signaux",
+        "checkedAt": "2026-11-21T10:50:23.115807+00:00",
+        "error": "The read operation timed out"
+      },
+      {
+        "url": "https://swapp.tv/plan-du-site",
+        "checkedAt": "2026-11-21T10:50:23.116496+00:00",
+        "error": "The read operation timed out"
+      },
+      {
+        "url": "https://swapp.tv/api/release",
+        "checkedAt": "2026-11-21T10:50:35.626273+00:00",
+        "status": 403,
+        "sample": "<!DOCTYPE html>\n<html style=\"height:100%\">\n<head>\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, shrink-to-fit=no\" />\n<title> 403 Forbidden\r\n</title><style>@media (prefers-color-scheme:dark){body{background-color:#000!important}}</style></head>\n<body style=\"color: #444; margin:0;font: normal 14px/20px Arial, Helvetica, sans-serif; height:100%; background-color: #fff;\">\n<div st"
+      },
+      {
+        "url": "https://swapp.tv/actus/myth-of-empires-throne-saison-4-voidbound-realm-lancement",
+        "checkedAt": "2026-11-21T10:50:35.626725+00:00",
+        "status": 403,
+        "sample": "<!DOCTYPE html>\n<html>\n<head>\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1, shrink-to-fit=no\">\n    <meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\">\n    <meta http-equiv=\"Content-Type\" content=\"text/html; charset=windows-1252\">\n    <title>Bot Verification</title>\n    <script>\n        function onSubmit() {\n            document.getElementById('lsrecaptcha-form').submit("
+      },
+      {
+        "url": "https://swapp.tv/actus/arkheron-acces-gratuit-lancement-discord-serveurs-partenaires",
+        "checkedAt": "2026-11-21T10:50:35.627228+00:00",
+        "status": 403,
+        "sample": "<!DOCTYPE html>\n<html style=\"height:100%\">\n<head>\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, shrink-to-fit=no\" />\n<title> 403 Forbidden\r\n</title><style>@media (prefers-color-scheme:dark){body{background-color:#000!important}}</style></head>\n<body style=\"color: #444; margin:0;font: normal 14px/20px Arial, Helvetica, sans-serif; height:100%; background-color: #fff;\">\n<div st"
+      }
+    ],
+    "afterCommits": [
+      {
+        "url": "https://swapp.tv/actus/gta-vi-ventes-premier-jour-estimation-rockstar-novembre-2026",
+        "checkedAt": "2026-11-21T10:58:40.822714+00:00",
+        "error": "The read operation timed out"
+      },
+      {
+        "url": "https://swapp.tv/api/actus/release-status",
+        "checkedAt": "2026-11-21T10:58:40.823495+00:00",
+        "status": 403,
+        "contentType": "text/html",
+        "botVerification": true,
+        "containsNewSlug": false,
+        "bytes": 1686,
+        "excerpt": "<!DOCTYPE html>\n<html>\n<head>\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1, shrink-to-fit=no\">\n    <meta http-equiv=\"X-UA-Co"
+      },
+      {
+        "url": "https://swapp.tv/api/actus/storage-status",
+        "checkedAt": "2026-11-21T10:58:40.824338+00:00",
+        "error": "The read operation timed out"
+      },
+      {
+        "url": "https://swapp.tv/api/actus/signaux",
+        "checkedAt": "2026-11-21T10:58:40.825317+00:00",
+        "status": 403,
+        "contentType": "text/html",
+        "botVerification": true,
+        "containsNewSlug": false,
+        "bytes": 1686,
+        "excerpt": "<!DOCTYPE html>\n<html>\n<head>\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1, shrink-to-fit=no\">\n    <meta http-equiv=\"X-UA-Co"
+      },
+      {
+        "url": "https://swapp.tv/plan-du-site",
+        "checkedAt": "2026-11-21T10:58:52.504609+00:00",
+        "status": 403,
+        "contentType": "text/html",
+        "botVerification": false,
+        "containsNewSlug": false,
+        "bytes": 787,
+        "excerpt": "<!DOCTYPE html>\n<html style=\"height:100%\">\n<head>\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, shrink-to-fit=no\" />\n<title> 403"
+      },
+      {
+        "url": "https://swapp.tv/api/actus",
+        "checkedAt": "2026-11-21T10:59:00.416494+00:00",
+        "status": 403,
+        "contentType": "text/html",
+        "botVerification": false,
+        "containsNewSlug": false,
+        "bytes": 787,
+        "excerpt": "<!DOCTYPE html>\n<html style=\"height:100%\">\n<head>\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, shrink-to-fit=no\" />\n<title> 403"
+      },
+      {
+        "url": "https://swapp.tv/api/release",
+        "checkedAt": "2026-11-21T10:59:09.483802+00:00",
+        "status": 403,
+        "contentType": "text/html",
+        "botVerification": true,
+        "containsNewSlug": false,
+        "bytes": 1686,
+        "excerpt": "<!DOCTYPE html>\n<html>\n<head>\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1, shrink-to-fit=no\">\n    <meta http-equiv=\"X-UA-Co"
+      }
+    ],
+    "browser": {
+      "url": "https://swapp.tv/actus/myth-of-empires-throne-saison-4-voidbound-realm-lancement",
+      "status": 403,
+      "text": "403 Forbidden. Access to this resource on the server is denied!",
+      "bypassed": false
+    }
+  },
+  "unverified": [
+    "déploiement du commit",
+    "backend MySQL Hostinger actif et connecté",
+    "adoption et editableInStudio=true",
+    "HTTP 200 et texte de la nouvelle page",
+    "carte, vignette et vidéo en production",
+    "liens affiliés et partage en production",
+    "nouveau slug dans le plan du site",
+    "nouvelle brève via /api/actus/signaux",
+    "RSS Social"
+  ],
+  "radar": {
+    "url": "https://swapp.tv/api/swapp/autonomy/editorial-opportunities",
+    "status": "timeout",
+    "usedAsAnnouncementEvidence": false,
+    "extraTwitchQueries": false
+  },
+  "notification": {
+    "decision": "notify_major_new_announcement_publication_unconfirmed",
+    "dedupeKey": "gta-vi-retail-sales-estimate-2026-11-20",
+    "status": "prepared_for_final_response",
+    "deliveryConfirmed": false,
+    "separatePersistentIncidentAlertSuppressed": true,
+    "previousIncidentNotificationAt": "2026-11-20T23:32:20.087Z",
+    "reason": "Le bilan commercial de GTA VI constitue une annonce majeure nouvellement vérifiée ; le dossier préparé ne peut pas être confirmé en production. Aucune alerte distincte répétée sur l’incident déjà signalé depuis moins de 24 heures."
+  },
+  "changesOutsideEditorialData": false,
+  "newPaidServices": false,
+  "newWorkflow": false,
+  "securityBypass": false,
+  "independentSocialMessage": false
+}
