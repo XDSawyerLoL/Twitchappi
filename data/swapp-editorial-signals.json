@@ -2,8 +2,25 @@
   "schema": 1,
   "kind": "swapp-editorial-signals",
   "method": "Brèves rédigées à partir de sources primaires, avec revendication, intérêt et limites distincts. Ne jamais convertir automatiquement un RSS en brève vérifiée.",
-  "updatedAt": "2026-11-21T04:46:46.246Z",
+  "updatedAt": "2026-11-21T10:56:55Z",
   "items": [
+    {
+      "id": "gta-vi-estimation-ventes-detail-premier-jour-20261120",
+      "topics": [
+        "GAMING"
+      ],
+      "title": "GTA VI : Rockstar chiffre les ventes du lancement",
+      "fact": "Le 20 novembre, Rockstar annonce 3,79 milliards de dollars de ventes au détail mondiales, estimation arrêtée à la fin du 19 novembre.",
+      "impact": "Un premier repère commercial pour suivre le lancement, à distinguer d’un bilan de qualité ou de fréquentation.",
+      "caveat": "Estimation de l’éditeur : ce montant ne correspond pas à un bénéfice.",
+      "sourceName": "Rockstar Games / Take-Two Interactive",
+      "sourceUrl": "https://www.take2games.com/ir/news/grand-theft-auto-vi-shatters-entertainment-box-office-records",
+      "sourceDate": "2026-11-20",
+      "reviewedAt": "2026-11-21T10:56:55Z",
+      "imageUrl": "https://mms.businesswire.com/media/20261120446139/en/2978423/4/Grand_Theft_Auto_VI_Official_Cover_Art_Hi-Res.jpg",
+      "imageCredit": "Rockstar Games / Take-Two Interactive · visuel officiel du communiqué du 20 novembre",
+      "articleSlug": "gta-vi-ventes-premier-jour-estimation-rockstar-novembre-2026"
+    },
     {
       "id": "myth-of-empires-throne-saison4-voidbound-realm-20261120",
       "topics": [
