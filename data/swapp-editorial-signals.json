@@ -2,7 +2,7 @@
   "schema": 1,
   "kind": "swapp-editorial-signals",
   "method": "Brèves rédigées à partir de sources primaires, avec revendication, intérêt et limites distincts. Ne jamais convertir automatiquement un RSS en brève vérifiée.",
-  "updatedAt": "2026-11-21T04:44:35.398Z",
+  "updatedAt": "2026-11-21T04:46:46.246Z",
   "items": [
     {
       "id": "myth-of-empires-throne-saison4-voidbound-realm-20261120",
@@ -166,7 +166,8 @@
       "sourceDate": "2026-11-18",
       "reviewedAt": "2026-11-21T04:44:35.398Z",
       "imageUrl": "https://www.arkheron.com/160850/1795028074-ark_partnerserver_16x9.png",
-      "imageCredit": "Bonfire Studios · visuel officiel Arkheron Partner Servers"
+      "imageCredit": "Bonfire Studios · visuel officiel Arkheron Partner Servers",
+      "articleSlug": "arkheron-acces-gratuit-lancement-discord-serveurs-partenaires"
     },
     {
       "id": "spirit-crossing-lancement-cozy-club-20261116",
