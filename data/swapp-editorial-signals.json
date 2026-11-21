@@ -2,7 +2,7 @@
   "schema": 1,
   "kind": "swapp-editorial-signals",
   "method": "Brèves rédigées à partir de sources primaires, avec revendication, intérêt et limites distincts. Ne jamais convertir automatiquement un RSS en brève vérifiée.",
-  "updatedAt": "2026-11-20T23:30:05.503Z",
+  "updatedAt": "2026-11-21T04:44:35.398Z",
   "items": [
     {
       "id": "myth-of-empires-throne-saison4-voidbound-realm-20261120",
@@ -151,6 +151,22 @@
       "reviewedAt": "2026-11-20T05:00:40Z",
       "imageUrl": "https://blogs.nvidia.com/wp-content/uploads/2026/11/nv-blog-1280x680-2-1.jpg",
       "imageCredit": "NVIDIA · illustration officielle de l’annonce RTX Spark et de l’IA locale"
+    },
+    {
+      "id": "arkheron-serveurs-partenaires-acces-gratuit-20261118",
+      "topics": [
+        "GAMING"
+      ],
+      "title": "Arkheron : un accès gratuit prolongé pour les serveurs Discord partenaires",
+      "fact": "L’annonce du 18 novembre prévoit un week-end gratuit du 27 au 29 novembre, puis un accès sans propriétaire dans le groupe du 30 novembre au 6 décembre pour les membres de serveurs partenaires.",
+      "impact": "Ces communautés pourront jouer ensemble sur Steam, PS5 et Xbox Series X|S avec le crossplay.",
+      "caveat": "Il faut l’édition Friend Pass, un serveur participant et un compte Discord lié. La liste des serveurs n’est pas encore fournie dans l’annonce. Après le 6 décembre, les règles normales du Friend Pass reviennent.",
+      "sourceName": "Bonfire Studios · Arkheron",
+      "sourceUrl": "https://www.arkheron.com/en_US/news/partner_servers_announcement/",
+      "sourceDate": "2026-11-18",
+      "reviewedAt": "2026-11-21T04:44:35.398Z",
+      "imageUrl": "https://www.arkheron.com/160850/1795028074-ark_partnerserver_16x9.png",
+      "imageCredit": "Bonfire Studios · visuel officiel Arkheron Partner Servers"
     },
     {
       "id": "spirit-crossing-lancement-cozy-club-20261116",
