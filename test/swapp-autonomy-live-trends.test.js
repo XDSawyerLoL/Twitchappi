@@ -98,3 +98,33 @@ test('malformed provider result, out-of-range samples and corrupt history are re
  assert.equal((await collector.tick()).failed,true);
  assert.equal(db.rows.get(99).state,'failed');
 });
+
+test('cold GET never creates schema, inserts slots, or calls Twitch',async()=>{
+ const db=fakeDb();let externalCalls=0;
+ const collector=createTrendCollector({db,enabled:true,now:()=>INTERVAL_MS*70,
+  replayTitle,fetchStreams:async()=>{externalCalls++;return streams()}});
+ const a=await collector.report();
+ assert.equal(a.state,'warming');
+ assert.equal(externalCalls,0);
+ assert.equal(db.calls.length,1);
+ assert.match(db.calls[0].sql,/^SELECT /);
+ assert.equal(db.calls.some(c=>/CREATE|INSERT|UPDATE|DELETE/i.test(c.sql)),false);
+});
+test('cold GET on absent schema fails closed without attempting repair',async()=>{
+ let calls=0;
+ const db={async execute(sql){calls++;assert.match(sql,/^SELECT /);
+  const error=new Error('missing');error.code='ER_NO_SUCH_TABLE';throw error;}};
+ const collector=createTrendCollector({db,enabled:true,replayTitle,
+  fetchStreams:async()=>{throw Error('GET must not collect')}});
+ const report=await collector.report();
+ assert.equal(report.state,'unavailable');
+ assert.equal(calls,1);
+});
+test('first autonomous tick initializes table, subsequent GET remains SELECT only',async()=>{
+ const db=fakeDb(),collector=createTrendCollector({db,enabled:true,
+  now:()=>INTERVAL_MS*72,replayTitle,fetchStreams:async()=>streams()});
+ assert.equal((await collector.tick()).saved,true);
+ db.calls.length=0;
+ assert.equal((await collector.report()).state,'warming');
+ assert.deepEqual(db.calls.map(c=>c.sql.split(' ')[0]),['SELECT']);
+});

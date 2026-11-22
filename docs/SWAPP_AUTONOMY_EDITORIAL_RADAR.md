@@ -49,3 +49,11 @@ Si un guide n'existe pas encore, `editorial.recommendedAction = research-guide` 
 Le WAF SWAPP peut renvoyer HTTP 403 aux sondes automatiques extérieures. Utiliser un navigateur déjà autorisé pour la recette, sans contourner les protections.
 
 **Prochaine étape distincte :** faire consommer ce radar au workflow de recherche des guides et à la veille éditoriale, puis produire des textes uniquement sur preuves primaires et validation du contenu, sans confondre signaux Twitch et actualités.
+
+## Correctif GET sans écriture (20 novembre, suivi)
+
+Audit du chemin `GET /api/swapp/autonomy/editorial-opportunities` : le routeur du radar n'exécute qu'un `SELECT` sur `swapp_news_documents`, mais son appel indirect à `swappLiveTrendCollector.report()` déclenchait auparavant `ensure()`, donc potentiellement `CREATE TABLE IF NOT EXISTS swapp_live_trend_samples` sur une première lecture froide. C'était une écriture DDL possible dans un GET, même si la table était généralement déjà présente en production.
+
+Le correctif retire `ensure()` de `report()` dans `modules/swapp-autonomy/live-trends.js`. Désormais **seul `tick()` crée la table**, avant de réserver le créneau MySQL. Les GET Live Trends et radar ne créent plus le schéma et n'exécutent aucun INSERT/UPDATE/DELETE, ni appel Twitch. Tant que la table n'existe pas, le rapport Live Trends renvoie `unavailable` au lieu de réparer silencieusement le stockage. Trois tests de non-régression supplémentaires couvrent la lecture à froid, le schéma absent et la lecture après collecte.
+
+**Recette Hostinger non encore prouvée :** déploiement du nouveau commit, GET radar dans navigateur autorisé, vérification des liens publics d'articles existants, et examen des journaux SQL en lecture seule. Les sondes extérieures ont renvoyé HTTP 403 pour le radar et Guides, et un timeout pour Live Trends le 20 novembre ; ces observations ne démontrent pas une panne du site. Ne pas contourner le WAF.
