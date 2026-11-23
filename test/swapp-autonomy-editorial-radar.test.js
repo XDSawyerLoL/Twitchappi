@@ -113,3 +113,28 @@ test('unrecognized sample source and malformed clocks never authorize publicatio
  const a=buildEditorialRadar({trends:{...trend(),source:'untrusted'}});
  assert.equal(a.actionable,false);assert.equal(a.opportunities.length,0);
 });
+
+test('unavailable CMS catalogue cannot authorize actionable editorial work',()=>{
+ const result=buildEditorialRadar({trends:trend(),articles:[],catalogueStatus:'unavailable'});
+ assert.equal(result.state,'ready');
+ assert.equal(result.catalogueStatus,'unavailable');
+ assert.equal(result.actionable,false);
+ assert.equal(result.publicationAuthorized,false);
+ assert.ok(result.opportunities.length>0);
+ for(const suggestion of result.opportunities){
+  assert.equal(suggestion.editorial.relatedArticle,null);
+  assert.equal(suggestion.editorial.sourceVerificationRequired,true);
+  assert.equal(suggestion.editorial.publicationAuthorized,false);
+ }
+});
+test('radar service fails closed after a published catalogue query error',async()=>{
+ const service=createEditorialRadarService({
+  getTrends:async()=>trend(),
+  loadPublished:async()=>{throw Error('mysql_unavailable');}
+ });
+ const result=await service.report();
+ assert.equal(result.catalogueStatus,'unavailable');
+ assert.equal(result.actionable,false);
+ assert.equal(result.publicationAuthorized,false);
+ assert.equal(JSON.stringify(result).includes('mysql_unavailable'),false);
+});
