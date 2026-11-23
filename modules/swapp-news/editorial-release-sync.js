@@ -32,7 +32,7 @@ function loadEditorialReleases({dataDir=path.join(__dirname,'../../data')}={}){
  return articles;
 }
 
-function createEditorialReleaseSync({firestore,articles,releaseArticles=[],clock=()=>new Date().toISOString(),recordDiscordPublication=null}={}){
+function createEditorialReleaseSync({firestore,articles,releaseArticles=[],clock=()=>new Date().toISOString(),recordDiscordPublication=null,recordSocialPublication=null}={}){
  if(typeof firestore?.runTransaction!=='function'||typeof articles?.doc!=='function')
   throw Error('Persistance editorial requise');
  if(!Array.isArray(releaseArticles))throw Error('Lot editorial invalide');
@@ -97,6 +97,7 @@ function createEditorialReleaseSync({firestore,articles,releaseArticles=[],clock
          }
          const now=clock();
          if(recordDiscordPublication)await recordDiscordPublication(tx,a,now);
+         if(recordSocialPublication)await recordSocialPublication(tx,a,now);
          tx.create(ref,{...a,status:'published',revision:1,createdAt:now,updatedAt:now,
            provenance:'swapp-editorial-release',legacySuppressRecovery:false});
          return 'created';
