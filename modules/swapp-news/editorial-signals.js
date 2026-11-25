@@ -21,11 +21,11 @@ const IMAGE_HOSTS=new Set(['lh3.googleusercontent.com','storage.googleapis.com',
  'www.arkheron.com','spryfox.com','news.fnal.gov','www.minecraft.net',
  'staticctf.ubisoft.com','blog.playstation.com','xboxwire.thesourcemediaassets.com',
  'www.nintendo.com','www.nintendo.co.jp','teamninja-studio.com',
- 'web-static.hg-cdn.com','shared.fastly.steamstatic.com']);
+ 'web-static.hg-cdn.com','shared.fastly.steamstatic.com','x2robot.com']);
 // Cloudinary is shared hosting: accept only Bethesda's observed asset account.
 const IMAGE_PATHS=new Map([
  ['res.cloudinary.com','/dewzjk72j/image/'],
- ['ml.globenewswire.com','/Resource/Download/121bea67-5153-46c9-8175-b0d23e5624d7/']
+ ['images.ctfassets.net','/pkeegl0voupm/']
 ]);
 const HTTPS=url=>{
  try{
