@@ -13,7 +13,8 @@ const PRIMARY_HOSTS=new Set([
  'spryfox.com','nvidianews.nvidia.com','www.minecraft.net','news.ubisoft.com',
  'blog.playstation.com','news.xbox.com','www.nintendo.com',
  'slayersclub.bethesda.net','www.nintendo.co.jp',
- 'teamninja-studio.com','endfield.gryphline.com','x2robot.com'
+ 'teamninja-studio.com','endfield.gryphline.com','x2robot.com',
+ 'en.bandainamcoent.eu'
 ]);
 const IMAGE_HOSTS=new Set(['lh3.googleusercontent.com','storage.googleapis.com','developer-blogs.nvidia.com','blogs.nvidia.com','news.panasonic.com','global.discourse-cdn.com',
  'mms.businesswire.com','att-throne.mythofempires.com','clan.fastly.steamstatic.com',
@@ -21,7 +22,8 @@ const IMAGE_HOSTS=new Set(['lh3.googleusercontent.com','storage.googleapis.com',
  'www.arkheron.com','spryfox.com','news.fnal.gov','www.minecraft.net',
  'staticctf.ubisoft.com','blog.playstation.com','xboxwire.thesourcemediaassets.com',
  'www.nintendo.com','www.nintendo.co.jp','teamninja-studio.com',
- 'web-static.hg-cdn.com','shared.fastly.steamstatic.com','x2robot.com']);
+ 'web-static.hg-cdn.com','shared.fastly.steamstatic.com','x2robot.com',
+ 'static.bandainamcoent.eu']);
 // Cloudinary is shared hosting: accept only Bethesda's observed asset account.
 const IMAGE_PATHS=new Map([
  ['res.cloudinary.com','/dewzjk72j/image/'],
