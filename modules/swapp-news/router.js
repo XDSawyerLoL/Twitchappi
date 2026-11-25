@@ -10,7 +10,7 @@ const {collectPublicCatalog}=require('../../tools/justplayer-public-fetch');
 const {makePublicCatalog}=require('./public-catalog');
 const {recommend}=require('./content-metadata');
 const catalog=require('../../data/justplayer-public-catalog.json');
-const {createEditorialReleaseSync,loadEditorialReleases}=require('./editorial-release-sync');
+const {createEditorialReleaseSync,loadEditorialReleases,readEditorialReleaseStates}=require('./editorial-release-sync');
 const {selectEditorialReleaseCandidates}=require('./editorial-release-selection');
 const {reviewPublication,requirePublicationReview}=require('./editorial-quality');
 const {createVerifiedPublishedCache}=require('./verified-cache');
@@ -202,10 +202,7 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
     try{
       res.set('Cache-Control','no-store');
       await ensureReleaseEditable();
-      const states=await Promise.all(releaseCandidates.map(async item=>{
-        const document=await articles.doc(item.slug).get();
-        return {slug:item.slug,editableInStudio:document.exists};
-      }));
+      const states=await readEditorialReleaseStates({articles,releaseCandidates});
       return res.json({releaseCount:states.length,editableCount:states.filter(x=>x.editableInStudio).length,articles:states});
     }catch(error){next(error);}
   });
