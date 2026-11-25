@@ -2,8 +2,75 @@
   "schema": 1,
   "kind": "swapp-editorial-signals",
   "method": "Brèves rédigées à partir de sources primaires, avec revendication, intérêt et limites distincts. Ne jamais convertir automatiquement un RSS en brève vérifiée.",
-  "updatedAt": "2026-11-21T10:56:55Z",
+  "updatedAt": "2026-11-25T10:57:29Z",
   "items": [
+    {
+      "id": "arknights-endfield-world-oshrooms-update-20261125",
+      "topics": [
+        "GAMING"
+      ],
+      "title": "Endfield : les notes de World o’Shrooms précisent le calendrier",
+      "fact": "GRYPHLINE publie le 25 novembre les notes de la nouvelle version : zone Old Dam à Wuling, opératrice Kay et mode permanent Exclusion Zone Rebuilding.",
+      "impact": "Les joueurs PC, PS5, iOS et Android disposent des consignes de mise à jour et des échéances des activités.",
+      "caveat": "Certains contenus se débloquent progressivement. L’événement donnant Mimino et Star of Tomorrow commence le 16 décembre, heure du serveur.",
+      "sourceName": "GRYPHLINE · Arknights: Endfield",
+      "sourceUrl": "https://endfield.gryphline.com/en-us/news/0740",
+      "sourceDate": "2026-11-25",
+      "reviewedAt": "2026-11-25T10:57:29Z",
+      "imageUrl": "https://web-static.hg-cdn.com/upload/image/20261121/42b45601f1201ec344424fedd8bfeab4.jpg",
+      "imageCredit": "GRYPHLINE · visuel officiel du trailer Meeting You in the World o’Shrooms",
+      "articleSlug": "arknights-endfield-world-oshrooms-mise-a-jour-25-novembre-2026"
+    },
+    {
+      "id": "mario-kart-world-update-190-huit-remix-20261124",
+      "topics": [
+        "GAMING"
+      ],
+      "title": "Mario Kart World ajoute huit variantes de circuits et deux rallyes",
+      "fact": "Nintendo présente la version 1.9.0 sur Switch 2 : huit circuits remixés, deux parcours Knockout Tour et une fonction Replay enrichie. L’annonce asiatique date du 25 novembre ; l’assistance américaine date la sortie du 24.",
+      "impact": "Les nouvelles routes renouvellent les courses et les rallyes. Les replays récents peuvent être revus depuis le menu principal.",
+      "caveat": "Les huit pistes sont des variantes de circuits existants. Les replays des versions antérieures ne sont pas compatibles ; tous les joueurs doivent utiliser la même version.",
+      "sourceName": "Nintendo",
+      "sourceUrl": "https://www.nintendo.com/ph/news/article/3BK01rLB2Xrpv9E9CWBudf",
+      "sourceDate": "2026-11-25",
+      "reviewedAt": "2026-11-25T10:57:29Z",
+      "imageUrl": "https://images.ctfassets.net/pkeegl0voupm/3zN4bDpGaWcmVajEII3klV/e7bdcc5c749d09fdf866347ce461bc83/mkw_bnr.jpg",
+      "imageCredit": "Nintendo · visuel officiel Mario Kart World Ver. 1.9.0 Update"
+    },
+    {
+      "id": "dead-by-daylight-terrifier-lancement-20261124",
+      "topics": [
+        "GAMING"
+      ],
+      "title": "Dead by Daylight : le chapitre Terrifier est sorti",
+      "fact": "Behaviour confirme le lancement de Terrifier le 24 novembre sur Xbox One et Series X|S. La fiche Steam du DLC présente Art le Clown, Sienna Shaw et le Centre commercial Hartshorne.",
+      "impact": "Un nouveau tueur et une survivante rejoignent les Épreuves, avec des pouvoirs et compétences propres au chapitre.",
+      "caveat": "Sur Steam, il s’agit d’une extension nécessitant Dead by Daylight. Les prix, stocks et conditions d’un revendeur ne valent pas pour toutes les plateformes.",
+      "sourceName": "Behaviour Interactive · Steam",
+      "sourceUrl": "https://store.steampowered.com/app/5510420/Dead_by_Daylight_Terrifier/",
+      "sourceDate": "2026-11-24",
+      "reviewedAt": "2026-11-25T10:57:29Z",
+      "imageUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/5510420/83dd3c7b1401a7e148535a08f55c6e07fc002c24/capsule_616x353.jpg?t=1795548655",
+      "imageCredit": "Behaviour Interactive / Art the Clown LLC · visuel officiel du chapitre Terrifier sur Steam",
+      "articleSlug": "dead-by-daylight-terrifier-sortie-art-clown-sienna-shaw"
+    },
+    {
+      "id": "wall-oss-10-modele-robotique-generalisation-20261123",
+      "topics": [
+        "ROBOTICS",
+        "AI"
+      ],
+      "title": "X Square Robot présente WALL-OSS-1.0 pour relier perception et gestes",
+      "fact": "Le 23 novembre, X Square Robot présente un modèle vision-langage-action entraîné conjointement sur le langage, la vision et des expériences robotiques. L’équipe annonce 55,1 % de réussite sans adaptation spécifique sur 312 tâches.",
+      "impact": "Cette approche vise à suivre des consignes et manipuler des objets dans des situations nouvelles, avec une même politique préentraînée.",
+      "caveat": "Le score provient de l’évaluation de l’équipe. Il ne démontre ni une fiabilité universelle ni une sécurité de déploiement autonome dans tous les environnements.",
+      "sourceName": "X Square Robot · équipe de recherche",
+      "sourceUrl": "https://x2robot.com/blogs/wall-oss-1-en/",
+      "sourceDate": "2026-11-23",
+      "reviewedAt": "2026-11-25T10:57:29Z",
+      "imageUrl": "https://x2robot.com/blogs/wall-oss-1-en/assets/opening/wall-oss-1.0-introduction-pretraining-cover.webp",
+      "imageCredit": "X Square Robot · image d’ouverture de la présentation officielle WALL-OSS-1.0"
+    },
     {
       "id": "gta-vi-estimation-ventes-detail-premier-jour-20261120",
       "topics": [
