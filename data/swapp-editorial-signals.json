@@ -2,8 +2,41 @@
   "schema": 1,
   "kind": "swapp-editorial-signals",
   "method": "Brèves rédigées à partir de sources primaires, avec revendication, intérêt et limites distincts. Ne jamais convertir automatiquement un RSS en brève vérifiée.",
-  "updatedAt": "2026-11-25T10:57:29Z",
+  "updatedAt": "2026-11-25T16:55:26.801Z",
   "items": [
+    {
+      "id": "my-hero-ultra-rumble-plus-ultra-1-jiro-duos-20261125",
+      "topics": [
+        "GAMING"
+      ],
+      "title": "My Hero Ultra Rumble : Jiro arrive, les duos reviennent",
+      "fact": "Bandai Namco lance Plus Ultra Season 1 le 25 novembre. Kyoka Jiro rejoint le jeu ; les notes 1.20.0 confirment le retour des parties libres à douze équipes de deux.",
+      "impact": "Un nouveau personnage axé sur le son et la détection, et un format de partie adapté aux groupes de deux joueurs.",
+      "caveat": "Le jeu reste free-to-play sur PS4, Xbox One, Switch et PC. Le style Spark de Kaminari est prévu le 9 décembre ; la version mobile n’est pas annoncée disponible aujourd’hui.",
+      "sourceName": "Bandai Namco Europe",
+      "sourceUrl": "https://en.bandainamcoent.eu/my-hero-academia/news/my-hero-ultra-rumble-plus-ultra-season-1",
+      "sourceDate": "2026-11-25",
+      "reviewedAt": "2026-11-25T16:55:26.801Z",
+      "articleSlug": "my-hero-ultra-rumble-plus-ultra-saison-1-jiro-duos",
+      "imageUrl": "https://static.bandainamcoent.eu/high/my-hero-academia/my-hero-ultra-rumble/04-pages/mhur-season-1-plus-ultra/MHAUR_bnr_PlusUltra_Season1.jpg",
+      "imageCredit": "Bandai Namco Entertainment Europe — visuel officiel Plus Ultra Season 1"
+    },
+    {
+      "id": "playstation-plus-jeux-mensuels-decembre-2026-annonce-us",
+      "topics": [
+        "GAMING"
+      ],
+      "title": "PS Plus de décembre : trois jeux annoncés sur le blog américain",
+      "fact": "Le 25 novembre, PlayStation annonce Tony Hawk’s Pro Skater 3+4 et Dragon Ball Xenoverse 2 sur PS4/PS5, ainsi qu’Amnesia: The Bunker sur PS4. La période indiquée va du 1er décembre au 4 janvier.",
+      "impact": "Les abonnés concernés pourront ajouter ces jeux mensuels à leur bibliothèque durant cette fenêtre.",
+      "caveat": "Annonce du blog américain : Sony précise que la sélection peut varier selon la région. La disponibilité française reste à confirmer ; il ne s’agit pas de jeux gratuits sans abonnement.",
+      "sourceName": "Sony Interactive Entertainment — PlayStation Blog",
+      "sourceUrl": "https://blog.playstation.com/2026/11/25/playstation-plus-monthly-games-for-december-tony-hawks-pro-skater-34-dragon-ball-xenoverse-2-amnesia-the-bunker/",
+      "sourceDate": "2026-11-25",
+      "reviewedAt": "2026-11-25T16:55:26.801Z",
+      "imageUrl": "https://blog.playstation.com/tachyon/2026/11/bc4af3b9af7eabe20204f2228edee81050b007ef.jpg",
+      "imageCredit": "Sony Interactive Entertainment — visuel officiel PlayStation Plus December Monthly Games"
+    },
     {
       "id": "arknights-endfield-world-oshrooms-update-20261125",
       "topics": [
@@ -53,6 +86,39 @@
       "imageUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/5510420/83dd3c7b1401a7e148535a08f55c6e07fc002c24/capsule_616x353.jpg?t=1795548655",
       "imageCredit": "Behaviour Interactive / Art the Clown LLC · visuel officiel du chapitre Terrifier sur Steam",
       "articleSlug": "dead-by-daylight-terrifier-sortie-art-clown-sienna-shaw"
+    },
+    {
+      "id": "deepmind-algorithmes-quantiques-agents-preuves-20261123",
+      "topics": [
+        "FUTURE",
+        "AI"
+      ],
+      "title": "DeepMind associe agents IA et preuves formelles pour le calcul quantique",
+      "fact": "Dans une publication du 23 novembre, Google DeepMind décrit des circuits quantiques optimisés par des équipes d’agents Gemini 4 et vérifiés mathématiquement avec Lean. Une bibliothèque et des solutions vérifiées sont rendues publiques.",
+      "impact": "Des chercheurs peuvent examiner et réutiliser les preuves et les méthodes pour réduire les ressources requises par certains algorithmes.",
+      "caveat": "Ce sont des résultats algorithmiques, pas une démonstration sur un ordinateur quantique opérationnel. La prépublication remonte au 6 novembre ; le billet du 23 apporte leur présentation officielle.",
+      "sourceName": "Google DeepMind et Google Quantum AI",
+      "sourceUrl": "https://deepmind.google/blog/finding-faster-quantum-algorithms-with-agents-and-formal-verification/",
+      "sourceDate": "2026-11-23",
+      "reviewedAt": "2026-11-25T16:55:26.801Z",
+      "imageUrl": "https://lh3.googleusercontent.com/ppTuFPcwer2JwP-NysiQGW7mZrWpEmV6QsV_YD6IJn-skKzS1jTbtLbietmjpGkVxUOZBn3jQaCKfzcJVVR1FvvS-3QglWPDyh520ZSF7tvsHtdy=w1440-h810-n-nu",
+      "imageCredit": "Google DeepMind — illustration officielle quantum-algorithms__page-cover"
+    },
+    {
+      "id": "bepicolombo-orbite-mercure-confirmation-esa-20261123",
+      "topics": [
+        "FUTURE"
+      ],
+      "title": "BepiColombo en orbite stable autour de Mercure malgré une anomalie",
+      "fact": "Dans son bilan du 23 novembre, l’ESA confirme la mise en orbite de BepiColombo autour de Mercure après la manœuvre du 21 novembre. L’allumage a été interrompu, mais l’équipe a confirmé une orbite stable.",
+      "impact": "La mission peut poursuivre l’adaptation de son orbite et la préparation de la séparation des deux orbiteurs scientifiques.",
+      "caveat": "L’anomalie est attribuée à un problème logiciel encore étudié. La séparation prévue en décembre et les opérations scientifiques visées pour avril 2027 ne sont pas encore réalisées. Le visuel est une illustration.",
+      "sourceName": "Agence spatiale européenne (ESA)",
+      "sourceUrl": "https://www.esa.int/articles/about-us/directorates/operations/bepicolombo-safely-in-mercury-orbit-despite-unexpected-challenge",
+      "sourceDate": "2026-11-23",
+      "reviewedAt": "2026-11-25T16:55:26.801Z",
+      "imageUrl": "https://media.esa.int/global/public/common/image/2026/11/402726/image-thumb__402726__social_share/bepicolombo-mercury-orbit-insertion-020.3b458e55.jpg",
+      "imageCredit": "ESA — illustration officielle de BepiColombo à proximité de Mercure"
     },
     {
       "id": "wall-oss-10-modele-robotique-generalisation-20261123",
