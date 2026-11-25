@@ -61,7 +61,10 @@
         }
       ],
       "legacyUrl": null,
-      "originalPublishedAt": null
+      "originalPublishedAt": null,
+      "publishedAt": "2026-11-25T16:56:28Z",
+      "status": "published",
+      "revision": 1
     },
     {
       "title": "My Hero Ultra Rumble : Jiro et les duos ouvrent la saison Plus Ultra 1",
@@ -126,7 +129,10 @@
         }
       ],
       "legacyUrl": null,
-      "originalPublishedAt": null
+      "originalPublishedAt": null,
+      "publishedAt": "2026-11-25T16:56:28Z",
+      "status": "published",
+      "revision": 1
     }
   ]
 }
