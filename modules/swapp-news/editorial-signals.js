@@ -6,16 +6,41 @@ const TOPICS=new Set(['AI','ROBOTICS','FUTURE','GAMING']);
 const PRIMARY_HOSTS=new Set([
  'deepmind.google','developer.nvidia.com','forums.developer.nvidia.com','blogs.nvidia.com',
  'news.panasonic.com','www.esa.int','esa.int','research.google',
- 'mistral.ai','huggingface.co','www.nasa.gov','nasa.gov'
+ 'mistral.ai','huggingface.co','www.nasa.gov','nasa.gov',
+ // Official gaming publishers and their first-party announcement platforms.
+ 'www.take2games.com','playthrone.mythofempires.com','store.steampowered.com',
+ 'steamcommunity.com','www.rockstargames.com','blog.google','www.arkheron.com',
+ 'spryfox.com','nvidianews.nvidia.com','www.minecraft.net','news.ubisoft.com',
+ 'blog.playstation.com','news.xbox.com','www.nintendo.com',
+ 'slayersclub.bethesda.net','www.nintendo.co.jp',
+ 'teamninja-studio.com','endfield.gryphline.com','x2robot.com'
 ]);
-const IMAGE_HOSTS=new Set(['lh3.googleusercontent.com','storage.googleapis.com','developer-blogs.nvidia.com','blogs.nvidia.com','news.panasonic.com','global.discourse-cdn.com']);
+const IMAGE_HOSTS=new Set(['lh3.googleusercontent.com','storage.googleapis.com','developer-blogs.nvidia.com','blogs.nvidia.com','news.panasonic.com','global.discourse-cdn.com',
+ 'mms.businesswire.com','att-throne.mythofempires.com','clan.fastly.steamstatic.com',
+ 'clan.akamai.steamstatic.com','media-rockstargames-com.akamaized.net','media.esa.int',
+ 'www.arkheron.com','spryfox.com','news.fnal.gov','www.minecraft.net',
+ 'staticctf.ubisoft.com','blog.playstation.com','xboxwire.thesourcemediaassets.com',
+ 'www.nintendo.com','www.nintendo.co.jp','teamninja-studio.com',
+ 'web-static.hg-cdn.com','shared.fastly.steamstatic.com']);
+// Cloudinary is shared hosting: accept only Bethesda's observed asset account.
+const IMAGE_PATHS=new Map([
+ ['res.cloudinary.com','/dewzjk72j/image/'],
+ ['ml.globenewswire.com','/Resource/Download/121bea67-5153-46c9-8175-b0d23e5624d7/']
+]);
 const HTTPS=url=>{
  try{
   const parsed=new URL(String(url||''));
   return parsed.protocol==='https:'&&!parsed.username&&!parsed.password?parsed:null;
  }catch(_){return null;}
 };
-const isoDate=x=>/^\d{4}-\d{2}-\d{2}$/.test(String(x||''))&&!Number.isNaN(new Date(x+'T12:00:00Z').getTime());
+const isoDate=x=>{
+ if(typeof x!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(x))return false;
+ const date=new Date(x+'T12:00:00Z');
+ return Number.isFinite(date.getTime())&&date.toISOString().slice(0,10)===x;
+};
+const reviewedDate=x=>isoDate(x)||(typeof x==='string'&&
+ /^\d{4}-\d{2}-\d{2}T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d{1,9})?Z$/.test(x)&&
+ isoDate(x.slice(0,10))&&Number.isFinite(Date.parse(x)));
 function validateEditorial(item){
  if(!/^[a-z][a-z0-9-]{9,109}$/.test(String(item?.id||'')))throw Error('invalid_signal_id');
  if(!Array.isArray(item.topics)||item.topics.length<1||item.topics.some(x=>!TOPICS.has(x)))throw Error('invalid_signal_topics');
@@ -26,10 +51,11 @@ function validateEditorial(item){
  if(typeof item.imageUrl!=='string'||!item.imageUrl.trim())throw Error('official_signal_image_required');
  {
   const asset=HTTPS(item.imageUrl);
-  if(!asset||!IMAGE_HOSTS.has(asset.hostname.toLowerCase()))throw Error('invalid_official_signal_image');
+  const host=asset?.hostname.toLowerCase();
+  if(!asset||!(IMAGE_HOSTS.has(host)||(IMAGE_PATHS.has(host)&&asset.pathname.startsWith(IMAGE_PATHS.get(host)))))throw Error('invalid_official_signal_image');
   if(typeof item.imageCredit!=='string'||item.imageCredit.trim().length<8)throw Error('missing_image_credit');
  }
- if(!isoDate(item.sourceDate)||!isoDate(item.reviewedAt))throw Error('invalid_signal_dates');
+ if(!isoDate(item.sourceDate)||!reviewedDate(item.reviewedAt))throw Error('invalid_signal_dates');
  if(item.articleSlug!=null&&!/^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/.test(item.articleSlug))throw Error('invalid_article_slug');
  return true;
 }
