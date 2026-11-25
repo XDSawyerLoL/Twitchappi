@@ -111,4 +111,14 @@ function createEditorialReleaseSync({firestore,articles,releaseArticles=[],clock
  }
  return {sync,articles:validated,completed:()=>done};
 }
-module.exports={createEditorialReleaseSync,loadEditorialReleases};
+// Keep this read-only diagnostic within the shared Hostinger pool queue.
+// A missing row remains false; drafts and withdrawals remain editable records.
+async function readEditorialReleaseStates({articles,releaseCandidates}){
+ const states=[];
+ for(const item of releaseCandidates){
+   const document=await articles.doc(item.slug).get();
+   states.push({slug:item.slug,editableInStudio:document.exists});
+ }
+ return states;
+}
+module.exports={createEditorialReleaseSync,loadEditorialReleases,readEditorialReleaseStates};
