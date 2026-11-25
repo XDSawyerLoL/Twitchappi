@@ -2,8 +2,42 @@
   "schema": 1,
   "kind": "swapp-editorial-signals",
   "method": "Brèves rédigées à partir de sources primaires, avec revendication, intérêt et limites distincts. Ne jamais convertir automatiquement un RSS en brève vérifiée.",
-  "updatedAt": "2026-11-25T16:55:26.801Z",
+  "updatedAt": "2026-11-25T22:49:05Z",
   "items": [
+    {
+      "id": "company-of-heroes-3-operation-torch-sortie-20261125",
+      "topics": [
+        "GAMING"
+      ],
+      "title": "Company of Heroes 3 : Operation Torch est disponible sur PC",
+      "fact": "Relic annonce le 25 novembre la sortie d’Operation Torch, une campagne solo de quinze missions en Afrique du Nord, avec une armée dont les choix de progression persistent entre les batailles.",
+      "impact": "Les joueurs de Company of Heroes 3 disposent d’un nouveau parcours scénarisé consacré aux forces américaines, accompagné du patch 3.0.3.",
+      "caveat": "DLC payant nécessitant le jeu de base sur Steam. La fiche française affiche 18,99 € au contrôle ; aucune disponibilité console de cette extension n’est confirmée par les sources consultées.",
+      "sourceName": "Relic Entertainment — Company of Heroes",
+      "sourceUrl": "https://steamcommunity.com/games/1677280/announcements/detail/674012071495468206",
+      "sourceDate": "2026-11-25",
+      "reviewedAt": "2026-11-25T22:49:05Z",
+      "articleSlug": "company-of-heroes-3-operation-torch-sortie-campagne-pc",
+      "imageUrl": "https://clan.fastly.steamstatic.com/images/40883127/a0b05f63fa33c45c27866f16d3ddf49a970bd9be.png",
+      "imageCredit": "Relic Entertainment / Company of Heroes — visuel officiel Operation Torch"
+    },
+    {
+      "id": "deepmind-mass-spec-skills-antigravity-20261125",
+      "topics": [
+        "FUTURE",
+        "AI"
+      ],
+      "title": "DeepMind outille Antigravity pour identifier des molécules",
+      "fact": "Google DeepMind présente le 25 novembre Mass Spec Skills : des outils qui associent Gemini, calculs chimiques et bases publiques pour proposer une structure moléculaire à partir de spectres de masse et exposer les éléments à vérifier.",
+      "impact": "Les chimistes peuvent déléguer une partie des recherches et calculs, puis examiner un rapport retraçant les indices utilisés.",
+      "caveat": "Les performances annoncées viennent d’un test sur cent composés déjà catalogués. Certaines molécules proches exigent d’autres mesures ; une structure inconnue ne peut pas être confirmée par l’agent seul.",
+      "sourceName": "Google DeepMind",
+      "sourceUrl": "https://deepmind.google/blog/interpreting-mass-spectra-with-google-antigravity/",
+      "sourceDate": "2026-11-25",
+      "reviewedAt": "2026-11-25T22:42:07Z",
+      "imageUrl": "https://lh3.googleusercontent.com/CtAfS_JWygw2R9cuDNty3xd0S4WFRzVew1vtNDiPaN1ZOGa88hCwTiCLxtgCtpSFER2t3jFO-moRkPnQYPjXziNgMvKHVc0wkOkzBTdGRoOYL3Ld=w1200-h630-n-nu-rw",
+      "imageCredit": "Google DeepMind — visuel officiel Mass Spec Skills for Google Antigravity"
+    },
     {
       "id": "my-hero-ultra-rumble-plus-ultra-1-jiro-duos-20261125",
       "topics": [
