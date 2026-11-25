@@ -1,0 +1,65 @@
+{
+  "kind": "swapp-editorial-release",
+  "release": "2026-11-25-company-of-heroes-operation-torch",
+  "articles": [
+    {
+      "title": "Company of Heroes 3 : Operation Torch débarque avec 15 missions solo",
+      "slug": "company-of-heroes-3-operation-torch-sortie-campagne-pc",
+      "body": "## Une sortie effective, après l’annonce d’octobre\n\nRelic Entertainment a annoncé la disponibilité de Company of Heroes 3: Operation Torch le 25 novembre 2026, à 19 h 04 à Paris. Le fait nouveau est bien la sortie de cette extension sur PC via Steam : sa présentation initiale remontait au 28 octobre. Il ne s’agit donc pas d’une nouvelle révélation du projet.\n\n## Une campagne centrée sur les forces américaines\n\nOperation Torch propose quinze missions solo inspirées de la campagne alliée en Afrique du Nord. Le parcours conduit des débarquements à Kasserine puis à l’assaut du Hill 609. Trois soldats américains apportent des points de vue complémentaires sur les décisions du commandement et les combats sur le terrain.\n\nDans sa FAQ, Relic précise avoir choisi de suivre principalement la 34e division d’infanterie américaine face aux forces allemandes. La présence des forces françaises de Vichy dans le contexte historique ne signifie pas qu’elles occupent une place centrale dans ce récit. L’extension adapte une partie de ces événements ; elle ne prétend pas reconstituer toute l’opération historique.\n\n## Une armée qui évolue entre les missions\n\nLes notes 3.0.3 décrivent une progression persistante : deux choix sont proposés par mission, avec une ou deux améliorations obtenues et des possibilités supplémentaires liées aux objectifs secondaires. Les décisions accompagnent ainsi l’armée jusqu’aux affrontements suivants.\n\nLes situations annoncées varient entre débarquement, infiltration, défense et assaut. Les unités et les capacités disponibles doivent répondre au problème tactique de chaque mission. Nous n’avons pas testé cette campagne : cette présentation décrit le contenu annoncé, sans attribuer de note ni estimer sa durée.\n\n## Le patch 3.0.3 accompagne le DLC\n\nLa mise à jour publiée le même jour apporte aussi des ajustements multijoueurs. Relic explique vouloir corriger un avantage observé pour les factions de l’Axe. Les notes détaillent notamment des changements pour les bâtiments américains et allemands, les soins et plusieurs unités.\n\nLa répartition des succès Steam distingue désormais le jeu principal, Final Stand et Operation Torch. Ces changements relèvent du suivi de Company of Heroes 3 ; la nouvelle campagne reste un contenu payant distinct. Acheter le DLC ne doit pas être confondu avec installer un correctif du jeu.\n\n## Analyse SWAPP : une progression pensée pour le solo\n\nL’intérêt de cette proposition tient à la continuité entre les batailles. Une mission isolée demande de trouver une solution immédiate ; une campagne où les choix persistent invite aussi à anticiper ce dont l’armée aura besoin ensuite. Cette articulation peut intéresser les joueurs qui préfèrent préparer leurs opérations à leur rythme plutôt que suivre une compétition multijoueur.\n\nLe nombre de missions ne suffit toutefois pas à juger la richesse de l’ensemble. La liberté réelle, la lisibilité des objectifs, la variété des choix et la qualité de l’intelligence artificielle devront être évaluées en jouant. La bande-annonce intégrée, publiée par la chaîne officielle Company of Heroes le jour du lancement, illustre l’extension sans remplacer cette évaluation.\n\n## Prix et conditions pour jouer en France\n\nLa fiche Steam française consultée le 25 novembre affiche 18,99 € pour Operation Torch. Elle exige de posséder Company of Heroes 3 sur Steam : il ne s’agit pas d’un jeu autonome. Ce montant est celui observé au contrôle, pas une promotion annoncée ni une garantie de prix futur.\n\nLa configuration concerne Windows. La fiche indique une interface et des sous-titres français ; les voix françaises ne sont pas cochées. Les sources de lancement consultées confirment le PC Steam et ne permettent pas d’annoncer cette extension sur consoles.",
+      "summary": "Disponible depuis le 25 novembre sur PC Steam, Operation Torch ajoute une campagne américaine en Afrique du Nord. Contenu, prix français et mise à jour 3.0.3 : voici les repères utiles.",
+      "contentType": "article",
+      "games": [
+        "Company of Heroes 3"
+      ],
+      "tags": [
+        "gaming",
+        "company of heroes 3",
+        "relic entertainment",
+        "extension",
+        "stratégie",
+        "pc"
+      ],
+      "seo": {
+        "title": "Company of Heroes 3 : Operation Torch débarque avec 15 missions solo",
+        "description": "Disponible depuis le 25 novembre sur PC Steam, Operation Torch ajoute une campagne américaine en Afrique du Nord. Contenu, prix français et mise à jour 3.0.3 : "
+      },
+      "category": "Actualités JV",
+      "game": "Company of Heroes 3",
+      "author": "Rédaction SWAPP",
+      "sources": [
+        {
+          "url": "https://steamcommunity.com/games/1677280/announcements/detail/674012071495468206",
+          "label": "Relic Entertainment — annonce officielle de disponibilité du 25 novembre"
+        },
+        {
+          "url": "https://store.steampowered.com/news/app/1677280/view/674012071495468203",
+          "label": "Relic Entertainment — notes de mise à jour 3.0.3"
+        },
+        {
+          "url": "https://store.steampowered.com/app/5210790/Company_of_Heroes_3_Operation_Torch/?cc=fr&l=french",
+          "label": "Relic Entertainment — fiche Steam française d’Operation Torch"
+        },
+        {
+          "url": "https://www.youtube.com/watch?v=el6w8yErDnQ",
+          "label": "Company of Heroes — bande-annonce officielle de lancement"
+        }
+      ],
+      "image": null,
+      "thumbnail": {
+        "url": "https://i.ytimg.com/vi/el6w8yErDnQ/hqdefault.jpg",
+        "credit": "Company of Heroes / Relic Entertainment — Operation Torch Launch Trailer, 25 novembre 2026",
+        "rights": "Miniature distante de la bande-annonce officielle, affichée avec l’intégration YouTube native, sans réhébergement.",
+        "alt": "Soldats américains débarquant en Afrique du Nord dans la bande-annonce officielle Operation Torch",
+        "position": "center"
+      },
+      "trailerUrl": "https://www.youtube.com/watch?v=el6w8yErDnQ",
+      "editorialVerdict": null,
+      "commercialLinks": [],
+      "legacyUrl": null,
+      "originalPublishedAt": null,
+      "publishedAt": "2026-11-25T22:48:15.309Z",
+      "status": "published",
+      "revision": 1
+    }
+  ]
+}
