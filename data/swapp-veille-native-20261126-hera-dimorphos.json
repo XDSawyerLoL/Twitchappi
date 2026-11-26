@@ -1,0 +1,58 @@
+{
+  "kind": "swapp-editorial-release",
+  "release": "2026-11-26-hera-dimorphos-premieres-images",
+  "articles": [
+    {
+      "title": "Hera révèle le cratère de DART : ce que les images de Dimorphos changent",
+      "slug": "hera-dimorphos-cratere-dart-premieres-images-2026",
+      "body": "## Ce qui a été annoncé le 25 novembre\n\nLes premiers résultats rapprochés de Hera ont été présentés le 25 novembre 2026 à Berlin. Le communiqué du DLR décrit une face de Dimorphos profondément marquée par l’impact de DART : le cratère occupe presque toute la largeur du côté touché. L’annonce apporte donc des observations de terrain à une expérience dont les effets sur l’orbite avaient déjà été mesurés depuis la Terre.\n\n## Une photographie récente, datée précisément\n\nLe DLR précise que l’image de son communiqué a été prise le 7 novembre, à 29 kilomètres de distance, avec une résolution de 2,7 mètres par pixel. La date de prise de vue et celle de sa présentation publique sont distinctes.\n\nDimorphos mesure environ 150 mètres de diamètre et accompagne Didymos, un corps d’environ 730 mètres. Les caméras AFC fournissent des vues en noir et blanc, également utiles à la navigation. Leur exploitation doit permettre de construire des modèles du relief et de mieux décrire la géométrie du cratère. Les premières photographies ne donnent pas encore la masse exacte du petit astéroïde.\n\n## DART : pousser un astéroïde, puis comprendre sa réaction\n\nLa NASA rappelle que DART était une démonstration technologique de défense planétaire. En septembre 2022, la sonde a volontairement frappé Dimorphos afin de modifier son mouvement autour de Didymos. Aucun des deux objets ne menaçait la Terre avant ou après cette expérience.\n\nLe transfert de mouvement ne vient pas seulement du choc de la sonde. Les matériaux projetés hors de l’astéroïde produisent aussi un effet de recul qui renforce la déviation. La NASA souligne qu’un corps plus compact, éjectant moins de matière, pourrait répondre différemment. Un résultat obtenu sur Dimorphos ne suffit donc pas à garantir la même efficacité sur tous les astéroïdes.\n\n## Ce que Hera doit encore mesurer\n\nL’ESA signale une rotation devenue chaotique et des centaines de blocs autour du système. Leur présence compte pour la préparation des observations rapprochées.\n\nSelon le calendrier annoncé, Hera doit se rapprocher à environ 13 kilomètres en décembre, puis déployer les CubeSats Juventas et Milani en janvier 2027. Ces étapes restent des opérations prévues. Leurs mesures compléteront les images ; elles ne sont pas encore des résultats acquis.\n\n## Analyse SWAPP : passer d’une image frappante à une méthode fiable\n\nUn cratère spectaculaire raconte qu’un impact a transformé un objet. Il ne dit pas, à lui seul, quelle décision prendre face à un autre astéroïde. Pour passer de l’expérience à une méthode, il faut relier ce que l’on voit aux propriétés physiques du corps touché et à sa réponse au choc.\n\nL’intérêt de Hera tient à cette confrontation entre prédictions et observations. Une explication qui reproduit un changement d’orbite doit aussi rester compatible avec la forme du cratère et les matériaux déplacés. Si ces indices divergent, le modèle doit être révisé. Ce travail rend les annonces moins simples qu’une promesse de protection universelle, mais plus utiles pour préparer de futures décisions.\n\nIl faudra ainsi suivre les mesures successives et leur interprétation, sans confondre un calendrier de mission, une première observation et une conclusion scientifique consolidée.\n\n## Voir les images et la présentation officielle\n\nLa vidéo associée est la présentation de l’ESA du 25 novembre, en anglais, consacrée aux premières images de Dimorphos. C’est une conférence scientifique. Sa miniature officielle est un visuel illustré de la mission, distinct des photographies AFC consultables dans les sources ESA et DLR.\n\nCrédit de la vidéo et de sa miniature : ©ESA / European Space Agency. Les médias restent hébergés par leurs diffuseurs d’origine. Retrouvez les autres dossiers dans le [magazine SWAPP](https://swapp.tv/actus).",
+      "summary": "Les images dévoilées le 25 novembre montrent la trace laissée par DART sur Dimorphos. Ce que Hera observe déjà, ce qui reste à mesurer et pourquoi cela compte pour la défense planétaire.",
+      "contentType": "article",
+      "games": [],
+      "tags": [
+        "FUTURE"
+      ],
+      "seo": {
+        "title": "Hera : les premières images du cratère de DART sur Dimorphos",
+        "description": "Hera révèle le cratère laissé par DART sur Dimorphos. Images du 25 novembre, résultats vérifiés et prochaines étapes de la mission ESA."
+      },
+      "category": "Technologies",
+      "game": "",
+      "author": "Rédaction SWAPP",
+      "sources": [
+        {
+          "url": "https://www.esa.int/articles/about-us/directorates/operations/space-safety/hera/hera-reveals-stadium-sized-asteroid-crater-left-after-spacecraft-impact",
+          "label": "ESA — résultats et étapes de Hera, 25 novembre 2026"
+        },
+        {
+          "url": "https://www.dlr.de/en/latest/news/2026/asteroid-defence-hera-spacecraft-reaches-its-destination",
+          "label": "DLR — premières images et caractéristiques des observations, 25 novembre 2026"
+        },
+        {
+          "url": "https://science.nasa.gov/planetary-defense-dart/",
+          "label": "NASA — DART, méthode de déviation et limites physiques"
+        },
+        {
+          "url": "https://www.youtube.com/watch?v=lGgcxqjEqCA",
+          "label": "European Space Agency, ESA — présentation officielle du 25 novembre"
+        }
+      ],
+      "image": null,
+      "thumbnail": {
+        "url": "https://i.ytimg.com/vi/lGgcxqjEqCA/hqdefault.jpg",
+        "credit": "©ESA / European Space Agency — présentation des premières images de Dimorphos, 25 novembre 2026",
+        "rights": "Miniature YouTube officielle distante, avec intégration autorisée de la conférence ESA, sans modification ni réhébergement.",
+        "alt": "Visuel illustré officiel de la sonde Hera près d’un astéroïde, miniature de la conférence ESA",
+        "position": "center"
+      },
+      "trailerUrl": "https://www.youtube.com/watch?v=lGgcxqjEqCA",
+      "editorialVerdict": null,
+      "commercialLinks": [],
+      "legacyUrl": null,
+      "originalPublishedAt": null,
+      "publishedAt": "2026-11-26T05:13:24Z",
+      "status": "published",
+      "revision": 1
+    }
+  ]
+}
