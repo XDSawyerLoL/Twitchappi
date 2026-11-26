@@ -2,8 +2,25 @@
   "schema": 1,
   "kind": "swapp-editorial-signals",
   "method": "Brèves rédigées à partir de sources primaires, avec revendication, intérêt et limites distincts. Ne jamais convertir automatiquement un RSS en brève vérifiée.",
-  "updatedAt": "2026-11-25T22:49:05Z",
+  "updatedAt": "2026-11-26T05:14:20Z",
   "items": [
+    {
+      "id": "hera-dimorphos-cratere-dart-premieres-images-20261125",
+      "topics": [
+        "FUTURE"
+      ],
+      "title": "Hera montre le cratère laissé par DART sur Dimorphos",
+      "fact": "L’ESA a publié le 25 novembre ses premières images rapprochées du cratère formé par DART sur Dimorphos. La mission observe aussi une rotation chaotique et des centaines de blocs autour du système.",
+      "impact": "Ces observations doivent aider à comprendre la réaction d’un astéroïde à un impact volontaire et à améliorer les modèles de déviation.",
+      "caveat": "Premiers résultats : la masse et la structure interne restent à préciser. Un succès sur Dimorphos ne garantit pas une efficacité identique sur d’autres astéroïdes.",
+      "sourceName": "Agence spatiale européenne (ESA)",
+      "sourceUrl": "https://www.esa.int/articles/about-us/directorates/operations/space-safety/hera/hera-reveals-stadium-sized-asteroid-crater-left-after-spacecraft-impact",
+      "sourceDate": "2026-11-25",
+      "reviewedAt": "2026-11-26T05:14:20Z",
+      "articleSlug": "hera-dimorphos-cratere-dart-premieres-images-2026",
+      "imageUrl": "https://media.esa.int/global/public/common/misc/2026/11/402774/image-thumb__402774__social_share/hera-afc-dimorphos-crater-261107crop.b92d07c6.jpg",
+      "imageCredit": "©ESA — Dimorphos photographié par Hera/AFC, image présentée le 25 novembre 2026"
+    },
     {
       "id": "company-of-heroes-3-operation-torch-sortie-20261125",
       "topics": [
