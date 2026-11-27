@@ -2,8 +2,25 @@
   "schema": 1,
   "kind": "swapp-editorial-signals",
   "method": "Brèves rédigées à partir de sources primaires, avec revendication, intérêt et limites distincts. Ne jamais convertir automatiquement un RSS en brève vérifiée.",
-  "updatedAt": "2026-11-27T17:12:57Z",
+  "updatedAt": "2026-11-27T23:13:41Z",
   "items": [
+    {
+      "id": "space-marine-2-decimation-patch16-20261126",
+      "topics": [
+        "GAMING"
+      ],
+      "title": "Space Marine 2 : Decimation ajoute Weekly Clash et refond le Vanguard",
+      "fact": "Focus et Saber ont lancé le patch 16.0 le 26 novembre sur PC, PS5 et Xbox Series X|S. Il ajoute des règles PvP variables, un secteur de Chaos Siege et de nouvelles possibilités pour le grappin du Vanguard.",
+      "impact": "Les propriétaires du jeu peuvent découvrir les nouveautés de gameplay sans acheter le Season Pass III.",
+      "caveat": "Les packs cosmétiques Deathwatch et Mortifactors sont distincts du contenu gratuit. Certains équipements nécessitent des Accolades ; les difficultés Absolute imposent une progression minimale.",
+      "sourceName": "Saber Interactive / Focus Entertainment — Steam News",
+      "sourceUrl": "https://store.steampowered.com/news/app/2183900/view/678515036155545434",
+      "sourceDate": "2026-11-26",
+      "reviewedAt": "2026-11-27T23:13:41Z",
+      "imageUrl": "https://clan.fastly.steamstatic.com/images/43315296/f5adad1db768377c72409f7fa7d4ef8ad045d4df.jpg",
+      "imageCredit": "Focus Entertainment / Saber Interactive — visuel officiel Decimation publié sur Steam",
+      "articleSlug": "space-marine-2-decimation-patch-16-weekly-clash-vanguard"
+    },
     {
       "id": "silksong-sea-of-sorrow-date-gratuite-20261127",
       "topics": [
