@@ -2,8 +2,24 @@
   "schema": 1,
   "kind": "swapp-editorial-signals",
   "method": "Brèves rédigées à partir de sources primaires, avec revendication, intérêt et limites distincts. Ne jamais convertir automatiquement un RSS en brève vérifiée.",
-  "updatedAt": "2026-11-27T23:13:41Z",
+  "updatedAt": "2026-11-27T23:16:33Z",
   "items": [
+    {
+      "id": "second-front-reforged-presentation-detaillee-20261127",
+      "topics": [
+        "GAMING"
+      ],
+      "title": "Second Front : Reforged revoit l’IA et détaille chaque combat",
+      "fact": "MicroProse et Hexdraw présentent le 27 novembre Reforged, une mise à jour gratuite pour les propriétaires de Second Front sur Steam : coordination de l’IA, règles d’infanterie et de blindés, journal détaillé des jets de dés et outils d’édition enrichis.",
+      "impact": "Le journal de bataille aide à comprendre les résultats des affrontements ; les nouvelles règles peuvent renouveler les scénarios déjà connus.",
+      "caveat": "Le développeur prévient que l’équilibre de certains scénarios peut changer. Le multijoueur reste un prochain chantier ; le DLC Regio Esercito est annoncé sans date vérifiée ici.",
+      "sourceName": "Hexdraw / MicroProse — Steam News",
+      "sourceUrl": "https://store.steampowered.com/news/app/1148490/view/713419201980663386",
+      "sourceDate": "2026-11-27",
+      "reviewedAt": "2026-11-27T23:16:33Z",
+      "imageUrl": "https://clan.fastly.steamstatic.com/images/37041279/92591ce79132ae2007430bcba0e1437da815d4a4.png",
+      "imageCredit": "Hexdraw / MicroProse — visuel officiel Reforged publié sur Steam"
+    },
     {
       "id": "space-marine-2-decimation-patch16-20261126",
       "topics": [
