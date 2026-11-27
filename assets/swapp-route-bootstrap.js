@@ -7,7 +7,9 @@
   '/equipes':'teams','/compte':'settings','/dashboard':'dashboard'
  });
  const normalize=path=>(path||'/').replace(/\/+$/,'')||'/';
- const entryPath=normalize(location.pathname);
+ const currentPath=normalize(location.pathname);
+ // The early HTML remembers a direct magazine entry before legacy boot can rewrite it.
+ const entryPath=currentPath==='/'&&window.__SWAPP_DIRECT_ACTUS_ENTRY__===true?'/actus':currentPath;
  const entry=ROUTES[entryPath];
  if(!entry)return;
  const home=document.getElementById('home');
