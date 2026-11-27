@@ -74,7 +74,7 @@ function buildEditorialRadar({trends, articles = [], catalogueStatus = 'availabl
     if (opportunities.length >= MAX_RESULTS) break;
   }
   return {
-    state: 'ready', actionable: opportunities.length > 0,
+    state: 'ready', actionable: catalogueStatus === 'available' && opportunities.length > 0,
     basis: 'twitch-fr-first100-two-samples-editorial-ideas-only',
     sampledAt: trends.sampledAt, previousSampledAt: trends.previousSampledAt,
     coverage: trends.coverage, catalogueStatus,
@@ -89,6 +89,7 @@ function createEditorialRadarService({getTrends, loadPublished, now = Date.now, 
     throw new TypeError('Invalid editorial radar dependencies');
   let cached = null, inFlight = null;
   async function getPublished() {
+    // Cached CMS links can become stale after a withdrawal. Bound their age.
     if (cached && now() < cached.until) return cached;
     if (inFlight) return inFlight;
     inFlight = (async () => {
