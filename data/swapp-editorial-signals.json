@@ -2,7 +2,7 @@
   "schema": 1,
   "kind": "swapp-editorial-signals",
   "method": "Brèves rédigées à partir de sources primaires, avec revendication, intérêt et limites distincts. Ne jamais convertir automatiquement un RSS en brève vérifiée.",
-  "updatedAt": "2026-11-27T04:59:43Z",
+  "updatedAt": "2026-11-27T11:02:03Z",
   "items": [
     {
       "id": "infinity-nikki-version-30-cicia-ceremius-20261126",
@@ -19,6 +19,23 @@
       "reviewedAt": "2026-11-27T04:59:43Z",
       "imageUrl": "https://blog.playstation.com/tachyon/2048/11/2a1b04b0d0c0589134242513d7310e67844936c9-scaled.jpeg",
       "imageCredit": "© Infold Games — visuel officiel de la version 3.0, PlayStation Blog"
+    },
+    {
+      "id": "xenoblade-chronicles-3-switch-2-overview-heroes-vault-20261125",
+      "topics": [
+        "GAMING"
+      ],
+      "title": "Xenoblade Chronicles 3 sur Switch 2 : Nintendo présente Heroes’ Vault",
+      "fact": "La présentation officielle du 25 novembre détaille Heroes’ Vault, un mode de combats par vagues où les victoires alimentent une jauge d’améliorations et de renforts. Nintendo annonce la Switch 2 Edition pour le 3 décembre, avec le héros Shimmer et de nouvelles scènes doublées.",
+      "impact": "Les propriétaires du jeu Switch pourront acheter un pack de mise à niveau séparé ; les autres joueurs disposeront d’une édition complète. Le nouveau mode ajoute des défis distincts à l’aventure de Noah et Mio.",
+      "caveat": "Il s’agit d’un aperçu avant sortie, pas d’un test. Les performances sont celles annoncées par Nintendo ; les tarifs américains ne sont pas transposés en euros. Le relais asiatique du 27 novembre reprend une annonce du 25.",
+      "sourceName": "Nintendo — présentation officielle américaine",
+      "sourceUrl": "https://www.nintendo.com/us/whatsnew/watch-the-xenoblade-chronicles-3-nintendo-switch-2-edition-overview-trailer-ahead-of-the-game-launch-on-dec-3/",
+      "sourceDate": "2026-11-25",
+      "reviewedAt": "2026-11-27T11:02:03Z",
+      "imageUrl": "https://images.ctfassets.net/pkeegl0voupm/3go5strGGGcDfEzuVTHrFb/71253727e2217cd29511ac16100638b3/xc3_bnr.jpg",
+      "imageCredit": "© Nintendo / MONOLITHSOFT — visuel officiel Nintendo Switch 2 Edition",
+      "imageSourceUrl": "https://www.nintendo.com/ph/news/article/5KOvdG1RBDP6fPRRs3udIN"
     },
     {
       "id": "hera-dimorphos-cratere-dart-premieres-images-20261125",
@@ -337,6 +354,23 @@
       "imageCredit": "ESA · vue d’artiste de l’environnement plasma terrestre, illustration officielle de l’annonce"
     },
     {
+      "id": "arkheron-serveurs-partenaires-acces-gratuit-20261118",
+      "topics": [
+        "GAMING"
+      ],
+      "title": "Arkheron : un accès gratuit prolongé pour les serveurs Discord partenaires",
+      "fact": "L’annonce du 18 novembre prévoit un week-end gratuit du 27 au 29 novembre, puis un accès sans propriétaire dans le groupe du 30 novembre au 6 décembre pour les membres de serveurs partenaires.",
+      "impact": "Ces communautés pourront jouer ensemble sur Steam, PS5 et Xbox Series X|S avec le crossplay.",
+      "caveat": "Il faut l’édition Friend Pass, un serveur participant et un compte Discord lié. La liste des serveurs n’est pas encore fournie dans l’annonce. Après le 6 décembre, les règles normales du Friend Pass reviennent.",
+      "sourceName": "Bonfire Studios · Arkheron",
+      "sourceUrl": "https://www.arkheron.com/en_US/news/partner_servers_announcement/",
+      "sourceDate": "2026-11-18",
+      "reviewedAt": "2026-11-21T04:44:35.398Z",
+      "imageUrl": "https://www.arkheron.com/160850/1795028074-ark_partnerserver_16x9.png",
+      "imageCredit": "Bonfire Studios · visuel officiel Arkheron Partner Servers",
+      "articleSlug": "arkheron-acces-gratuit-lancement-discord-serveurs-partenaires"
+    },
+    {
       "id": "gemini-4-neon-annonce-acces-20261118",
       "topics": [
         "AI"
@@ -368,23 +402,6 @@
       "reviewedAt": "2026-11-20T05:00:40Z",
       "imageUrl": "https://blogs.nvidia.com/wp-content/uploads/2026/11/nv-blog-1280x680-2-1.jpg",
       "imageCredit": "NVIDIA · illustration officielle de l’annonce RTX Spark et de l’IA locale"
-    },
-    {
-      "id": "arkheron-serveurs-partenaires-acces-gratuit-20261118",
-      "topics": [
-        "GAMING"
-      ],
-      "title": "Arkheron : un accès gratuit prolongé pour les serveurs Discord partenaires",
-      "fact": "L’annonce du 18 novembre prévoit un week-end gratuit du 27 au 29 novembre, puis un accès sans propriétaire dans le groupe du 30 novembre au 6 décembre pour les membres de serveurs partenaires.",
-      "impact": "Ces communautés pourront jouer ensemble sur Steam, PS5 et Xbox Series X|S avec le crossplay.",
-      "caveat": "Il faut l’édition Friend Pass, un serveur participant et un compte Discord lié. La liste des serveurs n’est pas encore fournie dans l’annonce. Après le 6 décembre, les règles normales du Friend Pass reviennent.",
-      "sourceName": "Bonfire Studios · Arkheron",
-      "sourceUrl": "https://www.arkheron.com/en_US/news/partner_servers_announcement/",
-      "sourceDate": "2026-11-18",
-      "reviewedAt": "2026-11-21T04:44:35.398Z",
-      "imageUrl": "https://www.arkheron.com/160850/1795028074-ark_partnerserver_16x9.png",
-      "imageCredit": "Bonfire Studios · visuel officiel Arkheron Partner Servers",
-      "articleSlug": "arkheron-acces-gratuit-lancement-discord-serveurs-partenaires"
     },
     {
       "id": "spirit-crossing-lancement-cozy-club-20261116",
@@ -718,6 +735,23 @@
       "imageCredit": "Rockstar Games / Xbox Wire · illustration officielle Grand Theft Auto VI"
     },
     {
+      "id": "outer-worlds2-side-effects-date-20261110",
+      "topics": [
+        "GAMING"
+      ],
+      "title": "The Outer Worlds 2 : premier DLC le 2 décembre",
+      "fact": "Obsidian annonce le 10 novembre l’arrivée de Side Effects Guaranteed, première partie d’une extension narrative de The Outer Worlds 2, le 2 décembre. Le studio confirme aussi une mise à jour permettant à tous les joueurs de redistribuer les compétences de leur personnage.",
+      "impact": "Le DLC ajoutera la région Elysium Valley, cinq armes et un niveau maximal porté à 36. Un personnage prédéfini de niveau 27 permettra de commencer directement cette aventure.",
+      "caveat": "Le DLC est distinct de la mise à jour pour tous ; il est inclus dans la Premium Edition et son Upgrade. La seconde partie est attendue au printemps 2027. Aucun prix français ni horaire de déploiement n’est précisé ici.",
+      "sourceName": "Obsidian Entertainment / PlayStation.Blog",
+      "sourceUrl": "https://blog.playstation.com/2026/11/10/the-outer-worlds-2s-first-dlc-arrives-december-2/",
+      "sourceDate": "2026-11-10",
+      "reviewedAt": "2026-11-13T10:57:01Z",
+      "imageUrl": "https://blog.playstation.com/tachyon/2048/11/e686260d9a10aee07a9ef785c5482efc7cb1055b.jpg",
+      "imageCredit": "Obsidian Entertainment / PlayStation.Blog · The Outer Worlds 2, Side Effects Guaranteed",
+      "articleSlug": null
+    },
+    {
       "id": "marathon-symbiosis-date-modes-20261110",
       "topics": [
         "GAMING"
@@ -841,23 +875,6 @@
       "articleSlug": null,
       "imageUrl": "https://developer-blogs.nvidia.com/wp-content/uploads/2026/11/nvidia-snapshot-gpu-checkpoint-restore-1024x576-jpg.webp",
       "imageCredit": "NVIDIA Developer · Snapshot"
-    },
-    {
-      "id": "outer-worlds2-side-effects-date-20261110",
-      "topics": [
-        "GAMING"
-      ],
-      "title": "The Outer Worlds 2 : premier DLC le 2 décembre",
-      "fact": "Obsidian annonce le 10 novembre l’arrivée de Side Effects Guaranteed, première partie d’une extension narrative de The Outer Worlds 2, le 2 décembre. Le studio confirme aussi une mise à jour permettant à tous les joueurs de redistribuer les compétences de leur personnage.",
-      "impact": "Le DLC ajoutera la région Elysium Valley, cinq armes et un niveau maximal porté à 36. Un personnage prédéfini de niveau 27 permettra de commencer directement cette aventure.",
-      "caveat": "Le DLC est distinct de la mise à jour pour tous ; il est inclus dans la Premium Edition et son Upgrade. La seconde partie est attendue au printemps 2027. Aucun prix français ni horaire de déploiement n’est précisé ici.",
-      "sourceName": "Obsidian Entertainment / PlayStation.Blog",
-      "sourceUrl": "https://blog.playstation.com/2026/11/10/the-outer-worlds-2s-first-dlc-arrives-december-2/",
-      "sourceDate": "2026-11-10",
-      "reviewedAt": "2026-11-13T10:57:01Z",
-      "imageUrl": "https://blog.playstation.com/tachyon/2048/11/e686260d9a10aee07a9ef785c5482efc7cb1055b.jpg",
-      "imageCredit": "Obsidian Entertainment / PlayStation.Blog · The Outer Worlds 2, Side Effects Guaranteed",
-      "articleSlug": null
     },
     {
       "id": "groot2-nvidia-corl-20261109",
