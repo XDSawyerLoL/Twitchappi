@@ -1,0 +1,217 @@
+{
+  "schema": 1,
+  "kind": "swapp-editorial-review-checkpoint",
+  "checkedAt": "2026-11-27T23:18:45Z",
+  "status": "publications_confirmed_registry_control_incomplete",
+  "timezone": "Europe/Paris",
+  "researchWindow": {
+    "recentStartAt": "2026-11-27T17:08:39Z",
+    "recentEndAt": "2026-11-27T23:18:45Z",
+    "catchupOverlapHours": 2,
+    "lastSuccessfulCheckAtKnown": false,
+    "catchupComplete": false,
+    "catchupScope": "Rattrapage ciblé des annonces officielles récentes et des candidats connus ; borne initiale exacte non récupérable car registre canonique inaccessible."
+  },
+  "registry": {
+    "filename": "SWAPP-veille-actualites.json",
+    "readAttempted": true,
+    "exactTitleSearchAttempted": true,
+    "status": "not_visible",
+    "last_successful_check_at_changed": false,
+    "replacementAttempted": false,
+    "backupSaveAttempted": true,
+    "backupSaveStatus": "storage_limit_exceeded"
+  },
+  "repository": {
+    "branch": "master",
+    "manifestLotsBefore": 37,
+    "manifestLotsAfter": 38,
+    "manifestArticlesBefore": 61,
+    "manifestArticlesAfter": 62,
+    "signalsBefore": 61,
+    "signalsAfter": 63,
+    "legacyPendingFileRead": true,
+    "legacyPendingCount": 8,
+    "commits": {
+      "release": "14d82894f6a746549790e5a178f2e453d119def2",
+      "manifest": "5c23366ebb22221f480a29bede56387bdd893d33",
+      "decimationSignal": "88104eb33f688d024c8efdad2c17a1bb4b83d030",
+      "secondFrontSignal": "8b04f626afc789cc20a01903dd5faf7a20877ac4"
+    },
+    "withdrawnArticlesRestored": false
+  },
+  "production": {
+    "article": {
+      "slug": "space-marine-2-decimation-patch-16-weekly-clash-vanguard",
+      "url": "https://swapp.tv/actus/space-marine-2-decimation-patch-16-weekly-clash-vanguard",
+      "status": "confirmed_live",
+      "checkedAt": "2026-11-27T23:15:18Z",
+      "httpStatus": 200,
+      "exactBodySummaryTitleSourcesThumbnailAndTrailerMatch": true,
+      "imageLoadedInBrowser": true,
+      "officialVideoEmbedded": true,
+      "videoEmbedAllowed": true,
+      "videoPlaybackNotMeasured": true,
+      "sitemapPresent": true,
+      "editableInStudio": true
+    },
+    "previousRelease": {
+      "slug": "hollow-knight-silksong-sea-of-sorrow-date-extension-gratuite-decembre-2026",
+      "status": "confirmed_live",
+      "httpStatus": 200,
+      "sitemapPresent": true,
+      "imageLoadedInBrowser": true,
+      "videoEmbedded": true,
+      "editableInStudio": true
+    },
+    "signals": {
+      "endpoint": "https://swapp.tv/api/actus/signaux",
+      "status": 200,
+      "checkedAt": "2026-11-27T23:17:50Z",
+      "newIds": [
+        "space-marine-2-decimation-patch16-20261126",
+        "second-front-reforged-presentation-detaillee-20261127"
+      ],
+      "bothPresent": true,
+      "officialImagesLoadedInMagazine": true,
+      "publishedResponseLimit": 24
+    },
+    "storage": {
+      "backend": "mysql-hostinger",
+      "connected": true,
+      "stored": 62,
+      "published": 62,
+      "migrationVerified": false,
+      "needsImport": true
+    },
+    "cms": {
+      "releaseCount": 39,
+      "editableCount": 39
+    },
+    "magazine": {
+      "singleFlashCarousel": true,
+      "desktopCardWidth": 377.359375,
+      "cardHeight": 100.5,
+      "detailsCollapsed": true,
+      "mobileNotRetested": true,
+      "layoutChanged": false
+    }
+  },
+  "radar": {
+    "url": "https://swapp.tv/api/swapp/autonomy/editorial-opportunities",
+    "httpStatus": 200,
+    "state": "ready",
+    "sampledAt": "2026-11-27T23:05:05.524Z",
+    "previousSampledAt": "2026-11-27T23:00:52.849Z",
+    "usedAsAnnouncementEvidence": false,
+    "extraTwitchRequests": false
+  },
+  "sourcesConsulted": [
+    {
+      "url": "https://blog.playstation.com/feed/",
+      "result": "Latest 27 November community photo selection; 26 November Infinity Nikki already covered"
+    },
+    {
+      "url": "https://www.nintendo.com/ph/news/article/5KOvdG1RBDP6fPRRs3udIN",
+      "result": "27 November regional relay of 25 November announcement; duplicate not republished"
+    },
+    {
+      "url": "https://www.teamcherry.com.au/blog/its-cherry-time",
+      "result": "Silksong already manifested and now confirmed live"
+    },
+    {
+      "url": "https://store.steampowered.com/news/app/2183900/view/678515036155545434",
+      "sourceDate": "2026-11-26T15:16:27Z",
+      "result": "Release article and FLASH; original date checked against metadata and publisher"
+    },
+    {
+      "url": "https://store.steampowered.com/news/app/2183900/view/685271704309596216",
+      "sourceDate": "2026-11-26T10:01:30Z",
+      "result": "Final patch notes read"
+    },
+    {
+      "url": "https://www.focus-entmt.com/en/news/warhammer-40000-space-marine-2s-decimation-update-is-out",
+      "result": "Primary publisher page read through web; separate direct HTTP request returned 403; no bypass"
+    },
+    {
+      "url": "https://www.youtube.com/watch?v=5RlbrV641WA",
+      "result": "Focus Entertainment author, 26 November publication, playableInEmbed true, France allowed, official thumbnail viewed"
+    },
+    {
+      "url": "https://store.steampowered.com/news/app/1148490/view/713419201980663386",
+      "sourceDate": "2026-11-27T11:29:53Z",
+      "result": "Primary page and feed read; exact OG image downloaded for inspection; FLASH only"
+    },
+    {
+      "url": "https://www.microprose.com/news/second-front/second-front-reforged-major-update-arrives-november-27",
+      "sourceDate": "2026-11-15",
+      "result": "Original preview date distinguished from 27 November detailed release announcement"
+    },
+    {
+      "url": "https://deepmind.google/blog/",
+      "result": "Latest listed models/science posts compared with existing signals; no new verified major event selected"
+    },
+    {
+      "url": "https://mistral.ai/news/",
+      "result": "Latest listed article 5 November; no duplicate publication"
+    },
+    {
+      "url": "https://blogs.nvidia.com/",
+      "result": "Current official index read"
+    },
+    {
+      "url": "https://blogs.nvidia.com/blog/geforce-now-thursday-community-war-thunder-reward/",
+      "sourceDate": "2026-11-26",
+      "result": "Read; promotional cloud-gaming update not selected for a long article"
+    },
+    {
+      "url": "https://www.esa.int/",
+      "result": "Latest index lists 26 November Gaia future event and ozone article; no unsupported claim of new data release"
+    },
+    {
+      "url": "https://bsky.app/profile/bethesdastudios.com/post/3mzg5pmb4mk2p",
+      "sourceDate": "2026-11-03",
+      "result": "Bethesda current primary post read; Sentinel title explicitly present; no amplification of other repository claims"
+    }
+  ],
+  "duplicates": [
+    "Silksong — Sea of Sorrow announcement 27 November; already in manifest",
+    "Infinity Nikki 3.0 — existing FLASH",
+    "Xenoblade Chronicles 3 Switch 2 — 25 November event, 27 November regional relay",
+    "DeepMind Mass Spec Skills / quantum agents / Gemini 4 Neon — existing signals",
+    "Phantom Blade Zero and reference AI/robotics/future dossiers — retained manifest entries"
+  ],
+  "candidates": [
+    {
+      "id": "second-front-reforged-long-form",
+      "status": "candidate",
+      "sourceUrl": "https://store.steampowered.com/news/app/1148490/view/713419201980663386",
+      "sourceDate": "2026-11-27",
+      "reviewedAt": "2026-11-27T23:18:45Z",
+      "blocker": "Aucune vidéo officielle intégrable pertinente validée pour le dossier long ; brève illustrée vérifiée publiée."
+    },
+    {
+      "id": "legend-robot-projects-20261127",
+      "status": "pending_review",
+      "sourceUrl": "https://www.globenewswire.com/news-release/2026/11/27/3411485/0/en/legend-robot-expands-global-construction-robotics-footprint-to-500-projects-and-10-million-m.html",
+      "blocker": "Résultat de recherche seulement ; ouverture primaire en échec. Chiffres, date exacte, médias et portée non validés ; aucune publication."
+    },
+    {
+      "id": "second-front-regio-esercito",
+      "status": "candidate",
+      "sourceUrl": "https://store.steampowered.com/news/app/1148490/view/713419201980663386",
+      "reviewedAt": "2026-11-27T23:18:45Z",
+      "blocker": "Annonce du DLC observée ; date, prix, vidéo et fiche exacte restent à vérifier."
+    }
+  ],
+  "schedule": {
+    "sixHourlyUnchanged": true,
+    "enabledConfirmed": true,
+    "newAutomationCreated": false,
+    "newPaidService": false
+  },
+  "notification": {
+    "reason": "new_article_confirmed_live",
+    "noticePendingFinalResponse": true
+  }
+}
