@@ -2,8 +2,24 @@
   "schema": 1,
   "kind": "swapp-editorial-signals",
   "method": "Brèves rédigées à partir de sources primaires, avec revendication, intérêt et limites distincts. Ne jamais convertir automatiquement un RSS en brève vérifiée.",
-  "updatedAt": "2026-11-26T05:14:20Z",
+  "updatedAt": "2026-11-27T04:59:43Z",
   "items": [
+    {
+      "id": "infinity-nikki-version-30-cicia-ceremius-20261126",
+      "topics": [
+        "GAMING"
+      ],
+      "title": "Infinity Nikki 3.0 ouvre les portes de Cicia et Ceremius",
+      "fact": "Infold annonce pour le 26 novembre la version 3.0 « Of Yesterday and Tomorrow » sur PS5 : deux villes à explorer, de nouvelles capacités et des combats utilisant armes à feu et magie.",
+      "impact": "Les nouveaux joueurs comme les habitués peuvent rejoindre directement Cicia. Un tutoriel de transition et le choix du chapitre doivent faciliter la reprise.",
+      "caveat": "Les annonces de récompenses restent soumises aux conditions des événements ; certaines tenues relèvent des achats ou tirages. La disponibilité sur les autres plateformes n’est pas vérifiée ici.",
+      "sourceName": "Infold Games / PlayStation Blog",
+      "sourceUrl": "https://blog.playstation.com/2026/11/26/infinity-nikki-version-3-0-of-yesterday-and-tomorrow-update-live-today-on-ps5/",
+      "sourceDate": "2026-11-26",
+      "reviewedAt": "2026-11-27T04:59:43Z",
+      "imageUrl": "https://blog.playstation.com/tachyon/2048/11/2a1b04b0d0c0589134242513d7310e67844936c9-scaled.jpeg",
+      "imageCredit": "© Infold Games — visuel officiel de la version 3.0, PlayStation Blog"
+    },
     {
       "id": "hera-dimorphos-cratere-dart-premieres-images-20261125",
       "topics": [
