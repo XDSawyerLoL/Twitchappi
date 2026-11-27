@@ -2,8 +2,25 @@
   "schema": 1,
   "kind": "swapp-editorial-signals",
   "method": "Brèves rédigées à partir de sources primaires, avec revendication, intérêt et limites distincts. Ne jamais convertir automatiquement un RSS en brève vérifiée.",
-  "updatedAt": "2026-11-27T11:02:03Z",
+  "updatedAt": "2026-11-27T17:12:57Z",
   "items": [
+    {
+      "id": "silksong-sea-of-sorrow-date-gratuite-20261127",
+      "topics": [
+        "GAMING"
+      ],
+      "title": "Silksong : Sea of Sorrow arrive gratuitement le 11 décembre",
+      "fact": "Team Cherry annonce le 27 novembre la sortie de l’extension Sea of Sorrow pour le 11 décembre 2026. L’aventure maritime ajoute des lieux, personnages, boss et musiques à Hollow Knight: Silksong.",
+      "impact": "Les joueurs pourront prolonger Silksong sans achat supplémentaire pour cette extension.",
+      "caveat": "Le jeu de base reste nécessaire. L’annonce ne précise ni l’heure de déploiement en France ni les conditions exactes d’accès depuis une sauvegarde.",
+      "sourceName": "Team Cherry — Steam News",
+      "sourceUrl": "https://store.steampowered.com/news/app/1030300/view/687523504123283104",
+      "sourceDate": "2026-11-27",
+      "reviewedAt": "2026-11-27T17:12:57Z",
+      "imageUrl": "https://clan.fastly.steamstatic.com/images/34523478/1dd285331e6891497f51e0e6c6e9988c49628888.png",
+      "imageCredit": "Team Cherry — visuel officiel Sea of Sorrow publié sur Steam",
+      "articleSlug": "hollow-knight-silksong-sea-of-sorrow-date-extension-gratuite-decembre-2026"
+    },
     {
       "id": "infinity-nikki-version-30-cicia-ceremius-20261126",
       "topics": [
