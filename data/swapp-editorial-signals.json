@@ -2,23 +2,40 @@
   "schema": 1,
   "kind": "swapp-editorial-signals",
   "method": "Brèves rédigées à partir de sources primaires, avec revendication, intérêt et limites distincts. Ne jamais convertir automatiquement un RSS en brève vérifiée.",
-  "updatedAt": "2026-11-27T23:16:33Z",
+  "updatedAt": "2026-11-28T04:47:37Z",
   "items": [
+    {
+      "id": "subnautica-2-leap-forward-showcase-20261123",
+      "topics": [
+        "GAMING"
+      ],
+      "title": "Subnautica 2 : rendez-vous le 28 novembre à 17 h pour Tar Trek",
+      "fact": "Unknown Worlds annonce le showcase Leap Forward le 28 novembre à 8 h PST, soit 17 h à Paris. Il doit présenter la bande-annonce et du gameplay de Tar Trek, dont la sortie est prévue le 1er décembre.",
+      "impact": "La présentation officielle doit permettre de découvrir la bande-annonce et du gameplay avant la prochaine mise à jour de Subnautica 2.",
+      "caveat": "Le rendez-vous a été annoncé dès le 23 novembre. Le contenu présenté et les modalités de la mise à jour restent à vérifier après la diffusion ; Tar Trek n'est pas annoncé comme déjà disponible.",
+      "sourceName": "Unknown Worlds — Steam News",
+      "sourceUrl": "https://store.steampowered.com/news/app/1962700/view/670634371777037443",
+      "sourceDate": "2026-11-23",
+      "reviewedAt": "2026-11-28T04:47:37Z",
+      "imageUrl": "https://clan.fastly.steamstatic.com/images/45259627/f17eb9f9b632e5900c528cc7dcd524de0cd8634a.jpg",
+      "imageCredit": "Unknown Worlds Entertainment — visuel officiel Leap Forward / Tar Trek publié sur Steam"
+    },
     {
       "id": "second-front-reforged-presentation-detaillee-20261127",
       "topics": [
         "GAMING"
       ],
       "title": "Second Front : Reforged revoit l’IA et détaille chaque combat",
-      "fact": "MicroProse et Hexdraw présentent le 27 novembre Reforged, une mise à jour gratuite pour les propriétaires de Second Front sur Steam : coordination de l’IA, règles d’infanterie et de blindés, journal détaillé des jets de dés et outils d’édition enrichis.",
+      "fact": "MicroProse et Hexdraw confirment la disponibilité de Reforged depuis le 27 novembre, gratuitement pour les propriétaires de Second Front sur Steam : IA remaniée, règles d'infanterie et de blindés, journal détaillé des jets de dés et outils d'édition enrichis.",
       "impact": "Le journal de bataille aide à comprendre les résultats des affrontements ; les nouvelles règles peuvent renouveler les scénarios déjà connus.",
       "caveat": "Le développeur prévient que l’équilibre de certains scénarios peut changer. Le multijoueur reste un prochain chantier ; le DLC Regio Esercito est annoncé sans date vérifiée ici.",
       "sourceName": "Hexdraw / MicroProse — Steam News",
       "sourceUrl": "https://store.steampowered.com/news/app/1148490/view/713419201980663386",
       "sourceDate": "2026-11-27",
-      "reviewedAt": "2026-11-27T23:16:33Z",
+      "reviewedAt": "2026-11-28T04:47:37Z",
       "imageUrl": "https://clan.fastly.steamstatic.com/images/37041279/92591ce79132ae2007430bcba0e1437da815d4a4.png",
-      "imageCredit": "Hexdraw / MicroProse — visuel officiel Reforged publié sur Steam"
+      "imageCredit": "Hexdraw / MicroProse — visuel officiel Reforged publié sur Steam",
+      "articleSlug": "second-front-reforged-mise-a-jour-ia-journal-combat"
     },
     {
       "id": "space-marine-2-decimation-patch16-20261126",
