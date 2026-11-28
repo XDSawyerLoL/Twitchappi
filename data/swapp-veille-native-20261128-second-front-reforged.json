@@ -1,0 +1,64 @@
+{
+  "kind": "swapp-editorial-release",
+  "release": "2026-11-28-second-front-reforged",
+  "articles": [
+    {
+      "title": "Second Front : Reforged change les combats et explique les jets de dés",
+      "slug": "second-front-reforged-mise-a-jour-ia-journal-combat",
+      "summary": "Disponible depuis le 27 novembre sur Steam, Reforged est gratuit pour les propriétaires de Second Front. IA, blindés, journal de bataille : voici ce qui change.",
+      "body": "## Une mise à jour gratuite, pas un nouveau jeu\n\nMicroProse et Hexdraw ont annoncé le 27 novembre 2026 la disponibilité de Reforged sur Steam. Cette mise à jour de Second Front est gratuite pour les personnes qui possèdent déjà le jeu. Elle modifie plusieurs systèmes de combat et la présentation des batailles ; le jeu de base reste nécessaire.\n\nL'annonce initiale remontait au 15 novembre. Le communiqué de lancement et les explications détaillées du 27 constituent ici le fait nouveau. Les différentes étapes ne doivent pas être confondues : la courte vidéo intégrée à ce dossier est l'aperçu officiel du 15 novembre, consacré à la caméra et aux sons, et non une présentation exhaustive de la version finale.\n\n## Le cadre : un wargame solo sur Windows\n\nLa fiche Steam présente Second Front comme un jeu tactique au tour par tour situé pendant la Seconde Guerre mondiale, développé par Hexdraw et édité par MicroProse. Sorti en janvier 2023, il propose des batailles sur une grille d'hexagones, des éditeurs et des scénarios communautaires accessibles par le Workshop. L'interface française est répertoriée.\n\nLa version examinée ici est celle de Windows sur Steam. La boutique indique le jeu solo : il serait prématuré de conseiller Reforged pour organiser une partie multijoueur. Pour découvrir ce type de jeu, l'enjeu est de comprendre les règles qui produisent un résultat, puis de pouvoir adapter sa décision au tour suivant.\n\n## Infanterie et blindés : revoir ses habitudes\n\nLa présentation du 15 novembre mettait en avant l'infanterie Berserk, qui peut charger l'adversaire, et une place accrue de l'orientation des tourelles. Elle annonçait également les munitions perforantes APCR et APDS, dont la présence dépend du contexte historique des scénarios.\n\nNotre lecture : ces modifications incitent à réfléchir à la position d'un char au-delà de son seul déplacement. Un emplacement avantageux doit aussi être examiné selon les directions d'où peut venir une menace. Pour un habitué, reprendre une mission connue constitue donc une occasion de réévaluer sa méthode, plutôt que de répéter automatiquement une solution ancienne.\n\n## Le journal rend les résultats plus lisibles\n\nLe nouveau Battle Log associe les jets de dés aux actions qu'ils résolvent. Les explications officielles couvrent notamment le ralliement, les tirs et le combat rapproché. Une perte de véhicule peut être reliée à l'entrée correspondante du journal.\n\nC'est, à nos yeux, l'un des ajouts les plus utiles pour apprendre. Une défaite peut venir d'une décision risquée ou d'un résultat défavorable malgré une décision raisonnable. Pouvoir relire la résolution aide à distinguer les deux. Cela ne supprime ni l'aléatoire ni la difficulté ; cela donne davantage d'éléments pour examiner ce qui s'est passé.\n\n## Une IA remaniée, des gains à apprécier en jeu\n\nHexdraw décrit une meilleure coordination entre unités, une sélection plus attentive des positions et une défense revue des objectifs. Le studio annonce aussi des optimisations de fluidité. SWAPP n'a pas mesuré ces améliorations : aucun gain de performances ni niveau de difficulté précis ne peut en être déduit.\n\nL'habillage évolue également. La présentation officielle montre une caméra rapprochée et annonce des décors, des animations et des sons retravaillés. Le communiqué de lancement mentionne des améliorations des éditeurs et la possibilité de jouer certains scénarios depuis le camp opposé. Il ne s'agit pas d'une promesse applicable indistinctement à toutes les missions.\n\n## Équilibrage, multijoueur et DLC : les limites à retenir\n\nLe développeur avertit que les règles et l'IA peuvent modifier l'équilibre de scénarios existants. Il sollicite des retours précis sur la mission et le camp concernés. Cette réserve mérite d'accompagner l'annonce : un adversaire remanié ne garantit pas que chaque bataille demeure aussi équilibrée qu'avant.\n\nRegio Esercito est annoncé séparément comme un futur DLC consacré aux forces italiennes. Aucune date ni aucun tarif vérifié ne sont avancés ici. Le multijoueur figure parmi les prochains objectifs de développement ; il n'est pas présenté comme une fonction livrée avec Reforged.\n\nPour reprendre le jeu, notre conseil est de choisir d'abord un scénario familier, d'observer les nouvelles résolutions et de consulter le journal après un résultat surprenant. Cette démarche permettra d'apprécier les changements annoncés sans confondre les possibilités documentées avec un verdict de test.",
+      "game": "Second Front",
+      "games": [
+        "Second Front"
+      ],
+      "tags": [
+        "GAMING",
+        "Second Front",
+        "Reforged",
+        "tactique",
+        "mise à jour"
+      ],
+      "seo": {
+        "title": "Second Front Reforged : IA, blindés et journal de combat",
+        "description": "Reforged est disponible depuis le 27 novembre sur Steam. Mise à jour gratuite, IA, règles de combat et limites : les faits vérifiés sur Second Front."
+      },
+      "author": "Rédaction SWAPP",
+      "category": "Actualités JV",
+      "contentType": "article",
+      "status": "published",
+      "publishedAt": "2026-11-28T04:45:53Z",
+      "trailerUrl": "https://www.youtube.com/watch?v=4qNKYm_HVAg",
+      "thumbnail": {
+        "url": "https://clan.fastly.steamstatic.com/images/37041279/92591ce79132ae2007430bcba0e1437da815d4a4.png",
+        "credit": "Hexdraw / MicroProse — visuel officiel Second Front: Reforged",
+        "rights": "Visuel officiel fourni sur la page d'annonce Steam ; image distante, sans réhébergement.",
+        "alt": "Char sur une carte enneigée de Second Front sous le titre Reforged",
+        "position": "center"
+      },
+      "image": null,
+      "commercialLinks": [],
+      "sources": [
+        {
+          "label": "MicroProse / Hexdraw — communiqué de disponibilité, 27 novembre 2026",
+          "url": "https://www.gamespress.com/en-US/Second-Front-Reforged---Major-Free-Update-Out-Now"
+        },
+        {
+          "label": "Hexdraw / MicroProse — détails de Reforged sur Steam, 27 novembre 2026",
+          "url": "https://store.steampowered.com/news/app/1148490/view/713419201980663386"
+        },
+        {
+          "label": "MicroProse — annonce initiale et aperçu, 15 novembre 2026",
+          "url": "https://www.microprose.com/news/second-front/second-front-reforged-major-update-arrives-november-27"
+        },
+        {
+          "label": "Second Front Game — aperçu vidéo officiel, 15 novembre 2026",
+          "url": "https://www.youtube.com/watch?v=4qNKYm_HVAg"
+        },
+        {
+          "label": "Steam — fiche officielle, Windows et fonctionnalités",
+          "url": "https://store.steampowered.com/app/1148490/Second_Front/?l=french"
+        }
+      ]
+    }
+  ]
+}
